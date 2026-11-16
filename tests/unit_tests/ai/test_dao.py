@@ -19,6 +19,7 @@
 from datetime import datetime
 from typing import Any
 
+import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
@@ -229,9 +230,11 @@ def test_create_idempotent_returns_the_stored_turn_on_replay(
     assert session.query(AIChatMessage).count() == 1
 
 
+@pytest.mark.parametrize("role", ["user", "assistant"])
 def test_create_idempotent_recovers_from_a_racing_insert(
     session: Session,
     mocker: MockerFixture,
+    role: str,
 ) -> None:
     """
     A replay that races the original resolves to the row that won.
@@ -248,7 +251,12 @@ def test_create_idempotent_recovers_from_a_racing_insert(
     _create_tables(session)
     thread = AIChatThreadDAO.create_for_user(USER_A)
     first, _ = AIChatMessageDAO.create_idempotent(
-        thread, MessageRole.USER, "how many users?", user_id=USER_A, request_id="req-1"
+        thread,
+        role,
+        "how many users?",
+        user_id=USER_A,
+        request_id="req-1",
+        extra={"run_id": "accepted-run"},
     )
 
     lookup = AIChatMessageDAO.find_by_request_id
@@ -267,11 +275,17 @@ def test_create_idempotent_recovers_from_a_racing_insert(
     )
 
     replay, created = AIChatMessageDAO.create_idempotent(
-        thread, MessageRole.USER, "how many users?", user_id=USER_A, request_id="req-1"
+        thread,
+        role,
+        "how many users?",
+        user_id=USER_A,
+        request_id="req-1",
+        extra={"run_id": "racing-run"},
     )
 
     assert created is False
     assert replay.id == first.id
+    assert replay.extra["run_id"] == "accepted-run"
     assert session.query(AIChatMessage).count() == 1
     # The session survived the rejected insert and can still be written to.
     AIChatMessageDAO.create_idempotent(
@@ -446,3 +460,41 @@ def test_find_verdicts_for_user_short_circuits_on_nothing_to_look_up(
     _create_tables(session)
     assert AIChatFeedbackDAO.find_verdicts_for_user([], USER_A) == {}
     assert AIChatFeedbackDAO.find_verdicts_for_user([1, 2], None) == {}
+
+
+def test_delete_older_than_removes_the_whole_expired_conversation(
+    session: Session,
+) -> None:
+    """Retention removes messages and feedback but preserves newer threads."""
+    from superset.ai.types import MessageRole
+    from superset.daos.ai import AIChatMessageDAO, AIChatThreadDAO
+    from superset.models.ai import AIChatFeedback, AIChatMessage, AIChatThread
+
+    _create_tables(session)
+    old = AIChatThreadDAO.create_for_user(USER_A)
+    message, _ = AIChatMessageDAO.create_idempotent(
+        old, MessageRole.ASSISTANT, "old answer", user_id=USER_A
+    )
+    session.add(AIChatFeedback(message_id=message.id, liked=True, created_by_fk=USER_A))
+    old.changed_on = datetime(2024, 1, 1)
+    new = AIChatThreadDAO.create_for_user(USER_A)
+    new.changed_on = datetime(2024, 2, 1)
+    session.flush()
+
+    assert AIChatThreadDAO.delete_older_than(datetime(2024, 1, 15)) == 1
+    assert session.query(AIChatThread).count() == 1
+    assert session.query(AIChatThread).one().id == new.id
+    assert session.query(AIChatMessage).count() == 0
+    assert session.query(AIChatFeedback).count() == 0
+
+
+def test_prune_task_is_registered_in_the_default_daily_schedule() -> None:
+    """The documented retention task is runnable without custom wiring."""
+    from superset import config
+    from superset.ai.tasks import prune_conversations
+
+    assert prune_conversations.name == "ai.prune_conversations"
+    entry = config.CeleryConfig.beat_schedule["ai.prune_conversations"]
+    assert entry["task"] == "ai.prune_conversations"
+    assert entry["schedule"].minute == {30}
+    assert entry["schedule"].hour == {3}

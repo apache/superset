@@ -121,8 +121,7 @@ function getPackages(packagePattern, tsOnly = false) {
 
 let scope = getPackages(glob);
 
-const babelCommand = `lerna exec --stream --concurrency 10 --scope ${scope}\
-        -- babel ${BABEL_CONFIG} src --extensions ".ts,.tsx,.js,.jsx" --copy-files`;
+const babelCommand = `lerna exec --stream --concurrency 10 --scope ${scope} -- babel ${BABEL_CONFIG} src --extensions ".ts,.tsx,.js,.jsx" --copy-files`;
 
 if (skipLib) {
   console.log('--- Skipping babel lib (--skip-lib) ---');
@@ -138,7 +137,13 @@ run(`${babelCommand} --out-dir esm`, {
 });
 
 console.log('--- Run tsc ---');
+// Build shared references once so parallel plugins only read their declarations.
+// Otherwise each plugin's build can write the same outputs concurrently.
+run(
+  'tsc --build packages/superset-core packages/superset-ui-core packages/superset-ui-chart-controls',
+);
 // only run tsc for packages with ts files
 scope = getPackages(glob, true);
-run(`lerna exec --stream --concurrency 3 --scope ${scope} \
-      -- ../../scripts/tsc.sh --build`);
+run(
+  `lerna exec --stream --concurrency 3 --scope ${scope} -- ../../scripts/tsc.sh --build`,
+);

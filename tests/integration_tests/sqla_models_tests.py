@@ -1104,19 +1104,25 @@ def test_extra_cache_keys_in_adhoc_metrics_and_columns(
     assert extra_cache_keys == expected_cache_keys
 
 
-def templated_dataset(main_dttm_col: str = "ds") -> SqlaTable:
+def templated_dataset(
+    main_dttm_col: str = "ds", always_filter_main_dttm: bool = False
+) -> SqlaTable:
     """
     A dataset whose calculated columns, temporal column and metrics carry macros.
 
     `mine` is a calculated temporal column and `ds` a plain one, so a query can
     name either as its `granularity`. `main_dttm_col` is what `get_sqla_query`
-    falls back to when `granularity` is not one of the temporal columns.
+    falls back to when `granularity` is not one of the temporal columns, and
+    also the column it adds a second time filter on when
+    `always_filter_main_dttm` is set and it differs from the resolved
+    `granularity`.
     """
     return SqlaTable(
         table_name="test_has_no_extra_cache_keys_table",
         sql="SELECT 'abc' as user",
         database=get_example_database(),
         main_dttm_col=main_dttm_col,
+        always_filter_main_dttm=always_filter_main_dttm,
         columns=[
             TableColumn(column_name="user", type="VARCHAR(255)"),
             TableColumn(
@@ -1285,6 +1291,108 @@ def test_extra_cache_keys_differ_once_the_gate_fires(
         table.get_extra_cache_keys(cast(QueryObjectDict, query_obj))
         == expected_cache_keys
     )
+
+
+@pytest.mark.usefixtures("app_context")
+@pytest.mark.parametrize(
+    "query_obj_fragment,main_dttm_col,always_filter_main_dttm,has_extra_cache_keys",
+    [
+        # ``granularity=""`` is not a column name, so ``get_sqla_query`` takes
+        # the same fallback to ``main_dttm_col`` that an unmatched column name
+        # does. The gate checked ``granularity``'s truthiness instead of
+        # whether it was provided at all, so an empty string skipped the
+        # fallback entirely and missed the macro ``main_dttm_col`` carries.
+        ({"granularity": ""}, "mine", False, True),
+        ({"granularity": "ds"}, "mine", False, False),
+        ({}, "mine", False, False),
+        # With ``always_filter_main_dttm`` on and ``main_dttm_col`` a
+        # different, macro-carrying temporal column, ``get_sqla_query`` adds
+        # a second time filter on ``main_dttm_col`` regardless of which
+        # column ``granularity`` named.
+        ({"granularity": "ds"}, "mine", True, True),
+        # No ``granularity`` at all means ``get_sqla_query`` adds no time
+        # filter of any kind, so the flag alone does not trigger anything.
+        ({}, "mine", True, False),
+        # ``main_dttm_col`` equal to the resolved ``granularity`` is still
+        # caught, here only by the primary check since ``mine`` carries its
+        # own macro either way.
+        ({"granularity": "mine"}, "mine", True, True),
+    ],
+)
+def test_extra_cache_keys_for_granularity_fallback_and_always_filter_main_dttm(
+    query_obj_fragment: dict[str, Any],
+    main_dttm_col: str,
+    always_filter_main_dttm: bool,
+    has_extra_cache_keys: bool,
+):
+    """
+    Two gaps in the ``granularity``/``main_dttm_col`` handling, found in
+    review on #45431 and left for this follow-up rather than widening that PR.
+
+    `get_sqla_query` falls back from `granularity` to `main_dttm_col` whenever
+    `granularity` is not one of the dataset's temporal columns, which an empty
+    string satisfies the same as any other non-matching name, but the gate
+    checked `granularity`'s truthiness and skipped the fallback for `""`.
+
+    Separately, when the dataset has `always_filter_main_dttm` set and
+    `main_dttm_col` differs from the column `granularity` resolved to,
+    `get_sqla_query` adds a second, independent time filter on `main_dttm_col`,
+    rendering that column's own expression regardless of which column the
+    query named.
+    """
+    table = templated_dataset(main_dttm_col, always_filter_main_dttm)
+    query_obj: dict[str, Any] = {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "groupby": [],
+        "metrics": [],
+        "columns": [],
+        "is_timeseries": False,
+        "filter": [],
+        **query_obj_fragment,
+    }
+
+    assert (
+        table.has_extra_cache_key_calls(cast(QueryObjectDict, query_obj))
+        == has_extra_cache_keys
+    )
+
+
+@pytest.mark.usefixtures("app_context")
+@pytest.mark.parametrize(
+    "query_obj_fragment,main_dttm_col,always_filter_main_dttm",
+    [
+        ({"granularity": ""}, "mine", False),
+        ({"granularity": "ds"}, "mine", True),
+    ],
+)
+@patch("superset.jinja_context.get_username", return_value="abc")
+def test_extra_cache_keys_differ_for_granularity_fallback_and_always_filter_main_dttm(
+    mock_username: Mock,
+    query_obj_fragment: dict[str, Any],
+    main_dttm_col: str,
+    always_filter_main_dttm: bool,
+):
+    """
+    As with the other fields in this class, the gate firing and the key
+    actually differing are two separate claims; these assert
+    `get_extra_cache_keys` for the two fixed cases above.
+    """
+    table = templated_dataset(main_dttm_col, always_filter_main_dttm)
+    query_obj: dict[str, Any] = {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "groupby": [],
+        "metrics": ["plain_total"],
+        "columns": [],
+        "is_timeseries": False,
+        "filter": [],
+        **query_obj_fragment,
+    }
+
+    assert table.get_extra_cache_keys(cast(QueryObjectDict, query_obj)) == ["abc"]
 
 
 @pytest.mark.usefixtures("app_context")

@@ -194,6 +194,14 @@ class DeleteAIChatThreadCommand(BaseCommand):
         self._model = AIChatThreadDAO.find_by_uuid_for_user(
             self._thread_uuid,
             self._user_id,
+            for_update=True,
         )
         if not self._model:
             raise AIChatThreadNotFoundError(self._thread_uuid)
+        from superset.daos.ai import AIChatMessageDAO
+
+        if AIChatMessageDAO.has_active_run(self._model):
+            raise AIChatThreadInvalidError(
+                "Wait for the active run to finish or stop it "
+                "before deleting this conversation."
+            )

@@ -82,6 +82,14 @@ class ToolError(Exception):
     """
 
 
+def require_read_access(resource: str) -> None:
+    """Apply the REST resource gate before checking individual data objects."""
+    from superset import security_manager
+
+    if not security_manager.can_access("can_read", resource):
+        raise ToolError(f"Reading {resource} requires can_read permission.")
+
+
 @dataclass(frozen=True)
 class ToolOutput:
     """
@@ -194,46 +202,66 @@ def truncate_payload(payload: Any, max_bytes: int) -> tuple[str, bool]:
     """
     Serialise ``payload`` and bound it to ``max_bytes``.
 
-    Returns the JSON text and whether anything was dropped. Truncation is
-    applied to the largest list in a mapping payload — result rows in practice —
-    because halving a row count is comprehensible to the model whereas cutting a
-    JSON string mid-token is not. When there is no list to shrink, the text is
-    cut and the marker says so.
+    Returns valid JSON text and whether anything was dropped. Mapping fields are
+    shortened largest-first so useful smaller fields survive without cutting JSON
+    mid-token.
     """
     text = json.dumps(payload, default=str)
     if len(text.encode("utf-8")) <= max_bytes:
         return text, False
 
     if isinstance(payload, dict):
-        list_keys = [
-            key for key, value in payload.items() if isinstance(value, list) and value
+        candidate = dict(payload)
+        list_counts = [
+            f"{len(value)} {key}"
+            for key, value in payload.items()
+            if isinstance(value, list) and value
         ]
-        if list_keys:
-            # Shrink the longest list first; it is the one carrying the bulk.
-            key = max(list_keys, key=lambda item: len(payload[item]))
-            rows = payload[key]
-            kept = len(rows)
-            # Halve until it fits, always leaving one element so the model can
-            # still see the shape of what it asked for.
-            while kept > 1:
-                kept //= 2
-                candidate = dict(payload)
-                candidate[key] = rows[:kept]
-                candidate[TRUNCATION_KEY] = True
-                candidate[TRUNCATION_NOTE_KEY] = (
-                    f"Returned {kept} of {len(rows)} {key} — the full result "
-                    f"exceeded the {max_bytes} byte response budget. Narrow the "
-                    f"request (fewer columns, a tighter filter, a smaller limit) "
-                    f"to see the rest."
-                )
-                text = json.dumps(candidate, default=str)
-                if len(text.encode("utf-8")) <= max_bytes:
-                    return text, True
+        candidate[TRUNCATION_KEY] = True
+        candidate[TRUNCATION_NOTE_KEY] = (
+            f"Payload exceeded the {max_bytes} byte response budget"
+            + (f" ({', '.join(list_counts)})" if list_counts else "")
+            + ". Large fields were shortened; narrow the request to see the rest."
+        )
 
-    # Nothing structural to shrink: cut the text and say so plainly.
-    note = f'…[truncated to {max_bytes} bytes]"}}'
-    keep = max(0, max_bytes - len(note.encode("utf-8")))
-    return text.encode("utf-8")[:keep].decode("utf-8", "ignore") + note, True
+        while True:
+            text = json.dumps(candidate, default=str)
+            if len(text.encode("utf-8")) <= max_bytes:
+                return text, True
+            values = {
+                key: value
+                for key, value in candidate.items()
+                if key not in {TRUNCATION_KEY, TRUNCATION_NOTE_KEY}
+            }
+            if not values:
+                break
+            key = max(
+                values,
+                key=lambda item: len(
+                    json.dumps(values[item], default=str).encode("utf-8")
+                ),
+            )
+            value = values[key]
+            if isinstance(value, str) and len(value) > 1:
+                candidate[key] = value[: len(value) // 2] + "…"
+            elif isinstance(value, list) and value:
+                candidate[key] = value[: len(value) // 2]
+            elif isinstance(value, dict) and value:
+                candidate[key] = {}
+            else:
+                candidate.pop(key)
+            if key in candidate and candidate[key] == value:
+                candidate.pop(key)
+
+    marker = json.dumps(
+        {
+            TRUNCATION_KEY: True,
+            TRUNCATION_NOTE_KEY: (
+                f"Payload exceeded the {max_bytes} byte response budget."
+            ),
+        }
+    )
+    return marker if len(marker.encode("utf-8")) <= max_bytes else "{}", True
 
 
 def strip_prompt_framing(value: Any) -> Any:
@@ -276,7 +304,7 @@ def bound_display(
 
     The summary is persisted on the message and sent to the browser, so it needs
     its own ceiling rather than riding on the model-facing budget. Reuses the
-    row-dropping strategy so a sample stays a valid sample.
+    same structured truncation so the summary remains valid JSON.
     """
     if display is None:
         return None
@@ -369,6 +397,8 @@ class ToolRegistry:
         self,
         call: ToolCall,
         max_bytes: int | None = None,
+        *,
+        preserve_model_output: bool = False,
     ) -> ToolInvocation:
         """
         Run one tool call and return it with its UI summary and timing.
@@ -399,7 +429,7 @@ class ToolRegistry:
                 f"No tool named {call.name!r}. Available tools: {available}."
             )
 
-        # Every tool here reads a permissioned resource, so all of them need a
+        # Every tool here acts on a permissioned resource, so all of them need a
         # principal to check against. Gated once, here, rather than in each tool:
         # a tool that forgot would otherwise fall through to whatever the
         # security manager does with an absent user, which is not a decision
@@ -434,10 +464,7 @@ class ToolRegistry:
                 f"{call.name} failed unexpectedly. Try a different approach."
             )
 
-        if output.payload is not None:
-            content, truncated = truncate_payload(output.payload, max_bytes)
-        else:
-            content, truncated = _bound_text(output.content, max_bytes)
+        content, truncated = _model_content(output, max_bytes, preserve_model_output)
 
         display = bound_display(
             output.display, int(max_bytes * _DISPLAY_BUDGET_FRACTION)
@@ -460,6 +487,10 @@ class ToolRegistry:
             arguments=dict(call.arguments),
         )
 
+    def invoke_for_context(self, call: ToolCall) -> ToolInvocation:
+        """Let the runtime budget full model evidence while bounding its UI copy."""
+        return self.invoke(call, preserve_model_output=True)
+
     def dispatch(
         self,
         call: ToolCall,
@@ -472,6 +503,22 @@ class ToolRegistry:
         summary.
         """
         return self.invoke(call, max_bytes=max_bytes).result
+
+
+def _model_content(
+    output: ToolOutput, max_bytes: int, preserve_model_output: bool
+) -> tuple[str, bool]:
+    """Separate model evidence from the independently bounded display copy."""
+    if preserve_model_output:
+        content = (
+            json.dumps(output.payload, default=str, ensure_ascii=False)
+            if output.payload is not None
+            else output.content
+        )
+        return content, False
+    if output.payload is not None:
+        return truncate_payload(output.payload, max_bytes)
+    return _bound_text(output.content, max_bytes)
 
 
 def _current_user() -> Any:
@@ -514,10 +561,8 @@ def _configured_max_bytes() -> int:
         return _DEFAULT_MAX_BYTES
 
 
-#: Every built-in tool name. The single source of truth for configuration
-#: validation and documentation: an operator naming a tool in an agent profile's
-#: allowlist is naming one of these.
-ALL_TOOL_NAMES: tuple[str, ...] = (
+#: Tools that inspect Superset or run a read-only warehouse query.
+READ_ONLY_TOOL_NAMES: tuple[str, ...] = (
     "search_assets",
     "list_databases",
     "get_schema",
@@ -526,6 +571,18 @@ ALL_TOOL_NAMES: tuple[str, ...] = (
     "get_chart_context",
     "get_dashboard_context",
 )
+
+#: Asset mutations that a deployment must explicitly add to an agent profile.
+AUTHORING_TOOL_NAMES: tuple[str, ...] = (
+    "create_virtual_dataset",
+    "generate_chart",
+    "generate_dashboard",
+)
+
+#: Every built-in tool name. The single source of truth for configuration
+#: validation and documentation: an operator naming a tool in an agent profile's
+#: allowlist is naming one of these.
+ALL_TOOL_NAMES: tuple[str, ...] = READ_ONLY_TOOL_NAMES + AUTHORING_TOOL_NAMES
 
 #: Names in :data:`ALL_TOOL_NAMES` that do not run a warehouse query.
 DISCOVERY_TOOL_NAMES: tuple[str, ...] = (
@@ -544,6 +601,11 @@ def _all_tools() -> list[AITool]:
     Imports are local because these modules reach into models, DAOs and the
     security manager, and this one is imported from configuration-time code.
     """
+    from superset.ai.tools.authoring import (
+        CreateVirtualDatasetTool,
+        GenerateChartTool,
+        GenerateDashboardTool,
+    )
     from superset.ai.tools.context import GetChartContextTool, GetDashboardContextTool
     from superset.ai.tools.metadata import GetSchemaTool, ListDatabasesTool
     from superset.ai.tools.search import SearchAssetsTool
@@ -557,10 +619,15 @@ def _all_tools() -> list[AITool]:
         ValidateSqlTool(),
         GetChartContextTool(),
         GetDashboardContextTool(),
+        CreateVirtualDatasetTool(),
+        GenerateChartTool(),
+        GenerateDashboardTool(),
     ]
 
 
-#: The full read-only surface. The default for an analysis agent.
+#: Every built-in tool, including explicit asset authoring operations.
+BUNDLE_ALL = "all"
+#: The full read-only surface. The default for shipped agent profiles.
 BUNDLE_READ_ONLY = "read_only"
 #: Metadata and context only; cannot execute SQL. Useful for a cheap routing or
 #: classification pass that should not be able to reach a warehouse.
@@ -570,7 +637,8 @@ BUNDLE_DISCOVERY = "discovery"
 #: ask for instead of enumerating tools, and every member is in
 #: :data:`ALL_TOOL_NAMES`.
 BUNDLES: dict[str, tuple[str, ...]] = {
-    BUNDLE_READ_ONLY: ALL_TOOL_NAMES,
+    BUNDLE_ALL: ALL_TOOL_NAMES,
+    BUNDLE_READ_ONLY: READ_ONLY_TOOL_NAMES,
     BUNDLE_DISCOVERY: DISCOVERY_TOOL_NAMES,
 }
 

@@ -18,8 +18,8 @@
 System prompt assembly and the generic sections Superset itself ships.
 
 ``superset.ai.prompts.core`` holds sections that are true of every deployment.
-Anything true of only one deployment reaches the prompt through a
-:class:`~superset.ai.knowledge.KnowledgeProvider`.
+Deployment-specific guidance can be supplied through
+``AI_EXTRA_PROMPT_SECTIONS``.
 """
 
 from __future__ import annotations

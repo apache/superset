@@ -62,8 +62,6 @@ class AgentProfile:
     max_turns: int | None = None
     #: ``None`` defers to ``AI_AGENT_TIMEOUT_SECONDS``.
     timeout_seconds: float | None = None
-    #: Extra prompt section keys to include for this profile.
-    knowledge_domains: tuple[str, ...] = ()
     #: Names of servers in ``AI_AGENT_MCP_SERVERS`` whose tools this profile may
     #: also use, namespaced ``mcp__<server>__<tool>``. Empty for every built-in
     #: profile, because Superset ships no third-party integration; a deployment
@@ -248,8 +246,6 @@ def _apply_override(base: AgentProfile, override: dict[str, Any]) -> AgentProfil
     values = dict(override)
     if "tools" in values:
         values["tools"] = tuple(values["tools"])
-    if "knowledge_domains" in values:
-        values["knowledge_domains"] = tuple(values["knowledge_domains"])
     if "mcp_servers" in values:
         values["mcp_servers"] = tuple(values["mcp_servers"])
     if "required_permission" in values and values["required_permission"] is not None:

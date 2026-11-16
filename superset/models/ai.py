@@ -174,8 +174,13 @@ class AIChatMessage(AuditMixinNullable, Model):
     request_id = sa.Column(sa.String(96), nullable=True)
     #: Serialised :class:`~superset.ai.types.MessageExtra`.
     extra_json = sa.Column(MediumText(), nullable=True)
+    #: Server-only continuation checkpoint. Not part of the message API schema.
+    context_json = sa.Column(MediumText(), nullable=True)
 
     thread = relationship("AIChatThread", back_populates="messages")
+    feedback = relationship(
+        "AIChatFeedback", back_populates="message", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<AIChatMessage {self.uuid} {self.role} [{self.status}]>"
@@ -247,7 +252,7 @@ class AIChatFeedback(AuditMixinNullable, Model):
     liked = sa.Column(sa.Boolean, nullable=False)
     comment = sa.Column(MediumText(), nullable=True)
 
-    message = relationship("AIChatMessage")
+    message = relationship("AIChatMessage", back_populates="feedback")
 
     def __repr__(self) -> str:
         verdict = "up" if self.liked else "down"

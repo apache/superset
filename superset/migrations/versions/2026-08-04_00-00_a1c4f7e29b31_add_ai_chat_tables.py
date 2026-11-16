@@ -17,7 +17,7 @@
 """add_ai_chat_tables
 
 Revision ID: a1c4f7e29b31
-Revises: e7d93a524ff6
+Revises: f3a8c1d2e9b7
 Create Date: 2026-08-04 00:00:00.000000
 
 """

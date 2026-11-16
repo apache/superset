@@ -43,6 +43,7 @@ from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.pool import QueuePool
 
 from superset.mcp_service.session_scope import _mcp_session_token
+from superset.sql.execution.cancellation import WorkerDeadlineExceeded
 
 if TYPE_CHECKING:
     from flask import Flask
@@ -60,10 +61,6 @@ _P = ParamSpec("_P")
 _T = TypeVar("_T")
 _pools_lock = threading.Lock()
 _pools: WeakKeyDictionary[Flask, WorkerPool] = WeakKeyDictionary()
-
-
-class WorkerDeadlineExceeded(BaseException):
-    """Stop abandoned work without being swallowed by tool error handlers."""
 
 
 BUSY_MESSAGE = "MCP server busy: all tool workers are occupied. Retry later."
@@ -107,6 +104,7 @@ METADATA_ONLY_TOOLS = frozenset(
         "list_rls_filters",
         "list_roles",
         "list_saved_queries",
+        "list_semantic_views",
         "list_tags",
         "list_tasks",
         "list_themes",
@@ -372,6 +370,11 @@ class WorkerCall:
         self.cancel_query: Callable[[], None] | None = None
         self.cancel_dispatched = False
         self.user_id: int | None = None
+        self.query_id: int | None = None
+
+    def record_query(self, query_id: int) -> None:
+        """Remember the query history row of this call's run for a deadline reply."""
+        self.query_id = query_id
 
     def check(self) -> None:
         """Prevent an abandoned tool from starting more work or mutations."""
@@ -640,10 +643,13 @@ def _handle_worker_timeout_or_cancel(
         # done. Propagate that one as itself rather than relabeling it as
         # our deadline.
         raise exc
+    # The abandoned run finishes its history row on its own; name it so the
+    # caller can look it up. A run not yet recorded at the deadline has no id.
+    query = f". Query history id: {call.query_id}" if call.query_id else ""
     raise ToolError(
         f"MCP tool timed out after {seconds:g} seconds. "
         "Warehouse cancellation was requested where supported. "
-        f"Call id: {call.call_id}"
+        f"Call id: {call.call_id}{query}"
     ) from None
 
 
@@ -712,11 +718,13 @@ async def run_in_worker(
         from superset.sql.execution.cancellation import (
             before_warehouse_access,
             cursor_scope,
+            query_recorded,
         )
 
         _active_call.set(call)
         cursor_scope.set(warehouse_cursor)
         before_warehouse_access.set(call.admit_warehouse)
+        query_recorded.set(call.record_query)
         with _worker_context(app):
             vars(g._get_current_object()).update(globals_snapshot)
             with request_copy if request_copy is not None else nullcontext():
@@ -748,7 +756,7 @@ async def run_in_worker(
 
 
 class QueryCancellation:
-    """Bridge engine cancellation to a separate, freshly scoped metadata session."""
+    """Cancel through an owned live cursor or a freshly scoped metadata session."""
 
     def __init__(
         self,
@@ -767,6 +775,8 @@ class QueryCancellation:
         self.schema = schema
         self.cancel_id: str | None = None
         self.context = copy_context()
+        self._cursor_lock = threading.Lock()
+        self._cursor_active = True
 
     def capture(self) -> None:
         """Capture an engine handle without making unsupported drivers fail.
@@ -790,8 +800,9 @@ class QueryCancellation:
 
     def register(self) -> None:
         """Publish a usable handle, including one obtained after the deadline."""
+        live = self.spec.can_cancel_live_cursor(self.database.driver, self.cursor)
         with self.call.lock:
-            if self.spec.has_implicit_cancel():
+            if self.spec.has_implicit_cancel() or live is True:
                 self.call.cancel_query = self.cancel_live_cursor
             elif (
                 self.cancel_id is not None
@@ -812,15 +823,23 @@ class QueryCancellation:
         self.call.check()
 
     def cancel_live_cursor(self) -> None:
-        """Use the same implicit driver cancellation as engine handle_cursor."""
-        try:
-            self.cursor.cancel()
-        except Exception:
-            logger.warning(
-                "MCP call %s: cursor cancellation failed",
-                self.call.call_id,
-                exc_info=True,
-            )
+        """Keep the driver's original cursor alive until cancellation finishes."""
+        with self._cursor_lock:
+            if not self._cursor_active:
+                return
+            try:
+                self.cursor.cancel()
+            except Exception:
+                logger.warning(
+                    "MCP call %s: cursor cancellation failed",
+                    self.call.call_id,
+                    exc_info=True,
+                )
+
+    def deactivate(self) -> None:
+        """Drain native cancellation before the owner closes or reuses its cursor."""
+        with self._cursor_lock:
+            self._cursor_active = False
 
     def cancel(self) -> None:
         """Resolve a fresh Database and acting user on the cancellation worker."""
@@ -890,8 +909,13 @@ def warehouse_cursor(
         call.check()
         yield
         call.check()
+    except Exception as exc:
+        if call.expired.is_set():
+            raise WorkerDeadlineExceeded() from exc
+        raise
     finally:
         after_execute.reset(execute_token)
         check_deadline.reset(deadline_token)
         with call.lock:
             call.cancel_query = None
+        cancellation.deactivate()

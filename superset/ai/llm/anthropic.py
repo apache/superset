@@ -341,6 +341,7 @@ class _StreamAssembler:
         self._input_tokens = 0
         self._output_tokens = 0
         self._closed = False
+        self._stop_reason: str | None = None
 
     def push(self, raw: Any) -> list[ProviderStreamEvent]:
         """Translate one vendor event into zero or more provider events."""
@@ -355,6 +356,8 @@ class _StreamAssembler:
             return self._close_block(raw)
         elif kind == "message_delta":
             self._read_usage(getattr(raw, "usage", None))
+            if reason := getattr(getattr(raw, "delta", None), "stop_reason", None):
+                self._stop_reason = _STOP_REASONS.get(reason, "end_turn")
         elif kind == "message_stop":
             return self.finish()
         # Anything else — a keep-alive ping, an event kind the vendor adds later
@@ -375,7 +378,9 @@ class _StreamAssembler:
         self._closed = True
         return [
             ProviderStreamEvent(kind=StreamEventKind.USAGE, usage=self._usage()),
-            ProviderStreamEvent(kind=StreamEventKind.STOP),
+            ProviderStreamEvent(
+                kind=StreamEventKind.STOP, stop_reason=self._stop_reason
+            ),
         ]
 
     def _open_block(self, raw: Any) -> None:

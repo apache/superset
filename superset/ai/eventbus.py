@@ -47,12 +47,6 @@ logger = logging.getLogger(__name__)
 #: interval, so a caller can emit a keep-alive rather than block indefinitely.
 IDLE = None
 
-#: Terminal event types. Seeing one ends consumption, so a reader does not hang
-#: waiting for a producer that has already finished.
-_TERMINAL = frozenset(
-    {StreamEventType.DONE, StreamEventType.ERROR, StreamEventType.CANCELLED}
-)
-
 
 class BaseEventBus(ABC):
     """A per-run channel of events."""
@@ -134,7 +128,7 @@ class MemoryEventBus(BaseEventBus):
                 yield IDLE
                 continue
             yield event
-            if event.type in _TERMINAL:
+            if event.type is StreamEventType.DONE:
                 return
 
     def close(self, run_id: str) -> None:
@@ -173,6 +167,8 @@ class RedisStreamEventBus(BaseEventBus):
             self._cache.xadd(self._stream(run_id), payload, "*", 10_000)
         except Exception:  # pylint: disable=broad-except
             logger.warning("Could not publish AI event for run %s", run_id)
+            return
+        self.close(run_id)
 
     def consume(
         self,
@@ -207,7 +203,7 @@ class RedisStreamEventBus(BaseEventBus):
                 if event is None:
                     continue
                 yield event
-                if event.type in _TERMINAL:
+                if event.type is StreamEventType.DONE:
                     return
 
     def close(self, run_id: str) -> None:
@@ -264,14 +260,20 @@ def get_event_bus() -> BaseEventBus:
     if kind == "memory":
         return _memory_bus()
 
+    backend = get_event_bus_backend()
+    try:
+        if not backend.ping():
+            raise RuntimeError("Redis did not acknowledge PING.")
+    except Exception as ex:  # pylint: disable=broad-except
+        raise RuntimeError("AI event bus Redis connection check failed.") from ex
     return RedisStreamEventBus(
-        cache=_stream_backend(),
+        cache=backend,
         prefix=current_app.config.get("AI_ASSISTANT_EVENT_STREAM_PREFIX", "ai-events-"),
         ttl_seconds=current_app.config.get("AI_ASSISTANT_EVENT_TTL_SECONDS", 900),
     )
 
 
-def _stream_backend() -> Any:
+def get_event_bus_backend() -> Any:
     """
     Build a cache client that can speak Redis streams.
 
@@ -288,7 +290,11 @@ def _stream_backend() -> Any:
         RedisSentinelCacheBackend,
     )
 
-    config = current_app.config.get("AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG") or {}
+    config = {
+        "CACHE_REDIS_SOCKET_TIMEOUT": 5,
+        "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT": 5,
+        **(current_app.config.get("AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG") or {}),
+    }
     cache_type = config.get("CACHE_TYPE")
 
     if cache_type == "RedisCache":

@@ -24,10 +24,12 @@ whatever provider a deployment configures.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
-from collections.abc import AsyncIterator
-from typing import Any
+from collections.abc import AsyncIterator, Awaitable
+from contextlib import aclosing
+from typing import Any, ClassVar, TypeVar
 
 from superset.ai.events import (
     assistant_delta_event,
@@ -48,18 +50,37 @@ from superset.ai.llm.base import (
     ToolCall,
     ToolResult,
 )
+from superset.ai.llm.retry import CircuitBreaker, stream_with_retries, with_retries
 from superset.ai.runtime.base import BaseAgentRuntime, RunRequest, RunResult
+from superset.ai.runtime.context import (
+    ContextManager,
+    ContextWindowError,
+    ConversationContext,
+)
+from superset.ai.runtime.sql_deadline import warehouse_deadline
 from superset.ai.telemetry import (
     current_run,
     POLICY_DENIED,
     RunRecorder,
     TOOL_UNAVAILABLE,
 )
+from superset.ai.tools.base import _bound_text, truncate_payload
 from superset.ai.types import MessageRole, ProgressStage, TokenUsage
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
 
-#: How much of a tool's output is kept on the persisted message. The model
+
+class _RunDeadlineError(Exception):
+    """The run budget expired while awaiting the provider."""
+
+
+class _RunCancelledError(Exception):
+    """The caller stopped the run while preparing its model context."""
+
+
+#: Maximum UTF-8 bytes kept in the persisted audit output. The model
 #: still sees the whole thing; this is the audit copy.
 _RECORDED_OUTPUT_LIMIT = 2_000
 
@@ -80,18 +101,14 @@ class MessagesApiRuntime(BaseAgentRuntime):
     """
     Alternates model calls and tool calls until the model stops asking.
 
-    Two behaviours are worth understanding before changing this class.
+    Provider text stays in the answer, including text accompanying tool calls.
+    Only the provider's separate thinking channel becomes a ``thoughts`` event.
 
-    First, prose the model emits *before* a tool call is treated as reasoning,
-    not answer: it becomes a ``thoughts`` event and is dropped from the answer.
-    A model narrating "the orders table looks right, let me check" is stating a
-    hypothesis it may abandon, and appending that to the answer produces a
-    reply that contradicts itself.
-
-    Second, the loop always terminates and never raises for an operational
-    failure. By the time it runs, response headers have been flushed and an
-    exception can no longer become an HTTP status, so every failure is an event.
+    The loop never raises for an operational failure. Response headers have
+    already been flushed, so failures are reported as events.
     """
+
+    supports_context_compaction: ClassVar[bool] = True
 
     def __init__(self, provider: Any) -> None:
         super().__init__(provider)
@@ -104,6 +121,10 @@ class MessagesApiRuntime(BaseAgentRuntime):
         #: Whether any answer text has already been sent as it was generated. The
         #: finished answer is only replayed in chunks when it has not.
         self._streamed_text = False
+        self._deadline = float("inf")
+        self._breaker = CircuitBreaker(name="ai-messages")
+        self._context: ConversationContext | None = None
+        self._model_started: float | None = None
 
     @property
     def result(self) -> RunResult:
@@ -114,6 +135,8 @@ class MessagesApiRuntime(BaseAgentRuntime):
         self._finished = False
         self._last_response = None
         self._streamed_text = False
+        self._breaker.reset()
+        self._context = None
         answer_parts: list[str] = []
 
         yield thinking_event(ProgressStage.START, "Working on your question")
@@ -127,12 +150,14 @@ class MessagesApiRuntime(BaseAgentRuntime):
             async for event in self._turn_loop(request, answer_parts):
                 yield event
 
-            # A run that failed or was abandoned has already said so; emitting an
-            # answer as well would contradict it.
+            # Keep a partial answer without reporting success. A final frame
+            # replaces provisional prose; the error and done frames set status.
             if self._result.error is not None or self._result.cancelled:
+                if self._streamed_text or self._result.answer:
+                    yield final_event(self._result.answer)
                 return
 
-            answer = "\n\n".join(part for part in answer_parts if part).strip()
+            answer = self._result.answer.strip()
             self._result.answer = answer or _NO_ANSWER
 
             # Only replayed when nothing was streamed — a provider without
@@ -157,7 +182,15 @@ class MessagesApiRuntime(BaseAgentRuntime):
         async generator cannot both yield events and return a value.
         """
         deadline = time.monotonic() + request.timeout_seconds
+        self._deadline = deadline
         conversation = list(request.messages)
+        if request.context_policy is not None:
+            previous = request.context
+            self._context = ConversationContext(
+                messages=conversation,
+                summary=previous.summary if previous else "",
+                compactions=previous.compactions if previous else 0,
+            )
 
         for turn in range(1, request.max_turns + 1):
             self._result.turns = turn
@@ -172,6 +205,8 @@ class MessagesApiRuntime(BaseAgentRuntime):
 
             async for event in self._safe_turn(request, conversation, turn):
                 yield event
+            if self._result.timed_out or self._result.cancelled or self._finished:
+                return
             response = self._last_response
             if response is None:
                 yield error_event()
@@ -182,7 +217,7 @@ class MessagesApiRuntime(BaseAgentRuntime):
             ):
                 yield event
 
-            if self._finished or self._result.cancelled:
+            if self._finished or self._result.cancelled or self._result.timed_out:
                 return
 
         # Budget exhausted without the model choosing to stop.
@@ -203,21 +238,26 @@ class MessagesApiRuntime(BaseAgentRuntime):
             self._record_thoughts(response.thinking)
             yield thoughts_event(response.thinking)
 
-        if not response.wants_tools:
+        if response.text:
+            answer_parts.append(response.text)
+            # Keep text already shown to the user if a later tool is cancelled.
+            self._result.answer = "\n\n".join(answer_parts).strip()
+
+        if response.stop_reason == "max_tokens":
             self._finished = True
-            if response.text:
-                answer_parts.append(response.text)
-                # Recorded as it arrives, not just at the end, so a run stopped
-                # after this point still persists what the user already saw.
-                self._result.answer = "\n\n".join(
-                    part for part in answer_parts if part
-                ).strip()
+            self._result.error = (
+                "The model reached its output token limit. The response is "
+                "incomplete. Ask it to continue or request a shorter answer."
+            )
+            yield error_event(self._result.error)
             return
 
-        # Prose accompanying a tool call is reasoning, not answer.
-        if response.text:
-            self._record_thoughts(response.text)
-            yield thoughts_event(response.text)
+        if not response.wants_tools:
+            if self._context is not None and response.text:
+                conversation.append(Message(MessageRole.ASSISTANT, response.text))
+                self._result.context = self._context
+            self._finished = True
+            return
 
         conversation.append(
             Message(
@@ -241,8 +281,7 @@ class MessagesApiRuntime(BaseAgentRuntime):
     ) -> AsyncIterator[StreamEvent]:
         """Execute this turn's tool calls, appending outcomes to ``results``."""
         for call in calls:
-            if self._cancelled(request):
-                self._result.cancelled = True
+            if self._should_stop(request, self._deadline):
                 return
 
             yield thinking_event(
@@ -251,6 +290,7 @@ class MessagesApiRuntime(BaseAgentRuntime):
                 {"tool_name": call.name},
             )
             result, detail = self._invoke_tool(request, call)
+            self._should_stop(request, self._deadline)
             results.append(result)
             record = self._record_call(call, result, detail)
 
@@ -289,8 +329,24 @@ class MessagesApiRuntime(BaseAgentRuntime):
         started = time.monotonic()
         self._last_response = None
         try:
+            self._model_started = None
             async for event in self._one_turn(request, conversation):
                 yield event
+        except _RunCancelledError:
+            self._result.cancelled = True
+            self._last_response = None
+            return
+        except ContextWindowError as ex:
+            self._result.error = str(ex)
+            self._finished = True
+            self._trace_model_call(recorder, request, turn, started, error=ex)
+            yield error_event(str(ex))
+            return
+        except _RunDeadlineError as ex:
+            self._result.timed_out = True
+            self._trace_model_call(recorder, request, turn, started, error=ex)
+            self._last_response = None
+            return
         except LLMError as ex:
             logger.warning("AI provider error on turn %s: %s", turn, ex)
             self._result.error = str(ex)
@@ -324,13 +380,17 @@ class MessagesApiRuntime(BaseAgentRuntime):
         """
         if not recorder.enabled:
             return
+        if self._model_started is None:
+            if error is not None:
+                recorder.error(error)
+            return
+        started = self._model_started
         usage = response.usage if response is not None else TokenUsage()
         recorder.model_call(
             turn=turn,
-            # The concrete identifier when the provider reported one, and the
-            # capability tier otherwise, so a trace can always be grouped by
-            # what the run asked for.
-            model=usage.get("model") or request.model_alias.value,
+            # Prefer the reported model, then the requested pin or tier when
+            # the provider did not identify a model (including failed calls).
+            model=usage.get("model") or request.model or request.model_alias.value,
             duration_ms=int((time.monotonic() - started) * 1000),
             input_tokens=usage.get("input_tokens"),
             output_tokens=usage.get("output_tokens"),
@@ -341,6 +401,39 @@ class MessagesApiRuntime(BaseAgentRuntime):
         )
         if error is not None:
             recorder.error(error)
+
+    async def _prepare_completion(
+        self,
+        request: RunRequest,
+        conversation: list[Message],
+    ) -> tuple[CompletionRequest, bool]:
+        """Prepare one request and commit only a validated context reduction."""
+        completion = CompletionRequest(
+            messages=conversation,
+            system=request.system_prompt,
+            model_alias=request.model_alias,
+            model=request.model,
+            tools=tuple(request.tools.definitions()) if request.tools else (),
+        )
+        compacted = False
+        if request.context_policy is not None and self._context is not None:
+            manager = ContextManager(
+                self.provider,
+                request.context_policy,
+                breaker=self._breaker,
+                check_active=lambda: self._check_context_active(request),
+                on_summary=self._record_context_summary,
+            )
+            prepared = await self._await_provider(
+                manager.prepare(completion, self._context)
+            )
+            self._check_context_active(request)
+            compacted = prepared.context.compactions > self._context.compactions
+            conversation[:] = prepared.context.messages
+            self._context = prepared.context
+            self._context.messages = conversation
+            completion = prepared.request
+        return completion, compacted
 
     async def _one_turn(
         self,
@@ -355,47 +448,112 @@ class MessagesApiRuntime(BaseAgentRuntime):
         generator cannot do both; it has the same shape either way, so callers do
         not branch on which path ran.
         """
-        completion = CompletionRequest(
-            messages=conversation,
-            system=request.system_prompt,
-            model_alias=request.model_alias,
-            tools=tuple(request.tools.definitions()) if request.tools else (),
-        )
+        completion, compacted = await self._prepare_completion(request, conversation)
+        if compacted:
+            yield thinking_event(
+                ProgressStage.TOOL,
+                "Summarized earlier messages; the original conversation is retained",
+            )
 
+        self._model_started = time.monotonic()
         if not self.provider.supports_streaming:
-            self._last_response = await self.provider.complete(completion)
+            self._last_response = await self._await_provider(
+                with_retries(
+                    lambda: self.provider.complete(completion),
+                    self.provider.retry_policy(),
+                    breaker=self._breaker,
+                )
+            )
             return
 
+        async for event in self._stream_completion(completion):
+            yield event
+
+    async def _stream_completion(
+        self, completion: CompletionRequest
+    ) -> AsyncIterator[StreamEvent]:
+        """Assemble a streamed response while retaining partial text and stop reason."""
         text_parts: list[str] = []
         thinking_parts: list[str] = []
         tool_calls: list[ToolCall] = []
         usage = None
+        stop_reason = None
 
-        async for event in self.provider.stream(completion):
-            if event.kind is StreamEventKind.TEXT:
-                text_parts.append(event.text)
-                # Forwarded as it arrives. Text is buffered as well, because the
-                # turn is only known to be an answer once the model stops without
-                # asking for a tool — prose before a tool call is reasoning, and
-                # is re-routed as such in ``_consume``. A reader that has already
-                # seen it replaces its copy on the ``final`` frame.
-                if event.text:
-                    self._streamed_text = True
-                    yield assistant_delta_event(event.text)
-            elif event.kind is StreamEventKind.THINKING:
-                thinking_parts.append(event.text)
-            elif event.kind is StreamEventKind.TOOL_USE and event.tool_call:
-                tool_calls.append(event.tool_call)
-            elif event.kind is StreamEventKind.USAGE:
-                usage = event.usage
+        stream = stream_with_retries(
+            lambda: self.provider.stream(completion),
+            self.provider.retry_policy(),
+            breaker=self._breaker,
+        )
+        async with aclosing(stream):
+            while True:
+                try:
+                    event = await self._await_provider(anext(stream))
+                except StopAsyncIteration:
+                    break
+                if event.kind is StreamEventKind.TEXT:
+                    if event.text:
+                        if not text_parts and self._result.answer:
+                            self._result.answer += "\n\n"
+                            yield assistant_delta_event("\n\n")
+                        text_parts.append(event.text)
+                        self._result.answer += event.text
+                        self._streamed_text = True
+                        yield assistant_delta_event(event.text)
+                elif event.kind is StreamEventKind.THINKING:
+                    thinking_parts.append(event.text)
+                elif event.kind is StreamEventKind.TOOL_USE and event.tool_call:
+                    tool_calls.append(event.tool_call)
+                elif event.kind is StreamEventKind.USAGE:
+                    usage = event.usage
+                elif event.kind is StreamEventKind.STOP:
+                    stop_reason = event.stop_reason
 
         self._last_response = LLMResponse(
             text="".join(text_parts),
             thinking="".join(thinking_parts),
             tool_calls=tool_calls,
             usage=usage or {},
-            stop_reason="tool_use" if tool_calls else "end_turn",
+            stop_reason=stop_reason or ("tool_use" if tool_calls else "end_turn"),
         )
+
+    async def _await_provider(self, pending: Awaitable[T]) -> T:
+        """Bound each await without keeping a task timeout across yielded events."""
+        timeout = asyncio.timeout(max(0, self._deadline - time.monotonic()))
+        try:
+            async with timeout:
+                result = await pending
+        except TimeoutError:
+            if timeout.expired():
+                raise _RunDeadlineError from None
+            raise
+        if time.monotonic() >= self._deadline:
+            raise _RunDeadlineError
+        return result
+
+    def _check_context_active(self, request: RunRequest) -> None:
+        """Apply the same cancellation and deadline to counting and summarization."""
+        if self._cancelled(request):
+            raise _RunCancelledError
+        if time.monotonic() >= self._deadline:
+            raise _RunDeadlineError
+
+    def _record_context_summary(
+        self, request: CompletionRequest, response: LLMResponse, duration_ms: int
+    ) -> None:
+        """Include summarization usage in the run's existing redacted telemetry."""
+        recorder = current_run()
+        if recorder.enabled:
+            recorder.model_call(
+                turn=self._result.turns,
+                model=response.usage.get("model")
+                or self.provider.select_model(request),
+                duration_ms=duration_ms,
+                input_tokens=response.usage.get("input_tokens"),
+                output_tokens=response.usage.get("output_tokens"),
+                stop_reason=response.stop_reason,
+                system_prompt=request.system,
+                response_text=response.text,
+            )
 
     def _invoke_tool(
         self,
@@ -437,7 +595,8 @@ class MessagesApiRuntime(BaseAgentRuntime):
             )
 
         try:
-            result, detail = self._dispatch(request.tools, call)
+            with warehouse_deadline(self._deadline):
+                result, detail = self._dispatch(request.tools, call)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("AI tool %s failed", call.name)
             # The model is told the tool failed but not why, for the same reason
@@ -495,7 +654,11 @@ class MessagesApiRuntime(BaseAgentRuntime):
         contributes no display detail — which keeps the minimum a test stub has
         to implement small.
         """
-        invoke = getattr(tools, "invoke", None)
+        invoke = (
+            getattr(tools, "invoke_for_context", None)
+            if self._context is not None
+            else None
+        ) or getattr(tools, "invoke", None)
         if invoke is None:
             return tools.dispatch(call), {}
 
@@ -531,17 +694,26 @@ class MessagesApiRuntime(BaseAgentRuntime):
         the caller can put the identical record on the wire, keeping the live view
         and the reloaded one in step.
         """
+        try:
+            payload = json.loads(result.content)
+        except ValueError:
+            output, output_truncated = _bound_text(
+                result.content, _RECORDED_OUTPUT_LIMIT
+            )
+        else:
+            output, output_truncated = truncate_payload(payload, _RECORDED_OUTPUT_LIMIT)
         record: dict[str, Any] = {
             "name": call.name,
             "arguments": call.arguments,
             "ok": not result.is_error,
-            "output": result.content[:_RECORDED_OUTPUT_LIMIT],
+            "output": output,
+            "output_truncated": output_truncated,
         }
         # A failure's text is its error, not its output. Recorded under both keys
         # because they are read by different things, and a reader that shows the
         # error under "Returned" is mislabelling it.
         if result.is_error:
-            record["error"] = result.content[:_RECORDED_OUTPUT_LIMIT]
+            record["error"] = output
         if detail:
             record.update(detail)
         self._result.tool_calls.append(record)

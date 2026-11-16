@@ -25,6 +25,7 @@ import {
 } from 'spec/helpers/testing-library';
 import ChatTabsMenu, { formatRelativeTime } from './ChatTabsMenu';
 import type { ChatTab } from '../types';
+import { threadToTab } from '../hooks/chatThreadsApi';
 
 const MINUTE_MS = 60_000;
 
@@ -87,6 +88,21 @@ test('an empty conversation is deleted without a confirmation', async () => {
   expect(props.onDeleteTab).toHaveBeenCalledWith('tab-1');
 });
 
+test.each(['{Enter}', ' '])(
+  'a conversation can be selected with %s',
+  async key => {
+    const props = handlers();
+    const menu = await openMenu(
+      [tab(), tab({ id: 'tab-2', name: 'Other' })],
+      props,
+    );
+    within(menu).getByRole('button', { name: 'Other' }).focus();
+    await userEvent.keyboard(key);
+    expect(props.onSelectTab).toHaveBeenCalledTimes(1);
+    expect(props.onSelectTab).toHaveBeenCalledWith('tab-2');
+  },
+);
+
 test('a conversation with messages is confirmed before deletion', async () => {
   const props = handlers();
   const menu = await openMenu(
@@ -97,6 +113,20 @@ test('a conversation with messages is confirmed before deletion', async () => {
         ],
       }),
     ],
+    props,
+  );
+
+  await userEvent.click(within(menu).getByLabelText('Delete conversation'));
+
+  expect(props.onDeleteTab).not.toHaveBeenCalled();
+  await userEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+  expect(props.onDeleteTab).toHaveBeenCalledWith('tab-1');
+});
+
+test('an unopened server conversation is confirmed before deletion', async () => {
+  const props = handlers();
+  const menu = await openMenu(
+    [threadToTab({ uuid: 'tab-1', messageCount: 2 })],
     props,
   );
 

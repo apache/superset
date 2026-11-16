@@ -33,7 +33,7 @@ import {
   CheckpointSection,
   getPageContextLabel,
 } from './AiAssistantPanel';
-import { AI_ACTION_EVENT } from './hooks/useAIAction';
+import { AI_ACTION_EVENT, triggerAIAction } from './hooks/useAIAction';
 import type { PageContext } from './hooks/usePageContext';
 
 const THREAD_UUID = 'thread-uuid-1';
@@ -47,6 +47,7 @@ interface MessageRecord {
   uuid: string;
   role: 'user' | 'assistant';
   content: string;
+  status?: string;
   extra?: Record<string, unknown>;
   /** The reading user's own stored rating, as the API reports it. */
   liked?: boolean;
@@ -242,6 +243,7 @@ test('sending shows the message immediately and then the answer', async () => {
   );
   expect(body.content).toBe('why is this wrong?');
   expect(body.request_id).toBeTruthy();
+  expect(body).not.toHaveProperty('agent_key');
   // Page context travels under the key the backend reads.
   expect(body.page_context).toEqual(
     expect.objectContaining({ pageType: expect.any(String) }),
@@ -545,6 +547,47 @@ test('an error frame is reported in the transcript', async () => {
   ).toBeInTheDocument();
 });
 
+test('a token-limited answer keeps its text and explains why it stopped', async () => {
+  const partial = 'Оптимистичный: +11 (Шаг 1) +';
+  const error =
+    'The model reached its output token limit. The response is incomplete.';
+  streamFrames = [
+    frame('assistant_delta', { delta: partial }),
+    frame('error', { error }),
+    frame('final', { role: 'assistant', content: partial }),
+    frame('done', { ok: false }),
+  ];
+  await renderPanel();
+  await send('explain');
+
+  await waitFor(() =>
+    expect(screen.getByTestId('chat-messages')).toHaveTextContent(error),
+  );
+  expect(screen.getByTestId('chat-messages')).toHaveTextContent(partial);
+});
+
+test('a reloaded incomplete answer is not presented as a completed answer', async () => {
+  persistedMessages = [
+    { uuid: 'user-uuid-1', role: 'user', content: 'explain' },
+    {
+      uuid: ASSISTANT_UUID,
+      role: 'assistant',
+      content: 'Оптимистичный: +11 (Шаг 1) +',
+      status: 'error',
+    },
+  ];
+  await renderPanel();
+
+  await waitFor(() =>
+    expect(screen.getByTestId('chat-messages')).toHaveTextContent(
+      'The assistant did not finish this run.',
+    ),
+  );
+  expect(screen.getByTestId('chat-messages')).toHaveTextContent(
+    'Оптимистичный: +11 (Шаг 1) +',
+  );
+});
+
 test('rating an answer posts feedback keyed by the message uuid', async () => {
   streamFrames = [
     frame('final', { role: 'assistant', content: 'the answer' }),
@@ -775,47 +818,56 @@ test('the page context a turn was given is shown alongside its steps', async () 
   expect(screen.getByText(/dashboard_id: 14/)).toBeInTheDocument();
 });
 
-test('an AI action opens a new conversation and asks its question', async () => {
-  fetchMock.post('glob:*/api/v1/ai/thread/', {
-    result: {
-      uuid: THREAD_UUID,
-      title: 'New Chat',
-      status: 'active',
-      created_on: '2026-01-01T00:00:00',
-      changed_on: '2026-01-01T00:00:00',
-    },
-  });
-  streamFrames = [
-    frame('final', { role: 'assistant', content: 'the query is fine' }),
-    frame('done', { ok: true }),
-  ];
-  await renderPanel();
+test.each([false, true])(
+  'an AI action survives opening a closed panel: %s',
+  async beforeMount => {
+    fetchMock.post('glob:*/api/v1/ai/thread/', {
+      result: {
+        uuid: THREAD_UUID,
+        title: 'New Chat',
+        status: 'active',
+        created_on: '2026-01-01T00:00:00',
+        changed_on: '2026-01-01T00:00:00',
+      },
+    });
+    streamFrames = [
+      frame('final', { role: 'assistant', content: 'the query is fine' }),
+      frame('done', { ok: true }),
+    ];
+    if (beforeMount) {
+      triggerAIAction({ prompt: 'Debug this query', systemPrompt: 'Be terse' });
+    }
+    await renderPanel();
+    if (!beforeMount) {
+      act(() => {
+        window.dispatchEvent(
+          new CustomEvent(AI_ACTION_EVENT, {
+            detail: { prompt: 'Debug this query', systemPrompt: 'Be terse' },
+          }),
+        );
+      });
+    }
 
-  act(() => {
-    window.dispatchEvent(
-      new CustomEvent(AI_ACTION_EVENT, {
-        detail: { prompt: 'Debug this query', systemPrompt: 'Be terse' },
-      }),
+    // Scoped to the transcript: the conversation is also titled after the prompt.
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('chat-messages')).getByText(
+          'Debug this query',
+        ),
+      ).toBeInTheDocument(),
     );
-  });
-
-  // Scoped to the transcript: the conversation is also titled after the prompt.
-  await waitFor(() =>
-    expect(
-      within(screen.getByTestId('chat-messages')).getByText('Debug this query'),
-    ).toBeInTheDocument(),
-  );
-  await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      `glob:*/api/v1/ai/thread/${THREAD_UUID}/message`,
-    );
-    expect(calls.length).toBeGreaterThan(0);
-    const body = JSON.parse(String(calls[0].options.body));
-    // A system directive has no channel of its own in this contract, so it rides
-    // with the page context.
-    expect(body.page_context.helper_directives).toContain('Be terse');
-  });
-});
+    await waitFor(() => {
+      const calls = fetchMock.callHistory.calls(
+        `glob:*/api/v1/ai/thread/${THREAD_UUID}/message`,
+      );
+      expect(calls.length).toBeGreaterThan(0);
+      const body = JSON.parse(String(calls[0].options.body));
+      // A system directive has no channel of its own in this contract, so it rides
+      // with the page context.
+      expect(body.page_context.helper_directives).toContain('Be terse');
+    });
+  },
+);
 
 test('the page-context pill names the thing on screen', () => {
   const base: PageContext = { url: '/', pathname: '/x', pageType: 'other' };
@@ -956,6 +1008,9 @@ test('the answer appears as it streams, before the run finishes', async () => {
   // Both deltas are on screen while the run is still open. These used to be
   // folded into a value nothing rendered, so the answer only appeared at the end.
   const live = await screen.findByTestId('chat-live-answer');
+  expect(
+    screen.getByRole('status', { name: 'Assistant updates' }),
+  ).toBeEmptyDOMElement();
   await waitFor(() =>
     expect(live).toHaveTextContent('Revenue rose by twelve percent.'),
   );
@@ -971,6 +1026,9 @@ test('the answer appears as it streams, before the run finishes', async () => {
   await waitFor(() =>
     expect(screen.queryByTestId('chat-live-answer')).not.toBeInTheDocument(),
   );
+  expect(
+    screen.getByRole('status', { name: 'Assistant updates' }),
+  ).toHaveTextContent('A new assistant response is ready.');
 });
 
 test('an unfinished code fence is closed before the partial answer is parsed', () => {

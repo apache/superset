@@ -34,6 +34,7 @@ from superset.ai.events import StreamEvent
 from superset.ai.llm.base import (
     LLMTransportError,
     Message,
+    RetryPolicy,
     ToolCall,
     ToolDefinition,
     ToolResult,
@@ -380,6 +381,9 @@ def test_redaction_hides_provider_error_text(
     _configure(mocker, [sink], redact=True)
 
     provider = EchoProvider([ScriptedTurn(error=LLMTransportError(f"rejected {SQL}"))])
+    mocker.patch.object(
+        provider, "retry_policy", return_value=RetryPolicy(max_attempts=1)
+    )
     _drive(provider)
 
     assert sink.errors
@@ -484,8 +488,9 @@ def test_a_sink_that_raises_everywhere_does_not_affect_the_run(
     runtime, events = _drive(_script_with_a_tool_call(), tools=StubTools())
 
     assert runtime.result.ok
-    assert runtime.result.answer == ANSWER
-    assert _final(events) == ANSWER
+    expected = f"Checking the shipments table.\n\n{ANSWER}"
+    assert runtime.result.answer == expected
+    assert _final(events) == expected
     assert exploding.calls > 0, "the broken sink was called"
     # The sink after the broken one still received the whole run.
     assert working.runs_started
@@ -689,7 +694,11 @@ def test_a_failed_round_trip_is_a_span_and_an_error(
     sink = CapturingTelemetry()
     _configure(mocker, [sink])
 
-    _drive(EchoProvider([ScriptedTurn(error=LLMTransportError("upstream 503"))]))
+    provider = EchoProvider([ScriptedTurn(error=LLMTransportError("upstream 503"))])
+    mocker.patch.object(
+        provider, "retry_policy", return_value=RetryPolicy(max_attempts=1)
+    )
+    _drive(provider)
 
     assert sink.model_calls[0][1].error_type == "LLMTransportError"
     assert sink.runs_ended[0].error_type == "LLMTransportError"
@@ -829,6 +838,96 @@ def test_a_finished_run_reports_its_shape(
     assert run.ended_at is not None
     assert run.duration_ms is not None
     assert run.duration_ms >= 0
+
+
+# --------------------------------------------------------------------------- #
+# Model selection through the orchestrator
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize("worker", [False, True])
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize(
+    "requested,profile_model,expected",
+    [
+        (None, None, "echo-reasoning"),
+        (None, "echo-fast", "echo-fast"),
+        ("echo-default", "echo-fast", "echo-default"),
+        ("echo-fast", None, "echo-fast"),
+        ("not-offered", None, None),
+    ],
+)
+def test_orchestrated_model_matches_provider_and_audit_trail(
+    app_context: None,
+    mocker: MockerFixture,
+    worker: bool,
+    streaming: bool,
+    requested: str | None,
+    profile_model: str | None,
+    expected: str | None,
+) -> None:
+    """Pins reach every model turn; absent pins keep tiers and unknown pins fail."""
+    from types import SimpleNamespace
+
+    from superset.ai.llm.base import ModelAlias
+    from superset.ai.orchestrator import execute_turn, stream_turn, TurnRequest
+    from superset.ai.profiles import AgentProfile
+
+    provider = _script_with_a_tool_call()
+    mocker.patch.object(provider, "supports_streaming", streaming)
+    runtime = MessagesApiRuntime(provider)
+    sink = CapturingTelemetry()
+    _configure(mocker, [sink])
+    profile = AgentProfile(
+        key="test", name="Test", model_alias=ModelAlias.REASONING, model=profile_model
+    )
+    mocker.patch(
+        "superset.ai.factories.get_profiles"
+    ).return_value.get.return_value = profile
+    mocker.patch("superset.ai.factories.get_provider", return_value=provider)
+    mocker.patch("superset.ai.factories.get_runtime", return_value=runtime)
+    mocker.patch(
+        "superset.ai.factories.get_tools_for_profile", return_value=StubTools()
+    )
+    mocker.patch("superset.ai.orchestrator._build_system_prompt", return_value="Test")
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
+    mocker.patch(
+        "superset.daos.ai.AIChatThreadDAO.find_by_uuid_for_user", return_value=object()
+    )
+    mocker.patch(
+        "superset.daos.ai.AIChatMessageDAO.find_for_thread",
+        return_value=[
+            SimpleNamespace(uuid="question", role="user", content=QUESTION),
+            SimpleNamespace(uuid="m", role="assistant", content=""),
+        ],
+    )
+    finalise = mocker.patch("superset.ai.orchestrator._finalise_message")
+    mocker.patch("superset.ai.eventbus.get_event_bus")
+    request = TurnRequest(
+        thread_uuid="t",
+        user_id=7,
+        run_id="r",
+        assistant_message_uuid="m",
+        profile_key="test",
+        model=requested,
+    )
+
+    if worker:
+        execute_turn(TurnRequest.from_payload(request.to_payload()))
+    else:
+        list(stream_turn(request))
+
+    if expected is None:
+        assert provider.requests == []
+        assert runtime.result.ok is False
+        assert finalise.call_args.kwargs["extra"]["outcome"] == "error"
+        assert sink.model_calls[0][1].model == requested
+        return
+    assert runtime.result.ok
+    assert [call.model for call in provider.requests] == [expected, expected]
+    assert [call.model for _, call in sink.model_calls] == [expected, expected]
+    assert sink.runs_ended[0].model == expected
+    assert finalise.call_args.kwargs["extra"]["model"] == expected
 
 
 # --------------------------------------------------------------------------- #

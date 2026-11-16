@@ -73,6 +73,8 @@ def manager(app_context: None, mocker: MockerFixture) -> SupersetSecurityManager
     mocker.patch.object(sm, "can_access", return_value=False)
     mocker.patch.object(sm, "is_editor", return_value=False)
     mocker.patch.object(sm, "is_viewer", return_value=True)
+    mocker.patch.object(sm, "has_promiscuous_dashboard_access", return_value=True)
+    mocker.patch.object(sm, "is_listed_viewer", return_value=True)
     mocker.patch.object(sm, "is_guest_user", return_value=False)
     mocker.patch.object(sm, "get_current_guest_user_if_guest", return_value=None)
     mocker.patch.object(sm, "can_access_dashboard", return_value=True)

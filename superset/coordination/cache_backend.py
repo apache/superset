@@ -75,6 +75,10 @@ class RedisCommandsMixin:
 
     _cache: redis.Redis
 
+    def ping(self) -> bool:
+        """Verify connectivity and authentication without writing a key."""
+        return bool(self._cache.ping())
+
     def set(
         self,
         name: str,
@@ -347,6 +351,7 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
         socket_timeout: float | None = None,
         socket_connect_timeout: float | None = None,
         force_master_ip: str | None = None,
+        username: str | None = None,
         **kwargs: Any,
     ) -> None:
         # Sentinel dont directly support SSL
@@ -408,6 +413,12 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
         master_kwargs["socket_connect_timeout"] = socket_connect_timeout
         master_kwargs["protocol"] = 2
 
+        # The coordination commands run on this master connection rather than
+        # on the flask-caching client, so the DB and ACL user must be set here.
+        master_kwargs["db"] = db
+        if username:
+            master_kwargs["username"] = username
+
         # Initialize Redis master connection
         self._cache = self._sentinel.master_for(master, **master_kwargs)
 
@@ -441,4 +452,8 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
                 "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT", None
             ),
         }
+
+        if configured_username := config.get("CACHE_REDIS_USER"):
+            kwargs["username"] = configured_username
+
         return cls(**kwargs)

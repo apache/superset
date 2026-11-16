@@ -17,6 +17,7 @@
 """Tests for the pre-tool-use guards."""
 
 import pytest
+from pytest_mock import MockerFixture
 
 
 def test_read_only_policy_allows_plain_reads() -> None:
@@ -74,6 +75,42 @@ def test_read_only_policy_refuses_unparseable_sql() -> None:
     policy = ReadOnlySqlPolicy()
     denial = policy.check("execute_sql", {"sql": "SELECT FROM WHERE ((("})
     assert denial is not None
+
+
+def test_read_only_policy_uses_the_selected_database_dialect(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    database = mocker.Mock()
+    database.db_engine_spec.engine = "mssql"
+    find = mocker.patch(
+        "superset.daos.database.DatabaseDAO.find_by_id", return_value=database
+    )
+
+    from superset.ai.policy import ReadOnlySqlPolicy
+
+    denial = ReadOnlySqlPolicy().check(
+        "execute_sql",
+        {
+            "database_id": 7,
+            "sql": "SELECT TOP 5 id FROM dbo.sample_events",
+        },
+    )
+
+    assert denial is None
+    find.assert_called_once_with(7)
+
+
+def test_read_only_policy_protects_virtual_dataset_sql() -> None:
+    from superset.ai.policy import ReadOnlySqlPolicy
+
+    denial = ReadOnlySqlPolicy().check(
+        "create_virtual_dataset",
+        {"database_id": 7, "sql": "DELETE FROM dbo.sample_events"},
+    )
+
+    assert denial is not None
+    assert "read-only" in denial.reason
 
 
 @pytest.mark.parametrize(

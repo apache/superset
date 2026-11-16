@@ -43,6 +43,7 @@ from superset.mcp_service.utils.error_builder import (
     MAX_DID_YOU_MEAN_CANDIDATES,
     MAX_ERROR_SUGGESTIONS,
 )
+from superset.utils.core import format_list
 
 _C = TypeVar("_C", bound=ChartConfig)
 _T = TypeVar("_T")
@@ -954,7 +955,7 @@ class DatasetValidator:
         )[:MAX_DID_YOU_MEAN_CANDIDATES]
         if not names:
             return []
-        quoted = ", ".join(f"'{name}'" for name in names)
+        quoted = format_list(names, quote="'")
         return [
             f"Did you mean the saved metric {quoted}? Reference a saved metric "
             'as {"name": "<metric>", "saved_metric": true} rather than setting '

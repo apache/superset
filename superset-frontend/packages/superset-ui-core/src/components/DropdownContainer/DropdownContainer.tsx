@@ -283,15 +283,28 @@ export const DropdownContainer = forwardRef(
 
     useLayoutEffect(() => {
       if (popoverVisible) {
+        let resizeObserver: ResizeObserver | undefined;
         // Measures scroll height after rendering the elements
-        setTimeout(() => {
-          if (targetRef.current) {
+        const timeout = setTimeout(() => {
+          const target = targetRef.current;
+          if (target) {
             // We only set overflow when there's enough space to display
             // Select's popovers because they are restrained by the overflow property.
-            setShowOverflow(targetRef.current.scrollHeight > MAX_HEIGHT);
+            const updateShowOverflow = () =>
+              setShowOverflow(target.scrollHeight > MAX_HEIGHT);
+            updateShowOverflow();
+            // The content can grow while the popover is open, e.g. when a
+            // collapsible section inside it is expanded, so keep measuring.
+            resizeObserver = new ResizeObserver(updateShowOverflow);
+            resizeObserver.observe(target);
           }
         }, 100);
+        return () => {
+          clearTimeout(timeout);
+          resizeObserver?.disconnect();
+        };
       }
+      return undefined;
     }, [popoverVisible]);
 
     useImperativeHandle(

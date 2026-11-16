@@ -31,7 +31,6 @@ from __future__ import annotations
 import logging
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -96,7 +95,14 @@ class ReadOnlySqlPolicy(ToolPolicy):
     name = "read_only_sql"
 
     #: Tools whose payload is SQL to execute.
-    sql_tools = frozenset({"execute_sql", "validate_sql", "run_scoped_sql"})
+    sql_tools = frozenset(
+        {
+            "execute_sql",
+            "validate_sql",
+            "run_scoped_sql",
+            "create_virtual_dataset",
+        }
+    )
 
     #: Argument names that may carry the SQL.
     sql_arguments = ("sql", "query")
@@ -122,7 +128,7 @@ class ReadOnlySqlPolicy(ToolPolicy):
         if not sql.strip():
             return Denial("The 'sql' argument is empty.")
 
-        engine = str(arguments.get("engine") or "")
+        engine = self._engine(arguments)
 
         try:
             from superset.sql.parse import SQLScript
@@ -158,6 +164,25 @@ class ReadOnlySqlPolicy(ToolPolicy):
                 "read-only. Send a plain SELECT."
             )
         return None
+
+    def _engine(self, arguments: dict[str, Any]) -> str:
+        """Resolve the parser dialect from the selected Superset database."""
+        if engine := arguments.get("engine"):
+            return str(engine)
+
+        database_id = arguments.get("database_id")
+        if not isinstance(database_id, int) or isinstance(database_id, bool):
+            return ""
+
+        try:
+            from superset.daos.database import DatabaseDAO
+
+            database = DatabaseDAO.find_by_id(database_id)
+            if database is not None:
+                return str(database.db_engine_spec.engine or "")
+        except Exception:  # pylint: disable=broad-except
+            logger.debug("Could not resolve SQL dialect for database %s", database_id)
+        return ""
 
     def _is_read_only_command(self, statement: Any) -> bool:
         """Whether a statement is one of the permitted introspection commands."""
@@ -218,66 +243,37 @@ class IdentifierPolicy(ToolPolicy):
 
 
 class ForeignToolPolicy(ToolPolicy):
-    """
-    Refuse SQL execution offered by an external MCP server.
+    """Require an operator allowlist for foreign tools, regardless of their names.
 
-    Superset's two SQL controls both act on statements Superset itself runs.
-    :class:`ReadOnlySqlPolicy` parses the statement before execution and refuses
-    anything that mutates; ``security_manager`` then authorizes the specific
-    database, catalog, schema and table the statement touches. Neither can apply
-    to SQL run by a third party: Superset never sees the statement, cannot know
-    which datasource it reached, and holds no permission mapping for that
-    server's data. Allowing a foreign tool to run SQL therefore does not widen
-    the surface so much as remove the two controls that make ``execute_sql``
-    safe, and it does so without any signal that it has happened.
-
-    Only names that advertise query execution are refused. A foreign tool that
-    searches a catalog, reads metadata or fetches a document is untouched, which
-    is the whole point of the extension point.
-
-    The matcher is deliberately broad, and configurable two ways. A deployment
-    satisfied that its own servers enforce equivalent controls sets
-    ``AI_AGENT_MCP_DENY_FOREIGN_SQL = False``. One that wants a different match
-    subclasses and sets :attr:`sql_name_fragments`, or configures a subclass that
-    passes ``fragments`` to :meth:`__init__`.
-
-    Built-in tools are not this policy's business: they pass through untouched
-    for :class:`ReadOnlySqlPolicy` to judge.
+    A remote name, schema or read-only annotation cannot prove that a tool
+    respects Superset's data permissions. Only the deployment can establish
+    the remote server's authorization contract.
     """
 
     name = "foreign_tool"
 
-    #: Matched case-insensitively as substrings of the remote tool's own name —
-    #: the part after ``mcp__<server>__``. Substrings rather than exact names
-    #: because a server is free to call the same capability ``sql_query``,
-    #: ``runQuery`` or ``execute_sql_async``, and the failure that matters is the
-    #: one where an unfamiliar spelling slips through.
-    sql_name_fragments: tuple[str, ...] = ("execute_sql", "run_sql", "query")
-
-    def __init__(self, fragments: Sequence[str] | None = None) -> None:
-        source = self.sql_name_fragments if fragments is None else fragments
-        self.fragments = tuple(fragment.lower() for fragment in source if fragment)
-
     def check(self, tool_name: str, arguments: dict[str, Any]) -> Denial | None:
-        from superset.ai.mcp.config import split_foreign_tool_name
+        from superset.ai.mcp.config import parse_mcp_servers, split_foreign_tool_name
 
         parts = split_foreign_tool_name(tool_name)
-        if parts is None:
+        if parts is None or not self._enabled():
             return None
-        if not self._enabled():
-            return None
-
-        _, remote_name = parts
-        haystack = remote_name.lower()
-        if any(fragment in haystack for fragment in self.fragments):
-            return Denial(
-                "Running SQL through an external server is not allowed: "
-                "Superset cannot apply its read-only check or its per-datasource "
-                "authorization to a statement it does not execute. Use Superset's "
-                "own execute_sql tool to query data, and that server's metadata "
-                "or search tools for everything else."
-            )
-        return None
+        server_name, remote_name = parts
+        try:
+            server = parse_mcp_servers().get(server_name)
+            if (
+                server is not None
+                and server.tool_allowlist is not None
+                and server.offers(remote_name)
+            ):
+                return None
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Could not validate the external tool allowlist")
+        return Denial(
+            "External tools require an explicit operator tool_allowlist for their "
+            "server. Superset cannot enforce its data permissions on a remote "
+            "server's credentials. Use Superset's own execute_sql tool to query data."
+        )
 
     def _enabled(self) -> bool:
         """

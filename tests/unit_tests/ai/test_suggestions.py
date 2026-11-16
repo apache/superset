@@ -28,6 +28,46 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from pytest_mock import MockerFixture
+
+
+@pytest.mark.parametrize("failure", [None, "complete", "close"])
+def test_suggestion_provider_closes_on_its_live_event_loop(
+    mocker: MockerFixture, failure: str | None
+) -> None:
+    import asyncio
+
+    from superset.ai.llm.base import LLMResponse
+    from superset.ai.suggestions import _ask
+
+    loops: list[asyncio.AbstractEventLoop] = []
+
+    async def complete(_request: Any) -> LLMResponse:
+        loops.append(asyncio.get_running_loop())
+        if failure == "complete":
+            raise RuntimeError("complete failed")
+        return LLMResponse(text='["Orders?"]')
+
+    async def close() -> None:
+        loops.append(asyncio.get_running_loop())
+        if failure == "close":
+            raise RuntimeError("close failed")
+
+    provider = mocker.Mock()
+    provider.complete = mocker.AsyncMock(side_effect=complete)
+    provider.aclose = mocker.AsyncMock(side_effect=close)
+    mocker.patch("superset.ai.factories.get_provider", return_value=provider)
+
+    if failure:
+        with pytest.raises(RuntimeError, match=f"{failure} failed"):
+            _ask("Sales dashboard")
+    else:
+        assert _ask("Sales dashboard") == ["Orders?"]
+
+    provider.aclose.assert_awaited_once()
+    assert len(loops) == 2
+    assert loops[0] is loops[1]
+    assert loops[0].is_closed()
 
 
 def test_parsing_a_plain_json_array() -> None:

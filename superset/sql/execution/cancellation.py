@@ -32,6 +32,11 @@ from sqlalchemy.engine import Engine
 if TYPE_CHECKING:
     from superset.models.core import Database
 
+
+class WorkerDeadlineExceeded(BaseException):
+    """Stop abandoned work without being swallowed by tool error handlers."""
+
+
 cursor_scope: ContextVar[
     Callable[[Database, Any, str | None, str | None], AbstractContextManager[None]]
     | None
@@ -54,6 +59,11 @@ def cancellable_cursor(
             yield
 
 
+timeout_scope: ContextVar[Callable[[float], AbstractContextManager[None]] | None] = (
+    ContextVar("warehouse_timeout_scope", default=None)
+)
+
+
 before_warehouse_access: ContextVar[Callable[[], None] | None] = ContextVar(
     "warehouse_before_access", default=None
 )
@@ -63,6 +73,20 @@ check_deadline: ContextVar[Callable[[], None] | None] = ContextVar(
 after_execute: ContextVar[Callable[[], None] | None] = ContextVar(
     "warehouse_after_execute", default=None
 )
+
+
+query_recorded: ContextVar[Callable[[int], None] | None] = ContextVar(
+    "warehouse_query_recorded", default=None
+)
+
+
+def report_query_recorded(query_id: int) -> None:
+    """Tell the execution owner which history row records the run.
+
+    The owner can then name the row in a reply it must give before the run ends.
+    """
+    if report := query_recorded.get():
+        report(query_id)
 
 
 def check_query_deadline() -> None:
@@ -91,6 +115,7 @@ def without_execution_hooks() -> Iterator[None]:
     cancellation recursively.
     """
     cursor_token = cursor_scope.set(None)
+    timeout_token = timeout_scope.set(None)
     access_token = before_warehouse_access.set(None)
     deadline_token = check_deadline.set(None)
     execute_token = after_execute.set(None)
@@ -102,6 +127,7 @@ def without_execution_hooks() -> Iterator[None]:
         after_execute.reset(execute_token)
         check_deadline.reset(deadline_token)
         before_warehouse_access.reset(access_token)
+        timeout_scope.reset(timeout_token)
         cursor_scope.reset(cursor_token)
 
 
@@ -167,4 +193,10 @@ def _handle_error(context: Any) -> None:
     if manager := getattr(execution, "_superset_cancellation_scope", None):
         execution._superset_cancellation_scope = None
         error = context.original_exception
-        manager.__exit__(type(error), error, error.__traceback__)
+        try:
+            manager.__exit__(type(error), error, error.__traceback__)
+        except BaseException:  # pylint: disable=broad-except
+            # SQLAlchemy catches only Exception from handle_error listeners.
+            # Let it close the cursor and roll back before the execution owner
+            # raises its deadline outside this listener.
+            return

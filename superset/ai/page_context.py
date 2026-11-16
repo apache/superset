@@ -32,6 +32,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from superset.ai.prompt_framing import sanitize_for_llm_context
+
 #: Ceiling on the whole rendered block. Page context competes with conversation
 #: history for the same budget, so an enormous dashboard cannot crowd out the
 #: question being asked.
@@ -51,11 +53,32 @@ MAX_CHARTS = 50
 MAX_FILTERS = 25
 MAX_TABLES = 20
 
+MAX_HELPER_DIRECTIVES = 10
+MAX_HELPER_CHARS = 4_000
+
 #: Page types the client may report. An unknown value renders as "other" rather
 #: than being echoed back into the prompt.
 KNOWN_PAGE_TYPES = frozenset(
     {"sqllab", "explore", "dashboard", "chart", "home", "other"}
 )
+
+
+def render_helper_directives(context: Any) -> str:
+    """Bound browser-supplied instructions for a user-role prompt message."""
+    if not isinstance(context, dict):
+        return ""
+    directives = context.get("helper_directives")
+    if not isinstance(directives, list):
+        return ""
+    bounded = [
+        value[:MAX_HELPER_CHARS].strip()
+        for value in directives[:MAX_HELPER_DIRECTIVES]
+        if isinstance(value, str)
+    ]
+    text = "\n\n".join(value for value in bounded if value)
+    return (
+        f"# Additional user instructions\n\n{text}"[:MAX_HELPER_CHARS] if text else ""
+    )
 
 
 def render_page_context(context: Any) -> str:
@@ -70,12 +93,21 @@ def render_page_context(context: Any) -> str:
         return ""
 
     try:
-        return _render(context)[:MAX_CONTEXT_CHARS]
+        lines: list[str] = []
+        length = 0
+        for line in _render(context):
+            # Each entry contains complete data frames. Keep that boundary when
+            # limiting the whole section instead of cutting a closing delimiter.
+            length += len(line) + 1
+            if length > MAX_CONTEXT_CHARS:
+                break
+            lines.append(line)
+        return "\n".join(lines).strip()
     except Exception:  # pylint: disable=broad-except
         return ""
 
 
-def _render(context: dict[str, Any]) -> str:
+def _render(context: dict[str, Any]) -> list[str]:
     """Build the block. See :func:`render_page_context` for error policy."""
     page_type = str(context.get("pageType") or "other")
     if page_type not in KNOWN_PAGE_TYPES:
@@ -94,7 +126,7 @@ def _render(context: dict[str, Any]) -> str:
     ]
 
     if path := _text(context.get("pathname")):
-        lines.append(f"Path: {path}")
+        lines.append(f"Path: {sanitize_for_llm_context(path)}")
     lines.append("")
 
     lines.extend(_render_sql_lab(context.get("sqlContext")))
@@ -104,14 +136,14 @@ def _render(context: dict[str, Any]) -> str:
 
     # Only a header and the injection warning means there was nothing to say.
     if not any(line.strip() for line in lines[5:]):
-        return ""
-    return "\n".join(lines).strip()
+        return []
+    return lines
 
 
 def _labelled(lines: list[str], label: str, value: Any) -> None:
     """Append ``- label: value`` when the value renders to something."""
     if text := _text(value):
-        lines.append(f"- {label}: {text}")
+        lines.append(f"- {label}: {sanitize_for_llm_context(text)}")
 
 
 def _labelled_id(lines: list[str], label: str, value: Any) -> str:
@@ -150,13 +182,14 @@ def _render_sql_lab(sql_context: Any) -> list[str]:
         if sql := _text(editor.get("sql")):
             lines.append("- The SQL currently in the editor:")
             lines.append("")
-            lines.append("```sql")
-            lines.append(sql[:MAX_SQL_CHARS])
-            lines.append("```")
+            lines.append(
+                f"```sql\n{sanitize_for_llm_context(sql[:MAX_SQL_CHARS])}\n```"
+            )
         lines.append("")
 
     if tables := _string_list(sql_context.get("tables"), _table_name):
-        lines.append(f"- Tables open in the editor: {', '.join(tables)}")
+        names = sanitize_for_llm_context(", ".join(tables))
+        lines.append(f"- Tables open in the editor: {names}")
         lines.append("")
 
     recent = sql_context.get("recentQueries")
@@ -195,7 +228,7 @@ def _render_chart(chart_context: Any) -> list[str]:
             ("Time grain", "granularity_sqla"),
         ):
             if value := _compact(form_data.get(key)):
-                lines.append(f"- {label}: {value}")
+                lines.append(f"- {label}: {sanitize_for_llm_context(value)}")
         filters = form_data.get("filters")
         if isinstance(filters, list) and filters:
             lines.append(f"- Filters applied in the chart: {len(filters)}")
@@ -232,7 +265,9 @@ def _render_dashboard(dashboard_context: Any) -> list[str]:
         for chart in shown:
             if not isinstance(chart, dict):
                 continue
-            name = _text(chart.get("title")) or "Untitled chart"
+            name = sanitize_for_llm_context(
+                _text(chart.get("title")) or "Untitled chart"
+            )
             chart_id = _identifier(chart.get("id"))
             lines.append(
                 f"  - chart_id {chart_id}: {name}" if chart_id else f"  - {name}"
@@ -262,10 +297,11 @@ def _render_filters(filters: Any) -> list[str]:
     for entry in shown:
         if not isinstance(entry, dict):
             continue
-        name = _text(entry.get("name")) or "unnamed filter"
+        name = sanitize_for_llm_context(_text(entry.get("name")) or "unnamed filter")
         column = _text(entry.get("column"))
-        target = f" on column {column}" if column else ""
-        lines.append(f"  - {name}{target}: {_compact(entry.get('value'))}")
+        target = f" on column {sanitize_for_llm_context(column)}" if column else ""
+        value = sanitize_for_llm_context(_compact(entry.get("value")))
+        lines.append(f"  - {name}{target}: {value}")
     if len(filters) > len(shown):
         lines.append(f"  - ... and {len(filters) - len(shown)} more")
     lines.append("")
@@ -298,8 +334,8 @@ def _render_markdown(page_markdown: Any) -> list[str]:
             continue
         source = _text(block.get("source")) or "note"
         lines.append("")
-        lines.append(f"### {source}")
-        lines.append(content[:MAX_MARKDOWN_BLOCK_CHARS])
+        lines.append(f"### {sanitize_for_llm_context(source)}")
+        lines.append(sanitize_for_llm_context(content[:MAX_MARKDOWN_BLOCK_CHARS]))
     lines.append("")
     return lines
 
@@ -314,6 +350,8 @@ def _identifier(value: Any) -> str:
     would produce a failed tool call instead of no tool call.
     """
     if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        return ""
+    if isinstance(value, float) and not value.is_integer():
         return ""
     try:
         number = int(value)

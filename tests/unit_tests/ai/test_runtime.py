@@ -24,14 +24,20 @@ loop with no network and no model.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
+from dataclasses import replace
 from typing import Any
 
 import pytest
 
 from superset.ai.events import StreamEvent
 from superset.ai.llm.base import (
+    CompletionRequest,
+    LLMResponse,
     LLMTransportError,
     Message,
+    ProviderStreamEvent,
+    StreamEventKind,
     ToolCall,
     ToolDefinition,
     ToolResult,
@@ -129,6 +135,55 @@ def test_deltas_reassemble_into_the_final_answer() -> None:
     assert _payloads(events, StreamEventType.FINAL)[0]["content"] == answer
 
 
+@pytest.mark.parametrize("streaming", [True, False])
+@pytest.mark.parametrize("with_tools", [True, False])
+@pytest.mark.parametrize("partial", ["Оптимистичный: +11 (Шаг 1) +", ""])
+def test_output_token_limit_preserves_partial_answer_without_success(
+    streaming: bool, with_tools: bool, partial: str
+) -> None:
+    """A capped response is incomplete, never a tool request or a successful answer."""
+    from superset.ai.orchestrator import _outcome_of, _status_of, _terminal_content
+    from superset.ai.types import MessageStatus, RunOutcome
+
+    class TokenLimitedProvider(EchoProvider):
+        supports_streaming = streaming
+
+        async def complete(self, request: CompletionRequest) -> LLMResponse:
+            response = await super().complete(request)
+            response.stop_reason = "max_tokens"
+            return response
+
+        async def stream(
+            self, request: CompletionRequest
+        ) -> AsyncIterator[ProviderStreamEvent]:
+            async for event in super().stream(request):
+                if event.kind is StreamEventKind.STOP:
+                    event = replace(event, stop_reason="max_tokens")
+                yield event
+
+    calls = (ToolCall(id="c", name="execute_sql", arguments={}),) if with_tools else ()
+    provider = TokenLimitedProvider([ScriptedTurn(text=partial, tool_calls=calls)])
+    runtime = MessagesApiRuntime(provider)
+    tools = StubTools()
+
+    events = _run(runtime, _request(tools=tools))
+
+    assert not runtime.result.ok
+    assert runtime.result.error is not None
+    assert "output token limit" in runtime.result.error
+    assert runtime.result.answer == partial
+    assert _payloads(events, StreamEventType.ERROR) == [{"error": runtime.result.error}]
+    if partial:
+        assert _payloads(events, StreamEventType.FINAL) == [
+            {"role": "assistant", "content": partial}
+        ]
+        assert _terminal_content(runtime.result, RunOutcome.ERROR) == partial
+    assert _outcome_of(runtime.result) is RunOutcome.ERROR
+    assert _status_of(RunOutcome.ERROR) is MessageStatus.ERROR
+    assert tools.calls == []
+    assert len(provider.requests) == 1
+
+
 def test_tool_loop_feeds_results_back_to_the_model() -> None:
     """
     The model asks, the tool runs, the result returns, the model answers.
@@ -156,31 +211,37 @@ def test_tool_loop_feeds_results_back_to_the_model() -> None:
     assert runtime.result.tool_calls[0]["ok"] is True
 
 
-def test_prose_before_a_tool_call_is_not_part_of_the_answer() -> None:
-    """
-    Reasoning is separated from the answer.
-
-    A model narrating a hypothesis it may abandon must not have that narration
-    appended to what the user reads.
-    """
+@pytest.mark.parametrize("streaming", [True, False])
+def test_tool_turn_prose_stays_in_the_answer(
+    streaming: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only the provider's thinking channel belongs in the reasoning pane."""
     call = ToolCall(id="c1", name="execute_sql", arguments={"sql": "SELECT 1"})
     provider = EchoProvider(
         [
             ScriptedTurn(
-                text="The orders table looks right, let me check.",
+                text="I'll check the row count.",
+                thinking="Choose a count query.",
                 tool_calls=(call,),
             ),
             ScriptedTurn(text="42 orders."),
         ]
     )
+    monkeypatch.setattr(provider, "supports_streaming", streaming)
     runtime = MessagesApiRuntime(provider)
-
     events = _run(runtime, _request(tools=StubTools()))
 
-    thoughts = [p["delta"] for p in _payloads(events, StreamEventType.THOUGHTS)]
-    assert "The orders table looks right, let me check." in thoughts
-    assert _payloads(events, StreamEventType.FINAL)[0]["content"] == "42 orders."
-    assert "let me check" not in runtime.result.answer
+    expected = "I'll check the row count.\n\n42 orders."
+    assert runtime.result.answer == expected
+    assert _payloads(events, StreamEventType.FINAL)[0]["content"] == expected
+    assert (
+        "".join(p["delta"] for p in _payloads(events, StreamEventType.ASSISTANT_DELTA))
+        == expected
+    )
+    assert runtime.result.thoughts == "Choose a count query."
+    assert [p["delta"] for p in _payloads(events, StreamEventType.THOUGHTS)] == [
+        "Choose a count query."
+    ]
 
 
 def test_thinking_is_surfaced_as_thoughts() -> None:
@@ -520,19 +581,13 @@ def test_a_non_streaming_provider_still_delivers_its_answer_in_chunks() -> None:
     assert "".join(payload["delta"] for payload in deltas) == "fine"
 
 
-def test_reasoning_before_a_tool_call_is_not_streamed_as_answer() -> None:
-    """
-    Prose accompanying a tool call is reasoning and must not read as the answer.
-
-    Streaming text as it arrives risks showing it before the runtime knows the
-    turn was a tool call; the client replaces its copy on the final frame, which
-    is what keeps the answer from contradicting itself.
-    """
+def test_provider_reasoning_before_a_tool_call_is_not_streamed_as_answer() -> None:
+    """Provider thinking never enters either the streamed or final answer."""
     tools = StubTools()
     provider = EchoProvider(
         [
             ScriptedTurn(
-                text="The orders table looks right, let me check.",
+                thinking="The orders table looks right, let me check.",
                 tool_calls=(ToolCall(id="c1", name="execute_sql", arguments={}),),
             ),
             ScriptedTurn(text="Nine hundred rows."),
@@ -542,7 +597,294 @@ def test_reasoning_before_a_tool_call_is_not_streamed_as_answer() -> None:
 
     events = _run(runtime, _request(tools=tools))
 
-    # The authoritative answer excludes the reasoning, however it was streamed.
     final = _payloads(events, StreamEventType.FINAL)[0]["content"]
     assert final == "Nine hundred rows."
     assert "let me check" in (runtime.result.thoughts or "")
+    assert (
+        "".join(p["delta"] for p in _payloads(events, StreamEventType.ASSISTANT_DELTA))
+        == final
+    )
+
+
+@pytest.mark.parametrize(
+    "cancellation", ["implicit", "live_cursor", "explicit", "during_execute"]
+)
+def test_deadline_cancels_an_active_query_and_skips_remaining_tools(
+    cancellation: str,
+    mocker: Any,
+) -> None:
+    import threading
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    from flask import g
+
+    from superset.models.core import Database
+    from superset.sql.execution.cancellation import cancellable_cursor, cursor_scope
+
+    cancelled = threading.Event()
+    spec = SimpleNamespace(
+        has_implicit_cancel=lambda: cancellation == "implicit",
+        can_cancel_live_cursor=lambda _driver, _cursor: cancellation == "live_cursor",
+        has_query_id_before_execute=cancellation == "explicit",
+        has_query_id_during_execute=cancellation == "during_execute",
+    )
+    original = MagicMock(spec=Database, id=17, db_engine_spec=spec)
+    reloaded = MagicMock(spec=Database, id=17, db_engine_spec=spec)
+    user = SimpleNamespace(id=7)
+    original_thread = threading.get_ident()
+    capture = mocker.patch(
+        "superset.ai.runtime.sql_deadline.capture_cancel_query_id",
+        side_effect=[None, "cancel-id"]
+        if cancellation == "during_execute"
+        else ["cancel-id"],
+    )
+    mocker.patch("superset.utils.core.get_user_id", return_value=7)
+    mocker.patch(
+        "superset.db.session.get",
+        side_effect=lambda model, _id: reloaded if model is Database else user,
+    )
+
+    def cancel(database: Any, handle: str, **kwargs: Any) -> bool:
+        assert database is reloaded
+        assert g.user is user
+        assert threading.get_ident() != original_thread
+        assert handle == "cancel-id"
+        assert kwargs == {"catalog": "catalog", "schema": "schema"}
+        cancelled.set()
+        return True
+
+    cancel_query = mocker.patch(
+        "superset.ai.runtime.sql_deadline.cancel_chart_query", side_effect=cancel
+    )
+    cursor = MagicMock()
+    cursor.cancel.side_effect = cancelled.set
+
+    class BlockingTools(StubTools):
+        def dispatch(self, call: ToolCall) -> ToolResult:
+            self.calls.append(call)
+            with cancellable_cursor(original, cursor, "catalog", "schema"):
+                assert cancelled.wait(2), "the query was never cancelled"
+            return ToolResult(call_id=call.id, content="late result")
+
+    tools = BlockingTools()
+    calls = (
+        ToolCall(id="c1", name="execute_sql", arguments={}),
+        ToolCall(id="c2", name="execute_sql", arguments={}),
+    )
+    provider = EchoProvider([ScriptedTurn(tool_calls=calls), ScriptedTurn(text="late")])
+    runtime = MessagesApiRuntime(provider)
+    _run(runtime, _request(tools=tools, timeout_seconds=0.1))
+    assert cancelled.is_set()
+    assert runtime.result.timed_out
+    assert [call.id for call in tools.calls] == ["c1"]
+    assert len(provider.requests) == 1
+    assert cursor_scope.get() is None
+    if cancellation in {"implicit", "live_cursor"}:
+        cursor.cancel.assert_called_once_with()
+        capture.assert_not_called()
+        cancel_query.assert_not_called()
+    else:
+        cancel_query.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("driver", "native_cancel", "allowed"),
+    [
+        ("pyodbc", True, True),
+        ("pyodbc", False, False),
+        ("pytds", True, False),
+        ("pymssql", True, False),
+    ],
+)
+def test_native_sql_deadline_respects_driver_cancellation_policy(
+    driver: str, native_cancel: bool, allowed: bool, mocker: Any
+) -> None:
+    """The Native AI timer must use the same engine policy as MCP."""
+    import time
+    from unittest.mock import Mock
+
+    from superset.ai.runtime.sql_deadline import warehouse_deadline
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.execution.cancellation import cancellable_cursor
+
+    database = Mock(id=17, driver=driver, db_engine_spec=MssqlEngineSpec)
+    cursor = Mock(spec=["cancel"] if native_cancel else [])
+    timer = mocker.patch("superset.ai.runtime.sql_deadline.Timer")
+    mocker.patch("superset.utils.core.get_user_id", return_value=None)
+    mocker.patch(
+        "superset.ai.runtime.sql_deadline.capture_cancel_query_id", return_value=None
+    )
+    explicit = mocker.patch("superset.ai.runtime.sql_deadline._cancel_explicit")
+
+    with warehouse_deadline(time.monotonic() + 60):
+        with cancellable_cursor(database, cursor):
+            timer.call_args.args[1]()
+
+    if allowed:
+        cursor.cancel.assert_called_once_with()
+        explicit.assert_not_called()
+    else:
+        if native_cancel:
+            cursor.cancel.assert_not_called()
+        explicit.assert_called_once_with(17, None, cursor, None, None, None)
+
+
+def test_sql_timeout_can_shorten_but_never_extend_the_run_deadline() -> None:
+    from unittest.mock import patch
+
+    from superset.ai.runtime.sql_deadline import warehouse_deadline
+    from superset.exceptions import SupersetTimeoutException
+    from superset.sql.execution.cancellation import check_query_deadline, timeout_scope
+
+    with patch("superset.ai.runtime.sql_deadline.time.monotonic", return_value=100):
+        with warehouse_deadline(110):
+            owner_timeout = timeout_scope.get()
+            assert owner_timeout is not None
+            for seconds, elapsed in [(2, 103), (60, 111)]:
+                with (
+                    pytest.raises(SupersetTimeoutException),
+                    owner_timeout(seconds),
+                    patch(
+                        "superset.ai.runtime.sql_deadline.time.monotonic",
+                        return_value=elapsed,
+                    ),
+                ):
+                    check_query_deadline()
+            check_query_deadline()
+    assert timeout_scope.get() is None
+
+
+@pytest.mark.parametrize("mode", ["complete", "first_event", "after_text"])
+def test_run_deadline_stops_a_stalled_provider(mode: str, mocker: Any) -> None:
+    from superset.ai.llm.base import ProviderStreamEvent, StreamEventKind
+
+    provider = EchoProvider()
+    mocker.patch.object(provider, "supports_streaming", mode != "complete")
+    close = mocker.patch.object(provider, "aclose", new_callable=mocker.AsyncMock)
+    closed: list[str] = []
+
+    async def complete(_request: Any) -> Any:
+        try:
+            await asyncio.Event().wait()
+        finally:
+            closed.append("complete")
+
+    async def stream(_request: Any) -> Any:
+        try:
+            if mode == "after_text":
+                yield ProviderStreamEvent(StreamEventKind.TEXT, text="Partial answer")
+            await asyncio.Event().wait()
+        finally:
+            closed.append("stream")
+
+    mocker.patch.object(provider, "complete", side_effect=complete)
+    mocker.patch.object(provider, "stream", side_effect=stream)
+    runtime = MessagesApiRuntime(provider)
+    tools = StubTools()
+
+    async def collect() -> list[StreamEvent]:
+        return [
+            event
+            async for event in runtime.run(_request(tools=tools, timeout_seconds=0.02))
+        ]
+
+    async def drive() -> list[StreamEvent]:
+        return await asyncio.wait_for(collect(), timeout=0.5)
+
+    events = asyncio.run(drive())
+    assert runtime.result.timed_out
+    assert runtime.result.error is None
+    assert StreamEventType.ERROR not in _types(events)
+    assert tools.calls == []
+    assert closed == ["complete" if mode == "complete" else "stream"]
+    close.assert_awaited_once_with()
+    if mode == "after_text":
+        assert runtime.result.answer == "Partial answer"
+        assert (
+            _payloads(events, StreamEventType.FINAL)[0]["content"] == "Partial answer"
+        )
+
+
+def test_stream_deadline_survives_separate_synchronous_pulls(mocker: Any) -> None:
+    from superset.ai.llm.base import ProviderStreamEvent, StreamEventKind
+    from superset.ai.orchestrator import _drain
+
+    provider = EchoProvider()
+
+    async def stream(_request: Any) -> Any:
+        yield ProviderStreamEvent(StreamEventKind.TEXT, text="Partial answer")
+        await asyncio.sleep(0.1)
+        yield ProviderStreamEvent(StreamEventKind.TEXT, text=" too late")
+
+    mocker.patch.object(provider, "stream", side_effect=stream)
+    runtime = MessagesApiRuntime(provider)
+    list(_drain(runtime.run(_request(timeout_seconds=0.02))))
+    assert runtime.result.timed_out
+    assert runtime.result.answer == "Partial answer"
+
+
+def test_provider_timeout_is_not_relabelled_as_the_run_deadline(mocker: Any) -> None:
+    provider = EchoProvider()
+    mocker.patch.object(provider, "supports_streaming", False)
+    mocker.patch.object(provider, "complete", side_effect=TimeoutError("provider"))
+    runtime = MessagesApiRuntime(provider)
+    events = _run(runtime, _request(timeout_seconds=30))
+    assert not runtime.result.timed_out
+    assert runtime.result.error is not None
+    assert StreamEventType.ERROR in _types(events)
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+def test_run_deadline_includes_provider_retry_backoff(
+    streaming: bool, mocker: Any
+) -> None:
+    provider = EchoProvider(
+        [
+            ScriptedTurn(error=LLMTransportError("retry")),
+            ScriptedTurn(text="too late"),
+        ]
+    )
+    mocker.patch.object(provider, "supports_streaming", streaming)
+    runtime = MessagesApiRuntime(provider)
+    _run(runtime, _request(timeout_seconds=0.02))
+    assert runtime.result.timed_out
+    assert runtime.result.error is None
+    assert len(provider.requests) == 1
+
+
+def test_history_bounds_json_without_changing_the_model_result() -> None:
+    from superset.utils import json
+
+    content = json.dumps({"rows": [{"label": "пример" * 100}] * 20, "total": 20})
+    call = ToolCall(id="c1", name="execute_sql", arguments={})
+    provider = EchoProvider([ScriptedTurn(tool_calls=(call,)), ScriptedTurn(text="ok")])
+    runtime = MessagesApiRuntime(provider)
+    events = _run(runtime, _request(tools=StubTools(output=content)))
+    record = runtime.result.tool_calls[0]
+    assert record["output_truncated"] is True
+    assert not record.get("truncated", False)
+    output = record["output"]
+    assert isinstance(output, str)
+    assert len(output.encode("utf-8")) <= 2000
+    assert json.loads(output)["_truncated"] is True
+    assert any(
+        result.content == content
+        for message in provider.requests[1].messages
+        for result in message.tool_results
+    )
+    checkpoint = _payloads(events, StreamEventType.CHECKPOINT)[0]
+    assert checkpoint["meta"]["output"] == record["output"]
+    assert checkpoint["meta"]["output_truncated"] is True
+
+
+def test_history_marks_plain_text_error_truncation() -> None:
+    runtime = MessagesApiRuntime(EchoProvider([]))
+    record = runtime._record_call(  # noqa: SLF001
+        ToolCall(id="c1", name="external_tool", arguments={}),
+        ToolResult(call_id="c1", content="ошибка" * 2000, is_error=True),
+    )
+    assert record["output_truncated"] is True
+    assert record["error"] == record["output"]
+    assert len(record["error"].encode("utf-8")) <= 2000
+    assert "truncated" in record["error"]

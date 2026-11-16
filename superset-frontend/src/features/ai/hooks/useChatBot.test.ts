@@ -18,13 +18,20 @@
  */
 
 /**
- * The hook itself is exercised through the panel; these cover the two decisions
- * that are easy to get wrong and expensive when wrong — what happens to the
- * transcript when the server's copy arrives, and what is sent as page context.
+ * Conversation state, transcript reconciliation and request context.
  */
 
-import { buildRequestPageContext, mergeMessages } from './useChatBot';
-import type { ChatMessageWithMeta } from '../types';
+import { renderHook } from '@testing-library/react';
+import { act, createWrapper, waitFor } from 'spec/helpers/testing-library';
+import {
+  AGENT_STORAGE_KEY,
+  buildRequestPageContext,
+  mergeMessages,
+  useChatBot,
+} from './useChatBot';
+import * as chatRequest from './chatRequest';
+import * as chatThreadsApi from './chatThreadsApi';
+import type { AiThread, ChatMessageWithMeta } from '../types';
 import type { PageContext } from './usePageContext';
 
 const message = (
@@ -42,6 +49,212 @@ const pageContext: PageContext = {
   pathname: '/sqllab',
   pageType: 'sqllab',
 };
+
+test.each(['load failure', 'creation failure', 'last deletion'])(
+  'an empty chat settles and can recover after %s',
+  async scenario => {
+    localStorage.clear();
+    const thread = {
+      uuid: 'thread-1',
+      title: 'New Chat',
+      status: 'active',
+      messageCount: 0,
+    };
+    const listThreads = jest
+      .spyOn(chatThreadsApi, 'listThreads')
+      .mockResolvedValue([thread]);
+    const createThread = jest
+      .spyOn(chatThreadsApi, 'createThread')
+      .mockResolvedValue(thread);
+    jest.spyOn(chatThreadsApi, 'getThread').mockResolvedValue({
+      thread,
+      messages: [],
+    });
+    const deleteThread = jest
+      .spyOn(chatThreadsApi, 'deleteThread')
+      .mockResolvedValue();
+    jest.spyOn(chatRequest, 'fetchAgents').mockResolvedValue([]);
+    if (scenario === 'load failure') {
+      listThreads.mockRejectedValueOnce(new Error('Conversation load failed'));
+    } else if (scenario === 'creation failure') {
+      listThreads.mockResolvedValueOnce([]);
+      createThread.mockRejectedValueOnce(
+        new Error('Conversation creation failed'),
+      );
+    }
+
+    try {
+      let renders = 0;
+      const { result } = renderHook(
+        () => {
+          // Bound the pre-fix update loop so a regression fails instead of hanging.
+          renders += 1;
+          if (renders > 25) {
+            throw new Error('Empty chat did not settle');
+          }
+          return useChatBot();
+        },
+        { wrapper: createWrapper({ useRedux: true, useRouter: true }) },
+      );
+      await waitFor(() => expect(result.current.threadsLoaded).toBe(true));
+
+      if (scenario === 'last deletion') {
+        await act(() => result.current.handleDeleteTab(thread.uuid));
+        expect(deleteThread).toHaveBeenCalledWith(thread.uuid);
+      } else {
+        expect(result.current.error).toContain('failed');
+      }
+      expect(result.current.activeTab).toBeUndefined();
+      expect(result.current.chatTabs).toEqual([]);
+      expect(result.current.messages).toEqual([]);
+      expect(result.current.quickPrompts.length).toBeGreaterThan(0);
+      const emptyMessages = result.current.messages;
+      act(() => result.current.setInputValue('A new question'));
+      expect(result.current.inputValue).toBe('A new question');
+      expect(result.current.messages).toBe(emptyMessages);
+
+      await act(async () => {
+        await result.current.handleNewChat();
+      });
+      expect(result.current.activeTab?.threadId).toBe(thread.uuid);
+      expect(result.current.error).toBeUndefined();
+    } finally {
+      jest.restoreAllMocks();
+      localStorage.clear();
+    }
+  },
+);
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  localStorage.clear();
+});
+
+const mockConversations = (threads: AiThread[]) => {
+  jest.spyOn(chatThreadsApi, 'listThreads').mockResolvedValue(threads);
+  jest.spyOn(chatThreadsApi, 'getThread').mockImplementation(async uuid => ({
+    thread: threads.find(thread => thread.uuid === uuid)!,
+    messages: [],
+  }));
+  jest.spyOn(chatThreadsApi, 'updateThread').mockResolvedValue(undefined);
+  jest.spyOn(chatRequest, 'fetchAgents').mockResolvedValue([
+    { key: 'default', name: 'Assistant', tools: [] },
+    { key: 'analyst', name: 'Analyst', tools: [] },
+  ]);
+};
+
+test.each([
+  ['analyst', 'default'],
+  ['default', 'analyst'],
+  [undefined, 'analyst'],
+])(
+  'restores conversation profile %s, not browser preference %s',
+  async (stored, preferred) => {
+    localStorage.setItem(AGENT_STORAGE_KEY, preferred!);
+    const threads = [
+      { uuid: 'thread-1', agentKey: stored },
+      { uuid: 'thread-2', agentKey: 'analyst' },
+    ];
+    mockConversations(threads);
+    const { result, unmount } = renderHook(useChatBot, {
+      wrapper: createWrapper({ useRedux: true, useRouter: true }),
+    });
+    await waitFor(() => expect(result.current.threadsLoaded).toBe(true));
+    expect(result.current.selectedAgent).toBe(stored ?? 'default');
+    await act(() => result.current.handleSelectTab('thread-2'));
+    expect(result.current.selectedAgent).toBe('analyst');
+    act(() => result.current.setSelectedAgent('default'));
+    await act(() => result.current.handleSelectTab('thread-1'));
+    expect(result.current.selectedAgent).toBe(stored ?? 'default');
+    await act(() => result.current.handleSelectTab('thread-2'));
+    expect(result.current.selectedAgent).toBe('default');
+    unmount();
+
+    // An unsent choice is not a persisted change to the conversation.
+    const reopened = renderHook(useChatBot, {
+      wrapper: createWrapper({ useRedux: true, useRouter: true }),
+    });
+    await waitFor(() =>
+      expect(reopened.result.current.threadsLoaded).toBe(true),
+    );
+    expect(reopened.result.current.activeTabId).toBe('thread-2');
+    expect(reopened.result.current.selectedAgent).toBe('analyst');
+  },
+);
+
+test.each(['default', 'analyst'])(
+  'a completed run preserves tab choices and restores resolved profile %s',
+  async resolved => {
+    const threads = [
+      { uuid: 'thread-1', agentKey: 'analyst' },
+      { uuid: 'thread-2', agentKey: 'default' },
+    ];
+    mockConversations(threads);
+    const started = jest.spyOn(chatRequest, 'startRun').mockResolvedValue({
+      threadUuid: 'thread-1',
+      messageUuid: 'user-1',
+      assistantMessageUuid: 'assistant-1',
+      runId: 'run-1',
+    });
+    let release!: (value: { content: string; cancelled: boolean }) => void;
+    jest.spyOn(chatRequest, 'streamRun').mockReturnValue(
+      new Promise(resolve => {
+        release = resolve;
+      }),
+    );
+    const { result } = renderHook(useChatBot, {
+      wrapper: createWrapper({ useRedux: true, useRouter: true }),
+    });
+    await waitFor(() => expect(result.current.threadsLoaded).toBe(true));
+    let running!: Promise<void>;
+    act(() => {
+      running = result.current.sendMessage('first question');
+    });
+    await waitFor(() => expect(started).toHaveBeenCalled());
+    // An unchanged selection lets the server use its authoritative profile.
+    expect(started.mock.calls[0][0].agentKey).toBeUndefined();
+    act(() => result.current.setSelectedAgent('default'));
+    await act(() => result.current.handleSelectTab('thread-2'));
+    act(() => result.current.setSelectedAgent('analyst'));
+    await act(async () => {
+      release({ content: 'answer', cancelled: false });
+      await running;
+    });
+    expect(result.current.selectedAgent).toBe('analyst');
+    await act(() => result.current.handleSelectTab('thread-1'));
+    expect(result.current.selectedAgent).toBe('default');
+
+    // The next accepted turn stores the choice; the refreshed server copy wins.
+    started.mockImplementationOnce(async options => {
+      expect(options.agentKey).toBe('default');
+      threads[0].agentKey = resolved;
+      return { threadUuid: 'thread-1', messageUuid: 'user-2', runId: 'run-2' };
+    });
+    await act(() => result.current.sendMessage('next question'));
+    expect(result.current.selectedAgent).toBe(resolved);
+    expect(result.current.activeTab?.pendingAgentKey).toBeUndefined();
+  },
+);
+
+test('new conversations use the preference or the active selection', async () => {
+  localStorage.setItem(AGENT_STORAGE_KEY, 'analyst');
+  mockConversations([]);
+  const created = jest.spyOn(chatThreadsApi, 'createThread').mockResolvedValue({
+    uuid: 'first',
+    agentKey: 'analyst',
+  });
+  const { result } = renderHook(useChatBot, {
+    wrapper: createWrapper({ useRedux: true, useRouter: true }),
+  });
+  await waitFor(() => expect(result.current.threadsLoaded).toBe(true));
+  expect(created).toHaveBeenCalledWith(undefined, 'analyst');
+  expect(result.current.selectedAgent).toBe('analyst');
+  act(() => result.current.setSelectedAgent('default'));
+  created.mockResolvedValueOnce({ uuid: 'second', agentKey: 'default' });
+  await act(() => result.current.handleNewChat());
+  expect(created).toHaveBeenLastCalledWith(undefined, 'default');
+  expect(result.current.selectedAgent).toBe('default');
+});
 
 test('the server transcript replaces the local one turn for turn', () => {
   const merged = mergeMessages(

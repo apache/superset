@@ -268,6 +268,9 @@ selections you had before you opened it.
 A dashboard preview reconstructs the layout as it was, including charts that
 have since been removed from the dashboard. A chart that has been deleted
 outright cannot be reconstructed; its slot shows a placeholder instead.
+An archived or otherwise unavailable chart also shows a placeholder. An editor
+can restore archived charts from **Recently Archived**. Other charts in the
+version continue to preview normally.
 Empty chart slots left by older dashboard copies are repaired on save,
 preserving their size. Detached slots are reattached to a reachable container.
 
@@ -282,6 +285,13 @@ captured state, so a restored dashboard can differ from its preview in these
 respects.
 
 ## Restoring a version
+
+Before a dashboard restore, the confirmation dialog counts current member charts
+that were not members of the selected version. It warns that restoring will
+remove those charts from the dashboard, without deleting the charts themselves.
+The count includes archived and unplaced members, reflects membership when the
+dialog checks it, and may change if another user edits the dashboard before you
+confirm. If the check fails, the dialog warns that the removal count is unknown.
 
 **Restore** rewrites the entity back to the selected version. Two things are
 worth knowing:
@@ -319,17 +329,27 @@ want an old state back but are not certain you want to give up the current one.
 How much of the version comes across differs by entity, because the two copy
 paths do. A new chart is built from the version itself: its name,
 visualization type, dataset, controls, query context, description, and cache
-timeout. A new dashboard is a copy of the *live* dashboard with the version's
-title, CSS, metadata, and layout applied over it — the copy endpoint accepts
-only those fields, so properties such as description, slug, certification, and
-theme come from the dashboard as it stands today, not from the version.
+timeout. A new dashboard takes its title, CSS, settings, and layout from the
+selected version. Description, slug, certification, and theme are not copied.
+Settings missing from that version use defaults rather than inheriting values
+from the live dashboard. Chart-specific settings, including expanded charts, refresh exemptions
+and cross-filter configuration, retain only charts present in the copied layout.
+When charts are duplicated, these settings refer to the new chart IDs.
+
+The version fork sends `replace_metadata: true` to the dashboard copy API, treating
+its required `json_metadata` payload as the complete settings to copy. Other copies
+(including Save as and MCP duplicate) omit this flag and merge the supplied settings
+with the source dashboard. Chart-specific settings are pruned and remapped in both
+modes. Ordinary dashboard updates still merge settings as before.
 
 When copying a dashboard **and its charts**, archived chart slots in the copy
 become placeholders saying "This archived chart was not copied." Their layout
 positions and sizes are preserved, but they do not link to the archived original.
 Restoring that original chart later therefore does not attach it to the copy.
-Live charts are still cloned. The source dashboard is unchanged, and ordinary
-dashboard saves and chart restores keep their existing reattachment behavior.
+Only live charts included in the copied layout are cloned, so opening an older
+version does not bring along charts added later. The source dashboard is unchanged,
+and ordinary dashboard saves and chart restores keep their existing reattachment
+behavior.
 This rule does not change copying a dashboard without copying its charts.
 
 Copying with charts refuses a layout slot that still references a live chart

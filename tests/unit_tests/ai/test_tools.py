@@ -44,6 +44,7 @@ RAISE_FOR_ACCESS = "superset.security_manager.raise_for_access"
 SCHEMAS_FOR_USER = "superset.security_manager.get_schemas_accessible_by_user"
 TABLES_COMMAND = "superset.commands.database.tables.TablesDatabaseCommand.run"
 CURRENT_USER = "superset.ai.tools.base._current_user"
+CAN_ACCESS = "superset.security_manager.can_access"
 
 
 @pytest.fixture(autouse=True)
@@ -55,7 +56,10 @@ def _authenticated_user() -> Any:
     behaviour a separate test covers explicitly. Every other test is about
     something else, so they run as a signed-in user.
     """
-    with patch(CURRENT_USER, return_value=MagicMock(id=1, is_authenticated=True)):
+    with (
+        patch(CURRENT_USER, return_value=MagicMock(id=1, is_authenticated=True)),
+        patch(CAN_ACCESS, return_value=True),
+    ):
         yield
 
 
@@ -133,6 +137,88 @@ def denial(message: str) -> Exception:
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "name, arguments, resource, lookup",
+    [
+        (
+            "get_chart_context",
+            {"chart_id": 1},
+            "Chart",
+            "superset.daos.chart.ChartDAO.find_by_id",
+        ),
+        (
+            "get_dashboard_context",
+            {"dashboard_id": 1},
+            "Dashboard",
+            "superset.daos.dashboard.DashboardDAO.find_by_id",
+        ),
+        (
+            "list_databases",
+            {},
+            "Database",
+            "superset.daos.database.DatabaseDAO.find_all",
+        ),
+        (
+            "get_schema",
+            {"database_id": 1},
+            "Database",
+            "superset.daos.database.DatabaseDAO.find_by_id",
+        ),
+    ],
+)
+def test_asset_readers_require_resource_permission_before_lookup(
+    name: str,
+    arguments: dict[str, Any],
+    resource: str,
+    lookup: str,
+) -> None:
+    """Object/data grants cannot bypass an explicit resource-level denial."""
+    from superset.ai.llm.base import ToolCall
+    from superset.ai.tools.base import build_registry
+
+    with (
+        patch(
+            CAN_ACCESS, side_effect=lambda _permission, target: target != resource
+        ) as permission,
+        patch(lookup) as read,
+    ):
+        result = build_registry().dispatch(
+            ToolCall(id="read", name=name, arguments=arguments)
+        )
+    assert result.is_error
+    assert "can_read" in result.content
+    permission.assert_any_call("can_read", resource)
+    read.assert_not_called()
+
+
+def test_asset_search_skips_resource_types_the_user_cannot_read() -> None:
+    """Searching several asset types must keep each REST resource gate."""
+    from superset.ai.tools.search import SearchAssetsTool
+
+    dataset, chart, dashboard = (
+        MagicMock(return_value=[]),
+        MagicMock(return_value=[]),
+        MagicMock(return_value=[]),
+    )
+    with (
+        patch(
+            CAN_ACCESS, side_effect=lambda _permission, resource: resource == "Dataset"
+        ),
+        patch.dict(
+            "superset.ai.tools.search._SEARCHERS",
+            {
+                "dataset": dataset,
+                "chart": chart,
+                "dashboard": dashboard,
+            },
+        ),
+    ):
+        SearchAssetsTool().run(query="sales")
+    dataset.assert_called_once()
+    chart.assert_not_called()
+    dashboard.assert_not_called()
 
 
 def test_registry_exports_definitions_and_dispatches() -> None:
@@ -433,6 +519,37 @@ def test_truncate_payload_caps_a_payload_with_no_list_to_shrink() -> None:
     assert "truncated" in text
 
 
+def test_truncate_payload_keeps_rows_after_a_long_sql_string() -> None:
+    """Shrinking an earlier string must not cut later result fields from JSON."""
+    from superset.ai.tools.base import truncate_payload
+
+    payload = {
+        "kind": "sql_result",
+        "executed_sql": "SELECT " + "x" * 4_000,
+        "columns": ["answer"],
+        "rows": [{"answer": 42}],
+        "row_count": 1,
+    }
+    text, truncated = truncate_payload(payload, 2_000)
+
+    assert truncated is True
+    assert len(text.encode("utf-8")) <= 2_000
+    decoded = json.loads(text)
+    assert decoded["rows"] == [{"answer": 42}]
+    assert decoded["_truncated"] is True
+
+
+def test_truncate_payload_drops_a_string_that_cannot_shrink() -> None:
+    """A one-character-plus-ellipsis value cannot keep the loop spinning."""
+    from superset.ai.tools.base import truncate_payload
+
+    text, truncated = truncate_payload({"value": "x…"}, 10)
+
+    assert truncated is True
+    assert len(text.encode("utf-8")) <= 10
+    assert isinstance(json.loads(text), dict)
+
+
 def test_registry_dispatch_bounds_the_result() -> None:
     """The cap is enforced by the registry, not left to each tool."""
     from superset.ai.llm.base import ToolCall
@@ -472,7 +589,17 @@ def test_all_tool_names_matches_what_is_actually_built() -> None:
 
 def test_bundles_expose_the_expected_tools() -> None:
     """The assigned tool set, and nothing else."""
-    from superset.ai.tools import build_registry, BUNDLE_DISCOVERY, BUNDLE_READ_ONLY
+    from superset.ai.tools import (
+        build_registry,
+        BUNDLE_ALL,
+        BUNDLE_DISCOVERY,
+        BUNDLE_READ_ONLY,
+    )
+
+    all_tools = build_registry(BUNDLE_ALL)
+    assert "create_virtual_dataset" in all_tools
+    assert "generate_chart" in all_tools
+    assert "generate_dashboard" in all_tools
 
     read_only = build_registry(BUNDLE_READ_ONLY)
     assert set(read_only.names()) == {
@@ -484,6 +611,9 @@ def test_bundles_expose_the_expected_tools() -> None:
         "get_chart_context",
         "get_dashboard_context",
     }
+    assert "generate_chart" not in read_only
+    assert "generate_dashboard" not in read_only
+    assert build_registry().names() == read_only.names()
 
     discovery = build_registry(BUNDLE_DISCOVERY)
     # The point of this bundle is that it cannot reach a warehouse.
@@ -571,6 +701,20 @@ def test_every_tool_definition_is_well_formed() -> None:
 # ---------------------------------------------------------------------------
 # execute_sql — read-only enforcement
 # ---------------------------------------------------------------------------
+
+
+def test_execute_sql_requires_sql_lab_execution_permission() -> None:
+    """Dataset access alone does not grant the separate SQL Lab capability."""
+    from superset.ai.tools.base import ToolError
+    from superset.ai.tools.sql import ExecuteSqlTool
+
+    executor = RecordingExecutor()
+    with patch(CAN_ACCESS, return_value=False), patch(FIND_DB) as find_database:
+        with pytest.raises(ToolError, match="permission to execute SQL"):
+            ExecuteSqlTool(executor=executor).run(database_id=1, sql="SELECT 1")
+
+    find_database.assert_not_called()
+    assert executor.calls == []
 
 
 MUTATING_SQL = [

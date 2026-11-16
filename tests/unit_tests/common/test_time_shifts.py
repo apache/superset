@@ -623,6 +623,75 @@ def test_join_offset_dfs_full_range_disabled_truncates_historical():
     assert_frame_equal(expected, result)
 
 
+@mark.parametrize("full_range", [False, True])
+def test_join_offset_dfs_empty_offset_df(full_range: bool) -> None:
+    df = DataFrame(
+        {
+            "A": [Timestamp("2021-01-08 00:00"), Timestamp("2021-01-08 01:00")],
+            "V": [1.0, 2.0],
+        }
+    )
+    offset_dfs = {"1 week ago": DataFrame({"A": [float("nan")], "B": [float("nan")]})}
+
+    expected = DataFrame(
+        {
+            "A": [Timestamp("2021-01-08 00:00"), Timestamp("2021-01-08 01:00")],
+            "V": [1.0, 2.0],
+            "B": [float("nan"), float("nan")],
+        }
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, TimeGrain.HOUR, ["A"], full_range=full_range
+    )
+
+    assert_frame_equal(expected, result)
+
+
+@mark.parametrize("empty_first", [False, True])
+def test_join_offset_dfs_full_range_with_one_empty_offset(empty_first: bool) -> None:
+    df = DataFrame(
+        {
+            "A": [Timestamp("2021-01-02 00:00"), Timestamp("2021-01-02 01:00")],
+            "V": [1.0, 2.0],
+        }
+    )
+    populated = (
+        "1 day ago",
+        DataFrame(
+            {
+                "A": [
+                    Timestamp("2021-01-01 00:00"),
+                    Timestamp("2021-01-01 01:00"),
+                    Timestamp("2021-01-01 02:00"),
+                ],
+                "B": [10.0, 20.0, 30.0],
+            }
+        ),
+    )
+    empty = ("1 year ago", DataFrame({"A": [float("nan")], "C": [float("nan")]}))
+    offset_dfs = dict([empty, populated] if empty_first else [populated, empty])
+
+    expected = DataFrame(
+        {
+            "A": [
+                Timestamp("2021-01-02 00:00"),
+                Timestamp("2021-01-02 01:00"),
+                Timestamp("2021-01-02 02:00"),
+            ],
+            "V": [1.0, 2.0, None],
+            "B": [10.0, 20.0, 30.0],
+            "C": [float("nan")] * 3,
+        }
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, TimeGrain.HOUR, ["A"], full_range=True
+    )
+
+    assert_frame_equal(expected, result, check_like=True)
+
+
 def test_join_offset_dfs_totals_query_no_dimensions():
     """
     Test time offset join for totals query with no dimension columns.

@@ -32,11 +32,6 @@ from typing import Any
 
 import pytest
 
-from superset.ai.knowledge import (
-    KnowledgeDomain,
-    KnowledgeProvider,
-    NullKnowledgeProvider,
-)
 from superset.ai.prompts import (
     assemble_system_prompt,
     build_time_anchor,
@@ -56,7 +51,7 @@ DEPLOYMENT_SOURCE = "acme.knowledge"
 #: Database engines. Naming one in core is a subtle failure: the prompt still
 #: reads as generic advice, but the assistant emits that engine's syntax against
 #: whatever is actually configured and cannot tell it has. Dialect guidance
-#: belongs to a KnowledgeProvider, keyed by the backend in play.
+#: belongs in deployment prompt sections, scoped to the backend in play.
 #:
 #: These are all publicly known products, so listing them discloses nothing. A
 #: deployment that also wants to bar its own internal vocabulary should keep that
@@ -102,7 +97,7 @@ def _section(**kwargs: Any) -> PromptSection:
 def _package_files() -> list[Path]:
     """Every Python file this package ships, for the denylist sweep."""
     root = Path(__file__).resolve().parents[3] / "superset" / "ai"
-    return [*(root / "prompts").rglob("*.py"), root / "knowledge.py"]
+    return list((root / "prompts").rglob("*.py"))
 
 
 # --------------------------------------------------------------------------- #
@@ -445,7 +440,7 @@ def test_no_database_engine_is_named_in_the_package(term: str) -> None:
 
     An engine name in core produces syntax that is confidently wrong on every
     other deployment, with nothing to signal it. Dialect rules are supplied per
-    engine by a KnowledgeProvider instead.
+    engine through deployment prompt sections instead.
     """
     for path in _package_files():
         text = path.read_text(encoding="utf-8").lower()
@@ -652,61 +647,3 @@ def test_config_defaults_leave_the_prompt_untouched() -> None:
     assert config.AI_EXTRA_PROMPT_SECTIONS == []
     assert config.AI_DISABLED_PROMPT_SECTIONS == []
     assert config.AI_SYSTEM_PROMPT is None
-
-
-# --------------------------------------------------------------------------- #
-# The knowledge seam
-# --------------------------------------------------------------------------- #
-
-
-def test_null_provider_contributes_nothing() -> None:
-    """Core ships no domain knowledge, and the default proves it."""
-    provider = NullKnowledgeProvider()
-
-    assert provider.prompt_sections(PromptContext()) == ()
-    assert provider.domains() == ()
-    assert isinstance(provider, KnowledgeProvider)
-
-
-def test_a_provider_contributes_an_index_and_on_demand_bodies() -> None:
-    """
-    The shape the seam is designed around.
-
-    A small always-on index plus bodies behind a tool: measured on the
-    implementation this derives from at roughly a quarter of the input tokens
-    for comparable accuracy.
-    """
-
-    class SalesKnowledge:
-        name = DEPLOYMENT_SOURCE
-
-        def prompt_sections(self, ctx: PromptContext) -> tuple[PromptSection, ...]:
-            return (
-                PromptSection(
-                    key="acme.index",
-                    body="Domains: sales (orders, returns).",
-                    kind=SectionKind.KNOWLEDGE,
-                    source=self.name,
-                    order=200,
-                ),
-            )
-
-        def domains(self) -> tuple[KnowledgeDomain, ...]:
-            return (
-                KnowledgeDomain(
-                    key="sales",
-                    title="Sales",
-                    summary="Order and return volumes.",
-                    body="Orders live in `sales_prod.orders`.",
-                    tags=("revenue",),
-                ),
-            )
-
-    provider: KnowledgeProvider = SalesKnowledge()
-    sections = [*core_sections(), *provider.prompt_sections(PromptContext())]
-    prompt = assemble_system_prompt(sections, tool_names=())
-
-    assert "Domains: sales (orders, returns)." in prompt
-    # The body stays out of the always-on prompt; a tool serves it.
-    assert "sales_prod.orders" not in prompt
-    assert provider.domains()[0].key == "sales"

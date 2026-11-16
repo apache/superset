@@ -51,6 +51,9 @@ export interface ChatMessageWithMeta {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  /** Persisted lifecycle, retained so an accepted run can survive a reload. */
+  status?: string;
+  runId?: string;
   /** Reasoning and the tool log as one block, for the flat rendering used while
    * a run is streaming and there are no structured steps yet. */
   thinking?: string;
@@ -74,8 +77,14 @@ export interface ChatTab {
   messages: ChatMessageWithMeta[];
   createdAt: number;
   updatedAt?: number;
+  /** Server count used before this tab's messages have been loaded. */
+  messageCount?: number;
   /** The server conversation this tab is backed by. */
   threadId?: string;
+  /** The profile persisted on the server. */
+  agentKey?: string;
+  /** A local selection to apply on the next send. */
+  pendingAgentKey?: string;
 }
 
 /**
@@ -110,7 +119,7 @@ export interface CheckpointPayload {
 export interface AIActionPayload {
   /** Sent as the user's message. */
   prompt: string;
-  /** Prepended to the conversation as a system directive. */
+  /** Additional user instructions; cannot override operator policies. */
   systemPrompt?: string;
   /** Name for the conversation the action opens. */
   tabName?: string;
@@ -202,6 +211,8 @@ export interface AiToolCall {
   truncated: boolean;
   /** Arguments the model passed, kept so a surprising result can be explained. */
   args?: JsonRecord;
+  /** The audit copy was clipped independently of the model result. */
+  outputTruncated?: boolean;
   /** Recorded tool output, clipped by the backend. */
   output?: string;
   error?: string;
@@ -212,7 +223,9 @@ export interface AiMessage {
   uuid: string;
   role: AiMessageRole;
   content: string;
+  status?: string;
   createdOn?: string;
+  runId?: string;
   /** Persisted by the backend, which is what lets the activity survive a reload. */
   toolCalls: AiToolCall[];
   /** Model reasoning. Never rendered as part of the answer. */
@@ -367,6 +380,7 @@ export function parseToolCall(
     ok: value.ok !== false,
     durationMs: readNumber(value, 'duration_ms'),
     truncated: readBoolean(value, 'truncated'),
+    outputTruncated: readBoolean(value, 'output_truncated'),
     args: readRecord(value, 'arguments'),
     output: readString(value, 'output'),
     error: readString(value, 'error'),
@@ -394,7 +408,9 @@ export function parseMessage(
     uuid,
     role,
     content: readString(value, 'content') ?? '',
+    status: readString(value, 'status'),
     createdOn: readString(value, 'created_on'),
+    runId: readString(extra, 'run_id'),
     toolCalls: readRecordArray(toolCallSource, 'tool_calls')
       .map(parseToolCall)
       .filter(isDefined),

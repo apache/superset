@@ -28,16 +28,20 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Generator
-from typing import Any, cast
+from typing import Any, cast, TYPE_CHECKING
 
 from flask import current_app, request, Response, stream_with_context
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from marshmallow import ValidationError
 
 from superset.ai.events import (
+    cancelled_event,
+    done_event,
     error_event,
+    final_event,
     KEEPALIVE_FRAME,
     KEEPALIVE_INTERVAL_SECONDS,
+    session_event,
 )
 from superset.ai.schemas import (
     AgentResponseSchema,
@@ -47,12 +51,14 @@ from superset.ai.schemas import (
     RunAcceptedResponseSchema,
     SuggestedPromptsPostSchema,
     ThreadDetailResponseSchema,
+    ThreadListSchema,
     ThreadPostSchema,
     ThreadPutSchema,
     ThreadResponseSchema,
 )
-from superset.ai.types import MessageRole, MessageStatus
+from superset.ai.types import MessageRole, MessageStatus, RunOutcome
 from superset.commands.ai.exceptions import (
+    AIChatFeedbackInvalidError,
     AIChatMessageInvalidError,
     AIChatMessageNotFoundError,
     AIChatThreadInvalidError,
@@ -64,6 +70,9 @@ from superset.utils.decorators import transaction
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from superset.ai.orchestrator import TurnRequest
 
 #: Upper bound on how long a client may hold a stream open, so an abandoned
 #: browser tab cannot pin a worker indefinitely.
@@ -242,10 +251,16 @@ class AIRestApi(BaseSupersetApi):
             name: limit
             schema:
               type: integer
+              minimum: 1
+              maximum: 100
+              default: 50
           - in: query
             name: offset
             schema:
               type: integer
+              minimum: 0
+              maximum: 2147483647
+              default: 0
           responses:
             200:
               description: Conversations
@@ -268,17 +283,21 @@ class AIRestApi(BaseSupersetApi):
         if (unavailable := self._reject_if_unconfigured()) is not None:
             return unavailable
 
-        from superset.daos.ai import AIChatThreadDAO
+        from superset.daos.ai import AIChatMessageDAO, AIChatThreadDAO
 
-        limit = request.args.get("limit", type=int) or 50
-        offset = request.args.get("offset", type=int) or 0
-        threads = AIChatThreadDAO.find_all_for_user(
-            self._user_id(), limit=limit, offset=offset
-        )
+        try:
+            pagination = ThreadListSchema().load(request.args)
+        except ValidationError as ex:
+            return self.response_422(message=ex.messages)
+        threads = AIChatThreadDAO.find_all_for_user(self._user_id(), **pagination)
+        counts = AIChatMessageDAO.counts_for_threads(threads)
         return self.response(
             200,
             count=len(threads),
-            result=[_thread_dict(thread) for thread in threads],
+            result=[
+                _thread_dict(thread, message_count=counts.get(thread.id, 0))
+                for thread in threads
+            ],
         )
 
     @expose("/thread/<thread_uuid>", methods=("GET",))
@@ -425,6 +444,8 @@ class AIRestApi(BaseSupersetApi):
               description: Conversation deleted
             401:
               $ref: '#/components/responses/401'
+            422:
+              description: An active run must finish before deletion
             404:
               $ref: '#/components/responses/404'
         """
@@ -437,6 +458,8 @@ class AIRestApi(BaseSupersetApi):
             DeleteAIChatThreadCommand(thread_uuid, self._user_id()).run()
         except AIChatThreadNotFoundError:
             return self.response_404()
+        except AIChatThreadInvalidError as ex:
+            return self.response_422(message=str(ex))
         return self.response(200, message="OK")
 
     @expose("/thread/<thread_uuid>/message", methods=("POST",))
@@ -491,14 +514,26 @@ class AIRestApi(BaseSupersetApi):
         if (unavailable := self._reject_if_unconfigured()) is not None:
             return unavailable
 
+        from superset.ai.factories import get_profiles
         from superset.ai.orchestrator import new_run_id
+        from superset.ai.profiles import AgentProfileError
         from superset.commands.ai import AppendAIChatMessageCommand
+        from superset.daos.ai import AIChatThreadDAO
 
         try:
             payload = MessagePostSchema().load(request.json or {})
         except ValidationError as error:
             return self.response_400(message=error.messages)
         user_id = self._user_id()
+        thread = AIChatThreadDAO.find_by_uuid_for_user(thread_uuid, user_id)
+        if thread is None:
+            return self.response_404()
+        try:
+            payload["agent_key"] = (
+                get_profiles().get(payload.get("agent_key") or thread.agent_key).key
+            )
+        except AgentProfileError as ex:
+            return self.response_422(message=str(ex))
 
         try:
             user_message = AppendAIChatMessageCommand(
@@ -517,24 +552,36 @@ class AIRestApi(BaseSupersetApi):
                 "",
                 request_id=payload.get("request_id"),
                 status=MessageStatus.PENDING,
+                extra={
+                    "run_id": new_run_id(),
+                    "agent_key": payload.get("agent_key"),
+                    "model": payload.get("model"),
+                    "page_context": payload.get("page_context"),
+                },
             ).run()
         except AIChatThreadNotFoundError:
             return self.response_404()
         except (AIChatMessageInvalidError, AIChatThreadInvalidError) as ex:
             return self.response_422(message=str(ex))
 
-        run_id = new_run_id()
-        _record_run_context(assistant_message, run_id, payload)
-
-        self._start_run(
-            thread_uuid=thread_uuid,
-            user_id=user_id,
-            run_id=run_id,
-            assistant_message_uuid=str(assistant_message.uuid),
-            agent_key=payload.get("agent_key"),
-            model=payload.get("model"),
-            page_context=payload.get("page_context"),
-        )
+        extra = assistant_message.extra
+        run_id = extra.get("run_id")
+        if not run_id:
+            return self.response_422(
+                message="This message has no recorded run. Use a new request_id."
+            )
+        if assistant_message.status == MessageStatus.PENDING:
+            # Resubmit an unclaimed run after an uncertain broker acknowledgement.
+            # The atomic execution claim makes duplicate delivery harmless.
+            self._start_run(
+                thread_uuid=thread_uuid,
+                user_id=user_id,
+                run_id=run_id,
+                assistant_message_uuid=str(assistant_message.uuid),
+                agent_key=extra.get("agent_key"),
+                model=extra.get("model"),
+                page_context=cast(dict[str, Any] | None, extra.get("page_context")),
+            )
 
         return self.response(
             202,
@@ -605,7 +652,10 @@ class AIRestApi(BaseSupersetApi):
             return self.response_404()
 
         turn = None
-        if current_app.config.get("AI_ASSISTANT_EXECUTION_MODE") != "worker":
+        if (
+            current_app.config.get("AI_ASSISTANT_EXECUTION_MODE") != "worker"
+            or pending.is_terminal
+        ):
             from superset.ai.orchestrator import TurnRequest
 
             extra = pending.extra
@@ -625,7 +675,6 @@ class AIRestApi(BaseSupersetApi):
             content_type="text/event-stream; charset=utf-8",
             headers={
                 "Cache-Control": "no-cache, no-transform",
-                "Connection": "keep-alive",
                 # Defeats proxy buffering, which otherwise holds frames until
                 # the response completes and makes streaming pointless.
                 "X-Accel-Buffering": "no",
@@ -674,16 +723,21 @@ class AIRestApi(BaseSupersetApi):
             return unavailable
 
         from superset.ai.orchestrator import request_cancel
-        from superset.daos.ai import AIChatThreadDAO
+        from superset.daos.ai import AIChatMessageDAO, AIChatThreadDAO
 
         try:
             payload = CancelPostSchema().load(request.json or {})
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        if AIChatThreadDAO.find_by_uuid_for_user(thread_uuid, self._user_id()) is None:
+        thread = AIChatThreadDAO.find_by_uuid_for_user(thread_uuid, self._user_id())
+        if thread is None:
             return self.response_404()
 
-        request_cancel(payload["run_id"])
+        run_id = payload["run_id"]
+        if _find_run_message(AIChatMessageDAO.find_for_thread(thread), run_id) is None:
+            return self.response_404()
+
+        request_cancel(run_id)
         return self.response(200, message="OK")
 
     @expose("/feedback", methods=("POST",))
@@ -729,7 +783,7 @@ class AIRestApi(BaseSupersetApi):
             ).run()
         except AIChatMessageNotFoundError:
             return self.response_404()
-        except AIChatMessageInvalidError as ex:
+        except AIChatFeedbackInvalidError as ex:
             return self.response_422(message=str(ex))
         return self.response(200, message="OK")
 
@@ -798,8 +852,8 @@ class AIRestApi(BaseSupersetApi):
         papering over it. The cost is that a connection is held for the run,
         which is the trade inline execution already makes.
 
-        ``turn`` is present in inline mode, where this generator *is* the run.
-        In worker mode it is ``None`` and the generator tails the event bus.
+        ``turn`` is present for inline execution and stored terminal results.
+        A running worker uses the event bus instead.
         """
 
         def generate() -> Generator[str, None, None]:
@@ -811,6 +865,7 @@ class AIRestApi(BaseSupersetApi):
             except Exception:  # pylint: disable=broad-except
                 logger.exception("AI event stream failed for run %s", run_id)
                 yield error_event().encode()
+                yield done_event(ok=False).encode()
 
         return stream_with_context(generate())
 
@@ -885,29 +940,6 @@ def _is_configured() -> bool:
     return is_configured()
 
 
-@transaction()
-def _record_run_context(
-    message: Any,
-    run_id: str,
-    payload: dict[str, Any],
-) -> None:
-    """
-    Record on the assistant message what the run needs to reconstruct itself.
-
-    The stream endpoint reads this rather than having the client restate it, so a
-    reconnecting client finds the run, and worker execution reconstructs it with
-    the same context the question was asked in.
-    """
-    message.update_extra(
-        {
-            "run_id": run_id,
-            "agent_key": payload.get("agent_key"),
-            "model": payload.get("model"),
-            "page_context": payload.get("page_context"),
-        }
-    )
-
-
 def _find_run_message(messages: list[Any], run_id: str) -> Any | None:
     """
     The assistant message a run belongs to.
@@ -921,12 +953,66 @@ def _find_run_message(messages: list[Any], run_id: str) -> Any | None:
     return None
 
 
-def _run_inline_stream(turn: Any) -> Generator[str, None, None]:
-    """Execute the turn here and emit its events as they are produced."""
+def _run_inline_stream(turn: TurnRequest) -> Generator[str, None, None]:
+    """Execute a claimed turn, or read the result without repeating its work."""
     from superset.ai.orchestrator import stream_turn
 
+    produced = False
     for event in stream_turn(turn):
+        produced = True
         yield event.encode()
+    if produced:
+        return
+
+    # An inline producer may live in another web process. The metadata database
+    # holds its terminal answer even when no shared event bus is configured.
+    yield session_event(turn.thread_uuid, turn.assistant_message_uuid).encode()
+    deadline = time.monotonic() + _STREAM_TIMEOUT_SECONDS
+    last_keepalive = time.monotonic()
+    while time.monotonic() < deadline:
+        message = _read_run_result(turn)
+        if message is None:
+            yield error_event("That conversation is no longer available.").encode()
+            break
+        status = message["status"]
+        if status in MessageStatus.terminal():
+            yield final_event(message["content"]).encode()
+            if status == MessageStatus.ERROR:
+                yield error_event().encode()
+            elif status == MessageStatus.CANCELLED:
+                yield cancelled_event().encode()
+            yield done_event(
+                ok=status == MessageStatus.COMPLETE
+                and message["extra"].get("outcome", RunOutcome.SUCCESS)
+                == RunOutcome.SUCCESS
+            ).encode()
+            return
+        if time.monotonic() - last_keepalive >= KEEPALIVE_INTERVAL_SECONDS:
+            last_keepalive = time.monotonic()
+            yield KEEPALIVE_FRAME
+        time.sleep(1)
+    else:
+        yield error_event(
+            "The run is still in progress. Reopen the conversation."
+        ).encode()
+    yield done_event(ok=False).encode()
+
+
+@transaction()
+def _read_run_result(turn: TurnRequest) -> dict[str, Any] | None:
+    """Read a fresh owned result, ending each read transaction before waiting."""
+    from superset.daos.ai import AIChatMessageDAO
+
+    message = AIChatMessageDAO.find_by_uuid_for_user(
+        turn.assistant_message_uuid, turn.user_id
+    )
+    if (
+        message is None
+        or str(message.thread.uuid) != turn.thread_uuid
+        or message.extra.get("run_id") != turn.run_id
+    ):
+        return None
+    return _message_dict(message)
 
 
 def _tail_event_bus(run_id: str) -> Generator[str, None, None]:
@@ -956,14 +1042,16 @@ def _tail_event_bus(run_id: str) -> Generator[str, None, None]:
         bus.close(run_id)
 
 
-def _thread_dict(thread: Any) -> dict[str, Any]:
+def _thread_dict(thread: Any, *, message_count: int | None = None) -> dict[str, Any]:
     """Serialise a conversation for the API."""
     return {
         "uuid": str(thread.uuid),
         "title": thread.title,
         "status": thread.status,
         "agent_key": thread.agent_key,
-        "message_count": thread.message_count,
+        "message_count": (
+            thread.message_count if message_count is None else message_count
+        ),
         "created_on": thread.created_on.isoformat() if thread.created_on else None,
         "changed_on": thread.changed_on.isoformat() if thread.changed_on else None,
     }
