@@ -62,7 +62,7 @@ from superset.exceptions import (
 )
 from superset.extensions import celery_app, event_logger
 from superset.models.sql_lab import Query
-from superset.result_set import SupersetResultSet
+from superset.result_set import fetch_arrow_result, SupersetResultSet
 from superset.sql.execution.executor import build_statement_blocks
 from superset.sql.execution.utils import (
     _discard_stored_results as _discard_unpublished_results,
@@ -330,6 +330,31 @@ def apply_limit(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
         )
 
 
+def _read_sqllab_payload(
+    query: Query,
+    cursor: Any,
+    db_engine_spec: type[BaseEngineSpec],
+) -> tuple[Any, Any]:
+    """
+    Fetch one statement's result as ``(table, None)`` from Arrow, or
+    ``(None, rows)`` from ``fetch_data``, trimmed to ``query.limit``.
+    """
+    table, truncated = fetch_arrow_result(db_engine_spec, cursor, query.limit)
+    if table is not None:
+        if not truncated:
+            query.limiting_factor = LimitingFactor.NOT_LIMITED
+        return table, None
+
+    increased_limit = None if query.limit is None else query.limit + 1
+    data = db_engine_spec.fetch_data(cursor, increased_limit)
+    if query.limit is None or len(data) <= query.limit:
+        query.limiting_factor = LimitingFactor.NOT_LIMITED
+    else:
+        # return 1 row less than increased_query
+        data = data[:-1]
+    return None, data
+
+
 def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # noqa: C901
     query: Query,
     cursor: Any,
@@ -349,6 +374,8 @@ def _execute_query(
     """Run a statement inside the engine's interruption-safe cursor scope."""
     database = query.database
     db_engine_spec = database.db_engine_spec
+    arrow_table = None
+    data = None
     try:
         log_query = app.config["QUERY_LOGGER"]
         if log_query:
@@ -384,13 +411,7 @@ def _execute_query(
                     query.id,
                     str(query.to_dict()),
                 )
-                increased_limit = None if query.limit is None else query.limit + 1
-                data = db_engine_spec.fetch_data(cursor, increased_limit)
-                if query.limit is None or len(data) <= query.limit:
-                    query.limiting_factor = LimitingFactor.NOT_LIMITED
-                else:
-                    # return 1 row less than increased_query
-                    data = data[:-1]
+                arrow_table, data = _read_sqllab_payload(query, cursor, db_engine_spec)
     except SoftTimeLimitExceeded as ex:
         query.status = QueryStatus.TIMED_OUT
 
@@ -421,6 +442,8 @@ def _execute_query(
         raise SqlLabException(db_engine_spec.extract_error_message(ex)) from ex
 
     logger.debug("Query %d: Fetching cursor description", query.id)
+    if arrow_table is not None:
+        return SupersetResultSet.from_arrow(arrow_table, db_engine_spec)
     cursor_description = cursor.description
     return SupersetResultSet(data, cursor_description, db_engine_spec)
 
