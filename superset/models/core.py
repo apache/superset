@@ -52,6 +52,7 @@ from typing import (
 
 import numpy
 import pandas as pd
+import pyarrow as pa
 import sqlalchemy as sqla
 import sshtunnel
 from flask import current_app as app, g, has_app_context
@@ -107,7 +108,7 @@ from superset.extensions import (
     ssh_manager_factory,
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, UUIDMixin
-from superset.result_set import SupersetResultSet
+from superset.result_set import fetch_arrow_result, SupersetResultSet
 from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import (
     DbapiDescription,
@@ -1265,8 +1266,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         :param catalog: Optional catalog name
         :param schema: Optional schema name
         :param fetch_last_result: Whether to fetch results from last statement
-        :return: Tuple of (cursor, rows, description) where rows and description
-        are None if not fetching.
+        :return: Tuple of (cursor, rows, description) where rows is a list of
+        tuples or a ``pyarrow.Table``. Both are None if not fetching.
         """
         script = SQLScript(sql, self.db_engine_spec.engine)
 
@@ -1339,7 +1340,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     # Fetch results from last statement if requested
                     if fetch_last_result and i == len(script.statements) - 1:
                         with timed(f"database.fetch.{engine_suffix}"):
-                            rows = self.db_engine_spec.fetch_data(cursor)
+                            rows, _ = fetch_arrow_result(self.db_engine_spec, cursor)
+                            if rows is None:
+                                rows = self.db_engine_spec.fetch_data(cursor)
                         # Some asynchronous DB-API drivers expose placeholder metadata
                         # until fetching waits for the operation to finish.
                         description = cursor.description
@@ -1391,7 +1394,12 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             with timed(
                 f"database.dataframe.{metric_suffix(self.db_engine_spec.engine)}"
             ):
-                df = self.load_into_dataframe(description, rows)
+                if isinstance(rows, pa.Table):
+                    df = SupersetResultSet.from_arrow(
+                        rows, self.db_engine_spec
+                    ).to_pandas_df()
+                else:
+                    df = self.load_into_dataframe(description, rows)
 
         if mutator:
             df = mutator(df)
