@@ -244,7 +244,10 @@ beforeEach(() => {
   fetchMock.get('glob:*/api/v1/database/*', { result: [] });
   fetchMock.post(
     'glob:*/api/v1/sqllab/warning/',
-    { result: warning },
+    {
+      result: warning,
+      prepared_query_id: '5148e631-18c4-4bb8-97d1-e8d161bc086e',
+    },
     { name: 'check' },
   );
   fetchMock.post(
@@ -352,6 +355,7 @@ test.each([
       });
       fetchMock.modifyRoute('check', {
         response: {
+          prepared_query_id: '5148e631-18c4-4bb8-97d1-e8d161bc086e',
           result: {
             action: 'confirm',
             reason: 'warning',
@@ -439,10 +443,11 @@ async function rerunFromHistory() {
 test('history action opens a tab, checks its effective inputs, and executes that request once', async () => {
   fetchMock.modifyRoute('check', {
     response: {
+      prepared_query_id: 'history-preparation',
       result: {
         ...warning,
         reason: 'unavailable',
-        message: 'Templates cannot be estimated',
+        message: 'The estimate is unavailable.',
       },
     },
   });
@@ -456,6 +461,22 @@ test('history action opens a tab, checks its effective inputs, and executes that
     sql: 'SELECT 99',
     query_limit: 42,
     template_params: { origin: 'active' },
+    execution: {
+      client_id: expect.any(String),
+      database_id: 2,
+      catalog: 'historical_catalog',
+      schema: 'historical_schema',
+      sql: 'SELECT 99',
+      queryLimit: 42,
+      templateParams: '{"origin":"active"}',
+      runAsync: false,
+      sql_editor_id: expect.any(String),
+      tab: 'Copy of Untitled Query 1',
+      tmp_table_name: '',
+      select_as_cta: false,
+      ctas_method: 'TABLE',
+      expand_data: true,
+    },
   });
   expect(executions()).toHaveLength(0);
   const cloned = store
@@ -467,7 +488,9 @@ test('history action opens a tab, checks its effective inputs, and executes that
   expect(cloned?.id).not.toBe(defaultQueryEditor.id);
   fireEvent.click(screen.getByRole('button', { name: 'Run anyway' }));
   await waitFor(() => expect(executions()).toHaveLength(1));
-  expect(JSON.parse(String(executions()[0].options.body))).toMatchObject({
+  expect(JSON.parse(String(executions()[0].options.body))).toEqual({
+    ...checked.execution,
+    prepared_query_id: 'history-preparation',
     sql: checked.sql,
     database_id: checked.database_id,
     catalog: checked.catalog,

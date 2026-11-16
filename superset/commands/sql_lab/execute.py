@@ -261,7 +261,8 @@ class ExecuteSqlCommand(BaseCommand):
         except Exception:
             from superset.sqllab.query_preparation import discard_preparation
 
-            db.session.rollback()
+            # End the failed transaction before saving cancellation independently.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             discard_preparation(context.client_id_or_short_id)
             raise
 
@@ -396,15 +397,16 @@ class ExecuteSqlCommand(BaseCommand):
         Pins ``query.executed_sql`` to the literal, already-rendered text so
         ``security_manager.raise_for_access``'s "prefer executed_sql" path
         authorizes that exact SQL directly, with no further Jinja
-        re-render (see its docstring). ``executed_sql`` is reset
-        afterwards so the execution path can assign its own final
-        (limited / per-block mutated) SQL.
+        re-render (see its docstring). Restore the previous value without
+        flushing temporary SQL, including when rechecking an existing query.
         """
-        query.executed_sql = rendered_query
-        try:
-            self._validate_access(query, self._execution_context.template_params)
-        finally:
-            query.executed_sql = None
+        previous_sql = query.executed_sql
+        with db.session.no_autoflush:
+            query.executed_sql = rendered_query
+            try:
+                self._validate_access(query, self._execution_context.template_params)
+            finally:
+                query.executed_sql = previous_sql
 
     def _set_query_limit_if_required(
         self,

@@ -59,6 +59,7 @@ jest.mock('@superset-ui/core', () => ({
 const featureEnabled = jest.mocked(isFeatureEnabled);
 const endpoint = 'glob:*/api/v1/sqllab/warning/*';
 const executeEndpoint = 'glob:*/api/v1/sqllab/execute/*';
+const preparationId = '5148e631-18c4-4bb8-97d1-e8d161bc086e';
 const warning = {
   action: 'confirm',
   reason: 'warning',
@@ -172,7 +173,11 @@ function setup() {
     act(() => {
       store.dispatch({ type: 'REPLACE', state: change(store.getState()) });
     });
-  const finish = async (result: object, index = 0, preparedQueryId?: string) =>
+  const finish = async (
+    result: object,
+    index = 0,
+    preparedQueryId = preparationId,
+  ) =>
     act(async () => {
       resolvers[index]({
         result,
@@ -428,6 +433,7 @@ test.each([
       schema: checked.schema,
       queryLimit: checked.query_limit,
       runAsync,
+      prepared_query_id: preparationId,
     });
     expect(h.result.current.confirmation).toBeUndefined();
   },
@@ -479,7 +485,9 @@ test('a late error cannot dismiss a newer confirmation or show a stale toast', a
   await waitFor(() => expect(parseError).toHaveBeenCalledTimes(1));
   act(() => h.result.current.cancel());
   fetchMock.modifyRoute('warning-check', {
-    response: { body: { result: warning } },
+    response: {
+      body: { result: warning, prepared_query_id: preparationId },
+    },
   });
   h.start();
   await waitFor(() => expect(h.result.current.confirmation).toEqual(warning));
@@ -646,6 +654,43 @@ test.each([
     );
   },
 );
+
+test.each([undefined, null, '', 42])(
+  'confirmation with preparation ID %j is rejected without executing',
+  async preparedQueryId => {
+    const h = setup();
+    fetchMock.modifyRoute('warning-check', {
+      response: { result: warning, prepared_query_id: preparedQueryId },
+    });
+    h.start();
+    await waitFor(() => expect(h.result.current.checking).toBe(false));
+    act(() => h.result.current.continueRun());
+    expect(h.executions()).toHaveLength(0);
+    expect(h.result.current.confirmation).toBeUndefined();
+    expect(h.reducer).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        type: ADD_TOAST,
+        payload: expect.objectContaining({
+          toastType: ToastType.Danger,
+          text: 'The query warning response was invalid.',
+        }),
+      }),
+    );
+    expect(fetchMock.callHistory.calls('warning-discard')).toHaveLength(1);
+  },
+);
+
+test('an inactive server check can proceed without a preparation', async () => {
+  const h = setup();
+  fetchMock.modifyRoute('warning-check', {
+    response: { result: { action: 'proceed' } },
+  });
+  h.start();
+  await waitFor(() => expect(h.executions()).toHaveLength(1));
+  const executed = JSON.parse(String(h.executions()[0].options.body));
+  expect(executed).not.toHaveProperty('prepared_query_id');
+});
 
 test.each([403, 400, 500])(
   'HTTP %s remains an error and never executes',
@@ -816,7 +861,12 @@ test('HTTP detail strings remain exact without a numeric parser', async () => {
     { label: 'Usage', value: 'Up to 9,007,199,254,740,993,123 bytes' },
   ];
   fetchMock.modifyRoute('warning-check', {
-    response: { body: { result: { ...warning, details } } },
+    response: {
+      body: {
+        result: { ...warning, details },
+        prepared_query_id: preparationId,
+      },
+    },
   });
   h.start();
   await waitFor(() =>

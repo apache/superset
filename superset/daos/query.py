@@ -38,8 +38,11 @@ class QueryDAO(BaseDAO[Query]):
 
     @staticmethod
     def save_metadata(query: Query, payload: dict[str, Any]) -> None:
+        # Status-only responses must not overwrite stored result columns.
+        if "columns" not in payload:
+            return
         # pull relevant data from payload and store in extra_json
-        columns = payload.get("columns", {})
+        columns = payload["columns"]
         for col in columns:
             if "name" in col:
                 col["column_name"] = col.get("name")

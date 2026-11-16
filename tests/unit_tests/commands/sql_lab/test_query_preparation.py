@@ -180,12 +180,34 @@ def test_prepare_confirm_retains_render_and_is_hidden(
     resume._sql_query_render.render = MagicMock(
         side_effect=AssertionError("must not render again")
     )
-    resume._resume_prepared_query()
-    resume._resume_prepared_query()
+    resume.run()
+    assert query.status == QueryStatus.PENDING
+    executed_sql = "SELECT 42 LIMIT 1001"
+    columns = [{"name": "answer"}]
+    query.executed_sql = executed_sql
+    QueryDAO.save_metadata(query, {"columns": columns})
+    query.status = QueryStatus.SUCCESS
+    session.commit()
+
+    def validate_existing_query(checked: Query, template_params: Any) -> None:
+        assert checked.executed_sql == "SELECT 42"
+        # Access-check lookups must not flush temporary SQL into the saved record.
+        assert (
+            session.query(Query.executed_sql).filter_by(id=checked.id).scalar()
+            == executed_sql
+        )
+
+    resume._access_validator.validate.side_effect = validate_existing_query
+    resume.run()
+    resume.run()
+    session.refresh(query)
     resume._sql_json_executor.execute.assert_called_once()
     assert resume._sql_json_executor.execute.call_args.args[1] == "SELECT 42"
     render.assert_called_once()
-    assert query.status == QueryStatus.PENDING
+    assert query.status == QueryStatus.SUCCESS
+    assert query.executed_sql == executed_sql
+    assert query.extra["columns"] == columns
+    assert columns == [{"name": "answer", "column_name": "answer"}]
 
 
 @pytest.mark.parametrize(
@@ -367,9 +389,18 @@ def test_confirmation_does_not_render_dynamic_template_again(
     assert command._sql_json_executor.execute.call_args.args[1] == "SELECT 1"
 
 
-def test_disabled_warning_does_not_prepare(preparation: Any, session: Session) -> None:
+@pytest.mark.parametrize("excluded", [False, True])
+def test_inapplicable_warning_does_not_prepare(
+    preparation: Any, session: Session, mocker: MockerFixture, excluded: bool
+) -> None:
     make, database, estimate = preparation
-    database.extra = json.dumps({"query_cost_warning": {"enabled": False}})
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.security_manager.has_access",
+        return_value=not excluded,
+    )
+    # An excluded user's invalid threshold must not create a hidden preparation.
+    rule = {"enabled": True, "threshold": -1} if excluded else {"enabled": False}
+    database.extra = json.dumps({"query_cost_warning": rule})
     assert make().prepare_warning() == {"result": {"action": "proceed"}}
     assert session.query(Query).count() == 0
     estimate.assert_not_called()

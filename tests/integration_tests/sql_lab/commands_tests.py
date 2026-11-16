@@ -26,7 +26,7 @@ from jinja2.exceptions import TemplateError, TemplateSyntaxError
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import object_session
 
-from superset import db, sql_lab
+from superset import db, security_manager, sql_lab
 from superset.commands.sql_lab import estimate, export, results
 from superset.common.db_query_status import QueryStatus
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -67,7 +67,8 @@ class TestQueryEstimationCommand(SupersetTestCase):
             }
         )
         command._database = database
-        sql, reason = command._prepare_warning_sql()
+        with override_user(security_manager.find_user("admin")):
+            sql, reason = command._prepare_warning_sql()
         assert reason is None
         assert sql is not None
         assert "LIMIT 11" in sql

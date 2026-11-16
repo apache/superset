@@ -247,7 +247,11 @@ export default function useQueryCostWarning(
           discard(query);
           return;
         }
-        if (json.prepared_query_id !== undefined) {
+        const result = parseWarningResult(json.result);
+        if (
+          json.prepared_query_id !== undefined ||
+          result.action === 'confirm'
+        ) {
           if (
             typeof json.prepared_query_id !== 'string' ||
             !json.prepared_query_id
@@ -256,7 +260,6 @@ export default function useQueryCostWarning(
           }
           query.preparedQueryId = json.prepared_query_id;
         }
-        const result = parseWarningResult(json.result);
         if (result.action === 'confirm') {
           const confirmation = { ...attempt, result };
           activeAttemptRef.current = confirmation;

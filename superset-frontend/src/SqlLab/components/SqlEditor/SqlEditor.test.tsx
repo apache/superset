@@ -219,6 +219,7 @@ describe('SqlEditor', () => {
       fetchMock.post(
         'glob:*/api/v1/sqllab/warning/',
         {
+          prepared_query_id: '5148e631-18c4-4bb8-97d1-e8d161bc086e',
           result: {
             action,
             reason: 'warning',
