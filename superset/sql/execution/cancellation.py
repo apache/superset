@@ -32,6 +32,11 @@ from sqlalchemy.engine import Engine
 if TYPE_CHECKING:
     from superset.models.core import Database
 
+
+class WorkerDeadlineExceeded(BaseException):
+    """Stop abandoned work without being swallowed by tool error handlers."""
+
+
 cursor_scope: ContextVar[
     Callable[[Database, Any, str | None, str | None], AbstractContextManager[None]]
     | None
