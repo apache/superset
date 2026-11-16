@@ -59,6 +59,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any, Protocol, runtime_checkable
 
 from superset_core.artifacts.store import (
+    is_ref_name,
     is_sha256_hex,
     MissingObjectsError,
     sha256_hex,
@@ -106,6 +107,12 @@ class AtomicStorageAccessor(Protocol):
 def _require_hash(value: str) -> str:
     if not is_sha256_hex(value):
         raise ValueError(f"{value!r} is not a SHA-256 (64 lowercase hex digits)")
+    return value
+
+
+def _require_ref_name(value: str) -> str:
+    if not is_ref_name(value):
+        raise ValueError(f"{value!r} is not a ref name (see REF_NAME_PATTERN)")
     return value
 
 
@@ -191,12 +198,15 @@ class ExtensionStorageBackend:
         return dict(stored)
 
     def get_ref(self, artifact_id: str, ref: str) -> str | None:
-        stored = self._storage.get(self._key("ref", artifact_id, ref))
+        stored = self._storage.get(
+            self._key("ref", artifact_id, _require_ref_name(ref))
+        )
         return stored if isinstance(stored, str) else None
 
     def compare_and_set_ref(
         self, artifact_id: str, ref: str, expected: str | None, new: str
     ) -> bool:
+        _require_ref_name(ref)
         _require_hash(new)
         if expected is not None:
             _require_hash(expected)
