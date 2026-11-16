@@ -666,9 +666,7 @@ def test_the_owning_extension_is_the_one_that_guards_a_page(
     in. The owning extension's requirement is the one that must come back.
     """
     squatter = SimpleNamespace(
-        manifest=manifest(
-            "acme.tools.queue", extension_id="other.ext", validated=False
-        )
+        manifest=manifest("acme.tools.queue", extension_id="other.ext", validated=False)
     )
     owner = SimpleNamespace(
         manifest=manifest("acme.tools.queue", permission="can_review")
@@ -695,9 +693,7 @@ def test_a_page_an_extension_does_not_own_is_not_advertised() -> None:
     extension's own id. A nav entry for one would point at an address that
     renders "page not found".
     """
-    squatter = manifest(
-        "acme.tools.queue", extension_id="other.ext", validated=False
-    )
+    squatter = manifest("acme.tools.queue", extension_id="other.ext", validated=False)
 
     assert permitted_page_ids(squatter) == set()
 

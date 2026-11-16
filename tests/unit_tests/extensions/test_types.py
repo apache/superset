@@ -374,7 +374,11 @@ def test_a_page_declared_twice_is_refused():
                 "displayName": "Acme Tools",
                 "contributions": {
                     "pages": [
-                        {"id": "acme.tools.queue", "name": "Queue", "permission": "can_review"},
+                        {
+                            "id": "acme.tools.queue",
+                            "name": "Queue",
+                            "permission": "can_review",
+                        },
                         {"id": "acme.tools.queue", "name": "Queue"},
                     ]
                 },
