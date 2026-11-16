@@ -1225,7 +1225,7 @@ def test_where_in_chart_compilation(
 
     sql_dialect = dialect_factory()
     engine = mocker.MagicMock(dialect=sql_dialect)
-    database = Database(database_name="test")
+    database = Database(database_name="test", sqlalchemy_uri="sqlite://")
     mocker.patch.object(
         database, "get_sqla_engine"
     ).return_value.__enter__.return_value = engine

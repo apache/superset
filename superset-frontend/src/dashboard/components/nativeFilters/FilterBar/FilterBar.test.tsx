@@ -19,6 +19,7 @@
 
 import {
   act,
+  createStore,
   fireEvent,
   render,
   screen,
@@ -26,28 +27,39 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { testWithId } from 'src/utils/testUtils';
-import { Preset, makeApi } from '@superset-ui/core';
+import { Preset, makeApi, fetchTimeRange } from '@superset-ui/core';
 import {
   TimeFilterPlugin,
   SelectFilterPlugin,
   RangeFilterPlugin,
 } from 'src/filters/components';
 import fetchMock from 'fetch-mock';
-import { FilterBarOrientation } from 'src/dashboard/types';
+import type { Store } from 'redux';
+import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
+import {
+  holdFilterKeyPublish,
+  resetFilterKeyHold,
+} from 'src/dashboard/util/sharedFilterStateHold';
 
 jest.useFakeTimers({ advanceTimers: true });
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   makeApi: jest.fn(),
+  fetchTimeRange: jest.fn(),
 }));
 
 const mockedMakeApi = makeApi as jest.Mock;
+
+const mockedFetchTimeRange = fetchTimeRange as jest.MockedFunction<
+  typeof fetchTimeRange
+>;
 
 // Register preset once for all tests
 class MainPreset extends Preset {
@@ -201,6 +213,7 @@ function setupTimeRangeMocks() {
     noFilter: 'glob:*/api/v1/time_range/?q=%27No%20filter%27',
     lastDay: 'glob:*/api/v1/time_range/?q=%27Last%20day%27',
     lastWeek: 'glob:*/api/v1/time_range/?q=%27Last%20week%27',
+    currentMonth: 'glob:*/api/v1/time_range/?q=%27Current%20month%27',
   };
 
   fetchMock.removeRoute(urls.noFilter);
@@ -234,6 +247,19 @@ function setupTimeRangeMocks() {
       },
     },
     { name: urls.lastWeek },
+  );
+
+  fetchMock.removeRoute(urls.currentMonth);
+  fetchMock.get(
+    urls.currentMonth,
+    {
+      result: {
+        since: '2021-04-01T00:00:00',
+        until: '2021-05-01T00:00:00',
+        timeRange: 'Current month',
+      },
+    },
+    { name: urls.currentMonth },
   );
 }
 
@@ -1528,4 +1554,299 @@ test('FilterBar with orientation=Vertical renders Vertical layout (sanity counte
   expect(
     screen.queryByRole('img', { name: 'setting' }),
   ).not.toBeInTheDocument();
+});
+
+const TIME_FILTER_ID = 'NATIVE_FILTER-time-range';
+
+function mockTimeRangeRequests() {
+  setupTimeRangeMocks();
+  mockedFetchTimeRange.mockResolvedValue({
+    value: '2021-04-01T00:00:00 ≤ ds < 2021-05-01T00:00:00',
+  });
+  fetchMock.removeRoute('time-filter-chart-data');
+  fetchMock.post(
+    'glob:*/api/v1/chart/data',
+    {
+      result: [
+        {
+          data: [{ ds: '2021-04-14T00:00:00' }],
+          colnames: ['ds'],
+          coltypes: [2],
+          applied_filters: [],
+        },
+      ],
+    },
+    { name: 'time-filter-chart-data' },
+  );
+}
+
+function renderTimeFilterBar(
+  dataMask: Record<string, unknown>,
+  dashboardInfoOverrides: Record<string, unknown> = {},
+) {
+  const filter = createFilter({
+    id: TIME_FILTER_ID,
+    name: 'Time range',
+    filterType: 'filter_time',
+    targets: [{ datasetId: 7, column: { name: 'ds' } }],
+    chartsInScope: [18],
+  });
+  const state = {
+    ...createStateWithFilter(filter, createDataMask(TIME_FILTER_ID), {
+      filterBarOrientation: FilterBarOrientation.Horizontal,
+      metadata: {
+        native_filter_configuration: [filter],
+        chart_configuration: {},
+      },
+      ...dashboardInfoOverrides,
+    }),
+    dataMask,
+  };
+  const store: Store = createStore(state, reducerIndex);
+
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    store,
+    useDnd: true,
+    useRouter: true,
+  });
+
+  return store;
+}
+
+const getAppliedTimeMask = (store: Store) =>
+  (store.getState() as RootState).dataMask[TIME_FILTER_ID];
+
+async function selectCurrentMonth(currentLabel: string) {
+  await userEvent.click(screen.getByText(currentLabel));
+  await userEvent.click(screen.getByLabelText('Range type'));
+  await userEvent.click(screen.getByText('Current'));
+  await userEvent.click(screen.getByRole('radio', { name: 'Current month' }));
+  await userEvent.click(
+    screen.getByTestId('date-filter-control__apply-button'),
+  );
+}
+
+async function applyAndClearCurrentMonth(store: Store) {
+  const applyButton = screen.getByTestId(getTestId('apply-button'));
+
+  await selectCurrentMonth('No filter');
+
+  // The selected range differs from the applied state, so Apply enables.
+  expect(screen.getByText('Current month')).toBeInTheDocument();
+  expect(applyButton).toBeEnabled();
+
+  await userEvent.click(applyButton);
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(getAppliedTimeMask(store)).toEqual(
+    expect.objectContaining({
+      filterState: expect.objectContaining({ value: 'Current month' }),
+      extraFormData: { time_range: 'Current month' },
+    }),
+  );
+  // The applied range stays visible in the filter bar.
+  expect(screen.getByText('Current month')).toBeInTheDocument();
+  expect(screen.queryByText('No filter')).not.toBeInTheDocument();
+  expect(applyButton).toBeDisabled();
+
+  // Clear All stays available and clears the applied range.
+  const clearAllButton = screen.getByRole('button', { name: 'Clear all' });
+  expect(clearAllButton).toBeEnabled();
+  await userEvent.click(clearAllButton);
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(applyButton).toBeEnabled();
+  await userEvent.click(applyButton);
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(getAppliedTimeMask(store)?.extraFormData).toEqual({});
+  expect(screen.getByText('No filter')).toBeInTheDocument();
+}
+
+test('FilterBar applies a time range selected from an empty applied entry and keeps its label', async () => {
+  mockTimeRangeRequests();
+  const store = renderTimeFilterBar({
+    [TIME_FILTER_ID]: {
+      id: TIME_FILTER_ID,
+      filterState: {},
+      extraFormData: {},
+      ownState: {},
+    },
+  });
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(screen.getByText('No filter')).toBeInTheDocument();
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+
+  await applyAndClearCurrentMonth(store);
+});
+
+test('FilterBar applies a time range selected for a filter without an applied entry', async () => {
+  mockTimeRangeRequests();
+  const store = renderTimeFilterBar({});
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(screen.getByText('No filter')).toBeInTheDocument();
+
+  await applyAndClearCurrentMonth(store);
+});
+
+test('FilterBar drops the selected time range when cross-filtering is disabled', async () => {
+  mockTimeRangeRequests();
+  // The settings toggle saves the new value through the dashboard PUT API.
+  // Echo the submitted metadata so the filter configuration survives the save.
+  const updateDashboardApi = jest.fn(
+    async ({ json_metadata }: { json_metadata: string }) => ({
+      result: { json_metadata },
+      last_modified_time: 1,
+    }),
+  );
+  mockedMakeApi.mockReturnValue(updateDashboardApi);
+  const store = renderTimeFilterBar(
+    {
+      [TIME_FILTER_ID]: createDataMask(TIME_FILTER_ID, 'Last week', {
+        time_range: 'Last week',
+      }),
+    },
+    { crossFiltersEnabled: true },
+  );
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(screen.getByText('Last week')).toBeInTheDocument();
+
+  // Turn cross-filtering off through the filter bar settings menu, the same
+  // way a user does, so the production code path clears the data masks.
+  await userEvent.click(screen.getByRole('button', { name: 'setting' }));
+  await userEvent.click(screen.getByText('Enable cross-filtering'));
+  await act(async () => {
+    jest.advanceTimersByTime(300);
+  });
+
+  expect(updateDashboardApi).toHaveBeenCalledWith({
+    json_metadata: expect.stringContaining('"cross_filters_enabled":false'),
+  });
+  expect(
+    (store.getState() as RootState).dashboardInfo.crossFiltersEnabled,
+  ).toBe(false);
+  expect(getAppliedTimeMask(store)).toBeUndefined();
+  // The time filter is still configured and rendered; only its stale
+  // selection is gone.
+  expect(screen.getByText('Time range')).toBeInTheDocument();
+  expect(screen.getByText('No filter')).toBeInTheDocument();
+  expect(screen.queryByText('Last week')).not.toBeInTheDocument();
+});
+
+test('FilterBar keeps the link key while a fallback hold is active, then writes a new key on Apply', async () => {
+  fetchMock.post(
+    'glob:*/api/v1/dashboard/1/filter_state*',
+    { key: 'new-key' },
+    { name: 'index-create-filter-key' },
+  );
+  fetchMock.put(
+    'glob:*/api/v1/dashboard/1/filter_state/original-key*',
+    { message: 'updated' },
+    { name: 'index-update-filter-key' },
+  );
+  // Let any debounced or in-flight publish left by an earlier test finish
+  // before the URL and call history are set up for this test.
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+  await act(async () => {
+    await Promise.resolve();
+  });
+  window.history.pushState(
+    null,
+    '',
+    '/dashboard/1/?native_filters_key=original-key',
+  );
+  fetchMock.clearHistory();
+  holdFilterKeyPublish('original-key');
+
+  const filterId = 'NATIVE_FILTER-hold-test';
+  const selectFilter = createFilter({
+    id: filterId,
+    name: 'Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    defaultDataMask: { filterState: { value: null }, extraFormData: {} },
+    chartsInScope: [18],
+  });
+  const stateWithSelect = {
+    ...stateWithoutNativeFilters,
+    user: { userId: 1 },
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [selectFilter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    dataMask: {
+      [filterId]: createDataMask(filterId, ['East'], {
+        filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+      }),
+    },
+    nativeFilters: {
+      filters: { [filterId]: selectFilter },
+      filtersState: {},
+    },
+  };
+
+  renderFilterBar(createOpenedBarProps(), stateWithSelect);
+  await act(async () => {
+    jest.advanceTimersByTime(2000);
+  });
+
+  // Held: nothing is created or updated and the URL keeps the original key.
+  expect(fetchMock.callHistory.calls('index-create-filter-key')).toHaveLength(
+    0,
+  );
+  expect(fetchMock.callHistory.calls('index-update-filter-key')).toHaveLength(
+    0,
+  );
+  expect(window.location.search).toContain('native_filters_key=original-key');
+
+  // The viewer changes a filter and applies it: a new key is created and the
+  // original key's saved state is not overwritten.
+  await act(async () => {
+    await userEvent.click(screen.getByTestId(getTestId('clear-button')));
+  });
+  await act(async () => {
+    await userEvent.click(screen.getByTestId(getTestId('apply-button')));
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(2000);
+  });
+
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls('index-create-filter-key').length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+  expect(fetchMock.callHistory.calls('index-update-filter-key')).toHaveLength(
+    0,
+  );
+  resetFilterKeyHold();
 });
