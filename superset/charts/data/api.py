@@ -665,9 +665,11 @@ class ChartDataRestApi(ChartRestApi):
             if dashboard_filter_context is not None:
                 payload["dashboard_filters"] = dashboard_filter_context.to_dict()
 
+            # The timer is the inner context so ``serialize`` measures only
+            # json.dumps, not the event log write on ``log_context`` exit.
             with (
-                timed("chart_data.response.serialize"),
                 event_logger.log_context(f"{self.__class__.__name__}.json_dumps"),
+                timed("chart_data.response.serialize"),
             ):
                 response_data = json.dumps(
                     payload,
