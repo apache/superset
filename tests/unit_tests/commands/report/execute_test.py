@@ -6308,3 +6308,47 @@ def test_embedded_data_keeps_get_fallback_without_saved_context(
     assert state._get_embedded_data() is expected
     get_frame.assert_called_once()
     post.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("schedule_type", "custom_height", "expected"),
+    [
+        (ReportScheduleType.REPORT, None, True),
+        (ReportScheduleType.ALERT, None, True),
+        (ReportScheduleType.REPORT, 900, False),
+    ],
+)
+def test_dashboard_capture_is_trimmed_unless_the_schedule_pins_a_height(
+    mocker: MockerFixture,
+    schedule_type: ReportScheduleType,
+    custom_height: int | None,
+    expected: bool,
+) -> None:
+    """Reports and alerts end a dashboard capture at its content, but a schedule
+    that pins a height gets exactly that height."""
+    state = _make_notification_state(
+        mocker,
+        report_format=ReportDataFormat.PNG,
+        schedule_type=schedule_type,
+        has_chart=False,
+    )
+    state._report_schedule.custom_width = None
+    state._report_schedule.custom_height = custom_height
+    state._report_execution_context = _active_report_context()
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.Mock(), "executor"),
+    )
+    mocker.patch.object(state, "get_dashboard_urls", return_value=["/dashboard/1"])
+    screenshot_class = mocker.patch(
+        "superset.commands.report.execute.DashboardScreenshot"
+    )
+    screenshot_class.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    screenshot_class.assert_called_once()
+    assert screenshot_class.call_args.kwargs.get("trim_to_content") is expected, (
+        "DashboardScreenshot is missing the trim_to_content opt-in "
+        f"(expected {expected})"
+    )
