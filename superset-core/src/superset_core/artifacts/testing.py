@@ -37,6 +37,7 @@ from superset_core.artifacts.store import (
     ArtifactStoreBackend,
     DRAFT_REF,
     InvalidPathError,
+    is_ref_name,
     is_sha256_hex,
     MissingObjectsError,
     PUBLISHED_REF,
@@ -49,6 +50,12 @@ from superset_core.artifacts.store import (
 def _require_hash(value: str) -> str:
     if not is_sha256_hex(value):
         raise ValueError(f"{value!r} is not a SHA-256 (64 lowercase hex digits)")
+    return value
+
+
+def _require_ref_name(value: str) -> str:
+    if not is_ref_name(value):
+        raise ValueError(f"{value!r} is not a ref name (see REF_NAME_PATTERN)")
     return value
 
 
@@ -109,12 +116,14 @@ class InMemoryArtifactStore:
             return None if tree is None else dict(tree)
 
     def get_ref(self, artifact_id: str, ref: str) -> str | None:
+        _require_ref_name(ref)
         with self._lock:
             return self._refs.get((artifact_id, ref))
 
     def compare_and_set_ref(
         self, artifact_id: str, ref: str, expected: str | None, new: str
     ) -> bool:
+        _require_ref_name(ref)
         _require_hash(new)
         if expected is not None:
             _require_hash(expected)
@@ -278,6 +287,44 @@ class ArtifactStoreBackendConformance:
         assert artifact_store.get_ref(artifact_id, DRAFT_REF) == draft
         assert artifact_store.get_ref(artifact_id, PUBLISHED_REF) == published
         assert artifact_store.get_ref(self.other_artifact_id, DRAFT_REF) is None
+
+    def test_accepts_every_ref_name_the_contract_allows(
+        self, artifact_store: ArtifactStoreBackend
+    ) -> None:
+        version = self._commit(artifact_store, {"index.html": b"named"})
+        for ref in (
+            DRAFT_REF,
+            PUBLISHED_REF,
+            "_meta",
+            "_log/draft/0",
+            "a/" + "b" * 198,
+        ):
+            assert artifact_store.compare_and_set_ref(
+                self.artifact_id, ref, None, version
+            ), ref
+            assert artifact_store.get_ref(self.artifact_id, ref) == version, ref
+
+    def test_refuses_ref_names_outside_the_contract(
+        self, artifact_store: ArtifactStoreBackend
+    ) -> None:
+        version = self._commit(artifact_store, {"index.html": b"refused"})
+        for ref in (
+            "",
+            "_",
+            "__meta",
+            "Draft",
+            "1draft",
+            "a//b",
+            "a/",
+            "/a",
+            "a/../b",
+            "a/_b",
+            "a" * 201,
+        ):
+            with _raises(ValueError):
+                artifact_store.compare_and_set_ref(self.artifact_id, ref, None, version)
+            with _raises(ValueError):
+                artifact_store.get_ref(self.artifact_id, ref)
 
     def test_only_one_of_many_concurrent_writers_wins(
         self, artifact_store: ArtifactStoreBackend

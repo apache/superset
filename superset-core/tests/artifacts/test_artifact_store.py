@@ -25,9 +25,11 @@ import pytest
 from superset_core.artifacts.store import (
     DRAFT_REF,
     InvalidPathError,
+    is_ref_name,
     is_sha256_hex,
     MAX_PATH_LENGTH,
     normalize_path,
+    PUBLISHED_REF,
     sha256_hex,
     tree_hash,
     validate_tree,
@@ -60,6 +62,48 @@ def test_sha256_hex_matches_known_digests() -> None:
 )
 def test_is_sha256_hex_rejects_other_forms(value: object) -> None:
     assert not is_sha256_hex(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        DRAFT_REF,
+        PUBLISHED_REF,
+        "_meta",
+        "_publish",
+        "_log/draft/12",
+        "_seen/published/" + "a" * 64,
+        "a",
+        "a" * 200,
+    ],
+)
+def test_is_ref_name_accepts_version_and_record_refs(value: str) -> None:
+    assert is_ref_name(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "",
+        "_",
+        "__meta",
+        "Draft",
+        "1draft",
+        "-draft",
+        "a//b",
+        "a/",
+        "/a",
+        "a/../b",
+        "a/./b",
+        "a/_b",
+        "a/B",
+        "a" * 201,
+        None,
+        1,
+    ],
+)
+def test_is_ref_name_rejects_other_forms(value: object) -> None:
+    assert not is_ref_name(value)
 
 
 @pytest.mark.parametrize(

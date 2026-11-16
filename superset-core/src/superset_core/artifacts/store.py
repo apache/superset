@@ -50,7 +50,21 @@ MAX_PATH_LENGTH = 255
 # use it as a JSON Schema ``pattern`` too.
 SHA256_HEX_PATTERN = r"^[0-9a-f]{64}$"
 
+# The one form of a ref name, for every backend, shaped like a git ref: one or
+# more segments joined by ``/``, at most ``MAX_REF_NAME_LENGTH`` characters in
+# all. The first segment starts with a lowercase letter, optionally after a
+# leading ``_``; each later segment starts with a lowercase letter or digit, so
+# a version hash can be one. Segments hold lowercase letters, digits, ``_`` and
+# ``-`` only, so ``.``, ``..`` and empty segments can't occur. A leading ``_``
+# marks a ref that the store's user keeps for its own records, such as an
+# artifact's owners or its history, rather than a version that frames load.
+MAX_REF_NAME_LENGTH = 200
+REF_NAME_PATTERN = (
+    rf"^(?=.{{1,{MAX_REF_NAME_LENGTH}}}$)_?[a-z][a-z0-9_-]*(?:/[a-z0-9][a-z0-9_-]*)*$"
+)
+
 _SHA256_HEX = re.compile(SHA256_HEX_PATTERN)
+_REF_NAME = re.compile(REF_NAME_PATTERN)
 # C0 controls (NUL included), DEL and C1 controls.
 _CONTROL_CHARACTERS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
@@ -75,6 +89,11 @@ def sha256_hex(data: bytes) -> str:
 def is_sha256_hex(value: object) -> bool:
     """Whether ``value`` is a SHA-256 in the store's form: 64 lowercase hex digits."""
     return isinstance(value, str) and _SHA256_HEX.fullmatch(value) is not None
+
+
+def is_ref_name(value: object) -> bool:
+    """Whether ``value`` is a ref name every backend accepts (``REF_NAME_PATTERN``)."""
+    return isinstance(value, str) and _REF_NAME.fullmatch(value) is not None
 
 
 def normalize_path(path: str) -> str:
@@ -226,7 +245,12 @@ class ArtifactStoreBackend(Protocol):
         ...
 
     def get_ref(self, artifact_id: str, ref: str) -> str | None:
-        """Return the tree hash that ``ref`` points to, or ``None`` if unset."""
+        """
+        Return the tree hash that ``ref`` points to, or ``None`` if unset.
+
+        Every backend accepts exactly the ref names that ``is_ref_name``
+        accepts, and raises ``ValueError`` for any other.
+        """
         ...
 
     def compare_and_set_ref(
@@ -238,6 +262,7 @@ class ArtifactStoreBackend(Protocol):
         ``expected=None`` means the ref must not exist yet, so the first write
         creates it. The check and the move are one atomic step: of two writers
         that read the same version, only one moves the ref. ``new`` must be a
-        stored tree, otherwise this raises ``MissingObjectsError``.
+        stored tree, otherwise this raises ``MissingObjectsError``. A ref name
+        that ``is_ref_name`` refuses raises ``ValueError``.
         """
         ...
