@@ -647,7 +647,6 @@ class AIRestApi(BaseSupersetApi):
             content_type="text/event-stream; charset=utf-8",
             headers={
                 "Cache-Control": "no-cache, no-transform",
-                "Connection": "keep-alive",
                 # Defeats proxy buffering, which otherwise holds frames until
                 # the response completes and makes streaming pointless.
                 "X-Accel-Buffering": "no",

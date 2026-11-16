@@ -247,6 +247,11 @@ Content that arrives from your warehouse or asset metadata — table comments,
 chart titles, column labels — is marked as untrusted in the prompt, because a
 value in a database is data and not an instruction.
 
+The WSGI server manages HTTP connection persistence for the assistant's event
+stream. The application does not send a `Connection` header; streaming and
+reconnection use the same event protocol whether the server keeps a connection
+open or closes it after the response.
+
 ### Cancellation
 
 Cancellation is cooperative: a run stops at its next step boundary. A run inside
