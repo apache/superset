@@ -193,13 +193,24 @@ test('labels and tooltips use the display name', () => {
     data: { source: link?.source, target: link?.target },
   });
 
-  expect(nodes.find(node => node.rawValue === null)?.label?.formatter?.()).toBe(
-    NULL_STRING,
-  );
+  const nullNode = nodes.find(node => node.rawValue === null);
+  const nullLink = links.find(link => link.sourceValue === null);
+  const nullTip = formatter?.({
+    value: 2,
+    data: { source: nullLink?.source, target: nullLink?.target },
+  });
+
+  expect(nullNode?.label?.formatter?.()).toBe(NULL_STRING);
   expect(linkTip).toContain('A → B');
   expect(linkTip).toContain('% (A)');
   expect(linkTip).toContain('% (B)');
   expect(linkTip).not.toContain(sankeyValueId('A'));
+  expect(nullTip).toContain('&lt;NULL&gt; → &lt;empty string&gt;');
+  expect(nullTip).toContain('% (&lt;NULL&gt;)');
+  expect(nullTip).toContain('% (&lt;empty string&gt;)');
+  expect(formatter?.({ name: nullNode?.name, value: 2, data: {} })).toContain(
+    '&lt;NULL&gt;',
+  );
   expect(formatter?.({ name: nodeA?.name, value: 10, data: {} })).toContain(
     'A',
   );

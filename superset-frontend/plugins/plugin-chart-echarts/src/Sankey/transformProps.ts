@@ -33,7 +33,7 @@ import { Refs } from '../types';
 import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPercentFormatter } from '../utils/formatters';
-import { getColtypesMapping } from '../utils/series';
+import { getColtypesMapping, sanitizeHtml } from '../utils/series';
 import {
   getSankeyHighlight,
   getSelectedSankeyKeys,
@@ -160,8 +160,10 @@ export default function transformProps(
     const rows = [[metricLabel, valueFormatter.format(value)]];
     const { source: linkSource, target: linkTarget } =
       tooltipData as SankeyLinkDatum;
-    const sourceName = nodes.get(linkSource)?.displayName;
-    const targetName = nodes.get(linkTarget)?.displayName;
+    // tooltipHtml strips unknown tags, so <NULL> and <empty string> are
+    // escaped before they are placed in the title or a percent row.
+    const sourceName = sanitizeHtml(nodes.get(linkSource)?.displayName ?? '');
+    const targetName = sanitizeHtml(nodes.get(linkTarget)?.displayName ?? '');
     if (sourceName && targetName) {
       rows.push([
         `% (${sourceName})`,
@@ -173,7 +175,10 @@ export default function transformProps(
       ]);
       return tooltipHtml(rows, `${sourceName} → ${targetName}`);
     }
-    return tooltipHtml(rows, nodes.get(name)?.displayName ?? name);
+    return tooltipHtml(
+      rows,
+      sanitizeHtml(nodes.get(name)?.displayName ?? name),
+    );
   };
 
   const echartOptions: EChartsOption = {
