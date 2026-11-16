@@ -32,6 +32,8 @@ from superset_core.semantic_layers.types import (
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
 from superset.charts.schemas import ChartDataExtrasSchema
+from superset.common.chart_data import ChartDataResultType
+from superset.common.query_actions import get_query_results
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
 from superset.exceptions import QueryObjectValidationError
@@ -292,3 +294,66 @@ def test_column_suggestions_version_gate_precedes_cache(
     else:
         cache.data_cache.get.assert_called_once()
         assert api.response.call_args.kwargs["result"] == ["cached"]
+
+
+@pytest.mark.parametrize(
+    "result_type", [ChartDataResultType.TIMEGRAINS, ChartDataResultType.COLUMNS]
+)
+@pytest.mark.parametrize("extras", [{}, {"semantic_selection_version": "old"}])
+def test_datasource_metadata_request_skips_selection_version(
+    result_type: ChartDataResultType, extras: dict[str, Any]
+) -> None:
+    """Time grain and column options select no members, so carry no identity."""
+    query: QueryObject = QueryObject(
+        datasource=MagicMock(type="semantic_view", implementation=IdentityView()),
+        result_type=result_type,
+        columns=[],
+        metrics=[],
+        orderby=[],
+        extras=extras,
+    )
+    assert query.validate() is None
+
+
+@pytest.mark.parametrize(
+    "result_type",
+    [None, ChartDataResultType.QUERY, ChartDataResultType.SAMPLES],
+)
+def test_selection_requests_still_require_current_version(
+    result_type: ChartDataResultType | None,
+) -> None:
+    """Only datasource-metadata result types are exempt from the identity guard."""
+    query: QueryObject = QueryObject(
+        datasource=MagicMock(type="semantic_view", implementation=IdentityView()),
+        result_type=result_type,
+        metrics=["Orders.b"],
+        extras={"semantic_selection_version": "old"},
+    )
+    with pytest.raises(QueryObjectValidationError, match="explicitly reselect"):
+        query.validate()
+
+
+@pytest.mark.parametrize("datasource_type", ["semantic_view", "table"])
+def test_time_grain_options_load_through_processor(datasource_type: str) -> None:
+    """The control's request validates and returns grains for both source kinds."""
+    grains: list[dict[str, Any]] = [{"name": "Day", "duration": "P1D"}]
+    datasource: MagicMock = MagicMock(
+        type=datasource_type, implementation=IdentityView()
+    )
+    datasource.get_time_grains.return_value = grains
+    query: QueryObject = QueryObject(
+        datasource=datasource,
+        result_type=ChartDataResultType.TIMEGRAINS,
+        columns=[],
+        metrics=[],
+        orderby=[],
+    )
+    query_context: MagicMock = MagicMock(datasource=datasource, queries=[query])
+    processor: QueryContextProcessor = QueryContextProcessor(query_context)
+    sm: MagicMock
+    with patch("superset.common.query_context_processor.security_manager") as sm:
+        processor.raise_for_access()
+    sm.raise_for_access.assert_called_once_with(query_context=query_context)
+    assert get_query_results(
+        ChartDataResultType.TIMEGRAINS, query_context, query, False
+    ) == {"data": grains}

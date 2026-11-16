@@ -426,9 +426,15 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     "SemanticView", self.datasource
                 ).implementation
                 try:
-                    implementation.validate_selection_version(
-                        self.extras.get("semantic_selection_version")
-                    )
+                    # Column and time grain options select no members, so there
+                    # is no saved selection identity to check.
+                    if (
+                        self.result_type
+                        not in ChartDataResultType.datasource_metadata()
+                    ):
+                        implementation.validate_selection_version(
+                            self.extras.get("semantic_selection_version")
+                        )
                 except ValueError as ex:
                     if self.extras.get("semantic_selection_version") == (
                         "unverified-external-selections"
