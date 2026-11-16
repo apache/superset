@@ -42,7 +42,6 @@ from flask_appbuilder.security.decorators import (
 )
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_babel.speaklater import LazyString
-from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import safe_join
 
 from superset import (
@@ -59,6 +58,7 @@ from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
+from superset.commands.temporary_cache.exceptions import TemporaryCacheCreateFailedError
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
@@ -72,10 +72,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
-from superset.superset_typing import (
-    ExplorableData,
-    FlaskResponse,
-)
+from superset.superset_typing import FlaskResponse
 from superset.tasks.utils import get_current_user
 from superset.translations.utils import get_language_pack, get_language_pack_version
 from superset.utils import core as utils, json
@@ -247,7 +244,6 @@ class Superset(BaseSupersetView):
         if datasource:
             security_manager.raise_for_access(datasource=datasource)
 
-        datasource_name = datasource.name if datasource else _("[Missing Dataset]")
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
@@ -323,52 +319,18 @@ class Superset(BaseSupersetView):
                 datasource.name,
                 query_context,
             )
-        standalone_mode = ReservedUrlParameters.is_standalone_mode()
-        force = request.args.get("force") in {"force", "1", "true"}
-        dummy_datasource_data: ExplorableData = {
-            "type": datasource_type or "unknown",
-            "name": datasource_name,
-            "columns": [],
-            "metrics": [],
-            "database": {"id": 0, "backend": ""},
-        }
-        datasource_data: ExplorableData
-        try:
-            datasource_data = datasource.data if datasource else dummy_datasource_data
-        except (SupersetException, SQLAlchemyError):
-            datasource_data = dummy_datasource_data
+        if datasource is None:
+            return json_error_response(DATASOURCE_MISSING_ERR, status=404)
 
-        bootstrap_data = {
-            "can_add": slice_add_perm,
-            "datasource": sanitize_datasource_data(datasource_data),
-            "form_data": form_data,
-            "datasource_id": datasource_id,
-            "datasource_type": datasource_type,
-            "slice": slc.data if slc else None,
-            "standalone": standalone_mode,
-            "force": force,
-            "user": bootstrap_user_data(g.user, include_perms=True),
-            "forced_height": request.args.get("height"),
-            "common": common_bootstrap_payload(),
-        }
-        if slc:
-            title = slc.slice_name
-        elif datasource:
-            table_name = (
-                datasource.table_name
-                if datasource_type == "table"
-                else datasource.datasource_name
+        # The SPA reads its chart state through the Explore API, not from the
+        # legacy HTML bootstrap. Cache the normalized POST body before switching
+        # to GET so the selected metrics, filters and chart type survive.
+        redirect_url = get_explore_redirect_url(form_data)
+        if redirect_url is None:
+            return json_error_response(
+                TemporaryCacheCreateFailedError.message, status=500
             )
-            title = _("Explore - %(table)s", table=table_name)
-        else:
-            title = _("Explore")
-
-        return self.render_app_template(
-            extra_bootstrap_data=bootstrap_data,
-            entry="explore",
-            title=title,
-            standalone_mode=standalone_mode,
-        )
+        return redirect(redirect_url, code=303)
 
     @staticmethod
     def save_or_overwrite_slice(  # noqa: C901

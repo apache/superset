@@ -207,7 +207,7 @@ _RESERVED_URL_FOR_KWARGS = frozenset(
 )
 
 
-def get_explore_redirect_url() -> str | None:  # noqa: C901
+def get_explore_redirect_url(form_data: dict[str, Any] | None = None) -> str | None:  # noqa: C901
     """Construct the `/explore/?form_data_key=...` redirect URL, or None.
 
     Returns ``None`` when the request should render the SPA fall-through
@@ -222,10 +222,9 @@ def get_explore_redirect_url() -> str | None:  # noqa: C901
     - the current request already matches the would-be redirect target
       (loop guard via ``(endpoint, sorted(query_items))`` equality).
 
-    Single source of truth for the form_data → form_data_key cache-and-
-    redirect contract; both ``ExploreView.root`` (``views/explore.py``)
-    and the deprecated ``Superset.explore`` GET branch
-    (``views/core.py``) call this and redirect only when it returns a URL.
+    The legacy POST view supplies its normalized ``form_data`` explicitly;
+    GET callers use the query string. Both enter the SPA through the same
+    cache-and-redirect contract.
     """
     # Local imports break a circular dependency: `views/utils.py` is imported
     # transitively by `commands/base.py`'s dependency graph, so importing
@@ -239,7 +238,11 @@ def get_explore_redirect_url() -> str | None:  # noqa: C901
         CommandParameters,
     )
 
-    request_form_data = request.args.get("form_data")
+    request_form_data = (
+        json.dumps(form_data)
+        if form_data is not None
+        else request.args.get("form_data")
+    )
     if not request_form_data:
         return None
     # `loads_request_json` coerces any non-object payload (scalar, list) to
@@ -299,6 +302,9 @@ def get_explore_redirect_url() -> str | None:  # noqa: C901
     except ValueError:
         # Narrow catch: cache-write failure renders SPA instead of looping.
         # `SQLAlchemyError` remains caught inside `CreateFormDataCommand.run`.
+        return None
+
+    if not form_data_key:
         return None
 
     # Use `url_for` with the query as kwargs so subdirectory deployments
