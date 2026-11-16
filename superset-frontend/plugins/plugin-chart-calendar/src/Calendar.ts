@@ -18,7 +18,11 @@
  */
 import { extent as d3Extent, range as d3Range } from 'd3-array';
 import { select as d3Select } from 'd3-selection';
-import { getSequentialSchemeRegistry } from '@superset-ui/core';
+import {
+  DataMask, //new dependency
+  FilterState, //new dependency
+  getSequentialSchemeRegistry,
+} from '@superset-ui/core';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import CalHeatMapImport from './vendor/cal-heatmap';
@@ -48,6 +52,10 @@ interface CalendarData {
 }
 
 interface CalendarProps {
+  setDataMask?: (dataMask: DataMask) => void;
+  filterState?: FilterState;
+  emitCrossFilters?: boolean;
+  temporalColumn?: string;
   data: CalendarData;
   height: number;
   cellPadding?: number;
@@ -70,6 +78,10 @@ interface CalendarProps {
 
 function Calendar(element: HTMLElement, props: CalendarProps) {
   const {
+    setDataMask,
+    filterState,
+    emitCrossFilters,
+    temporalColumn,
     data,
     height,
     cellPadding = 3,

@@ -28,7 +28,15 @@ import { getFormattedUTCTime } from './utils';
 import transformData from './transformData';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { height, formData, queriesData, datasource } = chartProps;
+  const {
+    height,
+    formData,
+    queriesData,
+    datasource,
+    hooks,
+    filterState,
+    emitCrossFilters,
+  } = chartProps;
   const {
     cellPadding,
     cellRadius,
@@ -72,6 +80,10 @@ export default function transformProps(chartProps: ChartProps) {
     : rawData;
 
   return {
+    setDataMask: hooks.setDataMask,
+    filterState,
+    emitCrossFilters,
+    temporalColumn: formData.granularitySqla,
     height,
     data,
     cellPadding,

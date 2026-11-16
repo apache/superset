@@ -86,3 +86,20 @@ test('passes through non-array data untouched (already-shaped payload)', () => {
   const result = transformProps(chartProps) as Record<string, unknown>;
   expect(result.data).toBe(preShaped);
 });
+
+test('forwards dashboard cross-filter hooks, temporal column, and selection', () => {
+  const setDataMask = jest.fn();
+  const filterState = { value: ['2024-01-01 00:00:00 : 2024-01-02 00:00:00'] };
+  const result = transformProps(new ChartProps({
+    ...baseChartProps,
+    formData: { ...formData, granularity_sqla: 'event_time' },
+    queriesData: [{ data: {} }],
+    hooks: { setDataMask },
+    filterState,
+    emitCrossFilters: true,
+  }));
+  expect(result.setDataMask).toBe(setDataMask);
+  expect(result.filterState).toEqual(filterState);
+  expect(result.emitCrossFilters).toBe(true);
+  expect(result.temporalColumn).toBe('event_time');
+});

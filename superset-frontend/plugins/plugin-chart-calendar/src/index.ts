@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import transformProps from './transformProps';
 import example from './images/example.jpg';
@@ -26,6 +26,7 @@ import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 
 const metadata = new ChartMetadata({
+  behaviors: [Behavior.InteractiveChart],
   category: t('Correlation'),
   credits: ['https://github.com/wa0x6e/cal-heatmap'],
   description: t(
