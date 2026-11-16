@@ -211,7 +211,10 @@ class Query(
     )
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
-    __table_args__ = (sqla.Index("ti_user_id_changed_on", user_id, changed_on),)
+    __table_args__ = (
+        sqla.Index("ti_user_id_changed_on", user_id, changed_on),
+        sqla.Index("ix_query_status_start_time", status, start_time),
+    )
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         return get_template_processor(query=self, database=self.database, **kwargs)

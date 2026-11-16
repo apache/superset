@@ -600,7 +600,10 @@ standalone advisory checks remain available without this preparation protocol.
 
 Preparations remain out of normal query history until execution is requested.
 Cancelled and expired preparation records are cleaned up opportunistically and by
-the existing query-pruning task. Stop and Cancel prevent the main query from
+the existing query-pruning task. A metadata-database migration adds an index on
+query status and start time for preparation cleanup. On installations with large
+query histories, allow time for this index to build during upgrade.
+Stop and Cancel prevent the main query from
 being submitted; they cannot undo database work performed by template macros
 during preparation. An assessment is not a guarantee of the eventual runtime or
 cost, which can change as warehouse data and conditions change.
