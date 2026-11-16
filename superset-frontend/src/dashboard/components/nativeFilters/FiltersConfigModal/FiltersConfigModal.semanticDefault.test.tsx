@@ -45,6 +45,7 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import {
   act,
   createStore,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -249,7 +250,7 @@ afterEach(() => {
 const SQL_COLUMNS_PROJECTION =
   '?q=(columns:!(columns.column_name,columns.is_dttm,columns.type_generic,columns.filterable))';
 const SQL_DETAILS_PROJECTION =
-  '?q=(columns:!(columns.column_name,columns.expression,columns.filterable,columns.is_dttm,columns.type,columns.type_generic,columns.verbose_name,database.id,database.database_name,datasource_type,filter_select_enabled,id,is_sqllab_view,main_dttm_col,metrics.metric_name,metrics.verbose_name,schema,sql,table_name,time_grain_sqla))';
+  '?q=(columns:!(columns.column_name,columns.expression,columns.filterable,columns.is_dttm,columns.type,columns.type_generic,columns.verbose_name,database.id,database.database_name,datasource_type,filter_select_enabled,id,is_sqllab_view,main_dttm_col,metrics.metric_name,metrics.verbose_name,partition_filter_mapping,schema,sql,table_name,time_grain_sqla))';
 
 /** Records every SQL-dataset request for an id that may legitimately be read. */
 const allowDatasetRequests = (id: number, tableName = 'sql_orders') => {
@@ -385,7 +386,10 @@ test('a new display control on a semantic-view dashboard binds to the semantic v
 
   renderModal(semanticOnlyState(), { ...props, createNewOnOpen: false });
   await userEvent.hover(screen.getByTestId('new-item-dropdown-button'));
-  await userEvent.click(await screen.findByText('Add display control'));
+  // userEvent.click would move the pointer into the hover dropdown and
+  // schedule a delayed re-open whose autoFocus steals focus from the next
+  // select, closing it before its option can be clicked.
+  fireEvent.click(await screen.findByText('Add display control'));
   await userEvent.click(
     await screen.findByRole('combobox', { name: 'Customization type' }),
   );

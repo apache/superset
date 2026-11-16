@@ -43,6 +43,7 @@ from superset.mcp_service.chart.schemas import (
     GetChartInfoRequest,
 )
 from superset.utils import json
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 get_chart_info_module = importlib.import_module(
     "superset.mcp_service.chart.tool.get_chart_info"
@@ -62,7 +63,7 @@ def mcp_server():
 @pytest.fixture(autouse=True)
 def mock_auth():
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
+        mock_user = regular_user()
         mock_user.id = 1
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
@@ -387,6 +388,77 @@ class TestBuildAppliedDashboardFilters:
             result = build_applied_dashboard_filters(dashboard_id=10, chart_id=1)
 
         assert result == []
+
+
+@pytest.mark.asyncio
+async def test_attach_dashboard_filters_warns_when_metadata_unreadable() -> None:
+    """Unreadable filter config is reported to the caller, not just the log."""
+    result = ChartInfo(id=1, slice_name="c")
+    ctx = SimpleNamespace(warning=AsyncMock())
+    with patch.object(
+        get_chart_info_module, "build_applied_dashboard_filters", return_value=None
+    ):
+        error = await get_chart_info_module._attach_dashboard_filters(
+            result, dashboard_id=10, ctx=ctx
+        )
+
+    assert error is None
+    assert result.filters is None or not result.filters.dashboard_filters
+    ctx.warning.assert_awaited_once()
+    assert "malformed" in ctx.warning.await_args.args[0]
+
+
+@pytest.mark.asyncio
+async def test_attach_dashboard_filters_populates_dashboard_filters() -> None:
+    """Well-formed filter config and layout resolve onto result.filters."""
+    native_filter = {
+        "id": "NATIVE_FILTER-1",
+        "name": "Country",
+        "type": "NATIVE_FILTER",
+        "filterType": "filter_select",
+        "scope": {"rootPath": ["TAB-1"], "excluded": []},
+        "targets": [{"column": {"name": "country"}, "datasetId": 7}],
+        "defaultDataMask": {
+            "filterState": {"value": ["US"]},
+            "extraFormData": {
+                "filters": [{"col": "country", "op": "IN", "val": ["US"]}]
+            },
+        },
+    }
+    position_json = {
+        "CHART-1": {
+            "type": "CHART",
+            "meta": {"chartId": 1},
+            "parents": ["ROOT_ID", "TABS-1", "TAB-1"],
+        },
+    }
+    dashboard = MagicMock()
+    dashboard.json_metadata = json.dumps(
+        {"native_filter_configuration": [native_filter]}
+    )
+    dashboard.position_json = json.dumps(position_json)
+    dashboard.slices = [MagicMock(id=1)]
+    result = ChartInfo(id=1, slice_name="c")
+    ctx = SimpleNamespace(warning=AsyncMock())
+
+    with (
+        patch("superset.db") as mock_db,
+        patch("superset.security_manager"),
+    ):
+        mock_db.session.query.return_value.filter_by.return_value.one_or_none.return_value = dashboard  # noqa: E501
+        error = await get_chart_info_module._attach_dashboard_filters(
+            result, dashboard_id=10, ctx=ctx
+        )
+
+    assert error is None
+    ctx.warning.assert_not_awaited()
+    assert result.filters is not None
+    [flt] = result.filters.dashboard_filters
+    assert flt.id == "NATIVE_FILTER-1"
+    assert flt.column == "country"
+    assert flt.operator == "IN"
+    assert flt.value == ["US"]
+    assert flt.status == "applied"
 
 
 def _json(native_filter_list):

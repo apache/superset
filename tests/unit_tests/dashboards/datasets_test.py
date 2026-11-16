@@ -296,6 +296,40 @@ def test_dashboard_datasets_isolate_semantic_provider_failure(
     assert caplog.records[-1].exc_info is None
 
 
+@pytest.mark.parametrize("method", ["get_metrics", "get_dimensions"])
+def test_dashboard_datasets_provider_discovery_fault_logs_no_detail(
+    semantic_view: SemanticView,
+    caplog: pytest.LogCaptureFixture,
+    method: str,
+) -> None:
+    """A real discovery fault is isolated without logging provider text."""
+    chart: Slice = Slice(
+        datasource_id=semantic_view.id, datasource_type="semantic_view"
+    )
+    chart.semantic_view = semantic_view
+    dashboard: Dashboard = Dashboard(slices=[chart])
+    provider: MagicMock = MagicMock()
+    getattr(provider, method).side_effect = ValueError("secret-provider-url")
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=provider,
+    ):
+        assert dashboard.datasets_trimmed_for_slices() == []
+    # The view, layer and real exception type share one record, so concurrent
+    # failures can be told apart.
+    assert any(
+        f"operation={method}" in record.getMessage()
+        and f"view_id={semantic_view.id}" in record.getMessage()
+        and f"layer_uuid={semantic_view.semantic_layer_uuid}" in record.getMessage()
+        and "error=ValueError" in record.getMessage()
+        for record in caplog.records
+    )
+    assert "secret-provider-url" not in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
+
+
 def test_dashboard_table_serialization_includes_capabilities_and_parent() -> None:
     """Real table payloads expose their capabilities and database parent."""
     database: Database = Database(
@@ -354,6 +388,9 @@ def test_dashboard_table_serialization_includes_capabilities_and_parent() -> Non
         "health_check_message",
         "always_filter_main_dttm",
         "normalize_columns",
+        "partition_column",
+        "partition_mapped_column",
+        "partition_filter_mapping",
         "column_types",
         "column_names",
     }
@@ -424,9 +461,11 @@ def test_dashboard_datasets_isolate_ambiguous_view(
             SemanticView,
             "implementation",
             property(
-                lambda self: implementation
-                if self is ambiguous
-                else original_implementation.__get__(self, SemanticView)
+                lambda self: (
+                    implementation
+                    if self is ambiguous
+                    else original_implementation.__get__(self, SemanticView)
+                )
             ),
         ),
         patch(
@@ -435,8 +474,9 @@ def test_dashboard_datasets_isolate_ambiguous_view(
         ),
         patch(
             "superset.models.dashboard.security_manager.can_access_datasource",
-            side_effect=lambda datasource: datasource is semantic_view
-            or can_access_ambiguous,
+            side_effect=lambda datasource: (
+                datasource is semantic_view or can_access_ambiguous
+            ),
         ),
         patch(
             "superset.dashboards.schemas.security_manager.is_guest_user",
@@ -460,6 +500,117 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     else:
         assert "metadata_error" not in datasets["2__semantic_view"]
         implementation.get_dimensions.assert_not_called()
+
+
+@pytest.mark.parametrize("can_access", [True, False])
+def test_an_inaccessible_dashboard_dataset_hides_its_partition_mapping(
+    can_access: bool,
+) -> None:
+    """
+    The mapping names two of the dataset's columns and carries the raw value
+    transform in `evaluated_transform`, so it belongs with `columns` and
+    `main_dttm_col` in `DASHBOARD_DATASET_INACCESSIBLE_FIELDS`. Without it,
+    `GET /api/v1/dashboard/<id>/datasets` handed all three to a Gamma user with
+    dashboard access and no grant on the dataset.
+    """
+    table: SqlaTable = SqlaTable(id=7, table_name="orders")
+    chart: Slice = Slice(datasource_id=7, datasource_type="table")
+    chart.table = table
+    dashboard: Dashboard = Dashboard(slices=[chart])
+    payload = {
+        "id": 7,
+        "uid": "7__table",
+        "table_name": "orders",
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time",
+        "partition_filter_mapping": {
+            "partition_column": "dt_epoch",
+            "mapped_column": "event_time",
+            "evaluated_transform": "unix_timestamp(:value)",
+        },
+    }
+    with (
+        patch.object(SqlaTable, "data_for_slices", return_value=payload),
+        patch(
+            "superset.dashboards.api.security_manager.can_access_datasource",
+            return_value=can_access,
+        ),
+        patch(
+            "superset.dashboards.schemas.security_manager.is_guest_user",
+            return_value=False,
+        ),
+    ):
+        serialized: dict[str, Any] = DashboardRestApi()._serialize_dashboard_dataset(
+            *dashboard.datasets_trimmed_for_slices()[0]
+        )
+
+    fields = ("partition_column", "partition_mapped_column", "partition_filter_mapping")
+    if can_access:
+        assert all(field in serialized for field in fields)
+        assert (
+            serialized["partition_filter_mapping"]["evaluated_transform"]
+            == "unix_timestamp(:value)"
+        )
+    else:
+        assert not any(field in serialized for field in fields)
+
+
+def test_a_guest_token_dashboard_dataset_hides_its_partition_mapping() -> None:
+    """
+    Same reasoning as the inaccessible case, through the guest narrowing:
+    `evaluated_transform` is a SQL expression, which is what puts `sql` in that
+    list. Neither the dataset editor nor Explore's pruning indicator is a guest
+    surface, so nothing is lost.
+    """
+    token: GuestToken = {
+        "iat": 0,
+        "exp": 1,
+        "user": {"username": "embedded-guest"},
+        "resources": [],
+        "rls_rules": [],
+    }
+    guest: GuestUser = GuestUser(token, roles=[])
+    with (
+        patch.object(g, "user", guest, create=True),
+        # `is_guest_user` is gated on EMBEDDED_SUPERSET, as the sibling guest
+        # test above does it.
+        patch("superset.is_feature_enabled", return_value=True),
+    ):
+        payload: dict[str, Any] = DashboardDatasetSchema().dump(
+            {
+                "id": 7,
+                "uid": "7__table",
+                "partition_column": "dt_epoch",
+                "partition_mapped_column": "event_time",
+                "partition_filter_mapping": {"evaluated_transform": "lower(:value)"},
+            }
+        )
+
+    assert "partition_column" not in payload
+    assert "partition_mapped_column" not in payload
+    assert "partition_filter_mapping" not in payload
+
+
+def test_a_dataset_without_a_mapping_serializes_its_null_partition_fields() -> None:
+    """
+    `SqlaTable.data` includes all three unconditionally, and the first two are
+    `None` on any dataset without a mapping. Declared non-nullable, the
+    generated spec rejected that ordinary response under strict client
+    validation.
+    """
+    payload: dict[str, Any] = DashboardDatasetSchema().dump(
+        {
+            "id": 7,
+            "uid": "7__table",
+            "partition_column": None,
+            "partition_mapped_column": None,
+            "partition_filter_mapping": None,
+        }
+    )
+
+    assert payload["partition_column"] is None
+    assert payload["partition_mapped_column"] is None
+    assert payload["partition_filter_mapping"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -1213,6 +1364,11 @@ def test_inaccessible_fields_keep_every_entry_and_exclude_labels() -> None:
         "main_dttm_col",
         "granularity_sqla",
         "time_grain_sqla",
+        # The partition mapping names two of the dataset's columns and carries
+        # the raw value transform, so it is redacted with `columns`.
+        "partition_column",
+        "partition_mapped_column",
+        "partition_filter_mapping",
     }
     assert "chart_display_labels" not in DASHBOARD_DATASET_INACCESSIBLE_FIELDS
 

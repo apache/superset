@@ -24,6 +24,8 @@ notifications:
   discussions: notifications@superset.apache.org
 
 github:
+  collaborators:
+    - Agor-Bot
   pull_requests:
     del_branch_on_merge: true
     allow_update_branch: true
@@ -89,6 +91,7 @@ github:
           - test-postgres-presto
           - test-sqlite
           - unit-tests-required
+          - frontend-tests-required
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false

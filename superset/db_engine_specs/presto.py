@@ -164,8 +164,18 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     A base class that share common functions between Presto and Trino
     """
 
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+
+    # Presto and Trino require OFFSET to appear before LIMIT in the SQL grammar.
+    # Superset normalizes compiled SQL accordingly so pagination works even when
+    # the connection resolves to a driver whose dialect emits the ANSI
+    # ``LIMIT ... OFFSET`` ordering (e.g. PyHive). See
+    # ``BaseEngineSpec.apply_offset_before_limit``.
+    offset_before_limit = True
 
     encrypted_extra_sensitive_fields = {
         "$.auth_params.password": "Password",
@@ -390,6 +400,9 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             presto://localhost:8080/hive[/default]
 
         """
+        if not sqlalchemy_uri.database:
+            return None
+
         database = sqlalchemy_uri.database.strip("/")
 
         if "/" not in database:

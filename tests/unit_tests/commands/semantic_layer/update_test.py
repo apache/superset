@@ -35,7 +35,6 @@ from superset.commands.semantic_layer.update import (
 )
 from superset.constants import PASSWORD_MASK
 from superset.exceptions import SupersetSecurityException
-from superset.utils import json
 
 
 def test_update_semantic_view_success(mocker: MockerFixture) -> None:
@@ -648,11 +647,11 @@ def test_update_semantic_layer_preserves_masked_secret_end_to_end(
 ) -> None:
     """A name-only PUT that round-trips the masked GET response does not
     overwrite the stored credential with the literal mask."""
-    mock_model = MagicMock()
+    mock_model: MagicMock = MagicMock()
     mock_model.type = "snowflake"
     mock_model.configuration = '{"account": "test", "password": "hunter2"}'
 
-    dao = mocker.patch(
+    dao: MagicMock = mocker.patch(
         "superset.commands.semantic_layer.update.SemanticLayerDAO",
     )
     dao.find_by_uuid.return_value = mock_model
@@ -662,7 +661,7 @@ def test_update_semantic_layer_preserves_masked_secret_end_to_end(
         "superset.commands.semantic_layer.update.current_user_can_modify_object",
     )
 
-    mock_cls = MagicMock()
+    mock_cls: MagicMock = MagicMock()
     mock_cls.get_configuration_schema.return_value = {
         "properties": {"password": {"type": "string", "writeOnly": True}}
     }
@@ -672,7 +671,7 @@ def test_update_semantic_layer_preserves_masked_secret_end_to_end(
         clear=True,
     )
 
-    data = {
+    data: dict[str, Any] = {
         "name": "Renamed",
         "configuration": {"account": "test", "password": PASSWORD_MASK},
     }
@@ -683,11 +682,10 @@ def test_update_semantic_layer_preserves_masked_secret_end_to_end(
     )
     dao.update.assert_called_once_with(
         mock_model,
-        attributes={
-            "name": "Renamed",
-            "configuration": json.dumps({"account": "test", "password": "hunter2"}),
-        },
+        attributes={"name": "Renamed"},
     )
+    assert mock_model.configuration == '{"account": "test", "password": "hunter2"}'
+    mock_model.clear_metadata_cache.assert_not_called()
 
 
 @pytest.mark.parametrize("registered", [True, False])
