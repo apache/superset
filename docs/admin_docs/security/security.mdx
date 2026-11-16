@@ -421,8 +421,15 @@ going forward; the implicit fallback may be deprecated and removed in a later ma
 **Important considerations:**
 
 - Viewer access uses normal dataset checks unless `VIEWER_PROMISCUOUS_MODE` is enabled
-- With `VIEWER_PROMISCUOUS_MODE`, dashboard viewer access can bypass dataset-level checks for
-  charts and datasets in that dashboard
+- With `VIEWER_PROMISCUOUS_MODE`, the listed viewers of a published dashboard can read its
+  charts and their datasets while viewing that dashboard, without dataset-level permissions,
+  as with the legacy `DASHBOARD_RBAC`. The grant stays on the dashboard: it doesn't give
+  access to the charts or datasets elsewhere (for example in Explore or SQL Lab), and it
+  doesn't extend to editors, who need regular access to the data. Likewise, the listed viewers
+  of a chart can load that chart's data, and only that chart's, without dataset-level
+  permissions; the chart's editors need regular access. Because editors control the viewer
+  list, they can share the data with anyone they add as a viewer. Enable it only if that is
+  acceptable for every dashboard and chart in the deployment.
 - Dashboards and charts without assigned viewers fall back to dataset-based access
 - The dashboard must still be published to be visible
 
@@ -738,6 +745,12 @@ SELECT * FROM (
 - In **SQL Lab**, RLS is enforced only when the `RLS_IN_SQLLAB` feature flag is enabled:
   queries run against tables that have associated datasets with RLS filters will then have
   the appropriate predicates injected automatically.
+- When distinguishing a CTE reference from a physical table, the SQL parser folds
+  ASCII letters in unquoted names on PostgreSQL, Oracle, and Snowflake, preserving
+  quoted names. It does not guess non-ASCII case mappings, which can depend on the
+  database character set. A CTE reference differing only in non-ASCII letter case
+  may therefore receive an extra table access check or RLS filter. Use the same
+  non-ASCII spelling in the CTE declaration and its references to avoid this.
 
 #### RLS Indicator in the Dataset List and Explore
 

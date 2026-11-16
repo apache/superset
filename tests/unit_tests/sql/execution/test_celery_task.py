@@ -18,7 +18,8 @@
 """Tests for celery_task.py - async SQL execution via Celery."""
 
 import base64
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -33,7 +34,11 @@ from pytest_mock import MockerFixture
 
 from superset.common.db_query_status import QueryStatus as QueryStatusEnum
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetErrorsException
+from superset.exceptions import (
+    QueryStoppedException,
+    SupersetErrorException,
+    SupersetErrorsException,
+)
 from superset.utils import json as superset_json
 
 # Note: mock_query, mock_database, mock_result_set, and mock_db_session
@@ -1032,7 +1037,9 @@ def test_make_execute_fn(
     execute_fn = _make_execute_fn(mock_query, mock_database.db_engine_spec)
     execute_fn(mock_cursor, "SELECT * FROM users")
 
-    assert mock_query.executed_sql == "SELECT * FROM users"
+    mock_database.db_engine_spec.execute_with_cursor.assert_called_once_with(
+        mock_cursor, "SELECT * FROM users", mock_query
+    )
 
 
 @pytest.mark.parametrize(
@@ -1220,6 +1227,190 @@ def test_execute_sql_task_stopped(
     result = execute_sql_task(123, "SELECT * FROM users")
 
     assert result["status"] == QueryStatusEnum.STOPPED
+
+
+def test_failed_statement_keeps_its_executed_sql(
+    mocker: MockerFixture, app: Any, session: Any
+) -> None:
+    """A statement that fails with no stop involved keeps the SQL it executed."""
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    Query.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    # As SQLExecutor._create_query_record leaves it: no executed_sql yet.
+    query = Query(
+        client_id="failing",
+        database=database,
+        sql="SELECT 1",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatusEnum.PENDING,
+    )
+    session.add_all([database, query])
+    session.commit()
+    query_id = query.id
+
+    cursor = MagicMock()
+    cursor.execute.side_effect = RuntimeError("syntax error at or near FROM")
+    connection = MagicMock()
+    connection.cursor.return_value = cursor
+
+    @contextmanager
+    def get_raw_connection(*args: Any, **kwargs: Any) -> Iterator[Any]:
+        yield connection
+
+    mocker.patch.object(Database, "get_raw_connection", get_raw_connection)
+
+    execute_sql_task(query_id, "SELECT 1")
+
+    session.rollback()
+    session.expire_all()
+    failed = session.query(Query).filter_by(id=query_id).one()
+    assert failed.status == QueryStatusEnum.FAILED
+    assert "syntax error" in failed.error_message
+    assert failed.executed_sql == "SELECT\n  1"
+
+
+@pytest.mark.parametrize(
+    ("stopped", "status", "logged", "executed_sql"),
+    [
+        # A stop discards results, but the dispatched statement stays recorded.
+        (True, QueryStatusEnum.STOPPED, False, "SELECT\n  1"),
+        (False, QueryStatusEnum.FAILED, True, "SELECT\n  1"),
+    ],
+)
+def test_impala_fetch_stop_retains_dispatched_sql(
+    mocker: MockerFixture,
+    app: Any,
+    session: Any,
+    stopped: bool,
+    status: QueryStatusEnum,
+    logged: bool,
+    executed_sql: str | None,
+) -> None:
+    """
+    Impala's stop signal, raised while the result rows are read, ends a stopped
+    query quietly. Both outcomes retain the statement published before dispatch;
+    a query nobody stopped is a failure with diagnostics.
+    """
+    import sqlalchemy as sa
+
+    from superset.db_engine_specs.impala import ImpalaFetchStoppedError
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    Query.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    query = Query(
+        client_id="fetch-stop",
+        database=database,
+        sql="SELECT 1",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatusEnum.PENDING,
+    )
+    session.add_all([database, query])
+    session.commit()
+    query_id = query.id
+
+    def fetch(size: int) -> list[tuple[int]]:
+        """Another request commits the stop while the rows are read."""
+        if stopped:
+            session.connection().execute(
+                sa.update(Query)
+                .where(Query.id == query_id)
+                .values(status=QueryStatusEnum.STOPPED)
+            )
+        raise ImpalaFetchStoppedError(
+            f"Query {query_id} was stopped while fetching results"
+        )
+
+    cursor = MagicMock()
+    cursor.fetchmany.side_effect = fetch
+    connection = MagicMock()
+    connection.cursor.return_value = cursor
+
+    @contextmanager
+    def get_raw_connection(*args: Any, **kwargs: Any) -> Iterator[Any]:
+        yield connection
+
+    mocker.patch.object(Database, "get_raw_connection", get_raw_connection)
+    logger = mocker.patch("superset.sql.execution.celery_task.logger")
+
+    result = execute_sql_task(query_id, "SELECT 1")
+
+    session.rollback()
+    session.expire_all()
+    recorded = session.query(Query).filter_by(id=query_id).one()
+    assert result["status"] == status
+    assert recorded.status == status
+    assert recorded.executed_sql == executed_sql
+    assert logger.exception.called is logged
+
+
+@pytest.mark.parametrize(
+    ("error", "stopped", "status", "logged"),
+    [
+        # An engine's explicit stop signal is reported as the stop, quietly.
+        (
+            QueryStoppedException("stopped while fetching"),
+            True,
+            QueryStatusEnum.STOPPED,
+            False,
+        ),
+        # A stop signal for a query that was not stopped is a failure.
+        (
+            QueryStoppedException("stopped while fetching"),
+            False,
+            QueryStatusEnum.FAILED,
+            True,
+        ),
+        # Any other failure keeps its diagnostics, even when a stop raced it.
+        (MemoryError("out of memory"), True, QueryStatusEnum.STOPPED, True),
+        (RuntimeError("syntax error"), False, QueryStatusEnum.FAILED, True),
+    ],
+)
+def test_only_an_engine_stop_signal_is_reported_quietly(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    error: Exception,
+    stopped: bool,
+    status: QueryStatusEnum,
+    logged: bool,
+) -> None:
+    """A fetch ended by a stop is not an unhandled error; other failures are."""
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    mock_query.database = mock_database
+    mocker.patch(
+        "superset.sql.execution.celery_task._get_query", return_value=mock_query
+    )
+    mocker.patch(
+        "superset.sql.execution.celery_task.execute_sql_with_cursor",
+        side_effect=error,
+    )
+    mocker.patch(
+        "superset.sql.execution.celery_task._make_check_stopped_fn",
+        return_value=lambda: stopped,
+    )
+    mocker.patch("superset.sql.execution.celery_task.db.session")
+    mocker.patch("superset.sql.execution.celery_task.security_manager")
+    logger = mocker.patch("superset.sql.execution.celery_task.logger")
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
+
+    from .conftest import setup_mock_raw_connection
+
+    setup_mock_raw_connection(mock_database)
+
+    result = execute_sql_task(123, "SELECT * FROM users")
+
+    assert result["status"] == status
+    assert logger.exception.called is logged
 
 
 @pytest.mark.parametrize("stop_intent", ["executor", "early", "status"])
@@ -2435,6 +2626,102 @@ def test_commit_that_applies_and_raises_keeps_referenced_results(
             assert persisted is not None
             assert persisted.status == target
             assert persisted.results_key == key
+        backend.delete.assert_not_called()
+        assert key in stored
+    engine.dispose()
+
+
+def test_lost_acknowledgement_of_success_commit_keeps_success(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """
+    Test that a success commit which reaches the database and then raises is not
+    rewritten as failed by the error handler, and that its results are kept.
+    """
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'lost-acknowledgement.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = lambda key: stored.pop(key, None) is not None
+    mocker.patch.object(celery_task, "results_backend", backend)
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT 1", None, 1.0, 0)],
+    )
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
+
+    flushed = False
+    lost = False
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="lost-acknowledgement",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        @event.listens_for(session, "after_flush")
+        def flushed_success(flushing_session: Any, context: Any) -> None:
+            nonlocal flushed
+            flushed = (
+                query.status == QueryStatusEnum.SUCCESS
+                and query.results_key is not None
+            )
+
+        do_commit = engine.dialect.do_commit
+
+        def lose_acknowledgement(dbapi_connection: Any) -> None:
+            """Raise after the database committed the success row."""
+            nonlocal lost
+            do_commit(dbapi_connection)
+            if flushed and not lost:
+                lost = True
+                raise RuntimeError("Commit acknowledgement lost")
+
+        mocker.patch.object(
+            engine.dialect, "do_commit", side_effect=lose_acknowledgement
+        )
+
+        payload = celery_task.execute_sql_task(123, query.sql)
+
+        assert lost
+        key = backend.set.call_args.args[0]
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            assert persisted.status == QueryStatusEnum.SUCCESS
+            assert persisted.error_message is None
+            assert persisted.results_key == key
+        assert payload is not None
+        assert payload["status"] == QueryStatusEnum.SUCCESS
         backend.delete.assert_not_called()
         assert key in stored
     engine.dispose()
