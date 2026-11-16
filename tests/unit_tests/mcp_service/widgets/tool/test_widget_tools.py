@@ -108,7 +108,7 @@ def test_filter_schema_accepts_discovered_values_without_loading_choices(
 ) -> None:
     with (
         patch(
-            "superset.widgets.builtin.DatasetDAO.find_all",
+            "superset.widgets.builtin.DatasetDAO.list",
             side_effect=AssertionError("MCP must not load the dataset catalog"),
         ),
         patch(

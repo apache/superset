@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from functools import partial
 from typing import Any
+from uuid import UUID
 
 from flask import current_app
 from marshmallow import ValidationError
@@ -72,6 +73,21 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
 
     def _validate_definition(self, exceptions: list[ValidationError]) -> None:
         raw = self._properties.pop("definition", None) or empty_definition()
+        # Before validating, whose errors name what a widget is: one the
+        # caller cannot read must look the same as one that does not exist.
+        if hidden := self._hidden_widgets(raw):
+            exceptions.append(
+                ValidationError(
+                    {
+                        f"/nodes/{node_id}/widgetId": [
+                            "unknown widget, or no access to it"
+                        ]
+                        for node_id, widget_id in hidden.items()
+                    },
+                    field_name="definition",
+                )
+            )
+            return
         try:
             definition = normalize_definition(check_definition_version(raw))
         except DefinitionVersionError as ex:
@@ -87,25 +103,33 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
                 )
             )
             return
-        widget_ids = {
-            node["widgetId"]
-            for node in definition["nodes"].values()
-            if "widgetId" in node
-        }
-        if hidden := widget_ids - get_widget_resolver().placeable(widget_ids):
-            exceptions.append(
-                ValidationError(
-                    {
-                        f"/nodes/{node_id}/widgetId": [
-                            "unknown widget, or no access to it"
-                        ]
-                        for node_id, node in definition["nodes"].items()
-                        if node.get("widgetId") in hidden
-                    },
-                    field_name="definition",
-                )
-            )
-            return
         self._properties["definition"] = json.dumps(definition)
         self._properties["definition_version"] = definition["version"]
         self._properties["revision"] = 1
+
+    @staticmethod
+    def _hidden_widgets(raw: Any) -> dict[str, str]:
+        """Placements in ``raw`` of widgets the caller may not place, by node id."""
+        nodes = raw.get("nodes") if isinstance(raw, dict) else None
+        if not isinstance(nodes, dict):
+            return {}
+        placed = {
+            str(node_id): node["widgetId"]
+            for node_id, node in nodes.items()
+            if isinstance(node, dict) and isinstance(node.get("widgetId"), str)
+        }
+        if not placed:
+            return {}
+        allowed = get_widget_resolver().placeable(set(placed.values()))
+        return {
+            node_id: widget_id
+            for node_id, widget_id in placed.items()
+            if widget_id not in allowed and _canonical(widget_id) not in allowed
+        }
+
+
+def _canonical(widget_id: str) -> str:
+    try:
+        return str(UUID(widget_id))
+    except ValueError:
+        return widget_id

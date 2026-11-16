@@ -32,6 +32,8 @@ canvas on commit; a widget created in a draft that is discarded never exists.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID, uuid4
@@ -63,6 +65,7 @@ from superset.commands.canvas.exceptions import (
     DefinitionInvalidError,
     DraftConflictError,
 )
+from superset.commands.utils import raise_if_managed_externally
 from superset.daos.canvas import CanvasDAO
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import cache_manager
@@ -71,6 +74,8 @@ from superset.utils import json
 from superset.utils.core import get_user_id
 
 KEY_PREFIX = "canvas_draft:"
+# How long a draft write may hold the draft's lock before it lapses.
+DRAFT_LOCK_TIMEOUT_SECONDS = 30
 OPERATIONS = TypeAdapter(list[Operation])
 
 
@@ -230,6 +235,33 @@ def _save(draft: CanvasDraft) -> None:
     )
 
 
+@contextmanager
+def _draft_write_lock(token: str) -> Iterator[None]:
+    """
+    Hold the draft's write lock while it is read, changed and saved again.
+
+    A write is a read-modify-write of the cache entry, so two of them based on
+    the same revision would otherwise both pass the revision check and the
+    second save would drop the first one's operations. Held, the second sees
+    the revision the first wrote and gets the usual conflict. A writer that
+    finds the lock taken is refused the same way rather than kept waiting.
+    """
+    cache = cache_manager.explore_form_data_cache
+    lock_key = f"{_cache_key(token)}:lock"
+    holder = uuid4().hex
+    if not cache.add(lock_key, holder, timeout=DRAFT_LOCK_TIMEOUT_SECONDS):
+        draft = load_draft(token)
+        raise DraftConflictError(draft.revision, draft_revision=draft.revision)
+    try:
+        yield
+    finally:
+        # Not a compare-and-delete, which the cache has no primitive for; the
+        # timeout is far longer than a write takes, so another holder's lock
+        # is not dropped in practice.
+        if cache.get(lock_key) == holder:
+            cache.delete(lock_key)
+
+
 def _editable_canvas(canvas_ref: int | str) -> Canvas:
     canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_ref))
     if canvas is None:
@@ -342,6 +374,8 @@ class CreateCanvasDraftCommand:
 
     def run(self) -> CanvasDraft:
         canvas = _editable_canvas(self._canvas_ref)
+        # Refused here too, so nobody builds a draft that commit would reject.
+        raise_if_managed_externally(canvas, CanvasForbiddenError)
         draft = CanvasDraft(
             token=str(uuid4()),
             owner_id=get_user_id(),
@@ -373,6 +407,10 @@ class ApplyCanvasDraftOperationsCommand:
         self._by = by
 
     def run(self) -> tuple[CanvasDraft, list[dict[str, Any]]]:
+        with _draft_write_lock(self._token):
+            return self._run()
+
+    def _run(self) -> tuple[CanvasDraft, list[dict[str, Any]]]:
         draft = load_draft(self._token)
         if self._revision != draft.revision:
             raise DraftConflictError(draft.revision, draft_revision=draft.revision)
@@ -441,6 +479,10 @@ class RewindCanvasDraftCommand:
         self._forward = forward
 
     def run(self) -> CanvasDraft:
+        with _draft_write_lock(self._token):
+            return self._run()
+
+    def _run(self) -> CanvasDraft:
         draft = load_draft(self._token)
         if self._revision != draft.revision:
             raise DraftConflictError(draft.revision)
@@ -500,6 +542,10 @@ class CommitCanvasDraftCommand:
         self._revision = revision
 
     def run(self) -> CommitResult:
+        with _draft_write_lock(self._token):
+            return self._run()
+
+    def _run(self) -> CommitResult:
         draft = load_draft(self._token)
         if self._revision != draft.revision:
             raise DraftConflictError(draft.revision, draft_revision=draft.revision)

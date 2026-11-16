@@ -53,6 +53,12 @@ class Store:
         self.entries[key] = value
         return True
 
+    def add(self, key: str, value: Any, timeout: int | None = None) -> bool:
+        if key in self.entries:
+            return False
+        self.entries[key] = value
+        return True
+
     def delete(self, key: str) -> bool:
         return self.entries.pop(key, None) is not None
 
@@ -65,7 +71,7 @@ def store(mocker: MockerFixture, widget_types: FakeResolver) -> Store:
     mocker.patch(
         f"{DRAFT}.current_app", MagicMock(config={"CANVAS_DRAFT_TTL_SECONDS": 60})
     )
-    canvas = MagicMock(id=7, revision=3)
+    canvas = MagicMock(id=7, revision=3, is_managed_externally=False)
     dao = mocker.patch(f"{DRAFT}.CanvasDAO")
     dao.find_by_id_or_uuid.return_value = canvas
     dao.load.return_value = empty_definition()
