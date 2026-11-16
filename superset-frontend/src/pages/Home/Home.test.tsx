@@ -281,6 +281,17 @@ test('With toggle switch - shows a toggle button when feature flag is turned on'
   expect(screen.getByRole('switch')).toBeInTheDocument();
 });
 
+test('With toggle switch - the switch has an accessible name and is not nested in a button', async () => {
+  mockedIsFeatureEnabled.mockReturnValue(true);
+
+  await renderWelcome();
+  const toggle = screen.getByRole('switch', { name: 'Thumbnails' });
+  expect(toggle.parentElement?.closest('button')).toBeNull();
+  expect(
+    screen.queryByRole('button', { name: 'Thumbnails' }),
+  ).not.toBeInTheDocument();
+});
+
 test('With toggle switch - does not show thumbnails when switch is off', async () => {
   mockedIsFeatureEnabled.mockReturnValue(true);
 
