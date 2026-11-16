@@ -352,7 +352,11 @@ export default function CanvasGrid({
     // from a server that predates it looks like. Rendering a canvas in the
     // order it was stored in is a stale preview; throwing here would be a
     // blank page.
-    (childOrder?.[nodeId] ?? children).filter(child => !removed.has(child));
+    // An id the layout knows but the definition does not yet (a widget an
+    // agent just added) is skipped until the next fetch brings its node.
+    (childOrder?.[nodeId] ?? children).filter(
+      child => !removed.has(child) && definition.nodes[child] !== undefined,
+    );
   // Props and schema version live on the placement for a structural widget,
   // and with the widget entity otherwise.
   const contentOf = (nodeId: string) => {

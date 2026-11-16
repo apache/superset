@@ -414,6 +414,30 @@ test("the acknowledged reading order wins over the definition's", () => {
   expect(rendered).toEqual(['g', 'f', 'lost']);
 });
 
+test('an ordered id the definition does not know yet is skipped, not thrown on', () => {
+  render(
+    <CanvasGrid
+      canvasId={7}
+      result={result}
+      values={emptyScopeValues()}
+      onValueChange={jest.fn()}
+      layout={layoutWith(result, {
+        childOrder: {
+          root: ['f', 'g', 'fresh', 'lost', 'odd', 'unknown'],
+          g: ['c1', 'fresh-child'],
+        },
+      })}
+      editable={false}
+    />,
+  );
+
+  expect(screen.getByRole('region', { name: 'group' })).toHaveTextContent(
+    'chart Revenue filters=[]',
+  );
+  expect(document.querySelector('[data-node-id="fresh"]')).toBeNull();
+  expect(document.querySelector('[data-node-id="fresh-child"]')).toBeNull();
+});
+
 test('the acknowledged span limits are what a resize clamps to', () => {
   // A container's row minimum follows the rows its children occupy, so a
   // write moves it. Clamping to the definition's limits would let the user

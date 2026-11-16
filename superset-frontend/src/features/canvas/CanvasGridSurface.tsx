@@ -1477,6 +1477,7 @@ export default function CanvasGridSurface({
   // so its up and cancel events never fire. Without this the gesture would
   // persist, leaving the drop preview on screen and -- because only one
   // gesture may be live at a time -- blocking every later drag and resize.
+  const { setLanding, release } = drag;
   useEffect(() => {
     const { current } = live;
     if (!current) return;
@@ -1489,8 +1490,10 @@ export default function CanvasGridSurface({
       !childIds.includes(current.nodeId)
     ) {
       update(undefined);
+      setLanding(undefined);
+      release();
     }
-  }, [editable, placements, childIds, update]);
+  }, [editable, placements, childIds, update, setLanding, release]);
 
   /**
    * One cell of movement or resizing, as a key press asks for it.
@@ -1679,7 +1682,10 @@ export default function CanvasGridSurface({
     // No gesture of this grid's own -- one runs at a time, so a gesture
     // inside one of these containers is not this grid's. That container can
     // still have come to need more room than it is stored as holding.
-    return withRoom(childIds, layouts, columns, drag.extents) ?? placements;
+    return (
+      withRoom(childIds, layouts, placements, columns, drag.extents) ??
+      placements
+    );
   })();
 
   /*
