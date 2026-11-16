@@ -109,6 +109,12 @@ test('missing settings leave warnings off without a threshold', () => {
   });
 });
 
+test('message-only checks reject a non-boolean saved opt-in', () => {
+  expect(getQueryCostWarningError({ enabled: 'true' }, null, true)).toBe(
+    'Saved warning settings are invalid. Turn warnings off to clear invalid fields.',
+  );
+});
+
 test.each([null, { enabled: false }, { enabled: true, threshold: 'invalid' }])(
   'reads an explicit rule without inventing missing fields (%j)',
   rule => {
