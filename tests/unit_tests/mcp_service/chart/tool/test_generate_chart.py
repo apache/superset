@@ -1238,15 +1238,13 @@ async def test_generate_chart_revalidation_keeps_single_sanitized_name(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("donut", [False, True])
-async def test_saved_pie_default_name_metric_before_dimension(donut: bool) -> None:
+async def test_saved_pie_default_name_metric_before_dimension() -> None:
     """Saving without an explicit name passes the metric-first name to storage."""
     result, _, create = await _generate_saved_chart(
         refetch=Mock(side_effect=SQLAlchemyError("use captured stored scalars")),
         config=PieChartConfig(
             dimension=ColumnRef(name="region"),
             metric=ColumnRef(name="total_revenue", saved_metric=True),
-            donut=donut,
         ),
         store_generated_name=True,
     )

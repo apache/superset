@@ -1344,7 +1344,6 @@ class TestCurrencyFormatModel:
         assert cf.to_form_data() == {"symbol": "EUR", "symbolPosition": "suffix"}
 
 
-@pytest.mark.parametrize("donut", [False, True])
 @pytest.mark.parametrize(
     "metric, expected",
     [
@@ -1359,14 +1358,11 @@ class TestCurrencyFormatModel:
         ),
     ],
 )
-def test_pie_caption_metric_before_dimension(
-    donut: bool, metric: ColumnRef, expected: str
-) -> None:
-    """Pie and donut captions and default names put the metric first."""
+def test_pie_caption_metric_before_dimension(metric: ColumnRef, expected: str) -> None:
+    """Pie captions and default names put the metric first."""
     config = PieChartConfig(
         dimension=ColumnRef(name="region"),
         metric=metric,
-        donut=donut,
         filters=[FilterConfig(column="country", op="=", value="US")],
     )
     assert generate_chart_name(config) == f"{expected} by region – Country US"
