@@ -549,15 +549,24 @@ const Chart = (props: ChartProps) => {
 
   // The first query must use the metadata snapshot, not consume its trigger
   // while the lookup needed to classify a saved duration is still loading.
-  // Failed metadata must remain queryable so the backend can report the error.
+  // Per-source edit-mode fetches and save refreshes have their own lifecycle;
+  // a page-level error must not bypass one of those pending requests.
+  // Settled failures remain queryable so the backend can report the error.
   const waitingForTemporalMetadata =
     (chart?.form_data?.viz_type === VizType.Table ||
       chart?.form_data?.viz_type === VizType.TableAgGrid) &&
     chart.form_data.datasource?.endsWith(`__${DatasourceType.SemanticView}`) &&
-    'time_grain_sqla' in chart.form_data &&
-    Boolean(chart.form_data.time_grain_sqla) &&
-    datasetsStatus !== 'error' &&
-    currentDashboardDatasets?.dashboardId !== props.dashboardId;
+    Boolean(
+      formData.extra_form_data?.time_grain_sqla ||
+      ('time_grain_sqla' in formData && formData.time_grain_sqla),
+    ) &&
+    ((dashboardInfo.id === props.dashboardId &&
+      Boolean(
+        dashboardInfo.semanticDatasetsRequestId ||
+        dashboardInfo.semanticDatasetRequests?.[chart.form_data.datasource],
+      )) ||
+      (datasetsStatus !== 'error' &&
+        currentDashboardDatasets?.dashboardId !== props.dashboardId));
 
   (formData as JsonObject).dashboardId = dashboardInfo.id;
 
