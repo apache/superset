@@ -1050,3 +1050,195 @@ test.each([
   expect(changed).not.toBe(first);
   expect(changed).toEqual(expect.objectContaining(change));
 });
+
+test.each([
+  ['saved without a marker', undefined],
+  ['saved with a stale marker', 'old'],
+])(
+  'a grain-only time grain control %s applies to a versioned semantic chart',
+  (_, version) => {
+    const customizationId = 'CHART_CUSTOMIZATION-grain';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'table',
+          datasource: '3__semantic_view',
+          groupby: ['Orders.created'],
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          filterState: { value: ['P1Y'] },
+          // A mask persisted by the filter bar before its value was
+          // classified as selection-free still carries this stamp.
+          extraFormData: {
+            time_grain_sqla: 'P1Y',
+            semantic_selection_sources: [
+              { datasource: '3__semantic_view', version: version ?? null },
+            ],
+          },
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+          name: 'Time grain',
+          filterType: 'chart_customization_timegrain',
+          targets: [
+            {
+              datasetId: 3,
+              datasourceType: DatasourceType.SemanticView,
+              semantic_selection_version: version,
+            },
+          ],
+        }),
+      ],
+    });
+    const { extras } = buildQueryObject({
+      ...result,
+      datasource: '3__semantic_view',
+      viz_type: 'table',
+    } as QueryFormData);
+    expect(extras?.time_grain_sqla).toEqual('P1Y');
+    expect(extras?.semantic_selection_version).toEqual('cube-member-id-v1');
+  },
+);
+
+const clearedMask = (id: string, version: string | null): DataMask => ({
+  id,
+  filterState: { value: null },
+  // A cleared control persisted before its type was considered still
+  // carries the stamp the filter bar added to every semantic mask.
+  extraFormData: {
+    semantic_selection_sources: [{ datasource: '3__semantic_view', version }],
+  },
+});
+
+const versionedSemanticTable = {
+  ...mockChart,
+  form_data: {
+    ...mockChart.form_data,
+    viz_type: 'table',
+    datasource: '3__semantic_view',
+    groupby: ['Orders.created'],
+    semantic_selection_version: 'cube-member-id-v1',
+  },
+};
+
+const chartExtras = (result: CachedFormDataWithExtraControls) =>
+  buildQueryObject({
+    ...result,
+    datasource: '3__semantic_view',
+    viz_type: 'table',
+  } as QueryFormData).extras;
+
+test.each([null, 'old'])(
+  'a cleared time grain display control (stamp %s) keeps the chart identity',
+  version => {
+    const id = 'CHART_CUSTOMIZATION-grain-cleared';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: versionedSemanticTable,
+      dataMask: { [id]: clearedMask(id, version) },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id,
+          name: 'Time grain',
+          filterType: 'chart_customization_timegrain',
+          targets: [
+            { datasetId: 3, datasourceType: DatasourceType.SemanticView },
+          ],
+        }),
+      ],
+    });
+    expect(chartExtras(result)?.semantic_selection_version).toEqual(
+      'cube-member-id-v1',
+    );
+  },
+);
+
+test.each([
+  ['filter_timegrain', 'cube-member-id-v1'],
+  ['filter_select', 'unverified-external-selections'],
+])(
+  'a cleared native %s with an unmarked source yields %s',
+  (filterType, expected) => {
+    const id = `NATIVE_FILTER-${filterType}`;
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: versionedSemanticTable,
+      dataMask: { [id]: clearedMask(id, null) },
+      nativeFilters: {
+        [id]: {
+          id,
+          filterType,
+          chartsInScope: [chartId],
+          scope: { rootPath: ['ROOT_ID'], excluded: [] },
+          targets: [
+            {
+              datasetId: 3,
+              datasourceType: DatasourceType.SemanticView,
+              ...(filterType === 'filter_select' && {
+                column: { name: 'Orders.status' },
+              }),
+            },
+          ],
+        },
+      } as unknown as GetFormDataWithExtraFiltersArguments['nativeFilters'],
+    });
+    expect(chartExtras(result)?.semantic_selection_version).toEqual(expected);
+  },
+);
+
+test.each([
+  ['no source', undefined],
+  ['an unmarked source', [{ datasource: '3__semantic_view', version: null }]],
+  ['a stale source', [{ datasource: '3__semantic_view', version: 'old' }]],
+  [
+    'a foreign source',
+    [{ datasource: '4__semantic_view', version: 'cube-member-id-v1' }],
+  ],
+])(
+  'a native grain control mixed with a member override and %s still refuses',
+  (_, sources) => {
+    const id = 'NATIVE_FILTER-mixed-grain';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: versionedSemanticTable,
+      dataMask: {
+        [id]: {
+          id,
+          filterState: { value: ['P1Y'] },
+          extraFormData: {
+            time_grain_sqla: 'P1Y',
+            custom_form_data: { groupby: ['Orders.status'] },
+            ...(sources && { semantic_selection_sources: sources }),
+          },
+        },
+      },
+      nativeFilters: {
+        [id]: {
+          id,
+          filterType: 'filter_timegrain',
+          chartsInScope: [chartId],
+          scope: { rootPath: ['ROOT_ID'], excluded: [] },
+          targets: [
+            { datasetId: 3, datasourceType: DatasourceType.SemanticView },
+          ],
+        },
+      } as unknown as GetFormDataWithExtraFiltersArguments['nativeFilters'],
+    });
+    expect(chartExtras(result)?.semantic_selection_version).toEqual(
+      'unverified-external-selections',
+    );
+  },
+);

@@ -124,3 +124,20 @@ test('only an explicitly versioned semantic form certifies its new default', () 
     ],
   });
 });
+
+test('a grain-only default is not certified because it selects no member', () => {
+  const mask = {
+    filterState: { value: ['P1Y'] },
+    extraFormData: { time_grain_sqla: 'P1Y' },
+  };
+  expect(
+    buildNativeFilterDefaultDataMask(
+      {
+        dataset: 7,
+        datasourceType: DatasourceType.SemanticView,
+        semantic_selection_version: 'cube-member-id-v1',
+      },
+      mask,
+    ),
+  ).toEqual(mask);
+});

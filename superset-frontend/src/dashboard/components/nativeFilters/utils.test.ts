@@ -23,6 +23,7 @@ import { createChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilter
 import {
   nativeFilterGate,
   findTabsWithChartsInScope,
+  getExtraFormData,
   getFormData,
   mergeExtraFormData,
 } from './utils';
@@ -174,4 +175,35 @@ test('getFormData passes controlValues.displayFormat through to the filter plugi
   });
 
   expect((formData as any).displayFormat).toBe('%d-%m-%Y');
+});
+
+test('only a typed grain control drops its unneeded provenance before merging', () => {
+  const unmarked = [{ datasource: '7__semantic_view', version: null }];
+  const filters = [{ col: 'Orders.status', op: 'IN' as const, val: ['Open'] }];
+  const certified = [
+    { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+  ];
+  const dataMask = {
+    grain: {
+      id: 'grain',
+      extraFormData: {
+        time_grain_sqla: 'P1Y',
+        semantic_selection_sources: unmarked,
+      },
+    },
+    member: {
+      id: 'member',
+      extraFormData: { filters, semantic_selection_sources: certified },
+    },
+  };
+  expect(
+    getExtraFormData(dataMask, ['grain', 'member'], {
+      grain: 'filter_timegrain',
+      member: 'filter_select',
+    }).semantic_selection_sources,
+  ).toEqual(certified);
+  // Untyped, the merged sources keep the unmarked grain stamp.
+  expect(
+    getExtraFormData(dataMask, ['grain', 'member']).semantic_selection_sources,
+  ).toEqual([...unmarked, ...certified]);
 });
