@@ -29,7 +29,6 @@ from uuid import UUID
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from PIL import Image
-from playwright.sync_api import Error as PlaywrightError
 
 from superset.utils import screenshot_utils
 from superset.utils.report_execution import (
@@ -39,6 +38,7 @@ from superset.utils.report_execution import (
 )
 from superset.utils.screenshot_utils import (
     get_screenshot_blankness_metrics,
+    PlaywrightError,
     read_page_background_color,
     ScreenshotBlankCaptureError,
     trim_report_screenshot_to_content,
