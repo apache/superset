@@ -29,6 +29,7 @@ from flask_appbuilder.security.sqla.models import User
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from superset.commands.sql_lab.query import QueryPruneCommand
@@ -36,6 +37,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.daos.query import QueryDAO
 from superset.db_engine_specs.query_warning import QueryCostEstimate
 from superset.exceptions import (
+    SupersetErrorException,
     SupersetGenericErrorException,
     SupersetSyntaxErrorException,
 )
@@ -44,6 +46,7 @@ from superset.models.sql_lab import Query
 from superset.queries.filters import QueryFilter
 from superset.sqllab.api import SqlLabRestApi
 from superset.sqllab.command_status import SqlJsonExecutionStatus
+from superset.sqllab.exceptions import SqlLabException
 from superset.sqllab.query_preparation import (
     discard_preparation,
     PREPARATION_KEY,
@@ -589,3 +592,162 @@ def test_worker_rejects_a_new_sql_mutator_after_assessment(
     )
     with pytest.raises(SupersetGenericErrorException):
         validate_prepared_sql(query, SQLScript(sql, engine="postgresql"))
+
+
+@pytest.mark.parametrize("prepared", [False, True])
+@pytest.mark.parametrize("run_async", [False, True])
+def test_dispatch_failure_survives_command_rollback(
+    preparation: Any, session_engine: Engine, prepared: bool, run_async: bool
+) -> None:
+    """Read durable state after the complete command, including its rollback."""
+    from superset.sqllab.sql_json_executer import ASynchronousSqlJsonExecutor
+
+    make, _, _ = preparation
+    response = make(runAsync=run_async).prepare_warning() if prepared else {}
+    command = make(
+        runAsync=run_async, prepared_query_id=response.get("prepared_query_id")
+    )
+    if run_async:
+        task = MagicMock()
+        task.delay.side_effect = ConnectionError("broker unavailable")
+        command._sql_json_executor = ASynchronousSqlJsonExecutor(QueryDAO(), task)
+        exception: type[Exception] = SupersetErrorException
+        message = "Failed to start remote query on a worker."
+    else:
+        command._sql_json_executor.execute.side_effect = RuntimeError("dispatch failed")
+        exception = SqlLabException
+        message = "dispatch failed"
+
+    with pytest.raises(exception, match=message):
+        command.run()
+
+    with Session(session_engine) as observer:
+        query = observer.query(Query).one()
+        assert query.status == QueryStatus.FAILED
+        assert query.error_message == message
+        assert query.end_time is not None
+        assert query.extra["errors"][0]["message"] == message
+        if prepared:
+            assert query.extra[PREPARATION_KEY]["id"] == response["prepared_query_id"]
+    if run_async:
+        task.delay.assert_called_once()
+        task.delay.return_value.forget.assert_not_called()
+    else:
+        command._sql_json_executor.execute.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "worker_status",
+    [
+        QueryStatus.RUNNING,
+        QueryStatus.STOPPED,
+        QueryStatus.SUCCESS,
+        QueryStatus.FAILED,
+        QueryStatus.TIMED_OUT,
+    ],
+)
+def test_dispatch_error_preserves_concurrent_outcome(
+    preparation: Any, session_engine: Engine, worker_status: str
+) -> None:
+    """A stale request cannot replace the worker's state or a committed stop."""
+    make, _, _ = preparation
+    response = make().prepare_warning()
+    command = make(prepared_query_id=response["prepared_query_id"])
+
+    def fail_after_worker_update(context: Any, *_: Any) -> None:
+        with Session(session_engine) as worker:
+            query = worker.get(Query, context.query.id)
+            assert query is not None
+            query.status = worker_status
+            query.error_message = "worker detail"
+            query.end_time = 123
+            query.set_extra_json_key("worker_detail", "preserve")
+            worker.commit()
+        raise RuntimeError("dispatch failed")
+
+    command._sql_json_executor.execute.side_effect = fail_after_worker_update
+    with pytest.raises(SqlLabException, match="dispatch failed"):
+        command.run()
+    with Session(session_engine) as observer:
+        query = observer.query(Query).one()
+        assert query.status == worker_status
+        assert query.error_message == "worker detail"
+        assert query.end_time == 123
+        assert query.extra["worker_detail"] == "preserve"
+        assert "errors" not in query.extra
+
+
+@pytest.mark.parametrize("prepared", [False, True])
+@pytest.mark.parametrize("cleanup_error", [NotImplementedError, ConnectionError])
+def test_async_cleanup_error_does_not_fail_submitted_query(
+    preparation: Any,
+    session_engine: Engine,
+    prepared: bool,
+    cleanup_error: type[Exception],
+) -> None:
+    """Failure to forget the task result does not undo a successful submission."""
+    from superset.sqllab.sql_json_executer import ASynchronousSqlJsonExecutor
+
+    make, _, _ = preparation
+    response = make(runAsync=True).prepare_warning() if prepared else {}
+    command = make(runAsync=True, prepared_query_id=response.get("prepared_query_id"))
+    task = MagicMock()
+    task.delay.return_value.forget.side_effect = cleanup_error("cleanup unavailable")
+    command._sql_json_executor = ASynchronousSqlJsonExecutor(QueryDAO(), task)
+
+    assert command.run()["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING
+    task.delay.assert_called_once()
+    task.delay.return_value.forget.assert_called_once()
+    with Session(session_engine) as observer:
+        query = observer.query(Query).one()
+        assert query.status == QueryStatus.PENDING
+        assert query.error_message is None
+        assert "errors" not in query.extra
+
+
+@pytest.mark.parametrize("broken_transaction", [False, True])
+def test_dispatch_failure_preserves_original_error_on_metadata_failure(
+    preparation: Any,
+    session: Session,
+    session_engine: Engine,
+    mocker: MockerFixture,
+    broken_transaction: bool,
+) -> None:
+    """Recover a failed session; if saving also fails, retain the original error."""
+    make, _, _ = preparation
+    response = make().prepare_warning()
+    command = make(prepared_query_id=response["prepared_query_id"])
+
+    def fail(context: Any, *_: Any) -> None:
+        if broken_transaction:
+            # A real flush failure expires ORM attributes and requires rollback.
+            session.add(
+                Query(
+                    client_id=context.client_id,
+                    database_id=context.database_id,
+                    sql="SELECT 1",
+                )
+            )
+            session.flush()
+        else:
+            mocker.patch.object(
+                session, "commit", side_effect=SQLAlchemyError("save failed")
+            )
+            raise RuntimeError("original dispatch failure")
+
+    command._sql_json_executor.execute.side_effect = fail
+    expected = (
+        "UNIQUE constraint failed"
+        if broken_transaction
+        else "original dispatch failure"
+    )
+    with pytest.raises(SqlLabException, match=expected):
+        command.run()
+    with Session(session_engine) as observer:
+        query = observer.query(Query).one()
+        if broken_transaction:
+            assert query.status == QueryStatus.FAILED
+            assert expected in query.error_message
+        else:
+            assert query.status == QueryStatus.PENDING
+            assert query.error_message is None

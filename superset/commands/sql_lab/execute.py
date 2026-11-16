@@ -17,11 +17,13 @@
 # pylint: disable=too-few-public-methods, too-many-arguments
 from __future__ import annotations
 
+import dataclasses
 import logging
 from typing import Any, Optional, TYPE_CHECKING
 from uuid import uuid4
 
 from flask_babel import gettext as __
+from sqlalchemy import inspect
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
@@ -35,6 +37,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.models.sql_lab import Query
+from superset.sql.execution.utils import _extract_errors
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
@@ -183,8 +186,8 @@ class ExecuteSqlCommand(BaseCommand):
             return self._sql_json_executor.execute(
                 self._execution_context, rendered_query, self._log_params
             )
-        except Exception:
-            self._query_dao.update(query, {"status": QueryStatus.FAILED})
+        except Exception as ex:
+            self._record_pending_query_failure(query, ex)
             raise
 
     def prepare_warning(self) -> dict[str, Any]:
@@ -328,9 +331,37 @@ class ExecuteSqlCommand(BaseCommand):
             return self._sql_json_executor.execute(
                 context, preparation["rendered_sql"], self._log_params
             )
-        except Exception:
-            self._query_dao.update(query, {"status": QueryStatus.FAILED})
+        except Exception as ex:
+            self._record_pending_query_failure(query, ex)
             raise
+
+    @staticmethod
+    def _record_pending_query_failure(query: Query, ex: Exception) -> None:
+        """Save a pending query failure without replacing a worker or stop outcome."""
+        # Read identity without loading expired fields from a failed transaction.
+        query_id = inspect(query).identity[0]
+        try:
+            # The pending row was committed for the worker. Roll back partial
+            # changes before saving its failure outside the failing transaction.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            changed = (
+                db.session.query(Query)
+                .filter(Query.id == query_id, Query.status == QueryStatus.PENDING)
+                .update({Query.status: QueryStatus.FAILED}, synchronize_session=False)
+            )
+            if changed:
+                # The conditional update holds the row lock through commit.
+                db.session.refresh(query)
+                query.error_message = str(ex)
+                query.end_time = now_as_float()
+                query.set_extra_json_key(
+                    "errors",
+                    [dataclasses.asdict(error) for error in _extract_errors(ex, query)],
+                )
+            db.session.commit()  # pylint: disable=consider-using-transaction
+        except Exception:  # pylint: disable=broad-except
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            logger.exception("Query %s: Failed to save execution failure", query_id)
 
     def _get_the_query_db(self) -> Database:
         mydb: Any = self._database_dao.find_by_id(self._execution_context.database_id)
