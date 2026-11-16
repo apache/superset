@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-16 11:41+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -958,6 +958,9 @@ msgstr ""
 "ștergeți cookie-urile sau schimbați browserul.\n"
 "\n"
 
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, ja,
 # sr, sr_Latn]
 #, fuzzy, python-format
@@ -1625,6 +1628,9 @@ msgstr "Un set de date reutilizabil va fi salvat cu graficul dvs."
 msgid "A rule with this name already exists."
 msgstr "Există deja o regulă cu acest nume."
 
+msgid "A saved query with this name already exists"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -1807,6 +1813,21 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AUG"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -1935,6 +1956,9 @@ msgstr "Adaugă un Plugin"
 
 msgid "Add a dataset"
 msgstr "Adaugă un set de date"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Adaugă o filă nouă"
@@ -2070,6 +2094,9 @@ msgstr "Adaugă folder"
 msgid "Add group"
 msgstr "Adaugă grup"
 
+msgid "Add interval bounds above to configure colors here."
+msgstr ""
+
 msgid "Add item"
 msgstr "Adaugă element"
 
@@ -2107,6 +2134,9 @@ msgstr "Adaugă sau editează controale de afișare"
 #, fuzzy
 msgid "Add or edit filters and controls"
 msgstr "Adaugă sau editează filtre și controale"
+
+msgid "Add ranges above to configure their colors here."
+msgstr ""
 
 msgid "Add report"
 msgstr "Adaugă raport"
@@ -3527,11 +3557,17 @@ msgstr "Alerte și rapoarte asociate"
 msgid "Asynchronous query execution"
 msgstr "Execuție interogare asincronă"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Atribuție"
 
 msgid "August"
 msgstr "August"
+
+msgid "Authentication method"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ru, sr, sr_Latn, tr, uk]
@@ -3694,6 +3730,9 @@ msgstr "Orientare bară"
 msgid "Base"
 msgstr "Bază"
 
+msgid "Base background"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Exponent bază"
 
@@ -3774,6 +3813,9 @@ msgstr "Goale"
 #, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
 msgstr "Bloc %(block_num)s din %(block_count)s"
+
+msgid "Border"
+msgstr ""
 
 msgid "Border color"
 msgstr "Culoare bordură"
@@ -4177,6 +4219,9 @@ msgstr ""
 "înainte de a șterge baza de date. Restaurarea lor (POST "
 "/api/v1/dataset/<uuid>/restore) păstrează seturile de date, dar baza de "
 "date tot nu poate fi ștearsă."
+
+msgid "Cannot delete semantic views"
+msgstr ""
 
 msgid "Cannot delete system themes"
 msgstr "Nu se pot șterge temele sistemului"
@@ -4717,6 +4762,9 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr "Se verifică graficele și tablourile de bord afectate…"
 
+msgid "Checking which charts will be removed…"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid ""
@@ -5217,6 +5265,20 @@ msgstr "Culoarea barelor din partea dreaptă a graficului"
 msgid "Color for breakpoint"
 msgstr "Culoare pentru punct de întrerupere"
 
+msgid "Color for decrease"
+msgstr ""
+
+msgid "Color for increase"
+msgstr ""
+
+#, python-format
+msgid "Color for interval up to %s"
+msgstr ""
+
+#, python-format
+msgid "Color for range up to %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -5237,6 +5299,16 @@ msgstr "Schemă culori"
 #, fuzzy, python-format
 msgid "Color scheme: %s"
 msgstr "Schemă de culori: %s"
+
+msgid ""
+"Color used for the arrow and symbols when the metric decreased from the "
+"comparison value. Defaults to red."
+msgstr ""
+
+msgid ""
+"Color used for the arrow and symbols when the metric increased from the "
+"comparison value. Defaults to green."
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5439,16 +5511,6 @@ msgid "Combine metrics"
 msgstr "Combină indicatori"
 
 msgid ""
-"Comma-separated color picks for the intervals, e.g. 1,2,4. Integers "
-"denote colors from the chosen color scheme and are 1-indexed. Length must"
-" be matching that of interval bounds."
-msgstr ""
-"Alegeri de culori separate prin virgulă pentru intervale, de ex. 1,2,4. "
-"Numerele întregi denotă culori din schema de culori aleasă și sunt "
-"indexate de la 1. Lungimea trebuie să se potrivească cu cea a limitelor "
-"intervalului."
-
-msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Last number should match the value provided for MAX."
 msgstr ""
@@ -5632,6 +5694,9 @@ msgstr ""
 msgid "Configure your how you overlay is displayed here."
 msgstr "Configurează modul în care overlay-ul tău este afișat aici."
 
+msgid "Configured"
+msgstr ""
+
 msgid "Confirm"
 msgstr "Confirmă"
 
@@ -5706,6 +5771,9 @@ msgstr "Conexiunea funcționează!"
 #, fuzzy
 msgid "Contact the report owner for error details."
 msgstr "Contactați proprietarul raportului pentru detalii despre eroare."
+
+msgid "Container background"
+msgstr ""
 
 msgid "Contains"
 msgstr "Conține"
@@ -5914,14 +5982,14 @@ msgstr ""
 "Nu s-a putut verifica ce grafice și tablouri de bord depind de %s "
 "selectate. Ștergerea lor poate deteriora graficele și tablourile de bord."
 
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
+msgstr ""
+
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nu s-a putut conecta la baza de date: \"%(database)s\""
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr "Nu s-au putut șterge vizualizările semantice %s: %s"
 
 msgid "Could not fetch all saved charts"
 msgstr "Nu s-au putut prelua toate graficele salvate"
@@ -7063,6 +7131,9 @@ msgstr ""
 " mai mare decât aceasta dacă celelalte coloane nu au nevoie de mult "
 "spațiu"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "Valoarea implicită trebuie setată când \"Filtrul are valoare implicită\" "
@@ -7336,6 +7407,16 @@ msgstr "Ștergeți elementele selectate"
 msgid "Delete template"
 msgstr "Șterge șablon"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Șterge temă"
 
@@ -7442,6 +7523,13 @@ msgstr "Șters %s"
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr "Șterse %s element(e)"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -8405,14 +8493,6 @@ msgstr "Fie baza de date este scrisă incorect, fie nu există."
 msgid "Either the username \"%(username)s\" or the password is incorrect."
 msgstr "Fie numele de utilizator \"%(username)s\", fie parola este incorectă."
 
-#, python-format
-msgid ""
-"Either the username \"%(username)s\", password, or database name "
-"\"%(database)s\" is incorrect."
-msgstr ""
-"Fie numele de utilizator \"%(username)s\", parola, fie numele bazei de "
-"date \"%(database)s\" este incorect."
-
 msgid "Either the username or the password is wrong."
 msgstr "Fie numele de utilizator, fie parola este greșită."
 
@@ -8472,6 +8552,26 @@ msgstr ""
 
 msgid "Embedded dashboard could not be deleted."
 msgstr "Panoul de control încorporat nu a putut fi șters."
+
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials can't be added or changed while the embedded "
+"credential fallback is turned off. Leave the stored credentials unchanged"
+" or clear them."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
 
 msgid "Embedding deactivated."
 msgstr "Încorporarea dezactivată."
@@ -8722,6 +8822,12 @@ msgstr "Introduceți numele grupului"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Introduceți credențialele %(dbModelName)s necesare"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 msgid "Enter the unique project id for your database."
 msgstr "Introduceți ID-ul unic al proiectului pentru baza ta de date."
@@ -9980,6 +10086,11 @@ msgid "Fix the Extra JSON to edit certification"
 msgstr "Corectați JSON-ul suplimentar pentru a edita certificarea"
 
 msgid ""
+"Fix the JSON errors below to edit colors here; your changes sync "
+"automatically once the JSON is valid again."
+msgstr ""
+
+msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
 msgstr ""
@@ -10663,8 +10774,6 @@ msgstr "ID"
 msgid "Id of root node of the tree."
 msgstr "ID-ul nodului rădăcină al arborelui."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "If Presto or Trino, all the queries in SQL Lab are going to be executed "
 "as the currently logged on user who must have permission to run them. If "
@@ -10673,19 +10782,10 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
-"Dacă este Presto sau Trino, toate interogările din SQL Lab vor fi "
-"executate ca utilizatorul conectat în prezent, care trebuie să aibă "
-"permisiunea de a le rula. Dacă este Hive și hive.server2.enable.doAs este"
-" activat, interogările vor fi rulate ca cont de serviciu, dar se va imita"
-" utilizatorul conectat în prezent prin proprietatea "
-"hive.server2.proxy.user. Dacă este Databricks, se folosește OAuth2 pentru"
-" autentificare ca utilizatorul conectat în prezent. Dacă este Snowflake "
-"sau Google Sheets și autentificarea OAuth este configurată pentru baza de"
-" date, interogările vor fi rulate ca utilizatorul conectat în prezent, "
-"prin propriile sale credențiale OAuth."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr ""
@@ -11418,6 +11518,9 @@ msgstr "Cheie"
 msgid "Key Prefix"
 msgstr "Prefix cheie"
 
+msgid "Key pair"
+msgstr ""
+
 msgid "Keyboard shortcuts"
 msgstr "Scurtături tastatură"
 
@@ -11945,6 +12048,9 @@ msgstr "Coloană linii"
 msgid "Lines encoding"
 msgstr "Codificare linii"
 
+msgid "Link"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy
@@ -11991,6 +12097,15 @@ msgstr "Listă actualizată"
 #, fuzzy
 msgid "List view"
 msgstr "Vizualizare listă"
+
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
 
 msgid "Live render"
 msgstr "Redare în timp real"
@@ -12045,6 +12160,9 @@ msgstr "Se încarcă tipurile de straturi semantice…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "Se încarcă straturile semantice…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
@@ -13097,6 +13215,11 @@ msgstr ""
 "Dați un nume folderului dvs. și pentru a-l edita ulterior, faceți clic pe"
 " numele folderului"
 
+msgid ""
+"Named instances can't be entered as the host. Enter only the host and the"
+" port the instance listens on, or connect with a SQLAlchemy URI instead."
+msgstr ""
+
 msgid "Native filter column is required"
 msgstr "Coloana filtrului nativ este obligatorie"
 
@@ -13487,6 +13610,10 @@ msgid ""
 msgstr ""
 "Nu aveți la dispoziție niciun strat semantic. Cereți administratorului să"
 " configureze un strat semantic sau să vă acorde acces la unul."
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14125,6 +14252,11 @@ msgstr ""
 "Conținut CA_BUNDLE opțional pentru validarea cererilor HTTPS. Disponibil "
 "doar pe anumite motoare de bază de date."
 
+msgid ""
+"Optional custom color for each range band, e.g. to match a brand palette."
+" Bands left unset use the default shading."
+msgstr ""
+
 msgid "Optional d3 date format string"
 msgstr "Șir format dată d3 opțional"
 
@@ -14135,6 +14267,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "Dimensiune opțională care împarte graficul în mai multe serii de lumânări."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -14631,6 +14766,12 @@ msgstr "Fizic"
 msgid "Physical (table or view)"
 msgstr "Fizic (tabel sau vizualizare)"
 
+msgid ""
+"Pick a color for each interval band defined above by its upper bound. "
+"Charts saved with the legacy 1-indexed \"Interval colors\" text field "
+"keep following the chosen color scheme until an interval color is edited."
+msgstr ""
+
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr "Alege o dimensiune din care sunt definite culorile categorice"
 
@@ -15093,6 +15234,12 @@ msgstr "Cheie privată și parolă"
 msgid "Private Key Password"
 msgstr "Parolă cheie privată"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "Continuă"
 
@@ -15268,6 +15415,9 @@ msgstr "Intrări interval"
 msgid "Range Type"
 msgstr "Tip interval"
 
+msgid "Range colors"
+msgstr ""
+
 msgid "Range filter"
 msgstr "Filtru interval"
 
@@ -15302,6 +15452,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Înregistrări brute"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -15430,6 +15583,9 @@ msgstr "Actualizare grafice"
 msgid "Refreshing columns"
 msgstr "Actualizare coloane"
 
+msgid "Region"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Region name"
@@ -15536,6 +15692,9 @@ msgstr "Eliminați personalizarea"
 #, fuzzy
 msgid "Remove dependency"
 msgstr "Elimină dependența"
+
+msgid "Remove embedded guest credentials"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -15906,6 +16065,11 @@ msgstr ""
 "Necesar pentru a reflecta filtrele de interval, inclusiv intervalul de "
 "timp."
 
+msgid ""
+"Requires an OAuth2 client ID and secret, and “Impersonate logged in user”"
+" (Advanced → Security)."
+msgstr ""
+
 msgid "Resample"
 msgstr "Re-eșantionare"
 
@@ -16030,6 +16194,17 @@ msgid ""
 msgstr ""
 "Restaurarea creează o versiune nouă. Istoricul versiunilor existente nu "
 "va fi pierdut."
+
+#, python-format
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "Results"
 msgstr "Rezultate"
@@ -16365,6 +16540,15 @@ msgstr "Rulează"
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Rulează blocul %(block_num)s din %(block_count)s"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "SÂM"
@@ -16916,6 +17100,9 @@ msgstr "Indicator secundar"
 
 msgid "Secondary currency format"
 msgstr "Format monedă secundar"
+
+msgid "Secondary text"
+msgstr ""
 
 msgid "Secondary y-axis Bounds"
 msgstr "Limite axa y secundară"
@@ -17524,6 +17711,9 @@ msgstr "Vizualizări semantice"
 #, fuzzy
 msgid "Semantic cache"
 msgstr "Cache semantic"
+
+msgid "Semantic colors"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19612,6 +19802,22 @@ msgstr ""
 msgid "The Length filter requires a numeric value."
 msgstr "Filtrul Lungime necesită o valoare numerică."
 
+#, python-format
+msgid ""
+"The PDF shows %s of %s columns. Use CSV or Excel export to get all the "
+"data."
+msgstr ""
+
+#, python-format
+msgid ""
+"The PDF shows %s of %s rows and %s of %s columns. Use CSV or Excel export"
+" to get all the data."
+msgstr ""
+
+#, python-format
+msgid "The PDF shows %s of %s rows. Use CSV or Excel export to get all the data."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "The SQL query mutator removed all executable statements from this query."
@@ -20029,6 +20235,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Proprietatea entității de utilizat pentru etichetele punctelor"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "The following charts could not be exported:"
@@ -20343,55 +20559,31 @@ msgstr "Resetarea parolei a reușit"
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"Parolele pentru bazele de date de mai jos sunt necesare pentru a le "
-"importa împreună cu graficele. Vă rugăm să rețineți că secțiunile "
-"\"Secure Extra\" și \"Certificate\" din configurația bazei de date nu "
-"sunt prezente în fișierele de export și ar trebui adăugate manual după "
-"import dacă sunt necesare."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Parolele pentru bazele de date de mai jos sunt necesare pentru a le "
-"importa împreună cu panourile de control. Vă rugăm să rețineți că "
-"secțiunile \"Secure Extra\" și \"Certificate\" din configurația bazei de "
-"date nu sunt prezente în fișierele de export și ar trebui adăugate manual"
-" după import dacă sunt necesare."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"Parolele pentru bazele de date de mai jos sunt necesare pentru a le "
-"importa împreună cu seturile de date. Vă rugăm să rețineți că secțiunile "
-"\"Secure Extra\" și \"Certificate\" din configurația bazei de date nu "
-"sunt prezente în fișierele de export și ar trebui adăugate manual după "
-"import dacă sunt necesare."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Parolele pentru bazele de date de mai jos sunt necesare pentru a le "
-"importa împreună cu interogările salvate. Vă rugăm să rețineți că "
-"secțiunile \"Secure Extra\" și \"Certificate\" din configurația bazei de "
-"date nu sunt prezente în fișierele de export și ar trebui adăugate manual"
-" după import dacă sunt necesare."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -20674,16 +20866,12 @@ msgstr "Captura de ecran a fost descărcată."
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr "Captura de ecran este generată. Vă rugăm, nu părăsiți pagina."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"The selected %(type)s are linked to %(charts)s and %(dashboards)s. "
 "Archiving them will make dependent charts unavailable until they are "
 "recovered."
 msgstr ""
-"%(type)s selectate sunt legate de %(charts)s din %(dashboards)s. "
-"Arhivarea lor va face graficele dependente indisponibile până când vor fi"
-" recuperate."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20694,14 +20882,11 @@ msgstr ""
 "%(type)s selectate sunt utilizate de %(charts)s. Arhivarea lor va face "
 "graficele dependente indisponibile până când vor fi recuperate."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %s are linked to %s on %s. Deleting them will break those "
+"The selected %s are linked to %s and %s. Deleting them will break those "
 "objects."
 msgstr ""
-"%s selectate sunt legate de %s din %s. Ștergerea lor va deteriora aceste "
-"obiecte."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21535,15 +21720,11 @@ msgstr ""
 "administratorii îi pot modifica conținutul; setați câmpul „Rulează ca” la"
 " propriul cont pentru a face această modificare."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it "
 "will make dependent charts unavailable until it is recovered."
 msgstr ""
-"Acest obiect (%(type)s) este asociat cu %(charts)s din %(dashboards)s. "
-"Arhivarea lui va face graficele dependente indisponibile până când este "
-"recuperat."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21660,6 +21841,13 @@ msgstr ""
 "Acesta poate fi fie o adresă IP (de ex. 127.0.0.1), fie un nume de "
 "domeniu (de ex. mydatabase.com)."
 
+msgid ""
+"This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
+"mydatabase.com). For a named instance (host\\INSTANCE), enter only the "
+"host here and the port the instance listens on below, or connect with a "
+"SQLAlchemy URI instead."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "This cannot be undone."
@@ -21686,8 +21874,21 @@ msgstr ""
 "Acest grafic aplică filtre încrucișate graficelor ale căror seturi de "
 "date conțin coloane cu același nume."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Acest grafic a fost mutat într-un domeniu de filtru diferit."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -21717,6 +21918,11 @@ msgstr "Acest grafic nu mai există."
 #, fuzzy
 msgid "This chart only"
 msgstr "Doar acest grafic"
+
+msgid ""
+"This chart uses legacy color positions past the end of the selected color"
+" scheme, so its band colors cannot be previewed or edited here."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21783,6 +21989,12 @@ msgstr "Această coloană ar putea fi incompatibilă cu setul de date curent"
 
 msgid "This column must contain date/time information."
 msgstr "Această coloană trebuie să conțină informații despre dată/timp."
+
+msgid ""
+"This connection stores embedded guest credentials, which only apply with "
+"\"Impersonate logged in user\" turned on. Clear the embedded credentials "
+"before turning impersonation off."
+msgstr ""
 
 msgid ""
 "This control filters the whole chart based on the selected time range. "
@@ -23216,6 +23428,10 @@ msgstr ""
 "stratului."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nu se poate găsi un astfel de sărbătoare: [%(holiday)s]"
 
@@ -23559,6 +23775,10 @@ msgstr "interogare fără titlu"
 msgid "Unverified"
 msgstr "Neverificat"
 
+#, python-format
+msgid "Up to %s"
+msgstr ""
+
 msgid "Update"
 msgstr "Actualizează"
 
@@ -23693,6 +23913,9 @@ msgstr ""
 "Folosește formatarea datei chiar și atunci când valoarea indicatorului nu"
 " este un marcaj temporal"
 
+msgid "Use default"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -23735,6 +23958,9 @@ msgstr ""
 msgid "Use only a single value."
 msgstr "Folosește doar o singură valoare."
 
+msgid "Use scheme colors"
+msgstr ""
+
 msgid "Use the Advanced Analytics options below"
 msgstr "Folosește opțiunile Advanced Analytics de mai jos"
 
@@ -23753,6 +23979,14 @@ msgid ""
 msgstr ""
 "Folosit intern pentru identificarea plugin-ului. Ar trebui setat la "
 "numele pachetului din package.json al plugin-ului"
+
+msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
 
 msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
@@ -24093,6 +24327,9 @@ msgstr "Vizualizator"
 msgid "Viewers"
 msgstr "Vizualizatori"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -24331,6 +24568,11 @@ msgstr ""
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "Nu am putut rezolva coloana „%(column_name)s”."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -24808,6 +25050,9 @@ msgstr "Word Cloud"
 
 msgid "Word Rotation"
 msgstr "Rotație cuvânt"
+
+msgid "Work Group"
+msgstr ""
 
 msgid "Working"
 msgstr "În lucru"
@@ -25886,9 +26131,6 @@ msgstr "cod ISO 3166-1 alpha-3 (cca3)"
 msgid "code International Olympic Committee (cioc)"
 msgstr "cod Comitetul Olimpic Internațional (cioc)"
 
-msgid "color scheme for comparison"
-msgstr "schema de culori pentru comparare"
-
 msgid "color type"
 msgstr "tip culoare"
 
@@ -25913,6 +26155,9 @@ msgstr "creează"
 
 msgid "create a new chart"
 msgstr "creează un grafic nou"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "creează set de date din interogare SQL"
@@ -26069,8 +26314,14 @@ msgstr "ex. ********"
 msgid "e.g. 127.0.0.1"
 msgstr "ex. 127.0.0.1"
 
+msgid "e.g. 1433"
+msgstr ""
+
 msgid "e.g. 5432"
 msgstr "ex. 5432"
+
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
 
 msgid "e.g. AccountAdmin"
 msgstr "ex. AccountAdmin"
@@ -26084,14 +26335,26 @@ msgstr "ex. compute_wh"
 msgid "e.g. default"
 msgstr "ex. default"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr "ex. hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "ex. param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "ex. sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "ex. world_population"
@@ -26279,6 +26542,12 @@ msgstr "este fals"
 
 #, python-format
 msgid ""
+"is linked to %s charts and %s dashboards. Are you sure you want to "
+"continue? Deleting the dataset will break those objects."
+msgstr ""
+
+#, python-format
+msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
@@ -26287,14 +26556,6 @@ msgstr ""
 "au %s file SQL Lab deschise care folosesc această bază de date. Sigur "
 "doriți să continuați? Ștergerea bazei de date va compromite acele "
 "obiecte."
-
-#, python-format
-msgid ""
-"is linked to %s charts that appear on %s dashboards. Are you sure you "
-"want to continue? Deleting the dataset will break those objects."
-msgstr ""
-"este conectat la %s grafice din %s panouri de control. Sigur doriți să "
-"continuați? Ștergerea setului de date va compromite acele obiecte."
 
 msgid "is not"
 msgstr "nu este"
