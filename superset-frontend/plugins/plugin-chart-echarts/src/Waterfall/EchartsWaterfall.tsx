@@ -26,6 +26,7 @@ import Echart from '../components/Echart';
 import { WaterfallChartTransformedProps } from './types';
 import { EventHandlers } from '../types';
 import { useLegendEventHandlers } from '../utils/legendEventHandlers';
+import { ASSIST_MARK } from './constants';
 import {
   getSelectedWaterfallKeys,
   getWaterfallCrossFilterDataMask,
@@ -36,8 +37,16 @@ const noop = () => {};
 
 type WaterfallBarEvent = {
   dataIndex?: number;
+  seriesName?: string;
+  data?: { itemStyle?: { color?: string } };
   event?: { stop: () => void; event: PointerEvent };
 };
+
+/** A colored assist segment bridges a sign change. The rest is a spacer. */
+function isColoredAssistSegment(event: WaterfallBarEvent): boolean {
+  const color = event.data?.itemStyle?.color;
+  return typeof color === 'string' && color !== 'transparent';
+}
 
 export default function EchartsWaterfall(
   props: WaterfallChartTransformedProps,
@@ -67,6 +76,15 @@ export default function EchartsWaterfall(
   const crossFilterHandlers: EventHandlers = useMemo(() => {
     const selectedKeys = getSelectedWaterfallKeys(filterState?.selectedValues);
     const categoryAt = (event: WaterfallBarEvent) => {
+      // The assist series is mostly a transparent spacer under the bars.
+      // It stays hit-testable, but only a colored sign-crossing segment
+      // belongs to the category.
+      if (
+        event.seriesName === ASSIST_MARK &&
+        !isColoredAssistSegment(event)
+      ) {
+        return undefined;
+      }
       if (event.dataIndex == null) {
         return undefined;
       }

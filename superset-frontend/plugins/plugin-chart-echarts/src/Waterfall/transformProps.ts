@@ -443,6 +443,9 @@ export default function transformProps(
     {
       ...seriesProps,
       name: ASSIST_MARK,
+      // Spacers share this series with the sign-crossing segments. A pointer
+      // on the whole series invites clicks on the empty area under a bar.
+      cursor: 'default',
       data: assistData.map(applyCrossFilterStyle),
     },
     {

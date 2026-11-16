@@ -20,6 +20,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { ChartProps, SqlaFormData, TimeGranularity } from '@superset-ui/core';
 import { render } from '@testing-library/react';
+import { ASSIST_MARK } from '../../src/Waterfall/constants';
 import EchartsWaterfall from '../../src/Waterfall/EchartsWaterfall';
 import transformProps from '../../src/Waterfall/transformProps';
 import { EchartsWaterfallChartProps } from '../../src/Waterfall/types';
@@ -131,6 +132,42 @@ test('clicking the same bar again clears the filter', () => {
   );
 });
 
+test('clicking the transparent assist spacer does nothing', () => {
+  const { eventHandlers, setDataMask, onContextMenu } = renderChart({
+    emitCrossFilters: true,
+  });
+  const event = {
+    ...pointerEvent(1),
+    seriesName: ASSIST_MARK,
+    data: { itemStyle: { color: 'transparent' } },
+  };
+  eventHandlers.click(event);
+  eventHandlers.contextmenu(event);
+  expect(setDataMask).not.toHaveBeenCalled();
+  expect(onContextMenu).not.toHaveBeenCalled();
+});
+
+test('clicking a colored sign-crossing segment still filters', () => {
+  const { eventHandlers, setDataMask } = renderChart({
+    emitCrossFilters: true,
+  });
+  eventHandlers.click({
+    ...pointerEvent(1),
+    seriesName: ASSIST_MARK,
+    data: { itemStyle: { color: '#1f77b4' } },
+  });
+  expect(setDataMask).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [
+          { col: 'year', op: 'IN', val: ['2019'] },
+          { col: 'name', op: 'IN', val: ['Arnold'] },
+        ],
+      },
+    }),
+  );
+});
+
 test('does not emit a filter when cross-filtering is disabled', () => {
   const { eventHandlers, setDataMask } = renderChart({
     emitCrossFilters: false,
@@ -198,6 +235,43 @@ test('a context menu carries the drill filters for the clicked bar', () => {
       ],
     },
   });
+});
+
+test('a context menu drills when cross-filtering is off', () => {
+  const { eventHandlers, onContextMenu, setDataMask } = renderChart({
+    emitCrossFilters: false,
+  });
+  eventHandlers.contextmenu(pointerEvent(0));
+  expect(setDataMask).not.toHaveBeenCalled();
+  expect(onContextMenu).toHaveBeenCalledWith(
+    12,
+    24,
+    expect.objectContaining({
+      drillToDetail: [
+        { col: 'year', op: '==', val: '2019', formattedVal: '2019' },
+        {
+          col: 'name',
+          op: '==',
+          val: 'Sylvester',
+          formattedVal: 'Sylvester',
+        },
+      ],
+      drillBy: expect.objectContaining({
+        groupbyFieldName: 'groupby',
+        filters: [
+          {
+            col: 'name',
+            op: '==',
+            val: 'Sylvester',
+            formattedVal: 'Sylvester',
+          },
+        ],
+        xAxisFilters: [
+          { col: 'year', op: '==', val: '2019', formattedVal: '2019' },
+        ],
+      }),
+    }),
+  );
 });
 
 test('a context menu can clear an already selected bar', () => {

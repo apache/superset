@@ -250,7 +250,8 @@ test('dims bars outside the selected period and uses a pointer cursor', () => {
     }) as unknown as EchartsWaterfallChartProps,
   );
   const series = transformedProps.echartOptions.series as BarSeriesOption[];
-  expect(series[0]?.cursor).toBe('pointer');
+  expect(series[0]?.cursor).toBe('default');
+  expect(series[1]?.cursor).toBe('pointer');
   const increase = series[1]?.data as Array<{
     value: number | string;
     itemStyle?: { opacity?: number };

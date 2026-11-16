@@ -19,6 +19,7 @@
 import {
   BinaryQueryObjectFilterClause,
   convertFilter,
+  SimpleAdhocFilter,
   TimeGranularity,
 } from '@superset-ui/core';
 import { simpleFilterToAdhoc } from './simpleFilterToAdhoc';
@@ -67,4 +68,21 @@ test('Drill by keeps the grain on an adhoc temporal column', () => {
     throw new Error('expected a simple filter');
   }
   expect(convertFilter(adhoc)).toEqual(bucket);
+});
+
+test('Drill by keeps an empty adhoc breakdown as a real value', () => {
+  const column = {
+    sqlExpression: "COALESCE(name, '')",
+    label: 'name',
+    expressionType: 'SQL' as const,
+  };
+  const filter: BinaryQueryObjectFilterClause = {
+    col: column,
+    op: '==',
+    val: '',
+  };
+  const adhoc = simpleFilterToAdhoc(filter);
+  expect(adhoc.expressionType).toBe('SIMPLE');
+  expect(adhoc.sqlExpression).toBeUndefined();
+  expect(convertFilter(adhoc as SimpleAdhocFilter)).toEqual(filter);
 });
