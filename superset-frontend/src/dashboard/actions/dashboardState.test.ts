@@ -444,6 +444,42 @@ describe('dashboardState actions', () => {
         );
       });
 
+      test('sends viewers as an id array on overwrite when provided', async () => {
+        const { getState, dispatch } = setup();
+        saveDashboardRequest(
+          { ...newDashboardData, viewers: [{ id: 3 }, { id: 4 }] },
+          192,
+          SAVE_TYPE_OVERWRITE,
+        )(dispatch, getState);
+        await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+        const body = JSON.parse(putStub.mock.calls[0][0].body);
+        expect(body.viewers).toEqual([3, 4]);
+      });
+
+      test('sends an empty viewers array on overwrite to clear viewers', async () => {
+        const { getState, dispatch } = setup();
+        saveDashboardRequest(
+          { ...newDashboardData, viewers: [] },
+          192,
+          SAVE_TYPE_OVERWRITE,
+        )(dispatch, getState);
+        await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+        const body = JSON.parse(putStub.mock.calls[0][0].body);
+        expect(body.viewers).toEqual([]);
+      });
+
+      test('omits viewers on overwrite when not provided', async () => {
+        const { getState, dispatch } = setup();
+        saveDashboardRequest(
+          newDashboardData,
+          192,
+          SAVE_TYPE_OVERWRITE,
+        )(dispatch, getState);
+        await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+        const body = JSON.parse(putStub.mock.calls[0][0].body);
+        expect(body).not.toHaveProperty('viewers');
+      });
+
       // An unexpected failure used to reach the overwrite-confirm handler,
       // which reported it as "Please confirm the overwrite values." even with
       // the feature flag off, hiding the real error.
