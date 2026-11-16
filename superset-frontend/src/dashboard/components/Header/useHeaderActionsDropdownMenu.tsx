@@ -413,7 +413,13 @@ export const useHeaderActionsMenu = ({
     if (contributedItems?.length) {
       menuItems.push({ type: 'divider' });
       contributedItems.forEach(view => {
-        menuItems.push({ key: view.id, label: resolveView(view.id) });
+        // Which dashboard the item is on, for the same reason
+        // `dashboard.chartActions` says which chart: a contributed action
+        // that cannot name its subject cannot act on it.
+        menuItems.push({
+          key: view.id,
+          label: resolveView(view.id, { assetId: dashboardId }),
+        });
       });
     }
 

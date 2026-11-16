@@ -1108,7 +1108,15 @@ const DashboardBuilder = () => {
         </DashboardContentWrapper>
       </StyledContent>
       <ExtensionSidebarColumn id={DOCKED_PANEL_SLOT}>
-        <ViewListExtension viewId={ViewLocations.dashboard.sidebar} />
+        {/* Guarded like `dashboard.panel` above: a report renders this
+            dashboard to a PNG that is emailed to recipients, and a
+            full-height contributed column would be captured in it and
+            squeeze the chart grid. The slot element itself stays, so
+            anything portalling into `DOCKED_PANEL_SLOT` still finds its
+            target. */}
+        {!isReport && (
+          <ViewListExtension viewId={ViewLocations.dashboard.sidebar} />
+        )}
       </ExtensionSidebarColumn>
       {/* Guests have no version history to show; keep its viewport-sized host
           out of embedded documents so it cannot affect iframe sizing. */}

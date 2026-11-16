@@ -104,6 +104,18 @@ test('sets up global superset object when user is logged in', async () => {
     expect((window as any).superset.menus).toBeDefined();
     expect((window as any).superset.views).toBeDefined();
     expect((window as any).superset.sqlLab).toBeDefined();
+    // Checked by shape rather than with `toBeDefined`, because the spread of
+    // `@apache-superset/core` above these would satisfy that on its own: the
+    // package is `export declare` stubs, which compile to no runtime code, so
+    // a namespace left off the host list is still defined and every call on
+    // it throws. That is how `deferredWrites` reached extensions as an empty
+    // object.
+    expect(typeof (window as any).superset.deferredWrites.read).toBe(
+      'function',
+    );
+    expect(typeof (window as any).superset.deferredWrites.registerOracle).toBe(
+      'function',
+    );
   });
 
   initializeSpy.mockRestore();

@@ -775,7 +775,14 @@ const SliceHeaderControls = (
   if (contributedItems?.length) {
     newMenuItems.push({ type: 'divider' });
     contributedItems.forEach(view => {
-      newMenuItems.push({ key: view.id, label: resolveView(view.id) });
+      // This menu is drawn once per chart, so the item has to say which one
+      // it is on -- the same `assetId` `dashboard.chartNameCell` passes.
+      // Without it a contributed action is identical in every chart's menu
+      // and cannot act on any of them.
+      newMenuItems.push({
+        key: view.id,
+        label: resolveView(view.id, { assetId: props.slice.slice_id }),
+      });
     });
   }
 
