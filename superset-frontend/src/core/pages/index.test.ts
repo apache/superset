@@ -340,8 +340,9 @@ describe.each([
 
 describe('the snapshot handed to callers', () => {
   test('is frozen, array and pages alike', () => {
-    // `getPages` is public, so an extension holds the host's own routing and
-    // menu input. Rewriting an id here would point a live route elsewhere.
+    // The snapshot is the host's own routing and menu input, handed to every
+    // caller as the same object. Rewriting an id here would point a live
+    // route elsewhere.
     disposables.push(
       register('acme.tools', { id: 'acme.tools.review-queue', name: 'Queue' }),
     );

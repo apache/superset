@@ -368,17 +368,19 @@ export const onDidUnregisterPage = (
 ) => unregisterEmitter.subscribe(listener, thisArgs);
 
 /**
- * The namespace handed to extension code, with `registerPage` unbound.
+ * The `pages` namespace the host publishes on `window.superset`.
  *
- * The loader replaces `registerPage` per extension; this shape exists so the
- * host's own `window.superset.pages` is complete and type-compatible.
+ * Exactly what `@apache-superset/core` declares, and checked against it
+ * rather than cast to it: a cast only asserts the shape matches, so an
+ * undeclared member passes it unnoticed and becomes reachable from an
+ * extension without ever being in the contract. `getPages` was that member;
+ * it stays a module export, for the host's own routing and menus.
  */
-export const pages = {
+export const pages: typeof pagesApi = {
   useSubPath,
   useNavigate,
   getCurrentPage,
   onDidChangeCurrentPage,
-  getPages,
   onDidRegisterPage,
   onDidUnregisterPage,
-} as unknown as typeof pagesApi;
+};

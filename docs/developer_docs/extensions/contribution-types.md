@@ -314,7 +314,8 @@ whose answer is simply whether it worked, read `status` instead.
 
 `@superset-ui/core` is not shared with extensions, and `SupersetClient` is not
 part of the extension API. An extension that imports it bundles its own copy,
-which is never configured, so calls through it go out without a CSRF token.
+which the host never configures, so its calls throw before they reach the
+server.
 
 ## Backend
 

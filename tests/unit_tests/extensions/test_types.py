@@ -291,3 +291,67 @@ def test_a_reserved_publisher_is_refused_in_the_built_manifest():
                 "displayName": "My Extension",
             }
         )
+
+
+@pytest.mark.parametrize(
+    "page_id",
+    [
+        pytest.param("acme.tools", id="the-extension-s-own-id-with-no-page-part"),
+        pytest.param("other.ext.queue", id="another-extension-s-page"),
+        pytest.param("acme.toolsqueue", id="the-prefix-without-its-dot"),
+        pytest.param("acme.tools-extra.queue", id="a-longer-name-that-starts-alike"),
+    ],
+)
+def test_a_page_this_extension_does_not_own_is_refused(page_id: str):
+    """`PAGE_ID_PATTERN` cannot say whose a page id is, only what shape it has.
+
+    So it admits the extension's own id with no page part, and ids belonging
+    to someone else. Both build and install, and then fail where nobody is
+    looking: `owns_page` declines to serve the route and `registerPageFor`
+    drops the registration, leaving a line in the server log and an error in
+    the console while the page itself says nothing.
+    """
+    with pytest.raises(ValidationError, match="not this extension's to declare"):
+        ExtensionConfig.model_validate(
+            {
+                "publisher": "acme",
+                "name": "tools",
+                "displayName": "Acme Tools",
+                "contributions": {"pages": [{"id": page_id, "name": "Queue"}]},
+            }
+        )
+
+
+def test_a_page_this_extension_does_not_own_is_refused_in_the_built_manifest():
+    """Both schemas, because the manifest is what the host actually reads."""
+    with pytest.raises(ValidationError, match="not this extension's to declare"):
+        Manifest.model_validate(
+            {
+                "publisher": "acme",
+                "name": "tools",
+                "displayName": "Acme Tools",
+                "contributions": {"pages": [{"id": "other.ext.queue", "name": "Q"}]},
+            }
+        )
+
+
+def test_a_page_the_extension_owns_is_accepted():
+    """The rule is a prefix, not a segment count: anything after the id works."""
+    config = ExtensionConfig.model_validate(
+        {
+            "publisher": "acme",
+            "name": "tools",
+            "displayName": "Acme Tools",
+            "contributions": {
+                "pages": [
+                    {"id": "acme.tools.queue", "name": "Queue"},
+                    {"id": "acme.tools.reports.monthly", "name": "Monthly"},
+                ]
+            },
+        }
+    )
+
+    assert [page.id for page in config.contributions.pages] == [
+        "acme.tools.queue",
+        "acme.tools.reports.monthly",
+    ]

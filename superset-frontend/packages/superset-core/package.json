@@ -101,7 +101,6 @@
     "type": "npx tsc --noEmit"
   },
   "dependencies": {
-    "classnames": "^2.2.5",
     "lodash-es": "^4.18.1"
   },
   "devDependencies": {

@@ -30,6 +30,7 @@ from pydantic import (  # noqa: I001
     computed_field,
     Field,
     field_validator,
+    model_validator,
 )
 
 from superset_core.extensions.constants import (
@@ -197,6 +198,34 @@ class BaseExtension(BaseModel):
     @property
     def id(self) -> str:
         return f"{self.publisher}.{self.name}"
+
+    @model_validator(mode="after")
+    def _pages_are_this_extension_s_to_declare(self) -> BaseExtension:
+        """Refuse a page id that is not this extension's own.
+
+        A page id begins with its extension's id, and both ends of the host
+        hold to that -- ``owns_page`` before the server answers
+        ``/extensions/pages/<id>``, and ``registerPageFor`` before the
+        frontend mounts a component. ``PAGE_ID_PATTERN`` cannot: an id's
+        shape says nothing about whose it is, so it admits ``acme.tools``,
+        which is the extension's own id with no page part, and
+        ``other.ext.queue``, which belongs to someone else. Either one
+        builds and installs, and then fails where nobody is looking -- a
+        line in the server log and an error in the console, with the page
+        itself saying nothing.
+
+        So the build refuses it, where the author is the one reading.
+        """
+        prefix = f"{self.id}."
+        for page in self.contributions.pages:
+            if not page.id.startswith(prefix):
+                raise ValueError(
+                    f"page id '{page.id}' is not this extension's to declare: "
+                    f"a page id begins with the extension's own id, so it must "
+                    f"start with '{prefix}' and name the page after it, as in "
+                    f"'{prefix}queue'"
+                )
+        return self
 
 
 # =============================================================================
