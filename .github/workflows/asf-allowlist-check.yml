@@ -18,7 +18,7 @@ on:
     paths:
       - ".github/**"
   schedule:
-    # Weekly, so allowlist expirations are surfaced even when nothing under
+    # Weekly at 06:00 UTC every Monday, so allowlist expirations are surfaced even when nothing under
     # .github/ has changed.
     - cron: "0 6 * * 1"
 
@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   asf-allowlist-check:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -44,3 +44,20 @@ jobs:
         with:
           # Default scan-glob is .github/**/*.yml, which misses .yaml files.
           scan-glob: ".github/**/*.y*ml"
+
+  asf-allowlist-check-required:
+    needs: [asf-allowlist-check]
+    if: always()
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Check asf-allowlist-check result
+        env:
+          RESULT: ${{ needs.asf-allowlist-check.result }}
+        run: |
+          if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
+            echo "asf-allowlist-check did not pass (result: $RESULT)"
+            exit 1
+          fi
+          echo "asf-allowlist-check result: $RESULT"

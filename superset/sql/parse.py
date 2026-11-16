@@ -2252,7 +2252,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if isinstance(self._parsed, exp.Command):
             command_name = self._parsed.name.upper()
 
-            if command_name in self._MUTATING_COMMAND_NAMES:
+            # Newer sqlglot releases fold multi-word heads into ``name``
+            # (e.g. ``ADD SQLBLACKLIST``), so match on the leading keyword.
+            if command_name.partition(" ")[0] in self._MUTATING_COMMAND_NAMES:
                 return True
 
             if (
