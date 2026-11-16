@@ -10208,8 +10208,7 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
 msgid "In this view you can preview the first 25 rows. "
-msgstr ""
-"En esta vista puede obtener una vista previa de las primeras 25 filas. "
+msgstr "En esta vista puede obtener una vista previa de las primeras 25 filas. "
 
 msgid "Inactive"
 msgstr "Inactivo"
@@ -20927,8 +20926,7 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
-msgstr ""
-"Esta contraseña es demasiado común; por favor elija una menos predecible."
+msgstr "Esta contraseña es demasiado común; por favor elija una menos predecible."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 msgid "This password reset link is invalid or has expired"
