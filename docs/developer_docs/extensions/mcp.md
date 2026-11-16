@@ -291,15 +291,39 @@ Published canvas links use the canonical slug (or ID). Draft links retain
 link. Creating a canvas with initial operations returns both `url` and
 `draft_url`, and previewing a draft links to that draft's authorized canvas.
 
-Returned Canvas failures include `error` and a stable `error_type`, including
-the existing validation and revision-conflict recovery categories. MCP metrics
-count these returned errors as failures. Preview warnings alone remain
-successful results, including an unavailable optional renderer; an explicit
-renderer error carries `RendererError`. Dataset access denied during preview
-returns `DatasetNotAccessible` without query results or an image. Other query
-failures, including disallowed SQL subqueries, retain `QueryError`.
-Unavailable canvases and drafts do not return identifying URLs. Canvas tools
-remain subject to the `CANVAS` feature flag and their existing permission checks.
+Returned Canvas failures retain their validation and revision-conflict recovery
+categories. REST placement queries, `preview_widget`, and `get_canvas_data` share
+query-error classification based on the outermost exception, never its nested
+cause. Datasource, table or database access denials return generic access text
+and `DatasetNotAccessible`; REST returns 403. Query validation, including a
+disallowed SQL subquery, returns `QueryError` and REST 400, even when a nested
+cause is a security exception. Other security refusals retain their status;
+cache-load failures return REST 422, and unexpected failures remain REST 500
+with a generic message. `get_canvas_data` reports `error` and `error_type` on
+each failed widget without its rows, columns or row count.
+
+Query diagnostics use Superset's existing principal-sensitive sanitizers:
+source-authorized non-guests retain actionable known query diagnostics, while
+guest-sensitive paths apply the existing redaction policy. This does not grant
+guests Canvas access. MCP query messages retain the `The widget's query failed: `
+prefix so clients can recognize repairable input failures. An invalid saved
+dataset expression may require a dataset change; editing the widget does not
+repair that saved expression.
+
+MCP metrics count returned preview errors as failures. Warnings alone remain
+successful tool results, including an unavailable optional renderer. Renderer
+transport failures, returned warnings and returned errors use fixed guidance
+that the chart was not visually checked, without exposing renderer URLs or raw
+diagnostics. They set `rendered: false` and return no image or rendered option;
+an explicit renderer error also carries `RendererError`. Tool success alone
+must not be presented as successful visual verification.
+
+The Canvas client clears prior rows and query text while loading a changed
+binding or Canvas, placement, draft or version context. Filter controls discard
+previously fetched options and selections when their source or context changes;
+delayed responses cannot restore the previous source's state. Unavailable
+canvases and drafts do not return identifying URLs. Canvas tools remain subject
+to the `CANVAS` feature flag and their existing permission checks.
 
 ### Response Format
 

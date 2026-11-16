@@ -30,6 +30,7 @@ from superset.canvas.data import run_binding, RuntimeFilter
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.versions import DefinitionVersionError
+from superset.canvas.query_errors import canvas_query_error
 from superset.commands.canvas.draft import load_draft
 from superset.commands.canvas.exceptions import (
     CanvasDraftNotFoundError,
@@ -110,8 +111,11 @@ def _widget_data(
     try:
         rows = run_binding(props["dataBinding"], runtime_filters).rows
     except Exception as ex:  # pylint: disable=broad-except
-        logger.info("Canvas widget query failed for %s: %s", placement_id, ex)
-        entry["error"] = f"The widget's query failed: {ex}"
+        error = canvas_query_error(ex)
+        if error.status == 500:
+            logger.warning("Canvas widget query failed (%s)", type(ex).__name__)
+        entry["error"] = f"The widget's query failed: {error.message}"
+        entry["error_type"] = error.error_type
         return entry
     entry["row_count"] = len(rows)
     entry["columns"] = list(rows[0]) if rows else []

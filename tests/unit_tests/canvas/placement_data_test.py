@@ -31,6 +31,7 @@ from sqlalchemy.orm.session import Session
 
 from superset.canvas.data import PlacementData, query_context_payload, RuntimeFilter
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.canvas import Canvas
 from superset.models.core import Database
@@ -150,7 +151,13 @@ def test_unknown_and_unbound_placements(
 def test_without_dataset_access(
     client: Any, full_api_access: None, canvas: Any, run_binding: MagicMock
 ) -> None:
-    run_binding.side_effect = SupersetSecurityException(MagicMock())
+    run_binding.side_effect = SupersetSecurityException(
+        SupersetError(
+            message="Dataset access denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
 
     assert client.post(URL.format("chart"), json={}).status_code == 403
 
@@ -162,6 +169,31 @@ def test_rejects_malformed_filters(
         URL.format("chart"),
         json={"runtime_filters": [{"datasetId": 13, "column": "", "values": "FR"}]},
     )
+
+    assert response.status_code == 400
+    run_binding.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        pytest.param({"datasetId": 99}, id="dataset"),
+        pytest.param({"dataBinding": {"datasetId": 99}}, id="binding"),
+        pytest.param({"datasource": {"id": 99, "type": "table"}}, id="datasource"),
+        pytest.param({"user_id": 1}, id="user"),
+        pytest.param({"actor": {"id": 1}}, id="actor"),
+        pytest.param({"async": True}, id="async"),
+    ],
+)
+def test_placement_request_cannot_replace_source_or_actor(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    override: dict[str, Any],
+) -> None:
+    """Reject execution context supplied outside the stored placement binding."""
+    response = client.post(URL.format("chart"), json=override)
 
     assert response.status_code == 400
     run_binding.assert_not_called()

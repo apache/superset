@@ -620,3 +620,204 @@ def test_draft_and_canvas_not_found_responses_remain_distinct(
         if unavailable
         else {"message": "Not found"}
     )
+
+
+@pytest.mark.parametrize(
+    "family,status,category",
+    [
+        ("datasource-access", 403, "DatasetNotAccessible"),
+        ("table-access", 403, "DatasetNotAccessible"),
+        ("database-access", 403, "DatasetNotAccessible"),
+        ("subquery", 400, "QueryError"),
+        ("security", 403, "QueryError"),
+        ("security-status", 401, "QueryError"),
+        ("safe-security", 403, "QueryError"),
+        ("validation", 400, "QueryError"),
+        ("query-failed", 400, "QueryError"),
+        ("query-validation", 400, "QueryError"),
+        ("function", 400, "QueryError"),
+        ("table", 400, "QueryError"),
+        ("cache", 422, "QueryError"),
+        ("schema", 400, "QueryError"),
+        ("missing-datasource", 404, "QueryError"),
+        ("unexpected", 500, "QueryError"),
+    ],
+)
+@pytest.mark.parametrize("wrapped", [False, True], ids=["direct", "wrapped"])
+@pytest.mark.parametrize("guest", [False, True], ids=["user", "guest-policy"])
+def test_placement_and_preview_query_error_contract(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    family: str,
+    status: int,
+    category: str,
+    wrapped: bool,
+    guest: bool,
+) -> None:
+    """REST and both MCP query tools share outer classification and message policy.
+
+    The command/Canvas lookup are isolated to exercise every exception family;
+    real data-path tests separately establish source authorization and RLS.
+    Guest policy is defense in depth, not permission to use Canvas as a guest.
+    """
+    from marshmallow import ValidationError
+
+    from superset import security_manager
+    from superset.commands.chart.exceptions import (
+        ChartDataCacheLoadError,
+        ChartDataQueryFailedError,
+        ChartDataQueryValidationError,
+    )
+    from superset.daos.exceptions import DatasourceNotFound
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        SupersetDisallowedSQLFunctionException,
+        SupersetDisallowedSQLTableException,
+    )
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+    from superset.models.canvas import Canvas
+    from superset.utils.error_sanitization import (
+        GENERIC_ACCESS_MESSAGE,
+        GENERIC_ERROR_MESSAGE,
+    )
+
+    detail = "source-authorized diagnostic"
+    error_types = {
+        "datasource-access": SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+        "table-access": SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+        "database-access": SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+        "subquery": SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+        "security": SupersetErrorType.GENERIC_BACKEND_ERROR,
+        "security-status": SupersetErrorType.GENERIC_BACKEND_ERROR,
+        "safe-security": SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+    }
+    error: Exception
+    if family in error_types:
+        security_error = SupersetSecurityException(
+            SupersetError(
+                message=detail,
+                error_type=error_types[family],
+                level=ErrorLevel.ERROR,
+                extra={"sql": "private-extra"},
+            )
+        )
+        if family == "security-status":
+            security_error.status = 401
+        error = security_error
+    else:
+        errors = {
+            "validation": QueryObjectValidationError(detail),
+            "query-failed": ChartDataQueryFailedError(detail),
+            "query-validation": ChartDataQueryValidationError(detail),
+            "function": SupersetDisallowedSQLFunctionException({detail}),
+            "table": SupersetDisallowedSQLTableException({detail}),
+            "cache": ChartDataCacheLoadError(detail),
+            "schema": ValidationError({"queries": [detail]}),
+            "missing-datasource": DatasourceNotFound(),
+            "unexpected": RuntimeError("private-unexpected-diagnostic"),
+        }
+        error = errors[family]
+    if wrapped:
+        error.__cause__ = SupersetSecurityException(
+            SupersetError(
+                message="private-cause-diagnostic",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+    mocker.patch.object(security_manager, "is_guest_user", return_value=guest)
+    command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
+    command.return_value.run.side_effect = error
+    response = client.post(f"{BASE}/100/placement/chart/data", json={})
+    assert response.status_code == status
+
+    module = "superset.mcp_service.canvas.tool.preview_widget"
+    dao = mocker.patch(f"{module}.CanvasDAO")
+    dao.find_by_id_or_uuid.return_value = Canvas(id=100, slug="sales")
+    dao.load.return_value = {
+        "nodes": {"chart": {"widgetType": "echarts", "props": {"chartType": "bar"}}}
+    }
+    mocker.patch(f"{module}._with_rows", side_effect=error)
+    render = mocker.patch(f"{module}._render")
+    preview, image = _preview_widget_impl(100, "chart", False)
+    assert preview["error_type"] == category
+    assert image is None
+    render.assert_not_called()
+    assert not {"sample_rows", "query", "columns", "option", "image"} & preview.keys()
+    if family == "missing-datasource":
+        assert response.json == {"message": "Not found"}
+        expected = "Datasource does not exist"
+    elif category == "DatasetNotAccessible":
+        expected = str(GENERIC_ACCESS_MESSAGE)
+    elif (guest and family != "safe-security") or family == "unexpected":
+        expected = str(GENERIC_ERROR_MESSAGE)
+    else:
+        expected = str(error)
+    assert preview["error"] == f"The widget's query failed: {expected}"
+    if family != "missing-datasource":
+        assert response.json == {"message": expected, "error_type": category}
+    from superset.mcp_service.canvas.schemas import CanvasWidgetData
+    from superset.mcp_service.canvas.tool.get_canvas_data import _widget_data
+
+    mocker.patch(
+        "superset.mcp_service.canvas.tool.get_canvas_data.run_binding",
+        side_effect=error,
+    )
+    log = mocker.patch(
+        "superset.mcp_service.canvas.tool.get_canvas_data.logger.warning"
+    )
+    widget = CanvasWidgetData.model_validate(
+        _widget_data("chart", "echarts", {"dataBinding": {}}, "Chart", 50, None)
+    ).model_dump(exclude_none=True)
+    assert widget["error_type"] == category
+    assert widget["error"] == f"The widget's query failed: {expected}"
+    assert not {"rows", "row_count", "columns", "query"} & widget.keys()
+    assert "private-" not in json.dumps([response.json, preview, widget])
+    assert "private-" not in str(log.call_args_list)
+
+
+@pytest.mark.parametrize(
+    "family,status",
+    [
+        ("canvas", 404),
+        ("placement", 404),
+        ("draft", 404),
+        ("version", 404),
+        ("forbidden", 403),
+        ("unbound", 422),
+    ],
+)
+def test_placement_preserves_object_errors(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    family: str,
+    status: int,
+) -> None:
+    """Query classification does not swallow object and draft recovery errors."""
+    from superset.commands.canvas.exceptions import (
+        CanvasDraftNotFoundError,
+        CanvasForbiddenError,
+        CanvasNotFoundError,
+        CanvasPlacementNotFoundError,
+        CanvasPlacementUnboundError,
+        CanvasVersionNotFoundError,
+    )
+
+    errors = {
+        "canvas": CanvasNotFoundError(),
+        "placement": CanvasPlacementNotFoundError(),
+        "draft": CanvasDraftNotFoundError(),
+        "version": CanvasVersionNotFoundError(),
+        "forbidden": CanvasForbiddenError(),
+        "unbound": CanvasPlacementUnboundError(),
+    }
+    command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
+    command.return_value.run.side_effect = errors[family]
+    response = client.post(f"{BASE}/100/placement/chart/data", json={})
+    assert response.status_code == status
+    assert response.json.get("error_type") == (
+        "DraftUnavailable" if family == "draft" else None
+    )

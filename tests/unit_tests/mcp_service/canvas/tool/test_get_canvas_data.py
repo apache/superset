@@ -127,4 +127,10 @@ def test_reports_unknown_placements() -> None:
 def test_a_failing_query_is_reported_per_widget() -> None:
     result, _ = _run(query_error=ValueError("boom"))
 
-    assert all("boom" in w["error"] for w in result["widgets"])
+    assert all(
+        w["error"]
+        == "The widget's query failed: An error occurred while fetching the data."
+        for w in result["widgets"]
+    )
+    assert all(w["error_type"] == "QueryError" for w in result["widgets"])
+    assert all("rows" not in w for w in result["widgets"])

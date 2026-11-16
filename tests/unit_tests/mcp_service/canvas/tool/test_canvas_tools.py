@@ -324,8 +324,11 @@ def test_preview_reads_the_widget_a_placement_holds() -> None:
     assert run.call_args.args[0] == binding
 
 
-def test_preview_merges_renderer_warnings_and_image() -> None:
-    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+def test_preview_redacts_renderer_warnings_and_withholds_unverified_image() -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import (
+        _preview_widget_impl,
+        RENDERER_FAILURE_MESSAGE,
+    )
 
     node = {
         "widgetType": "echarts",
@@ -351,12 +354,14 @@ def test_preview_merges_renderer_warnings_and_image() -> None:
         }
         result, image = _preview_widget_impl(1, "chart", dark=True)
 
-    assert image == "aGk="
+    assert image is None
+    assert result["rendered"] is False
     assert result["warnings"] == [
         "The widget's query returned no rows",
-        "Tooltip prints [object Object]",
+        RENDERER_FAILURE_MESSAGE,
     ]
-    assert result["image"] == "attached, 672x600 PNG"
+    assert "image" not in result
+    assert "option" not in result
 
 
 def test_preview_reports_unknown_placements() -> None:
@@ -828,7 +833,12 @@ def test_preview_security_errors_stop_before_query_and_render(
     assert image is None
     payload = PreviewWidgetResponse.model_validate(result).model_dump()
     assert payload["error_type"] == expected
-    assert payload["error"] == f"The widget's query failed: {denied}"
+    message = (
+        "You don't have permission to access this resource."
+        if expected == "DatasetNotAccessible"
+        else str(denied)
+    )
+    assert payload["error"] == f"The widget's query failed: {message}"
     assert payload["url"] == f"{BASE_URL}/canvas/sales/"
     assert payload["canvas_id"] == 7
     assert not {"sample_rows", "row_count", "query", "image", "option"} & payload.keys()

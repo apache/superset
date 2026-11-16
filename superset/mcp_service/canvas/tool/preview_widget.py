@@ -34,6 +34,7 @@ from superset.canvas.data import run_binding, RuntimeFilter
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.versions import DefinitionVersionError
+from superset.canvas.query_errors import canvas_query_error
 from superset.commands.canvas.draft import CanvasDraft, load_draft
 from superset.commands.canvas.exceptions import (
     CanvasDraftNotFoundError,
@@ -41,8 +42,6 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
 )
 from superset.daos.canvas import CanvasDAO
-from superset.errors import SupersetErrorType
-from superset.exceptions import SupersetSecurityException
 from superset.extensions import security_manager
 from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
@@ -54,6 +53,10 @@ logger = logging.getLogger(__name__)
 
 SAMPLE_ROWS = 10
 RENDER_TIMEOUT_SECONDS = 15
+RENDERER_FAILURE_MESSAGE = (
+    "No image: the renderer could not verify the chart. The chart was not checked "
+    "visually; don't report it as verified."
+)
 # The canvas page's content width and grid, for sizing a placement in pixels.
 PAGE_WIDTH = 1360
 GAP = 16
@@ -137,20 +140,26 @@ def _with_render(
     warnings = result.setdefault("warnings", [])
     try:
         rendered = _render(url, props, rows, definition, size, dark)
-    except requests.RequestException as ex:
-        logger.warning("Canvas widget renderer failed: %s", ex)
+    except (requests.RequestException, ValueError) as ex:
+        # Renderer URLs, response bodies and exception strings are not public.
+        logger.warning("Canvas widget renderer failed (%s)", type(ex).__name__)
         result["rendered"] = False
-        warnings.append(
-            f"No image: the renderer failed ({ex}). The chart was not checked "
-            "visually; don't report it as verified."
-        )
+        warnings.append(RENDERER_FAILURE_MESSAGE)
+        return None
+    if (
+        not isinstance(rendered, dict)
+        or rendered.get("error")
+        or rendered.get("warnings")
+    ):
+        logger.warning("Canvas widget renderer returned an unsuccessful result")
+        result["rendered"] = False
+        warnings.append(RENDERER_FAILURE_MESSAGE)
+        if isinstance(rendered, dict) and rendered.get("error"):
+            result["error"] = RENDERER_FAILURE_MESSAGE
+            result["error_type"] = "RendererError"
         return None
     result["rendered"] = True
     result["option"] = rendered.get("option")
-    warnings.extend(rendered.get("warnings", []))
-    if rendered.get("error"):
-        result["error"] = rendered["error"]
-        result["error_type"] = "RendererError"
     image = rendered.get("png")
     if image:
         width, height = rendered.get("width"), rendered.get("height")
@@ -238,22 +247,12 @@ def _preview_widget_impl(
     result.update(placement_id=placement_id, widget_type=widget_type)
     try:
         rows = _with_rows(result, props, runtime_filters)
-    except SupersetSecurityException as ex:
-        result["error"] = f"The widget's query failed: {ex}"
-        result["error_type"] = (
-            "DatasetNotAccessible"
-            if ex.error.error_type
-            in {
-                SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
-                SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
-            }
-            else "QueryError"
-        )
-        return result, None
     except Exception as ex:  # pylint: disable=broad-except
-        result["error"] = f"The widget's query failed: {ex}"
-        result["error_type"] = "QueryError"
+        error = canvas_query_error(ex)
+        if error.status == 500:
+            logger.warning("Canvas preview query failed (%s)", type(ex).__name__)
+        result["error"] = f"The widget's query failed: {error.message}"
+        result["error_type"] = error.error_type
         return result, None
     if widget_type == "echarts" and not _draws_series(props):
         result.setdefault("warnings", []).append(

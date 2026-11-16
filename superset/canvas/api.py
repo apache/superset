@@ -53,6 +53,7 @@ from superset.canvas.filters import (
     CanvasAllTextFilter,
     CanvasEditableFilter,
 )
+from superset.canvas.query_errors import canvas_query_error
 from superset.canvas.schemas import (
     CanvasPostSchema,
     CanvasPutSchema,
@@ -88,11 +89,10 @@ from superset.commands.canvas.exceptions import (
 from superset.commands.canvas.placement_data import GetPlacementDataCommand
 from superset.commands.canvas.restore_version import RestoreCanvasVersionCommand
 from superset.commands.canvas.update import UpdateCanvasCommand
-from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.canvas import CanvasDAO
 from superset.daos.exceptions import DatasourceNotFound
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger, security_manager
 from superset.models.canvas import Canvas
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
@@ -1108,10 +1108,24 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             ).run()
         except DatasourceNotFound:
             return self.response_404()
-        except SupersetSecurityException:
-            return self.response_403()
-        except (QueryObjectValidationError, ChartDataQueryFailedError) as ex:
-            return self.response_400(message=str(ex.message))
+        except (
+            CanvasNotFoundError,
+            CanvasPlacementNotFoundError,
+            CanvasPlacementUnboundError,
+            CanvasDraftNotFoundError,
+            CanvasVersionNotFoundError,
+            CanvasForbiddenError,
+            DefinitionVersionError,
+        ):
+            # Preserve the endpoint's object/draft/version recovery contract.
+            raise
+        except Exception as ex:  # pylint: disable=broad-except
+            error = canvas_query_error(ex)
+            if error.status == 500:
+                logger.warning("Canvas placement query failed (%s)", type(ex).__name__)
+            return self.response(
+                error.status, message=error.message, error_type=error.error_type
+            )
         dataset: dict[str, Any] = {
             "name": "main",
             "row_count": len(data.rows),

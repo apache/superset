@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
 import { Select, Typography } from '@superset-ui/core/components';
 import type { SelectFilterValue } from './echarts/chartData';
+import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
 
 const Wrapper = styled.div`
   ${({ theme }) => css`
@@ -42,19 +43,39 @@ const strings = (value: unknown): string[] =>
  * selected.
  */
 export default function FilterSelectRenderer({
+  canvasId,
+  nodeId,
   props,
+  refreshKey,
   setFilterValue,
 }: canvasApi.CanvasWidgetProps) {
   const datasetId = Number(props?.datasetId);
   const column = typeof props?.column === 'string' ? props.column : '';
+  const draftToken = useContext(CanvasDraftContext);
+  const versionUuid = useContext(CanvasVersionContext);
+  const sourceKey = JSON.stringify([
+    canvasId,
+    nodeId,
+    datasetId,
+    column,
+    draftToken ?? null,
+    versionUuid ?? null,
+  ]);
   const staticOptions = strings(props?.options);
-  const [fetched, setFetched] = useState<string[]>([]);
-  const [selected, setSelected] = useState<string[]>(() =>
-    strings(props?.defaultSelection),
-  );
-  const published = useRef(false);
+  const optionsKey = JSON.stringify([sourceKey, staticOptions, refreshKey]);
+  const [fetched, setFetched] = useState<{ key: string; values: string[] }>({
+    key: optionsKey,
+    values: [],
+  });
+  const [selection, setSelection] = useState(() => ({
+    key: sourceKey,
+    values: strings(props?.defaultSelection),
+  }));
+  const selected = selection.key === sourceKey ? selection.values : [];
+  const publishedSource = useRef<string>();
 
   useEffect(() => {
+    setFetched({ key: optionsKey, values: [] });
     if (staticOptions.length || !datasetId || !column) return undefined;
     let cancelled = false;
     SupersetClient.get({
@@ -62,18 +83,21 @@ export default function FilterSelectRenderer({
     })
       .then(({ json }) => {
         if (!cancelled) {
-          setFetched(strings(json?.result).filter(value => value !== 'null'));
+          setFetched({
+            key: optionsKey,
+            values: strings(json?.result).filter(value => value !== 'null'),
+          });
         }
       })
       .catch(() => {
-        if (!cancelled) setFetched([]);
+        if (!cancelled) setFetched({ key: optionsKey, values: [] });
       });
     return () => {
       cancelled = true;
     };
-    // staticOptions is recreated on every render; its length decides.
+    // The key includes the source/context, static options and refresh counter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [datasetId, column, staticOptions.length]);
+  }, [optionsKey]);
 
   const publish = (values: string[]) => {
     const value: SelectFilterValue | null = values.length
@@ -82,22 +106,33 @@ export default function FilterSelectRenderer({
     setFilterValue(value);
   };
 
-  // A default selection applies once, on first render.
+  // Defaults initialize this placement only. A different source/context must
+  // not inherit either its prior selection or its default-derived values.
   useEffect(() => {
-    if (published.current) return;
-    published.current = true;
-    if (selected.length) publish(selected);
+    if (publishedSource.current === sourceKey) return;
+    if (publishedSource.current === undefined) {
+      if (selected.length) publish(selected);
+    } else {
+      setSelection({ key: sourceKey, values: [] });
+      publish([]);
+    }
+    publishedSource.current = sourceKey;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [sourceKey]);
 
   const options = useMemo(
     () =>
-      (staticOptions.length ? staticOptions : fetched).map(value => ({
+      (staticOptions.length
+        ? staticOptions
+        : fetched.key === optionsKey
+          ? fetched.values
+          : []
+      ).map(value => ({
         label: value,
         value,
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fetched, staticOptions.join('\u0000')],
+    [fetched, optionsKey],
   );
 
   return (
@@ -112,7 +147,7 @@ export default function FilterSelectRenderer({
         value={selected}
         onChange={value => {
           const values = strings(value);
-          setSelected(values);
+          setSelection({ key: sourceKey, values });
           publish(values);
         }}
       />

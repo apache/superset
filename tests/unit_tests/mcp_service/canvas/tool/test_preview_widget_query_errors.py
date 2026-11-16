@@ -41,6 +41,7 @@ pytestmark = pytest.mark.parametrize(
     indirect=True,
 )
 aggregate_table = placement_data_test.aggregate_table
+aggregate_canvas = placement_data_test.aggregate_canvas
 MODULE = "superset.mcp_service.canvas.tool.preview_widget"
 BASE_URL = "https://workspace.example/prefix"
 
@@ -73,13 +74,14 @@ def test_preview_distinguishes_query_validation_from_dataset_access(
                 "sqlExpression": "amount > (SELECT AVG(amount) FROM amounts)",
             }
         ]
-    definition = {
+    definition: dict[str, Any] = {
         "root": {"layout": {"columns": 24}, "children": ["chart"]},
         "nodes": {
             "chart": {
-                "widgetType": "ag-grid-table",
+                "widgetType": "echarts",
                 "props": {
                     "dataBinding": binding,
+                    "chartType": "bar",
                 },
             }
         },
@@ -88,7 +90,8 @@ def test_preview_distinguishes_query_validation_from_dataset_access(
     dao = mocker.patch(f"{MODULE}.CanvasDAO")
     dao.find_by_id_or_uuid.return_value = Canvas(id=7, slug="sales")
     dao.load.return_value = definition
-    render = mocker.patch(f"{MODULE}._render")
+    render = mocker.patch(f"{MODULE}._render", return_value={"option": {}})
+    mocker.patch(f"{MODULE}._pixel_size", return_value=(640, 320))
 
     result, image = _preview_widget_impl(7, "chart", False)
     payload = PreviewWidgetResponse.model_validate(result).model_dump()
@@ -98,8 +101,11 @@ def test_preview_distinguishes_query_validation_from_dataset_access(
     assert payload["url"] == f"{BASE_URL}/canvas/sales/"
     assert payload["canvas_id"] == 7
     assert image is None
-    render.assert_not_called()
     if case == "query":
+        render.assert_called_once()
+        assert render.call_args.args[1] == definition["nodes"]["chart"]["props"]
+        assert render.call_args.args[2] == payload["sample_rows"]
+        assert payload["rendered"] is True
         run.assert_called_once()
         assert "error_type" not in payload
         assert payload["row_count"] == 7
@@ -115,6 +121,7 @@ def test_preview_distinguishes_query_validation_from_dataset_access(
             "G": 60,
         }
     else:
+        render.assert_not_called()
         assert (
             not {"row_count", "sample_rows", "query", "columns", "option", "image"}
             & payload.keys()
@@ -138,3 +145,223 @@ def test_preview_distinguishes_query_validation_from_dataset_access(
                 error.error.error_type
                 == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR
             )
+
+
+@pytest.mark.parametrize(
+    "failure", ["transport", "decode", "error", "warning", "shape"]
+)
+def test_renderer_failures_never_echo_private_diagnostics(
+    app: SupersetApp, mocker: MockerFixture, failure: str
+) -> None:
+    """Renderer transport and returned diagnostics have one fixed safe message."""
+    import requests
+
+    from superset.mcp_service.canvas.tool.preview_widget import (
+        _with_render,
+        RENDERER_FAILURE_MESSAGE,
+    )
+
+    private = "private-renderer-url-response-or-exception"
+    render = mocker.patch(f"{MODULE}._render")
+    if failure == "transport":
+        render.side_effect = requests.RequestException(private)
+    elif failure == "decode":
+        render.side_effect = ValueError(private)
+    elif failure == "shape":
+        render.return_value = [private]
+    else:
+        render.return_value = {
+            "error" if failure == "error" else "warnings": [private],
+            "png": private,
+            "option": {"private": private},
+        }
+    log = mocker.patch(f"{MODULE}.logger.warning")
+    result: dict[str, Any] = {}
+    image = _with_render(result, "http://renderer", {}, [], {}, (640, 320), False)
+    assert image is None
+    assert result["rendered"] is False
+    assert result["warnings"] == [RENDERER_FAILURE_MESSAGE]
+    assert "option" not in result
+    assert "image" not in result
+    assert private not in str(result)
+    assert private not in str(log.call_args_list)
+    assert result.get("error_type") == ("RendererError" if failure == "error" else None)
+
+
+@pytest.mark.parametrize(
+    "expression,diagnostic",
+    [
+        (
+            "{{ 'SUM(amount); SELECT 1' }}",
+            "Custom SQL fields cannot be parsed as a single SQL statement.",
+        ),
+        (
+            "{{ 'SUM(amount) UNION SELECT 1' }}",
+            "Custom SQL fields cannot contain set operations.",
+        ),
+        (
+            "SUM(amount)",
+            "Custom SQL fields cannot be safely rewritten with RLS filters.",
+        ),
+    ],
+    ids=["saved-parse", "saved-set-operation", "saved-rls-rewrite"],
+)
+def test_saved_expression_diagnostics_are_preserved_without_dataset_mutation(
+    app: SupersetApp,
+    aggregate_table: SqlaTable,
+    mocker: MockerFixture,
+    expression: str,
+    diagnostic: str,
+) -> None:
+    """Real stored-expression validation feeds the query and preview transports."""
+    from superset.canvas.query_errors import canvas_query_error
+    from superset.exceptions import SupersetParseError
+
+    app.config["FEATURE_FLAGS"]["ENABLE_TEMPLATE_PROCESSING"] = True
+    g.user = User(id=701, username="canvas-reader", roles=[])
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    metric = aggregate_table.metrics[0]
+    metric.expression = expression
+    before = [(item.metric_name, item.expression) for item in aggregate_table.metrics]
+    if diagnostic.endswith("RLS filters."):
+        # Exercise the real fallback validator with a dialect parse limitation
+        # and a base-dialect rewrite; do not mock its resulting exception.
+        mocker.patch(
+            "superset.models.helpers.validate_adhoc_subquery",
+            side_effect=[
+                SupersetParseError("dialect parse limitation"),
+                SupersetParseError("dialect parse limitation"),
+                "SELECT SUM(amount) WHERE protected_rls = 1",
+            ],
+        )
+    dao = mocker.patch(f"{MODULE}.CanvasDAO")
+    dao.find_by_id_or_uuid.return_value = Canvas(id=7, slug="sales")
+    dao.load.return_value = {
+        "nodes": {
+            "chart": {
+                "widgetType": "echarts",
+                "props": {
+                    "chartType": "bar",
+                    "dataBinding": {
+                        "datasetId": aggregate_table.id,
+                        "metrics": ["total_amount"],
+                        "dimensions": ["category"],
+                    },
+                },
+            }
+        }
+    }
+    query = mocker.spy(ChartDataCommand, "run")
+    render = mocker.patch(f"{MODULE}._render")
+    result, image = _preview_widget_impl(7, "chart", False)
+    assert result["error_type"] == "QueryError"
+    assert result["error"] == f"The widget's query failed: Error: {diagnostic}"
+    assert canvas_query_error(query.spy_exception).status == 400
+    assert canvas_query_error(query.spy_exception).message == f"Error: {diagnostic}"
+    assert image is None
+    render.assert_not_called()
+    assert [
+        (item.metric_name, item.expression) for item in aggregate_table.metrics
+    ] == before
+
+
+@pytest.mark.parametrize("case", ["subquery", "column", "metric", "custom-sql"])
+def test_widget_query_input_can_be_repaired_in_a_draft(
+    app: SupersetApp,
+    aggregate_table: SqlaTable,
+    aggregate_canvas: Canvas,
+    mocker: MockerFixture,
+    case: str,
+) -> None:
+    """Repair widget input through draft commands, without editing saved assets."""
+    from copy import deepcopy
+    from types import SimpleNamespace
+
+    from superset.canvas.definition.schemas import DraftOperationsRequest
+    from superset.commands.canvas.draft import (
+        ApplyCanvasDraftOperationsCommand,
+        CreateCanvasDraftCommand,
+    )
+    from superset.utils import json
+    from tests.unit_tests.canvas.draft_test import Store
+
+    g.user = User(id=701, username="canvas-editor", roles=[])
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "raise_for_editorship")
+    mocker.patch(
+        "superset.commands.canvas.draft.cache_manager",
+        new=SimpleNamespace(explore_form_data_cache=Store()),
+    )
+    good_binding: dict[str, Any] = {
+        "datasetId": aggregate_table.id,
+        "metrics": ["total_amount"],
+        "dimensions": ["category"],
+    }
+    bad_binding = deepcopy(good_binding)
+    if case == "subquery":
+        bad_binding["filters"] = [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "amount > (SELECT AVG(amount) FROM amounts)",
+            }
+        ]
+        diagnostic = "Custom SQL fields cannot contain sub-queries"
+    elif case == "column":
+        bad_binding["dimensions"] = ["missing_column"]
+        diagnostic = "Columns missing in dataset"
+    elif case == "metric":
+        bad_binding["metrics"] = ["missing_metric"]
+        diagnostic = "does not exist"
+    else:
+        bad_binding["metrics"] = [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "SUM(missing_column)",
+                "label": "broken_sql",
+            }
+        ]
+        diagnostic = "no such column"
+    published_definition = aggregate_canvas.definition
+    dataset_before = [
+        (metric.metric_name, metric.expression) for metric in aggregate_table.metrics
+    ]
+    draft = CreateCanvasDraftCommand(aggregate_canvas.id).run()
+    widget_id = json.loads(published_definition)["nodes"]["amounts"]["widgetId"]
+    saved_widget = draft.resolver().widgets({widget_id})[widget_id]
+    saved_props = deepcopy(saved_widget.props)
+
+    def change(binding: dict[str, Any], revision: int) -> None:
+        request = DraftOperationsRequest.model_validate(
+            {
+                "revision": revision,
+                "ops": [
+                    {
+                        "op": "set_props",
+                        "id": "amounts",
+                        "props": {**saved_props, "dataBinding": binding},
+                    }
+                ],
+            }
+        )
+        ApplyCanvasDraftOperationsCommand(
+            draft.token, request.revision, request.ops
+        ).run()
+
+    change(bad_binding, 0)
+    failed, _ = _preview_widget_impl(
+        aggregate_canvas.id, "amounts", False, draft_token=draft.token
+    )
+    assert failed["error_type"] == "QueryError"
+    assert diagnostic in failed["error"]
+    change(good_binding, 1)
+    repaired, _ = _preview_widget_impl(
+        aggregate_canvas.id, "amounts", False, draft_token=draft.token
+    )
+    assert "error" not in repaired
+    assert repaired["row_count"] == 7
+    assert sum(row["total_amount"] for row in repaired["sample_rows"]) == 390
+    assert aggregate_canvas.definition == published_definition
+    assert draft.resolver().base.widgets({widget_id})[widget_id].props == saved_props
+    assert [
+        (metric.metric_name, metric.expression) for metric in aggregate_table.metrics
+    ] == dataset_before

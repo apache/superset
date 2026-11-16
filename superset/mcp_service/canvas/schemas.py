@@ -210,6 +210,7 @@ class CanvasWidgetData(_Compact):
         default=None, description="True when ``rows`` stops before ``row_count``."
     )
     error: str | None = None
+    error_type: str | None = None
 
 
 class GetCanvasDataResponse(_Compact):

@@ -18,6 +18,7 @@
  */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject } from '@superset-ui/core';
 import {
   DataBinding,
@@ -62,23 +63,26 @@ export function useWidgetRows(
   // The binding is in the key so an edit refetches; the server reads it from
   // the stored definition.
   const key = JSON.stringify([
+    canvasId,
+    nodeId,
+    refreshKey,
     binding ?? null,
     selected,
     draftToken ?? null,
     versionUuid ?? null,
   ]);
-  const [state, setState] = useState<WidgetRows>({
-    rows: [],
-    loading: bound,
+  const [state, setState] = useState<{ key: string; value: WidgetRows }>({
+    key,
+    value: { rows: [], loading: bound },
   });
 
   useEffect(() => {
     if (!bound) {
-      setState({ rows: [], loading: false });
+      setState({ key, value: { rows: [], loading: false } });
       return undefined;
     }
     let cancelled = false;
-    setState(previous => ({ ...previous, loading: true }));
+    setState({ key, value: { rows: [], loading: true } });
     fetchPlacementData({
       canvasId,
       placementId: nodeId,
@@ -87,13 +91,34 @@ export function useWidgetRows(
       filters: selected,
     })
       .then(data => {
-        if (!cancelled) setState({ ...data, loading: false });
-      })
-      .catch(async e => {
-        if (cancelled) return;
-        const { error } = await getClientErrorObject(e);
         if (!cancelled) {
-          setState({ rows: [], loading: false, error: error ?? String(e) });
+          setState({ key, value: { ...data, loading: false } });
+        }
+      })
+      .catch(async (e: unknown) => {
+        if (cancelled) return;
+        let message = t("The widget's query failed");
+        try {
+          // SupersetClient rejects HTTP failures with a Response. Only parse
+          // that server diagnostic: the normalizer also echoes bare messages.
+          const response =
+            e instanceof Response
+              ? e
+              : e && typeof e === 'object' && 'response' in e
+                ? e.response
+                : undefined;
+          if (response instanceof Response && !response.bodyUsed) {
+            const { error } = await getClientErrorObject(response);
+            if (error) message = error;
+          }
+        } catch {
+          // A malformed transport error must not expose the raw exception.
+        }
+        if (!cancelled) {
+          setState({
+            key,
+            value: { rows: [], loading: false, error: message },
+          });
         }
       });
     return () => {
@@ -105,5 +130,11 @@ export function useWidgetRows(
 
   const datasource = bound ? `${binding?.datasetId}__table` : undefined;
   // Stable between renders, so callers can depend on it in effects.
-  return useMemo(() => ({ ...state, datasource }), [state, datasource]);
+  return useMemo(
+    () => ({
+      ...(state.key === key ? state.value : { rows: [], loading: bound }),
+      datasource,
+    }),
+    [state, key, bound, datasource],
+  );
 }

@@ -1066,16 +1066,18 @@ async def test_absolute_links_cover_the_canvas_and_draft_lifecycle(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("structured", [False, True])
 @pytest.mark.parametrize("proxy", [False, True])
-@pytest.mark.parametrize("renderer_error", [False, True])
+@pytest.mark.parametrize("renderer_outcome", ["success", "warning", "error"])
 async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
     structured: bool,
     proxy: bool,
-    renderer_error: bool,
+    renderer_outcome: str,
     app: SupersetApp,
     mocker: MockerFixture,
 ) -> None:
     """Images preserve canonical links and typed failures without counting warnings."""
     from mcp.types import ImageContent
+
+    from superset.mcp_service.canvas.tool.preview_widget import RENDERER_FAILURE_MESSAGE
 
     server = await _server(structured=structured, proxy=proxy)
     app.config["CANVAS_WIDGET_RENDERER_URL"] = "http://renderer"
@@ -1086,7 +1088,7 @@ async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
         "nodes": {
             "chart": {
                 "widgetType": "echarts",
-                "props": {},
+                "props": {"chartType": "bar"},
                 "layout": {"colSpan": 12, "rowSpan": 8},
             }
         },
@@ -1095,10 +1097,11 @@ async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
         "png": "aGk=",
         "width": 100,
         "height": 100,
-        "warnings": ["Check labels"],
     }
-    if renderer_error:
-        rendered["error"] = "Invalid ECharts option"
+    if renderer_outcome == "warning":
+        rendered["warnings"] = ["private renderer warning"]
+    elif renderer_outcome == "error":
+        rendered["error"] = "private renderer error"
     mocker.patch(f"{MODULE}.preview_widget._render", return_value=rendered)
     stats = mocker.patch("superset.mcp_service.middleware.stats_logger_manager")
     async with Client(server) as client:
@@ -1109,16 +1112,24 @@ async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
             proxy=proxy,
         )
     data = _data(result, structured=structured)
-    assert any(isinstance(block, ImageContent) for block in result.content)
+    assert any(isinstance(block, ImageContent) for block in result.content) == (
+        renderer_outcome == "success"
+    )
+    assert data["rendered"] == (renderer_outcome == "success")
+    if renderer_outcome != "success":
+        assert data["warnings"] == [RENDERER_FAILURE_MESSAGE]
+        assert "image" not in data
+        assert "option" not in data
+        assert "private renderer" not in str(data)
     assert data["url"] == f"{BASE_URL}/canvas/sales/"
-    assert data.get("error_type") == ("RendererError" if renderer_error else None)
-    outcome = "error" if renderer_error else "success"
+    assert data.get("error_type") == (
+        "RendererError" if renderer_outcome == "error" else None
+    )
+    outcome = "error" if renderer_outcome == "error" else "success"
     counters = [call.args[0] for call in stats.instance.incr.call_args_list]
     assert counters.count(f"mcp.tool.preview_widget.{outcome}") == 1
-    assert (
-        f"mcp.tool.preview_widget.{'success' if renderer_error else 'error'}"
-        not in counters
-    )
+    opposite = "success" if outcome == "error" else "error"
+    assert f"mcp.tool.preview_widget.{opposite}" not in counters
     assert not any(name.startswith("mcp.tool.call_tool.") for name in counters)
 
 
@@ -1209,7 +1220,9 @@ async def test_preview_dataset_denial_keeps_permission_type_on_the_wire(
         )
     data = _data(result, structured=structured)
     assert data["error_type"] == "DatasetNotAccessible"
-    assert data["error"] == f"The widget's query failed: {denied}"
+    assert data["error"] == (
+        "The widget's query failed: You don't have permission to access this resource."
+    )
     assert data["url"] == f"{BASE_URL}/canvas/sales/"
     assert not {"sample_rows", "row_count", "query", "image", "option"} & data.keys()
     assert not any(isinstance(block, ImageContent) for block in result.content)

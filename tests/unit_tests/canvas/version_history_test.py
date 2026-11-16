@@ -18,20 +18,26 @@
 
 from __future__ import annotations
 
+import sqlite3
 from collections.abc import Iterable, Iterator
+from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 from flask_appbuilder import Model
+from flask_appbuilder.security.sqla.models import User
 from pytest_mock import MockerFixture
 from sqlalchemy.orm import Session
 
 from superset.canvas.data import PlacementData
 from superset.canvas.definition.schemas import empty_definition
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.canvas import Canvas, CanvasOp
+from superset.models.core import Database
 from superset.utils import json
 from tests.unit_tests.canvas.fixtures import FakeResolver, ops
 
@@ -267,3 +273,142 @@ def test_placement_data_reads_a_version(
     assert run_binding.call_args.args[0] == BINDING
     bad = client.post(url, json={}, headers={"X-Canvas-Version": "nope"})
     assert bad.status_code == 400
+
+
+@pytest.mark.parametrize("entity_backed", [True, False], ids=["entity", "inline"])
+def test_version_queries_effective_source_with_current_rls_and_access(
+    client: Any,
+    full_api_access: None,
+    canvas: Canvas,
+    widget_types: FakeResolver,
+    mocker: MockerFixture,
+    tmp_path: Path,
+    entity_backed: bool,
+) -> None:
+    """Historical placements use current entity props or historical inline props.
+
+    The source-grant and RLS selectors stand in for the caller's permissions;
+    version resolution, source enforcement and SQL execution remain real.
+    """
+    warehouse = tmp_path / "version_rows.db"
+    with sqlite3.connect(warehouse) as connection:
+        for name in ("source_a", "source_b"):
+            connection.execute(f"CREATE TABLE {name} (region TEXT, marker TEXT)")
+            connection.executemany(
+                f"INSERT INTO {name} VALUES (?, ?)",  # noqa: S608 -- fixed fixture names
+                [("north", f"{name}-north"), ("south", f"{name}-south")],
+            )
+    database = Database(
+        database_name="version_sources", sqlalchemy_uri=f"sqlite:///{warehouse}"
+    )
+    tables = [
+        SqlaTable(
+            table_name=name,
+            database=database,
+            columns=[
+                TableColumn(column_name="region", type="TEXT", groupby=True),
+                TableColumn(column_name="marker", type="TEXT", groupby=True),
+            ],
+            cache_timeout=-1,
+        )
+        for name in ("source_a", "source_b")
+    ]
+    db.session.add_all(tables)
+    db.session.commit()
+    bindings = [
+        {"datasetId": table.id, "dimensions": ["region", "marker"]} for table in tables
+    ]
+    definition = empty_definition()
+    definition["root"]["children"] = ["sales"]
+    definition["nodes"] = {
+        "sales": (
+            {"widgetId": "chart-1"}
+            if entity_backed
+            else {
+                "widgetType": "chart",
+                "schemaVersion": 1,
+                "props": {"dataBinding": bindings[0]},
+            }
+        )
+    }
+    widget_types.props["chart-1"] = {"dataBinding": bindings[0]}
+    canvas.definition = json.dumps(definition)
+    canvas.revision += 1
+    db.session.commit()
+    historical = versions(client, canvas)[-1]["version_uuid"]
+    widget_types.props["chart-1"] = {"dataBinding": bindings[1]}
+    if not entity_backed:
+        definition["nodes"]["sales"]["props"]["dataBinding"] = bindings[1]
+    canvas.definition = json.dumps(definition)
+    canvas.revision += 1
+    db.session.commit()
+
+    granted = {table.perm for table in tables}
+    mocker.patch("superset.security_manager.is_admin", return_value=False)
+    mocker.patch(
+        "superset.security_manager.can_access_all_databases", return_value=False
+    )
+    mocker.patch(
+        "superset.canvas.filters.subject_relation_exists_for_current_user",
+        side_effect=lambda relation: relation.c.canvas_id == canvas.id,
+    )
+    # The relation predicate still needs an editor membership to select.
+    from superset.subjects.models import canvas_editors, Subject
+
+    editor = User(
+        username="narrow-editor",
+        first_name="Narrow",
+        last_name="Editor",
+        email="narrow-editor@example.test",
+        active=True,
+    )
+    db.session.add(editor)
+    db.session.flush()
+    subject = Subject(
+        type="USER", user_id=editor.id, label="Narrow editor", active=True
+    )
+    db.session.add(subject)
+    db.session.flush()
+    db.session.execute(
+        canvas_editors.insert().values(canvas_id=canvas.id, subject_id=subject.id)
+    )
+    db.session.commit()
+    mocker.patch("superset.security_manager.can_access_schema", return_value=False)
+    mocker.patch(
+        "superset.security_manager.can_access",
+        side_effect=lambda permission, resource: (
+            resource in granted if permission == "datasource_access" else True
+        ),
+    )
+    mocker.patch(
+        "superset.security_manager.is_editor",
+        side_effect=lambda entity: isinstance(entity, Canvas),
+    )
+    policies = mocker.patch(
+        "superset.security_manager.get_rls_filters",
+        return_value=[SimpleNamespace(id=1, clause="region = 'north'", group_key=None)],
+    )
+    url = f"{BASE}/{canvas.id}/placement/sales/data"
+    headers = {"X-Canvas-Version": historical}
+    expected_table = tables[1 if entity_backed else 0]
+    response = client.post(url, json={}, headers=headers)
+    assert response.status_code == 200
+    assert response.json["result"]["datasets"][0]["inline_data"] == [
+        {"region": "north", "marker": f"{expected_table.table_name}-north"}
+    ]
+    assert policies.called
+
+    # Changing the caller's policy affects the same historical version.
+    policies.return_value = [
+        SimpleNamespace(id=2, clause="region = 'south'", group_key=None)
+    ]
+    response = client.post(url, json={}, headers=headers)
+    assert response.status_code == 200
+    assert response.json["result"]["datasets"][0]["inline_data"] == [
+        {"region": "south", "marker": f"{expected_table.table_name}-south"}
+    ]
+
+    # Retaining the other source grant cannot authorize the effective binding.
+    granted.remove(expected_table.perm)
+    response = client.post(url, json={}, headers=headers)
+    assert response.status_code == 403
