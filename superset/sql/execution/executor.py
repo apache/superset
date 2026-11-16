@@ -569,6 +569,24 @@ def _records_to_dataframe(
     )
 
 
+def _execution_timeout(
+    seconds: int,
+) -> (
+    contextlib.AbstractContextManager[None] | utils.TimerTimeout | utils.SigalrmTimeout
+):
+    """Use the execution owner's timeout when it manages query cancellation."""
+    from superset.sql.execution.cancellation import cursor_scope, timeout_scope
+
+    # MCP owns its deadline; process-wide SIGALRM is not safe in worker threads.
+    if owner_timeout := timeout_scope.get():
+        return owner_timeout(seconds)
+    if cursor_scope.get() is not None:
+        return contextlib.nullcontext()
+    return utils.timeout(
+        seconds=seconds, error_message=f"Query exceeded the {seconds} seconds timeout."
+    )
+
+
 class SQLExecutor:
     """
     SQL query executor implementation.
@@ -662,26 +680,7 @@ class SQLExecutor:
 
             # 6. Execute with timeout
             timeout = opts.timeout_seconds or app.config.get("SQLLAB_TIMEOUT", 30)
-            timeout_msg = f"Query exceeded the {timeout} seconds timeout."
-
-            from superset.sql.execution.cancellation import cursor_scope, timeout_scope
-
-            # MCP's owner enforces a per-call deadline off the transport loop.
-            # A process-wide SIGALRM is neither thread-safe nor cancellable.
-            timeout_context: (
-                contextlib.AbstractContextManager[None]
-                | utils.TimerTimeout
-                | utils.SigalrmTimeout
-            )
-            if owner_timeout := timeout_scope.get():
-                timeout_context = owner_timeout(timeout)
-            elif cursor_scope.get() is not None:
-                timeout_context = contextlib.nullcontext()
-            else:
-                timeout_context = utils.timeout(
-                    seconds=timeout, error_message=timeout_msg
-                )
-            with timeout_context:
+            with _execution_timeout(timeout):
                 statement_results = self._execute_statements(
                     original_script,
                     transformed_script,
