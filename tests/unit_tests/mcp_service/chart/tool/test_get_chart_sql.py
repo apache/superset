@@ -27,6 +27,8 @@ import pytest
 from flask_babel import lazy_gettext
 from flask_babel.speaklater import LazyString
 
+from tests.unit_tests.mcp_service.conftest import regular_user
+
 if TYPE_CHECKING:
     from fastmcp import FastMCP
     from fastmcp.client.client import CallToolResult
@@ -1466,7 +1468,7 @@ class TestGetChartSqlTool:
     def mock_auth(self):
         """Mock authentication for all tests."""
         with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-            mock_user = Mock()
+            mock_user = regular_user()
             mock_user.id = 1
             mock_user.username = "admin"
             mock_get_user.return_value = mock_user

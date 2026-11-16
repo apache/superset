@@ -42,11 +42,27 @@
       "compact_description_chars": 256,
       "description_chars": 1145,
       "entry_bytes": {
-        "structured": 8529,
+        "structured": 8684,
         "text_only": 2602
       },
       "input_schema_bytes": 1114,
-      "output_schema_bytes": 5911
+      "output_schema_bytes": 6066
+    },
+    "create_dataset_column": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 264,
+      "description_chars": 920,
+      "entry_bytes": {
+        "structured": 4973,
+        "text_only": 2904
+      },
+      "input_schema_bytes": 1652,
+      "output_schema_bytes": 2053
     },
     "create_dataset_metric": {
       "annotations": {
@@ -136,13 +152,29 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 263,
-      "description_chars": 903,
+      "description_chars": 972,
       "entry_bytes": {
-        "structured": 3069,
-        "text_only": 1534
+        "structured": 3186,
+        "text_only": 1604
       },
       "input_schema_bytes": 351,
-      "output_schema_bytes": 1519
+      "output_schema_bytes": 1566
+    },
+    "delete_dataset_column": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 246,
+      "description_chars": 489,
+      "entry_bytes": {
+        "structured": 3752,
+        "text_only": 1283
+      },
+      "input_schema_bytes": 491,
+      "output_schema_bytes": 2453
     },
     "delete_dataset_metric": {
       "annotations": {
@@ -506,11 +538,11 @@
       "compact_description_chars": 222,
       "description_chars": 2045,
       "entry_bytes": {
-        "structured": 13879,
-        "text_only": 4683
+        "structured": 14101,
+        "text_only": 4750
       },
-      "input_schema_bytes": 2326,
-      "output_schema_bytes": 9180
+      "input_schema_bytes": 2393,
+      "output_schema_bytes": 9335
     },
     "get_instance_info": {
       "annotations": {
@@ -810,11 +842,11 @@
       "compact_description_chars": 230,
       "description_chars": 2331,
       "entry_bytes": {
-        "structured": 15092,
+        "structured": 15247,
         "text_only": 6798
       },
       "input_schema_bytes": 4146,
-      "output_schema_bytes": 8278
+      "output_schema_bytes": 8433
     },
     "list_layer_annotations": {
       "annotations": {
@@ -1210,10 +1242,10 @@
       "compact_description_chars": 45,
       "description_chars": 2416,
       "entry_bytes": {
-        "structured": 27063,
-        "text_only": 6689
+        "structured": 27225,
+        "text_only": 6851
       },
-      "input_schema_bytes": 3913,
+      "input_schema_bytes": 4075,
       "output_schema_bytes": 20358
     },
     "update_chart_preview": {
@@ -1264,6 +1296,22 @@
       "input_schema_bytes": 1534,
       "output_schema_bytes": 1390
     },
+    "update_dataset_column": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 294,
+      "description_chars": 1270,
+      "entry_bytes": {
+        "structured": 5917,
+        "text_only": 3660
+      },
+      "input_schema_bytes": 2073,
+      "output_schema_bytes": 2241
+    },
     "update_dataset_metric": {
       "annotations": {
         "destructiveHint": true,
@@ -1283,16 +1331,16 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 540013,
-      "text_only": 220447
+      "structured": 555469,
+      "text_only": 228596
     },
     "compact_catalog_bytes": {
-      "structured": 484466,
-      "text_only": 164900
+      "structured": 497902,
+      "text_only": 171029
     },
     "largest_entry": {
       "structured": {
-        "bytes": 27063,
+        "bytes": 27225,
         "name": "update_chart"
       },
       "text_only": {
@@ -1300,6 +1348,6 @@
         "name": "manage_native_filters"
       }
     },
-    "tool_count": 80
+    "tool_count": 83
   }
 }

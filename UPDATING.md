@@ -88,8 +88,9 @@ assists people when migrating to a new version.
   DATA-cache entry (or, under `GLOBAL_ASYNC_QUERIES`, a deduplicated chart task) with a logged-in user's
   per-user result; existing cached entries for such charts are effectively invalidated
   for guests. A malformed or incomplete `embedded_credentials` is rejected by
-  `POST`/`PUT /api/v1/database/` and by `validate_parameters` rather than stored and
-  ignored while both embedding flags are enabled. Import refuses a credential on a
+  `POST`/`PUT /api/v1/database/`, by `validate_parameters`, and by database and asset
+  import (HTTP 400, naming the missing fields) rather than stored and ignored while
+  both embedding flags are enabled. Import also refuses a credential on a
   connection whose file turns **Impersonate logged in user** off and, with either
   flag off, a new or changed credential, as the API does. Validation
   uses the engine's credential rules and edited credentials rather than stale stored

@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint no-param-reassign: ["error", { "props": false }] */
+import { nanoid } from 'nanoid';
 import {
   ErrorTypeEnum,
   FeatureFlag,
@@ -137,6 +138,9 @@ export interface ChartUpdateStartedAction {
   queryController: AbortController;
   latestQueryFormData: QueryFormData | LatestQueryFormData;
   key: string | number;
+  // Client-generated id sent with the chart-data request, so the query can be
+  // cancelled server-side (not just aborted client-side) while it is running.
+  latestQueryId?: string;
 }
 
 export interface ChartUpdateSucceededAction {
@@ -304,6 +308,9 @@ export interface GetChartDataRequestParams {
   queryForceNonces?: string[];
   requestParams?: RequestParams;
   ownState?: JsonObject;
+  // Client-generated id for this query, echoed into the chart-data payload as
+  // `client_id` so the backend can register the query and later cancel it.
+  clientId?: string;
   // Opt into asynchronous execution. Only set by callers that handle an HTTP 202
   // task response (via requestChartDataResolved / handleChartDataResponse);
   // direct consumers that read `response.json.result` must leave this false so
@@ -343,12 +350,14 @@ export function chartUpdateStarted(
   queryController: AbortController,
   latestQueryFormData: QueryFormData | LatestQueryFormData,
   key: string | number,
+  latestQueryId?: string,
 ): ChartUpdateStartedAction {
   return {
     type: CHART_UPDATE_STARTED,
     queryController,
     latestQueryFormData,
     key,
+    latestQueryId,
   };
 }
 
@@ -447,20 +456,24 @@ const v1ChartDataRequest = async (
   parseMethod: string | undefined,
   asyncMode: boolean,
   queryForceNonces?: string[],
+  clientId?: string,
 ): Promise<ChartDataRequestResponse> => {
-  const payload =
-    (!queryForceNonces && resultFormat === 'json' && resultType === 'full'
+  const prebuiltPayload =
+    !queryForceNonces && resultFormat === 'json' && resultType === 'full'
       ? takePrebuiltQueryContext(formData, ownState, force)
-      : undefined) ??
-    (await buildV1ChartDataPayload({
-      formData: formData as QueryFormData,
-      resultType,
-      resultFormat,
-      force,
-      queryForceNonces,
-      setDataMask,
-      ownState,
-    }));
+      : undefined;
+  const payload = prebuiltPayload
+    ? { ...prebuiltPayload, ...(clientId ? { client_id: clientId } : {}) }
+    : await buildV1ChartDataPayload({
+        formData: formData as QueryFormData,
+        resultType,
+        resultFormat,
+        force,
+        queryForceNonces,
+        setDataMask,
+        ownState,
+        clientId,
+      });
 
   // The dashboard id is added to query params for tracking purposes
   const { slice_id: sliceId } = formData;
@@ -511,6 +524,7 @@ export async function getChartDataRequest({
   queryForceNonces,
   requestParams = {},
   ownState = {},
+  clientId,
   enableAsyncMode = false,
 }: GetChartDataRequestParams): Promise<ChartDataRequestResponse> {
   // Keep the async-mode inputs out of the request options: they resolve the
@@ -549,6 +563,7 @@ export async function getChartDataRequest({
     parseMethod,
     asyncMode,
     queryForceNonces,
+    clientId,
   );
 }
 
@@ -857,7 +872,20 @@ export function exploreJSON(
       }
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
-    dispatch(chartUpdateStarted(controller, formData, key as string | number));
+    // Identifies this run to the backend so Stop can cancel the database query
+    // itself, not just abort the in-flight HTTP request. Matches SQL Lab's
+    // client id shape (see `postStopQuery`) and the `query.client_id` column.
+    // Only Explore offers Stop; dashboard charts carry a dashboard id, so they
+    // skip the id and the backend's per-query cancel bookkeeping.
+    const clientId = dashboardId ? undefined : nanoid(11);
+    dispatch(
+      chartUpdateStarted(
+        controller,
+        formData,
+        key as string | number,
+        clientId,
+      ),
+    );
     /**
      * Abort in-flight requests after the new controller has been stored in
      * state. Delaying ensures we do not mutate the Redux state between
@@ -876,6 +904,7 @@ export function exploreJSON(
         force,
         requestParams,
         ownState,
+        clientId,
       },
       controller.signal,
     )
