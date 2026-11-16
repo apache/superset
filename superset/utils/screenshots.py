@@ -432,11 +432,16 @@ class BaseScreenshot:
         url: str,
         digest: str | None,
         require_complete_capture: bool = False,
+        trim_to_content: bool = False,
     ) -> None:
         self.digest = digest
         self.url = url
         self.screenshot = None
         self.require_complete_capture = require_complete_capture
+        # Thumbnails are resized against the window aspect ratio, which pads a
+        # shorter image with black, and are cached under a key that embeds the
+        # window size, so only reports opt in to ending at the content.
+        self.trim_to_content = trim_to_content
 
     def driver(
         self,
@@ -448,6 +453,7 @@ class BaseScreenshot:
             "",
             window_size,
             require_complete_capture=self.require_complete_capture,
+            trim_to_content=self.trim_to_content,
         )
 
     def get_screenshot(
@@ -868,6 +874,7 @@ class DashboardScreenshot(BaseScreenshot):
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
         require_complete_capture: bool = False,
+        trim_to_content: bool = False,
     ) -> None:
         # per the element above, dashboard screenshots
         # should always capture in standalone
@@ -879,6 +886,7 @@ class DashboardScreenshot(BaseScreenshot):
             url,
             digest,
             require_complete_capture=require_complete_capture,
+            trim_to_content=trim_to_content,
         )
         self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
         self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE
