@@ -85,8 +85,18 @@ def _dashboard_page(
     extra_css: str = "",
     before_app: str = "",
     after_app: str = "",
+    wrap_in_grid: bool = True,
 ) -> str:
-    """The report-mode shell: ``body`` paints one colour, the layout boxes another."""
+    """The report-mode shell: ``body`` paints one colour, the layout boxes another.
+
+    ``content`` sits in one ``.dashboard-grid`` unless ``wrap_in_grid`` is false:
+    top-level tabs render one grid per pane, so their content brings its own.
+    """
+    grid = (
+        f'<div class="dashboard-grid" style="position:relative">{content}</div>'
+        if wrap_in_grid
+        else content
+    )
     return (
         "<!doctype html><html><head><style>"
         "html{height:100%} "
@@ -105,8 +115,7 @@ def _dashboard_page(
         f"{extra_css}"
         '</style></head><body class="standalone">'
         f'{before_app}<div id="app"><div class="ant-layout">'
-        '<div class="dashboard-content"><div class="grid-container">'
-        f'<div class="dashboard-grid" style="position:relative">{content}</div>'
+        f'<div class="dashboard-content"><div class="grid-container">{grid}'
         f"</div></div></div></div>{after_app}</body></html>"
     )
 
@@ -142,8 +151,8 @@ class _BrowserManager:
         return self._browser
 
 
-def _write_page(tmp_path: Path, html: str) -> str:
-    page = tmp_path / "dashboard.html"
+def _write_page(tmp_path: Path, html: str, name: str = "dashboard.html") -> str:
+    page = tmp_path / name
     page.write_text(html, encoding="utf-8")
     return page.as_uri()
 
@@ -400,26 +409,43 @@ def test_capture_keeps_a_footer_that_holds_a_dashboard_grid_node(
     assert _band(trimmed, RED) == (1800, 2000)
 
 
-_UNRENDERED_GRIDS = {
+_ABSOLUTE = "position:absolute;left:0;top:0;width:100px;height:100px"
+_STRAY_GRIDS = {
     "display_none": (
         '<div style="display:none"><div class="dashboard-grid"></div></div>'
     ),
     "visibility_hidden": (
         '<div style="visibility:hidden"><div class="dashboard-grid"></div></div>'
     ),
+    "opacity_zero": (
+        f'<div style="{_ABSOLUTE};opacity:0">'
+        '<div class="dashboard-grid" style="width:100px;height:100px"></div></div>'
+    ),
+    "content_visibility_hidden": (
+        f'<div class="dashboard-grid" style="{_ABSOLUTE};content-visibility:hidden">'
+        "</div>"
+    ),
+    "off_the_page": (
+        '<div class="dashboard-grid" style="position:absolute;left:-5000px;top:0;'
+        'width:100px;height:100px"></div>'
+    ),
+    "zero_size": '<div class="dashboard-grid" style="width:0;height:0"></div>',
 }
 
 
 @PATHS
-@pytest.mark.parametrize("hidden_grid", list(_UNRENDERED_GRIDS))
-def test_capture_keeps_a_footer_when_the_first_grid_is_not_rendered(
-    app: Any, chromium: Any, tmp_path: Path, tiled: bool, hidden_grid: str
+@pytest.mark.parametrize("stray_grid", list(_STRAY_GRIDS))
+def test_capture_keeps_a_footer_when_a_stray_grid_does_not_paint(
+    app: Any, chromium: Any, tmp_path: Path, tiled: bool, stray_grid: str
 ) -> None:
-    """A hidden pane (a tab that is not selected) can come first in the document.
+    """A grid that paints nothing can come first in the document.
 
-    Nominating the page colour from it would walk up to ``body`` and pick the
-    body colour instead of the colour of the dashboard shell, and the footer
-    painted in the body colour would be trimmed away.
+    A hidden pane (a tab that is not selected) is one; so is a grid that is
+    transparent, off the page, empty or skipped by the browser, and no list of
+    such cases is complete. Walking up from it reaches ``body`` instead of the
+    dashboard shell, so it nominates the body colour, and a footer painted in the
+    body colour would be trimmed away if that nomination were trusted. The grids
+    disagree on the colour, so the trim declines.
     """
     footer = (
         f'<div style="{_FIXED};bottom:0;height:200px;background:{_rgb(WHITE)}"></div>'
@@ -428,7 +454,7 @@ def test_capture_keeps_a_footer_when_the_first_grid_is_not_rendered(
         tmp_path,
         _dashboard_page(
             _chart_row(1, 400, BLUE),
-            before_app=_UNRENDERED_GRIDS[hidden_grid],
+            before_app=_STRAY_GRIDS[stray_grid],
             after_app=footer,
         ),
     )
@@ -438,6 +464,79 @@ def test_capture_keeps_a_footer_when_the_first_grid_is_not_rendered(
     trimmed = _capture(app, chromium, url, trim=True, tiled=tiled)
     assert _size(trimmed) == (1600, 2000)
     assert _band(trimmed, WHITE) == (1800, 2000)
+
+
+@PATHS
+def test_tabbed_dashboard_capture_ends_at_the_content(
+    app: Any, chromium: Any, tmp_path: Path, tiled: bool
+) -> None:
+    """Every pane has its own grid inside the same shell, so the grids agree."""
+    panes = (
+        '<div style="display:none"><div class="dashboard-grid"></div></div>'
+        '<div><div class="dashboard-grid" style="position:relative">'
+        f"{_chart_row(1, 400, BLUE)}</div></div>"
+        '<div style="display:none"><div class="dashboard-grid"></div></div>'
+    )
+    url = _write_page(tmp_path, _dashboard_page(panes, wrap_in_grid=False))
+    base = _capture(app, chromium, url, trim=False, tiled=tiled)
+    trimmed = _capture(app, chromium, url, trim=True, tiled=tiled)
+
+    assert _size(base) == (1600, 2000)
+    assert _size(trimmed) == (1600, 432)
+    assert _band(base, BLUE) == (33, 399)
+    assert _band(trimmed, BLUE) == (33, 399)
+
+
+@PATHS
+def test_capture_ends_at_the_content_when_the_grid_sits_in_an_opaque_panel(
+    app: Any, chromium: Any, tmp_path: Path, tiled: bool
+) -> None:
+    """A box that does not span the page never nominates its own colour.
+
+    The panel ends with the content and its colour is covered by the chart, so the
+    rows below it are the shell's.
+    """
+    panel = f".grid-container{{align-self:flex-start;background:{_rgb(RED)}}}"
+    url = _write_page(
+        tmp_path, _dashboard_page(_chart_row(1, 400, BLUE), extra_css=panel)
+    )
+    base = _capture(app, chromium, url, trim=False, tiled=tiled)
+    trimmed = _capture(app, chromium, url, trim=True, tiled=tiled)
+
+    assert _size(base) == (1600, 2000)
+    assert _size(trimmed) == (1600, 432)
+    assert _band(base, RED) is None
+    assert _band(base, BLUE) == (33, 399)
+    assert _band(trimmed, BLUE) == (33, 399)
+
+
+@PATHS
+def test_capture_is_left_alone_when_grids_sit_in_different_shell_colours(
+    app: Any, chromium: Any, tmp_path: Path, tiled: bool
+) -> None:
+    """The window is kept when the grids disagree about the page colour.
+
+    The second grid sits behind the app in a box that covers the page in another
+    colour. It paints nothing, so the capture is the same as without it, and the
+    first grid alone would end the capture at the content.
+    """
+    other_shell = (
+        '<div style="position:absolute;left:0;top:0;width:100%;height:100%;'
+        f'z-index:-1;background:{_rgb((33, 41, 54))}">'
+        '<div class="dashboard-grid"></div></div>'
+    )
+    content = _chart_row(1, 400, BLUE)
+    alone = _write_page(tmp_path, _dashboard_page(content), "alone.html")
+    assert _size(_capture(app, chromium, alone, trim=True, tiled=tiled)) == (1600, 432)
+
+    url = _write_page(tmp_path, _dashboard_page(content, after_app=other_shell))
+    base = _capture(app, chromium, url, trim=False, tiled=tiled)
+    assert _size(base) == (1600, 2000)
+    assert _band(base, BLUE) == (33, 399)
+
+    trimmed = _capture(app, chromium, url, trim=True, tiled=tiled)
+    assert _size(trimmed) == (1600, 2000)
+    assert _band(trimmed, BLUE) == (33, 399)
 
 
 def test_capture_without_the_opt_in_keeps_the_window(

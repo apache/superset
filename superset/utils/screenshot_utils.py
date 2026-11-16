@@ -820,22 +820,23 @@ async (maxWaitMs) => {{
 
 
 # Nominates the colour of the page behind the dashboard, for trimming a capture.
-# It is the opaque background of the innermost box, among the first rendered
-# ``.dashboard-grid`` and its ancestors, whose border box covers the whole page
-# (``html`` always counts; ``body`` counts whenever ``html`` paints nothing, per
-# CSS canvas propagation). The body colour alone is not enough: the app shell
-# paints ``body`` one colour and covers it with layout boxes of another. The
-# result is only a nomination; the image must confirm it row by row. The grid is
-# the first one that is rendered: a tab that is not selected keeps its grid in
-# the document, hidden and possibly first, and walking up from it would nominate
-# the body colour instead of the colour of the dashboard shell.
+# Every ``.dashboard-grid`` in the document walks up through itself and its
+# ancestors to the innermost box with an opaque background whose border box
+# covers the whole page (``html`` always counts; ``body`` counts whenever
+# ``html`` paints nothing, per CSS canvas propagation). The body colour alone is
+# not enough: the app shell paints ``body`` one colour and covers it with layout
+# boxes of another. The colour is returned only if every grid nominates exactly
+# the same one, otherwise ``null``. No grid is trusted to be the real one: a tab
+# that is not selected, or a grid that paints nothing for any other reason
+# (transparent, off the page, empty, skipped), would decide the colour, and the
+# ways not to paint cannot be listed. The grids of a tabbed dashboard sit in the
+# same shell and agree; one outside it nominates another colour, or none, and
+# the trim declines. The result is only a nomination; the image must confirm it
+# row by row.
 PAGE_BACKGROUND_COLOR_JS = r"""
 () => {
-    const isRendered = (el) => el.getClientRects().length > 0
-        && getComputedStyle(el).visibility !== 'hidden';
-    const grid = Array.from(document.querySelectorAll('.dashboard-grid'))
-        .find(isRendered);
-    if (!grid) { return null; }
+    const grids = Array.from(document.querySelectorAll('.dashboard-grid'));
+    if (grids.length === 0) { return null; }
     const root = document.documentElement;
     const pageWidth = root.scrollWidth;
     const pageHeight = root.scrollHeight;
@@ -848,20 +849,27 @@ PAGE_BACKGROUND_COLOR_JS = r"""
     const rootStyle = getComputedStyle(root);
     const rootPaints = rootStyle.backgroundImage !== 'none'
         || !/^rgba\(\d+, \d+, \d+, 0\)$/.test(rootStyle.backgroundColor);
-    for (let el = grid; el; el = el.parentElement) {
-        const isCanvas = el === root || (el === document.body && !rootPaints);
-        if (!isCanvas && !coversPage(el)) { continue; }
-        const style = getComputedStyle(el);
-        if (style.backgroundImage !== 'none') { return null; }
-        const match = /^rgba?\((\d+), (\d+), (\d+)(?:, ([0-9.]+))?\)$/
-            .exec(style.backgroundColor);
-        if (!match) { return null; }
-        const alpha = match[4] === undefined ? 1 : Number(match[4]);
-        if (alpha === 0) { continue; }
-        if (alpha !== 1) { return null; }
-        return [Number(match[1]), Number(match[2]), Number(match[3])];
-    }
-    return null;
+    const nominate = (grid) => {
+        for (let el = grid; el; el = el.parentElement) {
+            const isCanvas = el === root || (el === document.body && !rootPaints);
+            if (!isCanvas && !coversPage(el)) { continue; }
+            const style = getComputedStyle(el);
+            if (style.backgroundImage !== 'none') { return null; }
+            const match = /^rgba?\((\d+), (\d+), (\d+)(?:, ([0-9.]+))?\)$/
+                .exec(style.backgroundColor);
+            if (!match) { return null; }
+            const alpha = match[4] === undefined ? 1 : Number(match[4]);
+            if (alpha === 0) { continue; }
+            if (alpha !== 1) { return null; }
+            return [Number(match[1]), Number(match[2]), Number(match[3])];
+        }
+        return null;
+    };
+    const colors = grids.map(nominate);
+    const [first] = colors;
+    const agrees = (color) => color !== null
+        && color.every((channel, index) => channel === first[index]);
+    return first !== null && colors.every(agrees) ? first : null;
 }
 """
 
