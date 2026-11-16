@@ -2212,7 +2212,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if isinstance(self._parsed, exp.Command):
             command_name = self._parsed.name.upper()
 
-            if command_name in self._MUTATING_COMMAND_NAMES:
+            # Newer sqlglot releases fold multi-word heads into ``name``
+            # (e.g. ``ADD SQLBLACKLIST``), so match on the leading keyword.
+            if command_name.partition(" ")[0] in self._MUTATING_COMMAND_NAMES:
                 return True
 
             if (
@@ -3875,6 +3877,18 @@ def extract_tables_from_statement(
     :param cte_forward_references: The engine lets a ``WITH RECURSIVE`` CTE read
         a CTE defined later in the same clause (see ``is_cte``)
     """
+    if dialect == Dialects.SNOWFLAKE:
+        # Permissions use physical catalog names. Fold only unquoted SQL inputs,
+        # before extracting strings and losing the quoting information. Fold the
+        # statement itself, not a copy: RLS rules are keyed by these tables and
+        # matched against this AST, so both must spell the catalog the same way.
+        # Snowflake resolves an unquoted name to uppercase, so the query is
+        # equivalent.
+        for source in statement.find_all(exp.Table):
+            catalog = source.args.get("catalog")
+            if isinstance(catalog, exp.Identifier) and not catalog.quoted:
+                catalog.set("this", catalog.name.upper())
+
     if isinstance(statement, exp.Show):
         return _find_show_statement_tables(statement)
 
