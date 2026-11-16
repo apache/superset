@@ -28,7 +28,8 @@ from typing import Any
 from unittest import mock
 
 import pytest
-from sqlalchemy import create_engine, event
+from sqlalchemy import Column, create_engine, event
+from sqlalchemy.dialects import mysql, postgresql, sqlite
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
@@ -133,10 +134,16 @@ def test_tag_batch_insert_does_not_cast_to_native_enum(
     assert not any("tagtype" in statement.lower() for statement in statements)
 
 
-def test_tag_enum_columns_are_not_native_enums() -> None:
+@pytest.mark.parametrize(
+    "column",
+    [TaggedObject.__table__.c.object_type, Tag.__table__.c.type],
+    ids=["tagged_object.object_type", "tag.type"],
+)
+def test_tag_enum_columns_per_dialect(column: Column[Any]) -> None:
     """
-    The columns are VARCHAR in the metadata database, so they must not be
-    declared as native enums, whichever way SQLAlchemy renders the casts.
+    Only Postgres changes: there the columns are VARCHAR, so they must not be
+    native enums. Other dialects keep the declaration they always had.
     """
-    assert TaggedObject.__table__.c.object_type.type.native_enum is False
-    assert Tag.__table__.c.type.type.native_enum is False
+    assert column.type.dialect_impl(postgresql.dialect()).native_enum is False
+    assert isinstance(column.type.dialect_impl(mysql.dialect()), mysql.ENUM)
+    assert sqlite.dialect().type_compiler.process(column.type).startswith("VARCHAR(")
