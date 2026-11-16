@@ -33,6 +33,7 @@ from superset.daos.dashboard import (
     _install_membership_baseline,
     _layout_chart_id,
     DashboardDAO,
+    MISSING_CHART_PLACEHOLDER,
     reconcile_position_json,
 )
 from superset.dashboards.filter_scope import derive_metadata_scopes
@@ -271,12 +272,35 @@ def test_set_dash_metadata_keeps_only_stored_archived_members(
     assert member_ids == {live.id, stored.id}
 
 
+def _stored_chart_ids(dashboard_id: int) -> set[int]:
+    return set(
+        db.session.scalars(
+            select(dashboard_slices.c.slice_id).where(
+                dashboard_slices.c.dashboard_id == dashboard_id
+            )
+        )
+    )
+
+
+def _chart_layout(*chart_ids: int) -> dict[str, Any]:
+    return {
+        "positions": {
+            f"CHART-{chart_id}": {
+                "type": "CHART",
+                "id": f"CHART-{chart_id}",
+                "meta": {"chartId": chart_id, "width": 4, "height": 50},
+            }
+            for chart_id in chart_ids
+        }
+    }
+
+
 @with_feature_flags(SOFT_DELETE=True)
 def test_set_dash_metadata_checks_new_charts_beside_archived_member(
     session: Session,
 ) -> None:
     """With an archived member outside the layout, a new unreadable chart is
-    refused against the stored rows, and a new readable chart is linked
+    left unlinked as a placeholder, and a new readable chart is linked
     alongside the kept archived member, which is never access-checked."""
     Dashboard.metadata.create_all(session.get_bind())
     live: Slice = Slice(slice_name="mixed_live", datasource_type="table")
@@ -298,40 +322,20 @@ def test_set_dash_metadata_checks_new_charts_beside_archived_member(
         checked.append(chart.id)
         return chart.id != unreadable.id
 
-    def layout(*charts: Slice) -> dict[str, Any]:
-        return {
-            "positions": {
-                f"CHART-{chart.id}": {"type": "CHART", "meta": {"chartId": chart.id}}
-                for chart in charts
-            }
-        }
-
-    def stored_ids() -> set[int]:
-        return set(
-            db.session.scalars(
-                select(dashboard_slices.c.slice_id).where(
-                    dashboard_slices.c.dashboard_id == dashboard.id
-                )
-            )
-        )
-
     with (
         patch.object(security_manager, "is_admin", return_value=False),
         patch.object(security_manager, "can_access_chart", can_access_chart),
     ):
-        with pytest.raises(DashboardLayoutInvalidError):
-            DashboardDAO.set_dash_metadata(
-                dashboard, layout(live, readable, unreadable)
-            )
-        db.session.rollback()
-        assert stored_ids() == {live.id, archived.id}
-
-        checked.clear()
-        DashboardDAO.set_dash_metadata(dashboard, layout(live, readable))
+        DashboardDAO.set_dash_metadata(
+            dashboard, _chart_layout(live.id, readable.id, unreadable.id)
+        )
         db.session.flush()
 
-    assert stored_ids() == {live.id, archived.id, readable.id}
-    assert checked == [readable.id]
+    assert _stored_chart_ids(dashboard.id) == {live.id, archived.id, readable.id}
+    assert sorted(checked) == sorted([readable.id, unreadable.id])
+    positions: dict[str, Any] = json.loads(dashboard.position_json)
+    assert positions[f"CHART-{unreadable.id}"]["type"] == "MARKDOWN"
+    assert positions[f"CHART-{readable.id}"]["meta"]["chartId"] == readable.id
 
 
 @with_feature_flags(SOFT_DELETE=True)
@@ -340,7 +344,7 @@ def test_set_dash_metadata_checks_archived_chart_that_is_not_a_member(
 ) -> None:
     """Being archived does not exempt a chart from the access check: an
     archived chart the layout adds, and that is not already a member, is
-    refused when the caller cannot read it."""
+    left unlinked as a placeholder when the caller cannot read it."""
     Dashboard.metadata.create_all(session.get_bind())
     live: Slice = Slice(slice_name="nonmember_live", datasource_type="table")
     foreign: Slice = Slice(
@@ -357,32 +361,125 @@ def test_set_dash_metadata_checks_archived_chart_that_is_not_a_member(
         checked.append(chart.id)
         return chart.id != foreign.id
 
-    positions: dict[str, dict[str, Any]] = {
-        f"CHART-{chart.id}": {"type": "CHART", "meta": {"chartId": chart.id}}
-        for chart in (live, foreign)
-    }
-
     with (
         patch.object(security_manager, "is_admin", return_value=False),
         patch.object(security_manager, "can_access_chart", can_access_chart),
-        pytest.raises(DashboardLayoutInvalidError) as excinfo,
     ):
-        DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
-    db.session.rollback()
+        DashboardDAO.set_dash_metadata(dashboard, _chart_layout(live.id, foreign.id))
+        db.session.flush()
 
-    assert excinfo.value.normalized_messages() == {
-        "json_metadata": [
-            f"The layout references charts that are not available: {foreign.id}"
-        ]
-    }
     assert checked == [foreign.id]
-    assert set(
-        db.session.scalars(
-            select(dashboard_slices.c.slice_id).where(
-                dashboard_slices.c.dashboard_id == dashboard.id
-            )
+    assert _stored_chart_ids(dashboard.id) == {live.id}
+    assert json.loads(dashboard.position_json)[f"CHART-{foreign.id}"]["meta"] == {
+        "width": 4,
+        "height": 50,
+        "code": MISSING_CHART_PLACEHOLDER,
+    }
+
+
+def test_set_dash_metadata_unreadable_chart_saves_like_a_missing_one(
+    session: Session,
+) -> None:
+    """A layout tile for a chart the caller cannot read saves exactly as a
+    tile for a chart that does not exist, so the saved dashboard does not
+    reveal that the chart exists."""
+    Dashboard.metadata.create_all(session.get_bind())
+    live: Slice = Slice(slice_name="oracle_live", datasource_type="table")
+    unreadable: Slice = Slice(slice_name="oracle_unreadable", datasource_type="table")
+    db.session.add_all([live, unreadable])
+    db.session.commit()
+    missing_id: int = unreadable.id + 1000
+
+    def save(stale_id: int) -> Dashboard:
+        dashboard: Dashboard = Dashboard(
+            dashboard_title="oracle_dash", slug=None, slices=[live]
         )
-    ) == {live.id}
+        db.session.add(dashboard)
+        db.session.flush()
+        layout: dict[str, Any] = _chart_layout(live.id)
+        layout["positions"]["CHART-stale"] = {
+            "type": "CHART",
+            "id": "CHART-stale",
+            "meta": {"chartId": stale_id, "width": 6, "height": 40},
+        }
+        layout["default_filters"] = json.dumps({str(stale_id): {}})
+        DashboardDAO.set_dash_metadata(dashboard, layout)
+        db.session.flush()
+        return dashboard
+
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(
+            security_manager,
+            "can_access_chart",
+            lambda chart: chart.id != unreadable.id,
+        ),
+    ):
+        refused: Dashboard = save(unreadable.id)
+        absent: Dashboard = save(missing_id)
+
+    assert _stored_chart_ids(refused.id) == _stored_chart_ids(absent.id) == {live.id}
+    refused_positions: dict[str, Any] = json.loads(refused.position_json)
+    absent_positions: dict[str, Any] = json.loads(absent.position_json)
+    assert refused_positions == absent_positions
+    assert refused_positions["CHART-stale"]["type"] == "MARKDOWN"
+    assert json.loads(refused.json_metadata)["default_filters"] == json.dumps(
+        {str(unreadable.id): {}}
+    )
+    assert json.loads(absent.json_metadata)["default_filters"] == json.dumps(
+        {str(missing_id): {}}
+    )
+
+
+@pytest.mark.parametrize("readable", [False, True])
+def test_copy_dashboard_duplicate_slices_with_a_non_member_layout_chart(
+    session: Session, readable: bool
+) -> None:
+    """Copying with charts never clones a chart outside the source's
+    membership. A tile for one the caller cannot read becomes the missing-chart
+    placeholder, as a nonexistent chart's does; a readable one still fails the
+    copy, since naming it reveals nothing the caller cannot already see."""
+    Dashboard.metadata.create_all(session.get_bind())
+    member: Slice = Slice(slice_name="dup_member", datasource_type="table")
+    outsider: Slice = Slice(slice_name="dup_outsider", datasource_type="table")
+    source: Dashboard = Dashboard(dashboard_title="dup_source", slices=[member])
+    db.session.add_all([member, outsider, source])
+    db.session.commit()
+    chart_count: int = db.session.query(Slice).count()
+    data: dict[str, Any] = {
+        "dashboard_title": "dup_copy",
+        "duplicate_slices": True,
+        "json_metadata": json.dumps(_chart_layout(member.id, outsider.id)),
+    }
+
+    with (
+        patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(
+            security_manager,
+            "can_access_chart",
+            lambda chart: readable or chart.id != outsider.id,
+        ),
+    ):
+        if readable:
+            with pytest.raises(DashboardLayoutInvalidError):
+                DashboardDAO.copy_dashboard(source, data)
+            # The caller's transaction rolls back the clone flushed before the
+            # refusal.
+            db.session.rollback()
+            assert db.session.query(Slice).count() == chart_count
+            return
+        copied: Dashboard = DashboardDAO.copy_dashboard(source, data)
+
+    assert db.session.query(Slice).count() == chart_count + 1
+    assert [chart.slice_name for chart in copied.slices] == ["dup_member"]
+    assert outsider.id not in _stored_chart_ids(copied.id)
+    positions: dict[str, Any] = json.loads(copied.position_json)
+    assert positions[f"CHART-{outsider.id}"]["meta"] == {
+        "width": 4,
+        "height": 50,
+        "code": MISSING_CHART_PLACEHOLDER,
+    }
 
 
 def test_set_dash_metadata_preserves_refresh_frequency(session: Session) -> None:
@@ -515,6 +612,44 @@ def test_set_dash_metadata_repairs_dangling_chart_tiles(session: Session) -> Non
     assert "chartId" not in gone["meta"]
     assert "uuid" not in gone["meta"]
     assert absent_chart_id not in member_ids
+
+
+@pytest.mark.parametrize("hide_unreadable", [False, True])
+def test_reconcile_position_json_hides_unreadable_non_members(
+    session: Session, hide_unreadable: bool
+) -> None:
+    """With ``hide_unreadable``, a raw layout's tile for a non-member chart
+    the caller cannot read is repaired like a missing chart's. Members stay,
+    readable or not, and so do readable non-members."""
+    Dashboard.metadata.create_all(session.get_bind())
+    member: Slice = Slice(slice_name="raw_member", datasource_type="table")
+    readable: Slice = Slice(slice_name="raw_readable", datasource_type="table")
+    hidden: Slice = Slice(slice_name="raw_hidden", datasource_type="table")
+    dashboard: Dashboard = Dashboard(dashboard_title="raw_dash", slices=[member])
+    db.session.add_all([member, readable, hidden, dashboard])
+    db.session.commit()
+    positions: dict[str, Any] = _chart_layout(member.id, readable.id, hidden.id)[
+        "positions"
+    ]
+
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(
+            security_manager,
+            "can_access_chart",
+            lambda chart: chart.id == readable.id,
+        ),
+    ):
+        repaired: int = reconcile_position_json(
+            positions, dashboard.id, hide_unreadable=hide_unreadable
+        )
+
+    assert repaired == (1 if hide_unreadable else 0)
+    assert positions[f"CHART-{member.id}"]["type"] == "CHART"
+    assert positions[f"CHART-{readable.id}"]["type"] == "CHART"
+    assert positions[f"CHART-{hidden.id}"]["type"] == (
+        "MARKDOWN" if hide_unreadable else "CHART"
+    )
 
 
 @with_feature_flags(SOFT_DELETE=True)
@@ -1435,6 +1570,8 @@ def test_copy_dashboard_duplicate_slices_remaps_native_filters(
 
     with (
         patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "can_access_chart", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None
@@ -1495,6 +1632,8 @@ def test_copy_dashboard_handles_dividers_and_unscoped_filters(
 
     with (
         patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "can_access_chart", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None
@@ -1560,6 +1699,8 @@ def test_copy_dashboard_remaps_cross_filters_and_chart_configuration(
 
     with (
         patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "can_access_chart", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None
@@ -1718,6 +1859,8 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
 
     with (
         patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "can_access_chart", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None
@@ -1868,6 +2011,8 @@ def test_copy_dashboard_does_not_double_remap_overlapping_ids(
 
     with (
         patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "can_access_chart", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None

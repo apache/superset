@@ -172,7 +172,10 @@ def test_get_dataset_serializes_the_partition_mapping_summary(
 
     app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
     try:
-        response = client.get(f"/api/v1/dataset/{dataset.id}")
+        with patch(
+            "superset.connectors.sqla.models.known_mirror_verdict", return_value=True
+        ):
+            response = client.get(f"/api/v1/dataset/{dataset.id}")
     finally:
         del app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"]
 
