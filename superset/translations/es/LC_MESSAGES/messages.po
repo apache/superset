@@ -819,7 +819,7 @@ msgstr ""
 msgid "+ %s more"
 msgstr "+ %s más"
 
-#, fuzzy
+#
 msgid ", then paste the JSON below. See our"
 msgstr ", luego pega el JSON a continuación. Consulta nuestro"
 
