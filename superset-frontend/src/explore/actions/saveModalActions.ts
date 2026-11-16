@@ -28,7 +28,7 @@ import {
   SupersetClient,
 } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
-import { isEmpty } from 'lodash-es';
+import { isEmpty, omit } from 'lodash-es';
 import { Slice } from 'src/dashboard/types';
 import { removeLegacyAggregationTag } from 'src/explore/exploreUtils/legacyAggregationTag';
 import { Operators } from '../constants';
@@ -180,7 +180,7 @@ export const getSlicePayload = async (
   });
 
   const payload: Partial<PayloadSlice> = {
-    params: JSON.stringify(formData),
+    params: JSON.stringify(omit(formData, ['dashboardId'])),
     slice_name: sliceName,
     viz_type: formData.viz_type,
     datasource_id: datasourceId,

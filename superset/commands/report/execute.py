@@ -2152,14 +2152,21 @@ class BaseReportState:
     def _saved_dashboard(chart: Slice) -> Optional[Dashboard]:
         """
         The dashboard the check applies to a chart report: the one saved in the
-        chart's params, by the check's own rule for the executor.
+        chart's query context, by the check's own rule for the executor.
         """
         if (datasource := chart.resolved_datasource) is None:
+            return None
+        try:
+            context = json.loads(chart.query_context or "{}")
+        except (TypeError, json.JSONDecodeError):
+            return None
+        form_data = context.get("form_data") if isinstance(context, dict) else None
+        if not isinstance(form_data, dict):
             return None
         explorable = cast("Explorable", datasource)
         try:
             return chart_dashboard(
-                explorable, Target(explorable, chart.form_data, None, chart.id)
+                explorable, Target(explorable, form_data, None, chart.id)
             )
         except TimeRangeLimitsUnavailableError as ex:
             raise ReportScheduleTimeRangeLimitsUnavailableError([ex.error]) from ex

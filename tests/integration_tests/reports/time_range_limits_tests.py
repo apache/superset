@@ -28,11 +28,14 @@ from uuid import uuid4
 import pytest
 from freezegun import freeze_time
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.report.exceptions import (
     ReportScheduleClientErrorsException,
 )
-from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
+from superset.commands.report.execute import (
+    AsyncExecuteReportScheduleCommand,
+    BaseReportState,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import feature_flag_manager
 from superset.models.dashboard import Dashboard
@@ -46,6 +49,7 @@ from superset.reports.models import (
 )
 from superset.time_range_limits.policy import FEATURE_FLAG
 from superset.utils import json
+from superset.utils.core import override_user
 from tests.fixtures.time_range_query_paths import BAD_GLOBAL
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -760,3 +764,127 @@ def test_dashboard_report_unmodelled_state_key_fails_closed(
         email_mock,
     )
     screenshot_mock.assert_not_called()
+
+
+@pytest.mark.parametrize("with_dashboard", [True, False])
+@with_feature_flags(**FLAGS_ON)
+@patch.dict(
+    APP_CONFIG,
+    {"TIME_RANGE_LIMITS_GLOBAL": None, "ALERT_REPORTS_NOTIFICATION_DRY_RUN": False},
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.commands.report.execute.BaseReportState._get_data")
+def test_chart_report_uses_only_its_saved_dashboard_context(
+    csv_mock: MagicMock,
+    email_mock: MagicMock,
+    chart_report: ReportSchedule,
+    report_dashboard: Dashboard,
+    with_dashboard: bool,
+) -> None:
+    """A chart report inherits the view limit only through its saved context."""
+    metadata = json.loads(report_dashboard.json_metadata)
+    metadata["time_range_limits"] = {
+        "schema_version": 1,
+        "max_span": {"quantity": 90, "time_grain": "P1D"},
+        "max_look_back": None,
+        "max_look_forward": None,
+    }
+    report_dashboard.json_metadata = json.dumps(metadata)
+    chart = chart_report.chart
+    params = json.loads(chart.params)
+    context = json.loads(chart.query_context)
+    if with_dashboard:
+        context["form_data"]["dashboardId"] = report_dashboard.id
+    chart.params = json.dumps(params)
+    chart.query_context = json.dumps(context)
+    db.session.commit()
+    csv_mock.return_value = b"a,b\n1,2\n"
+
+    if with_dashboard:
+        with pytest.raises(ReportScheduleClientErrorsException):
+            run_report(chart_report)
+        assert_failed_and_editor_notified(chart_report, GUARD, email_mock)
+        csv_mock.assert_not_called()
+        assert all(call[0][0] != TARGET for call in email_mock.call_args_list)
+    else:
+        run_report(chart_report)
+        assert execution_logs(chart_report) == [(ReportState.SUCCESS, None)]
+        assert email_mock.call_args[0][0] == TARGET
+
+
+@pytest.mark.parametrize(
+    "report_format",
+    [
+        ReportDataFormat.CSV,
+        ReportDataFormat.TEXT,
+        ReportDataFormat.PNG,
+        ReportDataFormat.PDF,
+    ],
+)
+@pytest.mark.parametrize("unreadable", [False, True])
+@with_feature_flags(**FLAGS_ON)
+@patch.dict(
+    APP_CONFIG,
+    {"TIME_RANGE_LIMITS_GLOBAL": None, "ALERT_REPORTS_NOTIFICATION_DRY_RUN": False},
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.commands.report.execute.BaseReportState._get_notification_content")
+@patch("superset.commands.report.execute.BaseReportState._get_screenshots")
+def test_report_context_dashboard_is_checked_before_any_format(
+    screenshot_mock: MagicMock,
+    content_mock: MagicMock,
+    email_mock: MagicMock,
+    chart_report: ReportSchedule,
+    report_dashboard: Dashboard,
+    report_format: ReportDataFormat,
+    unreadable: bool,
+) -> None:
+    """All formats refuse unchecked or excessive ranges before building content."""
+    metadata = json.loads(report_dashboard.json_metadata)
+    metadata["time_range_limits"] = GLOBAL_90_DAYS["TIME_RANGE_LIMITS_GLOBAL"]
+    report_dashboard.json_metadata = json.dumps(metadata)
+    chart = chart_report.chart
+    context = json.loads(chart.query_context)
+    context["form_data"]["dashboardId"] = report_dashboard.id
+    if unreadable:
+        context.pop("datasource")
+    chart.query_context = json.dumps(context)
+    chart_report.report_format = report_format
+    db.session.commit()
+
+    with pytest.raises(ReportScheduleClientErrorsException):
+        run_report(chart_report)
+
+    message = f"{chart.slice_name}: {UNCHECKED}" if unreadable else GUARD
+    assert_failed_and_editor_notified(chart_report, message, email_mock)
+    content_mock.assert_not_called()
+    screenshot_mock.assert_not_called()
+    assert all(call[0][0] != TARGET for call in email_mock.call_args_list)
+
+
+@pytest.mark.parametrize(
+    "member,can_open", [(False, True), (True, False), (True, True)]
+)
+def test_report_context_fallback_requires_actual_membership_and_access(
+    chart_report: ReportSchedule,
+    report_dashboard: Dashboard,
+    member: bool,
+    can_open: bool,
+) -> None:
+    """The fallback uses the real chart identity and the report user's access."""
+    chart = chart_report.chart
+    context = json.loads(chart.query_context)
+    context["form_data"]["dashboardId"] = report_dashboard.id
+    context["form_data"]["slice_id"] = report_dashboard.slices[1].id
+    context.pop("datasource")
+    chart.query_context = json.dumps(context)
+    if not member:
+        report_dashboard.slices.remove(chart)
+    db.session.commit()
+
+    with (
+        override_user(security_manager.find_user(username="admin")),
+        patch("superset.security_manager.can_access_dashboard", return_value=can_open),
+    ):
+        result = BaseReportState._saved_dashboard(chart)
+    assert result == (report_dashboard if member and can_open else None)
