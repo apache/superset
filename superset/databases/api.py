@@ -125,6 +125,7 @@ from superset.databases.schemas import (
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
+from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatabaseNotFoundException,
@@ -583,7 +584,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            item = self.edit_model_schema.load(request.json)
+            item = DatabasePutSchema(database_id=pk).load(request.json)
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -1635,6 +1636,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
+        # The form carries secrets.
+        include_request_data=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -1999,7 +2002,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         preferred_databases: list[str] = app.config.get("PREFERRED_DATABASES", [])
         available_databases = []
         for engine_spec, drivers in get_available_engine_specs().items():
-            if not drivers:
+            if not drivers or engine_spec is DatabricksNativeEngineSpec:
                 continue
 
             payload: dict[str, Any] = {
@@ -2020,8 +2023,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 hasattr(engine_spec, "parameters_json_schema")
                 and hasattr(engine_spec, "sqlalchemy_uri_placeholder")
                 and engine_spec.default_driver in drivers
+                and (parameters := engine_spec.parameters_json_schema()) is not None
             ):
-                payload["parameters"] = engine_spec.parameters_json_schema()
+                payload["parameters"] = parameters
                 payload["sqlalchemy_uri_placeholder"] = (
                     engine_spec.sqlalchemy_uri_placeholder
                 )
@@ -2255,9 +2259,9 @@ class DatabaseOAuth2TokensRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.delete_oauth2_tokens",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.delete_oauth2_tokens"
+        ),
         log_to_statsd=False,
     )
     @requires_json
@@ -2312,9 +2316,9 @@ class DatabaseOAuth2TokensRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.delete_all_oauth2_tokens",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.delete_all_oauth2_tokens"
+        ),
         log_to_statsd=False,
     )
     def delete_all_oauth2_tokens(self, pk: int) -> FlaskResponse:

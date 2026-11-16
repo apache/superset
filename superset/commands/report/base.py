@@ -18,13 +18,15 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, TYPE_CHECKING
+from types import SimpleNamespace
+from typing import Any, cast, TYPE_CHECKING
 
 from croniter import CroniterBadDateError
+from flask import current_app
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
     AlertQueryDataAccessValidationError,
@@ -36,6 +38,7 @@ from superset.commands.report.exceptions import (
     DashboardNotSavedValidationError,
     ReportScheduleCrontabNotValidError,
     ReportScheduleEitherChartOrDashboardError,
+    ReportScheduleExecutorTargetAccessError,
     ReportScheduleForbiddenError,
     ReportScheduleFormatRequiredError,
     ReportScheduleFrequencyNotAllowed,
@@ -54,14 +57,17 @@ from superset.reports.models import (
     ReportConfigKey,
     ReportCreationMethod,
     ReportDataFormat,
+    ReportSchedule,
     ReportScheduleType,
 )
 from superset.reports.types import ReportScheduleExtra
 from superset.reports.utils import cron_meets_minimum_interval, get_email_addresses
 from superset.sql.parse import SQLScript
+from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
 from superset.tasks.types import ExecutorType
+from superset.tasks.utils import get_executor
 from superset.utils import json
-from superset.utils.core import get_user
+from superset.utils.core import get_user, override_user
 from superset.utils.filters import is_excluded_by_extra_access
 
 if TYPE_CHECKING:
@@ -72,6 +78,43 @@ logger = logging.getLogger(__name__)
 # Matches balanced Jinja blocks so templated alert SQL can be recognized and
 # its static validation deferred to execution time.
 _JINJA_BLOCK_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
+
+
+def resolve_save_time_executor(
+    *,
+    run_as_type: str | None,
+    run_as: User | None,
+    created_by: User | None,
+    changed_by: User | None,
+    editors: Any,
+) -> User | None:
+    """Resolve the user a schedule in the given state will execute as.
+
+    Mirrors the execution-time resolution: an explicit "Run As" user when the
+    dynamic executor feature is enabled, otherwise ``ALERT_REPORTS_EXECUTORS``
+    against the schedule's creator, modifier and editors. Returns ``None`` when
+    the executor cannot be determined before execution (types resolved only at
+    run time, or no matching user), leaving those cases to the existing
+    validation and execution-time errors.
+    """
+    if is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR") and run_as_type:
+        user = run_as if run_as_type == ExecutorType.FIXED_USER else None
+    else:
+        # A plain namespace stands in for the schedule: ``get_executor`` only
+        # reads these attributes, and a transient model would be cascaded into
+        # the session through its editor relationships.
+        schedule = SimpleNamespace(
+            created_by=created_by, changed_by=changed_by, editors=editors or []
+        )
+        try:
+            _, username = get_executor(
+                current_app.config["ALERT_REPORTS_EXECUTORS"],
+                cast(ReportSchedule, schedule),
+            )
+        except (ExecutorNotFoundError, InvalidExecutorError):
+            return None
+        user = security_manager.find_user(username)
+    return user if user is not None and user.is_active else None
 
 
 class BaseReportScheduleCommand(BaseCommand):
@@ -569,3 +612,132 @@ class BaseReportScheduleCommand(BaseCommand):
         self._properties[type_field] = ExecutorType.FIXED_USER
         self._properties[field_name] = user
         return user
+
+    def _delivers_content(self, report_type: str, report_format: str | None) -> bool:
+        """Whether the executor renders the target when the schedule runs."""
+        return report_type == ReportScheduleType.REPORT or (
+            report_format != ReportDataFormat.NONE
+            and bool(
+                ReportConfigDAO.get_effective_value(
+                    ReportConfigKey.ALERTS_ATTACH_REPORTS
+                )
+            )
+        )
+
+    def _executor_target_state(self) -> tuple[str, Any, User | None, bool]:
+        """Return the target kind, target, executor and delivery of the result."""
+        model = getattr(self, "_model", None)
+        chart = self._properties.get("chart", getattr(model, "chart", None))
+        dashboard = self._properties.get("dashboard", getattr(model, "dashboard", None))
+        kind, target = ("chart", chart) if chart else ("dashboard", dashboard)
+        report_type = self._properties.get("type", getattr(model, "type", None))
+        report_format = self._properties.get(
+            "report_format",
+            getattr(model, "report_format", ReportDataFormat.PNG),
+        )
+        current_user = get_user()
+        executor = resolve_save_time_executor(
+            run_as_type=self._properties.get(
+                "run_as_type", getattr(model, "run_as_type", None)
+            ),
+            run_as=self._properties.get("run_as", getattr(model, "run_as", None)),
+            created_by=getattr(model, "created_by", None) if model else current_user,
+            changed_by=current_user,
+            editors=self._properties.get("editors", getattr(model, "editors", [])),
+        )
+        return (
+            kind,
+            target,
+            executor,
+            self._delivers_content(str(report_type), report_format),
+        )
+
+    def _stored_executor_target_state(
+        self,
+    ) -> tuple[tuple[str, Any], User | None, bool, bool]:
+        """Return the stored target, executor, delivery and active flag.
+
+        The target is a ``(kind, id)`` pair so a chart and a dashboard that
+        share a numeric id are never mistaken for one another.
+        """
+        model = getattr(self, "_model", None)
+        assert model is not None
+        executor = resolve_save_time_executor(
+            run_as_type=model.run_as_type,
+            run_as=model.run_as,
+            created_by=model.created_by,
+            changed_by=model.changed_by,
+            editors=model.editors,
+        )
+        stored_target = (
+            ("chart", model.chart_id)
+            if model.chart_id
+            else ("dashboard", model.dashboard_id)
+        )
+        return (
+            stored_target,
+            executor,
+            self._delivers_content(model.type, model.report_format),
+            bool(model.active),
+        )
+
+    def validate_executor_target_access(
+        self, exceptions: list[ValidationError]
+    ) -> None:
+        """Check the chart or dashboard as the identity the schedule runs as.
+
+        The target access check in :meth:`validate_chart_dashboard` asks only
+        whether the *saving* user can read the target. A schedule executes as
+        a different identity whenever ``ALERT_REPORTS_EXECUTORS`` or its "Run
+        As" choice resolves to someone else; when that identity cannot read the
+        target, the schedule saves but can never deliver. Asking the question
+        here turns that into a validation error on the request that causes it.
+
+        Runs only when the result is a scheduled schedule that renders its
+        target (see :meth:`_result_is_active`), and on update only when the
+        target, the executor, content delivery or the active flag changes, so
+        that pausing or editing the metadata of an already-broken schedule is
+        never refused. A saver who is not an admin and is not the executor is
+        not told who the executor is.
+        """
+        if exceptions or not self._result_is_active():
+            return
+        kind, target, executor, delivers_content = self._executor_target_state()
+        if target is None or isinstance(target, int) or executor is None:
+            return
+        if not delivers_content:
+            return
+        if getattr(self, "_model", None) is not None:
+            stored_target, stored_executor, stored_delivery, stored_active = (
+                self._stored_executor_target_state()
+            )
+            if (
+                stored_target == (kind, target.id)
+                and stored_executor is not None
+                and stored_executor.id == executor.id
+                and stored_delivery
+                and stored_active
+            ):
+                return
+        withheld = False
+        try:
+            with override_user(executor):
+                security_manager.raise_for_access(**{kind: target})
+                # ``raise_for_access`` does not consult the exclusion hook, yet
+                # resolving the dashboard to build its permalink does, so a
+                # dashboard withheld from the executor can never be rendered.
+                withheld = kind == "dashboard" and is_excluded_by_extra_access(
+                    "dashboards", target.id
+                )
+        except SupersetSecurityException:
+            withheld = True
+        if withheld:
+            current_user = get_user()
+            reveal_executor = security_manager.is_admin() or (
+                current_user is not None and current_user.id == executor.id
+            )
+            exceptions.append(
+                ReportScheduleExecutorTargetAccessError(
+                    kind, executor.username if reveal_executor else None
+                )
+            )
