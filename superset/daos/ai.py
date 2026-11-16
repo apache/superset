@@ -33,9 +33,10 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
-from superset.ai.types import MessageRole, MessageStatus, ThreadStatus
+from superset.ai.types import MessageExtra, MessageRole, MessageStatus, ThreadStatus
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.ai import AIChatFeedback, AIChatMessage, AIChatThread
@@ -73,6 +74,8 @@ class AIChatThreadDAO(BaseDAO[AIChatThread]):
         cls,
         thread_uuid: str | UUID,
         user_id: int | None,
+        *,
+        for_update: bool = False,
     ) -> AIChatThread | None:
         """
         Return the thread only when ``user_id`` owns it.
@@ -91,14 +94,13 @@ class AIChatThreadDAO(BaseDAO[AIChatThread]):
         if parsed is None or user_id is None:
             return None
 
-        return (
-            db.session.query(AIChatThread)
-            .filter(
-                AIChatThread.uuid == parsed,
-                AIChatThread.created_by_fk == user_id,
-            )
-            .one_or_none()
+        query = db.session.query(AIChatThread).filter(
+            AIChatThread.uuid == parsed,
+            AIChatThread.created_by_fk == user_id,
         )
+        if for_update:
+            query = query.with_for_update()
+        return query.one_or_none()
 
     @classmethod
     def find_all_for_user(
@@ -191,6 +193,25 @@ class AIChatThreadDAO(BaseDAO[AIChatThread]):
             thread.changed_by_fk = user_id
         db.session.add(thread)
 
+    @classmethod
+    def delete_older_than(cls, cutoff: datetime) -> int:
+        """Delete conversations last changed before ``cutoff`` and their rows."""
+        thread_ids = select(AIChatThread.id).where(AIChatThread.changed_on < cutoff)
+        message_ids = select(AIChatMessage.id).where(
+            AIChatMessage.thread_id.in_(thread_ids)
+        )
+        db.session.query(AIChatFeedback).filter(
+            AIChatFeedback.message_id.in_(message_ids)
+        ).delete(synchronize_session=False)
+        db.session.query(AIChatMessage).filter(
+            AIChatMessage.thread_id.in_(thread_ids)
+        ).delete(synchronize_session=False)
+        return (
+            db.session.query(AIChatThread)
+            .filter(AIChatThread.changed_on < cutoff)
+            .delete(synchronize_session=False)
+        )
+
 
 class AIChatMessageDAO(BaseDAO[AIChatMessage]):
     """
@@ -201,6 +222,34 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
     :meth:`AIChatThreadDAO.find_by_uuid_for_user`, so the argument type carries
     the proof that ownership was established.
     """
+
+    @classmethod
+    def has_active_run(cls, thread: AIChatThread) -> bool:
+        """Check run state without hydrating message contents."""
+        return (
+            db.session.query(AIChatMessage.id)
+            .filter(
+                AIChatMessage.thread_id == thread.id,
+                AIChatMessage.role == MessageRole.ASSISTANT.value,
+                AIChatMessage.status.in_(
+                    [MessageStatus.PENDING.value, MessageStatus.STREAMING.value]
+                ),
+            )
+            .first()
+            is not None
+        )
+
+    @classmethod
+    def counts_for_threads(cls, threads: list[AIChatThread]) -> dict[int, int]:
+        """Count messages for an owned thread page without loading messages."""
+        if not threads:
+            return {}
+        return dict(
+            db.session.query(AIChatMessage.thread_id, func.count(AIChatMessage.id))
+            .filter(AIChatMessage.thread_id.in_([thread.id for thread in threads]))
+            .group_by(AIChatMessage.thread_id)
+            .all()
+        )
 
     @classmethod
     def find_for_thread(cls, thread: AIChatThread) -> list[AIChatMessage]:
@@ -215,6 +264,40 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
             .filter(AIChatMessage.thread_id == thread.id)
             .order_by(AIChatMessage.created_on.asc(), AIChatMessage.id.asc())
             .all()
+        )
+
+    @classmethod
+    def claim_pending(
+        cls, message_uuid: str | UUID, *, worker_task_id: str | None = None
+    ) -> bool:
+        """Atomically move one pending assistant message into execution."""
+        parsed = _coerce_uuid(message_uuid)
+        if parsed is None:
+            return False
+        updates: dict[str, Any] = {"status": MessageStatus.STREAMING.value}
+        if worker_task_id is not None:
+            from superset.utils import json
+
+            message = (
+                db.session.query(AIChatMessage).filter_by(uuid=parsed).one_or_none()
+            )
+            if message is None:
+                return False
+            updates["extra_json"] = json.dumps(
+                {**message.extra, "worker_task_id": worker_task_id}
+            )
+        return (
+            db.session.query(AIChatMessage)
+            .filter(
+                AIChatMessage.uuid == parsed,
+                AIChatMessage.role == MessageRole.ASSISTANT.value,
+                AIChatMessage.status == MessageStatus.PENDING.value,
+            )
+            .update(
+                updates,
+                synchronize_session=False,
+            )
+            == 1
         )
 
     @classmethod
@@ -284,6 +367,7 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
         user_id: int | None = None,
         request_id: str | None = None,
         status: MessageStatus | str | None = None,
+        extra: MessageExtra | None = None,
     ) -> tuple[AIChatMessage, bool]:
         """
         Append a turn, at most once per ``(thread, request_id, role)``.
@@ -301,6 +385,7 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
         :param user_id: The user responsible for the turn
         :param request_id: Optional client-supplied idempotency key
         :param status: Optional initial lifecycle value
+        :param extra: Metadata saved only when inserting a new message
         :returns: The message, and whether this call created it
         """
         role_value = MessageRole(role).value
@@ -324,6 +409,8 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
             attributes["status"] = MessageStatus(status).value
 
         message = AIChatMessage(**attributes)
+        if extra is not None:
+            message.update_extra(extra)
 
         try:
             with db.session.begin_nested():

@@ -17,14 +17,15 @@
 """
 The tools the assistant can call.
 
-Every tool here is a read, and every one authorizes itself: the registry does
-not check permissions on a tool's behalf, so a tool that returns a data-bearing
-object performs its own ``security_manager`` check. See
-:mod:`superset.ai.tools.base` for the contract.
+Every tool authorizes itself: the registry does not check permissions on a
+tool's behalf, so a tool that returns or mutates a data-bearing object performs
+its own ``security_manager`` check. See :mod:`superset.ai.tools.base` for the
+contract. Shipped profiles remain read-only; deployments opt into authoring by
+naming the mutation tools in a profile.
 
 A runtime asks for a named bundle rather than assembling tools itself::
 
-    registry = build_registry(BUNDLE_READ_ONLY)
+    registry = build_registry(BUNDLE_ALL)
     definitions = registry.definitions()
     result = registry.dispatch(tool_call)
 
@@ -39,6 +40,7 @@ from __future__ import annotations
 from superset.ai.tools.base import (
     AITool as AITool,
     build_registry as build_registry,
+    BUNDLE_ALL as BUNDLE_ALL,
     BUNDLE_DISCOVERY as BUNDLE_DISCOVERY,
     bundle_names as bundle_names,
     BUNDLE_READ_ONLY as BUNDLE_READ_ONLY,
@@ -48,6 +50,7 @@ from superset.ai.tools.base import (
 
 __all__ = [
     "AITool",
+    "BUNDLE_ALL",
     "BUNDLE_DISCOVERY",
     "BUNDLE_READ_ONLY",
     "ToolError",

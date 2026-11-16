@@ -18,6 +18,11 @@ suite: superset_config.py rendering
 templates:
   - secret-superset-config.yaml
 tests:
+  - it: registers AI tasks in the bundled Celery configuration
+    set: {cache: {enabled: true}}
+    asserts:
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: 'imports = \([\s\S]*"superset\.ai\.tasks"'}
+      - matchRegex: {path: 'stringData["superset_config.py"]', pattern: '"ai\.prune_conversations": \{[\s\S]*"task": "ai\.prune_conversations",[\s\S]*"schedule": crontab\(minute=30, hour=3\)'}
   - it: builds SQLALCHEMY_DATABASE_URI from env with percent-encoded creds
     set: {database: {host: pg.svc, port: 5432, user: su, password: pw, name: sset}}
     asserts:

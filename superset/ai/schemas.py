@@ -18,9 +18,12 @@
 
 from __future__ import annotations
 
-from marshmallow import fields, Schema, validate
+from typing import Any
+
+from marshmallow import fields, Schema, validate, ValidationError
 
 from superset.ai.types import MessageRole, ThreadStatus
+from superset.utils import json
 
 #: Matches the ``title`` column width.
 TITLE_MAX_LENGTH = 512
@@ -32,6 +35,41 @@ REQUEST_ID_MAX_LENGTH = 96
 #: context, short enough that a runaway client cannot fill the metadata database
 #: with a single request.
 CONTENT_MAX_LENGTH = 100_000
+
+PAGE_CONTEXT_MAX_DEPTH = 20
+
+
+def _validate_page_context(context: dict[str, Any]) -> None:
+    """Bound all stored context, including fields omitted from the prompt."""
+    pending: list[tuple[Any, int]] = [(context, 1)]
+    while pending:
+        value, depth = pending.pop()
+        if not isinstance(value, (dict, list)):
+            continue
+        if depth > PAGE_CONTEXT_MAX_DEPTH:
+            raise ValidationError(
+                f"Page context must not exceed {PAGE_CONTEXT_MAX_DEPTH} "
+                "nested containers."
+            )
+        children = value.values() if isinstance(value, dict) else value
+        pending.extend((child, depth + 1) for child in children)
+    try:
+        encoded = json.dumps(
+            context, separators=(",", ":"), default=None, ignore_nan=False
+        )
+    except (TypeError, ValueError) as ex:
+        raise ValidationError("Page context must contain JSON values.") from ex
+    if len(encoded) > CONTENT_MAX_LENGTH:
+        raise ValidationError(
+            f"Page context must not exceed {CONTENT_MAX_LENGTH} bytes of compact JSON."
+        )
+
+
+class ThreadListSchema(Schema):
+    limit = fields.Integer(load_default=50, validate=validate.Range(min=1, max=100))
+    offset = fields.Integer(
+        load_default=0, validate=validate.Range(min=0, max=2**31 - 1)
+    )
 
 
 class ThreadPostSchema(Schema):
@@ -81,7 +119,12 @@ class MessagePostSchema(Schema):
     )
     agent_key = fields.String(
         allow_none=True,
-        metadata={"description": "Agent profile for this turn."},
+        metadata={
+            "description": (
+                "Select and remember a conversation profile. Omit, null or empty "
+                "uses the stored profile; 'default' explicitly resets it."
+            )
+        },
     )
     model = fields.String(
         allow_none=True,
@@ -94,6 +137,7 @@ class MessagePostSchema(Schema):
     )
     page_context = fields.Dict(
         allow_none=True,
+        validate=_validate_page_context,
         metadata={
             "description": (
                 "What the user is looking at: the page type, and for SQL Lab the "
@@ -125,6 +169,7 @@ class SuggestedPromptsPostSchema(Schema):
 
     page_context = fields.Dict(
         allow_none=True,
+        validate=_validate_page_context,
         metadata={
             "description": (
                 "What the user is looking at, in the same shape the message "

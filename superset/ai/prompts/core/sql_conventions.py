@@ -20,9 +20,8 @@ Query craft that holds across every warehouse.
 No engine is named here, and no dialect syntax appears. A prompt that hardcodes
 one engine's functions, catalog layout or metadata tables produces confidently
 invalid SQL on the next deployment, and the assistant has no way to tell that it
-has done so. Dialect rules are deployment knowledge: they belong to a
-:class:`~superset.ai.knowledge.KnowledgeProvider`, served for the engine actually
-in play.
+has done so. Dialect rules are deployment knowledge: deployments can supply them in
+``AI_EXTRA_PROMPT_SECTIONS``, scoped to the engine actually in play.
 
 What survives the move between deployments is the partition-semantics trap, date
 discipline, and the habit of reconciling a total before reporting it.

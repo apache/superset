@@ -138,6 +138,8 @@ export const messageToChatMessage = (
     // before this is reached, so anything that arrives here is a visible turn.
     role: message.role === 'assistant' ? 'assistant' : 'user',
     content: message.content,
+    status: message.status,
+    runId: message.runId,
     timestamp: message.createdOn
       ? new Date(message.createdOn).getTime()
       : Date.now(),
@@ -170,5 +172,7 @@ export const threadToTab = (
   updatedAt: thread.changedOn
     ? new Date(thread.changedOn).getTime()
     : undefined,
+  messageCount: thread.messageCount,
   threadId: thread.uuid,
+  agentKey: thread.agentKey,
 });

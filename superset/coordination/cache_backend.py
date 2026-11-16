@@ -75,6 +75,10 @@ class RedisCommandsMixin:
 
     _cache: redis.Redis
 
+    def ping(self) -> bool:
+        """Verify connectivity and authentication without writing a key."""
+        return bool(self._cache.ping())
+
     def set(
         self,
         name: str,

@@ -91,16 +91,25 @@ const MAX_INPUT_HISTORY = 50;
 /** A conversation title derived from a message is clipped to this. */
 const MAX_TAB_NAME_LENGTH = 30;
 
+const THREAD_POLL_INTERVAL_MS = 2000;
+
+const isInFlightMessage = (message: ChatMessageWithMeta): boolean =>
+  message.role === 'assistant' &&
+  Boolean(message.runId) &&
+  (message.status === 'pending' || message.status === 'streaming');
+
 export type ChatRunStatus = 'running' | 'cancelling';
 
-/** Shared empty list, so a render with no steps yet keeps a stable identity. */
+/** Shared empty lists keep effect dependencies stable while a chat is empty. */
 const EMPTY_TOOL_CALLS: AiToolCall[] = [];
+const EMPTY_MESSAGES: ChatMessageWithMeta[] = [];
 
 interface ActiveChatRun {
   requestId: string;
   tabId: string;
   threadId: string;
   runId?: string;
+  resolveCheckpoint?: () => void;
   controller: AbortController;
   isStreaming: boolean;
   liveThoughts: string;
@@ -322,9 +331,6 @@ export const useChatBot = (): UseChatBotReturn => {
    */
   const [justCompletedId, setJustCompletedId] = useState<string | undefined>();
   const [agents, setAgents] = useState<AiAgent[]>([DEFAULT_CHAT_AGENT]);
-  const [selectedAgent, setSelectedAgent] = useState<string>(() =>
-    loadStoredAgentKey(AGENT_STORAGE_KEY),
-  );
 
   const [messageHistory, setMessageHistory] = useState<string[]>(() =>
     readJson<string[]>(HISTORY_STORAGE_KEY, []),
@@ -371,21 +377,50 @@ export const useChatBot = (): UseChatBotReturn => {
     [],
   );
 
-  /** Resolved when the user answers a checkpoint; see `streamRun`. */
-  const checkpointGateRef = useRef<{ resolve: () => void } | null>(null);
   const mountedRef = useRef(true);
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
       mountedRef.current = false;
-    },
-    [],
-  );
+      Object.values(activeRunsByTabRef.current).forEach(run => {
+        run.resolveCheckpoint?.();
+        run.controller.abort();
+        if (run.runId) {
+          cancelChatRun(run.threadId, run.runId).catch(caught => {
+            logging.warn('[ai] the assistant was not told to stop', caught);
+          });
+        }
+      });
+    };
+  }, []);
 
   const activeTab = chatTabs.find(tab => tab.id === activeTabId);
-  const messages = activeTab?.messages ?? [];
+  const messages = activeTab?.messages ?? EMPTY_MESSAGES;
+  const selectedAgent =
+    activeTab?.pendingAgentKey ?? activeTab?.agentKey ?? DEFAULT_AGENT_KEY;
+  const setSelectedAgent = useCallback(
+    (key: string) => {
+      updateTabs(previous =>
+        previous.map(tab =>
+          tab.id === activeTabIdRef.current
+            ? { ...tab, pendingAgentKey: key }
+            : tab,
+        ),
+      );
+      try {
+        localStorage.setItem(AGENT_STORAGE_KEY, key);
+      } catch (caught) {
+        logging.warn('[ai] could not remember the selected agent', caught);
+      }
+    },
+    [updateTabs],
+  );
 
   const activeRun = activeRunsByTab[activeTabId];
-  const isLoading = Boolean(activeRun);
+  const restoredRun = messages.find(isInFlightMessage);
+  const pollingThreadId =
+    !activeRun && restoredRun ? activeTab?.threadId : undefined;
+  const isLoading = Boolean(activeRun || restoredRun);
   const isStreamingResponse = activeRun?.isStreaming ?? false;
   const liveThoughts = activeRun?.liveThoughts ?? '';
   const liveToolLog = activeRun?.liveToolLog ?? '';
@@ -393,7 +428,7 @@ export const useChatBot = (): UseChatBotReturn => {
   const livePageContext = activeRun?.livePageContext;
   const liveAnswer = activeRun?.liveAnswer ?? '';
   const checkpoint = activeRun?.checkpoint ?? null;
-  const activeRunStatus = activeRun?.status ?? null;
+  const activeRunStatus = activeRun?.status ?? (restoredRun ? 'running' : null);
 
   const pageContext = usePageContext();
   const pageContextRef = useRef(pageContext);
@@ -433,20 +468,12 @@ export const useChatBot = (): UseChatBotReturn => {
     }
   }, [messageHistory]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(AGENT_STORAGE_KEY, selectedAgent);
-    } catch (caught) {
-      logging.warn('[ai] could not remember the selected agent', caught);
-    }
-  }, [selectedAgent]);
-
   // Follows the transcript as it grows, including while a run streams. Guarded
   // because `scrollIntoView` is absent in environments without a layout engine,
   // and failing to scroll must not take the panel down.
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
-  }, [messages, liveToolLog, liveThoughts]);
+  }, [messages, liveToolLog, liveThoughts, liveAnswer]);
 
   // -----------------------------------------------------------------------
   // Conversation management
@@ -467,7 +494,7 @@ export const useChatBot = (): UseChatBotReturn => {
   );
 
   const refreshThreadMessages = useCallback(
-    async (threadId: string) => {
+    async (threadId: string, submittedAgentKey?: string) => {
       const { thread, messages: threadMessages } = await getThread(threadId);
       if (!mountedRef.current) {
         return;
@@ -481,6 +508,11 @@ export const useChatBot = (): UseChatBotReturn => {
             ? {
                 ...refreshed,
                 name: tab.name || refreshed.name,
+                // A selection made for the next turn must survive this refresh.
+                pendingAgentKey:
+                  tab.pendingAgentKey === submittedAgentKey
+                    ? undefined
+                    : tab.pendingAgentKey,
                 messages: mergeMessages(refreshed.messages, tab.messages),
               }
             : tab,
@@ -490,12 +522,32 @@ export const useChatBot = (): UseChatBotReturn => {
     [updateTabs],
   );
 
+  useEffect(() => {
+    if (!pollingThreadId) {
+      return undefined;
+    }
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try {
+        await refreshThreadMessages(pollingThreadId);
+      } catch (caught) {
+        await fail(caught, t('The conversation could not be loaded.'));
+      }
+      if (!stopped) {
+        timer = setTimeout(poll, THREAD_POLL_INTERVAL_MS);
+      }
+    };
+    timer = setTimeout(poll, THREAD_POLL_INTERVAL_MS);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [fail, pollingThreadId, refreshThreadMessages]);
+
   const handleNewChat = useCallback(async (): Promise<string> => {
     try {
-      const thread = await createThread(
-        undefined,
-        selectedAgent === DEFAULT_AGENT_KEY ? undefined : selectedAgent,
-      );
+      const thread = await createThread(undefined, selectedAgent);
       const tab = threadToTab(thread);
       updateTabs(previous => [tab, ...previous]);
       setActiveTabId(tab.id);
@@ -505,7 +557,7 @@ export const useChatBot = (): UseChatBotReturn => {
     } catch (caught) {
       await fail(caught, t('The conversation could not be created.'));
       // A local tab still lets the user type; the thread is created on send.
-      const tab = createNewTab();
+      const tab = { ...createNewTab(), agentKey: selectedAgent };
       updateTabs(previous => [tab, ...previous]);
       setActiveTabId(tab.id);
       activeTabIdRef.current = tab.id;
@@ -608,10 +660,7 @@ export const useChatBot = (): UseChatBotReturn => {
       if (tab?.threadId) {
         return { tabId, threadId: tab.threadId };
       }
-      const thread = await createThread(
-        undefined,
-        selectedAgent === DEFAULT_AGENT_KEY ? undefined : selectedAgent,
-      );
+      const thread = await createThread(undefined, selectedAgent);
       updateTabs(previous =>
         previous.map(candidate =>
           candidate.id === tabId
@@ -664,6 +713,7 @@ export const useChatBot = (): UseChatBotReturn => {
         if (!current || current.requestId !== requestId) {
           return previous;
         }
+        current.resolveCheckpoint?.();
         const { [tabId]: _removed, ...rest } = previous;
         return rest;
       });
@@ -671,32 +721,38 @@ export const useChatBot = (): UseChatBotReturn => {
     [updateRuns],
   );
 
-  const releaseCheckpointGate = useCallback(() => {
-    checkpointGateRef.current?.resolve();
-    checkpointGateRef.current = null;
-  }, []);
-
   const handleCheckpointContinue = useCallback(() => {
-    releaseCheckpointGate();
     const tabId = activeTabIdRef.current;
     const run = activeRunsByTabRef.current[tabId];
     if (run) {
+      run.resolveCheckpoint?.();
       updateRunState(tabId, run.requestId, current => ({
         ...current,
         checkpoint: null,
+        resolveCheckpoint: undefined,
       }));
     }
-  }, [releaseCheckpointGate, updateRunState]);
+  }, [updateRunState]);
 
   const handleCancelRun = useCallback(async () => {
     const tabId = activeTabIdRef.current;
     const run = activeRunsByTabRef.current[tabId];
     if (!run) {
+      const tab = chatTabsRef.current.find(candidate => candidate.id === tabId);
+      const savedRun = tab?.messages.find(isInFlightMessage);
+      if (tab?.threadId && savedRun?.runId) {
+        try {
+          await cancelChatRun(tab.threadId, savedRun.runId);
+          await refreshThreadMessages(tab.threadId);
+        } catch (caught) {
+          logging.warn('[ai] the assistant was not told to stop', caught);
+        }
+      }
       return;
     }
     // A run paused at a checkpoint is not reading, so the gate is released first
     // or the abort would not be noticed until the user pressed Continue.
-    releaseCheckpointGate();
+    run.resolveCheckpoint?.();
     updateRunState(tabId, run.requestId, current => ({
       ...current,
       status: 'cancelling',
@@ -710,9 +766,9 @@ export const useChatBot = (): UseChatBotReturn => {
         // stopped, so a failure here is worth a log and nothing more.
         logging.warn('[ai] the assistant was not told to stop', caught);
       }
+      clearRunIfMatches(tabId, run.requestId);
     }
-    clearRunIfMatches(tabId, run.requestId);
-  }, [clearRunIfMatches, releaseCheckpointGate, updateRunState]);
+  }, [clearRunIfMatches, refreshThreadMessages, updateRunState]);
 
   // -----------------------------------------------------------------------
   // Sending
@@ -739,9 +795,18 @@ export const useChatBot = (): UseChatBotReturn => {
       const source = messageOverride ?? inputValue;
       const trimmedMessage = source.trim();
       const originTabId = activeTabIdRef.current;
-      if (!trimmedMessage || activeRunsByTabRef.current[originTabId]) {
+      if (
+        !trimmedMessage ||
+        activeRunsByTabRef.current[originTabId] ||
+        chatTabsRef.current
+          .find(tab => tab.id === originTabId)
+          ?.messages.some(isInFlightMessage)
+      ) {
         return;
       }
+      const agentKey = chatTabsRef.current.find(
+        tab => tab.id === originTabId,
+      )?.pendingAgentKey;
 
       const requestId = generateId();
       const controller = new AbortController();
@@ -792,9 +857,7 @@ export const useChatBot = (): UseChatBotReturn => {
         },
       ]);
 
-      // There is no system-message channel in this contract, so a directive from
-      // an AI action travels with the page context, which is the field the
-      // backend already turns into prompt preamble.
+      // Action directives travel with page context and enter the user prompt.
       const directive = systemPromptOverride?.trim();
       const contextPayload = buildRequestPageContext(
         includePageContext ? pageContextRef.current : undefined,
@@ -915,9 +978,14 @@ export const useChatBot = (): UseChatBotReturn => {
           threadUuid: threadId,
           content: trimmedMessage,
           requestId,
-          agentKey: selectedAgent,
+          agentKey,
           pageContext: contextPayload,
         });
+        if (controller.signal.aborted) {
+          // Stop may precede the POST response that gives us the server run ID.
+          await cancelChatRun(threadId, run.runId);
+          return;
+        }
         updateRunState(targetTabId, requestId, current => ({
           ...current,
           runId: run.runId,
@@ -966,12 +1034,12 @@ export const useChatBot = (): UseChatBotReturn => {
               return Promise.resolve();
             }
             return new Promise<void>(resolve => {
-              checkpointGateRef.current = { resolve };
               updateRunState(targetTabId, requestId, current => ({
                 ...current,
                 liveToolLog: currentToolLog,
                 liveToolCalls: [...toolCallSteps],
                 checkpoint: parsed,
+                resolveCheckpoint: resolve,
               }));
             });
           },
@@ -991,7 +1059,7 @@ export const useChatBot = (): UseChatBotReturn => {
         // The server's copy carries the tool calls, so it supersedes what was
         // assembled from the frames (see `mergeMessages`).
         try {
-          await refreshThreadMessages(threadId);
+          await refreshThreadMessages(threadId, agentKey);
         } catch (caught) {
           logging.warn('[ai] could not re-read the conversation', caught);
         }
@@ -1042,7 +1110,6 @@ export const useChatBot = (): UseChatBotReturn => {
       isRunCurrent,
       nameTabFromMessage,
       refreshThreadMessages,
-      selectedAgent,
       setMessagesForTab,
       updateRunState,
       updateRuns,
@@ -1206,7 +1273,10 @@ export const useChatBot = (): UseChatBotReturn => {
         if (threads.length === 0) {
           // Created eagerly so the first message does not pay for it, and so the
           // panel is never in a state with no conversation at all.
-          const thread = await createThread();
+          const thread = await createThread(
+            undefined,
+            loadStoredAgentKey(AGENT_STORAGE_KEY),
+          );
           if (cancelled || !mountedRef.current) {
             return;
           }
@@ -1249,11 +1319,6 @@ export const useChatBot = (): UseChatBotReturn => {
         }
         const normalized = normalizeChatAgents(fetched);
         setAgents(normalized);
-        setSelectedAgent(current =>
-          normalized.some(agent => agent.key === current)
-            ? current
-            : DEFAULT_AGENT_KEY,
-        );
       } catch (caught) {
         // A missing profile list is not fatal: the backend picks a default, so
         // the panel stays usable without a selector.

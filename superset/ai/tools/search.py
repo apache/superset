@@ -237,6 +237,11 @@ _SEARCHERS = {
     "chart": _search_charts,
     "dashboard": _search_dashboards,
 }
+_READ_RESOURCES = {
+    "dataset": "Dataset",
+    "chart": "Chart",
+    "dashboard": "Dashboard",
+}
 
 
 class SearchAssetsTool(AITool):
@@ -284,6 +289,8 @@ class SearchAssetsTool(AITool):
         limit: Any = None,
         **_ignored: Any,
     ) -> ToolOutput:
+        from superset import security_manager
+
         if not isinstance(query, str) or not query.strip():
             raise ToolError("'query' must be a non-empty search term.")
         term = query.strip()
@@ -293,6 +300,8 @@ class SearchAssetsTool(AITool):
 
         results: list[dict[str, Any]] = []
         for asset_type in types:
+            if not security_manager.can_access("can_read", _READ_RESOURCES[asset_type]):
+                continue
             try:
                 results.extend(_SEARCHERS[asset_type](term, per_type))
             except Exception:  # pylint: disable=broad-except

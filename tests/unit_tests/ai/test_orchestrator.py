@@ -159,6 +159,40 @@ def test_outcome_classification(result: Any, expected: str) -> None:
     assert _outcome_of(result).value == expected
 
 
+@pytest.mark.parametrize("cleanup_fails", [False, True])
+def test_drain_closes_abandoned_iterator_on_its_own_loop(
+    cleanup_fails: bool, mocker: MockerFixture
+) -> None:
+    """Disconnects must run the provider's async cleanup before closing its loop."""
+    import asyncio
+    from collections.abc import AsyncIterator
+
+    from superset.ai.events import done_event, StreamEvent
+    from superset.ai.orchestrator import _drain
+
+    loop = asyncio.new_event_loop()
+    mocker.patch("superset.ai.orchestrator.asyncio.new_event_loop", return_value=loop)
+    cleaned = []
+
+    async def source() -> AsyncIterator[StreamEvent]:
+        try:
+            yield done_event(True)
+        finally:
+            cleaned.append(asyncio.get_running_loop())
+            if cleanup_fails:
+                raise RuntimeError("cleanup failed")
+
+    stream = _drain(source())
+    next(stream)
+    if cleanup_fails:
+        with pytest.raises(RuntimeError, match="cleanup failed"):
+            stream.close()
+    else:
+        stream.close()
+    assert cleaned == [loop]
+    assert loop.is_closed()
+
+
 def test_every_outcome_maps_to_a_terminal_status() -> None:
     """
     No outcome leaves a message stuck in a non-terminal state.
@@ -235,6 +269,32 @@ def test_cancellation_works_without_a_usable_cache(
     assert orchestrator.is_cancelled(run_id) is False
 
 
+def test_worker_cancellation_uses_the_event_bus_redis(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """The web request and Celery worker observe the same cancellation flag."""
+    from flask import current_app
+
+    from superset.ai import orchestrator
+
+    mocker.patch.dict(current_app.config, {"AI_ASSISTANT_EXECUTION_MODE": "worker"})
+    backend = mocker.Mock()
+    mocker.patch("superset.ai.eventbus.get_event_bus_backend", return_value=backend)
+
+    run_id = "run-worker-cancel"
+    orchestrator.request_cancel(run_id)
+
+    backend.set.assert_called_once_with("ai-cancel-run-worker-cancel", b"1", ex=900)
+    assert run_id not in orchestrator._CANCELLED_LOCALLY
+
+    backend.get.return_value = b"1"
+    assert orchestrator.is_cancelled(run_id) is True
+
+    orchestrator.clear_cancel(run_id)
+    backend.delete.assert_called_once_with("ai-cancel-run-worker-cancel")
+
+
 def test_unreadable_cache_reports_not_cancelled(
     app_context: None,
     mocker: MockerFixture,
@@ -283,6 +343,7 @@ def test_a_failed_turn_persists_the_message_the_user_was_shown(
         "superset.ai.orchestrator._run",
         side_effect=RuntimeError("the gateway returned nonsense"),
     )
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
 
     events = list(
         stream_turn(
@@ -319,6 +380,7 @@ def test_a_failed_turn_does_not_persist_the_exception(
     leaky = "postgresql://user:hunter2@db-host.example/db"  # noqa: S105
     finalise = mocker.patch("superset.ai.orchestrator._finalise_message")
     mocker.patch("superset.ai.orchestrator._run", side_effect=RuntimeError(leaky))
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
 
     list(
         stream_turn(
@@ -362,6 +424,7 @@ def test_a_failed_turn_keeps_the_partial_answer_it_had_produced(
         yield  # pragma: no cover - makes this a generator
 
     mocker.patch("superset.ai.orchestrator._run", fail_after_partial)
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
 
     list(
         stream_turn(
@@ -467,3 +530,67 @@ def test_a_silent_success_is_not_given_an_invented_error() -> None:
 
     quiet = SimpleNamespace(answer="", error=None, cancelled=False, timed_out=False)
     assert _terminal_content(quiet, RunOutcome.SUCCESS) == ""
+
+
+@pytest.mark.parametrize("thinking", ["Checked the available data.", ""])
+def test_completed_turn_keeps_streamed_reasoning_in_history(
+    thinking: str,
+    mocker: MockerFixture,
+) -> None:
+    """Reloading a successful turn retains its provider-supplied reasoning."""
+    from superset.ai.llm.echo import EchoProvider, ScriptedTurn
+    from superset.ai.orchestrator import _run, TurnRequest
+    from superset.ai.profiles import AgentProfile
+    from superset.ai.runtime.messages import MessagesApiRuntime
+    from superset.ai.tools.base import ToolRegistry
+    from superset.ai.types import MessageStatus, StreamEventType
+
+    provider = EchoProvider([ScriptedTurn(text="Answer.", thinking=thinking)])
+    mocker.patch("superset.ai.factories.get_provider", return_value=provider)
+    mocker.patch(
+        "superset.ai.factories.get_runtime",
+        return_value=MessagesApiRuntime(provider),
+    )
+    profiles = mocker.patch("superset.ai.factories.get_profiles")
+    profiles.return_value.get.return_value = AgentProfile(key="test", name="Test")
+    mocker.patch(
+        "superset.ai.factories.get_tools_for_profile", return_value=ToolRegistry()
+    )
+    mocker.patch(
+        "superset.daos.ai.AIChatThreadDAO.find_by_uuid_for_user",
+        return_value=SimpleNamespace(),
+    )
+    mocker.patch(
+        "superset.daos.ai.AIChatMessageDAO.find_for_thread",
+        return_value=[
+            SimpleNamespace(uuid="u-reasoning", role="user", content="Question"),
+            SimpleNamespace(uuid="m-reasoning", role="assistant", content=""),
+        ],
+    )
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
+    finalise = mocker.patch("superset.ai.orchestrator._finalise_message")
+    events = list(
+        _run(
+            TurnRequest(
+                thread_uuid="t-reasoning",
+                user_id=7,
+                run_id="r-reasoning",
+                assistant_message_uuid="m-reasoning",
+            ),
+            {},
+        )
+    )
+
+    finalise.assert_called_once()
+    saved = finalise.call_args.kwargs
+    assert saved["status"] is MessageStatus.COMPLETE
+    assert saved["content"] == "Answer."
+    assert saved["extra"]["thoughts"] == thinking
+    assert (
+        "".join(
+            event.payload["delta"]
+            for event in events
+            if event.type is StreamEventType.THOUGHTS
+        )
+        == thinking
+    )

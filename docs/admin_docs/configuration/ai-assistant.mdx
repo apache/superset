@@ -10,20 +10,38 @@ version: 1
 The AI Assistant is a conversational interface for exploring your data. A user
 asks a question in plain language; the assistant finds relevant datasets,
 inspects their schema, writes and runs read-only SQL, and answers with both the
-result and the query it used.
+result and the query it used. The shipped profiles are read-only. A deployment
+can explicitly add chart and dashboard authoring tools to a gated profile.
 
 Superset ships **no model provider and talks to no model vendor by default**.
 The feature is disabled, and even when enabled it returns `404` until you point
 it at a provider you control. Nothing is sent anywhere until you configure it.
 
+Deleting the last conversation leaves an empty panel with opening suggestions;
+use **New Chat** to start another conversation. If the conversation list cannot
+be loaded or its initial conversation cannot be created, the panel shows the
+error and still lets you create a new conversation.
+
+A conversation with a pending or streaming run cannot be deleted. Stop the run
+and wait for its terminal status, or let it finish, before deleting it. Closing
+or docking the panel aborts its streams, releases confirmation checkpoints and
+requests cancellation. Reopening refreshes any run that has not finished yet.
+Cancellation remains cooperative; a timed-out authoring operation may still
+complete, so check the created assets before retrying it.
+
+Chart previews use the shared chart loader, including its asynchronous query
+handling. A successful zero-row result finishes as an empty chart. Configuration
+retries and requests are cancelled when the preview is removed or changed.
+
 ## Enabling it
 
-Two things are required: the feature flag, and a provider.
+Enable the assistant and its chat host, and configure a provider.
 
 ```python
 # superset_config.py
 FEATURE_FLAGS = {
     "AI_ASSISTANT": True,
+    "ENABLE_EXTENSIONS": True,
 }
 
 AI_LLM_PROVIDER_CLASS = "superset.ai.llm.anthropic.AnthropicProvider"
@@ -43,8 +61,14 @@ Install the matching extra:
 pip install "apache-superset[ai-anthropic]"   # or [ai-openai]
 ```
 
-Then run `superset init` so the assistant's permissions are created and assigned
-to roles. Without this the endpoints return `403`.
+Run `superset db upgrade` to create the conversation tables, then `superset init`
+to create and assign the assistant's permissions. Without the latter the
+endpoints return `403`.
+
+The published OpenAPI artifact describes the default deployment, where this
+feature is disabled. With `AI_ASSISTANT` and `FAB_API_SWAGGER_UI` enabled, the deployment's
+`/api/v1/_openapi` specification includes the AI routes. Generate clients from
+that specification rather than adding optional routes to the default artifact.
 
 Conversations are stored in Superset's metadata database, so no extra
 infrastructure is needed for the default configuration.
@@ -72,8 +96,14 @@ well, because a cursor deadline cannot interrupt connection establishment.
 ### Which roles get access
 
 `superset init` grants `can_read`/`can_write` on `AIAssistant` to **Admin** and
-**Alpha** only. "Write" here means writing one's own conversation — the
-assistant's tools are read-only and it cannot create or modify assets.
+**Alpha** only. "Write" here means writing one's own conversation. The shipped
+profiles remain read-only; an operator who enables asset-authoring tools must
+also gate that profile, and each tool enforces the current user's normal asset
+and dataset permissions.
+
+Asset readers additionally require `can_read` on their REST resource:
+`Chart`, `Dashboard`, `Dataset` for asset searches, and `Database` for
+database/schema discovery. Object and datasource access checks still apply.
 
 **Gamma does not get it by default.** The assistant runs queries and costs
 money per question, so it is granted deliberately rather than inherited. To
@@ -128,6 +158,11 @@ Users may also pin a specific model per turn. Only models present in your
 
 ## Agent profiles
 
+The optional authoring tools use Superset's FastMCP server in-process. Before
+enabling a profile with `create_virtual_dataset`, `generate_chart`, or
+`generate_dashboard`, install the `fastmcp` extra alongside your provider,
+for example `pip install "apache-superset[ai-openai,fastmcp]"`.
+
 A profile bundles the decisions that differ between a quick answer and a careful
 investigation: which tools are available, which model tier, and how many steps.
 Two ship by default — `default` and `analyst`.
@@ -150,6 +185,19 @@ AI_AGENT_PROFILES = {
         "description": "Slow, thorough, multi-step.",
         "tools": ["search_assets", "get_schema", "execute_sql"],
         "required_permission": ("can_write", "AIAssistant"),
+    },
+
+    # Opt-in authoring. The tools still enforce normal asset and dataset RBAC.
+    "builder": {
+        "name": "Dashboard builder",
+        "tools": [
+            "search_assets",
+            "get_schema",
+            "create_virtual_dataset",
+            "generate_chart",
+            "generate_dashboard",
+        ],
+        "required_permission": ("can_write", "Dashboard"),
     },
 }
 ```
@@ -176,6 +224,9 @@ assistant text is not reclassified as reasoning.
 | `validate_sql` | Checks a query without running it |
 | `get_chart_context` | Reads a chart's definition |
 | `get_dashboard_context` | Reads a dashboard's definition |
+| `create_virtual_dataset` | Saves a read-only SQL query as a chartable dataset; opt-in only |
+| `generate_chart` | Previews or saves a native chart; opt-in only |
+| `generate_dashboard` | Creates a dashboard from saved chart IDs; opt-in only |
 
 ## Customising the prompt
 
@@ -236,7 +287,19 @@ usable connection.
 
 A turn is deliberately **not** retried after a worker crash: inference costs
 money, and re-running a turn the user may already have partly seen would charge
-twice. The message records that it failed and the user can ask again.
+twice. The task explicitly uses early acknowledgement. When Celery observes a
+child failure or hard time limit, its parent records an error and publishes the
+terminal stream events. Only the delivery that claimed a running message can
+finalize it; a failed duplicate cannot overwrite another delivery's result.
+Losing the entire Celery parent or host cannot run these callbacks; automatic
+reconciliation of that outage is not provided.
+
+Retry a failed message submission with the same `request_id`. The assistant
+keeps the original run identifier and its accepted context. An unclaimed run
+can be queued again after an uncertain broker acknowledgement; only one delivery
+can claim it for execution. Retrying a completed turn does not regenerate its
+answer. An inline reconnect waits for the original producer's stored result
+rather than starting another inference; live deltas still belong to that producer.
 
 ## Safety and limits
 
@@ -263,11 +326,30 @@ Content that arrives from your warehouse or asset metadata — table comments,
 chart titles, column labels — is marked as untrusted in the prompt, because a
 value in a database is data and not an instruction.
 
+The same framing applies to the context sent by the browser: page titles,
+dashboard notes, filter values and editor SQL. Embedded framing delimiters are
+escaped, and context limits retain complete frames. Validated page types and
+object IDs remain usable as tool arguments. This framing guides the model; it
+does not replace the permission checks on tool execution.
+
+Message and suggestion requests accept at most 100,000 bytes of compact,
+ASCII-escaped JSON in `page_context`, with at most 20 nested objects or arrays.
+These limits include fields that are not rendered in the prompt. Invalid context
+is rejected before saving a message or starting a run.
+
 ### Cancellation
+
+Cancellation requires the run identifier returned when submitting the message
+and the same owned conversation. An unknown run or one belonging to another
+conversation returns `404` without recording a cancellation request.
 
 Cancellation is cooperative: a run stops at its next step boundary. A run inside
 a single long model call or a single long query will not stop until that call
 returns.
+
+Checkpoint controls apply to the selected conversation. If Stop is pressed while
+the start request is pending, the client forwards cancellation as soon as the
+server returns the run identifier.
 
 ## Monitoring and tracing
 
@@ -420,10 +502,12 @@ A third-party server is untrusted input, and possibly untrusted intent:
 - **No Superset credential is ever forwarded.** Only the headers you configured
   for that server are sent — never the user's session cookie, CSRF token, or an
   inbound authorization header.
-- **SQL execution through a foreign server is refused by default.** Superset's
-  read-only enforcement and per-dataset authorization cannot apply to a query
-  another system runs, so allowing it would silently bypass both. Set
-  `AI_AGENT_MCP_DENY_FOREIGN_SQL = False` to accept that trade deliberately.
+- **External tools require an explicit per-server `tool_allowlist`.** Names,
+  argument schemas, and remote read-only annotations cannot establish that a
+  tool respects Superset's data permissions. Audit each listed tool and the
+  credentials its server uses; the server's denylist still takes precedence.
+  `AI_AGENT_MCP_DENY_FOREIGN_SQL = False` disables this additional guard for
+  deployments that deliberately delegate authorization to their remote servers.
 - **Results obey the same size cap** as built-in tools, and the cap is applied
   while reading, so a hostile server cannot exhaust memory before truncation.
 - **A server being down does not break the assistant.** Discovery failure means
@@ -436,8 +520,13 @@ latency to every turn that uses it.
 
 ## Retention
 
+Completed responses retain the provider-supplied thought process shown during
+the run, so it remains available when a conversation is reloaded.
+
 Conversations are kept for `AI_ASSISTANT_MESSAGE_RETENTION_DAYS` (default 30).
-Pruning is not automatic — schedule it if you want it enforced.
+The default Celery beat schedule runs `ai.prune_conversations` daily at 03:30.
+Deployments with a custom schedule must include this task to enforce retention.
+Set the retention period to zero or a negative value to disable pruning.
 
 ## Trying it locally
 
@@ -453,17 +542,20 @@ SUPERSET_AI_LLM_API_KEY=your-token
 SUPERSET_AI_MODEL_DEFAULT=your-model-name
 ```
 
+Before starting the stack, add the optional provider dependency you need to
+`docker/requirements-local.txt`:
+
+```
+openai>=1.60.0,<2
+```
+
 ```bash
 docker compose up
 ```
 
 The assistant appears once both a URL and a key are present; with neither set the
-stack behaves exactly as it did before. The model providers are optional extras,
-so add whichever one you need to `docker/requirements-local.txt`:
-
-```
-openai>=1.60.0,<2
-```
+stack behaves exactly as it did before. If you add dependencies to an already
+running stack, restart the application containers so bootstrap installs them.
 
 The local stack also logs traces to the container output and, unlike the
 production default, includes prompts and SQL in them.
@@ -485,6 +577,7 @@ production default, includes prompts and SQL in them.
 | `AI_ASSISTANT_EVENT_BUS` | `"memory"` | `memory` or `redis`. |
 | `AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG` | local Redis | Redis connection for the event bus. |
 | `AI_ASSISTANT_EVENT_TTL_SECONDS` | `900` | Event stream retention. |
+| `AI_ASSISTANT_EVENT_STREAM_PREFIX` | `"ai-events-"` | Prefix for Redis event stream keys. |
 | `AI_ASSISTANT_MAX_HISTORY_MESSAGES` | `25` | Turns sent to the model. |
 | `AI_ASSISTANT_MAX_HISTORY_CHARS` | `100000` | Character budget for history. |
 | `AI_ASSISTANT_TIMEZONE` | `"UTC"` | Timezone for the date given to the model. |
@@ -493,9 +586,14 @@ production default, includes prompts and SQL in them.
 | `AI_EXTRA_PROMPT_SECTIONS` | `[]` | Append prompt sections. |
 | `AI_DISABLED_PROMPT_SECTIONS` | `[]` | Drop shipped sections by key. |
 | `AI_SYSTEM_PROMPT_MUTATOR` | `None` | Last-mile prompt hook. |
-| `AI_KNOWLEDGE_PROVIDERS` | `[]` | Deployment domain knowledge. |
+| `AI_SUGGESTED_PROMPTS_ENABLED` | `False` | Generate opening-question suggestions with the provider. |
+| `AI_SUGGESTED_PROMPTS_COUNT` | `3` | Number of suggested questions. |
+| `AI_SUGGESTED_PROMPTS_MODEL_ALIAS` | `"fast"` | Model tier for suggestions. |
+| `AI_SUGGESTED_PROMPTS_MODEL` | `None` | Concrete model override for suggestions. |
+| `AI_SUGGESTED_PROMPTS_MAX_TOKENS` | `300` | Output token budget for suggestions. |
+| `AI_SUGGESTED_PROMPTS_PROMPT` | `None` | Replace the suggestion prompt; supports `{count}` and `{max_chars}`. |
 | `AI_AGENT_MCP_SERVERS` | `{}` | External MCP servers to attach. |
-| `AI_AGENT_MCP_DENY_FOREIGN_SQL` | `True` | Refuse SQL execution via a foreign server. |
+| `AI_AGENT_MCP_DENY_FOREIGN_SQL` | `True` | Require explicit per-server tool allowlists; remote execution cannot enforce Superset permissions. |
 | `AI_TELEMETRY` | `[]` | Telemetry sinks, as instances or dotted paths. |
 | `AI_TELEMETRY_REDACT_CONTENT` | `True` | Withhold prompts, answers, SQL and data from telemetry. |
 | `AI_TELEMETRY_MAX_CONTENT_CHARS` | `10000` | Cap per content field when redaction is off. |

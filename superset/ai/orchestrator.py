@@ -32,7 +32,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid as uuid_module
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Generator, Iterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -91,6 +91,8 @@ class TurnRequest:
     #: which is the only party that knows which tab is open, what is typed in
     #: the editor and which filters are applied.
     page_context: dict[str, Any] | None = None
+    #: Delivery that won the execution claim, assigned by the Celery worker.
+    worker_task_id: str | None = None
 
     def to_payload(self) -> dict[str, Any]:
         """Serialise for the task broker."""
@@ -102,6 +104,7 @@ class TurnRequest:
             "profile_key": self.profile_key,
             "model": self.model,
             "page_context": self.page_context,
+            "worker_task_id": self.worker_task_id,
         }
 
     @classmethod
@@ -126,6 +129,28 @@ def new_run_id() -> str:
 _CANCELLED_LOCALLY: set[str] = set()
 
 
+def _uses_worker_cancel_store() -> bool:
+    """Whether cancellation must cross from a web process to a worker."""
+    from flask import current_app, has_app_context
+
+    return bool(
+        has_app_context()
+        and current_app.config.get("AI_ASSISTANT_EXECUTION_MODE") == "worker"
+    )
+
+
+def _cancel_store(worker_mode: bool) -> Any:
+    """Use the required event-bus Redis connection in worker mode."""
+    if worker_mode:
+        from superset.ai.eventbus import get_event_bus_backend
+
+        return get_event_bus_backend()
+
+    from superset.extensions import cache_manager
+
+    return cache_manager.cache
+
+
 def request_cancel(run_id: str) -> None:
     """
     Ask a run to stop.
@@ -135,25 +160,27 @@ def request_cancel(run_id: str) -> None:
     not notice until that call returns, which is a real limit worth documenting
     rather than hiding.
     """
-    from superset.extensions import cache_manager
-
-    _CANCELLED_LOCALLY.add(run_id)
+    worker_mode = _uses_worker_cancel_store()
+    if not worker_mode:
+        _CANCELLED_LOCALLY.add(run_id)
     try:
-        cache_manager.cache.set(
-            f"{_CANCEL_PREFIX}{run_id}", True, timeout=_CANCEL_TTL_SECONDS
-        )
+        store = _cancel_store(worker_mode)
+        if worker_mode:
+            store.set(f"{_CANCEL_PREFIX}{run_id}", b"1", ex=_CANCEL_TTL_SECONDS)
+        else:
+            store.set(f"{_CANCEL_PREFIX}{run_id}", True, timeout=_CANCEL_TTL_SECONDS)
     except Exception:  # pylint: disable=broad-except
         logger.warning("Could not record cancellation for AI run %s", run_id)
 
 
 def is_cancelled(run_id: str) -> bool:
     """Whether a stop has been requested for this run."""
-    from superset.extensions import cache_manager
-
     if run_id in _CANCELLED_LOCALLY:
         return True
     try:
-        return bool(cache_manager.cache.get(f"{_CANCEL_PREFIX}{run_id}"))
+        return bool(
+            _cancel_store(_uses_worker_cancel_store()).get(f"{_CANCEL_PREFIX}{run_id}")
+        )
     except Exception:  # pylint: disable=broad-except
         # A cache that cannot be read must not make every run appear cancelled;
         # that would stop all inference the moment the cache went away.
@@ -162,16 +189,14 @@ def is_cancelled(run_id: str) -> bool:
 
 def clear_cancel(run_id: str) -> None:
     """Drop a run's cancellation flag."""
-    from superset.extensions import cache_manager
-
     _CANCELLED_LOCALLY.discard(run_id)
     try:
-        cache_manager.cache.delete(f"{_CANCEL_PREFIX}{run_id}")
+        _cancel_store(_uses_worker_cancel_store()).delete(f"{_CANCEL_PREFIX}{run_id}")
     except Exception:  # pylint: disable=broad-except
         logger.debug("Could not clear cancellation flag for AI run %s", run_id)
 
 
-def stream_turn(request: TurnRequest) -> Iterator[StreamEvent]:
+def stream_turn(request: TurnRequest) -> Generator[StreamEvent, None, None]:
     """
     Answer a turn, yielding events as they happen.
 
@@ -181,10 +206,14 @@ def stream_turn(request: TurnRequest) -> Iterator[StreamEvent]:
     web workers, and a turn that published to one process's in-memory queue
     while the browser's stream landed on another would appear to hang forever.
 
-    Never raises for an operational failure: a failure is an ``error`` event and
-    an ``error`` message status, because the caller may already have flushed
-    response headers or may be a worker with no one to report to.
+    Execution failures are ``error`` events and an ``error`` message status.
+    A database claim failure raises without rewriting the shared message: the
+    caller has not established ownership of its execution.
     """
+    if not _claim_pending(request.assistant_message_uuid, request.worker_task_id):
+        logger.info("AI message %s is already claimed", request.assistant_message_uuid)
+        return
+
     recorder = start_run(
         run_id=request.run_id,
         thread_uuid=request.thread_uuid,
@@ -288,23 +317,37 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
 
     yield session_event(request.thread_uuid, request.assistant_message_uuid)
 
-    from superset.ai.page_context import render_page_context
+    from superset.ai.page_context import render_helper_directives, render_page_context
 
-    history = _build_history(AIChatMessageDAO.find_for_thread(thread))
+    messages = AIChatMessageDAO.find_for_thread(thread)
+    for index, message in enumerate(messages):
+        if str(message.uuid) == request.assistant_message_uuid:
+            history = _build_history(messages[:index])
+            break
+    else:
+        raise ValueError("The assistant message is not in this conversation.")
     # Recorded as well as prompted with, so the transcript can show what the
     # assistant was told about the user's screen. An answer that looks wrong is
     # usually an answer to a different question than the reader assumed, and the
     # page context is where that difference lives.
     rendered_context = render_page_context(request.page_context)
-    state["page_context"] = rendered_context
+    directives = render_helper_directives(request.page_context)
+    recorded_context = "\n\n".join(
+        section for section in (rendered_context, directives) if section
+    )
+    state["page_context"] = recorded_context
     system_prompt = _build_system_prompt(tools, rendered_context)
-    model = _resolved_model(provider, request.model, profile)
+    pinned_model = request.model or profile.model
+    model = _resolved_model(provider, pinned_model, profile)
 
     recorder.describe(
         agent_key=profile.key,
         model=model,
         question=_latest_question(history),
     )
+    if directives:
+        # Browser helpers have user authority; the actual question stays last.
+        history.insert(len(history) - 1, Message(MessageRole.USER, directives))
 
     run_request = RunRequest(
         messages=history,
@@ -312,13 +355,12 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
         tools=tools,
         policies=load_policy_chain(),
         model_alias=profile.model_alias,
+        model=pinned_model,
         max_turns=profile.max_turns or _config("AI_AGENT_MAX_TURNS", 20),
         timeout_seconds=profile.timeout_seconds
         or _config("AI_AGENT_TIMEOUT_SECONDS", 300),
         should_cancel=lambda: is_cancelled(request.run_id),
     )
-
-    _mark_streaming(request.assistant_message_uuid)
 
     # The runtime is async and this is a synchronous generator, so the async
     # events are drained into a list per batch rather than bridged with a
@@ -346,8 +388,9 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
             "agent_key": profile.key,
             "model": model,
             "tool_calls": result.tool_calls,
+            "thoughts": result.thoughts,
             "turns": result.turns,
-            **_recorded_context(rendered_context),
+            **_recorded_context(recorded_context),
         },
     )
 
@@ -364,7 +407,7 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
     yield done_event(ok=outcome is RunOutcome.SUCCESS)
 
 
-def _drain(source: AsyncIterator[StreamEvent]) -> Iterator[StreamEvent]:
+def _drain(source: AsyncIterator[StreamEvent]) -> Generator[StreamEvent, None, None]:
     """
     Pull an async iterator one item at a time from a synchronous caller.
 
@@ -372,16 +415,20 @@ def _drain(source: AsyncIterator[StreamEvent]) -> Iterator[StreamEvent]:
     ``__anext__``, so each event reaches the client as it is produced rather
     than after the run completes.
     """
+    iterator = source.__aiter__()
     loop = asyncio.new_event_loop()
     try:
-        iterator = source.__aiter__()
         while True:
             try:
                 yield loop.run_until_complete(iterator.__anext__())
             except StopAsyncIteration:
                 return
     finally:
-        loop.close()
+        try:
+            if close := getattr(iterator, "aclose", None):
+                loop.run_until_complete(close())
+        finally:
+            loop.close()
 
 
 def _build_history(messages: list[Any]) -> list[Message]:
@@ -457,14 +504,11 @@ def _build_system_prompt(tools: Any, rendered_context: str) -> str:
 
 
 @transaction()
-def _mark_streaming(message_uuid: str) -> None:
-    """Move the placeholder assistant message into its in-flight state."""
+def _claim_pending(message_uuid: str, worker_task_id: str | None = None) -> bool:
+    """Claim a placeholder once, before any inference can start."""
     from superset.daos.ai import AIChatMessageDAO
 
-    message = AIChatMessageDAO.find_one_or_none(uuid=uuid_module.UUID(message_uuid))
-    if message is None:
-        return
-    message.status = MessageStatus.STREAMING.value
+    return AIChatMessageDAO.claim_pending(message_uuid, worker_task_id=worker_task_id)
 
 
 def _finalise_message(

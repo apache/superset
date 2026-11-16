@@ -121,12 +121,12 @@ def get_tools_for_profile(profile: AgentProfile) -> Any:
     profile names. Returns ``None`` when the profile grants neither, which is a
     legitimate configuration: an assistant that only converses needs no tools.
     """
-    from superset.ai.tools import build_registry
+    from superset.ai.tools import build_registry, BUNDLE_ALL
 
     if not profile.tools and not profile.mcp_servers:
         return None
 
-    registry = build_registry().subset(profile.tools)
+    registry = build_registry(BUNDLE_ALL).subset(profile.tools)
     for tool in _mcp_tools_for_profile(profile, taken=frozenset(registry.names())):
         registry.register(tool)
     return registry
