@@ -49,6 +49,24 @@ describe('convertFilter', () => {
     });
   });
 
+  test('should keep the time grain of a binary filter', () => {
+    expect(
+      convertFilter({
+        expressionType: 'SIMPLE',
+        clause: 'WHERE',
+        subject: 'order_date',
+        operator: '==',
+        comparator: 1727740800000 as unknown as string,
+        timeGrain: TimeGranularity.MONTH,
+      }),
+    ).toEqual({
+      col: 'order_date',
+      op: '==',
+      val: 1727740800000,
+      grain: TimeGranularity.MONTH,
+    });
+  });
+
   test('should convert set filter', () => {
     expect(
       convertFilter({
