@@ -168,6 +168,7 @@ class CountingEchoProvider(EchoProvider):
         super().__init__(script)
         self.counted: list[CompletionRequest] = []
         self.summary_requests: list[CompletionRequest] = []
+        self.window = 32000
 
     async def count_tokens(self, request: CompletionRequest) -> RequestTokenCount:
         self.counted.append(request)
@@ -176,7 +177,7 @@ class CountingEchoProvider(EchoProvider):
             "messages": [asdict(m) for m in request.messages],
             "tools": [asdict(t) for t in request.tools],
         }
-        return RequestTokenCount(len(json.dumps(payload).encode("utf-8")), 32000)
+        return RequestTokenCount(len(json.dumps(payload).encode("utf-8")), self.window)
 
     async def complete(self, request: CompletionRequest) -> LLMResponse:
         self.summary_requests.append(request)
@@ -205,6 +206,9 @@ def checkpoint_conversation(
         "superset.ai.orchestrator._build_system_prompt", return_value="Test system"
     )
     mocker.patch("superset.ai.eventbus.get_event_bus", return_value=MemoryEventBus())
+    cancel_store = mocker.Mock()
+    cancel_store.get.return_value = None
+    mocker.patch("superset.ai.orchestrator._cancel_store", return_value=cancel_store)
     mocker.patch.dict(
         current_app.config,
         {

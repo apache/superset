@@ -197,6 +197,15 @@ class AITool(ABC):
             input_schema=self.input_schema,
         )
 
+    def run_for_context(self, **kwargs: Any) -> ToolOutput:
+        """Return evidence for exact context accounting.
+
+        Metadata readers may override this to omit their legacy presentation
+        caps. Authorization, query limits and other execution controls still
+        apply; the runtime decides whether the complete result fits.
+        """
+        return self.run(**kwargs)
+
 
 def truncate_payload(payload: Any, max_bytes: int) -> tuple[str, bool]:
     """
@@ -444,7 +453,8 @@ class ToolRegistry:
             max_bytes = _configured_max_bytes()
 
         try:
-            output = tool.run(**call.arguments)
+            run = tool.run_for_context if preserve_model_output else tool.run
+            output = run(**call.arguments)
         except ToolError as ex:
             return failure(str(ex))
         except TypeError as ex:

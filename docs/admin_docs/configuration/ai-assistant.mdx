@@ -211,11 +211,19 @@ are excluded. They are not included in the public message response schema.
 Existing conversations without checkpoints are replayed in full, with old tool
 audit excerpts explicitly identified as incomplete.
 
-In this mode, the legacy history message and character ceilings are ignored.
-Native tool results reach the context manager in full; the UI audit copy remains
-bounded separately. Tool-specific row limits and external MCP transport limits
-still apply. Operational step limits and run deadlines are independent of the
-model's context window.
+In this mode, the legacy history and page-context character and list ceilings
+are ignored. Native chart and dashboard context tools retain every metadata field,
+including the full virtual dataset SQL, column and metric expressions, and dataset
+descriptions. Browser context retains unsaved chart controls, filter values and
+page notes. This complete evidence reaches the same request counter as the
+conversation and tool schemas. An oversized page or indivisible tool result fails
+explicitly rather than losing its dataset description or SQL tail.
+
+The UI audit copy remains bounded separately. Tool-specific query row limits and
+external MCP transport limits still apply. Operational step limits and run
+deadlines are independent of the model's context window. Tools implementing their
+own metadata presentation caps can override `AITool.run_for_context`; its default
+delegates to `run`, preserving execution and authorization controls.
 
 ## Agent profiles
 
@@ -294,6 +302,14 @@ and explicit flags when dataset field lists are incomplete. The assistant is
 instructed to preserve active filters, verify metric definitions and calculate
 aggregates in SQL. These provide evidence for the model; they do not guarantee
 that every generated query or interpretation is correct.
+
+For chart and dashboard pages, source bindings are also loaded from authorized
+Superset metadata on each turn. Dashboard membership and chart access are checked
+before reading a dataset; multiple charts sharing a dataset share one description.
+The context identifies the database and dialect separately from the dataset ID.
+Client-supplied database guesses do not replace these bindings. Titles, descriptions,
+SQL and other authored strings remain untrusted data. Without exact context
+accounting, the legacy presentation ceilings still apply.
 
 ## Customising the prompt
 

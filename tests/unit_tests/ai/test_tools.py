@@ -1563,7 +1563,9 @@ def fake_dataset() -> MagicMock:
     dataset = MagicMock()
     dataset.id = 5
     dataset.table_name = "signups"
+    dataset.description = None
     dataset.database_id = 1
+    dataset.database = fake_database()
     dataset.schema = "public"
     dataset.catalog = None
     dataset.sql = None
@@ -1585,7 +1587,7 @@ def fake_chart(chart_id: int = 3) -> MagicMock:
             "metrics": ["count"],
             "groupby": ["country"],
             "time_range": "Last month",
-            # Styling, which must not be returned.
+            # Plugin controls are kept alongside query settings.
             "color_scheme": "supersetColors",
             "show_legend": True,
         }

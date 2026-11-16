@@ -44,17 +44,14 @@ from superset.ai.tools.base import AITool, require_read_access, ToolError, ToolO
 
 logger = logging.getLogger(__name__)
 
-#: Charts summarised for one dashboard. A dashboard with more than this is
-#: usually a wall of tiles, and the model does not need every one to answer a
-#: question about it.
+#: Legacy model-output and UI display limits. Exact context accounting retains
+#: complete metadata for the model; the display copy remains bounded separately.
 MAX_CHARTS = 50
 
 #: Columns and metrics listed for a chart's dataset.
 MAX_DATASET_FIELDS = 100
 
-#: Characters of a virtual dataset's SQL that are returned. Enough to see the
-#: shape of the query and its joins; a longer body is better read by asking
-#: about the dataset directly.
+#: Legacy ceiling for a virtual dataset's SQL.
 MAX_SQL_CHARS = 4000
 
 
@@ -147,7 +144,9 @@ def _chart_params(chart: Any) -> dict[str, Any]:
     return _untrusted(parsed)
 
 
-def _dataset_summary(dataset: Any) -> dict[str, Any]:
+def _dataset_summary(
+    dataset: Any, *, preserve_metadata: bool = False
+) -> dict[str, Any]:
     """
     Describe the dataset a chart reads from.
 
@@ -155,6 +154,7 @@ def _dataset_summary(dataset: Any) -> dict[str, Any]:
     model can put them straight into SQL; their descriptions and labels are
     user-authored and are wrapped.
     """
+    field_limit = None if preserve_metadata else MAX_DATASET_FIELDS
     columns = [
         {
             "name": column.column_name,
@@ -164,7 +164,7 @@ def _dataset_summary(dataset: Any) -> dict[str, Any]:
             "is_calculated": bool(column.expression),
             "description": _untrusted(column.description),
         }
-        for column in (dataset.columns or [])[:MAX_DATASET_FIELDS]
+        for column in (dataset.columns or [])[:field_limit]
     ]
     metrics = [
         {
@@ -173,13 +173,16 @@ def _dataset_summary(dataset: Any) -> dict[str, Any]:
             "expression": metric.expression,
             "description": _untrusted(metric.description),
         }
-        for metric in (dataset.metrics or [])[:MAX_DATASET_FIELDS]
+        for metric in (dataset.metrics or [])[:field_limit]
     ]
 
     summary: dict[str, Any] = {
         "id": dataset.id,
         "name": _untrusted(dataset.table_name),
+        "description": _untrusted(dataset.description),
         "database_id": dataset.database_id,
+        "database_name": _untrusted(dataset.database.database_name),
+        "dialect": dataset.database.backend,
         "schema": dataset.schema,
         "catalog": dataset.catalog,
         "is_virtual": bool(dataset.sql),
@@ -188,14 +191,14 @@ def _dataset_summary(dataset: Any) -> dict[str, Any]:
         "metrics": metrics,
         "column_count": len(dataset.columns or []),
         "metric_count": len(dataset.metrics or []),
-        "columns_truncated": len(dataset.columns or []) > MAX_DATASET_FIELDS,
-        "metrics_truncated": len(dataset.metrics or []) > MAX_DATASET_FIELDS,
+        "columns_truncated": len(dataset.columns or []) > len(columns),
+        "metrics_truncated": len(dataset.metrics or []) > len(metrics),
     }
 
     if dataset.sql:
         sql = str(dataset.sql)
-        summary["sql"] = sql[:MAX_SQL_CHARS]
-        if len(sql) > MAX_SQL_CHARS:
+        summary["sql"] = sql if preserve_metadata else sql[:MAX_SQL_CHARS]
+        if len(sql) > len(summary["sql"]):
             summary["sql_truncated"] = True
             summary["sql_note"] = (
                 f"Showing the first {MAX_SQL_CHARS} of {len(sql)} characters of "
@@ -227,6 +230,14 @@ class GetChartContextTool(AITool):
     }
 
     def run(self, chart_id: Any = None, **_ignored: Any) -> ToolOutput:
+        return self._run(chart_id, preserve_metadata=False)
+
+    def run_for_context(self, chart_id: Any = None, **_ignored: Any) -> ToolOutput:
+        """Read complete metadata through the same chart authorization gates."""
+        return self._run(chart_id, preserve_metadata=True)
+
+    def _run(self, chart_id: Any, *, preserve_metadata: bool) -> ToolOutput:
+        """Share authorization and payload construction across budgeting modes."""
         chart = _load_chart(_positive_id(chart_id, "chart_id"))
 
         payload: dict[str, Any] = {
@@ -244,7 +255,9 @@ class GetChartContextTool(AITool):
                 "no column information is available."
             )
         else:
-            payload["dataset"] = _dataset_summary(dataset)
+            payload["dataset"] = _dataset_summary(
+                dataset, preserve_metadata=preserve_metadata
+            )
 
         return ToolOutput.of(
             payload,
@@ -287,11 +300,19 @@ class GetDashboardContextTool(AITool):
     }
 
     def run(self, dashboard_id: Any = None, **_ignored: Any) -> ToolOutput:
+        return self._run(dashboard_id, preserve_metadata=False)
+
+    def run_for_context(self, dashboard_id: Any = None, **_ignored: Any) -> ToolOutput:
+        """Return all chart summaries for measured context accounting."""
+        return self._run(dashboard_id, preserve_metadata=True)
+
+    def _run(self, dashboard_id: Any, *, preserve_metadata: bool) -> ToolOutput:
+        """Keep the model list independent of its bounded display copy."""
         dashboard = _load_dashboard(_positive_id(dashboard_id, "dashboard_id"))
 
         charts = dashboard.slices or []
         summaries: list[dict[str, Any]] = []
-        for chart in charts[:MAX_CHARTS]:
+        for chart in charts[: None if preserve_metadata else MAX_CHARTS]:
             dataset = chart.datasource
             summaries.append(
                 {
@@ -314,7 +335,7 @@ class GetDashboardContextTool(AITool):
             "charts": summaries,
             "chart_count": len(charts),
         }
-        if len(charts) > MAX_CHARTS:
+        if len(charts) > len(summaries):
             payload["truncated"] = True
             payload["note"] = (
                 f"Showing {MAX_CHARTS} of {len(charts)} charts. Call "
@@ -329,7 +350,7 @@ class GetDashboardContextTool(AITool):
                 "title": dashboard.dashboard_title,
                 "published": bool(dashboard.published),
                 "chart_count": len(charts),
-                "truncated": bool(payload.get("truncated", False)),
+                "truncated": len(charts) > MAX_CHARTS,
                 "charts": [
                     {
                         "id": chart.id,

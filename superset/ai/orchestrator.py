@@ -349,8 +349,12 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
     # assistant was told about the user's screen. An answer that looks wrong is
     # usually an answer to a different question than the reader assumed, and the
     # page context is where that difference lives.
-    rendered_context = render_page_context(request.page_context)
-    directives = render_helper_directives(request.page_context)
+    rendered_context = render_page_context(
+        request.page_context, preserve_context=context_policy is not None
+    )
+    directives = render_helper_directives(
+        request.page_context, preserve_context=context_policy is not None
+    )
     recorded_context = "\n\n".join(
         section for section in (rendered_context, directives) if section
     )
