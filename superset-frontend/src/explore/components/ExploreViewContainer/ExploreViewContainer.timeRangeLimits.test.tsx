@@ -184,9 +184,11 @@ test('the check sends the chart-data request body, unsaved changes included (mod
   const { charts } = lastCheckBody();
   expect(charts).toHaveLength(1);
   expect(charts[0].key).toBe('explore');
-  expect(charts[0].query_context).toEqual(
-    JSON.parse(String(chartData.options.body)),
+  const { client_id: clientId, ...requestBody } = JSON.parse(
+    String(chartData.options.body),
   );
+  expect(clientId).toEqual(expect.any(String));
+  expect(charts[0].query_context).toEqual(requestBody);
 });
 
 test('dashboardId: the chart-data body and the check carry it, the URL state gets nothing new', async () => {
