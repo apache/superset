@@ -97,9 +97,13 @@ const savedReply = (status: string, content = '') => ({
   ].filter(isDefined),
 });
 
-test.each(['complete', 'error', 'cancelled'])(
+test.each([
+  ['complete', 'saved result'],
+  ['error', 'saved result\n\n---\n_The assistant did not finish this run._'],
+  ['cancelled', 'saved result'],
+])(
   'a restored run refreshes until %s without starting another run',
-  async status => {
+  async (status, expectedContent) => {
     jest.useFakeTimers();
     jest
       .mocked(getThread)
@@ -114,7 +118,7 @@ test.each(['complete', 'error', 'cancelled'])(
     });
 
     await waitFor(() =>
-      expect(result.current.messages[0].content).toBe('saved result'),
+      expect(result.current.messages[0].content).toBe(expectedContent),
     );
     expect(result.current.isLoading).toBe(false);
     expect(result.current.messages[0]).toMatchObject({
