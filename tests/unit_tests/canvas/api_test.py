@@ -732,8 +732,12 @@ def test_placement_and_preview_query_error_contract(
         "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
         return_value=True,
     )
-    command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
-    command.return_value.run.side_effect = error
+    mocker.patch(
+        "superset.commands.canvas.placement_data.GetPlacementDataCommand.validate"
+    )
+    mocker.patch(
+        "superset.commands.canvas.placement_data.run_binding", side_effect=error
+    )
     response = client.post(f"{BASE}/100/placement/chart/data", json={})
     assert response.status_code == status
 
@@ -829,8 +833,10 @@ def test_placement_preserves_object_errors(
         "forbidden": CanvasForbiddenError(),
         "unbound": CanvasPlacementUnboundError(),
     }
-    command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
-    command.return_value.run.side_effect = errors[family]
+    mocker.patch(
+        "superset.commands.canvas.placement_data.GetPlacementDataCommand.validate",
+        side_effect=errors[family],
+    )
     response = client.post(f"{BASE}/100/placement/chart/data", json={})
     assert response.status_code == status
     assert response.json.get("error_type") == (
@@ -907,8 +913,12 @@ def test_structured_query_errors_preserve_diagnostics_and_oauth_contract(
         "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
         return_value=True,
     )
-    command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
-    command.return_value.run.side_effect = error
+    mocker.patch(
+        "superset.commands.canvas.placement_data.GetPlacementDataCommand.validate"
+    )
+    mocker.patch(
+        "superset.commands.canvas.placement_data.run_binding", side_effect=error
+    )
     response = client.post(f"{BASE}/100/placement/chart/data", json={})
     assert response.status_code == status
     expected_type = "OAuth2Redirect" if family == "oauth-redirect" else "QueryError"
@@ -1008,8 +1018,10 @@ def test_placement_forwards_all_canvas_error_payloads(
         "update": CanvasUpdateFailedError(),
         "delete": CanvasDeleteFailedError(),
     }[family]
-    command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
-    command.return_value.run.side_effect = error
+    mocker.patch(
+        "superset.commands.canvas.placement_data.GetPlacementDataCommand.validate",
+        side_effect=error,
+    )
     response = client.post(f"{BASE}/100/placement/chart/data", json={})
     assert response.status_code == (
         409 if family in {"conflict", "draft-conflict"} else 422
@@ -1030,8 +1042,13 @@ def test_unexpected_query_failures_keep_traceback_only_in_server_logs(
     mocker: MockerFixture,
     caplog: Any,
 ) -> None:
-    command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
-    command.return_value.run.side_effect = RuntimeError("private-server-diagnostic")
+    mocker.patch(
+        "superset.commands.canvas.placement_data.GetPlacementDataCommand.validate"
+    )
+    mocker.patch(
+        "superset.commands.canvas.placement_data.run_binding",
+        side_effect=RuntimeError("private-server-diagnostic"),
+    )
     response = client.post(f"{BASE}/100/placement/chart/data", json={})
     assert response.status_code == 500
     assert "private-server-diagnostic" not in str(response.json)
@@ -1042,7 +1059,7 @@ def test_unexpected_query_failures_keep_traceback_only_in_server_logs(
     ]
     assert records
     assert records[-1].exc_info
-    assert str(records[-1].exc_info[1]) == "private-server-diagnostic"
+    assert str(records[-1].exc_info[1].__cause__) == "private-server-diagnostic"
 
 
 @pytest.mark.parametrize("view_query", [False, True])

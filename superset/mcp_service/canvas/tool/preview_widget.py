@@ -149,24 +149,38 @@ def _with_render(
         result["rendered"] = False
         warnings.append(RENDERER_FAILURE_MESSAGE)
         return None
-    if not isinstance(rendered, dict) or rendered.get("error"):
+    if not isinstance(rendered, dict):
         logger.warning("Canvas widget renderer returned an unsuccessful result")
         result["rendered"] = False
         warnings.append(RENDERER_FAILURE_MESSAGE)
-        if isinstance(rendered, dict) and rendered.get("error"):
-            result["error"] = RENDERER_FAILURE_MESSAGE
+        return None
+    if (error := rendered.get("error")) is not None:
+        result["rendered"] = False
+        if isinstance(error, str) and error.strip():
+            # The operator's renderer supplies application diagnostics for
+            # repairing the chart, even when no image could be produced.
+            result["error"] = error[:MAX_RENDER_WARNING_LENGTH]
             result["error_type"] = "RendererError"
+            if isinstance(rendered.get("option"), dict):
+                result["option"] = rendered["option"]
+        else:
+            logger.warning("Canvas widget renderer returned a malformed error")
+            warnings.append(RENDERER_FAILURE_MESSAGE)
         return None
     result["rendered"] = True
-    result["option"] = rendered.get("option")
+    if isinstance(rendered.get("option"), dict):
+        result["option"] = rendered["option"]
     # The operator's renderer may return repair hints with a valid render.
     # Bound their size and accept strings only, never stringify arbitrary data.
     render_warnings = rendered.get("warnings")
     if isinstance(render_warnings, list):
         warnings.extend(
             warning[:MAX_RENDER_WARNING_LENGTH]
-            for warning in render_warnings[:MAX_RENDER_WARNINGS]
-            if isinstance(warning, str) and warning
+            for warning in [
+                warning
+                for warning in render_warnings
+                if isinstance(warning, str) and warning
+            ][:MAX_RENDER_WARNINGS]
         )
     image = rendered.get("png")
     if image:

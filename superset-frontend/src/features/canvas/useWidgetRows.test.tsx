@@ -250,6 +250,8 @@ test.each([
   ['exception', new Error('sensitive transport body')],
   ['string', 'sensitive transport body'],
   ['message object', { message: 'sensitive transport body' }],
+  ['unknown network error', new TypeError('private transport detail')],
+  ['invalid timeout', { statusText: 'timeout', timeout: 'private detail' }],
   ['null', null],
 ])(
   'does not expose a bare transport %s through the real normalizer',
@@ -280,18 +282,21 @@ test.each([false, true])(
   },
 );
 
-test('does not fall back to the status text of an already consumed response', async () => {
-  const response = new Response('{}', {
-    status: 500,
-    statusText: 'sensitive transport body',
-  });
-  await response.text();
-  fetchData.mockRejectedValue(response);
-  const { result } = renderHook(() => useWidgetRows(widget, [], 0));
-  await waitFor(() => expect(result.current.loading).toBe(false));
-  expect(result.current.error).toBe("The widget's query failed");
-  expect(clientError).not.toHaveBeenCalled();
-});
+test.each([false, true])(
+  'does not fall back to consumed response status text (wrapped: %s)',
+  async wrapped => {
+    const response = new Response('{}', {
+      status: 500,
+      statusText: 'sensitive transport body',
+    });
+    await response.text();
+    fetchData.mockRejectedValue(wrapped ? { response } : response);
+    const { result } = renderHook(() => useWidgetRows(widget, [], 0));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).toBe("The widget's query failed");
+    expect(clientError).not.toHaveBeenCalled();
+  },
+);
 
 test.each(['success', 'denied'])(
   'keeps rows and query during a refresh until %s',
@@ -370,5 +375,6 @@ test.each([
     const { result } = renderHook(() => useWidgetRows(widget, [], 0));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBe(message);
+    expect(clientError).toHaveBeenCalledTimes(1);
   },
 );

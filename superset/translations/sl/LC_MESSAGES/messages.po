@@ -20115,6 +20115,9 @@ msgid ""
 "to revision %(revision)s."
 msgstr ""
 
+msgid "The widget's query failed"
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Debelina plastnic v pikslih"
 

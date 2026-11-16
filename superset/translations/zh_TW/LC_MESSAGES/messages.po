@@ -21266,6 +21266,9 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+msgid "The widget's query failed"
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "等值線的寬度（以像素為單位）"
 

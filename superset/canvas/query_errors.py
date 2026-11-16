@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Literal
 
 from marshmallow import ValidationError
 
@@ -55,6 +55,9 @@ class CanvasQueryError:
     error_type: str
     message: str
     errors: tuple[SupersetError, ...] = ()
+    reason: Literal["query", "missing_datasource", "security_refusal"] = "query"
+    security_error_type: SupersetErrorType | None = None
+    oauth_redirect_url: str | None = None
 
     def rest_payload(self) -> dict[str, Any]:
         """Retain structured details needed by clients, including OAuth redirects."""
@@ -67,6 +70,14 @@ class CanvasQueryError:
         return payload
 
 
+class CanvasQueryFailedError(Exception):
+    """A classified failure from executing a validated Canvas data binding."""
+
+    def __init__(self, error: CanvasQueryError) -> None:
+        super().__init__(error.message)
+        self.error = error
+
+
 def canvas_query_error(error: Exception) -> CanvasQueryError:
     """Classify only the outer exception, without inspecting its cause or text.
 
@@ -75,7 +86,9 @@ def canvas_query_error(error: Exception) -> CanvasQueryError:
     fixed public message rather than arbitrary exception details.
     """
     if isinstance(error, DatasourceNotFound):
-        return CanvasQueryError(404, "QueryError", "Datasource does not exist")
+        return CanvasQueryError(
+            404, "QueryError", "Datasource does not exist", reason="missing_datasource"
+        )
     if isinstance(error, SupersetSecurityException):
         if error.error.error_type in {
             SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -91,7 +104,14 @@ def canvas_query_error(error: Exception) -> CanvasQueryError:
             == SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR
             else error.status
         )
-    elif isinstance(
+        return CanvasQueryError(
+            status,
+            "QueryError",
+            sanitize_superset_error(error.error).message,
+            reason="security_refusal",
+            security_error_type=error.error.error_type,
+        )
+    if isinstance(
         error,
         (
             QueryObjectValidationError,
@@ -115,6 +135,11 @@ def canvas_query_error(error: Exception) -> CanvasQueryError:
             else "QueryError",
             errors[0].message if errors else str(GENERIC_ERROR_MESSAGE),
             tuple(errors),
+            oauth_redirect_url=(
+                errors[0].extra["url"]
+                if isinstance(error, OAuth2RedirectError) and errors[0].extra
+                else None
+            ),
         )
     else:
         return CanvasQueryError(500, "QueryError", str(GENERIC_ERROR_MESSAGE))

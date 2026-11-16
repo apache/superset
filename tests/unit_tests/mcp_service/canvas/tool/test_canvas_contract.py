@@ -1077,8 +1077,6 @@ async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
     """Images preserve canonical links and typed failures without counting warnings."""
     from mcp.types import ImageContent
 
-    from superset.mcp_service.canvas.tool.preview_widget import RENDERER_FAILURE_MESSAGE
-
     server = await _server(structured=structured, proxy=proxy)
     app.config["CANVAS_WIDGET_RENDERER_URL"] = "http://renderer"
     dao = mocker.patch(f"{MODULE}.preview_widget.CanvasDAO")
@@ -1101,7 +1099,8 @@ async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
     if renderer_outcome == "warning":
         rendered["warnings"] = ["Tooltip prints [object Object]"]
     elif renderer_outcome == "error":
-        rendered["error"] = "private renderer error"
+        rendered["error"] = "Unknown series type: custom"
+        rendered["option"] = {"series": [{"type": "custom"}]}
     mocker.patch(f"{MODULE}.preview_widget._render", return_value=rendered)
     stats = mocker.patch("superset.mcp_service.middleware.stats_logger_manager")
     async with Client(server) as client:
@@ -1119,10 +1118,10 @@ async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
     if renderer_outcome == "warning":
         assert data["warnings"] == ["Tooltip prints [object Object]"]
     elif renderer_outcome == "error":
-        assert data["warnings"] == [RENDERER_FAILURE_MESSAGE]
+        assert not data.get("warnings")
         assert "image" not in data
-        assert "option" not in data
-        assert "private renderer" not in str(data)
+        assert data["error"] == "Unknown series type: custom"
+        assert data["option"] == {"series": [{"type": "custom"}]}
     assert data["url"] == f"{BASE_URL}/canvas/sales/"
     assert data.get("error_type") == (
         "RendererError" if renderer_outcome == "error" else None

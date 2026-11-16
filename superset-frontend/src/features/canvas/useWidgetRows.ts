@@ -41,6 +41,24 @@ export interface WidgetRows extends PlacementData {
   datasource?: string;
 }
 
+/** Restrict the shared normalizer to server responses and fixed transport errors. */
+function canNormalizeError(
+  error: unknown,
+): error is Parameters<typeof getClientErrorObject>[0] {
+  if (error instanceof Response) return !error.bodyUsed;
+  return (
+    (error instanceof TypeError && error.message === 'Failed to fetch') ||
+    Boolean(
+      error &&
+      typeof error === 'object' &&
+      'statusText' in error &&
+      error.statusText === 'timeout' &&
+      'timeout' in error &&
+      typeof error.timeout === 'number',
+    )
+  );
+}
+
 /**
  * A placement's rows, queried on the server from its stored `dataBinding`,
  * narrowed by the filter values that reach it and refetched on refresh. A
@@ -105,27 +123,12 @@ export function useWidgetRows(
         if (cancelled) return;
         let message = t("The widget's query failed");
         try {
-          // SupersetClient rejects HTTP failures with a Response. Only parse
-          // that server diagnostic: the normalizer also echoes bare messages.
-          const response =
-            e instanceof Response
-              ? e
-              : e && typeof e === 'object' && 'response' in e
-                ? e.response
-                : undefined;
-          if (e instanceof TypeError && e.message === 'Failed to fetch') {
-            message = t('Network error');
-          } else if (
-            e &&
-            typeof e === 'object' &&
-            'statusText' in e &&
-            e.statusText === 'timeout' &&
-            'timeout' in e &&
-            typeof e.timeout === 'number'
-          ) {
-            message = t('Request timed out');
-          } else if (response instanceof Response && !response.bodyUsed) {
-            const { error } = await getClientErrorObject(response);
+          // Unwrap HTTP failures without allowing arbitrary message/statusText
+          // fallbacks, including the normalizer's consumed-Response fallback.
+          const input =
+            e && typeof e === 'object' && 'response' in e ? e.response : e;
+          if (canNormalizeError(input)) {
+            const { error } = await getClientErrorObject(input);
             if (error) message = error;
           }
         } catch {

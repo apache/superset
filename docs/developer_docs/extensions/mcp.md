@@ -320,11 +320,16 @@ MCP metrics count returned preview errors as failures. Warnings alone remain
 successful tool results, including an unavailable optional renderer. A successful
 renderer result retains its image and option alongside up to ten actionable
 warning strings, each limited to 500 characters. Warnings require review; tool
-success alone must not be presented as successful visual verification. Renderer
-transport failures and returned errors use fixed guidance that the chart was
-not visually checked, without exposing renderer URLs or raw failure details.
-They set `rendered: false` and return no image or rendered option; an explicit
-renderer error also carries `RendererError`.
+success alone must not be presented as successful visual verification. The
+operator-configured renderer's nonempty string error is an application repair
+hint: it is limited to 500 characters and returned with `RendererError` and the
+resolved option, when that option is an object. These failed renders set
+`rendered: false` and return no image, even if the response contained one.
+Transport, HTTP and decoding failures, non-object responses, and malformed error
+payloads instead return fixed
+guidance that the chart was not visually checked, without publishing exception
+details or an option. Clients can keep these unavailable visual checks as notes
+while treating structured renderer errors as actionable chart problems.
 
 The Canvas client clears prior rows and query text when its binding or Canvas,
 placement, draft or version context changes. Background refreshes retain current

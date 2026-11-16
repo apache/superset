@@ -21,6 +21,7 @@ from uuid import UUID
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.canvas.definition.registry import get_widget_resolver
+from superset.canvas.query_errors import canvas_query_error, CanvasQueryFailedError
 from superset.canvas.versions import version_snapshot
 from superset.commands.base import BaseCommand
 from superset.commands.canvas.draft import load_draft
@@ -58,7 +59,10 @@ class GetPlacementDataCommand(BaseCommand):
 
     def run(self) -> PlacementData:
         self.validate()
-        return run_binding(self._binding, self._runtime_filters)
+        try:
+            return run_binding(self._binding, self._runtime_filters)
+        except Exception as ex:  # pylint: disable=broad-except
+            raise CanvasQueryFailedError(canvas_query_error(ex)) from ex
 
     def validate(self) -> None:
         canvas = CanvasDAO.find_by_id_or_uuid(self._id_or_uuid)

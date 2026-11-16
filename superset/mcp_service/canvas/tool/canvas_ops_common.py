@@ -29,9 +29,9 @@ from superset.commands.canvas.exceptions import (
     DefinitionInvalidError,
     DraftConflictError,
 )
-from superset.daos.exceptions import DatasourceNotFound
-from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
-from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message_from_url,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
@@ -79,23 +79,24 @@ def query_error(ex: Exception) -> dict[str, str]:
     error = canvas_query_error(ex)
     if error.status >= 500:
         logger.warning("Canvas widget query failed", exc_info=True)
-    if isinstance(ex, (SupersetSecurityException, DatasourceNotFound)):
+    if (
+        error.error_type == "DatasetNotAccessible"
+        or error.reason == "missing_datasource"
+    ):
         logger.info("Canvas widget query refused: %s", ex)
-        if (
-            isinstance(ex, DatasourceNotFound)
-            or error.error_type == "DatasetNotAccessible"
-        ):
-            return {
-                "error": "The widget's dataset does not exist, or you have no "
-                "access to it.",
-                "error_type": "DatasetNotAccessible",
-            }
         return {
-            "error": f"The widget's query was refused ({ex.error.error_type.value}).",
-            "error_type": "QueryError",
+            "error": "The widget's dataset does not exist, or you have no "
+            "access to it.",
+            "error_type": "DatasetNotAccessible",
         }
-    if isinstance(ex, OAuth2RedirectError):
-        message = build_oauth2_redirect_message(ex)
+    if error.reason == "security_refusal":
+        logger.info("Canvas widget query refused: %s", ex)
+        return {
+            "error": f"The widget's query was refused ({error.security_error_type}).",
+            "error_type": error.error_type,
+        }
+    if error.oauth_redirect_url is not None:
+        message = build_oauth2_redirect_message_from_url(error.oauth_redirect_url)
     elif can_view_query():
         message = f"The widget's query failed: {error.message}"
     else:

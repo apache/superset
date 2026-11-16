@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, ReactElement } from 'react';
+import { ReactNode, ReactElement, useState } from 'react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import type { canvas as canvasApi } from '@apache-superset/core';
@@ -29,7 +29,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import FilterSelectRenderer from './FilterSelectRenderer';
-import { CanvasDraftContext } from './useWidgetRows';
+import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
 
 jest.mock('@superset-ui/core/components', () => ({
   Typography: {
@@ -299,3 +299,61 @@ test('replaces options only when a refresh succeeds', async () => {
   expect(screen.queryByRole('option', { name: 'old' })).not.toBeInTheDocument();
   expect(screen.getByRole('option', { name: 'new' })).toBeInTheDocument();
 });
+
+test('a fresh renderer without defaults clears a retained parent filter', () => {
+  function Parent({ generation }: { generation: number }) {
+    const [value, setValue] = useState<unknown>({ values: ['stale'] });
+    return (
+      <>
+        <FilterSelectRenderer
+          key={generation}
+          {...widget}
+          props={{ ...widget.props, options: ['north'] }}
+          setFilterValue={setValue}
+        />
+        <output data-test="parent-filter">{JSON.stringify(value)}</output>
+      </>
+    );
+  }
+  const { rerender } = render(<Parent generation={0} />);
+  expect(screen.getByTestId('parent-filter')).toHaveTextContent('null');
+  fireEvent.change(screen.getByRole('listbox'), { target: { value: 'north' } });
+  expect(screen.getByTestId('parent-filter')).toHaveTextContent('north');
+  rerender(<Parent generation={1} />);
+  expect(screen.getByTestId('selection')).toHaveTextContent('[]');
+  expect(screen.getByTestId('parent-filter')).toHaveTextContent('null');
+});
+
+test.each(['draft', 'version'])(
+  'clears options without resetting selection when %s context changes',
+  async context => {
+    const pending = deferredResult();
+    jest
+      .spyOn(SupersetClient, 'get')
+      .mockResolvedValueOnce(response(['north']))
+      .mockReturnValueOnce(
+        pending.promise as ReturnType<typeof SupersetClient.get>,
+      );
+    let value: string | undefined;
+    const Context =
+      context === 'draft' ? CanvasDraftContext : CanvasVersionContext;
+    const Wrapper = ({ children }: { children: ReactNode }) => (
+      <Context.Provider value={value}>{children}</Context.Provider>
+    );
+    const { rerender } = render(<FilterSelectRenderer {...widget} />, {
+      wrapper: Wrapper,
+    });
+    await screen.findByRole('option', { name: 'north' });
+    fireEvent.change(screen.getByRole('listbox'), {
+      target: { value: 'north' },
+    });
+    jest.mocked(widget.setFilterValue).mockClear();
+    value = 'another-context';
+    rerender(<FilterSelectRenderer {...widget} />);
+    expect(screen.queryAllByRole('option')).toHaveLength(0);
+    expect(screen.getByTestId('selection')).toHaveTextContent('["north"]');
+    expect(widget.setFilterValue).not.toHaveBeenCalled();
+    await act(async () => pending.resolve({ json: { result: ['west'] } }));
+    expect(screen.getByRole('option', { name: 'west' })).toBeInTheDocument();
+  },
+);

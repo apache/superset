@@ -154,11 +154,11 @@ def test_preview_distinguishes_query_validation_from_dataset_access(
             )
 
 
-@pytest.mark.parametrize("failure", ["transport", "decode", "error", "shape"])
-def test_renderer_failures_never_echo_private_diagnostics(
+@pytest.mark.parametrize("failure", ["transport", "http", "decode", "error", "shape"])
+def test_renderer_transport_and_malformed_results_keep_fixed_diagnostics(
     app: SupersetApp, mocker: MockerFixture, failure: str
 ) -> None:
-    """Renderer transport and returned diagnostics have one fixed safe message."""
+    """Transport exceptions and invalid response shapes are not repair hints."""
     import requests
 
     from superset.mcp_service.canvas.tool.preview_widget import (
@@ -170,6 +170,8 @@ def test_renderer_failures_never_echo_private_diagnostics(
     render = mocker.patch(f"{MODULE}._render")
     if failure == "transport":
         render.side_effect = requests.RequestException(private)
+    elif failure == "http":
+        render.side_effect = requests.HTTPError(private)
     elif failure == "decode":
         render.side_effect = ValueError(private)
     elif failure == "shape":
@@ -190,7 +192,54 @@ def test_renderer_failures_never_echo_private_diagnostics(
     assert "image" not in result
     assert private not in str(result)
     assert private not in str(log.call_args_list)
-    assert result.get("error_type") == ("RendererError" if failure == "error" else None)
+    assert "error_type" not in result
+
+
+@pytest.mark.parametrize("option", [{"series": [{"type": "invalid"}]}, "bad shape"])
+def test_renderer_error_keeps_bounded_repair_hint_and_resolved_option(
+    app: SupersetApp, mocker: MockerFixture, option: Any
+) -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _with_render
+
+    diagnostic = "Unknown series type: " + "x" * 600
+    mocker.patch(
+        f"{MODULE}._render",
+        return_value={
+            "error": diagnostic,
+            "option": option,
+            "warnings": ["duplicate renderer warning"],
+            "png": "unverified-image",
+        },
+    )
+    result: dict[str, Any] = {}
+    image = _with_render(result, "http://renderer", {}, [], {}, (640, 320), False)
+    assert image is None
+    assert result["rendered"] is False
+    assert result["error"] == diagnostic[:500]
+    assert result["error_type"] == "RendererError"
+    assert result["warnings"] == []
+    assert "image" not in result
+    if isinstance(option, dict):
+        assert result["option"] == option
+    else:
+        assert "option" not in result
+
+
+@pytest.mark.parametrize("error", ["", "   ", 0, False, ["invalid"], {"invalid": 1}])
+def test_malformed_renderer_error_is_not_reported_as_visual_success(
+    app: SupersetApp, mocker: MockerFixture, error: Any
+) -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import (
+        _with_render,
+        RENDERER_FAILURE_MESSAGE,
+    )
+
+    mocker.patch(f"{MODULE}._render", return_value={"error": error, "png": "image"})
+    result: dict[str, Any] = {}
+    assert (
+        _with_render(result, "http://renderer", {}, [], {}, (640, 320), False) is None
+    )
+    assert result == {"rendered": False, "warnings": [RENDERER_FAILURE_MESSAGE]}
 
 
 @pytest.mark.parametrize(
@@ -378,6 +427,7 @@ def test_widget_query_input_can_be_repaired_in_a_draft(
         ["Tooltip prints [object Object]"],
         ["x" * 1000] * 20,
         [None, {"unexpected": "object"}, 3, "Useful hint"],
+        [None] * 10 + [f"Useful hint {i}" for i in range(11)],
         "not a list",
     ],
 )
@@ -397,10 +447,8 @@ def test_successful_renderer_warnings_are_bounded_and_keep_image(
     assert result["option"] == {"series": []}
     assert "error" not in result
     expected = (
-        [
-            warning[:500]
-            for warning in warnings[:10]
-            if isinstance(warning, str) and warning
+        [warning[:500] for warning in warnings if isinstance(warning, str) and warning][
+            :10
         ]
         if isinstance(warnings, list)
         else []
