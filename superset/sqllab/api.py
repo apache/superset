@@ -278,7 +278,7 @@ class SqlLabRestApi(BaseSupersetApi):
                       prepared_query_id:
                         type: string
                         format: uuid
-                        description: Owned, expiring execution preparation identifier
+                        description: Owned execution preparation identifier
                       result:
                         oneOf:
                           - type: object

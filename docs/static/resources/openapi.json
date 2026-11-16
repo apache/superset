@@ -36975,7 +36975,7 @@
                 "schema": {
                   "properties": {
                     "prepared_query_id": {
-                      "description": "Owned, expiring execution preparation identifier",
+                      "description": "Owned execution preparation identifier",
                       "format": "uuid",
                       "type": "string"
                     },

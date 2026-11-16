@@ -24,14 +24,6 @@ assists people when migrating to a new version.
 
 ## Next
 
-- SQL Lab query warnings add the `ix_query_status_start_time` index on the
-  metadata database's `query` table so preparation cleanup can locate expired
-  records without scanning ordinary query history. The migration preserves
-  query records; downgrade removes only the index. Index creation runs inline
-  and can block writes while it builds, depending on the metadata database.
-  Deployments with large query histories should allow time for the index build
-  and schedule the upgrade during a maintenance window.
-
 - Semantic cache rollups serve limited queries only when the post-filter,
   rolled-up result fits within the limit. Queries with nonzero row offsets bypass
   containment reuse. Larger rolled-up results fall back to

@@ -17,6 +17,7 @@
 """Prepared warning attempts retain SQL and control confirmation dispatch."""
 
 from collections.abc import Iterator
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -30,6 +31,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
+from superset.commands.sql_lab.query import QueryPruneCommand
 from superset.common.db_query_status import QueryStatus
 from superset.daos.query import QueryDAO
 from superset.db_engine_specs.query_warning import QueryCostEstimate
@@ -45,7 +47,6 @@ from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.query_preparation import (
     discard_preparation,
     PREPARATION_KEY,
-    prune_preparations,
 )
 from superset.sqllab.query_render import SqlQueryRenderException
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
@@ -246,9 +247,7 @@ def test_render_error_stops_before_assessment(
     assert session.query(Query).one().status == QueryStatus.DISCARDED
 
 
-@pytest.mark.parametrize(
-    "change", ["sql", "limit", "owner", "connection", "expired", "cancel"]
-)
+@pytest.mark.parametrize("change", ["sql", "limit", "owner", "connection", "cancel"])
 def test_changed_or_discarded_preparation_cannot_execute(
     preparation: Any,
     session: Session,
@@ -266,10 +265,6 @@ def test_changed_or_discarded_preparation_cannot_execute(
         query.user_id = 99
     if change == "connection":
         database.extra = "{}"
-    if change == "expired":
-        value = query.extra[PREPARATION_KEY]
-        value["expires_at"] = 0
-        query.set_extra_json_key(PREPARATION_KEY, value)
     if change == "cancel":
         discard_preparation(query.client_id)
     session.commit()
@@ -297,15 +292,46 @@ def test_cancel_during_preparation_cannot_publish_or_execute(
     command._sql_json_executor.execute.assert_not_called()
 
 
-def test_prune_only_expired_hidden_queries(preparation: Any, session: Session) -> None:
+def test_query_retention_removes_old_attempts_and_preserves_recent_history(
+    preparation: Any, session: Session
+) -> None:
+    """Ordinary retention uses changed_on across both hidden and executed queries."""
     make, _, _ = preparation
-    make().prepare_warning()
-    query = session.query(Query).one()
-    query.start_time = 0
+    now = datetime.now()
+    retained_ids = []
+    old_prepared = None
+    for index, status in enumerate(
+        [
+            QueryStatus.PREPARING,
+            QueryStatus.PREPARED,
+            QueryStatus.DISCARDED,
+            QueryStatus.SUCCESS,
+            QueryStatus.FAILED,
+        ]
+    ):
+        for old in (False, True):
+            client_id = f"retain{index}{int(old)}"
+            response = make(client_id=client_id).prepare_warning()
+            query = session.query(Query).filter_by(client_id=client_id).one()
+            query.status = status
+            query.changed_on = now - timedelta(days=31 if old else 1)
+            # Start time does not control the existing history retention policy.
+            query.start_time = now.timestamp() * 1000 if old else 0
+            if not old:
+                retained_ids.append(query.id)
+            elif status == QueryStatus.PREPARED:
+                old_prepared = make(
+                    client_id=client_id,
+                    prepared_query_id=response["prepared_query_id"],
+                )
     session.commit()
-    prune_preparations()
-    session.commit()
-    assert session.query(Query).count() == 0
+    QueryPruneCommand(retention_period_days=30).run()
+    session.expire_all()
+    assert sorted(row.id for row in session.query(Query).all()) == retained_ids
+    assert old_prepared is not None
+    with pytest.raises(SupersetGenericErrorException):
+        old_prepared.run()
+    old_prepared._sql_json_executor.execute.assert_not_called()
 
 
 @pytest.mark.parametrize("peer_action", ["confirm", "cancel"])
@@ -365,9 +391,9 @@ def test_confirmation_rechecks_rendered_permissions(
     command._sql_json_executor.execute.assert_not_called()
 
 
-def test_confirmation_does_not_render_dynamic_template_again(
+def test_delayed_confirmation_executes_original_template_once(
     preparation: Any,
-    app: Flask,
+    session: Session,
     mocker: MockerFixture,
 ) -> None:
     from superset.jinja_context import BaseTemplateProcessor, get_template_processors
@@ -382,9 +408,19 @@ def test_confirmation_does_not_render_dynamic_template_again(
     mocker.patch.dict(get_template_processors(), {"postgresql": ChangingProcessor})
     make, _, estimate = preparation
     response = make().prepare_warning()
+    prepared = session.query(Query).one()
+    prepared_id = prepared.id
+    mocker.patch(
+        "superset.commands.sql_lab.execute.now_as_float",
+        return_value=float(prepared.start_time) + 30 * 60 * 1000,
+    )
     command = make(prepared_query_id=response["prepared_query_id"])
-    command._resume_prepared_query()
+    command.run()
+    command.run()
+    assert session.query(Query).one().id == prepared_id
+    command._sql_json_executor.execute.assert_called_once()
     assert len(renders) == 1
+    estimate.assert_called_once()
     assert "SELECT" in estimate.call_args.args[3]
     assert command._sql_json_executor.execute.call_args.args[1] == "SELECT 1"
 
@@ -466,40 +502,6 @@ def test_async_dispatch_receives_committed_prepared_query(
     command._sql_json_executor = ASynchronousSqlJsonExecutor(QueryDAO(), task)
     command._resume_prepared_query()
     assert seen == [("SELECT 42", 1000, QueryStatus.PENDING)]
-
-
-@pytest.mark.parametrize("elapsed_minutes", [14, 15, 16])
-def test_preparation_lifetime_uses_query_timestamp_units(
-    preparation: Any,
-    session: Session,
-    mocker: MockerFixture,
-    elapsed_minutes: int,
-) -> None:
-    make, _, _ = preparation
-    response = make().prepare_warning()
-    query = session.query(Query).one()
-    elapsed = float(query.start_time) + elapsed_minutes * 60 * 1000
-    mocker.patch("superset.commands.sql_lab.execute.now_as_float", return_value=elapsed)
-    mocker.patch("superset.sqllab.query_preparation.now_as_float", return_value=elapsed)
-    command = make(prepared_query_id=response["prepared_query_id"])
-    if elapsed_minutes < 15:
-        prune_preparations()
-        assert session.query(Query).count() == 1
-        command._resume_prepared_query()
-        command._sql_json_executor.execute.assert_called_once()
-        # Cleanup never deletes an execution, even after its preparation expires.
-        mocker.patch(
-            "superset.sqllab.query_preparation.now_as_float",
-            return_value=elapsed + 120000,
-        )
-        prune_preparations()
-        assert session.query(Query).count() == 1
-    else:
-        with pytest.raises(SupersetGenericErrorException):
-            command._resume_prepared_query()
-        command._sql_json_executor.execute.assert_not_called()
-        prune_preparations()
-        assert session.query(Query).count() == int(elapsed_minutes == 15)
 
 
 def test_confirmation_uses_updated_tab_bookkeeping(

@@ -582,29 +582,42 @@ executing; it does not forcibly cancel a database dry run. The **Query warning**
 popup explains an above-threshold or unavailable estimate and offers **Cancel**
 and **Run anyway**. Errors stop the attempt without executing it.
 
-Changing the SQL or selection, connection, catalog, schema, template or URL parameters,
-effective limit, asynchronous execution setting, or locally loaded warning
-settings cancels a pending attempt. Switching editor tabs does too. Confirming
-resumes the prepared query without rendering its template again. The server
-rechecks access and preparation before execution. Changed connection settings or
-security preparation require a fresh Run instead of reusing the confirmation.
+A pending attempt belongs to the query captured when **Run** was clicked.
+Editing SQL, parameters, limits, or the selected connection afterward does not
+change or cancel that attempt. **Run anyway** executes the captured query and
+keeps its results associated with the original editor tab, even if another tab
+is active. Closing the original editor or explicitly cancelling prevents that
+attempt from executing.
+
+Confirming resumes the prepared query without rendering its template again.
+The server rechecks access and preparation before execution. Changes to the
+underlying database connection settings or security preparation require a fresh
+Run instead of reusing the confirmation.
 
 SQL Lab includes the captured execution payload in the warning request's optional
 `execution` field. Eligible requests retain a private preparation and return
 `prepared_query_id` alongside `result`. SQL Lab passes that identifier with the
 same execution inputs to `/execute/`. The identifier belongs to the initiating
-user, expires after 15 minutes, and cannot be reused to dispatch a second query.
+user and cannot be reused to dispatch a second query. There is no fixed
+confirmation timeout; resuming uses the saved SQL without rendering it again.
 Clients discard an abandoned preparation with
 `DELETE /api/v1/sqllab/warning/<client_id>`. Ordinary execution requests and
 standalone advisory checks remain available without this preparation protocol.
 
 Preparations remain out of normal query history until execution is requested.
-Cancelled and expired preparation records are cleaned up opportunistically and by
-the existing query-pruning task. A metadata-database migration adds an index on
-query status and start time for preparation cleanup. On installations with large
-query histories, allow time for this index to build during upgrade.
-Stop and Cancel prevent the main query from
-being submitted; they cannot undo database work performed by template macros
+Waiting for confirmation retains a metadata record, not a running query or open
+database connection. Confirming reuses that record for execution. The assessment
+can become stale while waiting; it is advisory, and access and execution
+preparation are rechecked before dispatch.
+
+Preparation records follow the existing, opt-in `prune_query` task's retention
+policy based on `changed_on`, like ordinary query history. If retention removes
+an attempt, confirmation requires a fresh Run. Without query pruning,
+abandoned and cancelled records, including SQL and captured inputs, can remain
+indefinitely in the metadata database. There is no separate preparation cleanup
+or confirmation-expiry task.
+
+Stop and Cancel prevent the main query from being submitted; they cannot undo database work performed by template macros
 during preparation. An assessment is not a guarantee of the eventual runtime or
 cost, which can change as warehouse data and conditions change.
 

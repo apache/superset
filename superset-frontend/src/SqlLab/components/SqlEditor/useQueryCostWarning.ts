@@ -16,14 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
-import { isEqual } from 'lodash-es';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -91,45 +84,9 @@ export default function useQueryCostWarning(
   const store = useStore<SqlLabRootState>();
   const dispatch = useAppDispatch();
   const mounted = useRef(false);
-  const editorInputsRef = useRef({ queryEditor, defaultQueryLimit });
-
-  const readInputs = useCallback(() => {
-    const state = store.getState();
-    const editorInputs = editorInputsRef.current;
-    const editor = getUpToDateQuery(state, editorInputs.queryEditor);
-    const database: DatabaseObject | undefined =
-      state.sqlLab.databases[editor.dbId || ''];
-    const enabled = isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings);
-    const inputs = {
-      id: editor.id,
-      active: state.sqlLab.tabHistory.slice(-1)[0],
-      sql: editor.sql,
-      selectedText: editor.selectedText,
-      dbId: editor.dbId,
-      catalog: editor.catalog,
-      schema: editor.schema,
-      templateParams: editor.templateParams,
-      limit: editor.queryLimit || editorInputs.defaultQueryLimit,
-      async: database?.allow_run_async,
-      immutableId: editor.immutableId,
-      backend: database?.backend,
-      rule: database?.query_cost_warning,
-      warningState: database?.query_warning_state,
-      enabled,
-      search: window.location.search,
-    };
-    return {
-      editor,
-      database,
-      enabled,
-      inputs,
-      active: state.sqlLab.tabHistory.slice(-1)[0] === editor.id,
-    };
-  }, [store]);
 
   type Attempt = {
     query: Query;
-    inputs: ReturnType<typeof readInputs>['inputs'];
     result?: QueryWarningConfirmation;
   };
   const activeAttemptRef = useRef<Attempt>();
@@ -138,7 +95,7 @@ export default function useQueryCostWarning(
   const discard = useCallback((query: Query) => {
     SupersetClient.delete({
       endpoint: `/api/v1/sqllab/warning/${query.id}`,
-    }).catch(() => undefined); // Abandoned preparations also expire on the server.
+    }).catch(() => undefined); // Unexecuted records follow normal query-history retention.
   }, []);
   const cancel = useCallback(() => {
     if (activeAttemptRef.current) discard(activeAttemptRef.current.query);
@@ -147,35 +104,33 @@ export default function useQueryCostWarning(
   }, [discard]);
   const isCurrent = useCallback(
     (attempt: Attempt) =>
-      mounted.current &&
-      activeAttemptRef.current === attempt &&
-      isEqual(readInputs().inputs, attempt.inputs),
-    [readInputs],
+      mounted.current && activeAttemptRef.current === attempt,
+    [],
   );
-  useLayoutEffect(() => {
-    editorInputsRef.current = { queryEditor, defaultQueryLimit };
-  }, [queryEditor, defaultQueryLimit]);
   useEffect(() => {
     mounted.current = true;
-    const unsubscribe = store.subscribe(() => {
-      if (activeAttemptRef.current && !isCurrent(activeAttemptRef.current))
-        cancel();
-    });
     return () => {
       mounted.current = false;
       cancel();
-      unsubscribe();
     };
-  }, [cancel, isCurrent, store]);
-  useEffect(() => {
-    if (activeAttemptRef.current && !isCurrent(activeAttemptRef.current))
-      cancel();
-  });
+  }, [cancel]);
 
   const execute = useCallback(
     (query: Query) => {
       // Saving or renaming a tab changes its bookkeeping, not the checked SQL.
-      const { editor } = readInputs();
+      const state = store.getState();
+      const origin = state.sqlLab.queryEditors.find(
+        editor =>
+          (query.sqlEditorImmutableId &&
+            editor.immutableId === query.sqlEditorImmutableId) ||
+          editor.id === query.sqlEditorId ||
+          editor.tabViewId === query.sqlEditorId,
+      );
+      if (!origin) {
+        discard(query);
+        return;
+      }
+      const editor = getUpToDateQuery(state, origin);
       dispatch(
         runQuery({
           ...query,
@@ -185,7 +140,7 @@ export default function useQueryCostWarning(
       );
       dispatch(setActiveSouthPaneTab('Results'));
     },
-    [dispatch, readInputs],
+    [discard, dispatch, store],
   );
   const continueRun = useCallback(() => {
     const attempt = activeAttemptRef.current;
@@ -207,12 +162,16 @@ export default function useQueryCostWarning(
       sql?: string,
     ) => {
       if (activeAttemptRef.current) return;
-      const { editor, database, enabled, inputs, active } = readInputs();
+      const state = store.getState();
+      const editor = getUpToDateQuery(state, queryEditor);
+      const database: DatabaseObject | undefined =
+        state.sqlLab.databases[editor.dbId || ''];
+      const active = state.sqlLab.tabHistory.slice(-1)[0] === editor.id;
       if (!database || (!active && !isAutomaticRun)) return;
       const query = buildSqlEditorQuery(
         { id: database.id, allow_run_async: Boolean(database.allow_run_async) },
         sql === undefined ? editor : { ...editor, selectedText: sql },
-        editorInputsRef.current.defaultQueryLimit,
+        defaultQueryLimit,
         tempTable,
         ctas,
         ctasMethod,
@@ -220,19 +179,19 @@ export default function useQueryCostWarning(
       if (
         ctas ||
         isAutomaticRun ||
-        !enabled ||
+        !isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings) ||
         database.query_warning_state === 'disabled' ||
         database.query_warning_state === 'unsupported'
       ) {
         execute(query);
         return;
       }
-      const attempt: Attempt = { query, inputs };
+      const attempt: Attempt = { query };
       activeAttemptRef.current = attempt;
       setPendingAttempt(attempt);
       try {
         const { json } = await SupersetClient.post({
-          endpoint: `/api/v1/sqllab/warning/${inputs.search || ''}`,
+          endpoint: `/api/v1/sqllab/warning/${window.location.search || ''}`,
           jsonPayload: {
             execution: getQueryExecutionPayload(query),
             database_id: query.dbId,
@@ -284,7 +243,16 @@ export default function useQueryCostWarning(
         );
       }
     },
-    [cancel, discard, dispatch, execute, isCurrent, readInputs],
+    [
+      cancel,
+      defaultQueryLimit,
+      discard,
+      dispatch,
+      execute,
+      isCurrent,
+      queryEditor,
+      store,
+    ],
   );
   return {
     start,

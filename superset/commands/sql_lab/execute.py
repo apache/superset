@@ -46,8 +46,6 @@ from superset.sqllab.query_preparation import (
     execution_inputs,
     preparation_error,
     PREPARATION_KEY,
-    PREPARATION_LIFETIME,
-    prune_preparations,
 )
 from superset.sqllab.utils import set_query_limit
 from superset.utils.dates import now_as_float
@@ -212,7 +210,6 @@ class ExecuteSqlCommand(BaseCommand):
         enabled = estimator.get_enabled_check()
         if enabled is None:
             return {"result": {"action": "proceed"}}
-        prune_preparations()
         if self._try_get_existing_query() is not None:
             raise preparation_error()
         query = context.create_query()
@@ -233,8 +230,6 @@ class ExecuteSqlCommand(BaseCommand):
                     "inputs": execution_inputs(context),
                     "rendered_sql": rendered,
                     "assessed_sql": prepared_sql,
-                    "expires_at": float(query.start_time)
-                    + PREPARATION_LIFETIME.total_seconds() * 1000,
                     "connection_revision": connection_revision(context.database),
                 },
             )
@@ -306,10 +301,7 @@ class ExecuteSqlCommand(BaseCommand):
             QueryStatus.DISCARDED,
         ):
             return SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
-        if (
-            query.status != QueryStatus.PREPARED
-            or preparation["expires_at"] <= now_as_float()
-        ):
+        if query.status != QueryStatus.PREPARED:
             raise preparation_error()
         script = prepare_sql_for_execution(query, preparation["rendered_sql"])
         validate_prepared_sql(query, script)

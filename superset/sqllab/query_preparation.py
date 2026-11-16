@@ -17,19 +17,17 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import timedelta
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app as app
 from flask_babel import gettext as __
 
 from superset import config, db
-from superset.common.db_query_status import HIDDEN_QUERY_STATUSES, QueryStatus
+from superset.common.db_query_status import QueryStatus
 from superset.exceptions import SupersetGenericErrorException
 from superset.models.sql_lab import Query
 from superset.utils import json
 from superset.utils.core import get_user_id
-from superset.utils.dates import now_as_float
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -37,7 +35,6 @@ if TYPE_CHECKING:
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 PREPARATION_KEY = "_warning_preparation"
-PREPARATION_LIFETIME = timedelta(minutes=15)
 
 
 def execution_inputs(context: SqlJsonExecutionContext) -> dict[str, Any]:
@@ -77,14 +74,6 @@ def preparation_error() -> SupersetGenericErrorException:
         ),
         status=400,
     )
-
-
-def prune_preparations() -> None:
-    """Remove abandoned hidden records without touching ordinary query history."""
-    cutoff = now_as_float() - PREPARATION_LIFETIME.total_seconds() * 1000
-    db.session.query(Query).filter(
-        Query.status.in_(HIDDEN_QUERY_STATUSES), Query.start_time < cutoff
-    ).delete(synchronize_session=False)
 
 
 def discard_preparation(client_id: str) -> None:

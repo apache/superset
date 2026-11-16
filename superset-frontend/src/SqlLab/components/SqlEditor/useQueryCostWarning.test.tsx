@@ -502,44 +502,56 @@ test('a late error cannot dismiss a newer confirmation or show a stale toast', a
   await waitFor(() => expect(h.executions()).toHaveLength(1));
 });
 
-test.each([
-  { type: QUERY_EDITOR_SET_SQL, sql: 'SELECT 3' },
-  { type: QUERY_EDITOR_SET_SELECTED_TEXT, sql: 'SELECT 4' },
-  { type: QUERY_EDITOR_SETDB, dbId: 99 },
-  { type: QUERY_EDITOR_SET_CATALOG, catalog: 'other' },
-  { type: QUERY_EDITOR_SET_SCHEMA, schema: 'other' },
-  { type: QUERY_EDITOR_SET_TEMPLATE_PARAMS, templateParams: '{"x":1}' },
-  { type: QUERY_EDITOR_SET_QUERY_LIMIT, queryLimit: 50 },
-])('invalidates $type even if restored before response', async change => {
-  const h = setup();
-  // The other connection has the same warning settings; only its ID differs.
-  h.replace(state => ({
-    ...state,
-    sqlLab: {
-      ...state.sqlLab,
-      databases: {
-        ...state.sqlLab.databases,
-        99: { ...state.sqlLab.databases[h.editor.dbId!], id: 99 },
+test.each(
+  [
+    { type: QUERY_EDITOR_SET_SQL, sql: 'SELECT 3' },
+    { type: QUERY_EDITOR_SET_SELECTED_TEXT, sql: 'SELECT 4' },
+    { type: QUERY_EDITOR_SETDB, dbId: 99 },
+    { type: QUERY_EDITOR_SET_CATALOG, catalog: 'other' },
+    { type: QUERY_EDITOR_SET_SCHEMA, schema: 'other' },
+    { type: QUERY_EDITOR_SET_TEMPLATE_PARAMS, templateParams: '{"x":1}' },
+    { type: QUERY_EDITOR_SET_QUERY_LIMIT, queryLimit: 50 },
+  ].flatMap(change =>
+    [false, true].map(confirmed => ({ ...change, confirmed })),
+  ),
+)(
+  'executes captured inputs after $type changes, confirmation displayed: $confirmed',
+  async ({ confirmed, ...change }) => {
+    const h = setup();
+    // The other connection has the same warning settings; only its ID differs.
+    h.replace(state => ({
+      ...state,
+      sqlLab: {
+        ...state.sqlLab,
+        databases: {
+          ...state.sqlLab.databases,
+          99: { ...state.sqlLab.databases[h.editor.dbId!], id: 99 },
+        },
       },
-    },
-  }));
-  h.start();
-  expect(h.result.current.checking).toBe(true);
-  const original = h.store.getState();
-  act(() => h.store.dispatch({ ...change, queryEditor: h.editor }));
-  h.replace(() => original);
-  await h.finish(warning);
-  await act(async () => h.result.current.continueRun());
-  expect(h.executions()).toHaveLength(0);
-  expect(h.result.current.confirmation).toBeUndefined();
-});
+    }));
+    h.start();
+    expect(h.result.current.checking).toBe(true);
+    if (confirmed) await h.finish(warning);
+    act(() => h.store.dispatch({ ...change, queryEditor: h.editor }));
+    if (!confirmed) await h.finish(warning);
+    await act(async () => h.result.current.continueRun());
+    await waitFor(() => expect(h.executions()).toHaveLength(1));
+    const checked = JSON.parse(
+      String(fetchMock.callHistory.calls('warning-check')[0].options.body),
+    );
+    expect(JSON.parse(String(h.executions()[0].options.body))).toEqual({
+      ...checked.execution,
+      prepared_query_id: preparationId,
+    });
+  },
+);
 
 test.each(
   ['async', 'rule', 'audience', 'state', 'tab'].flatMap(field =>
     [false, true].map(confirmed => ({ field, confirmed })),
   ),
 )(
-  'invalidates $field changes with confirmation displayed: $confirmed',
+  'preserves captured inputs after $field changes with confirmation displayed: $confirmed',
   async ({ field, confirmed }) => {
     const h = setup();
     h.start();
@@ -576,12 +588,18 @@ test.each(
     }));
     if (!confirmed) await h.finish({ action: 'proceed' });
     await act(async () => h.result.current.continueRun());
-    expect(h.executions()).toHaveLength(0);
-    expect(h.result.current.confirmation).toBeUndefined();
+    await waitFor(() => expect(h.executions()).toHaveLength(1));
+    const checked = JSON.parse(
+      String(fetchMock.callHistory.calls('warning-check')[0].options.body),
+    );
+    expect(JSON.parse(String(h.executions()[0].options.body))).toEqual({
+      ...checked.execution,
+      prepared_query_id: preparationId,
+    });
   },
 );
 
-test('invalidates a default effective limit change', async () => {
+test('preserves the captured limit after a default limit change', async () => {
   const h = setup();
   h.start();
   h.rerender({ limit: 2000 });
@@ -589,35 +607,63 @@ test('invalidates a default effective limit change', async () => {
   await act(async () => {
     await fetchMock.callHistory.flush(true);
   });
-  expect(h.executions()).toHaveLength(0);
+  expect(h.executions()).toHaveLength(1);
+  expect(JSON.parse(String(h.executions()[0].options.body))).toMatchObject({
+    queryLimit: 1000,
+  });
   expect(h.result.current.confirmation).toBeUndefined();
   expect(h.result.current.checking).toBe(false);
 });
 
-test('tab changes close an existing confirmation and invalidate its action', async () => {
+test('confirmation stays attached to the original editor after switching tabs', async () => {
   const h = setup();
   h.start();
   await h.finish(warning);
   const { continueRun } = h.result.current;
   h.replace(state => ({
     ...state,
-    sqlLab: { ...state.sqlLab, tabHistory: ['other'] },
+    sqlLab: {
+      ...state.sqlLab,
+      queryEditors: [
+        ...state.sqlLab.queryEditors,
+        { ...h.editor, id: 'other', immutableId: 'other', name: 'Other tab' },
+      ],
+      tabHistory: [h.editor.id, 'other'],
+      unsavedQueryEditor: { id: 'other', sql: 'SELECT 99' },
+    },
   }));
   await act(async () => continueRun());
   expect(h.result.current.confirmation).toBeUndefined();
-  expect(h.executions()).toHaveLength(0);
+  await waitFor(() => expect(h.executions()).toHaveLength(1));
+  expect(JSON.parse(String(h.executions()[0].options.body))).toMatchObject({
+    sql_editor_id: h.editor.id,
+    tab: h.editor.name,
+    sql: h.editor.sql,
+  });
+  const queries = Object.values(h.store.getState().sqlLab.queries);
+  expect(queries).toHaveLength(1);
+  expect(queries[0]).toMatchObject({ sqlEditorId: h.editor.id });
+  expect(h.store.getState().sqlLab.tabHistory.slice(-1)).toEqual(['other']);
 });
 
-test('unmounted editors ignore a late response', async () => {
-  const h = setup();
-  h.start();
-  h.unmount();
-  await h.finish({ action: 'proceed' });
-  await act(async () => {
-    await fetchMock.callHistory.flush(true);
-  });
-  expect(h.executions()).toHaveLength(0);
-});
+test.each(['unmounted', 'removed'])(
+  '%s editors ignore a late response',
+  async lifecycle => {
+    const h = setup();
+    h.start();
+    if (lifecycle === 'unmounted') h.unmount();
+    else
+      h.replace(state => ({
+        ...state,
+        sqlLab: { ...state.sqlLab, queryEditors: [] },
+      }));
+    await h.finish({ action: 'proceed' });
+    await act(async () => {
+      await fetchMock.callHistory.flush(true);
+    });
+    expect(h.executions()).toHaveLength(0);
+  },
+);
 
 test.each([
   {},
@@ -906,16 +952,29 @@ test('confirmation executes the server preparation once without discarding it', 
   expect(fetchMock.callHistory.calls('warning-discard')).toHaveLength(0);
 });
 
-test('cancelling a preparation discards it and never executes', async () => {
-  const h = setup();
-  h.start();
-  await h.finish(warning, 0, 'prepared-1');
-  act(() => h.result.current.cancel());
-  await waitFor(() =>
-    expect(fetchMock.callHistory.calls('warning-discard')).toHaveLength(1),
-  );
-  expect(h.executions()).toHaveLength(0);
-});
+test.each([200, 500])(
+  'cancellation prevents execution even when discard returns %s',
+  async status => {
+    const h = setup();
+    fetchMock.modifyRoute('warning-discard', {
+      response: { status, body: {} },
+    });
+    h.start();
+    await h.finish(warning, 0, 'prepared-1');
+    act(() => h.result.current.cancel());
+    await act(async () => {
+      await fetchMock.callHistory.flush(true);
+      h.result.current.continueRun();
+    });
+    expect(fetchMock.callHistory.calls('warning-discard')).toHaveLength(1);
+    expect(h.executions()).toHaveLength(0);
+    expect(h.result.current.confirmation).toBeUndefined();
+    expect(h.reducer).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ type: ADD_TOAST }),
+    );
+  },
+);
 
 test('a late preparation is discarded after cancellation', async () => {
   const h = setup();
