@@ -553,7 +553,9 @@ processing. When processing is disabled, braces remain ordinary SQL. Template
 processing errors use the normal SQL Lab error handling before assessment. Multiple
 statements and custom SQL transformations remain unavailable. A known estimation timeout or an
 unusable estimate also returns unavailable. Invalid rules, access failures, and
-database or network errors remain errors. The existing `/estimate/` endpoint
+other database or network errors remain errors. BigQuery server errors
+(HTTP 500, 502, 503 and 504) return unavailable and require confirmation;
+authentication, permission and invalid-query errors remain errors. The existing `/estimate/` endpoint
 retains its estimation permission requirement and manual response. Its
 `check_warning: true` option remains available to authorized estimation clients.
 
@@ -561,8 +563,10 @@ Database API and SQL Lab bootstrap responses include `query_warning_state`:
 `unsupported`, `disabled`, `ready`, or `invalid`. This state is specific to the
 requesting user; `disabled` includes users outside the configured audience.
 Clients must not share or cache one user's state for another user.
-Invalid saved settings are not
-an opt-out: clients must preserve validation errors. Engine information exposes
+Engine-specific validation is skipped for users outside a valid warning audience,
+so an invalid threshold does not block those users. Invalid settings still return
+errors for included users; malformed opt-in or audience settings also remain
+errors. Clients must not treat `invalid` as an opt-out. Engine information exposes
 `query_warning_supported` separately from the optional numeric
 `query_cost_warning_metric`. `SQLLAB_QUERY_COST_WARNINGS` gates all checks;
 `ESTIMATE_QUERY_COST` and connection cost estimation are prerequisites of the
