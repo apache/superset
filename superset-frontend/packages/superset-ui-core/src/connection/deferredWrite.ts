@@ -36,11 +36,24 @@ import { JsonObject, JsonResponse } from './types';
  * Every write path therefore has to ask whether it was given a result or an
  * acknowledgement.
  *
- * The body is the server's to shape, with one convention: an optional
+ * The body is the server's to shape, with two conventions: `deferred: true`,
+ * which is what says this response is one of these, and an optional
  * `message` holding a sentence to show the author, since only the server
  * knows why the write was held.
  */
 export interface DeferredWriteBody extends JsonObject {
+  /**
+   * Marks this response as a write the server accepted without applying.
+   *
+   * Required, because the status code alone cannot say it. Superset already
+   * answers `202` for ordinary asynchronous work -- `sync_permissions`,
+   * global async chart data, dashboard screenshots, thumbnails, async SQL
+   * Lab -- and none of those held anything: the work is running, and the
+   * caller will have its result. Treating those as deferred writes would
+   * tell an author their edit is awaiting someone when it is not, and would
+   * read an unrelated `id` out of the body as the reference to it.
+   */
+  deferred: true;
   /** A sentence to show the author, explaining what became of their write. */
   message?: string;
 }
@@ -49,8 +62,14 @@ export interface DeferredWriteBody extends JsonObject {
  * Whether a successful write response was an acknowledgement, not a result.
  *
  * Pass the `{ json, response }` pair a `SupersetClient` write resolves to, or
- * the `Response` itself. A `202` answers true; every other successful status
- * answers false, including the `200` of a write that really did apply.
+ * the `Response` itself. Both halves have to hold: the status is `202`, and
+ * the body says `deferred: true`.
+ *
+ * The status alone is not enough. Superset answers `202` for ordinary
+ * asynchronous work as well -- `sync_permissions`, global async chart data,
+ * dashboard screenshots, thumbnails, async SQL Lab -- and in each of those
+ * the work is running and its result is coming. Only the server that held a
+ * write knows it held one, so only the server can say so.
  *
  * @example
  * ```typescript
@@ -76,7 +95,19 @@ export function isDeferredWrite(
   // the host's write handlers -- which are loosely typed, and often see the
   // pair as a bare object -- need no casts to ask the question.
   const code = typeof status === 'number' ? status : response?.status;
-  return code === HTTP_STATUS_ACCEPTED;
+  if (code !== HTTP_STATUS_ACCEPTED) {
+    return false;
+  }
+  // The same two shapes again: a parsed body under `json`, or the object
+  // itself where a caller already unwrapped it. A bare `Response` has no
+  // parsed body here and so cannot carry the marker -- which is right, since
+  // a write held without a word about why is not one a client can report.
+  const body = (result as { json?: unknown }).json ?? result;
+  return (
+    !!body &&
+    typeof body === 'object' &&
+    (body as { deferred?: unknown }).deferred === true
+  );
 }
 
 /**

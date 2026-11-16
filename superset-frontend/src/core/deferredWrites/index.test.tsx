@@ -20,6 +20,7 @@ import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
 import { logging } from '@apache-superset/core/utils';
 import {
   announceDeferred,
+  deferredWrites,
   hasDeferralOracle,
   heldVersion,
   invalidateDeferrals,
@@ -377,4 +378,82 @@ test('with nothing registered the hook settles without a state update', async ()
   const afterMount = renders;
   await waitFor(() => expect(renders).toBe(afterMount));
   expect(renders).toBe(afterMount);
+});
+
+const accepted = (json: unknown) => ({
+  json,
+  response: new Response(null, { status: 202 }),
+});
+
+test('a marked acknowledgement is read as a held write', () => {
+  const held = deferredWrites.read(
+    accepted({
+      deferred: true,
+      message: 'Held for review.',
+      id: 7,
+      count: 2,
+    }),
+  );
+
+  expect(held).toEqual({
+    message: 'Held for review.',
+    reference: { id: 7 },
+    count: 2,
+  });
+});
+
+test('a server that held a write without saying why still gets a sentence', () => {
+  expect(deferredWrites.read(accepted({ deferred: true }))?.message).toBe(
+    'Your changes were accepted but are not live yet.',
+  );
+});
+
+test('a 202 from ordinary async work is not read as a held write', () => {
+  // Superset answers 202 for a queued permission sync, global async chart
+  // data, screenshots, thumbnails and async SQL Lab. Without the marker each
+  // of these was read as a held write, and `id` out of an unrelated body
+  // became the reference to it.
+  expect(deferredWrites.read(accepted({ job_id: 'abc', id: 42 }))).toBeNull();
+  expect(deferredWrites.read(accepted({ channel_id: 'c1' }))).toBeNull();
+  expect(deferredWrites.read(accepted({}))).toBeNull();
+});
+
+test('a write that really applied is not read as a held one', () => {
+  expect(
+    deferredWrites.read({
+      json: { deferred: true },
+      response: new Response(null, { status: 200 }),
+    }),
+  ).toBeNull();
+});
+
+test('an extension can withdraw its oracle and register again', () => {
+  // The reload case. Only one oracle may be registered, so without a way to
+  // withdraw the first, a reloaded extension's second registration is
+  // refused and its answers are silently the old build's.
+  const first = oracleAnswering({ '1': true });
+  const second = oracleAnswering({ '1': false });
+
+  const registration = deferredWrites.registerOracle(first);
+  expect(hasDeferralOracle()).toBe(true);
+
+  registration.dispose();
+  expect(hasDeferralOracle()).toBe(false);
+
+  deferredWrites.registerOracle(second);
+  expect(hasDeferralOracle()).toBe(true);
+  expect(warn).not.toHaveBeenCalled();
+});
+
+test('a subscription handed to an extension is disposable', () => {
+  const heard: (string | undefined)[] = [];
+  const subscription = deferredWrites.onDidDefer(write =>
+    heard.push(write.message),
+  );
+
+  announceDeferred({ message: 'one' });
+  subscription.dispose();
+  announceDeferred({ message: 'two' });
+
+  expect(heard).toEqual(['one']);
 });

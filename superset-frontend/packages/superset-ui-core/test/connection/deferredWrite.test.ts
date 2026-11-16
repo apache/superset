@@ -23,11 +23,11 @@ import {
 } from '@superset-ui/core/connection';
 
 const jsonResponse = (status: number) => ({
-  json: { message: 'Held for review.' },
+  json: { deferred: true, message: 'Held for review.' },
   response: new Response(null, { status }),
 });
 
-test('a 202 is an acknowledgement, not a result', () => {
+test('a 202 marked as deferred is an acknowledgement, not a result', () => {
   expect(isDeferredWrite(jsonResponse(202))).toBe(true);
 });
 
@@ -41,8 +41,36 @@ test('other successful statuses are not deferrals', () => {
   });
 });
 
-test('a bare Response is accepted as well as a parsed pair', () => {
-  expect(isDeferredWrite(new Response(null, { status: 202 }))).toBe(true);
+test('a 202 from ordinary async work is not a deferral', () => {
+  // The ones Superset already answers 202 for: a queued permission sync, a
+  // global async chart query, a screenshot or thumbnail, async SQL Lab. The
+  // work is running and its result is coming, so nothing was held -- and
+  // without the marker each of these would be read as a held write, with an
+  // unrelated `id` taken out of the body as the reference to it.
+  const asyncJobs = [
+    { json: { job_id: 'abc', status: 'pending' } },
+    { json: { channel_id: 'c1', job_id: 'j1', status: 'running' } },
+    { json: { message: 'OK' } },
+    { json: {} },
+  ];
+  asyncJobs.forEach(job => {
+    expect(
+      isDeferredWrite({ ...job, response: new Response(null, { status: 202 }) }),
+    ).toBe(false);
+  });
+});
+
+test('an unwrapped body is read as well as a parsed pair', () => {
+  // A caller that already took `json` out still gets an answer, which is why
+  // the host's loosely typed write handlers need no casts.
+  expect(isDeferredWrite({ status: 202, deferred: true })).toBe(true);
+  expect(isDeferredWrite({ status: 202 })).toBe(false);
+});
+
+test('a bare Response cannot be a deferral', () => {
+  // It carries no parsed body, so it cannot say it held anything -- and a
+  // write held without a word about why is not one a client can report.
+  expect(isDeferredWrite(new Response(null, { status: 202 }))).toBe(false);
   expect(isDeferredWrite(new Response(null, { status: 200 }))).toBe(false);
 });
 

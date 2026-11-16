@@ -304,13 +304,13 @@ const read: api.DeferredWriteReader = response => {
 export const deferredWrites: api.DeferredWritesApi = {
   read,
   announce: announceDeferred,
-  onDeferred: listener => {
-    const subscription = onDeferred(listener);
-    return () => subscription.dispose();
-  },
-  registerOracle: oracle => {
-    registerDeferralOracle(oracle);
-  },
+  // Both handed through as they are. They were downgraded here before -- the
+  // subscription to a bare unsubscribe function, the registration to
+  // nothing -- which left an extension unable to withdraw an oracle, so a
+  // reloaded extension's second registration was refused. Every other
+  // namespace returns a `Disposable`; these do now too.
+  onDidDefer: onDeferred,
+  registerOracle: registerDeferralOracle,
   wouldDefer,
   heldVersion,
   mayProceed,

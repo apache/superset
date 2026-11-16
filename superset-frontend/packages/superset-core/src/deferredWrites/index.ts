@@ -26,17 +26,18 @@
  * has to be able to say so without knowing which extension did it, or
  * whether one is installed at all.
  *
- * This is the frontend counterpart of `superset.change_management` on the
- * Python side, which already does exactly this for HTTP and MCP callers:
- * `is_review_signal`, `review_signal_details` and `refuse_unreviewed_tool_call`
- * let core report a deferred write without naming the extension that
- * deferred it. Nothing equivalent existed here, so every save site in the
- * host grew code that imported a specific extension's helpers -- which is
- * how a feature ends up living in the application it was meant to extend.
+ * Without it, every save site in the host that wanted to report a held write
+ * had to import a specific extension's helpers -- which is how a feature
+ * ends up living in the application it was meant to extend.
+ *
+ * This is a contract, not a feature: the host declares it so an extension
+ * can answer, and nothing in core calls it yet.
  *
  * Deliberately not called "review". Review is one reason a write is held;
  * the contract is about the outcome, not the motive.
  */
+
+import { Disposable, Event } from '../common';
 
 /** Why a write did not reach the asset, as the deferring party describes it. */
 export interface DeferredWrite {
@@ -162,14 +163,14 @@ export interface DeferredWritesApi {
   /** Announce one, for whoever deferred it. */
   announce(deferred: DeferredWrite): void;
   /** Hear about them. */
-  onDeferred(listener: DeferralListener): () => void;
+  onDidDefer: Event<DeferredWrite>;
   /**
    * Register the installed oracle. One at a time: two extensions both
    * claiming to defer the same write is a configuration error, not a case
    * to merge, and the second registration is refused so the conflict
    * surfaces at startup rather than in a dialog.
    */
-  registerOracle(oracle: DeferralOracle): void;
+  registerOracle(oracle: DeferralOracle): Disposable;
   /**
    * Ask whether writes to these assets would be held. Answers `{}` when no
    * oracle is registered, which every caller must read as "not deferred" --
@@ -198,7 +199,7 @@ export interface DeferredWritesApi {
   /**
    * Say that previous answers may now be wrong.
    *
-   * `onDeferred` is not enough on its own. A deferral is one event that
+   * `onDidDefer` is not enough on its own. A deferral is one event that
    * changes the answer, and the others are invisible to the host: approving a
    * change makes every later write to that asset governed, discarding one may
    * make it exempt again, and a deployment may simply turn its rule off. Only
@@ -227,11 +228,24 @@ export declare function read(response: unknown): DeferredWrite | null;
 /** Announce a write that was accepted and not applied. */
 export declare function announce(deferred: DeferredWrite): void;
 
-/** Hear about them. Returns its own unsubscribe. */
-export declare function onDeferred(listener: DeferralListener): () => void;
+/**
+ * Hear about them.
+ *
+ * An `Event`, like every other subscription in this API: calling it returns a
+ * `Disposable`, and `onDid*` says it reports something that has happened
+ * rather than asking for something.
+ */
+export declare const onDidDefer: Event<DeferredWrite>;
 
-/** Offer to answer whether a write to an asset would be held. */
-export declare function registerOracle(oracle: DeferralOracle): void;
+/**
+ * Offer to answer whether a write to an asset would be held.
+ *
+ * Returns a `Disposable`. Dispose it to withdraw the offer -- which an
+ * extension has to be able to do, because only one oracle may be registered
+ * at a time: without this, an extension that reloads cannot register again
+ * and its second registration is refused.
+ */
+export declare function registerOracle(oracle: DeferralOracle): Disposable;
 
 /** Ask. All-false when nothing is registered. */
 export declare function wouldDefer(

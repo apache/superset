@@ -260,21 +260,54 @@ Announcing one, so other surfaces hear about it:
 ```ts
 deferredWrites.announce(deferred);
 
-const stop = deferredWrites.onDeferred(write => {
+const subscription = deferredWrites.onDidDefer(write => {
   // a write was accepted and not applied
 });
+
+// and, when you are done listening
+subscription.dispose();
+```
+
+Registering an oracle returns a `Disposable` too. Only one may be registered
+at a time, so an extension that reloads has to withdraw the old one or its
+second registration is refused:
+
+```ts
+const oracle = deferredWrites.registerOracle({
+  wouldDefer: async (assetType, assetIds) => ({ ...}),
+});
+
+// on teardown
+oracle.dispose();
 ```
 
 An extension that holds writes also answers questions about them in advance,
-by registering an oracle. The host asks before a save whether a write would
-be held (`wouldDefer`), whether it may go ahead (`mayProceed`), and what to
-show instead of the live asset (`heldVersion`). With nothing registered every
-answer is the permissive one, so a deployment without such an extension
-behaves exactly as it does today.
+by registering an oracle. `wouldDefer` asks whether a write would be held,
+`mayProceed` whether an action may go ahead, and `heldVersion` what to show
+instead of the live asset. With nothing registered every answer is the
+permissive one, so a deployment without such an extension behaves exactly as
+it does today.
+
+**This is a contract, not a feature.** Nothing in core calls these yet: the
+host declares them so an extension has something to answer, and the save
+sites that would ask come later. An extension can register an oracle today
+and nothing will consult it.
+
+A `202` alone does not mean a write was held. Superset already answers `202`
+for ordinary asynchronous work — a queued permission sync, global async
+chart data, screenshots, thumbnails, async SQL Lab — where the work is
+running and its result is coming. A held write says so in its body:
+
+```json
+{ "deferred": true, "message": "Held for review." }
+```
+
+`deferred: true` is what `read` and `isDeferredWrite` look for. Without it
+the response is read as a result, which is the right reading for every other
+`202` Superset sends.
 
 Deliberately not called "review". Review is one reason a write is held; the
-contract is about the outcome, not the motive. `superset.change_management`
-is the Python counterpart.
+contract is about the outcome, not the motive.
 
 ## Backend
 
