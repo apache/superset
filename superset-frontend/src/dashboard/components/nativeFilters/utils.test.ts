@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior } from '@superset-ui/core';
+import { Behavior, DataMaskStateWithId } from '@superset-ui/core';
 import { DashboardLayout, LayoutItem } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { createChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
@@ -183,7 +183,7 @@ test('only a typed grain control drops its unneeded provenance before merging', 
   const certified = [
     { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
   ];
-  const dataMask = {
+  const dataMask: DataMaskStateWithId = {
     grain: {
       id: 'grain',
       extraFormData: {

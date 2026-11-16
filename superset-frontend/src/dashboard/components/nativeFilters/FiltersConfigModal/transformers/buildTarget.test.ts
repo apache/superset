@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType } from '@superset-ui/core';
+import { DataMask, DatasourceType } from '@superset-ui/core';
 import {
   buildNativeFilterTarget,
   buildNativeFilterDefaultDataMask,
@@ -126,7 +126,7 @@ test('only an explicitly versioned semantic form certifies its new default', () 
 });
 
 test('a grain-only default is not certified because it selects no member', () => {
-  const mask = {
+  const mask: DataMask = {
     filterState: { value: ['P1Y'] },
     extraFormData: { time_grain_sqla: 'P1Y' },
   };

@@ -24,6 +24,7 @@ import getFormDataWithExtraFilters, {
 import {
   ChartCustomizationType,
   DataMask,
+  DataMaskWithId,
   SemanticSelectionSource,
   DatasourceType,
   buildQueryObject,
@@ -1110,7 +1111,7 @@ test.each([
   },
 );
 
-const clearedMask = (id: string, version: string | null): DataMask => ({
+const clearedMask = (id: string, version: string | null): DataMaskWithId => ({
   id,
   filterState: { value: null },
   // A cleared control persisted before its type was considered still
