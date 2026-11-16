@@ -47,7 +47,9 @@ def test_duplicate_dataframe_labels_preserve_every_column() -> None:
     from superset.ai.tools.sql import _columns_and_records
 
     frame = pd.DataFrame(
-        [[1, "second", 3, 4]], columns=["value", "value", "value__1", "value"]
+        [[1, "second", 3, 4]],
+        columns=["value", "value", "value__1", "value"],
+        dtype=object,
     )
     columns, records = _columns_and_records(frame)
 
