@@ -10757,6 +10757,10 @@ msgstr "Neplatný stav."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Neplatná ID karet: %(tab_ids)s"
 
+#, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
