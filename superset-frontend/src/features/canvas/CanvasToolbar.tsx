@@ -68,7 +68,11 @@ export default function CanvasToolbar({
   starting = false,
 }: CanvasToolbarProps) {
   const editing = Boolean(draftToken);
-  const { chat: registeredChat } = useChat();
+  // `open` as well as the chat itself: the button exists to open the
+  // assistant, so there is nothing for it to do while the assistant is
+  // already there -- and a canvas that opens with the chat showing would
+  // otherwise carry a button that does nothing from the moment it loads.
+  const { chat: registeredChat, open: chatOpen } = useChat();
   // Either action ends the draft, so neither should run twice.
   const busy = actions.busy || history.busy || starting;
   // A step is held while a layout write is in flight: it replays the draft
@@ -121,7 +125,7 @@ export default function CanvasToolbar({
           />
         </Tooltip>
       )}
-      {registeredChat && (
+      {registeredChat && !chatOpen && (
         <Button
           buttonStyle="primary"
           icon={<Icons.ThunderboltOutlined iconSize="m" />}

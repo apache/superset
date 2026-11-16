@@ -131,3 +131,40 @@ test('the assistant is there for someone who may not edit', () => {
     screen.getByRole('button', { name: /AI assistant/ }),
   ).toBeInTheDocument();
 });
+
+test('and steps aside once the assistant is already open', () => {
+  // The button exists to open the assistant, so it has nothing to do while
+  // the assistant is open -- and a canvas that loads with the chat showing
+  // would otherwise carry a button that does nothing from the start.
+  chat.registerChat(
+    { id: 'acme.chat', name: 'Acme Chat' },
+    () => <button type="button">Bubble</button>,
+    () => <div>Panel</div>,
+  );
+  chat.open();
+  try {
+    renderToolbar({ canEdit: false, draftToken: undefined });
+
+    expect(
+      screen.queryByRole('button', { name: /AI assistant/ }),
+    ).not.toBeInTheDocument();
+  } finally {
+    // A singleton: left open it would hide the button in every later test.
+    chat.close();
+  }
+});
+
+test('and comes back when the assistant is closed again', () => {
+  chat.registerChat(
+    { id: 'acme.chat', name: 'Acme Chat' },
+    () => <button type="button">Bubble</button>,
+    () => <div>Panel</div>,
+  );
+  chat.open();
+  chat.close();
+  renderToolbar({ canEdit: false, draftToken: undefined });
+
+  expect(
+    screen.getByRole('button', { name: /AI assistant/ }),
+  ).toBeInTheDocument();
+});
