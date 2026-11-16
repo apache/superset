@@ -400,6 +400,46 @@ def test_capture_keeps_a_footer_that_holds_a_dashboard_grid_node(
     assert _band(trimmed, RED) == (1800, 2000)
 
 
+_UNRENDERED_GRIDS = {
+    "display_none": (
+        '<div style="display:none"><div class="dashboard-grid"></div></div>'
+    ),
+    "visibility_hidden": (
+        '<div style="visibility:hidden"><div class="dashboard-grid"></div></div>'
+    ),
+}
+
+
+@PATHS
+@pytest.mark.parametrize("hidden_grid", list(_UNRENDERED_GRIDS))
+def test_capture_keeps_a_footer_when_the_first_grid_is_not_rendered(
+    app: Any, chromium: Any, tmp_path: Path, tiled: bool, hidden_grid: str
+) -> None:
+    """A hidden pane (a tab that is not selected) can come first in the document.
+
+    Nominating the page colour from it would walk up to ``body`` and pick the
+    body colour instead of the colour of the dashboard shell, and the footer
+    painted in the body colour would be trimmed away.
+    """
+    footer = (
+        f'<div style="{_FIXED};bottom:0;height:200px;background:{_rgb(WHITE)}"></div>'
+    )
+    url = _write_page(
+        tmp_path,
+        _dashboard_page(
+            _chart_row(1, 400, BLUE),
+            before_app=_UNRENDERED_GRIDS[hidden_grid],
+            after_app=footer,
+        ),
+    )
+    base = _capture(app, chromium, url, trim=False, tiled=tiled)
+    assert _band(base, WHITE) == (1800, 2000)
+
+    trimmed = _capture(app, chromium, url, trim=True, tiled=tiled)
+    assert _size(trimmed) == (1600, 2000)
+    assert _band(trimmed, WHITE) == (1800, 2000)
+
+
 def test_capture_without_the_opt_in_keeps_the_window(
     app: Any, chromium: Any, tmp_path: Path
 ) -> None:

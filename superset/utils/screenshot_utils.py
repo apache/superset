@@ -820,15 +820,21 @@ async (maxWaitMs) => {{
 
 
 # Nominates the colour of the page behind the dashboard, for trimming a capture.
-# It is the opaque background of the innermost box, among the first
+# It is the opaque background of the innermost box, among the first rendered
 # ``.dashboard-grid`` and its ancestors, whose border box covers the whole page
 # (``html`` always counts; ``body`` counts whenever ``html`` paints nothing, per
 # CSS canvas propagation). The body colour alone is not enough: the app shell
 # paints ``body`` one colour and covers it with layout boxes of another. The
-# result is only a nomination; the image must confirm it row by row.
+# result is only a nomination; the image must confirm it row by row. The grid is
+# the first one that is rendered: a tab that is not selected keeps its grid in
+# the document, hidden and possibly first, and walking up from it would nominate
+# the body colour instead of the colour of the dashboard shell.
 PAGE_BACKGROUND_COLOR_JS = r"""
 () => {
-    const grid = document.querySelector('.dashboard-grid');
+    const isRendered = (el) => el.getClientRects().length > 0
+        && getComputedStyle(el).visibility !== 'hidden';
+    const grid = Array.from(document.querySelectorAll('.dashboard-grid'))
+        .find(isRendered);
     if (!grid) { return null; }
     const root = document.documentElement;
     const pageWidth = root.scrollWidth;
