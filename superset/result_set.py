@@ -24,6 +24,7 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pyarrow.compute as pc
 from numpy.typing import NDArray
 
 from superset.db_engine_specs import BaseEngineSpec
@@ -139,6 +140,43 @@ def stringify_extension_columns(table: pa.Table) -> pa.Table:
             )
             table = table.set_column(index, field.name, stringified)
     return table
+
+
+def _uint64_over_int64_to_string(column: pa.ChunkedArray) -> pa.ChunkedArray:
+    """
+    Stringify a uint64 column if any value exceeds int64, as the row path does.
+    """
+    if len(column) == 0:
+        return column
+    limit = pa.scalar(2**63 - 1, type=column.type)
+    exceeds = pc.fill_null(pc.greater(column, limit), False)
+    if pc.any(exceeds).as_py():
+        return pc.cast(column, pa.string())
+    return column
+
+
+def fetch_arrow_result(
+    db_engine_spec: type[BaseEngineSpec],
+    cursor: Any,
+    limit: int | None = None,
+) -> tuple[pa.Table | None, bool]:
+    """
+    Fetch a statement's result as Arrow when ``ARROW_NATIVE_RESULT_SET`` is on.
+
+    Returns ``(None, False)`` without touching the cursor when the flag is off
+    or the engine or cursor cannot produce Arrow. With a ``limit``, one extra
+    row is read so the second value tells whether the result was truncated.
+    """
+    from superset import is_feature_enabled
+
+    if not is_feature_enabled("ARROW_NATIVE_RESULT_SET"):
+        return None, False
+    table = db_engine_spec.fetch_arrow(cursor, None if limit is None else limit + 1)
+    if table is None:
+        return None, False
+    if limit is not None and table.num_rows > limit:
+        return table.slice(0, limit), True
+    return table, False
 
 
 def convert_to_string(value: Any) -> str:
@@ -329,6 +367,81 @@ class SupersetResultSet:
             }
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
+
+    @classmethod
+    def from_arrow(
+        cls,
+        table: pa.Table,
+        db_engine_spec: type[BaseEngineSpec],
+        *,
+        truncated: bool = False,
+    ) -> "SupersetResultSet":
+        """
+        Build a result set from a ``pyarrow.Table``, normalized the same way
+        as the row constructor.
+        """
+        result_set = cls.__new__(cls)
+        result_set.truncated = truncated
+        result_set.db_engine_spec = db_engine_spec
+        result_set._nested_columns = {}
+
+        column_names = dedup(
+            normalize_cursor_description_names(
+                [(name,) for name in table.column_names]  # type: ignore[misc]
+            )
+        )
+        if column_names != table.column_names:
+            table = table.rename_columns(column_names)
+
+        type_dict: dict[str, Any] = {}
+        for index, field in enumerate(table.schema):
+            column = table.column(index)
+            name = column_names[index]
+            column = result_set._normalize_arrow_column(name, field, column)
+            if db_type := db_engine_spec.get_datatype_from_arrow_field(field):
+                type_dict[name] = db_type
+            elif inferred := cls.convert_pa_dtype(column.type):
+                type_dict[name] = inferred
+            if column is not table.column(index):
+                table = table.set_column(index, name, column)
+
+        result_set.table = stringify_extension_columns(table)
+        result_set._type_dict = type_dict
+        return result_set
+
+    def _normalize_arrow_column(
+        self, name: str, field: pa.Field, column: pa.ChunkedArray
+    ) -> pa.ChunkedArray:
+        """
+        Convert one Arrow column to what the row constructor would build:
+        decoded dictionaries, engine-specific types, JSON-stringified nested
+        values, and uint64 columns stringified when a value exceeds int64.
+        """
+        if pa.types.is_dictionary(field.type):
+            column = column.cast(field.type.value_type)
+            field = field.with_type(field.type.value_type)
+        replaced = self.db_engine_spec.normalize_arrow_column(field, column)
+        if replaced is not None:
+            return replaced
+        if isinstance(field.type, pa.BaseExtensionType):
+            return column
+        if pa.types.is_nested(field.type):
+            values = column.to_pylist()
+            self._nested_columns[name] = values
+            return pa.chunked_array(
+                [
+                    pa.array(
+                        [
+                            None if value is None else stringify(value)
+                            for value in values
+                        ],
+                        type=pa.string(),
+                    )
+                ]
+            )
+        if pa.types.is_unsigned_integer(field.type) and field.type.bit_width == 64:
+            return _uint64_over_int64_to_string(column)
+        return column
 
     @staticmethod
     def convert_pa_dtype(pa_dtype: pa.DataType) -> Optional[str]:
