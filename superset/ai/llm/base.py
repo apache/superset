@@ -154,6 +154,25 @@ class LLMResponse:
 
 
 @dataclass(frozen=True)
+class RequestTokenCount:
+    """Exact rendered input size and the serving model's total context window.
+
+    The input includes system messages, tool definitions, tool traffic and chat
+    template overhead. It may exceed the window: the caller needs that count to
+    compact an oversized conversation before requesting a completion.
+    """
+
+    input_tokens: int
+    context_window: int
+
+    def __post_init__(self) -> None:
+        if type(self.input_tokens) is not int or self.input_tokens < 0:
+            raise ValueError("input_tokens must be a nonnegative integer")
+        if type(self.context_window) is not int or self.context_window <= 0:
+            raise ValueError("context_window must be a positive integer")
+
+
+@dataclass(frozen=True)
 class ProviderStreamEvent:
     """One chunk yielded by :meth:`BaseLLMProvider.stream`."""
 
@@ -288,6 +307,10 @@ class BaseLLMProvider(ABC):
     #: the runtime falls back to emitting the answer once it is complete.
     supports_streaming: ClassVar[bool] = True
 
+    #: Exact, preflight accounting including the provider's chat template.
+    #: Providers without it must not substitute a character-based estimate.
+    supports_token_counting: ClassVar[bool] = False
+
     def __init__(self, **config: Any) -> None:
         self.config = config
 
@@ -344,6 +367,16 @@ class BaseLLMProvider(ABC):
         :class:`LLMRequestError` for permanent ones, so the retry middleware
         can tell them apart without inspecting vendor exception types.
         """
+
+    async def count_tokens(self, request: CompletionRequest) -> RequestTokenCount:
+        """Count the complete request using the serving model's tokenizer.
+
+        Implementations must use the same model, template and rendering options
+        as ``complete`` and ``stream``. A local estimate is not this capability.
+        """
+        raise LLMConfigurationError(
+            "The configured provider does not support exact token counting."
+        )
 
     async def stream(
         self,
