@@ -1998,10 +1998,9 @@ msgid_plural "Added %s new columns to the dataset"
 msgstr[0] "Se ha añadido %s nueva columna al conjunto de datos"
 msgstr[1] "Se han añadido %s nuevas columnas al conjunto de datos"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, python-format
 msgid "Added a %s"
-msgstr "Se agregó un %s"
+msgstr "Se agregó un elemento (%s)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 msgid "Added a dimension"
@@ -3014,10 +3013,9 @@ msgstr ""
 msgid "Application default"
 msgstr "Valor predeterminado de la aplicación"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, python-format
 msgid "Applied '%s' metric"
-msgstr "Métrica '%s' aplicada"
+msgstr "Se aplicó la métrica '%s'"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 msgid "Applied a metric"
@@ -4130,10 +4128,9 @@ msgstr "Se cambió la dimensión '%s'"
 msgid "Changed '%s' metric"
 msgstr "Se cambió la métrica '%s'"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, python-format
 msgid "Changed a %s"
-msgstr "Se cambió un/a %s"
+msgstr "Se cambió un elemento (%s)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 msgid "Changed a dimension"
@@ -4690,10 +4687,9 @@ msgstr "Borrar búsqueda"
 msgid "Clear the selection to revert to the system default theme"
 msgstr "Borrar la selección para volver al tema predeterminado del sistema"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, python-format
 msgid "Cleared '%s'"
-msgstr "Se restableció '%s'"
+msgstr "Se borró '%s'"
 
 #, fuzzy
 msgid ""
@@ -12214,10 +12210,9 @@ msgstr "Solo mover"
 msgid "Moved %s '%s'"
 msgstr "Se movió %s '%s'"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, python-format
 msgid "Moved a %s"
-msgstr "Se movió un %s"
+msgstr "Se movió un elemento (%s)"
 
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Desplaza el conjunto de fechas dado en un intervalo especificado."
@@ -14744,10 +14739,9 @@ msgid_plural "Removed %s columns from the dataset"
 msgstr[0] "Se ha eliminado %s columna del conjunto de datos"
 msgstr[1] "Se han eliminado %s columnas del conjunto de datos"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, python-format
 msgid "Removed a %s"
-msgstr "Se eliminó un %s"
+msgstr "Se eliminó un elemento (%s)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 msgid "Removed a dimension"
@@ -16730,10 +16724,9 @@ msgstr "Cuenta de servicio"
 msgid "Service version"
 msgstr "Versión del servicio"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, python-format
 msgid "Set '%s'"
-msgstr "Establecer '%s'"
+msgstr "Se estableció '%s'"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
