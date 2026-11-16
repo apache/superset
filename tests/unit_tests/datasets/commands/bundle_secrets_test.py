@@ -33,6 +33,7 @@ from sqlalchemy.orm.session import Session
 from superset import db
 from superset.constants import PASSWORD_MASK
 from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
 
 SECRETS = {
     "oauth2_client_info": {
@@ -117,6 +118,7 @@ def test_bundle_export_carries_secure_extra_masked(
 
 
 @pytest.mark.usefixtures("snowflake_like_paths")
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_bundle_import_asks_for_secrets_and_keeps_them(
     mocker: MockerFixture, session: Session
 ) -> None:
