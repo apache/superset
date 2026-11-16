@@ -29,7 +29,7 @@ from superset.utils import json
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize("member", ["metrics", "dimensions"])
 @pytest.mark.parametrize("external", [False, True])
 @pytest.mark.parametrize("error_class", [RuntimeError, QueryObjectValidationError])
@@ -43,7 +43,10 @@ async def test_compatibility_errors_use_fixed_messages(
     tool_name: str = f"get_compatible_{member}"
     error: Exception = error_class("provider-private-detail")
     view: MagicMock = MagicMock(metrics=[], columns=[])
-    getattr(view, tool_name).side_effect = error
+    getattr(
+        view,
+        "get_compatible_dimension_metadata" if member == "dimensions" else tool_name,
+    ).side_effect = error
     user: MagicMock = MagicMock(id=1, username="admin")
     message: str = f"Unable to retrieve compatible {member}."
     notify: AsyncMock
@@ -82,7 +85,7 @@ async def test_compatibility_errors_use_fixed_messages(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize("member", ["metrics", "dimensions"])
 @pytest.mark.parametrize("failure_site", ["columns", "compatibility"])
 async def test_compatibility_preserves_host_ambiguity(
@@ -94,7 +97,12 @@ async def test_compatibility_preserves_host_ambiguity(
     error: AmbiguousDimensionError = AmbiguousDimensionError(message)
     view: MagicMock = MagicMock(metrics=[], columns=[])
     if failure_site == "compatibility":
-        getattr(view, tool_name).side_effect = error
+        getattr(
+            view,
+            "get_compatible_dimension_metadata"
+            if member == "dimensions"
+            else tool_name,
+        ).side_effect = error
     user: MagicMock = MagicMock(id=1, username="admin")
     notify: AsyncMock
     client: Client

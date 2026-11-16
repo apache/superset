@@ -101,6 +101,10 @@ class DimensionInfo(BaseModel):
     is_dttm: bool = False
     groupby: bool = True
     filterable: bool = True
+    grains: list[str] | None = None
+    allows_default_grain: bool | None = None
+    omitted_grain: str | None = None
+    ungrained_filter: str | None = None
     source: Literal["builtin", "external"] = "builtin"
 
 

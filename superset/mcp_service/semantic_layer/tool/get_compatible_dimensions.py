@@ -24,6 +24,7 @@ import logging
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
+from superset_core.semantic_layers.types import Dimension
 
 from superset.extensions import event_logger
 from superset.mcp_service.privacy import (
@@ -45,7 +46,10 @@ from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
-from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.dimension_resolution import (
+    AmbiguousDimensionError,
+    dimension_support,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -239,10 +243,13 @@ async def _resolve_compatible_dimensions(
                 error="; ".join(selection_errors), error_type="ValidationError"
             )
 
-        compatible_names: list[str] = view.get_compatible_dimensions(
-            request.selected_metrics,
-            request.selected_dimensions,
-        )
+        compatible: dict[str, Dimension] = {
+            dimension.name: dimension
+            for dimension in view.get_compatible_dimension_metadata(
+                request.selected_metrics,
+                request.selected_dimensions,
+            )
+        }
 
         # Enrich with full column metadata
         all_cols: dict[str, ColumnMetadata] = {
@@ -258,8 +265,9 @@ async def _resolve_compatible_dimensions(
                 groupby=all_cols[name].groupby if name in all_cols else True,
                 filterable=all_cols[name].filterable if name in all_cols else True,
                 source="external",
+                **dimension_support(compatible[name]),
             )
-            for name in compatible_names
+            for name in sorted(compatible)
         ]
 
         await ctx.info(

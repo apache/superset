@@ -25,7 +25,12 @@ import pytest
 from flask import Flask
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
-from superset_core.semantic_layers.types import Dimension, Grains, Metric
+from superset_core.semantic_layers.types import (
+    Dimension,
+    DimensionSelection,
+    Grains,
+    Metric,
+)
 from werkzeug.test import TestResponse
 
 from superset.semantic_layers.execution import SemanticBindingMemo
@@ -44,22 +49,28 @@ def test_compatible_endpoint_resolves_semantic_variants(
     mocker.patch.dict(
         app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "compatible-endpoint-tests"}
     )
-    raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
+    raw: Dimension = Dimension(
+        "raw",
+        "event_time",
+        pa.timestamp("us"),
+        grains=frozenset({Grains.DAY, Grains.MONTH}),
+    )
     month: Dimension = Dimension(
-        "month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+        "month", "event_time", pa.timestamp("us"), grains=frozenset({Grains.MONTH})
     )
     other: Dimension = Dimension(
-        "other-month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+        "other-month",
+        "event_time",
+        pa.timestamp("us"),
+        grains=frozenset({Grains.MONTH}),
     )
     metric: Metric = Metric("count", "count", pa.int64(), "COUNT(*)")
     provider: MagicMock = MagicMock()
     provider.uid.return_value = "semantic-view-73"
     provider.get_metrics.return_value = {metric}
-    provider.get_dimensions.return_value = (
-        [raw, month, other] if ambiguous else [raw, month]
-    )
+    provider.get_dimensions.return_value = [raw, other] if ambiguous else [raw]
     provider.get_compatible_metrics.return_value = {metric}
-    provider.get_compatible_dimensions.return_value = {raw, month}
+    provider.get_compatible_dimensions.return_value = {month}
     layer: SemanticLayer = SemanticLayer(
         uuid=uuid4(), name="events-layer", type="test", cache_version=0
     )
@@ -100,7 +111,19 @@ def test_compatible_endpoint_resolves_semantic_variants(
         assert response.json["result"] == {
             "compatible_metrics": ["count"],
             "compatible_dimensions": ["event_time"],
+            "dimension_support": {
+                "event_time": {
+                    "grains": ["P1M"],
+                    "allows_default_grain": True,
+                    "omitted_grain": "native",
+                    "ungrained_filter": "native",
+                }
+            },
         }
-        provider.get_compatible_metrics.assert_called_once_with({metric}, {raw})
-        provider.get_compatible_dimensions.assert_called_once_with({metric}, {raw})
+        provider.get_compatible_metrics.assert_called_once_with(
+            {metric}, {DimensionSelection(raw)}
+        )
+        provider.get_compatible_dimensions.assert_called_once_with(
+            {metric}, {DimensionSelection(raw)}
+        )
         cache.set.assert_called_once()

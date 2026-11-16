@@ -19,4 +19,14 @@ under the License.
 
 ## Change Log
 
-Changelogs will be added once we have the first stable release.
+### Unreleased
+
+- Breaking semantic-layer contract: catalog `Dimension` objects declare a set of
+  supported `grains`, native permission and separate omission defaults. Query,
+  filter, order, group-limit, value and compatibility operands use immutable
+  `DimensionSelection(dimension, grain)` objects. Providers must revalidate
+  request selections against current contextual capabilities. Upgrade the host
+  and every provider together; old catalog variants are not supported.
+- `SemanticLayer.prepare_view_configuration` normalizes explicit new-view
+  submissions before validation and persistence. The default preserves the
+  supplied configuration. Stored-view reads and import/export do not call it.

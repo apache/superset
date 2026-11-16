@@ -2851,7 +2851,10 @@ def test_get_views(
 ) -> None:
     """Test POST /<uuid>/views returns available views."""
     test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    mock_layer: MagicMock = MagicMock()
+    mock_layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     mock_layer.uuid = uuid_lib.uuid4()
 
     mock_view1 = MagicMock()
@@ -2889,7 +2892,10 @@ def test_get_views_forbidden(
 ) -> None:
     """Test POST /<uuid>/views returns 403 when access is denied."""
     test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    mock_layer: MagicMock = MagicMock()
+    mock_layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     mock_layer.uuid = uuid_lib.uuid4()
     mock_layer.raise_for_access.side_effect = SupersetSecurityException(
         SupersetError(
@@ -2920,7 +2926,10 @@ def test_get_views_with_existing(
 ) -> None:
     """Test POST /<uuid>/views marks already-added views."""
     test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    mock_layer: MagicMock = MagicMock()
+    mock_layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     mock_layer.uuid = uuid_lib.uuid4()
 
     mock_view = MagicMock()
@@ -2932,7 +2941,12 @@ def test_get_views_with_existing(
 
     existing_view = MagicMock()
     existing_view.name = "Existing View"
-    existing_view.configuration = '{"database": "mydb"}'
+    existing_view.configuration = '{"database": "mydb", "format_version": 2}'
+    mock_layer.implementation.prepare_view_configuration.side_effect = None
+    mock_layer.implementation.prepare_view_configuration.return_value = {
+        "database": "mydb",
+        "format_version": 2,
+    }
 
     mock_dao.get_semantic_views.return_value = [existing_view]
 
@@ -2974,7 +2988,10 @@ def test_get_views_exception(
 ) -> None:
     """Test POST /<uuid>/views returns 400 when implementation raises."""
     test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    mock_layer: MagicMock = MagicMock()
+    mock_layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     mock_layer.uuid = uuid_lib.uuid4()
     mock_layer.implementation.get_semantic_views.side_effect = ValueError(
         "Connection failed"
@@ -3000,7 +3017,10 @@ def test_get_views_existing_dict_config(
 ) -> None:
     """Test POST /<uuid>/views handles dict configuration on existing views."""
     test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    mock_layer: MagicMock = MagicMock()
+    mock_layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     mock_layer.uuid = uuid_lib.uuid4()
 
     mock_view = MagicMock()
@@ -3100,6 +3120,8 @@ def test_get_semantic_view_structure(
     assert result["dimensions"][0]["description"] == "Order date"
     assert result["dimensions"][0]["grains"] == ["P1D"]
     assert result["dimensions"][0]["allows_default_grain"] is True
+    assert result["dimensions"][0]["omitted_grain"] == "native"
+    assert result["dimensions"][0]["ungrained_filter"] == "native"
     assert len(result["metrics"]) == 1
     assert result["metrics"][0]["name"] == "orders"
     assert result["metrics"][0]["type"] == "double"
@@ -3196,6 +3218,8 @@ def test_get_semantic_view_structure_no_grain(
     result = response.json["result"]
     assert result["dimensions"][0]["grains"] == []
     assert result["dimensions"][0]["allows_default_grain"] is True
+    assert result["dimensions"][0]["omitted_grain"] == "native"
+    assert result["dimensions"][0]["ungrained_filter"] == "native"
     assert result["metrics"] == []
     assert result["semantic_selection_version"] is None
     # An unset description must come back as null, not be omitted: the modal
@@ -3678,6 +3702,9 @@ def test_post_semantic_view_provider_validation(
 ) -> None:
     """Keep lookup and duplicate errors distinct without exposing provider secrets."""
     layer: MagicMock = MagicMock()
+    layer.implementation.prepare_view_configuration.side_effect = (
+        lambda name, config: config
+    )
     layer.implementation.get_semantic_view.return_value = lookup_result
     layer.implementation.get_semantic_view.side_effect = lookup_error
     mocker.patch(

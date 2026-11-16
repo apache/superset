@@ -345,7 +345,7 @@ def test_suggestion_cache_rotates_with_metadata_generation(
     view.metrics = [Mock(metric_name="metric")]
     view.columns = [Mock(column_name="dimension")]
     view.get_compatible_metrics.return_value = []
-    view.get_compatible_dimensions.return_value = []
+    view.get_compatible_dimension_metadata.return_value = set()
     view.values_for_column.return_value = ["one"]
     cache: Mock
     with (

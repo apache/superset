@@ -19,6 +19,7 @@
 
 from collections.abc import Iterable, Mapping
 from enum import Enum
+from typing import TypedDict
 
 from superset_core.semantic_layers.types import (
     Dimension,
@@ -105,3 +106,30 @@ def resolve_dimensions(
             grain = grouping_grains[name]
         selected[name] = select_dimension(dimension, grain)
     return selected
+
+
+class DimensionSupport(TypedDict):
+    """Public support metadata, without provider IDs or private definitions."""
+
+    grains: list[str]
+    allows_default_grain: bool
+    omitted_grain: str
+    ungrained_filter: str
+
+
+def dimension_support(dimension: Dimension) -> DimensionSupport:
+    """Project provider-declared support consistently for API and MCP consumers."""
+    return {
+        "grains": sorted(grain.representation for grain in dimension.grains),
+        "allows_default_grain": dimension.allows_default_grain,
+        "omitted_grain": (
+            dimension.omitted_grain.representation
+            if isinstance(dimension.omitted_grain, Grain)
+            else dimension.omitted_grain.value
+        ),
+        "ungrained_filter": (
+            dimension.ungrained_filter.representation
+            if isinstance(dimension.ungrained_filter, Grain)
+            else dimension.ungrained_filter.value
+        ),
+    }

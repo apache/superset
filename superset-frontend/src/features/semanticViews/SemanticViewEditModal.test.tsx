@@ -48,14 +48,20 @@ const MOCK_STRUCTURE = {
         type: 'timestamp[us]',
         definition: 'ordered_at',
         description: 'Date of the order',
-        grain: 'Day',
+        grains: ['P1D', 'P1M'],
+        allows_default_grain: false,
+        omitted_grain: 'P1D',
+        ungrained_filter: 'P1D',
       },
       {
         name: 'customer_id',
         type: 'int64',
         definition: null,
         description: null,
-        grain: null,
+        grains: [],
+        allows_default_grain: true,
+        omitted_grain: 'native',
+        ungrained_filter: 'native',
       },
     ],
     metrics: [
@@ -453,7 +459,10 @@ const LARGE_STRUCTURE = {
       type: 'string',
       definition: null,
       description: null,
-      grain: null,
+      grains: [],
+      allows_default_grain: true,
+      omitted_grain: 'native',
+      ungrained_filter: 'native',
     })),
     metrics: Array.from({ length: 500 }, (_, i) => ({
       name: `metric_${String(i).padStart(3, '0')}`,
@@ -496,4 +505,15 @@ test('keeps small structures unpaginated', async () => {
     expect(screen.getByText('orders')).toBeInTheDocument();
   });
   expect(document.querySelector('.ant-pagination')).toBeNull();
+});
+
+test('shows one dimension with its supported grains and native permission', async () => {
+  render(<SemanticViewEditModal {...createProps()} />);
+  await userEvent.click(
+    await screen.findByRole('tab', { name: 'Dimensions (2)' }),
+  );
+  expect(await screen.findByText('P1D, P1M')).toBeInTheDocument();
+  expect(screen.getByText('Native allowed')).toBeInTheDocument();
+  expect(screen.getByText('Explicit grain required')).toBeInTheDocument();
+  expect(screen.getAllByText('order_date')).toHaveLength(1);
 });

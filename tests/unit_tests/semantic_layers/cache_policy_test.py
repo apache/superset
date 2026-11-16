@@ -1102,3 +1102,24 @@ def test_transform_rejects_unproven_leftover_and_rollup() -> None:
             ReuseDecision(ReuseMode.ROLLUP, frozenset()),
             ContainmentCapabilities(),
         )
+
+
+@pytest.mark.parametrize(
+    "aggregation", [AggregationType.AVG, AggregationType.COUNT_DISTINCT]
+)
+def test_finer_bucket_never_supplies_nonadditive_coarser_result(
+    aggregation: AggregationType,
+) -> None:
+    """Daily averages/distinct counts are not a monthly metric oracle."""
+    dimension: Dimension = Dimension(
+        "time", "time", pa.timestamp("us"), grains=frozenset({Grains.DAY, Grains.MONTH})
+    )
+    day: DimensionSelection = DimensionSelection(dimension, Grains.DAY)
+    month: DimensionSelection = DimensionSelection(dimension, Grains.MONTH)
+    metric: Metric = replace(REVENUE_METRIC, aggregation=aggregation)
+    query: SemanticQuery
+    entry: CachedEntry
+    query, entry = _candidate()
+    query = replace(query, metrics=[metric], dimensions=[month])
+    entry = replace(entry, metrics=frozenset({metric}), dimensions=frozenset({day}))
+    assert cache_policy.select_reuse(query, entry, ContainmentCapabilities()) is None

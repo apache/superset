@@ -49,7 +49,11 @@ from superset.exceptions import (
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
-from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.dimension_resolution import (
+    AmbiguousDimensionError,
+    dimension_support,
+    DimensionSupport,
+)
 from superset.semantic_layers.exceptions import (
     SemanticLayerExecutionError,
     SemanticLayerQueryRejectedError,
@@ -730,7 +734,7 @@ class DatasourceRestApi(BaseSupersetApi):
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
-        cache_key = "compatible:" + hash_from_dict(
+        cache_key: str = "compatible:v2:" + hash_from_dict(
             {
                 "uid": datasource_uid,
                 "changed_on": str(getattr(datasource, "changed_on", "")),
@@ -743,7 +747,7 @@ class DatasourceRestApi(BaseSupersetApi):
         timeout: int = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300
         )
-        cached: dict[str, list[str]] | None
+        cached: dict[str, Any] | None
         if (
             timeout != CACHE_DISABLED_TIMEOUT
             and (cached := cache_manager.data_cache.get(cache_key)) is not None
@@ -751,14 +755,24 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(200, result=cached)
 
         try:
-            result: dict[str, list[str]] = {
+            result: dict[str, Any] = {
                 "compatible_metrics": datasource.get_compatible_metrics(
                     selected_metrics, selected_dimensions
                 ),
-                "compatible_dimensions": datasource.get_compatible_dimensions(
-                    selected_metrics, selected_dimensions
-                ),
             }
+            if isinstance(datasource, SemanticView):
+                support: dict[str, DimensionSupport] = {
+                    dimension.name: dimension_support(dimension)
+                    for dimension in datasource.get_compatible_dimension_metadata(
+                        selected_metrics, selected_dimensions
+                    )
+                }
+                result["compatible_dimensions"] = sorted(support)
+                result["dimension_support"] = support
+            else:
+                result["compatible_dimensions"] = datasource.get_compatible_dimensions(
+                    selected_metrics, selected_dimensions
+                )
         except AmbiguousDimensionError as ex:
             return self.response(400, message=str(ex))
 

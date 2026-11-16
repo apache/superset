@@ -28,11 +28,11 @@ assists people when migrating to a new version.
   catalog dimension declaring `grains` and explicit omission defaults. Query
   operands use composed `DimensionSelection(dimension, grain)` values, including
   filters, order/group limits, value lookups and compatibility inputs. This is a
-  breaking SDK contract: host and providers must upgrade together. Persisted
-  provider configurations containing grain-specific private IDs require an
-  envelope-preserving conversion; unchanged saved field names alone do not
-  migrate those configurations. Complete host/provider and cache migration is
-  required before deploying this SDK change.
+  breaking SDK contract: host and providers must upgrade together. QA, staging and demo MetricFlow semantic views saved before this change must
+  be re-saved (edit and re-select fields), or deleted and re-added. Old
+  configurations are refused instead of automatically converted. Complete
+  host/provider and cache migration is required before deploying this SDK
+  change.
 
 - Semantic cache rollups serve limited queries only when the post-filter,
   rolled-up result fits within the limit. Queries with nonzero row offsets bypass

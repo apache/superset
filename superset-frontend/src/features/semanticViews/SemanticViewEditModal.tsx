@@ -46,7 +46,10 @@ interface SemanticDimension {
   type: string;
   definition: string | null;
   description: string | null;
-  grain: string | null;
+  grains: string[];
+  allows_default_grain: boolean;
+  omitted_grain: string;
+  ungrained_filter: string;
 }
 
 interface SemanticMetric {
@@ -82,7 +85,24 @@ interface SemanticViewEditModalProps {
 const DIMENSION_COLUMNS: ColumnsType<SemanticDimension> = [
   { title: t('Name'), dataIndex: 'name', key: 'name' },
   { title: t('Type'), dataIndex: 'type', key: 'type' },
-  { title: t('Grain'), dataIndex: 'grain', key: 'grain' },
+  {
+    title: t('Supported grains'),
+    dataIndex: 'grains',
+    key: 'grains',
+    render: (grains: string[]) => grains.join(', '),
+  },
+  {
+    title: t('Native grain'),
+    dataIndex: 'allows_default_grain',
+    key: 'allows_default_grain',
+    render: (allowed: boolean) =>
+      allowed ? t('Native allowed') : t('Explicit grain required'),
+  },
+  {
+    title: t('Omitted grain'),
+    dataIndex: 'omitted_grain',
+    key: 'omitted_grain',
+  },
   { title: t('Description'), dataIndex: 'description', key: 'description' },
   { title: t('Expression'), dataIndex: 'definition', key: 'definition' },
 ];

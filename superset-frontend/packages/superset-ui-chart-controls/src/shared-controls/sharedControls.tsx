@@ -48,6 +48,7 @@ import {
 } from '@superset-ui/core';
 
 import {
+  semanticGrainProps,
   formatSelectOptions,
   displayTimeRelatedControls,
   getColorControlsProps,
@@ -201,9 +202,9 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
       'grain is the time interval represented by a ' +
       'single point on the chart.',
   ),
-  mapStateToProps: ({ datasource }) => ({
-    choices: (datasource as Dataset)?.time_grain_sqla || [],
-  }),
+  mapStateToProps: state => semanticGrainProps(state),
+  shouldMapStateToProps: (prev, next) =>
+    prev.compatibility !== next.compatibility,
   visibility: displayTimeRelatedControls,
   sortComparator: () => 0, // Disable frontend sorting to preserve backend order
 };

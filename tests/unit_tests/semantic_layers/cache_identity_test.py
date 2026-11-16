@@ -288,3 +288,28 @@ def test_value_identity_combines_bucket_and_query() -> None:
 
     assert first == second
     assert first.startswith("semantic-cache:value:v6:")
+
+
+@pytest.mark.parametrize("operand", ["filter", "order", "group_limit"])
+def test_grain_identity_in_every_operand_is_independent(operand: str) -> None:
+    """A stable field name cannot hide a different filter, sort or ranking bucket."""
+    query: SemanticQuery = _query()
+    month: DimensionSelection = replace(
+        query.dimensions[0], grain=Grain("month", "P1M")
+    )
+    changed: SemanticQuery
+    if operand == "filter":
+        predicate: FilterExpression = next(iter(query.filters or set()))
+        assert isinstance(predicate, Filter)
+        changed = replace(query, filters={replace(predicate, column=month)})
+    elif operand == "order":
+        query = replace(query, order=[(query.dimensions[0], OrderDirection.ASC)])
+        changed = replace(query, order=[(month, OrderDirection.ASC)])
+    else:
+        assert query.group_limit is not None
+        changed = replace(
+            query, group_limit=replace(query.group_limit, dimensions=[month])
+        )
+    assert SemanticCacheIdentityFactory.query(
+        query
+    ) != SemanticCacheIdentityFactory.query(changed)

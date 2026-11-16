@@ -240,6 +240,7 @@ export function fetchCompatibility(
           status: 'verified',
           metrics: json.result.compatible_metrics ?? [],
           dimensions: json.result.compatible_dimensions ?? [],
+          dimensionSupport: json.result.dimension_support,
         }),
       );
     } catch {

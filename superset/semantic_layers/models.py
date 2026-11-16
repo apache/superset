@@ -1031,28 +1031,33 @@ class SemanticView(AuditMixinNullable, Model):
         )
         return [m.name for m in compatible]
 
-    def get_compatible_dimensions(
+    def get_compatible_dimension_metadata(
         self,
         selected_metrics: list[str],
         selected_dimensions: list[str],
-    ) -> list[str]:
-        """
-        Return dimension names compatible with the current selection.
-
-        Translates string names to semantic-layer objects, delegates to the
-        view implementation, and translates the result back to names.
-        Collapse grain variants into sorted unique names, also bounding
-        the shared list_metrics projection.
-        """
+    ) -> set[Dimension]:
+        """Return support narrowed by the same selection policy as query mapping."""
         sel_metrics: set[Metric]
         sel_dims: set[DimensionSelection]
         sel_metrics, sel_dims = self._compat_selection(
             selected_metrics, selected_dimensions
         )
-        compatible: set[Dimension] = self.implementation.get_compatible_dimensions(
-            sel_metrics, sel_dims
+        return self.implementation.get_compatible_dimensions(sel_metrics, sel_dims)
+
+    def get_compatible_dimensions(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> list[str]:
+        """Project contextual support to stable names for existing name pickers."""
+        return sorted(
+            {
+                dimension.name
+                for dimension in self.get_compatible_dimension_metadata(
+                    selected_metrics, selected_dimensions
+                )
+            }
         )
-        return sorted({d.name for d in compatible})
 
 
 sa.event.listen(SemanticLayer, "after_insert", SemanticLayer.after_insert)

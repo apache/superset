@@ -69,6 +69,7 @@ from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.semantic_layers.access import is_semantic_layers_enabled
+from superset.semantic_layers.dimension_resolution import dimension_support
 from superset.semantic_layers.exceptions import (
     log_provider_failure,
     provider_request_message,
@@ -320,14 +321,13 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
             return self.response(403, message=ex.message)
 
         try:
-            dimensions = [
+            dimensions: list[dict[str, Any]] = [
                 {
                     "name": dim.name,
                     "type": str(dim.type),
                     "definition": dim.definition,
                     "description": dim.description,
-                    "grains": sorted(grain.representation for grain in dim.grains),
-                    "allows_default_grain": dim.allows_default_grain,
+                    **dimension_support(dim),
                 }
                 for dim in sorted(
                     view.implementation.get_dimensions(), key=lambda d: d.name
@@ -1069,6 +1069,15 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
         try:
             views = layer.implementation.get_semantic_views(runtime_data)
+            prepared_keys: dict[str, str] = {
+                view.name: json.dumps(
+                    layer.implementation.prepare_view_configuration(
+                        view.name, runtime_data or {}
+                    ),
+                    sort_keys=True,
+                )
+                for view in views
+            }
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except
@@ -1092,12 +1101,11 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             if isinstance(config, str):
                 config = json.loads(config)
             existing_keys.add((v.name, json.dumps(config or {}, sort_keys=True)))
-        runtime_key = json.dumps(runtime_data or {}, sort_keys=True)
 
-        result = [
+        result: list[dict[str, Any]] = [
             {
                 "name": v.name,
-                "already_added": (v.name, runtime_key) in existing_keys,
+                "already_added": (v.name, prepared_keys[v.name]) in existing_keys,
             }
             for v in sorted(views, key=lambda v: v.name)
         ]

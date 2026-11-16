@@ -68,6 +68,10 @@ import {
   validateNonEmpty,
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
+import {
+  semanticGrainProps,
+  SemanticGrainState,
+} from '@superset-ui/chart-controls';
 import { datasetLabel } from 'src/features/semanticLayers/label';
 import { formatSelectOptions } from 'src/explore/exploreUtils';
 import { TIME_FILTER_LABELS } from './constants';
@@ -78,10 +82,12 @@ interface Datasource {
   metrics: unknown[];
   granularity_sqla?: Column[];
   main_dttm_col?: string;
-  time_grain_sqla?: unknown[];
+  time_grain_sqla?: [string, string][];
+  type?: string;
 }
 
 interface ControlState {
+  compatibility?: SemanticGrainState['compatibility'];
   form_data?: QueryFormData;
   datasource?: Datasource;
   controls?: Record<string, { value?: unknown }>;
@@ -354,9 +360,9 @@ export const controls = {
         'The options here are defined on a per database ' +
         'engine basis in the Superset source code.',
     ),
-    mapStateToProps: (state: ControlState) => ({
-      choices: state.datasource ? state.datasource.time_grain_sqla : null,
-    }),
+    mapStateToProps: (state: ControlState) => semanticGrainProps(state),
+    shouldMapStateToProps: (prev: ControlState, next: ControlState) =>
+      prev.compatibility !== next.compatibility,
   },
 
   time_range: {

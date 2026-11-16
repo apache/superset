@@ -156,6 +156,7 @@ export interface PartitionFilterMapping {
 }
 
 export interface ControlPanelState {
+  compatibility?: import('./utils/semanticGrainChoices').SemanticGrainState['compatibility'];
   slice: {
     slice_id: number;
   };

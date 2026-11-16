@@ -162,15 +162,11 @@ def _resolve_builtin_dataset(
 
 
 def _grains_by_column(dimensions: Iterable[Dimension]) -> dict[str, dict[str, str]]:
-    """Index queryable grains by the column whose variants declare them."""
-    grains: dict[str, dict[str, str]] = {}
-    dimension: Dimension
-    for dimension in dimensions:
-        if dimension.grain is not None:
-            grains.setdefault(dimension.name, {})[dimension.grain.representation] = (
-                dimension.grain.name
-            )
-    return grains
+    """Index explicit grain support on each stable catalog member."""
+    return {
+        dimension.name: {grain.representation: grain.name for grain in dimension.grains}
+        for dimension in dimensions
+    }
 
 
 @normalize_provider_request_errors()
@@ -248,7 +244,7 @@ def _resolve_external_view_metadata(
         )
 
     valid_grains: dict[str, dict[str, str]] = _grains_by_column(
-        view.implementation.get_dimensions()
+        view.get_compatible_dimension_metadata(request.metrics, [])
     )
     grain_column: str | None = request.time_column
     if request.time_grain:
@@ -261,7 +257,7 @@ def _resolve_external_view_metadata(
                     error_type="ValidationError",
                 )
             grain_column = selected[0]
-        # The mapper chooses variants by dimension name, not the view-wide union.
+        # Explicit buckets use the same selected-metric support as the mapper.
         column_grains: dict[str, str] = valid_grains.get(grain_column, {})
         if request.time_grain not in column_grains:
             choices: str = ", ".join(
