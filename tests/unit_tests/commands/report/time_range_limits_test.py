@@ -1787,26 +1787,28 @@ def test_chart_without_a_dataset_is_skipped(
     warning.assert_not_called()
 
 
-UNBUILDABLE = {
-    "no_queries": json.dumps({"datasource": {"type": "table", "id": 7}}),
-    "junk": "{junk",
-}
-
-
 def unbuildable_chart(how: str = "no_queries", **form_data: Any) -> Any:
     broken = chart(11, **form_data)
-    broken.query_context = UNBUILDABLE[how]
+    broken.query_context = (
+        json.dumps(
+            {
+                "datasource": {"type": "table", "id": 7},
+                "form_data": json.loads(broken.params),
+            }
+        )
+        if how == "no_queries"
+        else "{junk"
+    )
     return broken
 
 
 @freeze_time(NOW)
-@pytest.mark.parametrize("how", ["no_queries", "junk"])
 @pytest.mark.parametrize("report_format", ["PNG", "CSV"])
 def test_unbuildable_chart_report_fails_closed_with_only_its_dashboard_limit(
-    sql_runs: list[str], mocker: MockerFixture, how: str, report_format: str
+    sql_runs: list[str], mocker: MockerFixture, report_format: str
 ) -> None:
     set_global(mocker, None)
-    broken = unbuildable_chart(how, dashboardId=3)
+    broken = unbuildable_chart(dashboardId=3)
     board = dashboard(broken, chart(12, time_range="Last 7 days"), limits=policy(30))
     use_dashboards(mocker, board)
     warning = mocker.patch("superset.commands.report.execute.logger.warning")
@@ -1821,13 +1823,16 @@ def test_unbuildable_chart_report_fails_closed_with_only_its_dashboard_limit(
 
 
 @freeze_time(NOW)
-@pytest.mark.parametrize("case", ["off_dashboard", "no_dashboard_id", "flag_off"])
+@pytest.mark.parametrize(
+    "case", ["off_dashboard", "no_dashboard_id", "flag_off", "unreadable_context"]
+)
 def test_unbuildable_chart_report_skips_a_dashboard_limit_the_check_skips(
     sql_runs: list[str], mocker: MockerFixture, case: str
 ) -> None:
     set_global(mocker, None)
     saved: dict[str, Any] = {} if case == "no_dashboard_id" else {"dashboardId": 3}
-    broken = unbuildable_chart("no_queries", **saved)
+    how = "junk" if case == "unreadable_context" else "no_queries"
+    broken = unbuildable_chart(how, **saved)
     on_board = [chart(12)] if case == "off_dashboard" else [broken]
     use_dashboards(mocker, dashboard(*on_board, limits=policy(30)))
     as_user(mocker, "alpha")

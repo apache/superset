@@ -1058,6 +1058,7 @@ def test_an_unbuildable_chart_report_fails_with_only_its_saved_dashboard_limit(
     mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": None})
     use_dashboard(mocker, semantic_dashboard(policy(back=5)))
     chart = semantic_chart(request_body=None, dashboardId=3, time_range=RECENT)
+    chart.query_context = json.dumps({"form_data": json.loads(chart.params)})
 
     errors = report_errors(report_state(chart, mocker))
 
