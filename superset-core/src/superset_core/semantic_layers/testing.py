@@ -24,7 +24,7 @@ provider SDK itself does not require pytest.
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
-from typing import NoReturn, TypeVar
+from typing import NoReturn, TypeAlias, TypeVar
 from unittest.mock import create_autospec, MagicMock
 
 import pyarrow as pa
@@ -44,8 +44,11 @@ from superset_core.semantic_layers.types import (
     AdhocExpression,
     AggregationType,
     Dimension,
+    DimensionSelection,
     Filter,
     FilterExpression,
+    Grain,
+    GrainDefault,
     Metric,
     Operator,
     OrFilter,
@@ -56,6 +59,11 @@ from superset_core.semantic_layers.types import (
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
 _T = TypeVar("_T")
+
+_DimensionContract: TypeAlias = tuple[
+    str, frozenset[Grain], bool, Grain | GrainDefault, Grain | GrainDefault
+]
+_Catalog: TypeAlias = tuple[set[str], set[_DimensionContract]]
 
 
 def _registration(
@@ -73,7 +81,9 @@ def _registration(
 
 
 @pytest.fixture
-def semantic_layer_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+def semantic_layer_registration(  # noqa: PT004 - public provider fixture name
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Allow provider imports during a test without initializing a host.
 
     Request this fixture before importing modules that use ``@semantic_layer``;
@@ -118,19 +128,21 @@ class SemanticProviderConformance:
     ) -> None:
         """Compare executed results, including column names and row order."""
         if case == "grain" and not any(
-            dimension.grain is not None for dimension in semantic_view.get_dimensions()
+            dimension.grains for dimension in semantic_view.get_dimensions()
         ):
             pytest.skip("grain: catalog declares no grain-bearing dimension")
         query: SemanticQuery
         expected: pa.Table
         query, expected = semantic_query_cases[case]
-        assert expected.num_rows > 0, (
-            f"{case} must distinguish a correct result from no data"
-        )
-        assert query.order or expected.num_rows == 1, (
-            f"{case}: multi-row fixtures need explicit order"
-        )
-        assert set(query.dimensions) <= semantic_view.get_dimensions()
+        assert (
+            expected.num_rows > 0
+        ), f"{case} must distinguish a correct result from no data"
+        assert (
+            query.order or expected.num_rows == 1
+        ), f"{case}: multi-row fixtures need explicit order"
+        assert {
+            selection.dimension for selection in query.dimensions
+        } <= semantic_view.get_dimensions()
         assert set(query.metrics) <= semantic_view.get_metrics()
         if case == "grain":
             assert any(dimension.grain is not None for dimension in query.dimensions)
@@ -176,13 +188,13 @@ class SemanticProviderConformance:
         query: SemanticQuery
         expected: pa.Table
         query, expected = semantic_query_cases["identity"]
-        dimension: Dimension | None = next(
+        dimension: DimensionSelection | None = next(
             (d for d in query.dimensions if expected.column(d.name).null_count),
             None,
         )
-        assert dimension is not None, (
-            "identity fixture requires a NULL group to witness empty NOT IN"
-        )
+        assert (
+            dimension is not None
+        ), "identity fixture requires a NULL group to witness empty NOT IN"
         empty: Filter = Filter(PredicateType.WHERE, dimension, operator, frozenset())
         filters: set[FilterExpression] = set(query.filters or set())
         grouped: SemanticResult = semantic_view.get_table(
@@ -210,9 +222,9 @@ class SemanticProviderConformance:
             unfiltered: SemanticQuery = replace(ungrouped, filters=filters or None)
             _assert_result_equal(actual, semantic_view.get_table(unfiltered).results)
             return
-        assert actual.num_rows == 1, (
-            "an ungrouped aggregate over an empty IN returns one row"
-        )
+        assert (
+            actual.num_rows == 1
+        ), "an ungrouped aggregate over an empty IN returns one row"
         metric: Metric
         for metric in query.metrics:
             value: object = actual.column(metric.name)[0].as_py()
@@ -303,9 +315,9 @@ class SemanticProviderConformance:
         expected: pa.Table
         query, expected = semantic_capability_cases[feature.value]
         assert expected.num_rows > 0
-        assert query.order or expected.num_rows == 1, (
-            f"{feature.value}: multi-row fixtures need explicit order"
-        )
+        assert (
+            query.order or expected.num_rows == 1
+        ), f"{feature.value}: multi-row fixtures need explicit order"
         if feature == SemanticViewFeature.ROW_OFFSET:
             assert query.offset is not None
             assert query.offset > 0
@@ -335,11 +347,11 @@ class SemanticProviderConformance:
         stay provider-owned; uncached legacy providers may report a None token.
         """
         first: SemanticView = semantic_make_view("generation-a")
-        before: tuple[set[str], set[tuple[str, str | None]]] = _catalog(first)
+        before: _Catalog = _catalog(first)
         assert first.metadata_cache_token in {None, "generation-a"}
         semantic_change_catalog()
         second: SemanticView = semantic_make_view("generation-b")
-        after: tuple[set[str], set[tuple[str, str | None]]] = _catalog(second)
+        after: _Catalog = _catalog(second)
         assert before[0] <= after[0], "Generation change must retain existing members"
         assert before[1] <= after[1], "Generation change must retain existing members"
         assert after != before, "Catalog change fixture must add a member"
@@ -404,16 +416,16 @@ def _assert_normalized_or_witness(query: SemanticQuery) -> None:
     assert len(nulls) == 1, "or fixture requires IN and IS_NULL leaves"
     selected: Filter = membership[0]
     assert selected.column is not None, "or fixture leaves must select the same member"
-    assert selected.column == nulls[0].column, (
-        "or fixture leaves must select the same member"
-    )
+    assert (
+        selected.column == nulls[0].column
+    ), "or fixture leaves must select the same member"
     assert isinstance(selected.value, frozenset), "or fixture IN requires a frozenset"
-    assert len(selected.value) >= 2, (
-        "or fixture IN requires at least two non-NULL values"
-    )
-    assert None not in selected.value, (
-        "or fixture IN requires at least two non-NULL values"
-    )
+    assert (
+        len(selected.value) >= 2
+    ), "or fixture IN requires at least two non-NULL values"
+    assert (
+        None not in selected.value
+    ), "or fixture IN requires at least two non-NULL values"
     assert any(
         isinstance(item, Filter)
         and item.type == selected.type
@@ -424,12 +436,12 @@ def _assert_normalized_or_witness(query: SemanticQuery) -> None:
 
 def _assert_result_equal(actual: pa.Table, expected: pa.Table) -> None:
     """Compare named typed columns and row order, not field order/nullability."""
-    assert len(actual.column_names) == len(set(actual.column_names)), (
-        "duplicate result columns"
-    )
-    assert set(actual.column_names) == set(expected.column_names), (
-        f"Expected columns {expected.column_names}, got {actual.column_names}"
-    )
+    assert len(actual.column_names) == len(
+        set(actual.column_names)
+    ), "duplicate result columns"
+    assert set(actual.column_names) == set(
+        expected.column_names
+    ), f"Expected columns {expected.column_names}, got {actual.column_names}"
     name: str
     for name in expected.column_names:
         assert actual.column(name).equals(expected.column(name)), (
@@ -439,19 +451,27 @@ def _assert_result_equal(actual: pa.Table, expected: pa.Table) -> None:
         )
 
 
-def _catalog(view: SemanticView) -> tuple[set[str], set[tuple[str, str | None]]]:
-    """Validate exposed selection keys without treating private IDs as keys."""
+def _catalog(view: SemanticView) -> _Catalog:
+    """Validate unique stable catalog keys without using private IDs as keys."""
     metrics: set[Metric] = view.get_metrics()
     dimensions: set[Dimension] = view.get_dimensions()
-    names: set[str] = {metric.name for metric in metrics}
-    variants: set[tuple[str, str | None]] = {
-        (dimension.name, dimension.grain.representation if dimension.grain else None)
+    metric_names: set[str] = {metric.name for metric in metrics}
+    dimension_names: set[str] = {dimension.name for dimension in dimensions}
+    assert len(metric_names) == len(metrics), "duplicate metric selection names"
+    assert len(dimension_names) == len(
+        dimensions
+    ), "duplicate dimension selection names"
+    assert not metric_names.intersection(dimension_names)
+    return metric_names, {
+        (
+            dimension.name,
+            dimension.grains,
+            dimension.allows_default_grain,
+            dimension.omitted_grain,
+            dimension.ungrained_filter,
+        )
         for dimension in dimensions
     }
-    assert len(names) == len(metrics), "duplicate metric selection names"
-    assert len(variants) == len(dimensions), "duplicate dimension name/grain pairs"
-    assert not names.intersection(dimension.name for dimension in dimensions)
-    return names, variants
 
 
 def _check_isolation(module_name: str, class_name: str) -> None:

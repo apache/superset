@@ -35,6 +35,7 @@ from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     Metric,
     SemanticQuery,
@@ -74,10 +75,10 @@ class ExampleView(SemanticView):
         return set()
 
     def get_values(
-        self, dimension: Dimension, filters: set[Filter] | None = None
+        self, dimension: DimensionSelection, filters: set[Filter] | None = None
     ) -> SemanticResult:
         """Return complete distinct values named after the requested member."""
-        if dimension not in self.get_dimensions():
+        if dimension.dimension not in self.get_dimensions():
             raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_QUERY)
         if filters:
             raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
@@ -94,13 +95,17 @@ class ExampleView(SemanticView):
         raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
 
     def get_compatible_metrics(
-        self, selected_metrics: set[Metric], selected_dimensions: set[Dimension]
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Metric]:
         """Return the empty metric catalog."""
         return set()
 
     def get_compatible_dimensions(
-        self, selected_metrics: set[Metric], selected_dimensions: set[Dimension]
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Dimension]:
         """Return the dimension catalog."""
         return self.get_dimensions()

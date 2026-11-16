@@ -34,6 +34,7 @@ from superset_core.semantic_layers.types import (
     AdhocExpression,
     AggregationType,
     Dimension,
+    DimensionSelection,
     Filter,
     FilterExpression,
     Grains,
@@ -95,13 +96,14 @@ class QueryView(ExampleView):
         return self.token
 
     def get_dimensions(self) -> set[Dimension]:
-        """Raw and month variants share a stable selection name."""
+        """One catalog member advertises month support alongside native selection."""
         return {
             Dimension(
                 "private-category", "category", pa.string(), verbose_name="Label"
             ),
-            Dimension("private-day", "occurred", pa.date32()),
-            Dimension("private-month", "occurred", pa.date32(), grain=Grains.MONTH),
+            Dimension(
+                "private-day", "occurred", pa.date32(), grains=frozenset({Grains.MONTH})
+            ),
             *{
                 Dimension(f"private-{revision}", f"revision_{revision}", pa.string())
                 for revision in range(self.revision + 1)
@@ -133,15 +135,15 @@ class QueryView(ExampleView):
         """Compile a bounded subset of queries, then execute through the backend."""
         if (not query.dimensions and not query.metrics) or query.group_limit:
             raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
-        if any(d not in self.get_dimensions() for d in query.dimensions) or any(
-            m not in self.get_metrics() for m in query.metrics
-        ):
+        if any(
+            d.dimension not in self.get_dimensions() for d in query.dimensions
+        ) or any(m not in self.get_metrics() for m in query.metrics):
             raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_QUERY)
         expressions: list[str] = [
             "substr(occurred, 1, 7) || '-01'" if d.grain == Grains.MONTH else d.name
             for d in query.dimensions
         ]
-        columns: list[Dimension | Metric] = [*query.dimensions, *query.metrics]
+        columns: list[DimensionSelection | Metric] = [*query.dimensions, *query.metrics]
         selections: list[str] = [
             f'{expression} AS "{d.name}"'
             for expression, d in zip(expressions, query.dimensions, strict=False)
@@ -174,7 +176,7 @@ class QueryView(ExampleView):
         return _result(columns, rows)
 
     def get_values(
-        self, dimension: Dimension, filters: set[Filter] | None = None
+        self, dimension: DimensionSelection, filters: set[Filter] | None = None
     ) -> SemanticResult:
         """Use the same backend and error boundary for value discovery."""
         return self.get_table(
@@ -204,6 +206,11 @@ def _predicate(expression: FilterExpression, parameters: list[object]) -> str:
             )
             + ")"
         )
+    if (
+        isinstance(expression.column, DimensionSelection)
+        and expression.column.grain is not None
+    ):
+        raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
     if expression.column is not None and expression.column.name == "occurred":
         if expression.operator == Operator.GREATER_THAN_OR_EQUAL and isinstance(
             expression.value, date
@@ -242,12 +249,12 @@ def _membership(expression: Filter, parameters: list[object]) -> str:
 
 
 def _result(
-    columns: list[Dimension | Metric], rows: list[tuple[Any, ...]]
+    columns: list[DimensionSelection | Metric], rows: list[tuple[Any, ...]]
 ) -> SemanticResult:
     """Preserve SDK member names and types in the backend result."""
     values: dict[str, pa.Array] = {}
     index: int
-    member: Dimension | Metric
+    member: DimensionSelection | Metric
     for index, member in enumerate(columns):
         data: list[Any] = [row[index] for row in rows]
         if pa.types.is_date32(member.type):
