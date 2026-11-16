@@ -227,6 +227,30 @@ class BaseExtension(BaseModel):
                 )
         return self
 
+    @model_validator(mode="after")
+    def _each_page_is_declared_once(self) -> BaseExtension:
+        """Refuse the same page id declared twice in one manifest.
+
+        The server reads the first declaration of an id and enforces what it
+        requires. A second row for the same id therefore changes nothing it
+        enforces while still being read as a page -- so declaring one gated
+        and then ungated advertises a page the route answers 403 for, and
+        the author sees a working entry that opens for the wrong people.
+
+        There is no reading of two rows for one id that is not a mistake:
+        whichever requirement the author meant, only one of them applies.
+        """
+        seen: set[str] = set()
+        for page in self.contributions.pages:
+            if page.id in seen:
+                raise ValueError(
+                    f"page id '{page.id}' is declared more than once: only the "
+                    f"first declaration is read, so a second can only disagree "
+                    f"with what the server enforces; declare each page once"
+                )
+            seen.add(page.id)
+        return self
+
 
 # =============================================================================
 # ExtensionConfig (extension.json)

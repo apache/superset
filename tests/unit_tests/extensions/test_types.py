@@ -355,3 +355,65 @@ def test_a_page_the_extension_owns_is_accepted():
         "acme.tools.queue",
         "acme.tools.reports.monthly",
     ]
+
+
+def test_a_page_declared_twice_is_refused():
+    """Only the first declaration of an id is ever read.
+
+    The server stops at it, so a second row for the same id cannot change
+    what is enforced -- it can only disagree with it. Declaring one gated
+    and then ungated advertised a page the route answered 403 for. There is
+    no reading of two rows for one id that is not a mistake, so the build
+    refuses it rather than picking one.
+    """
+    with pytest.raises(ValidationError, match="declared more than once"):
+        ExtensionConfig.model_validate(
+            {
+                "publisher": "acme",
+                "name": "tools",
+                "displayName": "Acme Tools",
+                "contributions": {
+                    "pages": [
+                        {"id": "acme.tools.queue", "name": "Queue", "permission": "can_review"},
+                        {"id": "acme.tools.queue", "name": "Queue"},
+                    ]
+                },
+            }
+        )
+
+
+def test_a_page_declared_twice_is_refused_in_the_built_manifest():
+    """Both schemas, because the manifest is what the host actually reads."""
+    with pytest.raises(ValidationError, match="declared more than once"):
+        Manifest.model_validate(
+            {
+                "publisher": "acme",
+                "name": "tools",
+                "displayName": "Acme Tools",
+                "contributions": {
+                    "pages": [
+                        {"id": "acme.tools.queue", "name": "Queue"},
+                        {"id": "acme.tools.queue", "name": "Queue"},
+                    ]
+                },
+            }
+        )
+
+
+def test_two_different_pages_are_still_accepted():
+    """The rule is one row per id, not one page per extension."""
+    config = ExtensionConfig.model_validate(
+        {
+            "publisher": "acme",
+            "name": "tools",
+            "displayName": "Acme Tools",
+            "contributions": {
+                "pages": [
+                    {"id": "acme.tools.queue", "name": "Queue"},
+                    {"id": "acme.tools.reports", "name": "Reports"},
+                ]
+            },
+        }
+    )
+
+    assert len(config.contributions.pages) == 2

@@ -54,26 +54,37 @@ def manifest(
     *page_ids: str,
     extension_id: str = "acme.tools",
     permission: str | None = None,
+    validated: bool = True,
 ) -> Manifest:
+    """A manifest contributing ``page_ids``.
+
+    ``validated=False`` builds it with ``model_construct``, which runs no
+    validators. That is the only way to express a manifest the build would
+    now refuse -- one naming another extension's page, or the same page
+    twice -- and those are exactly what the server's own checks exist for.
+    A hand-edited or hostile ``manifest.json`` never passed through the
+    build, so a test that could only produce a valid one would pin nothing.
+    """
     publisher, name = extension_id.split(".", 1)
-    return Manifest(
-        publisher=publisher,
-        name=name,
-        displayName="Tools",
+    fields = {
+        "publisher": publisher,
+        "name": name,
+        "displayName": "Tools",
         # A page needs a bundle to supply its component, so a manifest that
         # contributes one always has a frontend. Fixtures say so too, or they
         # would be testing a shape the loader never produces.
-        frontend=ManifestFrontend(
+        "frontend": ManifestFrontend(
             remoteEntry="remoteEntry.js",
             moduleFederationName=f"{publisher}_{name.replace('-', '_')}",
         ),
-        contributions=Contributions(
+        "contributions": Contributions(
             pages=[
                 Page(id=page_id, name=page_id, permission=permission)
                 for page_id in page_ids
             ]
         ),
-    )
+    }
+    return Manifest(**fields) if validated else Manifest.model_construct(**fields)
 
 
 class FakeSecurityManager:
@@ -517,6 +528,57 @@ def test_a_page_without_a_permission_is_open_to_any_signed_in_user(
     assert security.asked == []
 
 
+def _declared_twice(first_permission: str | None, second_permission: str | None):
+    """A manifest declaring one id twice -- what the build now refuses.
+
+    Built with ``model_construct`` for that reason: the shape has to come
+    from somewhere the validator did not see, because a hand-edited
+    ``manifest.json`` is where it would really come from.
+    """
+    return Manifest.model_construct(
+        publisher="acme",
+        name="tools",
+        displayName="Tools",
+        frontend=ManifestFrontend(
+            remoteEntry="remoteEntry.js", moduleFederationName="acme_tools"
+        ),
+        contributions=Contributions(
+            pages=[
+                Page(id="acme.tools.queue", name="Queue", permission=first_permission),
+                Page(id="acme.tools.queue", name="Queue", permission=second_permission),
+            ]
+        ),
+    )
+
+
+def test_a_page_declared_twice_is_judged_by_its_first_declaration(
+    security: FakeSecurityManager,
+) -> None:
+    """Advertising has to agree with what the route enforces.
+
+    `_declared_requirement` stops at the first row for an id, so that row is
+    what answers the URL. Judging every row instead let the second one admit
+    the page here while the first answered 403 -- the entry was drawn, and
+    in-app navigation, which never asks the server again, opened it.
+    """
+    gated_then_open = _declared_twice("can_review", None)
+
+    assert permitted_page_ids(gated_then_open) == set()
+    assert security.asked == [("can_review", VIEW_MENU)]
+
+
+def test_the_first_declaration_decides_the_other_way_round_too(
+    security: FakeSecurityManager,
+) -> None:
+    """Not "the strictest row wins" -- the first one does, whichever it is."""
+    security.granted.add(("can_review", VIEW_MENU))
+    open_then_gated = _declared_twice(None, "can_review")
+
+    assert permitted_page_ids(open_then_gated) == {"acme.tools.queue"}
+    # The open first row is the one read, so nothing was asked about.
+    assert security.asked == []
+
+
 def test_a_permission_is_scoped_to_the_extension_that_declares_it(
     security: FakeSecurityManager,
 ) -> None:
@@ -604,7 +666,9 @@ def test_the_owning_extension_is_the_one_that_guards_a_page(
     in. The owning extension's requirement is the one that must come back.
     """
     squatter = SimpleNamespace(
-        manifest=manifest("acme.tools.queue", extension_id="other.ext")
+        manifest=manifest(
+            "acme.tools.queue", extension_id="other.ext", validated=False
+        )
     )
     owner = SimpleNamespace(
         manifest=manifest("acme.tools.queue", permission="can_review")
@@ -631,7 +695,9 @@ def test_a_page_an_extension_does_not_own_is_not_advertised() -> None:
     extension's own id. A nav entry for one would point at an address that
     renders "page not found".
     """
-    squatter = manifest("acme.tools.queue", extension_id="other.ext")
+    squatter = manifest(
+        "acme.tools.queue", extension_id="other.ext", validated=False
+    )
 
     assert permitted_page_ids(squatter) == set()
 
@@ -642,7 +708,10 @@ def test_nothing_is_created_for_a_page_an_extension_does_not_own(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     squatter = manifest(
-        "acme.tools.queue", extension_id="other.ext", permission="can_review"
+        "acme.tools.queue",
+        extension_id="other.ext",
+        permission="can_review",
+        validated=False,
     )
 
     with app.app_context(), caplog.at_level(logging.ERROR):

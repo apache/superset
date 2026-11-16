@@ -106,7 +106,7 @@ export declare function getViews(location: string): View[] | undefined;
  * @example
  * ```typescript
  * views.registerView(
- *   { id: 'my_ext.queue', name: 'Review queue' },
+ *   { id: 'acme.tools.review-queue', name: 'Review queue' },
  *   views.PAGE_LOCATION,
  *   ReviewQueuePage,
  * );

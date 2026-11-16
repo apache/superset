@@ -379,7 +379,10 @@ describe('when more pages are contributed than the bar can hold', () => {
     );
 
     expect(
-      more.childs?.some(c => (c as { url: string }).url === '/secret'),
+      more.childs?.some(
+        c =>
+          (c as { url: string }).url === '/extensions/pages/acme.tools.secret',
+      ),
     ).toBe(false);
   });
 });

@@ -61,8 +61,8 @@ def page_available(feature_flag: str | None) -> bool:
     """Whether a page's feature flag, if it declares one, is on."""
     if feature_flag is None:
         return True
-    # Read per request, like ENABLE_EXTENSIONS above it: flipping a flag
-    # takes effect without waiting for a restart.
+    # Read per request: flipping a flag takes effect without waiting for a
+    # restart.
     from superset import is_feature_enabled
 
     return bool(is_feature_enabled(feature_flag))
@@ -447,11 +447,25 @@ def permitted_page_ids(manifest: Manifest) -> set[str]:
     Used to decide what the frontend is told about. The server refuses an
     unpermitted page on its own, so this is not the enforcement -- it is what
     keeps a navigation entry from advertising a page that would answer 403.
+
+    Only the first declaration of an id is judged, because that is the one
+    ``_declared_requirement`` enforces. Judging every row instead let a
+    manifest declare the same page twice -- gated, then ungated -- and have
+    the ungated row admit the id here while the gated one answered 403 at the
+    route. The entry was then drawn for a user who could not open the page,
+    and in-app navigation, which does not ask the server again, rendered it.
+    The build refuses a manifest like that, but a hand-edited one never went
+    through the build, so advertising has to agree with enforcement on its
+    own.
     """
+    first_declaration: dict[str, Any] = {}
+    for page in manifest.contributions.pages:
+        first_declaration.setdefault(page.id, page)
+
     return {
-        page.id
-        for page in manifest.contributions.pages
-        if owns_page(manifest.id, page.id)
+        page_id
+        for page_id, page in first_declaration.items()
+        if owns_page(manifest.id, page_id)
         and page_available(page.featureFlag)
         and may_open(manifest.id, page.permission)
     }
