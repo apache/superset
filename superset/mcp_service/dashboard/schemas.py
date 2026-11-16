@@ -2754,20 +2754,26 @@ class _DatasetOnlyFilterSpec(BaseNewFilterSpec):
     """Common rules for filters that target a whole dataset, not a column.
 
     A time grain or time column filter offers options of its dataset as a
-    whole, so a ``column`` would be dropped without effect. It is rejected
-    instead, as updates reject it for these types, so a caller is not left
-    believing the filter was pinned to that column.
+    whole. A ``column`` or select-style ``default_value`` would be dropped
+    without effect, so both are rejected as they are for updates.
     """
 
     @model_validator(mode="before")
     @classmethod
-    def _reject_column(cls, data: Any) -> Any:
-        if isinstance(data, dict) and data.get("column") is not None:
+    def _reject_inapplicable_fields(cls, data: Any) -> Any:
+        """Reject column targets and select defaults instead of ignoring them."""
+        if isinstance(data, dict):
             filter_type = data.get("filter_type")
-            raise ValueError(
-                f"'column' does not apply to {filter_type} filters, which "
-                "target a dataset rather than a column; remove it."
-            )
+            if data.get("column") is not None:
+                raise ValueError(
+                    f"'column' does not apply to {filter_type} filters, which "
+                    "target a dataset rather than a column; remove it."
+                )
+            if data.get("default_value") is not None:
+                raise ValueError(
+                    f"'default_value' does not apply to {filter_type} filters; "
+                    "only filter_select filters support it; remove it."
+                )
         return data
 
 

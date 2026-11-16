@@ -2755,3 +2755,143 @@ def test_invalid_column_error_respects_metadata_permission(
     if can_view_metadata:
         expected += " Available columns: ship_date."
     assert str(exc.value) == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("dataset_id", [5, 7])
+@pytest.mark.parametrize(
+    "template",
+    [
+        EXISTING_SELECT_FILTER,
+        EXISTING_RANGE_FILTER,
+        EXISTING_TIMEGRAIN_FILTER,
+        EXISTING_TIMECOLUMN_FILTER,
+    ],
+)
+async def test_update_dataset_id_drops_semantic_view_binding(
+    mcp_server: object, template: dict[str, Any], dataset_id: int
+) -> None:
+    """An explicit SQL dataset replaces the semantic binding, even at the same ID."""
+    existing = copy.deepcopy(template)
+    existing["targets"][0].update(
+        datasourceType="semantic_view", semantic_selection_version="v1"
+    )
+    captured: dict[str, Any] = {"current_config": [existing]}
+    dataset = _mock_dataset(["region", "cost", "price", "ds"])
+    dataset.id = dataset_id
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[existing])),
+        patch(DATASET_FIND_BY_ID, return_value=dataset),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": existing["id"], "dataset_id": dataset_id}],
+            },
+        )
+    assert data["error"] is None
+    expected = {"datasetId": dataset_id}
+    if "column" in existing["targets"][0]:
+        expected["column"] = existing["targets"][0]["column"]
+    assert captured["payload"]["modified"][0]["targets"] == [expected]
+    assert existing["targets"][0]["datasourceType"] == "semantic_view"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("dataset_id", [5, 7])
+@pytest.mark.parametrize("stored_value", [None, "supported"])
+@pytest.mark.parametrize(
+    "template", [EXISTING_TIMEGRAIN_FILTER, EXISTING_TIMECOLUMN_FILTER]
+)
+async def test_update_dataset_id_clears_semantic_view_default(
+    mcp_server: object,
+    template: dict[str, Any],
+    dataset_id: int,
+    stored_value: str | None,
+) -> None:
+    """A semantic selection cannot be revalidated as a SQL dataset selection."""
+    existing = copy.deepcopy(template)
+    existing["targets"][0].update(
+        datasourceType="semantic_view", semantic_selection_version="v1"
+    )
+    existing["defaultDataMask"] = {
+        "filterState": {"value": [stored_value] if stored_value else None},
+        "extraFormData": {
+            "semantic_selection_sources": [{"datasource": "5__semantic_view"}]
+        },
+    }
+    captured: dict[str, Any] = {"current_config": [existing]}
+    dataset = _mock_dataset(["supported"])
+    dataset.id = dataset_id
+    dataset.columns[0].is_temporal = True
+    dataset.time_grain_sqla = [("supported", "Supported")]
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[existing])),
+        patch(DATASET_FIND_BY_ID, return_value=dataset),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": existing["id"], "dataset_id": dataset_id}],
+            },
+        )
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["defaultDataMask"] == _CLEARED_MASK
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("filter_type", ["filter_timegrain", "filter_timecolumn"])
+@pytest.mark.parametrize("value", [[], ["ship_date"]])
+async def test_add_dataset_only_filter_rejects_default_value(
+    mcp_server: object, filter_type: str, value: list[str]
+) -> None:
+    """Explicit defaults must not be accepted and silently discarded on add."""
+    from fastmcp.exceptions import ToolError
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH) as command,
+        pytest.raises(
+            ToolError, match=f"'default_value' does not apply to {filter_type}"
+        ),
+    ):
+        await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": filter_type,
+                        "name": "Date",
+                        "dataset_id": 5,
+                        "default_value": value,
+                    }
+                ],
+            },
+        )
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "template", [EXISTING_TIMEGRAIN_FILTER, EXISTING_TIMECOLUMN_FILTER]
+)
+async def test_update_dataset_only_filter_rejects_default_value(
+    mcp_server: object, template: dict[str, Any]
+) -> None:
+    """Updates already reject select defaults on dataset-only temporal filters."""
+    with patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[template])):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": template["id"], "default_value": ["ship_date"]}],
+            },
+        )
+    assert "default_value" in data["error"]
+    assert "only apply to filter_select filters" in data["error"]

@@ -442,6 +442,13 @@ def _merge_target(spec: NativeFilterUpdateSpec, merged: dict[str, Any]) -> None:
     dataset_id = (
         spec.dataset_id if spec.dataset_id is not None else target.get("datasetId")
     )
+    if (
+        spec.dataset_id is not None
+        and (target.get("datasourceType") or "table") != "table"
+    ):
+        # dataset_id is validated as a SQL dataset, not a semantic view.
+        target.pop("datasourceType", None)
+        target.pop("semantic_selection_version", None)
     if merged.get("filterType") in _DATASET_ONLY_FILTER_TYPES:
         if dataset_id is None:
             raise _FilterValidationError(
@@ -467,11 +474,13 @@ def _merge_target(spec: NativeFilterUpdateSpec, merged: dict[str, Any]) -> None:
     merged["targets"] = [target]
 
 
-def _target_key(target: dict[str, Any]) -> tuple[Any, Any]:
-    """Identify a filter target by its dataset and column name."""
+def _target_key(target: dict[str, Any]) -> tuple[Any, Any, str]:
+    """Identify a filter target by its dataset, column name and datasource type."""
     column = target.get("column")
-    return target.get("datasetId"), (
-        column.get("name") if isinstance(column, dict) else column
+    return (
+        target.get("datasetId"),
+        column.get("name") if isinstance(column, dict) else column,
+        target.get("datasourceType") or "table",
     )
 
 
@@ -490,6 +499,10 @@ def _stored_default_is_stale(
     if filter_type in _DATASET_ONLY_FILTER_TYPES:
         if not target_changed:
             return False
+        previous = (existing.get("targets") or [{}])[0] or {}
+        if (previous.get("datasourceType") or "table") != "table":
+            # A semantic view default cannot be checked against a SQL dataset.
+            return True
         stored = ((existing.get("defaultDataMask") or {}).get("filterState") or {}).get(
             "value"
         )

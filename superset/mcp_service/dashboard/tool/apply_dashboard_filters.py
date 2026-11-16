@@ -796,6 +796,14 @@ def _timecolumn_data_mask(
         column for column in temporal if column.casefold() == requested.casefold()
     ]
     if selected is None:
+        # The filter bar labels each option with its verbose name.
+        folded = folded or [
+            column.column_name
+            for column in dataset.columns
+            if column.is_temporal
+            and column.verbose_name
+            and column.verbose_name.casefold() == requested.casefold()
+        ]
         selected = folded[0] if len(folded) == 1 else None
     if selected is None:
         can_view_metadata = user_can_view_data_model_metadata()
@@ -861,11 +869,16 @@ def _apply_one(  # noqa: C901
             f"{', '.join(sorted(SUPPORTED_FILTER_TYPES))}."
         )
 
+    supplied_field = next(
+        field
+        for field in ("values", "time_range", "range", "time_grain", "time_column")
+        if getattr(spec, field) is not None
+    )
     if filter_type == "filter_select":
         if spec.values is None:
             raise _FilterApplyError(
                 f"Filter '{spec.filter_name_or_id}' is a filter_select "
-                "filter; provide 'values', not 'time_range'."
+                f"filter; provide 'values', not '{supplied_field}'."
             )
         data_mask, values = _verified_select_data_mask(conf, list(spec.values))
         summary = AppliedFilterSummary(
@@ -878,7 +891,7 @@ def _apply_one(  # noqa: C901
         if spec.time_range is None:
             raise _FilterApplyError(
                 f"Filter '{spec.filter_name_or_id}' is a filter_time filter; "
-                "provide 'time_range', not 'values'."
+                f"provide 'time_range', not '{supplied_field}'."
             )
         data_mask = _time_data_mask(conf, spec.time_range)
         summary = AppliedFilterSummary(
@@ -891,7 +904,7 @@ def _apply_one(  # noqa: C901
         if spec.range is None:
             raise _FilterApplyError(
                 f"Filter '{spec.filter_name_or_id}' is a filter_range "
-                "filter; provide 'range', not 'values'."
+                f"filter; provide 'range', not '{supplied_field}'."
             )
         data_mask = _range_data_mask(conf, spec.range)
         summary = AppliedFilterSummary(
@@ -904,7 +917,7 @@ def _apply_one(  # noqa: C901
         if spec.time_column is None:
             raise _FilterApplyError(
                 f"Filter '{spec.filter_name_or_id}' is a filter_timecolumn "
-                "filter; provide 'time_column', not another value type."
+                f"filter; provide 'time_column', not '{supplied_field}'."
             )
         data_mask, time_column = _timecolumn_data_mask(
             conf, spec.time_column, dashboard_id
@@ -929,7 +942,7 @@ def _apply_one(  # noqa: C901
         if spec.time_grain is None:
             raise _FilterApplyError(
                 f"Filter '{spec.filter_name_or_id}' is a filter_timegrain "
-                "filter; provide 'time_grain', not 'values'."
+                f"filter; provide 'time_grain', not '{supplied_field}'."
             )
         data_mask = _timegrain_data_mask(conf, spec.time_grain, dashboard_id)
         summary = AppliedFilterSummary(

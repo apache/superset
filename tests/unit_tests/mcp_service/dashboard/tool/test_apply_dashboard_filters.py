@@ -1462,7 +1462,7 @@ def _dashboard_granted_dataset() -> SqlaTable:
         (TIMEGRAIN_FILTER, {"time_grain": ["P1D"]}, {"time_grain_sqla": "P1D"}),
     ],
 )
-async def test_dataset_only_filter_resolves_through_the_dashboard_grant(
+async def test_dataset_only_filter_resolves_only_native_filter_dashboard_grant(
     mcp_server: object,
     mocker: MockerFixture,
     conf: dict[str, Any],
@@ -1484,6 +1484,8 @@ async def test_dataset_only_filter_resolves_through_the_dashboard_grant(
 
     conf = {**conf, "targets": [{"datasetId": 5, "datasourceType": datasource_type}]}
     dashboard = _mock_dashboard([conf], id=1)
+    # Exclude the drill-to-detail grant: only native-filter access may apply.
+    dashboard.has_member_datasource.return_value = False
     dataset = _dashboard_granted_dataset()
     security = SupersetSecurityManager(appbuilder)
     for name in (
@@ -4467,3 +4469,116 @@ def test_unknown_value_error_respects_metadata_permission(
     )
     assert ("hidden_column" in str(error)) is can_view_metadata
     assert ("Available values: 'visible value'" in str(error)) is suggest
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("can_view_metadata", [True, False])
+async def test_apply_timecolumn_accepts_the_filter_bar_label(
+    mcp_server: object, can_view_metadata: bool
+) -> None:
+    """A unique verbose name resolves without disclosing restricted metadata."""
+    dataset = _temporal_dataset({"ship_dt": True, "order_dt": True})
+    dataset.columns[0].verbose_name = "Ship Date"
+    dataset.columns[1].verbose_name = None
+    data, captured, _ = await _apply_time_column(
+        mcp_server,
+        TIMECOLUMN_FILTER,
+        ["ship date"],
+        dataset,
+        can_view_metadata=can_view_metadata,
+    )
+    assert data["error"] is None
+    assert data["applied_filters"][0]["time_column"] == (
+        ["ship_dt"] if can_view_metadata else None
+    )
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-time-column"]
+    assert entry["extraFormData"] == {"granularity_sqla": "ship_dt"}
+    assert entry["filterState"] == {"value": ["ship_dt"]}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("can_view_metadata", [True, False])
+async def test_apply_timecolumn_rejects_ambiguous_filter_bar_label(
+    mcp_server: object, can_view_metadata: bool
+) -> None:
+    """Duplicate temporal labels do not pick an arbitrary underlying column."""
+    dataset = _temporal_dataset({"ship_dt": True, "order_dt": True})
+    for column in dataset.columns:
+        column.verbose_name = "Date"
+    data, _, permalink = await _apply_time_column(
+        mcp_server,
+        TIMECOLUMN_FILTER,
+        ["date"],
+        dataset,
+        can_view_metadata=can_view_metadata,
+    )
+    assert data["error"] is not None
+    if not can_view_metadata:
+        assert "ship_dt" not in data["error"]
+        assert "order_dt" not in data["error"]
+    permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_apply_timecolumn_name_takes_precedence_over_label(
+    mcp_server: object,
+) -> None:
+    """Column-name matching wins over a different column's verbose label."""
+    dataset = _temporal_dataset({"ship_dt": True, "order_dt": True})
+    dataset.columns[0].verbose_name = "Order Date"
+    dataset.columns[1].verbose_name = "ship_dt"
+    data, captured, _ = await _apply_time_column(
+        mcp_server, TIMECOLUMN_FILTER, ["SHIP_DT"], dataset
+    )
+    assert data["error"] is None
+    assert captured["state"]["dataMask"]["NATIVE_FILTER-time-column"][
+        "extraFormData"
+    ] == {"granularity_sqla": "ship_dt"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "conf,expected_field,field,value",
+    [
+        (conf, expected_field, field, value)
+        for conf, expected_field in [
+            (SELECT_FILTER, "values"),
+            (TIME_FILTER, "time_range"),
+            (RANGE_FILTER, "range"),
+            (TIMEGRAIN_FILTER, "time_grain"),
+            (TIMECOLUMN_FILTER, "time_column"),
+        ]
+        for field, value in [
+            ("time_column", ["ship_date"]),
+            ("values", ["P1D"]),
+            ("range", [1, 2]),
+            ("time_range", "Last week"),
+            ("time_grain", ["P1D"]),
+        ]
+        if field != expected_field
+    ],
+)
+async def test_filter_wrong_value_error_names_supplied_field(
+    mcp_server: object,
+    conf: dict[str, Any],
+    expected_field: str,
+    field: str,
+    value: object,
+) -> None:
+    """Wrong-type errors identify the actual supplied field, not always values."""
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(CREATE_PERMALINK) as permalink,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": conf["name"], field: value}],
+            },
+        )
+    assert data["error"] == (
+        f"Filter '{conf['name']}' is a {conf['filterType']} filter; "
+        f"provide '{expected_field}', not '{field}'."
+    )
+    permalink.assert_not_called()
