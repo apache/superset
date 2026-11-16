@@ -993,6 +993,30 @@ test('a widget that was both edited and moved says it was edited', () => {
   expect(screen.getByTestId('canvas-widget-mark')).toHaveTextContent('Edited');
 });
 
+test('only a content change frames the widget', () => {
+  // New and edited change what a widget shows, so the surface frames them;
+  // a move only changes where it sits, and its tag says so.
+  const { container, unmount } = renderGrid(
+    emptyScopeValues(),
+    jest.fn(),
+    marked({ kind: 'new', nodeId: 'c1', by: 'ai' }),
+  );
+  expect(container.querySelector('[data-canvas-mark]')).toHaveAttribute(
+    'data-canvas-mark',
+    'new',
+  );
+  unmount();
+
+  const moved = renderGrid(
+    emptyScopeValues(),
+    jest.fn(),
+    marked({ kind: 'moved', nodeId: 'c1', by: 'user' }),
+  );
+  expect(
+    moved.container.querySelector('[data-canvas-mark]'),
+  ).not.toBeInTheDocument();
+});
+
 test('an unchanged canvas marks nothing', () => {
   renderGrid();
 

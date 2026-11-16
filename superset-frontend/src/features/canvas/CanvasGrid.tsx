@@ -110,22 +110,18 @@ const Mark = styled(Tag)`
   `}
 `;
 
-const Titled = styled.div<{ $mark?: DraftChange['kind'] }>`
-  ${({ theme, $mark }) => css`
+/**
+ * A widget's title row above its content. A content change marks it with
+ * `data-canvas-mark`, which the surface draws as the widget's frame (see
+ * `Interactive`): out in the gap, so it never sits on the content, and
+ * outside the content box, which scrolls and would clip it.
+ */
+const Titled = styled.div`
+  ${({ theme }) => css`
     height: 100%;
     display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit}px;
-    ${
-      $mark &&
-      OUTLINED.has($mark) &&
-      css`
-        /* Inset, so marking a widget moves nothing on the grid around it. */
-        box-shadow: inset 0 0 0 2px
-          ${$mark === 'new' ? theme.colorSuccess : theme.colorPrimary};
-        border-radius: ${theme.borderRadius}px;
-      `
-    }
   `}
 `;
 
@@ -536,7 +532,7 @@ export default function CanvasGrid({
     // A widget with neither a name nor a change has no row to draw.
     if (!title && !mark) return widget;
     return (
-      <Titled $mark={mark}>
+      <Titled data-canvas-mark={mark && OUTLINED.has(mark) ? mark : undefined}>
         <TitleRow $align={display.titleAlign ?? 'left'} $inset={editable}>
           {title && (
             <WidgetTitle title={title} data-test="canvas-widget-title">

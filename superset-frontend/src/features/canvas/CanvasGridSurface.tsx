@@ -446,6 +446,17 @@ const Interactive = styled.div<{
       transition: border-color ${theme.motionDurationMid};
     }
 
+    /* A draft's new or edited widget, marked by the title row inside it
+       (see Titled). Its own frame rather than an outline on the content,
+       which would sit on whatever fills the widget's edges. */
+    &:has(> .canvas-content > [data-canvas-mark='new'])::before {
+      border-color: ${theme.colorSuccess};
+    }
+
+    &:has(> .canvas-content > [data-canvas-mark='edited'])::before {
+      border-color: ${theme.colorPrimary};
+    }
+
     ${
       showBounds &&
       css`
@@ -724,7 +735,11 @@ function WidgetBody({
   const [chrome, setChrome] = useState<HTMLDivElement | null>(null);
   return (
     <>
-      <Content editable={editable} overflow={overflow}>
+      <Content
+        className="canvas-content"
+        editable={editable}
+        overflow={overflow}
+      >
         <CanvasWidgetChromeContext.Provider value={chrome}>
           {children}
         </CanvasWidgetChromeContext.Provider>
