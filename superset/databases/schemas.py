@@ -370,9 +370,7 @@ def extra_validator(value: str) -> str:  # noqa: C901
                                 "The %(key)s in metadata_cache_timeout must be a "
                                 "non-negative integer, but received %(value)s. "
                                 "Enter a whole number of seconds (0 or greater) "
-                                "under Advanced > Performance, or correct "
-                                "metadata_cache_timeout in the Extra JSON field "
-                                "under Advanced > Other.",
+                                "under Advanced > Performance.",
                                 key=key,
                                 value=_describe_invalid_value(timeout),
                             )

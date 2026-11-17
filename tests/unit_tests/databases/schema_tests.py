@@ -553,8 +553,7 @@ def test_extra_validator_cache_timeout_error_is_actionable() -> None:
     assert exc_info.value.messages["extra"] == [
         "The table_cache_timeout in metadata_cache_timeout must be a "
         'non-negative integer, but received "abc". Enter a whole number of '
-        "seconds (0 or greater) under Advanced > Performance, or correct "
-        "metadata_cache_timeout in the Extra JSON field under Advanced > Other."
+        "seconds (0 or greater) under Advanced > Performance."
     ]
 
 

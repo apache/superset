@@ -4511,9 +4511,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "The schema_cache_timeout in metadata_cache_timeout "
                         "must be a non-negative integer, but received -1. "
                         "Enter a whole number of seconds (0 or greater) "
-                        "under Advanced > Performance, or correct "
-                        "metadata_cache_timeout in the Extra JSON field "
-                        "under Advanced > Other."
+                        "under Advanced > Performance."
                     ),
                     "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",
