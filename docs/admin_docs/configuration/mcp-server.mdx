@@ -2529,11 +2529,12 @@ or whitespace-only dashboard renames with "Text must not be empty"; omitting
 `dashboard_title` leaves the stored title unchanged.
 
 Blank names in `create_virtual_dataset`, `create_theme`, `create_dataset_metric`,
-`update_dataset_metric`, and `update_dataset`, and whitespace-only labels in
+`update_dataset_metric`, `create_dataset_column`, `update_dataset_column`, and
+`update_dataset`, and whitespace-only labels in
 `save_sql_query`, report "Text must not be empty" at the corresponding name field.
 Blank-name checks precede length checks, including whitespace-only inputs longer
 than the field limit.
-Explicit null metric or dataset names remain invalid; omitting them from updates
+Explicit null metric, column, or dataset names remain invalid; omitting them from updates
 leaves the stored name unchanged.
 
 ### Chart and dashboard titles
