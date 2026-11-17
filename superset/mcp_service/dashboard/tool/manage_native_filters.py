@@ -447,16 +447,17 @@ def _stored_default_is_stale(
     column or dataset, when it becomes single-select while the default holds
     several values, or when ``default_to_first_item`` is switched on (the
     explicit default would otherwise win and the first item never applies).
+    Semantic-view defaults cannot survive a switch to a SQL dataset.
     Dataset-only temporal filters retain defaults supported by the new dataset.
     """
+    previous = (existing.get("targets") or [{}])[0] or {}
+    if target_changed and (previous.get("datasourceType") or "table") != "table":
+        # Discard the entire semantic mask, including sources with no stored value.
+        return True
     filter_type = existing.get("filterType")
     if filter_type in _DATASET_ONLY_FILTER_TYPES:
         if not target_changed:
             return False
-        previous = (existing.get("targets") or [{}])[0] or {}
-        if (previous.get("datasourceType") or "table") != "table":
-            # A semantic view default cannot be checked against a SQL dataset.
-            return True
         stored = ((existing.get("defaultDataMask") or {}).get("filterState") or {}).get(
             "value"
         )
@@ -518,11 +519,11 @@ def _merge_default_data_mask(
         # older masks that stored value=None alongside an impossible predicate.
         merged["defaultDataMask"] = _default_data_mask(merged, [])
     elif _stored_default_is_stale(spec, existing, target_changed):
-        # Temporal filters have no select predicate, even when required.
+        # Only select filters use a select predicate when required.
         merged["defaultDataMask"] = (
-            _empty_data_mask()
-            if existing.get("filterType") in _DATASET_ONLY_FILTER_TYPES
-            else _default_data_mask(merged, [])
+            _default_data_mask(merged, [])
+            if existing.get("filterType") == "filter_select"
+            else _empty_data_mask()
         )
 
 

@@ -2799,14 +2799,22 @@ async def test_update_dataset_id_drops_semantic_view_binding(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("dataset_id", [5, 7])
 @pytest.mark.parametrize("stored_value", [None, "supported"])
+@pytest.mark.parametrize("enable_empty_filter", [False, True])
 @pytest.mark.parametrize(
-    "template", [EXISTING_TIMEGRAIN_FILTER, EXISTING_TIMECOLUMN_FILTER]
+    "template",
+    [
+        EXISTING_SELECT_FILTER,
+        EXISTING_RANGE_FILTER,
+        EXISTING_TIMEGRAIN_FILTER,
+        EXISTING_TIMECOLUMN_FILTER,
+    ],
 )
 async def test_update_dataset_id_clears_semantic_view_default(
     mcp_server: object,
     template: dict[str, Any],
     dataset_id: int,
     stored_value: str | None,
+    enable_empty_filter: bool,
 ) -> None:
     """A semantic selection cannot be revalidated as a SQL dataset selection."""
     existing = copy.deepcopy(template)
@@ -2819,8 +2827,9 @@ async def test_update_dataset_id_clears_semantic_view_default(
             "semantic_selection_sources": [{"datasource": "5__semantic_view"}]
         },
     }
+    existing["controlValues"]["enableEmptyFilter"] = enable_empty_filter
     captured: dict[str, Any] = {"current_config": [existing]}
-    dataset = _mock_dataset(["supported"])
+    dataset = _mock_dataset(["supported", "region", "cost"])
     dataset.id = dataset_id
     dataset.columns[0].is_temporal = True
     dataset.time_grain_sqla = [("supported", "Supported")]
@@ -2837,7 +2846,23 @@ async def test_update_dataset_id_clears_semantic_view_default(
             },
         )
     assert data["error"] is None
-    assert captured["payload"]["modified"][0]["defaultDataMask"] == _CLEARED_MASK
+    expected = (
+        {
+            "filterState": {"value": []},
+            "extraFormData": {
+                "adhoc_filters": [
+                    {
+                        "expressionType": "SQL",
+                        "clause": "WHERE",
+                        "sqlExpression": "1 = 0",
+                    }
+                ]
+            },
+        }
+        if template["filterType"] == "filter_select" and enable_empty_filter
+        else _CLEARED_MASK
+    )
+    assert captured["payload"]["modified"][0]["defaultDataMask"] == expected
 
 
 @pytest.mark.asyncio

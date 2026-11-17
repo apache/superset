@@ -650,6 +650,13 @@ time grain is unavailable in the replacement dataset. Compatible defaults are
 preserved. These two filter types target a dataset, not a column, so adding one
 with a `column` is rejected rather than storing a filter without it.
 
+Setting `dataset_id` on a semantic-view-bound select, numerical-range,
+time-grain, or time-column filter switches its target to a SQL dataset and
+clears its semantic default mask, including selection sources even if the
+stored value is null. Required select filters rebuild their empty-selection
+predicate for the SQL target. An explicit select default in the same update
+replaces the semantic default instead.
+
 All new-filter specs (select, time range, numerical range, time grain, time
 column, and divider) share the update path's type-specific field validation.
 Non-null inapplicable fields are rejected, including `False` and empty lists;
