@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import rison from 'rison';
 import {
   fireEvent,
   screen,
@@ -69,6 +70,66 @@ test('renders Tabs', async () => {
     datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
   });
   expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
+});
+
+test('Usage excludes semantic-view charts whose datasource id matches the dataset', async () => {
+  const testProps = createProps();
+  const charts = [
+    {
+      id: 101,
+      slice_name: 'Dataset chart',
+      datasource_id: testProps.datasource.id,
+      datasource_type: DatasourceType.Table,
+    },
+    {
+      id: 102,
+      slice_name: 'Semantic view chart',
+      datasource_id: testProps.datasource.id,
+      datasource_type: DatasourceType.SemanticView,
+    },
+    {
+      id: 103,
+      slice_name: 'Other dataset chart',
+      datasource_id: testProps.datasource.id + 1,
+      datasource_type: DatasourceType.Table,
+    },
+  ];
+  fetchMock.removeRoutes();
+  fetchMock.get(DATASOURCE_ENDPOINT, []);
+  fetchMock.get('glob:*/api/v1/chart/*', ({ url }) => {
+    const { filters } = rison.decode<{
+      filters: {
+        col: 'datasource_id' | 'datasource_type';
+        opr: string;
+        value: string | number;
+      }[];
+    }>(new URL(url, 'http://localhost').searchParams.get('q') ?? '');
+    const matches = charts.filter(chart =>
+      filters.every(filter => chart[filter.col] === filter.value),
+    );
+    return {
+      count: matches.length,
+      ids: matches.map(chart => chart.id),
+      result: matches.map(chart => ({
+        ...chart,
+        url: `/explore/?slice_id=${chart.id}`,
+        changed_on_delta_humanized: 'a day ago',
+        changed_by: null,
+        dashboards: [],
+      })),
+    };
+  });
+  setupDatasourceEditorMocks();
+
+  await asyncRender(testProps);
+  await userEvent.click(screen.getByRole('tab', { name: /usage/i }));
+
+  expect(
+    await screen.findByRole('link', { name: 'Dataset chart' }),
+  ).toBeVisible();
+  expect(screen.queryByText('Semantic view chart')).not.toBeInTheDocument();
+  expect(screen.queryByText('Other dataset chart')).not.toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: /usage/i })).toHaveTextContent('1');
 });
 
 test('recommends a registered client route for the default URL', async () => {

@@ -87,11 +87,33 @@ def test_chart_datasource_filter_rejects_malformed_identity(identity: object) ->
 
 
 @pytest.mark.parametrize(
-    "identity, expected",
+    "filters, expected",
     [
-        (7, "table chart"),
-        ("7__table", "table chart"),
-        ("7__semantic_view", "semantic chart"),
+        (
+            [{"col": "datasource_id", "opr": "chart_datasource", "value": 7}],
+            "table chart",
+        ),
+        (
+            [{"col": "datasource_id", "opr": "chart_datasource", "value": "7__table"}],
+            "table chart",
+        ),
+        (
+            [
+                {
+                    "col": "datasource_id",
+                    "opr": "chart_datasource",
+                    "value": "7__semantic_view",
+                }
+            ],
+            "semantic chart",
+        ),
+        (
+            [
+                {"col": "datasource_id", "opr": "eq", "value": 7},
+                {"col": "datasource_type", "opr": "eq", "value": "table"},
+            ],
+            "table chart",
+        ),
     ],
 )
 @with_feature_flags(SEMANTIC_LAYERS=True)
@@ -100,10 +122,10 @@ def test_chart_list_datasource_identity(
     full_api_access: None,
     mocker: MockerFixture,
     session: Session,
-    identity: int | str,
+    filters: list[dict[str, str | int]],
     expected: str,
 ) -> None:
-    """The registered list operator separates same-ID sources and accepts old links."""
+    """Registered list operators separate same-ID sources and accept old links."""
     # Avoid app-init imports: models and API registration need the app fixture.
     from superset.charts.api import ChartRestApi
     from superset.models.slice import Slice
@@ -124,9 +146,7 @@ def test_chart_list_datasource_identity(
     query: str = prison.dumps(
         {
             "columns": ["id", "slice_name"],
-            "filters": [
-                {"col": "datasource_id", "opr": "chart_datasource", "value": identity}
-            ],
+            "filters": filters,
         }
     )
     response: TestResponse = client.get("/api/v1/chart/", query_string={"q": query})
