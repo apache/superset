@@ -260,9 +260,13 @@ const FilterBar: FC<FiltersBarProps> = ({
         const appliedDataMask = dataMaskApplied[filter.id];
         const isFirstTimeInitialization = !initializedFilters.has(filter.id);
 
-        // Auto-apply when filter has value but empty extraFormData in applied state
-        // This fixes the bug where defaultDataMask.filterState.value exists but extraFormData is empty
-        // Only auto-apply if: value matches what's applied AND extraFormData is missing in applied but present in incoming
+        // Auto-apply when the filter control reports the applied value but derives
+        // different extraFormData than the applied state holds. The applied
+        // extraFormData can be missing (a default value whose extraFormData was
+        // never derived) or stale (a restored filter state whose extraFormData
+        // belongs to another value), and charts query with it while the filter
+        // bar displays the value. Incoming dataMasks with empty extraFormData
+        // are ignored: the control has not derived it from the value yet.
         const needsAutoApply =
           appliedDataMask?.filterState?.value !== undefined &&
           dataMask.filterState?.value !== undefined &&
@@ -270,10 +274,8 @@ const FilterBar: FC<FiltersBarProps> = ({
             appliedDataMask.filterState.value,
             dataMask.filterState.value,
           ) &&
-          (!appliedDataMask?.extraFormData ||
-            Object.keys(appliedDataMask.extraFormData || {}).length === 0) &&
-          dataMask.extraFormData &&
-          Object.keys(dataMask.extraFormData).length > 0;
+          !isEmpty(dataMask.extraFormData) &&
+          !isEqual(appliedDataMask.extraFormData ?? {}, dataMask.extraFormData);
 
         // Force instant updating for requiredFirst filters or auto-apply when needed
         const shouldDispatch =

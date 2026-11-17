@@ -99,6 +99,7 @@ afterEach(() => {
   fetchMock.removeRoute('index-create-filter-key');
   fetchMock.removeRoute('index-create-filter-key-2');
   fetchMock.removeRoute('index-update-filter-key');
+  fetchMock.removeRoute('region-filter-chart-data');
   window.history.pushState(null, '', '/');
 });
 
@@ -1376,6 +1377,127 @@ test('required filter with a default value auto-applies on load without touching
 
   // Nothing is left pending: the default value is already applied, so the
   // Apply button is not blocking on untouched filters.
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+
+  updateDataMaskSpy.mockRestore();
+});
+
+const regionFilterId = 'NATIVE_FILTER-region';
+const regionExtraFormData = (value: string) => ({
+  filters: [{ col: 'region', op: 'IN', val: [value] }],
+});
+
+function renderRegionFilterWithAppliedState(
+  appliedExtraFormData: Record<string, unknown>,
+) {
+  fetchMock.post(
+    'glob:*/api/v1/chart/data',
+    {
+      result: [
+        {
+          data: [{ region: 'East' }, { region: 'West' }],
+          colnames: ['region'],
+          coltypes: [1],
+          applied_filters: [],
+        },
+      ],
+    },
+    { name: 'region-filter-chart-data' },
+  );
+
+  const regionFilter = createFilter({
+    id: regionFilterId,
+    name: 'Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    controlValues: { enableEmptyFilter: true },
+    defaultDataMask: {
+      filterState: { value: ['East'] },
+      extraFormData: regionExtraFormData('East'),
+    },
+    chartsInScope: [18],
+  });
+
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [regionFilter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    // The applied value is 'West'; the extraFormData charts query with is
+    // supplied by the caller.
+    dataMask: {
+      [regionFilterId]: createDataMask(
+        regionFilterId,
+        ['West'],
+        appliedExtraFormData,
+      ),
+    },
+    nativeFilters: {
+      filters: { [regionFilterId]: regionFilter },
+      filtersState: {},
+    },
+  };
+
+  renderFilterBar(createOpenedBarProps(), state);
+}
+
+test('filter auto-applies when its applied extraFormData does not match its applied value', async () => {
+  // A restored filter state can carry a value whose extraFormData belongs to
+  // a different value, e.g. when a saved state supplies only filterState and
+  // the dashboard default's extraFormData is merged in underneath it. The
+  // filter bar then shows 'West' while charts are filtered on 'East'. Once
+  // the filter control derives extraFormData from the value, FilterBar
+  // applies it so charts match what the filter bar displays.
+  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+  renderRegionFilterWithAppliedState(regionExtraFormData('East'));
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  await waitFor(() => {
+    expect(updateDataMaskSpy).toHaveBeenCalledWith(
+      regionFilterId,
+      expect.objectContaining({
+        extraFormData: regionExtraFormData('West'),
+        filterState: expect.objectContaining({ value: ['West'] }),
+      }),
+    );
+  });
+
+  // The corrected state is applied directly, so nothing is left pending.
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+
+  updateDataMaskSpy.mockRestore();
+});
+
+test('filter does not auto-apply when its applied extraFormData already matches its applied value', async () => {
+  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+  renderRegionFilterWithAppliedState(regionExtraFormData('West'));
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  // Wait for the filter control to load and render its applied value before
+  // asserting that no dispatch happened.
+  await screen.findByText('West');
+  expect(updateDataMaskSpy).not.toHaveBeenCalledWith(
+    regionFilterId,
+    expect.anything(),
+  );
   expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
   updateDataMaskSpy.mockRestore();
