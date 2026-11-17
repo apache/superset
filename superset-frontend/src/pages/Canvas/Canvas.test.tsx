@@ -368,11 +368,9 @@ test.each(['Save', 'Discard'])(
     ).toBeInTheDocument();
     expect(screen.getByTestId('draft-chart')).toHaveTextContent('north');
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: action, exact: true }),
-      ).toBeEnabled(),
+      expect(screen.getByRole('button', { name: action })).toBeEnabled(),
     );
-    fireEvent.click(screen.getByRole('button', { name: action, exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: action }));
     await waitFor(() =>
       expect(
         screen.queryByText('Draft. Only you can see these changes.'),

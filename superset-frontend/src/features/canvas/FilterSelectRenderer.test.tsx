@@ -20,7 +20,7 @@ import { ReactNode, ReactElement, useState } from 'react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import type { canvas as canvasApi } from '@apache-superset/core';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, JsonResponse } from '@superset-ui/core';
 import {
   act,
   fireEvent,
@@ -104,14 +104,16 @@ const widget: canvasApi.CanvasWidgetProps = {
 };
 
 function deferredResult() {
-  let resolve!: (response: { json: { result: string[] } }) => void;
-  const promise = new Promise<{ json: { result: string[] } }>(yes => {
+  let resolve!: (response: JsonResponse) => void;
+  const promise = new Promise<JsonResponse>(yes => {
     resolve = yes;
   });
   return { promise, resolve };
 }
-const response = (result: string[]) =>
-  ({ json: { result } }) as Awaited<ReturnType<typeof SupersetClient.get>>;
+const response = (result: string[]): JsonResponse => ({
+  response: new Response(),
+  json: { result },
+});
 beforeEach(() => jest.clearAllMocks());
 afterEach(() => jest.restoreAllMocks());
 
@@ -125,7 +127,7 @@ test.each([
     jest
       .spyOn(SupersetClient, 'get')
       .mockResolvedValueOnce(response(['north', 'south']))
-      .mockReturnValue(next.promise as ReturnType<typeof SupersetClient.get>);
+      .mockReturnValue(next.promise);
     const initial = {
       ...widget,
       props: { ...widget.props, defaultSelection: ['north'] },
@@ -153,7 +155,7 @@ test.each([
       ...source,
       values: ['west'],
     });
-    await act(async () => next.resolve({ json: { result: ['west'] } }));
+    await act(async () => next.resolve(response(['west'])));
     expect(screen.getByRole('option', { name: 'west' })).toBeInTheDocument();
     expect(screen.getByTestId('selection')).toHaveTextContent('["west"]');
   },
@@ -196,7 +198,7 @@ test('ignores late option results from the previous source', async () => {
   const old = deferredResult();
   jest
     .spyOn(SupersetClient, 'get')
-    .mockReturnValueOnce(old.promise as ReturnType<typeof SupersetClient.get>)
+    .mockReturnValueOnce(old.promise)
     .mockResolvedValueOnce(response(['current']));
   const { rerender } = render(<FilterSelectRenderer {...widget} />);
   rerender(
@@ -206,7 +208,7 @@ test('ignores late option results from the previous source', async () => {
     />,
   );
   await screen.findByRole('option', { name: 'current' });
-  await act(async () => old.resolve({ json: { result: ['previous'] } }));
+  await act(async () => old.resolve(response(['previous'])));
   expect(
     screen.queryByRole('option', { name: 'previous' }),
   ).not.toBeInTheDocument();
@@ -217,7 +219,7 @@ test('clears fetched values when switching between static and fetched options', 
   jest
     .spyOn(SupersetClient, 'get')
     .mockResolvedValueOnce(response(['old fetched']))
-    .mockReturnValue(new Promise(() => {}));
+    .mockReturnValue(new Promise<JsonResponse>(() => {}));
   const { rerender } = render(<FilterSelectRenderer {...widget} />);
   await screen.findByRole('option', { name: 'old fetched' });
   rerender(
@@ -266,13 +268,13 @@ test('keeps selection when entering and leaving a draft with an unchanged bindin
 
 test('retains options during refresh and clears them after denial', async () => {
   let reject!: (reason: unknown) => void;
-  const pending = new Promise((resolve, fail) => {
+  const pending = new Promise<JsonResponse>((resolve, fail) => {
     reject = fail;
   });
   jest
     .spyOn(SupersetClient, 'get')
     .mockResolvedValueOnce(response(['restricted']))
-    .mockReturnValueOnce(pending as ReturnType<typeof SupersetClient.get>);
+    .mockReturnValueOnce(pending);
   const { rerender } = render(<FilterSelectRenderer {...widget} />);
   await screen.findByRole('option', { name: 'restricted' });
   rerender(<FilterSelectRenderer {...widget} refreshKey={1} />);
@@ -288,14 +290,12 @@ test('replaces options only when a refresh succeeds', async () => {
   jest
     .spyOn(SupersetClient, 'get')
     .mockResolvedValueOnce(response(['old']))
-    .mockReturnValueOnce(
-      pending.promise as ReturnType<typeof SupersetClient.get>,
-    );
+    .mockReturnValueOnce(pending.promise);
   const { rerender } = render(<FilterSelectRenderer {...widget} />);
   await screen.findByRole('option', { name: 'old' });
   rerender(<FilterSelectRenderer {...widget} refreshKey={1} />);
   expect(screen.getByRole('option', { name: 'old' })).toBeInTheDocument();
-  await act(async () => pending.resolve({ json: { result: ['new'] } }));
+  await act(async () => pending.resolve(response(['new'])));
   expect(screen.queryByRole('option', { name: 'old' })).not.toBeInTheDocument();
   expect(screen.getByRole('option', { name: 'new' })).toBeInTheDocument();
 });
@@ -331,9 +331,7 @@ test.each(['draft', 'version'])(
     jest
       .spyOn(SupersetClient, 'get')
       .mockResolvedValueOnce(response(['north']))
-      .mockReturnValueOnce(
-        pending.promise as ReturnType<typeof SupersetClient.get>,
-      );
+      .mockReturnValueOnce(pending.promise);
     let value: string | undefined;
     const Context =
       context === 'draft' ? CanvasDraftContext : CanvasVersionContext;
@@ -353,7 +351,7 @@ test.each(['draft', 'version'])(
     expect(screen.queryAllByRole('option')).toHaveLength(0);
     expect(screen.getByTestId('selection')).toHaveTextContent('["north"]');
     expect(widget.setFilterValue).not.toHaveBeenCalled();
-    await act(async () => pending.resolve({ json: { result: ['west'] } }));
+    await act(async () => pending.resolve(response(['west'])));
     expect(screen.getByRole('option', { name: 'west' })).toBeInTheDocument();
   },
 );
