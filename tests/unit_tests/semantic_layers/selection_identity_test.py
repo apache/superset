@@ -373,6 +373,7 @@ def test_time_grain_options_load_through_processor(datasource_type: str) -> None
         {"filters": [{"col": "Orders.region", "op": "==", "val": "EUROPE"}]},
         {"granularity": "Orders.order_date"},
         {"series_columns": ["Orders.region"]},
+        {"series_limit_metric": "Orders.b"},
     ],
 )
 @pytest.mark.parametrize(
@@ -432,6 +433,15 @@ def test_forced_async_metadata_request_runs_synchronously(
         return_value=IdentityView(),
     )
     mocker.patch.object(SemanticViewModel, "get_time_grains", return_value=grains)
+    column: MagicMock = MagicMock(
+        column_name="Orders.order_date", verbose_name="Order date"
+    )
+    mocker.patch.object(
+        SemanticViewModel, "columns", new_callable=PropertyMock, return_value=[column]
+    )
+    mocker.patch(
+        "superset.common.query_actions.extract_column_dtype", return_value="DATETIME"
+    )
     mocker.patch.object(SemanticViewModel, "raise_for_access")
     mocker.patch(
         "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
@@ -471,5 +481,14 @@ def test_forced_async_metadata_request_runs_synchronously(
 
     submit.assert_not_called()
     assert response.status_code == 200, response.get_json()
-    if result_type == "timegrains":
-        assert response.get_json()["result"][0]["data"] == grains
+    assert response.get_json()["result"][0]["data"] == (
+        grains
+        if result_type == "timegrains"
+        else [
+            {
+                "column_name": "Orders.order_date",
+                "verbose_name": "Order date",
+                "dtype": "DATETIME",
+            }
+        ]
+    )

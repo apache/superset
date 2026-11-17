@@ -1487,7 +1487,7 @@ def validate_query_object(
 def _validation_metadata(query_object: ValidatedQueryObject) -> _ViewMetadata:
     """Check member identity before fetching metadata for validation."""
     view: SemanticView = query_object.datasource.implementation
-    version: Any = query_object.extras.get("semantic_selection_version")
+    version: object = query_object.extras.get("semantic_selection_version")
     try:
         view.validate_selection_version(version)
     except ValueError as ex:
