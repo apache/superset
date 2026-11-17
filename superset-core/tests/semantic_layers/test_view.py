@@ -16,6 +16,7 @@
 # under the License.
 
 import pyarrow as pa
+import pytest
 from superset_core.semantic_layers.types import (
     Dimension,
     DimensionSelection,
@@ -99,3 +100,41 @@ def test_row_offset_is_optional_for_minimal_provider() -> None:
 def test_view_metadata_defaults_are_conservative() -> None:
     assert SemanticView.features == frozenset()
     assert SemanticView.name == ""
+
+
+def test_compatibility_evidence_is_optional() -> None:
+    assert MinimalView().get_compatibility_evidence() is None
+
+
+@pytest.mark.parametrize("quality", ["known", "partial", "unknown"])
+def test_compatibility_evidence_is_immutable(quality: str) -> None:
+    from dataclasses import FrozenInstanceError
+
+    from superset_core.semantic_layers.view import CompatibilityEvidence
+
+    evidence: CompatibilityEvidence = CompatibilityEvidence(quality, 1500)
+    assert evidence.quality == quality
+    assert evidence.valid_for_ms == 1500
+    with pytest.raises(FrozenInstanceError):
+        evidence.valid_for_ms = 3000  # type: ignore[misc]
+
+
+@pytest.mark.parametrize(
+    "quality,lifetime",
+    [
+        ("invalid", 100),
+        ("known", -1),
+        ("known", float("inf")),
+        ("known", float("nan")),
+        ("known", True),
+        ("known", "100"),
+    ],
+)
+def test_compatibility_evidence_rejects_invalid_values(
+    quality: str,
+    lifetime: object,
+) -> None:
+    from superset_core.semantic_layers.view import CompatibilityEvidence
+
+    with pytest.raises(ValueError, match="[Cc]ompatibility"):
+        CompatibilityEvidence(quality, lifetime)  # type: ignore[arg-type]

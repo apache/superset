@@ -2123,3 +2123,15 @@ test('viz switches refetch grain support even when selections do not change', as
     registry.remove('grain-switch');
   }
 });
+
+test('compatibility cleanup fences pending replies on unmount', async () => {
+  const fetch = jest
+    .spyOn(exploreActions, 'fetchCompatibility')
+    .mockImplementation(() => async () => undefined);
+  const reset = jest.spyOn(exploreActions, 'resetCompatibility');
+  const { unmount } = renderWithRouter({ initialState: reduxState });
+  await waitFor(() => expect(fetch).toHaveBeenCalled());
+  reset.mockClear();
+  unmount();
+  expect(reset).toHaveBeenCalledTimes(1);
+});

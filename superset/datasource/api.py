@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import math
+import time
 from typing import Any, cast
 
 from flask import current_app as app, make_response, request, Response
@@ -22,6 +24,7 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from marshmallow import ValidationError
 from superset_core.semantic_layers.errors import SemanticViewConfigurationError
+from superset_core.semantic_layers.view import CompatibilityEvidence
 
 from superset import event_logger, is_feature_enabled, security_manager
 from superset.commands.datasource.list import GetCombinedDatasourceListCommand
@@ -673,6 +676,23 @@ class DatasourceRestApi(BaseSupersetApi):
                               Per-dimension supported grains and omission defaults.
                             additionalProperties:
                               type: object
+                          compatibility_evidence:
+                            type: object
+                            description: >-
+                              Optional finite authority for member suggestions.
+                              Absent for legacy providers. Unknown or expired
+                              evidence must not disable member choices.
+                            properties:
+                              format_version:
+                                type: integer
+                              quality:
+                                type: string
+                                enum: [known, partial, unknown]
+                              metadata_generation:
+                                type: string
+                              valid_for_ms:
+                                type: integer
+                                minimum: 0
             422:
               description: >-
                 Saved semantic configuration needs field re-selection;
@@ -804,7 +824,7 @@ class DatasourceRestApi(BaseSupersetApi):
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
-        cache_key: str = "compatible:v3:" + hash_from_dict(
+        cache_key: str = "compatible:v4:" + hash_from_dict(
             {
                 "uid": datasource_uid,
                 "changed_on": str(getattr(datasource, "changed_on", "")),
@@ -818,12 +838,56 @@ class DatasourceRestApi(BaseSupersetApi):
         timeout: int = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300
         )
+        evidence_started: float = time.monotonic()
+        created_at: float = time.time()
+        evidence: CompatibilityEvidence | None = (
+            datasource.get_compatibility_evidence()
+            if isinstance(datasource, SemanticView)
+            else None
+        )
+        # An invalid opted-in capability cannot supply negative evidence.
+        if evidence is not None and not isinstance(evidence, CompatibilityEvidence):
+            evidence = CompatibilityEvidence("unknown", 0)
         cached: dict[str, Any] | None
         if (
             timeout != CACHE_DISABLED_TIMEOUT
             and (cached := cache_manager.data_cache.get(cache_key)) is not None
         ):
-            return self.response(200, result=cached)
+            if evidence is None and "compatibility_evidence" not in cached:
+                return self.response(200, result=cached)
+            if evidence is not None:
+                cached_evidence: Any = cached.get("compatibility_evidence", {})
+                cache_read_at: float = time.time()
+                expires_at: Any = cached.get("_expires_at")
+                cached_at: Any = cached.get("_created_at")
+                if (
+                    isinstance(cached_evidence, dict)
+                    and cached_evidence.get("format_version") == 1
+                    and cached_evidence.get("metadata_generation") == metadata_version
+                    and cached_evidence.get("quality") in ("known", "partial")
+                    and evidence.quality in ("known", "partial")
+                    and type(expires_at) in (int, float)
+                    and type(cached_at) in (int, float)
+                    and math.isfinite(expires_at)
+                    and math.isfinite(cached_at)
+                    and cached_at <= cache_read_at < expires_at
+                ):
+                    remaining: int = min(
+                        int((expires_at - cache_read_at) * 1000),
+                        evidence.valid_for_ms
+                        - int((time.monotonic() - evidence_started) * 1000),
+                    )
+                    if remaining > 0:
+                        result_from_cache: dict[str, Any] = {
+                            key: value
+                            for key, value in cached.items()
+                            if key not in ("_expires_at", "_created_at")
+                        }
+                        result_from_cache["compatibility_evidence"] = {
+                            **cached_evidence,
+                            "valid_for_ms": remaining,
+                        }
+                        return self.response(200, result=result_from_cache)
 
         try:
             result: dict[str, Any] = {}
@@ -849,7 +913,40 @@ class DatasourceRestApi(BaseSupersetApi):
         except AmbiguousDimensionError as ex:
             return self.response(400, message=str(ex))
 
-        if timeout != CACHE_DISABLED_TIMEOUT:
+        if evidence is not None:
+            valid_for_ms: int = max(
+                0,
+                evidence.valid_for_ms
+                - int((time.monotonic() - evidence_started) * 1000),
+            )
+            quality: str = evidence.quality if valid_for_ms > 0 else "unknown"
+            if quality == "unknown":
+                valid_for_ms = 0
+                # Member suggestions are advisory. Preserve the separate grain
+                # declarations; unknown member evidence never grants a grain.
+                result["compatible_metrics"] = sorted(
+                    metric.metric_name for metric in datasource.metrics
+                )
+                result["compatible_dimensions"] = sorted(
+                    column.column_name for column in datasource.columns
+                )
+            result["compatibility_evidence"] = {
+                "format_version": 1,
+                "quality": quality,
+                "metadata_generation": metadata_version,
+                "valid_for_ms": valid_for_ms,
+            }
+            if timeout != CACHE_DISABLED_TIMEOUT and valid_for_ms > 0:
+                cache_manager.data_cache.set(
+                    cache_key,
+                    {
+                        **result,
+                        "_created_at": created_at,
+                        "_expires_at": created_at + evidence.valid_for_ms / 1000,
+                    },
+                    timeout=min(timeout, max(1, valid_for_ms // 1000)),
+                )
+        elif timeout != CACHE_DISABLED_TIMEOUT:
             cache_manager.data_cache.set(cache_key, result, timeout=timeout)
 
         return self.response(200, result=result)

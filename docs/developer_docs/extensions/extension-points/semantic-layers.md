@@ -587,3 +587,22 @@ Table and Interactive Table omit a dormant duration grain from semantic aggregat
 requests when current metadata proves that all selected columns are non-temporal.
 The saved grain is retained for later temporal selections. Unknown metadata and
 explicit temporal requests continue through normal semantic validation.
+
+### Finite compatibility evidence
+
+`SemanticView.get_compatibility_evidence()` is an optional cache-only SDK method.
+Its default `None` preserves legacy providers. An opted-in provider returns a
+frozen `CompatibilityEvidence(quality, valid_for_ms)`: `known` for complete
+profiles, `partial` when complete profiles prove only some exclusions, and
+`unknown` when no exclusions are established. The non-negative integer lifetime
+is the remaining lifetime of the immutable catalog snapshot, not its original
+TTL. Expired opted-in providers return unknown, never the legacy `None` fallback.
+This method must not fetch metadata or renew its lifetime.
+
+Core attaches its own metadata generation to the `compatibility_evidence` API
+sibling (format version 1), validates cache generation and expiry, and subtracts
+elapsed processing time. Explore subtracts request duration and expires member
+restrictions locally. `dimension_support` and explicit `dimension_grains` keep
+their separate contracts; freshness is not a grant of grain support. Compatibility
+cache revision v4 excludes older cached representations. Deploy this SDK, API and
+expiry-aware UI together before enabling a provider that relies on finite evidence.

@@ -96,3 +96,15 @@ test('SQL datasets without grains keep the empty-choice behavior', () => {
     choices: [],
   });
 });
+
+test('unknown member evidence retains independent dimension grain support', () => {
+  expect(
+    semanticGrainProps({
+      ...state,
+      compatibility: {
+        ...state.compatibility,
+        status: 'unknown',
+      },
+    }),
+  ).toEqual({ choices: [['P1M', 'Month']], clearable: false });
+});

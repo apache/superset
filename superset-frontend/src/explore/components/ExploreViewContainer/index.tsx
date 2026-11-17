@@ -521,6 +521,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       selectedMetrics,
       selectedDimensions,
     );
+    return () => {
+      props.actions.resetCompatibility();
+    };
     // A viz switch resets compatibility even when member selections stay the same.
   }, [
     props.datasource.id,

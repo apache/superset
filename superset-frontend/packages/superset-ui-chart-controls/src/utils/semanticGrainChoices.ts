@@ -59,7 +59,9 @@ export const semanticGrainProps = (
         ? axis.sqlExpression
         : undefined;
   const support =
-    state.compatibility?.status === 'verified' && name
+    (state.compatibility?.status === 'verified' ||
+      state.compatibility?.status === 'unknown') &&
+    name
       ? state.compatibility.dimensionSupport?.[name]
       : undefined;
   // Table/Pivot groupings have no single axis. The catalog remains selectable

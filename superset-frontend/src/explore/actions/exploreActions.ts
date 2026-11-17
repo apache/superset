@@ -200,6 +200,15 @@ export function setCompatibility(compatibility: CompatibilityResult) {
 }
 
 let compatibilityRequestSeq = 0;
+let compatibilityExpiry: ReturnType<typeof setTimeout> | undefined;
+
+/** Cancel both pending authority and replies when Explore leaves this selection. */
+export function resetCompatibility() {
+  compatibilityRequestSeq += 1;
+  clearTimeout(compatibilityExpiry);
+  compatibilityExpiry = undefined;
+  return setCompatibility({ status: 'idle' });
+}
 
 /**
  * Fetch compatible metrics and dimensions for the current selection.
@@ -223,7 +232,7 @@ export function fetchCompatibility(
       explore: Pick<ExplorePageState['explore'], 'compatibility'>;
     },
   ) => {
-    compatibilityRequestSeq += 1;
+    resetCompatibility();
     const requestSeq = compatibilityRequestSeq;
 
     if (datasourceType !== 'semantic_view') {
@@ -234,6 +243,7 @@ export function fetchCompatibility(
     }
 
     dispatch(setCompatibility({ status: 'loading' }));
+    const startedAt = performance.now();
 
     try {
       const { json } = await SupersetClient.post({
@@ -249,14 +259,59 @@ export function fetchCompatibility(
       if (requestSeq !== compatibilityRequestSeq) {
         return;
       }
+      const evidence = json.result.compatibility_evidence;
+      let remaining: number | undefined;
+      if (
+        Object.prototype.hasOwnProperty.call(
+          json.result,
+          'compatibility_evidence',
+        )
+      ) {
+        remaining =
+          evidence?.format_version === 1 &&
+          ['known', 'partial'].includes(evidence.quality) &&
+          typeof evidence.metadata_generation === 'string' &&
+          evidence.metadata_generation.length > 0 &&
+          Number.isFinite(evidence.valid_for_ms) &&
+          evidence.valid_for_ms > 0
+            ? Math.min(
+                evidence.valid_for_ms - (performance.now() - startedAt),
+                2147483647,
+              )
+            : 0;
+        if (remaining <= 0) {
+          dispatch(
+            setCompatibility({
+              status: 'unknown',
+              dimensionSupport: json.result.dimension_support,
+            }),
+          );
+          return;
+        }
+      }
       dispatch(
         setCompatibility({
           status: 'verified',
           metrics: json.result.compatible_metrics ?? [],
           dimensions: json.result.compatible_dimensions ?? [],
           dimensionSupport: json.result.dimension_support,
+          ...(remaining === undefined
+            ? {}
+            : { expiresAt: performance.now() + remaining }),
         }),
       );
+      if (remaining !== undefined) {
+        compatibilityExpiry = setTimeout(() => {
+          if (requestSeq === compatibilityRequestSeq) {
+            dispatch(
+              setCompatibility({
+                status: 'unknown',
+                dimensionSupport: json.result.dimension_support,
+              }),
+            );
+          }
+        }, remaining);
+      }
     } catch {
       // A failed request must stay distinguishable from loading and from a
       // valid empty result; consumers fall back to no filtering so the user
@@ -313,6 +368,7 @@ export const exploreActions = {
   setForceQuery,
   syncDatasourceMetadata,
   fetchCompatibility,
+  resetCompatibility,
 };
 
 export type ExploreActions = typeof exploreActions;

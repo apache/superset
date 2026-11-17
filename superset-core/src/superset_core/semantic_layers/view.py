@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import enum
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 from superset_core.semantic_layers.types import (
     Dimension,
@@ -28,6 +29,26 @@ from superset_core.semantic_layers.types import (
     SemanticQuery,
     SemanticResult,
 )
+
+
+@dataclass(frozen=True)
+class CompatibilityEvidence:
+    """Finite authority for member suggestions, separate from grain permissions.
+
+    ``known`` covers every metric profile; ``partial`` includes only exclusions
+    proven by complete profiles; ``unknown`` supplies no member exclusions.
+    Lifetime is the remaining duration at this call, never the original TTL.
+    The host owns generation identity and must subtract its processing time.
+    """
+
+    quality: str
+    valid_for_ms: int
+
+    def __post_init__(self) -> None:
+        if self.quality not in ("known", "partial", "unknown"):
+            raise ValueError("Invalid compatibility evidence quality")
+        if type(self.valid_for_ms) is not int or self.valid_for_ms < 0:
+            raise ValueError("Compatibility lifetime must be non-negative milliseconds")
 
 
 # TODO (betodealmeida): move to the extension JSON
@@ -229,6 +250,15 @@ class SemanticView(ABC):
         fetched page or a zero standing in for "unknown". Never return a partial
         result instead.
         """
+
+    def get_compatibility_evidence(self) -> CompatibilityEvidence | None:
+        """Return cache-only freshness evidence; None preserves legacy behavior.
+
+        Opted-in providers return unknown after expiry or incomplete discovery.
+        The lifetime bounds both projection methods for this immutable catalog
+        snapshot. This method must not query the upstream or renew the lifetime.
+        """
+        return None
 
     @abstractmethod
     def get_compatible_metrics(

@@ -52,6 +52,7 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 from superset_core.semantic_layers.view import (
+    CompatibilityEvidence,
     SemanticView as SemanticViewABC,
 )
 
@@ -1055,6 +1056,11 @@ class SemanticView(AuditMixinNullable, Model):
             {metric_map[name] for name in selected_metrics if name in metric_map},
             {dim_map[name] for name in selected_dimensions if name in dim_map},
         )
+
+    def get_compatibility_evidence(self) -> CompatibilityEvidence | None:
+        """Read the declared SDK capability without exposing provider internals."""
+        with provider_code():
+            return self.implementation.get_compatibility_evidence()
 
     def get_compatible_metrics(
         self,

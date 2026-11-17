@@ -751,6 +751,19 @@ test('compatibility updates stored grain choices without erasing an invalid save
   expect(verified.controls.time_grain_sqla.choices).toEqual([['P1M', 'Month']]);
   expect(verified.controls.time_grain_sqla.value).toBe('P1D');
   expect(verified.controls.time_grain_sqla.clearable).toBe(false);
+  const expired = exploreReducer(
+    verified,
+    setCompatibility({
+      status: 'unknown',
+      dimensionSupport:
+        verified.compatibility?.status === 'verified'
+          ? verified.compatibility.dimensionSupport
+          : undefined,
+    }) as Parameters<typeof exploreReducer>[1],
+  );
+  expect(expired.controls.time_grain_sqla.choices).toEqual([['P1M', 'Month']]);
+  expect(expired.controls.time_grain_sqla.clearable).toBe(false);
+  expect(expired.controls.time_grain_sqla.value).toBe('P1D');
   const later = exploreReducer(verified, {
     type: 'SET_FORCE_QUERY',
     force: true,

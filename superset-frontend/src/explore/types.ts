@@ -158,7 +158,12 @@ export type CompatibilityResult =
   | { status: 'idle' }
   | { status: 'loading' }
   | {
+      status: 'unknown';
+      dimensionSupport?: Record<string, SemanticDimensionSupport>;
+    }
+  | {
       status: 'verified';
+      expiresAt?: number;
       metrics: string[];
       dimensions: string[];
       dimensionSupport?: Record<string, SemanticDimensionSupport>;
