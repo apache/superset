@@ -13,7 +13,7 @@ The pinned dependencies are a universal lock, valid on every Python version Supe
 
 This will generate the pinned requirements in the `.txt` files, which will be used in our CI/CD pipelines and in the Docker images.
 
-After changing the pins, run `./scripts/check-lock-wheels.sh` (it needs `uv` on your `PATH`) to confirm every locked package publishes a prebuilt wheel for each supported Python version on both `x86_64` and `aarch64` Linux, so installs never fall back to a source build. It reports every package that is missing a wheel, and the `Python lock check` workflow runs it on pull requests.
+After changing the pins, run `./scripts/check-lock-wheels.sh` (it needs `uv` on your `PATH`) to confirm every locked package publishes a prebuilt wheel for each supported Python version on both `x86_64` and `aarch64` Linux. A short list of packages that only ever publish source distributions is exempt and named in the script; everything else must install without a source build. It reports every package that is missing a wheel, and the `Python lock check` workflow runs it on pull requests.
 
 We recommend to everyone in the community to use the pinned requirements in their local development environments, to ensure consistency across different environments, though we don't force requirements as part of our python package semantics to allow flexibility for users to install different versions of the dependencies if they wish.
 

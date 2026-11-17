@@ -30,6 +30,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from packaging.utils import canonicalize_name
 
 REPO_ROOT = Path(__file__).parents[3]
 COMPILE_SCRIPT = REPO_ROOT / "scripts" / "uv-pip-compile.sh"
@@ -51,11 +52,6 @@ def _pyproject_floor() -> str:
     match = REQUIRES_PYTHON_PATTERN.search((REPO_ROOT / "pyproject.toml").read_text())
     assert match, "pyproject.toml no longer declares requires-python as '>=X.Y'"
     return match.group(1)
-
-
-def _normalize(name: str) -> str:
-    """Returns the PEP 503 normalized form of a distribution name."""
-    return re.sub(r"[-_.]+", "-", name).lower()
 
 
 def test_compile_script_ignores_ci_python_alias() -> None:
@@ -105,7 +101,7 @@ def test_compile_commands_are_universal_from_the_floor() -> None:
     assert len(compiles) == len(LOCKS), "expected one compile per lock file"
     for line in compiles:
         assert "--universal" in line, line
-        assert "--python-version" in line, line
+        assert '--python-version "$PYTHON_FLOOR"' in line, line
 
 
 @pytest.mark.parametrize("lock", LOCKS)
@@ -134,7 +130,9 @@ def test_split_pins_carry_markers(lock: str) -> None:
     lines_by_package: dict[str, list[str]] = {}
     for line in (REPO_ROOT / "requirements" / f"{lock}.txt").read_text().splitlines():
         if match := PIN_PATTERN.match(line):
-            lines_by_package.setdefault(_normalize(match.group(1)), []).append(line)
+            lines_by_package.setdefault(canonicalize_name(match.group(1)), []).append(
+                line
+            )
 
     for package, pins in lines_by_package.items():
         if len(pins) > 1:

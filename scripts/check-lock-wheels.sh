@@ -71,8 +71,12 @@ failures=0
 combinations=0
 
 # Prints the package name uv blames, or nothing if the message names none.
+# uv words the reason differently when a release has no wheels at all ("has no
+# usable wheels") and when it has wheels but none for the requested interpreter
+# or platform ("has no wheels with a matching Python ABI tag", "... platform
+# tag", and similar).
 named_offender() {
-  sed -nE 's/.*Because ([A-Za-z0-9_.-]+)==.* has no usable wheels.*/\1/p' "$1" | head -n 1
+  sed -nE 's/.*Because ([A-Za-z0-9_.-]+)==[^ ]+ has no (usable wheels|wheels with a matching).*/\1/p' "$1" | head -n 1
 }
 
 check_combination() {
