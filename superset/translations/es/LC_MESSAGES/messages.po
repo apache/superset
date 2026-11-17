@@ -7039,14 +7039,13 @@ msgstr ""
 "autorizar esta conexión de nuevo. Los tokens no se revocan en el "
 "proveedor de OAuth2."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
 "will remain, but they may no longer work."
 msgstr ""
 "La eliminación de este conjunto de datos es permanente. Los gráficos y "
-"dashboards afectados se conservarán, pero es posible que dejen de "
-"funcionar."
+"paneles de control afectados se conservarán, pero es posible que dejen "
+"de funcionar."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 msgid ""
@@ -24586,13 +24585,12 @@ msgstr "extra.dashboard debe ser un objeto"
 msgid "extra.dashboard.position_json is not valid JSON"
 msgstr "extra.dashboard.position_json no es un JSON válido"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 msgid ""
 "extra.nativeFilters could not be validated: dashboard metadata is not "
 "valid JSON"
 msgstr ""
-"No se pudo validar extra.nativeFilters: los metadatos del dashboard no "
-"son un JSON válido"
+"No se pudo validar extra.nativeFilters: los metadatos del panel de "
+"control no son un JSON válido"
 
 msgid "failed"
 msgstr "ha fallado"
