@@ -146,6 +146,9 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
+msgid "\"Group remaining as Others\" cannot be calculated for this metric on a semantic view. Turn it off, or choose a sum, count, minimum, or maximum metric."
+msgstr ""
+
 #, no-python-format
 msgid "% calculation"
 msgstr ""
