@@ -2427,6 +2427,55 @@ supported time grains; missing or empty lists use the dataset's supported grains
 Pass `[]` to clear an optional time-grain filter; required filters cannot be
 cleared.
 
+## Reselecting fields on an existing semantic chart
+
+`update_chart` can certify complete field reselection for table and interactive
+table charts whose semantic selection marker is missing or outdated. Supply all
+columns using the target view's member IDs and explicitly supply `filters`
+(`[]` clears them). Supply sorting explicitly if the chart retains sorting.
+Certification applies only when the final merged query contains no unverified
+retained selections; sending `config` alone is not enough.
+
+Table display settings and dashboard associations may be retained. Empty
+conditional-formatting and annotation settings are supported, but unclassified
+non-empty plugin state still requires Explore recovery. An explicitly selected
+`temporal_column` is checked against the target view's temporal metadata and the
+generated query filter; a saved internal time-binding marker alone is not proof
+of a fresh selection.
+
+Explore's boolean temporal-column lookup describes datasource metadata, not
+selected fields, so old names in that lookup may be retained. Target temporal
+metadata must be available. A recognized duration grain is omitted only with a
+well-formed saved lookup, no reselected temporal member and no time axis set.
+Active grains, malformed lookup metadata, and unknown grain formats still
+require Explore recovery. An unpublished explicit `temporal_column` is refused
+rather than silently ignored.
+
+Only an explicit `filters: []` authorizes clearing saved WHERE/HAVING predicate
+aliases, including legacy and adhoc filters. A non-empty filter replacement that
+would discard those unclassified predicates is refused; reselect in Explore, or
+explicitly clear filters if removing the saved constraints is intended.
+The canonical SIMPLE/WHERE `TEMPORAL_RANGE` entry with comparator `No filter`
+is an inactive placeholder, not a saved predicate. Real ranges, SQL expressions
+and unclassified filter entries still require explicit clearing.
+
+If native controls, temporal bindings, external filters, secondary queries or
+unsupported plugin state cannot be verified, the update refuses without changing
+the saved chart. The error names the incomplete category and directs you to
+reselect it in Explore and save there. Omitted state is not silently reset.
+For example: “Cannot verify temporal selections; reselect them in Explore and
+save the chart.”
+
+Renaming a chart or using `add_columns` does not upgrade its selection marker.
+Ordinary partial updates on the same source with a current marker keep their
+existing behavior. Changing the source requires fresh target selections even if
+the two sources use the same marker string. On versioned providers, a source-only
+rebind without a complete table config is refused as “no reselection supplied”;
+retry with complete selections or reselect in Explore. A preview is a snapshot, not a lease:
+a concurrent saved-chart change can cause a direct update to refuse and require
+a reload. Providers without a selection-version contract and physical datasets
+do not receive an invented marker.
+
 ## Missing chart columns
 
 `generate_chart`, `update_chart`, `update_chart_preview` and
@@ -2480,11 +2529,12 @@ or whitespace-only dashboard renames with "Text must not be empty"; omitting
 `dashboard_title` leaves the stored title unchanged.
 
 Blank names in `create_virtual_dataset`, `create_theme`, `create_dataset_metric`,
-`update_dataset_metric`, and `update_dataset`, and whitespace-only labels in
+`update_dataset_metric`, `create_dataset_column`, `update_dataset_column`, and
+`update_dataset`, and whitespace-only labels in
 `save_sql_query`, report "Text must not be empty" at the corresponding name field.
 Blank-name checks precede length checks, including whitespace-only inputs longer
 than the field limit.
-Explicit null metric or dataset names remain invalid; omitting them from updates
+Explicit null metric, column, or dataset names remain invalid; omitting them from updates
 leaves the stored name unchanged.
 
 ### Chart and dashboard titles

@@ -1101,6 +1101,9 @@ msgstr ""
 msgid "A rule with this name already exists."
 msgstr ""
 
+msgid "A saved query with this name already exists"
+msgstr ""
+
 msgid "A semantic query filter is invalid. Check its operator and values, then try again."
 msgstr ""
 
@@ -1401,6 +1404,9 @@ msgstr ""
 msgid "Add group"
 msgstr ""
 
+msgid "Add interval bounds above to configure colors here."
+msgstr ""
+
 msgid "Add item"
 msgstr ""
 
@@ -1426,6 +1432,9 @@ msgid "Add or edit display controls"
 msgstr ""
 
 msgid "Add or edit filters and controls"
+msgstr ""
+
+msgid "Add ranges above to configure their colors here."
 msgstr ""
 
 msgid "Add report"
@@ -2643,6 +2652,9 @@ msgstr ""
 msgid "Base"
 msgstr ""
 
+msgid "Base background"
+msgstr ""
+
 msgid "Base exponent"
 msgstr ""
 
@@ -2710,6 +2722,9 @@ msgstr ""
 
 #, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
+msgstr ""
+
+msgid "Border"
 msgstr ""
 
 msgid "Border color"
@@ -3799,6 +3814,20 @@ msgstr ""
 msgid "Color for breakpoint"
 msgstr ""
 
+msgid "Color for decrease"
+msgstr ""
+
+msgid "Color for increase"
+msgstr ""
+
+#, python-format
+msgid "Color for interval up to %s"
+msgstr ""
+
+#, python-format
+msgid "Color for range up to %s"
+msgstr ""
+
 msgid "Color metric"
 msgstr ""
 
@@ -3813,6 +3842,16 @@ msgstr ""
 
 #, python-format
 msgid "Color scheme: %s"
+msgstr ""
+
+msgid ""
+"Color used for the arrow and symbols when the metric decreased from the "
+"comparison value. Defaults to red."
+msgstr ""
+
+msgid ""
+"Color used for the arrow and symbols when the metric increased from the "
+"comparison value. Defaults to green."
 msgstr ""
 
 msgid "Color used when the close value is greater than or equal to the open value."
@@ -3959,9 +3998,6 @@ msgid "Columns viewers can choose to group charts by."
 msgstr ""
 
 msgid "Combine metrics"
-msgstr ""
-
-msgid "Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote colors from the chosen color scheme and are 1-indexed. Length must be matching that of interval bounds."
 msgstr ""
 
 msgid "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and 4-5. Last number should match the value provided for MAX."
@@ -4152,6 +4188,9 @@ msgid "Connection looks good!"
 msgstr ""
 
 msgid "Contact the report owner for error details."
+msgstr ""
+
+msgid "Container background"
 msgstr ""
 
 msgid "Contains"
@@ -6125,10 +6164,6 @@ msgstr ""
 msgid "Either the username \"%(username)s\" or the password is incorrect."
 msgstr ""
 
-#, python-format
-msgid "Either the username \"%(username)s\", password, or database name \"%(database)s\" is incorrect."
-msgstr ""
-
 msgid "Either the username or the password is wrong."
 msgstr ""
 
@@ -6175,6 +6210,9 @@ msgid "Embedded guest credentials"
 msgstr ""
 
 msgid "Embedded guest credentials are invalid or incomplete. Provide all required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid "Embedded guest credentials can't be added or changed while the embedded credential fallback is turned off. Leave the stored credentials unchanged or clear them."
 msgstr ""
 
 msgid "Embedded guest credentials only apply to connections that use OAuth2 with \"Impersonate logged in user\" turned on. Configure OAuth2 client information and turn on impersonation, or clear the embedded credentials."
@@ -7301,6 +7339,11 @@ msgstr ""
 msgid "Fix the Extra JSON to edit certification"
 msgstr ""
 
+msgid ""
+"Fix the JSON errors below to edit colors here; your changes sync "
+"automatically once the JSON is valid again."
+msgstr ""
+
 msgid "Fix the trend line to the full time range specified in case filtered results do not include the start or end dates"
 msgstr ""
 
@@ -8222,6 +8265,10 @@ msgid "Invalid tab ids: %(tab_ids)s"
 msgstr ""
 
 #, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
@@ -8753,6 +8800,9 @@ msgid "Lines column"
 msgstr ""
 
 msgid "Lines encoding"
+msgstr ""
+
+msgid "Link"
 msgstr ""
 
 msgid "Link Copied!"
@@ -9633,6 +9683,9 @@ msgstr ""
 msgid "Name your folder and to edit it later, click on the folder name"
 msgstr ""
 
+msgid "Named instances can't be entered as the host. Enter only the host and the port the instance listens on, or connect with a SQLAlchemy URI instead."
+msgstr ""
+
 msgid "Native filter column is required"
 msgstr ""
 
@@ -10388,6 +10441,11 @@ msgstr ""
 msgid "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines."
 msgstr ""
 
+msgid ""
+"Optional custom color for each range band, e.g. to match a brand palette."
+" Bands left unset use the default shading."
+msgstr ""
+
 msgid "Optional d3 date format string"
 msgstr ""
 
@@ -10749,6 +10807,13 @@ msgid "Physical"
 msgstr ""
 
 msgid "Physical (table or view)"
+msgstr ""
+
+msgid ""
+"Pick a color for each interval band defined above by its upper bound. "
+"Charts saved with the legacy 1-indexed \"Interval colors\" text field keep"
+" following the chosen color scheme until an interval color is "
+"edited."
 msgstr ""
 
 msgid "Pick a dimension from which categorical colors are defined"
@@ -11271,6 +11336,9 @@ msgstr ""
 msgid "Range Type"
 msgstr ""
 
+msgid "Range colors"
+msgstr ""
+
 msgid "Range filter"
 msgstr ""
 
@@ -11741,7 +11809,7 @@ msgstr ""
 msgid "Required to mirror range filters, including the time range."
 msgstr ""
 
-msgid "Requires OAuth2 client information and “Impersonate logged in user” (Advanced → Security)."
+msgid "Requires an OAuth2 client ID and secret, and “Impersonate logged in user” (Advanced → Security)."
 msgstr ""
 
 msgid "Resample"
@@ -12506,6 +12574,9 @@ msgstr ""
 msgid "Secondary currency format"
 msgstr ""
 
+msgid "Secondary text"
+msgstr ""
+
 msgid "Secondary y-axis Bounds"
 msgstr ""
 
@@ -12912,6 +12983,9 @@ msgid "Semantic Views"
 msgstr ""
 
 msgid "Semantic cache"
+msgstr ""
+
+msgid "Semantic colors"
 msgstr ""
 
 #, python-format
@@ -15551,6 +15625,9 @@ msgstr ""
 msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com)."
 msgstr ""
 
+msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com). For a named instance (host\\INSTANCE), enter only the host here and the port the instance listens on below, or connect with a SQLAlchemy URI instead."
+msgstr ""
+
 msgid "This cannot be undone."
 msgstr ""
 
@@ -15592,6 +15669,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart uses legacy color positions past the end of the selected color scheme, so its band colors cannot be previewed or edited here."
+msgstr ""
+
 msgid "This chart version can't be restored because the dataset it used has been permanently deleted. Restore a version that uses an existing dataset, or recreate the chart."
 msgstr ""
 
@@ -15618,6 +15698,9 @@ msgid "This column might be incompatible with current dataset"
 msgstr ""
 
 msgid "This column must contain date/time information."
+msgstr ""
+
+msgid "This connection stores embedded guest credentials, which only apply with \"Impersonate logged in user\" turned on. Clear the embedded credentials before turning impersonation off."
 msgstr ""
 
 msgid "This control filters the whole chart based on the selected time range. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time."
@@ -16694,6 +16777,10 @@ msgstr ""
 msgid "Unverified"
 msgstr ""
 
+#, python-format
+msgid "Up to %s"
+msgstr ""
+
 msgid "Update"
 msgstr ""
 
@@ -16804,6 +16891,9 @@ msgstr ""
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 
+msgid "Use default"
+msgstr ""
+
 msgid "Use each metric’s own definition for cells and summaries (the default since SIP-216), or aggregate a second time over the metric’s own grouped results — e.g. the median of a set of per-store averages. Query limits apply before a result aggregation runs."
 msgstr ""
 
@@ -16820,6 +16910,9 @@ msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
 
 msgid "Use only a single value."
+msgstr ""
+
+msgid "Use scheme colors"
 msgstr ""
 
 msgid "Use the Advanced Analytics options below"
@@ -18270,9 +18363,6 @@ msgstr ""
 msgid "code International Olympic Committee (cioc)"
 msgstr ""
 
-msgid "color scheme for comparison"
-msgstr ""
-
 msgid "color type"
 msgstr ""
 
@@ -18431,6 +18521,9 @@ msgid "e.g. ********"
 msgstr ""
 
 msgid "e.g. 127.0.0.1"
+msgstr ""
+
+msgid "e.g. 1433"
 msgstr ""
 
 msgid "e.g. 5432"
