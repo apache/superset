@@ -2646,7 +2646,74 @@ def _reject_bool_dataset_id(value: object) -> object:
     return value
 
 
-class BaseNewFilterSpec(BaseModel):
+# Add/update fields valid only for specific filter types. Fields not listed in
+# any of these sets (name, description, scope_chart_ids) apply to every type.
+_TYPE_SPECIFIC_FILTER_FIELDS: dict[str, frozenset[str]] = {
+    "filter_select": frozenset(
+        {
+            "dataset_id",
+            "column",
+            "multi_select",
+            "default_to_first_item",
+            "default_value",
+            "enable_empty_filter",
+            "sort_ascending",
+            "search_all_options",
+        }
+    ),
+    "filter_range": frozenset({"dataset_id", "column", "enable_empty_filter"}),
+    "filter_time": frozenset({"default_time_range"}),
+    "filter_timegrain": frozenset({"dataset_id", "enable_empty_filter"}),
+    "filter_timecolumn": frozenset({"dataset_id", "enable_empty_filter"}),
+}
+_ALL_TYPE_SPECIFIC_FILTER_FIELDS: frozenset[str] = frozenset().union(
+    *_TYPE_SPECIFIC_FILTER_FIELDS.values()
+)
+
+
+def validate_native_filter_type_fields(
+    data: dict[str, Any], filter_type: str | None, *, is_divider: bool = False
+) -> None:
+    """Reject non-null inapplicable fields consistently on add and update."""
+    if is_divider and data.get("scope_chart_ids") is not None:
+        raise ValueError(
+            "Divider does not support scope_chart_ids; dividers are always in scope."
+        )
+    allowed = _TYPE_SPECIFIC_FILTER_FIELDS.get(filter_type or "", frozenset())
+    invalid_fields = sorted(
+        field
+        for field in _ALL_TYPE_SPECIFIC_FILTER_FIELDS
+        if data.get(field) is not None and field not in allowed
+    )
+    if invalid_fields:
+        valid_types = sorted(
+            type_name
+            for type_name, fields in _TYPE_SPECIFIC_FILTER_FIELDS.items()
+            if fields & set(invalid_fields)
+        )
+        type_label = "divider" if is_divider else filter_type
+        raise ValueError(
+            f"Filter has type '{type_label}'; fields "
+            f"{invalid_fields} only apply to {', '.join(valid_types)} filters."
+        )
+
+
+class _NativeFilterTypeFieldsSpec(BaseModel):
+    """Validate type-specific fields before Pydantic discards unknown fields."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_inapplicable_fields(cls, data: Any) -> Any:
+        """Apply the same compatibility rule used for existing filters."""
+        if isinstance(data, dict):
+            filter_type = data.get("filter_type")
+            validate_native_filter_type_fields(
+                data, filter_type, is_divider=filter_type == "divider"
+            )
+        return data
+
+
+class BaseNewFilterSpec(_NativeFilterTypeFieldsSpec):
     """Common fields shared by all new native filter specs."""
 
     name: str = Field(..., min_length=1, description="Filter display name")
@@ -2750,34 +2817,7 @@ class FilterRangeSpec(BaseNewFilterSpec):
     )
 
 
-class _DatasetOnlyFilterSpec(BaseNewFilterSpec):
-    """Common rules for filters that target a whole dataset, not a column.
-
-    A time grain or time column filter offers options of its dataset as a
-    whole. A ``column`` or select-style ``default_value`` would be dropped
-    without effect, so both are rejected as they are for updates.
-    """
-
-    @model_validator(mode="before")
-    @classmethod
-    def _reject_inapplicable_fields(cls, data: Any) -> Any:
-        """Reject column targets and select defaults instead of ignoring them."""
-        if isinstance(data, dict):
-            filter_type = data.get("filter_type")
-            if data.get("column") is not None:
-                raise ValueError(
-                    f"'column' does not apply to {filter_type} filters, which "
-                    "target a dataset rather than a column; remove it."
-                )
-            if data.get("default_value") is not None:
-                raise ValueError(
-                    f"'default_value' does not apply to {filter_type} filters; "
-                    "only filter_select filters support it; remove it."
-                )
-        return data
-
-
-class FilterTimeGrainSpec(_DatasetOnlyFilterSpec):
+class FilterTimeGrainSpec(BaseNewFilterSpec):
     """Spec for a new time grain (filter_timegrain) native filter."""
 
     filter_type: Literal["filter_timegrain"] = Field(
@@ -2795,7 +2835,7 @@ class FilterTimeGrainSpec(_DatasetOnlyFilterSpec):
     )
 
 
-class FilterTimeColumnSpec(_DatasetOnlyFilterSpec):
+class FilterTimeColumnSpec(BaseNewFilterSpec):
     """Spec for a new time column (filter_timecolumn) native filter."""
 
     filter_type: Literal["filter_timecolumn"] = Field(
@@ -2809,7 +2849,7 @@ class FilterTimeColumnSpec(_DatasetOnlyFilterSpec):
     )
 
 
-class DividerSpec(BaseModel):
+class DividerSpec(_NativeFilterTypeFieldsSpec):
     """Spec for a new filter-bar divider.
 
     A divider is a visual separator with a title and description used to
@@ -2930,8 +2970,8 @@ class ManageNativeFiltersRequest(BaseModel):
             "(dropdown), filter_time (time range), filter_range (numerical "
             "range), filter_timegrain (time grain), filter_timecolumn "
             "(time column; these two take no column), and divider (a "
-            "title/description-only visual separator for grouping filters "
-            "in the filter bar; no dataset or column)."
+            "title/description-only separator; no dataset or column). "
+            "Non-null inapplicable fields are rejected on add and update."
         ),
     )
     update: List[NativeFilterUpdateSpec] = Field(

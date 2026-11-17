@@ -645,10 +645,7 @@ async def test_add_dataset_only_filter_rejects_a_column(
     ):
         with pytest.raises(
             ToolError,
-            match=(
-                f"'column' does not apply to {filter_type} filters, which "
-                "target a dataset rather than a column"
-            ),
+            match=(f"type '{filter_type}'; fields .*column.*only apply to"),
         ):
             await _call(
                 mcp_server,
@@ -2857,7 +2854,8 @@ async def test_add_dataset_only_filter_rejects_default_value(
         patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
         patch(COMMAND_PATH) as command,
         pytest.raises(
-            ToolError, match=f"'default_value' does not apply to {filter_type}"
+            ToolError,
+            match=f"type '{filter_type}'; fields .*default_value.*only apply to",
         ),
     ):
         await _call(
@@ -2895,3 +2893,62 @@ async def test_update_dataset_only_filter_rejects_default_value(
         )
     assert "default_value" in data["error"]
     assert "only apply to filter_select filters" in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("filter_type", ["filter_time", "filter_range"])
+@pytest.mark.parametrize("value", [[], ["ship_date"]])
+async def test_add_time_and_range_reject_default_value(
+    mcp_server: object, filter_type: str, value: list[str]
+) -> None:
+    """Non-select defaults must fail validation before a filter is stored."""
+    from fastmcp.exceptions import ToolError
+
+    spec: dict[str, Any] = {"filter_type": filter_type, "name": "Date"}
+    if filter_type == "filter_range":
+        spec.update(dataset_id=5, column="amount")
+    spec["default_value"] = value
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset(["amount"])),
+        patch(COMMAND_PATH) as command,
+        pytest.raises(ToolError, match="default_value.*only apply to filter_select"),
+    ):
+        await _call(mcp_server, {"dashboard_id": 1, "add": [spec]})
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("filter_type", ["filter_timegrain", "filter_timecolumn"])
+@pytest.mark.parametrize(
+    "field",
+    ["multi_select", "default_to_first_item", "sort_ascending", "search_all_options"],
+)
+@pytest.mark.parametrize("value", [False, True])
+async def test_add_dataset_only_filter_rejects_select_flags(
+    mcp_server: object, filter_type: str, field: str, value: bool
+) -> None:
+    """Even false select-only flags must not be silently dropped on add."""
+    from fastmcp.exceptions import ToolError
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH) as command,
+        pytest.raises(ToolError, match=f"{field}.*only apply to filter_select"),
+    ):
+        await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": filter_type,
+                        "name": "Date",
+                        "dataset_id": 5,
+                        field: value,
+                    }
+                ],
+            },
+        )
+    command.assert_not_called()

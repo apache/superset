@@ -650,6 +650,15 @@ time grain is unavailable in the replacement dataset. Compatible defaults are
 preserved. These two filter types target a dataset, not a column, so adding one
 with a `column` is rejected rather than storing a filter without it.
 
+All new-filter specs (select, time range, numerical range, time grain, time
+column, and divider) share the update path's type-specific field validation.
+Non-null inapplicable fields are rejected, including `False` and empty lists;
+null remains equivalent to omission. In particular, `default_value` and the
+select-only flags are only accepted for select filters, `default_time_range`
+is only accepted for time-range filters, and dividers reject type-specific
+fields and chart scope. The rule lives in `validate_native_filter_type_fields`
+in `superset/mcp_service/dashboard/schemas.py`.
+
 `apply_dashboard_filters` resolves a time-column or time-grain filter's dataset
 with the same dashboard-bound check the filter bar uses to list its options, so
 a dashboard viewer who can pick a value in the filter bar can apply it here.

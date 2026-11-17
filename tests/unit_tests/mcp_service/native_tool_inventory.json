@@ -1112,12 +1112,12 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 146,
-      "description_chars": 1464,
+      "description_chars": 1577,
       "entry_bytes": {
-        "structured": 13836,
-        "text_only": 11710
+        "structured": 13965,
+        "text_only": 11839
       },
-      "input_schema_bytes": 9927,
+      "input_schema_bytes": 9942,
       "output_schema_bytes": 2110
     },
     "open_sql_lab_with_context": {
@@ -1331,12 +1331,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 557579,
-      "text_only": 230397
+      "structured": 557708,
+      "text_only": 230526
     },
     "compact_catalog_bytes": {
-      "structured": 499375,
-      "text_only": 172193
+      "structured": 499390,
+      "text_only": 172208
     },
     "largest_entry": {
       "structured": {
@@ -1344,7 +1344,7 @@
         "name": "update_chart"
       },
       "text_only": {
-        "bytes": 11710,
+        "bytes": 11839,
         "name": "manage_native_filters"
       }
     },
