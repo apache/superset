@@ -575,10 +575,10 @@ msgid "%s dependent asset is one you can't see. Ask an admin for help."
 msgid_plural ""
 "%s dependent assets are ones you can't see. Ask an admin for help."
 msgstr[0] ""
-"%s activo dependiente es uno que no puedes ver. Pide ayuda a un "
+"%s recurso dependiente es uno que no puedes ver. Pide ayuda a un "
 "administrador."
 msgstr[1] ""
-"%s activos dependientes son activos que no puedes ver. Pide ayuda a un "
+"%s recursos dependientes son recursos que no puedes ver. Pide ayuda a un "
 "administrador."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -2432,10 +2432,9 @@ msgstr ""
 "internos. Los bigotes alrededor de cada caja visualizan el mínimo, el "
 "máximo, el intervalo y los 2 cuartiles externos."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 msgid "Also overwrite all assets (charts, datasets and databases)"
 msgstr ""
-"Sobrescribir también todos los activos (gráficos, conjuntos de datos y "
+"Sobrescribir también todos los recursos (gráficos, conjuntos de datos y "
 "bases de datos)"
 
 msgid "Altered"
@@ -9775,7 +9774,7 @@ msgid ""
 "Go to Recently Archived to restore and repoint archived assets, or delete"
 " them permanently, or ask an admin for help."
 msgstr ""
-"Ve a «Archivados recientemente» para restaurar y reasignar los activos "
+"Ve a «Archivados recientemente» para restaurar y reasignar los recursos "
 "archivados, o eliminarlos de forma permanente, o solicita ayuda a un "
 "administrador."
 
