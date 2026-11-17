@@ -341,6 +341,83 @@ test('HYDRATE_DASHBOARD still restores a required select default for an incomple
   expect(result.extraFormData).toEqual(filter.defaultDataMask.extraFormData);
 });
 
+const regionExtraFormData = (value: string) => ({
+  filters: [{ col: 'region', op: 'IN' as const, val: [value] }],
+});
+
+const createRegionFilterWithDefault = (controlValues = {}): Filter => ({
+  ...createFilter('NATIVE_FILTER-region', 'region', controlValues),
+  defaultDataMask: {
+    filterState: { value: ['APAC'] },
+    extraFormData: regionExtraFormData('APAC'),
+  },
+});
+
+test.each([
+  ['an optional', {}],
+  ['a required', { enableEmptyFilter: true }],
+])(
+  'HYDRATE_DASHBOARD does not keep the default extraFormData under a different restored value for %s filter',
+  (_label, controlValues) => {
+    // A saved filter state whose extraFormData is the default's while its value
+    // is not: charts would be filtered on the default while the filter bar
+    // displays the restored value.
+    const filter = createRegionFilterWithDefault(controlValues);
+    const action = hydrateAction([], [filter]);
+    action.data.dataMask = {
+      [filter.id]: {
+        id: filter.id,
+        filterState: { value: ['EMEA'] },
+        extraFormData: regionExtraFormData('APAC'),
+      },
+    };
+    const result = reducer({}, action)[filter.id];
+
+    expect(result.filterState?.value).toEqual(['EMEA']);
+    // Left for the filter control to derive from the restored value.
+    expect(result.extraFormData).toEqual({});
+  },
+);
+
+test('HYDRATE_DASHBOARD does not let a restored value without extraFormData inherit the default extraFormData', () => {
+  const filter = createRegionFilterWithDefault();
+  const action = hydrateAction([], [filter]);
+  action.data.dataMask = {
+    [filter.id]: { id: filter.id, filterState: { value: ['EMEA'] } },
+  };
+  const result = reducer({}, action)[filter.id];
+
+  expect(result.filterState?.value).toEqual(['EMEA']);
+  expect(result.extraFormData).toEqual({});
+});
+
+test.each([
+  [
+    'a restored value equal to the default',
+    { filterState: { value: ['APAC'] } },
+    regionExtraFormData('APAC'),
+  ],
+  [
+    'a restored value with its own extraFormData',
+    {
+      filterState: { value: ['EMEA'] },
+      extraFormData: regionExtraFormData('EMEA'),
+    },
+    regionExtraFormData('EMEA'),
+  ],
+])(
+  'HYDRATE_DASHBOARD keeps the extraFormData of %s',
+  (_label, loaded, expectedExtraFormData) => {
+    const filter = createRegionFilterWithDefault();
+    const action = hydrateAction([], [filter]);
+    action.data.dataMask = { [filter.id]: { id: filter.id, ...loaded } };
+
+    expect(reducer({}, action)[filter.id].extraFormData).toEqual(
+      expectedExtraFormData,
+    );
+  },
+);
+
 test.each([null, 'invalid', {}, 1, [null], [undefined], [1], [{}]])(
   'HYDRATE_DASHBOARD restores a required select default for malformed adhoc filters (%j)',
   adhocFilters => {
