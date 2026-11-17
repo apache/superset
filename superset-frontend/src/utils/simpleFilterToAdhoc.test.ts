@@ -53,16 +53,23 @@ const adhocColumn = {
 test.each([
   ['', "''"],
   ['00123', "'00123'"],
-  ['0', "'0'"],
+  [' ', "' '"],
+  ['0', '0'],
+  ['2024', '2024'],
+  ['NaN', "'NaN'"],
+  ['Infinity', "'Infinity'"],
   ["['a']", "'[''a'']'"],
   ["it's text", "'it''s text'"],
-])('adhoc drill filters preserve the string literal %p', (val, literal) => {
-  expect(simpleFilterToAdhoc({ col: adhocColumn, op: '==', val })).toEqual({
-    expressionType: 'SQL',
-    clause: 'WHERE',
-    sqlExpression: `(CAST(category AS TEXT)) = ${literal}`,
-  });
-});
+])(
+  'adhoc drill filters preserve canonical numerals and quote other strings %p',
+  (val, literal) => {
+    expect(simpleFilterToAdhoc({ col: adhocColumn, op: '==', val })).toEqual({
+      expressionType: 'SQL',
+      clause: 'WHERE',
+      sqlExpression: `(CAST(category AS TEXT)) = ${literal}`,
+    });
+  },
+);
 
 test('adhoc multi-value filters format each raw value by type', () => {
   expect(
@@ -92,3 +99,19 @@ test.each(['', '00123', 0, null, true])(
     });
   },
 );
+
+test('numeric custom SQL drill filters keep stringified years bare', () => {
+  const col = {
+    expressionType: 'SQL' as const,
+    sqlExpression: 'EXTRACT(YEAR FROM order_date)',
+    label: 'year',
+  };
+  expect(simpleFilterToAdhoc({ col, op: '==', val: '2024' })).toMatchObject({
+    expressionType: 'SQL',
+    sqlExpression: '(EXTRACT(YEAR FROM order_date)) = 2024',
+  });
+  expect(simpleFilterToAdhoc({ col, op: 'IN', val: ['2024'] })).toMatchObject({
+    expressionType: 'SQL',
+    sqlExpression: '(EXTRACT(YEAR FROM order_date)) IN (2024)',
+  });
+});

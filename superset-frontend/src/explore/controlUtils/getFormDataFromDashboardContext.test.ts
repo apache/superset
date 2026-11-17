@@ -248,3 +248,35 @@ test.each(['legacy', 'native'])(
     ]);
   },
 );
+
+test.each(['legacy', 'native'])(
+  'dashboard %s filters keep stringified numeric custom SQL dimensions bare',
+  source => {
+    const filters = [
+      {
+        col: {
+          expressionType: 'SQL',
+          sqlExpression: 'EXTRACT(YEAR FROM order_date)',
+          label: 'year',
+        },
+        op: 'IN',
+        val: ['2024'],
+      },
+    ];
+    const dashboard =
+      source === 'legacy'
+        ? { extra_filters: filters }
+        : { extra_form_data: { filters } };
+    const result = getFormDataWithDashboardContext(
+      getExploreFormData({ adhoc_filters: [] }),
+      dashboard,
+    );
+    expect(result.adhoc_filters).toEqual([
+      expect.objectContaining({
+        expressionType: 'SQL',
+        sqlExpression: '(EXTRACT(YEAR FROM order_date)) IN (2024)',
+        isExtra: true,
+      }),
+    ]);
+  },
+);

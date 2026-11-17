@@ -886,7 +886,7 @@ test('drill-by renders IS NULL for a selected null adhoc segment', () => {
   });
 });
 
-test.each(['', '00123', '0'])(
+test.each(['', '00123', ' '])(
   'drill-by quotes custom SQL ancestor and selected string %p without display labels',
   value => {
     const column: QueryFormColumn = {

@@ -459,7 +459,7 @@ export const useDebouncedEffect = (
   }, [callback, delay]);
 };
 
-/** Format a filter for display, or preserve raw value types for executable SQL. */
+/** Format a filter for display, or format literals for executable SQL. */
 export const getSimpleSQLExpression = (
   subject?: string | SubjectWithColumnName,
   operator?: string,
@@ -494,6 +494,11 @@ export const getSimpleSQLExpression = (
       const formattedComparators = comparatorArray.map(val => {
         if (!useDisplayValues) {
           if (typeof val === 'string') {
+            // Chart label maps and pivot keys stringify numeric dimensions.
+            // Keep canonical numerals bare for strict numeric comparisons.
+            if (Number.isFinite(Number(val)) && String(Number(val)) === val) {
+              return val;
+            }
             return `'${val.replace(/'/g, "''")}'`;
           }
           if (val === null) {
