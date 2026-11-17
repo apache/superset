@@ -331,13 +331,15 @@ guidance that the chart was not visually checked, without publishing exception
 details or an option. Clients can keep these unavailable visual checks as notes
 while treating structured renderer errors as actionable chart problems.
 
-The Canvas client clears prior rows and query text when its binding or Canvas,
-placement, draft or version context changes. Background refreshes retain current
-data until a result or denial arrives. Filter controls discard old options when
-their source or context changes; a changed binding applies its new default,
-while draft transitions retain selections for unchanged bindings. Canvas and
-version changes reset parent filter state. Delayed responses cannot restore
-the previous source's state. Unavailable
+The Canvas client clears prior rows and query text when runtime filter values,
+the binding, or the Canvas, placement, draft or version context changes. A filter
+change starts a new query, so results from the previous selection are hidden while
+it is pending. Background refreshes of the same binding, filter values and context
+retain current rows and query text until a result or denial arrives. Filter
+controls discard old options when their source or context changes; a changed
+binding applies its new default, while draft transitions retain selections for
+unchanged bindings. Canvas and version changes reset parent filter state.
+Delayed responses cannot restore the previous source's state. Unavailable
 canvases and drafts do not return identifying URLs. Canvas tools remain subject
 to the `CANVAS` feature flag and their existing permission checks.
 

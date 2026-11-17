@@ -225,7 +225,56 @@ def test_renderer_error_keeps_bounded_repair_hint_and_resolved_option(
         assert "option" not in result
 
 
-@pytest.mark.parametrize("error", ["", "   ", 0, False, ["invalid"], {"invalid": 1}])
+@pytest.mark.parametrize(
+    "error_payload",
+    [
+        {},
+        {"error": None},
+        {"error": ""},
+        {"error": False},
+        {"error": 0},
+        {"error": []},
+        {"error": {}},
+    ],
+    ids=[
+        "missing",
+        "null",
+        "empty-string",
+        "false",
+        "zero",
+        "empty-list",
+        "empty-object",
+    ],
+)
+def test_falsey_renderer_error_keeps_successful_image_and_repair_hints(
+    app: SupersetApp, mocker: MockerFixture, error_payload: dict[str, Any]
+) -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _with_render
+
+    option = {"series": [{"type": "bar", "data": [1, 2]}]}
+    mocker.patch(
+        f"{MODULE}._render",
+        return_value={
+            "png": "aGk=",
+            "width": 640,
+            "height": 320,
+            "option": option,
+            "warnings": ["Review the axis labels"],
+            **error_payload,
+        },
+    )
+    result: dict[str, Any] = {}
+    image = _with_render(result, "http://renderer", {}, [], {}, (640, 320), False)
+    assert image == "aGk="
+    assert result == {
+        "rendered": True,
+        "image": "attached, 640x320 PNG",
+        "option": option,
+        "warnings": ["Review the axis labels"],
+    }
+
+
+@pytest.mark.parametrize("error", ["   ", True, 1, ["invalid"], {"invalid": 1}])
 def test_malformed_renderer_error_is_not_reported_as_visual_success(
     app: SupersetApp, mocker: MockerFixture, error: Any
 ) -> None:

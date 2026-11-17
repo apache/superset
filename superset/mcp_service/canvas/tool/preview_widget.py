@@ -154,7 +154,7 @@ def _with_render(
         result["rendered"] = False
         warnings.append(RENDERER_FAILURE_MESSAGE)
         return None
-    if (error := rendered.get("error")) is not None:
+    if error := rendered.get("error"):
         result["rendered"] = False
         if isinstance(error, str) and error.strip():
             # The operator's renderer supplies application diagnostics for
