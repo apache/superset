@@ -6667,3 +6667,20 @@ def test_never_mounted_timeout_reports_friendly_error(
 
     assert "Timed out waiting for dashboard tab" in str(exc_info.value)
     assert "Failed taking a screenshot" not in str(exc_info.value)
+
+
+def test_crashed_dashboard_reports_friendly_error(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.screenshot_utils import DashboardRenderCrashedError
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.side_effect = DashboardRenderCrashedError(
+        "Dashboard render crashed"
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    assert "unexpected error" in str(exc_info.value)
+    assert "Failed taking a screenshot" not in str(exc_info.value)

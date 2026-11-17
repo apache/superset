@@ -32,8 +32,8 @@ from superset.utils.report_execution import (
 )
 from superset.utils.screenshot_utils import (
     CHART_HOLDERS_MOUNTED_JS,
-    DASHBOARD_LAYOUT_READY_JS,
     REPORT_CAPTURE_READINESS_STABILITY_MS,
+    REPORT_LAYOUT_READY_JS,
     ScreenshotBlankCaptureError,
     ScreenshotCaptureReadinessChangedError,
     ScreenshotTaskBudgetExceededError,
@@ -2250,7 +2250,7 @@ class TestWebDriverPlaywrightChartReadiness:
         page.evaluate.side_effect = _evaluate
 
         def _wait_for_function(predicate, timeout=None):
-            if predicate in (DASHBOARD_LAYOUT_READY_JS, CHART_HOLDERS_MOUNTED_JS):
+            if predicate in (REPORT_LAYOUT_READY_JS, CHART_HOLDERS_MOUNTED_JS):
                 return None
             raise PlaywrightTimeout("below-fold holders never rendered")
 
@@ -2728,7 +2728,7 @@ def _layout_ready_then(error: Exception):
     """Let the dashboard layout wait pass, then raise ``error`` on any other wait."""
 
     def wait_for_function(predicate, *args, **kwargs):
-        if predicate == DASHBOARD_LAYOUT_READY_JS:
+        if predicate == REPORT_LAYOUT_READY_JS:
             return None
         raise error
 
@@ -2860,7 +2860,7 @@ class TestEmptyTabReportCapture:
             if call.kwargs.get("timeout") is not None
         ]
         # Bootstrap keeps the budget; every wait after the layout is capped.
-        assert layout_call.args[0] == DASHBOARD_LAYOUT_READY_JS
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
         assert layout_call.kwargs["timeout"] > 5_000
         assert capped_calls
         assert max(call.kwargs["timeout"] for call in capped_calls) <= 5_000
@@ -2922,7 +2922,7 @@ class TestEmptyTabReportCapture:
             )
 
         (layout_call, mount_call) = wait.call_args_list
-        assert layout_call.args[0] == DASHBOARD_LAYOUT_READY_JS
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
         assert mount_call.args[0] == CHART_HOLDERS_MOUNTED_JS
         assert mount_call.kwargs["timeout"] == 5_000
 
@@ -2944,7 +2944,7 @@ class TestEmptyTabReportCapture:
 
         def wait(predicate, **kwargs):
             timeouts.setdefault(predicate, kwargs.get("timeout"))
-            if predicate == DASHBOARD_LAYOUT_READY_JS:
+            if predicate == REPORT_LAYOUT_READY_JS:
                 now[0] += 1000  # layout renders long after SCREENSHOT_LOAD_WAIT
 
         mock_app.config = {**self._base_config, "SCREENSHOT_TILED_ENABLED": False}
@@ -2963,7 +2963,7 @@ class TestEmptyTabReportCapture:
             )
 
         assert result == _busy_png()
-        assert timeouts[DASHBOARD_LAYOUT_READY_JS] > 5_000
+        assert timeouts[REPORT_LAYOUT_READY_JS] > 5_000
         assert timeouts[CHART_HOLDERS_MOUNTED_JS] == 5_000
         readiness = next(
             timeout
@@ -2995,8 +2995,41 @@ class TestEmptyTabReportCapture:
 
         assert not isinstance(exc_info.value, ChartHoldersNeverMountedError)
         (layout_call,) = wait.call_args_list
-        assert layout_call.args[0] == DASHBOARD_LAYOUT_READY_JS
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
         assert layout_call.kwargs["timeout"] == pytest.approx(3_390_000)
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.app")
+    def test_crashed_page_ends_layout_wait_with_friendly_error(
+        self, mock_app, mock_browser_manager
+    ) -> None:
+        """An error boundary never yields a layout; it must not hold the worker."""
+        from superset.utils.screenshot_utils import (
+            ChartHoldersNeverMountedError,
+            DashboardRenderCrashedError,
+            REPORT_LAYOUT_READY_JS,
+        )
+
+        mock_app.config = {**self._base_config, "SCREENSHOT_TILED_ENABLED": False}
+        browser_context, page = self._make_pw_mocks_for(mock_browser_manager)
+        page.evaluate.side_effect = self._evaluate()
+        page.wait_for_function.return_value.json_value.return_value = "crashed"
+        with (
+            patch.object(WebDriverPlaywright, "auth", return_value=browser_context),
+            pytest.raises(DashboardRenderCrashedError) as exc_info,
+        ):
+            WebDriverPlaywright("chrome").get_screenshot(
+                "http://example.com",
+                "standalone",
+                MagicMock(),
+                report_execution_context=_roomy_report_context(),
+            )
+
+        assert isinstance(exc_info.value, ChartHoldersNeverMountedError)
+        (layout_call,) = page.wait_for_function.call_args_list
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
+        page.screenshot.assert_not_called()
 
     @pytest.mark.parametrize("suffix", [None, "GRID_ID"])
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)

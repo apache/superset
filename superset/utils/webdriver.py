@@ -51,8 +51,10 @@ from superset.utils.screenshot_utils import (
     FIND_CHART_HOLDER_STATES_JS,
     FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS,
     get_screenshot_blankness_metrics,
+    raise_if_dashboard_crashed,
     REPORT_CAPTURE_READINESS_STABILITY_MS,
     REPORT_HAS_RENDERED_CHART_HOLDERS_JS,
+    REPORT_LAYOUT_READY_JS,
     report_mounted_js,
     report_ready_js,
     resolve_screenshot_task_budget_seconds,
@@ -800,8 +802,8 @@ class WebDriverPlaywright(WebDriverProxy):
                     reserve_seconds=report_execution_context.readiness_reserve_seconds,
                 )
                 try:
-                    page.wait_for_function(
-                        DASHBOARD_LAYOUT_READY_JS,
+                    layout_state = page.wait_for_function(
+                        REPORT_LAYOUT_READY_JS,
                         timeout=layout_wait * 1000,
                     )
                 except PlaywrightTimeout:
@@ -814,6 +816,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         context_suffix,
                     )
                     raise
+                raise_if_dashboard_crashed(layout_state, url, context_suffix)
                 mount_wait = report_execution_context.deadline.timeout_seconds(
                     "chart_holder_mount",
                     requested_seconds=float(load_wait),

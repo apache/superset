@@ -41,7 +41,6 @@ from superset.utils.screenshot_utils import (
     CHART_HOLDERS_MOUNTED_JS,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
-    DASHBOARD_LAYOUT_READY_JS,
     FIND_ALL_CHART_HOLDER_STATES_JS,
     FIND_CHART_HOLDER_STATES_JS,
     get_screenshot_blankness_metrics,
@@ -49,6 +48,7 @@ from superset.utils.screenshot_utils import (
     REPORT_ALL_CHART_HOLDERS_READY_JS,
     REPORT_CAPTURE_READINESS_STABILITY_MS,
     REPORT_CHART_HOLDERS_READY_JS,
+    REPORT_LAYOUT_READY_JS,
     report_mounted_js,
     report_ready_js,
     resolve_screenshot_task_budget_seconds,
@@ -1396,7 +1396,7 @@ class TestTakeTiledScreenshot:
             polling=None,
         ):
             nonlocal wait_calls
-            if expression == DASHBOARD_LAYOUT_READY_JS:
+            if expression == REPORT_LAYOUT_READY_JS:
                 events.append("layout")
                 return
             if wait_calls == 0:
@@ -1698,7 +1698,7 @@ class TestTakeTiledScreenshot:
         layout_call, mount_call, *tile_calls = (
             mock_page.wait_for_function.call_args_list
         )
-        assert layout_call.args[0] == DASHBOARD_LAYOUT_READY_JS
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
         assert "length > 0" in mount_call.args[0]
         assert mount_call.kwargs["timeout"] == 30 * 1000
         for call in tile_calls:
@@ -3505,7 +3505,7 @@ def _layout_ready_then(error: Exception):
     """Let the dashboard layout wait pass, then raise ``error`` on any other wait."""
 
     def wait_for_function(expression, *args, **kwargs):
-        if expression == DASHBOARD_LAYOUT_READY_JS:
+        if expression == REPORT_LAYOUT_READY_JS:
             return None
         raise error
 
@@ -3697,7 +3697,7 @@ class TestTiledEmptyTab:
 
         assert result == self.sparse_png
         (layout_js, layout_timeout), *waits = waits
-        assert layout_js == DASHBOARD_LAYOUT_READY_JS
+        assert layout_js == REPORT_LAYOUT_READY_JS
         assert layout_timeout > 30_000
         assert all("emptyPaneReady" in expression for expression, _ in waits[:2])
         assert all(timeout <= 30_000 for _, timeout in waits)
@@ -3709,7 +3709,7 @@ class TestTiledEmptyTab:
         assert not any("emptyPaneReady" in expression for expression, _ in waits)
         # Layout bootstrap keeps the whole budget, the zero-holder mount wait is
         # capped, and per-tile readiness keeps the whole budget.
-        assert waits[0] == (DASHBOARD_LAYOUT_READY_JS, 3_390_000)
+        assert waits[0] == (REPORT_LAYOUT_READY_JS, 3_390_000)
         assert waits[1][1] <= 30_000
         assert waits[2][1] > 30_000
 
@@ -3734,7 +3734,7 @@ class TestTiledEmptyTab:
             )
 
         layout_call, mount_call = mock_page.wait_for_function.call_args_list
-        assert layout_call.args[0] == DASHBOARD_LAYOUT_READY_JS
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
         assert mount_call.kwargs["timeout"] == 30_000
 
     def test_slow_layout_keeps_budget_then_holders_mount(self, mock_page):
@@ -3743,7 +3743,7 @@ class TestTiledEmptyTab:
 
         assert result == self.sparse_png
         layout_js, layout_timeout = waits[0]
-        assert layout_js == DASHBOARD_LAYOUT_READY_JS
+        assert layout_js == REPORT_LAYOUT_READY_JS
         assert layout_timeout == 3_390_000
         assert "length > 0" in waits[1][0]
 
@@ -3768,6 +3768,75 @@ class TestTiledEmptyTab:
 
         assert not isinstance(exc_info.value, ChartHoldersNeverMountedError)
         (layout_call,) = mock_page.wait_for_function.call_args_list
-        assert layout_call.args[0] == DASHBOARD_LAYOUT_READY_JS
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
         assert layout_call.kwargs["timeout"] == 3_390_000
         mock_page.screenshot.assert_not_called()
+
+
+_LAYOUT_FAKE_DOM_SCRIPT = r"""
+const input = JSON.parse(require("fs").readFileSync(0, "utf8"));
+const present = new Set(input.present);
+global.document = {
+  querySelector: selector => (present.has(selector) ? {} : null),
+};
+process.stdout.write(JSON.stringify(eval('(' + input.expression + ')')()));
+"""
+
+
+def _eval_layout_dom(expression: str, present: list[str]) -> object:
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required to execute readiness predicates")
+    assert node is not None
+    completed = subprocess.run(  # noqa: S603
+        [node, "-e", _LAYOUT_FAKE_DOM_SCRIPT],
+        input=json.dumps({"expression": expression, "present": present}),
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    return json.loads(completed.stdout)
+
+
+def test_report_layout_wait_ends_on_a_crashed_page() -> None:
+    from superset.utils.screenshot_utils import (
+        DASHBOARD_CRASH_ALERT_SELECTOR,
+        REPORT_LAYOUT_READY_JS,
+    )
+
+    grid = ".dashboard-grid"
+    crash = DASHBOARD_CRASH_ALERT_SELECTOR
+    # Still bootstrapping: keep waiting (a falsy result keeps the poll going).
+    assert _eval_layout_dom(REPORT_LAYOUT_READY_JS, []) is False
+    # Hydrated layout.
+    assert _eval_layout_dom(REPORT_LAYOUT_READY_JS, [grid]) == "ready"
+    # An error boundary replaced the dashboard: the wait ends and is flagged.
+    assert _eval_layout_dom(REPORT_LAYOUT_READY_JS, [crash]) == "crashed"
+    # An error alert next to a rendered grid is not a crash.
+    assert _eval_layout_dom(REPORT_LAYOUT_READY_JS, [grid, crash]) == "ready"
+
+
+class TestTiledCrashedPage:
+    def test_crashed_page_ends_layout_wait_with_friendly_error(self):
+        from superset.utils.screenshot_utils import (
+            ChartHoldersNeverMountedError,
+            DashboardRenderCrashedError,
+            REPORT_LAYOUT_READY_JS,
+        )
+
+        page = MagicMock()
+        page.wait_for_function.return_value.json_value.return_value = "crashed"
+
+        with pytest.raises(DashboardRenderCrashedError) as exc_info:
+            take_tiled_screenshot(
+                page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=_roomy_report_context(),
+            )
+
+        assert isinstance(exc_info.value, ChartHoldersNeverMountedError)
+        (layout_call,) = page.wait_for_function.call_args_list
+        assert layout_call.args[0] == REPORT_LAYOUT_READY_JS
+        page.screenshot.assert_not_called()

@@ -320,10 +320,20 @@ class ChartHoldersNeverMountedError(PlaywrightTimeout):
     """
 
 
+class DashboardRenderCrashedError(ChartHoldersNeverMountedError):
+    """The dashboard page crashed into an error boundary instead of rendering.
+
+    A crashed page never produces a dashboard grid, so waiting on the layout
+    for the remaining budget would hold the worker without any chance of
+    success.
+    """
+
+
 if TYPE_CHECKING:
     try:
-        from playwright.sync_api import Page
+        from playwright.sync_api import JSHandle, Page
     except ImportError:
+        JSHandle = None
         Page = None
 
 # Production dashboard builds run ``babel-plugin-jsx-remove-data-test-id``
@@ -566,6 +576,23 @@ REPORT_ALL_CHART_HOLDERS_READY_JS = (
 # vacuous mount signal while holder readiness applies to every chart actually
 # rendered by that state.
 DASHBOARD_LAYOUT_READY_JS = "() => document.querySelector('.dashboard-grid') !== null"
+# A render error replaces the whole dashboard with the error boundary's
+# ``ErrorAlert`` (an error ``role="alert"`` Alert) and no grid. Chart errors
+# also use alerts but live inside a hydrated grid, so an alert only signals a
+# crash while the grid is absent.
+DASHBOARD_CRASH_ALERT_SELECTOR = '.ant-alert-error[role="alert"]'
+DASHBOARD_LAYOUT_READY_STATE = "ready"
+DASHBOARD_LAYOUT_CRASHED_STATE = "crashed"
+# Report layout wait: resolves with ``ready`` once the layout hydrated, or with
+# ``crashed`` when the page fell into an error boundary. The latter ends the
+# wait early so a crash cannot consume the whole report budget; callers pass
+# the resolved handle to ``raise_if_dashboard_crashed``.
+REPORT_LAYOUT_READY_JS = (
+    "() => document.querySelector('.dashboard-grid') !== null "
+    f"? '{DASHBOARD_LAYOUT_READY_STATE}' "
+    f": (document.querySelector('{DASHBOARD_CRASH_ALERT_SELECTOR}') !== null "
+    f"? '{DASHBOARD_LAYOUT_CRASHED_STATE}' : false)"
+)
 DASHBOARD_CHART_HOLDERS_READY_JS = (
     "() => { if (document.querySelector('.dashboard-grid') === null) "
     f"return false; {UNREADY_CHART_HOLDERS_JS_BODY} "
@@ -697,6 +724,24 @@ def report_mounted_js(empty_tab_suffix: str | None = None) -> str:
         f"return document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0 "
         "|| emptyPaneReady; }"
     )
+
+
+def raise_if_dashboard_crashed(
+    layout_state: JSHandle | None, url: str | None, context_suffix: str = ""
+) -> None:
+    """Fail a report capture whose layout wait resolved on a crashed page."""
+    if (
+        layout_state is None
+        or layout_state.json_value() != DASHBOARD_LAYOUT_CRASHED_STATE
+    ):
+        return
+    logger.warning(
+        "report_readiness_terminal url=%s terminal_reason=dashboard_render_crashed%s; "
+        "aborting before capture or delivery",
+        url,
+        context_suffix,
+    )
+    raise DashboardRenderCrashedError("Dashboard render crashed")
 
 
 FIND_UNREADY_CHART_HOLDERS_JS = (
@@ -1239,8 +1284,8 @@ def take_tiled_screenshot(  # noqa: C901
                     reserve_seconds=report_execution_context.readiness_reserve_seconds,
                 )
                 try:
-                    page.wait_for_function(
-                        DASHBOARD_LAYOUT_READY_JS,
+                    layout_state = page.wait_for_function(
+                        REPORT_LAYOUT_READY_JS,
                         timeout=layout_wait * 1000,
                     )
                 except PlaywrightTimeout:
@@ -1252,6 +1297,11 @@ def take_tiled_screenshot(  # noqa: C901
                         layout_wait,
                         context_suffix,
                     )
+                    readiness_timeout = True
+                    raise
+                try:
+                    raise_if_dashboard_crashed(layout_state, url, context_suffix)
+                except DashboardRenderCrashedError:
                     readiness_timeout = True
                     raise
             mount_wait = _timeout_seconds(
