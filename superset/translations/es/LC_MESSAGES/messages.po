@@ -3182,7 +3182,7 @@ msgid "Are you sure you want to delete the selected layers?"
 msgstr "¿Seguro que quieres eliminar las capas seleccionadas?"
 
 msgid "Are you sure you want to delete the selected queries?"
-msgstr "¿Estás seguro de que deseas eliminar las consultas seleccionadas?"
+msgstr "¿Seguro que quieres eliminar las consultas seleccionadas?"
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "¿Seguro que quieres eliminar los roles seleccionados?"
