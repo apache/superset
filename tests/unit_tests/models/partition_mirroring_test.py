@@ -27,15 +27,17 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import date, datetime, timezone
+from importlib.util import find_spec
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 import sqlalchemy as sa
 from flask import Flask
+from sqlglot import exp
 
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -57,6 +59,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.models.helpers import ExploreMixin
+from superset.sql.parse import SQLStatement
 from superset.superset_typing import QueryObjectDict
 from superset.utils import json
 from superset.utils.core import FilterOperator
@@ -144,7 +147,8 @@ def _rendering_dates_like_presto(table: SqlaTable) -> Any:
     )
 
 
-def _query(table: SqlaTable, **kwargs: Any) -> str:
+def _query_obj(**kwargs: Any) -> dict[str, Any]:
+    """A minimal chart query grouping by ``country``, overridden by ``kwargs``."""
     defaults: dict[str, Any] = {
         "columns": ["country"],
         "metrics": [],
@@ -155,7 +159,11 @@ def _query(table: SqlaTable, **kwargs: Any) -> str:
         "is_timeseries": False,
     }
     defaults.update(kwargs)
-    result = table.get_sqla_query(**defaults)
+    return defaults
+
+
+def _query(table: SqlaTable, **kwargs: Any) -> str:
+    result = table.get_sqla_query(**_query_obj(**kwargs))
     return str(
         result.sqla_query.compile(compile_kwargs={"literal_binds": True})
     ).replace("\n", " ")
@@ -4059,6 +4067,37 @@ def test_a_retried_statement_the_denylist_allows_still_recovers(
     assert "dt_key" not in executed[1]
 
 
+def _epoch_bucket_transform(bucket: int) -> str:
+    """The hourly (3600) or daily (86400) epoch-key recipe for Hive and Impala."""
+    return f"CAST(floor(unix_timestamp(:value) / {bucket}.0) * {bucket} AS BIGINT)"
+
+
+def _epoch_bucket_filter(operator: str) -> dict[str, Any]:
+    """
+    A chart filter on ``event_time`` for ``operator``.
+
+    ``range`` is the time range control; the rest are ad-hoc filters at
+    2026-10-01 10:30:00, with ``IN`` adding 2026-10-02 11:59:59.
+    """
+    if operator == "range":
+        return {
+            "granularity": "event_time",
+            "from_dttm": datetime(2026, 10, 1, 10, 30),
+            "to_dttm": datetime(2026, 10, 2, 10, 30),
+        }
+    return {
+        "filter": [
+            {
+                "col": "event_time",
+                "op": operator,
+                "val": ["2026-10-01 10:30:00", "2026-10-02 11:59:59"]
+                if operator == "IN"
+                else "2026-10-01 10:30:00",
+            }
+        ]
+    }
+
+
 # A comment the owner wrote is inert: it is removed before the probe compiles,
 # so it costs neither rows nor pruning.
 @pytest.mark.parametrize("comment", ["", " -- floor to the bucket"])
@@ -4100,30 +4139,8 @@ def test_epoch_bucket_queries_preserve_actual_rows(
     ]
     rows.append(("null_partition", "2026-10-01 10:30:00", None))
     connection.executemany("INSERT INTO web_events VALUES (?, ?, ?)", rows)
-    table = _table(
-        transform=(
-            f"CAST(floor(unix_timestamp(:value) / {bucket}.0) * {bucket} AS BIGINT)"
-            f"{comment}"
-        )
-    )
-    if operator == "range":
-        arguments = {
-            "granularity": "event_time",
-            "from_dttm": datetime(2026, 10, 1, 10, 30),
-            "to_dttm": datetime(2026, 10, 2, 10, 30),
-        }
-    else:
-        arguments = {
-            "filter": [
-                {
-                    "col": "event_time",
-                    "op": operator,
-                    "val": ["2026-10-01 10:30:00", "2026-10-02 11:59:59"]
-                    if operator == "IN"
-                    else "2026-10-01 10:30:00",
-                }
-            ]
-        }
+    table = _table(transform=f"{_epoch_bucket_transform(bucket)}{comment}")
+    arguments = _epoch_bucket_filter(operator)
     with (
         app.app_context(),
         patch.object(
@@ -4140,6 +4157,128 @@ def test_epoch_bucket_queries_preserve_actual_rows(
         connection.execute(unmirrored_sql).fetchall()
     )
     connection.close()
+
+
+HIVE_FAMILY = [
+    "hive",
+    pytest.param(
+        "impala",
+        marks=pytest.mark.skipif(
+            find_spec("impala") is None, reason="the impyla dialect is not installed"
+        ),
+    ),
+]
+
+# The hour and day epoch keys of the bounds `_epoch_bucket_filter` uses:
+# `first` is 2026-10-01 10:30:00, `second` the `IN` list's 2026-10-02 11:59:59
+# and `last` the time range's end, 2026-10-02 10:30:00 (all UTC).
+EPOCH_BUCKET_KEYS = {
+    3600: {"first": 1790848800, "second": 1790938800, "last": 1790935200},
+    86400: {"first": 1790812800, "second": 1790899200, "last": 1790899200},
+}
+
+# What each operator mirrors to: strict bounds widen to non-strict ones, and
+# every mirror admits the NULL partition. SQLAlchemy drops the parentheses
+# around the range's conjunction; AND binds tighter than OR, so it still reads
+# `(key >= first AND key <= last) OR key IS NULL`.
+GOLDEN_MIRRORS = {
+    "==": "({key} = {first} OR {key} IS NULL)",
+    ">": "({key} >= {first} OR {key} IS NULL)",
+    ">=": "({key} >= {first} OR {key} IS NULL)",
+    "<": "({key} <= {first} OR {key} IS NULL)",
+    "<=": "({key} <= {first} OR {key} IS NULL)",
+    "IN": "({key} IN ({first}, {second}) OR {key} IS NULL)",
+    "range": "({key} >= {first} AND {key} <= {last} OR {key} IS NULL)",
+}
+
+
+# PyHive's Hive dialect backtick-quotes every identifier; impyla's does not.
+QUOTED_KEY = {"hive": "`dt_epoch`", "impala": "dt_epoch"}
+
+
+def _epoch_key(value: datetime | str, bucket: int) -> int:
+    """The key ``floor(unix_timestamp(value) / bucket) * bucket`` reads, in UTC."""
+    instant = datetime.fromisoformat(value) if isinstance(value, str) else value
+    return int(instant.replace(tzinfo=timezone.utc).timestamp()) // bucket * bucket
+
+
+def _hive_family_chart_sql(engine: str, bucket: int, operator: str) -> str:
+    """
+    The SQL a chart on a Hive or Impala dataset sends, with the engine faked.
+
+    Only `_probe`, the one call that sends the transform to the warehouse, is
+    replaced; it answers each value -- a datetime, or the text a simple filter
+    binds -- with the epoch key the recipe computes. Everything between the
+    filter and the compiled statement runs for real, in the engine's dialect.
+    """
+    table = _table(transform=_epoch_bucket_transform(bucket))
+    table.database = Database(
+        database_name="test_db",
+        sqlalchemy_uri=f"{engine}://warehouse.example.com:10000/default",
+    )
+
+    def warehouse(
+        database: Database,
+        catalog: str | None,
+        schema: str | None,
+        transform: str,
+        values: list[datetime | str],
+        **kwargs: Any,
+    ) -> list[int]:
+        return [_epoch_key(value, bucket) for value in values]
+
+    with patch(f"{PARTITION_MAPPING}._probe", side_effect=warehouse):
+        return table.get_query_str(
+            cast(QueryObjectDict, _query_obj(**_epoch_bucket_filter(operator)))
+        )
+
+
+@pytest.mark.parametrize("operator", list(GOLDEN_MIRRORS))
+@pytest.mark.parametrize("bucket", [3600, 86400])
+@pytest.mark.parametrize("engine", HIVE_FAMILY)
+def test_hive_family_mirrors_epoch_buckets_as_unquoted_integers_or_null(
+    app: Flask, engine: str, bucket: int, operator: str
+) -> None:
+    """
+    The golden mirrored predicate on Hive and Impala: the key compared with bare
+    integers (a quoted key is a string comparison Hive coerces per row, which
+    prunes nothing), ANDed onto the chart's own filter and escaped for the NULL
+    partition Hive and Impala park unconvertible rows in.
+    """
+    with app.app_context():
+        sql = _hive_family_chart_sql(engine, bucket, operator)
+
+    mirror = GOLDEN_MIRRORS[operator].format(
+        key=QUOTED_KEY[engine], **EPOCH_BUCKET_KEYS[bucket]
+    )
+    assert f" AND {mirror}" in sql
+    assert ":value" not in sql
+
+
+@pytest.mark.parametrize("operator", list(GOLDEN_MIRRORS))
+@pytest.mark.parametrize("bucket", [3600, 86400])
+@pytest.mark.parametrize("engine", HIVE_FAMILY)
+def test_hive_family_mirrored_sql_parses_for_its_engine(
+    app: Flask, engine: str, bucket: int, operator: str
+) -> None:
+    """
+    The engine's own parser reads the mirror as `(...) OR key IS NULL` over
+    numeric literals -- the shape the golden string asserts, checked by
+    structure rather than by spelling.
+    """
+    with app.app_context():
+        sql = _hive_family_chart_sql(engine, bucket, operator)
+
+    statement = SQLStatement(sql, engine)
+    escape = next(
+        node
+        for node in statement._parsed.find_all(exp.Or)  # noqa: SLF001
+        if isinstance(node.right, exp.Is) and node.right.this.name == "dt_epoch"
+    )
+    keys = list(escape.left.find_all(exp.Literal))
+    assert statement.is_select()
+    assert keys
+    assert all(not literal.is_string for literal in keys)
 
 
 @pytest.mark.parametrize("source_type", ["TIMESTAMP", "VARCHAR"])
