@@ -44,6 +44,8 @@ afterEach(() => {
   window.history.pushState({}, '', '/');
 });
 
+// `hiddenFormData` seeds the replaced state's stash, so reintroducing a stash
+// guard in hydrateExplore fails the stamp tests that pass one.
 function hydrateNewSemanticChart(
   extraFormData: Partial<QueryFormData> = {},
   hiddenFormData: Partial<QueryFormData> = {},
@@ -633,6 +635,9 @@ test('stamps a new semantic chart after an earlier Explore session stashed hidde
   // explore state, so nothing from the table chart reaches the new chart.
   const action = hydrateNewSemanticChart({}, leftover.hiddenFormData);
   expect(action.data.explore.hiddenFormData).toBeUndefined();
+  expect(
+    exploreReducer(leftover, action as never).hiddenFormData,
+  ).toBeUndefined();
   expect(action.data.explore.form_data.semantic_selection_version).toBe(
     'cube-member-id-v1',
   );
