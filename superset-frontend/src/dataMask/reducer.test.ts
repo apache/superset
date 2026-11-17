@@ -392,6 +392,32 @@ test('HYDRATE_DASHBOARD does not let a restored value without extraFormData inhe
 });
 
 test.each([
+  ['null without extraFormData', null, undefined],
+  ['[] without extraFormData', [], undefined],
+  ['null with the default extraFormData', null, regionExtraFormData('APAC')],
+  ['[] with the default extraFormData', [], regionExtraFormData('APAC')],
+])(
+  'HYDRATE_DASHBOARD does not filter charts on the default for an optional filter restored as cleared (%s)',
+  (_label, value, loadedExtraFormData) => {
+    // The filter bar shows the restored clear, so charts must not stay
+    // filtered on the default.
+    const filter = createRegionFilterWithDefault();
+    const action = hydrateAction([], [filter]);
+    action.data.dataMask = {
+      [filter.id]: {
+        id: filter.id,
+        filterState: { value },
+        ...(loadedExtraFormData && { extraFormData: loadedExtraFormData }),
+      },
+    };
+    const result = reducer({}, action)[filter.id];
+
+    expect(result.filterState?.value).toEqual(value);
+    expect(result.extraFormData).toEqual({});
+  },
+);
+
+test.each([
   [
     'a restored value equal to the default',
     { filterState: { value: ['APAC'] } },
