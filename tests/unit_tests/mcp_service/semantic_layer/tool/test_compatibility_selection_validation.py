@@ -38,7 +38,7 @@ from superset.utils import json
 pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "tool_name", ["get_compatible_metrics", "get_compatible_dimensions"]
 )
