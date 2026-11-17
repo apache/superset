@@ -36,7 +36,7 @@
     "oxlint-tsgolint": "^7.0.2006",
     "tscw-config": "^1.1.2",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   },
   "engines": {
     "node": "^24.16.0",
