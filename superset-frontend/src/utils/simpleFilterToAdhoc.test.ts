@@ -82,12 +82,23 @@ test('adhoc multi-value filters format each raw value by type', () => {
     simpleFilterToAdhoc({
       col: adhocColumn,
       op: 'IN',
-      val: [0, '00123', '', null, true, "it's text"],
+      val: [
+        0,
+        '00123',
+        '',
+        null,
+        true,
+        "it's text",
+        '20.0',
+        '1.50',
+        '1e-05',
+        '9007199254740993',
+      ],
     }),
   ).toEqual(
     expect.objectContaining({
       sqlExpression:
-        "(CAST(category AS TEXT)) IN (0, '00123', '', NULL, TRUE, 'it''s text')",
+        "(CAST(category AS TEXT)) IN (0, '00123', '', NULL, TRUE, 'it''s text', 20.0, 1.50, 1e-05, 9007199254740993)",
     }),
   );
 });
