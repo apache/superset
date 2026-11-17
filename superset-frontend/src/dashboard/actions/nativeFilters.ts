@@ -20,14 +20,17 @@ import {
   Filter,
   FilterConfiguration,
   Filters,
+  getClientErrorObject,
   makeApi,
   Divider,
   ChartCustomization,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Dispatch } from 'redux';
 import { RootState } from 'src/dashboard/types';
 import { cloneDeep, omit } from 'lodash-es';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { setDataMaskForFilterChangesComplete } from 'src/dataMask/actions';
 import { HYDRATE_DASHBOARD } from './hydrate';
 import {
@@ -110,6 +113,11 @@ export const setFilterConfiguration =
         type: SET_NATIVE_FILTERS_CONFIG_FAIL,
         filterConfig: filterChanges,
       });
+      // No reducer acts on the FAIL action, so without a toast and a rethrow
+      // the caller closes the modal as though the filters had been saved.
+      const { error } = await getClientErrorObject(err);
+      dispatch(addDangerToast(error || t('Failed to save native filters')));
+      throw err;
     }
   };
 

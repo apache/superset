@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import type { FormInstance } from '@superset-ui/core/components';
 import { NativeFiltersForm } from '../types';
 import { useModalSaveLogic, ModalSaveLogicParams } from './useModalSaveLogic';
@@ -115,4 +115,39 @@ test('hasUnsavedChanges is false when nothing changed and no removal is pending'
   const { result } = renderHook(() => useModalSaveLogic(params));
 
   expect(result.current.hasUnsavedChanges).toBe(false);
+});
+
+test.each([
+  ['keeps the pending changes when the save fails', true],
+  ['clears them once the save succeeds', false],
+])('%s', async (_name, saveFails) => {
+  const resetForm = jest.fn();
+  const onSave = jest.fn(async () => {
+    if (saveFails) {
+      throw new Error('save failed');
+    }
+  });
+  const params = buildParams({
+    form: {
+      getFieldValue: jest.fn(),
+      isFieldsTouched: jest.fn(() => true),
+      getFieldsError: jest.fn(() => []),
+      validateFields: jest.fn(async () => ({ filters: {} })),
+    } as unknown as FormInstance<NativeFiltersForm>,
+    filterState: buildItemState({
+      changes: { modified: ['f1'], deleted: [], reordered: [] },
+    }),
+    onSave,
+    resetForm,
+  });
+
+  const { result } = renderHook(() => useModalSaveLogic(params));
+  await act(async () => {
+    await result.current.handleSave();
+  });
+
+  expect(onSave).toHaveBeenCalledTimes(1);
+  // Resetting after a failed save would drop the unsaved items the user is
+  // still looking at in the still-open modal.
+  expect(resetForm).toHaveBeenCalledTimes(saveFails ? 0 : 1);
 });

@@ -341,7 +341,13 @@ export function useModalSaveLogic({
       }
 
       if (saveChanges.filterChanges || saveChanges.customizationChanges) {
-        await onSave(saveChanges);
+        try {
+          await onSave(saveChanges);
+        } catch (error) {
+          // The save reported its own error. Leave the pending changes and the
+          // unsaved items in place so the modal still holds the user's work.
+          return;
+        }
         resetForm(true);
       }
     } else {
