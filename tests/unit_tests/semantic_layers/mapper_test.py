@@ -5302,6 +5302,7 @@ def test_execution_rejects_stale_selection_before_metadata_fetch(
     query: ValidatedQueryObject = ValidatedQueryObject(
         datasource=mock_datasource, metrics=["total_sales"], columns=["category"]
     )
+    refused: pytest.ExceptionInfo[QueryObjectValidationError]
     with pytest.raises(
         QueryObjectValidationError, match="explicitly reselect"
     ) as refused:

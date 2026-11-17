@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
+from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     Dimension,
@@ -31,6 +32,7 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
+from werkzeug.test import TestResponse
 
 from superset.charts.schemas import ChartDataExtrasSchema
 from superset.common.chart_data import ChartDataResultType
@@ -416,7 +418,7 @@ def test_mapper_refuses_stale_version_as_validation_error(
 
 @pytest.mark.parametrize("result_type", ["timegrains", "columns"])
 def test_forced_async_metadata_request_runs_synchronously(
-    client: Any,
+    client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
     result_type: str,
@@ -460,7 +462,7 @@ def test_forced_async_metadata_request_runs_synchronously(
     )
 
     # The control's builder: a full context holding one metadata query.
-    response: Any = client.post(
+    response: TestResponse = client.post(
         "/api/v1/chart/data",
         json={
             "datasource": {"id": 73, "type": "semantic_view"},
