@@ -28,6 +28,7 @@ from superset_core.semantic_layers.errors import SemanticResultCompletenessReaso
 from superset_core.semantic_layers.testing import SemanticProviderConformance
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     FilterExpression,
     Grains,
@@ -76,11 +77,12 @@ def semantic_query_cases(
     semantic_view: "QueryView",
 ) -> dict[str, tuple[SemanticQuery, pa.Table]]:
     """Expected answers are independent of the provider's query implementation."""
-    category: Dimension = next(
-        d for d in semantic_view.get_dimensions() if d.name == "category"
+    category: DimensionSelection = DimensionSelection(
+        next(d for d in semantic_view.get_dimensions() if d.name == "category")
     )
-    month: Dimension = next(
-        d for d in semantic_view.get_dimensions() if d.grain == Grains.MONTH
+    month: DimensionSelection = DimensionSelection(
+        next(d for d in semantic_view.get_dimensions() if d.name == "occurred"),
+        Grains.MONTH,
     )
     total: Metric = next(m for m in semantic_view.get_metrics() if m.name == "total")
     count: Metric = next(
@@ -90,10 +92,8 @@ def semantic_query_cases(
     membership: Filter = Filter(
         PredicateType.WHERE, category, Operator.IN, frozenset({"A", "B"})
     )
-    occurred: Dimension = next(
-        d
-        for d in semantic_view.get_dimensions()
-        if d.name == "occurred" and d.grain is None
+    occurred: DimensionSelection = DimensionSelection(
+        next(d for d in semantic_view.get_dimensions() if d.name == "occurred")
     )
     start: Filter = Filter(
         PredicateType.WHERE, occurred, Operator.GREATER_THAN_OR_EQUAL, date(2026, 2, 1)
@@ -165,8 +165,8 @@ def semantic_capability_cases(
     semantic_view: "QueryView",
 ) -> dict[str, tuple[SemanticQuery, pa.Table]]:
     """ROW_OFFSET must skip the highest group after ordering."""
-    category: Dimension = next(
-        d for d in semantic_view.get_dimensions() if d.name == "category"
+    category: DimensionSelection = DimensionSelection(
+        next(d for d in semantic_view.get_dimensions() if d.name == "category")
     )
     total: Metric = next(m for m in semantic_view.get_metrics() if m.name == "total")
     return {
@@ -195,11 +195,11 @@ def _error_operation(method: str, kind: str) -> SemanticResult:
         )
         source.completeness = reason
     view: QueryView = QueryView(source)
-    dimension: Dimension = next(
-        d for d in view.get_dimensions() if d.name == "category"
+    dimension: DimensionSelection = DimensionSelection(
+        next(d for d in view.get_dimensions() if d.name == "category")
     )
     if kind == "refusal":
-        dimension = Dimension("invalid", "invalid", pa.string())
+        dimension = DimensionSelection(Dimension("invalid", "invalid", pa.string()))
     query: SemanticQuery = SemanticQuery(metrics=[], dimensions=[dimension])
     if method == "get_values":
         return view.get_values(dimension)

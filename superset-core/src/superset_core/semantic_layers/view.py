@@ -22,6 +22,7 @@ from abc import ABC, abstractmethod
 
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     Metric,
     SemanticQuery,
@@ -56,11 +57,10 @@ class SemanticView(ABC):
       provider-private. See :class:`~superset_core.semantic_layers.types.Metric`.
       A provider that changes what ``name`` means declares a new
       :attr:`selection_identity_version`.
-    - **Grain variants.** Several dimension variants may share one ``name``, at
-      most one per ``(name, grain)``. See
-      :class:`~superset_core.semantic_layers.types.Grains` for the selection
-      preference and for why grains
-      must not be ordered by name.
+    - **Grain selection.** Catalog dimensions are unique by name and declare
+      supported grains and omission defaults. Query operands compose a catalog
+      Dimension with an explicit grain or native selection. Compatibility
+      results narrow support to selected metrics and configured restrictions.
     - **NULL in filters.** ``None`` is never a comparison operand; splitting
       nullness into ``IS_NULL``/``IS_NOT_NULL`` is the host's responsibility.
       Mixed positive membership uses grouped OR predicates, which every
@@ -78,13 +78,10 @@ class SemanticView(ABC):
       :class:`~superset_core.semantic_layers.types.SemanticQuery` and
       :class:`~superset_core.semantic_layers.types.SemanticResult`.
 
-    Uniqueness works at two levels. In the **catalog**, dimensions are unique
-    per ``(name, grain)`` -- so several grain variants of one name are expected
-    -- while metric names are unique on their own and must not collide with a
-    dimension name. The host rejects conflicting dimension variants, but metric
-    name uniqueness remains a provider obligation. In a **query**, at most one
-    variant per name is selected, so a result
-    carries one column per selected member name.
+    Catalog dimension and metric names must be unique and disjoint. Query
+    selections reference one catalog dimension per result name. Providers reject
+    unknown members and unsupported grains using SemanticQueryRejectedError;
+    caller-supplied metadata never overrides authoritative contextual support.
     """
 
     # Defaults to no optional features: providers opt in by overriding, and
@@ -150,7 +147,7 @@ class SemanticView(ABC):
     @abstractmethod
     def get_values(
         self,
-        dimension: Dimension,
+        dimension: DimensionSelection,
         filters: set[Filter] | None = None,
     ) -> SemanticResult:
         """
@@ -237,7 +234,7 @@ class SemanticView(ABC):
     def get_compatible_metrics(
         self,
         selected_metrics: set[Metric],
-        selected_dimensions: set[Dimension],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Metric]:
         """
         Return metrics compatible with the selected dimensions.
@@ -247,8 +244,11 @@ class SemanticView(ABC):
     def get_compatible_dimensions(
         self,
         selected_metrics: set[Metric],
-        selected_dimensions: set[Dimension],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Dimension]:
         """
-        Return dimensions compatible with the selected metrics.
+        Return unique dimensions with support narrowed to the selected query context.
+
+        Intersect selected metrics and configured restrictions; do not silently
+        select a grain or use an unrestricted catalog union for query validation.
         """

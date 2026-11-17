@@ -25,9 +25,8 @@ from superset_core.semantic_layers.types import (
 from superset.semantic_layers.members import members_by_key
 
 COUNTRY: Dimension = Dimension("dim.country", "Country", pa.string())
-ORDERED_AT: Dimension = Dimension("dim.ordered_at", "Ordered At", pa.date32())
-ORDERED_AT_MONTH: Dimension = Dimension(
-    "dim.ordered_at__month", "Ordered At", pa.date32(), grain=Grains.MONTH
+ORDERED_AT: Dimension = Dimension(
+    "dim.ordered_at", "Ordered At", pa.date32(), grains=frozenset({Grains.MONTH})
 )
 REVENUE: Metric = Metric(
     "metric.revenue",
@@ -62,16 +61,16 @@ def test_empty_input_yields_an_empty_mapping() -> None:
     assert members_by_key([]) == {}
 
 
-def test_same_name_grain_variants_collapse_to_one_entry() -> None:
-    """A view may expose one variant per grain; the mapping holds one per name."""
-    keyed: dict[str, Dimension] = members_by_key([ORDERED_AT, ORDERED_AT_MONTH])
-    assert set(keyed) == {"Ordered At"}
-    assert keyed["Ordered At"] is ORDERED_AT_MONTH
+def test_one_catalog_member_keeps_its_grain_capabilities() -> None:
+    """Grain capability count does not change the stable member key."""
+    keyed: dict[str, Dimension] = members_by_key([ORDERED_AT])
+    assert keyed == {"Ordered At": ORDERED_AT}
+    assert keyed["Ordered At"].grains == frozenset({Grains.MONTH})
 
 
 def test_matches_the_lookup_it_replaces() -> None:
     """Guard the extraction: identical mapping to the former comprehension."""
-    dimensions: list[Dimension] = [COUNTRY, ORDERED_AT, ORDERED_AT_MONTH]
+    dimensions: list[Dimension] = [COUNTRY, ORDERED_AT]
     metrics: list[Metric] = [REVENUE]
     assert members_by_key(dimensions) == {
         dimension.name: dimension for dimension in dimensions

@@ -52,6 +52,7 @@ from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
+    DimensionSelection,
     Filter,
     FilterValues,
     Metric,
@@ -108,15 +109,17 @@ class StubConfiguration(BaseModel):
 
 
 def _validate_filter(filter_: Filter) -> None:
-    if filter_.type != PredicateType.WHERE or not isinstance(filter_.column, Dimension):
+    if filter_.type != PredicateType.WHERE or not isinstance(
+        filter_.column, DimensionSelection
+    ):
         raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
     if filter_.operator not in SUPPORTED_OPERATORS:
         raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
 
 
 def _matches(row: dict[str, Any], filter_: Filter) -> bool:
-    assert isinstance(filter_.column, Dimension)
-    actual: Any = row[filter_.column.id]
+    assert isinstance(filter_.column, DimensionSelection)
+    actual: Any = row[filter_.column.dimension.id]
     values: frozenset[FilterValues] = (
         frozenset(filter_.value)
         if isinstance(filter_.value, (frozenset, tuple))
@@ -161,14 +164,14 @@ class StubOrdersView(SemanticView):
 
     def get_values(
         self,
-        dimension: Dimension,
+        dimension: DimensionSelection,
         filters: set[Filter] | None = None,
     ) -> SemanticResult:
         values: list[Any] = sorted(
-            {row[dimension.id] for row in _filtered_rows(filters)}
+            {row[dimension.dimension.id] for row in _filtered_rows(filters)}
         )
         return SemanticResult(
-            requests=[SemanticRequest("stub", f"values of {dimension.id}")],
+            requests=[SemanticRequest("stub", f"values of {dimension.dimension.id}")],
             results=pa.table({dimension.name: pa.array(values, dimension.type)}),
         )
 
@@ -178,7 +181,7 @@ class StubOrdersView(SemanticView):
 
         groups: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
         for row in _filtered_rows(query.filters):
-            groups[tuple(row[d.id] for d in query.dimensions)].append(row)
+            groups[tuple(row[d.dimension.id] for d in query.dimensions)].append(row)
         if not query.dimensions and not groups:
             groups[()] = []  # an aggregate-only query always returns one row
 
@@ -192,7 +195,7 @@ class StubOrdersView(SemanticView):
         # Deterministic output: requested order first, then dimension values.
         records.sort(key=lambda r: tuple(r[d.name] for d in query.dimensions))
         for element, direction in reversed(query.order or []):
-            if not isinstance(element, (Dimension, Metric)):
+            if not isinstance(element, (DimensionSelection, Metric)):
                 raise ValueError("The E2E stub does not support adhoc ordering")
             records.sort(
                 key=itemgetter(element.name),
@@ -221,14 +224,14 @@ class StubOrdersView(SemanticView):
     def get_compatible_metrics(
         self,
         selected_metrics: set[Metric],
-        selected_dimensions: set[Dimension],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Metric]:
         return self.get_metrics()
 
     def get_compatible_dimensions(
         self,
         selected_metrics: set[Metric],
-        selected_dimensions: set[Dimension],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Dimension]:
         return self.get_dimensions()
 

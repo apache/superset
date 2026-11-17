@@ -117,6 +117,10 @@ def _make_view(view_id: int = 5) -> MagicMock:
     view.metrics = [_make_metric("bookings"), _make_metric("revenue", "SUM(revenue)")]
     view.columns = [_make_column("listing__country_name"), _make_column("channel")]
     view.get_compatible_dimensions = MagicMock(return_value=["listing__country_name"])
+    view.get_compatible_dimension_metadata.side_effect = lambda metrics, dimensions: {
+        Dimension(name, name, pa.string())
+        for name in view.get_compatible_dimensions(metrics, dimensions)
+    }
     return view
 
 
@@ -132,17 +136,18 @@ def large_metric_catalog() -> Generator[MagicMock, None, None]:
             name=f"dimension_{i}",
             type=pa.timestamp("us"),
             definition=f"dimension_{i}",
-            grain=grain,
+            grains=frozenset(
+                {
+                    Grains.HOUR,
+                    Grains.DAY,
+                    Grains.WEEK,
+                    Grains.MONTH,
+                    Grains.QUARTER,
+                    Grains.YEAR,
+                }
+            ),
         )
         for i in range(40)
-        for grain in (
-            Grains.HOUR,
-            Grains.DAY,
-            Grains.WEEK,
-            Grains.MONTH,
-            Grains.QUARTER,
-            Grains.YEAR,
-        )
     }
     view.implementation.get_dimensions.return_value = dimensions
     view.implementation.get_metrics.return_value = []
@@ -174,7 +179,7 @@ def large_metric_catalog() -> Generator[MagicMock, None, None]:
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_default_page_byte_bound(
     mcp_server: FastMCP,
     large_metric_catalog: MagicMock,
@@ -194,7 +199,7 @@ async def test_list_metrics_default_page_byte_bound(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_embedded_page_byte_bound(
     mcp_server: FastMCP,
     large_metric_catalog: MagicMock,
@@ -227,7 +232,7 @@ async def test_list_metrics_embedded_page_byte_bound(
     assert get_response_size_bytes(data) < DEFAULT_MAX_RESPONSE_BYTES
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_embedded_page_over_cap_rejected(
     mcp_server: FastMCP,
 ) -> None:
@@ -324,7 +329,7 @@ def _patched_dataset_search(
         yield mock_dao, mock_view_dao, mock_db
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_builtin_happy_path(mcp_server: FastMCP) -> None:
     """list_metrics returns builtin metrics when only datasets exist."""
     mock_ds: MagicMock = _make_dataset(42)
@@ -346,7 +351,7 @@ async def test_list_metrics_builtin_happy_path(mcp_server: FastMCP) -> None:
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_mutual_exclusion_validation(mcp_server: FastMCP) -> None:
     """list_metrics returns a validation error when dataset_id and view_id coexist."""
     async with Client(mcp_server) as client:
@@ -360,7 +365,7 @@ async def test_list_metrics_mutual_exclusion_validation(mcp_server: FastMCP) -> 
     assert data["error_type"] == "ValidationError"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_privacy_check(mcp_server: FastMCP) -> None:
     """list_metrics returns an error when the user lacks data-model metadata access."""
     with patch.object(
@@ -376,7 +381,7 @@ async def test_list_metrics_privacy_check(mcp_server: FastMCP) -> None:
     assert data["error_type"] == "DataModelMetadataRestricted"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_search_filter(mcp_server: FastMCP) -> None:
     """list_metrics filters metrics by search term."""
     mock_ds: MagicMock = _make_dataset(1)
@@ -397,7 +402,7 @@ async def test_list_metrics_search_filter(mcp_server: FastMCP) -> None:
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_external_includes_verbose_name(
     mcp_server: FastMCP,
 ) -> None:
@@ -424,7 +429,7 @@ async def test_list_metrics_external_includes_verbose_name(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_external_access_denied(mcp_server: FastMCP) -> None:
     """An explicit view_id lookup surfaces AccessDenied instead of InternalError."""
     mock_view = _make_view(5)
@@ -445,7 +450,7 @@ async def test_list_metrics_external_access_denied(mcp_server: FastMCP) -> None:
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_external_per_metric_compatible_dimensions(
     mcp_server: FastMCP,
 ) -> None:
@@ -480,6 +485,11 @@ async def test_list_metrics_external_per_metric_compatible_dimensions(
     assert [d["name"] for d in metrics["bookings"]["compatible_dimensions"]] == [
         "listing__country_name"
     ]
+    assert metrics["bookings"]["compatible_dimensions"][0]["grains"] == []
+    assert (
+        metrics["bookings"]["compatible_dimensions"][0]["allows_default_grain"] is True
+    )
+    assert metrics["bookings"]["compatible_dimensions"][0]["omitted_grain"] == "native"
     assert metrics["revenue"]["compatible_dimensions"] == []
     assert mock_view.get_compatible_dimensions.call_args_list == [
         call(["bookings"], []),
@@ -487,7 +497,7 @@ async def test_list_metrics_external_per_metric_compatible_dimensions(
     ]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_pagination_is_stable(mcp_server: FastMCP) -> None:
     """Metrics are sorted deterministically before pagination is applied."""
     mock_ds: MagicMock = MagicMock()
@@ -511,7 +521,7 @@ async def test_list_metrics_pagination_is_stable(mcp_server: FastMCP) -> None:
     assert data_2["metrics"][0]["name"] == "zzz_metric"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_search_no_match_returns_empty(mcp_server: FastMCP) -> None:
     """A search term that matches nothing returns an empty (not error) result."""
     mock_ds: MagicMock = _make_dataset(1)
@@ -529,7 +539,7 @@ async def test_list_metrics_search_no_match_returns_empty(mcp_server: FastMCP) -
     assert data["total_count"] == 0
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_nonexistent_dataset_id_returns_empty(
     mcp_server: FastMCP,
 ) -> None:
@@ -555,7 +565,7 @@ async def test_list_metrics_nonexistent_dataset_id_returns_empty(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_nonexistent_view_id_returns_empty(
     mcp_server: FastMCP,
 ) -> None:
@@ -576,7 +586,7 @@ async def test_list_metrics_nonexistent_view_id_returns_empty(
     mock_view_dao.find_by_id.assert_called_once()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_search_unicode_matches(mcp_server: FastMCP) -> None:
     """Unicode search strings match against unicode descriptions correctly."""
     mock_ds: MagicMock = _make_dataset(1)
@@ -596,7 +606,7 @@ async def test_list_metrics_search_unicode_matches(mcp_server: FastMCP) -> None:
     assert metrics[0]["name"] == "revenue"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_search_special_characters_no_crash(
     mcp_server: FastMCP,
 ) -> None:
@@ -625,7 +635,7 @@ async def test_list_metrics_search_special_characters_no_crash(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_page_zero_rejected(mcp_server: FastMCP) -> None:
     """page must be >= 1; page=0 is rejected before the tool body runs."""
     async with Client(mcp_server) as client:
@@ -633,7 +643,7 @@ async def test_list_metrics_page_zero_rejected(mcp_server: FastMCP) -> None:
             await client.call_tool("list_metrics", {"request": {"page": 0}})
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_negative_page_rejected(mcp_server: FastMCP) -> None:
     """Negative page numbers are rejected the same way as page=0."""
     async with Client(mcp_server) as client:
@@ -641,7 +651,7 @@ async def test_list_metrics_negative_page_rejected(mcp_server: FastMCP) -> None:
             await client.call_tool("list_metrics", {"request": {"page": -1}})
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_page_size_zero_rejected(mcp_server: FastMCP) -> None:
     """page_size must be >= 1; page_size=0 is rejected before the tool body
     runs, surfacing as a structured ToolError rather than a raw 500."""
@@ -650,7 +660,7 @@ async def test_list_metrics_page_size_zero_rejected(mcp_server: FastMCP) -> None
             await client.call_tool("list_metrics", {"request": {"page_size": 0}})
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_page_size_over_max_rejected(mcp_server: FastMCP) -> None:
     """page_size above the 500 ceiling is rejected, not silently clamped."""
     async with Client(mcp_server) as client:
@@ -658,7 +668,7 @@ async def test_list_metrics_page_size_over_max_rejected(mcp_server: FastMCP) -> 
             await client.call_tool("list_metrics", {"request": {"page_size": 501}})
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize("page_size", [9, 25, 500])
 async def test_builtin_embedded_metrics_reject_oversized_pages(
     mcp_server: FastMCP, page_size: int
@@ -680,7 +690,7 @@ async def test_builtin_embedded_metrics_reject_oversized_pages(
                 )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_builtin_embedded_metrics_realistic_byte_bound(
     mcp_server: FastMCP,
 ) -> None:
@@ -735,7 +745,7 @@ def test_external_embedded_metrics_retain_page_ceiling(scope: dict[str, int]) ->
         ListMetricsRequest(**scope, include_compatible_dimensions=True, page_size=9)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_page_size_at_max_accepted(mcp_server: FastMCP) -> None:
     """page_size == 500 (the max) is accepted and echoed back."""
     mock_ds: MagicMock = _make_dataset(42)
@@ -753,7 +763,7 @@ async def test_list_metrics_page_size_at_max_accepted(mcp_server: FastMCP) -> No
     assert data["total_count"] == 2
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_metrics_page_beyond_last_page_returns_empty(
     mcp_server: FastMCP,
 ) -> None:
@@ -780,7 +790,7 @@ async def test_list_metrics_page_beyond_last_page_returns_empty(
     assert data["total_pages"] == 1
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize("error_class", [RuntimeError, QueryObjectValidationError])
 async def test_list_metrics_unexpected_error_is_sanitized(
     mcp_server: FastMCP,
@@ -812,7 +822,7 @@ async def test_list_metrics_unexpected_error_is_sanitized(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize(
     "error_class", [RuntimeError, QueryObjectValidationError, AmbiguousDimensionError]
 )

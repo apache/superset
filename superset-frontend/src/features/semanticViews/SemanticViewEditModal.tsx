@@ -19,7 +19,7 @@
 import { useState, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
-import { Input, InputNumber } from '@superset-ui/core/components';
+import { Button, Input, InputNumber } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -35,6 +35,10 @@ import {
   MODAL_LARGE_WIDTH,
 } from 'src/components/Modal';
 
+import AddSemanticViewModal, {
+  ExistingSemanticView,
+} from './AddSemanticViewModal';
+
 const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
@@ -46,7 +50,10 @@ interface SemanticDimension {
   type: string;
   definition: string | null;
   description: string | null;
-  grain: string | null;
+  grains: string[];
+  allows_default_grain: boolean;
+  omitted_grain: string;
+  ungrained_filter: string;
 }
 
 interface SemanticMetric {
@@ -61,6 +68,7 @@ interface SemanticViewStructure {
   // hydration effect only overwrites the form when they are present.
   description?: string | null;
   cache_timeout?: number | null;
+  time_grains?: { duration: string; name: string }[];
   dimensions: SemanticDimension[];
   metrics: SemanticMetric[];
 }
@@ -79,10 +87,44 @@ interface SemanticViewEditModalProps {
   } | null;
 }
 
-const DIMENSION_COLUMNS: ColumnsType<SemanticDimension> = [
+const dimensionColumns = (
+  timeGrains: { duration: string; name: string }[],
+): ColumnsType<SemanticDimension> => [
   { title: t('Name'), dataIndex: 'name', key: 'name' },
   { title: t('Type'), dataIndex: 'type', key: 'type' },
-  { title: t('Grain'), dataIndex: 'grain', key: 'grain' },
+  {
+    title: t('Supported grains'),
+    dataIndex: 'grains',
+    key: 'grains',
+    render: (grains: string[]) =>
+      [
+        ...timeGrains
+          .filter(grain => grains.includes(grain.duration))
+          .map(grain => grain.name),
+        ...grains.filter(
+          duration => !timeGrains.some(grain => grain.duration === duration),
+        ),
+      ].join(', '),
+  },
+  {
+    title: t('Native grain'),
+    dataIndex: 'allows_default_grain',
+    key: 'allows_default_grain',
+    render: (allowed: boolean) =>
+      allowed ? t('Native allowed') : t('Explicit grain required'),
+  },
+  {
+    title: t('Omitted grain'),
+    dataIndex: 'omitted_grain',
+    key: 'omitted_grain',
+    render: (selector: string) =>
+      selector === 'native'
+        ? t('Native')
+        : selector === 'reject'
+          ? t('Explicit grain required')
+          : (timeGrains.find(grain => grain.duration === selector)?.name ??
+            selector),
+  },
   { title: t('Description'), dataIndex: 'description', key: 'description' },
   { title: t('Expression'), dataIndex: 'definition', key: 'definition' },
 ];
@@ -111,6 +153,9 @@ export default function SemanticViewEditModal({
   addSuccessToast,
   semanticView,
 }: SemanticViewEditModalProps) {
+  const [recovery, setRecovery] = useState<ExistingSemanticView | null>(null);
+  const [reselecting, setReselecting] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState('');
   const [description, setDescription] = useState<string>('');
   const [cacheTimeout, setCacheTimeout] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -138,6 +183,9 @@ export default function SemanticViewEditModal({
     }
 
     let cancelled = false;
+    setRecovery(null);
+    setReselecting(false);
+    setRecoveryMessage('');
     setStructureLoading(true);
     SupersetClient.get({
       endpoint: `/api/v1/semantic_view/${semanticView.id}/structure`,
@@ -159,6 +207,38 @@ export default function SemanticViewEditModal({
       })
       .catch(async error => {
         if (cancelled) return;
+        if (typeof error?.clone === 'function') {
+          const body: unknown = await error
+            .clone()
+            .json()
+            .catch(() => null);
+          if (cancelled) return;
+          if (
+            body !== null &&
+            typeof body === 'object' &&
+            'error_type' in body &&
+            body.error_type === 'SemanticViewConfigurationError' &&
+            'message' in body &&
+            typeof body.message === 'string' &&
+            'recovery' in body &&
+            body.recovery !== null &&
+            typeof body.recovery === 'object' &&
+            'id' in body.recovery &&
+            'name' in body.recovery &&
+            'semantic_layer_uuid' in body.recovery &&
+            typeof body.recovery?.id === 'number' &&
+            typeof body.recovery?.name === 'string' &&
+            typeof body.recovery?.semantic_layer_uuid === 'string'
+          ) {
+            setRecovery({
+              id: body.recovery.id,
+              name: body.recovery.name,
+              semantic_layer_uuid: body.recovery.semantic_layer_uuid,
+            });
+            setRecoveryMessage(body.message);
+            return;
+          }
+        }
         const clientError = await getClientErrorObject(error);
         if (cancelled) return;
         addDangerToast?.(
@@ -203,6 +283,22 @@ export default function SemanticViewEditModal({
   const dimensions = structure?.dimensions ?? [];
   const metrics = structure?.metrics ?? [];
 
+  if (reselecting && recovery) {
+    return (
+      <AddSemanticViewModal
+        show={show}
+        existingView={recovery}
+        onHide={() => setReselecting(false)}
+        onSuccess={() => {
+          onSave();
+          onHide();
+        }}
+        addDangerToast={addDangerToast ?? (() => {})}
+        addSuccessToast={addSuccessToast ?? (() => {})}
+      />
+    );
+  }
+
   return (
     <StandardModal
       show={show}
@@ -213,9 +309,22 @@ export default function SemanticViewEditModal({
       isEditMode
       width={MODAL_LARGE_WIDTH}
       saveLoading={saving}
+      saveDisabled={Boolean(recovery)}
       contentLoading={structureLoading}
     >
       <ModalContent>
+        {recovery && (
+          <Alert
+            type="warning"
+            message={recoveryMessage}
+            description={
+              <Button onClick={() => setReselecting(true)}>
+                {t('Re-select fields')}
+              </Button>
+            }
+            showIcon
+          />
+        )}
         <Tabs>
           <Tabs.TabPane tab={t('Details')} key="details">
             <ModalFormField label={t('Description')}>
@@ -247,7 +356,7 @@ export default function SemanticViewEditModal({
             />
             <Table<SemanticDimension>
               data={dimensions}
-              columns={DIMENSION_COLUMNS}
+              columns={dimensionColumns(structure?.time_grains ?? [])}
               size={TableSize.Small}
               rowKey="name"
               usePagination={dimensions.length > STRUCTURE_PAGINATION_THRESHOLD}

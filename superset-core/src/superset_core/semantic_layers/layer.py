@@ -233,6 +233,16 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         schema, used to restrict the semantic views returned.
         """
 
+    def prepare_view_configuration(
+        self, name: str, configuration: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Normalize new-view form input before validation and persistence.
+
+        Stored-view reconstruction and import/export must not call this hook:
+        provider format migrations are explicit application-owned operations.
+        """
+        return configuration.copy()
+
     @abstractmethod
     def get_semantic_view(
         self,

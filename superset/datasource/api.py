@@ -21,6 +21,7 @@ from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from marshmallow import ValidationError
+from superset_core.semantic_layers.errors import SemanticViewConfigurationError
 
 from superset import event_logger, is_feature_enabled, security_manager
 from superset.commands.datasource.list import GetCombinedDatasourceListCommand
@@ -49,8 +50,15 @@ from superset.exceptions import (
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
-from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.dimension_resolution import (
+    AmbiguousDimensionError,
+    dimension_support,
+    DimensionSupport,
+    GrainSelectionError,
+)
 from superset.semantic_layers.exceptions import (
+    configuration_recovery_message,
+    SemanticLayerConfigurationError,
     SemanticLayerExecutionError,
     SemanticLayerQueryRejectedError,
 )
@@ -601,9 +609,7 @@ class DatasourceRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
         log_to_statsd=False,
     )
-    def compatible(  # noqa: C901
-        self, datasource_type: str, datasource_id: int
-    ) -> FlaskResponse:
+    def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         """Return compatible members, refusing unknown selected names with a 400.
 
         Non-string entries in selection lists do not select datasource members.
@@ -634,6 +640,14 @@ class DatasourceRestApi(BaseSupersetApi):
                       type: array
                       items:
                         type: string
+                    dimension_grains:
+                      type: object
+                      description: >-
+                        Selected dimension names mapped to ISO durations;
+                        null explicitly requests native values.
+                      additionalProperties:
+                        type: string
+                        nullable: true
           responses:
             200:
               description: Compatible metrics and dimensions
@@ -653,6 +667,16 @@ class DatasourceRestApi(BaseSupersetApi):
                             type: array
                             items:
                               type: string
+                          dimension_support:
+                            type: object
+                            description: >-
+                              Per-dimension supported grains and omission defaults.
+                            additionalProperties:
+                              type: object
+            422:
+              description: >-
+                Saved semantic configuration needs field re-selection;
+                includes error_type and recovery identifiers.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -679,11 +703,23 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(403, message=ex.message)
 
         body: Any = request.get_json(silent=True) or {}
+        if not isinstance(body, dict):
+            return self.response(400, message="The request body must be an object")
         raw_metrics: object = body.get("selected_metrics", [])
         raw_dimensions: object = body.get("selected_dimensions", [])
         if not isinstance(raw_metrics, list) or not isinstance(raw_dimensions, list):
             return self.response(
                 400, message="selected_metrics and selected_dimensions must be lists"
+            )
+
+        dimension_grains: Any = body.get("dimension_grains", {})
+        if not isinstance(dimension_grains, dict) or any(
+            not isinstance(key, str)
+            or (value is not None and not isinstance(value, str))
+            for key, value in dimension_grains.items()
+        ):
+            return self.response(
+                400, message="dimension_grains must map names to grains or null"
             )
 
         selected_metrics: list[str] = [
@@ -693,6 +729,39 @@ class DatasourceRestApi(BaseSupersetApi):
             name for name in raw_dimensions if isinstance(name, str)
         ]
 
+        try:
+            return self._compatible_result(
+                datasource, selected_metrics, selected_dimensions, dimension_grains
+            )
+        except (SemanticLayerConfigurationError, SemanticViewConfigurationError):
+            return self.response(
+                422,
+                message=configuration_recovery_message(),
+                error_type="SemanticViewConfigurationError",
+                recovery={
+                    "id": datasource.id,
+                    "name": datasource.name,
+                    "semantic_layer_uuid": str(datasource.semantic_layer_uuid),
+                }
+                if isinstance(datasource, SemanticView)
+                else None,
+            )
+        except QueryObjectValidationError as ex:
+            message: str = (
+                str(ex)
+                if isinstance(ex, (GrainSelectionError, AmbiguousDimensionError))
+                else "Unable to validate compatibility."
+            )
+            return self.response(400, message=message)
+
+    def _compatible_result(  # noqa: C901
+        self,
+        datasource: BaseDatasource | SemanticView,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+        dimension_grains: dict[str, str | None],
+    ) -> FlaskResponse:
+        """Validate the live selection before serving or storing compatibility."""
         # Check names before the result cache: live datasource members can change
         # without invalidating a previously cached compatibility result.
         selection_errors: list[str] = []
@@ -728,22 +797,28 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
 
+        if isinstance(datasource, SemanticView) and dimension_grains:
+            datasource._compat_selection(
+                selected_metrics, selected_dimensions, dimension_grains
+            )
+
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
-        cache_key = "compatible:" + hash_from_dict(
+        cache_key: str = "compatible:v3:" + hash_from_dict(
             {
                 "uid": datasource_uid,
                 "changed_on": str(getattr(datasource, "changed_on", "")),
                 "metadata_version": metadata_version,
                 "m": sorted(selected_metrics),
                 "d": sorted(selected_dimensions),
+                "grains": dimension_grains,
             }
         )
 
         timeout: int = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300
         )
-        cached: dict[str, list[str]] | None
+        cached: dict[str, Any] | None
         if (
             timeout != CACHE_DISABLED_TIMEOUT
             and (cached := cache_manager.data_cache.get(cache_key)) is not None
@@ -751,14 +826,26 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(200, result=cached)
 
         try:
-            result: dict[str, list[str]] = {
-                "compatible_metrics": datasource.get_compatible_metrics(
+            result: dict[str, Any] = {}
+            if isinstance(datasource, SemanticView):
+                result["compatible_metrics"] = datasource.get_compatible_metrics(
+                    selected_metrics, selected_dimensions, dimension_grains
+                )
+                support: dict[str, DimensionSupport] = {
+                    dimension.name: dimension_support(dimension)
+                    for dimension in datasource.get_compatible_dimension_metadata(
+                        selected_metrics, selected_dimensions, dimension_grains
+                    )
+                }
+                result["compatible_dimensions"] = sorted(support)
+                result["dimension_support"] = support
+            else:
+                result["compatible_metrics"] = datasource.get_compatible_metrics(
                     selected_metrics, selected_dimensions
-                ),
-                "compatible_dimensions": datasource.get_compatible_dimensions(
+                )
+                result["compatible_dimensions"] = datasource.get_compatible_dimensions(
                     selected_metrics, selected_dimensions
-                ),
-            }
+                )
         except AmbiguousDimensionError as ex:
             return self.response(400, message=str(ex))
 

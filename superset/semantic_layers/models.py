@@ -43,7 +43,9 @@ from superset_core.semantic_layers.layer import (
 )
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
+    Grain,
     Metric,
     Operator,
     PredicateType,
@@ -64,8 +66,11 @@ from superset.extensions import db, encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.dimension_resolution import (
+    dimensions_by_name,
     DimensionUsage,
+    GrainSelectionError,
     resolve_dimensions,
+    select_dimension,
 )
 from superset.semantic_layers.exceptions import (
     discover_dimensions,
@@ -527,7 +532,10 @@ class SemanticView(AuditMixinNullable, Model):
         }
         if column_name not in dimensions:
             raise KeyError(column_name)
-        dimension: Dimension = dimensions[column_name]
+        catalog_dimension: Dimension = dimensions[column_name]
+        dimension: DimensionSelection = select_dimension(
+            catalog_dimension, catalog_dimension.ungrained_filter
+        )
         dimension_type: pa.DataType = dimension.type
         if pa.types.is_dictionary(dimension_type):
             dimension_type = dimension_type.value_type
@@ -644,18 +652,7 @@ class SemanticView(AuditMixinNullable, Model):
     @property
     @normalize_provider_request_errors()
     def _unique_dimensions(self) -> list[Dimension]:
-        # A semantic view may expose multiple ``Dimension`` objects sharing the
-        # same ``name`` but different grains (one variant per supported time
-        # grain). For column-list purposes we collapse these into a single
-        # entry; the available grains are surfaced separately via
-        # ``get_time_grains`` and ``data["time_grain_sqla"]``. The variant
-        # kept uses the same default/ambiguity policy as query mapping.
-        return list(
-            resolve_dimensions(
-                self._provider_dimensions(),
-                usage=DimensionUsage.METADATA,
-            ).values()
-        )
+        return list(dimensions_by_name(self._provider_dimensions()).values())
 
     @property
     def columns(self) -> list[ColumnMetadata]:
@@ -677,7 +674,12 @@ class SemanticView(AuditMixinNullable, Model):
                 description=dimension.description,
                 expression=None,
                 extra=json.dumps(
-                    {"grain": dimension.grain.name if dimension.grain else None}
+                    {
+                        "grains": sorted(
+                            grain.representation for grain in dimension.grains
+                        ),
+                        "allows_default_grain": dimension.allows_default_grain,
+                    }
                 ),
             )
             for dimension in self._unique_dimensions
@@ -906,7 +908,11 @@ class SemanticView(AuditMixinNullable, Model):
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         discriminator: tuple[str, str] | None = self.result_cache_discriminator
         # Separate cached pre-normalization results during rolling deployments.
-        keys: list[Hashable] = [self.metadata_generation, "semantic-null-filters-v1"]
+        keys: list[Hashable] = [
+            self.metadata_generation,
+            "semantic-null-filters-v1",
+            "semantic-grain-selection-v2",
+        ]
         if discriminator is not None:
             keys.append(("semantic-result-version", *discriminator))
         return keys
@@ -941,18 +947,36 @@ class SemanticView(AuditMixinNullable, Model):
         # ISO duration so the explore-time-grain dropdown shows each grain
         # once even when multiple time columns expose the same set.
         seen: dict[str, TimeGrainDict] = {}
-        for dimension in self._provider_dimensions():
-            if not dimension.grain:
-                continue
-            seen.setdefault(
-                dimension.grain.representation,
-                {
-                    "name": dimension.grain.name,
-                    "function": "",
-                    "duration": dimension.grain.representation,
-                },
+        for dimension in self._unique_dimensions:
+            for grain in dimension.grains:
+                seen.setdefault(
+                    grain.representation,
+                    {
+                        "name": grain.name,
+                        "function": "",
+                        "duration": grain.representation,
+                    },
+                )
+        known: tuple[str, ...] = (
+            "PT1S",
+            "PT1M",
+            "PT1H",
+            "P1D",
+            "P1W",
+            "P1M",
+            "P3M",
+            "P1Y",
+        )
+        return [
+            seen[key]
+            for key in sorted(
+                seen,
+                key=lambda duration: (
+                    known.index(duration) if duration in known else len(known),
+                    duration,
+                ),
             )
-        return list(seen.values())
+        ]
 
     def has_drill_by_columns(self, column_names: list[str]) -> bool:
         dimension_names = {dimension.name for dimension in self._provider_dimensions()}
@@ -996,13 +1020,36 @@ class SemanticView(AuditMixinNullable, Model):
         self,
         selected_metrics: list[str],
         selected_dimensions: list[str],
-    ) -> tuple[set[Metric], set[Dimension]]:
+        dimension_grains: dict[str, str | None] | None = None,
+    ) -> tuple[set[Metric], set[DimensionSelection]]:
         """Resolve both compatibility projections through one selection policy."""
         metric_map: dict[str, Metric] = {
             metric.name: metric for metric in self._provider_metrics()
         }
-        dim_map: dict[str, Dimension] = resolve_dimensions(
-            self._provider_dimensions(), usage=DimensionUsage.COMPATIBILITY
+        catalog: dict[str, Dimension] = dimensions_by_name(self._provider_dimensions())
+        grains: dict[str, Grain | None] = {}
+        name: str
+        representation: str | None
+        for name, representation in (dimension_grains or {}).items():
+            if name not in selected_dimensions or name not in catalog:
+                raise GrainSelectionError(
+                    "Grain selection requires a selected dimension."
+                )
+            available: dict[str, Grain] = {
+                grain.representation: grain for grain in catalog[name].grains
+            }
+            if representation is not None and (
+                not isinstance(representation, str) or representation not in available
+            ):
+                raise GrainSelectionError("The selected time grain is not supported.")
+            grains[name] = (
+                available[representation] if representation is not None else None
+            )
+        dim_map: dict[str, DimensionSelection] = resolve_dimensions(
+            catalog.values(),
+            usage=DimensionUsage.COMPATIBILITY,
+            names=selected_dimensions,
+            grouping_grains=grains,
         )
         return (
             {metric_map[name] for name in selected_metrics if name in metric_map},
@@ -1013,6 +1060,7 @@ class SemanticView(AuditMixinNullable, Model):
         self,
         selected_metrics: list[str],
         selected_dimensions: list[str],
+        dimension_grains: dict[str, str | None] | None = None,
     ) -> list[str]:
         """
         Return metric names compatible with the current selection.
@@ -1021,37 +1069,44 @@ class SemanticView(AuditMixinNullable, Model):
         view implementation, and translates the result back to names.
         """
         sel_metrics: set[Metric]
-        sel_dims: set[Dimension]
+        sel_dims: set[DimensionSelection]
         sel_metrics, sel_dims = self._compat_selection(
-            selected_metrics, selected_dimensions
+            selected_metrics, selected_dimensions, dimension_grains
         )
         compatible: set[Metric] = self.implementation.get_compatible_metrics(
             sel_metrics, sel_dims
         )
         return [m.name for m in compatible]
 
+    def get_compatible_dimension_metadata(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+        dimension_grains: dict[str, str | None] | None = None,
+    ) -> set[Dimension]:
+        """Return support narrowed by the same selection policy as query mapping."""
+        sel_metrics: set[Metric]
+        sel_dims: set[DimensionSelection]
+        sel_metrics, sel_dims = self._compat_selection(
+            selected_metrics, selected_dimensions, dimension_grains
+        )
+        return self.implementation.get_compatible_dimensions(sel_metrics, sel_dims)
+
     def get_compatible_dimensions(
         self,
         selected_metrics: list[str],
         selected_dimensions: list[str],
+        dimension_grains: dict[str, str | None] | None = None,
     ) -> list[str]:
-        """
-        Return dimension names compatible with the current selection.
-
-        Translates string names to semantic-layer objects, delegates to the
-        view implementation, and translates the result back to names.
-        Collapse grain variants into sorted unique names, also bounding
-        the shared list_metrics projection.
-        """
-        sel_metrics: set[Metric]
-        sel_dims: set[Dimension]
-        sel_metrics, sel_dims = self._compat_selection(
-            selected_metrics, selected_dimensions
+        """Project contextual support to stable names for existing name pickers."""
+        return sorted(
+            {
+                dimension.name
+                for dimension in self.get_compatible_dimension_metadata(
+                    selected_metrics, selected_dimensions, dimension_grains
+                )
+            }
         )
-        compatible: set[Dimension] = self.implementation.get_compatible_dimensions(
-            sel_metrics, sel_dims
-        )
-        return sorted({d.name for d in compatible})
 
 
 sa.event.listen(SemanticLayer, "after_insert", SemanticLayer.after_insert)

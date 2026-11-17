@@ -118,7 +118,7 @@ def _semantic_error_at_test_limit(limit: int) -> SemanticLayerError:
     return response
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize("extra_byte", [False, True], ids=["exact", "plus-one"])
 async def test_get_table_mcp_entry_preflights_every_error_return(
     mcp_server: FastMCP,
@@ -153,7 +153,7 @@ async def test_get_table_mcp_entry_preflights_every_error_return(
         assert returned.message == response.message
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_mcp_entry_bounds_dynamic_command_error(
     mcp_server: FastMCP,
     monkeypatch: pytest.MonkeyPatch,
@@ -180,7 +180,7 @@ async def test_get_table_mcp_entry_bounds_dynamic_command_error(
     assert len(returned.model_dump_json().encode()) < 4_096
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize(
     "failure_point", ["before_await", "metadata_permission", "selection_helper"]
 )
@@ -249,7 +249,7 @@ async def test_get_table_mcp_entry_bounds_uncaught_dynamic_exception(
     assert secret not in caplog.text
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize(
     "failure_stage", ["runtime-error", "context-enter", "context-exit"]
 )
@@ -312,7 +312,7 @@ async def test_get_table_contains_hostile_unexpected_failures_without_hooks(
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize("failure_stage", ["finalizer", "logger"])
 async def test_get_table_contains_finalizer_and_logger_failures(
     mcp_server: FastMCP,
@@ -362,7 +362,7 @@ async def test_get_table_contains_finalizer_and_logger_failures(
     finalizer.assert_called_once()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize(
     "system_failure",
     [asyncio.CancelledError(), KeyboardInterrupt(), SystemExit(), GeneratorExit()],
@@ -421,7 +421,10 @@ def _make_dataset(dataset_id: int = 42) -> MagicMock:
 
 
 def _make_view(view_id: int = 5) -> MagicMock:
-    view = MagicMock()
+    view: MagicMock = MagicMock()
+    view.get_compatible_dimension_metadata.side_effect = (
+        lambda metrics, dimensions: view.implementation.get_dimensions()
+    )
     view.id = view_id
     view.name = f"view_{view_id}"
     view.raise_for_access = MagicMock(return_value=None)
@@ -441,16 +444,11 @@ def temporal_view() -> Generator[MagicMock, None, None]:
     ]
     view.implementation.get_dimensions.return_value = [
         Dimension(
-            id=f"metric_time__{grain.name}",
+            id="metric_time",
             name="metric_time",
             type=pa.timestamp("us"),
-            grain=grain,
-        )
-        for grain in (Grains.DAY, Grains.WEEK, Grains.MONTH)
-    ] + [
-        # Production get_dimensions() also returns the unaggregated variant
-        # and every non-temporal dimension, both with grain=None.
-        Dimension(id="metric_time", name="metric_time", type=pa.timestamp("us")),
+            grains=frozenset({Grains.DAY, Grains.WEEK, Grains.MONTH}),
+        ),
         Dimension(id="country_name", name="country_name", type=pa.string()),
     ]
     with patch(
@@ -460,7 +458,7 @@ def temporal_view() -> Generator[MagicMock, None, None]:
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_temporal_result_type(
     mcp_server: FastMCP,
     temporal_view: MagicMock,
@@ -512,7 +510,7 @@ async def test_get_table_temporal_result_type(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_empty_result_keeps_temporal_grain_column_type(
     mcp_server: FastMCP,
     temporal_view: MagicMock,
@@ -561,7 +559,7 @@ async def test_get_table_empty_result_keeps_temporal_grain_column_type(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize(
     ("result_column", "value", "coltype", "expected_type"),
     [
@@ -598,13 +596,16 @@ async def test_get_table_temporal_result_requires_known_variant(
     ]
     temporal_view.implementation.get_dimensions.return_value = [
         Dimension(
-            id="date_month", name="date", type=pa.timestamp("us"), grain=Grains.MONTH
+            id="date_month",
+            name="date",
+            type=pa.timestamp("us"),
+            grains=frozenset({Grains.MONTH}),
         ),
         Dimension(
             id="other_year",
             name="other_date",
             type=pa.timestamp("us"),
-            grain=Grains.YEAR,
+            grains=frozenset({Grains.YEAR}),
         ),
     ]
     with patch.object(
@@ -692,7 +693,7 @@ def test_get_table_unsupported_time_grain(temporal_view: MagicMock) -> None:
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_grain_alias_hint_for_other_temporal_column(
     mcp_server: FastMCP, temporal_view: MagicMock
 ) -> None:
@@ -703,7 +704,7 @@ async def test_get_table_grain_alias_hint_for_other_temporal_column(
             id="signup_date__Year",
             name="signup_date",
             type=pa.timestamp("us"),
-            grain=Grains.YEAR,
+            grains=frozenset({Grains.YEAR}),
         )
     )
     with patch.object(get_table_module, "execute_tabular_query") as execute:
@@ -737,13 +738,16 @@ def test_get_table_grain_hints_match_each_columns_validation(
     temporal_view.columns.append(_make_column("signup_date", True))
     temporal_view.implementation.get_dimensions.return_value = [
         Dimension(
-            "metric_time_day", "metric_time", pa.timestamp("us"), grain=Grains.DAY
+            "metric_time",
+            "metric_time",
+            pa.timestamp("us"),
+            grains=frozenset({Grains.DAY, Grains.MONTH}),
         ),
         Dimension(
-            "metric_time_month", "metric_time", pa.timestamp("us"), grain=Grains.MONTH
-        ),
-        Dimension(
-            "signup_date_day", "signup_date", pa.timestamp("us"), grain=Grains.DAY
+            "signup_date_day",
+            "signup_date",
+            pa.timestamp("us"),
+            grains=frozenset({Grains.DAY}),
         ),
     ]
     request: GetTableRequest = GetTableRequest(
@@ -828,7 +832,7 @@ def test_get_table_grain_explicit_time_column(temporal_view: MagicMock) -> None:
             id="other_time__month",
             name="other_time",
             type=pa.timestamp("us"),
-            grain=Grains.MONTH,
+            grains=frozenset({Grains.MONTH}),
         )
     )
     result: Any = get_table_module._resolve_external_view(
@@ -854,7 +858,7 @@ def test_get_table_builtin_grain_rejected() -> None:
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_seeds_virtual_dataset_jinja_before_command_construction(
     app_context: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -941,7 +945,7 @@ async def test_get_table_seeds_virtual_dataset_jinja_before_command_construction
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_incompatible_view_dimensions(mcp_server: FastMCP) -> None:
     """Reject known-incompatible pairs before querying, with deterministic guidance."""
     view: MagicMock = _make_view()
@@ -981,7 +985,7 @@ async def test_get_table_incompatible_view_dimensions(mcp_server: FastMCP) -> No
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.parametrize("backend_fails", [False, True])
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_compatible_view_executes(
     mcp_server: FastMCP,
     backend_fails: bool,
@@ -1037,7 +1041,7 @@ async def test_get_table_compatible_view_executes(
         (False, ["bookings"], []),
     ],
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_skips_compatibility_without_join_risk(
     mcp_server: FastMCP,
     request: pytest.FixtureRequest,
@@ -1078,7 +1082,7 @@ async def test_get_table_skips_compatibility_without_join_risk(
     view.get_compatible_dimensions.assert_not_called()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
     """get_table returns tabular data for a built-in dataset."""
     mock_ds = _make_dataset(42)
@@ -1126,7 +1130,7 @@ async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
     assert data["data"] == [{"created_at": "2026-09-02T10:11:12+00:00", "revenue": 100}]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_normalizes_supported_producer_timezones(
     mcp_server: FastMCP,
     monkeypatch: pytest.MonkeyPatch,
@@ -1258,7 +1262,7 @@ async def test_get_table_normalizes_supported_producer_timezones(
     assert data["cache_status"]["cache_hit"] is False
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_rejects_hostile_timezone_without_hooks(
     mcp_server: FastMCP,
 ) -> None:
@@ -1301,7 +1305,7 @@ async def test_get_table_rejects_hostile_timezone_without_hooks(
     assert hostile.calls == 0
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_uses_authoritative_coltypes_and_late_samples(
     mcp_server: FastMCP,
 ) -> None:
@@ -1421,7 +1425,7 @@ def test_get_table_preserves_authoritative_coltypes_for_empty_data() -> None:
     ]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_normalizes_nan_producer_data(mcp_server: FastMCP) -> None:
     mock_ds = _make_dataset(42)
     query_result = chart_data_command_result(
@@ -1460,7 +1464,7 @@ async def test_get_table_normalizes_nan_producer_data(mcp_server: FastMCP) -> No
     assert data["columns"][1]["null_count"] == 1
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_rejects_oversized_projected_response(
     mcp_server: FastMCP,
     monkeypatch: pytest.MonkeyPatch,
@@ -1502,7 +1506,7 @@ async def test_get_table_rejects_oversized_projected_response(
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_normalizes_real_period_and_interval(
     mcp_server: FastMCP,
 ) -> None:
@@ -1543,7 +1547,7 @@ async def test_get_table_normalizes_real_period_and_interval(
     assert data["data"] == [{"period": "2026Q3", "interval": "[1, 3]"}]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_rejects_hostile_data_before_generic_consumers(
     mcp_server: FastMCP,
 ) -> None:
@@ -1611,7 +1615,7 @@ async def test_get_table_rejects_hostile_data_before_generic_consumers(
     mock_cache_formatter.assert_not_called()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_requires_one_source(mcp_server: FastMCP) -> None:
     """get_table errors when neither dataset_id nor view_id is provided."""
     async with Client(mcp_server) as client:
@@ -1623,7 +1627,7 @@ async def test_get_table_requires_one_source(mcp_server: FastMCP) -> None:
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_mutual_exclusion_validation(mcp_server: FastMCP) -> None:
     """get_table errors when both dataset_id and view_id are provided."""
     async with Client(mcp_server) as client:
@@ -1636,7 +1640,7 @@ async def test_get_table_mutual_exclusion_validation(mcp_server: FastMCP) -> Non
     assert data["error_type"] == "ValidationError"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_privacy_check(mcp_server: FastMCP) -> None:
     """get_table errors when the user lacks data-model metadata access."""
     with patch.object(
@@ -1652,7 +1656,7 @@ async def test_get_table_privacy_check(mcp_server: FastMCP) -> None:
     assert data["error_type"] == "DataModelMetadataRestricted"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_unknown_metric_validation_error(mcp_server: FastMCP) -> None:
     """get_table errors when a requested metric doesn't exist on the dataset."""
     mock_ds = _make_dataset(42)
@@ -1670,7 +1674,7 @@ async def test_get_table_unknown_metric_validation_error(mcp_server: FastMCP) ->
     assert "Valid metrics: revenue" in data["error"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_time_column_not_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:
@@ -1697,7 +1701,7 @@ async def test_get_table_time_column_not_dttm_validation_error(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_external_view_access_denied(mcp_server: FastMCP) -> None:
     """get_table returns AccessDenied when raise_for_access rejects the view."""
     mock_view = _make_view(5)
@@ -1719,7 +1723,7 @@ async def test_get_table_external_view_access_denied(mcp_server: FastMCP) -> Non
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_external_time_range_without_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:
@@ -1753,7 +1757,7 @@ async def test_get_table_external_time_range_without_dttm_validation_error(
     assert "no temporal dimension" in data["message"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_dataset_not_found(mcp_server: FastMCP) -> None:
     """get_table returns NotFound when dataset_id doesn't resolve to a dataset."""
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None):
@@ -1770,7 +1774,7 @@ async def test_get_table_dataset_not_found(mcp_server: FastMCP) -> None:
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_view_not_found(mcp_server: FastMCP) -> None:
     """get_table returns NotFound when view_id doesn't resolve to a view."""
     with patch(
@@ -1789,7 +1793,7 @@ async def test_get_table_view_not_found(mcp_server: FastMCP) -> None:
     assert "999999" in data["message"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_invalid_filter_column_validation_error(
     mcp_server: FastMCP,
 ) -> None:
@@ -1815,7 +1819,7 @@ async def test_get_table_invalid_filter_column_validation_error(
     assert "Unknown filter column: 'bogus_col'" in data["error"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_invalid_order_by_validation_error(
     mcp_server: FastMCP,
 ) -> None:
@@ -1841,7 +1845,7 @@ async def test_get_table_invalid_order_by_validation_error(
     assert "Unknown order_by: 'bogus_order_col'" in data["error"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_unknown_filter_operator_passes_through(
     mcp_server: FastMCP,
 ) -> None:
@@ -1900,7 +1904,7 @@ async def test_get_table_unknown_filter_operator_passes_through(
     assert {"col": "region", "op": "TOTALLY_BOGUS_OP", "val": "x"} in forwarded_filters
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_unicode_filter_value_passes_through(
     mcp_server: FastMCP,
 ) -> None:
@@ -1952,7 +1956,7 @@ async def test_get_table_unicode_filter_value_passes_through(
     assert {"col": "region", "op": "==", "val": unicode_val} in forwarded_filters
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_builtin_time_range_without_configured_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:
@@ -1986,7 +1990,7 @@ async def test_get_table_builtin_time_range_without_configured_dttm_validation_e
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.parametrize("dimensions", [[], ["country_name"]])
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_rejects_incompatible_ordering_dimension(
     mcp_server: FastMCP, dimensions: list[str]
 ) -> None:
@@ -2026,7 +2030,7 @@ async def test_get_table_rejects_incompatible_ordering_dimension(
 @pytest.mark.parametrize(
     "order_by", [["country_name"], ["bookings"], ["country_name", "bookings"]]
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_preserves_compatible_and_metric_ordering(
     mcp_server: FastMCP, order_by: list[str]
 ) -> None:
@@ -2066,7 +2070,7 @@ async def test_get_table_preserves_compatible_and_metric_ordering(
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.parametrize("longhand", [False, True])
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_temporal_filter_spellings_delegate_to_execution(
     mcp_server: FastMCP, longhand: bool
 ) -> None:
@@ -2108,7 +2112,7 @@ async def test_temporal_filter_spellings_delegate_to_execution(
     "usage", ["ordinary_filter", "groupby", "ordering", "temporal_range"]
 )
 @pytest.mark.parametrize("temporal", [False, True])
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_temporal_column_identity_controls_compatibility_exemption(
     mcp_server: FastMCP, usage: str, temporal: bool
 ) -> None:
@@ -2303,7 +2307,7 @@ def test_response_preserves_execution_time_bounds(
 
 @pytest.mark.parametrize("source_field", ["dataset_id", "view_id"])
 @pytest.mark.parametrize("expression", ["2025-01-01 : ", " : 2025-02-01"])
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_rejects_open_ended_range_before_execution(
     mcp_server: FastMCP, source_field: str, expression: str
 ) -> None:
@@ -2328,7 +2332,7 @@ async def test_get_table_rejects_open_ended_range_before_execution(
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.parametrize("dimensions", [[], ["country_name"]])
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_rejects_unselected_incompatible_filter(
     mcp_server: FastMCP,
     dimensions: list[str],
@@ -2368,7 +2372,7 @@ async def test_get_table_rejects_unselected_incompatible_filter(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_table_compatible_filter_without_groupby(mcp_server: FastMCP) -> None:
     """A filter-only compatible dimension is validated and retained in the query."""
     view: MagicMock = _make_view()
@@ -2414,16 +2418,10 @@ def test_grain_is_validated_for_selected_column(
     temporal_view.implementation.get_dimensions.return_value.extend(
         [
             Dimension(
-                id="signup_date__day",
+                id="signup_date",
                 name="signup_date",
                 type=pa.timestamp("us"),
-                grain=Grains.DAY,
-            ),
-            Dimension(
-                id="signup_date__year",
-                name="signup_date",
-                type=pa.timestamp("us"),
-                grain=Grains.YEAR,
+                grains=frozenset({Grains.DAY, Grains.YEAR}),
             ),
         ]
     )
@@ -2451,7 +2449,7 @@ def test_time_range_uses_the_selected_grain_axis(temporal_view: MagicMock) -> No
             id="signup_date__month",
             name="signup_date",
             type=pa.timestamp("us"),
-            grain=Grains.MONTH,
+            grains=frozenset({Grains.MONTH}),
         )
     )
     request: GetTableRequest = GetTableRequest(
@@ -2476,7 +2474,7 @@ def test_time_range_uses_the_selected_grain_axis(temporal_view: MagicMock) -> No
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize("scope", [None, "7"])
 async def test_get_table_guest_rls_denies_before_semantic_provider(
     mcp_server: FastMCP,
@@ -2559,7 +2557,7 @@ def test_external_view_malformed_configuration_is_sanitized(
     assert result.error == "The semantic view configuration is invalid."
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize(
     "value,expected", [({1: "a"}, {"1": "a"}), ([1.0, float("inf")], [1.0, None])]
 )
@@ -2612,7 +2610,7 @@ async def test_get_table_normalizes_nested_builtin_cells(
     assert data["dataset_name"] == mock_ds.table_name
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize("transport", [False, True])
 async def test_sdk_fault_retains_mcp_query_error_without_cause(
     mcp_server: FastMCP,
@@ -2651,7 +2649,7 @@ async def test_sdk_fault_retains_mcp_query_error_without_cause(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 @pytest.mark.parametrize("stage", ["factory", "dimensions", "metrics"])
 async def test_transport_failure_during_mcp_preparation_is_query_error(
     mcp_server: FastMCP,
@@ -2699,7 +2697,7 @@ async def test_transport_failure_during_mcp_preparation_is_query_error(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_transport_failure_during_mcp_compatibility_is_query_error(
     mcp_server: FastMCP,
     temporal_view: MagicMock,
@@ -2730,3 +2728,247 @@ async def test_transport_failure_during_mcp_compatibility_is_query_error(
     assert "private-compatibility" not in returned.message
     assert "private-compatibility" not in caplog.text
     temporal_view.get_compatible_dimensions.assert_called_once()
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio()
+async def test_selected_metric_grain_intersection_rejects_before_execution(
+    temporal_view: MagicMock,
+    mcp_server: FastMCP,
+) -> None:
+    """Catalog DAY support must not leak into a MONTH-only metric context."""
+    temporal_view.get_compatible_dimension_metadata.side_effect = None
+    temporal_view.get_compatible_dimension_metadata.return_value = {
+        Dimension(
+            "metric_time",
+            "metric_time",
+            pa.timestamp("us"),
+            grains=frozenset({Grains.MONTH}),
+        )
+    }
+    execute: MagicMock
+    client: Client
+    with patch.object(get_table_module, "execute_tabular_query") as execute:
+        async with Client(mcp_server) as client:
+            response: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time"],
+                        "time_grain": "P1D",
+                    }
+                },
+            )
+        result: dict[str, Any] = json.loads(response.content[0].text)
+    assert result["success"] is False
+    assert result["error_type"] == "ValidationError"
+    assert "P1M" in result["error"]
+    execute.assert_not_called()
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio()
+async def test_old_configuration_mcp_request_returns_recovery_without_execution(
+    temporal_view: MagicMock, mcp_server: FastMCP
+) -> None:
+    from superset.semantic_layers.exceptions import SemanticLayerConfigurationError
+
+    temporal_view.get_compatible_dimension_metadata.side_effect = (
+        SemanticLayerConfigurationError()
+    )
+    execute: MagicMock
+    client: Client
+    with patch.object(get_table_module, "execute_tabular_query") as execute:
+        async with Client(mcp_server) as client:
+            response: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time"],
+                    }
+                },
+            )
+        result: dict[str, Any] = json.loads(response.content[0].text)
+    assert result["success"] is False
+    assert result["error_type"] == "SemanticViewConfigurationError"
+    assert "re-select" in result["error"]
+    execute.assert_not_called()
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "grains",
+    [{}, {"metric_time": None}, {"metric_time": "P1M"}, {"metric_time": "P1Y"}],
+)
+async def test_assembled_table_preserves_omitted_native_and_bucket_intent(
+    temporal_view: MagicMock,
+    mcp_server: FastMCP,
+    grains: dict[str, str | None],
+) -> None:
+    query_result: dict[str, Any] = chart_data_command_result(
+        [{"metric_time": "2026-01-01", "bookings": 3}],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+    )
+    execute: MagicMock
+    client: Client
+    with patch.object(
+        get_table_module, "execute_tabular_query", return_value=query_result
+    ) as execute:
+        async with Client(mcp_server) as client:
+            response: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time"],
+                        "dimension_grains": grains,
+                        "filters": [
+                            {
+                                "col": "metric_time",
+                                "op": ">=",
+                                "val": "2026-01-01",
+                                "grain": None,
+                            }
+                        ],
+                    }
+                },
+            )
+        result: dict[str, Any] = json.loads(response.content[0].text)
+    if grains.get("metric_time") == "P1Y":
+        assert result["error_type"] == "ValidationError"
+        execute.assert_not_called()
+    else:
+        assert result["success"] is True
+        query: dict[str, Any] = execute.call_args.args[2]
+        assert "grain" in query["filters"][0]
+        assert query["filters"][0]["grain"] is None
+        if grains:
+            assert query["extras"]["dimension_grains"] == grains
+        else:
+            assert query["columns"] == ["metric_time"]
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio()
+async def test_assembled_table_keeps_independent_dimension_and_filter_grains(
+    temporal_view: MagicMock,
+    mcp_server: FastMCP,
+) -> None:
+    temporal_view.columns.append(_make_column("shipped_at", True))
+    temporal_view.implementation.get_dimensions.return_value.append(
+        Dimension(
+            "shipped_at",
+            "shipped_at",
+            pa.timestamp("us"),
+            grains=frozenset({Grains.DAY, Grains.MONTH}),
+        )
+    )
+    execute: MagicMock
+    client: Client
+    with patch.object(
+        get_table_module,
+        "execute_tabular_query",
+        return_value=chart_data_command_result(
+            [{"metric_time": "2026-01-01", "shipped_at": "2026-01-02", "bookings": 3}],
+            coltypes=[
+                GenericDataType.TEMPORAL,
+                GenericDataType.TEMPORAL,
+                GenericDataType.NUMERIC,
+            ],
+        ),
+    ) as execute:
+        async with Client(mcp_server) as client:
+            response: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time", "shipped_at"],
+                        "dimension_grains": {"metric_time": "P1M", "shipped_at": "P1D"},
+                        "filters": [
+                            {
+                                "col": "metric_time",
+                                "op": "==",
+                                "val": "2026-01-01",
+                                "grain": "P1D",
+                            }
+                        ],
+                    }
+                },
+            )
+        result: dict[str, Any] = json.loads(response.content[0].text)
+    assert result["success"] is True, result
+    query: dict[str, Any] = execute.call_args.args[2]
+    assert query["extras"]["dimension_grains"] == {
+        "metric_time": "P1M",
+        "shipped_at": "P1D",
+    }
+    assert query["filters"][0]["grain"] == "P1D"
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {
+            "filters": [
+                {"col": "metric_time", "op": "==", "val": "2026-01-01", "grain": "P1Y"}
+            ]
+        },
+        {"time_grain": "P1D", "dimension_grains": {"metric_time": "P1M"}},
+        {"dimension_grains": {"country_name": "P1M"}},
+    ],
+)
+async def test_assembled_table_rejects_conflicting_or_unsupported_grains(
+    temporal_view: MagicMock,
+    mcp_server: FastMCP,
+    extra: dict[str, Any],
+) -> None:
+    execute: MagicMock
+    client: Client
+    with patch.object(get_table_module, "execute_tabular_query") as execute:
+        async with Client(mcp_server) as client:
+            response: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time"],
+                        **extra,
+                    }
+                },
+            )
+        result: dict[str, Any] = json.loads(response.content[0].text)
+    assert result["error_type"] == "ValidationError"
+    execute.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "argument", ["time_grain", "dimension_grains", "filters.grain"]
+)
+def test_builtin_grain_error_names_the_supplied_argument(argument: str) -> None:
+    extra: dict[str, Any] = (
+        {
+            "filters": [
+                {"col": "event_time", "op": "==", "val": "2026-01-01", "grain": None}
+            ]
+        }
+        if argument == "filters.grain"
+        else {
+            argument: {"event_time": None} if argument == "dimension_grains" else "P1D"
+        }
+    )
+    result: Any = get_table_module._resolve_builtin_dataset(
+        GetTableRequest(dataset_id=42, **extra)
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert argument in result.error

@@ -25,8 +25,10 @@ from types import ModuleType
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
+import pyarrow as pa
 import pytest
 from fastmcp import Client, FastMCP
+from superset_core.semantic_layers.types import Dimension
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -98,7 +100,9 @@ def _make_view(view_id: int = 5) -> MagicMock:
     view.raise_for_access = MagicMock(return_value=None)
     view.columns = [_make_column("country_name")]
     view.metrics = [_make_metric("bookings")]
-    view.get_compatible_dimensions = MagicMock(return_value=["country_name"])
+    view.get_compatible_dimension_metadata.return_value = {
+        Dimension("country_name", "country_name", pa.string())
+    }
     return view
 
 
@@ -112,7 +116,7 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_builtin_happy_path(
     mcp_server: FastMCP,
 ) -> None:
@@ -133,7 +137,7 @@ async def test_get_compatible_dimensions_builtin_happy_path(
     assert names == {"region", "category"}
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_builtin_unknown_selection(
     mcp_server: FastMCP,
 ) -> None:
@@ -161,7 +165,7 @@ async def test_get_compatible_dimensions_builtin_unknown_selection(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_external_happy_path(
     mcp_server: FastMCP,
 ) -> None:
@@ -182,11 +186,13 @@ async def test_get_compatible_dimensions_external_happy_path(
     assert data["success"] is True
     assert data["source"] == "external"
     assert [d["name"] for d in data["compatible_dimensions"]] == ["country_name"]
-    mock_view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
+    mock_view.get_compatible_dimension_metadata.assert_called_once_with(
+        ["bookings"], []
+    )
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_mutual_exclusion_validation(
     mcp_server: FastMCP,
 ) -> None:
@@ -204,7 +210,7 @@ async def test_get_compatible_dimensions_mutual_exclusion_validation(
     assert data["message"] == "Provide only one of dataset_id or view_id, not both."
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_requires_one_source(
     mcp_server: FastMCP,
 ) -> None:
@@ -221,7 +227,7 @@ async def test_get_compatible_dimensions_requires_one_source(
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_privacy_check(mcp_server: FastMCP) -> None:
     """Errors when the user lacks data-model metadata access."""
     with patch.object(
@@ -240,7 +246,7 @@ async def test_get_compatible_dimensions_privacy_check(mcp_server: FastMCP) -> N
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_external_access_denied(
     mcp_server: FastMCP,
 ) -> None:
@@ -262,7 +268,7 @@ async def test_get_compatible_dimensions_external_access_denied(
     assert data["error_type"] == "AccessDenied"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_not_found(mcp_server: FastMCP) -> None:
     """Returns NotFound when the dataset doesn't exist."""
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None):
@@ -277,7 +283,7 @@ async def test_get_compatible_dimensions_not_found(mcp_server: FastMCP) -> None:
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_external_not_found(
     mcp_server: FastMCP,
 ) -> None:
@@ -296,7 +302,7 @@ async def test_get_compatible_dimensions_external_not_found(
     assert data["error_type"] == "NotFound"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_builtin_empty_selection(
     mcp_server: FastMCP,
 ) -> None:
@@ -328,13 +334,13 @@ async def test_get_compatible_dimensions_builtin_empty_selection(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_external_empty_selection(
     mcp_server: FastMCP,
 ) -> None:
     """External views handle an explicitly empty selection without error."""
     mock_view: MagicMock = _make_view(5)
-    mock_view.get_compatible_dimensions = MagicMock(return_value=[])
+    mock_view.get_compatible_dimension_metadata.return_value = set()
 
     with patch(
         "superset.daos.semantic_layer.SemanticViewDAO.find_by_id",
@@ -355,10 +361,10 @@ async def test_get_compatible_dimensions_external_empty_selection(
 
     assert data["success"] is True
     assert data["compatible_dimensions"] == []
-    mock_view.get_compatible_dimensions.assert_called_once_with([], [])
+    mock_view.get_compatible_dimension_metadata.assert_called_once_with([], [])
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_compatible_dimensions_unicode_unknown_selection_validation_error(
     mcp_server: FastMCP,
 ) -> None:

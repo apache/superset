@@ -47,7 +47,15 @@ from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
-from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.dimension_resolution import (
+    AmbiguousDimensionError,
+    dimension_support,
+    DimensionSupport,
+)
+from superset.semantic_layers.exceptions import (
+    configuration_recovery_message,
+    SemanticLayerConfigurationError,
+)
 from superset.semantic_layers.models import ColumnMetadata, SemanticView
 
 logger = logging.getLogger(__name__)
@@ -142,6 +150,17 @@ def _collect_builtin_metrics(request: ListMetricsRequest) -> list[MetricInfo]:
     return results
 
 
+async def _configuration_failure(
+    request: ListMetricsRequest, ctx: Context, view: SemanticView
+) -> None:
+    """Fail explicit lookups; retain a recovery warning for all-view discovery."""
+    if request.view_id is not None:
+        raise SemanticLayerConfigurationError()
+    await ctx.warning(
+        f"Semantic view {view.id} ({view.name}): {configuration_recovery_message()}"
+    )
+
+
 async def _collect_external_metrics(
     request: ListMetricsRequest,
     ctx: Context,
@@ -188,7 +207,12 @@ async def _collect_external_metrics(
                     # Unlike built-in SQL datasets, external views enforce
                     # per-metric compatibility, so dimensions must be resolved
                     # per metric rather than reused across all metrics.
-                    compatible_names = view.get_compatible_dimensions([name], [])
+                    compatible_support: dict[str, DimensionSupport] = {
+                        dimension.name: dimension_support(dimension)
+                        for dimension in view.get_compatible_dimension_metadata(
+                            [name], []
+                        )
+                    }
                     compat_dims = [
                         DimensionInfo(
                             name=dim_name,
@@ -211,8 +235,9 @@ async def _collect_external_metrics(
                             if dim_name in all_cols
                             else True,
                             source="external",
+                            **compatible_support[dim_name],
                         )
-                        for dim_name in compatible_names
+                        for dim_name in compatible_support
                     ]
                 results.append(
                     MetricInfo(
@@ -229,6 +254,8 @@ async def _collect_external_metrics(
                         compatible_dimensions=compat_dims,
                     )
                 )
+        except SemanticLayerConfigurationError:
+            await _configuration_failure(request, ctx, view)
         except AmbiguousDimensionError as exc:
             await ctx.warning(
                 "Could not load metrics for view id=%s: %s" % (view.id, str(exc))
@@ -351,6 +378,11 @@ async def list_metrics(
             error_type="AccessDenied",
         )
 
+    except SemanticLayerConfigurationError:
+        return SemanticLayerError.create(
+            error=configuration_recovery_message(),
+            error_type="SemanticViewConfigurationError",
+        )
     except Exception as exc:
         logger.exception(
             "Unexpected error in list_metrics: %s: %s", type(exc).__name__, str(exc)

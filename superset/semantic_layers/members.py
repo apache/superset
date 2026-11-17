@@ -37,14 +37,8 @@ def members_by_key(
     that the rule has one place in the host rather than being re-derived at
     each call site.
 
-    Members are indexed in iteration order, so when several share one name the
-    last one seen wins. That is deliberate here: this helper reproduces the
-    existing lookup exactly and is not the place to break such a tie. Dimension
-    grain variants legitimately share a name, and choosing between them is a
-    separate, ordered decision -- see
-    ``superset_core.semantic_layers.types.Grains``. Because ``get_metrics()``
-    and ``get_dimensions()`` return unordered sets, a caller that needs a
-    particular variant must select it rather than rely on this mapping.
+    Catalog dimensions must first pass ``dimensions_by_name`` validation; a
+    duplicate name is a provider contract error rather than a grain variant.
 
     :param members: Metrics or dimensions from one semantic view.
     :returns: Mapping of member name to member.

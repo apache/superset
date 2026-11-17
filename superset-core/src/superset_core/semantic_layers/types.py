@@ -18,12 +18,18 @@
 from __future__ import annotations
 
 import enum
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from typing import Any, TypeAlias
 
 import isodate
 import pyarrow as pa
+
+from superset_core.semantic_layers.errors import (
+    SemanticQueryErrorCode,
+    SemanticQueryRejectedError,
+)
 
 
 @dataclass(frozen=True)
@@ -52,37 +58,11 @@ class Grain:
 
 
 class Grains:
-    """
-    Pre-defined common grains and factory for custom ones.
+    """Pre-defined common grains and a factory for provider-defined grains.
 
-    **Grain-variant selection.** A view may expose several :class:`Dimension`
-    variants that share one ``name``, one per supported grain, optionally
-    alongside a raw variant whose ``grain`` is ``None``. When a selection does
-    not name an explicit, supported grouping grain, one variant has to be
-    chosen, and the rule is a single default preference:
-
-    1. the raw variant (``grain is None``);
-    2. then, finest known grain first: second, minute, hour, day, week, month,
-       quarter, year;
-    3. then any remaining grain representation, in lexical order.
-
-    The preference governs column metadata, filters and the
-    grouping fallback. An explicit supported grouping grain is always honored.
-    Filters and time bounds use the default preference **independently of
-    grouping**: grouping by month with a lower bound of January 15 will still
-    filter the raw time dimension from January 15 rather than testing month
-    buckets against that bound. Sorting and series limits use the selected
-    grouping grain.
-
-    Do not order grains by ``Grain.name``: alphabetically "Day" precedes "Hour"
-    and "Quarter" precedes "Week", which is the opposite of grain fineness. Use
-    the preference above, keyed on ``representation``.
-
-    Providers must expose at most one dimension ID per ``(name, grain)``.
-    Conflicting IDs, types, definitions or descriptions for the same name and
-    grain make the catalog ambiguous; that is a provider defect to fix rather
-    than a tie for the host to break by picking a variant.
-    The host rejects conflicting variants rather than choosing an arbitrary ID.
+    Catalog support is declared on Dimension; query bucketing belongs to
+    DimensionSelection. Neither display names nor duration ordering establish
+    provider support or the default for an omitted request.
     """
 
     SECOND = Grain("Second", "PT1S")
@@ -113,54 +93,117 @@ class Grains:
         return Grain(name or representation, representation)
 
 
+class GrainDefault(enum.Enum):
+    """A declared default that is not an explicit supported grain.
+
+    NATIVE preserves provider-native behavior; it does not promise physical
+    timestamp precision. REJECT requires the caller to make an explicit choice.
+    """
+
+    NATIVE = "native"
+    REJECT = "reject"
+
+
 @dataclass(frozen=True)
 class Dimension:
-    """
-    A groupable or filterable member of a semantic view.
+    """A unique catalog member with declared query capabilities.
 
-    Member identity (the same rule applies to :class:`Metric`):
+    ``name`` is the stable selection key; changing its meaning requires a new
+    SemanticView.selection_identity_version. ``id`` is provider-private and
+    ``verbose_name`` is display-only. Dimension and metric names must be unique
+    and disjoint. A query returns one column per selected member name.
 
-    - ``name`` is the **stable selection key**. Saved charts, API payloads and
-      compatibility selections reference a member by ``name``, so it must stay
-      stable across catalog reloads and provider upgrades. A provider that
-      changes what ``name`` means must declare a new
-      ``SemanticView.selection_identity_version`` so the host can ask the user
-      to reselect instead of failing with a generic "must be defined" error.
-    - ``verbose_name`` is **display only**, and is excluded from equality.
-    - ``id`` is **provider-private**. The host does not read it; do not expect a
-      selection, filter or order entry to round-trip through it.
+    ``grains`` contains supported explicit buckets; an empty set grants none.
+    ``allows_default_grain`` independently permits a native, unbucketed operand.
+    ``omitted_grain`` resolves omitted grouping; ``ungrained_filter`` resolves
+    implicit filters and values. Each is NATIVE, REJECT or an allowed grain.
+    Legacy curated catalogs can declare DAY defaults without granting native
+    selection. Explicit raw predicates never inherit these omission defaults.
 
-    A view may expose several variants sharing one ``name``, one per supported
-    ``grain`` (see :class:`Grains` for how the host chooses between them), but
-    at most one per ``(name, grain)`` pair: two dimensions sharing a name and
-    grain are a provider defect, not a tie for the host to break silently.
-    Metric names are unique on their own, and must not collide with a dimension
-    name. Both rules are provider obligations: the host rejects conflicting
-    ``(name, grain)`` variants, but does not detect a metric name that collides
-    with a dimension name.
-    A query selects at most one
-    variant per name, so a result carries one column per selected member name.
-
-    Attributes:
-        id: Provider-private identifier; not part of the host contract.
-        name: Stable selection key, unique per ``(name, grain)``.
-        type: Arrow type of the values this dimension yields.
-        definition: Provider-specific expression, for display and debugging.
-        description: Optional human-readable description.
-        grain: Time grain of this variant, or ``None`` for the raw variant.
-        verbose_name: Display label; ignored for equality.
-        metadata: Free-form provider metadata; ignored for equality.
+    Providers narrow capabilities for selected-metric context before execution.
+    Metadata and display labels are excluded from equality; capabilities and
+    defaults are included because they affect query meaning. Membership is by
+    stable name and provider ID, not full dataclass equality: contextual support
+    can be narrower than the catalog. Use ``catalog_selection`` to validate a
+    caller operand against provider-owned metadata.
     """
 
     id: str
     name: str
     type: pa.DataType
-
     definition: str | None = None
     description: str | None = None
-    grain: Grain | None = None
+    grains: frozenset[Grain] = field(default_factory=frozenset)
+    allows_default_grain: bool = True
+    omitted_grain: Grain | GrainDefault = GrainDefault.NATIVE
+    ungrained_filter: Grain | GrainDefault = GrainDefault.NATIVE
     verbose_name: str | None = field(default=None, compare=False)
     metadata: dict[str, Any] = field(default_factory=dict, compare=False)
+
+    def __post_init__(self) -> None:
+        """Reject mutable capabilities or defaults outside the declared envelope."""
+        if not isinstance(self.grains, frozenset) or not all(
+            isinstance(grain, Grain) for grain in self.grains
+        ):
+            raise ValueError("Dimension grains must be a frozenset of Grain values")
+        default: Grain | GrainDefault
+        for default in (self.omitted_grain, self.ungrained_filter):
+            if default is GrainDefault.REJECT:
+                continue
+            if default is GrainDefault.NATIVE and self.allows_default_grain:
+                continue
+            if isinstance(default, Grain) and default in self.grains:
+                continue
+            raise ValueError("Dimension default is outside its declared support")
+
+
+@dataclass(frozen=True)
+class DimensionSelection:
+    """A catalog reference and explicit query bucketing, separate from metadata.
+
+    None requests native behavior, not an omitted host request. The host resolves
+    omission from the declared defaults before constructing this value. Providers
+    must still validate membership and current contextual support against their
+    own catalog; a caller-supplied dimension is not authority to grant support.
+    """
+
+    dimension: Dimension
+    grain: Grain | None = None
+
+    def __post_init__(self) -> None:
+        """Reject selections outside the supplied capability envelope."""
+        if not isinstance(self.dimension, Dimension):
+            raise TypeError("DimensionSelection requires a catalog Dimension")
+        if (self.grain is None and not self.dimension.allows_default_grain) or (
+            self.grain is not None and self.grain not in self.dimension.grains
+        ):
+            raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
+
+    @property
+    def name(self) -> str:
+        """Return the stable result and selection name, without a grain suffix."""
+        return self.dimension.name
+
+    @property
+    def type(self) -> pa.DataType:
+        """Return the declared value type for result assembly."""
+        return self.dimension.type
+
+
+def catalog_selection(
+    selection: DimensionSelection, dimensions: Iterable[Dimension]
+) -> DimensionSelection:
+    """Bind a caller selection to provider-owned identity and capability support.
+
+    Full Dimension equality is not a membership check: a host can narrow the
+    capability envelope. Validate the chosen grain against the catalog instead.
+    Pass context-narrowed metadata when validating a complete query.
+    """
+    dimension: Dimension
+    for dimension in dimensions:
+        if dimension.name == selection.name and dimension.id == selection.dimension.id:
+            return DimensionSelection(dimension, selection.grain)
+    raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_QUERY)
 
 
 class AggregationType(str, enum.Enum):
@@ -285,7 +328,7 @@ class PredicateType(enum.Enum):
 @dataclass(frozen=True, order=True)
 class Filter:
     type: PredicateType
-    column: Dimension | Metric | None
+    column: DimensionSelection | Metric | None
     operator: Operator
     value: FilterValues | tuple[FilterValues, ...] | frozenset[FilterValues]
 
@@ -321,7 +364,9 @@ class OrderDirection(enum.Enum):
     DESC = "DESC"
 
 
-OrderTuple = tuple[Metric | Dimension | AdhocExpression, OrderDirection]
+OrderTuple: TypeAlias = tuple[
+    Metric | DimensionSelection | AdhocExpression, OrderDirection
+]
 
 
 @dataclass(frozen=True)
@@ -337,7 +382,7 @@ class GroupLimit:
     30 days, but then show daily sales for those products over the last 7 days.
     """
 
-    dimensions: list[Dimension]
+    dimensions: list[DimensionSelection]
     top: int
     metric: Metric | None
     direction: OrderDirection = OrderDirection.DESC
@@ -451,7 +496,7 @@ class SemanticQuery:
 
     Attributes:
         metrics: Selected metrics, resolved by ``name``.
-        dimensions: Selected dimensions, one variant per name.
+        dimensions: Selected dimensions with explicit bucketing, one per name.
         filters: Predicate set; see :class:`Operator` for NULL handling.
         order: Sort keys applied before ``offset``/``limit``.
         limit: Maximum rows to return after ordering, or ``None`` for no limit.
@@ -462,7 +507,7 @@ class SemanticQuery:
     """
 
     metrics: list[Metric]
-    dimensions: list[Dimension]
+    dimensions: list[DimensionSelection]
     filters: set[FilterExpression] | None = None
     order: list[OrderTuple] | None = None
     limit: int | None = None
