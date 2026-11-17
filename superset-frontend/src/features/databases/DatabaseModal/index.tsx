@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { getExtensionsRegistry } from '@superset-ui/core';
+import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
@@ -1088,8 +1088,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         errors === null ||
         (Array.isArray(errors) ? errors.length > 0 : !isEmpty(errors));
       if (hasReturnedErrors) {
+        // ``extra`` errors (e.g. an invalid cache timeout) are not rendered
+        // anywhere in the form, so surface the server's explanation here.
+        const extraError = isEmpty(errors)
+          ? undefined
+          : (errors as JsonObject).extra;
         addDangerToast(
-          t('Connection failed, please check your connection settings.'),
+          typeof extraError === 'string'
+            ? extraError
+            : t('Connection failed, please check your connection settings.'),
         );
         setLoading(false);
         return;

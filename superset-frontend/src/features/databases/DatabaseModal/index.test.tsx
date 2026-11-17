@@ -29,8 +29,10 @@ import {
   waitFor,
   fireEvent,
   act,
+  createStore,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import * as hooks from 'src/views/CRUD/hooks';
 import { DatabaseObject, ConfigurationMethod } from '../types';
@@ -696,6 +698,74 @@ describe('DatabaseModal', () => {
       expect(JSON.parse(putBody.extra).metadata_cache_timeout).toEqual(
         expectedTimeouts,
       );
+    } finally {
+      resourceHook.mockImplementation(previousImplementation);
+    }
+  });
+
+  test('edit shows the server explanation when validation rejects extra', async () => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    const extraMessage =
+      'The table_cache_timeout in metadata_cache_timeout must be a ' +
+      'non-negative integer, but received "abc". Enter a whole number of ' +
+      'seconds (0 or greater) under Advanced > Performance, or correct ' +
+      'metadata_cache_timeout in the Extra JSON field under Advanced > Other.';
+    fetchMock.get('glob:*/api/v1/database/10/connection', {
+      result: {
+        id: 10,
+        database_name: 'Existing connection',
+        backend: 'postgresql',
+        configuration_method: ConfigurationMethod.DynamicForm,
+        parameters: {
+          host: 'localhost',
+          port: 5432,
+          database: 'postgres',
+          username: 'testdb',
+        },
+        parameters_schema: {
+          properties: { host: { type: 'string' } },
+        },
+        extra: '{"metadata_cache_timeout":{"table_cache_timeout":"abc"}}',
+      },
+    });
+    fetchMock.modifyRoute('validate-params', {
+      response: {
+        status: 422,
+        body: {
+          errors: [
+            {
+              message: extraMessage,
+              error_type: 'INVALID_PAYLOAD_SCHEMA_ERROR',
+              level: 'error',
+              extra: { invalid: ['extra'] },
+            },
+          ],
+        },
+      },
+    });
+    const store = createStore({}, reducerIndex);
+    try {
+      render(<DatabaseModal {...dbProps} databaseId={10} />, { store });
+      expect(
+        await screen.findByDisplayValue('Existing connection'),
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+      await waitFor(() =>
+        expect(
+          (
+            store.getState() as unknown as {
+              messageToasts: { text: string }[];
+            }
+          ).messageToasts.map(toast => toast.text),
+        ).toContain(extraMessage),
+      );
+      expect(
+        fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, {
+          method: 'PUT',
+        }),
+      ).toHaveLength(0);
     } finally {
       resourceHook.mockImplementation(previousImplementation);
     }
