@@ -33,8 +33,9 @@ LOCKS=(
   requirements/translations.txt
 )
 
-# The supported Python minors; keep in sync with `requires-python` and the
-# classifiers in pyproject.toml. "3.11" evaluates as python_full_version 3.11.0
+# The supported Python minors, from the `requires-python` floor in
+# pyproject.toml up to the newest supported release; keep in sync with the
+# matrix in .github/workflows/python-lock-check.yml. "3.11" evaluates as python_full_version 3.11.0
 # in uv, which is deliberate: that is the one patch release for which every
 # 3.11-conditional pin applies (`python_full_version < '3.11.3'` and
 # `<= '3.11'`), so the check covers the largest 3.11 set. A later patch
@@ -110,6 +111,13 @@ check_combination() {
 
     offenders+=("$offender")
     grep -Ev "^${offender}==" "$reqs" >"${reqs}.next" || true
+    if cmp -s "$reqs" "${reqs}.next"; then
+      # uv named a package under a spelling the lock does not use, so nothing
+      # was removed and retrying would repeat the same failure.
+      echo "FAIL ${label}" >&2
+      sed 's/^/    /' "$err" >&2
+      break
+    fi
     mv "${reqs}.next" "$reqs"
   done
 

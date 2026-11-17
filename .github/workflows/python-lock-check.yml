@@ -17,8 +17,10 @@
 
 # Checks the pinned requirements locks against every supported Python minor:
 # `lock-wheels` proves each pin has a prebuilt wheel for each minor on both
-# Linux architectures (apart from the source-only packages the script names), and `lock-install` installs the locks on a real
-# interpreter of each minor. Scoped via `paths` so unrelated PRs are not
+# Linux architectures (apart from the source-only packages the script names),
+# and `lock-install` installs the locks on a real interpreter of each minor;
+# keep its matrix in sync with PYTHON_VERSIONS in scripts/check-lock-wheels.sh.
+# Scoped via `paths` so unrelated PRs are not
 # affected.
 name: Python lock check
 

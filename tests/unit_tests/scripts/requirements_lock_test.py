@@ -121,6 +121,24 @@ def test_lock_header_records_universal_compile(lock: str) -> None:
 
 
 @pytest.mark.parametrize("lock", LOCKS)
+def test_lock_has_no_environment_bound_marker(lock: str) -> None:
+    """The uniform non-Windows bound is stripped from every lock line.
+
+    ``[tool.uv] environments`` bounds the resolution to non-Windows platforms,
+    and the compile script strips that bound from the output. A leftover means
+    ``uv`` rendered the marker in a shape the strip no longer matches.
+    """
+    pins = [
+        line
+        for line in (REPO_ROOT / "requirements" / f"{lock}.txt")
+        .read_text()
+        .splitlines()
+        if not line.lstrip().startswith("#")
+    ]
+    assert not [line for line in pins if "win32" in line]
+
+
+@pytest.mark.parametrize("lock", LOCKS)
 def test_split_pins_carry_markers(lock: str) -> None:
     """A package pinned on several lines has a marker on every one of them.
 
