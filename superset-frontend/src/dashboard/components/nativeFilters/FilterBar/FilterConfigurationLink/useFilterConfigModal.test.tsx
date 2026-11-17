@@ -96,6 +96,46 @@ const deferred = () => {
 
 afterEach(() => fetchMock.clearHistory().removeRoutes());
 
+test.each([
+  [403, 'you do not have permission to edit this dashboard.', false],
+  [404, 'this dashboard is unavailable or you no longer have access.', false],
+  [500, 'Internal Server Error', false],
+  [403, 'you do not have permission to edit this dashboard.', true],
+  [404, 'this dashboard is unavailable or you no longer have access.', true],
+  [500, 'Internal Server Error', true],
+] as const)(
+  'names the failed save for HTTP %s (%s), partial failure=%s',
+  async (status, reason, failControls) => {
+    fetchMock.clearHistory().removeRoutes();
+    const failure = {
+      status,
+      body: { message: status === 500 ? reason : 'NOT FOUND' },
+    };
+    fetchMock.route(
+      FILTERS_URL,
+      failControls ? { result: [NEW_FILTER] } : failure,
+    );
+    fetchMock.route(CUSTOMIZATIONS_URL, failure);
+    const { result, store, unmount } = renderUseFilterConfigModal();
+    act(() => result.current.openFilterConfigModal());
+    await act(async () => {
+      await expect(result.current.handleSave(CHANGES)).rejects.toBeDefined();
+    });
+    expect(result.current.isFilterConfigModalOpen).toBe(true);
+    expect(fetchMock.callHistory.calls(CUSTOMIZATIONS_URL)).toHaveLength(
+      failControls ? 1 : 0,
+    );
+    expect(store.getState()).toMatchObject({
+      messageToasts: [
+        {
+          text: `Your ${failControls ? 'display control' : 'filter'} changes were not saved: ${reason}`,
+        },
+      ],
+    });
+    unmount();
+  },
+);
+
 test('saves native filters before chart customizations instead of in parallel', async () => {
   const events: string[] = [];
   const filters = deferred();

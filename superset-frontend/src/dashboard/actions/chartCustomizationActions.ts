@@ -21,7 +21,7 @@ import { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import { t } from '@apache-superset/core/translation';
 import {
   makeApi,
-  getClientErrorObject,
+  SupersetApiError,
   ChartCustomization,
   ChartCustomizationDivider,
   ColumnOption,
@@ -177,12 +177,22 @@ export function saveChartCustomization(
       }
 
       return { result: {}, last_modified_time: Date.now() };
-    } catch (errorObject) {
-      const { error } = await getClientErrorObject(errorObject);
+    } catch (err) {
+      const status = err instanceof SupersetApiError ? err.status : undefined;
+      const reason =
+        status === 403
+          ? t('you do not have permission to edit this dashboard.')
+          : status === 404
+            ? t('this dashboard is unavailable or you no longer have access.')
+            : err instanceof Error && err.message
+              ? err.message
+              : t('An error occurred');
       dispatch(
-        addDangerToast(error || t('Failed to save chart customization')),
+        addDangerToast(
+          t('Your display control changes were not saved: %s', reason),
+        ),
       );
-      throw errorObject;
+      throw err;
     }
   };
 }
