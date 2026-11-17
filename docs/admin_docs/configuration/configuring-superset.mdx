@@ -833,7 +833,40 @@ for results, and propagates asynchronous database errors. If an operation is sti
 pending when result fetching begins, the additional polling wait is bounded by
 `SQLLAB_TIMEOUT` (in seconds); on expiry, Superset requests cancellation and reports
 a timeout. Configure the driver's network timeout separately to bound individual
-RPC calls.
+RPC calls. A signal-based SQL Lab time limit can interrupt any HiveServer2
+response, including execution, lazy result metadata, status, logs, rows, or
+cleanup. Superset abandons the affected Impala or Hive cursor and connection
+before driver exception handlers run: subsequent cancellation, close, and
+finalizer calls send no RPCs on that transport. The socket is dropped locally;
+cleanup failures are logged without replacing the original time-limit exception.
+No reconnect or cancellation is attempted after an interrupted RPC. Configure
+server-side query and session timeouts to release an abandoned operation.
+A time limit between RPCs leaves the transport usable: Impala requests cancellation,
+and Hive retains its normal session cleanup. During Impala result fetching, only
+CancelOperation is sent before abandoning the cursor locally; CloseOperation and
+CloseSession are skipped to shorten cleanup in alerts/reports' soft-to-hard limit
+gap. The cancellation RPC itself is not bounded by this handler. Configure a driver
+network timeout or increase `ALERT_REPORTS_WORKING_TIME_OUT_LAG` for Impala
+alerts/reports. SQL Lab's execution-status polling retains full operation/session
+cleanup after cancellation.
+Abandoned Impala and Hive connections are invalidated when returned to a
+SQLAlchemy pool, so later checkouts open a fresh connection rather than replaying
+the previous time limit or reusing a locally dropped transport.
+The local Impala polling deadline and an explicit Stop also request cancellation
+when the transport has not been interrupted; an incomplete cleanup reply abandons
+the transport rather than attempting another cleanup RPC.
+
+Impala reports a streaming `SELECT` as finished as soon as its rows can be fetched,
+so most of such a query runs while SQL Lab reads its results. While it fetches, the
+worker checks for a stop between result RPCs, at most once per
+`DB_POLL_INTERVAL_SECONDS`, and cancels the query on its own connection. Each result
+RPC returns within Impala's `FETCH_ROWS_TIMEOUT_MS` query option (10 seconds by
+default, available from Impala 3.4) when it is positive, even when no rows are ready,
+so a stop takes effect within about that timeout plus `DB_POLL_INTERVAL_SECONDS`.
+Lowering a positive timeout or the poll interval makes stops take effect sooner.
+Setting `FETCH_ROWS_TIMEOUT_MS=0` disables the timeout and can delay Stop until the
+fetch returns. Impala checks for cancellation between row batches, so a batch whose
+rows are slow to compute runs to its end before the query stops.
 
 ## SQL Lab Query History Pruning
 
@@ -868,6 +901,19 @@ SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 131072  # double the default
 ```
 
 Alternatively, split a very large dashboard into several smaller ones. Note that this check is enforced when saving layout edits in the UI; a dashboard imported from a ZIP with an oversized layout will load and render, but cannot be edited and re-saved until the limit is raised.
+
+## Semantic layer setup documentation
+
+Set `SEMANTIC_LAYER_DOCUMENTATION_URL` in `superset_config.py` to an absolute
+HTTP or HTTPS URL for your deployment's semantic layer setup guide. The New
+Semantic Layer and Add Semantic View dialogs show this optional link. It opens
+in a new tab. Leave the setting as `None` (the default) to hide the link. Invalid
+URLs and URLs with username/password userinfo are omitted from the page bootstrap
+rather than partially sanitized; the server logs a warning without the URL value.
+
+This setting does not change the main documentation menu's `DOCUMENTATION_URL`,
+install providers, grant permissions, or enable the `SEMANTIC_LAYERS` feature.
+Provider setup descriptions come from each registered provider's metadata.
 
 :::resources
 

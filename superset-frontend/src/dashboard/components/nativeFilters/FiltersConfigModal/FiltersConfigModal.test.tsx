@@ -1314,3 +1314,63 @@ test('semantic filter reset requires reselection and survives save and reopen', 
   ).not.toBeInTheDocument();
   expect(screen.queryByText('old default')).not.toBeInTheDocument();
 });
+
+const partitionedDatasetResult = (evaluable: boolean | null) => {
+  const response = datasetResult(id);
+  return {
+    ...response,
+    result: {
+      ...response.result,
+      columns: [
+        ...response.result.columns,
+        {
+          column_name: 'event_time',
+          id: 99,
+          type_generic: GenericDataType.Temporal,
+          filterable: true,
+          is_dttm: true,
+        },
+      ],
+      partition_filter_mapping: {
+        active: true,
+        evaluable,
+        is_monotonic: true,
+        mapped_column: 'event_time',
+      },
+    },
+  };
+};
+
+const datasetCalls = () =>
+  fetchMock.callHistory.calls(`path:/api/v1/dataset/${id}`);
+
+/** Serve the bound dataset with the given verdict; the first route wins. */
+const servePartitionedDataset = (evaluable: boolean | null) => {
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+  fetchMock.get(
+    `path:/api/v1/dataset/${id}`,
+    partitionedDatasetResult(evaluable),
+  );
+  setupFetchMocks();
+};
+
+test('a new filter on a partition-mapped dataset defaults to Last week only on a confirmed verdict', async () => {
+  // SC-130302. `evaluable: null` -- never probed, or the verdict expired -- used
+  // to get the default, and for a transform that emits no predicate the value
+  // list was then narrowed to last week while still scanning every partition.
+  servePartitionedDataset(null);
+  const { unmount } = defaultRender();
+  await waitFor(() => expect(datasetCalls().length).toBeGreaterThan(0));
+  await screen.findByText(COLUMN_REGEX);
+  expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
+  unmount();
+
+  // The verdict changes without the dataset changing. A reopened modal reads
+  // it afresh rather than replaying the response it saw last time.
+  servePartitionedDataset(true);
+  defaultRender();
+  await waitFor(() => expect(datasetCalls().length).toBeGreaterThan(0));
+  await waitFor(() => expect(getCheckbox(PRE_FILTER_REGEX)).toBeChecked());
+  expect(await screen.findByText('Last week')).toBeInTheDocument();
+}, 30000);
