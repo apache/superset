@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
+from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
@@ -37,7 +38,11 @@ from superset.common.query_actions import get_query_results
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
 from superset.exceptions import QueryObjectValidationError
-from superset.semantic_layers.mapper import map_query_object, validate_query_object
+from superset.semantic_layers.mapper import (
+    get_results,
+    map_query_object,
+    validate_query_object,
+)
 from superset.utils import json
 
 
@@ -109,7 +114,7 @@ def test_legacy_id_looking_title_rejected_before_cache_and_mapper(
         with pytest.raises(QueryObjectValidationError, match="explicitly reselect"):
             processor.get_df_payload_result(query, force_cached=True)
         cache.assert_not_called()
-    with pytest.raises(ValueError, match="explicitly reselect"):
+    with pytest.raises(QueryObjectValidationError, match="explicitly reselect"):
         validate_query_object(query)
 
 
@@ -357,3 +362,114 @@ def test_time_grain_options_load_through_processor(datasource_type: str) -> None
     assert get_query_results(
         ChartDataResultType.TIMEGRAINS, query_context, query, False
     ) == {"data": grains}
+
+
+@pytest.mark.parametrize(
+    "selection",
+    [
+        {"metrics": ["Orders.b"]},
+        {"columns": ["Orders.region"]},
+        {"orderby": [("Orders.b", True)]},
+        {"filters": [{"col": "Orders.region", "op": "==", "val": "EUROPE"}]},
+        {"granularity": "Orders.order_date"},
+        {"series_columns": ["Orders.region"]},
+    ],
+)
+@pytest.mark.parametrize(
+    "result_type", [ChartDataResultType.TIMEGRAINS, ChartDataResultType.COLUMNS]
+)
+def test_metadata_result_type_naming_members_still_requires_version(
+    result_type: ChartDataResultType, selection: dict[str, Any]
+) -> None:
+    """The exemption covers what a query selects, not only what it declares."""
+    query: QueryObject = QueryObject(
+        datasource=MagicMock(type="semantic_view", implementation=IdentityView()),
+        result_type=result_type,
+        **selection,
+    )
+    with pytest.raises(QueryObjectValidationError, match="explicitly reselect"):
+        query.validate()
+
+
+@pytest.mark.parametrize(
+    ("version", "message"),
+    [
+        (None, "explicitly reselect"),
+        ("unverified-external-selections", "remove this chart from its scope"),
+    ],
+)
+def test_mapper_refuses_stale_version_as_validation_error(
+    version: str | None, message: str
+) -> None:
+    """A query reaching the mapper unvalidated gets the same 400 as validate()."""
+    query: QueryObject = QueryObject(
+        datasource=MagicMock(type="semantic_view", implementation=IdentityView()),
+        metrics=["Orders.b"],
+        extras={"semantic_selection_version": version},
+    )
+    with pytest.raises(QueryObjectValidationError, match=message):
+        validate_query_object(query)
+    with pytest.raises(QueryObjectValidationError, match=message):
+        get_results(query)
+
+
+@pytest.mark.parametrize("result_type", ["timegrains", "columns"])
+def test_forced_async_metadata_request_runs_synchronously(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    result_type: str,
+) -> None:
+    """A forced refresh under GAQ answers the control's options without a task."""
+    from superset.semantic_layers.models import SemanticView as SemanticViewModel
+
+    grains: list[dict[str, Any]] = [{"name": "Day", "function": "", "duration": "P1D"}]
+    view: SemanticViewModel = SemanticViewModel(id=73, name="Orders", cache_timeout=600)
+    mocker.patch.object(
+        SemanticViewModel,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=IdentityView(),
+    )
+    mocker.patch.object(SemanticViewModel, "get_time_grains", return_value=grains)
+    mocker.patch.object(SemanticViewModel, "raise_for_access")
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+    )
+    # Every other async precondition holds, so only the result type decides.
+    mocker.patch("superset.charts.data.api.is_feature_enabled", return_value=True)
+    mocker.patch("superset.charts.data.api.get_user_id", return_value=1)
+    mocker.patch(
+        "superset.charts.data.api.security_manager.can_access", return_value=True
+    )
+    cache: MagicMock = mocker.patch("superset.charts.data.api.cache_manager")
+    cache.data_cache.cache = MagicMock()
+    submit: MagicMock = mocker.patch(
+        "superset.charts.data.api.submit_chart_data_query_tasks",
+        return_value={"task_ids": ["task-1"], "cursor": "cursor"},
+    )
+
+    # The control's builder: a full context holding one metadata query.
+    response: Any = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 73, "type": "semantic_view"},
+            "force": True,
+            "async_mode": True,
+            "queries": [
+                {
+                    "result_type": result_type,
+                    "columns": [],
+                    "metrics": [],
+                    "orderby": [],
+                }
+            ],
+            "result_type": "full",
+            "result_format": "json",
+        },
+    )
+
+    submit.assert_not_called()
+    assert response.status_code == 200, response.get_json()
+    if result_type == "timegrains":
+        assert response.get_json()["result"][0]["data"] == grains
