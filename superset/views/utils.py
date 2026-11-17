@@ -217,8 +217,8 @@ def get_explore_redirect_url(form_data: dict[str, Any] | None = None) -> str | N
       payloads carrying only ``slice_id``);
     - ``datasource`` that doesn't decompose as ``"<id>__<type>"``;
     - ``datasource`` whose type is not a valid ``DatasourceType``;
-    - cache-write failure (``CreateFormDataCommand.run`` raises
-      ``ValueError``) — avoid 302-looping when the cache layer is down;
+    - cache-write failure (``CreateFormDataCommand.run`` raises ``ValueError``
+      or ``TemporaryCacheCreateFailedError``) — avoid redirecting to missing state;
     - the current request already matches the would-be redirect target
       (loop guard via ``(endpoint, sorted(query_items))`` equality).
 
@@ -237,6 +237,9 @@ def get_explore_redirect_url(form_data: dict[str, Any] | None = None) -> str | N
     from superset.commands.explore.form_data.parameters import (  # noqa: PLC0415
         CommandParameters,
     )
+    from superset.commands.temporary_cache.exceptions import (  # noqa: PLC0415
+        TemporaryCacheCreateFailedError,
+    )
 
     request_form_data = (
         json.dumps(form_data)
@@ -248,7 +251,9 @@ def get_explore_redirect_url(form_data: dict[str, Any] | None = None) -> str | N
     # `loads_request_json` coerces any non-object payload (scalar, list) to
     # `{}`, so a non-dict `form_data` falls through to the `not datasource`
     # guard below — no separate isinstance check is needed here.
-    parsed_form_data = loads_request_json(request_form_data)
+    parsed_form_data = (
+        form_data if form_data is not None else loads_request_json(request_form_data)
+    )
     datasource = parsed_form_data.get("datasource")
     if not datasource:
         return None
@@ -278,11 +283,14 @@ def get_explore_redirect_url(form_data: dict[str, Any] | None = None) -> str | N
         return None
 
     slice_id = parsed_form_data.get("slice_id")
+    if isinstance(slice_id, str):
+        with contextlib.suppress(ValueError):
+            slice_id = int(slice_id)
     if not isinstance(slice_id, int) or isinstance(slice_id, bool):
         # A non-int, non-None `form_data.slice_id` (`"abc"`, `[1, 2]`, `{}`,
         # `True`) used to survive the `is None` guard and surface as 500
         # downstream when `CommandParameters(chart_id=...)` reached the
-        # cache write. Treat any non-int shape the same as missing and
+        # cache write. Treat any other shape the same as missing and
         # fall back to the typed query parse. `bool` is excluded because
         # it is a subclass of `int` in Python — `True` would otherwise
         # become `chart_id=1`.
@@ -299,9 +307,9 @@ def get_explore_redirect_url(form_data: dict[str, Any] | None = None) -> str | N
     )
     try:
         form_data_key = CreateFormDataCommand(parameters).run()
-    except ValueError:
-        # Narrow catch: cache-write failure renders SPA instead of looping.
-        # `SQLAlchemyError` remains caught inside `CreateFormDataCommand.run`.
+    except (ValueError, TemporaryCacheCreateFailedError):
+        # GET falls through to the SPA; POST reports the failed state handoff.
+        # Permission errors must propagate instead of becoming cache failures.
         return None
 
     if not form_data_key:
@@ -316,9 +324,8 @@ def get_explore_redirect_url(form_data: dict[str, Any] | None = None) -> str | N
     # caller ever repeats a key so `url_for` receives scalars, not lists.
     raw_query_string = request.query_string.decode()
     query_multi = parse.parse_qs(raw_query_string)
-    if form_data_key:
-        query_multi.pop("form_data", None)
-        query_multi["form_data_key"] = [form_data_key]
+    query_multi.pop("form_data", None)
+    query_multi["form_data_key"] = [form_data_key]
     # Drop keys that collide with `url_for`'s own parameters: a query string
     # like `?_external=1&_scheme=ftp` would otherwise steer URL building
     # (absolute URLs, scheme injection, fragment injection), and `?endpoint=x`

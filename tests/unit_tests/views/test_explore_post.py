@@ -30,9 +30,17 @@ from pytest_mock import MockerFixture
 from superset.commands.dataset.exceptions import DatasetAccessDeniedError
 from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
-from superset.commands.temporary_cache.exceptions import TemporaryCacheAccessDeniedError
+from superset.commands.explore.form_data.utils import check_access
+from superset.commands.temporary_cache.exceptions import (
+    TemporaryCacheAccessDeniedError,
+    TemporaryCacheCreateFailedError,
+)
+from superset.daos.exceptions import DatasourceNotFound
 from superset.extensions import cache_manager
+from superset.models.sql_lab import Query
+from superset.semantic_layers.models import SemanticView
 from superset.utils import json
+from superset.utils.core import DatasourceType
 from superset.views.core import Superset
 from superset.views.utils import get_explore_redirect_url
 
@@ -209,7 +217,9 @@ def test_post_explore_cache_access_denial_is_not_swallowed(
         inspect.unwrap(Superset.explore)(Superset())
 
 
-@pytest.mark.parametrize("result", ["", ValueError("cache unavailable")])
+@pytest.mark.parametrize(
+    "result", ["", ValueError("cache unavailable"), TemporaryCacheCreateFailedError()]
+)
 def test_post_explore_reports_missing_cache_key(
     result: str | Exception, mocker: MockerFixture
 ) -> None:
@@ -232,7 +242,10 @@ def test_post_explore_reports_missing_cache_key(
 
 
 def test_post_explore_missing_dataset_returns_error(mocker: MockerFixture) -> None:
-    mocker.patch("superset.views.core.DatasourceDAO.get_datasource", return_value=None)
+    mocker.patch(
+        "superset.views.core.DatasourceDAO.get_datasource",
+        side_effect=DatasourceNotFound(),
+    )
     cache_write = mocker.spy(cache_manager.explore_form_data_cache, "set")
     with current_app.test_request_context(
         "/explore/",
@@ -276,4 +289,118 @@ def test_get_explore_keeps_query_form_data_contract() -> None:
         assert cached is not None
         assert json.loads(cached) == form_data
     with current_app.test_request_context("/explore/"):
+        assert get_explore_redirect_url() is None
+
+
+@pytest.mark.parametrize("typed", [False, True])
+@pytest.mark.parametrize(
+    "datasource_type", [DatasourceType.QUERY, DatasourceType.SEMANTIC_VIEW]
+)
+def test_post_explore_looks_up_the_requested_datasource_type(
+    typed: bool, datasource_type: DatasourceType, mocker: MockerFixture
+) -> None:
+    datasource = (
+        Query(id=7, tab_name="preview_query")
+        if datasource_type == DatasourceType.QUERY
+        else SemanticView(id=7, name="preview_view")
+    )
+
+    def get_datasource(source_type: str, source_id: int) -> Query | SemanticView:
+        if source_type != datasource_type or source_id != 7:
+            raise DatasourceNotFound()
+        return datasource
+
+    mocker.patch(
+        "superset.views.core.DatasourceDAO.get_datasource",
+        side_effect=get_datasource,
+    )
+    access = mocker.patch("superset.views.core.security_manager.raise_for_access")
+    path = f"/explore/{datasource_type}/7/" if typed else "/explore/"
+    with current_app.test_request_context(
+        path,
+        method="POST",
+        data={"form_data": json.dumps({"datasource": f"7__{datasource_type}"})},
+    ):
+        response = inspect.unwrap(Superset.explore)(
+            Superset(),
+            datasource_id=7 if typed else None,
+            datasource_type=datasource_type if typed else None,
+        )
+        assert response.status_code == 303
+        key = parse_qs(urlsplit(response.location).query)["form_data_key"][0]
+        cached = GetFormDataCommand(CommandParameters(key=key)).run()
+        assert cached is not None
+        assert json.loads(cached)["datasource"] == f"7__{datasource_type}"
+    if datasource_type == DatasourceType.QUERY:
+        access.assert_called_once_with(
+            query=datasource,
+            datasource=datasource,
+            allow_query_authorship_bypass=True,
+            allow_editorship=False,
+        )
+    else:
+        access.assert_called_once_with(datasource=datasource)
+
+
+def test_post_explore_rejects_a_failed_cache_write(mocker: MockerFixture) -> None:
+    cache_write = mocker.patch.object(
+        cache_manager.explore_form_data_cache, "set", return_value=False
+    )
+    with current_app.test_request_context(
+        "/explore/",
+        method="POST",
+        data={"form_data": json.dumps({"datasource": "7__table"})},
+    ):
+        response = inspect.unwrap(Superset.explore)(Superset())
+    assert response.status_code == 500
+    assert "Location" not in response.headers
+    assert json.loads(response.get_data(as_text=True))["error"]
+    cache_write.assert_called_once()
+
+
+@pytest.mark.parametrize("method", ["GET", "POST"])
+@pytest.mark.parametrize("slice_id", [42, "42"])
+def test_explore_caches_chart_id_for_access_revalidation(
+    method: str, slice_id: int | str, mocker: MockerFixture
+) -> None:
+    form_data = {"datasource": "7__table", "slice_id": slice_id}
+    with current_app.test_request_context(
+        "/explore/",
+        method=method,
+        query_string={"slice_id": "99", "form_data": json.dumps(form_data)},
+    ):
+        location = get_explore_redirect_url(form_data if method == "POST" else None)
+        assert location is not None
+        key = parse_qs(urlsplit(location).query)["form_data_key"][0]
+        state = cache_manager.explore_form_data_cache.get(key)
+        assert state["chart_id"] == 42
+        access = mocker.patch(
+            "superset.commands.explore.form_data.get.check_access",
+            wraps=check_access,
+        )
+        mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id")
+        chart_lookup = mocker.patch("superset.daos.chart.ChartDAO.find_by_id")
+        mocker.patch(
+            "superset.explore.utils.security_manager.can_access_datasource",
+            return_value=True,
+        )
+        mocker.patch(
+            "superset.explore.utils.security_manager.can_access", return_value=False
+        )
+        with pytest.raises(TemporaryCacheAccessDeniedError):
+            GetFormDataCommand(CommandParameters(key=key)).run()
+        access.assert_called_once_with(7, 42, DatasourceType.TABLE)
+        chart_lookup.assert_called_once_with(42, skip_base_filter=True)
+
+
+def test_get_explore_falls_through_on_failed_cache_write(
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.object(
+        cache_manager.explore_form_data_cache, "set", return_value=False
+    )
+    with current_app.test_request_context(
+        "/explore/",
+        query_string={"form_data": json.dumps({"datasource": "7__table"})},
+    ):
         assert get_explore_redirect_url() is None

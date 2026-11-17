@@ -54,14 +54,15 @@ from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
-from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
+from superset.commands.explore.get import _authorize_datasource
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.commands.temporary_cache.exceptions import TemporaryCacheCreateFailedError
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import DatasourceNotFound
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.exceptions import (
     SupersetException,
@@ -234,18 +235,22 @@ class Superset(BaseSupersetView):
 
         datasource: BaseDatasource | None = None
         if datasource_id is not None:
-            with contextlib.suppress(DatasetNotFoundError):
+            with contextlib.suppress(DatasourceNotFound):
                 datasource = DatasourceDAO.get_datasource(
-                    DatasourceType("table"),
+                    cast(str, datasource_type),
                     datasource_id,
                 )
 
         # Enforce per-datasource access before rendering its metadata.
         if datasource:
-            security_manager.raise_for_access(datasource=datasource)
+            _authorize_datasource(datasource, None)
 
         viz_type = form_data.get("viz_type")
-        if not viz_type and datasource and datasource.default_endpoint:
+        if (
+            not viz_type
+            and datasource
+            and getattr(datasource, "default_endpoint", None)
+        ):
             return redirect(datasource.default_endpoint)
 
         selectedColumns = []  # noqa: N806
