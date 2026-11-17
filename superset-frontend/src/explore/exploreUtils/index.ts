@@ -494,9 +494,10 @@ export const getSimpleSQLExpression = (
       const formattedComparators = comparatorArray.map(val => {
         if (!useDisplayValues) {
           if (typeof val === 'string') {
-            // Chart label maps and pivot keys stringify numeric dimensions.
-            // Keep canonical numerals bare for strict numeric comparisons.
-            if (Number.isFinite(Number(val)) && String(Number(val)) === val) {
+            // Chart label maps and pivot keys stringify numeric dimensions
+            // (Python str(): '2024', '20.0', '1.50', '1e-05', big integers).
+            // Keep plain decimal literals bare for strict numeric comparisons.
+            if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(val)) {
               return val;
             }
             return `'${val.replace(/'/g, "''")}'`;
