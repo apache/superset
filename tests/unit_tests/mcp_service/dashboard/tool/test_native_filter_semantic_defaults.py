@@ -18,6 +18,7 @@
 """Regression tests for semantic native-filter defaults during SQL retargeting."""
 
 import copy
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -40,7 +41,7 @@ def test_semantic_numeric_range_default_only_cleared_on_retarget(
     dataset_id: int, required: bool, retarget: bool
 ) -> None:
     """Clear numeric defaults on SQL retargeting, not presentation-only edits."""
-    existing = copy.deepcopy(EXISTING_RANGE_FILTER)
+    existing: dict[str, Any] = copy.deepcopy(EXISTING_RANGE_FILTER)
     existing["targets"][0].update(
         datasourceType="semantic_view", semantic_selection_version="v1"
     )
