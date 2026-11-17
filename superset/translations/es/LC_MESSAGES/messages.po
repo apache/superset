@@ -24094,7 +24094,7 @@ msgstr ""
 "descarga."
 
 msgid "Your export is being generated. Please, do not leave the page."
-msgstr "Tu exportación se está generando. Por favor, no abandones la página."
+msgstr "Tu exportación se está generando. No salgas de la página."
 
 msgid "Your export is ready and downloading."
 msgstr "Tu exportación está lista y se está descargando."
