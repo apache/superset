@@ -104,6 +104,7 @@ import {
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 import SSHTunnelForm from './SSHTunnelForm';
 import SSHTunnelSwitch from './SSHTunnelSwitch';
+import { normalizeMetadataCacheTimeouts } from './utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -630,6 +631,7 @@ export function dbReducer(
 
         return {
           ...action.payload,
+          extra: normalizeMetadataCacheTimeouts(action.payload.extra),
           engine: action.payload.backend || trimmedState.engine,
           configuration_method: configurationMethod,
           catalog: engineRootCatalog,
@@ -647,6 +649,7 @@ export function dbReducer(
       }
       return {
         ...action.payload,
+        extra: normalizeMetadataCacheTimeouts(action.payload.extra),
         masked_encrypted_extra: action.payload.masked_encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: configurationMethod,

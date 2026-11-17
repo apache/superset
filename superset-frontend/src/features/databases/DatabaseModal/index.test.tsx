@@ -624,6 +624,83 @@ describe('DatabaseModal', () => {
     await expectFreshCreateAfterEdit('Late X');
   });
 
+  test('edit submits string cache timeouts as integers', async () => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    fetchMock.get('glob:*/api/v1/database/10/connection', {
+      result: {
+        id: 10,
+        database_name: 'Existing connection',
+        backend: 'sqlite',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+        sqlalchemy_uri: 'sqlite:///existing.db',
+        extra: JSON.stringify({
+          metadata_params: {},
+          engine_params: {},
+          metadata_cache_timeout: { table_cache_timeout: '1800' },
+          schemas_allowed_for_file_upload: [],
+        }),
+      },
+    });
+    fetchMock.put(DATABASE_FETCH_ENDPOINT, {
+      id: 10,
+      result: { database_name: 'Existing connection' },
+    });
+    fetchMock.post('glob:*/api/v1/database/test_connection/', {
+      message: 'OK',
+    });
+    const expectedTimeouts = { table_cache_timeout: 1800 };
+    try {
+      render(<DatabaseModal {...dbProps} databaseId={10} />, {
+        useRedux: true,
+      });
+      expect(
+        await screen.findByDisplayValue(
+          'Existing connection',
+          {},
+          { timeout: 5000 },
+        ),
+      ).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('button', { name: /test connection/i }),
+      );
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls(
+            'glob:*/api/v1/database/test_connection/',
+          ),
+        ).toHaveLength(1),
+      );
+      const validationBody = JSON.parse(
+        fetchMock.callHistory.lastCall(
+          'glob:*/api/v1/database/test_connection/',
+        )!.options.body as string,
+      );
+      expect(JSON.parse(validationBody.extra).metadata_cache_timeout).toEqual(
+        expectedTimeouts,
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, {
+            method: 'PUT',
+          }),
+        ).toHaveLength(1),
+      );
+      const putBody = JSON.parse(
+        fetchMock.callHistory.lastCall(DATABASE_FETCH_ENDPOINT, {
+          method: 'PUT',
+        })!.options.body as string,
+      );
+      expect(JSON.parse(putBody.extra).metadata_cache_timeout).toEqual(
+        expectedTimeouts,
+      );
+    } finally {
+      resourceHook.mockImplementation(previousImplementation);
+    }
+  });
+
   /** Fill a new dynamic-form connection without relying on saved state. */
   const connectPostgres = async (name: string, host: string) => {
     await userEvent.click(
