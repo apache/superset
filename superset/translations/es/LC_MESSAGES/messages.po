@@ -15514,9 +15514,8 @@ msgstr "Entrada de ejemplo"
 msgid "Samples"
 msgstr "Muestras"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 msgid "Samples are not available for this datasource type."
-msgstr "No hay muestras disponibles para este tipo de origen de datos."
+msgstr "No hay muestras disponibles para este tipo de fuente de datos."
 
 msgid "Samples for dataset could not be retrieved."
 msgstr "No se han podido recuperar las muestras para el conjunto de datos."
