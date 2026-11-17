@@ -298,6 +298,8 @@ describe('Bubble formatTooltip', () => {
       expected: '<b>alpha</b> & beta',
     },
     { entity: '&lt;NULL&gt;', series: null, expected: '&lt;NULL&gt;' },
+    { entity: '', series: null, expected: '<empty string>' },
+    { entity: 'alpha', series: '', expected: '<empty string> (alpha)' },
   ])(
     'renders the tooltip title as text: $expected',
     ({ entity, series, expected }) => {
