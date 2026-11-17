@@ -19,6 +19,7 @@ import math
 from typing import Any, Optional
 
 from flask_babel import lazy_gettext as _
+from flask_babel.speaklater import LazyString
 
 from superset.commands.exceptions import (
     CommandException,
@@ -660,5 +661,7 @@ class ReportScheduleExecutorTargetAccessError(ValidationError):
             )
         )
         if draft:
-            message = f"{message} {_draft_dashboard_remedy()}"
+            # Keep translation lazy: Marshmallow wraps a plain string in a list,
+            # which would change the report API's existing field-string response.
+            message = LazyString("{} {}".format, message, _draft_dashboard_remedy())
         super().__init__(message, field_name=kind)
