@@ -18,10 +18,16 @@ from datetime import datetime
 from typing import Any
 
 import pytest
-from sqlalchemy import column
+from sqlalchemy import column, types
+from sqlalchemy.types import TypeEngine
 
 from superset.errors import SupersetErrorType
-from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from superset.superset_typing import DbapiDescription
+from superset.utils.core import GenericDataType
+from tests.unit_tests.db_engine_specs.utils import (
+    assert_column_spec,
+    assert_convert_dttm,
+)
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
@@ -327,6 +333,75 @@ def test_other_errors_keep_their_message(message: str) -> None:
 
     assert [(error.error_type, error.message) for error in errors] == [
         (SupersetErrorType.GENERIC_DB_ENGINE_ERROR, message)
+    ]
+
+
+@pytest.mark.parametrize(
+    "native_type,sqla_type,generic_type,is_dttm",
+    [
+        # Arrow type names, as the driver reports them for query results
+        ("UTF8", types.String, GenericDataType.STRING, False),
+        ("LARGEUTF8", types.String, GenericDataType.STRING, False),
+        ("UINT8", types.BigInteger, GenericDataType.NUMERIC, False),
+        ("UINT64", types.BigInteger, GenericDataType.NUMERIC, False),
+        ("INT64", types.Integer, GenericDataType.NUMERIC, False),
+        ("FLOAT64", types.Float, GenericDataType.NUMERIC, False),
+        ("BOOLEAN", types.Boolean, GenericDataType.BOOLEAN, False),
+        ("DATE32", types.Date, GenericDataType.TEMPORAL, True),
+        (
+            "TIMESTAMP(MICROSECOND, NONE)",
+            types.TIMESTAMP,
+            GenericDataType.TEMPORAL,
+            True,
+        ),
+        # SQL type names, as the dialect reflects them for stream fields
+        ("VARCHAR", types.String, GenericDataType.STRING, False),
+        ("BIGINT", types.BigInteger, GenericDataType.NUMERIC, False),
+        ("DOUBLE", types.Float, GenericDataType.NUMERIC, False),
+    ],
+)
+def test_get_column_spec(
+    native_type: str,
+    sqla_type: type[TypeEngine],
+    generic_type: GenericDataType,
+    is_dttm: bool,
+) -> None:
+    """
+    DB Eng Specs (openobserve): Test Arrow and SQL type names are recognized
+    """
+    from superset.db_engine_specs.openobserve import OpenObserveEngineSpec
+
+    assert_column_spec(
+        OpenObserveEngineSpec, native_type, sqla_type, None, generic_type, is_dttm
+    )
+
+
+def test_query_result_columns_get_generic_types() -> None:
+    """
+    DB Eng Specs (openobserve): Test result columns described with Arrow types
+
+    Superset upper-cases the type code of the cursor description, and reports
+    a column whose type it does not recognize without a generic type.
+    """
+    from superset.db_engine_specs.openobserve import OpenObserveEngineSpec
+    from superset.result_set import SupersetResultSet
+
+    description: DbapiDescription = [
+        ("service", "Utf8", None, None, None, None, True),
+        ("status", "Int64", None, None, None, None, True),
+        ("slow", "Boolean", None, None, None, None, True),
+    ]
+    result_set = SupersetResultSet(
+        [("api", 200, True)], description, OpenObserveEngineSpec
+    )
+
+    assert [
+        (column["column_name"], column["type"], column["type_generic"])
+        for column in result_set.columns
+    ] == [
+        ("service", "UTF8", GenericDataType.STRING),
+        ("status", "INT64", GenericDataType.NUMERIC),
+        ("slow", "BOOLEAN", GenericDataType.BOOLEAN),
     ]
 
 

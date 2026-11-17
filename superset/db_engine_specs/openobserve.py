@@ -27,6 +27,7 @@ from sqlalchemy import types
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -133,6 +134,22 @@ class OpenObserveEngineSpec(BaseEngineSpec):
         TimeGrain.QUARTER: "date_trunc('quarter', {col})",
         TimeGrain.YEAR: "date_trunc('year', {col})",
     }
+
+    # The driver describes query result columns with Apache Arrow type names.
+    # The default mappings cover the ones that start like a SQL type (Int64,
+    # Float64, Boolean, Date32, Timestamp), but not these.
+    column_type_mappings = (
+        (
+            re.compile(r"^(large)?utf8", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^uint", re.IGNORECASE),
+            types.BigInteger(),
+            GenericDataType.NUMERIC,
+        ),
+    )
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
