@@ -52,6 +52,7 @@ import {
   sanitizeSchema,
   buildUiSchema,
   getDynamicDependencies,
+  initializeAnyOptions,
   areDependenciesSatisfied,
   serializeDependencyValues,
   SCHEMA_REFRESH_DEBOUNCE_MS,
@@ -497,23 +498,29 @@ export default function SemanticLayerModal({
       // value so we don't carry a stale selection across the refresh (e.g.
       // ``schema=PUBLIC`` lingering after the user switches database).
       const dynamicDeps = dynamicDepsRef.current;
-      let nextData = data;
+      let nextData =
+        !isEditMode && configSchema
+          ? initializeAnyOptions(configSchema, data)
+          : data;
       if (Object.keys(dynamicDeps).length > 0) {
-        const cleared: Record<string, unknown> = {};
         for (const [field, deps] of Object.entries(dynamicDeps)) {
-          // Self-deps don't count — a field shouldn't wipe its own value
-          // every time the user picks something in it.
-          const externalDeps = deps.filter(dep => dep !== field);
-          if (externalDeps.length === 0) continue;
-          const depsChanged = externalDeps.some(
-            dep => JSON.stringify(formData[dep]) !== JSON.stringify(data[dep]),
-          );
-          if (depsChanged && data[field] !== undefined && data[field] !== '') {
-            cleared[field] = undefined;
+          // A field's own selection must not clear itself.
+          const depsChanged = deps
+            .filter(dep => dep !== field)
+            .some(
+              dep =>
+                JSON.stringify(formData[dep]) !== JSON.stringify(data[dep]),
+            );
+          if (
+            depsChanged &&
+            nextData[field] !== undefined &&
+            nextData[field] !== ''
+          ) {
+            nextData = { ...nextData, [field]: undefined };
+            // Clearing an opted-in field chooses Any and updates its policy flag.
+            if (configSchema)
+              nextData = initializeAnyOptions(configSchema, nextData);
           }
-        }
-        if (Object.keys(cleared).length > 0) {
-          nextData = { ...data, ...cleared };
         }
       }
 
@@ -522,7 +529,7 @@ export default function SemanticLayerModal({
       setHasErrors(errorsRef.current.length > 0);
       maybeRefreshSchema(nextData);
     },
-    [maybeRefreshSchema, formData],
+    [maybeRefreshSchema, formData, configSchema, isEditMode],
   );
 
   const selectedProvider = types.find(type => type.id === selectedType);

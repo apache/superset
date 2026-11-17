@@ -20,6 +20,7 @@ import type { JsonSchema, UISchemaElement } from '@jsonforms/core';
 
 import {
   stableSerialize,
+  initializeAnyOptions,
   areDependenciesSatisfied,
   sanitizeSchema,
   buildUiSchema,
@@ -213,4 +214,29 @@ test('stableSerialize preserves __proto__ keys from parsed payloads', () => {
   const withProto = JSON.parse('{"properties":{"b":1},"__proto__":{"a":1}}');
   const without = JSON.parse('{"properties":{"b":1}}');
   expect(stableSerialize(withProto)).not.toEqual(stableSerialize(without));
+});
+
+test('Any initialization preserves all stored pairs and only defaults absent values', () => {
+  const schema = {
+    properties: {
+      database: {
+        type: 'string',
+        'x-dynamic': true,
+        'x-anyOption': { label: 'Any database' },
+        'x-allowCustomValue': true,
+        'x-pairedFlag': 'changeable',
+      },
+      changeable: { type: 'boolean' },
+    },
+  } as JsonSchema;
+  for (const database of ['', 'X']) {
+    for (const changeable of [false, true]) {
+      const data = { database, changeable };
+      expect(initializeAnyOptions(schema, data)).toBe(data);
+    }
+  }
+  expect(initializeAnyOptions(schema, {})).toEqual({
+    database: '',
+    changeable: true,
+  });
 });
