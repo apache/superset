@@ -430,8 +430,12 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     )
     implementation: MagicMock = MagicMock()
     implementation.get_dimensions.return_value = {
-        Dimension("one", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
-        Dimension("two", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension(
+            "one", "event_time", pa.timestamp("us"), grains=frozenset({Grains.MONTH})
+        ),
+        Dimension(
+            "two", "event_time", pa.timestamp("us"), grains=frozenset({Grains.MONTH})
+        ),
     }
     implementation.get_metrics.return_value = []
     implementation.features = frozenset()
@@ -494,8 +498,7 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     assert "columns" not in datasets["2__semantic_view"]
     if can_access_ambiguous:
         assert datasets["2__semantic_view"]["metadata_error"] == (
-            "Semantic dimension 'event_time' has ambiguous variants for grain 'P1M'. "
-            "Use one dimension per name and grain."
+            "Semantic dimension 'event_time' has ambiguous definitions."
         )
     else:
         assert "metadata_error" not in datasets["2__semantic_view"]
