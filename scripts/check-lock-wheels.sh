@@ -20,8 +20,8 @@
 set -euo pipefail
 
 # Verifies that every pin in the requirements locks has a prebuilt wheel for
-# each supported Python minor on each supported Linux architecture, so an
-# install never falls back to a source build. It resolves each lock with
+# each supported Python minor on each supported Linux architecture, apart from
+# the source-only packages listed in SDIST_ONLY below. It resolves each lock with
 # `--only-binary :all:` for the whole matrix and reports every package that
 # has no usable wheel, not just the first one uv names.
 #
