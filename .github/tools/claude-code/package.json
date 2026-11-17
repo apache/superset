@@ -1,0 +1,9 @@
+{
+  "name": "superset-ci-claude-code",
+  "private": true,
+  "description": "Pinned Claude Code CLI for CI workflows (installed with npm ci from the lockfile).",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.318"
+  }
+}

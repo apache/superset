@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic cache rollups serve limited queries only when the post-filter,
+  rolled-up result fits within the limit. Queries with nonzero row offsets bypass
+  containment reuse. Larger rolled-up results fall back to
+  the provider, preserving page membership when NULL placement, tie order or
+  collation differs from the cache's local sort. NULL placement and tie order
+  remain provider-defined; no provider update or cache reset is required.
+
 - Snowflake default catalogs from unquoted connection-URI identifiers resolve to
   uppercase (`sales` becomes `SALES`); double-quoted identifiers preserve case.
   Resolved defaults and catalogs selected from listings are quoted when opening
@@ -81,10 +88,19 @@ assists people when migrating to a new version.
   DATA-cache entry (or, under `GLOBAL_ASYNC_QUERIES`, a deduplicated chart task) with a logged-in user's
   per-user result; existing cached entries for such charts are effectively invalidated
   for guests. A malformed or incomplete `embedded_credentials` is rejected by
-  `POST`/`PUT /api/v1/database/` and by `validate_parameters` rather than stored and
-  ignored while both embedding flags are enabled; this check does not apply to asset import. Validation
+  `POST`/`PUT /api/v1/database/`, by `validate_parameters`, and by database and asset
+  import (HTTP 400, naming the missing fields) rather than stored and ignored while
+  both embedding flags are enabled. Import also refuses a credential on a
+  connection whose file turns **Impersonate logged in user** off and, with either
+  flag off, a new or changed credential, as the API does. Validation
   uses the engine's credential rules and edited credentials rather than stale stored
-  values, and rejects whitespace-only usernames. Disabling either flag preserves stored credentials without blocking unrelated edits. Restored async guest
+  values, and rejects whitespace-only usernames. An OAuth2 client with a blank client
+  ID or secret counts as no client, and an update that would turn impersonation off
+  while a credential is stored is refused. A connection already stored with a credential
+  and a blank client ID or secret therefore refuses embedded viewers (as having no OAuth2
+  client information) and refuses saves until the client is completed or the credential
+  is cleared. Disabling either flag preserves stored credentials without blocking unrelated edits,
+  and refuses new or changed credentials until both flags are on again. Restored async guest
   queries use the same credential as synchronous queries. Connection-mutator hooks
   receive the selected fallback username. Snowflake OAuth2 scope is
   configured explicitly; a role scope selects that role, and omitting it uses the
@@ -2876,6 +2892,13 @@ Charts and dashboards using these anchors will compute a different (correct) tim
   reports that use `NOT IN` may therefore show additional NULL rows. A `NOT IN`
   list that explicitly contains NULL still excludes NULL rows. `!=`, `NOT LIKE`
   and `NOT ILIKE` are unchanged.
+
+- **Saved query names must be unique per user and database.** Creating or
+  renaming a saved query through `POST` or `PUT /api/v1/saved_query/` to a name
+  already used by another saved query of the same user on the same database now
+  returns HTTP 422 (`A saved query with this name already exists`) instead of
+  succeeding. Existing duplicate rows are not modified. Updates that leave both
+  the name and database unchanged remain allowed.
 
 ## 6.1.0
 
