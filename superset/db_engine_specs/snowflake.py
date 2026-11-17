@@ -529,6 +529,50 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return extra
 
     @classmethod
+    def get_catalog_for_connection(
+        cls,
+        database: "Database",
+        uri: URL,
+        catalog: str | None,
+    ) -> str | None:
+        """Prefer an existing physical catalog over an old saved URI alias."""
+        uri_catalog = uri.database.split("/", 1)[0]
+        # Only ambiguous URI aliases require a listing. Listing itself opens an
+        # engine without a catalog override, so it cannot recurse here.
+        if catalog and cls._is_legacy_default_catalog(catalog, uri_catalog, set()):
+            # Classification must bypass the shared dropdown cache: a newly
+            # created physical name, or another user's visibility, can change
+            # which database this selection denotes. get_inspector opens under
+            # the connecting identity (including impersonation/guest fallback),
+            # not a separate service account. Reuse only within this app context.
+            if cls._is_legacy_default_catalog(
+                catalog, uri_catalog, cls._get_connection_catalogs(database)
+            ):
+                return None
+        return catalog
+
+    @staticmethod
+    def _get_connection_catalogs(database: "Database") -> set[str]:
+        """
+        List physical catalogs under the connecting identity, once per app context.
+
+        A chart query opens an engine to compile and another to execute; an
+        uncached listing for each costs two extra Snowflake logins apiece.
+        Flask g scopes reuse to a request or a Celery task, never a shared cache.
+        """
+        from flask import g, has_app_context
+
+        from superset.utils.core import get_username
+
+        if database.id is None or not has_app_context():
+            return database.get_all_catalog_names(cache=False)
+        listings = g.setdefault("_snowflake_connection_catalogs", {})
+        key = (database.id, get_username())
+        if key not in listings:
+            listings[key] = database.get_all_catalog_names(cache=False)
+        return listings[key]
+
+    @classmethod
     def adjust_engine_params(
         cls,
         uri: URL,
@@ -541,14 +585,31 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         else:
             current_catalog, current_schema = uri.database, None
 
+        if catalog:
+            # Catalog arguments are physical names from listings or the resolved
+            # default, not SQL identifiers. Quote them before reconnecting so a
+            # case-sensitive catalog cannot become a different uppercase one.
+            # The driver percent-decodes the database, so encode the quoted name.
+            current_catalog = parse.quote(
+                '"' + catalog.replace('"', '""') + '"',
+                safe='"',
+            )
+
         adjusted_database = "/".join(
             [
-                catalog or current_catalog,
+                current_catalog,
                 schema or current_schema or "",
             ]
         ).rstrip("/")
 
         uri = uri.set(database=adjusted_database)
+        if not (schema or current_schema) and "%" in current_catalog:
+            # snowflake-sqlalchemy only decodes the database when a schema path
+            # is present. SQLAlchemy applies connect_args after dialect URL args.
+            connect_args = {
+                **connect_args,
+                "database": parse.unquote_plus(current_catalog),
+            }
 
         return uri, connect_args
 
@@ -576,7 +637,43 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         """
         Return the default catalog.
         """
-        return database.url_object.database.split("/")[0]
+        # Resolve the URI identifier before it becomes a permission name. Catalog
+        # listings already contain physical names, including case-sensitive ones.
+        return cls._resolve_catalog_identifier(
+            database.url_object.database.split("/")[0]
+        )
+
+    @staticmethod
+    def _resolve_catalog_identifier(identifier: str) -> str:
+        """
+        Resolve a URI catalog identifier to the physical database name.
+        """
+        catalog = parse.unquote(identifier)
+        if catalog.startswith('"') and catalog.endswith('"'):
+            return catalog[1:-1].replace('""', '"')
+        return catalog.upper()
+
+    @classmethod
+    def _is_legacy_default_catalog(
+        cls, catalog: str, uri_catalog: str, physical_catalogs: set[str]
+    ) -> bool:
+        """
+        Return True for a catalog stored by earlier versions as the default.
+
+        Those versions stored the URI identifier verbatim (eg, ``sales`` for the
+        ``SALES`` database), and connected using it unquoted. Keep the URI
+        identifier for them only when it is not an existing physical catalog.
+        If both exist, physical identity wins; guessing would cross catalogs.
+        """
+        return (
+            catalog
+            in {
+                uri_catalog,
+                parse.unquote(uri_catalog),
+            }
+            and catalog != cls._resolve_catalog_identifier(uri_catalog)
+            and (catalog not in physical_catalogs)
+        )
 
     @classmethod
     def get_catalog_reference_schema(cls, catalog: str) -> str | None:

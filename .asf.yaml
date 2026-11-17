@@ -92,6 +92,7 @@ github:
           - test-sqlite
           - unit-tests-required
           - frontend-tests-required
+          - asf-allowlist-check
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false
