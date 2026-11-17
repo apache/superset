@@ -147,14 +147,15 @@ def test_should_run_async_gates_on_effective_query_result_type(
     query_result_types: list[ChartDataResultType | None], expected: bool
 ) -> None:
     """A full context carrying a metadata query is answered without a task."""
-    api = ChartDataRestApi()
-    qc = MagicMock()
+    api: ChartDataRestApi = ChartDataRestApi()
+    qc: MagicMock = MagicMock()
     qc.result_format = ChartDataResultFormat.JSON
     qc.result_type = ChartDataResultType.FULL
     qc.get_cache_timeout.return_value = 300
     # A query without its own result type inherits the context's.
     qc.queries = [MagicMock(result_type=rt) for rt in query_result_types]
 
+    cache_manager: MagicMock
     with (
         patch("superset.charts.data.api.is_feature_enabled", return_value=True),
         patch("superset.charts.data.api.cache_manager") as cache_manager,
