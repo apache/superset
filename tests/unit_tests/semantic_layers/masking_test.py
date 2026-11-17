@@ -1539,3 +1539,57 @@ def test_masked_update_refuses_explicit_secret_in_untyped_prefix_tail() -> None:
             {"key": "saved", "targets": ["first", {"host": "good"}]},
             {"key": PASSWORD_MASK, "targets": [PASSWORD_MASK, {"host": "evil"}]},
         )
+
+
+def test_masked_update_accepts_provider_ui_annotations() -> None:
+    """UI annotations on referenced secrets and dynamic selectors preserve masking."""
+    schema: dict[str, Any] = DemoConfig.model_json_schema()
+    schema["$defs"]["KeyAuth"]["properties"]["private_key"]["x-input-type"] = "pem"
+    schema["properties"]["account"].update(
+        {
+            "x-dynamic": True,
+            "x-dependsOn": ["auth"],
+            "x-enumNames": ["Account"],
+        }
+    )
+    # Annotation values are not schemas, even if they contain schema-like keys.
+    schema["x-provider-metadata"] = {"not": {"writeOnly": True}}
+    stored: dict[str, Any] = {
+        "account": "original",
+        "auth": {"kind": "key", "private_key": "saved-key", "passphrase": None},
+    }
+    with _with_schema(schema):
+        echoed: dict[str, Any] = mask_configuration("fake", stored)
+        assert echoed["auth"]["private_key"] == PASSWORD_MASK
+        assert masking.unmask_configuration_for_update("fake", stored, echoed) == stored
+        echoed["account"] = "changed"
+        with pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="reusing a stored"
+        ):
+            masking.unmask_configuration_for_update("fake", stored, echoed)
+
+
+def test_masked_update_refuses_new_ambiguous_list_entry() -> None:
+    """The restored value must be classified even when stored containers are empty."""
+    schema: dict[str, Any] = {
+        "properties": {
+            "password": {"writeOnly": True},
+            "targets": {
+                "anyOf": [
+                    {"type": "array", "items": {"writeOnly": True}},
+                    {"type": "array"},
+                ]
+            },
+        }
+    }
+    with (
+        _with_schema(schema),
+        pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
+        ),
+    ):
+        masking.unmask_configuration_for_update(
+            "fake",
+            {"password": "saved", "targets": []},
+            {"password": PASSWORD_MASK, "targets": ["new"]},
+        )

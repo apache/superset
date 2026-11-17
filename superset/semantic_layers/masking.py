@@ -172,8 +172,7 @@ def _is_secret_schema(
     alternative only makes a secret nullable and adds no non-secret settings.
     """
     if _depth > _MAX_SCHEMA_DEPTH:
-        if strict:
-            raise _UnresolvableRefError
+        # Strict updates are depth-checked by _validate_update_schema first.
         return True  # pathological schema: fail closed
     schema = _resolve_ref(schema, defs)
     if schema.get("format") == "password" or schema.get("writeOnly") is True:
@@ -617,7 +616,10 @@ def _validate_update_schema(
     if depth > _MAX_SCHEMA_DEPTH:
         raise _UnresolvableRefError
     schema = _resolve_ref(schema, defs)
-    if isinstance(schema.get("type"), list) or schema.keys() - _STRICT_SCHEMA_KEYS:
+    unknown: set[str] = {
+        key for key in schema.keys() - _STRICT_SCHEMA_KEYS if not key.startswith("x-")
+    }
+    if isinstance(schema.get("type"), list) or unknown:
         raise _UnresolvableRefError
     children: list[JsonSchema] = [
         child
