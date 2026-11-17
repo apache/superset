@@ -44,6 +44,8 @@ import { useCanvasDefinition } from 'src/features/canvas/useCanvasDefinition';
 import { useDraftToken } from 'src/features/canvas/useDraftToken';
 import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
+import { useCanvasLogger } from 'src/features/canvas/useCanvasLogger';
+import { Logger, LOG_ACTIONS_CANVAS_MOUNT } from 'src/logger/LogUtils';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
 import CanvasBody from 'src/features/canvas/CanvasBody';
 import CanvasVersionHistory from 'src/features/canvas/versionHistory/CanvasVersionHistory';
@@ -188,6 +190,29 @@ function CanvasContent({ id }: { id: number }) {
     }
   }, [id, title, revision]);
   useEffect(() => () => setActiveCanvas(undefined), [id]);
+
+  // Raised once the canvas is actually on screen -- both the metadata and the
+  // definition have arrived -- rather than when the component first renders,
+  // so `mount_duration` measures what the user waited for.
+  const log = useCanvasLogger(id, { isDraft: Boolean(draft.token) });
+  const mounted = useRef(false);
+  const nodeCount =
+    state.status === 'complete'
+      ? Object.keys(state.result.definition.nodes).length
+      : undefined;
+  useEffect(() => {
+    if (mounted.current || nodeCount === undefined || revision === undefined) {
+      return;
+    }
+    mounted.current = true;
+    log(LOG_ACTIONS_CANVAS_MOUNT, {
+      revision,
+      widget_count: nodeCount,
+      is_empty: nodeCount === 0,
+      is_version_preview: Boolean(history.preview),
+      mount_duration: Logger.getTimestamp(),
+    });
+  }, [log, nodeCount, revision, history.preview]);
 
   if (draft.token && state.status === 'error') {
     return (

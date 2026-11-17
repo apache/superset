@@ -29,6 +29,7 @@ import {
   LOG_ACTIONS_SPA_NAVIGATION,
 } from '../logger/LogUtils';
 import DebouncedMessageQueue from '../utils/DebouncedMessageQueue';
+import { canvas } from '../core/canvas';
 import { ensureAppRoot } from '../utils/navigationUtils';
 import type { DashboardInfo, DashboardLayoutState } from '../dashboard/types';
 import type { QueryEditor } from '../SqlLab/types';
@@ -38,13 +39,15 @@ type LogEventSource =
   | 'embedded_dashboard'
   | 'explore'
   | 'sqlLab'
-  | 'slice';
+  | 'slice'
+  | 'canvas';
 
 interface LogEventData {
   source?: LogEventSource;
   source_id?: string | number;
   dashboard_id?: number;
   slice_id?: number;
+  canvas_id?: number;
   db_id?: number;
   schema?: string;
   impression_id?: string;
@@ -108,6 +111,8 @@ const sendBeacon = (events: LogEventData[]): void => {
     endpoint += `&dashboard_id=${source_id}`;
   } else if (source === 'slice') {
     endpoint += `&slice_id=${source_id}`;
+  } else if (source === 'canvas') {
+    endpoint += `&canvas_id=${source_id}`;
   }
 
   if (navigator.sendBeacon) {
@@ -177,7 +182,25 @@ const loggerMiddleware: Middleware<
     // and `/embedded/:uuid/`) rather than any URL containing "/embedded/", which
     // would misclassify a regular dashboard whose slug is "embedded".
     const isEmbedded = EMBEDDED_ROUTE_REGEX.test(path ?? '');
-    if (dashboardInfo?.id && (path?.includes('/dashboard/') || isEmbedded)) {
+    // The canvas page keeps `activeCanvas` current and clears it on the way
+    // out, so reading it attributes every event raised while a canvas is open
+    // -- including the `load_chart` and `render_chart` events that shared chart
+    // components raise inside one, which otherwise carry no source at all.
+    // Imported from the module rather than the `src/core` barrel: the barrel
+    // reaches the telemetry namespace, which imports the store, which applies
+    // this middleware.
+    const activeCanvas = canvas.getActiveCanvas();
+    if (activeCanvas) {
+      logMetadata = {
+        source: 'canvas',
+        source_id: activeCanvas.id,
+        canvas_id: activeCanvas.id,
+        ...logMetadata,
+      };
+    } else if (
+      dashboardInfo?.id &&
+      (path?.includes('/dashboard/') || isEmbedded)
+    ) {
       logMetadata = {
         source: isEmbedded ? 'embedded_dashboard' : 'dashboard',
         source_id: dashboardInfo.id,

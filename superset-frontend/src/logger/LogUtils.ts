@@ -92,6 +92,34 @@ export const LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE = 'sqllab_load_tab_state';
 export const LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB =
   'sqllab_switch_south_pane_tab';
 
+// Canvas -----------------------------------------------------------------------
+// Every canvas event carries `canvas_id`, which `loggerMiddleware` fills from
+// the open canvas. Record ids and types only: never a filter value, never a
+// widget's data, never a canvas or widget title, and never a draft token or a
+// full URL -- a draft's URL ends in `#draft=<token>`, which is why the token
+// travels in a header in the first place. Whether a change is happening in a
+// draft is reported as the boolean `is_draft`.
+export const LOG_ACTIONS_CANVAS_MOUNT = 'canvas_mount';
+export const LOG_ACTIONS_CANVAS_LOAD_DEFINITION = 'canvas_load_definition';
+// `canvas_edit_layout` is the user's intent, recorded once per completed
+// gesture; `canvas_write_layout` is what the server did with it. They are
+// separate because an optimistic write can be rolled back, and counting only
+// the gesture would read every attempt as a success.
+export const LOG_ACTIONS_CANVAS_EDIT_LAYOUT = 'canvas_edit_layout';
+export const LOG_ACTIONS_CANVAS_WRITE_LAYOUT = 'canvas_write_layout';
+export const LOG_ACTIONS_CANVAS_DRAFT_START = 'canvas_draft_start';
+// Carries `outcome: 'commit' | 'discard'` rather than splitting into two
+// events: the funnel is then arithmetic against `canvas_draft_start`, and an
+// abandoned draft is the absence of this event, which no constant can capture.
+export const LOG_ACTIONS_CANVAS_DRAFT_END = 'canvas_draft_end';
+export const LOG_ACTIONS_CANVAS_DRAFT_HISTORY = 'canvas_draft_history';
+export const LOG_ACTIONS_CANVAS_FILTER_CHANGE = 'canvas_filter_change';
+export const LOG_ACTIONS_CANVAS_REFRESH_WIDGET = 'canvas_refresh_widget';
+export const LOG_ACTIONS_CANVAS_VERSION_PREVIEW = 'canvas_version_preview';
+export const LOG_ACTIONS_CANVAS_VERSION_RESTORE = 'canvas_version_restore';
+export const LOG_ACTIONS_CANVAS_CHAT_PANEL = 'canvas_chat_panel';
+export const LOG_ACTIONS_CANVAS_ERROR = 'canvas_error';
+
 // Log event types --------------------------------------------------------------
 export const LOG_EVENT_TYPE_TIMING = new Set([
   LOG_ACTIONS_LOAD_CHART,
@@ -99,6 +127,14 @@ export const LOG_EVENT_TYPE_TIMING = new Set([
   LOG_ACTIONS_HIDE_BROWSER_TAB,
   LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY,
   LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE,
+  // Both follow a user action they should attach to. Membership has a
+  // consequence the name hides: a timing event gets no `event_id` of its own
+  // and inherits `trigger_event` instead. That is wrong for
+  // `canvas_error`, which often fires with no preceding user action -- a
+  // background poll failing, a widget throwing during render -- so it stays a
+  // user-type event and keeps its own id.
+  LOG_ACTIONS_CANVAS_LOAD_DEFINITION,
+  LOG_ACTIONS_CANVAS_WRITE_LAYOUT,
 ]);
 export const LOG_EVENT_TYPE_USER = new Set([
   LOG_ACTIONS_MOUNT_DASHBOARD,
