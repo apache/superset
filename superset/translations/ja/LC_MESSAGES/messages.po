@@ -3548,6 +3548,10 @@ msgid "Cannot nest folders in default folders"
 msgstr "既定のフォルダー内に入れ子でフォルダーを作成することはできません"
 
 #, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
+#, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "時間文字列 [%(human_readable)s] を解析できません"
 

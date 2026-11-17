@@ -4152,6 +4152,10 @@ msgid "Cannot nest folders in default folders"
 msgstr "نمی‌توان پوشه‌ها را در پوشه‌های پیش‌فرض تودرتو کرد"
 
 #, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
+#, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "نمی‌توان رشته زمان [%(human_readable)s] را تجزیه کرد"
 

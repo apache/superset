@@ -3840,6 +3840,10 @@ msgid "Cannot nest folders in default folders"
 msgstr "无法在默认文件夹中嵌套文件夹"
 
 #, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
+#, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "无法解析时间字符串[%(human_readable)s]"
 

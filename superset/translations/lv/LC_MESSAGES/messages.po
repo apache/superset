@@ -4031,6 +4031,10 @@ msgid "Cannot nest folders in default folders"
 msgstr "Nevar ievietot mapes noklusējuma mapēs"
 
 #, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
+#, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Nevar parsēt laika virkni [%(human_readable)s]"
 

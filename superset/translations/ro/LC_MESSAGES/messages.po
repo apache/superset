@@ -4211,6 +4211,10 @@ msgid "Cannot nest folders in default folders"
 msgstr "Nu se pot cuibări foldere în folderele implicite"
 
 #, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
+#, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Nu se poate analiza șirul de timp [%(human_readable)s]"
 

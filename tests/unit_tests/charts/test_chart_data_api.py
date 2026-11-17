@@ -1667,7 +1667,6 @@ def test_get_data_response_streaming_up_front_maps_setup_errors(
     command.execute.assert_not_called()
 
 
-<<<<<<< HEAD
 def test_stop_data_route_is_registered_with_an_existing_permission() -> None:
     """``stop_data`` must map onto ``can_read on Chart``.
 
@@ -1743,6 +1742,29 @@ def test_create_query_context_from_form_converts_type_error_to_400() -> None:
     with patch(
         "superset.charts.data.api.ChartDataQueryContextSchema.load",
         side_effect=TypeError(message),
+    ):
+        with pytest.raises(ValidationError) as excinfo:
+            api._create_query_context_from_form({})
+
+    assert message in str(excinfo.value)
+
+
+def test_create_query_context_from_form_converts_query_object_error_to_400() -> None:
+    """
+    A QueryObjectValidationError raised while loading the query context
+    (e.g. a mixed-timezone range in QueryObjectFactory.create) is re-raised
+    as a marshmallow ValidationError so the API returns a 400 instead of an
+    unhandled 500.
+    """
+    from marshmallow import ValidationError
+
+    from superset.exceptions import QueryObjectValidationError
+
+    api = ChartDataRestApi()
+    message = "invalid range"
+    with patch(
+        "superset.charts.data.api.ChartDataQueryContextSchema.load",
+        side_effect=QueryObjectValidationError(message),
     ):
         with pytest.raises(ValidationError) as excinfo:
             api._create_query_context_from_form({})

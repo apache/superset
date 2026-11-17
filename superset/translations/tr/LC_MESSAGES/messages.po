@@ -4016,6 +4016,10 @@ msgid "Cannot nest folders in default folders"
 msgstr "Varsayılan klasörlerde nest klasörler değil"
 
 #, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
+#, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Cannot parse time string [  %(human_readable)s ]"
 

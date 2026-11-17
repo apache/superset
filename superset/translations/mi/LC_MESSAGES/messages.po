@@ -4136,6 +4136,10 @@ msgid "Cannot nest folders in default folders"
 msgstr "Kāore e taea te whakakomo māhoe ki roto i ngā māhoe taunoa"
 
 #, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
+#, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Kāore e taea te poroporo i te aho wā [%(human_readable)s]"
 

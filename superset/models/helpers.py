@@ -3622,8 +3622,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             ) as ex:
                                 col_name = flt.get("col") or "unknown"
                                 raise QueryObjectValidationError(
-                                    f"Cannot parse time range for filter "
-                                    f"'{col_name}': {ex}"
+                                    _(
+                                        "Cannot parse time range for filter "
+                                        "'%(col)s': %(err)s",
+                                        col=col_name,
+                                        err=ex,
+                                    )
                                 ) from ex
                             flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
                 else:
@@ -7970,7 +7974,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 else str(col_obj)
                             )
                             raise QueryObjectValidationError(
-                                f"Cannot parse time range for filter '{col_name}': {ex}"
+                                _(
+                                    "Cannot parse time range for filter "
+                                    "'%(col)s': %(err)s",
+                                    col=col_name,
+                                    err=ex,
+                                )
                             ) from ex
                         _temporal_filter = self.get_time_filter(
                             time_col=col_obj,
