@@ -628,6 +628,12 @@ numpy = "2"
 paramiko = "3"  # GPL
 pyxlsb = "1"  # GPL
 
+[tool.uv]
+# Bounds the universal lock (`uv pip compile --universal`) to non-Windows
+# platforms; Superset does not support Windows, so resolving for it only adds
+# markers and forks.
+environments = ["sys_platform != 'win32'"]
+
 [tool.uv.sources]
 apache-superset-core = { path = "./superset-core", editable = true }
 apache-superset-extensions-cli = { path = "./superset-extensions-cli", editable = true }
