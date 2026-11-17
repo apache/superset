@@ -114,13 +114,19 @@ def _resolve_builtin_dataset(
 
     dataset_id = request.dataset_id
     assert dataset_id is not None
-    if (
-        request.time_grain
-        or request.dimension_grains
-        or any("grain" in item.model_fields_set for item in request.filters)
-    ):
+    unsupported: list[str] = []
+    if request.time_grain:
+        unsupported.append("time_grain")
+    if request.dimension_grains:
+        unsupported.append("dimension_grains")
+    if any("grain" in item.model_fields_set for item in request.filters):
+        unsupported.append("filters.grain")
+    if unsupported:
         return SemanticLayerError.create(
-            error="time_grain applies to semantic views only, not built-in datasets.",
+            error=(
+                f"{', '.join(unsupported)} applies to semantic views only, "
+                "not built-in datasets."
+            ),
             error_type="ValidationError",
         )
 
@@ -407,18 +413,9 @@ def _build_query_dict(
         rewrite_one_sided_time_range=request.view_id is not None,
     )
 
-    query["columns"] = [
-        {
-            "label": column,
-            "sqlExpression": column,
-            "isColumnReference": True,
-            "columnType": "BASE_AXIS",
-            "timeGrain": request.dimension_grains[column],
-        }
-        if isinstance(column, str) and column in request.dimension_grains
-        else column
-        for column in query["columns"]
-    ]
+    # Preserve explicit null separately from Explore's cleared BASE_AXIS grain.
+    if request.dimension_grains:
+        query.setdefault("extras", {})["dimension_grains"] = request.dimension_grains
     return query
 
 

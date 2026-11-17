@@ -521,10 +521,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       selectedMetrics,
       selectedDimensions,
     );
-    // props.datasource.id covers the saved-chart-loading case (M4)
+    // A viz switch resets compatibility even when member selections stay the same.
   }, [
     props.datasource.id,
     props.datasource.type,
+    props.form_data.viz_type,
     selectedMetrics,
     selectedDimensions,
   ]);

@@ -2849,7 +2849,7 @@ async def test_assembled_table_preserves_omitted_native_and_bucket_intent(
         assert "grain" in query["filters"][0]
         assert query["filters"][0]["grain"] is None
         if grains:
-            assert query["columns"][0]["timeGrain"] == grains["metric_time"]
+            assert query["extras"]["dimension_grains"] == grains
         else:
             assert query["columns"] == ["metric_time"]
 
@@ -2906,7 +2906,10 @@ async def test_assembled_table_keeps_independent_dimension_and_filter_grains(
         result: dict[str, Any] = json.loads(response.content[0].text)
     assert result["success"] is True, result
     query: dict[str, Any] = execute.call_args.args[2]
-    assert [column["timeGrain"] for column in query["columns"]] == ["P1M", "P1D"]
+    assert query["extras"]["dimension_grains"] == {
+        "metric_time": "P1M",
+        "shipped_at": "P1D",
+    }
     assert query["filters"][0]["grain"] == "P1D"
 
 
@@ -2947,3 +2950,25 @@ async def test_assembled_table_rejects_conflicting_or_unsupported_grains(
         result: dict[str, Any] = json.loads(response.content[0].text)
     assert result["error_type"] == "ValidationError"
     execute.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "argument", ["time_grain", "dimension_grains", "filters.grain"]
+)
+def test_builtin_grain_error_names_the_supplied_argument(argument: str) -> None:
+    extra: dict[str, Any] = (
+        {
+            "filters": [
+                {"col": "event_time", "op": "==", "val": "2026-01-01", "grain": None}
+            ]
+        }
+        if argument == "filters.grain"
+        else {
+            argument: {"event_time": None} if argument == "dimension_grains" else "P1D"
+        }
+    )
+    result: Any = get_table_module._resolve_builtin_dataset(
+        GetTableRequest(dataset_id=42, **extra)
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert argument in result.error

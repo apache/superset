@@ -596,6 +596,7 @@ def _map_query_object(
         else {}
     )
     grouping_grains.update(_explicit_column_grains(query_object, dimension_names))
+    grouping_grains.update(_explicit_dimension_grains(query_object, normalized_columns))
     grouping_dimensions: dict[str, DimensionSelection] = resolve_dimensions(
         view_dimensions,
         usage=DimensionUsage.GROUP,
@@ -625,7 +626,8 @@ def _map_query_object(
             and filter_["col"] not in contextual_dimensions
         ):
             raise SemanticQueryInputError(
-                "The filter dimension is not supported in this query."
+                f"The filter dimension '{filter_['col']}' "
+                "is not supported in this query."
             )
     all_dimensions = contextual_dimensions
     if (
@@ -1445,6 +1447,26 @@ def _get_group_limit_filters(
     return filters if filters else None
 
 
+def _explicit_dimension_grains(
+    query_object: ValidatedQueryObject, selected_names: set[str]
+) -> dict[str, Grain | None]:
+    """Read explicit SDK operands, keeping native distinct from omitted intent."""
+    explicit: object = query_object.extras.get("dimension_grains", {})
+    if not isinstance(explicit, dict) or not explicit.keys() <= selected_names:
+        raise GrainSelectionError("dimension_grains requires selected dimensions.")
+    grains: dict[str, Grain | None] = {}
+    name: str
+    duration: str | None
+    for name, duration in explicit.items():
+        if duration is not None and not isinstance(duration, str):
+            raise GrainSelectionError(f"The time grain for '{name}' is not supported.")
+        grain: Grain | None = _convert_time_grain(duration)
+        if duration is not None and grain is None:
+            raise GrainSelectionError(f"The time grain for '{name}' is not supported.")
+        grains[name] = grain
+    return grains
+
+
 def _explicit_column_grains(
     query_object: ValidatedQueryObject, dimension_names: set[str]
 ) -> dict[str, Grain | None]:
@@ -1606,8 +1628,9 @@ def validate_filter_columns(
 ) -> None:
     """Refuse chart-defined predicates on metrics or on columns the view lacks.
 
-    Dashboard (``isExtra``) filters are not refused: incompatible ones are
-    skipped and reported, so a dashboard filter cannot break the chart. A
+    Dashboard (``isExtra``) filters on fields absent from the view are skipped
+    and reported. Catalog fields excluded by the current metric/dimension
+    context are refused later, so their predicates cannot silently disappear. A
     "No filter" time range constrains nothing, so missing columns are allowed;
     chart-defined metric filters remain unsupported.
     """

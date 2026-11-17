@@ -750,6 +750,7 @@ test('compatibility updates stored grain choices without erasing an invalid save
   );
   expect(verified.controls.time_grain_sqla.choices).toEqual([['P1M', 'Month']]);
   expect(verified.controls.time_grain_sqla.value).toBe('P1D');
+  expect(verified.controls.time_grain_sqla.clearable).toBe(false);
   const later = exploreReducer(verified, {
     type: 'SET_FORCE_QUERY',
     force: true,
@@ -765,4 +766,5 @@ test('compatibility updates stored grain choices without erasing an invalid save
     initial.datasource?.time_grain_sqla,
   );
   expect(failed.controls.time_grain_sqla.value).toBe('P1D');
+  expect(failed.controls.time_grain_sqla.clearable).toBe(true);
 });

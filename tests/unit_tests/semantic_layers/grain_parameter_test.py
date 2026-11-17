@@ -19,6 +19,7 @@
 
 from dataclasses import replace
 from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock
 
 import pyarrow as pa
@@ -336,7 +337,7 @@ def test_context_narrowing_never_silently_drops_a_dashboard_filter() -> None:
         metrics=[],
         filters=[{"col": "region", "op": "IN", "val": ["EMEA"], "isExtra": True}],
     )
-    with pytest.raises(SemanticQueryInputError, match="not supported"):
+    with pytest.raises(SemanticQueryInputError, match="region.*not supported"):
         map_query_object(query)
 
 
@@ -371,3 +372,88 @@ def test_query_selection_uses_provider_catalog_grain_instance() -> None:
     dimension: Dimension = replace(time_dimension(), grains=frozenset({catalog_grain}))
     selected: DimensionSelection = resolution.select_dimension(dimension, Grains.MONTH)
     assert selected.grain is catalog_grain
+
+
+@pytest.mark.parametrize("omitted", [Grains.DAY, GrainDefault.REJECT])
+def test_mcp_explicit_native_survives_query_mapping(
+    omitted: Grain | GrainDefault,
+) -> None:
+    from superset.charts.schemas import ChartDataExtrasSchema
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+    from superset.mcp_service.semantic_layer.tool.get_table import _build_query_dict
+
+    dimension: Dimension = replace(time_dimension(), omitted_grain=omitted)
+    request: GetTableRequest = GetTableRequest(
+        view_id=1, dimensions=["event_time"], dimension_grains={"event_time": None}
+    )
+    query: dict[str, Any] = _build_query_dict(request, None)
+    query["extras"] = ChartDataExtrasSchema().load(query.get("extras", {}))
+    mapped: SemanticQuery = map_query_object(
+        ValidatedQueryObject(datasource=datasource(GrainView(dimension)), **query)
+    )[0]
+    assert mapped.dimensions == [DimensionSelection(dimension, None)]
+
+
+def test_explore_cleared_grain_keeps_omitted_default() -> None:
+    dimension: Dimension = replace(time_dimension(), omitted_grain=Grains.DAY)
+    mapped: SemanticQuery = map_query_object(
+        ValidatedQueryObject(
+            datasource=datasource(GrainView(dimension)),
+            columns=[
+                {
+                    "label": "event_time",
+                    "sqlExpression": "event_time",
+                    "isColumnReference": True,
+                    "columnType": "BASE_AXIS",
+                    "timeGrain": None,
+                }
+            ],
+            metrics=[],
+        )
+    )[0]
+    assert mapped.dimensions == [DimensionSelection(dimension, Grains.DAY)]
+
+
+@pytest.mark.parametrize(
+    "explicit",
+    [
+        None,
+        [],
+        {"missing": None},
+        {"event_time": 3},
+        {"event_time": ""},
+        {"event_time": "nonsense"},
+    ],
+)
+def test_invalid_explicit_dimension_grains_never_fall_back(explicit: object) -> None:
+    with pytest.raises(QueryObjectValidationError, match="grain"):
+        map_query_object(
+            ValidatedQueryObject(
+                datasource=datasource(GrainView(time_dimension())),
+                columns=["event_time"],
+                metrics=[],
+                extras={"dimension_grains": explicit},
+            )
+        )
+
+
+def test_explicit_dimension_grains_validate_contextual_native_support() -> None:
+    dimension: Dimension = time_dimension()
+    view: GrainView = GrainView(dimension)
+    view.contextual = {
+        replace(
+            dimension,
+            allows_default_grain=False,
+            omitted_grain=Grains.DAY,
+            ungrained_filter=Grains.DAY,
+        )
+    }
+    with pytest.raises(QueryObjectValidationError, match="grain is not supported"):
+        map_query_object(
+            ValidatedQueryObject(
+                datasource=datasource(view),
+                columns=["event_time"],
+                metrics=[],
+                extras={"dimension_grains": {"event_time": None}},
+            )
+        )

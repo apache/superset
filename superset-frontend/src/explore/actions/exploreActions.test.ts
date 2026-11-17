@@ -497,24 +497,6 @@ test('fetchCompatibility retains contextual grain support beside member names', 
   postSpy.mockRestore();
 });
 
-test('fetchCompatibility sends explicit month intent separately from names', async () => {
-  const dispatch = jest.fn();
-  const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValueOnce({
-    json: { result: {} },
-  } as never);
-  await actions.fetchCompatibility('semantic_view', 7, ['A'], ['time'], {
-    time: 'P1M',
-  })(dispatch);
-  expect(postSpy).toHaveBeenCalledWith(
-    expect.objectContaining({
-      jsonPayload: expect.objectContaining({
-        dimension_grains: { time: 'P1M' },
-      }),
-    }),
-  );
-  postSpy.mockRestore();
-});
-
 test('SQL axis changes invalidate pending compatibility without idle redispatch', async () => {
   const dispatch = jest.fn();
   await actions.fetchCompatibility(

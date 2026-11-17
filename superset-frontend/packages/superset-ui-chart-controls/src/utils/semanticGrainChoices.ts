@@ -42,7 +42,8 @@ export const semanticGrainProps = (
   clearable?: boolean;
 } => {
   const choices = state.datasource?.time_grain_sqla ?? null;
-  if (state.datasource?.type !== 'semantic_view') return { choices };
+  if (state.datasource?.type !== 'semantic_view')
+    return { choices: choices ?? [] };
   const axis =
     state.controls?.x_axis?.value ??
     state.form_data?.x_axis ??
@@ -64,32 +65,10 @@ export const semanticGrainProps = (
   // Table/Pivot groupings have no single axis. The catalog remains selectable
   // until there is verified support for a specific axis. Never coerce a saved
   // bucket to null (an explicit native request) while metadata is unavailable.
-  if (!support) return { choices };
+  if (!support) return { choices, clearable: true };
   return {
     choices:
       choices?.filter(([grain]) => support.grains.includes(grain)) ?? null,
     clearable: support?.allows_default_grain === true,
   };
-};
-
-/** Only active selected dimensions carry grain intent; dormant table values do not. */
-export const semanticGrainSelections = (
-  formData: Record<string, unknown>,
-  selectedDimensions: string[],
-  columns: { column_name: string; is_dttm?: boolean }[],
-): Record<string, string | null> => {
-  const axis = formData.x_axis ?? formData.granularity_sqla;
-  const name =
-    typeof axis === 'string'
-      ? axis
-      : axis && typeof axis === 'object' && 'sqlExpression' in axis
-        ? axis.sqlExpression
-        : undefined;
-  const grain = formData.time_grain_sqla;
-  return typeof name === 'string' &&
-    selectedDimensions.includes(name) &&
-    columns.some(column => column.column_name === name && column.is_dttm) &&
-    (typeof grain === 'string' || grain === null)
-    ? { [name]: grain || null }
-    : {};
 };

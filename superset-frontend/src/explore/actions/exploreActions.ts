@@ -216,7 +216,6 @@ export function fetchCompatibility(
   datasourceId: number,
   selectedMetrics: string[],
   selectedDimensions: string[],
-  dimensionGrains: Record<string, string | null> = {},
 ) {
   return async (
     dispatch: Dispatch,
@@ -242,9 +241,9 @@ export function fetchCompatibility(
         jsonPayload: {
           selected_metrics: selectedMetrics,
           selected_dimensions: selectedDimensions,
-          ...(Object.keys(dimensionGrains).length
-            ? { dimension_grains: dimensionGrains }
-            : {}),
+          // Leave grains unpinned so the response can offer alternative buckets.
+          // Execution validates the selected grain; these picker suggestions
+          // intentionally describe the member combination, not a fixed bucket.
         },
       });
       if (requestSeq !== compatibilityRequestSeq) {
