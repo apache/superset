@@ -178,15 +178,23 @@ export function saveChartCustomization(
 
       return { result: {}, last_modified_time: Date.now() };
     } catch (err) {
-      const status = err instanceof SupersetApiError ? err.status : undefined;
+      const apiError = err instanceof SupersetApiError ? err : undefined;
+      const status = apiError?.status;
+      const original = apiError?.originalError;
+      const message =
+        original && typeof original === 'object' && 'message' in original
+          ? original.message
+          : err instanceof Error
+            ? err.message
+            : undefined;
       const reason =
         status === 403
           ? t('you do not have permission to edit this dashboard.')
           : status === 404
             ? t('this dashboard is unavailable or you no longer have access.')
-            : err instanceof Error && err.message
-              ? err.message
-              : t('An error occurred');
+            : typeof message === 'string' && message.trim()
+              ? message
+              : apiError?.statusText || t('An error occurred');
       dispatch(
         addDangerToast(
           t('Your display control changes were not saved: %s', reason),

@@ -136,6 +136,33 @@ test.each([
   },
 );
 
+test.each([false, true])(
+  'uses the HTTP reason for a validation dict, display controls=%s',
+  async failControls => {
+    // Dashboard update schemas return error.messages via response_400.
+    const failure = {
+      status: 400,
+      body: { message: { modified: ['Not a valid list.'] } },
+    };
+    fetchMock.route(
+      FILTERS_URL,
+      failControls ? { result: [NEW_FILTER] } : failure,
+    );
+    fetchMock.route(CUSTOMIZATIONS_URL, failure);
+    const { result, store } = renderUseFilterConfigModal();
+    await act(async () => {
+      await expect(result.current.handleSave(CHANGES)).rejects.toBeDefined();
+    });
+    expect(store.getState()).toMatchObject({
+      messageToasts: [
+        {
+          text: `Your ${failControls ? 'display control' : 'filter'} changes were not saved: Bad Request`,
+        },
+      ],
+    });
+  },
+);
+
 test('saves native filters before chart customizations instead of in parallel', async () => {
   const events: string[] = [];
   const filters = deferred();
