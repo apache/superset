@@ -29090,6 +29090,11 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "default_executor": {
+                      "description": "Fixed default execution account, visible only to admins.",
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "result": {
                       "$ref": "#/components/schemas/ReportConfigurationSchema"
                     }

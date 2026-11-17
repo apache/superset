@@ -438,7 +438,15 @@ viewer membership and dataset access alone do not grant access to a draft.
 Use an execution account with the required access, or publish the dashboard when
 it is ready to share. Where the **Run as** control is enabled, select an authorized
 account. Otherwise, ask an administrator to check `ALERT_REPORTS_EXECUTORS`.
-The dashboard selector includes this guidance for alerts and reports.
+The dashboard selector marks drafts. Both the schedule form and the dashboard
+header report form show guidance only for a selected draft dashboard. Administrators
+can see the configured fixed execution account. A schedule that runs as the current
+user shows guidance for that user.
+
+Save and execution errors explain how to restore access. Before making a published
+dashboard a draft, a confirmation warns that active schedules may stop delivering.
+Check the execution accounts before confirming; the warning does not count affected
+schedules.
 
 #### Per-schedule "Run As" executor
 

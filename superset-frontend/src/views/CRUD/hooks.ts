@@ -530,6 +530,7 @@ export function useSingleViewResource<
       hideToast = false,
       setLoading = true,
       shouldApplyResponse: () => boolean = () => true,
+      rejectOnError = false,
     ) => {
       // Set loading state
       if (setLoading) {
@@ -569,6 +570,7 @@ export function useSingleViewResource<
               error: errMsg,
             });
 
+            if (rejectOnError) throw errMsg;
             return errMsg;
           }),
         )

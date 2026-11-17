@@ -281,6 +281,16 @@ class ReportScheduleExecutorNotFoundError(CommandException):
         )
 
 
+def _draft_dashboard_remedy() -> str:
+    """Explain how to restore access without weakening draft visibility."""
+    return _(
+        "This dashboard is a draft. The execution account must be an Admin "
+        "or dashboard editor. Publish the dashboard when it is ready to share, "
+        "or ask an administrator to add the execution account as a dashboard editor. "
+        "If Run as is available, select an authorized account."
+    )
+
+
 class ReportScheduleExecutorAccessDeniedError(CommandException):
     """Raised when the identity a report runs as cannot access its target."""
 
@@ -289,7 +299,11 @@ class ReportScheduleExecutorAccessDeniedError(CommandException):
     # which task-state alerting should surface as a failure.
     status = 500
 
-    def __init__(self, kind: str, username: str, reason: str) -> None:
+    def __init__(
+        self, kind: str, username: str, reason: str, *, draft: bool = False
+    ) -> None:
+        if draft:
+            reason = f"{reason} {_draft_dashboard_remedy()}"
         super().__init__(
             _(
                 "The report runs as %(username)s, who cannot access its "
@@ -626,12 +640,14 @@ class ReportScheduleExecutorTargetAccessError(ValidationError):
     chart or dashboard it delivers
     """
 
-    def __init__(self, kind: str, username: str | None = None) -> None:
+    def __init__(
+        self, kind: str, username: str | None = None, *, draft: bool = False
+    ) -> None:
         message = (
             _(
                 "This report runs as %(username)s, who cannot access this "
-                "%(kind)s. Choose a %(kind)s that user can access, or a "
-                "different user to run the report as.",
+                "%(kind)s. Choose a %(kind)s that user can access, or ask an "
+                "administrator to update the execution account's access.",
                 username=f'"{username}"',
                 kind=kind,
             )
@@ -643,4 +659,6 @@ class ReportScheduleExecutorTargetAccessError(ValidationError):
                 kind=kind,
             )
         )
+        if draft:
+            message = f"{message} {_draft_dashboard_remedy()}"
         super().__init__(message, field_name=kind)
