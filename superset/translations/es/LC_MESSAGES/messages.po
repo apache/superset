@@ -6025,13 +6025,13 @@ msgstr ""
 
 msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
-"Personaliza la etiqueta de la serie izquierda en las descripciones "
-"emergentes y la leyenda"
+"Personaliza la etiqueta de la serie izquierda en la información "
+"sobre herramientas y la leyenda"
 
 msgid "Customize the label for the right series in tooltips and legend"
 msgstr ""
-"Personaliza la etiqueta de la serie derecha en las descripciones "
-"emergentes y la leyenda"
+"Personaliza la etiqueta de la serie derecha en la información "
+"sobre herramientas y la leyenda"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 msgid "Customize the value transform →"
