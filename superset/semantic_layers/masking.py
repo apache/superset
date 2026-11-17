@@ -75,10 +75,48 @@ logger: logging.Logger = logging.getLogger(__name__)
 _UNION_KEYS: tuple[str, ...] = ("anyOf", "oneOf", "allOf")
 _MAX_SCHEMA_DEPTH: int = 16
 _SECRET_FIELD: object = object()
+# Validation and annotation keywords do not change which fields are secret.
+_STRICT_SCHEMA_KEYS: frozenset[str] = frozenset(
+    {
+        "$defs",
+        "type",
+        "properties",
+        "patternProperties",
+        "additionalProperties",
+        "items",
+        "prefixItems",
+        *_UNION_KEYS,
+        "title",
+        "description",
+        "default",
+        "examples",
+        "deprecated",
+        "readOnly",
+        "writeOnly",
+        "format",
+        "required",
+        "enum",
+        "const",
+        "minimum",
+        "maximum",
+        "exclusiveMinimum",
+        "exclusiveMaximum",
+        "multipleOf",
+        "minLength",
+        "maxLength",
+        "pattern",
+        "minItems",
+        "maxItems",
+        "uniqueItems",
+        "minProperties",
+        "maxProperties",
+        "discriminator",
+    }
+)
 _MASKED_CONFIGURATION_CHANGE_ERROR: str = (
     "This update changes the configuration while reusing a stored "
-    "secret value (a masked field). Provide the real value for any "
-    "masked field to confirm a configuration change."
+    "secret value (a masked field). Re-enter all credentials to confirm "
+    "a configuration change."
 )
 
 JsonSchema = dict[str, Any]
@@ -572,31 +610,54 @@ def unmask_configuration(
     return submitted
 
 
-def _without_secret_fields(reference: Any) -> Any:
-    """Build a type-sensitive comparison tree excluding declared secret fields."""
+def _validate_update_schema(
+    schema: JsonSchema, defs: dict[str, JsonSchema], depth: int = 0
+) -> None:
+    """Refuse unmodelled schema semantics before classifying retained credentials."""
+    if depth > _MAX_SCHEMA_DEPTH:
+        raise _UnresolvableRefError
+    schema = _resolve_ref(schema, defs)
+    if isinstance(schema.get("type"), list) or schema.keys() - _STRICT_SCHEMA_KEYS:
+        raise _UnresolvableRefError
+    children: list[JsonSchema] = [
+        child
+        for key in ("properties", "patternProperties")
+        for child in schema.get(key, {}).values()
+    ]
+    children.extend(
+        child for key in (*_UNION_KEYS, "prefixItems") for child in schema.get(key, [])
+    )
+    children.extend(
+        schema[key]
+        for key in ("additionalProperties", "items")
+        if isinstance(schema.get(key), dict)
+    )
+    child: JsonSchema
+    for child in children:
+        _validate_update_schema(child, defs, depth + 1)
+
+
+def _without_secret_values(reference: Any) -> Any:
+    """Compare visible values and all keys, retaining placeholders for secrets."""
     if isinstance(reference, dict):
-        return {
-            key: _without_secret_fields(value)
-            for key, value in reference.items()
-            if value is not _SECRET_FIELD
-        }
+        return {key: _without_secret_values(value) for key, value in reference.items()}
     if isinstance(reference, list):
-        return [_without_secret_fields(value) for value in reference]
+        return [_without_secret_values(value) for value in reference]
     return type(reference), reference
 
 
-def _contains_partial_secret(reference: Any, submitted: Any) -> bool:
-    """Detect inner masks in a replacement classified wholly as secret."""
+def _contains_explicit_secret(reference: Any, submitted: Any) -> bool:
+    """Detect non-null explicit secrets without comparing them to stored values."""
     if reference is _SECRET_FIELD:
-        return isinstance(submitted, (dict, list)) and _contains_mask(submitted)
+        return submitted is not None and submitted != PASSWORD_MASK
     if isinstance(reference, dict) and isinstance(submitted, dict):
         return any(
-            _contains_partial_secret(value, submitted.get(key))
+            _contains_explicit_secret(value, submitted.get(key))
             for key, value in reference.items()
         )
     if isinstance(reference, list) and isinstance(submitted, list):
         return any(
-            _contains_partial_secret(old, new)
+            _contains_explicit_secret(old, new)
             for old, new in zip(reference, submitted, strict=False)
         )
     return False
@@ -605,17 +666,17 @@ def _contains_partial_secret(reference: Any, submitted: Any) -> bool:
 def unmask_configuration_for_update(
     layer_type: str, stored: dict[str, Any], submitted: dict[str, Any]
 ) -> dict[str, Any]:
-    """Restore masks while freezing non-secret settings under one usable schema.
+    """Restore masks while freezing configuration under one usable schema.
 
-    Explicit declared secrets are excluded from comparison, even when empty or
-    null. A schema failure cannot grant permission to edit arbitrary fields.
+    While any mask is retained, secrets must also be masked or explicitly null.
+    A schema failure cannot grant permission to edit arbitrary fields.
     Fully explicit updates need no stored-value classification.
     """
     if not _contains_mask(submitted):
         return submitted
     schema_error: str = (
-        "Cannot reuse masked values because the configuration schema is unavailable. "
-        "Provide explicit credentials or retry when the schema is available."
+        "Cannot safely classify this masked configuration with the provider schema. "
+        "Re-enter all credentials to update the configuration."
     )
     try:
         provider: type[CoreSemanticLayer[Any, Any]] = registry[layer_type]
@@ -625,12 +686,13 @@ def unmask_configuration_for_update(
         )
         if not isinstance(schema, dict):
             raise _UnresolvableRefError
+        _validate_update_schema(schema, schema.get("$defs", {}))
         reference: Any = _mask_value(
             stored, schema, schema.get("$defs", {}), layer_type, True
         )
     except Exception:  # pylint: disable=broad-except
         raise MaskedConfigurationUpdateError(schema_error) from None
-    if _contains_partial_secret(reference, submitted):
+    if _contains_explicit_secret(reference, submitted):
         raise MaskedConfigurationUpdateError(_MASKED_CONFIGURATION_CHANGE_ERROR)
     restored: dict[str, Any] = unmask_configuration(stored, submitted, reference)
     try:
@@ -639,6 +701,8 @@ def unmask_configuration_for_update(
         )
     except (_UnresolvableRefError, TypeError, AttributeError):
         raise MaskedConfigurationUpdateError(schema_error) from None
-    if _without_secret_fields(reference) != _without_secret_fields(updated_reference):
+    if _contains_explicit_secret(updated_reference, submitted) or (
+        _without_secret_values(reference) != _without_secret_values(updated_reference)
+    ):
         raise MaskedConfigurationUpdateError(_MASKED_CONFIGURATION_CHANGE_ERROR)
     return restored

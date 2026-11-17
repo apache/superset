@@ -3590,7 +3590,7 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
     mocker: MockerFixture,
     guess: str,
 ) -> None:
-    """Wrong and right guesses both replace secrets, without an identity signal."""
+    """Wrong and right guesses are both refused, without an identity signal."""
     layer: MagicMock = MagicMock()
     layer.configure_mock(
         type="oracle_test",
@@ -3632,12 +3632,17 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
             }
         },
     )
-    assert response.status_code == 200
-    assert response.json == {"result": {"uuid": str(layer.uuid)}}
-    provider.configuration_class.model_validate.assert_called_once_with(
-        {"accounts": [{"host": "a", "password": "stored-password", "token": guess}]}
-    )
-    dao.update.assert_called_once()
+    assert response.status_code == 422
+    assert response.json == {
+        "message": (
+            "This update changes the configuration while reusing a stored "
+            "secret value (a masked field). Re-enter all credentials to confirm "
+            "a configuration change."
+        )
+    }
+    provider.configuration_class.model_validate.assert_not_called()
+    dao.update.assert_not_called()
+    layer.clear_metadata_cache.assert_not_called()
 
 
 @SEMANTIC_LAYERS_APP

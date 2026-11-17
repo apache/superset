@@ -914,7 +914,7 @@ def test_update_mask_rejects_unavailable_schema(schema: Any) -> None:
     with (
         _with_schema(schema),
         pytest.raises(
-            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
         ),
     ):
         masking.unmask_configuration_for_update(
@@ -931,7 +931,7 @@ def test_update_mask_rejects_excessive_schema_depth() -> None:
     with (
         _with_schema({"properties": {"password": field_schema}}),
         pytest.raises(
-            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
         ),
     ):
         masking.unmask_configuration_for_update(
@@ -950,7 +950,7 @@ def test_update_mask_sanitizes_provider_schema_failure(mocker: MockerFixture) ->
     with (
         _register(),
         pytest.raises(
-            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
         ) as error,
     ):
         masking.unmask_configuration_for_update(
@@ -976,7 +976,7 @@ def test_update_mask_rejects_unclassifiable_added_field(
     with (
         _with_schema(schema),
         pytest.raises(
-            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
         ),
     ):
         masking.unmask_configuration_for_update(
@@ -1032,10 +1032,10 @@ def test_update_mask_requires_explicit_whole_secret_replacement(
     with _with_schema(schema):
         if classification != "declared" and replacement != "all-explicit":
             with pytest.raises(
-                masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+                masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
             ):
                 masking.unmask_configuration_for_update("fake", stored, submitted)
-        elif replacement == "partial":
+        elif replacement in ("partial", "explicit"):
             with pytest.raises(
                 masking.MaskedConfigurationUpdateError, match="reusing a stored"
             ):
@@ -1090,7 +1090,7 @@ def test_update_mask_refuses_ambiguous_scalar_without_comparing_values(
             "endpoint": PASSWORD_MASK,
         }
         with pytest.raises(
-            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
         ):
             masking.unmask_configuration_for_update(
                 "fake", stored, {"token": PASSWORD_MASK, "endpoint": submitted_value}
@@ -1099,10 +1099,10 @@ def test_update_mask_refuses_ambiguous_scalar_without_comparing_values(
 
 @pytest.mark.parametrize("old_token", [None, "", "stored-token"])
 @pytest.mark.parametrize("new_token", [None, "", "stored-token", "replacement"])
-def test_update_mask_allows_nullable_declared_secret_replacement(
+def test_update_mask_allows_only_null_declared_secret_replacement(
     old_token: str | None, new_token: str | None
 ) -> None:
-    """Nullable secrets stay replaceable without testing their stored value."""
+    """Only null can replace a secret alongside masks, irrespective of storage."""
     stored: dict[str, Any] = {
         "auth": {"kind": "key", "private_key": "saved-key", "passphrase": old_token},
     }
@@ -1110,6 +1110,12 @@ def test_update_mask_allows_nullable_declared_secret_replacement(
         "auth": {"kind": "key", "private_key": PASSWORD_MASK, "passphrase": new_token},
     }
     with _register():
+        if new_token is not None:
+            with pytest.raises(
+                masking.MaskedConfigurationUpdateError, match="reusing a stored"
+            ):
+                masking.unmask_configuration_for_update("demo", stored, submitted)
+            return
         assert masking.unmask_configuration_for_update("demo", stored, submitted) == {
             "auth": {
                 "kind": "key",
@@ -1158,16 +1164,14 @@ def test_masked_update_checks_extra_allow_union_variant(
         assert mask_configuration("fake", stored)["endpoint"] == PASSWORD_MASK
         if extras == "allow":
             with pytest.raises(
-                masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+                masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
             ):
                 masking.unmask_configuration_for_update("fake", stored, submitted)
         else:
-            assert masking.unmask_configuration_for_update(
-                "fake", stored, submitted
-            ) == {
-                **submitted,
-                "api_key": "saved-key",
-            }
+            with pytest.raises(
+                masking.MaskedConfigurationUpdateError, match="reusing a stored"
+            ):
+                masking.unmask_configuration_for_update("fake", stored, submitted)
 
 
 @pytest.mark.parametrize("declared", [False, True], ids=["extra-key", "declared-key"])
@@ -1203,7 +1207,7 @@ def test_masked_update_checks_boolean_additional_properties(
     with (
         _with_schema(schema),
         pytest.raises(
-            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
         ),
     ):
         masking.unmask_configuration_for_update("fake", stored, submitted)
@@ -1248,11 +1252,19 @@ def test_masked_update_allof_secret_is_conjunctive(value: str) -> None:
         }
     }
     with _with_schema(schema):
+        with pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="reusing a stored"
+        ):
+            masking.unmask_configuration_for_update(
+                "fake",
+                {"token": "saved-key", "endpoint": "saved"},
+                {"token": PASSWORD_MASK, "endpoint": value},
+            )
         assert masking.unmask_configuration_for_update(
             "fake",
             {"token": "saved-key", "endpoint": "saved"},
-            {"token": PASSWORD_MASK, "endpoint": value},
-        ) == {"token": "saved-key", "endpoint": value}
+            {"token": PASSWORD_MASK, "endpoint": PASSWORD_MASK},
+        ) == {"token": "saved-key", "endpoint": "saved"}
 
 
 @pytest.mark.parametrize("boolean_items", [False, True], ids=["missing", "true"])
@@ -1302,7 +1314,7 @@ def test_masked_update_checks_unclassified_array_variant(
     with _with_schema(schema):
         assert mask_configuration("fake", stored) == expected_mask
         with pytest.raises(
-            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
         ):
             masking.unmask_configuration_for_update("fake", stored, submitted)
 
@@ -1321,7 +1333,7 @@ def test_masked_update_checks_pydantic_unrestricted_array_variant() -> None:
     with (
         _with_schema(schema),
         pytest.raises(
-            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
         ),
     ):
         masking.unmask_configuration_for_update(
@@ -1344,5 +1356,186 @@ def test_masked_update_preserves_bounded_tuple_array_variant() -> None:
         assert masking.unmask_configuration_for_update(
             "fake",
             {"api_key": "saved-key", "endpoints": ["first", "second"]},
-            {"api_key": PASSWORD_MASK, "endpoints": ["first", "replacement"]},
-        ) == {"api_key": "saved-key", "endpoints": ["first", "replacement"]}
+            {"api_key": PASSWORD_MASK, "endpoints": [PASSWORD_MASK, PASSWORD_MASK]},
+        ) == {"api_key": "saved-key", "endpoints": ["first", "second"]}
+
+
+@pytest.mark.parametrize("location", ["root", "nested", "list"])
+@pytest.mark.parametrize("dsn", ["good", "evil", "", False, 0])
+def test_masked_update_refuses_explicit_secret_at_every_depth(
+    location: str, dsn: str | bool | int
+) -> None:
+    """Retaining one credential forbids explicit secrets without testing equality."""
+    schema: dict[str, Any] = {
+        "properties": {"dsn": {"writeOnly": True}, "password": {"writeOnly": True}}
+    }
+    stored: dict[str, Any] = {"dsn": "good", "password": "REAL"}
+    submitted: dict[str, Any] = {"dsn": dsn, "password": PASSWORD_MASK}
+    if location == "nested":
+        schema = {"properties": {"connection": schema}}
+        stored = {"connection": stored}
+        submitted = {"connection": submitted}
+    elif location == "list":
+        schema = {"properties": {"connections": {"type": "array", "items": schema}}}
+        stored = {"connections": [stored]}
+        submitted = {"connections": [submitted]}
+    with (
+        _with_schema(schema),
+        pytest.raises(masking.MaskedConfigurationUpdateError, match="reusing a stored"),
+    ):
+        masking.unmask_configuration_for_update("fake", stored, submitted)
+
+
+@pytest.mark.parametrize("changed", [False, True])
+def test_masked_update_refuses_type_list_alternative(changed: bool) -> None:
+    """An unmodelled array/null type alternative cannot authorize a masked edit."""
+    schema: dict[str, Any] = {
+        "properties": {
+            "key": {"writeOnly": True},
+            "targets": {
+                "anyOf": [
+                    {"type": "array", "items": {"writeOnly": True}},
+                    {"type": ["array", "null"]},
+                ]
+            },
+        }
+    }
+    with (
+        _with_schema(schema),
+        pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
+        ),
+    ):
+        masking.unmask_configuration_for_update(
+            "fake",
+            {"key": "saved", "targets": ["good"]},
+            {"key": PASSWORD_MASK, "targets": ["evil" if changed else PASSWORD_MASK]},
+        )
+
+
+@pytest.mark.parametrize(
+    "keyword",
+    [
+        "if",
+        "then",
+        "else",
+        "not",
+        "dependentSchemas",
+        "dependentRequired",
+        "dependencies",
+        "contains",
+        "unevaluatedProperties",
+        "unevaluatedItems",
+        "$dynamicRef",
+        "unknownKeyword",
+    ],
+)
+def test_masked_update_refuses_unmodelled_schema_keywords(keyword: str) -> None:
+    """Unsupported schema semantics require a fully explicit update, even on echo."""
+    schema: dict[str, Any] = {
+        "properties": {"password": {"writeOnly": True, keyword: {}}}
+    }
+    with _with_schema(schema):
+        with pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
+        ):
+            masking.unmask_configuration_for_update(
+                "fake", {"password": "saved"}, {"password": PASSWORD_MASK}
+            )
+        assert masking.unmask_configuration_for_update(
+            "fake", {"password": "saved"}, {"password": "replacement"}
+        ) == {"password": "replacement"}
+
+
+@pytest.mark.parametrize("extra", ["evil", None, PASSWORD_MASK])
+def test_masked_update_freezes_secret_map_keys(extra: str | None) -> None:
+    """Secret map keys remain configuration even when every value is secret."""
+    schema: dict[str, Any] = {
+        "properties": {"headers": {"additionalProperties": {"writeOnly": True}}}
+    }
+    with (
+        _with_schema(schema),
+        pytest.raises(masking.MaskedConfigurationUpdateError, match="reusing a stored"),
+    ):
+        masking.unmask_configuration_for_update(
+            "fake",
+            {"headers": {"Authorization": "saved"}},
+            {"headers": {"Authorization": PASSWORD_MASK, "X-Forwarded-Host": extra}},
+        )
+
+
+def test_masked_update_ambiguity_requests_credential_reentry() -> None:
+    """Retrying cannot resolve a provider schema's disagreeing secret alternatives."""
+    schema: dict[str, Any] = {
+        "properties": {"password": {"anyOf": [{"writeOnly": True}, {"type": "string"}]}}
+    }
+    error: pytest.ExceptionInfo[masking.MaskedConfigurationUpdateError]
+    with (
+        _with_schema(schema),
+        pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="Re-enter all credentials"
+        ) as error,
+    ):
+        masking.unmask_configuration_for_update(
+            "fake", {"password": "saved"}, {"password": PASSWORD_MASK}
+        )
+    assert "retry" not in str(error.value).lower()
+
+
+def test_masked_update_refuses_secret_map_key_removal() -> None:
+    """Removing a secret-valued header changes routing configuration too."""
+    schema: dict[str, Any] = {
+        "properties": {"headers": {"additionalProperties": {"writeOnly": True}}}
+    }
+    with (
+        _with_schema(schema),
+        pytest.raises(masking.MaskedConfigurationUpdateError, match="reusing a stored"),
+    ):
+        masking.unmask_configuration_for_update(
+            "fake",
+            {"headers": {"Authorization": "saved", "Host": "good"}},
+            {"headers": {"Authorization": PASSWORD_MASK}},
+        )
+
+
+@pytest.mark.parametrize("replacement", [None, PASSWORD_MASK])
+def test_masked_update_preserves_secret_map_keys(replacement: str | None) -> None:
+    """Unchanged keys permit a masked echo or explicit clearing of a secret."""
+    schema: dict[str, Any] = {
+        "properties": {"headers": {"additionalProperties": {"writeOnly": True}}}
+    }
+    with _with_schema(schema):
+        assert masking.unmask_configuration_for_update(
+            "fake",
+            {"headers": {"Authorization": "saved", "Host": "good"}},
+            {"headers": {"Authorization": PASSWORD_MASK, "Host": replacement}},
+        ) == {
+            "headers": {
+                "Authorization": "saved",
+                "Host": None if replacement is None else "good",
+            }
+        }
+
+
+def test_masked_update_refuses_explicit_secret_in_untyped_prefix_tail() -> None:
+    """An untyped positional alternative cannot allow a secret tail replacement."""
+    schema: dict[str, Any] = {
+        "properties": {
+            "key": {"writeOnly": True},
+            "targets": {
+                "anyOf": [
+                    {"type": "array", "items": {"writeOnly": True}},
+                    {"prefixItems": [{"writeOnly": True}]},
+                ]
+            },
+        }
+    }
+    with (
+        _with_schema(schema),
+        pytest.raises(masking.MaskedConfigurationUpdateError, match="reusing a stored"),
+    ):
+        masking.unmask_configuration_for_update(
+            "fake",
+            {"key": "saved", "targets": ["first", {"host": "good"}]},
+            {"key": PASSWORD_MASK, "targets": [PASSWORD_MASK, {"host": "evil"}]},
+        )

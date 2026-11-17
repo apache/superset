@@ -535,7 +535,7 @@ def nested_masked_configuration(
         ]
         submitted["auth"] = [
             submitted["auth"],
-            {"type": "password", "password": "explicit-password"},
+            {"type": "password", "password": PASSWORD_MASK},
         ]
     return stored, submitted
 
@@ -664,10 +664,14 @@ def test_nested_mask_refusal_precedes_validation_and_write(
     ],
     ids=["stored-null", "missing-path"],
 )
-def test_nested_mask_preserves_null_and_missing_path_semantics(
+def test_nested_mask_preserves_null_but_freezes_missing_paths(
     stored: dict[str, Any], submitted: dict[str, Any]
 ) -> None:
-    """Null values and missing stored paths keep the mask for provider validation."""
+    """Null retains the sentinel, but a masked resend cannot add secret keys."""
+    if "private_key" not in stored["auth"]:
+        with pytest.raises(SemanticLayerInvalidError, match="reusing a stored"):
+            _unmask_configuration(json.dumps(stored), submitted, "test_provider")
+        return
     assert (
         _unmask_configuration(json.dumps(stored), submitted, "test_provider")
         == submitted
@@ -676,10 +680,10 @@ def test_nested_mask_preserves_null_and_missing_path_semantics(
 
 @pytest.mark.parametrize("token", ["different", "stored-token", "", None])
 @pytest.mark.parametrize("nested", [False, True], ids=["top-level", "nested"])
-def test_mask_allows_explicit_secret_replacement(
+def test_mask_refuses_nonnull_explicit_secret_replacement(
     token: str | None, nested: bool
 ) -> None:
-    """Replacing a declared secret never compares it to the stored secret."""
+    """Only explicit null is allowed alongside a mask, independent of storage."""
     stored: dict[str, Any] = {"password": "stored-password", "token": "stored-token"}
     submitted: dict[str, Any] = {"password": PASSWORD_MASK, "token": token}
     expected: dict[str, Any] = {"password": "stored-password", "token": token}
@@ -687,6 +691,10 @@ def test_mask_allows_explicit_secret_replacement(
         stored = {"auth": stored}
         submitted = {"auth": submitted}
         expected = {"auth": expected}
+    if token is not None:
+        with pytest.raises(SemanticLayerInvalidError, match="reusing a stored"):
+            _unmask_configuration(json.dumps(stored), submitted, "test_provider")
+        return
     assert (
         _unmask_configuration(json.dumps(stored), submitted, "test_provider")
         == expected
@@ -760,9 +768,9 @@ def test_whole_secret_containers_require_explicit_replacement(
         expected = {"connections": [expected]}
     configuration_schema.get_configuration_schema.return_value = schema
     if classification != "declared" and replacement != "all-explicit":
-        with pytest.raises(SemanticLayerInvalidError, match="schema is unavailable"):
+        with pytest.raises(SemanticLayerInvalidError, match="Re-enter all credentials"):
             _unmask_configuration(json.dumps(stored), submitted, "test_provider")
-    elif replacement == "partial":
+    elif replacement in ("partial", "explicit"):
         with pytest.raises(SemanticLayerInvalidError, match="reusing a stored"):
             _unmask_configuration(json.dumps(stored), submitted, "test_provider")
     else:
@@ -801,7 +809,7 @@ def test_union_endpoint_cannot_change_with_retained_key(
         "api_key": PASSWORD_MASK if masked else "new-key",
     }
     if masked:
-        with pytest.raises(SemanticLayerInvalidError, match="schema is unavailable"):
+        with pytest.raises(SemanticLayerInvalidError, match="Re-enter all credentials"):
             _unmask_configuration(json.dumps(stored), submitted, "test_provider")
     else:
         assert (
@@ -839,7 +847,7 @@ def test_union_endpoint_refusal_precedes_validation_and_write(
     validation: MagicMock = mocker.patch(
         "superset.commands.semantic_layer.update.validate_configuration"
     )
-    with pytest.raises(SemanticLayerInvalidError, match="schema is unavailable"):
+    with pytest.raises(SemanticLayerInvalidError, match="Re-enter all credentials"):
         UpdateSemanticLayerCommand(
             "layer",
             {
@@ -944,17 +952,16 @@ def test_mask_requires_registered_schema_only_for_masked_updates(masked: bool) -
 
 
 @pytest.mark.parametrize("old_token", [None, "", "stored-token"])
-def test_masked_list_allows_replacing_empty_secrets(old_token: str | None) -> None:
-    """The stored value's truthiness cannot influence explicit secret replacement."""
+def test_masked_list_refuses_replacing_empty_secrets(old_token: str | None) -> None:
+    """The stored value's truthiness cannot influence explicit secret refusal."""
     stored: dict[str, Any] = {
         "auth": [{"password": "stored-password", "token": old_token}]
     }
     submitted: dict[str, Any] = {
         "auth": [{"password": PASSWORD_MASK, "token": "new-token"}]
     }
-    assert _unmask_configuration(json.dumps(stored), submitted, "test_provider") == {
-        "auth": [{"password": "stored-password", "token": "new-token"}]
-    }
+    with pytest.raises(SemanticLayerInvalidError, match="reusing a stored"):
+        _unmask_configuration(json.dumps(stored), submitted, "test_provider")
 
 
 def test_mask_refuses_unresolvable_schema_in_new_field(
@@ -1022,16 +1029,14 @@ def test_unmask_configuration_restores_fail_closed_masked_fields() -> None:
     }
 
 
-def test_unmask_configuration_missing_existing_key() -> None:
-    """A masked field with no corresponding stored value passes through
-    unchanged rather than raising."""
-    result: dict[str, Any] = _unmask_configuration(
-        '{"account": "test"}',
-        {"account": "test", "password": PASSWORD_MASK},
-        "test_provider",
-    )
-
-    assert result == {"account": "test", "password": PASSWORD_MASK}
+def test_unmask_configuration_refuses_missing_existing_key() -> None:
+    """A masked resend cannot add a secret key absent from the stored shape."""
+    with pytest.raises(SemanticLayerInvalidError, match="reusing a stored"):
+        _unmask_configuration(
+            '{"account": "test"}',
+            {"account": "test", "password": PASSWORD_MASK},
+            "test_provider",
+        )
 
 
 def test_unmask_configuration_rejects_secret_reveal_with_changed_field() -> None:

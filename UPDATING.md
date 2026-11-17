@@ -26,10 +26,12 @@ assists people when migrating to a new version.
 
 - Semantic-layer connection updates that reuse masked credentials require a
   usable provider configuration schema. Non-secret settings must stay unchanged
-  at every nesting depth; explicit replacements of fields declared secret remain
-  allowed, including at the top level. To change other settings, submit all
-  credentials explicitly. If the schema is unavailable, retry later or submit
-  explicit credentials. Name-only updates can omit configuration entirely.
+  at every nesting depth, including dictionary keys. While any mask is retained,
+  every declared secret must also be masked or explicitly null; non-null explicit
+  secrets are refused even if they match the stored value. To rotate a credential
+  or change other settings, re-enter all credentials, including top-level ones.
+  Unavailable, ambiguous, or unsupported schemas require explicit credentials.
+  Name-only updates can omit configuration entirely.
 
 - Semantic cache rollups serve limited queries only when the post-filter,
   rolled-up result fits within the limit. Queries with nonzero row offsets bypass
