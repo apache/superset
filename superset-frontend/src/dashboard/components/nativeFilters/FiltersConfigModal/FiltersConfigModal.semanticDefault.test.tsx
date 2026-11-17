@@ -24,6 +24,8 @@
  * than being answered by a catch-all mock.
  */
 import {
+  ChartCustomization,
+  ChartCustomizationType,
   DatasourceType,
   Filter,
   NativeFilterType,
@@ -169,12 +171,16 @@ const stateFor = (
   datasources: Record<string, MockDashboardDatasource>,
   chartUids: string[],
   savedFilters: Filter[] = [],
+  savedCustomizations: ChartCustomization[] = [],
 ) => ({
   datasources,
   charts: dashboardCharts(...chartUids),
   dashboardLayout: { present: {}, past: [], future: [] },
   dashboardInfo: {
-    metadata: { native_filter_configuration: savedFilters },
+    metadata: {
+      native_filter_configuration: savedFilters,
+      chart_customization_config: savedCustomizations,
+    },
   },
 });
 
@@ -380,7 +386,7 @@ test.each([
   },
 );
 
-test('a new display control on a semantic-view dashboard binds to the semantic view', async () => {
+test('a semantic-only dashboard does not offer Dynamic group by', async () => {
   forbidDatasetRequests(VIEW_ID);
   mockSemanticViewStructure(VIEW_ID);
 
@@ -393,13 +399,85 @@ test('a new display control on a semantic-view dashboard binds to the semantic v
   await userEvent.click(
     await screen.findByRole('combobox', { name: 'Customization type' }),
   );
-  await userEvent.click(await screen.findByText('Dynamic group by'));
+  expect(screen.queryByText('Dynamic group by')).not.toBeInTheDocument();
+});
 
-  await waitForDatasourceRequest(VIEW_ID);
-  expect(forbiddenRequests).toEqual([]);
+test('an ordinary-dataset dashboard still offers Dynamic group by', async () => {
+  allowDatasetRequests(7);
+  renderModal(
+    stateFor(dashboardDatasources(sqlDatasetEntry(7)), ['7__table']),
+    { ...props, createNewOnOpen: false },
+  );
+  await userEvent.hover(screen.getByTestId('new-item-dropdown-button'));
+  fireEvent.click(await screen.findByText('Add display control'));
+  await userEvent.click(
+    await screen.findByRole('combobox', { name: 'Customization type' }),
+  );
+  expect(await screen.findByText('Dynamic group by')).toBeInTheDocument();
+});
+
+test('an empty dashboard still offers Dynamic group by for a future SQL dataset', async () => {
+  renderModal(stateFor({}, []), { ...props, createNewOnOpen: false });
+  await userEvent.hover(screen.getByTestId('new-item-dropdown-button'));
+  fireEvent.click(await screen.findByText('Add display control'));
+  await userEvent.click(
+    await screen.findByRole('combobox', { name: 'Customization type' }),
+  );
+  expect(await screen.findByText('Dynamic group by')).toBeInTheDocument();
+});
+
+test('Dynamic group by defaults to an ordinary dataset on a mixed dashboard', async () => {
+  allowDatasetRequests(7);
+  mockSemanticViewStructure(VIEW_ID);
+  renderModal(
+    stateFor(
+      dashboardDatasources(sqlDatasetEntry(7), semanticViewEntry(VIEW_ID)),
+      [`${VIEW_ID}__semantic_view`, `${VIEW_ID}__semantic_view`, '7__table'],
+    ),
+    { ...props, createNewOnOpen: false },
+  );
+  await userEvent.hover(screen.getByTestId('new-item-dropdown-button'));
+  fireEvent.click(await screen.findByText('Add display control'));
+  await userEvent.click(
+    await screen.findByRole('combobox', { name: 'Customization type' }),
+  );
+  await userEvent.click(await screen.findByText('Dynamic group by'));
   expect(
-    await within(await findDatasourceField()).findByText(VIEW_NAME),
+    await within(await findDatasourceField()).findByText('sql_orders'),
   ).toBeInTheDocument();
+});
+
+test('editing a saved semantic Dynamic group by does not offer semantic fields', async () => {
+  mockSemanticViewStructure(VIEW_ID);
+  const savedControl: ChartCustomization = {
+    id: 'CHART_CUSTOMIZATION-saved-semantic',
+    name: 'Group by',
+    type: ChartCustomizationType.ChartCustomization,
+    filterType: ChartCustomizationPlugins.DynamicGroupBy,
+    targets: [
+      { datasetId: VIEW_ID, datasourceType: DatasourceType.SemanticView },
+    ],
+    scope: { rootPath: [], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+  };
+  renderModal(
+    stateFor(
+      dashboardDatasources(semanticViewEntry(VIEW_ID)),
+      [`${VIEW_ID}__semantic_view`],
+      [],
+      [savedControl],
+    ),
+    {
+      ...props,
+      createNewOnOpen: false,
+      initialFilterId: savedControl.id,
+    },
+  );
+  expect(
+    within(await findDatasourceField()).queryByText(VIEW_NAME),
+  ).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.called(structureRoute(VIEW_ID))).toBe(false);
 });
 
 test('a same-id SQL dataset never supplies data to a semantic-view default', async () => {

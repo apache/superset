@@ -19,6 +19,7 @@
 import {
   DataMask,
   DataMaskStateWithId,
+  DatasourceType,
   DataRecordFilters,
   DataRecordValue,
   ensureIsArray,
@@ -518,6 +519,9 @@ export default function getFormDataWithExtraFilters({
     semantic_selection_version: chart.form_data?.semantic_selection_version,
     semantic_selection_sources: chart.form_data?.semantic_selection_sources,
   };
+  const isSemanticChart = String(chart.form_data?.datasource).endsWith(
+    '__semantic_view',
+  );
   const cachedFormData = cachedFormdataByChart[sliceId];
   const dataMaskEqual = areObjectsEqual(cachedFormData?.dataMask, dataMask, {
     ignoreUndefined: true,
@@ -633,7 +637,13 @@ export default function getFormDataWithExtraFilters({
         (customization.chartsInScope == null ||
           customization.chartsInScope.includes(chart.id));
 
-      if (isInScope) {
+      const isUnsupportedGroupBy =
+        customization?.filterType ===
+          ChartCustomizationPlugins.DynamicGroupBy &&
+        (isSemanticChart ||
+          customization.targets?.[0]?.datasourceType ===
+            DatasourceType.SemanticView);
+      if (isInScope && !isUnsupportedGroupBy) {
         customizationIds.push(key);
       }
 
@@ -649,10 +659,11 @@ export default function getFormDataWithExtraFilters({
     }
   });
 
-  const groupByCustomizations =
-    chartCustomizationItems?.filter(
-      item => item.filterType === 'chart_customization_dynamic_groupby',
-    ) || [];
+  const groupByCustomizations = isSemanticChart
+    ? []
+    : chartCustomizationItems?.filter(
+        item => item.filterType === ChartCustomizationPlugins.DynamicGroupBy,
+      ) || [];
 
   const { formData: groupByFormData, appliedIds: appliedGroupByIds } =
     processGroupByCustomizations(groupByCustomizations, chart, groupByState);

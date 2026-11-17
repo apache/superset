@@ -743,7 +743,7 @@ test('chart customization does not match across datasource ID spaces', () => {
     dataMask: {
       [customizationId]: {
         id: customizationId,
-        extraFormData: {},
+        extraFormData: { time_grain_sqla: 'PT1H' },
         filterState: { value: ['status'] },
         ownState: {},
       },
@@ -766,10 +766,11 @@ test('chart customization does not match across datasource ID spaces', () => {
   // shouldn't be linked, so the chart's groupby is unchanged.
   const result = getFormDataWithExtraFilters(args);
   expectGroupBy(result, ['original_column']);
+  expect(result).not.toHaveProperty('time_grain_sqla');
 });
 
 test.each([false, true])(
-  'dynamic group-by card mask stays unsupported even with a versioned target (current=%s)',
+  'saved semantic-view dynamic group-by mask does not alter the chart request (current=%s)',
   current => {
     const customizationId = 'CHART_CUSTOMIZATION-identity';
     const result = getFormDataWithExtraFilters({
@@ -810,14 +811,15 @@ test.each([false, true])(
         }),
       ],
     });
-    expectGroupBy(result, ['Orders.status']);
+    expectGroupBy(result, ['original_column']);
+    expect(result).not.toHaveProperty('custom_form_data');
     expect(
       buildQueryObject({
         ...result,
         datasource: '3__semantic_view',
         viz_type: 'table',
       } as QueryFormData).extras?.semantic_selection_version,
-    ).toEqual('unverified-external-selections');
+    ).toEqual('cube-member-id-v1');
   },
 );
 
@@ -1000,21 +1002,15 @@ test.each([[42], ['Orders.count'], ['']])(
         }),
       ],
     });
-    expectGroupBy(result, ['Orders.status']);
-    expect(result).toMatchObject({
-      semantic_selection_sources: [
-        { datasource: '3__semantic_view', version: 'cube-member-id-v1' },
-        { datasource: '', version: null },
-      ],
-    });
-    // Actual dynamic-groupby masks still lack identity evidence.
+    expect(result).not.toHaveProperty('groupby');
+    expect(result).toHaveProperty('semantic_selection_sources', []);
     expect(
       buildQueryObject({
         ...result,
         datasource: '3__semantic_view',
         viz_type: 'table',
       } as QueryFormData).extras?.semantic_selection_version,
-    ).toBe('unverified-external-selections');
+    ).toBe('cube-member-id-v1');
   },
 );
 
