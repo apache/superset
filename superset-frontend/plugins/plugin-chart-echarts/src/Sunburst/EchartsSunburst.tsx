@@ -134,7 +134,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         // Align labels with records, excluding the synthetic root but keeping
         // empty hierarchy values in their original positions.
         const treePath = (treePathInfo ?? [])
-          .map(pathInfo => pathInfo?.name ?? '')
+          .map((pathInfo: TreePathInfo) => pathInfo?.name ?? '')
           .slice(-records.length);
         const pointerEvent = eventParams.event.event;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
