@@ -88,8 +88,8 @@ _QUERY_OBJECT_RESOLVED_OPTIONS: dict[str, frozenset[str]] = {
 }
 
 
-def selection_version_error(version: Any) -> QueryObjectValidationError:
-    """Explain a semantic selection version the view refused."""
+def selection_version_error(version: object) -> QueryObjectValidationError:
+    """Return the user-facing refusal for a semantic selection version."""
     if version == "unverified-external-selections":
         return QueryObjectValidationError(
             _(
@@ -441,6 +441,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
         Column and time grain options are answered from the datasource itself;
         a query that also names members, filters or a time column is a selection.
+        The query's own result type is used: one that leaves it unset keeps the
+        selection checks even when its context asks for metadata.
         """
         return self.result_type in ChartDataResultType.datasource_metadata() and not (
             self.metrics
@@ -449,6 +451,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             or self.filter
             or self.granularity
             or self.series_columns
+            or self.series_limit_metric
         )
 
     @property
@@ -467,7 +470,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 implementation: SemanticViewABC = cast(
                     "SemanticView", self.datasource
                 ).implementation
-                version: Any = self.extras.get("semantic_selection_version")
+                version: object = self.extras.get("semantic_selection_version")
                 try:
                     # Column and time grain options select no members, so there
                     # is no saved selection identity to check.

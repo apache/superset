@@ -143,7 +143,7 @@ def test_should_run_async_requires_async_mode_flag() -> None:
         ([ChartDataResultType.FULL, ChartDataResultType.TIMEGRAINS], False),
     ],
 )
-def test_should_run_async_refuses_datasource_metadata_queries(
+def test_should_run_async_gates_on_effective_query_result_type(
     query_result_types: list[ChartDataResultType | None], expected: bool
 ) -> None:
     """A full context carrying a metadata query is answered without a task."""
