@@ -47,7 +47,7 @@ import {
   SqlLabAction,
   syncQueryEditor,
 } from 'src/SqlLab/actions/sqlLab';
-import useQueryCostWarning, { parseWarningResult } from './useQueryCostWarning';
+import useQueryCostWarning from './useQueryCostWarning';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -673,6 +673,7 @@ test.each([
   { ...warning, action: undefined },
   { ...warning, reason: 'bogus' },
   { ...warning, message: undefined },
+  { ...warning, message: '' },
   { ...warning, message: '  ' },
   { ...warning, details: null },
   { ...warning, details: {} },
@@ -856,20 +857,6 @@ test('ready checks do not require numeric estimation prerequisites', async () =>
   await waitFor(() => expect(h.executions()).toHaveLength(1));
 });
 
-test('display details preserve large counts and planner decimals as plain text', () => {
-  const result = {
-    ...warning,
-    details: [
-      { label: 'Usage', value: 'At least 9,007,199,254,740,993,123 bytes' },
-      { label: 'Planner cost', value: '0.123456789123456789' },
-    ],
-  };
-  expect(parseWarningResult(result)).toEqual(result);
-  expect(() => parseWarningResult({ ...result, message: '' })).toThrow(
-    'The query warning response was invalid.',
-  );
-});
-
 test.each(['invalid', undefined] as const)(
   '%s server state reaches validation and errors never execute',
   async stateValue => {
@@ -905,6 +892,7 @@ test('HTTP detail strings remain exact without a numeric parser', async () => {
   const h = setup();
   const details = [
     { label: 'Usage', value: 'Up to 9,007,199,254,740,993,123 bytes' },
+    { label: 'Planner cost', value: '0.123456789123456789' },
   ];
   fetchMock.modifyRoute('warning-check', {
     response: {

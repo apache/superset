@@ -730,21 +730,13 @@ def test_warning_unestimatable_sql(
     _estimator(command).assert_not_called()
 
 
-@pytest.mark.parametrize("custom", ["SQL_QUERY_MUTATOR"])
 def test_warning_rejects_custom_transformations(
-    mocker: MockerFixture, app: Flask, custom: str
+    mocker: MockerFixture, app: Flask
 ) -> None:
     """Do not run arbitrary transformations to predict a future execution render."""
     command = _make_command(mocker)
     transform = mocker.MagicMock()
-    mocker.patch.dict(
-        app.config,
-        {
-            custom: transform
-            if custom == "SQL_QUERY_MUTATOR"
-            else {"postgresql": transform}
-        },
-    )
+    mocker.patch.dict(app.config, {"SQL_QUERY_MUTATOR": transform})
     mocker.patch(
         "superset.commands.sql_lab.estimate.is_feature_enabled",
         side_effect=lambda name: name != "RLS_IN_SQLLAB",

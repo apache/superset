@@ -529,25 +529,6 @@ The existing manual estimate button keeps its formatted display. Warning checks
 are advisory and are intended for deliberate SQL Lab runs, not dashboards,
 scheduled queries, automatic retries, CTAS/CVAS, or enforced warehouse limits.
 
-API clients can request an advisory check with `POST /api/v1/sqllab/warning/`,
-passing the selected `sql`, `database_id`, `catalog`,
-`schema`, `template_params`, and SQL Lab dropdown `query_limit`. The check applies
-the execution row limits, including the extra row fetched to detect truncation.
-The endpoint requires SQL execution permission and checks data access before
-applying the connection's audience. Users outside that audience receive
-`action: proceed` without an assessment. Clients cannot override the audience
-in the request body. The result also returns `action: proceed` when an assessment
-does not need confirmation.
-This is not a guarantee that the query is safe in every other way. Otherwise it
-returns `action: confirm`, a `warning` or `unavailable` reason, a nonempty message,
-and optional plain-text label/value details. For the cost checks, estimates and
-thresholds are compared before display formatting. Precise estimates and upper
-bounds equal to the threshold do not warn; lower bounds at equality still require
-confirmation because usage could exceed the threshold.
-BigQuery bounds are displayed as **At least** or **Up to**. Byte counts can exceed JavaScript's safe integer
-range, so clients should display the server-provided details without reconverting
-them to numbers.
-
 Checking supports one read-only SELECT after Superset's existing template
 processing. When processing is disabled, braces remain ordinary SQL. Template
 processing errors use the normal SQL Lab error handling before assessment. Multiple
@@ -555,22 +536,7 @@ statements and custom SQL transformations remain unavailable. A known estimation
 unusable estimate also returns unavailable. Invalid rules, access failures, and
 other database or network errors remain errors. BigQuery server errors
 (HTTP 500, 502, 503 and 504) return unavailable and require confirmation;
-authentication, permission and invalid-query errors remain errors. The existing `/estimate/` endpoint
-retains its estimation permission requirement and manual response. Its
-`check_warning: true` option remains available to authorized estimation clients.
-
-Database API and SQL Lab bootstrap responses include `query_warning_state`:
-`unsupported`, `disabled`, `ready`, or `invalid`. This state is specific to the
-requesting user; `disabled` includes users outside the configured audience.
-Clients must not share or cache one user's state for another user.
-Engine-specific validation is skipped for users outside a valid warning audience,
-so an invalid threshold does not block those users. Invalid settings still return
-errors for included users; malformed opt-in or audience settings also remain
-errors. Clients must not treat `invalid` as an opt-out. Engine information exposes
-`query_warning_supported` separately from the optional numeric
-`query_cost_warning_metric`. `SQLLAB_QUERY_COST_WARNINGS` gates all checks;
-`ESTIMATE_QUERY_COST` and connection cost estimation are prerequisites of the
-numeric threshold check.
+authentication, permission and invalid-query errors remain errors.
 
 When checking is enabled, a deliberate **Run** (including Run selection or its
 keyboard shortcut) sends an assessment request before execution. This adds a
@@ -593,16 +559,6 @@ Confirming resumes the prepared query without rendering its template again.
 The server rechecks access and preparation before execution. Changes to the
 underlying database connection settings or security preparation require a fresh
 Run instead of reusing the confirmation.
-
-SQL Lab includes the captured execution payload in the warning request's optional
-`execution` field. Eligible requests retain a private preparation and return
-`prepared_query_id` alongside `result`. SQL Lab passes that identifier with the
-same execution inputs to `/execute/`. The identifier belongs to the initiating
-user and cannot be reused to dispatch a second query. There is no fixed
-confirmation timeout; resuming uses the saved SQL without rendering it again.
-Clients discard an abandoned preparation with
-`DELETE /api/v1/sqllab/warning/<client_id>`. Ordinary execution requests and
-standalone advisory checks remain available without this preparation protocol.
 
 Preparations remain out of normal query history until execution is requested.
 Waiting for confirmation retains a metadata record, not a running query or open
@@ -628,7 +584,59 @@ active editor, and asynchronous execution follows the connection's current
 setting. Cancelling leaves the new tab open without executing its query. Repeated
 Run clicks while a check or confirmation is pending do not create another attempt.
 
-#### Engine extension point
+#### Developer reference
+
+##### Warning API
+
+API clients can request an advisory check with `POST /api/v1/sqllab/warning/`,
+passing the selected `sql`, `database_id`, `catalog`,
+`schema`, `template_params`, and SQL Lab dropdown `query_limit`. The check applies
+the execution row limits, including the extra row fetched to detect truncation.
+The endpoint requires SQL execution permission and checks data access before
+applying the connection's audience. Users outside that audience receive
+`action: proceed` without an assessment. Clients cannot override the audience
+in the request body. The result also returns `action: proceed` when an assessment
+does not need confirmation.
+This is not a guarantee that the query is safe in every other way. Otherwise it
+returns `action: confirm`, a `warning` or `unavailable` reason, a nonempty message,
+and optional plain-text label/value details. For the cost checks, estimates and
+thresholds are compared before display formatting. Precise estimates and upper
+bounds equal to the threshold do not warn; lower bounds at equality still require
+confirmation because usage could exceed the threshold.
+BigQuery bounds are displayed as **At least** or **Up to**. Byte counts can exceed JavaScript's safe integer
+range, so clients should display the server-provided details without reconverting
+them to numbers.
+
+The existing `/estimate/` endpoint retains its estimation permission requirement
+and manual response. Its
+`check_warning: true` option remains available to authorized estimation clients.
+
+Database API and SQL Lab bootstrap responses include `query_warning_state`:
+`unsupported`, `disabled`, `ready`, or `invalid`. This state is specific to the
+requesting user; `disabled` includes users outside the configured audience.
+Clients must not share or cache one user's state for another user.
+Engine-specific validation is skipped for users outside a valid warning audience,
+so an invalid threshold does not block those users. Invalid settings still return
+errors for included users; malformed opt-in or audience settings also remain
+errors. Clients must not treat `invalid` as an opt-out. Engine information exposes
+`query_warning_supported` separately from the optional numeric
+`query_cost_warning_metric`. `SQLLAB_QUERY_COST_WARNINGS` gates all checks;
+`ESTIMATE_QUERY_COST` and connection cost estimation are prerequisites of the
+numeric threshold check.
+
+##### Execution preparation
+
+SQL Lab includes the captured execution payload in the warning request's optional
+`execution` field. Eligible requests retain a private preparation and return
+`prepared_query_id` alongside `result`. SQL Lab passes that identifier with the
+same execution inputs to `/execute/`. The identifier belongs to the initiating
+user and cannot be reused to dispatch a second query. There is no fixed
+confirmation timeout; resuming uses the saved SQL without rendering it again.
+Clients discard an abandoned preparation with
+`DELETE /api/v1/sqllab/warning/<client_id>`. Ordinary execution requests and
+standalone advisory checks remain available without this preparation protocol.
+
+##### Engine extension point
 
 Only BigQuery and PostgreSQL have production warning checks. An engine spec can
 explicitly opt into the shared flow through `get_query_warning_check()`, returning
