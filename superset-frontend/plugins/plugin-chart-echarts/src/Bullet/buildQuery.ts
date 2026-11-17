@@ -19,8 +19,10 @@
 import {
   buildQueryContext,
   ensureIsArray,
+  getMetricLabel,
   QueryFormData,
   QueryObject,
+  removeDuplicates,
 } from '@superset-ui/core';
 
 /**
@@ -29,7 +31,11 @@ import {
  * in the same query.
  */
 export default function buildQuery(formData: QueryFormData) {
-  const { groupby, marker_line_metric } = formData;
+  const { groupby, marker_line_metrics, marker_metrics } = formData;
+  const chartWideMetrics = removeDuplicates(
+    [...ensureIsArray(marker_line_metrics), ...ensureIsArray(marker_metrics)],
+    getMetricLabel,
+  );
   return buildQueryContext(formData, {
     // aliasing the target to `metrics` lets the base query object collect it
     // next to the measure and drop duplicates by label
@@ -41,14 +47,15 @@ export default function buildQuery(formData: QueryFormData) {
           columns: ensureIsArray(groupby),
         },
       ];
-      // The chart-wide marker line is aggregated over all rows in its own
-      // query rather than combined from per-group values, so non-additive
-      // metrics (averages, ratios, distinct counts) stay correct.
-      if (marker_line_metric) {
+      // The chart-wide marker lines and markers are aggregated over all rows
+      // rather than combined from per-group values, so non-additive metrics
+      // (averages, ratios, distinct counts) stay correct. They share one
+      // ungrouped query, however many there are.
+      if (chartWideMetrics.length) {
         queries.push({
           ...baseQueryObject,
           columns: [],
-          metrics: [marker_line_metric],
+          metrics: chartWideMetrics,
           orderby: [],
         });
       }
