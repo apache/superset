@@ -31,6 +31,11 @@ assists people when migrating to a new version.
   secrets are refused even if they match the stored value. To rotate a credential
   or change other settings, re-enter all credentials, including top-level ones.
   Unavailable, ambiguous, or unsupported schemas require explicit credentials.
+  Provider `x-` UI annotations remain supported. Other unmodelled keywords,
+  including `contentMediaType`, `contentSchema`, `$schema`, `$id`, and `$comment`,
+  require explicit credentials on updates. The schema depth bound also counts
+  reference-sibling expansion. GET masking is unchanged and does not interpret
+  conditional-only secret declarations.
   Name-only updates can omit configuration entirely.
 
 - Semantic cache rollups serve limited queries only when the post-filter,

@@ -1428,6 +1428,8 @@ def test_masked_update_refuses_type_list_alternative(changed: bool) -> None:
         "unevaluatedItems",
         "$dynamicRef",
         "unknownKeyword",
+        "xunknown",
+        "X-Upper",
     ],
 )
 def test_masked_update_refuses_unmodelled_schema_keywords(keyword: str) -> None:
