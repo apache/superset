@@ -54,6 +54,7 @@ def test_log_from_status_info() -> None:
 # ``datamodel``: the helper only inspects the class name, so no ORM is needed.
 _Dashboard = type("Dashboard", (), {})
 _Slice = type("Slice", (), {})
+_Canvas = type("Canvas", (), {})
 # A model that ``logs`` has no id column for.
 _Database = type("Database", (), {})
 
@@ -71,8 +72,13 @@ def _view_for(model: type) -> SimpleNamespace:
         (_Dashboard, {"id_or_slug": "7"}, {"dashboard_id": 7}),
         (_Slice, {"pk": "3"}, {"slice_id": 3}),
         (_Slice, {"id_or_uuid": 3}, {"slice_id": 3}),
+        # canvas routes identify themselves by pk, uuid or slug
+        (_Canvas, {"pk": 11}, {"canvas_id": 11}),
+        (_Canvas, {"id_or_uuid": "11"}, {"canvas_id": 11}),
+        (_Canvas, {"uuid_str": "11"}, {"canvas_id": 11}),
         (_Dashboard, {"rison": [1, 2, 3]}, {"dashboard_ids": [1, 2, 3]}),
         (_Slice, {"rison": [5]}, {"slice_ids": [5]}),
+        (_Canvas, {"rison": [4, 6]}, {"canvas_ids": [4, 6]}),
         # rison payloads that are not a list of ids (list endpoints, thumbnails)
         (_Dashboard, {"rison": {"columns": ["id"]}}, {}),
         (_Dashboard, {"rison": []}, {}),
@@ -148,6 +154,9 @@ def test_log_this_with_context_derives_object_id_from_route(
     assert payload["dashboard_id"] == 42
     # ``to_int`` turns a missing id into 0; the DB logger stores that as NULL.
     assert not payload["slice_id"]
+    # ``canvas_id`` travels as a keyword argument rather than widening the
+    # abstract ``log()`` signature, so it is passed even on a dashboard route.
+    assert not payload["canvas_id"]
     assert payload["records"][0]["dashboard_id"] == 42
     assert payload["records"][0]["pk"] == "42"
 
@@ -183,3 +192,75 @@ def test_log_this_with_context_derives_object_id_despite_outer_decorator(
 
     payload = mock_log.call_args[1]
     assert payload["dashboard_id"] == 42
+
+
+def test_log_this_with_context_derives_canvas_id(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A canvas route fills ``canvas_id`` the way a dashboard route fills
+    ``dashboard_id``, with no per-endpoint plumbing."""
+    mock_log = mocker.patch.object(DBEventLogger, "log")
+    logger = DBEventLogger()
+
+    class FakeCanvasRestApi:  # pylint: disable=too-few-public-methods
+        datamodel = SimpleNamespace(obj=_Canvas)
+
+        @logger.log_this_with_context(action="CanvasRestApi.get_definition")
+        def get_definition(self, id_or_uuid: str) -> str:
+            return f"got {id_or_uuid}"
+
+    with current_app.test_request_context("/api/v1/canvas/7/definition", method="GET"):
+        assert FakeCanvasRestApi().get_definition(id_or_uuid="7") == "got 7"
+
+    payload = mock_log.call_args[1]
+    assert payload["canvas_id"] == 7
+    assert not payload["dashboard_id"]
+    assert not payload["slice_id"]
+
+
+def test_log_accepts_a_logger_that_never_heard_of_canvas(
+    app_context: None,
+) -> None:
+    """Back-compat guarantee for ``EVENT_LOGGER`` subclasses.
+
+    ``canvas_id`` is passed as a keyword argument rather than added to the
+    abstract ``log()`` signature, so a logger written before the column existed
+    keeps working untouched. If this breaks, every downstream custom logger
+    breaks on upgrade.
+    """
+    from superset.utils.log import AbstractEventLogger
+
+    seen: list[dict[str, Any]] = []
+
+    class LegacyEventLogger(AbstractEventLogger):
+        # Deliberately declares no ``canvas_id`` parameter, exactly as a
+        # third-party logger predating the column would not.
+        def log(  # pylint: disable=too-many-arguments
+            self,
+            user_id: int | None,
+            action: str,
+            dashboard_id: int | None,
+            duration_ms: int | None,
+            slice_id: int | None,
+            referrer: str | None,
+            *args: Any,
+            **kwargs: Any,
+        ) -> None:
+            seen.append({"action": action, "kwargs": kwargs})
+
+    logger = LegacyEventLogger()
+
+    class FakeCanvasRestApi:  # pylint: disable=too-few-public-methods
+        datamodel = SimpleNamespace(obj=_Canvas)
+
+        @logger.log_this_with_context(action="CanvasRestApi.put")
+        def put(self, pk: int) -> str:
+            return f"updated {pk}"
+
+    with current_app.test_request_context("/api/v1/canvas/3", method="PUT"):
+        assert FakeCanvasRestApi().put(pk="3") == "updated 3"
+
+    assert len(seen) == 1
+    assert seen[0]["action"] == "CanvasRestApi.put"
+    # It lands in ``**kwargs``, which is why nothing had to change.
+    assert seen[0]["kwargs"]["canvas_id"] == 3
