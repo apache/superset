@@ -19,7 +19,6 @@
 import {
   BinaryQueryObjectFilterClause,
   convertFilter,
-  SimpleAdhocFilter,
   TimeGranularity,
 } from '@superset-ui/core';
 import { simpleFilterToAdhoc } from './simpleFilterToAdhoc';
@@ -83,6 +82,9 @@ test('Drill by keeps an empty adhoc breakdown as a real value', () => {
   };
   const adhoc = simpleFilterToAdhoc(filter);
   expect(adhoc.expressionType).toBe('SIMPLE');
-  expect(adhoc.sqlExpression).toBeUndefined();
-  expect(convertFilter(adhoc as SimpleAdhocFilter)).toEqual(filter);
+  expect('sqlExpression' in adhoc).toBe(false);
+  if (adhoc.expressionType !== 'SIMPLE') {
+    throw new Error('expected a simple filter');
+  }
+  expect(convertFilter(adhoc)).toEqual(filter);
 });
