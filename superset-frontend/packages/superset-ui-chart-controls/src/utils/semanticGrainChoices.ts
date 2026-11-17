@@ -34,14 +34,14 @@ export interface SemanticGrainState {
   };
 }
 
-/** Preserve backend ordering and saved values; unknown support grants no choices. */
+/** Preserve saved selections while support loads; queries still validate support. */
 export const semanticGrainProps = (
   state: SemanticGrainState,
 ): {
-  choices: [string, string][];
+  choices: [string, string][] | null;
   clearable?: boolean;
 } => {
-  const choices = state.datasource?.time_grain_sqla ?? [];
+  const choices = state.datasource?.time_grain_sqla ?? null;
   if (state.datasource?.type !== 'semantic_view') return { choices };
   const axis =
     state.controls?.x_axis?.value ??
@@ -61,8 +61,13 @@ export const semanticGrainProps = (
     state.compatibility?.status === 'verified' && name
       ? state.compatibility.dimensionSupport?.[name]
       : undefined;
+  // Table/Pivot groupings have no single axis. The catalog remains selectable
+  // until there is verified support for a specific axis. Never coerce a saved
+  // bucket to null (an explicit native request) while metadata is unavailable.
+  if (!support) return { choices };
   return {
-    choices: choices.filter(([grain]) => support?.grains.includes(grain)),
+    choices:
+      choices?.filter(([grain]) => support.grains.includes(grain)) ?? null,
     clearable: support?.allows_default_grain === true,
   };
 };

@@ -100,7 +100,8 @@ class SemanticLayerQueryRejectedError(SupersetErrorException):
 def configuration_recovery_message() -> str:
     """Return fixed guidance; never display provider-supplied exception text."""
     return _(
-        "This semantic view configuration version is no longer supported. "
+        "This semantic view configuration version or its selected fields "
+        "are no longer supported. "
         "Re-open the view, re-select its fields, and save. If field editing "
         "is unavailable, delete the view and re-add it."
     )

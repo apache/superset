@@ -27,6 +27,7 @@ import {
   ControlState,
   ControlStateMapping,
   Dataset,
+  semanticGrainProps,
 } from '@superset-ui/chart-controls';
 import { isEqual, omit, pick } from 'lodash-es';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
@@ -349,6 +350,7 @@ export default function exploreReducer(
         ...state,
         controls: controls as ControlStateMapping,
         datasource: newDatasource,
+        compatibility: { status: 'idle' },
       };
       return {
         ...newState,
@@ -483,7 +485,10 @@ export default function exploreReducer(
       if (isVizSwitch) {
         // get StandardizedFormData from source form_data
         const sfd = new StandardizedFormData(state.form_data);
-        const transformed = sfd.transform(value as string, state);
+        const transformed = sfd.transform(value as string, {
+          ...state,
+          compatibility: { status: 'idle' },
+        });
         new_form_data = transformed.formData;
         currentControlsState = transformed.controlsState;
       }
@@ -556,6 +561,7 @@ export default function exploreReducer(
 
       return {
         ...state,
+        compatibility: isVizSwitch ? { status: 'idle' } : state.compatibility,
         form_data: new_form_data as QueryFormData,
         triggerRender: control.renderTrigger && !hasErrors,
         controls: {
@@ -689,6 +695,20 @@ export default function exploreReducer(
       return {
         ...state,
         compatibility: typedAction.compatibility,
+        controls:
+          state.controls.time_grain_sqla &&
+          state.datasource?.type === 'semantic_view'
+            ? {
+                ...state.controls,
+                time_grain_sqla: {
+                  ...state.controls.time_grain_sqla,
+                  ...semanticGrainProps({
+                    ...state,
+                    compatibility: typedAction.compatibility,
+                  }),
+                },
+              }
+            : state.controls,
       };
     },
     [actions.UPDATE_EXPLORE_CHART_STATE]() {

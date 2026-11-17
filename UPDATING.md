@@ -24,6 +24,10 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Cube semantic views refuse explicit bucketed filters instead of comparing raw
+  timestamps. Custom granularities that collide with built-in ISO durations (or
+  with another custom granularity) are omitted and logged; built-in Year and Week
+  keep calendar-year and ISO-week semantics.
 - The semantic provider SDK replaces per-grain `Dimension` variants with one
   catalog dimension declaring `grains` and explicit omission defaults. Query
   operands use composed `DimensionSelection(dimension, grain)` values, including

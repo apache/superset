@@ -102,9 +102,8 @@ def test_connection_credentials_keys_unchanged(
         "col_values:eb5d43a7322c2a03556fc53bc62d54fbbe0b3d26d561d18a0e385c7457abd822",
         # Compatibility v3 includes changed_on="None" and explicit grain intent.
         "compatible:v3:5e562de2a9c1d5d7f8549ddc7dfbebe4228a801d2b6b0e6c76530e9275b768b9",
-        # Recorded on master ffee0a843f: #45133 adds semantic-null-filters-v1
-        # to chart keys; the execution-context contract adds no discriminator.
-        "80b906df8cf7f4837b95d21c32c6f71bd6c810fcf7c1896dbeca74a5023ea961",
+        # Includes the grain-selection marker; credentials remain excluded.
+        "0d7fcc39deed431d4556cae0938cb531bb52af435895d39490610ca98b30e9bd",
     ]
 
 

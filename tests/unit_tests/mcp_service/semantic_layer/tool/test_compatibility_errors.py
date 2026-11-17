@@ -24,6 +24,7 @@ from fastmcp.client.client import CallToolResult
 
 from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.app import mcp
+from superset.mcp_service.semantic_layer.schemas import SemanticLayerError
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.utils import json
 
@@ -231,3 +232,28 @@ async def test_compatibility_preserves_explicit_grain_intent(
         data: dict[str, object] = json.loads(result.content[0].text)
     assert data["success"] is True
     lookup.assert_called_once_with([], ["time"], dimension_grains={"time": grain})
+
+
+@pytest.mark.asyncio()
+@pytest.mark.parametrize("grain_error", [False, True])
+async def test_grain_error_classification_does_not_depend_on_request_shape(
+    grain_error: bool,
+) -> None:
+    from superset.mcp_service.semantic_layer.compatibility_errors import (
+        compatibility_error_response,
+    )
+    from superset.semantic_layers.dimension_resolution import GrainSelectionError
+
+    error: Exception = (
+        GrainSelectionError("Choose a grain")
+        if grain_error
+        else QueryObjectValidationError("provider-private-detail")
+    )
+    context: MagicMock = MagicMock(error=AsyncMock())
+    response: SemanticLayerError = await compatibility_error_response(
+        error, context, "dimensions"
+    )
+    assert response.error_type == (
+        "ValidationError" if grain_error else "InternalError"
+    )
+    assert "provider-private-detail" not in response.error

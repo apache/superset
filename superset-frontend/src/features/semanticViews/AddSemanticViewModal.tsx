@@ -647,7 +647,7 @@ export default function AddSemanticViewModal({
   // =========================================================================
 
   const newViewCount = existingView
-    ? availableViews.length
+    ? availableViews.some(view => view.name === existingView.name)
       ? 1
       : 0
     : availableViews.filter(

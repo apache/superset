@@ -514,3 +514,14 @@ test('fetchCompatibility sends explicit month intent separately from names', asy
   );
   postSpy.mockRestore();
 });
+
+test('SQL axis changes invalidate pending compatibility without idle redispatch', async () => {
+  const dispatch = jest.fn();
+  await actions.fetchCompatibility(
+    'table',
+    3,
+    [],
+    ['event_time'],
+  )(dispatch, () => ({ explore: { compatibility: { status: 'idle' } } }));
+  expect(dispatch).not.toHaveBeenCalled();
+});

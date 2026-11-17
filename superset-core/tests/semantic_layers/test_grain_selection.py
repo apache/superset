@@ -289,3 +289,28 @@ def test_example_refuses_bucket_filter_it_cannot_render(
     )
     with pytest.raises(SemanticQueryRejectedError):
         view.get_table(types.SemanticQuery([], [month], filters={bound}))
+
+
+def test_catalog_membership_uses_identity_and_checks_provider_support() -> None:
+    catalog: types.Dimension = types.Dimension(
+        "id",
+        "time",
+        pa.timestamp("us"),
+        grains=frozenset({types.Grains.DAY, types.Grains.MONTH}),
+    )
+    narrowed: types.Dimension = replace(catalog, grains=frozenset({types.Grains.MONTH}))
+    selected: types.DimensionSelection = types.DimensionSelection(
+        narrowed, types.Grains.MONTH
+    )
+    assert selected.dimension != catalog
+    assert types.catalog_selection(selected, [catalog]) == types.DimensionSelection(
+        catalog, types.Grains.MONTH
+    )
+    with pytest.raises(SemanticQueryRejectedError):
+        types.catalog_selection(
+            types.DimensionSelection(replace(catalog, id="forged")), [catalog]
+        )
+    with pytest.raises(SemanticQueryRejectedError):
+        types.catalog_selection(
+            types.DimensionSelection(catalog, types.Grains.DAY), [narrowed]
+        )

@@ -333,7 +333,7 @@ class AbcOnlyView(SemanticView):
         return self.__metrics
 
     def get_values(
-        self, dimension: Dimension, filters: set[Filter] | None = None
+        self, dimension: DimensionSelection, filters: set[Filter] | None = None
     ) -> SemanticResult:
         raise NotImplementedError
 

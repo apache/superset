@@ -82,6 +82,7 @@ from superset.semantic_layers.cache_repository import ViewMeta
 from superset.semantic_layers.dimension_resolution import (
     dimensions_by_name,
     DimensionUsage,
+    GrainSelectionError,
     resolve_dimensions,
     select_dimension,
 )
@@ -604,12 +605,29 @@ def _map_query_object(
     filter_time_axis: str | None = _get_time_axis_column(query_object, all_dimensions)
     # Catalog capabilities are a union. The provider declares the narrower
     # support for this metric/dimension combination before operands are emitted.
-    view_dimensions = tuple(
-        query_object.datasource.implementation.get_compatible_dimensions(
-            set(metrics), set(grouping_dimensions.values())
+    if (
+        normalized_columns
+        or query_object.filter
+        or query_object.orderby
+        or query_object.series_columns
+        or filter_time_axis
+    ):
+        view_dimensions = tuple(
+            query_object.datasource.implementation.get_compatible_dimensions(
+                set(metrics), set(grouping_dimensions.values())
+            )
         )
-    )
-    all_dimensions = dimensions_by_name(view_dimensions)
+    contextual_dimensions: dict[str, Dimension] = dimensions_by_name(view_dimensions)
+    filter_: ValidatedQueryObjectFilterClause
+    for filter_ in query_object.filter:
+        if (
+            filter_["col"] in all_dimensions
+            and filter_["col"] not in contextual_dimensions
+        ):
+            raise SemanticQueryInputError(
+                "The filter dimension is not supported in this query."
+            )
+    all_dimensions = contextual_dimensions
     if (
         filter_time_axis
         and filter_time_axis not in all_dimensions
@@ -960,11 +978,11 @@ def _resolve_filter_grain(
     explicit_grain: bool,
 ) -> tuple[DimensionSelection, QueryFilterValues | None]:
     """Resolve filter intent independently of the query's grouping grain."""
+    grain: Grain | None = _convert_time_grain(filter_grain)
+    if explicit_grain and filter_grain is not None and grain is None:
+        raise GrainSelectionError("The filter time grain is not supported.")
     selection: DimensionSelection = select_dimension(
-        dimension,
-        _convert_time_grain(filter_grain)
-        if explicit_grain
-        else dimension.ungrained_filter,
+        dimension, grain if explicit_grain else dimension.ungrained_filter
     )
     if filter_grain:
         if (

@@ -2797,3 +2797,153 @@ async def test_old_configuration_mcp_request_returns_recovery_without_execution(
     assert result["error_type"] == "SemanticViewConfigurationError"
     assert "re-select" in result["error"]
     execute.assert_not_called()
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "grains",
+    [{}, {"metric_time": None}, {"metric_time": "P1M"}, {"metric_time": "P1Y"}],
+)
+async def test_assembled_table_preserves_omitted_native_and_bucket_intent(
+    temporal_view: MagicMock,
+    mcp_server: FastMCP,
+    grains: dict[str, str | None],
+) -> None:
+    query_result: dict[str, Any] = chart_data_command_result(
+        [{"metric_time": "2026-01-01", "bookings": 3}],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+    )
+    execute: MagicMock
+    client: Client
+    with patch.object(
+        get_table_module, "execute_tabular_query", return_value=query_result
+    ) as execute:
+        async with Client(mcp_server) as client:
+            response: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time"],
+                        "dimension_grains": grains,
+                        "filters": [
+                            {
+                                "col": "metric_time",
+                                "op": ">=",
+                                "val": "2026-01-01",
+                                "grain": None,
+                            }
+                        ],
+                    }
+                },
+            )
+        result: dict[str, Any] = json.loads(response.content[0].text)
+    if grains.get("metric_time") == "P1Y":
+        assert result["error_type"] == "ValidationError"
+        execute.assert_not_called()
+    else:
+        assert result["success"] is True
+        query: dict[str, Any] = execute.call_args.args[2]
+        assert "grain" in query["filters"][0]
+        assert query["filters"][0]["grain"] is None
+        if grains:
+            assert query["columns"][0]["timeGrain"] == grains["metric_time"]
+        else:
+            assert query["columns"] == ["metric_time"]
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio()
+async def test_assembled_table_keeps_independent_dimension_and_filter_grains(
+    temporal_view: MagicMock,
+    mcp_server: FastMCP,
+) -> None:
+    temporal_view.columns.append(_make_column("shipped_at", True))
+    temporal_view.implementation.get_dimensions.return_value.append(
+        Dimension(
+            "shipped_at",
+            "shipped_at",
+            pa.timestamp("us"),
+            grains=frozenset({Grains.DAY, Grains.MONTH}),
+        )
+    )
+    execute: MagicMock
+    client: Client
+    with patch.object(
+        get_table_module,
+        "execute_tabular_query",
+        return_value=chart_data_command_result(
+            [{"metric_time": "2026-01-01", "shipped_at": "2026-01-02", "bookings": 3}],
+            coltypes=[
+                GenericDataType.TEMPORAL,
+                GenericDataType.TEMPORAL,
+                GenericDataType.NUMERIC,
+            ],
+        ),
+    ) as execute:
+        async with Client(mcp_server) as client:
+            response: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time", "shipped_at"],
+                        "dimension_grains": {"metric_time": "P1M", "shipped_at": "P1D"},
+                        "filters": [
+                            {
+                                "col": "metric_time",
+                                "op": "==",
+                                "val": "2026-01-01",
+                                "grain": "P1D",
+                            }
+                        ],
+                    }
+                },
+            )
+        result: dict[str, Any] = json.loads(response.content[0].text)
+    assert result["success"] is True, result
+    query: dict[str, Any] = execute.call_args.args[2]
+    assert [column["timeGrain"] for column in query["columns"]] == ["P1M", "P1D"]
+    assert query["filters"][0]["grain"] == "P1D"
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {
+            "filters": [
+                {"col": "metric_time", "op": "==", "val": "2026-01-01", "grain": "P1Y"}
+            ]
+        },
+        {"time_grain": "P1D", "dimension_grains": {"metric_time": "P1M"}},
+        {"dimension_grains": {"country_name": "P1M"}},
+    ],
+)
+async def test_assembled_table_rejects_conflicting_or_unsupported_grains(
+    temporal_view: MagicMock,
+    mcp_server: FastMCP,
+    extra: dict[str, Any],
+) -> None:
+    execute: MagicMock
+    client: Client
+    with patch.object(get_table_module, "execute_tabular_query") as execute:
+        async with Client(mcp_server) as client:
+            response: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time"],
+                        **extra,
+                    }
+                },
+            )
+        result: dict[str, Any] = json.loads(response.content[0].text)
+    assert result["error_type"] == "ValidationError"
+    execute.assert_not_called()

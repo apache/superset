@@ -117,6 +117,10 @@ def _make_view(view_id: int = 5) -> MagicMock:
     view.metrics = [_make_metric("bookings"), _make_metric("revenue", "SUM(revenue)")]
     view.columns = [_make_column("listing__country_name"), _make_column("channel")]
     view.get_compatible_dimensions = MagicMock(return_value=["listing__country_name"])
+    view.get_compatible_dimension_metadata.side_effect = lambda metrics, dimensions: {
+        Dimension(name, name, pa.string())
+        for name in view.get_compatible_dimensions(metrics, dimensions)
+    }
     return view
 
 
@@ -481,6 +485,11 @@ async def test_list_metrics_external_per_metric_compatible_dimensions(
     assert [d["name"] for d in metrics["bookings"]["compatible_dimensions"]] == [
         "listing__country_name"
     ]
+    assert metrics["bookings"]["compatible_dimensions"][0]["grains"] == []
+    assert (
+        metrics["bookings"]["compatible_dimensions"][0]["allows_default_grain"] is True
+    )
+    assert metrics["bookings"]["compatible_dimensions"][0]["omitted_grain"] == "native"
     assert metrics["revenue"]["compatible_dimensions"] == []
     assert mock_view.get_compatible_dimensions.call_args_list == [
         call(["bookings"], []),

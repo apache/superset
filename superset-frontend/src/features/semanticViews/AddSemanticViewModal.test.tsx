@@ -2015,3 +2015,37 @@ test('re-selection saves fields on the original view ID without creating another
   expect(props.onSuccess).toHaveBeenCalledTimes(1);
   put.mockRestore();
 });
+
+test('re-selection cannot save when only a different view resolves', async () => {
+  mockedGet.mockResolvedValue({
+    json: { result: [{ uuid: 'layer-1', name: 'MF' }] },
+  });
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) =>
+    Promise.resolve({
+      json: {
+        result: endpoint.endsWith('/schema/runtime')
+          ? { properties: {} }
+          : [{ name: 'different', already_added: false }],
+      },
+    }),
+  );
+  render(
+    <AddSemanticViewModal
+      {...createProps()}
+      existingView={{ id: 9, name: 'saved', semantic_layer_uuid: 'layer-1' }}
+    />,
+  );
+  await waitFor(() =>
+    expect(mockedPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: '/api/v1/semantic_layer/layer-1/views',
+      }),
+    ),
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByText('Loading semantic views…'),
+    ).not.toBeInTheDocument(),
+  );
+  expect(screen.getByRole('button', { name: 'Save fields' })).toBeDisabled();
+});

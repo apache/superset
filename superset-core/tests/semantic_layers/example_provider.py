@@ -34,6 +34,7 @@ from superset_core.semantic_layers.errors import (
 from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
+    catalog_selection,
     Dimension,
     DimensionSelection,
     Filter,
@@ -78,8 +79,7 @@ class ExampleView(SemanticView):
         self, dimension: DimensionSelection, filters: set[Filter] | None = None
     ) -> SemanticResult:
         """Return complete distinct values named after the requested member."""
-        if dimension.dimension not in self.get_dimensions():
-            raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_QUERY)
+        dimension = catalog_selection(dimension, self.get_dimensions())
         if filters:
             raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
         return SemanticResult(

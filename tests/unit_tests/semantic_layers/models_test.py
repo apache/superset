@@ -672,6 +672,7 @@ def test_semantic_view_get_extra_cache_keys(version: str | None) -> None:
         expected: list[Hashable] = [
             view.metadata_generation,
             "semantic-null-filters-v1",
+            "semantic-grain-selection-v2",
         ]
         if version is not None:
             expected.append(("semantic-result-version", "fixture", version))
@@ -679,6 +680,11 @@ def test_semantic_view_get_extra_cache_keys(version: str | None) -> None:
         assert composed_key != query.cache_key(extra_cache_keys=expected[1:])
         assert composed_key != query.cache_key(
             extra_cache_keys=[expected[0], *expected[2:]]
+        )
+        assert composed_key != query.cache_key(
+            extra_cache_keys=[
+                key for key in expected if key != "semantic-grain-selection-v2"
+            ]
         )
         assert composed_key != query.cache_key(extra_cache_keys=[])
         if version is not None:
@@ -3012,6 +3018,7 @@ def test_result_generation_reads_class_without_provider_construction(
         expected: list[Hashable] = [
             view.metadata_generation,
             "semantic-null-filters-v1",
+            "semantic-grain-selection-v2",
         ]
         if version is not None:
             expected.append(("semantic-result-version", "fixture", version))
@@ -3454,3 +3461,41 @@ def test_values_rejection_logs_view_and_dimension(
     assert "INVALID_FILTER" in caplog.text
     assert "private-search" not in caplog.text
     mock_implementation.get_values.assert_called_once()
+
+
+def test_time_grains_display_known_fineness_before_custom_durations(
+    mock_implementation: MagicMock,
+) -> None:
+    view: SemanticView = SemanticView()
+    mock_implementation.get_dimensions.return_value = [
+        Dimension(
+            "time",
+            "time",
+            pa.timestamp("us"),
+            grains=frozenset(
+                {
+                    Grains.HOUR,
+                    Grains.DAY,
+                    Grains.WEEK,
+                    Grains.MONTH,
+                    Grains.QUARTER,
+                    Grains.YEAR,
+                    Grains.get("P2M"),
+                }
+            ),
+        )
+    ]
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        assert [grain["duration"] for grain in view.get_time_grains()] == [
+            "PT1H",
+            "P1D",
+            "P1W",
+            "P1M",
+            "P3M",
+            "P1Y",
+            "P2M",
+        ]

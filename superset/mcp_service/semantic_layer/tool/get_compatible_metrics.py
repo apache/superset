@@ -139,6 +139,11 @@ async def _resolve_compatible_metrics(
         # Built-in dataset path
         # ------------------------------------------------------------------
         if request.dataset_id is not None:
+            if request.dimension_grains:
+                return SemanticLayerError.create(
+                    error="dimension_grains is only supported for semantic views.",
+                    error_type="ValidationError",
+                )
             from sqlalchemy.orm import subqueryload
 
             from superset.connectors.sqla.models import SqlaTable
@@ -286,6 +291,4 @@ async def _resolve_compatible_metrics(
         )
 
     except Exception as exc:  # noqa: BLE001
-        return await compatibility_error_response(
-            exc, ctx, "metrics", bool(request.dimension_grains)
-        )
+        return await compatibility_error_response(exc, ctx, "metrics")

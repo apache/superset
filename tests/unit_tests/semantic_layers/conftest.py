@@ -132,7 +132,7 @@ class LegacyView(SemanticView):
         return {Metric("orders", "Orders", pa.int64(), "orders")}
 
     def get_values(
-        self, dimension: Dimension, filters: set[Filter] | None = None
+        self, dimension: DimensionSelection, filters: set[Filter] | None = None
     ) -> SemanticResult:
         return SemanticResult([], pa.table({"value": [17]}))
 
@@ -143,12 +143,16 @@ class LegacyView(SemanticView):
         return SemanticResult([], pa.table({"count": [1]}))
 
     def get_compatible_metrics(
-        self, selected_metrics: set[Metric], selected_dimensions: set[Dimension]
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Metric]:
         return self.get_metrics()
 
     def get_compatible_dimensions(
-        self, selected_metrics: set[Metric], selected_dimensions: set[Dimension]
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Dimension]:
         return self.get_dimensions()
 

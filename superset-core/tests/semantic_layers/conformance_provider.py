@@ -33,6 +33,7 @@ from superset_core.semantic_layers.errors import (
 from superset_core.semantic_layers.types import (
     AdhocExpression,
     AggregationType,
+    catalog_selection,
     Dimension,
     DimensionSelection,
     Filter,
@@ -135,9 +136,10 @@ class QueryView(ExampleView):
         """Compile a bounded subset of queries, then execute through the backend."""
         if (not query.dimensions and not query.metrics) or query.group_limit:
             raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
-        if any(
-            d.dimension not in self.get_dimensions() for d in query.dimensions
-        ) or any(m not in self.get_metrics() for m in query.metrics):
+        selection: DimensionSelection
+        for selection in query.dimensions:
+            catalog_selection(selection, self.get_dimensions())
+        if any(m not in self.get_metrics() for m in query.metrics):
             raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_QUERY)
         expressions: list[str] = [
             "substr(occurred, 1, 7) || '-01'" if d.grain == Grains.MONTH else d.name

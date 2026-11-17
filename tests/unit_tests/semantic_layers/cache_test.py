@@ -243,7 +243,7 @@ def _metric(
     )
 
 
-def _dimension(dimension_id: str) -> Dimension:
+def _dimension(dimension_id: str) -> DimensionSelection:
     return DimensionSelection(
         Dimension(id=dimension_id, name=dimension_id, type=pa.string())
     )

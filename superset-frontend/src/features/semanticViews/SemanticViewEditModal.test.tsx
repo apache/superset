@@ -42,13 +42,17 @@ const MOCK_STRUCTURE = {
     // asserting the same values whichever source the form reads from.
     description: 'old description',
     cache_timeout: 60,
+    time_grains: [
+      { duration: 'P1D', name: 'Day' },
+      { duration: 'P1M', name: 'Month' },
+    ],
     dimensions: [
       {
         name: 'order_date',
         type: 'timestamp[us]',
         definition: 'ordered_at',
         description: 'Date of the order',
-        grains: ['P1D', 'P1M'],
+        grains: ['P1M', 'P1D'],
         allows_default_grain: false,
         omitted_grain: 'P1D',
         ungrained_filter: 'P1D',
@@ -512,8 +516,9 @@ test('shows one dimension with its supported grains and native permission', asyn
   await userEvent.click(
     await screen.findByRole('tab', { name: 'Dimensions (2)' }),
   );
-  expect(await screen.findByText('P1D, P1M')).toBeInTheDocument();
+  expect(await screen.findByText('Day, Month')).toBeInTheDocument();
   expect(screen.getByText('Native allowed')).toBeInTheDocument();
+  expect(screen.getByText('Native')).toBeInTheDocument();
   expect(screen.getByText('Explicit grain required')).toBeInTheDocument();
   expect(screen.getAllByText('order_date')).toHaveLength(1);
 });

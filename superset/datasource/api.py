@@ -21,6 +21,7 @@ from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from marshmallow import ValidationError
+from superset_core.semantic_layers.errors import SemanticViewConfigurationError
 
 from superset import event_logger, is_feature_enabled, security_manager
 from superset.commands.datasource.list import GetCombinedDatasourceListCommand
@@ -53,8 +54,11 @@ from superset.semantic_layers.dimension_resolution import (
     AmbiguousDimensionError,
     dimension_support,
     DimensionSupport,
+    GrainSelectionError,
 )
 from superset.semantic_layers.exceptions import (
+    configuration_recovery_message,
+    SemanticLayerConfigurationError,
     SemanticLayerExecutionError,
     SemanticLayerQueryRejectedError,
 )
@@ -605,9 +609,7 @@ class DatasourceRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
         log_to_statsd=False,
     )
-    def compatible(  # noqa: C901
-        self, datasource_type: str, datasource_id: int
-    ) -> FlaskResponse:
+    def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         """Return compatible members, refusing unknown selected names with a 400.
 
         Non-string entries in selection lists do not select datasource members.
@@ -638,6 +640,14 @@ class DatasourceRestApi(BaseSupersetApi):
                       type: array
                       items:
                         type: string
+                    dimension_grains:
+                      type: object
+                      description: >-
+                        Selected dimension names mapped to ISO durations;
+                        null explicitly requests native values.
+                      additionalProperties:
+                        type: string
+                        nullable: true
           responses:
             200:
               description: Compatible metrics and dimensions
@@ -657,6 +667,16 @@ class DatasourceRestApi(BaseSupersetApi):
                             type: array
                             items:
                               type: string
+                          dimension_support:
+                            type: object
+                            description: >-
+                              Per-dimension supported grains and omission defaults.
+                            additionalProperties:
+                              type: object
+            422:
+              description: >-
+                Saved semantic configuration needs field re-selection;
+                includes error_type and recovery identifiers.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -683,6 +703,8 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(403, message=ex.message)
 
         body: Any = request.get_json(silent=True) or {}
+        if not isinstance(body, dict):
+            return self.response(400, message="The request body must be an object")
         raw_metrics: object = body.get("selected_metrics", [])
         raw_dimensions: object = body.get("selected_dimensions", [])
         if not isinstance(raw_metrics, list) or not isinstance(raw_dimensions, list):
@@ -707,6 +729,39 @@ class DatasourceRestApi(BaseSupersetApi):
             name for name in raw_dimensions if isinstance(name, str)
         ]
 
+        try:
+            return self._compatible_result(
+                datasource, selected_metrics, selected_dimensions, dimension_grains
+            )
+        except (SemanticLayerConfigurationError, SemanticViewConfigurationError):
+            return self.response(
+                422,
+                message=configuration_recovery_message(),
+                error_type="SemanticViewConfigurationError",
+                recovery={
+                    "id": datasource.id,
+                    "name": datasource.name,
+                    "semantic_layer_uuid": str(datasource.semantic_layer_uuid),
+                }
+                if isinstance(datasource, SemanticView)
+                else None,
+            )
+        except QueryObjectValidationError as ex:
+            message: str = (
+                str(ex)
+                if isinstance(ex, (GrainSelectionError, AmbiguousDimensionError))
+                else "Unable to validate compatibility."
+            )
+            return self.response(400, message=message)
+
+    def _compatible_result(  # noqa: C901
+        self,
+        datasource: BaseDatasource | SemanticView,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+        dimension_grains: dict[str, str | None],
+    ) -> FlaskResponse:
+        """Validate the live selection before serving or storing compatibility."""
         # Check names before the result cache: live datasource members can change
         # without invalidating a previously cached compatibility result.
         selection_errors: list[str] = []
@@ -743,14 +798,9 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
 
         if isinstance(datasource, SemanticView) and dimension_grains:
-            from superset.exceptions import QueryObjectValidationError
-
-            try:
-                datasource._compat_selection(
-                    selected_metrics, selected_dimensions, dimension_grains
-                )
-            except QueryObjectValidationError as ex:
-                return self.response(400, message=str(ex))
+            datasource._compat_selection(
+                selected_metrics, selected_dimensions, dimension_grains
+            )
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.

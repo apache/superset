@@ -33,6 +33,8 @@ from superset_core.semantic_layers.types import (
 )
 from werkzeug.test import TestResponse
 
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.semantic_layers.execution import SemanticBindingMemo
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 
@@ -197,3 +199,97 @@ def test_explicit_grain_cache_identity_and_live_validation(
     assert response.status_code == (200 if grain == "P1D" else 400)
     if grain != "P1D":
         cache.get.assert_not_called()
+
+
+@pytest.mark.parametrize("failure", ["metadata", "omitted", "provider"])
+def test_compatible_reports_recovery_and_selection_errors(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    failure: str,
+) -> None:
+    from superset_core.semantic_layers.errors import SemanticViewConfigurationError
+    from superset_core.semantic_layers.types import GrainDefault
+
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), name="layer", type="test", cache_version=0
+    )
+    view: SemanticView = SemanticView(
+        id=73, name="saved", semantic_layer=layer, configuration="{}"
+    )
+    provider: MagicMock = MagicMock()
+    dimension: Dimension = Dimension(
+        "time",
+        "time",
+        pa.timestamp("us"),
+        grains=frozenset({Grains.MONTH}),
+        allows_default_grain=False,
+        omitted_grain=GrainDefault.REJECT,
+        ungrained_filter=GrainDefault.REJECT,
+    )
+    provider.get_dimensions.return_value = {dimension}
+    provider.get_metrics.return_value = set()
+    provider.uid.return_value = "compatible-error-test"
+    binding: MagicMock = MagicMock(get_semantic_view=MagicMock(return_value=provider))
+    if failure == "metadata":
+        binding.get_semantic_view.side_effect = SemanticViewConfigurationError()
+    if failure == "provider":
+        provider.get_compatible_metrics.side_effect = QueryObjectValidationError(
+            "provider-private-detail"
+        )
+    mocker.patch.object(SemanticBindingMemo, "bind", return_value=(binding, {}))
+    mocker.patch(
+        "superset.datasource.api.DatasourceDAO.get_datasource", return_value=view
+    )
+    mocker.patch.object(SemanticView, "raise_for_access")
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+    response: TestResponse = client.post(
+        "/api/v1/datasource/semantic_view/73/compatible",
+        json={
+            "selected_dimensions": ["time"],
+            **({"dimension_grains": {"time": "P1M"}} if failure == "provider" else {}),
+        },
+    )
+    assert response.status_code == (422 if failure == "metadata" else 400)
+    assert response.json is not None
+    if failure == "metadata":
+        assert response.json["error_type"] == "SemanticViewConfigurationError"
+        assert response.json["recovery"]["id"] == 73
+        assert "re-select" in response.json["message"]
+    elif failure == "provider":
+        assert "provider-private-detail" not in response.get_data(as_text=True)
+    else:
+        assert "explicit time grain" in response.json["message"]
+    cache.set.assert_not_called()
+
+
+def test_compatible_access_denial_does_not_bind_provider_or_read_cache(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    view: SemanticView = SemanticView(id=73, name="restricted")
+    mocker.patch(
+        "superset.datasource.api.DatasourceDAO.get_datasource", return_value=view
+    )
+    mocker.patch.object(
+        SemanticView,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="Forbidden",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+    binding: MagicMock = mocker.patch.object(SemanticBindingMemo, "bind")
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    response: TestResponse = client.post(
+        "/api/v1/datasource/semantic_view/73/compatible", json={}
+    )
+    assert response.status_code == 403
+    binding.assert_not_called()
+    cache.get.assert_not_called()
+    cache.set.assert_not_called()

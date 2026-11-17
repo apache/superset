@@ -68,6 +68,7 @@ interface SemanticViewStructure {
   // hydration effect only overwrites the form when they are present.
   description?: string | null;
   cache_timeout?: number | null;
+  time_grains?: { duration: string; name: string }[];
   dimensions: SemanticDimension[];
   metrics: SemanticMetric[];
 }
@@ -86,14 +87,24 @@ interface SemanticViewEditModalProps {
   } | null;
 }
 
-const DIMENSION_COLUMNS: ColumnsType<SemanticDimension> = [
+const dimensionColumns = (
+  timeGrains: { duration: string; name: string }[],
+): ColumnsType<SemanticDimension> => [
   { title: t('Name'), dataIndex: 'name', key: 'name' },
   { title: t('Type'), dataIndex: 'type', key: 'type' },
   {
     title: t('Supported grains'),
     dataIndex: 'grains',
     key: 'grains',
-    render: (grains: string[]) => grains.join(', '),
+    render: (grains: string[]) =>
+      [
+        ...timeGrains
+          .filter(grain => grains.includes(grain.duration))
+          .map(grain => grain.name),
+        ...grains.filter(
+          duration => !timeGrains.some(grain => grain.duration === duration),
+        ),
+      ].join(', '),
   },
   {
     title: t('Native grain'),
@@ -106,6 +117,13 @@ const DIMENSION_COLUMNS: ColumnsType<SemanticDimension> = [
     title: t('Omitted grain'),
     dataIndex: 'omitted_grain',
     key: 'omitted_grain',
+    render: (selector: string) =>
+      selector === 'native'
+        ? t('Native')
+        : selector === 'reject'
+          ? t('Explicit grain required')
+          : (timeGrains.find(grain => grain.duration === selector)?.name ??
+            selector),
   },
   { title: t('Description'), dataIndex: 'description', key: 'description' },
   { title: t('Expression'), dataIndex: 'definition', key: 'definition' },
@@ -190,18 +208,33 @@ export default function SemanticViewEditModal({
       .catch(async error => {
         if (cancelled) return;
         if (typeof error?.clone === 'function') {
-          const body = await error
+          const body: unknown = await error
             .clone()
             .json()
             .catch(() => null);
           if (cancelled) return;
           if (
-            body?.error_type === 'SemanticViewConfigurationError' &&
+            body !== null &&
+            typeof body === 'object' &&
+            'error_type' in body &&
+            body.error_type === 'SemanticViewConfigurationError' &&
+            'message' in body &&
+            typeof body.message === 'string' &&
+            'recovery' in body &&
+            body.recovery !== null &&
+            typeof body.recovery === 'object' &&
+            'id' in body.recovery &&
+            'name' in body.recovery &&
+            'semantic_layer_uuid' in body.recovery &&
             typeof body.recovery?.id === 'number' &&
             typeof body.recovery?.name === 'string' &&
             typeof body.recovery?.semantic_layer_uuid === 'string'
           ) {
-            setRecovery(body.recovery);
+            setRecovery({
+              id: body.recovery.id,
+              name: body.recovery.name,
+              semantic_layer_uuid: body.recovery.semantic_layer_uuid,
+            });
             setRecoveryMessage(body.message);
             return;
           }
@@ -323,7 +356,7 @@ export default function SemanticViewEditModal({
             />
             <Table<SemanticDimension>
               data={dimensions}
-              columns={DIMENSION_COLUMNS}
+              columns={dimensionColumns(structure?.time_grains ?? [])}
               size={TableSize.Small}
               rowKey="name"
               usePagination={dimensions.length > STRUCTURE_PAGINATION_THRESHOLD}

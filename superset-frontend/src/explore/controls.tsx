@@ -361,8 +361,7 @@ export const controls = {
         'engine basis in the Superset source code.',
     ),
     mapStateToProps: (state: ControlState) => semanticGrainProps(state),
-    shouldMapStateToProps: (prev: ControlState, next: ControlState) =>
-      prev.compatibility !== next.compatibility,
+    shouldMapStateToProps: () => true,
   },
 
   time_range: {

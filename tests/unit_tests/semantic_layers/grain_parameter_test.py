@@ -27,6 +27,7 @@ from superset_core.semantic_layers.types import (
     Dimension,
     DimensionSelection,
     Filter,
+    Grain,
     GrainDefault,
     Grains,
     Metric,
@@ -38,7 +39,11 @@ from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
 from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers import dimension_resolution as resolution
-from superset.semantic_layers.mapper import map_query_object, ValidatedQueryObject
+from superset.semantic_layers.mapper import (
+    map_query_object,
+    SemanticQueryInputError,
+    ValidatedQueryObject,
+)
 
 
 class GrainView(SemanticView):
@@ -127,10 +132,10 @@ def test_group_order_limit_and_raw_bounds_are_independent() -> None:
     assert mapped.order == [(month, OrderDirection.ASC)]
     assert mapped.group_limit is not None
     assert mapped.group_limit.dimensions == [month]
-    assert {f.column for f in mapped.filters or set()} == {
+    assert {f.column for f in mapped.filters or set() if isinstance(f, Filter)} == {
         DimensionSelection(dimension)
     }
-    assert {f.value for f in mapped.filters or set()} == {
+    assert {f.value for f in mapped.filters or set() if isinstance(f, Filter)} == {
         datetime(2026, 1, 15),
         datetime(2026, 2, 1),
     }
@@ -152,7 +157,7 @@ def test_omitted_grouping_preserves_declared_day_and_implicit_filters() -> None:
     )
     mapped: SemanticQuery = map_query_object(query)[0]
     assert mapped.dimensions == [DimensionSelection(dimension, Grains.DAY)]
-    assert {f.column for f in mapped.filters or set()} == {
+    assert {f.column for f in mapped.filters or set() if isinstance(f, Filter)} == {
         DimensionSelection(dimension, Grains.DAY)
     }
 
@@ -170,7 +175,7 @@ def test_bucket_filter_is_independent_of_grouping() -> None:
     )
     mapped: SemanticQuery = map_query_object(query)[0]
     assert mapped.dimensions == [DimensionSelection(dimension, Grains.DAY)]
-    assert {f.column for f in mapped.filters or set()} == {
+    assert {f.column for f in mapped.filters or set() if isinstance(f, Filter)} == {
         DimensionSelection(dimension, Grains.MONTH)
     }
 
@@ -249,8 +254,10 @@ def test_dormant_table_grain_does_not_change_categorical_grouping() -> None:
     )[0]
     assert mapped.dimensions == [DimensionSelection(dimension)]
     assert all(
-        isinstance(item.column, DimensionSelection) and item.column.grain is None
-        for item in mapped.filters
+        isinstance(item, Filter)
+        and isinstance(item.column, DimensionSelection)
+        and item.column.grain is None
+        for item in mapped.filters or set()
     )
 
 
@@ -312,4 +319,55 @@ def test_explicit_raw_filter_bypasses_legacy_implicit_bucket() -> None:
         filters=[{"col": "event_time", "op": ">=", "val": "2026-01-15", "grain": None}],
     )
     mapped: SemanticQuery = map_query_object(query)[0]
-    assert {leaf.column for leaf in mapped.filters} == {DimensionSelection(dimension)}
+    assert {
+        leaf.column for leaf in mapped.filters or set() if isinstance(leaf, Filter)
+    } == {DimensionSelection(dimension)}
+
+
+def test_context_narrowing_never_silently_drops_a_dashboard_filter() -> None:
+    category: Dimension = Dimension("category", "category", pa.string())
+    region: Dimension = Dimension("region", "region", pa.string())
+    view: GrainView = GrainView(category)
+    view.catalog = {category, region}
+    view.contextual = {category}
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource(view),
+        columns=["category"],
+        metrics=[],
+        filters=[{"col": "region", "op": "IN", "val": ["EMEA"], "isExtra": True}],
+    )
+    with pytest.raises(SemanticQueryInputError, match="not supported"):
+        map_query_object(query)
+
+
+@pytest.mark.parametrize("grain", ["1969-12-28T00:00:00Z/P1W", "", "nonsense"])
+def test_unparseable_filter_grain_never_falls_back_to_native(grain: str) -> None:
+    view: GrainView = GrainView(time_dimension())
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource(view),
+        columns=["event_time"],
+        metrics=[],
+        filters=[
+            {"col": "event_time", "op": "==", "val": "2026-01-01", "grain": grain}
+        ],
+    )
+    with pytest.raises(QueryObjectValidationError, match="grain"):
+        map_query_object(query)
+
+
+def test_aggregate_only_query_does_not_call_remote_compatibility() -> None:
+    view: GrainView = GrainView(time_dimension())
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource(view),
+        columns=[],
+        metrics=[],
+    )
+    map_query_object(query)
+    assert view.calls == 0
+
+
+def test_query_selection_uses_provider_catalog_grain_instance() -> None:
+    catalog_grain: Grain = Grain("Provider calendar month", "P1M")
+    dimension: Dimension = replace(time_dimension(), grains=frozenset({catalog_grain}))
+    selected: DimensionSelection = resolution.select_dimension(dimension, Grains.MONTH)
+    assert selected.grain is catalog_grain

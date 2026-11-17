@@ -51,22 +51,24 @@ test('narrows selected-axis grains to metric context without replacing a saved v
 });
 
 test.each(['idle', 'loading', 'failed'])(
-  'unknown support (%s) does not advertise a union',
+  'unknown support (%s) retains the catalog so a stale selection can be repaired',
   status => {
     expect(
       semanticGrainProps({ ...state, compatibility: { status } }).choices,
-    ).toEqual([]);
+    ).toEqual(choices);
   },
 );
 
-test('a missing axis and verified empty support have no grain choices', () => {
-  expect(semanticGrainProps({ ...state, controls: {} }).choices).toEqual([]);
+test('missing support retains selectable catalog choices', () => {
+  expect(semanticGrainProps({ ...state, controls: {} }).choices).toEqual(
+    choices,
+  );
   expect(
     semanticGrainProps({
       ...state,
       compatibility: { status: 'verified', dimensionSupport: {} },
     }).choices,
-  ).toEqual([]);
+  ).toEqual(choices);
 });
 
 test('native-only support remains clearable', () => {

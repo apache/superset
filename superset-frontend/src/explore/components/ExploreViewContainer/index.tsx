@@ -47,7 +47,6 @@ import {
 import {
   ControlStateMapping,
   ControlPanelState,
-  semanticGrainSelections,
 } from '@superset-ui/chart-controls';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -498,7 +497,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           ? [props.form_data.granularity_sqla]
           : []),
       ]
-        .map(d => (typeof d === 'string' ? d : d?.sqlExpression))
+        .map(d =>
+          typeof d === 'string'
+            ? d
+            : d?.isColumnReference
+              ? d.sqlExpression
+              : undefined,
+        )
         .filter((d): d is string => typeof d === 'string'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -509,28 +514,12 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       props.form_data.granularity_sqla,
     ],
   );
-  const dimensionGrains = useMemo(
-    () =>
-      semanticGrainSelections(
-        props.form_data,
-        selectedDimensions,
-        props.datasource.columns ?? [],
-      ),
-    [
-      selectedDimensions,
-      props.form_data.x_axis,
-      props.form_data.granularity_sqla,
-      props.form_data.time_grain_sqla,
-      props.datasource.columns,
-    ],
-  );
   useEffect(() => {
     props.actions.fetchCompatibility(
       props.datasource.type,
       props.datasource.id as number,
       selectedMetrics,
       selectedDimensions,
-      dimensionGrains,
     );
     // props.datasource.id covers the saved-chart-loading case (M4)
   }, [
@@ -538,7 +527,6 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     props.datasource.type,
     selectedMetrics,
     selectedDimensions,
-    dimensionGrains,
   ]);
 
   const addHistory = useCallback(

@@ -84,17 +84,17 @@ def test_conflicting_catalog_definitions_reject_for_every_usage(
         omitted_grain=Grains.DAY,
         ungrained_filter=Grains.DAY,
     )
-    changed: dict[str, object] = {
-        "id": "b",
-        "type": pa.date32(),
-        "definition": "other",
-        "description": "other",
-        "grains": frozenset({Grains.DAY}),
-        "omitted_grain": Grains.MONTH,
-        "ungrained_filter": Grains.MONTH,
-        "allows_default_grain": False,
+    changed: dict[str, Dimension] = {
+        "id": replace(first, id="b"),
+        "type": replace(first, type=pa.date32()),
+        "definition": replace(first, definition="other"),
+        "description": replace(first, description="other"),
+        "grains": replace(first, grains=frozenset({Grains.DAY})),
+        "omitted_grain": replace(first, omitted_grain=Grains.MONTH),
+        "ungrained_filter": replace(first, ungrained_filter=Grains.MONTH),
+        "allows_default_grain": replace(first, allows_default_grain=False),
     }
-    second: Dimension = replace(first, **{field: changed[field]})
+    second: Dimension = changed[field]
     for ordering in permutations([first, second]):
         with pytest.raises(QueryObjectValidationError, match="ambiguous"):
             resolve_dimensions(ordering, usage=usage, names=[])

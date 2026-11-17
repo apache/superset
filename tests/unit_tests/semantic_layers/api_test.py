@@ -3099,6 +3099,9 @@ def test_get_semantic_view_structure(
     mock_view: MagicMock = MagicMock(
         implementation=MagicMock(selection_identity_version="cube-member-id-v1")
     )
+    mock_view.get_time_grains.return_value = [
+        {"duration": "P1D", "name": "Day", "function": ""}
+    ]
     mock_view.name = "orders"
     mock_view.description = "All orders"
     mock_view.cache_timeout = 600
@@ -3114,6 +3117,7 @@ def test_get_semantic_view_structure(
 
     assert response.status_code == 200
     result = response.json["result"]
+    assert result["time_grains"] == [{"duration": "P1D", "name": "Day", "function": ""}]
     assert result["name"] == "orders"
     assert result["semantic_selection_version"] == "cube-member-id-v1"
     # The edit modal has no detail route to hydrate from, so these must ride
@@ -3208,6 +3212,7 @@ def test_get_semantic_view_structure_no_grain(
     mock_view: MagicMock = MagicMock(
         implementation=MagicMock(selection_identity_version=None)
     )
+    mock_view.get_time_grains.return_value = []
     mock_view.name = "customers"
     mock_view.description = None
     mock_view.cache_timeout = None
@@ -3228,6 +3233,7 @@ def test_get_semantic_view_structure_no_grain(
     assert result["dimensions"][0]["omitted_grain"] == "native"
     assert result["dimensions"][0]["ungrained_filter"] == "native"
     assert result["metrics"] == []
+    assert result["time_grains"] == []
     assert result["semantic_selection_version"] is None
     # An unset description must come back as null, not be omitted: the modal
     # distinguishes "cleared" from "absent" when hydrating.

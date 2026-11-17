@@ -28,7 +28,11 @@ import {
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
-import { CompatibilityResult, SaveActionType } from 'src/explore/types';
+import {
+  CompatibilityResult,
+  ExplorePageState,
+  SaveActionType,
+} from 'src/explore/types';
 
 export const RESET_SEMANTIC_SELECTIONS = 'RESET_SEMANTIC_SELECTIONS';
 export function resetSemanticSelections(sliceId?: number) {
@@ -214,12 +218,19 @@ export function fetchCompatibility(
   selectedDimensions: string[],
   dimensionGrains: Record<string, string | null> = {},
 ) {
-  return async (dispatch: Dispatch) => {
+  return async (
+    dispatch: Dispatch,
+    getState?: () => {
+      explore: Pick<ExplorePageState['explore'], 'compatibility'>;
+    },
+  ) => {
     compatibilityRequestSeq += 1;
     const requestSeq = compatibilityRequestSeq;
 
     if (datasourceType !== 'semantic_view') {
-      dispatch(setCompatibility({ status: 'idle' }));
+      if (getState?.().explore.compatibility?.status !== 'idle') {
+        dispatch(setCompatibility({ status: 'idle' }));
+      }
       return;
     }
 

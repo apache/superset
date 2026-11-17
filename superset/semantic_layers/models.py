@@ -68,6 +68,7 @@ from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.dimension_resolution import (
     dimensions_by_name,
     DimensionUsage,
+    GrainSelectionError,
     resolve_dimensions,
     select_dimension,
 )
@@ -907,7 +908,11 @@ class SemanticView(AuditMixinNullable, Model):
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         discriminator: tuple[str, str] | None = self.result_cache_discriminator
         # Separate cached pre-normalization results during rolling deployments.
-        keys: list[Hashable] = [self.metadata_generation, "semantic-null-filters-v1"]
+        keys: list[Hashable] = [
+            self.metadata_generation,
+            "semantic-null-filters-v1",
+            "semantic-grain-selection-v2",
+        ]
         if discriminator is not None:
             keys.append(("semantic-result-version", *discriminator))
         return keys
@@ -952,7 +957,26 @@ class SemanticView(AuditMixinNullable, Model):
                         "duration": grain.representation,
                     },
                 )
-        return [seen[key] for key in sorted(seen)]
+        known: tuple[str, ...] = (
+            "PT1S",
+            "PT1M",
+            "PT1H",
+            "P1D",
+            "P1W",
+            "P1M",
+            "P3M",
+            "P1Y",
+        )
+        return [
+            seen[key]
+            for key in sorted(
+                seen,
+                key=lambda duration: (
+                    known.index(duration) if duration in known else len(known),
+                    duration,
+                ),
+            )
+        ]
 
     def has_drill_by_columns(self, column_names: list[str]) -> bool:
         dimension_names = {dimension.name for dimension in self._provider_dimensions()}
@@ -1008,7 +1032,7 @@ class SemanticView(AuditMixinNullable, Model):
         representation: str | None
         for name, representation in (dimension_grains or {}).items():
             if name not in selected_dimensions or name not in catalog:
-                raise QueryObjectValidationError(
+                raise GrainSelectionError(
                     "Grain selection requires a selected dimension."
                 )
             available: dict[str, Grain] = {
@@ -1017,9 +1041,7 @@ class SemanticView(AuditMixinNullable, Model):
             if representation is not None and (
                 not isinstance(representation, str) or representation not in available
             ):
-                raise QueryObjectValidationError(
-                    "The selected time grain is not supported."
-                )
+                raise GrainSelectionError("The selected time grain is not supported.")
             grains[name] = (
                 available[representation] if representation is not None else None
             )

@@ -228,6 +228,14 @@ class GetTableFilter(BaseModel):
         description="Filter value. Use a list for 'IN'/'NOT IN' operators.",
     )
 
+    grain: str | None = Field(
+        default=None,
+        description=(
+            "Semantic filter grain as an ISO duration; explicit null is native. "
+            "Omit to use the declared filter default."
+        ),
+    )
+
     @model_validator(mode="after")
     def _validate_temporal_range_val(self) -> "GetTableFilter":
         """Validate a filter comparator before it reaches the shared parser.
@@ -274,6 +282,14 @@ class GetTableRequest(BaseModel):
     dimensions: list[str] = Field(
         default_factory=list,
         description="Dimension or column names to group by.",
+    )
+    dimension_grains: dict[str, str | None] = Field(
+        default_factory=dict,
+        description=(
+            "Per-dimension ISO grains for semantic views. Each key must be selected "
+            "in dimensions; null explicitly requests native behavior. "
+            "Omitted keys retain declared defaults."
+        ),
     )
     filters: list[GetTableFilter] = Field(
         default_factory=list,

@@ -203,8 +203,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
       'single point on the chart.',
   ),
   mapStateToProps: state => semanticGrainProps(state),
-  shouldMapStateToProps: (prev, next) =>
-    prev.compatibility !== next.compatibility,
+  shouldMapStateToProps: () => true,
   visibility: displayTimeRelatedControls,
   sortComparator: () => 0, // Disable frontend sorting to preserve backend order
 };

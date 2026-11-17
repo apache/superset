@@ -114,7 +114,11 @@ def _resolve_builtin_dataset(
 
     dataset_id = request.dataset_id
     assert dataset_id is not None
-    if request.time_grain:
+    if (
+        request.time_grain
+        or request.dimension_grains
+        or any("grain" in item.model_fields_set for item in request.filters)
+    ):
         return SemanticLayerError.create(
             error="time_grain applies to semantic views only, not built-in datasets.",
             error_type="ValidationError",
@@ -217,6 +221,37 @@ def _resolve_external_view(
     return _resolve_external_view_metadata(request, view)
 
 
+def _validate_explicit_grains(
+    request: GetTableRequest, catalog: dict[str, Dimension]
+) -> SemanticLayerError | None:
+    """Validate explicit grouping and filter operands against metric support."""
+    explicit: list[tuple[str, str | None]] = list(request.dimension_grains.items())
+    if set(request.dimension_grains) - set(request.dimensions):
+        return SemanticLayerError.create(
+            error="dimension_grains requires selected dimensions.",
+            error_type="ValidationError",
+        )
+    explicit.extend(
+        (item.col, item.grain)
+        for item in request.filters
+        if "grain" in item.model_fields_set
+    )
+    name: str
+    grain: str | None
+    for name, grain in explicit:
+        dimension: Dimension | None = catalog.get(name)
+        if dimension is None or (
+            not dimension.allows_default_grain
+            if grain is None
+            else grain not in {value.representation for value in dimension.grains}
+        ):
+            return SemanticLayerError.create(
+                error=f"Unsupported grain selection for '{name}'.",
+                error_type="ValidationError",
+            )
+    return None
+
+
 def _resolve_external_view_metadata(
     request: GetTableRequest, view: "SemanticView"
 ) -> _ResolvedDatasource | SemanticLayerError:
@@ -247,9 +282,14 @@ def _resolve_external_view_metadata(
             error_type="ValidationError",
         )
 
-    valid_grains: dict[str, dict[str, str]] = _grains_by_column(
-        view.get_compatible_dimension_metadata(request.metrics, [])
+    support: set[Dimension] = view.get_compatible_dimension_metadata(
+        request.metrics, []
     )
+    valid_grains: dict[str, dict[str, str]] = _grains_by_column(support)
+    catalog: dict[str, Dimension] = {dimension.name: dimension for dimension in support}
+    error: SemanticLayerError | None = _validate_explicit_grains(request, catalog)
+    if error is not None:
+        return error
     grain_column: str | None = request.time_column
     if request.time_grain:
         selected: list[str] = sorted(set(request.dimensions) & valid_dttm_columns)
@@ -261,6 +301,14 @@ def _resolve_external_view_metadata(
                     error_type="ValidationError",
                 )
             grain_column = selected[0]
+        if (
+            grain_column in request.dimension_grains
+            and request.dimension_grains[grain_column] != request.time_grain
+        ):
+            return SemanticLayerError.create(
+                error="time_grain conflicts with dimension_grains.",
+                error_type="ValidationError",
+            )
         # Explicit buckets use the same selected-metric support as the mapper.
         column_grains: dict[str, str] = valid_grains.get(grain_column, {})
         if request.time_grain not in column_grains:
@@ -336,13 +384,21 @@ def _build_query_dict(
     grain_column: str | None = None,
 ) -> dict[str, Any]:
     """Assemble the query dict for QueryContextFactory."""
-    return build_query_dict(
+    query: dict[str, Any] = build_query_dict(
         time_column=time_col,
         time_grain=request.time_grain,
         grain_column=grain_column,
         metrics=request.metrics,
         dimensions=request.dimensions,
-        filters=[{"col": f.col, "op": f.op, "val": f.val} for f in request.filters],
+        filters=[
+            {
+                "col": item.col,
+                "op": item.op,
+                "val": item.val,
+                **({"grain": item.grain} if "grain" in item.model_fields_set else {}),
+            }
+            for item in request.filters
+        ],
         time_range=request.time_range,
         semantic_selection_version=request.semantic_selection_version,
         limit=request.row_limit,
@@ -350,6 +406,20 @@ def _build_query_dict(
         order_desc=request.order_desc,
         rewrite_one_sided_time_range=request.view_id is not None,
     )
+
+    query["columns"] = [
+        {
+            "label": column,
+            "sqlExpression": column,
+            "isColumnReference": True,
+            "columnType": "BASE_AXIS",
+            "timeGrain": request.dimension_grains[column],
+        }
+        if isinstance(column, str) and column in request.dimension_grains
+        else column
+        for column in query["columns"]
+    ]
+    return query
 
 
 def _is_temporal_result_column(
@@ -582,7 +652,9 @@ async def _get_table(
     Works with both built-in datasets and external semantic views. The
     ``dataset_id`` or ``view_id`` comes from the ``list_metrics`` response.
 
-    Semantic views accept time_grain as an ISO duration or grain name, applied
+    Semantic views accept dimension_grains for per-field buckets (null = native),
+    and filters accept a grain with the same explicit-null/omitted distinction.
+    The time_grain shortcut accepts an ISO duration or grain name, applied
     to time_column or the single selected temporal dimension. For example:
     {"view_id": 1, "metrics": ["revenue"], "dimensions": ["metric_time"],
      "time_grain": "P1M"}.

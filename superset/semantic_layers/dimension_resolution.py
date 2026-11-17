@@ -42,6 +42,10 @@ class DimensionUsage(Enum):
     SERIES_LIMIT = "series_limit"
 
 
+class GrainSelectionError(QueryObjectValidationError):
+    """The caller must choose a supported dimension/grain operand."""
+
+
 class AmbiguousDimensionError(QueryObjectValidationError):
     """A catalog contains conflicting definitions of the same public name."""
 
@@ -64,15 +68,20 @@ def select_dimension(
 ) -> DimensionSelection:
     """Resolve a declared default or validate an explicit grain, including raw."""
     if grain is GrainDefault.REJECT:
-        raise QueryObjectValidationError(
+        raise GrainSelectionError(
             f"An explicit time grain is required for '{dimension.name}'."
+        )
+    if isinstance(grain, Grain):
+        # Use the provider's declared label as well as its duration in operands.
+        grain = next(
+            (available for available in dimension.grains if available == grain), grain
         )
     try:
         return DimensionSelection(
             dimension, None if grain is GrainDefault.NATIVE else grain
         )
     except SemanticQueryRejectedError as ex:
-        raise QueryObjectValidationError(
+        raise GrainSelectionError(
             f"The time grain is not supported for '{dimension.name}'."
         ) from ex
 
@@ -89,7 +98,7 @@ def resolve_dimensions(
     selected: dict[str, DimensionSelection] = {}
     for name in catalog if names is None else names:
         if name not in catalog:
-            raise QueryObjectValidationError(
+            raise GrainSelectionError(
                 f"Semantic dimension '{name}' is not supported in this query."
             )
         dimension: Dimension = catalog[name]

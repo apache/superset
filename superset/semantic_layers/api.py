@@ -68,6 +68,7 @@ from superset.daos.semantic_layer import SemanticLayerDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
+from superset.explorables.base import TimeGrainDict
 from superset.models.core import Database
 from superset.semantic_layers.access import is_semantic_layers_enabled
 from superset.semantic_layers.dimension_resolution import dimension_support
@@ -347,6 +348,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                     view.implementation.get_metrics(), key=lambda m: m.name
                 )
             ]
+            time_grains: list[TimeGrainDict] = view.get_time_grains()
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except (SemanticViewConfigurationError, SemanticLayerConfigurationError):
@@ -383,6 +385,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                 "description": view.description,
                 "cache_timeout": view.cache_timeout,
                 "dimensions": dimensions,
+                "time_grains": time_grains,
                 "metrics": metrics,
             },
         )

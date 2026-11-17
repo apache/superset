@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import enum
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from typing import Any, TypeAlias
@@ -121,7 +122,10 @@ class Dimension:
 
     Providers narrow capabilities for selected-metric context before execution.
     Metadata and display labels are excluded from equality; capabilities and
-    defaults are included because they affect query meaning.
+    defaults are included because they affect query meaning. Membership is by
+    stable name and provider ID, not full dataclass equality: contextual support
+    can be narrower than the catalog. Use ``catalog_selection`` to validate a
+    caller operand against provider-owned metadata.
     """
 
     id: str
@@ -184,6 +188,22 @@ class DimensionSelection:
     def type(self) -> pa.DataType:
         """Return the declared value type for result assembly."""
         return self.dimension.type
+
+
+def catalog_selection(
+    selection: DimensionSelection, dimensions: Iterable[Dimension]
+) -> DimensionSelection:
+    """Bind a caller selection to provider-owned identity and capability support.
+
+    Full Dimension equality is not a membership check: a host can narrow the
+    capability envelope. Validate the chosen grain against the catalog instead.
+    Pass context-narrowed metadata when validating a complete query.
+    """
+    dimension: Dimension
+    for dimension in dimensions:
+        if dimension.name == selection.name and dimension.id == selection.dimension.id:
+            return DimensionSelection(dimension, selection.grain)
+    raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_QUERY)
 
 
 class AggregationType(str, enum.Enum):

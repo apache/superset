@@ -22,9 +22,11 @@ from typing import Literal
 
 from fastmcp import Context
 
-from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.semantic_layer.schemas import SemanticLayerError
-from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.dimension_resolution import (
+    AmbiguousDimensionError,
+    GrainSelectionError,
+)
 from superset.semantic_layers.exceptions import (
     configuration_recovery_message,
     SemanticLayerConfigurationError,
@@ -37,7 +39,6 @@ async def compatibility_error_response(
     error: Exception,
     ctx: Context,
     member: Literal["metrics", "dimensions"],
-    explicit_grains: bool,
 ) -> SemanticLayerError:
     """Preserve safe host signals while keeping unknown failure text private."""
     if isinstance(error, SemanticLayerConfigurationError):
@@ -47,7 +48,7 @@ async def compatibility_error_response(
         )
     if isinstance(error, AmbiguousDimensionError):
         return SemanticLayerError.create(error=str(error), error_type="ValidationError")
-    if explicit_grains and isinstance(error, QueryObjectValidationError):
+    if isinstance(error, GrainSelectionError):
         return SemanticLayerError.create(
             error="Invalid dimension grain selection.", error_type="ValidationError"
         )

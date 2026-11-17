@@ -2027,3 +2027,36 @@ test('document.title falls back to the app name on unmount, not the title presen
     document.title = titleBeforeTest;
   }
 });
+
+test('grain support requests leave the axis grain unpinned so it can be changed', async () => {
+  const fetchCompatibility = jest
+    .spyOn(exploreActions, 'fetchCompatibility')
+    .mockImplementation(() => async () => undefined);
+  const initial = stateWithControls({
+    datasource: { value: '1__semantic_view' },
+    x_axis: { value: 'event_time' },
+    time_grain_sqla: { value: 'P1D' },
+    metrics: { value: ['count'] },
+  });
+  renderWithRouter({
+    initialState: {
+      ...initial,
+      explore: {
+        ...initial.explore,
+        datasource: {
+          ...reduxState.explore.datasource,
+          type: 'semantic_view',
+          columns: [{ column_name: 'event_time', is_dttm: true }],
+        },
+      },
+    },
+  });
+  await waitFor(() => expect(fetchCompatibility).toHaveBeenCalled());
+  expect(fetchCompatibility.mock.calls.at(-1)?.slice(0, 4)).toEqual([
+    'semantic_view',
+    1,
+    ['count'],
+    ['event_time'],
+  ]);
+  expect(fetchCompatibility.mock.calls.at(-1)?.[4]).toBeUndefined();
+});
