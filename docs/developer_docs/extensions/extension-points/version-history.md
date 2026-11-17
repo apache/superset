@@ -21,12 +21,15 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+This extension point is a UI override, not a `.supx` contribution.
+
 The optional `versionHistory.panel.footer` UI override adds content at the bottom
 of the chart and dashboard version history panel, after its history, empty state,
 pagination, and truncation notice. Without a registered component the panel is
 unchanged. The component receives `entityType: 'chart' | 'dashboard'` and may
 return `null` when it has nothing to display. The slot's padding is still
-rendered whenever a component is registered, even if it returns `null`.
+rendered whenever a component is registered, even if it returns `null`. The
+footer also centers its content with `text-align: center`.
 
 Register the component through `getExtensionsRegistry()` from `@superset-ui/core`
 in the deployment's own frontend build, for example in
@@ -36,6 +39,5 @@ registry is module-local, and `@superset-ui/core` is not shared through module
 federation; importing it in a `.supx` extension does not reach the host registry.
 
 The slot does not change access to history or retention settings. Deployments
-are responsible for deciding when their footer content is suitable,
-including embedded contexts. It is available only in builds containing this slot
-and the version history panel; it is not present in the 6.1 release branch.
+are responsible for deciding when their footer content is suitable. It is
+available only in builds containing this slot and the version history panel.

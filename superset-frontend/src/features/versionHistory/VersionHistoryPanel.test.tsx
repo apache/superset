@@ -758,6 +758,14 @@ test('renders the optional footer below history pagination', () => {
   ).toBeTruthy();
 });
 
+test('keeps the empty history visible when a footer extension throws', () => {
+  footerRegistry.set('versionHistory.panel.footer', () => {
+    throw new Error('Footer failed');
+  });
+  render(<VersionHistoryPanel {...defaultProps([])} />);
+  expect(screen.getByText('No history yet')).toBeInTheDocument();
+});
+
 test('leaves the panel unchanged when no footer is registered', () => {
   footerRegistry.set('versionHistory.panel.footer', undefined);
   render(<VersionHistoryPanel {...defaultProps([])} />);

@@ -21,6 +21,7 @@ import { getExtensionsRegistry } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
+import { ErrorBoundary } from 'src/components';
 import {
   Button,
   EmptyState,
@@ -358,9 +359,11 @@ export default function VersionHistoryPanel({
           </TruncationNotice>
         )}
         {FooterExtension && (
-          <Footer>
-            <FooterExtension entityType={entityType} />
-          </Footer>
+          <ErrorBoundary showMessage={false}>
+            <Footer>
+              <FooterExtension entityType={entityType} />
+            </Footer>
+          </ErrorBoundary>
         )}
       </Body>
     </Panel>
