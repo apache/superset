@@ -68,6 +68,25 @@ export function subjectForPill(
   return typeof subject.label === 'string' ? subject.label : undefined;
 }
 
+/**
+ * A drilled time bucket is stored as epoch milliseconds. Show it as a naive
+ * datetime so the pill matches the SQL the bucket actually filters.
+ */
+function comparatorForDisplay(filter: {
+  comparator?: unknown;
+  timeGrain?: string;
+}): unknown {
+  const { comparator, timeGrain } = filter;
+  if (
+    timeGrain &&
+    typeof comparator === 'number' &&
+    Number.isFinite(comparator)
+  ) {
+    return new Date(comparator).toISOString().slice(0, 19);
+  }
+  return comparator;
+}
+
 /** Drop the bucket metadata an edit no longer applies to the expression. */
 function subjectWithoutBucket(
   subject: AdhocFilterInput['subject'],
@@ -243,9 +262,11 @@ export default class AdhocFilter {
 
   getDefaultLabel(columns?: VerboseColumn[]): string {
     const pillLabel = subjectForPill(this.subject);
-    const source = pillLabel
-      ? { ...(this as unknown as CoreAdhocFilter), subject: pillLabel }
-      : (this as unknown as CoreAdhocFilter);
+    const source = {
+      ...(this as unknown as CoreAdhocFilter),
+      comparator: comparatorForDisplay(this),
+      ...(pillLabel ? { subject: pillLabel } : {}),
+    };
     const label = translateToSql(source, { columns });
     const displayLabel = this.timeGrain
       ? `[${this.timeGrain}] ${label}`
@@ -261,14 +282,9 @@ export default class AdhocFilter {
   }
 
   translateToSql(params: { columns?: VerboseColumn[] } = {}): string {
-    const { comparator, timeGrain } = this;
+    const comparator = comparatorForDisplay(this);
     const filter =
-      timeGrain && typeof comparator === 'number' && Number.isFinite(comparator)
-        ? {
-            ...this,
-            comparator: new Date(comparator).toISOString().slice(0, 19),
-          }
-        : this;
+      comparator === this.comparator ? this : { ...this, comparator };
     return translateToSql(filter as unknown as CoreAdhocFilter, params);
   }
 }
