@@ -114,6 +114,12 @@ def test_get(dashboard_id: int, permalink_salt: str, test_client, login_as_admin
     db.session.commit()
 
 
+def test_get_invalid_key(test_client, login_as_admin):
+    resp = test_client.get("api/v1/dashboard/permalink/undefined")
+    assert resp.status_code == 404
+    assert resp.json["message"] == "Invalid permalink key."
+
+
 @pytest.fixture
 def standalone_dashboard_id(app_context) -> Iterator[int]:
     dashboard = Dashboard(dashboard_title="permalink_denial", published=True)
