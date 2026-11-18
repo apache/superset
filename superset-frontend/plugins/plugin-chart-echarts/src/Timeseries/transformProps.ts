@@ -96,7 +96,6 @@ import {
   getAreaScaledSymbolSize,
   getAxisType,
   getColtypesMapping,
-  getGrainBarMaxWidth,
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getLegendScrollDataIndex,
@@ -1946,38 +1945,6 @@ export default function transformProps(
         padding.right || 0,
         TIMESERIES_CONSTANTS.horizontalBarLabelRightPadding,
       );
-    }
-  }
-
-  // Size a bar series to its own grain-bucket pixel width instead of a flat
-  // constant, so a sparse bucket doesn't visually spill into neighboring,
-  // unpopulated buckets. Computed here — after `padding` is fully finalized
-  // (legend layout, compact-chart clamping, rotated-label extra padding,
-  // and the horizontal-orientation swap above have all already run) and
-  // applied as a post-pass over the already-built `renderedSeries` — so the
-  // plot-length used matches the *actual* grid area ECharts will render
-  // into, not a flat per-side constant: a heavily-padded chart (e.g. a
-  // side legend eating a large share of a narrow chart) genuinely has far
-  // less plot area than `width`/`height` alone would suggest. Only
-  // meaningful when a bar series is actually rendered — skip the domain
-  // scan otherwise. See getGrainBarMaxWidth for the domain/grain part of
-  // the mechanism.
-  if (seriesType === EchartsTimeseriesSeriesType.Bar) {
-    const barMaxWidthPx = getGrainBarMaxWidth(
-      xAxisType,
-      resolvedTimeGrain,
-      [rebasedData as Record<string, unknown>[]],
-      xAxisLabel,
-      isHorizontal
-        ? Math.max(height - padding.top - padding.bottom, 0)
-        : Math.max(width - padding.left - padding.right, 0),
-    );
-    if (barMaxWidthPx !== undefined) {
-      renderedSeries.forEach(s => {
-        if (s.type === 'bar') {
-          (s as { barMaxWidth?: number }).barMaxWidth = barMaxWidthPx;
-        }
-      });
     }
   }
 
