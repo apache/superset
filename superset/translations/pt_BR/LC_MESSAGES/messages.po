@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -9664,10 +9664,6 @@ msgstr "Falha ao recuperar o tipo avançado"
 
 msgid "Failed to revoke API key"
 msgstr "Falha ao revogar a chave de API"
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "Falha ao salvar a personalização do gráfico"
 
 #, fuzzy
 msgid "Failed to save cross-filter scoping"
@@ -25919,6 +25915,10 @@ msgstr ""
 "exemplo, divida-o em vários painéis) ou aumente a configuração "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -25954,6 +25954,10 @@ msgstr "Não foi possível concluir a exportação de \"%(title)s\"."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "A exportação de \"%(title)s\" está pronta."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -27187,6 +27191,9 @@ msgstr "a documentação do gráfico do guiador"
 msgid "theme"
 msgstr "tema"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "carimbo de data/hora"
@@ -27273,6 +27280,9 @@ msgstr "y: os valores são normalizados dentro de cada linha"
 
 msgid "year"
 msgstr "ano"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

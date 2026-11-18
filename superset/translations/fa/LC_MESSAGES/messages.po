@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -9614,10 +9614,6 @@ msgstr "عدم توانایی در بازیابی نوع پیشرفته"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "ابطال کلید API ناموفق بود"
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "بارگذاری داده‌های نمودار شکست خورد"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "خطا در ذخیره‌سازی دامنه فیلتر متقاطع"
@@ -25628,6 +25624,10 @@ msgstr ""
 " تقسیم کنید) یا تنظیم پیکربندی SUPERSET_DASHBOARD_POSITION_DATA_LIMIT را "
 "افزایش دهید."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -25661,6 +25661,10 @@ msgstr "خروجی گرفتن از «%(title)s» کامل نشد."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "خروجی «%(title)s» شما آماده است."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26882,6 +26886,9 @@ msgstr "مستندات نمودار Handlebars"
 msgid "theme"
 msgstr "زمان"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "نمایش زمان‌سنج"
@@ -26970,6 +26977,9 @@ msgstr "y: مقادیر در هر ردیف نرمال‌سازی شده‌اند
 
 msgid "year"
 msgstr "سال"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

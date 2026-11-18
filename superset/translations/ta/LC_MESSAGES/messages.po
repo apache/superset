@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -9248,9 +9248,6 @@ msgstr "மேம்பட்ட வகையைப் பெறுவதில�
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "அறிக்கையை உருவாக்க முடியவில்லை"
-
-msgid "Failed to save chart customization"
-msgstr "சார்ட் தனிப்பயனாக்கத்தைச் சேமிப்பதில் தோல்வி"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "கிராஸ்-ஃபில்டர் ஸ்கோப்பிங்கைச் சேமிப்பதில் தோல்வி"
@@ -24347,6 +24344,10 @@ msgstr ""
 "(எடுத்துக்காட்டாக, பல டாஷ்போர்டுகளாகப் பிரிக்கவும்) அல்லது "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT உள்ளமைவு அமைப்பை உயர்த்தவும்."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -24384,6 +24385,10 @@ msgstr "\"%(title)s\" ஏற்றுமதியை முடிக்க இ�
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "\"%(title)s\" ஏற்றுமதி தயாராக உள்ளது."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25572,6 +25577,9 @@ msgstr "Handlebars விளக்கப்பட ஆவணங்கள்"
 msgid "theme"
 msgstr "தீம்"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "நேர முத்திரையைக் காண்பி"
@@ -25652,6 +25660,9 @@ msgstr "y: மதிப்புகள் ஒவ்வொரு வரிசை�
 
 msgid "year"
 msgstr "ஆண்டு"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

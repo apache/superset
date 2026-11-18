@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -7047,9 +7047,6 @@ msgid "Failed to retrieve advanced type"
 msgstr ""
 
 msgid "Failed to revoke API key"
-msgstr ""
-
-msgid "Failed to save chart customization"
 msgstr ""
 
 msgid "Failed to save cross-filter scoping"
@@ -18097,6 +18094,10 @@ msgstr ""
 msgid "Your dashboard is too large to save: the serialized layout length is %s but the limit is %s. Reduce the dashboard size (for example, split it into multiple dashboards) or raise the SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being generated and will download automatically when ready. We'll also email you a download link."
 msgstr ""
 
@@ -18115,6 +18116,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your password could not be reset. Please try again later."
@@ -19101,6 +19106,9 @@ msgstr ""
 msgid "theme"
 msgstr ""
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr ""
 
@@ -19177,6 +19185,9 @@ msgid "y: values are normalized within each row"
 msgstr ""
 
 msgid "year"
+msgstr ""
+
+msgid "you do not have permission to edit this dashboard."
 msgstr ""
 
 #. do-not-translate

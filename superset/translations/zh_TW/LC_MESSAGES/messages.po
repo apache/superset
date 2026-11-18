@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -9614,10 +9614,6 @@ msgstr "檢索高級類型失敗"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "撤銷 API 金鑰失敗"
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "保存交叉篩選作用域失敗"
 
 #, fuzzy
 msgid "Failed to save cross-filter scoping"
@@ -25570,6 +25566,10 @@ msgstr ""
 "您的看板過大，無法儲存：序列化版面配置長度為 %s，但限制為 %s。請縮減看板大小（例如，將其拆分為多個看板）或提高 "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT 設定值。"
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -25601,6 +25601,10 @@ msgstr "您的「%(title)s」匯出無法完成。"
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "您的「%(title)s」匯出已就緒。"
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26922,6 +26926,9 @@ msgstr "Handlebars 圖表文件"
 msgid "theme"
 msgstr "時間"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "顯示時間戳"
@@ -27035,6 +27042,9 @@ msgstr "y：每行內的值已正規化"
 
 msgid "year"
 msgstr "年"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"
