@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import atexit
 import logging
+import threading
 import time
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -922,7 +923,40 @@ class WebDriverPlaywright(WebDriverProxy):
                 context_suffix,
             )
 
-    def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
+    # Playwright's sync API drives one asyncio event loop per OS thread, and the
+    # browser manager keeps one Playwright instance per worker process. Neither
+    # tolerates concurrent use. On the prefork pool tasks run one at a time, so
+    # the lock is never contended. On green-thread pools (gevent, eventlet) every
+    # task shares the thread; without the lock a second screenshot fails at once
+    # with "Playwright Sync API inside the asyncio loop".
+    _screenshot_lock = threading.Lock()
+
+    def get_screenshot(
+        self,
+        url: str,
+        element_name: str,
+        user: User | None = None,
+        log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
+    ) -> bytes | None:
+        waited_from = time.monotonic()
+        with self._screenshot_lock:
+            waited = time.monotonic() - waited_from
+            if waited >= 1:
+                logger.info(
+                    "Waited %.1fs for another screenshot in this process to finish%s",
+                    waited,
+                    f" [{log_context}]" if log_context else "",
+                )
+            return self._get_screenshot_locked(
+                url,
+                element_name,
+                user=user,
+                log_context=log_context,
+                report_execution_context=report_execution_context,
+            )
+
+    def _get_screenshot_locked(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self,
         url: str,
         element_name: str,
