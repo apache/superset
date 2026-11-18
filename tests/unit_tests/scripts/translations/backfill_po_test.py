@@ -26,6 +26,7 @@ pinning against regressions.
 import importlib.util
 import json  # noqa: TID251 - testing a standalone script that uses stdlib json
 import shlex
+import sys
 from pathlib import Path
 
 import polib  # type: ignore[import-untyped]
@@ -35,6 +36,9 @@ from babel.messages.frontend import CommandLineInterface
 _SCRIPT_PATH = (
     Path(__file__).resolve().parents[4] / "scripts" / "translations" / "backfill_po.py"
 )
+# Run as a script, backfill_po.py imports its sibling literal_percent.py from
+# its own directory.
+sys.path.insert(0, str(_SCRIPT_PATH.parent))
 _spec = importlib.util.spec_from_file_location("backfill_po", _SCRIPT_PATH)
 assert _spec is not None, f"Could not load {_SCRIPT_PATH}"
 assert _spec.loader is not None, f"No loader on spec for {_SCRIPT_PATH}"
@@ -893,20 +897,46 @@ def test_normalize_catalog_wraps_long_lines_and_keeps_content(
     assert "Machine-translated via backfill_po.py" in entry.tcomment
 
 
+@pytest.mark.parametrize(
+    "msgid",
+    [
+        "% of total",
+        "% of row total",
+        "% calculation",
+        f"{_LONG} For % of column with Column sum, the center must be in range.",
+    ],
+)
 def test_normalize_catalog_marks_percent_labels_no_python_format(
-    tmp_path: Path,
+    tmp_path: Path, msgid: str
 ) -> None:
     po = _write_catalog(
         tmp_path,
-        '#, python-format\nmsgid "% of total"\nmsgstr "% du total"\n',
+        f'#, python-format\nmsgid "{msgid}"\nmsgstr "Traduction"\n',
     )
 
     backfill_po.normalize_catalog(po)
 
-    entry = polib.pofile(str(po)).find("% of total")
+    entry = polib.pofile(str(po)).find(msgid)
     assert entry is not None
     assert "no-python-format" in entry.flags
     assert "python-format" not in entry.flags
+
+
+def test_normalize_catalog_keeps_python_format_on_real_placeholders(
+    tmp_path: Path,
+) -> None:
+    po = _write_catalog(
+        tmp_path,
+        '#, python-format\nmsgid "%(name)s: % of total"\n'
+        'msgstr "%(name)s : % du total"\n',
+    )
+
+    backfill_po.normalize_catalog(po)
+
+    entry = polib.pofile(str(po)).find("%(name)s: % of total")
+    assert entry is not None
+    assert "python-format" in entry.flags
+    assert "no-python-format" not in entry.flags
 
 
 # --- _run_claude: retry on transient CLI failures -------------------------------

@@ -810,11 +810,6 @@ def _process_batches(
     return translated_count, failed_count
 
 
-# Mirrors the post-processing at the end of babel_update.sh: Babel tags these
-# msgids python-format because of the bare ``%``, but they are literal labels.
-_PERCENT_LABEL_MSGIDS = {"% calculation", "% of parent", "% of total"}
-
-
 def normalize_catalog(po_path: Path) -> None:
     """Re-serialize a catalog in the canonical form ``babel_update.sh`` writes.
 
@@ -827,11 +822,17 @@ def normalize_catalog(po_path: Path) -> None:
     """
     from babel.messages.pofile import read_po, write_po
 
+    # A sibling script; importable because this file runs as a script.
+    from literal_percent import is_literal_percent
+
     lang = po_path.parent.parent.name
     with open(po_path, "rb") as f:
         catalog = read_po(f, locale=lang)
     for message in catalog:
-        if message.id in _PERCENT_LABEL_MSGIDS and "python-format" in message.flags:
+        # Mirrors the post-processing at the end of babel_update.sh: Babel
+        # tags msgids like "% of total" python-format, but the ``%`` is literal.
+        msgids = message.id if isinstance(message.id, (list, tuple)) else [message.id]
+        if "python-format" in message.flags and is_literal_percent(*msgids):
             message.flags.discard("python-format")
             message.flags.add("no-python-format")
     with open(po_path, "wb") as f:
