@@ -32,6 +32,7 @@ import {
   navigation,
   useNavigationTracker,
   sqlLab,
+  telemetry,
   views,
 } from 'src/core';
 import { useSelector } from 'react-redux';
@@ -66,6 +67,9 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       menus,
       navigation,
       sqlLab,
+      // The fallback binding, attributed to the host. An extension gets its
+      // own instance from ExtensionsLoader, bound to its id.
+      telemetry,
       views,
     };
 

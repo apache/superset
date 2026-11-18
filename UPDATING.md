@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [46276](https://github.com/apache/superset/pull/46276): Adds a `canvas_id`
+  column to the `logs` table so canvas activity can be attributed the way
+  dashboard and chart activity already is. The column is nullable with no
+  backfill, and `AbstractEventLogger.log()` is unchanged — `canvas_id` is
+  passed as a keyword argument, so a custom `EVENT_LOGGER` that predates the
+  column keeps working untouched. Also adds a `telemetry` namespace to
+  `@apache-superset/core`, letting extensions report usage through the
+  existing event pipeline.
+
 - **Canvas definitions have a new `swap` operation.** `{"op": "swap", "id":
   ..., "partner": ...}` exchanges two siblings' places on their grid, each
   keeping its own size. It is additive -- nothing that worked before stops

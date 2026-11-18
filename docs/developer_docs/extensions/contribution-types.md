@@ -129,6 +129,33 @@ chat.registerChat(
 
 See [Chat](./extension-points/chat.md) for implementation details.
 
+### Telemetry
+
+Extensions can report how they are used. Events travel the same path as the
+host's own — batched, sent to `/log/`, recorded in the `logs` table — so they
+are already attributed to whatever the user has open. An event raised while a
+canvas is on screen carries that canvas without the extension doing anything.
+
+```ts
+import { telemetry } from '@apache-superset/core';
+
+telemetry.logEvent('message_sent', { turns: 3, model: 'claude', ok: true });
+```
+
+The host stamps the calling extension's id onto every event, so an event
+cannot be attributed to another extension or sent anonymously, and prefixes
+the name with it (`ext_my_org_my_chat_message_sent`).
+
+Event data is **scalars only, and flat**. That is a privacy guardrail written
+into the type: reduce what happened into dimensions — a count, a duration, a
+category, a boolean — rather than passing a conversation turn, a query result
+or a user's filter selections. Non-scalar values are dropped rather than
+stringified.
+
+Telemetry is best-effort and never throws. Invalid names, oversized payloads
+and events beyond the per-extension rate limit are dropped, because reporting
+must not be able to break the thing it reports on.
+
 ## Backend
 
 Backend contribution types allow extensions to extend Superset's server-side capabilities. Backend contributions are registered at startup via classes and functions imported from the auto-discovered `entrypoint.py` file.
