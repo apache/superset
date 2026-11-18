@@ -126,7 +126,9 @@ First, start by installing `apache_superset`:
 pip install apache_superset
 ```
 
-When installing from a source checkout instead of PyPI, install the core package
+When installing from a source checkout instead of PyPI, first build the frontend
+assets, which a checkout does not include:
+`(cd superset-frontend && npm ci && npm run build)`. Then install the core package
 from the same checkout together with Superset. From the repository root, run:
 
 ```bash
