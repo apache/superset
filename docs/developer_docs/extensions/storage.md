@@ -256,6 +256,17 @@ ctx.storage.persistent.shared.set('global_config', {'version': 2})
 config = ctx.storage.persistent.shared.get('global_config')
 ```
 
+### Compare-and-Swap Writes
+
+When several requests may write the same key, `compare_and_set` writes only while the stored value is still the one you read, so a stale write never wins. Pass `None` as the expected value to write only if the key has no entry yet. The comparison is on the decoded value, and it is one atomic step with the write. It is available on the backend only.
+
+```python
+config = ctx.storage.persistent.shared.get('global_config')
+updated = {**config, 'version': config['version'] + 1}
+if not ctx.storage.persistent.shared.compare_and_set('global_config', config, updated):
+    ...  # another request changed it meanwhile: read it again, then retry
+```
+
 ### Listing Entries
 
 Both the frontend and backend accessors support listing entries in the caller's scope, without needing to know every key in advance. `page` and `pageSize`/`page_size` are required on every call — `list()` always returns one page of results, never the whole result set, so there's no default that could make that fact easy to miss. Check the returned `count` (total entries matching the scope/filters, across all pages) against `pageSize`/`page_size` to know whether more pages exist.

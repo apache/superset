@@ -44,6 +44,11 @@ Usage (via extension context - preferred):
     ctx.storage.persistent.shared.set('global_config', {'version': 2})
     ctx.storage.persistent.shared.remove('global_config')
 
+    # Only if nobody changed it since it was read (optimistic concurrency)
+    ctx.storage.persistent.shared.compare_and_set(
+        'global_config', {'version': 2}, {'version': 3}
+    )
+
     # Encrypted at rest
     ctx.storage.persistent.set(
         'api_token', 'sk-...', PersistentSetOptions(encrypt=True)
@@ -132,6 +137,16 @@ class PersistentStateAccessor(Protocol):
         """Set a value in persistent state."""
         ...
 
+    def compare_and_set(
+        self,
+        key: str,
+        expected: Any,
+        value: Any,
+        options: PersistentSetOptions | None = None,
+    ) -> bool:
+        """Set a value only while the stored one equals `expected`."""
+        ...
+
     def list(self, options: PersistentListOptions) -> PersistentListResult:
         """List entries in persistent state."""
         ...
@@ -155,6 +170,15 @@ class _UnconfiguredPersistentStateAccessor:
     def set(
         self, key: str, value: Any, options: PersistentSetOptions | None = None
     ) -> None:
+        raise NotImplementedError("Class will be replaced during initialization")
+
+    def compare_and_set(
+        self,
+        key: str,
+        expected: Any,
+        value: Any,
+        options: PersistentSetOptions | None = None,
+    ) -> bool:
         raise NotImplementedError("Class will be replaced during initialization")
 
     def list(self, options: PersistentListOptions) -> PersistentListResult:
@@ -207,6 +231,30 @@ class PersistentState:
         :param options: Optional `PersistentSetOptions`, e.g. `encrypt=True`
             to store the value encrypted at rest, or `codec="pickle"` to
             store a value that isn't JSON-serializable.
+        """
+        raise NotImplementedError("Class will be replaced during initialization")
+
+    @staticmethod
+    def compare_and_set(
+        key: str,
+        expected: Any,
+        value: Any,
+        options: PersistentSetOptions | None = None,
+    ) -> bool:
+        """
+        Set a value in user-scoped persistent state, only while the stored
+        value equals `expected`.
+
+        The comparison and the write are one atomic step: of two callers that
+        read the same value and write from it, only the first succeeds. Use it
+        for optimistic concurrency, where a stale write must not win.
+
+        :param key: The key to store.
+        :param expected: The value the caller last read, decoded; `None`
+            means there must be no entry yet.
+        :param value: The value to store, as for `set`.
+        :param options: Optional `PersistentSetOptions`, as for `set`.
+        :returns: Whether `value` was written.
         """
         raise NotImplementedError("Class will be replaced during initialization")
 

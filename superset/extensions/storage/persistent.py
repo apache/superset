@@ -84,6 +84,28 @@ def _list(
     )
 
 
+def _compare_and_set(
+    extension_id: str,
+    user_fk: int | None,
+    key: str,
+    expected: Any,
+    value: Any,
+    options: PersistentSetOptions | None,
+) -> bool:
+    """Shared `compare_and_set` implementation for both scopes."""
+    encrypt = options.encrypt if options is not None else False
+    codec = options.codec if options is not None else DEFAULT_CODEC
+    return ExtensionStorageDAO.compare_and_set(
+        extension_id,
+        key,
+        expected,
+        get_codec(codec).encode(value),
+        codec=codec,
+        user_fk=user_fk,
+        encrypt=encrypt,
+    )
+
+
 class SharedPersistentStateAccessor:
     """
     Accessor for shared (global) persistent state.
@@ -130,6 +152,28 @@ class SharedPersistentStateAccessor:
             codec=codec,
             user_fk=None,
             encrypt=encrypt,
+        )
+
+    @transaction()
+    def compare_and_set(
+        self,
+        key: str,
+        expected: Any,
+        value: Any,
+        options: PersistentSetOptions | None = None,
+    ) -> bool:
+        """
+        Set a value in shared persistent state, only while the stored value
+        equals `expected` (`None`: no entry yet).
+
+        :returns: Whether `value` was written.
+        :raises ExtensionStorageValueTooLarge: if the encoded value exceeds
+            MAX_VALUE_SIZE.
+        :raises ExtensionStorageQuotaExceeded: if this write would exceed the
+            extension's configured persistent storage quota.
+        """
+        return _compare_and_set(
+            _get_extension_id(), None, key, expected, value, options
         )
 
     def list(self, options: PersistentListOptions) -> PersistentListResult:
@@ -208,6 +252,33 @@ class PersistentState(CorePersistentState):
             codec=codec,
             user_fk=user_id,
             encrypt=encrypt,
+        )
+
+    @staticmethod
+    @transaction()
+    def compare_and_set(
+        key: str,
+        expected: Any,
+        value: Any,
+        options: PersistentSetOptions | None = None,
+    ) -> bool:
+        """
+        Set a value in user-scoped persistent state, only while the stored
+        value equals `expected` (`None`: no entry yet).
+
+        :returns: Whether `value` was written.
+        :raises ExtensionStorageValueTooLarge: if the encoded value exceeds
+            MAX_VALUE_SIZE.
+        :raises ExtensionStorageQuotaExceeded: if this write would exceed the
+            extension's configured persistent storage quota.
+        """
+        return _compare_and_set(
+            _get_extension_id(),
+            get_current_user_id("persistent_state"),
+            key,
+            expected,
+            value,
+            options,
         )
 
     @staticmethod

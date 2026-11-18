@@ -23,6 +23,8 @@ import binascii
 import hashlib
 import hmac
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any
 
@@ -284,6 +286,94 @@ def _decrypt_if_needed(
             key,
         )
         return None
+
+
+def _stored_value(key: str, value: bytes, user_fk: int | None, encrypt: bool) -> bytes:
+    """`value` as a write stores it, once the key and the value pass the limits."""
+    _validate_key_length(key)
+    _validate_value_size(value)
+    if not encrypt:
+        return value
+    return _enc_type(user_fk).process_bind_param(value, db.engine.dialect)
+
+
+@contextmanager
+def _locked_entry(
+    extension_id: str,
+    key: str,
+    user_fk: int | None,
+    resource_type: str | None,
+    resource_uuid: str | None,
+) -> Iterator[ExtensionStorage | None]:
+    """The entry at a scoped key, read under the extension-wide write lock.
+
+    Every write runs and commits inside it; see `ExtensionStorageDAO.set()`.
+    """
+    with DistributedLock(
+        namespace="extension_storage_set",
+        ttl_seconds=SET_LOCK_TTL_SECONDS,
+        extension_id=extension_id,
+    ):
+        yield (
+            db.session.query(ExtensionStorage)
+            .filter(
+                and_(
+                    *_scope_filter(
+                        extension_id, key, user_fk, resource_type, resource_uuid
+                    )
+                )
+            )
+            .first()
+        )
+
+
+def _upsert(  # noqa: PLR0913
+    entry: ExtensionStorage | None,
+    extension_id: str,
+    key: str,
+    stored_value: bytes,
+    codec: str,
+    user_fk: int | None,
+    resource_type: str | None,
+    resource_uuid: str | None,
+    encrypt: bool,
+) -> ExtensionStorage:
+    """Write `stored_value` over `entry`, or as a new entry; commit it."""
+    new_size = len(stored_value)
+    existing_size = entry.value_size if entry is not None else 0
+    _check_quota(extension_id, new_size, existing_size)
+    if entry is not None:
+        entry.value = stored_value
+        entry.value_size = new_size
+        entry.codec = codec
+        entry.is_encrypted = encrypt
+    else:
+        entry = ExtensionStorage(
+            extension_id=extension_id,
+            key=key,
+            value=stored_value,
+            value_size=new_size,
+            codec=codec,
+            user_fk=user_fk,
+            resource_type=resource_type,
+            resource_uuid=resource_uuid,
+            is_encrypted=encrypt,
+        )
+        db.session.add(entry)
+    db.session.flush()
+    # Committed here, inside the lock, rather than left to the caller's
+    # @transaction(): that decorator only commits after the write returns,
+    # which is after the lock has already been released; see
+    # `ExtensionStorageDAO.set()`.
+    db.session.commit()  # pylint: disable=consider-using-transaction
+    return entry
+
+
+def _holds(entry: ExtensionStorage | None, expected: Any) -> bool:
+    """Whether `entry` holds `expected`: no entry for `None`, else its value."""
+    if expected is None:
+        return entry is None
+    return entry is not None and ExtensionStorageDAO.decode_entry(entry) == expected
 
 
 def _scope_filter(
@@ -580,58 +670,73 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         :raises ExtensionStorageQuotaExceeded: if writing `value` would push
             the extension over its total storage quota.
         """
-        _validate_key_length(key)
-        _validate_value_size(value)
-        stored_value = (
-            _enc_type(user_fk).process_bind_param(value, db.engine.dialect)
-            if encrypt
-            else value
-        )
-
-        with DistributedLock(
-            namespace="extension_storage_set",
-            ttl_seconds=SET_LOCK_TTL_SECONDS,
-            extension_id=extension_id,
-        ):
-            entry = (
-                db.session.query(ExtensionStorage)
-                .filter(
-                    and_(
-                        *_scope_filter(
-                            extension_id, key, user_fk, resource_type, resource_uuid
-                        )
-                    )
-                )
-                .first()
+        stored_value = _stored_value(key, value, user_fk, encrypt)
+        with _locked_entry(
+            extension_id, key, user_fk, resource_type, resource_uuid
+        ) as entry:
+            return _upsert(
+                entry,
+                extension_id,
+                key,
+                stored_value,
+                codec,
+                user_fk,
+                resource_type,
+                resource_uuid,
+                encrypt,
             )
-            new_size = len(stored_value)
-            existing_size = entry.value_size if entry is not None else 0
-            _check_quota(extension_id, new_size, existing_size)
-            if entry is not None:
-                entry.value = stored_value
-                entry.value_size = new_size
-                entry.codec = codec
-                entry.is_encrypted = encrypt
-            else:
-                entry = ExtensionStorage(
-                    extension_id=extension_id,
-                    key=key,
-                    value=stored_value,
-                    value_size=new_size,
-                    codec=codec,
-                    user_fk=user_fk,
-                    resource_type=resource_type,
-                    resource_uuid=resource_uuid,
-                    is_encrypted=encrypt,
-                )
-                db.session.add(entry)
-            db.session.flush()
-            # Committed here, inside the lock, rather than left to the
-            # caller's @transaction(): that decorator only commits after
-            # this whole function returns, which is after the lock above
-            # has already been released — see the docstring.
-            db.session.commit()  # pylint: disable=consider-using-transaction
-            return entry
+
+    @staticmethod
+    @backoff.on_exception(
+        backoff.expo,
+        AcquireDistributedLockFailedException,
+        factor=0.1,
+        base=2,
+        max_tries=8,
+    )
+    def compare_and_set(  # noqa: PLR0913
+        extension_id: str,
+        key: str,
+        expected: Any,
+        value: bytes,
+        codec: str = DEFAULT_CODEC,
+        user_fk: int | None = None,
+        resource_type: str | None = None,
+        resource_uuid: str | None = None,
+        encrypt: bool = False,
+    ) -> bool:
+        """Upsert `value` only while the entry's decoded value equals
+        `expected`; return whether it was written.
+
+        `expected=None` means the entry must not exist. The comparison and
+        the write happen under `set()`'s extension-wide lock, and commit
+        inside it, so of two writers that read the same value only the first
+        writes. The write is validated and counted as `set()`'s is.
+
+        :raises ExtensionStorageKeyTooLong: if `key` exceeds MAX_KEY_LENGTH.
+        :raises ExtensionStorageValueTooLarge: if `value` exceeds
+            MAX_VALUE_SIZE.
+        :raises ExtensionStorageQuotaExceeded: if writing `value` would push
+            the extension over its total storage quota.
+        """
+        stored_value = _stored_value(key, value, user_fk, encrypt)
+        with _locked_entry(
+            extension_id, key, user_fk, resource_type, resource_uuid
+        ) as entry:
+            if not _holds(entry, expected):
+                return False
+            _upsert(
+                entry,
+                extension_id,
+                key,
+                stored_value,
+                codec,
+                user_fk,
+                resource_type,
+                resource_uuid,
+                encrypt,
+            )
+            return True
 
     # ── Create (disallowed) ─────────────────────────────────────────────────────
 

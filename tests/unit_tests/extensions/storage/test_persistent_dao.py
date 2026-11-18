@@ -646,6 +646,117 @@ def test_dao_set_commits_before_releasing_the_lock(
     assert call_names.index("commit") < call_names.index("lock_exit")
 
 
+# ── compare_and_set ───────────────────────────────────────────────────────────
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_compare_and_set_creates_an_entry_only_when_none_exists(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    """expected=None means the key must have no entry yet."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        written = ExtensionStorageDAO.compare_and_set(
+            "my-ext", "key", None, b'{"v": 1}'
+        )
+
+    assert written
+    mock_db.session.add.assert_called_once()
+    mock_db.session.commit.assert_called_once()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_compare_and_set_refuses_when_an_entry_exists_but_none_expected(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    existing = MagicMock(value=b'{"v": 1}', codec="json", is_encrypted=False)
+    mock_db.session.query.return_value.filter.return_value.first.return_value = existing
+
+    with app.app_context():
+        written = ExtensionStorageDAO.compare_and_set(
+            "my-ext", "key", None, b'{"v": 2}'
+        )
+
+    assert not written
+    assert existing.value == b'{"v": 1}'
+    mock_db.session.commit.assert_not_called()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_compare_and_set_writes_when_the_decoded_value_matches(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    """The comparison is on the decoded value, not the stored bytes."""
+    existing = MagicMock(
+        value=b'{"b": 2, "a": 1}', value_size=16, codec="json", is_encrypted=False
+    )
+    mock_db.session.query.return_value.filter.return_value.first.return_value = existing
+
+    with app.app_context():
+        written = ExtensionStorageDAO.compare_and_set(
+            "my-ext", "key", {"a": 1, "b": 2}, b'{"a": 1, "b": 3}'
+        )
+
+    assert written
+    assert existing.value == b'{"a": 1, "b": 3}'
+    mock_db.session.add.assert_not_called()
+    mock_db.session.commit.assert_called_once()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_compare_and_set_refuses_a_stale_expectation(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    existing = MagicMock(value=b'{"v": 2}', codec="json", is_encrypted=False)
+    mock_db.session.query.return_value.filter.return_value.first.return_value = existing
+
+    with app.app_context():
+        written = ExtensionStorageDAO.compare_and_set(
+            "my-ext", "key", {"v": 1}, b'{"v": 3}'
+        )
+
+    assert not written
+    assert existing.value == b'{"v": 2}'
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_compare_and_set_compares_under_the_set_lock(
+    mock_db: MagicMock, mock_distributed_lock: MagicMock, app: Flask
+) -> None:
+    """The read, the comparison and the commit all happen inside set()'s lock."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+    manager = Mock()
+    manager.attach_mock(mock_distributed_lock.return_value.__enter__, "lock_enter")
+    manager.attach_mock(mock_db.session.query, "query")
+    manager.attach_mock(mock_db.session.commit, "commit")
+    manager.attach_mock(mock_distributed_lock.return_value.__exit__, "lock_exit")
+
+    with app.app_context():
+        ExtensionStorageDAO.compare_and_set("my-ext", "key", None, b"{}")
+
+    mock_distributed_lock.assert_called_once_with(
+        namespace="extension_storage_set",
+        ttl_seconds=SET_LOCK_TTL_SECONDS,
+        extension_id="my-ext",
+    )
+    names = [call[0] for call in manager.mock_calls]
+    assert names.index("lock_enter") < names.index("query")
+    assert names.index("commit") < names.index("lock_exit")
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_compare_and_set_validates_like_set(
+    mock_db: MagicMock, app_with_max_value_size: Flask
+) -> None:
+    """A write that set() would refuse is refused before any comparison."""
+    with app_with_max_value_size.app_context():
+        with pytest.raises(ExtensionStorageValueTooLarge):
+            ExtensionStorageDAO.compare_and_set("my-ext", "key", None, b"x" * 11)
+
+    mock_db.session.query.assert_not_called()
+
+
 # ── scoping ───────────────────────────────────────────────────────────────────
 
 
