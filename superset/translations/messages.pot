@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-12 16:22+0200\n"
+"POT-Creation-Date: 2026-11-17 16:13-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3906,14 +3906,10 @@ msgstr ""
 msgid "Color scheme: %s"
 msgstr ""
 
-msgid ""
-"Color used for the arrow and symbols when the metric decreased from the "
-"comparison value. Defaults to red."
+msgid "Color used for the arrow and symbols when the metric decreased from the comparison value. Defaults to red."
 msgstr ""
 
-msgid ""
-"Color used for the arrow and symbols when the metric increased from the "
-"comparison value. Defaults to green."
+msgid "Color used for the arrow and symbols when the metric increased from the comparison value. Defaults to green."
 msgstr ""
 
 msgid "Color used when the close value is greater than or equal to the open value."
@@ -7148,9 +7144,6 @@ msgstr ""
 msgid "Failed to revoke API key"
 msgstr ""
 
-msgid "Failed to save chart customization"
-msgstr ""
-
 msgid "Failed to save cross-filter scoping"
 msgstr ""
 
@@ -7440,9 +7433,7 @@ msgstr ""
 msgid "Fix the Extra JSON to edit certification"
 msgstr ""
 
-msgid ""
-"Fix the JSON errors below to edit colors here; your changes sync "
-"automatically once the JSON is valid again."
+msgid "Fix the JSON errors below to edit colors here; your changes sync automatically once the JSON is valid again."
 msgstr ""
 
 msgid "Fix the trend line to the full time range specified in case filtered results do not include the start or end dates"
@@ -10558,9 +10549,7 @@ msgstr ""
 msgid "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines."
 msgstr ""
 
-msgid ""
-"Optional custom color for each range band, e.g. to match a brand palette."
-" Bands left unset use the default shading."
+msgid "Optional custom color for each range band, e.g. to match a brand palette. Bands left unset use the default shading."
 msgstr ""
 
 msgid "Optional d3 date format string"
@@ -10926,11 +10915,7 @@ msgstr ""
 msgid "Physical (table or view)"
 msgstr ""
 
-msgid ""
-"Pick a color for each interval band defined above by its upper bound. "
-"Charts saved with the legacy 1-indexed \"Interval colors\" text field keep"
-" following the chosen color scheme until an interval color is "
-"edited."
+msgid "Pick a color for each interval band defined above by its upper bound. Charts saved with the legacy 1-indexed \"Interval colors\" text field keep following the chosen color scheme until an interval color is edited."
 msgstr ""
 
 msgid "Pick a dimension from which categorical colors are defined"
@@ -18348,6 +18333,10 @@ msgstr ""
 msgid "Your dashboard is too large to save: the serialized layout length is %s but the limit is %s. Reduce the dashboard size (for example, split it into multiple dashboards) or raise the SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being generated and will download automatically when ready. We'll also email you a download link."
 msgstr ""
 
@@ -18366,6 +18355,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your password could not be reset. Please try again later."
@@ -19361,6 +19354,9 @@ msgstr ""
 msgid "theme"
 msgstr ""
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr ""
 
@@ -19443,6 +19439,9 @@ msgid "y: values are normalized within each row"
 msgstr ""
 
 msgid "year"
+msgstr ""
+
+msgid "you do not have permission to edit this dashboard."
 msgstr ""
 
 #. do-not-translate

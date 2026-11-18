@@ -3306,6 +3306,12 @@ STATIC_ASSETS_PREFIX = ""
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
 
+# Number of trailing characters of each masked `encrypted_extra` field that users
+# who can edit a database may reveal as a hint. Never more than 25% of a value is
+# revealed: a value shorter than four times this number reveals nothing. 0 disables
+# the hints.
+ENCRYPTED_EXTRA_HINT_CHARS = 0
+
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 
@@ -3839,6 +3845,7 @@ GTF_ORPHAN_TASK_TIMEOUT = 60  # seconds
 #     "CACHE_REDIS_SSL_KEYFILE": None,
 #     "CACHE_REDIS_SSL_CERT_REQS": "required",
 #     "CACHE_REDIS_SSL_CA_CERTS": None,
+#     "CACHE_REDIS_SSL_CHECK_HOSTNAME": True,  # Verify the certificate hostname
 # }
 #
 # Example with Redis Sentinel:
