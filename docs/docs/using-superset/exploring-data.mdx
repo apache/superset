@@ -60,7 +60,7 @@ promise that database changes were rolled back.
 
 ### Semantic Table time grains
 
-For a Table chart backed by a semantic view, Time Grain applies when grouping by
+For Table and Interactive Table charts backed by a semantic view, Time Grain applies when grouping by
 a temporal dimension. Removing the last temporal dimension leaves the saved
 choice intact, but the frontend omits a recognized dormant grain from aggregate
 requests whose selected columns are known to be non-temporal (including no
@@ -72,10 +72,11 @@ This applies to requests rebuilt by the updated frontend in Explore and
 dashboards; it does not rewrite saved charts. Direct API requests and saved
 chart-data GET paths that bypass rebuilding remain subject to strict validation,
 so old stored query contexts can still fail. Updated frontend assets are required.
-Dashboards reuse each chart's saved `temporal_columns_lookup` rather than
-recomputing it. A grouped chart saved before this change may lack the
-non-temporal column metadata needed to omit a dormant grain, so its dashboard
-requests can keep sending that grain until the chart is re-saved in Explore.
+Dashboards use current dataset metadata to classify selected columns. Semantic
+Table and Interactive Table charts with a saved or dashboard-supplied grain wait
+for pending metadata requests before querying, including when added in edit mode
+or after a dashboard save. If metadata cannot be loaded or does not classify a
+selected column, the request retains the grain for normal backend validation.
 
 ### Enabling Data Upload Functionality
 
@@ -536,6 +537,12 @@ The **Drill to detail** and **Drill by** modals, available from a chart's contex
 data behind a chart (or behind a specific data point, when one is selected). Use the **Download** button in
 the modal's toolbar to export the underlying result set as CSV or Excel (XLSX) without leaving the modal —
 the export isn't limited to the page currently visible in the table.
+
+Drill by on a Sunburst child segment retains filters for its ancestors, including
+null-valued hierarchy levels defined by custom SQL expressions. Null levels use
+`IS NULL` rather than an equality comparison. Custom SQL string levels retain
+empty strings and leading zeros when drilling, and empty hierarchy labels keep
+their positions in the drill-by breadcrumb.
 
 For Sunburst charts, drilling into a time-grained temporal segment filters the entire
 bucket rather than a single timestamp. Drill to detail and Drill by compare the
