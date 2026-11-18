@@ -62,7 +62,7 @@ already, such as `superset`: the backend module would shadow it.
 | `frontend/src/frames/` | The frame host (the sandboxed iframe and the host end of the bridge) and frame links |
 | `frontend/src/data/` | Named bindings through the placement data endpoint, and the host-side checks of the frame's requests |
 | `frontend/src/authoring/` | Where an editor confirms a pending publish request |
-| `frontend/src/embedding/` | The standalone host page shell |
+| `frontend/src/embedding/` | The view that shows one artifact on a page of its own, and the page's frame host |
 | `docs/CORE-GAPS.md` | What Superset core still needs, and the small core changes on this branch |
 
 The store, the authoring handlers, the gate, the data mapping and the frame
@@ -138,6 +138,17 @@ author as editor; the store keeps only the content, keyed by that UUID.
   before acting: `setCrossFilter` through the canvas, `refresh` and `query` by
   fetching again. A frame that never completes its handshake gets one new
   link, as when its link expired before it loaded.
+
+## An artifact's own page
+
+The extension registers a view, `superset-oss.artifacts.page`, at the location
+of the same name. It shows the artifact whose id ends the page's address,
+through a frame link with `page: standalone` and the saved widget's data
+endpoint. Extensions can't add routes, so a host that wants the page adds a
+route, such as `/artifact/<uuid>/`, that renders the location's views. The
+views register when the extension loads, which can be after the route first
+renders, so the route should follow the registry (`useViews` in
+`src/core/views`) rather than read it once.
 
 ## Policy
 
@@ -317,8 +328,8 @@ def MCP_CODE_ARTIFACTS_ENABLED() -> bool:
   host sets (one tenant, say), so `artifact_commit_files` reveals whether
   given content exists in that scope. On the default backend, the scope is
   the whole Superset.
-- The page that shows one artifact on its own is the host's to add: the
-  extension answers its frame link (`page`) and its data.
+- Extensions can't add routes, so the page that shows one artifact on its own
+  needs a host route (see "An artifact's own page").
 - The publish confirmation is a notice by the artifact, not a screen with a
   diff, and refusing `Authorization` headers is a check on the channel, not
   proof that a person clicked.

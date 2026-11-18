@@ -19,14 +19,26 @@
 
 /**
  * @fileoverview The extension's frontend entry: the host loads it with
- * Module Federation, and importing it registers the renderer.
+ * Module Federation, and importing it registers the widget renderer and the
+ * view of an artifact's page of its own.
  */
 
-import { canvas } from '@apache-superset/core';
+import { canvas, views } from '@apache-superset/core';
 import ArtifactWidget from './canvas/ArtifactWidget';
-import { WIDGET_TYPE } from './constants';
+import { PAGE_LOCATION, PAGE_VIEW_ID, WIDGET_TYPE } from './constants';
+import ArtifactPage from './embedding/ArtifactPage';
 
 // The host prefixes the backend's widget id but not frontend ids, so the
 // renderer registers under the full `extensions.<publisher>.<name>.artifact`;
 // any other id leaves the canvas showing "No renderer for widget type".
 canvas.registerWidgetRenderer(WIDGET_TYPE, ArtifactWidget);
+
+views.registerView(
+  {
+    id: PAGE_VIEW_ID,
+    name: 'Artifact',
+    description: 'One artifact on its own',
+  },
+  PAGE_LOCATION,
+  ArtifactPage,
+);

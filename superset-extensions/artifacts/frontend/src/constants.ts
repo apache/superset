@@ -36,3 +36,10 @@ export const WIDGET_TYPE = `extensions.${PUBLISHER}.${NAME}.artifact`;
 export const API_BASE_PATH = `/extensions/${PUBLISHER}/${NAME}`;
 
 export const DRAFT_TOKEN_HEADER = 'X-Canvas-Draft';
+
+/**
+ * The view that shows one artifact on a page of its own, and the location a
+ * host page renders it at. The page's address ends with the artifact's id.
+ */
+export const PAGE_VIEW_ID = `${PUBLISHER}.${NAME}.page`;
+export const PAGE_LOCATION = `${PUBLISHER}.${NAME}.page`;
