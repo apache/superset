@@ -397,6 +397,7 @@ test('stops after dispose', () => {
   expect(host.listeners('message')).toBe(0);
 
   channel.postState(state);
+  channel.postData('revenue_by_region', revenue);
   fromFrame({
     type: 'request',
     request: { type: 'setCrossFilter', value: region },
