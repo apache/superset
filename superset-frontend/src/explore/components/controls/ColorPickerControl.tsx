@@ -17,6 +17,8 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
+import { colord, extend } from 'colord';
+import namesPlugin from 'colord/plugins/names';
 import { getCategoricalSchemeRegistry, rgbaToHex } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -26,6 +28,9 @@ import {
 } from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
 import { useTheme, type SupersetTheme } from '@apache-superset/core/theme';
+
+// theme tokens and saved values can name colors such as `white`
+extend([namesPlugin]);
 
 export const SPECIAL_COLORS = {
   Red: { r: 150, g: 0, b: 0, a: 0.2 },
@@ -72,43 +77,10 @@ export interface ColorPickerControlProps {
   fallbackValue?: ColorPickerValue;
 }
 
-// `rgbaToHex` omits the alpha byte for opaque colors, so drop a trailing `ff`
-// to keep eight-digit opaque hex comparable with the picker's output.
-const normalizeOpaqueAlpha = (hex: string): string =>
-  /^#[0-9a-f]{8}$/.test(hex) && hex.endsWith('ff') ? hex.slice(0, 7) : hex;
-
+// Any CSS color as a lowercase hex code, the form the picker emits
 const normalizeColorToHex = (color: string): string => {
-  if (!color) return '';
-
-  if (color.startsWith('#')) {
-    const lower = color.toLowerCase();
-    // Expand 3/4-digit shorthand so it compares equal to the six/eight-digit
-    // hex the picker emits.
-    if (/^#[0-9a-f]{3,4}$/.test(lower)) {
-      return normalizeOpaqueAlpha(
-        `#${Array.from(lower.slice(1), c => c + c).join('')}`,
-      );
-    }
-    return normalizeOpaqueAlpha(lower);
-  }
-
-  const div = document.createElement('div');
-  div.style.color = color;
-  const normalized = div.style.color || '';
-
-  const match = /^rgba?\((\d+),\s+(\d+),\s+(\d+)(?:,\s*([\d.]+))?\)$/.exec(
-    normalized,
-  );
-  if (match) {
-    return rgbaToHex({
-      r: parseInt(match[1], 10),
-      g: parseInt(match[2], 10),
-      b: parseInt(match[3], 10),
-      a: match[4] !== undefined ? parseFloat(match[4]) : 1,
-    }).toLowerCase();
-  }
-
-  return color.toLowerCase();
+  const parsed = colord(color);
+  return parsed.isValid() ? parsed.toHex() : color.toLowerCase();
 };
 
 const getReverseThemeColorMap = (
@@ -161,7 +133,7 @@ export function toDisplayHex(
       return themeColors[themeToken].toLowerCase();
     }
     if (value in SPECIAL_COLORS) {
-      return rgbaToHex(SPECIAL_COLORS[value as SpecialColorKey]).toLowerCase();
+      return rgbaToHex(SPECIAL_COLORS[value as SpecialColorKey]);
     }
     if (
       themeColors &&
@@ -173,7 +145,7 @@ export function toDisplayHex(
     return value.toLowerCase();
   }
 
-  return rgbaToHex(value).toLowerCase();
+  return rgbaToHex(value);
 }
 
 const extractThemeColors = (
@@ -249,7 +221,7 @@ export default function ColorPickerControl({
 
   const getDisplayHex = (color: ColorPickerValue | undefined) =>
     typeof color === 'string' && fixedSpecialKeys.has(color)
-      ? rgbaToHex(SPECIAL_COLORS[color as SpecialColorKey]).toLowerCase()
+      ? rgbaToHex(SPECIAL_COLORS[color as SpecialColorKey])
       : toDisplayHex(color, themeColors, resolveThemeTokens);
 
   const presets = useMemo(() => {
@@ -262,9 +234,7 @@ export default function ColorPickerControl({
             return getDisplayHex(color) ?? String(color);
           }
           if (color in SPECIAL_COLORS) {
-            return rgbaToHex(
-              SPECIAL_COLORS[color as SpecialColorKey],
-            ).toLowerCase();
+            return rgbaToHex(SPECIAL_COLORS[color as SpecialColorKey]);
           }
           if (
             themeColors &&
@@ -289,7 +259,7 @@ export default function ColorPickerControl({
     if (!onChange) return;
 
     const rgb = color.toRgb();
-    const hex = rgbaToHex(rgb).toLowerCase();
+    const hex = rgbaToHex(rgb);
 
     // Match against the same hex the preset chip and trigger display, so a
     // special color picked from a theme-resolved chip maps back to its key.
