@@ -264,12 +264,18 @@ COPY --chmod=755 ./docker/entrypoints/run-server.sh /usr/bin/
 # `-dev` packages drag in a full C toolchain (libc6-dev, linux-libc-dev,
 # libssl-dev, ...) that no final image needs. Stages that compile native Python
 # extensions install the headers they require themselves.
-RUN /app/docker/apt-install.sh \
+RUN . /etc/os-release && \
+    if [ "$VERSION_CODENAME" = "bookworm" ]; then \
+        ldap_runtime_package=libldap-2.5-0; \
+    else \
+        ldap_runtime_package=libldap2; \
+    fi && \
+    /app/docker/apt-install.sh \
       curl \
       libsasl2-2 \
       libsasl2-modules-gssapi-mit \
       libpq5 \
-      libldap2
+      "$ldap_runtime_package"
 
 # Create data directory for DuckDB examples database
 # The database file will be created at runtime when examples are loaded from Parquet files
