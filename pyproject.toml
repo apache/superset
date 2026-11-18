@@ -434,6 +434,7 @@ warn_unused_ignores = false
 [[tool.mypy.overrides]]
 module = [
     "superset.mcp_service.dataset_scope",
+    "superset.mcp_service.dataset.discovery",
     "tests.unit_tests.mcp_service.dataset.tool.test_dataset_tools",
     "superset.commands.chart.importers.v1",
     "superset.daos.datasource",
