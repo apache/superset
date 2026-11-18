@@ -1,9 +1,0 @@
-{
-  "publisher": "superset-oss",
-  "name": "artifacts",
-  "displayName": "Artifacts",
-  "description": "The artifacts extension enabler: an artifact canvas widget whose code runs in a sandboxed frame from a runtime provider, a git-shaped file store with MCP authoring tools, and publishing that waits for the user's confirmation. Artifacts stay off until a host registers a provider.",
-  "version": "0.1.0",
-  "license": "Apache-2.0",
-  "permissions": []
-}
