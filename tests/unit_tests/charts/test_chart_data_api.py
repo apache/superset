@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 import inspect
+from collections.abc import Iterator
+from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
@@ -492,6 +494,45 @@ def test_send_chart_response_excludes_timing_by_default(app: SupersetApp) -> Non
     body = json.loads(response.get_data(as_text=True))
     assert body == {"result": [{"data": [{"col1": 1}], "query": "SELECT 1"}]}
     assert "timing" not in query_payload
+
+
+def test_send_chart_response_serialize_timer_excludes_event_log_write(
+    app: SupersetApp,
+) -> None:
+    """
+    ``chart_data.response.serialize`` times json.dumps only: it is emitted
+    before the ``json_dumps`` log context exits and writes its event log.
+    """
+    result = _json_execution_result({"data": [{"col1": 1}], "query": "SELECT 1"})
+    events: list[str] = []
+
+    @contextmanager
+    def log_context(action: str) -> Iterator[None]:
+        events.append(f"log_enter:{action}")
+        yield
+        events.append(f"log_exit:{action}")
+
+    def emit_timing(key: str, value: float) -> None:
+        events.append(f"timer:{key}")
+
+    event_logger = MagicMock()
+    event_logger.log_context.side_effect = log_context
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=False,
+        ),
+        patch("superset.charts.data.api.event_logger", event_logger),
+        patch("superset.utils.timing_metrics.emit_timing", side_effect=emit_timing),
+    ):
+        ChartDataRestApi()._send_chart_response(result)
+
+    assert events == [
+        "log_enter:ChartDataRestApi.json_dumps",
+        "timer:chart_data.response.serialize",
+        "log_exit:ChartDataRestApi.json_dumps",
+    ]
 
 
 @pytest.mark.parametrize(
