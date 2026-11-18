@@ -24,6 +24,7 @@ import mockDatasource, { datasourceId, id } from 'spec/fixtures/mockDatasource';
 import { buildNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import {
   fireEvent,
+  act,
   render,
   screen,
   userEvent,
@@ -449,6 +450,48 @@ test('filters are draggable', async () => {
     displays cancel message when there are pending operations
     do not displays cancel message when there are no pending operations
 */
+
+test('disables and spins Save during a request and enables retry after failure', async () => {
+  let finish: () => void = () => {};
+  const pending = new Promise<void>(resolve => {
+    finish = resolve;
+  });
+  const onSave = jest.fn(async () => {
+    await pending;
+    throw new Error('save failed');
+  });
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: [
+          buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+        ],
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false, onSave });
+  fireEvent.click(
+    screen
+      .getByTestId('filter-title-container')
+      .querySelector('[data-icon="delete"]')!,
+  );
+  const save = screen.getByRole('button', { name: SAVE_REGEX });
+  await userEvent.click(save);
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  expect(save).toBeDisabled();
+  expect(save.querySelector('.ant-btn-loading-icon')).toBeInTheDocument();
+  fireEvent.click(save);
+  expect(onSave).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    finish();
+  });
+  await waitFor(() => expect(save).toBeEnabled());
+  expect(save.querySelector('.ant-btn-loading-icon')).not.toBeInTheDocument();
+  await userEvent.click(save);
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+});
 
 test('deletes a filter', async () => {
   const nativeFilterConfig = [
