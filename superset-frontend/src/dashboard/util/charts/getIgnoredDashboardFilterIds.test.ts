@@ -20,13 +20,14 @@ import {
   DatasourceType,
   ExtraFormData,
   PartialFilters,
+  SemanticSelectionSource,
 } from '@superset-ui/core';
 import { shallowEqual } from 'react-redux';
 import { getSelectExtraFormData } from 'src/filters/utils';
 import {
-  getIgnoredSqlFilterIds,
+  getIgnoredDashboardFilterIds,
   selectChartDatasources,
-} from './getIgnoredSqlFilterIds';
+} from './getIgnoredDashboardFilterIds';
 
 const receiver = {
   datasource: '3__semantic_view',
@@ -146,7 +147,7 @@ test.each<{
   },
 ])('$name', ({ native, extra, ignored }) => {
   expect(
-    getIgnoredSqlFilterIds(receiver, native, {
+    getIgnoredDashboardFilterIds(receiver, native, {
       f: { id: 'f', extraFormData: extra },
     }),
   ).toEqual(ignored ? ['f'] : []);
@@ -169,4 +170,166 @@ test('datasource projection ignores chart status and results but detects repoint
       }),
     ),
   ).toBe(false);
+});
+
+const foreignSource = {
+  datasource: '9__semantic_view',
+  version: 'cube-member-id-v1',
+};
+const foreignNative: PartialFilters = {
+  f: {
+    id: 'f',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 9, datasourceType: DatasourceType.SemanticView }],
+  },
+};
+
+test.each<{
+  name: string;
+  sources?: SemanticSelectionSource[];
+  ignored: boolean;
+}>([
+  {
+    name: 'consistent foreign provenance',
+    sources: [foreignSource, foreignSource],
+    ignored: true,
+  },
+  { name: 'absent provenance', ignored: false },
+  { name: 'empty provenance', sources: [], ignored: false },
+  {
+    name: 'missing source version',
+    sources: [{ ...foreignSource, version: null }],
+    ignored: false,
+  },
+  {
+    name: 'empty source version',
+    sources: [{ ...foreignSource, version: '' }],
+    ignored: false,
+  },
+  {
+    name: 'mixed source versions',
+    sources: [foreignSource, { ...foreignSource, version: 'old' }],
+    ignored: false,
+  },
+  {
+    name: 'mixed view sources',
+    sources: [
+      foreignSource,
+      { ...foreignSource, datasource: receiver.datasource },
+    ],
+    ignored: false,
+  },
+  {
+    name: 'stamp disagrees with configured source',
+    sources: [{ ...foreignSource, datasource: '8__semantic_view' }],
+    ignored: false,
+  },
+  {
+    name: 'unknown stamped source',
+    sources: [{ datasource: '', version: null }],
+    ignored: false,
+  },
+])('foreign native predicate: $name', ({ sources, ignored }) => {
+  expect(
+    getIgnoredDashboardFilterIds(receiver, foreignNative, {
+      f: {
+        id: 'f',
+        extraFormData: { ...predicate, semantic_selection_sources: sources },
+      },
+    }),
+  ).toEqual(ignored ? ['f'] : []);
+});
+
+test.each(['filter_time', 'chart_customization_dynamic_groupby'])(
+  'foreign %s controls remain subject to validation',
+  filterType => {
+    expect(
+      getIgnoredDashboardFilterIds(
+        receiver,
+        { f: { ...foreignNative.f, filterType } },
+        {
+          f: {
+            id: 'f',
+            extraFormData: {
+              ...predicate,
+              semantic_selection_sources: [foreignSource],
+            },
+          },
+        },
+      ),
+    ).toEqual([]);
+  },
+);
+
+test('foreign member overrides and mixed masks are not dropped', () => {
+  for (const extra of [
+    { granularity_sqla: 'created_at' },
+    { ...predicate, granularity_sqla: 'created_at' },
+  ]) {
+    expect(
+      getIgnoredDashboardFilterIds(receiver, foreignNative, {
+        f: {
+          id: 'f',
+          extraFormData: {
+            ...extra,
+            semantic_selection_sources: [foreignSource],
+          },
+        },
+      }),
+    ).toEqual([]);
+  }
+});
+
+test('foreign required-value sentinel is skipped only with agreed provenance', () => {
+  expect(
+    getIgnoredDashboardFilterIds(receiver, foreignNative, {
+      f: {
+        id: 'f',
+        extraFormData: {
+          ...emptyRequired,
+          semantic_selection_sources: [foreignSource],
+        },
+      },
+    }),
+  ).toEqual(['f']);
+});
+
+test.each(['cube-member-id-v1', 'old'])(
+  'same-view source version %s is never skipped',
+  version => {
+    const source = { datasource: receiver.datasource, version };
+    expect(
+      getIgnoredDashboardFilterIds(
+        receiver,
+        {},
+        {
+          f: {
+            id: 'f',
+            extraFormData: {
+              ...predicate,
+              semantic_selection_sources: [source],
+            },
+          },
+        },
+        { f: receiver.datasource },
+      ),
+    ).toEqual([]);
+  },
+);
+
+test.each([
+  { datasource: '3__semantic_view' },
+  { ...receiver, datasource: '12__table' },
+])('foreign-view omission does not change receiver %j', target => {
+  expect(
+    getIgnoredDashboardFilterIds(target, foreignNative, {
+      f: {
+        id: 'f',
+        extraFormData: {
+          ...predicate,
+          semantic_selection_sources: [foreignSource],
+        },
+      },
+    }),
+  ).toEqual([]);
 });

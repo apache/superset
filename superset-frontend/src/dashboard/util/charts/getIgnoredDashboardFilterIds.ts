@@ -44,7 +44,7 @@ export const selectChartDatasources = ({
   );
 
 /** Classify optional dashboard predicates; never certify semantic selections. */
-export function getIgnoredSqlFilterIds(
+export function getIgnoredDashboardFilterIds(
   receiver: { datasource?: string; semantic_selection_version?: string },
   nativeFilters: PartialFilters,
   dataMask: DataMaskStateWithId,
@@ -88,10 +88,22 @@ export function getIgnoredSqlFilterIds(
         ? `${target.datasetId}__${target.datasourceType || DatasourceType.Table}`
         : undefined
       : sourceDatasources[id];
+    const sources = extra.semantic_selection_sources ?? [];
+    if (source?.endsWith(`__${DatasourceType.Table}`)) {
+      return sources.every(selection => selection.datasource === source);
+    }
+    const first = sources[0];
+    // Stale same-view selections still require explicit reselection.
     return Boolean(
-      source?.endsWith(`__${DatasourceType.Table}`) &&
-      (extra.semantic_selection_sources ?? []).every(
-        selection => selection.datasource === source,
+      source?.endsWith(`__${DatasourceType.SemanticView}`) &&
+      source !== receiver.datasource &&
+      first?.datasource === source &&
+      typeof first.version === 'string' &&
+      first.version.length > 0 &&
+      sources.every(
+        selection =>
+          selection.datasource === source &&
+          selection.version === first.version,
       ),
     );
   });

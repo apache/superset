@@ -29,9 +29,9 @@ import {
   QueryFormColumn,
 } from '@superset-ui/core';
 import {
-  getIgnoredSqlFilterIds,
+  getIgnoredDashboardFilterIds,
   ChartDatasources,
-} from 'src/dashboard/util/charts/getIgnoredSqlFilterIds';
+} from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import { ChartConfiguration, LayoutItem } from 'src/dashboard/types';
@@ -420,7 +420,7 @@ export const selectNativeIndicatorsForChart = (
   chartConfiguration: ChartConfiguration = defaultChartConfig,
   sourceDatasources?: ChartDatasources,
 ): Indicator[] => {
-  const ignoredFilterIds = getIgnoredSqlFilterIds(
+  const ignoredFilterIds = getIgnoredDashboardFilterIds(
     chart?.form_data ?? {},
     nativeFilters,
     dataMask,
