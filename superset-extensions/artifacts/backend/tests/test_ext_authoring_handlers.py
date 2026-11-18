@@ -21,7 +21,7 @@ from __future__ import annotations
 import base64
 import json  # noqa: TID251 -- pure test; the host's JSON utility needs Flask.
 import re
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any
 
@@ -45,6 +45,7 @@ from superset_artifacts_sdk.authoring import (
     ArtifactViewRequest,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest
+from superset_artifacts_sdk.policy import ArtifactPolicy, LOCKED
 from superset_artifacts_sdk.provider import (
     ArtifactRef,
     BuildResult,
@@ -68,7 +69,7 @@ from superset_oss.artifacts.authoring.prompt_text import (
     import_claude_artifact_text,
 )
 from superset_oss.artifacts.constants import ID_PREFIX, WIDGET_TYPE
-from superset_oss.artifacts.gate import artifacts_on
+from superset_oss.artifacts.gate import artifacts_on, set_deployment_policy
 
 UUID = "00000000-0000-4000-8000-000000000000"
 VERSION = "0" * 64
@@ -78,7 +79,8 @@ OWNER = "7"
 class FakeProvider:
     def __init__(self) -> None:
         self.backend: InMemoryArtifactStore | None = InMemoryArtifactStore()
-        self.built: list[ArtifactRef] = []
+        self.built: list[tuple[ArtifactRef, ArtifactPolicy]] = []
+        self.layer: Mapping[str, Any] | None = None
         # Whether its store has lost every version, as after a publish that
         # lands between the tool reading a version and the provider call.
         self.lost_versions = False
@@ -92,22 +94,25 @@ class FakeProvider:
     def frame_sources(self) -> Sequence[str]:
         return ("https://box.example",)
 
-    def build(self, ref: ArtifactRef) -> BuildResult:
+    def build(self, ref: ArtifactRef, policy: ArtifactPolicy) -> BuildResult:
         if self.lost_versions:
             raise VersionNotFoundError(f"no version {ref.version}")
-        self.built.append(ref)
+        self.built.append((ref, policy))
         return BuildResult(
             ok=False,
             diagnostics=(Diagnostic("missing import", file="index.html", line=3),),
         )
 
-    def check(self, ref: ArtifactRef) -> CheckResult:
+    def check(self, ref: ArtifactRef, policy: ArtifactPolicy) -> CheckResult:
         if self.lost_versions:
             raise VersionNotFoundError(f"no version {ref.version}")
         return CheckResult(ok=True, console=("ready",), subscribed_to_data=True)
 
     def store_backend(self) -> InMemoryArtifactStore | None:
         return self.backend
+
+    def policy_layer(self) -> Mapping[str, Any] | None:
+        return self.layer
 
 
 @pytest.fixture
@@ -348,7 +353,10 @@ def test_build_adds_the_extensions_binding_checks(
         OWNER, ArtifactCheckRequest(artifact_id=created["artifact_id"])
     )
 
-    assert provider.built == [ArtifactRef(created["artifact_id"], created["version"])]
+    # The build gets the request's policy: Locked, with no deployment layer.
+    assert provider.built == [
+        (ArtifactRef(created["artifact_id"], created["version"]), LOCKED)
+    ]
     assert built["version"] == created["version"]
     assert built["ok"] is False
     assert [item["severity"] for item in built["diagnostics"]] == ["error", "warning"]
@@ -461,3 +469,20 @@ def test_the_prompt_teaches_no_parameter_values() -> None:
     declared = ArtifactManifest.model_validate_json(example.group(1))
     assert [name for name, b in declared.bindings.items() if b.parameters] == []
     assert re.findall(r"superset\.query\(([^)]*)\)", text) == ['"revenue_by_region"']
+
+
+def test_the_providers_layer_narrows_the_deployments_policy(
+    provider: FakeProvider, handlers: AuthoringHandlers
+) -> None:
+    """A workspace can only narrow: with no deployment layer, it stays Locked."""
+    provider.layer = {"profile": "open"}
+    created = handlers.create(OWNER, ArtifactCreateRequest())
+    handlers.build(OWNER, ArtifactBuildRequest(artifact_id=created["artifact_id"]))
+
+    set_deployment_policy({"profile": "standard"})
+    try:
+        handlers.build(OWNER, ArtifactBuildRequest(artifact_id=created["artifact_id"]))
+    finally:
+        set_deployment_policy(None)
+
+    assert [policy.profile for _, policy in provider.built] == ["locked", "standard"]

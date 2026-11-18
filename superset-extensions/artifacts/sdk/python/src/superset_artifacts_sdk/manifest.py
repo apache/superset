@@ -137,6 +137,11 @@ class DatasetSource(_ManifestModel):
     kind: Literal["dataset"]
     dataset_id: StrictPositiveInt
 
+    @property
+    def resource(self) -> str:
+        """The source as a policy names it: ``dataset:<id>``."""
+        return f"dataset:{self.dataset_id}"
+
 
 class SavedChartSource(_ManifestModel):
     """A binding source: a saved chart, by id; the binding reuses its query."""
@@ -144,12 +149,22 @@ class SavedChartSource(_ManifestModel):
     kind: Literal["chart"]
     chart_id: StrictPositiveInt
 
+    @property
+    def resource(self) -> str:
+        """The source as a policy names it: ``chart:<id>``."""
+        return f"chart:{self.chart_id}"
+
 
 class SemanticViewSource(_ManifestModel):
     """A binding source: a semantic view, whose metrics are defined centrally."""
 
     kind: Literal["semantic_view"]
     semantic_view: NonEmptyStr
+
+    @property
+    def resource(self) -> str:
+        """The source as a policy names it: ``semantic_view:<name>``."""
+        return f"semantic_view:{self.semantic_view}"
 
 
 BindingSource = Annotated[

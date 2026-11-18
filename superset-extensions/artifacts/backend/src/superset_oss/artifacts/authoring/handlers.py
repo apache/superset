@@ -57,6 +57,7 @@ from superset_artifacts_sdk.authoring import (
     AuthoringRequest,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest, MANIFEST_FILE
+from superset_artifacts_sdk.policy import ArtifactPolicy
 from superset_artifacts_sdk.provider import (
     ArtifactRef,
     ArtifactRuntimeProvider,
@@ -149,10 +150,11 @@ def _jsonable(value: Any) -> Any:
 
 @dataclass(frozen=True)
 class _Call:
-    """What a tool's action gets: the file store, the provider and the caller."""
+    """What a tool's action gets: the store, the provider, the policy, the caller."""
 
     store: ArtifactFileStore
     provider: ArtifactRuntimeProvider
+    policy: ArtifactPolicy
     actor: str
 
 
@@ -168,7 +170,9 @@ class AuthoringHandlers:
                     AuthoringErrorCode.ARTIFACT_NOT_FOUND,
                     "only a signed-in user writes artifacts",
                 )
-            return action(_Call(artifacts.store, artifacts.provider, actor))
+            return action(
+                _Call(artifacts.store, artifacts.provider, artifacts.policy, actor)
+            )
         except ArtifactError as ex:
             return ex.to_dict()
 
@@ -272,7 +276,7 @@ class AuthoringHandlers:
             manifest = call.store.manifest_at(artifact_id, version)
             ref = ArtifactRef(artifact_id, version)
             with translate_missing_version(ref):
-                result = call.provider.build(ref)
+                result = call.provider.build(ref, call.policy)
             # The binding checks are the extension's own, on top of the build's.
             warnings = tuple(
                 Diagnostic(problem, severity="warning", file=MANIFEST_FILE)
@@ -290,7 +294,7 @@ class AuthoringHandlers:
             )
             ref = ArtifactRef(artifact_id, version)
             with translate_missing_version(ref):
-                result = call.provider.check(ref)
+                result = call.provider.check(ref, call.policy)
             return {"version": version, **_jsonable(result)}
 
         return self.run(actor, action)

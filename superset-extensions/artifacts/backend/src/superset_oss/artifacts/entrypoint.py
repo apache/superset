@@ -20,19 +20,25 @@ The backend entry point: importing each piece registers what it declares.
 The host imports this module inside the extension's context, so every id it
 registers is prefixed ``extensions.superset-oss.artifacts.``. Registration
 doesn't depend on a provider; every tool and endpoint answers ``NOT_ENABLED``
-while no artifact runtime provider is registered.
+while no artifact runtime provider is registered. The deployment's policy
+layer, ``ARTIFACTS_POLICY``, is read here, once: without it, the policy is
+Locked.
 """
 
 from __future__ import annotations
 
 import logging
 
+from flask import current_app
 from superset_oss.artifacts.authoring import confirm_api  # noqa: F401
 from superset_oss.artifacts.canvas import widget  # noqa: F401
 from superset_oss.artifacts.embedding import api as embedding_api  # noqa: F401
 from superset_oss.artifacts.frames import api as frames_api  # noqa: F401
+from superset_oss.artifacts.gate import set_deployment_policy
 
 logger = logging.getLogger(__name__)
+
+set_deployment_policy(current_app.config.get("ARTIFACTS_POLICY"))
 
 try:
     from superset_oss.artifacts.authoring import prompts, tools  # noqa: F401

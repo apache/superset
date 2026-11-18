@@ -25,22 +25,23 @@ and registers one provider at startup (``superset_artifacts_sdk.registry``).
 With no provider registered, artifacts stay off.
 
 Each service is also a role of its own (``FrameLinkMinter``,
-``FrameSources``, ``ArtifactBuilder``, ``ArtifactChecker`` and
-``ArtifactStoreSource``), which ``ArtifactRuntimeProvider`` combines, so that
-code using one service depends on that service only.
+``FrameSources``, ``ArtifactBuilder``, ``ArtifactChecker``,
+``ArtifactStoreSource`` and ``PolicySource``), which
+``ArtifactRuntimeProvider`` combines, so that code using one service depends
+on that service only.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from superset_artifacts_sdk.capabilities import Capability
+from superset_artifacts_sdk.policy import ArtifactPolicy, FrameMode
 from superset_artifacts_sdk.store import ArtifactStoreBackend
 
-FrameMode = Literal["canvas", "embedded", "standalone"]
 Severity = Literal["error", "warning"]
 
 
@@ -59,7 +60,8 @@ class FrameContext:
 
     ``allowed_parents`` are the origins allowed as the frame's ancestors in
     this context (its CSP ``frame-ancestors``). ``capabilities`` is the grant:
-    at most what the manifest declares, and what the context allows.
+    manifest ∩ policy ∩ context (``policy.grant_for``). Its compute part is
+    what the frame's own CSP may add; nothing in it opens a network.
     """
 
     mode: FrameMode
@@ -188,12 +190,14 @@ class FrameSources(Protocol):
 class ArtifactBuilder(Protocol):
     """The build service's role in a provider."""
 
-    def build(self, ref: ArtifactRef) -> BuildResult:
+    def build(self, ref: ArtifactRef, policy: ArtifactPolicy) -> BuildResult:
         """
-        Build ``ref``, returning the errors the agent needs to fix.
+        Build ``ref`` under ``policy``, returning the errors the agent needs to fix.
 
-        Raises ``VersionNotFoundError`` when the store holds no such version
-        of the artifact.
+        The policy is the request's: the build applies its package and compute
+        knobs, so that what it refuses matches what the host enforces. Raises
+        ``VersionNotFoundError`` when the store holds no such version of the
+        artifact.
         """
         ...
 
@@ -204,13 +208,14 @@ class ArtifactChecker(Protocol):
 
     # TODO: screenshots come with v2 of ``check``.
 
-    def check(self, ref: ArtifactRef) -> CheckResult:
+    def check(self, ref: ArtifactRef, policy: ArtifactPolicy) -> CheckResult:
         """
         Run ``ref`` in an isolated headless browser and report what happened.
 
+        ``policy`` is the request's: its authoring knobs decide whether the
+        check takes screenshots and whether the artifact sees real rows.
         Raises ``VersionNotFoundError`` when the store holds no such version
-        of the artifact. The conditions for isolating that browser pool are
-        an open question.
+        of the artifact.
         """
         ...
 
@@ -231,12 +236,30 @@ class ArtifactStoreSource(Protocol):
 
 
 @runtime_checkable
+class PolicySource(Protocol):
+    """The host's role in the policy: the layer that narrows the deployment's."""
+
+    def policy_layer(self) -> Mapping[str, Any] | None:
+        """
+        The policy layer for the request being served, such as its workspace's,
+        or ``None`` to narrow nothing.
+
+        A layer names a profile and the knobs that narrow it
+        (``policy.policy_layer``). The host validates it on every request, and
+        an invalid one reads as Locked, so a provider can pass on what its own
+        settings say without checking it first.
+        """
+        ...
+
+
+@runtime_checkable
 class ArtifactRuntimeProvider(
     FrameLinkMinter,
     FrameSources,
     ArtifactBuilder,
     ArtifactChecker,
     ArtifactStoreSource,
+    PolicySource,
     Protocol,
 ):
     """

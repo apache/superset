@@ -21,10 +21,11 @@ An artifact is a small app that an agent writes and places on a Canvas. Its
 code is untrusted, so it runs only in a sandboxed frame, and it reaches
 Superset data only through its host, as the viewer. This package defines the
 server-side contracts the pieces share: the manifest and its capabilities, the
-file store, the provider a host implements and the authoring tools agents
-call. The bridge between the frame and its host page is browser code, so its
-protocol is defined in ``@superset-oss/artifacts-sdk``. This package has no
-implementation of the machinery itself, and depends only on pydantic.
+policy and the grant, the file store, the provider a host implements and the
+authoring tools agents call. The bridge between the frame and its host page
+is browser code, so its protocol is defined in ``@superset-oss/artifacts-sdk``.
+This package has no implementation of the machinery itself, and depends only
+on pydantic.
 """
 
 from superset_artifacts_sdk.authoring import (
@@ -67,6 +68,18 @@ from superset_artifacts_sdk.manifest import (
     SDK_VERSION as SDK_VERSION,
     SemanticViewSource as SemanticViewSource,
 )
+from superset_artifacts_sdk.policy import (
+    ArtifactPolicy as ArtifactPolicy,
+    grant_for as grant_for,
+    InvalidPolicyError as InvalidPolicyError,
+    LOCKED as LOCKED,
+    manifest_problems as manifest_problems,
+    narrow as narrow,
+    policy_layer as policy_layer,
+    Profile as Profile,
+    PROFILES as PROFILES,
+    resolve_policy as resolve_policy,
+)
 from superset_artifacts_sdk.provider import (
     ArtifactBuilder as ArtifactBuilder,
     ArtifactChecker as ArtifactChecker,
@@ -81,6 +94,7 @@ from superset_artifacts_sdk.provider import (
     FrameLinkMinter as FrameLinkMinter,
     FrameMode as FrameMode,
     FrameSources as FrameSources,
+    PolicySource as PolicySource,
     VersionNotFoundError as VersionNotFoundError,
 )
 from superset_artifacts_sdk.registry import (

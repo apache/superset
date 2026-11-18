@@ -331,6 +331,7 @@ def test_error_codes() -> None:
         "TOO_LARGE",
         "NOT_ENABLED",
         "CONFIRMATION_REQUIRED",
+        "POLICY_DENIED",
     }
     assert all(code.value == code.name for code in AuthoringErrorCode)
 

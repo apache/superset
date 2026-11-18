@@ -87,6 +87,7 @@ from superset_artifacts_sdk.manifest import (
     MANIFEST_FILE,
     MANIFEST_VERSION,
 )
+from superset_artifacts_sdk.policy import ArtifactPolicy, LOCKED
 from superset_artifacts_sdk.store import (
     ArtifactStoreBackend,
     DRAFT_REF,
@@ -389,10 +390,12 @@ class ArtifactFileStore:
         self,
         backend: ArtifactStoreBackend,
         *,
+        policy: ArtifactPolicy = LOCKED,
         clock: Callable[[], datetime] = _utcnow,
         new_id: Callable[[], str] = _new_uuid,
     ) -> None:
         self._backend = backend
+        self._policy = policy
         self._now = clock
         self._new_id = new_id
 

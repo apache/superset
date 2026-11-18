@@ -105,6 +105,42 @@ Superset.
   the version the frame loads; the endpoint then runs it as the viewer, with
   their dataset access, as any other binding.
 
+## Policy
+
+What an artifact may do is a policy decision. Its manifest says what it
+requests; the policy says what is allowed; the grant is what the extension
+computes from both, in each context, at every write, publish, frame link and
+query, and never stores (`superset_artifacts_sdk.policy`).
+
+A policy starts from a profile, `locked`, `standard` or `open`, and can only be
+narrowed from there. The deployment's layer is `ARTIFACTS_POLICY` in
+`superset_config.py`, read when the extension loads; without it, or with an
+invalid value, the policy is Locked. The provider's `policy_layer()` narrows
+it for each request, for example to a workspace's:
+
+```python
+ARTIFACTS_POLICY = {
+    "profile": "standard",
+    # Narrow it knob by knob; a knob that widens the profile makes the layer
+    # invalid, and an invalid layer is Locked.
+    "packages": {"allow": ["d3", "three", "echarts"]},
+    "data": {"max_rows": 10_000},
+}
+```
+
+| Knob | Locked | Standard | Open |
+|---|---|---|---|
+| `packages.mode` | `builtin` (the runtime's own) | `allowlist` (`packages.allow`) | `any`, after `cooldown_h` |
+| `compute` | none | `wasm` | `wasm`, `workers` |
+| `data.snapshots` | `off` | `shared` | `shared` |
+| `surfaces` | standalone | standalone, embedded | standalone, embedded, guest snapshots |
+| `authoring` | synthetic rows | real rows, screenshots | the agent adds packages |
+| `limits` | 200 files of 500 KB | 1,000 files of 1 MB | as Standard |
+
+In every profile the frame has no network and no credentials, runs no SQL
+and no `eval`, and public embeds are off. A call the policy refuses answers
+`POLICY_DENIED`, naming the knob.
+
 ## Host pages' CSP
 
 A Superset page shows an artifact's frame only if its Content Security Policy

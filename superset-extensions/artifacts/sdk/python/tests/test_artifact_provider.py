@@ -19,13 +19,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import FrozenInstanceError
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import pytest
 import superset_artifacts_sdk as sdk
 from superset_artifacts_sdk.capabilities import Capability
+from superset_artifacts_sdk.policy import ArtifactPolicy, LOCKED
 from superset_artifacts_sdk.provider import (
     ArtifactBuilder,
     ArtifactChecker,
@@ -39,6 +41,7 @@ from superset_artifacts_sdk.provider import (
     FrameLink,
     FrameLinkMinter,
     FrameSources,
+    PolicySource,
     VersionNotFoundError,
 )
 from superset_artifacts_sdk.registry import (
@@ -67,10 +70,10 @@ class FakeProvider:
     def frame_sources(self) -> Sequence[str]:
         return ("https://sandbox.example.com",)
 
-    def build(self, ref: ArtifactRef) -> BuildResult:
+    def build(self, ref: ArtifactRef, policy: ArtifactPolicy) -> BuildResult:
         return BuildResult(ok=True, bundle_id=f"bundle-{ref.artifact_id}")
 
-    def check(self, ref: ArtifactRef) -> CheckResult:
+    def check(self, ref: ArtifactRef, policy: ArtifactPolicy) -> CheckResult:
         return CheckResult(
             ok=False,
             diagnostics=(Diagnostic("x is not defined", file="app.js", line=3),),
@@ -80,6 +83,9 @@ class FakeProvider:
 
     def store_backend(self) -> ArtifactStoreBackend | None:
         return self.store
+
+    def policy_layer(self) -> Mapping[str, Any] | None:
+        return {"profile": "standard"}
 
 
 @pytest.fixture(autouse=True)
@@ -141,8 +147,9 @@ def test_a_structural_provider_satisfies_the_protocol() -> None:
     assert link.url.endswith("/artifact-1")
     assert [link.url.startswith(s) for s in provider.frame_sources()] == [True]
     assert link.expires_at.tzinfo is not None
-    assert provider.build(ref).bundle_id == "bundle-artifact-1"
-    assert provider.check(ref).diagnostics[0].line == 3
+    assert provider.build(ref, LOCKED).bundle_id == "bundle-artifact-1"
+    assert provider.check(ref, LOCKED).diagnostics[0].line == 3
+    assert provider.policy_layer() == {"profile": "standard"}
 
 
 def test_the_provider_plays_every_role() -> None:
@@ -152,6 +159,7 @@ def test_the_provider_plays_every_role() -> None:
     assert isinstance(provider, ArtifactBuilder)
     assert isinstance(provider, ArtifactChecker)
     assert isinstance(provider, ArtifactStoreSource)
+    assert isinstance(provider, PolicySource)
 
 
 class FramesOnly:
@@ -196,13 +204,16 @@ class NoFrameSources:
     def mint_frame_link(self, ref: ArtifactRef, context: FrameContext) -> FrameLink:
         return FakeProvider().mint_frame_link(ref, context)
 
-    def build(self, ref: ArtifactRef) -> BuildResult:
+    def build(self, ref: ArtifactRef, policy: ArtifactPolicy) -> BuildResult:
         return BuildResult(ok=True)
 
-    def check(self, ref: ArtifactRef) -> CheckResult:
+    def check(self, ref: ArtifactRef, policy: ArtifactPolicy) -> CheckResult:
         return CheckResult(ok=True)
 
     def store_backend(self) -> ArtifactStoreBackend | None:
+        return None
+
+    def policy_layer(self) -> Mapping[str, Any] | None:
         return None
 
 
@@ -278,3 +289,30 @@ def test_value_objects_are_frozen_and_hashable() -> None:
         context.mode = "canvas"  # type: ignore[misc]
     with pytest.raises(FrozenInstanceError):
         ArtifactRef("artifact-1").version = "v2"  # type: ignore[misc]
+
+
+class NoPolicySource:
+    """Every role but the policy's."""
+
+    def mint_frame_link(self, ref: ArtifactRef, context: FrameContext) -> FrameLink:
+        return FakeProvider().mint_frame_link(ref, context)
+
+    def frame_sources(self) -> Sequence[str]:
+        return ("https://*.sandbox.example",)
+
+    def build(self, ref: ArtifactRef, policy: ArtifactPolicy) -> BuildResult:
+        return BuildResult(ok=True)
+
+    def check(self, ref: ArtifactRef, policy: ArtifactPolicy) -> CheckResult:
+        return CheckResult(ok=True)
+
+    def store_backend(self) -> ArtifactStoreBackend | None:
+        return None
+
+
+def test_a_provider_must_give_its_policy_layer() -> None:
+    """Without it, the host couldn't narrow the policy for a workspace."""
+    provider = NoPolicySource()
+    assert not isinstance(provider, PolicySource)
+    with pytest.raises(TypeError, match="does not implement"):
+        register_provider(provider)  # type: ignore[arg-type]

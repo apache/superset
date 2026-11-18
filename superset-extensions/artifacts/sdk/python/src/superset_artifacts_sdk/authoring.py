@@ -145,6 +145,9 @@ class AuthoringErrorCode(StrEnum):
     NOT_ENABLED = "NOT_ENABLED"
     # Publishing waits for the user's explicit confirmation.
     CONFIRMATION_REQUIRED = "CONFIRMATION_REQUIRED"
+    # The policy in force refuses what the call asks for, such as a package or
+    # a capability; the message says which knob.
+    POLICY_DENIED = "POLICY_DENIED"
 
 
 class AuthoringRequest(BaseModel):

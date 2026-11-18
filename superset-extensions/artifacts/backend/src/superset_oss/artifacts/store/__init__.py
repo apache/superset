@@ -28,6 +28,7 @@ update.
 from __future__ import annotations
 
 from superset_artifacts_sdk.authoring import AuthoringErrorCode
+from superset_artifacts_sdk.policy import ArtifactPolicy, LOCKED
 from superset_artifacts_sdk.provider import ArtifactStoreSource
 from superset_artifacts_sdk.store import ArtifactStoreBackend
 from superset_oss.artifacts.errors import ArtifactError
@@ -50,7 +51,14 @@ def default_backend() -> ArtifactStoreBackend:
         ) from ex
 
 
-def file_store_for(source: ArtifactStoreSource) -> ArtifactFileStore:
-    """The file store on ``source``'s backend, or on the default one without it."""
+def file_store_for(
+    source: ArtifactStoreSource, policy: ArtifactPolicy = LOCKED
+) -> ArtifactFileStore:
+    """
+    The file store on ``source``'s backend, or on the default one without it,
+    under ``policy``.
+    """
     backend = source.store_backend()
-    return ArtifactFileStore(default_backend() if backend is None else backend)
+    return ArtifactFileStore(
+        default_backend() if backend is None else backend, policy=policy
+    )
