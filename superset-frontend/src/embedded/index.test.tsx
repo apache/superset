@@ -315,6 +315,64 @@ test('opens the realtime socket once the guest client is configured', async () =
   }
 });
 
+test('async charts load by polling when the guest is refused a realtime ticket', async () => {
+  const socketUrls: string[] = [];
+  const originalWebSocket = global.WebSocket;
+  global.WebSocket = class {
+    constructor(socketUrl: string) {
+      socketUrls.push(socketUrl);
+    }
+  } as unknown as typeof WebSocket;
+  const flagWindow = window as unknown as {
+    featureFlags?: Record<string, boolean>;
+  };
+  const originalFeatureFlags = flagWindow.featureFlags;
+  flagWindow.featureFlags = { GLOBAL_ASYNC_QUERIES: true };
+  Object.assign(mockCommonConf, {
+    WEBSOCKET_ENABLE: true,
+    WEBSOCKET_URL: 'ws://localhost:8080/',
+  });
+  // The guest role lacks the realtime permission: every ticket request is 403.
+  const { SupersetClient } = require('@superset-ui/core');
+  const ticketRequest = jest
+    .spyOn(SupersetClient, 'get')
+    .mockRejectedValue({ status: 403 });
+  // `makeApi` is mocked to one handle; answer the status_changes poll (the call
+  // carrying a task type) and the guest-user lookup.
+  mockGetMeWithRole.mockImplementation(
+    async (payload?: { task_type?: string }) =>
+      payload?.task_type
+        ? { statuses: { 'task-1': { status: 'success' } }, cursor: 'c1' }
+        : { result: { roles: {} } },
+  );
+  try {
+    require('./index');
+    const { getRealtimeState } = require('src/middleware/realtime');
+    const { waitForAsyncData } = require('src/middleware/asyncEvent');
+    await flush();
+    sendHandshake();
+    mockSwitchboard.handler!({ guestToken: 'short' });
+    await flush();
+    expect(ticketRequest).toHaveBeenCalled();
+    expect(getRealtimeState()).toBe('unauthorized');
+
+    const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+    await expect(
+      waitForAsyncData({ task_ids: ['task-1'], cursor: 'c0' }, refetch),
+    ).resolves.toEqual([{ rows: 1 }]);
+    expect(mockGetMeWithRole).toHaveBeenCalledWith(
+      expect.objectContaining({ task_type: 'superset.query_object_v1' }),
+    );
+    expect(socketUrls).toEqual([]);
+  } finally {
+    ticketRequest.mockRestore();
+    require('src/middleware/realtime').resetRealtimeForTests();
+    Object.keys(mockCommonConf).forEach(key => delete mockCommonConf[key]);
+    flagWindow.featureFlags = originalFeatureFlags;
+    global.WebSocket = originalWebSocket;
+  }
+});
+
 test('refresh during pending authentication does not misattribute size evidence', async () => {
   let rejectRequest: (error: unknown) => void = () => {};
   mockGetMeWithRole.mockReturnValue(
