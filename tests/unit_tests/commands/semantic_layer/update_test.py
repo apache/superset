@@ -580,7 +580,8 @@ def test_nested_mask_allows_unchanged_resend(
     stored, submitted = nested_masked_configuration
     original: dict[str, Any] = deepcopy(submitted)
     assert (
-        unmask_stored_configuration(json.dumps(stored), submitted, "test_provider") == stored
+        unmask_stored_configuration(json.dumps(stored), submitted, "test_provider")
+        == stored
     )
     assert submitted == original
 
@@ -943,10 +944,14 @@ def test_mask_requires_registered_schema_only_for_masked_updates(masked: bool) -
     }
     if masked:
         with pytest.raises(SemanticLayerInvalidError, match="schema"):
-            unmask_stored_configuration('{"password":"stored"}', submitted, "absent_provider")
+            unmask_stored_configuration(
+                '{"password":"stored"}', submitted, "absent_provider"
+            )
     else:
         assert (
-            unmask_stored_configuration('{"password":"stored"}', submitted, "absent_provider")
+            unmask_stored_configuration(
+                '{"password":"stored"}', submitted, "absent_provider"
+            )
             == submitted
         )
 
