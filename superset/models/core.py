@@ -124,6 +124,7 @@ from superset.utils.oauth2 import (
     execute_with_oauth2_retry,
     get_oauth2_access_token,
     is_oauth2_retry_active,
+    oauth2_client_info_configured,
     OAuth2ClientConfigSchema,
 )
 
@@ -576,6 +577,28 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             engine_information["oauth2_enabled"] = False
         return engine_information
 
+    def stored_sensitive_fields(self) -> dict[str, str]:
+        """
+        Label of each sensitive field stored in `encrypted_extra`, by concrete path.
+
+        Only string values count, sorted by path. Paths declared exactly use their
+        declared label, any other path its last segment. A missing or malformed
+        `encrypted_extra` gives an empty dict.
+        """
+        try:
+            config = json.loads(self.encrypted_extra or "{}")
+        except (TypeError, json.JSONDecodeError):
+            return {}
+
+        spec = self.db_engine_spec
+        labels = spec.encrypted_extra_sensitive_field_labels()
+        return {
+            path: labels.get(path, path.rsplit(".", 1)[-1])
+            for path in json.get_sensitive_field_paths(
+                config, spec.encrypted_extra_sensitive_field_paths()
+            )
+        }
+
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
         cls, uri: str
@@ -803,7 +826,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         sqlalchemy_url, connect_args = self.db_engine_spec.adjust_engine_params(
             uri=sqlalchemy_url,
             connect_args=connect_args,
-            catalog=catalog,
+            catalog=self.db_engine_spec.get_catalog_for_connection(
+                self, sqlalchemy_url, catalog
+            ),
             schema=schema,
         )
         engine_kwargs["connect_args"] = connect_args
@@ -1913,7 +1938,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             return True
 
         client_info = self.get_encrypted_extra().get("oauth2_client_info")
-        if not isinstance(client_info, dict) or not client_info:
+        # A blank client id or secret is a form default, not a client.
+        if not oauth2_client_info_configured(client_info):
             return False
 
         # Validate the stored client without resolving the unused redirect URL.
