@@ -2757,6 +2757,75 @@ def test_get_df_captures_description_after_fetch(mocker: MockerFixture) -> None:
     assert description == result_description
 
 
+def test_get_df_emits_warehouse_phase_timers(mocker: MockerFixture) -> None:
+    """Connect, execute, fetch and dataframe build are timed per engine."""
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+
+    cursor = mocker.MagicMock()
+    cursor.description = [("value", "BIGINT", None, None, None, None, None)]
+    conn = mocker.MagicMock()
+    conn.cursor.return_value = cursor
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+    get_raw_connection.return_value.__enter__.return_value = conn
+    mocker.patch.object(database.db_engine_spec, "execute")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[(1,)])
+    stats_logger_manager = mocker.patch(
+        "superset.utils.timing_metrics.stats_logger_manager"
+    )
+
+    database.get_df("SELECT 1")
+
+    timers = [
+        call.args[0] for call in stats_logger_manager.instance.timing.call_args_list
+    ]
+    assert timers == [
+        "database.connect.sqlite",
+        "database.execute.sqlite",
+        "database.fetch.sqlite",
+        "database.dataframe.sqlite",
+    ]
+
+
+def test_get_df_emits_connect_timer_when_connection_fails(
+    mocker: MockerFixture,
+) -> None:
+    """A failed connection attempt is still timed."""
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_raw_connection", side_effect=OSError("down"))
+    stats_logger_manager = mocker.patch(
+        "superset.utils.timing_metrics.stats_logger_manager"
+    )
+
+    with pytest.raises(OSError, match="down"):
+        database.get_df("SELECT 1")
+
+    timers = [
+        call.args[0] for call in stats_logger_manager.instance.timing.call_args_list
+    ]
+    assert timers == ["database.connect.sqlite"]
+
+
+def test_get_df_dataframe_timer_excludes_mutator(mocker: MockerFixture) -> None:
+    """The dataframe timer covers DataFrame construction only."""
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        database,
+        "_execute_sql_with_mutation_and_logging",
+        return_value=(mocker.MagicMock(), [(1,)], [("value",)]),
+    )
+    mocker.patch.object(database, "load_into_dataframe", return_value=pd.DataFrame())
+    timed = mocker.patch("superset.models.core.timed")
+    seen_during_mutator: list[bool] = []
+
+    def mutator(df: pd.DataFrame) -> pd.DataFrame:
+        seen_during_mutator.append(timed.return_value.__exit__.called)
+        return df
+
+    database.get_df("SELECT 1", mutator=mutator)
+
+    assert seen_during_mutator == [True]
+
+
 def test_post_process_df_non_zero_based_index() -> None:
     """
     post_process_df must not raise when the DataFrame index doesn't contain 0
@@ -3309,6 +3378,83 @@ def test_connection_does_not_re_exchange_a_refused_refresh_token(
     isolated_session.assert_not_called()
     start_dance.assert_called_once_with(database)
     engine.raw_connection.assert_not_called()
+
+
+def _catch_all_database() -> Database:
+    """A database on an engine with the catch-all rule and a mixed payload."""
+    return Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(
+            {
+                "api_key": "x",
+                "connect_args": {"timeout": 5},
+                "oauth2_client_info": {"secret": "s"},
+            }
+        ),
+    )
+
+
+def test_stored_sensitive_fields_catch_all_rule() -> None:
+    """
+    On an engine with the catch-all rule, only the stored string fields are listed,
+    labeled by key name unless the path has a declared label.
+    """
+    assert _catch_all_database().stored_sensitive_fields() == {
+        "$.api_key": "api_key",
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+
+def test_stored_sensitive_fields_only_stored_declared_fields() -> None:
+    """
+    A declared field is listed with its label only when it is stored.
+    """
+    database = Database(
+        database_name="druid",
+        sqlalchemy_uri="druid://localhost:8082/druid/v2/sql/",
+        encrypted_extra=json.dumps({"connect_args": {"scheme": "https"}}),
+    )
+    assert database.stored_sensitive_fields() == {}
+
+    database.encrypted_extra = json.dumps(
+        {"connect_args": {"scheme": "https", "jwt": "token"}}
+    )
+    assert database.stored_sensitive_fields() == {"$.connect_args.jwt": "JWT Token"}
+
+
+@pytest.mark.parametrize("encrypted_extra", [None, "", "{oops", "[1, 2]", '"x"', "{}"])
+def test_stored_sensitive_fields_missing_or_malformed(
+    encrypted_extra: str | None,
+) -> None:
+    """
+    A missing, empty or malformed `encrypted_extra` lists no sensitive fields.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=encrypted_extra,
+    )
+
+    assert database.stored_sensitive_fields() == {}
+
+
+def test_engine_information_keeps_declared_patterns() -> None:
+    """
+    The engine information of a database lists the engine's declared patterns,
+    whatever is stored.
+    """
+    assert _catch_all_database().engine_information[
+        "encrypted_extra_sensitive_fields"
+    ] == {
+        "$.*": "Encrypted Extra",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
 
 
 def _embedded_snowflake_database(
