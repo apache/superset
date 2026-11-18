@@ -44,6 +44,7 @@ from superset_oss.artifacts.constants import WIDGET_TYPE_NAME
 from superset_oss.artifacts.data.resolver import artifact_binding
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.gate import open_artifacts
+from superset_oss.artifacts.web import current_is_guest
 
 
 def resolve_artifact_binding(request: BindingRequest) -> dict[str, Any] | None:
@@ -57,7 +58,11 @@ def resolve_artifact_binding(request: BindingRequest) -> dict[str, Any] | None:
     except ArtifactError:
         return None
     return artifact_binding(
-        artifacts.store, artifacts.policy, artifacts.access, request
+        artifacts.store,
+        artifacts.policy,
+        artifacts.access,
+        request,
+        guest=current_is_guest(),
     )
 
 

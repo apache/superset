@@ -51,6 +51,11 @@ def current_actor() -> str | None:
     return str(user_id) if user_id is not None else None
 
 
+def current_is_guest() -> bool:
+    """Whether the caller holds an embedded guest token, as its user says."""
+    return getattr(getattr(g, "user", None), "is_guest_user", False) is True
+
+
 def host_url() -> str:
     """The URL of this Superset as the server sees it, for allowed parents."""
     return request.host_url

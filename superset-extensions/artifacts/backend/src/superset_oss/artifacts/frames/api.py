@@ -29,18 +29,15 @@ parents (this Superset's origin) and the grant, manifest ∩ policy ∩ context.
 
 from __future__ import annotations
 
-from typing import Literal
-from uuid import UUID
-
 from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
-from pydantic import BaseModel, ConfigDict, Field, model_validator, ValidationError
+from pydantic import ValidationError
 from superset_core.rest_api.api import RestApi
 from superset_core.rest_api.decorators import api
 from superset_oss.artifacts.access import require_read
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.frames.access import choose_version
-from superset_oss.artifacts.frames.links import link_payload
+from superset_oss.artifacts.frames.links import FrameLinkRequest, link_payload
 from superset_oss.artifacts.frames.placement import (
     placement_artifact,
     PlacementNotFoundError,
@@ -48,30 +45,13 @@ from superset_oss.artifacts.frames.placement import (
 from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.web import (
     current_actor,
+    current_is_guest,
     error_response,
     host_url,
     json_response,
 )
 
 DRAFT_TOKEN_HEADER = "X-Canvas-Draft"  # noqa: S105
-
-
-class FrameLinkRequest(BaseModel):
-    """Which artifact a frame link is for, and where; the server reads the rest."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    widget_id: UUID
-    # The placement that shows it on a canvas; without one, a page of its own.
-    canvas_id: str | int | None = None
-    placement_id: str | None = Field(default=None, min_length=1)
-    page: Literal["standalone", "embedded"] = "standalone"
-
-    @model_validator(mode="after")
-    def _a_whole_placement(self) -> FrameLinkRequest:
-        if (self.canvas_id is None) != (self.placement_id is None):
-            raise ValueError("canvas_id and placement_id name a placement together")
-        return self
 
 
 @api(
@@ -111,9 +91,6 @@ class ArtifactFramesRestApi(RestApi):
                       type: string
                     placement_id:
                       type: string
-                    page:
-                      type: string
-                      enum: [standalone, embedded]
           responses:
             200:
               description: The link, the version it loads and its grant
@@ -167,9 +144,10 @@ class ArtifactFramesRestApi(RestApi):
                 artifacts.provider,
                 store,
                 served,
-                "canvas" if body.canvas_id is not None else body.page,
+                "canvas" if body.canvas_id is not None else "standalone",
                 host_url(),
                 artifacts.policy,
+                guest=current_is_guest(),
             )
         except ArtifactError as ex:
             return error_response(ex)

@@ -56,6 +56,8 @@ def artifact_binding(
     policy: ArtifactPolicy,
     access: ArtifactAccess,
     request: BindingRequest,
+    *,
+    guest: bool = False,
 ) -> dict[str, Any] | None:
     """
     Binding ``request.name`` of the artifact that ``request.widget_id`` is.
@@ -66,9 +68,10 @@ def artifact_binding(
     ``policy`` refuses it. The host answers each as a widget without the
     binding. Every binding carries its row limit, capped by the policy's
     ``data.max_rows``: one declared without any gets the host's default, so
-    capped too.
+    capped too. A ``guest`` gets live rows only where ``surfaces.guest`` is
+    ``live``: what ``snapshot`` allows, snapshots, aren't served yet.
     """
-    if request.widget_id is None:
+    if request.widget_id is None or (guest and policy.surfaces.guest != "live"):
         return None
     try:
         served = choose_version(

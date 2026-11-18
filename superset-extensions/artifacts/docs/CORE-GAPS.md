@@ -348,7 +348,7 @@ branch:
   dashboards (`superset/embedded/view.py`, `/embedded/<uuid>`); Canvas has no
   guest support.
 - **Status:** not core asks. A host adds the page that shows one artifact on
-  its own; the extension answers its frame link (`POST .../frames/` with
-  `page`), and its data comes from the widget data endpoint (above). Guests
+  its own; the extension answers its frame link (`POST .../frames/`), and
+  its data comes from the widget data endpoint (above). Guests
   would see artifacts through an embedded canvas that holds them, with canvas
   guest tokens, once Canvas has them.

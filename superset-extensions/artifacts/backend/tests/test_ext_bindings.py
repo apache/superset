@@ -266,6 +266,21 @@ def test_the_policys_max_rows_caps_every_binding(store: ArtifactFileStore) -> No
     assert row_limit(declared, hundred) == 50
 
 
+def test_a_guest_gets_no_live_rows(store: ArtifactFileStore) -> None:
+    artifact_id, version = create(store, manifest())
+    publish(store, artifact_id, version)
+    # Open lets guests have snapshots, which aren't served yet; no profile
+    # lets them have live rows.
+    open_policy = policy_layer({"profile": "open"})
+    assert open_policy.surfaces.guest == "snapshot"
+
+    assert artifact_binding(store, open_policy, VIEWER, asked(artifact_id))
+    assert (
+        artifact_binding(store, open_policy, VIEWER, asked(artifact_id), guest=True)
+        is None
+    )
+
+
 def test_a_snapshot_binding_has_no_live_data() -> None:
     """Snapshots are minted by the server, never run as the viewer at view time."""
     standard = policy_layer({"profile": "standard"})

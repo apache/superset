@@ -113,12 +113,9 @@ export async function fetchPlacementFrame({
 }
 
 /** A link for an artifact on a page of its own. */
-export async function fetchPageFrame(
-  widgetId: string,
-  page: 'standalone' | 'embedded' = 'standalone',
-): Promise<FrameLink> {
+export async function fetchPageFrame(widgetId: string): Promise<FrameLink> {
   return requestLink(`${API_BASE_PATH}/frames/`, {
     method: 'POST',
-    body: { widget_id: widgetId, page },
+    body: { widget_id: widgetId },
   });
 }

@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic import ValidationError
 from superset_artifacts_sdk.authoring import (
     ArtifactCreateRequest,
     ArtifactRequestPublishRequest,
@@ -55,7 +56,7 @@ from superset_oss.artifacts.frames.grants import (
     host_manifest,
     origin_of,
 )
-from superset_oss.artifacts.frames.links import link_payload
+from superset_oss.artifacts.frames.links import FrameLinkRequest, link_payload
 from superset_oss.artifacts.frames.placement import (
     placement_artifact,
     PlacementNotFoundError,
@@ -242,6 +243,45 @@ def test_the_policy_keeps_artifacts_off_a_surface(store: ArtifactFileStore) -> N
 
     assert raised.value.code == AuthoringErrorCode.POLICY_DENIED
     assert minter.minted == []
+
+
+def test_the_policy_keeps_artifacts_from_guests(store: ArtifactFileStore) -> None:
+    created = store.create(
+        str(uuid4()), ArtifactCreateRequest(files={"index.html": "v1"})
+    )
+    served = choose_version(store, created.artifact_id, can_edit=True)
+    minter = RecordingMinter()
+
+    def mint(policy: ArtifactPolicy) -> object:
+        return link_payload(
+            minter,
+            store,
+            served,
+            "canvas",
+            "https://superset.example.com/",
+            policy,
+            guest=True,
+        )
+
+    # As well as the filters that keep guests from widgets and canvases.
+    for refused in (LOCKED, STANDARD):
+        assert refused.surfaces.guest == "off"
+        with pytest.raises(ArtifactError) as raised:
+            mint(refused)
+        assert raised.value.code == AuthoringErrorCode.POLICY_DENIED
+    assert minter.minted == []
+    open_policy = policy_layer({"profile": "open"})
+    assert open_policy.surfaces.guest == "snapshot"
+    mint(open_policy)
+    assert len(minter.minted) == 1
+
+
+def test_a_frame_link_request_names_no_surface() -> None:
+    widget_id = str(uuid4())
+    assert FrameLinkRequest.model_validate({"widget_id": widget_id})
+    for page in ("standalone", "embedded"):
+        with pytest.raises(ValidationError):
+            FrameLinkRequest.model_validate({"widget_id": widget_id, "page": page})
 
 
 class FailingMinter:
