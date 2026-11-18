@@ -26,9 +26,10 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
+import type { RootState } from 'src/views/store';
 import userEvent from '@testing-library/user-event';
 import { api } from 'src/hooks/apiResources/queryApi';
-import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
+import { initialState, defaultQueryEditor, table } from 'src/SqlLab/fixtures';
 
 import { ViewLocations } from 'src/SqlLab/contributions';
 import {
@@ -416,3 +417,63 @@ test('clears the OAuth error banner after a Tables invalidateTags refetch', asyn
     expect(screen.queryByText('Unexpected error')).not.toBeInTheDocument(),
   );
 });
+
+test.each([undefined, 'active-tab-view'])(
+  'pins and unpins tables only for the active editor (tab view: %s)',
+  async tabViewId => {
+    const catalog = tabViewId ? 'warehouse' : null;
+    const otherEditorTable = {
+      ...table,
+      id: 'other-editor-table',
+      name: 'users',
+      schema: 'public',
+      queryEditorId: 'other-editor',
+      persistData: { columns: mockColumns },
+    };
+    const store = createStore(
+      getInitialState({
+        queryEditors: [
+          {
+            ...defaultQueryEditor,
+            dbId: 1,
+            catalog,
+            schema: 'public',
+            tabViewId,
+          },
+        ],
+        tables: [otherEditorTable],
+      }),
+      reducerIndex,
+    );
+    render(<TableExploreTree queryEditorId={mockedQueryEditorId} />, {
+      useRedux: true,
+      store,
+    });
+    await userEvent.click(await screen.findByText('public'));
+    await userEvent.click(await screen.findByText('users'));
+    await screen.findByText('id');
+
+    await userEvent.click(screen.getByTestId('pin-public-users'));
+    await waitFor(() =>
+      expect((store.getState() as RootState).sqlLab.tables).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            dbId: 1,
+            catalog,
+            schema: 'public',
+            name: 'users',
+            queryEditorId: tabViewId ?? mockedQueryEditorId,
+          }),
+          expect.objectContaining({ id: otherEditorTable.id }),
+        ]),
+      ),
+    );
+    await userEvent.click(await screen.findByTestId('unpin-public-users'));
+    await waitFor(() =>
+      expect((store.getState() as RootState).sqlLab.tables).toEqual([
+        otherEditorTable,
+      ]),
+    );
+    expect(await screen.findByTestId('pin-public-users')).toBeInTheDocument();
+  },
+);

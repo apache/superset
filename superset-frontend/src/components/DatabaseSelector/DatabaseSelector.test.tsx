@@ -601,3 +601,49 @@ test('confirming an unchanged popover selection preserves the current source', a
   expect(props.onDbChange).not.toHaveBeenCalled();
   expect(props.onSchemaChange).not.toHaveBeenCalled();
 });
+
+test('clicking outside the popover dismisses the draft without changing the source', async () => {
+  const props = createProps();
+  render(<DatabaseSelectorPopover {...props} />, { useRedux: true, store });
+  await userEvent.click(screen.getByTestId('database-selector-trigger'));
+  const popover = await screen.findByRole('group', {
+    name: 'Select Database and Schema',
+  });
+  await userEvent.click(
+    within(popover).getByRole('combobox', { name: /^Select schema/ }),
+  );
+  await userEvent.click(
+    await screen.findByText('information_schema', { exact: true }),
+  );
+  await userEvent.click(document.body);
+  await waitFor(() => expect(popover).not.toBeVisible());
+  expect(props.onDbChange).not.toHaveBeenCalled();
+  expect(props.onSchemaChange).not.toHaveBeenCalled();
+});
+
+test('an empty selector opens from the keyboard and requires a connection before applying', async () => {
+  const props = createProps();
+  render(
+    <DatabaseSelectorPopover {...props} db={undefined} schema={undefined} />,
+    {
+      useRedux: true,
+      store,
+    },
+  );
+  screen.getByTestId('DatabaseSelector').focus();
+  await userEvent.keyboard('{Enter}');
+  const popover = within(
+    await screen.findByRole('group', { name: 'Select Database and Schema' }),
+  );
+  expect(popover.getByRole('button', { name: 'Select' })).toBeDisabled();
+  await userEvent.click(
+    popover.getByRole('combobox', {
+      name: /Select database or type to search databases/,
+    }),
+  );
+  await userEvent.click(await screen.findByText('test-mysql', { exact: true }));
+  await userEvent.click(popover.getByRole('button', { name: 'Select' }));
+  expect(props.onDbChange).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 2 }),
+  );
+});

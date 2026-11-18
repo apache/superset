@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-18 02:14-0500\n"
+"POT-Creation-Date: 2026-11-18 16:52-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2785,6 +2785,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr ""
 
+msgid "Break"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr ""
 
@@ -4373,6 +4376,10 @@ msgid "Could not load database driver for: %(engine)s"
 msgstr ""
 
 msgid "Could not load metadata for this configuration; showing the default form. See the server logs for details."
+msgstr ""
+
+#, python-format
+msgid "Could not load the stored secrets: %s"
 msgstr ""
 
 msgid "Could not parse the CSS to convert @import rules. Check for syntax errors and try again."
@@ -6341,6 +6348,10 @@ msgid "Ends With"
 msgstr ""
 
 #, python-format
+msgid "Ends with %s."
+msgstr ""
+
+#, python-format
 msgid "Ends with (ILIKE %x)"
 msgstr ""
 
@@ -7044,9 +7055,6 @@ msgid "Failed to retrieve advanced type"
 msgstr ""
 
 msgid "Failed to revoke API key"
-msgstr ""
-
-msgid "Failed to save chart customization"
 msgstr ""
 
 msgid "Failed to save cross-filter scoping"
@@ -7818,6 +7826,9 @@ msgstr ""
 msgid "How do you want to enter service account credentials?"
 msgstr ""
 
+msgid "How labels wider than the max width are shortened. \"Truncate\" cuts the label and adds an ellipsis. \"Break\" wraps the label onto additional lines."
+msgstr ""
+
 msgid "How many buckets should the data be grouped in."
 msgstr ""
 
@@ -8262,6 +8273,10 @@ msgid "Invalid tab ids: %(tab_ids)s"
 msgstr ""
 
 #, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
@@ -8426,6 +8441,12 @@ msgid "Label Contents"
 msgstr ""
 
 msgid "Label Line"
+msgstr ""
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
 msgstr ""
 
 msgid "Label Position"
@@ -9186,6 +9207,9 @@ msgstr ""
 msgid "Maximum value on the gauge axis"
 msgstr ""
 
+msgid "Maximum width (in pixels) of each line of a slice label. Set to 0 for no limit."
+msgstr ""
+
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr ""
 
@@ -9843,6 +9867,9 @@ msgstr ""
 msgid "No description available."
 msgstr ""
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 msgid "No entities have this tag currently assigned"
 msgstr ""
 
@@ -10338,6 +10365,10 @@ msgid "Only single queries supported"
 msgstr ""
 
 msgid "Only the default catalog is supported for this connection"
+msgstr ""
+
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
 msgstr ""
 
 #, python-format
@@ -13930,6 +13961,10 @@ msgstr ""
 msgid "Storage key exceeds the maximum allowed length of %(max_length)d characters."
 msgstr ""
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 msgid "Stream"
 msgstr ""
 
@@ -14637,6 +14672,9 @@ msgid "The duration of time in seconds before the cache is invalidated. Set to -
 msgstr ""
 
 msgid "The encoding format of the lines"
+msgstr ""
+
+msgid "The ending is hidden because the secret is too short."
 msgstr ""
 
 msgid "The engine_params object gets unpacked into the sqlalchemy.create_engine call."
@@ -16226,6 +16264,9 @@ msgstr ""
 msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
 msgstr ""
 
+msgid "Too short to show safely"
+msgstr ""
+
 msgid "Tool Panel"
 msgstr ""
 
@@ -16340,6 +16381,9 @@ msgid "Trigger now"
 msgstr ""
 
 msgid "True"
+msgstr ""
+
+msgid "Truncate"
 msgstr ""
 
 msgid "Truncate Axis"
@@ -18054,6 +18098,10 @@ msgstr ""
 msgid "Your dashboard is too large to save: the serialized layout length is %s but the limit is %s. Reduce the dashboard size (for example, split it into multiple dashboards) or raise the SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being generated and will download automatically when ready. We'll also email you a download link."
 msgstr ""
 
@@ -18072,6 +18120,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your password could not be reset. Please try again later."
@@ -19058,6 +19110,9 @@ msgstr ""
 msgid "theme"
 msgstr ""
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr ""
 
@@ -19134,6 +19189,9 @@ msgid "y: values are normalized within each row"
 msgstr ""
 
 msgid "year"
+msgstr ""
+
+msgid "you do not have permission to edit this dashboard."
 msgstr ""
 
 #. do-not-translate

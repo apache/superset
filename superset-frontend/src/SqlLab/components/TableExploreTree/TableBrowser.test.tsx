@@ -20,12 +20,22 @@ import type { ReactNode } from 'react';
 import fetchMock from 'fetch-mock';
 import {
   fireEvent,
+  createStore,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { TableBrowser } from '.';
+import reducerIndex from 'spec/helpers/reducerIndex';
+import type { RootState } from 'src/views/store';
+import { initialState } from 'src/SqlLab/fixtures';
+import { ToastType } from 'src/components/MessageToasts/types';
+import {
+  LocalStorageKeys,
+  getItem,
+  setItem,
+} from 'src/utils/localStorageHelpers';
 
 jest.mock('react-virtualized-auto-sizer', () => ({
   AutoSizer: ({
@@ -35,7 +45,13 @@ jest.mock('react-virtualized-auto-sizer', () => ({
   }) => renderProp({ height: 500 }),
 }));
 
+let metadataColumns: { name: string; type: string }[];
+let metadataShouldFail: boolean;
+
 beforeEach(() => {
+  metadataColumns = [{ name: 'order_id', type: 'INTEGER' }];
+  metadataShouldFail = false;
+  localStorage.removeItem(LocalStorageKeys.SqllabPinnedSchemas);
   fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
     result: ['public', 'sales'],
   });
@@ -43,13 +59,17 @@ beforeEach(() => {
     result: [{ label: 'orders', value: 'orders', type: 'table' }],
     count: 1,
   });
-  fetchMock.get('glob:*/api/v1/database/1/table_metadata/*', {
-    name: 'orders',
-    columns: [{ name: 'order_id', type: 'INTEGER' }],
-  });
+  fetchMock.get('glob:*/api/v1/database/1/table_metadata/*', () =>
+    metadataShouldFail
+      ? { status: 500, body: { message: 'Metadata unavailable' } }
+      : { name: 'orders', columns: metadataColumns },
+  );
   fetchMock.get('glob:*/api/v1/database/1/table_metadata/extra/*', {});
 });
-afterEach(() => fetchMock.removeRoutes().clearHistory());
+afterEach(() => {
+  fetchMock.removeRoutes().clearHistory();
+  localStorage.removeItem(LocalStorageKeys.SqllabPinnedSchemas);
+});
 
 test('loads tables and reports a selection without a SQL Lab query editor', async () => {
   const onPreviewTable = jest.fn();
@@ -68,7 +88,7 @@ test('loads tables and reports a selection without a SQL Lab query editor', asyn
   ).not.toBeInTheDocument();
 });
 
-test('table selection supports keyboard activation', async () => {
+test.each(['Enter', ' '])('table selection supports the %p key', async key => {
   const onPreviewTable = jest.fn();
   render(<TableBrowser dbId={1} onPreviewTable={onPreviewTable} />, {
     useRedux: true,
@@ -76,7 +96,7 @@ test('table selection supports keyboard activation', async () => {
   await userEvent.click(await screen.findByText('public'));
   const tableRow = (await screen.findByText('orders')).closest('.tree-node');
   expect(tableRow).not.toBeNull();
-  fireEvent.keyDown(tableRow!, { key: 'Enter' });
+  fireEvent.keyDown(tableRow!, { key });
   expect(onPreviewTable).toHaveBeenCalledWith({
     schema: 'public',
     table_name: 'orders',
@@ -127,4 +147,133 @@ test('opens and loads a schema selected through the connection selector', async 
     schema: 'public',
     table_name: 'orders',
   });
+});
+
+test('collapse all hides loaded tables and permits expanding the schema again', async () => {
+  render(<TableBrowser dbId={1} />, { useRedux: true });
+  await userEvent.click(await screen.findByText('public'));
+  await userEvent.click(await screen.findByText('orders'));
+  await screen.findByText('order_id');
+  await userEvent.click(screen.getByRole('button', { name: /minus-square/i }));
+  expect(screen.queryByText('orders')).not.toBeInTheDocument();
+  expect(screen.queryByText('order_id')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByText('public'));
+  expect(await screen.findByText('orders')).toBeVisible();
+});
+
+test('refreshing the schema list displays newly available schemas', async () => {
+  fetchMock.removeRoutes().clearHistory();
+  let schemas = ['public'];
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', () => ({
+    result: schemas,
+  }));
+  render(<TableBrowser dbId={1} />, { useRedux: true });
+  await screen.findByText('public');
+  schemas = ['public', 'archive'];
+  await userEvent.click(screen.getByRole('button', { name: /reload/i }));
+  expect(await screen.findByText('archive')).toBeVisible();
+});
+
+test('schema pins persist, sort the browser, and can be removed', async () => {
+  render(<TableBrowser dbId={1} />, { useRedux: true });
+  await screen.findByText('sales');
+  await userEvent.click(screen.getByTestId('pin-schema-sales'));
+  await waitFor(() =>
+    expect(screen.getAllByRole('treeitem')[0]).toHaveTextContent('sales'),
+  );
+  expect(getItem(LocalStorageKeys.SqllabPinnedSchemas, {})).toEqual({
+    '1:': ['sales'],
+  });
+  await userEvent.click(screen.getByTestId('unpin-schema-sales'));
+  await waitFor(() =>
+    expect(screen.getAllByRole('treeitem')[0]).toHaveTextContent('public'),
+  );
+  expect(getItem(LocalStorageKeys.SqllabPinnedSchemas, {})).toEqual({
+    '1:': [],
+  });
+});
+
+test('changing catalogs restores their own schema pins without overwriting another catalog', async () => {
+  setItem(LocalStorageKeys.SqllabPinnedSchemas, {
+    '1:main': ['sales'],
+    '1:archive': ['public'],
+  });
+  const { rerender } = render(<TableBrowser dbId={1} catalog="main" />, {
+    useRedux: true,
+  });
+  await waitFor(() =>
+    expect(screen.getAllByRole('treeitem')[0]).toHaveTextContent('sales'),
+  );
+  rerender(<TableBrowser dbId={1} catalog="archive" />);
+  await waitFor(() =>
+    expect(screen.getAllByRole('treeitem')[0]).toHaveTextContent('public'),
+  );
+  expect(getItem(LocalStorageKeys.SqllabPinnedSchemas, {})).toEqual({
+    '1:main': ['sales'],
+    '1:archive': ['public'],
+  });
+});
+
+test('refreshing a table replaces its cached column metadata', async () => {
+  render(<TableBrowser dbId={1} />, { useRedux: true });
+  await userEvent.click(await screen.findByText('public'));
+  await userEvent.click(await screen.findByText('orders'));
+  await screen.findByText('order_id');
+  metadataColumns = [{ name: 'order_total', type: 'NUMERIC' }];
+  await userEvent.click(screen.getByTestId('refresh-schema-public-orders'));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/database/1/table_metadata/?*')
+        .length,
+    ).toBe(2),
+  );
+  expect(await screen.findByText('order_total')).toBeVisible();
+  expect(screen.queryByText('order_id')).not.toBeInTheDocument();
+});
+
+test('reports metadata failures outside SQL Lab and permits retrying the table', async () => {
+  metadataShouldFail = true;
+  const store = createStore(initialState, reducerIndex);
+  render(<TableBrowser dbId={1} />, { useRedux: true, store });
+  await userEvent.click(await screen.findByText('public'));
+  await userEvent.click(await screen.findByText('orders'));
+  await waitFor(() =>
+    expect((store.getState() as RootState).messageToasts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          toastType: ToastType.Danger,
+          text: 'An error occurred while fetching table metadata for orders',
+        }),
+      ]),
+    ),
+  );
+  expect(screen.queryByText('order_id')).not.toBeInTheDocument();
+  metadataShouldFail = false;
+  await userEvent.click(screen.getByText('orders'));
+  await userEvent.click(screen.getByText('orders'));
+  expect(await screen.findByText('order_id')).toBeVisible();
+});
+
+test('clearing the selected schema keeps the browser usable for choosing another table', async () => {
+  const { rerender } = render(<TableBrowser dbId={1} schema="public" />, {
+    useRedux: true,
+  });
+  await screen.findByText('orders');
+  rerender(<TableBrowser dbId={1} schema={undefined} />);
+  expect(await screen.findByText('orders')).toBeVisible();
+  expect(
+    screen.getByPlaceholderText('Enter a part of the object name'),
+  ).toHaveValue('');
+});
+
+test('keyboard expansion of a schema does not preview it as a table', async () => {
+  const onPreviewTable = jest.fn();
+  render(<TableBrowser dbId={1} onPreviewTable={onPreviewTable} />, {
+    useRedux: true,
+  });
+  const schemaRow = (await screen.findByText('public')).closest('.tree-node');
+  expect(schemaRow).not.toBeNull();
+  fireEvent.keyDown(schemaRow!, { key: 'Enter' });
+  expect(await screen.findByText('orders')).toBeVisible();
+  expect(onPreviewTable).not.toHaveBeenCalled();
 });
