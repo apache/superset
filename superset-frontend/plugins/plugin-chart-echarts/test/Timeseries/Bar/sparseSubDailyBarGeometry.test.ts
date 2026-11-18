@@ -21,6 +21,7 @@ import {
   ChartDataResponseResult,
   Column,
   SqlaFormData,
+  TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
@@ -503,3 +504,33 @@ describe('sparse sub-daily bar chart: x-axis mislabels raw epoch values when col
     expect(xAxisType(xAxis)).toBe('category');
   });
 });
+
+// The grain-derived cap is only meant for sub-daily grains. A day or coarser
+// grain on data spaced further apart (pre-aggregated monthly or yearly rows
+// kept at the default Day grain) keeps the default cap, so ECharts sizes the
+// bars from the spacing of the data instead of from a one-day bucket.
+const YEARLY_TIMESTAMPS = [2019, 2020, 2021, 2022, 2023, 2024].map(year =>
+  Date.UTC(year, 0, 1),
+);
+const MONTHLY_TIMESTAMPS = Array.from({ length: 12 }, (_, month) =>
+  Date.UTC(2024, month, 1),
+);
+
+test.each([
+  [TimeGranularity.DAY, 'yearly', YEARLY_TIMESTAMPS],
+  [TimeGranularity.DAY, 'monthly', MONTHLY_TIMESTAMPS],
+  [TimeGranularity.MONTH, 'yearly', YEARLY_TIMESTAMPS],
+])(
+  'a %s grain on %s data keeps the default bar width cap',
+  (grain, _spacing, timestamps) => {
+    const { series } = buildOptions(
+      800,
+      timestamps.map(__timestamp => ({ count: 1, __timestamp })),
+      {},
+      { time_grain_sqla: grain },
+    );
+    const [barSeries] = series as BarSeriesOption[];
+
+    expect(barSeries.barMaxWidth).toBe(100);
+  },
+);
