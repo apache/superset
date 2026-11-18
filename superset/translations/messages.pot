@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-18 02:14-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3454,6 +3454,9 @@ msgstr ""
 msgid "Choose a chart or dashboard not both"
 msgstr ""
 
+msgid "Choose a data connection to browse schemas, tables, and views."
+msgstr ""
+
 msgid "Choose a database..."
 msgstr ""
 
@@ -3844,14 +3847,10 @@ msgstr ""
 msgid "Color scheme: %s"
 msgstr ""
 
-msgid ""
-"Color used for the arrow and symbols when the metric decreased from the "
-"comparison value. Defaults to red."
+msgid "Color used for the arrow and symbols when the metric decreased from the comparison value. Defaults to red."
 msgstr ""
 
-msgid ""
-"Color used for the arrow and symbols when the metric increased from the "
-"comparison value. Defaults to green."
+msgid "Color used for the arrow and symbols when the metric increased from the comparison value. Defaults to green."
 msgstr ""
 
 msgid "Color used when the close value is greater than or equal to the open value."
@@ -7339,9 +7338,7 @@ msgstr ""
 msgid "Fix the Extra JSON to edit certification"
 msgstr ""
 
-msgid ""
-"Fix the JSON errors below to edit colors here; your changes sync "
-"automatically once the JSON is valid again."
+msgid "Fix the JSON errors below to edit colors here; your changes sync automatically once the JSON is valid again."
 msgstr ""
 
 msgid "Fix the trend line to the full time range specified in case filtered results do not include the start or end dates"
@@ -9032,9 +9029,6 @@ msgstr ""
 msgid "Manage filters and customizations to set scoping, descriptions, and limitations. Create new elements for better dashboard insights."
 msgstr ""
 
-msgid "Manage your databases"
-msgstr ""
-
 msgid "Mandatory"
 msgstr ""
 
@@ -9846,12 +9840,6 @@ msgstr ""
 msgid "No data in file"
 msgstr ""
 
-msgid "No databases available"
-msgstr ""
-
-msgid "No databases match your search"
-msgstr ""
-
 msgid "No description available."
 msgstr ""
 
@@ -10437,9 +10425,7 @@ msgstr ""
 msgid "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines."
 msgstr ""
 
-msgid ""
-"Optional custom color for each range band, e.g. to match a brand palette."
-" Bands left unset use the default shading."
+msgid "Optional custom color for each range band, e.g. to match a brand palette. Bands left unset use the default shading."
 msgstr ""
 
 msgid "Optional d3 date format string"
@@ -10805,11 +10791,7 @@ msgstr ""
 msgid "Physical (table or view)"
 msgstr ""
 
-msgid ""
-"Pick a color for each interval band defined above by its upper bound. "
-"Charts saved with the legacy 1-indexed \"Interval colors\" text field keep"
-" following the chosen color scheme until an interval color is "
-"edited."
+msgid "Pick a color for each interval band defined above by its upper bound. Charts saved with the legacy 1-indexed \"Interval colors\" text field keep following the chosen color scheme until an interval color is edited."
 msgstr ""
 
 msgid "Pick a dimension from which categorical colors are defined"
@@ -11463,13 +11445,13 @@ msgstr ""
 msgid "Refreshing columns"
 msgstr ""
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
 msgid "Region value format"
-msgstr ""
-
-msgid "Region"
 msgstr ""
 
 msgid "Register"
@@ -12656,6 +12638,9 @@ msgid "Select a column"
 msgstr ""
 
 msgid "Select a dashboard"
+msgstr ""
+
+msgid "Select a data connection"
 msgstr ""
 
 msgid "Select a database"
@@ -14670,14 +14655,10 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr ""
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
+msgid "The filters from the link you opened could not be loaded, so this link shares the default view."
 msgstr ""
 
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
+msgid "The filters from this link have expired, so you’re seeing the default view."
 msgstr ""
 
 msgid "The following charts could not be exported:"
@@ -15640,10 +15621,10 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
-msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgid "This chart is archived or unavailable."
 msgstr ""
 
-msgid "This chart is archived or unavailable."
+msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
 msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -17311,9 +17292,7 @@ msgstr ""
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr ""
 
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
+msgid "We couldn’t load the filters from this link, so you’re seeing the default view."
 msgstr ""
 
 #, python-format

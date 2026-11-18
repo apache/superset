@@ -55,7 +55,11 @@ describe('DatasetLayout', () => {
 
   test('renders a LeftPanel when passed in', async () => {
     render(
-      <DatasetLayout leftPanel={<LeftPanel setDataset={() => null} />} />,
+      <DatasetLayout
+        leftPanel={
+          <LeftPanel setDataset={() => null} onPreviewTable={jest.fn()} />
+        }
+      />,
       { useRedux: true, useRouter: true },
     );
 
@@ -95,7 +99,9 @@ describe('DatasetLayout', () => {
   test('layout has proper flex constraints to prevent viewport overflow', () => {
     const { container } = render(
       <DatasetLayout
-        leftPanel={<LeftPanel setDataset={() => null} />}
+        leftPanel={
+          <LeftPanel setDataset={() => null} onPreviewTable={jest.fn()} />
+        }
         datasetPanel={<DatasetPanel />}
         footer={<Footer url="" />}
       />,
@@ -133,7 +139,9 @@ describe('DatasetLayout', () => {
     const { container } = render(
       <DatasetLayout
         header={<Header setDataset={() => null} />}
-        leftPanel={<LeftPanel setDataset={() => null} />}
+        leftPanel={
+          <LeftPanel setDataset={() => null} onPreviewTable={jest.fn()} />
+        }
         datasetPanel={
           <DatasetPanelComponent
             tableName="large_table"
