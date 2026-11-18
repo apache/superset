@@ -26,6 +26,20 @@ assists people when migrating to a new version.
 
 ## 7.0.0
 
+- Semantic-layer connection updates that reuse masked credentials require a
+  usable provider configuration schema. Non-secret settings must stay unchanged
+  at every nesting depth, including dictionary keys. While any mask is retained,
+  every declared secret must also be masked or explicitly null; non-null explicit
+  secrets are refused even if they match the stored value. To rotate a credential
+  or change other settings, re-enter all credentials, including top-level ones.
+  Unavailable, ambiguous, or unsupported schemas require explicit credentials.
+  Provider `x-` UI annotations remain supported. Other unmodelled keywords,
+  including `contentMediaType`, `contentSchema`, `$schema`, `$id`, and `$comment`,
+  require explicit credentials on updates. The schema depth bound also counts
+  reference-sibling expansion. GET masking is unchanged and does not interpret
+  conditional-only secret declarations.
+  Name-only updates can omit configuration entirely.
+
 - **Snowflake: lowercase catalog aliases need the uppercase permission.** Before
   upgrading, check Snowflake datasets and catalog/schema permissions that use a
   lowercase alias of an uppercase database (for example `sales` for `SALES`):

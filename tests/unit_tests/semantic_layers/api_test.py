@@ -51,6 +51,7 @@ from superset.semantic_layers.api import (
     SemanticViewRestApi,
 )
 from superset.semantic_layers.models import SemanticLayer
+from superset.utils import json
 
 SEMANTIC_LAYERS_APP = pytest.mark.parametrize(
     "app",
@@ -2977,7 +2978,14 @@ def test_layer_validation_does_not_expose_secrets(
     layer.configure_mock(
         type="validation_test",
         uuid=uuid_lib.uuid4(),
-        configuration='{"auth": {"kind": "password", "password": "' + secret + '"}}',
+        configuration=json.dumps(
+            {
+                "auth": {
+                    "kind": "invalid" if failure == "discriminator" else "password",
+                    "password": secret,
+                }
+            }
+        ),
     )
     dao: MagicMock = mocker.patch(
         f"superset.commands.semantic_layer.{operation}.SemanticLayerDAO"
@@ -3003,6 +3011,7 @@ def test_layer_validation_does_not_expose_secrets(
 
     provider.__name__ = "ValidationTestProvider"
     provider.from_configuration.configure_mock(side_effect=validate_provider)
+    provider.get_configuration_schema.return_value = Configuration.model_json_schema()
     mocker.patch.dict(
         f"superset.commands.semantic_layer.{operation}.registry",
         {"validation_test": provider},
@@ -3138,7 +3147,7 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
     mocker: MockerFixture,
     guess: str,
 ) -> None:
-    """Wrong and right guesses both replace secrets, without an identity signal."""
+    """Wrong and right guesses are both refused, without an identity signal."""
     layer: MagicMock = MagicMock()
     layer.configure_mock(
         type="oracle_test",
@@ -3180,9 +3189,13 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
             }
         },
     )
-    assert response.status_code == 200
-    assert response.json == {"result": {"uuid": str(layer.uuid)}}
-    provider.from_configuration.assert_called_once_with(
-        {"accounts": [{"host": "a", "password": "stored-password", "token": guess}]}
-    )
-    dao.update.assert_called_once()
+    assert response.status_code == 422
+    assert response.json == {
+        "message": (
+            "This update changes the configuration while reusing a stored "
+            "secret value (a masked field). Re-enter all credentials to confirm "
+            "a configuration change."
+        )
+    }
+    provider.from_configuration.assert_not_called()
+    dao.update.assert_not_called()
