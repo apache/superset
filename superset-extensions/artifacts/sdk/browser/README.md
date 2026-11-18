@@ -107,11 +107,11 @@ const channel = createFrameChannel({
     // Check the request against the manifest, then act on it.
   },
   onError: error => reportToAuthor(error),
-  limits: { queries: policy.maxQueries },
+  limits: link.limits, // the policy's caps, as the frame link carries them
   onHandshakeTimeout: () => openWithNewLink(),
 });
 frame.name = channel.name; // before the frame loads
-frame.src = frameLink; // a short-lived link from the provider
+frame.src = link.url; // a short-lived link from the provider
 channel.postData('revenue_by_region', result); // whenever it changes
 channel.postState(state);
 ```
