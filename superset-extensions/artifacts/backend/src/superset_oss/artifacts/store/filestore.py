@@ -457,10 +457,15 @@ class ArtifactFileStore:
             raise RuntimeError(f"artifact {artifact_id} has a draft already")
         return ArtifactCreateResponse(artifact_id=artifact_id, version=version)
 
-    def view(self, request: ArtifactViewRequest) -> FileView:
-        """A page of a draft file's numbered lines, or of a directory's files."""
+    def view(
+        self, request: ArtifactViewRequest, *, version: str | None = None
+    ) -> FileView:
+        """
+        A page of a file's numbered lines, or of a directory's files, in the
+        draft or in ``version``; the caller authorizes.
+        """
         artifact_id = self.canonical_id(request.artifact_id)
-        version, tree = self._draft(artifact_id)
+        version, tree = self._read_tree(artifact_id, version)
         path = request.path
         if path == ROOT_PATH or _is_directory(tree, path):
             if request.view_range is not None:
@@ -598,10 +603,15 @@ class ArtifactFileStore:
         new_tree[request.new_path] = tree[request.old_path]
         return self._commit(artifact_id, request.base_version, tree, new_tree)
 
-    def search(self, request: ArtifactSearchRequest) -> SearchResult:
-        """A page of the draft's lines holding ``query``, plain and case-sensitive."""
+    def search(
+        self, request: ArtifactSearchRequest, *, version: str | None = None
+    ) -> SearchResult:
+        """
+        A page of the lines holding ``query``, plain and case-sensitive, in the
+        draft or in ``version``; the caller authorizes.
+        """
         artifact_id = self.canonical_id(request.artifact_id)
-        version, tree = self._draft(artifact_id)
+        version, tree = self._read_tree(artifact_id, version)
         if request.path is None:
             paths = sorted(tree)
         elif request.path in tree:
@@ -666,11 +676,14 @@ class ArtifactFileStore:
         )
 
     def manifest_get(
-        self, request: ArtifactManifestGetRequest
+        self, request: ArtifactManifestGetRequest, *, version: str | None = None
     ) -> tuple[str, ArtifactManifest]:
-        """The draft's version and its validated ``manifest.json``."""
+        """
+        The version read, the draft's or ``version``, and its validated
+        ``manifest.json``; the caller authorizes.
+        """
         artifact_id = self.canonical_id(request.artifact_id)
-        version, tree = self._draft(artifact_id)
+        version, tree = self._read_tree(artifact_id, version)
         return version, self._manifest_of(tree)
 
     def manifest_update(
@@ -1035,6 +1048,15 @@ class ArtifactFileStore:
     def _draft(self, artifact_id: str) -> tuple[str, dict[str, str]]:
         version = self._draft_version(artifact_id)
         return version, self._tree(version)
+
+    def _read_tree(
+        self, artifact_id: str, version: str | None
+    ) -> tuple[str, dict[str, str]]:
+        """The draft, or one of this artifact's versions, and its tree."""
+        if version is None:
+            return self._draft(artifact_id)
+        _, checked = self.resolve_version(artifact_id, version)
+        return checked, self._tree(checked)
 
     def _tree(self, version: str) -> dict[str, str]:
         tree = self._backend.get_tree(version)

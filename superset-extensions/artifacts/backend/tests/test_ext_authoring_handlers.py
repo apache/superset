@@ -73,7 +73,7 @@ from superset_oss.artifacts.authoring.prompt_text import (
 )
 from superset_oss.artifacts.authoring.transfer import TransferLinks, TransferSigner
 from superset_oss.artifacts.constants import ID_PREFIX, WIDGET_TYPE
-from superset_oss.artifacts.gate import artifacts_on, configure
+from superset_oss.artifacts.gate import artifacts_on, configure, open_artifacts
 
 UUID = "00000000-0000-4000-8000-000000000000"
 VERSION = "0" * 64
@@ -591,22 +591,19 @@ def test_the_artifact_is_its_saved_widget(
     )
 
 
-def test_readers_view_and_only_editors_change_an_artifact(
+def test_readers_read_and_only_editors_change_an_artifact(
     handlers: AuthoringHandlers, provider: FakeProvider, access: FakeAccess
 ) -> None:
-    created = handlers.create(OWNER, ArtifactCreateRequest(files={"a.js": "x"}))
-    artifact_id, version = created["artifact_id"], created["version"]
-    access.readers[artifact_id] = {READER}
+    artifact_id, published, _ = published_artifact(handlers, access)
     view = ArtifactViewRequest(artifact_id=artifact_id, path="a.js")
     edit = ArtifactStrReplaceRequest(
-        artifact_id=artifact_id, base_version=version, path="a.js", old_str="x"
+        artifact_id=artifact_id, base_version=published, path="a.js", old_str="1"
     )
     publish = ArtifactRequestPublishRequest(
-        artifact_id=artifact_id, base_version=version
+        artifact_id=artifact_id, base_version=published
     )
 
-    access.caller = READER
-    assert "x" in handlers.view(READER, view)["content"]
+    assert "shown" in handlers.view(READER, view)["content"]
     assert handlers.str_replace(READER, edit)["code"] == "ARTIFACT_NOT_FOUND"
     assert handlers.request_publish(READER, publish)["code"] == "ARTIFACT_NOT_FOUND"
     assert handlers.build(READER, ArtifactBuildRequest(artifact_id=artifact_id))[
@@ -615,6 +612,155 @@ def test_readers_view_and_only_editors_change_an_artifact(
 
     access.caller = STRANGER
     assert handlers.view(STRANGER, view)["code"] == "ARTIFACT_NOT_FOUND"
+
+
+def published_artifact(
+    handlers: AuthoringHandlers, access: FakeAccess
+) -> tuple[str, str, str]:
+    """
+    An artifact whose published version a reader may see, and whose editor's
+    draft has moved on since: its id, the published version and the draft.
+    """
+    created = handlers.create(
+        OWNER, ArtifactCreateRequest(files={"a.js": "const shown = 1;\n"})
+    )
+    artifact_id, published = created["artifact_id"], created["version"]
+    asked = handlers.request_publish(
+        OWNER,
+        ArtifactRequestPublishRequest(artifact_id=artifact_id, base_version=published),
+    )
+    open_artifacts().store.confirm_publish(
+        OWNER, artifact_id, asked["publish_request_id"]
+    )
+    draft = handlers.str_replace(
+        OWNER,
+        ArtifactStrReplaceRequest(
+            artifact_id=artifact_id,
+            base_version=published,
+            path="a.js",
+            old_str="shown = 1",
+            new_str="hidden = 2",
+        ),
+    )["version"]
+    access.readers[artifact_id] = {READER}
+    access.caller = READER
+    return artifact_id, published, draft
+
+
+def unpublished_artifact(handlers: AuthoringHandlers, access: FakeAccess) -> str:
+    """An artifact a reader may see the widget of, with nothing published."""
+    created = handlers.create(
+        OWNER, ArtifactCreateRequest(files={"a.js": "const hidden = 2;\n"})
+    )
+    access.readers[created["artifact_id"]] = {READER}
+    access.caller = READER
+    return created["artifact_id"]
+
+
+def test_a_reader_views_only_the_published_version(
+    handlers: AuthoringHandlers, provider: FakeProvider, access: FakeAccess
+) -> None:
+    artifact_id, published, draft = published_artifact(handlers, access)
+    unpublished = unpublished_artifact(handlers, access)
+
+    read = handlers.view(
+        READER, ArtifactViewRequest(artifact_id=artifact_id, path="a.js")
+    )
+    refused = handlers.view(
+        READER, ArtifactViewRequest(artifact_id=unpublished, path="a.js")
+    )
+    access.caller = OWNER
+    edited = handlers.view(
+        OWNER, ArtifactViewRequest(artifact_id=artifact_id, path="a.js")
+    )
+
+    assert (read["version"], "shown" in read["content"]) == (published, True)
+    assert "hidden" not in read["content"]
+    assert refused["code"] == "ARTIFACT_NOT_FOUND"
+    assert (edited["version"], "hidden" in edited["content"]) == (draft, True)
+
+
+def test_a_reader_searches_only_the_published_version(
+    handlers: AuthoringHandlers, provider: FakeProvider, access: FakeAccess
+) -> None:
+    artifact_id, published, _ = published_artifact(handlers, access)
+    unpublished = unpublished_artifact(handlers, access)
+
+    hidden = handlers.search(
+        READER, ArtifactSearchRequest(artifact_id=artifact_id, query="hidden")
+    )
+    shown = handlers.search(
+        READER, ArtifactSearchRequest(artifact_id=artifact_id, query="shown")
+    )
+    refused = handlers.search(
+        READER, ArtifactSearchRequest(artifact_id=unpublished, query="hidden")
+    )
+
+    assert (hidden["version"], hidden["matches"]) == (published, [])
+    assert [match["path"] for match in shown["matches"]] == ["a.js"]
+    assert refused["code"] == "ARTIFACT_NOT_FOUND"
+
+
+def test_a_reader_reads_no_history(
+    handlers: AuthoringHandlers, provider: FakeProvider, access: FakeAccess
+) -> None:
+    """A version history is the editors' own: it lists every draft version."""
+    artifact_id, _, _ = published_artifact(handlers, access)
+
+    for ref in ("draft", "published"):
+        answer = handlers.history(
+            READER, ArtifactHistoryRequest(artifact_id=artifact_id, ref=ref)
+        )
+        assert answer["code"] == "ARTIFACT_NOT_FOUND"
+    access.caller = OWNER
+    assert handlers.history(OWNER, ArtifactHistoryRequest(artifact_id=artifact_id))[
+        "versions"
+    ]
+
+
+def test_a_reader_reads_only_the_published_manifest(
+    handlers: AuthoringHandlers, provider: FakeProvider, access: FakeAccess
+) -> None:
+    artifact_id, published, _ = published_artifact(handlers, access)
+    unpublished = unpublished_artifact(handlers, access)
+
+    read = handlers.manifest_get(
+        READER, ArtifactManifestGetRequest(artifact_id=artifact_id)
+    )
+    refused = handlers.manifest_get(
+        READER, ArtifactManifestGetRequest(artifact_id=unpublished)
+    )
+
+    assert read["version"] == published
+    assert refused["code"] == "ARTIFACT_NOT_FOUND"
+
+
+def test_a_reader_lands_only_the_published_version(
+    provider: FakeProvider, access: FakeAccess
+) -> None:
+    handlers, signer = links_handlers(uploads=False)
+    artifact_id, published, draft = published_artifact(handlers, access)
+    unpublished = unpublished_artifact(handlers, access)
+
+    inline = handlers.land(
+        READER, ArtifactLandRequest(artifact_id=artifact_id, inline=True)
+    )
+    linked = handlers.land(READER, ArtifactLandRequest(artifact_id=artifact_id))
+    by_name = handlers.land(
+        READER, ArtifactLandRequest(artifact_id=artifact_id, version=published)
+    )
+    the_draft = handlers.land(
+        READER, ArtifactLandRequest(artifact_id=artifact_id, version=draft)
+    )
+    refused = handlers.land(READER, ArtifactLandRequest(artifact_id=unpublished))
+
+    [file] = [entry for entry in inline["files"] if entry["path"] == "a.js"]
+    assert (inline["version"], "shown" in file["content"]) == (published, True)
+    token = linked["download_url"].removeprefix("https://superset.example/t/versions/")
+    assert signer.verify(token, "version").target == published
+    assert by_name["version"] == published
+    assert the_draft["code"] == "VERSION_NOT_FOUND"
+    assert refused["code"] == "ARTIFACT_NOT_FOUND"
 
 
 def test_the_prompt_teaches_only_the_tools_offered() -> None:
@@ -708,6 +854,7 @@ def test_land_answers_a_download_link_unless_asked_inline(
     )
     access.caller = READER
     access.readers.setdefault(artifact_id, set()).add(READER)
+    # Nothing is published, so a reader has nothing to land.
     read = handlers.land(READER, ArtifactLandRequest(artifact_id=artifact_id))
     access.caller = STRANGER
     refused = handlers.land(STRANGER, ArtifactLandRequest(artifact_id=artifact_id))
@@ -720,8 +867,7 @@ def test_land_answers_a_download_link_unless_asked_inline(
     }
     assert inline["download_url"] is None
     assert inline["files"][0]["content"]
-    assert read["version"] == created["version"]
-    assert refused["code"] == "ARTIFACT_NOT_FOUND"
+    assert read["code"] == refused["code"] == "ARTIFACT_NOT_FOUND"
 
 
 def test_a_commit_answer_with_upload_links_fits_an_mcp_answer(

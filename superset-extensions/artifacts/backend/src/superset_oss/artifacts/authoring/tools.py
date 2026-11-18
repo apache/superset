@@ -156,8 +156,9 @@ def artifact_view(request: ArtifactViewRequest) -> dict[str, Any]:
     """Read a draft file with line numbers, or list a directory ("." is the root).
 
     view_range picks lines [start, end], 1-indexed; an end of -1 reads to the
-    end. Long results come in pages of about 40 KB: pass page to read on.
-    Returns the draft version that was read.
+    end. Long results come in pages of about 40,000 bytes: pass page to read
+    on. Returns the version that was read: the draft for its editors, the
+    published version for anyone else who may read it.
     """
     return handlers.view(current_actor(), request)
 
@@ -249,7 +250,7 @@ def artifact_search(request: ArtifactSearchRequest) -> dict[str, Any]:
 def artifact_history(request: ArtifactHistoryRequest) -> dict[str, Any]:
     """List the versions the draft (or the published ref) has pointed to.
 
-    Newest first, in pages of 100.
+    Newest first, in pages of 100. Only the artifact's editors read it.
     """
     return handlers.history(current_actor(), request)
 

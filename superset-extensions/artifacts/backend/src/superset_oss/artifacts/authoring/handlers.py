@@ -73,6 +73,7 @@ from superset_oss.artifacts.errors import (
     translate_invalid_manifest,
     translate_missing_version,
 )
+from superset_oss.artifacts.frames.access import choose_version
 from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
@@ -172,7 +173,9 @@ class AuthoringHandlers:
 
     A tool that reads an artifact needs the caller to read its widget, and one
     that changes it needs the caller to edit it; otherwise it answers
-    ``ARTIFACT_NOT_FOUND``, as for an artifact that doesn't exist.
+    ``ARTIFACT_NOT_FOUND``, as for an artifact that doesn't exist. A reader
+    who isn't an editor reads only the published version, as frames serve
+    it: the draft and the history are the editors' own.
     ``transfer_links`` gives the links that move bytes beside the model, read
     on each call; without them, every answer carries its bytes itself.
     """
@@ -219,6 +222,24 @@ class AuthoringHandlers:
 
         return self.run(actor, checked)
 
+    @staticmethod
+    def _readable(
+        call: _Call, artifact_id: str, asked: str | None = None
+    ) -> str | None:
+        """
+        The version a read may show the caller: ``asked`` (``None`` for the
+        draft) for an editor, and only the published one for anyone else.
+        """
+        if call.access.can_edit(artifact_id):
+            return asked
+        served = choose_version(call.store, artifact_id, can_edit=False)
+        if asked is not None and asked != served.version:
+            raise ArtifactError(
+                AuthoringErrorCode.VERSION_NOT_FOUND,
+                "only the published version is readable to you",
+            )
+        return served.version
+
     def _store(
         self,
         actor: str | None,
@@ -243,7 +264,14 @@ class AuthoringHandlers:
         return self.run(actor, action)
 
     def view(self, actor: str | None, request: ArtifactViewRequest) -> Answer:
-        return self._store(actor, ArtifactFileStore.view, request, "read")
+        return self._on_artifact(
+            actor,
+            request,
+            "read",
+            lambda call: call.store.view(
+                request, version=self._readable(call, request.artifact_id)
+            ),
+        )
 
     def create_file(
         self, actor: str | None, request: ArtifactCreateFileRequest
@@ -267,10 +295,17 @@ class AuthoringHandlers:
         return self._store(actor, ArtifactFileStore.move_file, request, "edit")
 
     def search(self, actor: str | None, request: ArtifactSearchRequest) -> Answer:
-        return self._store(actor, ArtifactFileStore.search, request, "read")
+        return self._on_artifact(
+            actor,
+            request,
+            "read",
+            lambda call: call.store.search(
+                request, version=self._readable(call, request.artifact_id)
+            ),
+        )
 
     def history(self, actor: str | None, request: ArtifactHistoryRequest) -> Answer:
-        return self._store(actor, ArtifactFileStore.history, request, "read")
+        return self._store(actor, ArtifactFileStore.history, request, "edit")
 
     def restore(self, actor: str | None, request: ArtifactRestoreRequest) -> Answer:
         return self._store(actor, ArtifactFileStore.restore, request, "edit")
@@ -279,7 +314,9 @@ class AuthoringHandlers:
         self, actor: str | None, request: ArtifactManifestGetRequest
     ) -> Answer:
         def action(call: _Call) -> Answer:
-            version, manifest = call.store.manifest_get(request)
+            version, manifest = call.store.manifest_get(
+                request, version=self._readable(call, request.artifact_id)
+            )
             return {
                 "version": version,
                 "manifest": manifest.model_dump(mode="json", exclude_none=True),
@@ -383,7 +420,8 @@ class AuthoringHandlers:
 
     def land(self, actor: str | None, request: ArtifactLandRequest) -> Answer:
         def action(call: _Call) -> object:
-            answer = call.store.land(request)
+            version = self._readable(call, request.artifact_id, request.version)
+            answer = call.store.land(request.model_copy(update={"version": version}))
             links = self._transfer_links()
             if request.inline or links is None:
                 return answer
