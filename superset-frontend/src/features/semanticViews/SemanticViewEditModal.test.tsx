@@ -42,20 +42,30 @@ const MOCK_STRUCTURE = {
     // asserting the same values whichever source the form reads from.
     description: 'old description',
     cache_timeout: 60,
+    time_grains: [
+      { duration: 'P1D', name: 'Day' },
+      { duration: 'P1M', name: 'Month' },
+    ],
     dimensions: [
       {
         name: 'order_date',
         type: 'timestamp[us]',
         definition: 'ordered_at',
         description: 'Date of the order',
-        grain: 'Day',
+        grains: ['P1M', 'P1D'],
+        allows_default_grain: false,
+        omitted_grain: 'P1D',
+        ungrained_filter: 'P1D',
       },
       {
         name: 'customer_id',
         type: 'int64',
         definition: null,
         description: null,
-        grain: null,
+        grains: [],
+        allows_default_grain: true,
+        omitted_grain: 'native',
+        ungrained_filter: 'native',
       },
     ],
     metrics: [
@@ -453,7 +463,10 @@ const LARGE_STRUCTURE = {
       type: 'string',
       definition: null,
       description: null,
-      grain: null,
+      grains: [],
+      allows_default_grain: true,
+      omitted_grain: 'native',
+      ungrained_filter: 'native',
     })),
     metrics: Array.from({ length: 500 }, (_, i) => ({
       name: `metric_${String(i).padStart(3, '0')}`,
@@ -496,4 +509,35 @@ test('keeps small structures unpaginated', async () => {
     expect(screen.getByText('orders')).toBeInTheDocument();
   });
   expect(document.querySelector('.ant-pagination')).toBeNull();
+});
+
+test('shows one dimension with its supported grains and native permission', async () => {
+  render(<SemanticViewEditModal {...createProps()} />);
+  await userEvent.click(
+    await screen.findByRole('tab', { name: 'Dimensions (2)' }),
+  );
+  expect(await screen.findByText('Day, Month')).toBeInTheDocument();
+  expect(screen.getByText('Native allowed')).toBeInTheDocument();
+  expect(screen.getByText('Native')).toBeInTheDocument();
+  expect(screen.getByText('Explicit grain required')).toBeInTheDocument();
+  expect(screen.getAllByText('order_date')).toHaveLength(1);
+});
+
+test('an obsolete configuration offers field re-selection instead of a metadata-only save', async () => {
+  mockedGet.mockRejectedValueOnce({
+    clone: () => ({
+      json: async () => ({
+        error_type: 'SemanticViewConfigurationError',
+        message: 'Re-select fields, or delete and re-add.',
+        recovery: { id: 1, name: 'saved', semantic_layer_uuid: 'layer-1' },
+      }),
+    }),
+  });
+  render(<SemanticViewEditModal {...createProps()} />);
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Re-select fields' }),
+    ).toBeVisible(),
+  );
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
 });

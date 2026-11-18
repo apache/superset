@@ -75,9 +75,11 @@ def date_view(mocker: MockerFixture) -> MagicMock:
             id="orders.ORDER_DATE",
             name="ORDER_DATE",
             type=pa.date32(),
-            grain=None,
         )
     }
+    provider.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: provider.get_dimensions()
+    )
     provider.get_metrics.return_value = {
         Metric(
             id="orders.ORDER_COUNT",
@@ -205,6 +207,9 @@ def test_malformed_provider_timezone_remains_500(
     date_view.get_dimensions.return_value = {
         Dimension("order_date", "ORDER_DATE", pa.timestamp("us", tz="/abs"))
     }
+    date_view.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: date_view.get_dimensions()
+    )
     response: TestResponse = client.post(
         "/api/v1/chart/data",
         json={
@@ -346,6 +351,9 @@ def provider_class(app_context: None, mocker: MockerFixture) -> MagicMock:
         provider.from_configuration.return_value.get_semantic_view.return_value
     )
     provider_view.get_dimensions.return_value = set()
+    provider_view.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: provider_view.get_dimensions()
+    )
     provider_view.get_metrics.return_value = set()
     mocker.patch.dict("superset.semantic_layers.models.registry", {"fixture": provider})
     return provider
@@ -1468,6 +1476,38 @@ def test_transport_failure_during_chart_preparation_returns_400(
     assert response.status_code == 400
     assert str(error) in response.get_data(as_text=True)
     assert "private-preparation" not in response.get_data(as_text=True)
+    date_view.get_table.assert_not_called()
+
+
+def test_old_configuration_discovery_is_actionable_not_backend_failure() -> None:
+    from superset_core.semantic_layers.errors import SemanticViewConfigurationError
+
+    from superset.semantic_layers.exceptions import discover_dimensions, DiscoveryTarget
+
+    bind: MagicMock = MagicMock(side_effect=SemanticViewConfigurationError())
+    with pytest.raises(QueryObjectValidationError, match="re-select"):
+        discover_dimensions(bind, DiscoveryTarget(view_id=7, layer_uuid=None))
+
+
+def test_old_configuration_chart_request_returns_recovery_without_execution(
+    client: FlaskClient, full_api_access: None, date_view: MagicMock
+) -> None:
+    from superset_core.semantic_layers.errors import SemanticViewConfigurationError
+
+    date_view.get_dimensions.side_effect = SemanticViewConfigurationError()
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == 400
+    assert "re-select" in response.get_data(as_text=True)
+    assert "re-add" in response.get_data(as_text=True)
     date_view.get_table.assert_not_called()
 
 

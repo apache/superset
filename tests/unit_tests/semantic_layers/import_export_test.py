@@ -943,3 +943,73 @@ def test_reference_export_follows_runtime_flip(
     )
     assert refs.export_view_reference(view) == expected
     assert refs.resolve_bundle_references(configs) == expected_import
+
+
+@pytest.mark.parametrize("grain", [None, "P1D", "P1M"])
+def test_saved_grain_intent_survives_chart_rebinding(
+    view: SemanticView, monkeypatch: pytest.MonkeyPatch, grain: str | None
+) -> None:
+    """Import remaps only datasource identity, never stable names or grain intent."""
+    module: ModuleType = importlib.import_module("superset.commands.chart.importers.v1")
+    writer: Mock = Mock(
+        return_value=Mock(id=91, uuid=UUID(CHART_UUID), viz_type="table")
+    )
+    monkeypatch.setattr(chart_import_utils, "import_chart", writer)
+    monkeypatch.setattr(module, "get_default_viewers_for_current_user", lambda: [])
+    config: dict[str, Any] = chart_config()
+    config["params"].update(
+        {
+            "groupby": ["metric_time"],
+            "time_grain_sqla": grain,
+            "semantic_selection_version": "stable-names-v1",
+            "adhoc_filters": [
+                {"col": "metric_time", "op": ">=", "val": "2024-01-15", "grain": None}
+            ],
+        }
+    )
+    module.ImportChartsCommand._import({"charts/chart.yaml": config}, overwrite=True)
+    params: dict[str, Any] = writer.call_args.args[0]["params"]
+    assert params["datasource"] == "81__semantic_view"
+    assert params["groupby"] == ["metric_time"]
+    assert "time_grain_sqla" in params
+    assert params["time_grain_sqla"] == grain
+    assert params["semantic_selection_version"] == "stable-names-v1"
+    assert params["adhoc_filters"][0]["grain"] is None
+
+
+def test_native_filter_target_keeps_base_name_and_independent_grain_intent(
+    view: SemanticView,
+) -> None:
+    """Reference conversion cannot replace a raw predicate with a bucket alias."""
+    metadata: dict[str, Any] = {
+        "native_filter_configuration": [
+            {
+                "targets": [
+                    {
+                        "datasetId": 81,
+                        "datasourceType": "semantic_view",
+                        "column": {"name": "metric_time"},
+                    }
+                ],
+                "defaultDataMask": {
+                    "extraFormData": {
+                        "filters": [
+                            {
+                                "col": "metric_time",
+                                "op": ">=",
+                                "val": "2024-01-15",
+                                "grain": None,
+                            }
+                        ]
+                    }
+                },
+            }
+        ]
+    }
+    original: dict[str, Any] = copy.deepcopy(metadata)
+    refs.export_dashboard_references(metadata)
+    info: dict[str, dict[str, Any]] = refs.resolve_bundle_references(
+        {"dashboards/d.yaml": {"metadata": copy.deepcopy(metadata)}}
+    )
+    refs.restore_dashboard_references(metadata, info)
+    assert metadata == original

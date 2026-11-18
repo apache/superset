@@ -19,11 +19,13 @@
 
 import {
   buildQueryContext,
+  getChartControlPanelRegistry,
   DatasourceType,
   isFeatureEnabled,
   QueryFormData,
   VizType,
 } from '@superset-ui/core';
+import { sharedControls } from '@superset-ui/chart-controls';
 import { ExplorePageState } from '../types';
 import exploreReducer from '../reducers/exploreReducer';
 import { setStashFormData } from './exploreActions';
@@ -79,6 +81,10 @@ function hydrateNewSemanticChart(
       ...exploreInitialData.dataset,
       id: 4,
       type,
+      time_grain_sqla: [
+        ['P1D', 'Day'],
+        ['P1M', 'Month'],
+      ],
       semantic_selection_version: 'cube-member-id-v1',
     },
   })(dispatch, getState);
@@ -600,6 +606,46 @@ test('does not seed normalization metadata for dashboard overrides', () => {
     expect.objectContaining({ type: HYDRATE_CHART_NORMALIZATION }),
   );
 });
+
+test.each([
+  { x_axis: 'event_time' },
+  { groupby: ['event_time'] },
+  { groupbyColumns: ['event_time'], groupbyRows: ['region'] },
+])(
+  'hydration preserves a saved semantic grain before compatibility resolves: %j',
+  grouping => {
+    const vizType = 'semantic_grain_hydration';
+    getChartControlPanelRegistry().registerValue(vizType, {
+      controlPanelSections: [
+        {
+          controlSetRows: [
+            [
+              {
+                name: 'time_grain_sqla',
+                config: sharedControls.time_grain_sqla,
+              },
+            ],
+          ],
+        },
+      ],
+    });
+    try {
+      const action = hydrateNewSemanticChart({
+        viz_type: vizType,
+        time_grain_sqla: 'P1M',
+        slice_id: 9,
+        ...grouping,
+      });
+      expect(action.data.explore.controls.time_grain_sqla.value).toBe('P1M');
+      expect(
+        Object.values(action.data.charts)[0].latestQueryFormData
+          ?.time_grain_sqla,
+      ).toBe('P1M');
+    } finally {
+      getChartControlPanelRegistry().remove(vizType);
+    }
+  },
+);
 
 test('stamps a new semantic chart after an earlier Explore session stashed hidden controls', () => {
   // Earlier in the same SPA session a saved aggregate-mode table chart was open.

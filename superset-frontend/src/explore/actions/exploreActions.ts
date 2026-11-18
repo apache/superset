@@ -28,7 +28,11 @@ import {
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
-import { CompatibilityResult, SaveActionType } from 'src/explore/types';
+import {
+  CompatibilityResult,
+  ExplorePageState,
+  SaveActionType,
+} from 'src/explore/types';
 
 export const RESET_SEMANTIC_SELECTIONS = 'RESET_SEMANTIC_SELECTIONS';
 export function resetSemanticSelections(sliceId?: number) {
@@ -213,12 +217,19 @@ export function fetchCompatibility(
   selectedMetrics: string[],
   selectedDimensions: string[],
 ) {
-  return async (dispatch: Dispatch) => {
+  return async (
+    dispatch: Dispatch,
+    getState?: () => {
+      explore: Pick<ExplorePageState['explore'], 'compatibility'>;
+    },
+  ) => {
     compatibilityRequestSeq += 1;
     const requestSeq = compatibilityRequestSeq;
 
     if (datasourceType !== 'semantic_view') {
-      dispatch(setCompatibility({ status: 'idle' }));
+      if (getState?.().explore.compatibility?.status !== 'idle') {
+        dispatch(setCompatibility({ status: 'idle' }));
+      }
       return;
     }
 
@@ -230,6 +241,9 @@ export function fetchCompatibility(
         jsonPayload: {
           selected_metrics: selectedMetrics,
           selected_dimensions: selectedDimensions,
+          // Leave grains unpinned so the response can offer alternative buckets.
+          // Execution validates the selected grain; these picker suggestions
+          // intentionally describe the member combination, not a fixed bucket.
         },
       });
       if (requestSeq !== compatibilityRequestSeq) {
@@ -240,6 +254,7 @@ export function fetchCompatibility(
           status: 'verified',
           metrics: json.result.compatible_metrics ?? [],
           dimensions: json.result.compatible_dimensions ?? [],
+          dimensionSupport: json.result.dimension_support,
         }),
       );
     } catch {

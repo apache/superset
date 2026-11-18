@@ -73,6 +73,9 @@ def provider(app: Flask, mocker: MockerFixture) -> MagicMock:
     implementation.get_dimensions.return_value = {
         Dimension("category", "category", pa.string()),
     }
+    implementation.get_compatible_dimensions.return_value = (
+        implementation.get_dimensions.return_value
+    )
     implementation.get_metrics.return_value = set()
     implementation.get_table.return_value = SemanticResult(
         requests=[],

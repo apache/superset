@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -860,6 +860,9 @@ msgstr ""
 "değişiklik tarayıcılarınızı açıklayacaksanız devam etmeyecektir.\n"
 "\n"
 
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -1497,6 +1500,9 @@ msgstr "Yeniden kullanılabilir bir veri kümesi, grafiğinizle kurtarılacaktı
 msgid "A rule with this name already exists."
 msgstr "Bu ada sahip bir kural zaten var."
 
+msgid "A saved query with this name already exists"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -1672,6 +1678,21 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AĞU"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
 #, fuzzy
@@ -1795,6 +1816,9 @@ msgstr "Eklenti Ekle"
 msgid "Add a dataset"
 msgstr "Veriseti Ekle"
 
+msgid "Add a datasource"
+msgstr ""
+
 msgid "Add a new tab"
 msgstr "Yeni sekme ekle"
 
@@ -1916,6 +1940,9 @@ msgstr "Klasör ekle"
 msgid "Add group"
 msgstr "Grup ekle"
 
+msgid "Add interval bounds above to configure colors here."
+msgstr ""
+
 msgid "Add item"
 msgstr "Ekle item"
 
@@ -1947,6 +1974,9 @@ msgstr "Görünüm kontrollerini ekle veya düzenle"
 
 msgid "Add or edit filters and controls"
 msgstr "Filtre ve kontrol ekle veya düzenle"
+
+msgid "Add ranges above to configure their colors here."
+msgstr ""
 
 msgid "Add report"
 msgstr "Rapor ekle"
@@ -3353,11 +3383,17 @@ msgstr "İlişkili uyarılar ve raporlar"
 msgid "Asynchronous query execution"
 msgstr "Asynchronous query execution"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Attribution"
 
 msgid "August"
 msgstr "Ağustos"
+
+msgid "Authentication method"
+msgstr ""
 
 msgid "Authorization Request URI"
 msgstr "Authorization Request URI"
@@ -3512,6 +3548,9 @@ msgstr "Bar yönlendirme"
 msgid "Base"
 msgstr "Base"
 
+msgid "Base background"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Baz üs"
 
@@ -3592,6 +3631,9 @@ msgstr "Boş değerler"
 #, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
 msgstr "Block   %(block_num)s out of   %(block_count)s "
+
+msgid "Border"
+msgstr ""
 
 msgid "Border color"
 msgstr "Kenarlık rengi"
@@ -3989,6 +4031,9 @@ msgstr ""
 "/api/v1/dataset/<uuid>/purge. Bunları geri yüklemek (POST "
 "/api/v1/dataset/<uuid>/restore) veri kümelerini korur, ancak veritabanı "
 "yine de silinemez."
+
+msgid "Cannot delete semantic views"
+msgstr ""
 
 msgid "Cannot delete system themes"
 msgstr "Sistem temaları silinemez"
@@ -4501,6 +4546,9 @@ msgstr "Bu veri kümesini kullanan grafikler ve panolar kontrol ediliyor…"
 msgid "Checking for affected charts and dashboards…"
 msgstr "Etkilenen grafikler ve panolar kontrol ediliyor…"
 
+msgid "Checking which charts will be removed…"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid ""
@@ -4981,6 +5029,20 @@ msgstr "Grafiğin sağ tarafındaki çubukların rengi"
 msgid "Color for breakpoint"
 msgstr "Red for breakpoint"
 
+msgid "Color for decrease"
+msgstr ""
+
+msgid "Color for increase"
+msgstr ""
+
+#, python-format
+msgid "Color for interval up to %s"
+msgstr ""
+
+#, python-format
+msgid "Color for range up to %s"
+msgstr ""
+
 msgid "Color metric"
 msgstr "Renk metrik"
 
@@ -4997,6 +5059,16 @@ msgstr "Renk şeması"
 #, fuzzy, python-format
 msgid "Color scheme: %s"
 msgstr "Renk şeması: %s"
+
+msgid ""
+"Color used for the arrow and symbols when the metric decreased from the "
+"comparison value. Defaults to red."
+msgstr ""
+
+msgid ""
+"Color used for the arrow and symbols when the metric increased from the "
+"comparison value. Defaults to green."
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5187,15 +5259,6 @@ msgid "Combine metrics"
 msgstr "Ekle metrics"
 
 msgid ""
-"Comma-separated color picks for the intervals, e.g. 1,2,4. Integers "
-"denote colors from the chosen color scheme and are 1-indexed. Length must"
-" be matching that of interval bounds."
-msgstr ""
-"Intera-separated color picks for the intervals, e.g. 1.2,4. Integers, "
-"seçilmiş renk programından renkler ifade eder ve 1-indexeddir. Uzunluk bu"
-" aralığın sınırlarına uymalıdır."
-
-msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Last number should match the value provided for MAX."
 msgstr ""
@@ -5369,6 +5432,9 @@ msgstr "Bu panoyu dış bir web uygulamasına sokmak için yapılandırın."
 msgid "Configure your how you overlay is displayed here."
 msgstr "Overlay'ın burada nasıl sergilendiğini yapılandırın."
 
+msgid "Configured"
+msgstr ""
+
 msgid "Confirm"
 msgstr "Onayla"
 
@@ -5440,6 +5506,9 @@ msgstr "Bağlantı iyi görünüyor!"
 #, fuzzy
 msgid "Contact the report owner for error details."
 msgstr "Hata ayrıntıları için rapor sahibiyle iletişime geçin."
+
+msgid "Container background"
+msgstr ""
 
 msgid "Contains"
 msgstr "İçerir"
@@ -5653,14 +5722,14 @@ msgstr ""
 "edilemedi. Bunları silmek grafiklerin ve panoların bozulmasına neden "
 "olabilir."
 
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
+msgstr ""
+
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Veritabanına bağlanılamadı: “%(database)s”"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr "%s semantik görünümleri silinemedi: %s"
 
 msgid "Could not fetch all saved charts"
 msgstr "Tüm kayıtlı grafikler getirilemedi"
@@ -5733,6 +5802,9 @@ msgid ""
 "Could not verify which dimensions are compatible. All dimensions are "
 "shown."
 msgstr "Hangi boyutların uyumlu olduğu doğrulanamadı. Tüm boyutlar gösteriliyor."
+
+msgid "Couldn't validate the selected fields. Check the selection and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -6746,6 +6818,9 @@ msgstr ""
 "Pixel'de minimum sütun genişliği, gerçek genişlik hala diğer sütunların "
 "çok fazla alana ihtiyaç duymadığınden daha büyük olabilir"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "Varsayılan değer, \"Use has default value\" kontrol edildiğinde "
@@ -6995,6 +7070,14 @@ msgstr "Seçilenleri sil"
 msgid "Delete template"
 msgstr "Şablonu sil"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Temayı sil"
 
@@ -7082,6 +7165,11 @@ msgstr "%s Silindi"
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s öğe silindi"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7988,14 +8076,6 @@ msgstr "Ya veritabanı yanlış yazılmış ya da mevcut değildir."
 msgid "Either the username \"%(username)s\" or the password is incorrect."
 msgstr "Ya \"  %(username)s \" veya şifre yanlış."
 
-#, python-format
-msgid ""
-"Either the username \"%(username)s\", password, or database name "
-"\"%(database)s\" is incorrect."
-msgstr ""
-"Ya \"  %(username)s \", şifre veya veritabanı adı \"  %(database)s \" "
-"yanlış."
-
 msgid "Either the username or the password is wrong."
 msgstr "Ya kullanıcı veya şifre yanlış."
 
@@ -8049,6 +8129,26 @@ msgstr ""
 
 msgid "Embedded dashboard could not be deleted."
 msgstr "Gömülü gösterim paneli silinemedi."
+
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials can't be added or changed while the embedded "
+"credential fallback is turned off. Leave the stored credentials unchanged"
+" or clear them."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
 
 msgid "Embedding deactivated."
 msgstr "Gömme işlemi devre dışı bırakıldı"
@@ -8282,6 +8382,12 @@ msgstr "Grubun adını girin"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Gerekli   %(dbModelName)s kimlik bilgilerini girin"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 msgid "Enter the unique project id for your database."
 msgstr "Veritabanınız için eşsiz projeye girin."
@@ -8668,6 +8774,9 @@ msgstr ""
 "Desteklenen ülkeler: ABD, Kanada, Avustralya, Japonya, Birleşik Krallık. "
 "Tanınmayan veya belirsiz değerler, boş bölgeler göstermek yerine hata "
 "verir."
+
+msgid "Explicit grain required"
+msgstr ""
 
 msgid "Explore"
 msgstr "Discover"
@@ -9104,9 +9213,6 @@ msgstr "Gelişmiş türü almak için başarısız oldu"
 msgid "Failed to revoke API key"
 msgstr "API anahtarı iptal edilemedi"
 
-msgid "Failed to save chart customization"
-msgstr "Grafik özelleştirmesini kurtarmak için başarısız oldu"
-
 msgid "Failed to save cross-filter scoping"
 msgstr "Cross-filter scoping kurtarmak için başarısız oldu"
 
@@ -9506,6 +9612,11 @@ msgid "Fix the Extra JSON to edit certification"
 msgstr "Sertifikasyonu düzenlemek için Extra JSON'u düzeltin"
 
 msgid ""
+"Fix the JSON errors below to edit colors here; your changes sync "
+"automatically once the JSON is valid again."
+msgstr ""
+
+msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
 msgstr ""
@@ -9872,12 +9983,6 @@ msgstr "Google Sheet Name and URL"
 msgid "Grace period"
 msgstr "Grace dönemi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "Grain"
-msgstr "Ayrıntı düzeyi"
-
 msgid "Graph Chart"
 msgstr "Graph Chart"
 
@@ -10144,8 +10249,6 @@ msgstr "Id"
 msgid "Id of root node of the tree."
 msgstr "Ağacın kök node'si."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "If Presto or Trino, all the queries in SQL Lab are going to be executed "
 "as the currently logged on user who must have permission to run them. If "
@@ -10154,19 +10257,10 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
-"Presto veya Trino kullanılıyorsa, SQL Lab'daki tüm sorgular, bunları "
-"çalıştırma iznine sahip olması gereken, o anda oturum açmış kullanıcı "
-"olarak yürütülür. Hive kullanılıyorsa ve hive.server2.enable.doAs "
-"etkinse, sorgular hizmet hesabı olarak çalıştırılır ancak "
-"hive.server2.proxy.user özelliği aracılığıyla o anda oturum açmış "
-"kullanıcının kimliği taklit edilir. Databricks kullanılıyorsa, o anda "
-"oturum açmış kullanıcı olarak kimlik doğrulaması yapmak için OAuth2 "
-"kullanılır. Snowflake veya Google Sheets kullanılıyorsa ve veritabanı "
-"için OAuth kimlik doğrulaması yapılandırılmışsa, sorgular o anda oturum "
-"açmış kullanıcı olarak kendi OAuth kimlik bilgileriyle çalıştırılır."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Bir metrik belirtilmişse, metrik değere dayalı sıralama yapılacaktır."
@@ -10855,6 +10949,9 @@ msgstr "Anahtar"
 msgid "Key Prefix"
 msgstr "Anahtar Öneki"
 
+msgid "Key pair"
+msgstr ""
+
 msgid "Keyboard shortcuts"
 msgstr "Klavye kısayolları"
 
@@ -11363,6 +11460,9 @@ msgstr "Hat sütun"
 msgid "Lines encoding"
 msgstr "Hatları kodlama"
 
+msgid "Link"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy
@@ -11409,6 +11509,15 @@ msgstr "Liste güncellendi"
 #, fuzzy
 msgid "List view"
 msgstr "Liste görünümü"
+
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
 
 msgid "Live render"
 msgstr "Canlı form"
@@ -11460,6 +11569,9 @@ msgstr "Anlamsal katman türleri yükleniyor…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "Anlamsal katmanlar yükleniyor…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 msgid "Loading timezones..."
 msgstr "Saat dilimleri yükleniyor..."
@@ -12485,11 +12597,25 @@ msgstr "Veritabanınızı Adı"
 msgid "Name your folder and to edit it later, click on the folder name"
 msgstr "Dosyanızı seçin ve daha sonra düzenlemek için, klasör adı üzerine tıklayın"
 
+msgid ""
+"Named instances can't be entered as the host. Enter only the host and the"
+" port the instance listens on, or connect with a SQLAlchemy URI instead."
+msgstr ""
+
+msgid "Native"
+msgstr ""
+
+msgid "Native allowed"
+msgstr ""
+
 msgid "Native filter column is required"
 msgstr "Filtre sütunu gereklidir"
 
 msgid "Native filter values has no values"
 msgstr "Yerli filtre değerlerinin değerleri yoktur"
+
+msgid "Native grain"
+msgstr ""
 
 msgid "Need help? Learn how to connect your database"
 msgstr "Yardıma mı ihtiyacınız var? Veritabanınızı nasıl bağlayacağınızı öğrenin"
@@ -12856,6 +12982,10 @@ msgid ""
 msgstr ""
 "Kullanımınıza açık anlamsal katman yok. Yöneticinizden bir anlamsal "
 "katman kurmasını veya size erişim vermesini isteyin."
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13233,6 +13363,9 @@ msgstr "Offline"
 msgid "Older history exists but is beyond what can be shown here."
 msgstr "Daha eski geçmiş mevcut ancak burada gösterilebilecek sınırın ötesinde."
 
+msgid "Omitted grain"
+msgstr ""
+
 msgid "On Grace"
 msgstr "Grace On"
 
@@ -13482,6 +13615,11 @@ msgstr ""
 "Seçmeli CA BUNDLE içeriği HTTPS isteklerini doğrulamak için. Sadece "
 "belirli veritabanı motorlarında kullanılabilir."
 
+msgid ""
+"Optional custom color for each range band, e.g. to match a brand palette."
+" Bands left unset use the default shading."
+msgstr ""
+
 msgid "Optional d3 date format string"
 msgstr "Seçmeli d3 date format"
 
@@ -13492,6 +13630,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "Grafiği birden fazla mum serisine bölen isteğe bağlı boyut."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -13973,6 +14114,12 @@ msgstr "Fiziksel"
 msgid "Physical (table or view)"
 msgstr "Fiziksel (tablo veya view)"
 
+msgid ""
+"Pick a color for each interval band defined above by its upper bound. "
+"Charts saved with the legacy 1-indexed \"Interval colors\" text field "
+"keep following the chosen color scheme until an interval color is edited."
+msgstr ""
+
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr "Hangi kategorik renkler tanımlanmış bir boyut seçin"
 
@@ -14414,6 +14561,12 @@ msgstr "Özel Anahtar & Şifre"
 msgid "Private Key Password"
 msgstr "Özel Anahtar Şifre"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "Proceed"
 
@@ -14583,6 +14736,9 @@ msgstr "Range Accesss"
 msgid "Range Type"
 msgstr "Aralık Türü"
 
+msgid "Range colors"
+msgstr ""
+
 msgid "Range filter"
 msgstr "Aralığı filtre"
 
@@ -14618,6 +14774,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Raw kayıtları"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -14627,6 +14786,13 @@ msgstr "Alanları yeniden seç"
 #, fuzzy
 msgid "Re-pick fields for this chart"
 msgstr "Bu grafik için alanları yeniden seç"
+
+msgid "Re-select fields"
+msgstr ""
+
+#, python-format
+msgid "Re-select fields for %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14745,6 +14911,9 @@ msgstr "Grafikler yenileniyor"
 msgid "Refreshing columns"
 msgstr "Kolonlar yenileniyor"
 
+msgid "Region"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Region name"
@@ -14848,6 +15017,9 @@ msgstr "Özelleştirmeyi kaldır"
 #, fuzzy
 msgid "Remove dependency"
 msgstr "Bağımlılığı kaldır"
+
+msgid "Remove embedded guest credentials"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -15210,6 +15382,11 @@ msgstr "Hesabınızın zaten bir parolası varsa gereklidir"
 msgid "Required to mirror range filters, including the time range."
 msgstr "Zaman aralığı dahil aralık filtrelerini yansıtmak için gereklidir."
 
+msgid ""
+"Requires an OAuth2 client ID and secret, and “Impersonate logged in user”"
+" (Advanced → Security)."
+msgstr ""
+
 msgid "Resample"
 msgstr "Resample"
 
@@ -15324,6 +15501,15 @@ msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
 msgstr "Geri yükleme yeni bir sürüm oluşturur. Mevcut sürüm geçmişiniz kaybolmaz."
+
+#, python-format
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
 
 msgid "Results"
 msgstr "Sonuçlar"
@@ -15647,6 +15833,15 @@ msgstr "Çalışıyor"
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Run block   %(block_num)s out of   %(block_count)s "
 
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
+
 msgid "SAT"
 msgstr "CMT"
 
@@ -15881,6 +16076,9 @@ msgstr "Gösterim Paneliı kaydet"
 
 msgid "Save dataset"
 msgstr "Verisetini kaydet"
+
+msgid "Save fields"
+msgstr ""
 
 msgid "Save for this session"
 msgstr "Bu seans için Kaydet"
@@ -16191,6 +16389,9 @@ msgstr "İkinci"
 
 msgid "Secondary currency format"
 msgstr "ikincil para formatı"
+
+msgid "Secondary text"
+msgstr ""
 
 msgid "Secondary y-axis Bounds"
 msgstr "Secondary y-axis Bounds"
@@ -16803,14 +17004,8 @@ msgstr "Semantik Görünümler"
 msgid "Semantic cache"
 msgstr "Anlamsal önbellek"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"Semantic dimension '%(name)s' has ambiguous variants for grain "
-"'%(grain)s'. Use one dimension per name and grain."
+msgid "Semantic colors"
 msgstr ""
-"'%(name)s' anlamsal boyutunun '%(grain)s' ayrıntı düzeyi için belirsiz "
-"varyantları var. Ad ve ayrıntı düzeyi başına bir boyut kullanın."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -16906,6 +17101,15 @@ msgstr "Semantik görünüm güncellenemedi."
 #, fuzzy
 msgid "Semantic view does not exist"
 msgstr "Semantik görünüm mevcut değil"
+
+msgid "Semantic view fields could not be updated"
+msgstr ""
+
+msgid "Semantic view fields could not be updated. Please try again."
+msgstr ""
+
+msgid "Semantic view fields updated"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18349,6 +18553,9 @@ msgstr "Superset beklenmedik bir hatayla karşılaştı."
 msgid "Supported databases"
 msgstr "Desteklenen veritabanı"
 
+msgid "Supported grains"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -19235,6 +19442,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Nokta etiketleri için kullanmak için özellik özelliği"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "The following charts could not be exported:"
@@ -19528,54 +19745,31 @@ msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"Aşağıdaki veritabanı için şifreler onları grafiklerle birlikte ithal "
-"etmek için gereklidir. Lütfen veritabanı yapılandırmasının \"Güvenli "
-"Ekstra\" ve \"Certificate\" bölümlerinin ihracat dosyalarında mevcut "
-"olmadığını ve gerekli olup olmadığının ardından manuel olarak "
-"eklenmelidir."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Aşağıdaki veritabanı için şifreler panolarla birlikte ithal etmek için "
-"gereklidir. Lütfen veritabanı yapılandırmasının \"Güvenli Ekstra\" ve "
-"\"Certificate\" bölümlerinin ihracat dosyalarında mevcut olmadığını ve "
-"gerekli olup olmadığının ardından manuel olarak eklenmelidir."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"Aşağıdaki veritabanı için şifreler, onları veri setleriyle birlikte ithal"
-" etmek için gereklidir. Lütfen veritabanı yapılandırmasının \"Güvenli "
-"Ekstra\" ve \"Certificate\" bölümlerinin ihracat dosyalarında mevcut "
-"olmadığını ve gerekli olup olmadığının ardından manuel olarak "
-"eklenmelidir."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Aşağıdaki veritabanı için şifreler onları kaydedilen sorgularla birlikte "
-"ithal etmek için gereklidir. Lütfen veritabanı yapılandırmasının "
-"\"Güvenli Ekstra\" ve \"Certificate\" bölümlerinin ihracat dosyalarında "
-"mevcut olmadığını ve gerekli olup olmadığının ardından manuel olarak "
-"eklenmelidir."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19844,16 +20038,12 @@ msgstr "Ekran görüntüsü kaldırıldı."
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr "Ekran görüntüsü oluşturulur. Lütfen sayfayı terk etmeyin."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"The selected %(type)s are linked to %(charts)s and %(dashboards)s. "
 "Archiving them will make dependent charts unavailable until they are "
 "recovered."
 msgstr ""
-"Seçilen %(type)s, %(dashboards)s üzerindeki %(charts)s ile bağlantılı. "
-"Bunları arşivlemek, kurtarılana kadar bağımlı grafikleri kullanılamaz "
-"hale getirir."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19864,14 +20054,11 @@ msgstr ""
 "Seçilen %(type)s, %(charts)s tarafından kullanılıyor. Bunları arşivlemek,"
 " kurtarılana kadar bağımlı grafikleri kullanılamaz hale getirir."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %s are linked to %s on %s. Deleting them will break those "
+"The selected %s are linked to %s and %s. Deleting them will break those "
 "objects."
 msgstr ""
-"Seçilen %s, %s üzerindeki %s ile bağlantılı. Bunları silmek bu nesneleri "
-"bozar."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20697,15 +20884,11 @@ msgstr ""
 "yöneticiler değiştirebilir; bu değişikliği yapmak için \"Şu kullanıcı "
 "olarak çalıştır\" alanını kendi hesabınıza ayarlayın."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it "
 "will make dependent charts unavailable until it is recovered."
 msgstr ""
-"Bu %(type)s, %(dashboards)s üzerindeki %(charts)s ile bağlantılı. "
-"Arşivlemek, kurtarılana kadar bağımlı grafikleri kullanılamaz hale "
-"getirir."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20818,6 +21001,13 @@ msgid ""
 "mydatabase.com)."
 msgstr "Bu bir IP adresi (e.g. 127.0.0.1) veya bir alan adı (e.g. mydatabase.com)."
 
+msgid ""
+"This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
+"mydatabase.com). For a named instance (host\\INSTANCE), enter only the "
+"host here and the port the instance listens on below, or connect with a "
+"SQLAlchemy URI instead."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "This cannot be undone."
@@ -20843,8 +21033,21 @@ msgstr ""
 "Bu grafik verisetleri ile aynı isme sahip sütunları içeren grafiklere "
 "çapraz filtreleme uygular."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Bu grafik farklı bir filtre alanına taşındı."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -20872,6 +21075,11 @@ msgstr "Bu grafik artık mevcut değil."
 #, fuzzy
 msgid "This chart only"
 msgstr "Yalnızca bu grafik"
+
+msgid ""
+"This chart uses legacy color positions past the end of the selected color"
+" scheme, so its band colors cannot be previewed or edited here."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20934,6 +21142,12 @@ msgstr "Bu sütun mevcut veri setleriyle uyumlu olabilir"
 
 msgid "This column must contain date/time information."
 msgstr "Bu sütun tarih/zaman bilgileri içermelidir."
+
+msgid ""
+"This connection stores embedded guest credentials, which only apply with "
+"\"Impersonate logged in user\" turned on. Clear the embedded credentials "
+"before turning impersonation off."
+msgstr ""
 
 msgid ""
 "This control filters the whole chart based on the selected time range. "
@@ -21420,6 +21634,12 @@ msgid ""
 msgstr ""
 "Bu semantik sağlayıcı bu sorguyu desteklemiyor. Desteklenmeyen filtreleri"
 " veya gruplamayı kaldırıp tekrar deneyin."
+
+msgid ""
+"This semantic view configuration version or its selected fields are no "
+"longer supported. Re-open the view, re-select its fields, and save. If "
+"field editing is unavailable, delete the view and re-add it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22291,6 +22511,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Semantik görünümler alınamıyor. Katman yapılandırmasını kontrol edin."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Böyle bir tatil bulmak mümkün değil: [  %(holiday)s ]"
 
@@ -22627,6 +22851,10 @@ msgstr "Başlıksız sorgu"
 msgid "Unverified"
 msgstr "Onaylı"
 
+#, python-format
+msgid "Up to %s"
+msgstr ""
+
 msgid "Update"
 msgstr "Güncelle"
 
@@ -22764,6 +22992,9 @@ msgstr "Mevcut ölçüde kullanın"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "metrik değerin bir zamantampamp olmadığı zaman bile tarih formatı kullanın"
 
+msgid "Use default"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -22804,6 +23035,9 @@ msgstr "sütunlar veya satırlar için üst düzey bir grup olarak metrikleri ku
 msgid "Use only a single value."
 msgstr "Sadece tek bir değer kullanın."
 
+msgid "Use scheme colors"
+msgstr ""
+
 msgid "Use the Advanced Analytics options below"
 msgstr "Aşağıdaki Gelişmiş Analytics seçeneklerini kullanın"
 
@@ -22822,6 +23056,14 @@ msgid ""
 msgstr ""
 "Eklentiyi tanımlamak için içsel olarak kullanılır. Eklenti paketinden "
 "paketin adına ayarlanmalıdır.json"
+
+msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
 
 msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
@@ -23152,6 +23394,9 @@ msgstr "Görüntüleyici"
 msgid "Viewers"
 msgstr "Görüntüleyiciler"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -23380,6 +23625,11 @@ msgstr "\"  %(column_name)s \" sütunu satır   %(location)s 'da çözemiyoruz."
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "\"%(column_name)s\" sütunu çözümlenemedi."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -23823,6 +24073,9 @@ msgstr "Word Cloud"
 
 msgid "Word Rotation"
 msgstr "Word Rotation"
+
+msgid "Work Group"
+msgstr ""
 
 msgid "Working"
 msgstr "Çalışma Çalışması"
@@ -24510,6 +24763,10 @@ msgstr ""
 "bölün) veya SUPERSET_DASHBOARD_POSITION_DATA_LIMIT yapılandırma ayarını "
 "artırın."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -24545,6 +24802,10 @@ msgstr "\"%(title)s\" dışa aktarımınız tamamlanamadı."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "\"%(title)s\" dışa aktarımınız hazır."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24880,9 +25141,6 @@ msgstr "ISO 3166-1 alfa-3 (cca3)"
 msgid "code International Olympic Committee (cioc)"
 msgstr "Uluslararası Olimpiyat Komitesi (cioc)"
 
-msgid "color scheme for comparison"
-msgstr "Karşılaştırma için renk planı"
-
 #, fuzzy
 msgid "color type"
 msgstr "Filtre tipi"
@@ -24910,6 +25168,9 @@ msgstr "oluştur"
 
 msgid "create a new chart"
 msgstr "yeni grafik oluştur"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "SQL sorgusundan veriseti oluştur"
@@ -25060,8 +25321,14 @@ msgstr "e.g. ********"
 msgid "e.g. 127.0.0.1"
 msgstr "e.g. 127.0.0.1"
 
+msgid "e.g. 1433"
+msgstr ""
+
 msgid "e.g. 5432"
 msgstr "e.g. 5432"
+
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
 
 msgid "e.g. AccountAdmin"
 msgstr "e.g. AccountAdmin"
@@ -25075,14 +25342,26 @@ msgstr "e.g. hesaplama wh"
 msgid "e.g. default"
 msgstr "e.g. default"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr "E.g. hive metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "e.g. param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "e.g. sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "e.g. world population"
@@ -25273,6 +25552,12 @@ msgstr "Sahtedir"
 
 #, python-format
 msgid ""
+"is linked to %s charts and %s dashboards. Are you sure you want to "
+"continue? Deleting the dataset will break those objects."
+msgstr ""
+
+#, python-format
+msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
@@ -25280,15 +25565,6 @@ msgstr ""
 "%s grafiklerle   %s panoları ve kullanıcıların bu veritabanını kullanarak"
 "   %s SQL Lab sekmeleri vardır. Devam etmek istediğinizden emin misiniz? "
 "Veritabanını bitirmek bu nesneleri kıracaktır."
-
-#, python-format
-msgid ""
-"is linked to %s charts that appear on %s dashboards. Are you sure you "
-"want to continue? Deleting the dataset will break those objects."
-msgstr ""
-"%s grafiklerle bağlantılı,   %s panoları üzerinde görünür. Devam etmek "
-"istediğinizden emin misiniz? Veri setini bitirmek bu nesneleri "
-"kıracaktır."
 
 msgid "is not"
 msgstr "Değil"
@@ -25758,6 +26034,9 @@ msgstr "Handlebars grafik belgeleri"
 msgid "theme"
 msgstr "Zaman"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -25843,6 +26122,9 @@ msgstr "y: değerler her satır içinde normalleşir"
 
 msgid "year"
 msgstr "yıl"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

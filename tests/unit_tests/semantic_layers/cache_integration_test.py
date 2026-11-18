@@ -42,6 +42,7 @@ from superset_core.semantic_layers.layer import (
 from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
+    DimensionSelection,
     Filter,
     Grains,
     Metric,
@@ -90,9 +91,11 @@ def test_partial_month_ranges_bypass_grained_containment(
     narrow_start: bool, grained_axis: bool, grained_filter: bool
 ) -> None:
     """Raw WHERE bounds cannot be applied to cached monthly bucket starts."""
-    raw: Dimension = Dimension("date", "date", pa.date32())
-    axis: Dimension = replace(raw, grain=Grains.MONTH) if grained_axis else raw
-    filter_column: Dimension = axis if grained_filter else raw
+    raw: DimensionSelection = DimensionSelection(
+        Dimension("date", "date", pa.date32(), grains=frozenset({Grains.MONTH}))
+    )
+    axis: DimensionSelection = replace(raw, grain=Grains.MONTH) if grained_axis else raw
+    filter_column: DimensionSelection = axis if grained_filter else raw
     metric: Metric = Metric(
         "revenue",
         "revenue",
@@ -258,6 +261,9 @@ def provider() -> MagicMock:
     implementation.features = frozenset()
     implementation.get_metrics.return_value = {revenue, cost}
     implementation.get_dimensions.return_value = {country, city}
+    implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: implementation.get_dimensions()
+    )
     return implementation
 
 

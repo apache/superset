@@ -42,9 +42,11 @@ def date_view(mocker: MockerFixture) -> MagicMock:
             id="orders.ORDER_DATE",
             name="ORDER_DATE",
             type=pa.date32(),
-            grain=None,
         )
     }
+    provider.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: provider.get_dimensions()
+    )
     provider.get_metrics.return_value = {
         Metric(
             id="orders.ORDER_COUNT",

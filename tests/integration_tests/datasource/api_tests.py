@@ -22,9 +22,11 @@ from datetime import datetime
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch, PropertyMock
 
+import pyarrow as pa
 import pytest
 from flask_appbuilder.security.sqla.models import PermissionView, Role
 from sqlalchemy.sql.elements import TextClause
+from superset_core.semantic_layers.types import Dimension
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
@@ -188,7 +190,9 @@ class TestDatasourceApi(SupersetTestCase):
         datasource.metadata_generation = "generation-1"
         datasource.cache_timeout = 300
         datasource.get_compatible_metrics.return_value = ["bookings"]
-        datasource.get_compatible_dimensions.return_value = ["country"]
+        datasource.get_compatible_dimension_metadata.return_value = {
+            Dimension(id="country", name="country", type=pa.string())
+        }
         self.login(ADMIN_USERNAME)
 
         cases: list[tuple[list[str], list[str], list[str]]] = [
@@ -234,6 +238,7 @@ class TestDatasourceApi(SupersetTestCase):
                     assert unknown in response.json["message"]
                 cache_get.assert_not_called()
         datasource.get_compatible_metrics.assert_not_called()
+        datasource.get_compatible_dimension_metadata.assert_not_called()
         datasource.get_compatible_dimensions.assert_not_called()
 
         with (
@@ -259,12 +264,20 @@ class TestDatasourceApi(SupersetTestCase):
         assert response.json["result"] == {
             "compatible_metrics": ["bookings"],
             "compatible_dimensions": ["country"],
+            "dimension_support": {
+                "country": {
+                    "grains": [],
+                    "allows_default_grain": True,
+                    "omitted_grain": "native",
+                    "ungrained_filter": "native",
+                }
+            },
         }
         datasource.get_compatible_metrics.assert_called_once_with(
-            ["bookings"], ["country"]
+            ["bookings"], ["country"], {}
         )
-        datasource.get_compatible_dimensions.assert_called_once_with(
-            ["bookings"], ["country"]
+        datasource.get_compatible_dimension_metadata.assert_called_once_with(
+            ["bookings"], ["country"], {}
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
@@ -304,7 +317,11 @@ class TestDatasourceApi(SupersetTestCase):
                 datasource.metadata_generation = "generation-1"
                 datasource.cache_timeout = 300
                 datasource.get_compatible_metrics.return_value = ["bookings"]
-                datasource.get_compatible_dimensions.return_value = ["country"]
+                datasource.get_compatible_dimension_metadata.return_value = (
+                    {Dimension(id="country", name="country", type=pa.string())}
+                    if has_members
+                    else set()
+                )
                 selected: list[Any] = (
                     (["bookings"] if field == "selected_metrics" else ["country"])
                     if has_members
@@ -338,10 +355,10 @@ class TestDatasourceApi(SupersetTestCase):
                     else []
                 )
                 datasource.get_compatible_metrics.assert_called_once_with(
-                    expected_metrics, expected_dimensions
+                    expected_metrics, expected_dimensions, {}
                 )
-                datasource.get_compatible_dimensions.assert_called_once_with(
-                    expected_metrics, expected_dimensions
+                datasource.get_compatible_dimension_metadata.assert_called_once_with(
+                    expected_metrics, expected_dimensions, {}
                 )
 
         assert all(status == 200 for _, _, _, status in observed), observed
@@ -412,6 +429,7 @@ class TestDatasourceApi(SupersetTestCase):
         columns.assert_not_called()
         datasource.get_compatible_metrics.assert_not_called()
         datasource.get_compatible_dimensions.assert_not_called()
+        datasource.get_compatible_dimension_metadata.assert_not_called()
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_ints(self):

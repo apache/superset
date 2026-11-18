@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:13-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4391,6 +4391,9 @@ msgstr ""
 msgid "Could not verify which dimensions are compatible. All dimensions are shown."
 msgstr ""
 
+msgid "Couldn't validate the selected fields. Check the selection and try again."
+msgstr ""
+
 msgid "Couldn't validate this semantic view: it may not exist, or the semantic layer is unreachable."
 msgstr ""
 
@@ -6726,6 +6729,9 @@ msgstr ""
 msgid "Explicit formats validate all values against bundled boundaries. Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or ambiguous values fail rather than displaying blank regions."
 msgstr ""
 
+msgid "Explicit grain required"
+msgstr ""
+
 msgid "Explore"
 msgstr ""
 
@@ -7614,9 +7620,6 @@ msgid "Google Sheet Name and URL"
 msgstr ""
 
 msgid "Grace period"
-msgstr ""
-
-msgid "Grain"
 msgstr ""
 
 msgid "Graph Chart"
@@ -9677,10 +9680,19 @@ msgstr ""
 msgid "Named instances can't be entered as the host. Enter only the host and the port the instance listens on, or connect with a SQLAlchemy URI instead."
 msgstr ""
 
+msgid "Native"
+msgstr ""
+
+msgid "Native allowed"
+msgstr ""
+
 msgid "Native filter column is required"
 msgstr ""
 
 msgid "Native filter values has no values"
+msgstr ""
+
+msgid "Native grain"
 msgstr ""
 
 msgid "Need help? Learn how to connect your database"
@@ -10254,6 +10266,9 @@ msgid "Offline"
 msgstr ""
 
 msgid "Older history exists but is beyond what can be shown here."
+msgstr ""
+
+msgid "Omitted grain"
 msgstr ""
 
 msgid "On Grace"
@@ -11360,6 +11375,13 @@ msgstr ""
 msgid "Re-pick fields for this chart"
 msgstr ""
 
+msgid "Re-select fields"
+msgstr ""
+
+#, python-format
+msgid "Re-select fields for %s"
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
@@ -12327,6 +12349,9 @@ msgstr ""
 msgid "Save dataset"
 msgstr ""
 
+msgid "Save fields"
+msgstr ""
+
 msgid "Save for this session"
 msgstr ""
 
@@ -12973,10 +12998,6 @@ msgstr ""
 msgid "Semantic colors"
 msgstr ""
 
-#, python-format
-msgid "Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. Use one dimension per name and grain."
-msgstr ""
-
 msgid "Semantic layer"
 msgstr ""
 
@@ -13023,6 +13044,15 @@ msgid "Semantic view could not be updated."
 msgstr ""
 
 msgid "Semantic view does not exist"
+msgstr ""
+
+msgid "Semantic view fields could not be updated"
+msgstr ""
+
+msgid "Semantic view fields could not be updated. Please try again."
+msgstr ""
+
+msgid "Semantic view fields updated"
 msgstr ""
 
 msgid "Semantic view parameters are invalid."
@@ -14084,6 +14114,9 @@ msgid "Superset encountered an unexpected error."
 msgstr ""
 
 msgid "Supported databases"
+msgstr ""
+
+msgid "Supported grains"
 msgstr ""
 
 #, python-format
@@ -15920,6 +15953,9 @@ msgid "This semantic provider cannot apply the requested offset. Turn off pagina
 msgstr ""
 
 msgid "This semantic provider does not support this query. Remove unsupported filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view configuration version or its selected fields are no longer supported. Re-open the view, re-select its fields, and save. If field editing is unavailable, delete the view and re-add it."
 msgstr ""
 
 msgid "This semantic view does not support server pagination."

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SemanticDimensionSupport } from '@superset-ui/chart-controls';
 import { Column } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
@@ -75,7 +76,10 @@ export const mapSemanticTypeToGenericDataType = (
 export interface SemanticViewStructure {
   name?: string;
   semantic_selection_version?: string;
-  dimensions: { name: string; type: string }[];
+  dimensions: ({
+    name: string;
+    type: string;
+  } & Partial<SemanticDimensionSupport>)[];
   metrics: { name: string; definition: string }[];
 }
 

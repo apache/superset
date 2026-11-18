@@ -26,6 +26,7 @@ import pyarrow as pa
 import pytest
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     FilterExpression,
     Operator,
@@ -128,7 +129,9 @@ def test_empty_membership_is_a_constant_predicate(
     """Empty membership reaches providers as one empty-set leaf, not an error."""
     assert _convert_query_object_filter(
         {"col": "category", "op": operator, "val": []}, {"category": CATEGORY}
-    ) == {Filter(PredicateType.WHERE, CATEGORY, expected, frozenset())}
+    ) == {
+        Filter(PredicateType.WHERE, DimensionSelection(CATEGORY), expected, frozenset())
+    }
 
 
 @pytest.mark.parametrize("operator", ["IN", "NOT IN"])
@@ -139,6 +142,10 @@ def test_provider_receives_empty_membership_beside_other_filters(
     datasource: MagicMock = MagicMock()
     datasource.implementation.features = frozenset()
     datasource.implementation.get_dimensions.return_value = {CATEGORY}
+    datasource.implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics,
+        selected_dimensions: datasource.implementation.get_dimensions()
+    )
     datasource.implementation.get_metrics.return_value = set()
     datasource.implementation.get_table.return_value = SemanticResult(
         requests=[], results=pa.table({"category": pa.array([], pa.string())})
@@ -154,8 +161,15 @@ def test_provider_receives_empty_membership_beside_other_filters(
     get_results(query)
     mapped: SemanticQuery = datasource.implementation.get_table.call_args.args[0]
     assert mapped.filters == {
-        Filter(PredicateType.WHERE, CATEGORY, Operator(operator), frozenset()),
-        Filter(PredicateType.WHERE, CATEGORY, Operator.NOT_EQUALS, "b"),
+        Filter(
+            PredicateType.WHERE,
+            DimensionSelection(CATEGORY),
+            Operator(operator),
+            frozenset(),
+        ),
+        Filter(
+            PredicateType.WHERE, DimensionSelection(CATEGORY), Operator.NOT_EQUALS, "b"
+        ),
     }
 
 
@@ -167,6 +181,10 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
     datasource: MagicMock = MagicMock()
     datasource.implementation.features = frozenset()
     datasource.implementation.get_dimensions.return_value = {CATEGORY}
+    datasource.implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics,
+        selected_dimensions: datasource.implementation.get_dimensions()
+    )
     datasource.implementation.get_metrics.return_value = set()
     datasource.implementation.get_table.return_value = SemanticResult(
         requests=[], results=pa.table({"category": ["a", None]})
@@ -193,9 +211,17 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
             frozenset(
                 {
                     Filter(
-                        PredicateType.WHERE, CATEGORY, Operator.IN, frozenset({"a"})
+                        PredicateType.WHERE,
+                        DimensionSelection(CATEGORY),
+                        Operator.IN,
+                        frozenset({"a"}),
                     ),
-                    Filter(PredicateType.WHERE, CATEGORY, Operator.IS_NULL, None),
+                    Filter(
+                        PredicateType.WHERE,
+                        DimensionSelection(CATEGORY),
+                        Operator.IS_NULL,
+                        None,
+                    ),
                 }
             )
         )
@@ -209,8 +235,10 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
 @pytest.mark.parametrize("stage", [PredicateType.WHERE, PredicateType.HAVING])
 def test_or_group_is_hashable_and_keeps_predicate_stage(stage: PredicateType) -> None:
     """OR leaves retain their common evaluation stage and identity."""
-    leaf: Filter = Filter(stage, CATEGORY, Operator.IN, frozenset({"a"}))
-    null: Filter = Filter(stage, CATEGORY, Operator.IS_NULL, None)
+    leaf: Filter = Filter(
+        stage, DimensionSelection(CATEGORY), Operator.IN, frozenset({"a"})
+    )
+    null: Filter = Filter(stage, DimensionSelection(CATEGORY), Operator.IS_NULL, None)
     group: OrFilter = OrFilter(frozenset({leaf, null}))
     assert len({group, OrFilter(frozenset({null, leaf}))}) == 1
     assert {child.type for child in group.filters} == {stage}
@@ -229,7 +257,9 @@ def test_or_group_rejects_invalid_children(invalid: object) -> None:
 
 def test_or_group_rejects_nested_or_mixed_stage_children() -> None:
     """Flattening nested groups or mixing WHERE/HAVING would change the query."""
-    leaf: Filter = Filter(PredicateType.WHERE, CATEGORY, Operator.IS_NULL, None)
+    leaf: Filter = Filter(
+        PredicateType.WHERE, DimensionSelection(CATEGORY), Operator.IS_NULL, None
+    )
     other: Filter = replace(leaf, operator=Operator.IS_NOT_NULL)
     with pytest.raises(ValueError, match="predicate stage"):
         OrFilter(frozenset({leaf, replace(other, type=PredicateType.HAVING)}))
@@ -247,6 +277,10 @@ def test_main_offset_and_group_limit_receive_groups_without_opt_in() -> None:
     datasource.fetch_values_predicate = None
     datasource.implementation.features = frozenset()
     datasource.implementation.get_dimensions.return_value = {CATEGORY, timestamp}
+    datasource.implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics,
+        selected_dimensions: datasource.implementation.get_dimensions()
+    )
     datasource.implementation.get_metrics.return_value = set()
     query: ValidatedQueryObject = ValidatedQueryObject(
         datasource=datasource,
@@ -280,24 +314,35 @@ def test_main_offset_and_group_limit_receive_groups_without_opt_in() -> None:
         assert len(groups) == 1
         assert (
             Filter(
-                PredicateType.WHERE, timestamp, Operator.GREATER_THAN_OR_EQUAL, lower
+                PredicateType.WHERE,
+                DimensionSelection(timestamp),
+                Operator.GREATER_THAN_OR_EQUAL,
+                lower,
             )
             in mapped.filters
         )
         assert (
-            Filter(PredicateType.WHERE, timestamp, Operator.LESS_THAN, upper)
+            Filter(
+                PredicateType.WHERE,
+                DimensionSelection(timestamp),
+                Operator.LESS_THAN,
+                upper,
+            )
             in mapped.filters
         )
         assert mapped.group_limit is not None
         assert mapped.group_limit.filters == groups | {
             Filter(
                 PredicateType.WHERE,
-                timestamp,
+                DimensionSelection(timestamp),
                 Operator.GREATER_THAN_OR_EQUAL,
                 datetime(2020, 1, 2),
             ),
             Filter(
-                PredicateType.WHERE, timestamp, Operator.LESS_THAN, datetime(2020, 2, 2)
+                PredicateType.WHERE,
+                DimensionSelection(timestamp),
+                Operator.LESS_THAN,
+                datetime(2020, 2, 2),
             ),
         }
 
@@ -318,11 +363,19 @@ def test_mixed_null_membership_preserves_scalar_coercion(
     group: FilterExpression = next(iter(expressions))
     assert isinstance(group, OrFilter)
     assert (
-        Filter(PredicateType.WHERE, dimension, Operator.IN, frozenset({expected}))
+        Filter(
+            PredicateType.WHERE,
+            DimensionSelection(dimension),
+            Operator.IN,
+            frozenset({expected}),
+        )
         in group.filters
     )
     assert (
-        Filter(PredicateType.WHERE, dimension, Operator.IS_NULL, None) in group.filters
+        Filter(
+            PredicateType.WHERE, DimensionSelection(dimension), Operator.IS_NULL, None
+        )
+        in group.filters
     )
 
 
@@ -332,7 +385,14 @@ def test_null_disjunction_stays_conjoined_with_other_filters() -> None:
         {"col": "category", "op": "IN", "val": ["a", None]}, {"category": CATEGORY}
     )
     assert expressions is not None
-    expressions.add(Filter(PredicateType.WHERE, CATEGORY, Operator.IS_NOT_NULL, None))
+    expressions.add(
+        Filter(
+            PredicateType.WHERE,
+            DimensionSelection(CATEGORY),
+            Operator.IS_NOT_NULL,
+            None,
+        )
+    )
     rows: list[str | None] = [None, "a", "b"]
     assert [
         row for row in rows if all(_matches(item, row) for item in expressions)
