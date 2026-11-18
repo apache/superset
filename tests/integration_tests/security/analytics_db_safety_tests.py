@@ -15,12 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 from typing import Optional
+from unittest.mock import patch
 
 import pytest
+from flask import current_app
 from sqlalchemy.engine.url import make_url
 
 from superset.exceptions import SupersetSecurityException
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
+
+
+@pytest.fixture
+def allowed_dialects(app_context):
+    """Temporarily override ALLOWED_UNSAFE_DB_DIALECTS, restoring it afterwards."""
+
+    def _set(dialects: object) -> None:
+        current_app.config["ALLOWED_UNSAFE_DB_DIALECTS"] = dialects
+
+    with patch.dict(current_app.config):
+        yield _set
 
 
 @pytest.mark.parametrize(
@@ -120,7 +133,7 @@ from superset.security.analytics_db_safety import check_sqlalchemy_uri
     ],
 )
 def test_check_sqlalchemy_uri(
-    sqlalchemy_uri: str, error: bool, error_message: Optional[str]
+    app_context, sqlalchemy_uri: str, error: bool, error_message: Optional[str]
 ):
     if error:
         with pytest.raises(SupersetSecurityException) as excinfo:  # noqa: PT012
@@ -128,3 +141,76 @@ def test_check_sqlalchemy_uri(
             assert str(excinfo.value) == error_message
     else:
         check_sqlalchemy_uri(make_url(sqlalchemy_uri))
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri",
+    [
+        "duckdb:///:memory:",
+        "duckdb:////tmp/local.db",
+        "duckdb:///md:my_db?motherduck_token=tok",
+        "duckdb+duckdb_engine:////tmp/local.db",
+    ],
+)
+def test_allowed_dialect_permits_otherwise_blocked_uri(
+    allowed_dialects, sqlalchemy_uri: str
+):
+    """A dialect added to ALLOWED_UNSAFE_DB_DIALECTS is accepted, including the
+    MotherDuck cloud variant and alternative drivers via the base-dialect split."""
+    allowed_dialects({"duckdb"})
+    check_sqlalchemy_uri(make_url(sqlalchemy_uri))
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri",
+    [
+        "sqlite:///home/superset/bad.db",
+        "shillelagh:///home/superset/bad.db",
+    ],
+)
+def test_allowlist_is_per_dialect(allowed_dialects, sqlalchemy_uri: str):
+    """Allowing one dialect does not re-enable the others in the blocklist."""
+    allowed_dialects({"duckdb"})
+    with pytest.raises(SupersetSecurityException):
+        check_sqlalchemy_uri(make_url(sqlalchemy_uri))
+
+
+@pytest.mark.parametrize(
+    "allowed_entry",
+    [
+        "DuckDB",  # different case
+        "duckdb+duckdb_engine",  # an operator-supplied "+driver" suffix
+        "  duckdb  ",  # stray whitespace
+    ],
+)
+def test_allowlist_entry_is_normalized(allowed_dialects, allowed_entry: str):
+    """An operator entry opts the dialect in regardless of case, a "+driver"
+    suffix or surrounding whitespace, matching how the blocklist treats them."""
+    allowed_dialects({allowed_entry})
+    check_sqlalchemy_uri(make_url("duckdb:///md:my_db?motherduck_token=tok"))
+
+
+@pytest.mark.parametrize(
+    "allowlist",
+    [
+        set(),  # the default: built-in blocklist unchanged
+        None,  # treated as no allowlist rather than erroring
+        # A bare string iterates as single characters, none of which match a
+        # dialect name, so the check fails closed instead of relaxing a block.
+        "duckdb",
+    ],
+)
+def test_empty_or_malformed_allowlist_keeps_block(allowed_dialects, allowlist):
+    """An empty, ``None`` or string-valued allowlist leaves duckdb blocked."""
+    allowed_dialects(allowlist)
+    with pytest.raises(SupersetSecurityException):
+        check_sqlalchemy_uri(make_url("duckdb:///:memory:"))
+
+
+def test_allowlist_cannot_relax_superset_meta_db_block(allowed_dialects):
+    """The feature-flag-gated ``superset`` meta-database block is not
+    allowlistable: listing it must not bypass ENABLE_SUPERSET_META_DB (which is
+    off by default in the test app, so the ``superset`` block is active)."""
+    allowed_dialects({"superset"})
+    with pytest.raises(SupersetSecurityException):
+        check_sqlalchemy_uri(make_url("superset://"))

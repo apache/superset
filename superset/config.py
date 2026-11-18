@@ -3281,6 +3281,15 @@ STATIC_ASSETS_PREFIX = ""
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
 
+# Dialects blocked by default (sqlite, shillelagh, duckdb) that this deployment
+# chooses to permit, eg {"duckdb"} for duckdb/MotherDuck. These dialects can
+# resolve local filesystem paths at query time, so only allow one where the
+# users who can create or edit database connections are trusted with that
+# access. Matching is on the base dialect, case-insensitive, ignoring any
+# "+driver" suffix; any other name is ignored. No effect when
+# PREVENT_UNSAFE_DB_CONNECTIONS is False.
+ALLOWED_UNSAFE_DB_DIALECTS: set[str] = set()
+
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 
