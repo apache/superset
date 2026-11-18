@@ -194,12 +194,6 @@ export interface BootstrapData {
     allowed_domains?: string[];
   };
   requested_query?: JsonObject;
-  // An extension's standalone page, rendered in place of the app's routes:
-  // the page's id and the params its endpoint passed to `render_page`.
-  extension_page?: {
-    id: string;
-    params: Record<string, string>;
-  };
 }
 
 export interface BootstrapThemeData {

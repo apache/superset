@@ -61,7 +61,6 @@ from superset.extensions import (
     appbuilder,
     cache_manager,
     celery_app,
-    csp as extension_csp,
     csrf,
     db,
     encrypted_field_factory,
@@ -1738,10 +1737,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]
 
         if talisman_enabled:
-            # Before Talisman: Flask runs after_request functions in reverse,
-            # so the CSP sources that extensions declare are merged into the
-            # policy once Talisman has set it.
-            extension_csp.init_app(self.superset_app)
             talisman.init_app(self.superset_app, **talisman_config)
 
         show_csp_warning = False
