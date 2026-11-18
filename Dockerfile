@@ -261,9 +261,10 @@ COPY scripts/check-env.py scripts/
 COPY --chmod=755 ./docker/entrypoints/run-server.sh /usr/bin/
 
 # Some debian libs. Only runtime shared libraries belong here: the matching
-# `-dev` packages drag in a full C toolchain (libc6-dev, linux-libc-dev,
-# libssl-dev, ...) that no final image needs. Stages that compile native Python
-# extensions install the headers they require themselves.
+# `-dev` header packages pull in libc6-dev, linux-libc-dev, libssl-dev and
+# similar build-time files that no final image needs. Stages that compile
+# native Python extensions install the headers they require themselves. The
+# LDAP library name differs per Debian release, so it is chosen below.
 RUN . /etc/os-release && \
     if [ "$VERSION_CODENAME" = "bookworm" ]; then \
         ldap_runtime_package=libldap-2.5-0; \
