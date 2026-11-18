@@ -60,7 +60,9 @@ def artifact_binding(request: BindingRequest) -> dict[str, Any] | None:
         artifacts = open_artifacts()
     except ArtifactError:
         return None
-    return placement_binding(artifacts.store, current_actor(), request)
+    return placement_binding(
+        artifacts.store, artifacts.policy, current_actor(), request
+    )
 
 
 @widget(

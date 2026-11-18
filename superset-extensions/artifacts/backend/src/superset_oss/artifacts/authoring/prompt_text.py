@@ -46,6 +46,7 @@ from superset_artifacts_sdk.authoring import (
     ARTIFACT_STR_REPLACE,
     ARTIFACT_VIEW,
 )
+from superset_artifacts_sdk.policy import ArtifactPolicy
 from superset_oss.artifacts.constants import (
     ARTIFACT_UPLOAD_BLOBS,
     ID_PREFIX,
@@ -63,14 +64,56 @@ def _tool(name: str) -> str:
     return f"`{ID_PREFIX}{name}`"
 
 
-def create_artifact_text() -> str:
-    """The authoring contract an agent reads before it writes an artifact."""
+def _packages_rule(policy: ArtifactPolicy) -> str:
+    packages = policy.packages
+    if packages.mode == "builtin":
+        return (
+            "- No npm packages here: write plain JavaScript, or React when the "
+            "manifest's `runtime` is `react`. A manifest that lists any in "
+            "`dependencies` is refused with POLICY_DENIED."
+        )
+    allowed = (
+        f"Only these packages are allowed: {', '.join(sorted(packages.allow))}."
+        if packages.mode == "allowlist" and packages.allow
+        else "No package is on the allowlist yet, so use none."
+        if packages.mode == "allowlist"
+        else "Any package works, once its release is old enough."
+    )
+    return (
+        '- Import npm packages by name (`import * as d3 from "d3"`) and pin each '
+        'one in the manifest\'s `dependencies` to an exact version ("7.9.0", '
+        'never "^7" or "latest"). The build resolves them. ' + allowed + " "
+        "Packages that need the network or Node APIs don't work."
+    )
+
+
+def _compute_rule(policy: ArtifactPolicy) -> str:
+    allowed = [
+        name
+        for name, on in (
+            ("WebAssembly (declare `compute.wasm`)", policy.compute.wasm),
+            (
+                "workers from blob: URLs (declare `compute.workers`)",
+                policy.compute.workers,
+            ),
+        )
+        if on
+    ]
+    if not allowed:
+        return "- No workers, no WebAssembly, no `eval` or `new Function`."
+    named = " and ".join(allowed)
+    return f"- {named[0].upper()}{named[1:]} work; `eval` and `new Function` never do."
+
+
+def create_artifact_text(policy: ArtifactPolicy) -> str:
+    """What an agent reads before it writes an artifact, under ``policy``."""
     upload = _tool(ARTIFACT_UPLOAD_BLOBS)
     return f"""# Writing a Superset artifact
 
 An artifact is a small app (HTML, CSS and JavaScript, or React) that you write
 into Superset and place on a canvas. Its code runs in a locked sandbox frame,
-so write it for the rules below from the start.
+so write it for the rules below from the start. This Superset's policy is
+{policy.profile.value}; a write it refuses answers POLICY_DENIED and names why.
 
 ## The sandbox
 
@@ -79,12 +122,11 @@ so write it for the rules below from the start.
 - There is no network. fetch, XMLHttpRequest, WebSocket, EventSource and
   sendBeacon fail, and nothing loads from a URL. Data arrives only through
   `window.superset`.
-- No popups or new windows, no forms, no nested iframes, no workers, no
-  WebAssembly, no `eval` or `new Function`.
-- Import npm packages by name (`import * as d3 from "d3"`) and pin each one in
-  the manifest's `dependencies` to an exact version ("7.9.0", never "^7" or
-  "latest"). The build resolves them. Packages that need the network, Node
-  APIs, WebAssembly or workers don't work.
+- No popups or new windows, no forms, no nested iframes.
+{_compute_rule(policy)}
+{_packages_rule(policy)}
+- At most {policy.limits.files} files of {policy.limits.file_bytes} bytes each,
+  and {policy.data.max_bindings} bindings of {policy.data.max_rows} rows each.
 - Size from the frame: `document.documentElement.clientWidth` and a `resize`
   listener. Put data values on the page with `textContent`, never
   `innerHTML`.
@@ -140,8 +182,7 @@ Nothing you write is visible to viewers until the user confirms publishing.
   "events": [
     {{"kind": "cross_filter", "binding": "revenue_by_region", "dimension": "region"}}
   ],
-  "capabilities": ["data", "cross_filter", "theme"],
-  "dependencies": {{"d3": "7.9.0"}}
+  "capabilities": ["data", "cross_filter", "theme"]
 }}
 ```
 

@@ -44,7 +44,7 @@ user as ``actor`` and decide who that is.
 
 # TODO: owners stand in for the editors and viewers that each artifact gets
 # once it is a persisted widget.
-# TODO: per-artifact quotas; MAX_FILE_BYTES and MAX_FILES are flat caps.
+# TODO: per-artifact quotas, beyond the policy's limits on files.
 # TODO: garbage collection of blobs and trees no version holds, retention,
 # and GDPR erasure.
 # TODO: a retry-safe operation id on every write, and limits on how many pages
@@ -87,7 +87,7 @@ from superset_artifacts_sdk.manifest import (
     MANIFEST_FILE,
     MANIFEST_VERSION,
 )
-from superset_artifacts_sdk.policy import ArtifactPolicy, LOCKED
+from superset_artifacts_sdk.policy import ArtifactPolicy, LOCKED, manifest_problems
 from superset_artifacts_sdk.store import (
     ArtifactStoreBackend,
     DRAFT_REF,
@@ -107,8 +107,6 @@ from superset_oss.artifacts.errors import (
 # ``search``, comfortably under the MCP read tools' 50 KB limit.
 PAGE_BYTES = 40_000
 HISTORY_PAGE_SIZE = 100
-MAX_FILE_BYTES = 1_000_000
-MAX_FILES = 1_000
 # The most content one ``put_blobs`` call takes.
 MAX_UPLOAD_BYTES = 8_000_000
 # A search match's line is cut to this many characters.
@@ -415,7 +413,7 @@ class ArtifactFileStore:
             )
         self._check_file_count(files)
         contents = {path: self._file_bytes(path, text) for path, text in files.items()}
-        self._parse_manifest(contents[MANIFEST_FILE])
+        self._check_policy(self._parse_manifest(contents[MANIFEST_FILE]))
         # Check the whole tree before storing anything, so a rejected create
         # leaves nothing behind.
         planned = {path: sha256_hex(data) for path, data in contents.items()}
@@ -687,8 +685,9 @@ class ArtifactFileStore:
         not the artifact, so the same content is stored once.
         """
         self._authorize(actor, artifact_id)
-        if any(len(content) > MAX_FILE_BYTES for content in contents):
-            raise self._too_large(f"a file is over {MAX_FILE_BYTES} bytes")
+        limit = self._policy.limits.file_bytes
+        if any(len(content) > limit for content in contents):
+            raise self._too_large(f"a file is over {limit} bytes")
         if sum(len(content) for content in contents) > MAX_UPLOAD_BYTES:
             raise self._too_large(f"an upload is over {MAX_UPLOAD_BYTES} bytes")
         return [self._backend.put_blob(bytes(content)) for content in contents]
@@ -730,6 +729,7 @@ class ArtifactFileStore:
         current = self._draft_version(artifact_id)
         if current != request.base_version:
             raise self._stale(current)
+        self._check_policy(self._manifest_of(self._tree(current)))
         now = self._now()
         publish = PublishRequest(
             request_id=self._new_id(),
@@ -787,6 +787,8 @@ class ArtifactFileStore:
             )
         if not self.has_version(canonical, publish.version):
             raise self._version_not_found(publish.version)
+        # The policy may have tightened since the agent asked.
+        self._check_policy(self._manifest_of(self._tree(publish.version)))
         self._move_ref(canonical, PUBLISHED_REF, publish.version)
         confirmed = replace(
             publish, status="confirmed", confirmed_by=actor, confirmed_at=now
@@ -927,11 +929,12 @@ class ArtifactFileStore:
             ) from ex
 
     def _file_bytes(self, path: str, text: str) -> bytes:
-        """A file's text as UTF-8, within the size limit."""
+        """A file's text as UTF-8, within the policy's size limit."""
         data = _encode(text, path)
-        if len(data) > MAX_FILE_BYTES:
+        limit = self._policy.limits.file_bytes
+        if len(data) > limit:
             raise self._too_large(
-                f"{path!r} is {len(data)} bytes; the limit is {MAX_FILE_BYTES}"
+                f"{path!r} is {len(data)} bytes; the limit is {limit}"
             )
         return data
 
@@ -940,20 +943,33 @@ class ArtifactFileStore:
         return self._backend.put_blob(self._file_bytes(path, text))
 
     def _check_file_count(self, tree: Mapping[str, Any]) -> None:
-        if len(tree) > MAX_FILES:
+        limit = self._policy.limits.files
+        if len(tree) > limit:
             raise self._too_large(
-                f"{len(tree)} files; an artifact holds at most {MAX_FILES}"
+                f"{len(tree)} files; an artifact holds at most {limit}"
             )
 
     def _check_manifest(
         self, base_tree: Mapping[str, str], new_tree: Mapping[str, str]
     ) -> None:
-        """Every version has a valid manifest; it is checked whenever it changes."""
+        """
+        Every version has a valid manifest, which the policy admits; both are
+        checked whenever it changes.
+        """
         manifest_hash = new_tree.get(MANIFEST_FILE)
         if manifest_hash is None:
             raise self._manifest_required("left out")
         if manifest_hash != base_tree.get(MANIFEST_FILE):
-            self._parse_manifest(self._blob(manifest_hash))
+            self._check_policy(self._parse_manifest(self._blob(manifest_hash)))
+
+    def _check_policy(self, manifest: ArtifactManifest) -> None:
+        """``POLICY_DENIED``, naming each knob, unless the policy admits it."""
+        if problems := manifest_problems(manifest, self._policy):
+            raise ArtifactError(
+                AuthoringErrorCode.POLICY_DENIED,
+                f"the {self._policy.profile.value} policy here refuses "
+                f"{MANIFEST_FILE}: {'; '.join(problems)}",
+            )
 
     def _parse_manifest(self, data: bytes) -> ArtifactManifest:
         with translate_invalid_manifest():

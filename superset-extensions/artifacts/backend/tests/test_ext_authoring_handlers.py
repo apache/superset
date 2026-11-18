@@ -45,7 +45,7 @@ from superset_artifacts_sdk.authoring import (
     ArtifactViewRequest,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest
-from superset_artifacts_sdk.policy import ArtifactPolicy, LOCKED
+from superset_artifacts_sdk.policy import ArtifactPolicy, LOCKED, policy_layer
 from superset_artifacts_sdk.provider import (
     ArtifactRef,
     BuildResult,
@@ -449,7 +449,7 @@ def test_commit_by_hash_with_uploads(
 
 
 def test_the_prompts_name_the_prefixed_tools_and_a_valid_manifest() -> None:
-    text = create_artifact_text()
+    text = create_artifact_text(LOCKED)
     example = re.search(r"```json\n(.*?)```", text, re.S)
 
     assert f"`{ID_PREFIX}artifact_str_replace`" in text
@@ -462,7 +462,7 @@ def test_the_prompts_name_the_prefixed_tools_and_a_valid_manifest() -> None:
 
 def test_the_prompt_teaches_no_parameter_values() -> None:
     """The host refuses every parameter value, so the contract can't teach one."""
-    text = create_artifact_text()
+    text = create_artifact_text(LOCKED)
     example = re.search(r"```json\n(.*?)```", text, re.S)
 
     assert example is not None
@@ -486,3 +486,46 @@ def test_the_providers_layer_narrows_the_deployments_policy(
         set_deployment_policy(None)
 
     assert [policy.profile for _, policy in provider.built] == ["locked", "standard"]
+
+
+def test_the_prompt_teaches_what_the_policy_allows() -> None:
+    def prose(policy: ArtifactPolicy) -> str:
+        return " ".join(create_artifact_text(policy).split())
+
+    locked = prose(LOCKED)
+    assert "policy is locked" in locked
+    assert "No npm packages here" in locked
+    assert "No workers, no WebAssembly" in locked
+
+    allowlist = prose(
+        policy_layer({"profile": "standard", "packages": {"allow": ["three", "d3"]}})
+    )
+    assert "Only these packages are allowed: d3, three." in allowlist
+    assert "WebAssembly (declare `compute.wasm`) work" in allowlist
+
+
+def test_a_build_fails_for_what_the_policy_refuses(
+    provider: FakeProvider, handlers: AuthoringHandlers
+) -> None:
+    """A draft the policy refuses fails its build, even if the provider's passes."""
+    set_deployment_policy({"profile": "open"})
+    try:
+        created = handlers.create(
+            OWNER,
+            ArtifactCreateRequest(
+                files={
+                    "manifest.json": json.dumps(
+                        {"artifact_version": "1", "dependencies": {"d3": "7.9.0"}}
+                    )
+                }
+            ),
+        )
+    finally:
+        set_deployment_policy(None)
+
+    built = handlers.build(
+        OWNER, ArtifactBuildRequest(artifact_id=created["artifact_id"])
+    )
+
+    assert built["ok"] is False
+    assert any("'d3'" in item["message"] for item in built["diagnostics"])

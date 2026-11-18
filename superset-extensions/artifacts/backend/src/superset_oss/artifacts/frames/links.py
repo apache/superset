@@ -27,30 +27,40 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset_artifacts_sdk.provider import ArtifactRef, FrameLinkMinter, FrameMode
-from superset_oss.artifacts.errors import translate_missing_version
+from superset_artifacts_sdk.authoring import AuthoringErrorCode
+from superset_artifacts_sdk.policy import ArtifactPolicy, FrameMode, surface_allowed
+from superset_artifacts_sdk.provider import ArtifactRef, FrameLinkMinter
+from superset_oss.artifacts.errors import ArtifactError, translate_missing_version
 from superset_oss.artifacts.frames.access import ServedVersion
 from superset_oss.artifacts.frames.grants import frame_context, host_manifest
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 
-def link_payload(
+def link_payload(  # noqa: PLR0913
     minter: FrameLinkMinter,
     store: ArtifactFileStore,
     served: ServedVersion,
     mode: FrameMode,
     host_url: str,
+    policy: ArtifactPolicy,
 ) -> dict[str, Any]:
     """
     Mint a link to ``served`` for a frame in ``mode``, on the page at ``host_url``.
 
-    Raises ``ArtifactError`` when the served version's manifest no longer
+    Raises ``ArtifactError`` when ``policy`` keeps artifacts off this surface
+    (``POLICY_DENIED``), when the served version's manifest no longer
     validates (``INVALID_MANIFEST``), and when the provider no longer holds
     the version (``VERSION_NOT_FOUND``), as after a publish that lands
     between reading the version and minting the link.
     """
+    if not surface_allowed(policy, mode):
+        raise ArtifactError(
+            AuthoringErrorCode.POLICY_DENIED,
+            f"the {policy.profile.value} policy here shows no artifact on a "
+            f"{mode} page",
+        )
     manifest = store.manifest_at(served.artifact_id, served.version)
-    context = frame_context(mode, manifest, host_url)
+    context = frame_context(mode, manifest, policy, host_url)
     ref = ArtifactRef(served.artifact_id, served.version)
     with translate_missing_version(ref):
         link = minter.mint_frame_link(ref, context)

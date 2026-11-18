@@ -45,6 +45,7 @@ from superset_artifacts_sdk.authoring import (
     AuthoringErrorCode,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest
+from superset_artifacts_sdk.policy import LOCKED, policy_layer
 from superset_artifacts_sdk.store import (
     DRAFT_REF,
     PUBLISHED_REF,
@@ -53,11 +54,7 @@ from superset_artifacts_sdk.store import (
 )
 from superset_artifacts_sdk.testing import InMemoryArtifactStore
 from superset_oss.artifacts.errors import ArtifactError, ExtensionErrorCode
-from superset_oss.artifacts.store.filestore import (
-    ArtifactFileStore,
-    MAX_FILE_BYTES,
-    PAGE_BYTES,
-)
+from superset_oss.artifacts.store.filestore import ArtifactFileStore, PAGE_BYTES
 
 OWNER = "1"
 STRANGER = "2"
@@ -770,10 +767,11 @@ def test_uploads_are_for_owners_and_capped(store: ArtifactFileStore) -> None:
 
     with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
         store.put_blobs(STRANGER, artifact_id, [b"x"])
+    limit = LOCKED.limits.file_bytes
     with raises(AuthoringErrorCode.TOO_LARGE):
-        store.put_blobs(OWNER, artifact_id, [b"x" * (MAX_FILE_BYTES + 1)])
+        store.put_blobs(OWNER, artifact_id, [b"x" * (limit + 1)])
     with raises(AuthoringErrorCode.TOO_LARGE):
-        create(store, **{"big.txt": "x" * (MAX_FILE_BYTES + 1)})
+        create(store, **{"big.txt": "x" * (limit + 1)})
 
 
 def test_publishing_waits_for_the_users_confirmation(
@@ -880,3 +878,87 @@ def test_refs_are_kept_per_artifact(
     assert backend.get_ref(first_id, DRAFT_REF) == first
     assert backend.get_ref(second_id, DRAFT_REF) == second
     assert not store.has_version(first_id, second)
+
+
+def manifest_text(**fields: Any) -> str:
+    return json.dumps({"artifact_version": "1", **fields})
+
+
+def test_the_policy_refuses_a_manifest_on_create(store: ArtifactFileStore) -> None:
+    """Locked allows no npm packages; the refusal names the package."""
+    with raises(AuthoringErrorCode.POLICY_DENIED) as denied:
+        create(store, **{"manifest.json": manifest_text(dependencies={"d3": "7.9.0"})})
+
+    assert "locked" in denied.value.message
+    assert "'d3'" in denied.value.message
+
+
+def test_the_policy_refuses_a_manifest_update(
+    backend: InMemoryArtifactStore, clock: Clock
+) -> None:
+    store = ArtifactFileStore(
+        backend, policy=policy_layer({"profile": "standard"}), clock=clock
+    )
+    artifact_id, version = create(store)
+
+    with raises(AuthoringErrorCode.POLICY_DENIED) as denied:
+        store.manifest_update(
+            OWNER,
+            ArtifactManifestUpdateRequest(
+                artifact_id=artifact_id,
+                base_version=version,
+                manifest=ArtifactManifest.model_validate(
+                    {"artifact_version": "1", "capabilities": ["compute.workers"]}
+                ),
+            ),
+        )
+
+    assert "compute.workers" in denied.value.message
+    assert store.draft_version(OWNER, artifact_id) == version
+
+
+def test_a_tighter_policy_stops_the_next_publish(
+    backend: InMemoryArtifactStore, clock: Clock
+) -> None:
+    """A draft that the old policy admitted can't be published under a tighter one."""
+    lax = ArtifactFileStore(
+        backend, policy=policy_layer({"profile": "open"}), clock=clock
+    )
+    artifact_id, version = create(
+        lax, **{"manifest.json": manifest_text(dependencies={"three": "0.160.0"})}
+    )
+    publish = lax.request_publish(
+        OWNER,
+        ArtifactRequestPublishRequest(artifact_id=artifact_id, base_version=version),
+    )
+    strict = ArtifactFileStore(backend, clock=clock)
+
+    with raises(AuthoringErrorCode.POLICY_DENIED):
+        strict.confirm_publish(OWNER, artifact_id, publish.request_id)
+    with raises(AuthoringErrorCode.POLICY_DENIED):
+        strict.request_publish(
+            OWNER,
+            ArtifactRequestPublishRequest(
+                artifact_id=artifact_id, base_version=version
+            ),
+        )
+    assert strict.published_version(artifact_id) is None
+
+
+def test_the_policy_sets_the_file_limits(
+    backend: InMemoryArtifactStore, clock: Clock
+) -> None:
+    tight = ArtifactFileStore(
+        backend,
+        policy=policy_layer(
+            {"profile": "locked", "limits": {"files": 2, "file_bytes": 300}}
+        ),
+        clock=clock,
+    )
+
+    with raises(AuthoringErrorCode.TOO_LARGE):
+        create(tight, **{"a.txt": "x" * 301})
+    with raises(AuthoringErrorCode.TOO_LARGE):
+        create(tight, **{"a.txt": "a", "b.txt": "b"})
+    created = create(tight, **{"a.txt": "a"})
+    assert created

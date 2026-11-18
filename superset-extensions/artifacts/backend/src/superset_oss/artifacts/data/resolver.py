@@ -22,18 +22,23 @@ placement's binding by name (its ``binding_resolver``). The binding comes from
 the manifest of the version that the caller's frame loads, picked by the
 frame's own rules (``choose_version``): the pinned version, or else the
 published one, and the owner's draft while the placement is read from their
-own draft of the canvas. The host then runs the binding as it runs any other:
-as the caller, with their dataset access.
+own draft of the canvas. The policy in force must admit the binding, checked
+on every query, so that a tighter policy reaches a published artifact at its
+next query. The host then runs the binding as it runs any other: as the
+caller, with their dataset access.
 """
 
 # TODO: the frame link and the data request each pick the version, so a write
 # to the draft between the two can give a draft's frame the bindings of the
 # next draft.
+# TODO: snapshots, which the server mints with the author's access; until
+# then a snapshot binding has no data.
 
 from __future__ import annotations
 
 from typing import Any
 
+from superset_artifacts_sdk.policy import ArtifactPolicy, binding_problems
 from superset_core.widgets import BindingRequest
 from superset_oss.artifacts.data.bindings import BindingError, resolve_binding
 from superset_oss.artifacts.errors import ArtifactError
@@ -43,15 +48,18 @@ from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 
 def placement_binding(
-    store: ArtifactFileStore, actor: str | None, request: BindingRequest
+    store: ArtifactFileStore,
+    policy: ArtifactPolicy,
+    actor: str | None,
+    request: BindingRequest,
 ) -> dict[str, Any] | None:
     """
     Binding ``request.name`` of the artifact a placement shows, for ``actor``.
 
     ``None`` when the props name no artifact, when ``actor`` may see no version
-    of it, and when the version's manifest declares no binding of that name,
-    or one that doesn't map onto placement data. The host answers each as a
-    placement without the binding.
+    of it, when the version's manifest declares no binding of that name, or
+    one that doesn't map onto placement data, and when ``policy`` refuses it.
+    The host answers each as a placement without the binding.
     """
     artifact = artifact_of(request.props)
     if artifact is None:
@@ -67,6 +75,13 @@ def placement_binding(
             use_draft=request.draft_token is not None,
         )
         manifest = store.manifest_at(served.artifact_id, served.version)
+        declared = manifest.bindings.get(request.name)
+        if (
+            declared is None
+            or declared.mode != "live"
+            or binding_problems(request.name, declared, policy)
+        ):
+            return None
         return resolve_binding(manifest, request.name)
     except (ArtifactError, BindingError):
         return None

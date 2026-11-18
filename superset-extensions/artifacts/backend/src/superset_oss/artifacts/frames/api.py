@@ -143,7 +143,12 @@ class ArtifactFramesRestApi(RestApi):
                 else None
             )
             result = link_payload(
-                artifacts.provider, store, served, "canvas", host_url()
+                artifacts.provider,
+                store,
+                served,
+                "canvas",
+                host_url(),
+                artifacts.policy,
             )
         except ArtifactError as ex:
             return error_response(ex)

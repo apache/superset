@@ -57,7 +57,7 @@ from superset_artifacts_sdk.authoring import (
     AuthoringRequest,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest, MANIFEST_FILE
-from superset_artifacts_sdk.policy import ArtifactPolicy
+from superset_artifacts_sdk.policy import ArtifactPolicy, manifest_problems
 from superset_artifacts_sdk.provider import (
     ArtifactRef,
     ArtifactRuntimeProvider,
@@ -277,12 +277,22 @@ class AuthoringHandlers:
             ref = ArtifactRef(artifact_id, version)
             with translate_missing_version(ref):
                 result = call.provider.build(ref, call.policy)
-            # The binding checks are the extension's own, on top of the build's.
+            # The extension's own checks, on top of the build's: what the
+            # policy refuses fails the build, as publishing it would; a
+            # binding that doesn't map yet only warns.
+            refused = tuple(
+                Diagnostic(problem, file=MANIFEST_FILE)
+                for problem in manifest_problems(manifest, call.policy)
+            )
             warnings = tuple(
                 Diagnostic(problem, severity="warning", file=MANIFEST_FILE)
                 for problem in binding_problems(manifest)
             )
-            result = replace(result, diagnostics=result.diagnostics + warnings)
+            result = replace(
+                result,
+                ok=result.ok and not refused,
+                diagnostics=result.diagnostics + refused + warnings,
+            )
             return {"version": version, **_jsonable(result)}
 
         return self.run(actor, action)

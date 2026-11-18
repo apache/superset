@@ -27,6 +27,7 @@ from superset_artifacts_sdk.authoring import (
     ArtifactRequestPublishRequest,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest
+from superset_artifacts_sdk.policy import LOCKED, policy_layer
 from superset_artifacts_sdk.testing import InMemoryArtifactStore
 from superset_core.widgets import BindingRequest
 from superset_oss.artifacts.data.bindings import (
@@ -168,13 +169,14 @@ def test_a_placement_binding_comes_from_the_version_its_frame_loads(
     ) -> int | None:
         binding = placement_binding(
             store,
+            LOCKED,
             actor,
             asked({"artifact_id": artifact_id, **props}, draft_token=draft_token),
         )
         return None if binding is None else binding["datasetId"]
 
     assert placement_binding(
-        store, VIEWER, asked({"artifact_id": artifact_id})
+        store, LOCKED, VIEWER, asked({"artifact_id": artifact_id})
     ) == resolve_binding(manifest(), "revenue")
     # Outside a draft of the canvas, everyone runs the published version.
     assert dataset(VIEWER) == dataset(None) == dataset(OWNER) == 42
@@ -187,7 +189,7 @@ def test_a_placement_binding_comes_from_the_version_its_frame_loads(
     assert dataset(OWNER, version=draft) == 43
     # As the frame does, an owner previews an unpublished artifact's draft.
     assert placement_binding(
-        store, OWNER, asked({"artifact_id": unpublished})
+        store, LOCKED, OWNER, asked({"artifact_id": unpublished})
     ) == resolve_binding(unpublished_manifest, "revenue")
 
 
@@ -219,7 +221,7 @@ def test_a_placement_binding_is_none_when_nothing_would_run(
     def binding(
         actor: str, props: dict[str, Any], name: str = "revenue"
     ) -> dict[str, Any] | None:
-        return placement_binding(store, actor, asked(props, name))
+        return placement_binding(store, LOCKED, actor, asked(props, name))
 
     # Props that name no artifact, or not by its id.
     assert binding(OWNER, {}) is None
@@ -230,3 +232,34 @@ def test_a_placement_binding_is_none_when_nothing_would_run(
     # Versions a viewer may not see: unpublished, pinned or not.
     assert binding(VIEWER, {"artifact_id": artifact_id, "version": draft}) is None
     assert binding(VIEWER, {"artifact_id": unpublished}) is None
+
+
+def test_the_policy_is_checked_on_every_query(store: ArtifactFileStore) -> None:
+    """A tighter policy reaches a published artifact at its next query."""
+    artifact_id, version = create(store, manifest())
+    publish(store, artifact_id, version)
+    props = {"artifact_id": artifact_id}
+    elsewhere = policy_layer(
+        {"profile": "locked", "data": {"resources": ["dataset:7"]}}
+    )
+
+    assert placement_binding(store, LOCKED, VIEWER, asked(props)) is not None
+    assert placement_binding(store, elsewhere, VIEWER, asked(props)) is None
+
+
+def test_a_snapshot_binding_has_no_live_data(store: ArtifactFileStore) -> None:
+    """Snapshots are minted by the server, never run as the viewer at view time."""
+    standard = policy_layer({"profile": "standard"})
+    snapshots = ArtifactFileStore(InMemoryArtifactStore(), policy=standard)
+    artifact_id, version = create(
+        snapshots,
+        manifest(mode="snapshot"),
+    )
+    publish(snapshots, artifact_id, version)
+
+    assert (
+        placement_binding(
+            snapshots, standard, VIEWER, asked({"artifact_id": artifact_id})
+        )
+        is None
+    )

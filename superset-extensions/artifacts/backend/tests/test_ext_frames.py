@@ -31,6 +31,12 @@ from superset_artifacts_sdk.authoring import (
 )
 from superset_artifacts_sdk.capabilities import Capability
 from superset_artifacts_sdk.manifest import ArtifactManifest
+from superset_artifacts_sdk.policy import (
+    ArtifactPolicy,
+    FrameMode,
+    LOCKED,
+    policy_layer,
+)
 from superset_artifacts_sdk.provider import (
     ArtifactRef,
     FrameContext,
@@ -45,7 +51,6 @@ from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.frames.access import choose_version, ServedVersion
 from superset_oss.artifacts.frames.grants import (
     frame_context,
-    grant_for,
     host_manifest,
     origin_of,
 )
@@ -73,24 +78,38 @@ MANIFEST = ArtifactManifest.model_validate(
         "events": [
             {"kind": "cross_filter", "binding": "revenue", "dimension": "region"}
         ],
-        "capabilities": ["data", "cross_filter", "theme"],
-        "dependencies": {"d3": "7.9.0"},
+        "capabilities": ["data", "cross_filter", "theme", "compute.wasm"],
     }
 )
+STANDARD = policy_layer({"profile": "standard"})
 
 
-def test_the_grant_is_what_the_manifest_declares_and_the_context_allows() -> None:
-    assert grant_for(MANIFEST, "canvas") == {
+def test_the_grant_is_manifest_policy_and_context() -> None:
+    def grant(
+        mode: FrameMode, policy: ArtifactPolicy = STANDARD
+    ) -> frozenset[Capability]:
+        return frame_context(
+            mode, MANIFEST, policy, "https://superset.example.com/"
+        ).capabilities
+
+    assert grant("canvas") == {
         Capability.DATA,
         Capability.CROSS_FILTER,
         Capability.THEME,
+        Capability.COMPUTE_WASM,
     }
-    assert grant_for(MANIFEST, "standalone") == {Capability.DATA, Capability.THEME}
+    assert grant("standalone") == {
+        Capability.DATA,
+        Capability.THEME,
+        Capability.COMPUTE_WASM,
+    }
+    # Locked allows no WebAssembly, whatever the manifest asks.
+    assert Capability.COMPUTE_WASM not in grant("canvas", LOCKED)
 
 
 def test_allowed_parents_are_origins() -> None:
     context = frame_context(
-        "canvas", MANIFEST, "https://Superset.example.com:8443/canvas/1/"
+        "canvas", MANIFEST, LOCKED, "https://Superset.example.com:8443/canvas/1/"
     )
 
     assert context.allowed_parents == ("https://superset.example.com:8443",)
@@ -113,7 +132,7 @@ def test_the_host_gets_what_it_checks_requests_against() -> None:
 
 @pytest.fixture
 def store() -> ArtifactFileStore:
-    return ArtifactFileStore(InMemoryArtifactStore())
+    return ArtifactFileStore(InMemoryArtifactStore(), policy=STANDARD)
 
 
 def test_owners_get_drafts_and_others_only_published_versions(
@@ -180,7 +199,12 @@ def test_a_link_is_minted_for_the_served_version_in_its_context(
     minter = RecordingMinter()
 
     answer = link_payload(
-        minter, store, served, "standalone", "https://superset.example.com/x/"
+        minter,
+        store,
+        served,
+        "standalone",
+        "https://superset.example.com/x/",
+        STANDARD,
     )
 
     [(ref, context)] = minter.minted
@@ -193,10 +217,24 @@ def test_a_link_is_minted_for_the_served_version_in_its_context(
         "version": created.version,
         "is_draft": True,
         "can_edit": True,
-        "capabilities": ["data", "theme"],
+        "capabilities": ["compute.wasm", "data", "theme"],
         "manifest": host_manifest(MANIFEST),
     }
     json.dumps(answer)
+
+
+def test_the_policy_keeps_artifacts_off_a_surface(store: ArtifactFileStore) -> None:
+    created = store.create(OWNER, ArtifactCreateRequest(files={"index.html": "v1"}))
+    served = choose_version(store, OWNER, created.artifact_id)
+    minter = RecordingMinter()
+
+    with pytest.raises(ArtifactError) as raised:
+        link_payload(
+            minter, store, served, "embedded", "https://superset.example.com/", LOCKED
+        )
+
+    assert raised.value.code == AuthoringErrorCode.POLICY_DENIED
+    assert minter.minted == []
 
 
 class FailingMinter:
@@ -218,7 +256,9 @@ def test_a_version_the_provider_no_longer_holds_answers_version_not_found(
     minter = FailingMinter(VersionNotFoundError("not the draft or published"))
 
     with pytest.raises(ArtifactError) as raised:
-        link_payload(minter, store, served, "canvas", "https://superset.example.com/")
+        link_payload(
+            minter, store, served, "canvas", "https://superset.example.com/", LOCKED
+        )
 
     assert raised.value.code == AuthoringErrorCode.VERSION_NOT_FOUND
     assert created.version in raised.value.message
@@ -237,6 +277,7 @@ def test_other_lookup_errors_from_the_provider_still_surface(
             served,
             "canvas",
             "https://superset.example.com/",
+            LOCKED,
         )
 
 

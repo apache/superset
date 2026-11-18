@@ -20,7 +20,8 @@ The authoring prompts, as MCP prompts.
 The host prefixes their names, so agents see
 ``extensions.superset-oss.artifacts.create_artifact`` and
 ``extensions.superset-oss.artifacts.import_claude_artifact``. While the tools
-would answer ``NOT_ENABLED``, both prompts say artifacts are off instead.
+would answer ``NOT_ENABLED``, both prompts say artifacts are off instead;
+otherwise ``create_artifact`` teaches what the policy in force allows.
 """
 
 from __future__ import annotations
@@ -31,7 +32,8 @@ from superset_oss.artifacts.authoring.prompt_text import (
     import_claude_artifact_text,
     NOT_ENABLED_TEXT,
 )
-from superset_oss.artifacts.gate import artifacts_on
+from superset_oss.artifacts.errors import ArtifactError
+from superset_oss.artifacts.gate import artifacts_on, open_artifacts
 
 
 @prompt(
@@ -45,7 +47,11 @@ from superset_oss.artifacts.gate import artifacts_on
 )
 async def create_artifact() -> str:
     """The authoring contract an agent reads before it writes an artifact."""
-    return create_artifact_text() if artifacts_on() else NOT_ENABLED_TEXT
+    try:
+        artifacts = open_artifacts()
+    except ArtifactError:
+        return NOT_ENABLED_TEXT
+    return create_artifact_text(artifacts.policy)
 
 
 @prompt(
