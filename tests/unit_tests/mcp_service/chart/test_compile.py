@@ -1156,7 +1156,7 @@ def test_compile_chart_validation_failure_is_not_connection_error(
         QueryObjectValidationMessage,
     )
 
-    context: Mock = Mock(queries=[])
+    context = Mock()
     context.get_payload.return_value = {
         "queries": [
             {"error": QueryObjectValidationMessage(QueryObjectValidationError(message))}
@@ -1237,7 +1237,7 @@ def test_compile_chart_annotation_failure_preserves_error_classification(
             return {"queries": [{"error": QueryObjectValidationMessage(exc)}]}
         raise AssertionError("Expected the annotation query to fail")
 
-    context: Mock = Mock(queries=[])
+    context = Mock()
     context.get_payload.side_effect = get_payload
     mocker.patch(
         "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
@@ -1328,7 +1328,7 @@ def _annotation_compile_result(
             return {"queries": [{"error": QueryObjectValidationMessage(exc)}]}
         raise AssertionError("Expected the annotation query to fail")
 
-    context: Mock = Mock(queries=[])
+    context = Mock()
     context.get_payload.side_effect = get_payload
     mocker.patch(
         "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",

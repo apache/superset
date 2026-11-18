@@ -20,6 +20,7 @@
 from datetime import datetime
 from unittest.mock import MagicMock
 
+import pandas as pd
 import pyarrow as pa
 import pytest
 from flask.testing import FlaskClient
@@ -27,6 +28,8 @@ from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import Dimension
 from werkzeug.test import TestResponse
 
+from superset.common.query_context import QueryContext
+from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
 from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
 from superset.semantic_layers.mapper import get_results
@@ -52,6 +55,10 @@ def test_time_comparison_refused_before_cache_and_provider(
     async_mode: bool,
 ) -> None:
     """Even a warm result cache cannot serve a saved comparison query."""
+    mocker.stop(QueryContext.raise_for_access)
+    mocker.patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access"
+    )
     if provider_shape == "metricflow":
         date_view.get_dimensions.return_value = {
             Dimension("metric_time", "metric_time", pa.timestamp("ms", tz="UTC"))
@@ -124,3 +131,63 @@ def test_sql_dataset_time_comparison_remains_valid(mocker: MockerFixture) -> Non
         datasource=datasource, metrics=["count"], time_offsets=["1 year ago"]
     )
     assert query.validate() is None
+
+
+@pytest.mark.parametrize("offset", ["1 year ago", "inherit", "2025-12-01"])
+def test_query_validation_refuses_time_comparison(
+    date_view: MagicMock,  # noqa: F811 - shared pytest fixture imported above
+    offset: str,
+) -> None:
+    """The shared validator refuses before discovery, independently of commands."""
+    query: QueryObject = QueryObject(
+        datasource=SemanticView(id=7, name="Orders"),
+        metrics=["ORDER_COUNT"],
+        time_offsets=[offset],
+    )
+    with pytest.raises(SemanticLayerQueryRejectedError, match=MESSAGE):
+        query.validate()
+    date_view.get_table.assert_not_called()
+
+
+def test_semantic_query_without_offsets_remains_valid(
+    date_view: MagicMock,  # noqa: F811 - shared pytest fixture imported above
+) -> None:
+    """An ordinary semantic query still passes the complete validator."""
+    query: QueryObject = QueryObject(
+        datasource=SemanticView(id=7, name="Orders"), metrics=["ORDER_COUNT"]
+    )
+    assert query.validate() is None
+    date_view.get_table.assert_not_called()
+
+
+def test_processor_refuses_time_comparison_before_warm_cache(
+    date_view: MagicMock,  # noqa: F811 - shared pytest fixture imported above
+    mocker: MockerFixture,
+) -> None:
+    """Direct processor callers cannot bypass refusal with cached wrong results."""
+    view: SemanticView = SemanticView(id=7, name="Orders")
+    query: QueryObject = QueryObject(
+        datasource=view, metrics=["ORDER_COUNT"], time_offsets=["1 year ago"]
+    )
+    processor: QueryContextProcessor = QueryContextProcessor(
+        MagicMock(datasource=view, force=False, force_nonce=None)
+    )
+    mocker.patch.object(processor, "get_cache_timeout", return_value=60)
+    mocker.patch(
+        "superset.common.query_context_processor.QueryCacheManager.reads_backend",
+        return_value=True,
+    )
+    cache_read: MagicMock = mocker.patch.object(
+        processor,
+        "_read_result_cache",
+        return_value=MagicMock(
+            is_loaded=True,
+            is_cached=True,
+            bq_memory_limited=False,
+            df=pd.DataFrame({"ORDER_COUNT": [999]}),
+        ),
+    )
+    with pytest.raises(SemanticLayerQueryRejectedError, match=MESSAGE):
+        processor.get_df_payload_result(query, force_cached=True)
+    cache_read.assert_not_called()
+    date_view.get_table.assert_not_called()

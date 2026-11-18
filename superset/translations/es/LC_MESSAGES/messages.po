@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-18 11:44-0700\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -878,9 +878,6 @@ msgstr ""
 " si eliminas las «cookies» o cambias de navegador.\n"
 "\n"
 
-msgid "-----BEGIN PRIVATE KEY-----"
-msgstr ""
-
 #, python-format
 msgid "... and %d more"
 msgstr "... y otros %d"
@@ -1544,9 +1541,6 @@ msgstr "Se guardará un conjunto de datos reutilizable con tu gráfico."
 msgid "A rule with this name already exists."
 msgstr "Ya existe una regla con este nombre."
 
-msgid "A saved query with this name already exists"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -1714,21 +1708,6 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AGO"
 
-msgid "AWS Access Key ID"
-msgstr ""
-
-msgid "AWS Secret Access Key"
-msgstr ""
-
-msgid "AWS access key ID"
-msgstr ""
-
-msgid "AWS region, e.g. us-east-1"
-msgstr ""
-
-msgid "AWS secret access key"
-msgstr ""
-
 msgid "Aborted"
 msgstr "Abortado"
 
@@ -1844,9 +1823,6 @@ msgstr "Añadir un «plugin»"
 
 msgid "Add a dataset"
 msgstr "Añadir un conjunto de datos"
-
-msgid "Add a datasource"
-msgstr ""
 
 msgid "Add a new tab"
 msgstr "Añadir una nueva pestaña"
@@ -1977,9 +1953,6 @@ msgstr "Añadir carpeta"
 msgid "Add group"
 msgstr "Añadir grupo"
 
-msgid "Add interval bounds above to configure colors here."
-msgstr ""
-
 msgid "Add item"
 msgstr "Añadir elemento"
 
@@ -2011,9 +1984,6 @@ msgstr "Añadir o editar filtros"
 #, fuzzy
 msgid "Add or edit filters and controls"
 msgstr "Añadir o editar filtros"
-
-msgid "Add ranges above to configure their colors here."
-msgstr ""
 
 #, fuzzy
 msgid "Add report"
@@ -3426,17 +3396,11 @@ msgstr "Alertas e informes asociados"
 msgid "Asynchronous query execution"
 msgstr "Ejecución de consultas asincrónicas"
 
-msgid "Athena work group to run queries against"
-msgstr ""
-
 msgid "Attribution"
 msgstr "Atribución"
 
 msgid "August"
 msgstr "Agosto"
-
-msgid "Authentication method"
-msgstr ""
 
 #, fuzzy
 msgid "Authorization Request URI"
@@ -3600,9 +3564,6 @@ msgstr "Orientación de la barra"
 msgid "Base"
 msgstr "Base"
 
-msgid "Base background"
-msgstr ""
-
 msgid "Base exponent"
 msgstr "Exponente de la base"
 
@@ -3681,9 +3642,6 @@ msgstr "En blanco"
 #, fuzzy, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
 msgstr "Bloque %(block_num)s de %(block_count)s"
-
-msgid "Border"
-msgstr ""
 
 msgid "Border color"
 msgstr "Color del borde"
@@ -4098,9 +4056,6 @@ msgstr ""
 "{\"confirmed_impact_token\": <token>}, antes de eliminar la base de "
 "datos. Restaurarlos (POST /api/v1/dataset/<uuid>/restore) conserva los "
 "conjuntos de datos, pero la base de datos seguirá sin poder eliminarse."
-
-msgid "Cannot delete semantic views"
-msgstr ""
 
 #, fuzzy
 msgid "Cannot delete system themes"
@@ -4643,9 +4598,6 @@ msgstr "Comprobando los gráficos y paneles que usan este conjunto de datos…"
 msgid "Checking for affected charts and dashboards…"
 msgstr "Comprobando los gráficos y paneles afectados…"
 
-msgid "Checking which charts will be removed…"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid ""
@@ -5137,20 +5089,6 @@ msgstr "Color de las barras en el lado derecho del gráfico"
 msgid "Color for breakpoint"
 msgstr "Puntos de ruptura del «bucket»"
 
-msgid "Color for decrease"
-msgstr ""
-
-msgid "Color for increase"
-msgstr ""
-
-#, python-format
-msgid "Color for interval up to %s"
-msgstr ""
-
-#, python-format
-msgid "Color for range up to %s"
-msgstr ""
-
 msgid "Color metric"
 msgstr "Métrica de color"
 
@@ -5168,16 +5106,6 @@ msgstr "Esquema de color"
 #, fuzzy, python-format
 msgid "Color scheme: %s"
 msgstr "Combinación de colores: %s"
-
-msgid ""
-"Color used for the arrow and symbols when the metric decreased from the "
-"comparison value. Defaults to red."
-msgstr ""
-
-msgid ""
-"Color used for the arrow and symbols when the metric increased from the "
-"comparison value. Defaults to green."
-msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5370,6 +5298,16 @@ msgid "Combine metrics"
 msgstr "Combinar métricas"
 
 msgid ""
+"Comma-separated color picks for the intervals, e.g. 1,2,4. Integers "
+"denote colors from the chosen color scheme and are 1-indexed. Length must"
+" be matching that of interval bounds."
+msgstr ""
+"Selecciones de color separadas por comas para los intervalos, como por "
+"ejemplo «1,2,4». Los números enteros denotan colores del esquema de color"
+" elegido y están indexados en 1. La longitud debe coincidir con la de los"
+" límites del intervalo."
+
+msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Last number should match the value provided for MAX."
 msgstr ""
@@ -5549,9 +5487,6 @@ msgstr "Configura este panel para incrustarlo en una aplicación web externa."
 msgid "Configure your how you overlay is displayed here."
 msgstr "Configura aquí cómo se muestra tu superposición."
 
-msgid "Configured"
-msgstr ""
-
 #, fuzzy
 msgid "Confirm"
 msgstr "Confirmar guardado"
@@ -5628,9 +5563,6 @@ msgid "Contact the report owner for error details."
 msgstr ""
 "Póngase en contacto con el propietario del informe para obtener detalles "
 "del error."
-
-msgid "Container background"
-msgstr ""
 
 msgid "Contains"
 msgstr "Contiene"
@@ -5837,14 +5769,14 @@ msgstr ""
 "No se pudo comprobar qué gráficos y paneles dependen de los %s "
 "seleccionados. Eliminarlos puede dañar los gráficos y paneles."
 
-msgid ""
-"Could not check which charts will be removed. Restoring may remove charts"
-" added after this version."
-msgstr ""
-
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "No se ha podido conectar a la base de datos: «%(database)s»"
+
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
+#, fuzzy, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr "No se pudieron eliminar las vistas semánticas %s: %s"
 
 msgid "Could not fetch all saved charts"
 msgstr "No se han podido recuperar todos los gráficos guardados"
@@ -6963,9 +6895,6 @@ msgstr ""
 "Ancho de columna mínimo predeterminado en píxeles; el ancho real puede "
 "ser mayor que dicho valor si otras columnas no necesitan mucho espacio"
 
-msgid "Default schema (database) to connect to"
-msgstr ""
-
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "El valor predeterminado debe establecerse cuando se marca «El filtro "
@@ -7227,15 +7156,6 @@ msgstr "Eliminar seleccionados"
 msgid "Delete template"
 msgstr "Eliminar plantilla"
 
-#, python-format
-msgid "Delete the other semantic view, %s? This cannot be undone."
-msgid_plural "Delete the other semantic views, %s? This cannot be undone."
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Delete the other semantic views?"
-msgstr ""
-
 #, fuzzy
 msgid "Delete theme"
 msgstr "Eliminar plantilla"
@@ -7329,12 +7249,6 @@ msgstr "Se ha eliminado %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "Se han eliminado %s elemento(s)"
-
-#, python-format
-msgid "Deleted %s semantic view"
-msgid_plural "Deleted %s semantic views"
-msgstr[0] ""
-msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -8284,6 +8198,14 @@ msgstr "La base de datos está mal escrita o no existe."
 msgid "Either the username \"%(username)s\" or the password is incorrect."
 msgstr "El nombre de usuario «%(username)s» o la contraseña son incorrectos."
 
+#, python-format
+msgid ""
+"Either the username \"%(username)s\", password, or database name "
+"\"%(database)s\" is incorrect."
+msgstr ""
+"El nombre de usuario «%(username)s», la contraseña o el nombre de la base"
+" de datos «%(database)s» son incorrectos."
+
 msgid "Either the username or the password is wrong."
 msgstr "El nombre de usuario o la contraseña son incorrectos."
 
@@ -8339,26 +8261,6 @@ msgstr ""
 
 msgid "Embedded dashboard could not be deleted."
 msgstr "El panel de control no pudo ser eliminado."
-
-msgid "Embedded guest credentials"
-msgstr ""
-
-msgid ""
-"Embedded guest credentials are invalid or incomplete. Provide all "
-"required fields or clear them to leave embedded viewers unconfigured."
-msgstr ""
-
-msgid ""
-"Embedded guest credentials can't be added or changed while the embedded "
-"credential fallback is turned off. Leave the stored credentials unchanged"
-" or clear them."
-msgstr ""
-
-msgid ""
-"Embedded guest credentials only apply to connections that use OAuth2 with"
-" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
-"information and turn on impersonation, or clear the embedded credentials."
-msgstr ""
 
 msgid "Embedding deactivated."
 msgstr "Incrustación desactivada."
@@ -8604,12 +8506,6 @@ msgstr "Introduce el nombre de usuario"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Introduce las credenciales de %(dbModelName)s obligatorias"
-
-msgid ""
-"Enter the scopes allowed by your Snowflake integration, for example "
-"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
-"the user's default role."
-msgstr ""
 
 msgid "Enter the unique project id for your database."
 msgstr "Introduce el ID de proyecto único para tu base de datos."
@@ -9438,6 +9334,10 @@ msgstr "No se ha podido recuperar el tipo avanzado"
 msgid "Failed to revoke API key"
 msgstr "No se ha podido revocar la clave API"
 
+#, fuzzy
+msgid "Failed to save chart customization"
+msgstr "No se han podido cargar los datos del gráfico"
+
 msgid "Failed to save cross-filter scoping"
 msgstr "No se ha podido guardar el alcance del filtro cruzado"
 
@@ -9856,11 +9756,6 @@ msgstr "Ajustar datos"
 #, fuzzy
 msgid "Fix the Extra JSON to edit certification"
 msgstr "Corrija el JSON extra para editar la certificación"
-
-msgid ""
-"Fix the JSON errors below to edit colors here; your changes sync "
-"automatically once the JSON is valid again."
-msgstr ""
 
 msgid ""
 "Fix the trend line to the full time range specified in case filtered "
@@ -10530,6 +10425,8 @@ msgstr "ID"
 msgid "Id of root node of the tree."
 msgstr "ID del nodo raíz del árbol."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
+#, fuzzy
 msgid ""
 "If Presto or Trino, all the queries in SQL Lab are going to be executed "
 "as the currently logged on user who must have permission to run them. If "
@@ -10538,10 +10435,20 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth2 "
-"credentials. Snowflake OAuth2 connections also require it for embedded "
-"guest credentials."
+" the queries as the currently logged on user via their own OAuth "
+"credentials."
 msgstr ""
+"Si se usa Presto o Trino, todas las consultas de SQL Lab se ejecutarán "
+"como el usuario que haya iniciado sesión actualmente, quien debe tener "
+"permiso para ejecutarlas. Si se usa Hive y hive.server2.enable.doAs está "
+"habilitado, las consultas se ejecutarán como cuenta de servicio, pero "
+"suplantando al usuario que haya iniciado sesión mediante la propiedad "
+"hive.server2.proxy.user. Si se usa Databricks, se utiliza OAuth2 para "
+"autenticarse como el usuario que haya iniciado sesión actualmente. Si se "
+"usa Snowflake o Google Sheets y la autenticación OAuth está configurada "
+"para la base de datos, las consultas se ejecutarán como el usuario que "
+"haya iniciado sesión actualmente mediante sus propias credenciales de "
+"OAuth."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr ""
@@ -11248,9 +11155,6 @@ msgstr "Clave"
 msgid "Key Prefix"
 msgstr "Prefijo de la clave"
 
-msgid "Key pair"
-msgstr ""
-
 msgid "Keyboard shortcuts"
 msgstr "Accesos rápidos de teclado"
 
@@ -11765,9 +11669,6 @@ msgstr "Columna de líneas"
 msgid "Lines encoding"
 msgstr "Codificación de líneas"
 
-msgid "Link"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy
@@ -11814,15 +11715,6 @@ msgstr "Lista actualizada"
 #, fuzzy
 msgid "List view"
 msgstr "Listar usuarios"
-
-msgid "Literal filters require scalar values"
-msgstr ""
-
-msgid "Literal membership filters require a non-empty list of scalar values"
-msgstr ""
-
-msgid "Literal substring filters require a string column and value"
-msgstr ""
 
 msgid "Live render"
 msgstr "Renderizado en tiempo real"
@@ -11874,9 +11766,6 @@ msgstr "Cargando tipos de capa semántica…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "Cargando capas semánticas…"
-
-msgid "Loading the view shared with you…"
-msgstr ""
 
 #, fuzzy
 msgid "Loading timezones..."
@@ -12913,11 +12802,6 @@ msgstr ""
 "Asigna un nombre a tu carpeta y para editarla más tarde, haz clic en el "
 "nombre de la carpeta"
 
-msgid ""
-"Named instances can't be entered as the host. Enter only the host and the"
-" port the instance listens on, or connect with a SQLAlchemy URI instead."
-msgstr ""
-
 #, fuzzy
 msgid "Native filter column is required"
 msgstr "El valor del filtro es obligatorio"
@@ -13292,10 +13176,6 @@ msgid ""
 msgstr ""
 "No tiene capas semánticas disponibles. Pida a su administrador que "
 "configure una capa semántica o que le conceda acceso a una."
-
-#, python-format
-msgid "No semantic views were deleted because other assets depend on %s."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13947,11 +13827,6 @@ msgstr ""
 "Contenido opcional de CA_BUNDLE para validar solicitudes HTTPS. Solo "
 "disponible en ciertos motores de base de datos."
 
-msgid ""
-"Optional custom color for each range band, e.g. to match a brand palette."
-" Bands left unset use the default shading."
-msgstr ""
-
 msgid "Optional d3 date format string"
 msgstr "Cadena de formato de fecha d3 opcional"
 
@@ -13962,9 +13837,6 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "Dimensión opcional para dividir el gráfico en varias series de velas."
-
-msgid "Optional if your workgroup sets a result location."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -14451,12 +14323,6 @@ msgstr "Físico"
 msgid "Physical (table or view)"
 msgstr "Físico (tabla o vista)"
 
-msgid ""
-"Pick a color for each interval band defined above by its upper bound. "
-"Charts saved with the legacy 1-indexed \"Interval colors\" text field "
-"keep following the chosen color scheme until an interval color is edited."
-msgstr ""
-
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr "Elige una dimensión a partir de la cual se definen los colores categóricos"
 
@@ -14914,12 +14780,6 @@ msgstr "Clave privada y contraseña"
 msgid "Private Key Password"
 msgstr "Contraseña de la clave privada"
 
-msgid "Private key (PEM)"
-msgstr ""
-
-msgid "Private key passphrase (optional)"
-msgstr ""
-
 msgid "Proceed"
 msgstr "Continuar"
 
@@ -15097,9 +14957,6 @@ msgstr "Intervalos"
 msgid "Range Type"
 msgstr "TIPO DE INTERVALO"
 
-msgid "Range colors"
-msgstr ""
-
 msgid "Range filter"
 msgstr "Filtro de intervalo"
 
@@ -15135,9 +14992,6 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Registros en bruto"
-
-msgid "Re-enter the access token when changing the connection destination."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -15266,9 +15120,6 @@ msgstr "Actualizando gráficos"
 msgid "Refreshing columns"
 msgstr "Actualizando columnas"
 
-msgid "Region"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Region name"
@@ -15377,9 +15228,6 @@ msgstr "Tipo de visualización"
 #, fuzzy
 msgid "Remove dependency"
 msgstr "Eliminar dependencia"
-
-msgid "Remove embedded guest credentials"
-msgstr ""
 
 #, fuzzy
 msgid "Remove filter"
@@ -15759,11 +15607,6 @@ msgstr ""
 "Obligatorio para replicar los filtros de rango, incluido el rango de "
 "tiempo."
 
-msgid ""
-"Requires an OAuth2 client ID and secret, and “Impersonate logged in user”"
-" (Advanced → Security)."
-msgstr ""
-
 msgid "Resample"
 msgstr "Remuestreo"
 
@@ -15884,16 +15727,6 @@ msgid ""
 msgstr ""
 "Al restaurar se crea una nueva versión. Su historial de versiones "
 "existente no se perderá."
-
-#, python-format
-msgid ""
-"Restoring will remove %s chart added after this version from this "
-"dashboard. The chart itself will not be deleted."
-msgid_plural ""
-"Restoring will remove %s charts added after this version from this "
-"dashboard. The charts themselves will not be deleted."
-msgstr[0] ""
-msgstr[1] ""
 
 msgid "Results"
 msgstr "Resultados"
@@ -16214,15 +16047,6 @@ msgstr "Ejecutando"
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Ejecutando instrucción %(block_num)s de %(block_count)s"
-
-msgid ""
-"S3 location where Athena query results are stored, e.g. s3://my-bucket"
-"/athena-results/. Can be left empty when the work group defines a query "
-"result location or uses managed query results."
-msgstr ""
-
-msgid "S3 query results location"
-msgstr ""
 
 msgid "SAT"
 msgstr "SÁB"
@@ -16766,9 +16590,6 @@ msgstr "Métrica secundaria"
 
 msgid "Secondary currency format"
 msgstr "Formato de moneda secundario"
-
-msgid "Secondary text"
-msgstr ""
 
 msgid "Secondary y-axis Bounds"
 msgstr "Límites del eje Y secundario"
@@ -17359,9 +17180,6 @@ msgstr "Vistas semánticas"
 #, fuzzy
 msgid "Semantic cache"
 msgstr "Caché semántica"
-
-msgid "Semantic colors"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19826,16 +19644,6 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "La propiedad de la entidad que se usa para las etiquetas de los puntos"
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
-msgstr ""
-
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "The following charts could not be exported:"
@@ -20162,31 +19970,58 @@ msgstr "Este panel de control se ha guardado correctamente."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Certificate\" section of"
-" the database configuration is not present in export files, and should be"
-" added manually after the import if it is needed."
+"together with the charts. Please note that the \"Secure Extra\" and "
+"\"Certificate\" sections of the database configuration are not present in"
+" export files, and should be added manually after the import if they are "
+"needed."
 msgstr ""
+"Las contraseñas de las bases de datos que figuran a continuación son "
+"necesarias para importarlas junto con los gráficos. Recuerda que las "
+"secciones «Seguridad adicional» y «Certificado» de la configuración de la"
+" base de datos no están presentes en los archivos de exportación y deben "
+"añadirse manualmente después de la importación, si son necesarias."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Certificate\" "
-"section of the database configuration is not present in export files, and"
-" should be added manually after the import if it is needed."
+"together with the dashboards. Please note that the \"Secure Extra\" and "
+"\"Certificate\" sections of the database configuration are not present in"
+" export files, and should be added manually after the import if they are "
+"needed."
 msgstr ""
+"Las contraseñas de las bases de datos que figuran a continuación son "
+"necesarias para importarlas junto con los paneles de control. Recuerda "
+"que las secciones «Seguridad adicional» y «Certificado» de la "
+"configuración de la base de datos no están presentes en los archivos de "
+"exportación y deben añadirse manualmente después de la importación, si "
+"son necesarias."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Certificate\" section "
-"of the database configuration is not present in export files, and should "
-"be added manually after the import if it is needed."
+"together with the datasets. Please note that the \"Secure Extra\" and "
+"\"Certificate\" sections of the database configuration are not present in"
+" export files, and should be added manually after the import if they are "
+"needed."
 msgstr ""
+"Las contraseñas de las bases de datos que figuran a continuación son "
+"necesarias para importarlas junto con los con los conjuntos de datos. "
+"Recuerda que las secciones «Seguridad adicional» y «Certificado» de la "
+"configuración de la base de datos no están presentes en los archivos de "
+"exportación y deben añadirse manualmente después de la importación, si "
+"son necesarias."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Certificate\" "
-"section of the database configuration is not present in export files, and"
-" should be added manually after the import if it is needed."
+"together with the saved queries. Please note that the \"Secure Extra\" "
+"and \"Certificate\" sections of the database configuration are not "
+"present in export files, and should be added manually after the import if"
+" they are needed."
 msgstr ""
+"Las contraseñas de las bases de datos que figuran a continuación son "
+"necesarias para importarlas junto con las consultas guardadas. Recuerda "
+"que las secciones «Seguridad adicional» y «Certificado» de la "
+"configuración de la base de datos no están presentes en los archivos de "
+"exportación y deben añadirse manualmente después de la importación, si "
+"son necesarias."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -20485,12 +20320,16 @@ msgstr "La captura de pantalla se ha descargado."
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr "Se está generando la captura de pantalla. No abandones la página."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
+#, fuzzy, python-format
 msgid ""
-"The selected %(type)s are linked to %(charts)s and %(dashboards)s. "
+"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
 "Archiving them will make dependent charts unavailable until they are "
 "recovered."
 msgstr ""
+"Los %(type)s seleccionados están vinculados a %(charts)s en "
+"%(dashboards)s. Si los archiva, los gráficos dependientes dejarán de "
+"estar disponibles hasta que se recuperen."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20502,11 +20341,14 @@ msgstr ""
 " los gráficos dependientes dejarán de estar disponibles hasta que se "
 "recuperen."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
+#, fuzzy, python-format
 msgid ""
-"The selected %s are linked to %s and %s. Deleting them will break those "
+"The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
 msgstr ""
+"Los %s seleccionados están vinculados a %s en %s. Si los elimina, esos "
+"objetos dejarán de funcionar."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21326,11 +21168,15 @@ msgstr ""
 "administradores pueden cambiar su contenido; establezca el campo "
 "«Ejecutar como» en su propia cuenta para realizar este cambio."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
+#, fuzzy, python-format
 msgid ""
-"This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it "
+"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
 "will make dependent charts unavailable until it is recovered."
 msgstr ""
+"Este elemento (%(type)s) está vinculado a %(charts)s en %(dashboards)s. "
+"Archivarlo hará que los gráficos dependientes dejen de estar disponibles "
+"hasta que se recupere."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21448,13 +21294,6 @@ msgstr ""
 "Puede ser una dirección IP (por ejemplo, 127.0.0.1) o un nombre de "
 "dominio (por ejemplo, mibasededatos.com)."
 
-msgid ""
-"This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
-"mydatabase.com). For a named instance (host\\INSTANCE), enter only the "
-"host here and the port the instance listens on below, or connect with a "
-"SQLAlchemy URI instead."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "This cannot be undone."
@@ -21481,21 +21320,8 @@ msgstr ""
 "Este gráfico aplica filtros cruzados a gráficos cuyos conjuntos de datos "
 "contienen columnas con el mismo nombre."
 
-msgid ""
-"This chart can't be shown here because its database connection isn't set "
-"up for embedded dashboards. Please contact the dashboard's owner."
-msgstr ""
-
 msgid "This chart has been moved to a different filter scope."
 msgstr "Este gráfico se ha movido a un alcance de filtro diferente."
-
-msgid "This chart is archived or unavailable."
-msgstr ""
-
-msgid ""
-"This chart is archived or unavailable. An editor can restore archived "
-"charts from Recently Archived."
-msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -21523,11 +21349,6 @@ msgstr "Este gráfico ya no existe."
 #, fuzzy
 msgid "This chart only"
 msgstr "Solo este gráfico"
-
-msgid ""
-"This chart uses legacy color positions past the end of the selected color"
-" scheme, so its band colors cannot be previewed or edited here."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21592,12 +21413,6 @@ msgstr "Esta columna puede ser incompatible con el conjunto de datos actual"
 
 msgid "This column must contain date/time information."
 msgstr "Esta columna debe contener información de fecha/hora."
-
-msgid ""
-"This connection stores embedded guest credentials, which only apply with "
-"\"Impersonate logged in user\" turned on. Clear the embedded credentials "
-"before turning impersonation off."
-msgstr ""
 
 msgid ""
 "This control filters the whole chart based on the selected time range. "
@@ -22375,11 +22190,6 @@ msgid "Time comparison"
 msgstr "Comparación de tiempo"
 
 msgid ""
-"Time comparison is not yet supported on semantic views. Remove the time "
-"shift and try again."
-msgstr ""
-
-msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
@@ -23031,10 +22841,6 @@ msgstr ""
 " la capa."
 
 #, python-format
-msgid "Unable to find such a country: [%(country)s]"
-msgstr ""
-
-#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "No se ha podido encontrar el festivo en cuestión: [%(holiday)s]"
 
@@ -23376,10 +23182,6 @@ msgstr "Consulta sin título"
 msgid "Unverified"
 msgstr "Sin definir"
 
-#, python-format
-msgid "Up to %s"
-msgstr ""
-
 msgid "Update"
 msgstr "Actualizar"
 
@@ -23516,9 +23318,6 @@ msgstr ""
 "Utilizar el formato de fecha incluso cuando el valor de la métrica no sea"
 " una marca de tiempo"
 
-msgid "Use default"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -23558,9 +23357,6 @@ msgstr "Utilizar las métricas como grupo de nivel superior para columnas o fila
 msgid "Use only a single value."
 msgstr "Utiliza únicamente un valor individual."
 
-msgid "Use scheme colors"
-msgstr ""
-
 msgid "Use the Advanced Analytics options below"
 msgstr "Utiliza las opciones de análisis avanzado a continuación"
 
@@ -23579,14 +23375,6 @@ msgid ""
 msgstr ""
 "Se utiliza internamente para identificar el «plugin». Debe establecerse "
 "en el nombre del paquete desde el package.json del «plugin»."
-
-msgid ""
-"Used only when a dashboard is viewed through an embedded guest token. "
-"Every embedded viewer of this connection queries as this one user, so it "
-"should be a dedicated account with the narrowest access those dashboards "
-"need. Logged-in users are unaffected and continue to authenticate "
-"individually via OAuth2."
-msgstr ""
 
 msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
@@ -23925,9 +23713,6 @@ msgstr "Visualizador"
 msgid "Viewers"
 msgstr "Visualizadores"
 
-msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -24166,11 +23951,6 @@ msgstr ""
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "No se pudo resolver la columna «%(column_name)s»."
-
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
-msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -24642,9 +24422,6 @@ msgstr "Nube de palabras"
 
 msgid "Word Rotation"
 msgstr "Rotación de palabras"
-
-msgid "Work Group"
-msgstr ""
 
 msgid "Working"
 msgstr "Trabajando"
@@ -25322,10 +25099,6 @@ msgstr ""
 " ejemplo, dividiéndolo en varios paneles) o aumente el ajuste de "
 "configuración SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
-#, python-format
-msgid "Your display control changes were not saved: %s"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -25362,10 +25135,6 @@ msgstr "No se pudo completar la exportación de \"%(title)s\"."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "Su exportación de \"%(title)s\" está lista."
-
-#, python-format
-msgid "Your filter changes were not saved: %s"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25692,6 +25461,9 @@ msgstr "código ISO 3166-1 alfa-3 (cca3)"
 msgid "code International Olympic Committee (cioc)"
 msgstr "código del Comité Olímpico Internacional (cioc)"
 
+msgid "color scheme for comparison"
+msgstr "esquema de color para comparación"
+
 msgid "color type"
 msgstr "tipo de color"
 
@@ -25717,9 +25489,6 @@ msgstr "crear"
 
 msgid "create a new chart"
 msgstr "crear un nuevo gráfico"
-
-msgid "create a semantic view"
-msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "crear conjunto de datos a partir de una consulta SQL"
@@ -25860,14 +25629,8 @@ msgstr "p.ej., ********"
 msgid "e.g. 127.0.0.1"
 msgstr "p.ej., 127.0.0.1"
 
-msgid "e.g. 1433"
-msgstr ""
-
 msgid "e.g. 5432"
 msgstr "p. ej., 5432"
-
-msgid "e.g. AKIAIOSFODNN7EXAMPLE"
-msgstr ""
 
 msgid "e.g. AccountAdmin"
 msgstr "p. ej., AccountAdmin"
@@ -25881,26 +25644,14 @@ msgstr "p. ej., compute_wh"
 msgid "e.g. default"
 msgstr "p. ej., predeterminado"
 
-msgid "e.g. embedded_viewer"
-msgstr ""
-
 msgid "e.g. hive_metastore"
 msgstr "p. ej., hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "p. ej., param1=value1&param2=value2"
 
-msgid "e.g. primary"
-msgstr ""
-
-msgid "e.g. s3://my-bucket/athena-results/"
-msgstr ""
-
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "p. ej., sql/protocolv1/o/12345"
-
-msgid "e.g. us-east-1"
-msgstr ""
 
 msgid "e.g. world_population"
 msgstr "p. ej., world_population"
@@ -26088,12 +25839,6 @@ msgstr "Es falso"
 
 #, python-format
 msgid ""
-"is linked to %s charts and %s dashboards. Are you sure you want to "
-"continue? Deleting the dataset will break those objects."
-msgstr ""
-
-#, python-format
-msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
@@ -26101,6 +25846,14 @@ msgstr ""
 "La base de datos %s está vinculada a %s gráficos que aparecen en %s "
 "dashboards. ¿Estás seguro de que quieres continuar? Eliminar la base de "
 "datos dejará inutilizables esos objetos."
+
+#, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
+msgstr ""
+"esta linkeado a %s gráficos que aparecen en %s tableros. ¿Está segurode "
+"que desea continuar? Eliminar el conjunto de datos romperá esos objetos."
 
 msgid "is not"
 msgstr "no es"
@@ -26558,9 +26311,6 @@ msgstr "la documentación del gráfico Handlebars"
 msgid "theme"
 msgstr "tema"
 
-msgid "this dashboard is unavailable or you no longer have access."
-msgstr ""
-
 msgid "timestamp"
 msgstr "marca de tiempo"
 
@@ -26643,9 +26393,6 @@ msgstr "y: los valores se normalizan dentro de cada fila"
 
 msgid "year"
 msgstr "año"
-
-msgid "you do not have permission to edit this dashboard."
-msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"
