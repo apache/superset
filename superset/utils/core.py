@@ -2098,6 +2098,22 @@ class DateColumn:
         )
 
 
+def _parse_mixed_timezone_column(
+    series: pd.Series, col: DateColumn, timestamp_format: str | None
+) -> pd.Series:
+    if col.timezone:
+        return pd.to_datetime(
+            series, utc=True, format=timestamp_format, errors="coerce", exact=False
+        )
+    return series.apply(
+        lambda value: pd.to_datetime(
+            value, format=timestamp_format, errors="coerce", exact=False
+        )
+        if pd.notna(value)
+        else pd.NaT
+    )
+
+
 def _process_datetime_column(
     df: pd.DataFrame,
     col: DateColumn,
@@ -2135,13 +2151,20 @@ def _process_datetime_column(
 
         # Parse with or without format (suppress warning if no format)
         if format_to_use:
-            converted = pd.to_datetime(
-                df[col.col_label],
-                utc=False,
-                format=format_to_use,
-                errors="coerce",
-                exact=False,
-            )
+            try:
+                converted = pd.to_datetime(
+                    df[col.col_label],
+                    utc=False,
+                    format=format_to_use,
+                    errors="coerce",
+                    exact=False,
+                )
+            except ValueError as ex:
+                if "Mixed timezones" not in str(ex):
+                    raise
+                converted = _parse_mixed_timezone_column(
+                    df[col.col_label], col, format_to_use
+                )
             # A format that coerces every non-null value to NaT is a mismatch
             # (e.g. an epoch-millis column that inherited a '%Y' string format
             # when used as a chart's granularity). Assigning it would silently
@@ -2158,13 +2181,21 @@ def _process_datetime_column(
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message=".*Could not infer format.*")
-                df[col.col_label] = pd.to_datetime(
-                    df[col.col_label],
-                    utc=False,
-                    format=None,
-                    errors="coerce",
-                    exact=False,
-                )
+                try:
+                    converted = pd.to_datetime(
+                        df[col.col_label],
+                        utc=False,
+                        format=None,
+                        errors="coerce",
+                        exact=False,
+                    )
+                except ValueError as ex:
+                    if "Mixed timezones" not in str(ex):
+                        raise
+                    converted = _parse_mixed_timezone_column(
+                        df[col.col_label], col, None
+                    )
+                df[col.col_label] = converted
 
 
 def normalize_dttm_col(

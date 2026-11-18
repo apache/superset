@@ -20,6 +20,19 @@ from pathlib import Path
 from superset.utils import json
 
 
+def test_select_star_without_schema_documents_errors() -> None:
+    """The schema-free wrapper retains the delegated handler's error contract."""
+    spec_path = (
+        Path(__file__).parents[3] / "docs" / "static" / "resources" / "openapi.json"
+    )
+    spec = json.loads(spec_path.read_text(encoding="utf-8"))
+    responses = spec["paths"]["/api/v1/database/{pk}/select_star/{table_name}/"]["get"][
+        "responses"
+    ]
+    for status in ("400", "401", "404", "422", "500"):
+        assert responses[status] == {"$ref": f"#/components/responses/{status}"}
+
+
 def test_documented_dashboard_list_schema_matches_public_contract() -> None:
     """The published dashboard list contract must use generated relationships."""
     spec_path = (

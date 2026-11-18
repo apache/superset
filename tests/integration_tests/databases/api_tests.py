@@ -3890,6 +3890,16 @@ class TestDatabaseApi(SupersetTestCase):
     @with_config({"PREFERRED_DATABASES": ["PostgreSQL", "Google BigQuery"]})
     @mock.patch("superset.databases.api.get_available_engine_specs")
     def test_available(self, get_available_engine_specs):
+        from apispec import APISpec
+        from apispec.ext.marshmallow import MarshmallowPlugin
+        from marshmallow import fields, Schema
+
+        plugin = MarshmallowPlugin()
+        APISpec(title="test", version="1", openapi_version="3.0.2", plugins=[plugin])
+        object_schema = plugin.converter.schema2jsonschema(Schema())
+        query_schema = plugin.converter.field2property(
+            fields.Dict(keys=fields.Str(), values=fields.Raw())
+        )
         get_available_engine_specs.return_value = {
             PostgresEngineSpec: {"psycopg2"},
             BigQueryEngineSpec: {"bigquery"},
@@ -3913,6 +3923,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "postgresql",
                     "name": "PostgreSQL",
                     "parameters": {
+                        **object_schema,
                         "properties": {
                             "database": {
                                 "description": "Database name",
@@ -3939,9 +3950,8 @@ class TestDatabaseApi(SupersetTestCase):
                                 "type": "integer",
                             },
                             "query": {
-                                "additionalProperties": {},
+                                **query_schema,
                                 "description": "Additional parameters",
-                                "type": "object",
                             },
                             "ssh": {
                                 "description": "Use an ssh tunnel connection to the database",  # noqa: E501
@@ -3990,6 +4000,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "bigquery",
                     "name": "Google BigQuery",
                     "parameters": {
+                        **object_schema,
                         "properties": {
                             "credentials_info": {
                                 "description": (
@@ -3998,7 +4009,7 @@ class TestDatabaseApi(SupersetTestCase):
                                 "type": "string",
                                 "x-encrypted-extra": True,
                             },
-                            "query": {"type": "object"},
+                            "query": plugin.converter.field2property(fields.Dict()),
                         },
                         "type": "object",
                     },
@@ -4032,6 +4043,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "redshift",
                     "name": "Amazon Redshift",
                     "parameters": {
+                        **object_schema,
                         "properties": {
                             "database": {
                                 "description": "Database name",
@@ -4057,9 +4069,8 @@ class TestDatabaseApi(SupersetTestCase):
                                 "type": "integer",
                             },
                             "query": {
-                                "additionalProperties": {},
+                                **query_schema,
                                 "description": "Additional parameters",
-                                "type": "object",
                             },
                             "ssh": {
                                 "description": "Use an ssh tunnel connection to the database",  # noqa: E501
@@ -4105,8 +4116,9 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "gsheets",
                     "name": "Google Sheets",
                     "parameters": {
+                        **object_schema,
                         "properties": {
-                            "catalog": {"type": "object"},
+                            "catalog": plugin.converter.field2property(fields.Dict()),
                             "oauth2_client_info": {
                                 "default": {
                                     "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
@@ -4164,6 +4176,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "mysql",
                     "name": "MySQL",
                     "parameters": {
+                        **object_schema,
                         "properties": {
                             "database": {
                                 "description": "Database name",
@@ -4189,9 +4202,8 @@ class TestDatabaseApi(SupersetTestCase):
                                 "type": "integer",
                             },
                             "query": {
-                                "additionalProperties": {},
+                                **query_schema,
                                 "description": "Additional parameters",
-                                "type": "object",
                             },
                             "ssh": {
                                 "description": "Use an ssh tunnel connection to the database",  # noqa: E501
