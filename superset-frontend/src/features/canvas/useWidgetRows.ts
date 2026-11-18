@@ -19,12 +19,14 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { getClientErrorObject } from '@superset-ui/core';
+import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import {
   DataBinding,
   fetchPlacementData,
   PlacementData,
   runtimeFilters,
 } from './echarts/chartData';
+import { useCanvasLogger } from './useCanvasLogger';
 
 /** The draft a canvas page shows, if any; its placements read from it. */
 export const CanvasDraftContext = createContext<string | undefined>(undefined);
@@ -56,6 +58,10 @@ export function useWidgetRows(
 ): WidgetRows {
   const draftToken = useContext(CanvasDraftContext);
   const versionUuid = useContext(CanvasVersionContext);
+  const log = useCanvasLogger(canvasId, {
+    isDraft: Boolean(draftToken),
+    versionUuid,
+  });
   const binding = props?.dataBinding as DataBinding | undefined;
   const bound = Boolean(binding?.datasetId);
   const selected = runtimeFilters(filters);
@@ -91,9 +97,20 @@ export function useWidgetRows(
       })
       .catch(async e => {
         if (cancelled) return;
-        const { error } = await getClientErrorObject(e);
+        const clientError = await getClientErrorObject(e);
         if (!cancelled) {
-          setState({ rows: [], loading: false, error: error ?? String(e) });
+          setState({
+            rows: [],
+            loading: false,
+            error: clientError.error ?? String(e),
+          });
+          log(LOG_ACTIONS_CANVAS_ERROR, {
+            scope: 'widget_data',
+            placement_id: nodeId,
+            status: clientError.status,
+            error_type: clientError.errors?.[0]?.error_type,
+            has_err: true,
+          });
         }
       });
     return () => {
@@ -101,7 +118,7 @@ export function useWidgetRows(
     };
     // The key stands in for the binding and filters, recreated every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvasId, nodeId, key, refreshKey]);
+  }, [canvasId, log, nodeId, key, refreshKey]);
 
   const datasource = bound ? `${binding?.datasetId}__table` : undefined;
   // Stable between renders, so callers can depend on it in effects.

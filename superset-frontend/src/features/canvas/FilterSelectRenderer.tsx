@@ -20,9 +20,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import { SupersetClient } from '@superset-ui/core';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { Select, Typography } from '@superset-ui/core/components';
+import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import type { SelectFilterValue } from './echarts/chartData';
+import { useCanvasLogger } from './useCanvasLogger';
 
 const Wrapper = styled.div`
   ${({ theme }) => css`
@@ -42,6 +44,8 @@ const strings = (value: unknown): string[] =>
  * selected.
  */
 export default function FilterSelectRenderer({
+  canvasId,
+  nodeId,
   props,
   setFilterValue,
 }: canvasApi.CanvasWidgetProps) {
@@ -53,6 +57,7 @@ export default function FilterSelectRenderer({
     strings(props?.defaultSelection),
   );
   const published = useRef(false);
+  const log = useCanvasLogger(canvasId);
 
   useEffect(() => {
     if (staticOptions.length || !datasetId || !column) return undefined;
@@ -65,8 +70,20 @@ export default function FilterSelectRenderer({
           setFetched(strings(json?.result).filter(value => value !== 'null'));
         }
       })
-      .catch(() => {
-        if (!cancelled) setFetched([]);
+      .catch(async response => {
+        if (cancelled) return;
+        setFetched([]);
+        // Worth reporting even though nothing is thrown: the filter renders
+        // as an empty dropdown, so the failure is invisible to the user as
+        // well as to us, and shows up later as "the data looks wrong".
+        const error = await getClientErrorObject(response);
+        log(LOG_ACTIONS_CANVAS_ERROR, {
+          scope: 'filter_values',
+          placement_id: nodeId,
+          status: error.status,
+          error_type: error.errors?.[0]?.error_type,
+          has_err: true,
+        });
       });
     return () => {
       cancelled = true;

@@ -147,6 +147,7 @@ function CanvasContent({ id }: { id: number }) {
   const history = useCanvasVersionHistory(
     metadata.result?.uuid,
     !draft.token && isFeatureEnabled(FeatureFlag.VersionHistory),
+    id,
   );
   const [historyOpen, setHistoryOpen] = useState(false);
   const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
