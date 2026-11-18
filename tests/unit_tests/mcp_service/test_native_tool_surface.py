@@ -66,12 +66,14 @@ from jsonschema import Draft202012Validator
 from superset.mcp_service.app import ALLOWED_UNPROTECTED, mcp
 from superset.mcp_service.chart.schemas import CHART_TYPE_VALUES
 from superset.mcp_service.chart.tool.get_chart_type_schema import VALID_CHART_TYPES
+from superset.mcp_service.mcp_apps import declared_visibility, feeds_view
 from superset.mcp_service.mcp_config import (
     MCP_NATIVE_TOOL_LIST_CONFIG,
     MCP_TOOL_SEARCH_CONFIG,
 )
 from superset.mcp_service.server import (
     _apply_compact_tool_list_transform,
+    _apply_mcp_apps_transforms,
     _apply_tool_search_transform,
     _truncate_description,
     build_middleware_list,
@@ -143,6 +145,7 @@ async def build_server(
     )
     for tool in await canonical_tools():
         server.add_tool(tool)
+    _apply_mcp_apps_transforms(server)
     if compatibility:
         _apply_tool_search_transform(
             server, dict(search_config or MCP_TOOL_SEARCH_CONFIG)
@@ -339,7 +342,8 @@ async def test_native_list_exposes_every_registered_tool_by_name(mode: str) -> N
         assert listed.description == expected.description
         assert listed.inputSchema == dereference_refs(expected.inputSchema)
         assert listed.annotations == expected.annotations
-        if structured_output_enabled:
+        if structured_output_enabled or feeds_view(registered[listed.name]):
+            # A View renders the structured result, so it is never stripped.
             assert expected.outputSchema is not None, listed.name
             assert listed.outputSchema == dereference_refs(expected.outputSchema)
         else:
@@ -367,10 +371,13 @@ async def test_native_schemas_are_valid_and_self_contained() -> None:
 async def test_compatibility_mode_lists_search_interface_and_keeps_names() -> None:
     """Compatibility mode lists the search interface; real names stay callable."""
     server = await build_server(structured_output_enabled=False, compatibility=True)
-    registered = {tool.name for tool in await canonical_tools()}
+    canonical = await canonical_tools()
+    registered = {tool.name for tool in canonical}
+    # Tools that feed a View are pinned, so hosts can read their UI metadata.
+    view_tools = {tool.name for tool in canonical if feeds_view(tool)}
     async with Client(server) as client:
         listed = {tool.name for tool in await client.list_tools()}
-        assert listed == PINNED_TOOLS | {SEARCH_TOOL, CALL_TOOL}
+        assert listed == PINNED_TOOLS | view_tools | {SEARCH_TOOL, CALL_TOOL}
         for name in sorted(registered - PINNED_TOOLS):
             # Each non-pinned tool resolves under its real name for direct calls.
             assert await server.get_tool(name) is not None, name
@@ -672,6 +679,13 @@ async def test_every_registered_tool_is_callable_by_name_on_every_path(
     mismatched: dict[str, dict[str, Any]] = {}
     for tool in await canonical_tools():
         results = await call_three_ways(native, compatibility, tool.name, {})
+        visibility = declared_visibility(tool)
+        if visibility is not None and "model" not in visibility:
+            # call_tool takes names from the model, so it never reaches a tool
+            # the model may not see; the other paths still dispatch it.
+            refused = results.pop("compatibility_proxy")
+            assert refused.is_error is True, tool.name
+            assert f"Unknown tool: {tool.name!r}" in refused.content[0].text
         if tool.name in ALLOWED_UNPROTECTED:
             for path, result in results.items():
                 assert result.is_error is False, (tool.name, path)

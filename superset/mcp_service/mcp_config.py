@@ -573,16 +573,9 @@ MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
     "always_visible": [  # Tools always shown in list_tools (pinned)
         "health_check",
         "get_instance_info",
-        # MCP Apps widget entry point. Must be pinned (not hidden behind the
-        # search_tools/call_tool proxy) so hosts see its ``_meta.ui.resourceUri``
-        # descriptor and associate the tool result with the chart-viewer widget.
-        "render_chart",
-        # App-visible drill-down/zoom tool the widget calls back via tools/call.
-        # Pinned so the call path is reachable through the tool-search transform;
-        # its ``_meta.ui.visibility = ["app"]`` keeps compliant hosts from
-        # surfacing it to the model.
-        "render_chart_requery",
-        "render_dashboard",
+        # Tools that feed an MCP Apps View (a ``_meta.ui`` resourceUri or an
+        # "app" visibility) are pinned automatically: hosts read them from
+        # tools/list.
     ],
     "search_tool_name": "search_tools",  # Name of the search tool
     "call_tool_name": "call_tool",  # Name of the call proxy tool

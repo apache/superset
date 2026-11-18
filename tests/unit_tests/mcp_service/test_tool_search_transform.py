@@ -29,6 +29,7 @@ from fastmcp.tools import Tool
 from flask import Flask, g
 
 from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
+from superset.mcp_service.mcp_apps import feeds_view
 from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
 from superset.mcp_service.privacy import requires_data_model_metadata_access
 from superset.mcp_service.server import (
@@ -1429,7 +1430,10 @@ def test_bm25_exact_name_finds_every_registered_tool(
         can_access=True,
         can_view_metadata=True,
     )
-    pinned: set[str] = set(MCP_TOOL_SEARCH_CONFIG["always_visible"])
+    # Tools that feed an MCP Apps View are pinned automatically.
+    pinned: set[str] = set(MCP_TOOL_SEARCH_CONFIG["always_visible"]) | {
+        tool.name for tool in registered_catalog if feeds_view(tool)
+    }
     assert visible == {tool.name for tool in registered_catalog} - pinned
 
     not_first: dict[str, list[str]] = {

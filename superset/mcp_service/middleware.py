@@ -63,6 +63,7 @@ from superset.mcp_service.constants import (
     DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
+from superset.mcp_service.mcp_apps import feeds_view
 from superset.mcp_service.utils.response_size_utils import (
     COMMITTED_WRITE_SPECS,
     COMMITTED_WRITE_TOOLS,
@@ -1092,6 +1093,23 @@ class LoggingMiddleware(Middleware):
         )
 
 
+async def _called_tool_feeds_view(context: MiddlewareContext[Any]) -> bool:
+    """Whether the tool being called declares that a View depends on it.
+
+    Any failure to resolve the tool answers no, which keeps the stripped,
+    text-only result.
+    """
+    name = getattr(context.message, "name", None)
+    fastmcp_context = context.fastmcp_context
+    if not isinstance(name, str) or fastmcp_context is None:
+        return False
+    try:
+        tool = await fastmcp_context.fastmcp.get_tool(name)
+    except Exception:  # noqa: BLE001
+        return False
+    return feeds_view(tool)
+
+
 class ToolResultCompatibilityMiddleware(Middleware):
     """Gate structured results while providing a last-resort error boundary.
 
@@ -1106,6 +1124,11 @@ class ToolResultCompatibilityMiddleware(Middleware):
     from successful calls. It always converts exceptions that escape the inner
     error handler into a sanitized text result and returns an empty tool list if
     discovery itself fails.
+
+    Tools that feed an MCP Apps View keep both sides whatever the setting: the
+    View renders ``structuredContent``, and without it the data would land in
+    ``content``, which reaches the model. Such a tool declares ``_meta.ui``
+    with a ``resourceUri`` or an ``"app"`` visibility.
     """
 
     def __init__(self, *, structured_output_enabled: bool = False) -> None:
@@ -1128,7 +1151,7 @@ class ToolResultCompatibilityMiddleware(Middleware):
             return tools
         return [
             tool.model_copy(update={"output_schema": None})
-            if tool.output_schema is not None
+            if tool.output_schema is not None and not feeds_view(tool)
             else tool
             for tool in tools
         ]
@@ -1217,6 +1240,7 @@ class ToolResultCompatibilityMiddleware(Middleware):
             not self.structured_output_enabled
             and isinstance(result, ToolResult)
             and result.structured_content is not None
+            and not await _called_tool_feeds_view(context)
         ):
             return ToolResult(
                 content=result.content,

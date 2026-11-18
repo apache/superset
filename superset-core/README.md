@@ -86,6 +86,20 @@ def my_extension_tool(param: str) -> dict:
     # ... tool implementation
 ```
 
+### MCP Apps Views
+
+```python
+from superset_core.mcp.decorators import content_version, resource, tool
+
+@resource("viewer", version=content_version(VIEWER_HTML))
+def viewer() -> str:
+    return VIEWER_HTML  # served as ui://extensions/<publisher>/<name>/viewer/...
+
+@tool(app={"resourceUri": viewer.uri, "visibility": ["model", "app"]})
+def show_widget(widget_id: int) -> dict:
+    # ... tool implementation
+```
+
 ### MCP Prompts
 
 ```python
