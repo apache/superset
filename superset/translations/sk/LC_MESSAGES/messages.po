@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -9517,10 +9517,6 @@ msgstr "Nepodarilo sa načítať pokročilý typ"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "Nepodarilo sa zastaviť dotaz."
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "Nepodarilo sa uložiť prispôsobenie grafu"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Nepodarilo sa uložiť rozsah krížového filtrovanie"
@@ -26102,6 +26098,10 @@ msgstr ""
 "rozdeľte na viacero dashboardov) alebo zvýšte hodnotu konfiguračného "
 "nastavenia SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -26135,6 +26135,10 @@ msgstr "Export \"%(title)s\" sa nepodarilo dokončiť."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "Export \"%(title)s\" je pripravený."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -27407,6 +27411,9 @@ msgstr "dokumentáciu Handlebars grafu"
 msgid "theme"
 msgstr "téma"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "Zobraziť časová značka"
@@ -27495,6 +27502,9 @@ msgstr "y: hodnoty sú normalizovány v rámci každého riadku"
 
 msgid "year"
 msgstr "rok"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

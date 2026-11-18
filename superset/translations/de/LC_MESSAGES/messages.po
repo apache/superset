@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -8520,9 +8520,6 @@ msgstr "Fehler beim Abrufen des erweiterten Typs"
 
 msgid "Failed to revoke API key"
 msgstr "Fehler beim Widerrufen des API-Schlüssels"
-
-msgid "Failed to save chart customization"
-msgstr "Das Speichern der Diagrammanpassung ist fehlgeschlagen"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Cross-Filter-Scoping konnte nicht gespeichert werden"
@@ -22712,6 +22709,10 @@ msgstr ""
 "aufteilen) oder erhöhen Sie die Konfigurationseinstellung "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid ""
 "Your export is being generated and will download automatically when "
 "ready. We'll also email you a download link."
@@ -22735,6 +22736,10 @@ msgstr "Ihr Export von \"%(title)s\" konnte nicht abgeschlossen werden."
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "Ihr Export von \"%(title)s\" ist bereit."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 msgid "Your password could not be reset. Please try again later."
 msgstr ""
@@ -23804,6 +23809,9 @@ msgstr "Handlebars-Diagramm-Dokumentation"
 msgid "theme"
 msgstr "Design"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "Zeitstempel"
 
@@ -23885,6 +23893,9 @@ msgstr "y: Werte werden innerhalb jeder Zeile normalisiert"
 
 msgid "year"
 msgstr "Jahr"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

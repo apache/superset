@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -13814,12 +13814,6 @@ msgstr "ไม่สามารถดึงข้อมูลประเภท
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "ไม่สามารถหยุดการสืบค้นได้"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
-# uk]
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "ไม่สามารถบันทึกการปรับแต่งแผนภูมิได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -36599,6 +36593,10 @@ msgstr ""
 "ลดขนาดแดชบอร์ด (เช่น แบ่งออกเป็นหลายแดชบอร์ด) หรือเพิ่มค่าการตั้งค่า "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT"
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -36632,6 +36630,10 @@ msgstr "ไม่สามารถส่งออก \"%(title)s\" ของค
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "การส่งออก \"%(title)s\" ของคุณพร้อมแล้ว"
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -38544,6 +38546,9 @@ msgstr "เอกสารประกอบแผนภูมิ Handlebars"
 msgid "theme"
 msgstr "ธีม"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -38705,6 +38710,9 @@ msgstr "y: ค่าถูกทำให้เป็นมาตรฐานภ
 #, fuzzy
 msgid "year"
 msgstr "ปี"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

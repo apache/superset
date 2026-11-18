@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -10747,10 +10747,6 @@ msgstr "Neuspelo preuzimanje napredne vrste"
 
 msgid "Failed to revoke API key"
 msgstr "Neuspelo opozivanje API ključa"
-
-# uk]
-msgid "Failed to save chart customization"
-msgstr "Neuspelo čuvanje prilagođavanja grafikona"
 
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Failed to save cross-filter scoping"
@@ -28389,6 +28385,10 @@ msgstr ""
 "(na primer, podelite je na više kontrolnih tabli) ili povećajte "
 "konfiguraciono podešavanje SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -28422,6 +28422,10 @@ msgstr "Vaš izvoz \"%(title)s\" nije mogao da se završi."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "Vaš izvoz \"%(title)s\" je spreman."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -29794,6 +29798,9 @@ msgstr "dokumentaciju Handlebars grafikona"
 msgid "theme"
 msgstr "tema"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "vremenska oznaka"
 
@@ -29900,6 +29907,9 @@ msgstr "y: vrednosti su normalizovane u okviru svakog reda"
 # zh, zh_TW]
 msgid "year"
 msgstr "godina"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 # sk, uk]
 #. do-not-translate

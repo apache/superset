@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -9015,9 +9015,6 @@ msgstr "Не удалось получить расширенный тип"
 
 msgid "Failed to revoke API key"
 msgstr "Не удалось отозвать ключ API"
-
-msgid "Failed to save chart customization"
-msgstr "Не удалось сохранить настройку диаграммы"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Не удалось сохранить область действия кросс-фильтра"
@@ -24055,6 +24052,10 @@ msgstr ""
 "разделите его на несколько дашбордов) или увеличьте значение параметра "
 "конфигурации SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -24088,6 +24089,10 @@ msgstr "Не удалось завершить экспорт «%(title)s»."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "Экспорт «%(title)s» готов."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25228,6 +25233,9 @@ msgstr "документацию по графикам Handlebars"
 msgid "theme"
 msgstr "тема"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "метка времени"
 
@@ -25310,6 +25318,9 @@ msgstr "y: значения нормированны внутри каждой �
 
 msgid "year"
 msgstr "год"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 # Не переводить
 #. do-not-translate

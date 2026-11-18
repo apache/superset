@@ -38,6 +38,29 @@ assists people when migrating to a new version.
   host/provider and cache migration is required before deploying this SDK
   change.
 
+- Semantic-layer connection updates that reuse masked credentials require a
+  usable provider configuration schema. Non-secret settings must stay unchanged
+  at every nesting depth, including dictionary keys. While any mask is retained,
+  every declared secret must also be masked or explicitly null; non-null explicit
+  secrets are refused even if they match the stored value. To rotate a credential
+  or change other settings, re-enter all credentials, including top-level ones.
+  Unavailable, ambiguous, or unsupported schemas require explicit credentials.
+  Provider `x-` UI annotations remain supported. Other unmodelled keywords,
+  including `contentMediaType`, `contentSchema`, `$schema`, `$id`, and `$comment`,
+  require explicit credentials on updates. The schema depth bound also counts
+  reference-sibling expansion. GET masking is unchanged and does not interpret
+  conditional-only secret declarations.
+  Name-only updates can omit configuration entirely.
+
+- MCP `list_metrics` returns a partial catalog for unscoped semantic-view discovery
+  refusals, with `incomplete: true` and `refused_views` containing safe view IDs.
+  No metrics from a refused view are included; counts and pages cover only usable
+  metrics. Clients must check `incomplete` before treating the catalog as complete.
+  Scoped `view_id` requests whose view refuses while loading metrics, columns or
+  compatible dimensions now return `AccessDenied` instead of success with a warning.
+  Ordinary provider failures also mark the catalog incomplete, retaining safe
+  warnings without refusal markers.
+
 - Semantic cache rollups serve limited queries only when the post-filter,
   rolled-up result fits within the limit. Queries with nonzero row offsets bypass
   containment reuse. Larger rolled-up results fall back to
@@ -62,6 +85,16 @@ assists people when migrating to a new version.
   impersonation or embedded guest credentials), independently of the catalog
   dropdown cache settings. Resolved defaults and other unambiguous selections
   do not require this additional listing.
+
+- New config `ENCRYPTED_EXTRA_HINT_CHARS` (default `0`, off): when set above
+  zero, users who can edit a database can reveal the last characters of each
+  stored secret in its Secure extra, at most 25% of a value, through
+  `GET /api/v1/database/<pk>/encrypted_extra_hints/`. See
+  [Configuring Superset](docs/admin_docs/configuration/configuring-superset.mdx).
+  Whatever the setting, `engine_information` on the database endpoints gains
+  `encrypted_extra_sensitive_fields`, the engine's declared sensitive paths
+  and labels, and `GET /api/v1/database/<pk>/connection` lists the fields
+  stored in that database instead.
 
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a

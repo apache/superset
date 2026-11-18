@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -12579,10 +12579,6 @@ msgstr "고급 유형 검색에 실패했습니다"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "테이블 선택"
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "필터"
 
 #, fuzzy
 msgid "Failed to save cross-filter scoping"
@@ -33857,6 +33853,10 @@ msgstr ""
 "대시보드가 너무 커서 저장할 수 없습니다. 직렬화된 레이아웃 길이는 %s이고 제한은 %s입니다. 대시보드 크기를 줄이거나(예: 여러"
 " 대시보드로 분할) SUPERSET_DASHBOARD_POSITION_DATA_LIMIT 설정 값을 높이세요."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -33888,6 +33888,10 @@ msgstr "\"%(title)s\" 내보내기를 완료할 수 없습니다."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "\"%(title)s\" 내보내기가 준비되었습니다."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -35667,6 +35671,9 @@ msgstr "Handlebars 차트 문서"
 msgid "theme"
 msgstr "Query 공유"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -35810,6 +35817,9 @@ msgstr "y: 각 행 내에서 값이 정규화됩니다"
 
 msgid "year"
 msgstr "년"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

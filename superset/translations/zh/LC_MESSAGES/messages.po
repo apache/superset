@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -8920,9 +8920,6 @@ msgstr "检索高级类型失败"
 
 msgid "Failed to revoke API key"
 msgstr "撤销API密钥失败"
-
-msgid "Failed to save chart customization"
-msgstr "保存图表自定义失败"
 
 #, fuzzy
 msgid "Failed to save cross-filter scoping"
@@ -23698,6 +23695,10 @@ msgstr ""
 "您的看板过大，无法保存：序列化布局长度为 %s，但限制为 %s。请减小看板大小（例如，将其拆分为多个看板）或提高 "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT 配置设置。"
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -23727,6 +23728,10 @@ msgstr "您的“%(title)s”导出无法完成。"
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "您的“%(title)s”导出已就绪。"
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24979,6 +24984,9 @@ msgstr "Handlebars 图表文档"
 msgid "theme"
 msgstr "主题"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "时间戳"
 
@@ -25086,6 +25094,9 @@ msgstr "y: 每行内的值已归一化"
 
 msgid "year"
 msgstr "年"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

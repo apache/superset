@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -9540,10 +9540,6 @@ msgstr "I rahua te tiki i te momo aromatawai"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "I rahua te whakamutua i te pātai."
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "I rahua te uta i ngā raraunga kauwhata"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "I rahua te tiaki i te korahi tātari-whiti"
@@ -25557,6 +25553,10 @@ msgstr ""
 "tauira, wehea ki ētahi papatohu maha) me whakanui rānei i te tautuhinga "
 "whirihora SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -25592,6 +25592,10 @@ msgstr "Kāore i taea te whakaoti te kaweake o \"%(title)s\"."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "Kua rite te kaweake o \"%(title)s\"."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26805,6 +26809,9 @@ msgstr "ngā tuhinga tūtohi Handlebars"
 msgid "theme"
 msgstr "Wā"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "Whakaatu Waitohu"
@@ -26889,6 +26896,9 @@ msgstr "y: ka whakawhānuitia ngā uara i roto i ia rārangi"
 
 msgid "year"
 msgstr "tau"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

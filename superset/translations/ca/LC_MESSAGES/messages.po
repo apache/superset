@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:17-0700\n"
+"POT-Creation-Date: 2026-11-18 09:11-0700\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -9624,10 +9624,6 @@ msgstr "Ha fallat en recuperar tipus avançat"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "Ha fallat en aturar consulta."
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "Ha fallat en carregar dades del gràfic"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Ha fallat en desar l'àmbit del filtre creuat"
@@ -25700,6 +25696,10 @@ msgstr ""
 "exemple, dividint-lo en diversos taulers) o augmenteu el paràmetre de "
 "configuració SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -25733,6 +25733,10 @@ msgstr "No s'ha pogut completar l'exportació de \"%(title)s\"."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "L'exportació de \"%(title)s\" està llesta."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26942,6 +26946,9 @@ msgstr "la documentació del gràfic Handlebars"
 msgid "theme"
 msgstr "Temps"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "Mostrar Marca de Temps"
@@ -27026,6 +27033,9 @@ msgstr "y: els valors estan normalitzats dins cada filera"
 
 msgid "year"
 msgstr "any"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"
