@@ -623,7 +623,7 @@ test('preselects the dropped column in the add-metric popover after the popover 
 
   await userEvent.click(screen.getByText('Drop columns/metrics here or click'));
   await screen.findByRole('tab', { name: 'Simple' });
-  await userEvent.keyboard('{Escape}');
+  userEvent.click(screen.getByRole('button', { name: 'Close' }));
   await waitFor(() =>
     expect(
       screen.queryByRole('tab', { name: 'Simple' }),
@@ -664,7 +664,7 @@ test('shows the newly dropped column, not the previously dropped one, in the add
     });
   });
   expect(await getColumnField()).toHaveTextContent('Revenue');
-  await userEvent.keyboard('{Escape}');
+  userEvent.click(screen.getByRole('button', { name: 'Close' }));
   await waitFor(() =>
     expect(
       screen.queryByRole('combobox', { name: 'Select column' }),
