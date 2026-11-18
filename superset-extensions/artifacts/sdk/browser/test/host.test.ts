@@ -566,6 +566,30 @@ test('requests over the rate are refused, and reported once a burst', () => {
   expect(requests).toHaveLength(4);
 });
 
+test("a frame's errors are rate-limited apart from its requests", () => {
+  vi.useFakeTimers();
+  const { errors, fromFrame, handshake, request, requests } = setup(undefined, {
+    limits: { requestsPerSecond: 3, queries: 100 },
+  });
+  handshake();
+  for (let sent = 0; sent < 50; sent += 1) {
+    fromFrame({ type: 'error', kind: 'error', message: `boom ${sent}` });
+  }
+  expect(errors.map(error => error.message)).toEqual([
+    'boom 0',
+    'boom 1',
+    'boom 2',
+    'refused errors over 3 a second',
+  ]);
+  // Its requests keep their own budget.
+  request({ type: 'refresh' });
+  expect(requests).toHaveLength(1);
+
+  vi.advanceTimersByTime(1000);
+  fromFrame({ type: 'error', kind: 'error', message: 'later' });
+  expect(errors.at(-1)?.message).toBe('later');
+});
+
 test('the rate limit covers requests the channel refuses anyway', () => {
   vi.useFakeTimers();
   const { errors, request } = setup([Capability.THEME]);

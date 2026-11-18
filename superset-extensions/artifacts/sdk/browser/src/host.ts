@@ -218,8 +218,6 @@ export function createFrameChannel({
   const delivered = new Map<string, BindingData>();
   const deliveredValues = new Map<string, Map<string, ReadonlySet<unknown>>>();
   let queries = 0;
-  let arrivals: number[] = [];
-  let throttled = false;
   let ready = false;
   let disposed = false;
 
@@ -300,21 +298,31 @@ export function createFrameChannel({
     return undefined;
   };
 
-  /** Whether a request fits the rate limit; refusals are reported once a burst. */
-  const admit = (): boolean => {
-    const now = Date.now();
-    arrivals = arrivals.filter(time => now - time < 1000);
-    if (arrivals.length >= caps.requestsPerSecond) {
-      if (!throttled) {
-        refuse(`refused requests over ${caps.requestsPerSecond} a second`);
+  /**
+   * A rate limit of `caps.requestsPerSecond` for one kind of message: whether
+   * the next one fits. Refusals are reported once a burst.
+   */
+  const rateLimit = (messages: string) => {
+    let arrivals: number[] = [];
+    let throttled = false;
+    return (): boolean => {
+      const now = Date.now();
+      arrivals = arrivals.filter(time => now - time < 1000);
+      if (arrivals.length >= caps.requestsPerSecond) {
+        if (!throttled) {
+          refuse(`refused ${messages} over ${caps.requestsPerSecond} a second`);
+        }
+        throttled = true;
+        return false;
       }
-      throttled = true;
-      return false;
-    }
-    throttled = false;
-    arrivals.push(now);
-    return true;
+      throttled = false;
+      arrivals.push(now);
+      return true;
+    };
   };
+  const admit = rateLimit('requests');
+  // Apart from requests, so that a frame's errors never cost it its data.
+  const admitError = rateLimit('errors');
 
   const handleRequest = (request: FrameRequest) => {
     const capability = REQUEST_CAPABILITY[request.type];
@@ -359,6 +367,7 @@ export function createFrameChannel({
       if (latest) sendState(latest);
     } else if (message.type === 'error') {
       // TODO: decide which frame errors may reach an agent.
+      if (!admitError()) return;
       onError({
         source: 'frame',
         kind: message.kind,
