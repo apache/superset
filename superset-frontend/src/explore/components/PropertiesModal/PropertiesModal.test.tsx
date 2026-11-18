@@ -363,7 +363,7 @@ test('"Description" should not be empty when saved', async () => {
 
   // Find the description textarea (it's the second textbox, as Name is the first)
   const textboxes = screen.getAllByRole('textbox');
-  const description = textboxes[1]; // Description is the textarea
+  const [, description] = textboxes; // Description is the textarea
 
   await userEvent.clear(description);
   await userEvent.type(description, 'Test description');

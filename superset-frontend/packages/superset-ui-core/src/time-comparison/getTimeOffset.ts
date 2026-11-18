@@ -91,7 +91,7 @@ export const parseDttmToDate = (
   if (dttm?.includes('ago')) {
     const parts = dttm.split(' ');
     const amount = parseInt(parts[0], 10);
-    const unit = parts[1];
+    const [, unit] = parts;
     switch (unit) {
       case 'day':
       case 'days':

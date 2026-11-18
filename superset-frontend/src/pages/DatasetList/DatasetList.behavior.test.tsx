@@ -180,7 +180,7 @@ test('single semantic view delete names its blockers, including archived ones', 
 });
 
 test('mixed bulk delete names refused semantic views and their conflict reason', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
   const semanticView = {
     ...mockDatasets[1],
     id: 99,
@@ -476,7 +476,7 @@ test.each([false, true])(
       [FeatureFlag.SoftDelete]: softDelete,
     };
     localStorage.removeItem(LocalStorageKeys.LastArchivedType);
-    const dataset = mockDatasets[0];
+    const [dataset] = mockDatasets;
     const views = [
       {
         ...mockDatasets[1],
@@ -745,7 +745,7 @@ test('network timeout triggers danger toast', async () => {
 });
 
 test('clicking delete opens modal with related objects count', async () => {
-  const datasetToDelete = mockDatasets[0];
+  const [datasetToDelete] = mockDatasets;
 
   // Set up delete mocks
   setupDeleteMocks(datasetToDelete.id);
@@ -788,7 +788,7 @@ test('clicking delete opens modal with related objects count', async () => {
 });
 
 test('clicking export calls handleResourceExport with dataset ID', async () => {
-  const datasetToExport = mockDatasets[0];
+  const [datasetToExport] = mockDatasets;
 
   mockDatasetListEndpoints({
     result: [datasetToExport],
@@ -1117,7 +1117,7 @@ test('dataset with warning shows icon and tooltip with markdown content', async 
 });
 
 test('dataset name links to Explore with correct URL and accessible label', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 

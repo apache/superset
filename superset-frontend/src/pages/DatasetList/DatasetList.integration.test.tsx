@@ -378,7 +378,7 @@ test('bulk delete confirm never claims a semantic view has no dependents', async
   // Semantic views have no dependents lookup, so a mixed selection must say
   // their charts are unchecked instead of reporting the dataset-only result
   // as the whole picture.
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
   const semanticView = {
     ...mockDatasets[1],
     id: 99,
@@ -557,7 +557,7 @@ test.each([0, 2])(
     const previousFlags = window.featureFlags;
     window.featureFlags = { SOFT_DELETE: true } as never;
     try {
-      const dataset = mockDatasets[0];
+      const [dataset] = mockDatasets;
       mockDatasetListEndpoints({ result: [dataset], count: 1 });
       fetchMock.get(API_ENDPOINTS.DATASET_RELATED_OBJECTS, {
         charts: { count, result: [] },

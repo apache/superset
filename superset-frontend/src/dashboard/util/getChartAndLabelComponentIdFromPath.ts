@@ -29,7 +29,7 @@ export default function getChartAndLabelComponentIdFromPath(
       .filter((x): x is string => x !== undefined);
     while (currentPath.length) {
       const componentId = currentPath.pop()!;
-      const componentType = componentId.split('-')[0];
+      const [componentType] = componentId.split('-');
 
       result[componentType.toLowerCase()] = componentId;
       if (!IN_COMPONENT_ELEMENT_TYPES.includes(componentType)) {

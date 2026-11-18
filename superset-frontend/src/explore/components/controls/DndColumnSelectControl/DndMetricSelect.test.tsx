@@ -439,7 +439,7 @@ test('can drag metrics (reorder dispatches through the reorder + drop path)', ()
 
   simulateReorder(sortables, 0, 2);
   expect(onChange).toHaveBeenCalledTimes(1);
-  const committed = onChange.mock.calls[0][0];
+  const [[committed]] = onChange.mock.calls;
   // arrayMove(['metric_a','metric_b',adhoc], 0, 2) => ['metric_b',adhoc,'metric_a']
   expect(committed[0]).toBe('metric_b');
   expect(committed[committed.length - 1]).toBe('metric_a');
@@ -725,7 +725,7 @@ test('folder drop appends a saved metric as-is and columns as adhoc metrics with
   ]);
 
   expect(onChange).toHaveBeenCalledTimes(1);
-  const committed = onChange.mock.calls[0][0];
+  const [[committed]] = onChange.mock.calls;
   expect(committed[0]).toBe('metric_b');
   expect(committed[1]).toBe('metric_a');
   // Numeric columns default to SUM.
@@ -760,7 +760,7 @@ test('folder drop skips MultiValue columns, which have no supported default aggr
   ]);
 
   expect(onChange).toHaveBeenCalledTimes(1);
-  const committed = onChange.mock.calls[0][0];
+  const [[committed]] = onChange.mock.calls;
   expect(committed).toHaveLength(1);
   expect(committed[0]).toBeInstanceOf(AdhocMetric);
   expect(committed[0].column.column_name).toBe('numeric_col');
@@ -805,7 +805,7 @@ test('folder drop replaces (not appends) the existing value for a single-value c
   ]);
 
   expect(onChange).toHaveBeenCalledTimes(1);
-  const committed = onChange.mock.calls[0][0];
+  const [[committed]] = onChange.mock.calls;
   expect(committed).toBeInstanceOf(AdhocMetric);
   expect(committed.column.column_name).toBe('numeric_col');
 });
@@ -837,7 +837,7 @@ test('folder drop skips columns already present as adhoc metrics, keeping new on
   ]);
 
   expect(onChange).toHaveBeenCalledTimes(1);
-  const committed = onChange.mock.calls[0][0];
+  const [[committed]] = onChange.mock.calls;
   expect(committed).toHaveLength(2);
   expect(committed[0]).toBeInstanceOf(AdhocMetric);
   expect(committed[0].column.column_name).toBe('numeric_col');

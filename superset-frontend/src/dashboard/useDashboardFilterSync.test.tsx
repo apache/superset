@@ -161,7 +161,7 @@ test('toast undo restores the prior mask and removes newly introduced entries', 
   const { store } = setup();
   const previous = store.getState().dataMask;
   await receive();
-  const toast = store.getState().messageToasts[0];
+  const [toast] = store.getState().messageToasts;
   render(<Toast toast={toast} onCloseToast={jest.fn()} />);
   fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
   expect(store.getState().dataMask).toEqual(previous);
@@ -173,7 +173,7 @@ test('toast undo restores the prior mask and removes newly introduced entries', 
 test('toast undo preserves filters edited after the notification', async () => {
   const { store } = setup();
   await receive();
-  const toast = store.getState().messageToasts[0];
+  const [toast] = store.getState().messageToasts;
   act(() =>
     store.dispatch(
       updateDataMask('region', { filterState: { value: ['LATAM'] } }),
@@ -246,7 +246,7 @@ test('captures edits made while resolving and ignores older resolutions', async 
   );
   const previous = store.getState().dataMask;
   await receive(42, 'new');
-  const toast = store.getState().messageToasts[0];
+  const [toast] = store.getState().messageToasts;
   await act(async () => finish(permalink));
   expect(store.getState().messageToasts).toHaveLength(1);
   act(() => toast.action?.onClick());
@@ -274,9 +274,9 @@ test('does not subscribe before the dashboard is hydrated', () => {
 test('superseded and unmounted toast actions cannot change filters', async () => {
   const { store, dispatch, unmount } = setup();
   await receive();
-  const oldToast = store.getState().messageToasts[0];
+  const [oldToast] = store.getState().messageToasts;
   await receive(42, 'second');
-  const latestToast = store.getState().messageToasts[0];
+  const [latestToast] = store.getState().messageToasts;
   expect(store.getState().messageToasts).toHaveLength(1);
   dispatch.mockClear();
   act(() => oldToast.action?.onClick());

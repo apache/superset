@@ -45,7 +45,7 @@ test('should return isSticky as true when intersectionRatio < 1', async () => {
   const hook = renderHook(() =>
     useElementOnScreen({ rootMargin: '-50px 0px 0px 0px' }),
   );
-  const callback = IntersectionObserverMock.mock.calls[0][0];
+  const [[callback]] = IntersectionObserverMock.mock.calls;
   act(() => {
     callback([{ isIntersecting: true, intersectionRatio: 0.5 }]);
   });
@@ -56,7 +56,7 @@ test('should return isSticky as false when intersectionRatio >= 1', async () => 
   const hook = renderHook(() =>
     useElementOnScreen({ rootMargin: '-50px 0px 0px 0px' }),
   );
-  const callback = IntersectionObserverMock.mock.calls[0][0];
+  const [[callback]] = IntersectionObserverMock.mock.calls;
   act(() => {
     callback([{ isIntersecting: true, intersectionRatio: 1 }]);
   });

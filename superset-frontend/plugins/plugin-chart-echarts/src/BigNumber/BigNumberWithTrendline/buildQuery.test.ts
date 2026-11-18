@@ -51,7 +51,7 @@ describe('BigNumberWithTrendline buildQuery', () => {
 
   test('creates raw metric query when aggregation is "raw"', () => {
     const queryContext = buildQuery({ ...baseFormData, aggregation: 'raw' });
-    const bigNumberQuery = queryContext.queries[1];
+    const [, bigNumberQuery] = queryContext.queries;
 
     expect(bigNumberQuery.post_processing).toEqual([]);
     expect(bigNumberQuery.is_timeseries).toBe(false);

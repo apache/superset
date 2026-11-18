@@ -202,7 +202,7 @@ test('uses the dashboard grain override for temporal cross-filters', () => {
 test('keeps categorical cross-filters and click-to-clear behavior', () => {
   const first = setup({ grain: TimeGranularity.MONTH });
   first.eventHandlers.click(first.event(1));
-  const mask = first.setDataMask.mock.lastCall[0];
+  const [mask] = first.setDataMask.mock.lastCall;
   expect(mask).toEqual({
     extraFormData: { filters: [{ col: 'category', op: '==', val: 'A' }] },
     filterState: { value: 'A', selectedValues: ['A'] },
@@ -232,7 +232,7 @@ test('drill by preserves a grained bucket independently of time-range overrides'
     grain: TimeGranularity.MONTH,
   });
   eventHandlers.contextmenu(event());
-  const context = onContextMenu.mock.lastCall[2];
+  const [, , context] = onContextMenu.mock.lastCall;
   expect(context.drillBy.filters).toEqual([
     {
       col: 'order_date',
@@ -463,7 +463,7 @@ test('adhoc temporal levels compare a naive ISO datetime, not an epoch integer',
     filters: [{ col, op: '==', val: '2024-10-01T00:00:00' }],
   });
   eventHandlers.contextmenu(event());
-  const context = onContextMenu.mock.lastCall[2];
+  const [, , context] = onContextMenu.mock.lastCall;
   for (const filter of [context.drillToDetail[1], context.drillBy.filters[0]]) {
     expect(filter).toEqual({
       col,

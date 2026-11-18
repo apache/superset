@@ -47,7 +47,7 @@ test('default tooltip shows N/A, not <NULL>, for the null category sentinel', ()
     object: { position: [1, 2], cat_color: '<NULL>' },
   });
 
-  const { content } = setTooltip.mock.calls[0][0];
+  const [[{ content }]] = setTooltip.mock.calls;
   render(content);
   expect(screen.getByText('N/A')).toBeInTheDocument();
   expect(screen.queryByText('<NULL>')).not.toBeInTheDocument();

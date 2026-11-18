@@ -158,7 +158,7 @@ describe('dashboardLayout actions', () => {
       const thunk1 = updateDashboardTitle('new text');
       thunk1(dispatch, getState);
 
-      const thunk2 = dispatch.mock.calls[0][0];
+      const [[thunk2]] = dispatch.mock.calls;
       thunk2(dispatch, getState);
 
       expect(dispatch.mock.calls[1][0]).toEqual({
@@ -259,7 +259,7 @@ describe('dashboardLayout actions', () => {
       const thunk1 = resizeComponent({ id: '1', width: 10, height: 3 });
       thunk1(dispatch, getState);
 
-      const thunk2 = dispatch.mock.calls[0][0];
+      const [[thunk2]] = dispatch.mock.calls;
       thunk2(dispatch, getState);
 
       expect(dispatch.mock.calls.length).toBe(2);
@@ -290,7 +290,7 @@ describe('dashboardLayout actions', () => {
       const thunk1 = resizeComponent({ id: '1', width: 10, height: 3 });
       thunk1(dispatch, getState);
 
-      const thunk2 = dispatch.mock.calls[0][0];
+      const [[thunk2]] = dispatch.mock.calls;
       thunk2(dispatch, getState);
 
       expect(dispatch.mock.calls.length).toBe(3);
@@ -313,7 +313,7 @@ describe('dashboardLayout actions', () => {
       const handleComponentDropThunk = handleComponentDrop(dropResult);
       handleComponentDropThunk(dispatch, getState);
 
-      const createComponentThunk = dispatch.mock.calls[0][0];
+      const [[createComponentThunk]] = dispatch.mock.calls;
       createComponentThunk(dispatch, getState);
 
       expect(dispatch.mock.calls[1][0]).toEqual({
@@ -343,7 +343,7 @@ describe('dashboardLayout actions', () => {
       const handleComponentDropThunk = handleComponentDrop(dropResult);
       handleComponentDropThunk(dispatch, getState);
 
-      const moveComponentThunk = dispatch.mock.calls[0][0];
+      const [[moveComponentThunk]] = dispatch.mock.calls;
       moveComponentThunk(dispatch, getState);
 
       expect(dispatch.mock.calls[1][0]).toEqual({
@@ -411,7 +411,7 @@ describe('dashboardLayout actions', () => {
       moveThunk(dispatch, getState);
 
       // first call is move action which is not a thunk
-      const deleteThunk = dispatch.mock.calls[1][0];
+      const [, [deleteThunk]] = dispatch.mock.calls;
       deleteThunk(dispatch, getState);
 
       expect(dispatch.mock.calls[2][0]).toEqual({
@@ -434,7 +434,7 @@ describe('dashboardLayout actions', () => {
       const thunk1 = handleComponentDrop(dropResult);
       thunk1(dispatch, getState);
 
-      const thunk2 = dispatch.mock.calls[0][0];
+      const [[thunk2]] = dispatch.mock.calls;
       thunk2(dispatch, getState);
 
       expect(dispatch.mock.calls[1][0]).toEqual({

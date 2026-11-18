@@ -46,7 +46,7 @@ describe('newEntitiesFromDrop', () => {
       } as unknown as DashboardComponentMap,
     });
 
-    const newId = result.a.children[0];
+    const [newId] = result.a.children;
     expect(result.a.children).toHaveLength(1);
     expect(Object.keys(result)).toHaveLength(2);
     expect(result[newId].type).toBe(CHART_TYPE);
@@ -69,8 +69,8 @@ describe('newEntitiesFromDrop', () => {
       } as unknown as DashboardComponentMap,
     });
 
-    const newTabsId = result.a.children[0];
-    const newTabId = result[newTabsId].children[0];
+    const [newTabsId] = result.a.children;
+    const [newTabId] = result[newTabsId].children;
 
     expect(result.a.children).toHaveLength(1);
     expect(Object.keys(result)).toHaveLength(3);
@@ -95,8 +95,8 @@ describe('newEntitiesFromDrop', () => {
       } as unknown as DashboardComponentMap,
     });
 
-    const newRowId = result.a.children[0];
-    const newChartId = result[newRowId].children[0];
+    const [newRowId] = result.a.children;
+    const [newChartId] = result[newRowId].children;
 
     expect(result.a.children).toHaveLength(1);
     expect(Object.keys(result)).toHaveLength(3);

@@ -117,7 +117,7 @@ test('displays dashboard data in table rows', async () => {
   });
 
   const table = screen.getByTestId('listview-table');
-  const testDashboard = mockDashboards[0];
+  const [testDashboard] = mockDashboards;
 
   await waitFor(() => {
     expect(
@@ -191,7 +191,7 @@ test('supports bulk select and deselect all', async () => {
   });
 
   // Select all
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const [selectAllCheckbox] = screen.getAllByLabelText('Select all');
   expect(selectAllCheckbox).not.toBeChecked();
   await userEvent.click(selectAllCheckbox);
 
@@ -242,7 +242,7 @@ test('supports bulk export of selected dashboards', async () => {
     );
   });
 
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const [selectAllCheckbox] = screen.getAllByLabelText('Select all');
   await userEvent.click(selectAllCheckbox);
 
   await waitFor(() => {
@@ -287,7 +287,7 @@ test('supports bulk delete of selected dashboards', async () => {
     );
   });
 
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const [selectAllCheckbox] = screen.getAllByLabelText('Select all');
   await userEvent.click(selectAllCheckbox);
 
   await waitFor(() => {

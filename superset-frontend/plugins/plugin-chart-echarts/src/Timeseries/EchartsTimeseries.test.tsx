@@ -430,7 +430,7 @@ test('emits cross-filter on X-axis value when no dimensions and categorical X-ax
     advanceClickTimer();
 
     // Verify the cross-filter uses the X-axis column and value, not the metric
-    const dataMaskCall = setDataMaskMock.mock.calls[0][0];
+    const [[dataMaskCall]] = setDataMaskMock.mock.calls;
     expect(dataMaskCall.extraFormData.filters).toEqual([
       {
         col: 'category_column', // X-axis column
@@ -1355,7 +1355,7 @@ test('emits cross-filter on the category value for a horizontal categorical bar'
     advanceClickTimer();
 
     // Must filter on the category ('Product A'), not the metric value (100)
-    const dataMaskCall = setDataMaskMock.mock.calls[0][0];
+    const [[dataMaskCall]] = setDataMaskMock.mock.calls;
     expect(dataMaskCall.extraFormData.filters).toEqual([
       {
         col: 'category_column',
@@ -1405,7 +1405,7 @@ test('context menu cross-filter is available for a temporal bar point', async ()
     expect(onContextMenuMock).toHaveBeenCalled();
   });
 
-  const { crossFilter } = onContextMenuMock.mock.calls[0][2];
+  const [[, , { crossFilter }]] = onContextMenuMock.mock.calls;
   expect(crossFilter.dataMask.extraFormData.filters).toEqual([
     {
       col: 'ds',
@@ -1457,7 +1457,7 @@ test('context menu cross-filter uses the category value for a horizontal categor
     });
 
     // The cross-filter must use the category ('Product A'), not the metric (100)
-    const { crossFilter } = onContextMenuMock.mock.calls[0][2];
+    const [[, , { crossFilter }]] = onContextMenuMock.mock.calls;
     expect(crossFilter.dataMask.extraFormData.filters).toEqual([
       {
         col: 'category_column',
@@ -1507,7 +1507,7 @@ test('drillBy filters by time bucket when a categorical axis is forced onto a te
     expect(onContextMenuMock).toHaveBeenCalled();
   });
 
-  const { drillBy } = onContextMenuMock.mock.calls[0][2];
+  const [[, , { drillBy }]] = onContextMenuMock.mock.calls;
   expect(drillBy.xAxisFilters).toEqual([
     {
       col: 'order_date',
@@ -1555,7 +1555,7 @@ test('drillBy uses the swapped data index for a horizontal time-based axis', asy
     expect(onContextMenuMock).toHaveBeenCalled();
   });
 
-  const { drillBy } = onContextMenuMock.mock.calls[0][2];
+  const [[, , { drillBy }]] = onContextMenuMock.mock.calls;
   expect(drillBy.xAxisFilters).toEqual([
     {
       col: 'order_date',

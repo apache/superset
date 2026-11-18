@@ -99,12 +99,12 @@ const sunburstDrillByFilters = (temporalColumn: QueryFormColumn) => {
   );
   renderChart(<EchartsSunburst {...props} />);
   const { eventHandlers } = mockEchart.mock.lastCall[0] as EchartsProps;
-  const parent = (
+  const [parent] = (
     props.echartOptions as {
       series: { data: { name: string; children: { name: string }[] }[] }[];
     }
-  ).series[0].data[0];
-  const segment = parent.children[0];
+  ).series[0].data;
+  const [segment] = parent.children;
   eventHandlers!.contextmenu({
     data: segment,
     treePathInfo: [

@@ -40,7 +40,7 @@ function entrypointSizeByExt(entrypoint, ext) {
 }
 
 function main() {
-  const statsPath = process.argv[2];
+  const [, , statsPath] = process.argv;
   if (!statsPath) {
     console.error('Usage: bundle-size-summary.js <path-to-stats.json>');
     process.exit(1);

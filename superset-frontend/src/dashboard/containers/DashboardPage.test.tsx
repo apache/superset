@@ -719,7 +719,7 @@ test('does not overwrite filterState when modern native_filters URL format is us
   );
 
   // currentState must not have been injected
-  const callArg = (hydrateDashboard as jest.Mock).mock.calls[0][0];
+  const [[callArg]] = (hydrateDashboard as jest.Mock).mock.calls;
   expect(
     callArg.dataMask['NATIVE_FILTER-OvPTDNKc9'].currentState,
   ).toBeUndefined();
@@ -790,10 +790,10 @@ test('clears undo history after hydrating the dashboard', async () => {
 
   expect(hydrateDashboard).toHaveBeenCalled();
   expect(clearDashboardHistory).toHaveBeenCalled();
-  const hydrateOrder = (hydrateDashboard as jest.Mock).mock
-    .invocationCallOrder[0];
-  const clearOrder = (clearDashboardHistory as jest.Mock).mock
-    .invocationCallOrder[0];
+  const [hydrateOrder] = (hydrateDashboard as jest.Mock).mock
+    .invocationCallOrder;
+  const [clearOrder] = (clearDashboardHistory as jest.Mock).mock
+    .invocationCallOrder;
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
 });
 
@@ -1038,7 +1038,7 @@ test('does not hydrate when unmounted while the saved filter state is loading', 
   await waitFor(() => expect(mockFetchFilterValue).toHaveBeenCalled());
 
   unmount();
-  const signal = mockFetchFilterValue.mock.calls[0][2];
+  const [[, , signal]] = mockFetchFilterValue.mock.calls;
   expect(signal.aborted).toBe(true);
   await act(async () => {
     resolveValue({ 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } });
@@ -1088,7 +1088,7 @@ test('does not hydrate a previous dashboard when the dashboard changes mid-fetch
       <DashboardPage idOrSlug="2" />
     </Suspense>,
   );
-  const firstSignal = mockFetchFilterValue.mock.calls[0][2];
+  const [[, , firstSignal]] = mockFetchFilterValue.mock.calls;
   await waitFor(() => expect(firstSignal.aborted).toBe(true));
 
   await act(async () => {
@@ -1203,7 +1203,7 @@ test.each(['filter key', 'permalink'])(
     (hydrateDashboard as jest.Mock).mockClear();
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(fetchValue).toHaveBeenCalledTimes(3));
-    const retryCall = fetchValue.mock.calls[2];
+    const [, , retryCall] = fetchValue.mock.calls;
     const signal = retryCall[kind === 'filter key' ? 2 : 1] as AbortSignal;
 
     act(() => releaseFilterKeyPublish());

@@ -156,7 +156,7 @@ test('downloadScreenshot calls API with force=true to ensure fresh screenshots',
   });
 
   expect(SupersetClient.post).toHaveBeenCalledTimes(1);
-  const callArgs = (SupersetClient.post as jest.Mock).mock.calls[0][0];
+  const [[callArgs]] = (SupersetClient.post as jest.Mock).mock.calls;
 
   // Verify that force=true is included in the endpoint URL
   // This prevents regression where stale cached screenshots are returned

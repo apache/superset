@@ -35,7 +35,7 @@ export function convertSortModel(
     return undefined;
   }
 
-  const sortItem = sortModel[0];
+  const [sortItem] = sortModel;
   return [
     {
       id: sortItem.colId,

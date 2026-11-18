@@ -59,8 +59,7 @@ export function getDefaultTooltip(refs: Refs) {
       const mouseY = canvasMousePos[1] + (divRect?.y || 0);
       const viewportWidth = document.documentElement.clientWidth;
       const viewportHeight = document.documentElement.clientHeight;
-      const tooltipWidth = sizes.contentSize[0];
-      const tooltipHeight = sizes.contentSize[1];
+      const [tooltipWidth, tooltipHeight] = sizes.contentSize;
 
       // Cap tooltip height to reduce blocking adjacent elements
       const maxAllowedHeight = Math.min(800, Math.floor(viewportHeight * 0.8));
@@ -85,7 +84,7 @@ export function getDefaultTooltip(refs: Refs) {
 
       // Determine if cursor is in the right half of the chart to intelligently position tooltip
       const chartWidth = divRect?.width || viewportWidth;
-      const cursorXInChart = canvasMousePos[0];
+      const [cursorXInChart] = canvasMousePos;
       const isInRightHalfOfChart = cursorXInChart > chartWidth / 2;
 
       // Position tooltip on the left when in right half, right when in left half
@@ -115,7 +114,7 @@ export function getDefaultTooltip(refs: Refs) {
       // above cursor when in bottom half. This prevents the tooltip from covering annotation
       // labels that appear at the top of the chart (markArea/markLine labels).
       const chartHeight = divRect?.height || viewportHeight;
-      const cursorYInChart = canvasMousePos[1];
+      const [, cursorYInChart] = canvasMousePos;
       const isInTopHalfOfChart = cursorYInChart < chartHeight / 2;
 
       if (isInTopHalfOfChart) {

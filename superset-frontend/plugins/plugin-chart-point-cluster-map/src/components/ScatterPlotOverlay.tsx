@@ -292,7 +292,7 @@ function ScatterPlotOverlay({
               let pointLabel: string | number | undefined;
 
               if (radiusProperty != null) {
-                const pointLatitude = lngLatAccessor(location)[1];
+                const [, pointLatitude] = lngLatAccessor(location);
                 if (pointRadiusUnit === 'Kilometers') {
                   pointLabel = `${roundDecimal(pointRadius, 2)}km`;
                   pointRadius = kmToPixels(

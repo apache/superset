@@ -880,7 +880,7 @@ test('forced async read-back re-sends force with per-query task ids as nonces', 
   await waitFor(() => {
     expect(mockChartClient.client.post).toHaveBeenCalledTimes(2);
   });
-  const { jsonPayload } = mockChartClient.client.post.mock.calls[1][0];
+  const [, [{ jsonPayload }]] = mockChartClient.client.post.mock.calls;
   // Read-back re-forces so the marker can suppress recompute, stamps each query
   // with its task id, and resolves inline (no async_mode).
   expect(jsonPayload.force).toBe(true);
@@ -917,7 +917,7 @@ test('non-forced async read-back carries neither force nor a nonce', async () =>
   await waitFor(() => {
     expect(mockChartClient.client.post).toHaveBeenCalledTimes(2);
   });
-  const { jsonPayload } = mockChartClient.client.post.mock.calls[1][0];
+  const [, [{ jsonPayload }]] = mockChartClient.client.post.mock.calls;
   expect(jsonPayload.force).not.toBe(true);
   expect(jsonPayload.queries[0].force_nonce).toBeUndefined();
 });
@@ -944,7 +944,7 @@ test('requests async_mode and the tab id when opting in and 202 is handled', asy
   await waitFor(() => {
     expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
   });
-  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  const [[{ jsonPayload }]] = mockChartClient.client.post.mock.calls;
   expect(jsonPayload.async_mode).toBe(true);
   // The tab id lets the backend ref-count this tab (per-tab cancel/detach).
   expect(jsonPayload.tab_id).toBe('tab-7');
@@ -968,7 +968,7 @@ test('omits the tab id when no getTabId hook is wired', async () => {
   await waitFor(() => {
     expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
   });
-  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  const [[{ jsonPayload }]] = mockChartClient.client.post.mock.calls;
   expect(jsonPayload.async_mode).toBe(true);
   expect(jsonPayload.tab_id).toBeUndefined();
 });
@@ -991,7 +991,7 @@ test('omits async_mode when resolveAsyncMode opts out', async () => {
   await waitFor(() => {
     expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
   });
-  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  const [[{ jsonPayload }]] = mockChartClient.client.post.mock.calls;
   expect(jsonPayload.async_mode).toBeUndefined();
 });
 
@@ -1012,7 +1012,7 @@ test('omits async_mode when no async handler is wired even if resolveAsyncMode o
   await waitFor(() => {
     expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
   });
-  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  const [[{ jsonPayload }]] = mockChartClient.client.post.mock.calls;
   expect(jsonPayload.async_mode).toBeUndefined();
 });
 
@@ -1177,7 +1177,7 @@ test('refetches with the latest formData rather than the initial props', async (
   });
 
   // The second request must carry the updated formData, not the initial props
-  const secondRequestConfig = mockChartClient.client.post.mock.calls[1][0];
+  const [, [secondRequestConfig]] = mockChartClient.client.post.mock.calls;
   expect(JSON.stringify(secondRequestConfig)).toContain('metric_v2');
   expect(JSON.stringify(secondRequestConfig)).not.toContain('metric_v1');
 });

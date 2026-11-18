@@ -116,7 +116,7 @@ test('reattaches detached markdown to a row and a header to the grid', () => {
 
   expect(repaired['COLUMN-orphan']).toBeUndefined();
   expect(repaired['ROW-orphan']).toBeUndefined();
-  const newRowId = repaired.GRID_ID.children[2];
+  const [, , newRowId] = repaired.GRID_ID.children;
   // a header is not a valid row child, so it sits directly in the grid
   expect(repaired.GRID_ID.children).toEqual([
     'ROW-a',

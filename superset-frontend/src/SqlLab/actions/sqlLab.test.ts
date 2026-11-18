@@ -149,7 +149,7 @@ describe('async actions', () => {
     test('posts the correct query object', () => {
       const store = mockStore(initialState);
       return store.dispatch(actions.saveQuery(query, queryId)).then(() => {
-        const call = fetchMock.callHistory.calls(saveQueryEndpoint)[0];
+        const [call] = fetchMock.callHistory.calls(saveQueryEndpoint);
         const formData = JSON.parse(call.options.body as string);
         const mappedQueryToServer = actions.convertQueryToServer(query);
 
@@ -337,7 +337,7 @@ describe('async actions', () => {
         ),
       );
 
-      const call = fetchMock.callHistory.calls(formatQueryEndpoint)[0];
+      const [call] = fetchMock.callHistory.calls(formatQueryEndpoint);
       const body = JSON.parse(call.options.body as string);
 
       expect(body).toEqual({ sql: 'SELECT * FROM table' });
@@ -370,7 +370,7 @@ describe('async actions', () => {
         ),
       );
 
-      const call = fetchMock.callHistory.calls(formatQueryEndpoint)[0];
+      const [call] = fetchMock.callHistory.calls(formatQueryEndpoint);
       const body = JSON.parse(call.options.body as string);
 
       expect(body).toEqual({
@@ -406,7 +406,7 @@ describe('async actions', () => {
         ),
       );
 
-      const call = fetchMock.callHistory.calls(formatQueryEndpoint)[0];
+      const [call] = fetchMock.callHistory.calls(formatQueryEndpoint);
       const body = JSON.parse(call.options.body as string);
 
       expect(body).toEqual({
@@ -443,7 +443,7 @@ describe('async actions', () => {
         ),
       );
 
-      const call = fetchMock.callHistory.calls(formatQueryEndpoint)[0];
+      const [call] = fetchMock.callHistory.calls(formatQueryEndpoint);
       const body = JSON.parse(call.options.body as string);
 
       expect(body).toEqual({
@@ -510,7 +510,7 @@ describe('async actions', () => {
         ),
       );
 
-      const call = fetchMock.callHistory.calls(formatQueryEndpoint)[0];
+      const [call] = fetchMock.callHistory.calls(formatQueryEndpoint);
       const body = JSON.parse(call.options.body as string);
 
       expect(body.sql).toBe('SELECT * FROM updated_table');
@@ -769,7 +769,7 @@ describe('async actions', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
-        const call = fetchMock.callHistory.calls(stopQueryEndpoint)[0];
+        const [call] = fetchMock.callHistory.calls(stopQueryEndpoint);
         const body = JSON.parse(call.options.body as string);
         expect(body.client_id).toBe(baseQuery.id);
       });
@@ -2419,7 +2419,7 @@ describe('async actions', () => {
 
         await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
 
-        const call = fetchMock.callHistory.calls(updateTabStateEndpoint)[0];
+        const [call] = fetchMock.callHistory.calls(updateTabStateEndpoint);
         const formData = call.options.body as FormData;
         const persistedQueryEditor = JSON.parse(
           formData.get('queryEditor') as string,

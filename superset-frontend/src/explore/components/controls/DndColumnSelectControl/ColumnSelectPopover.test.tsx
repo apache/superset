@@ -179,7 +179,7 @@ test('passes keywords as objects to SQLEditorWithValidation for autocomplete', (
   expect(mockSQLEditorProps).toHaveBeenCalled();
 
   // Get the keywords prop passed to SQLEditorWithValidation
-  const { keywords } = mockSQLEditorProps.mock.calls[0][0];
+  const [[{ keywords }]] = mockSQLEditorProps.mock.calls;
 
   // Verify keywords exist and are not empty
   expect(keywords).toBeDefined();

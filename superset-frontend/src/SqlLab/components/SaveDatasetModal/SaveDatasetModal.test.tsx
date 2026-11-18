@@ -201,7 +201,7 @@ describe('SaveDatasetModal', () => {
     });
 
     // Select the first "existing dataset" from the listbox
-    const option = screen.getAllByText('coolest table 0')[1];
+    const [, option] = screen.getAllByText('coolest table 0');
     await userEvent.click(option);
 
     // Overwrite button should now be enabled
@@ -232,7 +232,7 @@ describe('SaveDatasetModal', () => {
     });
 
     // Select the first "existing dataset" from the listbox
-    const option = screen.getAllByText('coolest table 0')[1];
+    const [, option] = screen.getAllByText('coolest table 0');
     await userEvent.click(option);
 
     // Click the overwrite button to access the confirmation screen

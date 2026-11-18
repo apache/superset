@@ -258,7 +258,7 @@ describe('Echarts Gauge transformProps', () => {
     expect(result.height).toBe(600);
 
     // Test axisLine intervals
-    const { axisLine } = (result.echartOptions as any).series[0];
+    const [{ axisLine }] = (result.echartOptions as any).series;
     expect(axisLine.roundCap).toBe(false);
     expect(axisLine.lineStyle.width).toBe(14);
     expect(axisLine.lineStyle.color).toEqual([
@@ -404,7 +404,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.min).toBe(10);
     expect(series.max).toBe(100);
@@ -432,7 +432,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.min).toBe(0);
     expect(series.max).toBe(100);
@@ -460,7 +460,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.min).toBe(0);
     expect(series.max).toBe(160);
@@ -488,7 +488,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.min).toBe(0);
     expect(series.max).toBe(90);
@@ -516,7 +516,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.min).toBe(0);
     expect(series.max).toBe(200);
@@ -544,7 +544,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.min).toBe(0);
     expect(series.max).toBe(150);
@@ -572,7 +572,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.min).toBe(-40);
     expect(series.max).toBe(80);
@@ -601,7 +601,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.min).toBe(0);
     expect(series.max).toBe(100);
@@ -634,7 +634,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.axisLabel).toBeDefined();
     expect(series.axisLabel.formatter).toBeDefined();
@@ -665,7 +665,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.min).toBe(0);
     expect(series.max).toBe(100);
@@ -700,7 +700,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.min).toBe(0);
     expect(series.max).toBe(0);
@@ -728,7 +728,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.min).toBe(10);
     expect(series.max).toBe(200);
@@ -757,7 +757,7 @@ describe('Min/Max calculation and axis labels', () => {
     });
 
     const result = transformProps(chartProps as EchartsGaugeChartProps);
-    const series = (result.echartOptions as any).series[0];
+    const [series] = (result.echartOptions as any).series;
 
     expect(series.splitNumber).toBe(20);
   });

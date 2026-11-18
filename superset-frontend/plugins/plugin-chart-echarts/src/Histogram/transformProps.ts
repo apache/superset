@@ -105,7 +105,7 @@ export default function transformProps(
 
   const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const groupbySet = new Set(groupby.map(getColumnLabel));
-  const firstRow = data[0];
+  const [firstRow] = data;
   const binKeys = firstRow
     ? Object.keys(firstRow).filter(
         key => !groupbySet.has(key) && parseBinKey(key) !== undefined,

@@ -87,7 +87,7 @@ test('View Dataset opens a single-prefixed URL under a subdirectory deployment',
   await userEvent.click(screen.getByText('View Dataset'));
 
   expect(openSpy).toHaveBeenCalledTimes(1);
-  const openedUrl = openSpy.mock.calls[0][0];
+  const [[openedUrl]] = openSpy.mock.calls;
   expect(openedUrl).toBe(`${APP_ROOT}/explore/?datasource=1__table`);
   expect(openedUrl).not.toContain('/superset/superset');
 });

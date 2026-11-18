@@ -80,7 +80,7 @@ test('creates a chart whose dataset mirrors the zoom level sizes', () => {
   const chart = setup();
   render(<ZoomConfigsChart name="zoomlevels" value={value} />);
   expect(init).toHaveBeenCalledTimes(1);
-  const option = chart.setOption.mock.calls[0][0];
+  const [[option]] = chart.setOption.mock.calls;
   expect(option.dataset.source).toEqual([
     [10, 20, 0],
     [11, 21, 1],
@@ -102,9 +102,9 @@ test('reports the dragged width through onChange', () => {
   render(
     <ZoomConfigsChart name="zoomlevels" value={value} onChange={onChange} />,
   );
-  const [{ graphic }] = chart.setOption.mock.calls.filter(
+  const [[{ graphic }]] = chart.setOption.mock.calls.filter(
     ([option]) => option.graphic,
-  )[0];
+  );
 
   // Dragging the first width handle to pixel 90 lands on size 40.
   graphic[0].ondrag.call({ x: toPixel(40), y: 0 });
@@ -128,9 +128,9 @@ test('reports the dragged height through onChange', () => {
   render(
     <ZoomConfigsChart name="zoomlevels" value={value} onChange={onChange} />,
   );
-  const [{ graphic }] = chart.setOption.mock.calls.filter(
+  const [[{ graphic }]] = chart.setOption.mock.calls.filter(
     ([option]) => option.graphic,
-  )[0];
+  );
 
   graphic[3].ondrag.call({ x: toPixel(60), y: 0 });
   act(() => {
@@ -146,9 +146,9 @@ test('reports the dragged height through onChange', () => {
 test('places each drag handle at the pixel position of its bar end', () => {
   const chart = setup();
   render(<ZoomConfigsChart name="zoomlevels" value={value} />);
-  const [{ graphic }] = chart.setOption.mock.calls.filter(
+  const [[{ graphic }]] = chart.setOption.mock.calls.filter(
     ([option]) => option.graphic,
-  )[0];
+  );
 
   // Handles are ordered width then height per zoom level.
   expect(graphic.map((handle: { x: number }) => handle.x)).toEqual([
@@ -165,9 +165,9 @@ test('clamps a width dragged left of the axis to zero', () => {
   render(
     <ZoomConfigsChart name="zoomlevels" value={value} onChange={onChange} />,
   );
-  const [{ graphic }] = chart.setOption.mock.calls.filter(
+  const [[{ graphic }]] = chart.setOption.mock.calls.filter(
     ([option]) => option.graphic,
-  )[0];
+  );
 
   graphic[0].ondrag.call({ x: 0, y: 0 });
   act(() => {

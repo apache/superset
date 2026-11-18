@@ -79,7 +79,7 @@ describe('openInNewTab neutralises dangerous schemes by appRoot prefix', () => {
         const { openInNewTab } = await import('src/utils/navigationUtils');
         openInNewTab(scheme);
         expect(openSpy).toHaveBeenCalledTimes(1);
-        const [calledUrl] = openSpy.mock.calls[0];
+        const [[calledUrl]] = openSpy.mock.calls;
         // Contract: window.open receives `<appRoot>/<scheme:body>` — a 404'd
         // path segment, never the original scheme.
         expect(calledUrl).toBe(`/superset/${scheme}`);
@@ -101,7 +101,7 @@ describe('openInNewTab neutralises dangerous schemes by appRoot prefix', () => {
         const { openInNewTab } = await import('src/utils/navigationUtils');
         openInNewTab(scheme);
         expect(openSpy).toHaveBeenCalledTimes(1);
-        const [calledUrl] = openSpy.mock.calls[0];
+        const [[calledUrl]] = openSpy.mock.calls;
         // With empty appRoot, ensureAppRoot is NOT a no-op for a dangerous
         // scheme: a `data:...` string is not safe-absolute, so it gets a
         // leading slash and becomes `/data:...`. SAFE_NAVIGATION_URL_RE then

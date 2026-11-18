@@ -204,12 +204,8 @@ export default function transformProps(
     sortYAxis,
   } = formData;
   const metricLabel = getMetricLabel(metric);
-  const {
-    data,
-    colnames,
-    coltypes,
-    detected_currency: detectedCurrency,
-  } = queriesData[0];
+  const [{ data, colnames, coltypes, detected_currency: detectedCurrency }] =
+    queriesData;
   const {
     columnFormats = {},
     currencyFormats = {},
@@ -257,8 +253,7 @@ export default function transformProps(
 
   // Extract and sort unique axis values
   // Use colnames to get the actual column names in the data
-  const xAxisColumnName = colnames[0];
-  const yAxisColumnName = colnames[1];
+  const [xAxisColumnName, yAxisColumnName] = colnames;
 
   const xAxisValues = extractUniqueValues(data, xAxisColumnName);
   const yAxisValues = extractUniqueValues(data, yAxisColumnName);

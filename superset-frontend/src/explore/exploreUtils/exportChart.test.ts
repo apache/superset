@@ -87,7 +87,7 @@ test('exportChart v1 API passes prefixed URL to onStartStreamingExport when app 
   });
 
   expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
-  const callArgs = onStartStreamingExport.mock.calls[0][0];
+  const [[callArgs]] = onStartStreamingExport.mock.calls;
   expect(callArgs.url).toBe('/superset/api/v1/chart/data');
   expect(callArgs.exportType).toBe('csv');
 });
@@ -104,7 +104,7 @@ test('exportChart v1 API passes unprefixed URL when no app root is configured', 
   });
 
   expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
-  const callArgs = onStartStreamingExport.mock.calls[0][0];
+  const [[callArgs]] = onStartStreamingExport.mock.calls;
   expect(callArgs.url).toBe('/api/v1/chart/data');
 });
 
@@ -121,7 +121,7 @@ test('exportChart v1 API passes nested prefix for deeply nested deployments', as
   });
 
   expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
-  const callArgs = onStartStreamingExport.mock.calls[0][0];
+  const [[callArgs]] = onStartStreamingExport.mock.calls;
   expect(callArgs.url).toBe('/my-company/analytics/superset/api/v1/chart/data');
   expect(callArgs.exportType).toBe('xlsx');
 });
@@ -140,7 +140,7 @@ test('exportChart v1 API calls postBlob with unprefixed URL when app root is con
   });
 
   expect(SupersetClient.postBlob).toHaveBeenCalledTimes(1);
-  const [url] = SupersetClient.postBlob.mock.calls[0];
+  const [[url]] = SupersetClient.postBlob.mock.calls;
   expect(url).toBe('/api/v1/chart/data');
   expect(url).not.toContain(appRoot);
   expect(downloadBlob).toHaveBeenCalled();

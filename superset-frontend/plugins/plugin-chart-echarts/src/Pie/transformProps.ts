@@ -250,8 +250,8 @@ export default function transformProps(
     currencyFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const { data: rawData = [], detected_currency: detectedCurrency } =
-    queriesData[0];
+  const [{ data: rawData = [], detected_currency: detectedCurrency }] =
+    queriesData;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
   const {

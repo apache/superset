@@ -170,7 +170,7 @@ test('renders OHLC bars as a custom series with ticks on a high-low stem', () =>
 });
 
 test('draws OHLC open tick left, close tick right, and a high-low stem', () => {
-  const { renderItem } = extractSeries(buildProps({ series_style: 'ohlc' }))[0];
+  const [{ renderItem }] = extractSeries(buildProps({ series_style: 'ohlc' }));
   expect(renderItem).toBeDefined();
   const graphic = renderItem!(
     {},

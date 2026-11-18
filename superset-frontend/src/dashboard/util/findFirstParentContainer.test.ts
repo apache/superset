@@ -127,8 +127,8 @@ describe('findFirstParentContainer', () => {
       string,
       { children: string[]; id: string; type: string }
     >;
-    const tabsId = layout[DASHBOARD_ROOT_ID].children[0];
-    const firstTabId = layout[tabsId].children[0];
+    const [tabsId] = layout[DASHBOARD_ROOT_ID].children;
+    const [firstTabId] = layout[tabsId].children;
     expect(
       findFirstParentContainerId(mockTabsLayout as unknown as DashboardLayout),
     ).toBe(firstTabId);

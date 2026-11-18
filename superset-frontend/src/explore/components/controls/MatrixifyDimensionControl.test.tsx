@@ -712,7 +712,7 @@ test.each([undefined, 'old-title-version', 'cube-member-id-v1'])(
       />,
     );
     await waitFor(() => expect(SupersetClient.get).toHaveBeenCalled());
-    const { endpoint } = (SupersetClient.get as jest.Mock).mock.calls.at(-1)[0];
+    const [{ endpoint }] = (SupersetClient.get as jest.Mock).mock.calls.at(-1);
     expect(
       new URL(endpoint, 'http://localhost').searchParams.get(
         'semantic_selection_version',

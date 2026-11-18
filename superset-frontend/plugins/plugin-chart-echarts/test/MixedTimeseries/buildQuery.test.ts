@@ -87,7 +87,7 @@ const formDataMixedChartWithAA = {
 };
 
 test('should compile query object A', () => {
-  const query = buildQuery(formDataMixedChart).queries[0];
+  const [query] = buildQuery(formDataMixedChart).queries;
   expect(query).toEqual({
     time_range: '1980 : 2000',
     since: undefined,
@@ -148,7 +148,7 @@ test('should compile query object A', () => {
 });
 
 test('should compile query object B', () => {
-  const query = buildQuery(formDataMixedChart).queries[1];
+  const [, query] = buildQuery(formDataMixedChart).queries;
   expect(query).toEqual({
     time_range: '1980 : 2000',
     since: undefined,
@@ -231,7 +231,7 @@ test('should compile Matrixify filters for both mixed timeseries queries', () =>
 });
 
 test('should compile AA in query A', () => {
-  const query = buildQuery(formDataMixedChartWithAA).queries[0];
+  const [query] = buildQuery(formDataMixedChartWithAA).queries;
   // time comparison
   expect(query.time_offsets).toEqual(['1 years ago']);
 
@@ -270,7 +270,7 @@ test('should compile AA in query A', () => {
 });
 
 test('should compile AA in query B', () => {
-  const query = buildQuery(formDataMixedChartWithAA).queries[1];
+  const [, query] = buildQuery(formDataMixedChartWithAA).queries;
   // time comparison
   expect(query.time_offsets).toEqual(['3 years ago']);
 
@@ -376,8 +376,10 @@ test("shouldn't convert a queryObject with axis", () => {
 });
 
 test('ensure correct pivot columns', () => {
-  const query = buildQuery({ ...formDataMixedChartWithAA, x_axis: 'ds' })
-    .queries[0];
+  const [query] = buildQuery({
+    ...formDataMixedChartWithAA,
+    x_axis: 'ds',
+  }).queries;
 
   expect(query.time_offsets).toEqual(['1 years ago']);
 

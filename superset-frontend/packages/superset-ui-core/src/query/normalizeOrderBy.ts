@@ -25,7 +25,7 @@ export default function normalizeOrderBy(
 ): QueryObject {
   if (Array.isArray(queryObject.orderby) && queryObject.orderby.length > 0) {
     // ensure a valid orderby clause
-    const orderbyClause = queryObject.orderby[0];
+    const [orderbyClause] = queryObject.orderby;
     if (
       Array.isArray(orderbyClause) &&
       orderbyClause.length === 2 &&

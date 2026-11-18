@@ -72,7 +72,7 @@ test('saving in overwrite mode calls onSave with the overwrite save type', async
   await userEvent.click(screen.getByTestId('modal-save-dashboard-button'));
 
   expect(defaultProps.onSave).toHaveBeenCalledTimes(1);
-  const [data, id, saveType] = defaultProps.onSave.mock.calls[0];
+  const [[data, id, saveType]] = defaultProps.onSave.mock.calls;
   expect(saveType).toBe(SAVE_TYPE_OVERWRITE);
   expect(id).toBe(defaultProps.dashboardId);
   expect(data.dashboard_title).toBe(dashboardTitle);
@@ -92,7 +92,7 @@ test('saving in save-as mode without editing the name uses the default copy name
   await userEvent.click(screen.getByTestId('modal-save-dashboard-button'));
 
   expect(defaultProps.onSave).toHaveBeenCalledTimes(1);
-  const [data, , saveType] = defaultProps.onSave.mock.calls[0];
+  const [[data, , saveType]] = defaultProps.onSave.mock.calls;
   expect(saveType).toBe(SAVE_TYPE_NEWDASHBOARD);
   expect(data.dashboard_title).toMatch(/\[copy\]$/);
 });
@@ -107,7 +107,7 @@ test('editing the new dashboard name switches to save-as and is used in the payl
   await userEvent.click(screen.getByTestId('modal-save-dashboard-button'));
 
   expect(defaultProps.onSave).toHaveBeenCalledTimes(1);
-  const [data, , saveType] = defaultProps.onSave.mock.calls[0];
+  const [[data, , saveType]] = defaultProps.onSave.mock.calls;
   expect(saveType).toBe(SAVE_TYPE_NEWDASHBOARD);
   expect(data.dashboard_title).toBe('Copied Dashboard');
 });
@@ -122,7 +122,7 @@ test('save-as payload includes duplicate_slices when the checkbox is checked', a
 
   await userEvent.click(screen.getByTestId('modal-save-dashboard-button'));
 
-  const [data] = defaultProps.onSave.mock.calls[0];
+  const [[data]] = defaultProps.onSave.mock.calls;
   expect(data.duplicate_slices).toBe(true);
 });
 
@@ -131,7 +131,7 @@ test('overwrite payload does not duplicate slices by default', async () => {
 
   await userEvent.click(screen.getByTestId('modal-save-dashboard-button'));
 
-  const [data] = defaultProps.onSave.mock.calls[0];
+  const [[data]] = defaultProps.onSave.mock.calls;
   expect(data.duplicate_slices).toBe(false);
 });
 
@@ -164,7 +164,7 @@ test('disables overwrite and saves as a new dashboard when the user cannot overw
 
   await userEvent.click(screen.getByTestId('modal-save-dashboard-button'));
 
-  const [, , saveType] = defaultProps.onSave.mock.calls[0];
+  const [[, , saveType]] = defaultProps.onSave.mock.calls;
   expect(saveType).toBe(SAVE_TYPE_NEWDASHBOARD);
 });
 

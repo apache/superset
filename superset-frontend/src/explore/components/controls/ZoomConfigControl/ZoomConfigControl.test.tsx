@@ -105,7 +105,7 @@ test('changing the base width recomputes the values for every zoom level', () =>
   fireEvent.keyDown(width, { key: 'ArrowRight', keyCode: 39 });
   fireEvent.keyUp(width, { key: 'ArrowRight', keyCode: 39 });
   expect(onChange).toHaveBeenCalledTimes(1);
-  const emitted = onChange.mock.calls[0][0];
+  const [[emitted]] = onChange.mock.calls;
   expect(emitted.configs.width).toBe(41);
   expect(emitted.values[0].width).toBe(41);
   expect(emitted.values[28].width).toBe(41);

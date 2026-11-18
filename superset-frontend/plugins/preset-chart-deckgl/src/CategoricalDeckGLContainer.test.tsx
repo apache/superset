@@ -144,9 +144,7 @@ test('features of a category that first appears in a refreshed response are draw
   } as unknown as QueryFormData;
   const getLayer = jest.fn(() => ({}));
   const drawnCategories = () => {
-    const { payload } = (
-      getLayer.mock.calls.at(-1) as unknown as [JsonObject]
-    )[0];
+    const [{ payload }] = getLayer.mock.calls.at(-1) as unknown as [JsonObject];
     return payload.data.features.map((f: JsonObject) => f.cat_color);
   };
   const props = {
@@ -348,9 +346,7 @@ test('null-dimension rows reach the layer with the N/A color and toggle with the
   } as unknown as ChartProps).payload;
   const getLayer = jest.fn(() => ({}));
   const drawnCategories = () => {
-    const { payload } = (
-      getLayer.mock.calls.at(-1) as unknown as [JsonObject]
-    )[0];
+    const [{ payload }] = getLayer.mock.calls.at(-1) as unknown as [JsonObject];
     return payload.data.features.map((f: JsonObject) => f.cat_color);
   };
 
@@ -374,9 +370,7 @@ test('null-dimension rows reach the layer with the N/A color and toggle with the
     </ThemeProvider>,
   );
 
-  const { payload } = (
-    getLayer.mock.calls.at(-1) as unknown as [JsonObject]
-  )[0];
+  const [{ payload }] = getLayer.mock.calls.at(-1) as unknown as [JsonObject];
   const nullFeature = payload.data.features.find(
     (f: JsonObject) => f.cat_color === NULL_CATEGORY_KEY,
   );

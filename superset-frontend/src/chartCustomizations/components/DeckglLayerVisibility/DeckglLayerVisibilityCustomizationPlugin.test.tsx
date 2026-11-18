@@ -152,7 +152,7 @@ test('collects unique layer IDs from multiple deck_multi charts', async () => {
     expect(mockSupersetClientGet).toHaveBeenCalled();
   });
 
-  const callArgs = mockSupersetClientGet.mock.calls[0][0];
+  const [[callArgs]] = mockSupersetClientGet.mock.calls;
   expect(callArgs.endpoint).toContain('/api/v1/chart/?q=');
 });
 
@@ -456,7 +456,7 @@ test('deduplicates layer IDs from multiple charts', async () => {
     expect(mockSupersetClientGet).toHaveBeenCalled();
   });
 
-  const callArgs = mockSupersetClientGet.mock.calls[0][0];
+  const [[callArgs]] = mockSupersetClientGet.mock.calls;
   expect(callArgs.endpoint).toContain('/api/v1/chart/?q=');
 });
 

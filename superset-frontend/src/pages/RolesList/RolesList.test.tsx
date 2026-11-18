@@ -185,9 +185,9 @@ describe('RolesList', () => {
 
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
-    const duplicateAction = within(table).queryAllByTestId(
+    const [duplicateAction] = within(table).queryAllByTestId(
       'role-list-duplicate-action',
-    )[0];
+    );
     expect(duplicateAction).toBeInTheDocument();
     fireEvent.click(duplicateAction);
     expect(
@@ -200,9 +200,9 @@ describe('RolesList', () => {
 
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
-    const editAction = within(table).queryAllByTestId(
+    const [editAction] = within(table).queryAllByTestId(
       'role-list-edit-action',
-    )[0];
+    );
     expect(editAction).toBeInTheDocument();
     fireEvent.click(editAction);
     expect(screen.queryByTestId('Edit Role-modal')).toBeInTheDocument();
