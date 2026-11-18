@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-17 16:17-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3844,14 +3844,10 @@ msgstr ""
 msgid "Color scheme: %s"
 msgstr ""
 
-msgid ""
-"Color used for the arrow and symbols when the metric decreased from the "
-"comparison value. Defaults to red."
+msgid "Color used for the arrow and symbols when the metric decreased from the comparison value. Defaults to red."
 msgstr ""
 
-msgid ""
-"Color used for the arrow and symbols when the metric increased from the "
-"comparison value. Defaults to green."
+msgid "Color used for the arrow and symbols when the metric increased from the comparison value. Defaults to green."
 msgstr ""
 
 msgid "Color used when the close value is greater than or equal to the open value."
@@ -4393,6 +4389,9 @@ msgid "Could not validate the user in the current session."
 msgstr ""
 
 msgid "Could not verify which dimensions are compatible. All dimensions are shown."
+msgstr ""
+
+msgid "Couldn't validate the selected fields. Check the selection and try again."
 msgstr ""
 
 msgid "Couldn't validate this semantic view: it may not exist, or the semantic layer is unreachable."
@@ -6730,6 +6729,9 @@ msgstr ""
 msgid "Explicit formats validate all values against bundled boundaries. Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or ambiguous values fail rather than displaying blank regions."
 msgstr ""
 
+msgid "Explicit grain required"
+msgstr ""
+
 msgid "Explore"
 msgstr ""
 
@@ -7339,9 +7341,7 @@ msgstr ""
 msgid "Fix the Extra JSON to edit certification"
 msgstr ""
 
-msgid ""
-"Fix the JSON errors below to edit colors here; your changes sync "
-"automatically once the JSON is valid again."
+msgid "Fix the JSON errors below to edit colors here; your changes sync automatically once the JSON is valid again."
 msgstr ""
 
 msgid "Fix the trend line to the full time range specified in case filtered results do not include the start or end dates"
@@ -7623,9 +7623,6 @@ msgid "Google Sheet Name and URL"
 msgstr ""
 
 msgid "Grace period"
-msgstr ""
-
-msgid "Grain"
 msgstr ""
 
 msgid "Graph Chart"
@@ -9686,10 +9683,19 @@ msgstr ""
 msgid "Named instances can't be entered as the host. Enter only the host and the port the instance listens on, or connect with a SQLAlchemy URI instead."
 msgstr ""
 
+msgid "Native"
+msgstr ""
+
+msgid "Native allowed"
+msgstr ""
+
 msgid "Native filter column is required"
 msgstr ""
 
 msgid "Native filter values has no values"
+msgstr ""
+
+msgid "Native grain"
 msgstr ""
 
 msgid "Need help? Learn how to connect your database"
@@ -10265,6 +10271,9 @@ msgstr ""
 msgid "Older history exists but is beyond what can be shown here."
 msgstr ""
 
+msgid "Omitted grain"
+msgstr ""
+
 msgid "On Grace"
 msgstr ""
 
@@ -10441,9 +10450,7 @@ msgstr ""
 msgid "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines."
 msgstr ""
 
-msgid ""
-"Optional custom color for each range band, e.g. to match a brand palette."
-" Bands left unset use the default shading."
+msgid "Optional custom color for each range band, e.g. to match a brand palette. Bands left unset use the default shading."
 msgstr ""
 
 msgid "Optional d3 date format string"
@@ -10809,11 +10816,7 @@ msgstr ""
 msgid "Physical (table or view)"
 msgstr ""
 
-msgid ""
-"Pick a color for each interval band defined above by its upper bound. "
-"Charts saved with the legacy 1-indexed \"Interval colors\" text field keep"
-" following the chosen color scheme until an interval color is "
-"edited."
+msgid "Pick a color for each interval band defined above by its upper bound. Charts saved with the legacy 1-indexed \"Interval colors\" text field keep following the chosen color scheme until an interval color is edited."
 msgstr ""
 
 msgid "Pick a dimension from which categorical colors are defined"
@@ -11375,6 +11378,13 @@ msgstr ""
 msgid "Re-pick fields for this chart"
 msgstr ""
 
+msgid "Re-select fields"
+msgstr ""
+
+#, python-format
+msgid "Re-select fields for %s"
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
@@ -11467,13 +11477,13 @@ msgstr ""
 msgid "Refreshing columns"
 msgstr ""
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
 msgid "Region value format"
-msgstr ""
-
-msgid "Region"
 msgstr ""
 
 msgid "Register"
@@ -12342,6 +12352,9 @@ msgstr ""
 msgid "Save dataset"
 msgstr ""
 
+msgid "Save fields"
+msgstr ""
+
 msgid "Save for this session"
 msgstr ""
 
@@ -12988,10 +13001,6 @@ msgstr ""
 msgid "Semantic colors"
 msgstr ""
 
-#, python-format
-msgid "Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. Use one dimension per name and grain."
-msgstr ""
-
 msgid "Semantic layer"
 msgstr ""
 
@@ -13038,6 +13047,15 @@ msgid "Semantic view could not be updated."
 msgstr ""
 
 msgid "Semantic view does not exist"
+msgstr ""
+
+msgid "Semantic view fields could not be updated"
+msgstr ""
+
+msgid "Semantic view fields could not be updated. Please try again."
+msgstr ""
+
+msgid "Semantic view fields updated"
 msgstr ""
 
 msgid "Semantic view parameters are invalid."
@@ -14101,6 +14119,9 @@ msgstr ""
 msgid "Supported databases"
 msgstr ""
 
+msgid "Supported grains"
+msgstr ""
+
 #, python-format
 msgid "Swap %s"
 msgstr ""
@@ -14674,14 +14695,10 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr ""
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
+msgid "The filters from the link you opened could not be loaded, so this link shares the default view."
 msgstr ""
 
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
+msgid "The filters from this link have expired, so you’re seeing the default view."
 msgstr ""
 
 msgid "The following charts could not be exported:"
@@ -15644,10 +15661,10 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
-msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgid "This chart is archived or unavailable."
 msgstr ""
 
-msgid "This chart is archived or unavailable."
+msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
 msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -15939,6 +15956,9 @@ msgid "This semantic provider cannot apply the requested offset. Turn off pagina
 msgstr ""
 
 msgid "This semantic provider does not support this query. Remove unsupported filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view configuration version or its selected fields are no longer supported. Re-open the view, re-select its fields, and save. If field editing is unavailable, delete the view and re-add it."
 msgstr ""
 
 msgid "This semantic view does not support server pagination."
@@ -17315,9 +17335,7 @@ msgstr ""
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr ""
 
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
+msgid "We couldn’t load the filters from this link, so you’re seeing the default view."
 msgstr ""
 
 #, python-format

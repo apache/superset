@@ -30,7 +30,7 @@ from superset.utils import json
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize("member", ["metrics", "dimensions"])
 @pytest.mark.parametrize("external", [False, True])
 @pytest.mark.parametrize("error_class", [RuntimeError, QueryObjectValidationError])
@@ -86,7 +86,7 @@ async def test_compatibility_errors_use_fixed_messages(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize("member", ["metrics", "dimensions"])
 @pytest.mark.parametrize("failure_site", ["columns", "compatibility"])
 async def test_compatibility_preserves_host_ambiguity(
@@ -143,7 +143,7 @@ async def test_compatibility_preserves_host_ambiguity(
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "tool_name", ["get_compatible_metrics", "get_compatible_dimensions", "list_metrics"]
 )
@@ -188,7 +188,7 @@ async def test_obsolete_configuration_has_actionable_mcp_error(tool_name: str) -
 
 
 @pytest.mark.usefixtures("semantic_layers_enabled")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize("member", ["metrics", "dimensions"])
 @pytest.mark.parametrize("grain", [None, "P1M"])
 async def test_compatibility_preserves_explicit_grain_intent(
@@ -234,7 +234,7 @@ async def test_compatibility_preserves_explicit_grain_intent(
     lookup.assert_called_once_with([], ["time"], dimension_grains={"time": grain})
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize("grain_error", [False, True])
 async def test_grain_error_classification_does_not_depend_on_request_shape(
     grain_error: bool,
