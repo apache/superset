@@ -20,9 +20,10 @@ under the License.
 # Core gaps: what Superset core still needs
 
 The extension builds on the Canvas widget framework (branch
-`msyavuz/feat/canvas`) and the Superset Artifacts SDK. This page lists what
-Superset core still needs for artifacts, and where each item stands on this
-branch:
+`msyavuz/feat/canvas`, [#45022](https://github.com/apache/superset/pull/45022))
+and the Superset Artifacts SDK. This page lists what Superset core still needs
+for artifacts, where each item stands on this branch, and where it is
+decided:
 
 - **Implemented here:** a small change on this branch, in its own commit, that
   leaves the default behaviour unchanged, with unit tests next to its
@@ -35,7 +36,7 @@ branch:
 | [Canvas and the widget framework on master](#canvas-and-the-widget-framework-on-master) | Documented only |
 | [Draft context, a data hook and a placement lookup for extension renderers](#draft-context-a-data-hook-and-a-placement-lookup-for-extension-renderers) | Implemented here (draft token, a placement lookup in `superset_core`); the rest documented |
 | [`DataBinding` in `superset_core`](#databinding-in-superset_core) | Documented only |
-| [Namespaced renderer ids, checked for collisions](#namespaced-renderer-ids-checked-for-collisions) | Implemented here (a warning on replacement); the rest documented |
+| [Namespaced renderer ids, checked for collisions](#namespaced-renderer-ids-checked-for-collisions) | Implemented here (a second renderer refused); the rest documented |
 | [Props validated on every write path](#props-validated-on-every-write-path) | Documented only |
 | [A switch per widget type](#a-switch-per-widget-type) | Implemented here (listing and add operations); the rest documented |
 | [Large props kept out of the canvas read tools](#large-props-kept-out-of-the-canvas-read-tools) | Documented only |
@@ -51,12 +52,18 @@ branch:
 
 ## Canvas and the widget framework on master
 
-- **Need:** everything here depends on SIP-231 (#44875) and SIP-232 (#44989).
-- **Status:** documented only. The code is on `msyavuz/feat/canvas`, which
-  this branch stacks on: `superset/canvas/`, `superset/widgets/`,
+- **Need:** everything here depends on
+  [SIP-231](https://github.com/apache/superset/issues/44875) and
+  [SIP-232](https://github.com/apache/superset/issues/44989).
+- **Status:** documented only. The code is on `msyavuz/feat/canvas`
+  ([#45022](https://github.com/apache/superset/pull/45022)), which this branch
+  builds on: `superset/canvas/`, `superset/widgets/`,
+  `superset-core/src/superset_core/canvas/`,
   `superset-core/src/superset_core/widgets/` and
   `superset-frontend/src/features/canvas/`.
-- **Next:** land the Canvas branch; then rebase the SDK and this extension.
+- **Next:** land the Canvas branch
+  ([#45022](https://github.com/apache/superset/pull/45022)); this extension,
+  with its SDK, then builds on master.
 
 ## Draft context, a data hook and a placement lookup for extension renderers
 
@@ -94,12 +101,14 @@ branch:
   its saved widget too, and raises `PlacementNotFoundError` for what the
   caller can't read; the injected resolver answers `editable`);
   `test_ext_imports.py` (the extension imports nothing from `superset`).
-- **Pending:**
+- **Pending**, in the Canvas branch
+  ([#45022](https://github.com/apache/superset/pull/45022)):
   - the previewed version (`CanvasVersionContext`, `useWidgetRows.ts`) as a
     prop too, and in the `superset_core` lookup, so that an extension
     renderer can read a version preview;
-  - SIP-231 §9's public `useWidgetData` hook, so that extension renderers don't
-    call the placement endpoint themselves.
+  - the public `useWidgetData` hook of
+    [SIP-231](https://github.com/apache/superset/issues/44875) §10, so that
+    extension renderers don't call the placement endpoint themselves.
 
 ## `DataBinding` in `superset_core`
 
@@ -110,32 +119,45 @@ branch:
   `resolve_binding`).
 - **Next:** move `DataBinding` and `SortKey` into `superset_core.widgets`, next
   to `MetricControl` (`superset-core/src/superset_core/widgets/composites.py`),
-  and re-export them from the host module.
+  and re-export them from the host module, in the Canvas branch
+  ([#45022](https://github.com/apache/superset/pull/45022)).
 
 ## Namespaced renderer ids, checked for collisions
 
-- **Implemented:** `registerWidgetRenderer` logs a warning when a type that has
-  a different renderer gets a new one (`superset-frontend/src/core/canvas/index.ts`).
-  The newer renderer still wins, as before; registering the same component
-  again stays silent.
-- **Tests:** `src/core/canvas/canvas.test.ts` (replacing warns and keeps the
-  newer renderer; registering the same component again doesn't warn; added,
+- **Implemented:** `registerWidgetRenderer` throws when a type that has a
+  renderer gets a different one (`superset-frontend/src/core/canvas/index.ts`),
+  as the server refuses a widget type that is taken and as
+  [SIP-231](https://github.com/apache/superset/issues/44875) §2 has it; the
+  type takes another renderer once its own is disposed, and registering the
+  same component again is allowed.
+- **Tests:** `src/core/canvas/canvas.test.ts` (a type that has a renderer
+  refuses another; registering the same component again is allowed; added,
   not run here).
 - **Pending:** prefix frontend renderer ids per extension, as the backend does
-  (`superset/core/api/core_api_injection.py`), and refuse to replace built-in
-  renderers. Until then the extension registers under its full id.
+  (`superset/core/api/core_api_injection.py`) and as SIP-231 §2 namespaces
+  them (`extensions.<publisher>.<name>.<widget id>`), so that no extension
+  takes a built-in type: built-in renderers register only when the Canvas page
+  loads (`registerBuiltinRenderers`), which can be after extensions have. In
+  the Canvas branch ([#45022](https://github.com/apache/superset/pull/45022)).
+  Until then the extension registers under its full id.
 
 ## Props validated on every write path
 
-- **Need:** `POST` and `PUT /api/v1/widget/` validate neither props nor type
-  (`superset/widgets/api.py`); committing a draft saves widget props without
-  validating them again (`superset/commands/canvas/draft.py`); the data route
-  runs a stored binding for an unregistered type.
-- **Artifacts in particular:** nothing checks, when a placement is written,
-  that its author may read the artifact it names. Viewers then reach the
-  artifact's published versions through that placement (`frames/access.py`).
-  Extension widgets need a write-time hook to check their props semantically.
-- **Status:** documented only; it touches several write paths.
+- **Need:** [SIP-231](https://github.com/apache/superset/issues/44875) §6
+  validates every write. `POST` and `PUT /api/v1/widget/` check the type and
+  the props (`entity_props`, `superset/canvas/definition/ops.py`), but
+  committing a draft saves its widgets without validating their props again
+  (`save_widgets`, `superset/commands/canvas/apply_ops.py`), and the data
+  route runs a stored `dataBinding` for an unregistered type
+  (`select_binding`, `superset/commands/canvas/placement_data.py`). Extension
+  widgets also need a write-time hook to check their props semantically.
+- **Artifacts in particular:** placing an artifact's widget by its UUID needs
+  its author to be able to read that widget (`placeable`, checked by
+  `placement_issues` and by canvas creation). Viewers then reach the
+  artifact's published version through that placement, as for any widget a
+  canvas places (`frames/api.py`).
+- **Status:** documented only; it touches several write paths of the Canvas
+  branch ([#45022](https://github.com/apache/superset/pull/45022)).
 
 ## A switch per widget type
 
@@ -155,19 +177,23 @@ branch:
   an inaccessible widget still reported once), `tests/unit_tests/widgets/test_api.py`
   and `tests/unit_tests/mcp_service/widgets/tool/test_widget_tools.py` (a
   disabled type left out of the lists).
-- **Pending:** enforcement at render time, on full-definition writes (creating
-  or updating a canvas with a whole definition), and on the control-schema and
-  validate endpoints; a per-workspace switch and a kill switch.
+- **Pending**, in the Canvas branch
+  ([#45022](https://github.com/apache/superset/pull/45022)): enforcement at
+  render time, on full-definition writes (creating or updating a canvas with a
+  whole definition), and on the control-schema and validate endpoints; a
+  per-workspace switch and a kill switch.
 
 ## Large props kept out of the canvas read tools
 
 - **Need:** `get_canvas`, `get_canvas_draft`, `get_widget_info` and
   `list_widgets` return every widget's full props and fail above 50 KB
   (`DEFAULT_MAX_RESPONSE_BYTES`, `superset/mcp_service/constants.py`).
-- **Status:** documented only. Artifact props hold only a reference, so
-  artifacts stay small; other large widgets still hit the limit.
+- **Status:** documented only. Artifact props are empty (the content is in
+  the store), so artifacts stay small; other large widgets still hit the
+  limit.
 - **Next:** summarize or omit props above a size in the read tools
-  (`superset/mcp_service/canvas/tool/get_canvas.py` and its siblings).
+  (`superset/mcp_service/canvas/tool/get_canvas.py` and its siblings), in the
+  Canvas branch ([#45022](https://github.com/apache/superset/pull/45022)).
 
 ## Several named data bindings per widget
 
@@ -202,18 +228,24 @@ branch:
   from the version its frame loads, and none runs from a version the caller
   may not see).
 - **Pending:**
-  - saved-chart and semantic-view sources, typed parameters (so that `query`
-    can send values), and results with metric definitions and formats;
+  - saved-chart and semantic-view sources, and results with metric
+    definitions and formats, as
+    [SIP-231](https://github.com/apache/superset/issues/44875) §7 and §8 have
+    widgets query and receive data; typed parameters, so that `query` can
+    send values;
   - the MCP `get_canvas_data` and `preview_widget` tools, which still read
-    `dataBinding` only.
+    `dataBinding` only, in the Canvas branch
+    ([#45022](https://github.com/apache/superset/pull/45022)).
 
 ## A saved widget's data without a canvas
 
 - **Implemented:** `POST /api/v1/widget/<uuid>/data` (`superset/widgets/api.py`,
-  `GetWidgetDataCommand` in `superset/commands/widget/data.py`), SIP-231's
-  data endpoint for a saved widget. It runs the widget's stored `dataBinding`,
-  or a named binding from its widget type's resolver or its props, as the
-  caller, narrowed by runtime filters on the binding's dataset: the placement
+  `GetWidgetDataCommand` in `superset/commands/widget/data.py`), the data
+  endpoint for a saved widget of
+  [SIP-231](https://github.com/apache/superset/issues/44875) §8. It runs the
+  widget's stored `dataBinding`, or a named binding from its widget type's
+  resolver or its props, as the caller, narrowed by runtime filters on the
+  binding's dataset: the placement
   endpoint's binding selection (`select_binding`), runner and checks, and one
   datasets answer (`superset/canvas/data.py`). Reading needs read access to
   the widget, through `WidgetDAO`'s filter, and to its dataset; a widget
@@ -233,13 +265,16 @@ branch:
 - **Need:** cross-filters reach other widgets only while the canvas has them
   on (its `crossFilters` setting, which `CanvasGrid` reads).
 - **Status:** documented only; whether cross-filters should be on for
-  artifacts only or for every widget needs a decision with the Canvas
-  maintainers.
+  artifacts only or for every widget is for the Canvas listener bus to
+  decide ([SIP-232](https://github.com/apache/superset/issues/44989) §5, and
+  [SIP-231](https://github.com/apache/superset/issues/44875) §9 for what a
+  widget emits).
 - **Meanwhile:** cross-filters are the only event an artifact emits; the
   renderer maps a declared cross-filter onto the filter bus shape
   (`{datasetId, column, values}`).
 - **Next:** cross-filters on for artifacts, and the filter bus in the
-  `ExtraFormData` shape.
+  `ExtraFormData` shape, in the Canvas branch
+  ([#45022](https://github.com/apache/superset/pull/45022)).
 
 ## Hardened extension storage
 
@@ -265,7 +300,9 @@ branch:
   resource fields on the compare-and-swap write, so that a ref's record can be
   tagged with its artifact. The context's storage protocol
   (`ExtensionStorage.persistent` in `superset_core.extensions.context`) also
-  doesn't declare the `shared` accessor the host provides.
+  doesn't declare the `shared` accessor the host provides. Which rows the
+  storage REST API serves, and backend-only storage, are under review in
+  [#45894](https://github.com/apache/superset/pull/45894).
 - **Tests:** `tests/unit_tests/extensions/storage/test_persistent_dao.py` and
   `test_persistent.py` (the compare-and-swap's comparison, its lock and its
   validation); `backend/tests/test_ext_storage_backend.py`.
@@ -284,8 +321,9 @@ branch:
   entry point imports the MCP tools and prompts behind a guard for
   `ImportError` and `NotImplementedError`, so a process without MCP still
   registers the widget and the REST APIs.
-- **Next:** restore the context around each request, MCP call and task; make
-  the decorators no-ops when MCP isn't installed.
+- **Next:** restore the context around each request, MCP call and task
+  ([#45894](https://github.com/apache/superset/pull/45894) does it for
+  extension REST APIs); make the decorators no-ops when MCP isn't installed.
 
 ## Extensions declare the CSP they need
 
@@ -296,7 +334,9 @@ branch:
   it.
 - **Status:** not a core ask. Operators add the provider's frame sources to
   `frame-src` in `TALISMAN_CONFIG` themselves, as the README's "Host pages'
-  CSP" shows; a host that sets its own policy adds them there.
+  CSP" shows; a host that sets its own policy adds them there. A runtime
+  `frame-src` allowlist that admins edit without a restart is proposed in
+  [#41468](https://github.com/apache/superset/pull/41468).
 
 ## Routes that a link authenticates, exempt from CSRF
 
@@ -336,10 +376,11 @@ branch:
   rule changes, and only while enabled; a static setting builds the server's
   instructions; a callable is read per session and fails closed;
   `DEFAULT_INSTRUCTIONS` keeps the rule against generating code).
-- **Pending:** review the other tool-only rules ("Do NOT generate HTML
-  dashboards, embed scripts, or custom frontend code") for when artifacts are
-  on. A setting that answers `True` without this extension loaded still lifts
-  the rule, which then names tools that aren't there.
+- **Pending:** review the other tool-only rules that
+  [#38391](https://github.com/apache/superset/pull/38391) added ("Do NOT
+  generate HTML dashboards, embed scripts, or custom frontend code") for when
+  artifacts are on. A setting that answers `True` without this extension
+  loaded still lifts the rule, which then names tools that aren't there.
 
 ## Artifact guest tokens and standalone embedding
 
@@ -349,7 +390,9 @@ branch:
   dashboards (`superset/embedded/view.py`, `/embedded/<uuid>`); Canvas has no
   guest support.
 - **Status:** not core asks. A host adds the page that shows one artifact on
-  its own; the extension answers its frame link (`POST .../frames/`), and
-  its data comes from the widget data endpoint (above). Guests
-  would see artifacts through an embedded canvas that holds them, with canvas
-  guest tokens, once Canvas has them.
+  its own, until extensions can contribute pages
+  ([#45522](https://github.com/apache/superset/pull/45522)); the extension
+  answers its frame link (`POST .../frames/`), and its data comes from the
+  widget data endpoint (above). Guests would see artifacts through an
+  embedded canvas that holds them, with the canvas guest tokens of
+  [SIP-232](https://github.com/apache/superset/issues/44989) §12.
