@@ -1096,6 +1096,25 @@ def test_an_archive_holds_the_version_and_the_sidecar(
     }
 
 
+@pytest.mark.parametrize(
+    "stored", [".git/hooks/post-checkout", "src//app.js", "./a.js", "src/../a.js"]
+)
+def test_a_stored_path_no_write_may_store_never_lands(
+    store: ArtifactFileStore, backend: InMemoryArtifactStore, stored: str
+) -> None:
+    artifact_id, version = create(store)
+    # As a store before the path rules, or a backend that skips them, kept it.
+    legacy = {**(backend.get_tree(version) or {}), stored: backend.put_blob(b"x")}
+    digest = tree_hash(legacy)
+    backend._trees[digest] = legacy
+    assert backend.compare_and_set_ref(artifact_id, DRAFT_REF, version, digest)
+
+    with raises(AuthoringErrorCode.INVALID_PATH):
+        store.land(ArtifactLandRequest(artifact_id=artifact_id))
+    with raises(AuthoringErrorCode.INVALID_PATH):
+        store.archive(artifact_id, digest, io.BytesIO())
+
+
 def test_a_landed_folder_commits_back_without_its_sidecar(
     store: ArtifactFileStore,
 ) -> None:

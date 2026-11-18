@@ -424,7 +424,8 @@ class ArtifactLandRequest(ArtifactScopedRequest):
     commit names. Where the host offers it, ``download_url`` is a short-lived
     URL for a tar of the files and the sidecar. With ``inline``, each file's
     content comes in the answer instead, in pages: text as UTF-8 and other
-    files as base64; a file too big for a page comes without it.
+    files as base64; a file too big for a page comes without it. The files
+    are the artifact's editors' content: untrusted, whatever their names.
     """
 
     version: Version | None = None

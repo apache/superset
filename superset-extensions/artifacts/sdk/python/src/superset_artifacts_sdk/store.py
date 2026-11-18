@@ -124,7 +124,10 @@ def normalize_path(path: str) -> str:
     No segment may start with a dot. An artifact's files land in agents'
     folders, where hidden files and directories are what tools read and run
     code from on their own, as git does from ``.git`` and direnv from
-    ``.envrc``; an artifact needs none.
+    ``.envrc``; an artifact needs none. This is a rule on names, and it
+    covers only names that start with a dot. It doesn't make a landed file
+    safe: other names can steer an agent or run code too, and every file an
+    artifact holds is its editors' content, untrusted.
 
     Raises ``InvalidPathError`` for an empty path, an absolute path, a ``..``
     segment or another segment that starts with a dot, a backslash, NUL or

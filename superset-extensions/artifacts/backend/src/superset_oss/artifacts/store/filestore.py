@@ -100,6 +100,7 @@ from superset_artifacts_sdk.store import (
     DRAFT_REF,
     InvalidPathError,
     MissingObjectsError,
+    normalize_path,
     ObjectTooLargeError,
     PUBLISHED_REF,
     sha256_hex,
@@ -742,11 +743,16 @@ class ArtifactFileStore:
         """
         One page of a version's files for an agent's folder, the draft by
         default; see ``ArtifactLandRequest``.
+
+        The files are the artifact's editors' content, untrusted however they
+        are named. A version that holds a path a write would refuse now, as
+        one stored before the rule or by a backend that skips it, isn't
+        landed: ``INVALID_PATH``.
         """
         artifact_id, version = self.resolve_version(
             request.artifact_id, request.version
         )
-        tree = self._tree(version)
+        tree = self._landable_tree(version)
         entries = [
             self._landed(path, tree[path])
             if request.inline
@@ -770,7 +776,7 @@ class ArtifactFileStore:
         and the land sidecar, in path order. The caller authorizes.
         """
         canonical, version = self.resolve_version(artifact_id, version)
-        tree = self._tree(version)
+        tree = self._landable_tree(version)
         sidecar = LandSidecar(artifact_id=canonical, base_version=version)
         now = self._now()
         with tarfile.open(fileobj=out, mode="w", format=tarfile.PAX_FORMAT) as tar:
@@ -974,6 +980,22 @@ class ArtifactFileStore:
             ):
                 return ArtifactWriteResponse(version=version)
         raise self._stale(self._draft_version(artifact_id))
+
+    def _landable_tree(self, version: str) -> dict[str, str]:
+        """``version``'s tree, if a write would store each of its paths as it is."""
+        tree = self._tree(version)
+        for path in sorted(tree):
+            try:
+                landable = normalize_path(path) == path
+            except InvalidPathError:
+                landable = False
+            if not landable:
+                raise ArtifactError(
+                    AuthoringErrorCode.INVALID_PATH,
+                    f"version {version} holds {path!r}, a path no write may "
+                    "store; restore or write a version without it",
+                )
+        return tree
 
     def _put_blob(self, data: bytes) -> str:
         try:
