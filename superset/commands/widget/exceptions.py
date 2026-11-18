@@ -66,3 +66,8 @@ class WidgetRevisionConflictError(CommandException):
                 revision=current_revision,
             )
         )
+
+
+class WidgetUnboundError(CommandException):
+    status = 422
+    message = _("This widget has no such data binding.")

@@ -18,15 +18,20 @@
 
 import logging
 from typing import Any, Optional
+from uuid import UUID
 
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
+from pydantic import ValidationError as PydanticValidationError
 
 from superset import is_feature_enabled
+from superset.canvas.data import datasets_payload, PlacementDataRequest
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.commands.widget.create import CreateWidgetCommand
+from superset.commands.widget.data import GetWidgetDataCommand
 from superset.commands.widget.delete import DeleteWidgetCommand
 from superset.commands.widget.exceptions import (
     WidgetCreateFailedError,
@@ -35,13 +40,17 @@ from superset.commands.widget.exceptions import (
     WidgetInvalidError,
     WidgetNotFoundError,
     WidgetRevisionConflictError,
+    WidgetUnboundError,
     WidgetUpdateFailedError,
 )
 from superset.commands.widget.update import UpdateWidgetCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.exceptions import DatasourceNotFound
 from superset.daos.widget import WidgetDAO
-from superset.extensions import event_logger
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.extensions import event_logger, security_manager
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
+from superset.utils import json
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -87,7 +96,7 @@ class WidgetRestApi(BaseSupersetModelRestApi):
     allow_browser_login = True
 
     class_permission_name = "Widget"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    method_permission_name = {**MODEL_API_RW_METHOD_PERMISSION_MAP, "get_data": "read"}
 
     include_route_methods = {
         RouteMethod.GET,
@@ -97,6 +106,7 @@ class WidgetRestApi(BaseSupersetModelRestApi):
         RouteMethod.DELETE,
         RouteMethod.INFO,
         RouteMethod.RELATED,
+        "get_data",
     }
 
     show_columns = [
@@ -404,3 +414,93 @@ class WidgetRestApi(BaseSupersetModelRestApi):
             logger.error("Error deleting widget: %s", str(ex), exc_info=True)
             return self.response_422(message=str(ex))
         return self.response(200, message="OK")
+
+    @expose("/<uuid:widget_uuid>/data", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_data",
+        log_to_statsd=False,
+    )
+    def get_data(self, widget_uuid: UUID) -> Response:
+        """Run a saved widget's query and return its data.
+        ---
+        post:
+          summary: Get a saved widget's data
+          description: >-
+            Runs the query the widget's stored `dataBinding` describes, as the
+            caller, narrowed by `runtime_filters` on the binding's dataset,
+            without a canvas. With `binding`, runs that named binding instead:
+            the widget type's own, or one the props declare in `bindings`.
+            The dataset includes the query that ran when the caller can view
+            queries.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: widget_uuid
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    runtime_filters:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          datasetId:
+                            type: integer
+                          column:
+                            type: string
+                          values:
+                            type: array
+                            items: {}
+                    binding:
+                      type: string
+          responses:
+            200:
+              description: The widget's datasets
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        try:
+            body = PlacementDataRequest.model_validate(
+                request.get_json(silent=True) or {}
+            )
+        except PydanticValidationError as ex:
+            return self.response_400(message=str(ex))
+        try:
+            data = GetWidgetDataCommand(
+                widget_uuid, body.runtime_filters, body.binding
+            ).run()
+        except (WidgetNotFoundError, DatasourceNotFound):
+            return self.response_404()
+        except SupersetSecurityException:
+            return self.response_403()
+        except WidgetUnboundError as ex:
+            return self.response_422(message=str(ex.message))
+        except (QueryObjectValidationError, ChartDataQueryFailedError) as ex:
+            return self.response_400(message=str(ex.message))
+        # Classic charts gate "View query" on the same permission.
+        payload = datasets_payload(
+            body.binding or "main",
+            data,
+            with_query=security_manager.can_access("can_view_query", "Dashboard"),
+        )
+        return Response(
+            json.dumps(payload, default=json.json_int_dttm_ser, ignore_nan=True),
+            status=200,
+            mimetype="application/json",
+        )

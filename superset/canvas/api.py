@@ -35,7 +35,7 @@ from superset_core.canvas import GridPlacement
 from superset_core.widgets import Widget
 
 from superset import is_feature_enabled
-from superset.canvas.data import PlacementDataRequest
+from superset.canvas.data import datasets_payload, PlacementDataRequest
 from superset.canvas.definition.registry import get_widget_types
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
@@ -1121,21 +1121,14 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except (QueryObjectValidationError, ChartDataQueryFailedError) as ex:
             return self.response_400(message=str(ex.message))
-        dataset: dict[str, Any] = {
-            "name": body.binding or "main",
-            "row_count": len(data.rows),
-            "inline_data": data.rows,
-        }
         # Classic charts gate "View query" on the same permission.
-        if data.query and security_manager.can_access("can_view_query", "Dashboard"):
-            dataset["query"] = data.query
-            dataset["language"] = data.language
+        payload = datasets_payload(
+            body.binding or "main",
+            data,
+            with_query=security_manager.can_access("can_view_query", "Dashboard"),
+        )
         return Response(
-            json.dumps(
-                {"result": {"datasets": [dataset]}},
-                default=json.json_int_dttm_ser,
-                ignore_nan=True,
-            ),
+            json.dumps(payload, default=json.json_int_dttm_ser, ignore_nan=True),
             status=200,
             mimetype="application/json",
         )

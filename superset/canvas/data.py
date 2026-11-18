@@ -61,6 +61,24 @@ class PlacementData:
     language: str | None
 
 
+def datasets_payload(
+    name: str, data: PlacementData, *, with_query: bool
+) -> dict[str, Any]:
+    """
+    A data request's answer: one dataset, ``name``, with its rows, and the
+    query that produced them when the caller may view queries.
+    """
+    dataset: dict[str, Any] = {
+        "name": name,
+        "row_count": len(data.rows),
+        "inline_data": data.rows,
+    }
+    if data.query and with_query:
+        dataset["query"] = data.query
+        dataset["language"] = data.language
+    return {"result": {"datasets": [dataset]}}
+
+
 def binding_dataset_id(props: dict[str, Any]) -> int | None:
     binding = props.get("dataBinding")
     if not isinstance(binding, dict):

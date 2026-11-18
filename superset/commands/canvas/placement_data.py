@@ -16,6 +16,8 @@
 # under the License.
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
+from functools import partial
 from typing import Any
 from uuid import UUID
 
@@ -120,41 +122,49 @@ class GetPlacementDataCommand(BaseCommand):
             self._draft_token,
             self._version_uuid,
         )
-        binding = (
-            placement.props.get("dataBinding")
-            if self._binding_name is None
-            else self._named_binding(placement, self._binding_name)
+        binding = select_binding(
+            placement.widget_type,
+            placement.props,
+            self._binding_name,
+            partial(
+                BindingRequest,
+                self._id_or_uuid,
+                self._placement_id,
+                placement.props,
+                draft_token=self._draft_token or None,
+                widget_id=placement.widget_id,
+            ),
         )
-        # A binding from the widget type's resolver gets the same checks as one
-        # from the props, and runs the same way, as the caller.
-        if not isinstance(binding, dict) or not isinstance(
-            binding.get("datasetId"), int
-        ):
+        if binding is None:
             raise CanvasPlacementUnboundError()
         self._binding = binding
 
-    def _named_binding(self, placement: StoredPlacement, name: str) -> Any:
-        """
-        Binding ``name`` of the placement: from its widget type's resolver when
-        the type has one, otherwise from the props' ``bindings``. A name
-        neither declares is unbound: running another binding instead would
-        answer with data nobody asked for.
-        """
-        widget_cls = (
-            get_widget_types().get(placement.widget_type)
-            if placement.widget_type
-            else None
-        )
+
+def select_binding(
+    widget_type: str | None,
+    props: Mapping[str, Any],
+    name: str | None,
+    request: Callable[[str], BindingRequest],
+) -> dict[str, Any] | None:
+    """
+    The binding a data request for a widget runs, or ``None`` when it has none.
+
+    Without a name, the props' ``dataBinding``. With one, the widget type's
+    resolver answers it, given ``request(name)``, when the type has one, and
+    otherwise the props' ``bindings`` do. A name neither declares is unbound:
+    running another binding instead would answer with data nobody asked for.
+    A binding from the resolver gets the same checks as one from the props,
+    and runs the same way, as the caller.
+    """
+    if name is None:
+        binding = props.get("dataBinding")
+    else:
+        widget_cls = get_widget_types().get(widget_type) if widget_type else None
         if widget_cls is not None and widget_cls.binding_resolver is not None:
-            return widget_cls.binding_resolver(
-                BindingRequest(
-                    canvas_id=self._id_or_uuid,
-                    placement_id=self._placement_id,
-                    props=placement.props,
-                    name=name,
-                    draft_token=self._draft_token or None,
-                    widget_id=placement.widget_id,
-                )
-            )
-        named = placement.props.get("bindings")
-        return named.get(name) if isinstance(named, dict) else None
+            binding = widget_cls.binding_resolver(request(name))
+        else:
+            named = props.get("bindings")
+            binding = named.get(name) if isinstance(named, dict) else None
+    if not isinstance(binding, dict) or not isinstance(binding.get("datasetId"), int):
+        return None
+    return binding
