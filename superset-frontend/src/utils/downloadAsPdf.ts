@@ -23,6 +23,9 @@ import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
+import preparePdfCapture, { truncationWarning } from './preparePdfCapture';
+import extractPdfTable from './extractPdfTable';
+import buildTablePdf, { canDrawInPdf } from './tableToPdf';
 
 const pdfCompressionLevel = getBootstrapData().common.pdf_compression_level;
 
@@ -87,7 +90,54 @@ export default function downloadAsPdf(
       html2canvas: { scale: 2 },
       excludeClassNames: ['header-controls'],
     };
-    return domToPdf(elementToPrint, options)
+    // A table chart is drawn as real PDF content (sharp, selectable text, repeated
+    // header on each page) instead of a picture of the on-screen table. Anything
+    // else, or a table the PDF fonts cannot draw, takes the picture-based path.
+    const tableExport = extractPdfTable(
+      elementToPrint as HTMLElement,
+      description,
+    );
+    if (tableExport && canDrawInPdf(tableExport.table)) {
+      try {
+        const { doc, shownRows, shownColumns } = buildTablePdf(
+          tableExport.table,
+        );
+        doc.save(options.filename);
+        const warning = truncationWarning(
+          shownRows < tableExport.totalRows
+            ? [shownRows, tableExport.totalRows]
+            : null,
+          shownColumns < tableExport.totalColumns
+            ? [shownColumns, tableExport.totalColumns]
+            : null,
+        );
+        if (warning) {
+          addWarningToast?.(warning);
+        }
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
+        return undefined;
+      } catch (e) {
+        logging.error('Table PDF generation failed, using the screenshot', e);
+      }
+    }
+
+    // domToPdf clones the element synchronously, so the layout changes are only
+    // needed for that call and are reverted straight after it starts.
+    const { restore, warning } = preparePdfCapture(
+      elementToPrint as HTMLElement,
+    );
+    let capture: Promise<void>;
+    try {
+      capture = domToPdf(elementToPrint, options);
+    } finally {
+      restore();
+    }
+    if (warning) {
+      addWarningToast?.(warning);
+    }
+    return capture
       .then(() => {
         // nothing to be done
       })
