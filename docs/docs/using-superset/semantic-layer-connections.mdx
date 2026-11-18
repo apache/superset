@@ -90,12 +90,16 @@ before the budget ran out stay added. Views that already exist are refused befor
 their lookup, so resending the whole request spends the budget only on the views
 that are still missing.
 
-
 ## Dashboard time grain
 
-On semantic-view aggregate charts, a Time grain filter or display control changes
-an active time dimension. A chart without a time dimension ignores a recognized
-duration such as Day or Month; its metrics and time-range filters are preserved.
-If the chart's selected columns cannot be confirmed as non-temporal, its grain is
-retained for validation. Saved query contexts must be rebuilt by the frontend to
-apply this behavior.
+A Time grain dashboard filter or display control is ignored by semantic-view
+charts with no grouping columns, such as Big Number. It is also ignored by Table
+and Interactive Table charts whose grouped columns are known not to be dates.
+Their metrics and time-range filters are preserved; charts with an active time
+dimension retain the selected grain. Ordinary SQL datasets are unchanged.
+
+Other grouped chart types on a semantic view are not covered by this fix and
+still show the time-column error when a grain is supplied without a time
+dimension. Charts replayed from a stored query context, including single-chart
+reports and API reads of a saved chart, are unchanged until re-saved from the
+fixed frontend.
