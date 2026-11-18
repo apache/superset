@@ -161,6 +161,34 @@ export async function apiGetDashboard(
 }
 
 /**
+ * A chart placed on a dashboard, as returned by the dashboard charts endpoint.
+ */
+export interface DashboardChartResult {
+  id: number;
+  slice_name: string;
+  /** Omitted by the backend when the requesting user cannot access the chart. */
+  form_data?: { viz_type: string } & Record<string, unknown>;
+}
+
+/**
+ * Fetch every chart placed on a dashboard.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param dashboardId - ID of the dashboard whose charts to fetch
+ * @returns The dashboard's charts
+ */
+export async function getDashboardCharts(
+  page: Page,
+  dashboardId: number,
+): Promise<DashboardChartResult[]> {
+  const response = await apiGet(
+    page,
+    `${ENDPOINTS.DASHBOARD}${dashboardId}/charts`,
+  );
+  const body: { result: DashboardChartResult[] } = await response.json();
+  return body.result;
+}
+
+/**
  * GET request to resolve a native-filter `filter_state` key for a dashboard.
  * The key is the `native_filters_key` URL param the filter bar publishes; a
  * 200 response carries `{ value: string }`, the serialized data mask.
@@ -290,4 +318,41 @@ export async function getDashboardBySlug(
   slug: string,
 ): Promise<DashboardResult | null> {
   return getDashboardByFilter(page, 'slug', slug);
+}
+
+/**
+ * Result of {@link getDashboardsByName}: the total count and matching rows,
+ * mirroring the API's own `{count, result}` envelope for exact-count
+ * assertions (e.g. "exactly one dashboard titled X exists").
+ */
+export interface DashboardsByNameResult {
+  count: number;
+  result: DashboardResult[];
+}
+
+/**
+ * Get every dashboard with an exact `dashboard_title` match.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param title - The dashboard_title to search for
+ * @returns The matching dashboards and their total count
+ */
+export async function getDashboardsByName(
+  page: Page,
+  title: string,
+): Promise<DashboardsByNameResult> {
+  const queryParam = rison.encode({
+    filters: [{ col: 'dashboard_title', opr: 'eq', value: title }],
+  });
+  const response = await apiGet(
+    page,
+    `${ENDPOINTS.DASHBOARD}?q=${queryParam}`,
+    { failOnStatusCode: false },
+  );
+
+  if (!response.ok()) {
+    return { count: 0, result: [] };
+  }
+
+  const body = await response.json();
+  return { count: body.count ?? 0, result: body.result ?? [] };
 }

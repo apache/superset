@@ -90,7 +90,7 @@ export default {
         '@babel/plugin-transform-export-namespace-from',
       ],
     },
-    // build instrumented code for testing code coverage with Cypress
+    // build instrumented code for testing code coverage with E2E tests
     instrumented: {
       plugins: [
         [

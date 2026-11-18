@@ -23,6 +23,9 @@ from marshmallow import fields, Schema
 from marshmallow.fields import Method
 from superset_core.tasks.types import TaskProperties
 
+from superset.tasks.async_queries import CHART_QUERY_TASK
+from superset.utils.error_sanitization import sanitize_error_message
+
 # RISON/JSON schemas for query parameters
 get_delete_ids_schema = {
     "type": "array",
@@ -154,6 +157,12 @@ class TaskResponseSchema(Schema):
         if not task_internals_visible():
             properties.pop("private", None)
 
+        message: object = properties.get("error_message")
+        if getattr(obj, "task_type", None) == CHART_QUERY_TASK and isinstance(
+            message, str
+        ):
+            properties["error_message"] = sanitize_error_message(message)
+
         return properties
 
     def get_duration(self, obj: object) -> float | None:
@@ -237,6 +246,9 @@ class TaskStatusResponseSchema(Schema):
     """Schema for task status response (lightweight for polling)"""
 
     status = fields.String(metadata={"description": status_description})
+    error_message: fields.String = fields.String(
+        metadata={"description": "Sanitized failure detail for a terminal chart query"}
+    )
 
 
 class TaskStatusChangeSchema(Schema):

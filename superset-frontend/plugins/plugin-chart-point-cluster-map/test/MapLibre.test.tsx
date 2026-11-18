@@ -18,7 +18,7 @@
  */
 
 import { type ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import {
   OSM_TILE_ATTRIBUTION,
@@ -131,6 +131,10 @@ beforeEach(() => {
   lastMapProps = {};
   document.body.innerHTML = '';
   jest.clearAllMocks();
+  Object.defineProperty(navigator, 'userAgent', {
+    value: 'Chrome',
+    configurable: true,
+  });
   mockFitBounds.mockImplementation(
     (
       bounds: [[number, number], [number, number]],
@@ -281,6 +285,33 @@ test('passes Mapbox styles through when a key exists', () => {
   expect(lastMapProps.mapboxAccessToken).toBe('pk.test');
 });
 
+test('preserves the MapLibre canvas on Safari for image export', () => {
+  Object.defineProperty(navigator, 'userAgent', {
+    value: 'Version/17.0 Safari/605.1.15',
+    configurable: true,
+  });
+
+  render(<MapLibre {...defaultProps} />);
+
+  expect(lastMapProps.canvasContextAttributes).toEqual({
+    preserveDrawingBuffer: true,
+  });
+});
+
+test('preserves the Mapbox canvas on Safari for image export', () => {
+  Object.defineProperty(navigator, 'userAgent', {
+    value: 'Version/17.0 Safari/605.1.15',
+    configurable: true,
+  });
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify({
+    common: { conf: { MAPBOX_API_KEY: 'pk.test' } },
+  })}'></div>`;
+
+  render(<MapLibre {...defaultProps} mapProvider="mapbox" />);
+
+  expect(lastMapProps.preserveDrawingBuffer).toBe(true);
+});
+
 test('handles undefined bounds gracefully', () => {
   render(<MapLibre {...defaultProps} bounds={undefined} />);
   expect(lastMapProps.longitude).toBe(0);
@@ -357,4 +388,71 @@ test('falls back to default viewport when cleared with undefined bounds', () => 
   expect(lastMapProps.longitude).toBe(0);
   expect(lastMapProps.latitude).toBe(0);
   expect(lastMapProps.zoom).toBe(1);
+});
+
+test('refits to the bounds of a refreshed response', () => {
+  const { rerender } = render(<MapLibre {...defaultProps} />);
+  expect(lastMapProps.latitude).toBe(40.75);
+
+  // An auto-refresh keeps the chart mounted and passes the new bounds in.
+  rerender(
+    <MapLibre
+      {...defaultProps}
+      bounds={[
+        [-0.15, 51.45],
+        [-0.05, 51.55],
+      ]}
+    />,
+  );
+
+  expect(lastMapProps.longitude).toBe(-0.1);
+  expect(lastMapProps.latitude).toBe(51.5);
+});
+
+test('keeps the viewport overrides when refreshed bounds move', () => {
+  const overrides = {
+    viewportLongitude: -122.4,
+    viewportLatitude: 37.8,
+    viewportZoom: 5,
+  };
+  const { rerender } = render(<MapLibre {...defaultProps} {...overrides} />);
+
+  rerender(
+    <MapLibre
+      {...defaultProps}
+      {...overrides}
+      bounds={[
+        [-0.15, 51.45],
+        [-0.05, 51.55],
+      ]}
+    />,
+  );
+
+  expect(lastMapProps.longitude).toBe(-122.4);
+  expect(lastMapProps.latitude).toBe(37.8);
+  expect(lastMapProps.zoom).toBe(5);
+});
+
+test('keeps a panned map when refreshed bounds are unchanged', () => {
+  const { rerender } = render(<MapLibre {...defaultProps} />);
+
+  act(() => {
+    (lastMapProps.onMove as (evt: { viewState: object }) => void)({
+      viewState: { longitude: 10, latitude: 20, zoom: 3 },
+    });
+  });
+
+  rerender(
+    <MapLibre
+      {...defaultProps}
+      bounds={[
+        [-74.0, 40.7],
+        [-73.9, 40.8],
+      ]}
+    />,
+  );
+
+  expect(lastMapProps.longitude).toBe(10);
+  expect(lastMapProps.latitude).toBe(20);
+  expect(lastMapProps.zoom).toBe(3);
 });

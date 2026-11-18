@@ -164,8 +164,14 @@ class DashboardStandaloneMode(Enum):
 
 
 class ChartStandaloneMode(Enum):
-    HIDE_NAV = "true"
     SHOW_NAV = 0
+    HIDE_NAV = 1
+    HIDE_NAV_SHOW_CONTROLS = 2
+    # Report/thumbnail captures, mirroring DashboardStandaloneMode.REPORT. Kept
+    # distinct from HIDE_NAV so the frontend can tell an automated capture from a
+    # live chart-only embed: ECharts suppresses animation for captures only, and
+    # treating a live embed as a capture would disable its animation too.
+    REPORT = 3
 
 
 # pylint: disable=too-few-public-methods
@@ -200,8 +206,10 @@ class WebDriverPlaywright(WebDriverProxy):
         window: WindowSize | None = None,
         *,
         require_complete_capture: bool = False,
+        browser_manager: _PlaywrightBrowserManager | None = None,
     ) -> None:
         super().__init__(driver_type, window)
+        self._browser_manager = browser_manager or _browser_manager
         self._require_complete_capture = require_complete_capture
 
     @staticmethod
@@ -944,7 +952,7 @@ class WebDriverPlaywright(WebDriverProxy):
 
         browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
         try:
-            browser = _browser_manager.get_browser(browser_args)
+            browser = self._browser_manager.get_browser(browser_args)
         except Exception as ex:
             logger.exception(
                 "Failed to launch the headless browser with args %s%s",

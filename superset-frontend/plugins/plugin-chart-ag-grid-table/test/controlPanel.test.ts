@@ -13,13 +13,83 @@
 
 import {
   ControlPanelConfig,
+  ControlPanelState,
   ControlPanelsContainerProps,
   ControlState,
   CustomControlItem,
   isCustomControlItem,
+  sharedControls,
 } from '@superset-ui/chart-controls';
-import { QueryMode } from '@superset-ui/core';
+import {
+  ComparisonType,
+  QueryMode,
+  TimeGranularity,
+  VizType,
+} from '@superset-ui/core';
 import config from '../src/controlPanel';
+import { buildQueryUncached } from '../src/buildQuery';
+
+function initializeTemporalLookup() {
+  const item = config.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(control =>
+      typeof control === 'string'
+        ? control === 'temporal_columns_lookup'
+        : control &&
+          'name' in control &&
+          control.name === 'temporal_columns_lookup',
+    );
+  const control =
+    typeof item === 'object' && item && 'config' in item
+      ? item.config
+      : sharedControls.temporal_columns_lookup;
+  const { initialValue } = control;
+  expect(typeof initialValue).toBe('function');
+  if (typeof initialValue !== 'function') {
+    throw new Error('Expected temporal lookup initializer');
+  }
+  const state = {
+    datasource: {
+      columns: [
+        { column_name: 'metric_time', is_dttm: true },
+        { column_name: 'country', is_dttm: false },
+        { column_name: 'unknown' },
+      ],
+    },
+  } as unknown as Parameters<typeof initialValue>[1];
+  return initialValue({} as ControlState, state);
+}
+
+test('Interactive Table Explore metadata distinguishes non-temporal from unknown columns', () => {
+  expect(initializeTemporalLookup()).toEqual({
+    metric_time: true,
+    country: false,
+  });
+});
+
+test.each(['country', 'metric_time', 'unknown'])(
+  'Interactive Table Explore classifies the grain for %s from datasource metadata',
+  column => {
+    const form = {
+      viz_type: VizType.TableAgGrid,
+      datasource: '7__semantic_view',
+      query_mode: QueryMode.Aggregate,
+      groupby: [column],
+      metrics: ['count'],
+      time_grain_sqla: TimeGranularity.DAY,
+      temporal_columns_lookup: initializeTemporalLookup(),
+    };
+    const original = structuredClone(form);
+    const query = buildQueryUncached(form).queries[0];
+    if (column === 'country') {
+      expect(query.extras).not.toHaveProperty('time_grain_sqla');
+    } else {
+      expect(query.extras?.time_grain_sqla).toBe(TimeGranularity.DAY);
+    }
+    expect(form).toEqual(original);
+  },
+);
 
 type VisibilityFn = (
   props: ControlPanelsContainerProps,
@@ -78,6 +148,110 @@ function withControls(
     controls: { ...props.controls, ...controls },
   } as unknown as ControlPanelsContainerProps;
 }
+
+test('header_groups is always present without a visibility gate', () => {
+  const item = (config.controlPanelSections || [])
+    .flatMap(section => section?.controlSetRows || [])
+    .flat()
+    .find(
+      control =>
+        typeof control === 'object' &&
+        control !== null &&
+        'name' in control &&
+        control.name === 'header_groups',
+    ) as CustomControlItem | undefined;
+
+  expect(item).toBeDefined();
+  expect(item?.config.visibility).toBeUndefined();
+  expect(item?.config.type).toBe('HeaderGroupsControl');
+});
+
+test('header_groups mapStateToProps builds time comparison groups', () => {
+  const item = (config.controlPanelSections || [])
+    .flatMap(section => section?.controlSetRows || [])
+    .flat()
+    .find(
+      control =>
+        typeof control === 'object' &&
+        control !== null &&
+        'name' in control &&
+        control.name === 'header_groups',
+    ) as CustomControlItem | undefined;
+
+  const exploreState = {
+    form_data: {
+      metrics: ['revenue'],
+      query_mode: QueryMode.Aggregate,
+      comparison_type: ComparisonType.Values,
+    },
+    controls: { time_compare: { value: '1 year ago' } },
+  } as unknown as ControlPanelState;
+
+  expect(
+    item?.config.shouldMapStateToProps?.(
+      exploreState,
+      exploreState,
+      {} as ControlState,
+    ),
+  ).toBe(true);
+  expect(
+    item?.config.mapStateToProps?.(exploreState, {} as ControlState, {
+      queriesResponse: null,
+    }),
+  ).toEqual(
+    expect.objectContaining({
+      timeComparisonGroups: [
+        expect.objectContaining({
+          id: 'time-compare-revenue',
+          source: 'time_compare',
+        }),
+      ],
+    }),
+  );
+});
+
+test('header_groups mapStateToProps skips auto groups outside aggregate values comparison', () => {
+  const item = (config.controlPanelSections || [])
+    .flatMap(section => section?.controlSetRows || [])
+    .flat()
+    .find(
+      control =>
+        typeof control === 'object' &&
+        control !== null &&
+        'name' in control &&
+        control.name === 'header_groups',
+    ) as CustomControlItem | undefined;
+  const timeCompare = { time_compare: { value: '1 year ago' } };
+
+  expect(
+    item?.config.mapStateToProps?.(
+      {
+        form_data: {
+          metrics: ['revenue'],
+          query_mode: QueryMode.Raw,
+          comparison_type: ComparisonType.Values,
+        },
+        controls: timeCompare,
+      } as unknown as ControlPanelState,
+      {} as ControlState,
+      { queriesResponse: null },
+    )?.timeComparisonGroups,
+  ).toEqual([]);
+  expect(
+    item?.config.mapStateToProps?.(
+      {
+        form_data: {
+          metrics: ['revenue'],
+          query_mode: QueryMode.Aggregate,
+          comparison_type: ComparisonType.Difference,
+        },
+        controls: timeCompare,
+      } as unknown as ControlPanelState,
+      {} as ControlState,
+      { queriesResponse: null },
+    )?.timeComparisonGroups,
+  ).toEqual([]);
+});
 
 test('time_grain_sqla visibility should be case-insensitive', () => {
   const vis = getVisibility(config, 'time_grain_sqla');
@@ -223,6 +397,14 @@ test('allow_render_html defaults to true, matching v1, and has no visibility gat
   const control = findControl(config, 'allow_render_html');
   expect(control.config.type).toBe('CheckboxControl');
   expect(control.config.default).toBe(true);
+  expect(control.config.renderTrigger).toBe(true);
+  expect(control.config.visibility).toBeUndefined();
+});
+
+test('json_in_cell defaults to false and has no visibility gate', () => {
+  const control = findControl(config, 'json_in_cell');
+  expect(control.config.type).toBe('CheckboxControl');
+  expect(control.config.default).toBe(false);
   expect(control.config.renderTrigger).toBe(true);
   expect(control.config.visibility).toBeUndefined();
 });

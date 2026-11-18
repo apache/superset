@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, time
 from re import Pattern
 from typing import Any, TYPE_CHECKING
 
@@ -45,6 +45,9 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
 class SqliteEngineSpec(BaseEngineSpec):
     engine = "sqlite"
     engine_name = "SQLite"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
 
     disable_ssh_tunneling = True
     supports_multivalues_insert = True
@@ -164,8 +167,20 @@ class SqliteEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
     ) -> str | None:
+        """
+        Write midnight as a bare date for DATE columns.
+
+        SQLite has no date type, so a DATE column usually holds text such as
+        ``2026-09-20``. ``'2026-09-20 00:00:00'`` sorts after that text, so a time
+        filter on a DATE column would be one day off. Any other time keeps its time
+        part, which sorts between two days, as a comparison of dates should. Values
+        that look like numbers, such as ``20260920`` or epoch seconds, are stored as
+        numbers, and SQLite sorts every number before any text.
+        """
         sqla_type = cls.get_sqla_column_type(target_type)
-        if isinstance(sqla_type, (types.String, types.DateTime)):
+        if isinstance(sqla_type, types.Date) and dttm.time() == time.min:
+            return f"'{dttm.date().isoformat()}'"
+        if isinstance(sqla_type, (types.String, types.Date, types.DateTime)):
             return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
         return None
 

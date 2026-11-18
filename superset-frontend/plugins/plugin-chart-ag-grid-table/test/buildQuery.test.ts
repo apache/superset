@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AdhocColumn, QueryMode, VizType } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  QueryMode,
+  VizType,
+  TimeGranularity,
+} from '@superset-ui/core';
 import buildQuery, { buildQueryUncached } from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
@@ -27,6 +32,29 @@ const basicFormData: TableChartFormData = {
   groupby: ['state'],
   metrics: ['count'],
 };
+
+test('preserves saved semantic pagination offsets and ordering', () => {
+  const saved: TableChartFormData = Object.freeze({
+    ...basicFormData,
+    datasource: '1__semantic_view',
+    server_pagination: true,
+    server_page_length: 2,
+  });
+  const ownState = Object.freeze({
+    currentPage: 1,
+    pageSize: 2,
+    sortBy: [{ key: 'state', desc: false }],
+  });
+  const { queries } = buildQueryUncached(saved, { ownState });
+  expect(queries[0]).toMatchObject({
+    row_offset: 2,
+    row_limit: 2,
+    orderby: [['state', true]],
+  });
+  expect(queries[1]).toMatchObject({ is_rowcount: true, row_offset: 0 });
+  expect(saved.server_pagination).toBe(true);
+  expect(ownState.currentPage).toBe(1);
+});
 
 const createAdhocColumn = (
   sqlExpression: string,
@@ -2182,3 +2210,57 @@ describe('plugin-chart-ag-grid-table', () => {
     });
   });
 });
+
+test.each(['json', 'csv'])(
+  'omits a dormant semantic grain from non-temporal %s requests',
+  result_format => {
+    const form: TableChartFormData = {
+      ...basicFormData,
+      datasource: '7__semantic_view',
+      viz_type: VizType.TableAgGrid,
+      time_grain_sqla: TimeGranularity.DAY,
+      temporal_columns_lookup: { state: false },
+      server_pagination: true,
+      server_page_length: 10,
+      show_totals: true,
+      result_format,
+    };
+    const original = structuredClone(form);
+    const { queries } = buildQueryUncached(form);
+    expect(queries.length).toBeGreaterThan(1);
+    queries.forEach(query => {
+      expect(query.extras).not.toHaveProperty('time_grain_sqla');
+    });
+    expect(form).toEqual(original);
+  },
+);
+
+test.each<Partial<TableChartFormData>>([
+  { temporal_columns_lookup: undefined },
+  { temporal_columns_lookup: { state: true } },
+  { granularity_sqla: 'created_at' },
+  {
+    groupby: [
+      {
+        expressionType: 'SQL',
+        sqlExpression: 'year(created_at)',
+        label: 'year',
+      },
+    ],
+  },
+  { extra_form_data: { interactive_groupby: ['unknown'] } },
+  { datasource: '11__table' },
+  { query_mode: QueryMode.Raw, all_columns: ['state'] },
+])(
+  'retains active, unknown or out-of-scope Interactive Table grains: %j',
+  overrides => {
+    const query = buildQueryUncached({
+      ...basicFormData,
+      datasource: '7__semantic_view',
+      time_grain_sqla: TimeGranularity.DAY,
+      temporal_columns_lookup: { state: false },
+      ...overrides,
+    }).queries[0];
+    expect(query.extras?.time_grain_sqla).toBe(TimeGranularity.DAY);
+  },
+);

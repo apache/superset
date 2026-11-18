@@ -35,6 +35,7 @@ from superset.subjects.models import dashboard_editors, dashboard_viewers
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import (
+    apply_extra_access_exclusions,
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
     semantic_layer_grant_clause,
@@ -130,6 +131,12 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if (guest_condition := guest_embedded_dashboard_filter()) is not None:
             return query.filter(guest_condition)
 
+        # Applied before the short-circuit below: an exclusion has to hold for
+        # admins too, since that is precisely the principal the role paths stop
+        # narrowing. Guests are excepted above -- their token already scopes
+        # them.
+        query = apply_extra_access_exclusions(query, "dashboards", Dashboard.id)
+
         if security_manager.is_admin():
             return query
 
@@ -174,11 +181,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
         # (C) No-viewer fallback: dashboards with no viewers → dataset-based access
         layer_grant_clause: "ColumnElement[bool]" = semantic_layer_grant_clause()
-        # Note: for ordinary users a dashboard with no charts is never yielded
-        # here (every access predicate is NULL-false after the outer joins)
-        # even though the object gate allows opening it — a deliberate,
-        # pre-existing asymmetry. For ``all_datasource_access`` holders the
-        # ``include_all`` flag below yields such rows, matching the gate.
         dashboard_has_viewers = Dashboard.viewers.any()
         no_viewer_query = (
             db.session.query(Dashboard.id)
@@ -204,10 +206,19 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 and_(
                     Dashboard.published.is_(True),
                     ~dashboard_has_viewers,
-                    get_dataset_access_filters(
-                        Slice,
-                        layer_grant_clause,
-                        include_all=security_manager.can_access_all_datasources(),
+                    # A dashboard with no charts has no dataset to check
+                    # access against -- ``Slice.id.is_(None)`` here (rather
+                    # than ``~Dashboard.slices.any()``) reads off the outer
+                    # join above, so it agrees with it on which slices
+                    # exist (e.g. soft-deleted slices the join already
+                    # excludes don't count as "has charts" either).
+                    or_(
+                        Slice.id.is_(None),
+                        get_dataset_access_filters(
+                            Slice,
+                            layer_grant_clause,
+                            include_all=security_manager.can_access_all_datasources(),
+                        ),
                     ),
                 )
             )

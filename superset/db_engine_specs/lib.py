@@ -25,6 +25,7 @@ import yaml
 from superset.constants import TimeGrain
 from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils.core import EXTENDED_METRIC_AGGREGATES
 
 LIMIT_METHODS = {
     "FORCE_LIMIT": (
@@ -120,6 +121,16 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
     supported_time_grains = spec.get_time_grain_expressions()
     for time_grain in TimeGrain:
         output["time_grains"][time_grain.name] = time_grain in supported_time_grains
+
+    # MEDIAN/STDDEV_SAMP/VAR_SAMP: engines not handled by the generic `sa.func`
+    # mapping opt in individually via `_extended_aggregations`, verified per
+    # engine (see `BaseEngineSpec.get_extended_aggregation_func`); this
+    # doesn't imply the other 6 base aggregates (SUM/COUNT/AVG/MIN/MAX/
+    # COUNT_DISTINCT), which every engine spec already supports unconditionally.
+    output["extended_aggregations"] = {
+        aggregate: spec.get_extended_aggregation_func(aggregate) is not None
+        for aggregate in sorted(EXTENDED_METRIC_AGGREGATES)
+    }
 
     output.update(
         {

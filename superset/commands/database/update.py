@@ -36,6 +36,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.commands.database.utils import (
+    encrypted_extra_secrets_reused,
     engine_params_changed,
     oauth2_endpoint_rebind_unsafe,
     ssh_tunnel_rebind_unsafe,
@@ -44,7 +45,7 @@ from superset.commands.database.utils import (
 from superset.constants import PASSWORD_MASK
 from superset.daos.database import DatabaseDAO
 from superset.databases.utils import make_url_safe
-from superset.exceptions import OAuth2RedirectError
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import get_username
@@ -202,7 +203,9 @@ class UpdateDatabaseCommand(BaseCommand):
             return
 
         encrypted_extra = json.loads(self._properties["encrypted_extra"])
-        new_config = encrypted_extra.get("oauth2_client_info", {})
+        new_config = self._resolve_oauth2_client_info(
+            encrypted_extra.get("oauth2_client_info", {})
+        )
 
         # Keys that require purging personal tokens because they probably are no longer
         # valid. For example, if the scope has changed the existing tokens are still
@@ -218,6 +221,34 @@ class UpdateDatabaseCommand(BaseCommand):
             if current_config.get(key) != new_config.get(key):
                 self._model.purge_oauth2_tokens()
                 break
+
+    def _resolve_oauth2_client_info(self, client_info: Any) -> dict[str, Any]:
+        """
+        Fill in the values the engine spec derives, as ``get_oauth2_config`` does.
+
+        The current config has the derived values (e.g. Databricks endpoints from
+        the workspace host), so the new one needs them too, otherwise an omitted
+        value would count as a change and purge the tokens on every update. The
+        new connection URI is used, since a new host means new endpoints.
+
+        A malformed (non-dict) value resolves to an empty config, so the caller
+        treats it as a change and purges the tokens instead of crashing.
+        """
+        if not isinstance(client_info, dict):
+            return {}
+        if not self._model or not client_info:
+            return client_info
+
+        database = self._model
+        if sqlalchemy_uri := self._properties.get("sqlalchemy_uri"):
+            database = Database(sqlalchemy_uri=sqlalchemy_uri)
+        try:
+            return database.db_engine_spec.resolve_oauth2_client_info(
+                database,
+                client_info,
+            )
+        except OAuth2Error:
+            return client_info
 
     def _update_catalog_attribute(
         self,
@@ -275,7 +306,10 @@ class UpdateDatabaseCommand(BaseCommand):
         if "sqlalchemy_uri" in self._properties:
             submitted_uri = self._properties["sqlalchemy_uri"] or ""
             connection_identity_changed = uri_identity_changed(
-                model.sqlalchemy_uri, submitted_uri
+                model.sqlalchemy_uri,
+                submitted_uri,
+                model.extra,
+                self._properties.get("extra", model.extra),
             )
             try:
                 submitted_password = make_url_safe(submitted_uri).password
@@ -302,21 +336,18 @@ class UpdateDatabaseCommand(BaseCommand):
                 None,
                 PASSWORD_MASK,
             )
-            # encrypted_extra is a blob with per-field masks, so "reused"
-            # means unmasking the submission against the stored value
-            # changes nothing -- including not submitting it at all, which
-            # leaves the old (real) value attached unchanged.
-            encrypted_extra_reused = model.encrypted_extra not in (
-                None,
-                "",
-                "{}",
-            ) and (
-                "masked_encrypted_extra" not in self._properties
-                or model.db_engine_spec.unmask_encrypted_extra(
-                    model.encrypted_extra,
-                    self._properties["masked_encrypted_extra"],
-                )
-                == model.encrypted_extra
+            # encrypted_extra is a blob with per-field masks, so "reused" is
+            # judged per stored secret: one the submission leaves masked (or
+            # leaves out entirely) rides along. Comparing whole blobs missed a
+            # masked secret whenever any other field changed in the same save,
+            # and refused a move where every secret was re-entered unchanged.
+            encrypted_extra_reused = bool(
+                model.encrypted_extra
+            ) and encrypted_extra_secrets_reused(
+                model.db_engine_spec.encrypted_extra_sensitive_field_paths(),
+                model.encrypted_extra,
+                self._properties.get("masked_encrypted_extra"),
+                submitted="masked_encrypted_extra" in self._properties,
             )
             if uri_password_reused or encrypted_extra_reused:
                 raise DatabaseInvalidError(

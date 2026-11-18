@@ -22,6 +22,7 @@ import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
+import useRunStopButton from 'src/hooks/useRunStopButton';
 
 export type RunQueryButtonProps = {
   loading: boolean;
@@ -43,14 +44,15 @@ export const RunQueryButton = ({
   chartIsStale,
 }: RunQueryButtonProps) => {
   const theme = useTheme();
+  const gestureHandlers = useRunStopButton(loading, loading ? onStop : onQuery);
   return loading ? (
-    <Button onClick={onStop} buttonStyle="danger" disabled={!canStopQuery}>
+    <Button {...gestureHandlers} buttonStyle="danger" disabled={!canStopQuery}>
       <Icons.Square iconSize="xs" iconColor={theme.colorIcon} />
       {t('Stop')}
     </Button>
   ) : (
     <Button
-      onClick={onQuery}
+      {...gestureHandlers}
       buttonStyle={chartIsStale ? 'primary' : 'secondary'}
       disabled={!!errorMessage}
       data-test="run-query-button"

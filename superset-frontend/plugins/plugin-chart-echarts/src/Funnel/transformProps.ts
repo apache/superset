@@ -44,6 +44,7 @@ import {
   getChartPadding,
   getColtypesMapping,
   getLegendProps,
+  getLegendScrollDataIndex,
   sanitizeHtml,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
@@ -101,6 +102,8 @@ export default function transformProps(
     theme,
     emitCrossFilters,
     datasource,
+    legendState,
+    legendIndex,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
   const detectedCurrency = queriesData[0]?.detected_currency;
@@ -125,6 +128,7 @@ export default function transformProps(
     inContextMenu,
     showTooltipLabels,
     showLegend,
+    showSelectorLegend,
     sliceId,
     percentCalculationType,
   }: EchartsFunnelFormData = {
@@ -155,7 +159,12 @@ export default function transformProps(
     };
   }, {});
 
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const {
+    setDataMask = () => {},
+    onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getValueFormatter(
     metric,
@@ -262,6 +271,7 @@ export default function transformProps(
     legendMargin: resolvedLegendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -327,7 +337,11 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
+        false,
+        legendState,
       ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     series,
@@ -344,6 +358,8 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
     refs,
     coltypeMapping,
   };

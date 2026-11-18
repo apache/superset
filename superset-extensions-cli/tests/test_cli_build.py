@@ -335,7 +335,9 @@ def test_init_frontend_deps_runs_npm_i_when_missing(
 
     # Should validate npm and run npm ci
     mock_validate_npm.assert_called_once()
-    mock_run.assert_called_once_with(["npm", "i"], cwd=frontend_dir, text=True)
+    mock_run.assert_called_once_with(
+        ["npm", "i", "--legacy-peer-deps"], cwd=frontend_dir, text=True
+    )
 
 
 @pytest.mark.unit

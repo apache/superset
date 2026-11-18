@@ -82,14 +82,23 @@ class SupersetMetastoreCache(BaseCache):
         # pylint: disable=import-outside-toplevel
         from superset.daos.key_value import KeyValueDAO
 
-        KeyValueDAO.upsert_entry(
-            resource=RESOURCE,
-            key=self.get_key(key),
-            value=value,
-            codec=self.codec,
-            expires_on=self._get_expiry(timeout),
-        )
-        db.session.commit()  # pylint: disable=consider-using-transaction
+        try:
+            KeyValueDAO.upsert_entry(
+                resource=RESOURCE,
+                key=self.get_key(key),
+                value=value,
+                codec=self.codec,
+                expires_on=self._get_expiry(timeout),
+            )
+            db.session.commit()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            # A failed write leaves db.session in "pending rollback" state, so
+            # every later statement in this request would fail on this write
+            # rather than on its own merits. Callers treat a cache write as
+            # best-effort and swallow the error, which would otherwise strand
+            # the session. Repair it, then let the error propagate unchanged.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            raise
         return True
 
     def add(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
@@ -190,7 +199,15 @@ class SupersetMetastoreCache(BaseCache):
         # pylint: disable=import-outside-toplevel
         from superset.daos.key_value import KeyValueDAO
 
-        return KeyValueDAO.get_value(RESOURCE, self.get_key(key), self.codec)
+        try:
+            return KeyValueDAO.get_value(RESOURCE, self.get_key(key), self.codec)
+        except SQLAlchemyError:
+            # Callers treat a cache read failure as a miss and carry on to
+            # query live data -- which is exactly the work that would then fail
+            # on this session rather than on its own merits. Repair it, then
+            # let the error propagate unchanged.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            raise
 
     def has(self, key: str) -> bool:
         entry = self.get(key)

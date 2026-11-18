@@ -83,6 +83,20 @@ class DatabaseNotFoundError(CommandException):
     message = _("Database not found.")
 
 
+class OAuth2TokenNotFoundError(CommandException):
+    status = 404
+    message = _("One or more OAuth2 tokens were not found for this database.")
+
+
+class OAuth2TokensDeleteFailedError(DeleteFailedError):
+    message = _("OAuth2 tokens could not be deleted.")
+
+
+class DatabaseSchemaNotFoundError(CommandException):
+    status = 404
+    message = _("Schema not found.")
+
+
 class UserNotFoundInSessionError(CommandException):
     status = 500
     message = _("Could not validate the user in the current session.")

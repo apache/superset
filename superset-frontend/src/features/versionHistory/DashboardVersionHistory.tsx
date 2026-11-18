@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch, useAppSelector } from 'src/views/store';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -141,44 +141,36 @@ export default function DashboardVersionHistory() {
   // "Restored version" entry shows up.
   const restoreCount = useSelector(selectVersionRestoreCount);
   const lastRestoredUuid = useSelector(selectVersionLastRestoredUuid);
-  // Saves made while the panel is open must surface as new timeline
-  // entries without reopening it. Saves bump one of two redux signals
-  // depending on the path: edit-mode saves round-trip through ON_SAVE
-  // (dashboardState.lastModifiedTime), while native-filter and
-  // properties saves bump dashboardInfo.last_modified_time.
-  const saveSignal = useSelector<RootState, string>(state =>
+  // Only successful writes bump these revisions. Timestamps also change for
+  // local metadata edits and may repeat across multiple saves in one second.
+  const saveRevision = useAppSelector(state =>
     [
-      state.dashboardState?.lastModifiedTime ?? '',
-      state.dashboardInfo?.last_modified_time ?? '',
+      state.dashboardState?.versionHistoryRevision ?? 0,
+      state.dashboardInfo?.versionHistoryRevision ?? 0,
     ].join('|'),
   );
+  const lastSaveRevisionRef = useRef(saveRevision);
+  const lastSaveUuidRef = useRef(uuid);
   const lastRestoreCountRef = useRef(restoreCount);
-  const lastSaveSignalRef = useRef(saveSignal);
   const refreshActivity = activity.refresh;
   useEffect(() => {
+    const saved =
+      uuid === lastSaveUuidRef.current &&
+      saveRevision !== lastSaveRevisionRef.current;
+    lastSaveRevisionRef.current = saveRevision;
+    lastSaveUuidRef.current = uuid;
     if (restoreCount !== lastRestoreCountRef.current) {
       lastRestoreCountRef.current = restoreCount;
-      if (lastRestoredUuid !== uuid) {
-        // A restore of some other entity, resolving after navigation. This
-        // dashboard's timeline gained nothing; don't refetch it.
+      if (lastRestoredUuid === uuid) {
+        // The restore refresh covers any simultaneous save signal.
+        refreshActivity();
         return;
       }
-      // The restore refresh covers any save-signal movement caused by
-      // the same change; sync it so it does not refetch again.
-      lastSaveSignalRef.current = saveSignal;
+    }
+    if (saved) {
       refreshActivity();
-      return;
     }
-    if (saveSignal !== lastSaveSignalRef.current) {
-      // A signal appearing where none existed is the page's initial
-      // hydration, not a save.
-      const isInitialHydration = lastSaveSignalRef.current === '|';
-      lastSaveSignalRef.current = saveSignal;
-      if (!isInitialHydration) {
-        refreshActivity();
-      }
-    }
-  }, [lastRestoredUuid, refreshActivity, restoreCount, saveSignal, uuid]);
+  }, [lastRestoredUuid, refreshActivity, restoreCount, saveRevision, uuid]);
 
   const handleClose = useCallback(() => {
     dispatch(closeVersionHistoryPanel());

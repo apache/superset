@@ -21,13 +21,19 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Literal
+from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.common.cache_schemas import CacheStatus
 from superset.mcp_service.common.error_schemas import MCPBaseError
 from superset.mcp_service.common.time_range_validation import validate_time_range
+from superset.mcp_service.utils.serialization import (
+    JsonSafeRows,
+    OptionalRowCount,
+    RowCount,
+)
 
 # ---------------------------------------------------------------------------
 # Shared error schema
@@ -42,6 +48,42 @@ class SemanticLayerError(MCPBaseError):
     @classmethod
     def create(cls, *, error: str, error_type: str) -> "SemanticLayerError":
         return cls(error=error, error_type=error_type)
+
+
+class ListSemanticViewsRequest(BaseModel):
+    """Search stored semantic sources without loading provider metadata."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    search: str | None = Field(default=None, max_length=200)
+    page: int = Field(default=1, ge=1, strict=True)
+    page_size: int = Field(default=25, ge=1, le=100, strict=True)
+
+
+class SemanticViewSource(BaseModel):
+    """Workspace-local semantic view identity."""
+
+    type: Literal["semantic_view"] = "semantic_view"
+    id: int
+
+
+class SemanticViewSummary(BaseModel):
+    """Stored source identity only; not a claim of query readiness."""
+
+    source: SemanticViewSource
+    uuid: UUID
+    name: str
+    provider: str
+
+
+class SemanticViewPage(BaseModel):
+    """Bounded source summaries without members, configuration or total counts."""
+
+    sources: list[SemanticViewSummary]
+    page: int
+    page_size: int
+    has_more: bool
+    next_page: int | None
 
 
 # ---------------------------------------------------------------------------
@@ -81,6 +123,7 @@ class MetricInfo(BaseModel):
     dataset_name: str | None = None
     view_id: int | None = None
     view_name: str | None = None
+    semantic_selection_version: str | None = None
     compatible_dimensions: list[DimensionInfo] = Field(default_factory=list)
 
 
@@ -183,19 +226,25 @@ class GetTableFilter(BaseModel):
 
     @model_validator(mode="after")
     def _validate_temporal_range_val(self) -> "GetTableFilter":
-        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
+        """Validate a filter comparator before it reaches the shared parser.
 
-        This operator resolves through ``get_since_until()`` exactly like the
-        dedicated ``time_range`` field does, so an unparseable value here
-        produces the same silent full-table match.
+        Unlike optional top-level defaults, blank filter values are invalid.
         """
         if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
-            self.val = validate_time_range(self.val)
+            self.val = validate_time_range(self.val, allow_empty=False)
         return self
 
 
 class GetTableRequest(BaseModel):
     """Request schema for get_table."""
+
+    semantic_selection_version: str | None = Field(
+        default=None,
+        description=(
+            "Identity version returned by list_metrics for this view. Supply only "
+            "after explicitly selecting its current member IDs; never infer legacy IDs."
+        ),
+    )
 
     dataset_id: int | None = Field(
         default=None,
@@ -302,9 +351,9 @@ class GetTableResponse(BaseModel):
     """Response schema for get_table."""
 
     columns: list[DataColumn]
-    data: list[dict[str, Any]]
-    row_count: int
-    total_rows: int | None = None
+    data: JsonSafeRows
+    row_count: RowCount
+    total_rows: OptionalRowCount = None
     from_dttm: datetime | None = Field(
         None,
         description=(

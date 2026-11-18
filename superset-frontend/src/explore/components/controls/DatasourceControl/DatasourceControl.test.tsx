@@ -61,7 +61,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  window.location = originalLocation;
+  window.location = originalLocation as string & Location;
 
   try {
     const unmatched = fetchMock.callHistory.calls('unmatched');

@@ -50,6 +50,7 @@ from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
+from superset.utils import json
 from superset.utils.core import get_user_id, time_function
 from superset.views.error_handling import handle_api_exception, json_error_response
 
@@ -189,6 +190,29 @@ def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
         return f(self, *args, **kwargs)
 
     return functools.update_wrapper(wraps, f)
+
+
+def parse_json_form_field(name: str) -> dict[str, Any] | None:
+    """
+    Parse an optional JSON object from a multipart form field.
+
+    :param name: the form field name
+    :returns: the parsed object, or None if the field is absent
+    :raises InvalidPayloadFormatError: if the value is not a valid JSON object
+    """
+    if name not in request.form:
+        return None
+    try:
+        value = json.loads(request.form[name])
+    except json.JSONDecodeError as ex:
+        raise InvalidPayloadFormatError(
+            message=f"Form field '{name}' is not valid JSON"
+        ) from ex
+    if not isinstance(value, dict):
+        raise InvalidPayloadFormatError(
+            message=f"Form field '{name}' must be a JSON object"
+        )
+    return value
 
 
 @overload
@@ -516,6 +540,35 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         if self.add_columns is None and not self.add_model_schema:
             self.add_columns = [model_id]
         super()._init_properties()
+
+    def _get_fields_info(
+        self,
+        cols: list[str],
+        model_schema: Schema,
+        filter_rel_fields: Any,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        """
+        Describe the add/edit fields exposed by the ``_info`` endpoint.
+
+        Overrides :meth:`flask_appbuilder.api.ModelRestApi._get_fields_info`, which
+        indexes the marshmallow schema with every column in ``add_columns`` /
+        ``edit_columns``. APIs that declare an explicit add/edit schema can list
+        columns the schema does not define (for example a legacy alias handled by a
+        ``pre_load`` hook), and the lookup then fails the whole ``_info`` request with
+        a 500 whenever it is called without a ``keys`` filter. Columns without a
+        schema field cannot be described, so they are skipped.
+
+        :param cols: columns to describe
+        :param model_schema: marshmallow schema used to build the field details
+        :param filter_rel_fields: ``add_query_rel_fields`` or ``edit_query_rel_fields``
+        :param kwargs: rison arguments for related-field pagination
+        :returns: field details for the columns defined by the schema
+        """
+        schema_cols = [col for col in cols if col in model_schema.fields]
+        return super()._get_fields_info(
+            schema_cols, model_schema, filter_rel_fields, **kwargs
+        )
 
     def _handle_filters_args(self, rison_args: dict[str, Any]) -> Filters:
         """
