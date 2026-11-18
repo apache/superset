@@ -642,27 +642,127 @@ def test_commit_by_hash_reports_missing_blobs_then_commits(
     assert read(store, artifact_id, "src/app.js") == "     1\tchanged\n"
 
 
-def test_commit_by_hash_needs_the_manifest_and_a_current_base(
-    store: ArtifactFileStore,
-) -> None:
+def test_commit_by_hash_needs_the_manifest(store: ArtifactFileStore) -> None:
     artifact_id, version = create(store)
-    newer = str_replace(store, artifact_id, version, "41", "42")
     index = {"index.html": sha256_hex(INDEX.encode())}
 
     with raises(AuthoringErrorCode.INVALID_MANIFEST):
         store.commit_files(
             OWNER,
             ArtifactCommitFilesRequest(
-                artifact_id=artifact_id, base_version=newer, files=index
-            ),
-        )
-    with raises(AuthoringErrorCode.STALE_BASE_VERSION):
-        store.commit_files(
-            OWNER,
-            ArtifactCommitFilesRequest(
                 artifact_id=artifact_id, base_version=version, files=index
             ),
         )
+
+
+def write_index(
+    store: ArtifactFileStore, artifact_id: str, version: str, title: str
+) -> str:
+    return store.str_replace(
+        OWNER,
+        ArtifactStrReplaceRequest(
+            artifact_id=artifact_id,
+            base_version=version,
+            path="index.html",
+            old_str="Hello",
+            new_str=title,
+        ),
+    ).version
+
+
+def test_a_write_from_an_older_base_is_rebased_when_its_files_didnt_change(
+    store: ArtifactFileStore,
+) -> None:
+    """Two agents edit different files from one version: both edits land."""
+    artifact_id, base = create(store)
+    first = str_replace(store, artifact_id, base, "41", "42")
+
+    second = write_index(store, artifact_id, base, "Revenue")
+
+    assert second not in (base, first)
+    assert store.draft_version(OWNER, artifact_id) == second
+    assert "const answer = 42;" in read(store, artifact_id, "src/app.js")
+    assert "<h1>Revenue</h1>" in read(store, artifact_id, "index.html")
+    history = store.history(OWNER, ArtifactHistoryRequest(artifact_id=artifact_id))
+    assert history.versions == (second, first, base)
+
+
+def test_a_write_from_an_older_base_fails_when_its_file_changed(
+    store: ArtifactFileStore,
+) -> None:
+    artifact_id, base = create(store)
+    first = write_index(store, artifact_id, base, "Revenue")
+
+    with raises(AuthoringErrorCode.STALE_BASE_VERSION) as stale:
+        write_index(store, artifact_id, base, "Costs")
+
+    assert stale.value.current_version == first
+    assert "<h1>Revenue</h1>" in read(store, artifact_id, "index.html")
+
+
+def test_a_base_the_draft_never_held_is_stale(store: ArtifactFileStore) -> None:
+    artifact_id, base = create(store)
+    _, other = create(store, **{"index.html": "other"})
+
+    with raises(AuthoringErrorCode.STALE_BASE_VERSION) as stale:
+        write_index(store, artifact_id, other, "Revenue")
+
+    assert stale.value.current_version == base
+
+
+def test_a_rebase_that_would_make_a_file_a_directory_fails(
+    store: ArtifactFileStore,
+) -> None:
+    """Disjoint paths still clash when one is a file and the other inside it."""
+    artifact_id, base = create(store)
+    store.create_file(
+        OWNER,
+        ArtifactCreateFileRequest(
+            artifact_id=artifact_id, base_version=base, path="lib", file_text="x"
+        ),
+    )
+
+    with raises(AuthoringErrorCode.STALE_BASE_VERSION):
+        store.create_file(
+            OWNER,
+            ArtifactCreateFileRequest(
+                artifact_id=artifact_id,
+                base_version=base,
+                path="lib/util.js",
+                file_text="y",
+            ),
+        )
+
+
+def test_a_commit_by_hash_from_an_older_base_keeps_the_newer_files(
+    store: ArtifactFileStore, backend: InMemoryArtifactStore
+) -> None:
+    """A path the agent's folder never had is another writer's, not a delete."""
+    artifact_id, base = create(store)
+    added = store.create_file(
+        OWNER,
+        ArtifactCreateFileRequest(
+            artifact_id=artifact_id,
+            base_version=base,
+            path="src/chart.js",
+            file_text="draw();\n",
+        ),
+    ).version
+    tree = backend.get_tree(base)
+    assert tree is not None
+    files = {**tree, "src/app.js": sha256_hex(b"const answer = 43;\n")}
+    backend.put_blob(b"const answer = 43;\n")
+
+    committed = store.commit_files(
+        OWNER,
+        ArtifactCommitFilesRequest(
+            artifact_id=artifact_id, base_version=base, files=files
+        ),
+    )
+
+    assert committed.version not in (base, added)
+    assert read(store, artifact_id, "src/chart.js").endswith("draw();\n")
+    assert "43" in read(store, artifact_id, "src/app.js")
 
 
 def test_uploads_are_for_owners_and_capped(store: ArtifactFileStore) -> None:

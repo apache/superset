@@ -97,7 +97,8 @@ def _writes(
 ) -> ToolAnnotations:
     """
     A write's annotations. A write that names ``base_version`` is idempotent:
-    repeated, it finds the draft moved on and changes nothing.
+    repeated, it finds its own files changed since its base, and changes
+    nothing.
     """
     return ToolAnnotations(
         title=title,

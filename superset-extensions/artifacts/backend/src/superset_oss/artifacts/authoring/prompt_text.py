@@ -95,9 +95,10 @@ An artifact is a tree of files. `manifest.json` is required; the entrypoint is
 `index.html` unless the manifest's `entrypoint` names another file.
 
 Every write names `base_version`: the version you last read, which every
-answer returns. When a write answers STALE_BASE_VERSION, read the file again,
-then redo the edit from the new version. Nothing you write is visible to
-viewers until the user confirms publishing.
+answer returns. A write from an older version still lands when the files it
+changes haven't changed since. When a write answers STALE_BASE_VERSION, one of
+its files changed: read it again, then redo the edit from the new version.
+Nothing you write is visible to viewers until the user confirms publishing.
 
 - {_tool(ARTIFACT_CREATE)}(title, files): start an artifact; returns its
   `artifact_id` and first `version`.

@@ -30,8 +30,9 @@ same command semantics and parameter names, with errors that map onto
 is one they were trained on.
 
 Every write names ``base_version``: the draft version (a tree hash) the agent
-last read. A write against a draft that has moved since fails with
-``STALE_BASE_VERSION`` and changes nothing; a successful write answers with
+last read. A write against a draft that has moved since is rebased onto it
+when none of the files it changes changed in between; otherwise it fails
+with ``STALE_BASE_VERSION`` and changes nothing. A successful write answers with
 the new draft version, for the next write to name.
 
 Paths are relative to the artifact's root and are normalized on input
@@ -113,7 +114,9 @@ def _normalized_paths(files: Mapping[str, _V]) -> dict[str, _V]:
 class AuthoringErrorCode(StrEnum):
     """Why an authoring tool call failed."""
 
-    # The draft has moved since ``base_version``: read it again, then retry.
+    # The draft has moved since ``base_version`` and changed a file this write
+    # changes, or ``base_version`` was never the draft: read it again, then
+    # retry.
     STALE_BASE_VERSION = "STALE_BASE_VERSION"
     # No artifact with this id that the caller may use. A missing artifact and
     # one the caller can't access answer the same, so that an id doesn't

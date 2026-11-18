@@ -20,31 +20,28 @@ The artifact file store: a git-shaped virtual file system.
 It runs over any ``ArtifactStoreBackend``. Agents edit with the primitives of
 Anthropic's text-editor and memory tools, which models already know; every
 write names the draft version it starts from and moves the draft by
-compare-and-swap, so a stale write fails and changes nothing; and publishing
-waits for the user's confirmation.
+compare-and-swap; and publishing waits for the user's confirmation.
+
+A write whose base is no longer the draft is rebased when it can be: when the
+files it changes and the files changed since its base don't overlap, its
+changes apply to the current draft. Otherwise it fails with
+``STALE_BASE_VERSION`` and changes nothing.
 
 What it keeps in the backend, for each artifact:
 
 - ``draft``: the current draft's tree, and the authoritative version. Writes
-  move it by compare-and-swap from the ``base_version`` they name.
+  move it by compare-and-swap.
 - ``published``: the published tree. Only ``confirm_publish`` moves it.
-- ``_log/<ref>/<n>``: the n-th version ``<ref>`` pointed to, counting from 1.
-  Each slot is created once by compare-and-swap, so concurrent appends never
-  overwrite each other.
-- ``_seen/<ref>/<version>``: set once ``<ref>`` has pointed to ``<version>``,
-  so checking that a version belongs to this artifact takes one read.
 - ``_meta`` and ``_publish``: one-file trees holding the artifact's record
   (its owners) and its latest publish request.
+
+The backend keeps each ref's history with it, moved in the same atomic step,
+so the versions a ref has pointed to are the backend's to answer.
 
 The module is pure Python, without Flask or Superset: callers pass the acting
 user as ``actor`` and decide who that is.
 """
 
-# TODO: a ref move and its history entry are two steps. A crash between them
-# drops the entry, and the version then can't be restored (which fails
-# closed); two writers that finish out of order can record adjacent entries in
-# swapped order. Neither affects the draft itself. A ref log in the backend
-# protocol, which the SDK's store contract lacks, closes both.
 # TODO: owners stand in for the editors and viewers that each artifact gets
 # once it is a persisted widget.
 # TODO: per-artifact quotas; MAX_FILE_BYTES and MAX_FILES are flat caps.
@@ -122,7 +119,6 @@ _PUBLISH_REF = "_publish"
 _RECORD_FILE = "record.json"
 # How often a compare-and-swap loop retries under contention before giving up.
 _CAS_ATTEMPTS = 16
-_LOG_APPEND_ATTEMPTS = 10_000
 
 _T = TypeVar("_T")
 
@@ -319,12 +315,33 @@ def _manifest_text(manifest: ArtifactManifest) -> str:
     return manifest.model_dump_json(indent=2, exclude_none=True) + "\n"
 
 
-def _log_ref(ref: str, index: int) -> str:
-    return f"_log/{ref}/{index}"
+def _changed_paths(before: Mapping[str, str], after: Mapping[str, str]) -> set[str]:
+    """The paths whose file was added, removed or changed from ``before``."""
+    return {
+        path
+        for path in before.keys() | after.keys()
+        if before.get(path) != after.get(path)
+    }
 
 
-def _seen_ref(ref: str, version: str) -> str:
-    return f"_seen/{ref}/{version}"
+def _rebased(
+    base: Mapping[str, str], mine: Mapping[str, str], current: Mapping[str, str]
+) -> dict[str, str] | None:
+    """
+    ``mine``'s changes from ``base``, applied to ``current``; ``None`` when a
+    file changed on both sides, or when the result isn't a valid tree.
+    """
+    changed = _changed_paths(base, mine)
+    if changed & _changed_paths(base, current):
+        return None
+    rebased = {path: blob for path, blob in current.items() if path not in changed}
+    rebased.update({path: mine[path] for path in changed if path in mine})
+    try:
+        validate_tree(rebased)
+    except InvalidPathError:
+        # Disjoint paths can still clash, as a file and a directory.
+        return None
+    return rebased
 
 
 def _publish_record(publish: PublishRequest) -> dict[str, Any]:
@@ -416,7 +433,6 @@ class ArtifactFileStore:
             raise RuntimeError(f"artifact id {artifact_id} is taken")
         if not self._backend.compare_and_set_ref(artifact_id, DRAFT_REF, None, version):
             raise RuntimeError(f"artifact {artifact_id} has a draft already")
-        self._record_move(artifact_id, DRAFT_REF, version)
         return ArtifactCreateResponse(artifact_id=artifact_id, version=version)
 
     def view(self, actor: str, request: ArtifactViewRequest) -> FileView:
@@ -609,16 +625,18 @@ class ArtifactFileStore:
     def history(self, actor: str, request: ArtifactHistoryRequest) -> HistoryPage:
         """A page of the versions ``request.ref`` has pointed to, newest first."""
         artifact_id = self._authorize(actor, request.artifact_id)
-        total = self._log_length(artifact_id, request.ref)
-        pages = max(1, math.ceil(total / HISTORY_PAGE_SIZE))
-        number = _page_number(request.page, pages)
-        newest = total - (number - 1) * HISTORY_PAGE_SIZE
-        oldest = max(1, newest - HISTORY_PAGE_SIZE + 1)
-        versions = tuple(
-            self._log_entry(artifact_id, request.ref, index)
-            for index in range(newest, oldest - 1, -1)
+        number = request.page or 1
+        history = self._backend.ref_history(
+            artifact_id,
+            request.ref,
+            offset=(number - 1) * HISTORY_PAGE_SIZE,
+            limit=HISTORY_PAGE_SIZE,
         )
-        return HistoryPage(ref=request.ref, versions=versions, page=number, pages=pages)
+        pages = max(1, math.ceil(history.total / HISTORY_PAGE_SIZE))
+        _page_number(number, pages)
+        return HistoryPage(
+            ref=request.ref, versions=history.versions, page=number, pages=pages
+        )
 
     def restore(
         self, actor: str, request: ArtifactRestoreRequest
@@ -702,9 +720,13 @@ class ArtifactFileStore:
         Ask the user to publish the current draft, ``request.base_version``.
 
         Nothing is published here: the request waits until the user confirms it
-        (``confirm_publish``) or it expires. A newer request replaces it.
+        (``confirm_publish``) or it expires. A newer request replaces it. It is
+        never rebased: the user confirms exactly the version the agent saw.
         """
-        artifact_id, _ = self._begin_write(actor, request)
+        artifact_id = self._authorize(actor, request.artifact_id)
+        current = self._draft_version(artifact_id)
+        if current != request.base_version:
+            raise self._stale(current)
         now = self._now()
         publish = PublishRequest(
             request_id=self._new_id(),
@@ -805,7 +827,7 @@ class ArtifactFileStore:
     ) -> bool:
         """Whether ``ref`` has pointed to ``version``: whether it is this artifact's."""
         canonical = self.canonical_id(artifact_id)
-        return self._backend.get_ref(canonical, _seen_ref(ref, version)) is not None
+        return self._backend.ref_has_held(canonical, ref, version)
 
     def resolve_version(
         self, actor: str, artifact_id: str, version: str | None
@@ -844,12 +866,18 @@ class ArtifactFileStore:
     def _begin_write(
         self, actor: str, request: ArtifactWriteRequest
     ) -> tuple[str, dict[str, str]]:
-        """The canonical id and the draft's tree, if ``base_version`` is current."""
+        """
+        The canonical id and the tree of ``base_version``, which the write
+        starts from: the draft, or a version it held earlier, which the write
+        is then rebased from (see ``_commit``).
+        """
         artifact_id = self._authorize(actor, request.artifact_id)
-        current, tree = self._draft(artifact_id)
-        if current != request.base_version:
+        current = self._draft_version(artifact_id)
+        if current != request.base_version and not self._backend.ref_has_held(
+            artifact_id, DRAFT_REF, request.base_version
+        ):
             raise self._stale(current)
-        return artifact_id, tree
+        return artifact_id, self._tree(request.base_version)
 
     def _commit(
         self,
@@ -858,20 +886,31 @@ class ArtifactFileStore:
         base_tree: Mapping[str, str],
         new_tree: dict[str, str],
     ) -> ArtifactWriteResponse:
-        """Store ``new_tree`` and move the draft to it from ``base_version``."""
-        self._check_file_count(new_tree)
-        self._check_manifest(base_tree, new_tree)
-        version = self._put_tree(new_tree)
-        # Compare-and-swap even when nothing changed: an unchanged write still
-        # fails when the draft has moved on from base_version meanwhile.
-        if not self._backend.compare_and_set_ref(
-            artifact_id, DRAFT_REF, base_version, version
-        ):
-            current = self._backend.get_ref(artifact_id, DRAFT_REF)
-            raise self._stale(current)
-        if version != base_version:
-            self._record_move(artifact_id, DRAFT_REF, version)
-        return ArtifactWriteResponse(version=version)
+        """
+        Store ``new_tree`` and move the draft to it.
+
+        When the draft has moved on from ``base_version``, the write's changes
+        apply to the draft instead, as long as none of the files it changes
+        changed meanwhile; otherwise it fails with ``STALE_BASE_VERSION``.
+        """
+        for _attempt in range(_CAS_ATTEMPTS):
+            current = self._draft_version(artifact_id)
+            if current == base_version:
+                current_tree, target = base_tree, new_tree
+            else:
+                current_tree = self._tree(current)
+                rebased = _rebased(base_tree, new_tree, current_tree)
+                if rebased is None:
+                    raise self._stale(current)
+                target = rebased
+            self._check_file_count(target)
+            self._check_manifest(current_tree, target)
+            version = self._put_tree(target)
+            if self._backend.compare_and_set_ref(
+                artifact_id, DRAFT_REF, current, version
+            ):
+                return ArtifactWriteResponse(version=version)
+        raise self._stale(self._draft_version(artifact_id))
 
     def _put_tree(self, tree: Mapping[str, str]) -> str:
         try:
@@ -923,10 +962,14 @@ class ArtifactFileStore:
             raise self._manifest_required("left out")
         return self._parse_manifest(self._blob(manifest_hash))
 
-    def _draft(self, artifact_id: str) -> tuple[str, dict[str, str]]:
+    def _draft_version(self, artifact_id: str) -> str:
         version = self._backend.get_ref(artifact_id, DRAFT_REF)
         if version is None:
             raise self._not_found(artifact_id)
+        return version
+
+    def _draft(self, artifact_id: str) -> tuple[str, dict[str, str]]:
+        version = self._draft_version(artifact_id)
         return version, self._tree(version)
 
     def _tree(self, version: str) -> dict[str, str]:
@@ -1007,54 +1050,8 @@ class ArtifactFileStore:
             if current == version:
                 return False
             if self._backend.compare_and_set_ref(artifact_id, ref, current, version):
-                self._record_move(artifact_id, ref, version)
                 return True
         raise RuntimeError(f"{ref} of {artifact_id} kept moving")
-
-    def _record_move(self, artifact_id: str, ref: str, version: str) -> None:
-        """Record that ``ref`` points at ``version``: its history and membership."""
-        # Already set when the ref pointed here before, as after a restore.
-        self._backend.compare_and_set_ref(
-            artifact_id, _seen_ref(ref, version), None, version
-        )
-        index = self._log_length(artifact_id, ref) + 1
-        for _attempt in range(_LOG_APPEND_ATTEMPTS):
-            if self._backend.compare_and_set_ref(
-                artifact_id, _log_ref(ref, index), None, version
-            ):
-                return
-            index += 1
-        raise RuntimeError(f"could not append to the history of {ref}")
-
-    def _log_length(self, artifact_id: str, ref: str) -> int:
-        """
-        How many entries ``ref``'s history has.
-
-        Appends take the first free slot, so the filled slots are always 1 to
-        n: gallop to a free slot, then bisect, in O(log n) reads.
-        """
-
-        def filled(index: int) -> bool:
-            return self._backend.get_ref(artifact_id, _log_ref(ref, index)) is not None
-
-        if not filled(1):
-            return 0
-        low, high = 1, 2
-        while filled(high):
-            low, high = high, high * 2
-        while high - low > 1:
-            middle = (low + high) // 2
-            if filled(middle):
-                low = middle
-            else:
-                high = middle
-        return low
-
-    def _log_entry(self, artifact_id: str, ref: str, index: int) -> str:
-        version = self._backend.get_ref(artifact_id, _log_ref(ref, index))
-        if version is None:
-            raise RuntimeError(f"history entry {index} of {ref} is missing")
-        return version
 
     def _stale(self, current: str | None) -> ArtifactError:
         return ArtifactError(

@@ -69,7 +69,8 @@ cd browser && npm test
 - Capabilities are checked on both sides of the bridge; the host's check is
   the authoritative one.
 - Every write names the version it starts from, and refs move only by
-  compare-and-swap, so a stale write never wins.
+  compare-and-swap, together with their history, so a stale write never wins
+  and no move goes unrecorded.
 - Publishing moves the `published` ref only after the user confirms.
 - Dependencies are exact versions, never ranges, tags, URLs or git specs.
 

@@ -100,6 +100,7 @@ from superset_artifacts_sdk.store import (
     MissingObjectsError as MissingObjectsError,
     normalize_path as normalize_path,
     PUBLISHED_REF as PUBLISHED_REF,
+    RefHistory as RefHistory,
     sha256_hex as sha256_hex,
     tree_hash as tree_hash,
     validate_tree as validate_tree,

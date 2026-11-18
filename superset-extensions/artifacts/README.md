@@ -74,8 +74,10 @@ Superset.
 
 - **Authoring.** An agent reads `create_artifact`, then writes files with the
   tools. Every write names `base_version` and moves the `draft` ref by
-  compare-and-swap, so a stale write fails with `STALE_BASE_VERSION` and
-  changes nothing. `manifest.json` is required and validated on every write.
+  compare-and-swap. A write from an older version is rebased onto the draft
+  when none of its files changed since; otherwise it fails with
+  `STALE_BASE_VERSION` and changes nothing. `manifest.json` is required and
+  validated on every write.
 - **Publishing.** `artifact_request_publish` only records a request and answers
   `CONFIRMATION_REQUIRED`. The `published` ref moves when an owner confirms it
   from the canvas, under their own browser session
@@ -188,10 +190,9 @@ def MCP_CODE_ARTIFACTS_ENABLED() -> bool:
 - Superset's default CSP (`default-src 'self'`, no `frame-src`) blocks the
   sandbox frame until the operator allows the provider's sandbox site in
   `frame-src` (see "Host pages' CSP" below).
-- The default store backend refuses to run: extension storage has no
-  compare-and-swap write, its REST API exposes an extension's shared rows, and
-  its context isn't set while requests run. A provider must supply the store
-  backend.
+- The default store backend refuses to run: extension storage's REST API
+  exposes an extension's shared rows, and its context isn't set while requests
+  run. A provider must supply the store backend.
 - Artifact access is "owners" only, recorded by the store at creation. Other
   users see an artifact through a canvas placement they can read, and only its
   published versions. Artifacts as persisted widgets with editors and viewers
@@ -199,8 +200,9 @@ def MCP_CODE_ARTIFACTS_ENABLED() -> bool:
   author may read the artifact it names.
 - Only dataset sources map, metrics are saved metrics by name, filters are
   simple filters, and `query` can't send new parameter values yet.
-- History is a log written after each draft move: a crash between the two
-  drops one entry, and that version can't be restored.
+- On the default backend, checking that a version is one of a ref's checks
+  its record, then each of its older history chunks: a long history makes an
+  old version slower to find.
 - Blobs are shared by every artifact in a store backend's scope, which the
   host sets (one tenant, say), so `artifact_commit_files` reveals whether
   given content exists in that scope. On the default backend, the scope is

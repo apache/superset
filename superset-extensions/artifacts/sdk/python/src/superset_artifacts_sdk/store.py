@@ -25,7 +25,10 @@ An artifact is a tree of files with versions, shaped like git:
   under the SHA-256 of its canonical JSON (``tree_hash``), so a version's id is
   its tree hash;
 - the ``draft`` and ``published`` **refs** point to trees, and move only by
-  compare-and-swap: a write that names a stale version never wins.
+  compare-and-swap: a write that names a stale version never wins;
+- each ref has a **history**, the versions it has pointed to, which moves
+  with the ref in the same atomic step, so a crash never leaves a move
+  unrecorded.
 
 This module holds the pure helpers every backend shares and the backend
 protocol. ``superset_artifacts_sdk.testing`` has an in-memory backend.
@@ -38,6 +41,7 @@ import json  # noqa: TID251 -- SDK cannot depend on the host JSON utility.
 import re
 import unicodedata
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 DRAFT_REF = "draft"
@@ -56,8 +60,8 @@ SHA256_HEX_PATTERN = r"^[0-9a-f]{64}$"
 # leading ``_``; each later segment starts with a lowercase letter or digit, so
 # a version hash can be one. Segments hold lowercase letters, digits, ``_`` and
 # ``-`` only, so ``.``, ``..`` and empty segments can't occur. A leading ``_``
-# marks a ref that the store's user keeps for its own records, such as an
-# artifact's owners or its history, rather than a version that frames load.
+# marks a ref that the store's user keeps for its own records, such as a
+# pending publish request, rather than a version that frames load.
 MAX_REF_NAME_LENGTH = 200
 REF_NAME_PATTERN = (
     rf"^(?=.{{1,{MAX_REF_NAME_LENGTH}}}$)_?[a-z][a-z0-9_-]*(?:/[a-z0-9][a-z0-9_-]*)*$"
@@ -71,6 +75,15 @@ _CONTROL_CHARACTERS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 class InvalidPathError(ValueError):
     """A file path that isn't a safe, relative path in an artifact's tree."""
+
+
+@dataclass(frozen=True)
+class RefHistory:
+    """One page of the versions a ref has pointed to, newest first."""
+
+    versions: tuple[str, ...]
+    # How many versions the history holds in all, across every page.
+    total: int
 
 
 class MissingObjectsError(LookupError):
@@ -200,8 +213,6 @@ class ArtifactStoreBackend(Protocol):
     backend instead (``ArtifactStoreSource.store_backend``).
     """
 
-    # TODO: history and restore need each ref's past positions (a ref log, or
-    # commit objects with parents); this protocol has no way to read them.
     # TODO: deletion (retention, GDPR erasure).
     # TODO: per-resource quotas.
 
@@ -257,12 +268,32 @@ class ArtifactStoreBackend(Protocol):
         self, artifact_id: str, ref: str, expected: str | None, new: str
     ) -> bool:
         """
-        Point ``ref`` at ``new`` if it points at ``expected``; return whether it moved.
+        Point ``ref`` at ``new`` if it points at ``expected``; return whether it did.
 
         ``expected=None`` means the ref must not exist yet, so the first write
-        creates it. The check and the move are one atomic step: of two writers
-        that read the same version, only one moves the ref. ``new`` must be a
-        stored tree, otherwise this raises ``MissingObjectsError``. A ref name
-        that ``is_ref_name`` refuses raises ``ValueError``.
+        creates it. The check, the move and the new entry in the ref's history
+        are one atomic step: of two writers that read the same version, only
+        one moves the ref, and no move is ever missing from the history. When
+        ``new`` is ``expected``, the ref and its history stay as they are and
+        the answer is ``True``. ``new`` must be a stored tree, otherwise this
+        raises ``MissingObjectsError``. A ref name that ``is_ref_name``
+        refuses raises ``ValueError``.
         """
+        ...
+
+    def ref_history(
+        self, artifact_id: str, ref: str, *, offset: int = 0, limit: int = 100
+    ) -> RefHistory:
+        """
+        The versions ``ref`` has pointed to, newest first: ``limit`` of them,
+        after skipping the ``offset`` newest.
+
+        The current version is the newest entry. A version appears again each
+        time the ref moves back to it, as after a restore. An unset ref has an
+        empty history.
+        """
+        ...
+
+    def ref_has_held(self, artifact_id: str, ref: str, version: str) -> bool:
+        """Whether ``ref`` has ever pointed to ``version``: is it in its history?"""
         ...

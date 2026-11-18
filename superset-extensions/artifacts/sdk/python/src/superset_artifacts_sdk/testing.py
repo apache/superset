@@ -41,6 +41,7 @@ from superset_artifacts_sdk.store import (
     is_sha256_hex,
     MissingObjectsError,
     PUBLISHED_REF,
+    RefHistory,
     sha256_hex,
     tree_hash,
     validate_tree,
@@ -74,6 +75,9 @@ class InMemoryArtifactStore:
         self._blobs: dict[str, bytes] = {}
         self._trees: dict[str, dict[str, str]] = {}
         self._refs: dict[tuple[str, str], str] = {}
+        # Each ref's history, oldest first, and the versions in it.
+        self._history: dict[tuple[str, str], list[str]] = {}
+        self._held: dict[tuple[str, str], set[str]] = {}
 
     def put_blob(self, data: bytes) -> str:
         if not isinstance(data, (bytes, bytearray, memoryview)):
@@ -127,13 +131,35 @@ class InMemoryArtifactStore:
         _require_hash(new)
         if expected is not None:
             _require_hash(expected)
+        key = (artifact_id, ref)
         with self._lock:
             if new not in self._trees:
                 raise MissingObjectsError([new])
-            if self._refs.get((artifact_id, ref)) != expected:
+            if self._refs.get(key) != expected:
                 return False
-            self._refs[(artifact_id, ref)] = new
+            if new != expected:
+                self._refs[key] = new
+                self._history.setdefault(key, []).append(new)
+                self._held.setdefault(key, set()).add(new)
             return True
+
+    def ref_history(
+        self, artifact_id: str, ref: str, *, offset: int = 0, limit: int = 100
+    ) -> RefHistory:
+        _require_ref_name(ref)
+        with self._lock:
+            history = self._history.get((artifact_id, ref), [])
+            newest_first = history[::-1]
+            return RefHistory(
+                versions=tuple(newest_first[offset : offset + limit]),
+                total=len(history),
+            )
+
+    def ref_has_held(self, artifact_id: str, ref: str, version: str) -> bool:
+        _require_ref_name(ref)
+        _require_hash(version)
+        with self._lock:
+            return version in self._held.get((artifact_id, ref), set())
 
 
 @dataclass
@@ -166,11 +192,12 @@ class ArtifactStoreBackendConformance:
     ``other_artifact_id``.
 
     The checks cover what the protocol promises: content addressing, trees
-    that need their blobs and refs that move only by compare-and-swap, under
-    concurrent writers too. Scoping, such as keeping one tenant's objects
-    from another's, is the host's to test, and what a backend does with
-    malformed input beyond that is its own. For assertion details on failure,
-    load this module as a pytest plugin (``-p superset_artifacts_sdk.testing``).
+    that need their blobs, and refs that move only by compare-and-swap,
+    together with their history, under concurrent writers too. Scoping, such
+    as keeping one tenant's objects from another's, is the host's to test, and
+    what a backend does with malformed input beyond that is its own. For
+    assertion details on failure, load this module as a pytest plugin
+    (``-p superset_artifacts_sdk.testing``).
     """
 
     artifact_id = "artifact-1"
@@ -295,8 +322,8 @@ class ArtifactStoreBackendConformance:
         for ref in (
             DRAFT_REF,
             PUBLISHED_REF,
-            "_meta",
-            "_log/draft/0",
+            "_publish",
+            "_records/draft/0",
             "a/" + "b" * 198,
         ):
             assert artifact_store.compare_and_set_ref(
@@ -353,4 +380,115 @@ class ArtifactStoreBackendConformance:
             thread.join()
 
         assert results.count(True) == 1
-        assert artifact_store.get_ref(*ref) in candidates
+        winner = artifact_store.get_ref(*ref)
+        assert winner in candidates
+        assert artifact_store.ref_history(*ref).versions == (winner, base)
+
+    def test_history_records_each_move_newest_first(
+        self, artifact_store: ArtifactStoreBackend
+    ) -> None:
+        ref = (self.artifact_id, DRAFT_REF)
+        assert artifact_store.ref_history(*ref) == RefHistory(versions=(), total=0)
+        versions = [
+            self._commit(artifact_store, {"index.html": f"v{index}".encode()})
+            for index in range(3)
+        ]
+        expected = None
+        for version in versions:
+            assert artifact_store.compare_and_set_ref(*ref, expected, version)
+            expected = version
+
+        history = artifact_store.ref_history(*ref)
+        assert history == RefHistory(versions=tuple(reversed(versions)), total=3)
+
+    def test_a_ref_that_moves_back_appears_again(
+        self, artifact_store: ArtifactStoreBackend
+    ) -> None:
+        """A restore moves the ref back to an earlier version: a new entry."""
+        ref = (self.artifact_id, DRAFT_REF)
+        first = self._commit(artifact_store, {"index.html": b"first"})
+        second = self._commit(artifact_store, {"index.html": b"second"})
+        assert artifact_store.compare_and_set_ref(*ref, None, first)
+        assert artifact_store.compare_and_set_ref(*ref, first, second)
+        assert artifact_store.compare_and_set_ref(*ref, second, first)
+
+        assert artifact_store.ref_history(*ref).versions == (first, second, first)
+
+    def test_a_move_to_the_current_version_records_nothing(
+        self, artifact_store: ArtifactStoreBackend
+    ) -> None:
+        ref = (self.artifact_id, DRAFT_REF)
+        version = self._commit(artifact_store, {"index.html": b"same"})
+        assert artifact_store.compare_and_set_ref(*ref, None, version)
+
+        assert artifact_store.compare_and_set_ref(*ref, version, version)
+        assert artifact_store.ref_history(*ref).total == 1
+
+    def test_a_refused_move_records_nothing(
+        self, artifact_store: ArtifactStoreBackend
+    ) -> None:
+        ref = (self.artifact_id, DRAFT_REF)
+        base = self._commit(artifact_store, {"index.html": b"base"})
+        other = self._commit(artifact_store, {"index.html": b"other"})
+        assert artifact_store.compare_and_set_ref(*ref, None, base)
+
+        assert not artifact_store.compare_and_set_ref(*ref, other, other)
+        assert not artifact_store.compare_and_set_ref(*ref, None, other)
+        assert artifact_store.ref_history(*ref).versions == (base,)
+        assert not artifact_store.ref_has_held(*ref, other)
+
+    def test_history_pages_by_offset_and_limit(
+        self, artifact_store: ArtifactStoreBackend
+    ) -> None:
+        ref = (self.artifact_id, DRAFT_REF)
+        versions = [
+            self._commit(artifact_store, {"index.html": f"v{index}".encode()})
+            for index in range(5)
+        ]
+        expected = None
+        for version in versions:
+            assert artifact_store.compare_and_set_ref(*ref, expected, version)
+            expected = version
+        newest_first = tuple(reversed(versions))
+
+        assert artifact_store.ref_history(*ref, offset=0, limit=2) == RefHistory(
+            versions=newest_first[:2], total=5
+        )
+        assert (
+            artifact_store.ref_history(*ref, offset=2, limit=2).versions
+            == (newest_first[2:4])
+        )
+        assert (
+            artifact_store.ref_history(*ref, offset=4, limit=2).versions
+            == (newest_first[4:])
+        )
+        assert artifact_store.ref_history(*ref, offset=5, limit=2).versions == ()
+
+    def test_ref_has_held_every_version_in_its_history(
+        self, artifact_store: ArtifactStoreBackend
+    ) -> None:
+        ref = (self.artifact_id, DRAFT_REF)
+        first = self._commit(artifact_store, {"index.html": b"first"})
+        second = self._commit(artifact_store, {"index.html": b"second"})
+        never = self._commit(artifact_store, {"index.html": b"never"})
+        assert artifact_store.compare_and_set_ref(*ref, None, first)
+        assert artifact_store.compare_and_set_ref(*ref, first, second)
+
+        assert artifact_store.ref_has_held(*ref, first)
+        assert artifact_store.ref_has_held(*ref, second)
+        assert not artifact_store.ref_has_held(*ref, never)
+
+    def test_history_is_per_artifact_and_per_ref(
+        self, artifact_store: ArtifactStoreBackend
+    ) -> None:
+        version = self._commit(artifact_store, {"index.html": b"draft"})
+        assert artifact_store.compare_and_set_ref(
+            self.artifact_id, DRAFT_REF, None, version
+        )
+
+        assert artifact_store.ref_history(self.artifact_id, PUBLISHED_REF).total == 0
+        assert artifact_store.ref_history(self.other_artifact_id, DRAFT_REF).total == 0
+        assert not artifact_store.ref_has_held(self.artifact_id, PUBLISHED_REF, version)
+        assert not artifact_store.ref_has_held(
+            self.other_artifact_id, DRAFT_REF, version
+        )

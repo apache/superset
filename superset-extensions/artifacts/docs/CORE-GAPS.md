@@ -41,7 +41,7 @@ branch:
 | [Large props kept out of the canvas read tools](#large-props-kept-out-of-the-canvas-read-tools) | Documented only |
 | [Several named data bindings per widget](#several-named-data-bindings-per-widget) | Implemented here (choosing `bindings[name]`, a binding hook per widget type); the rest documented |
 | [Cross-filtering and data events for extension widgets](#cross-filtering-and-data-events-for-extension-widgets) | Documented only |
-| [Hardened extension storage](#hardened-extension-storage) | Scaffolded (the extension's storage backend) |
+| [Hardened extension storage](#hardened-extension-storage) | Implemented here (compare-and-swap); scaffolded (the extension's storage backend); the rest documented |
 | [A request-time extension context; MCP decorators without MCP](#a-request-time-extension-context-mcp-decorators-without-mcp) | Scaffolded (an import guard) |
 | [Extensions declare the CSP they need](#extensions-declare-the-csp-they-need) | Not a core ask (operators configure `TALISMAN_CONFIG`) |
 | [The "no code artifacts" MCP instruction, conditional](#the-no-code-artifacts-mcp-instruction-conditional) | Implemented here |
@@ -213,26 +213,32 @@ branch:
 
 ## Hardened extension storage
 
-- **Need:** compare-and-swap writes (`superset/extensions/storage/persistent_dao.py`
-  only sets); REST exposure scoped to a resource's rows (the storage REST API
+- **Implemented here:** a generic compare-and-swap write,
+  `compare_and_set(key, expected, value)`, on both persistent accessors
+  (`superset_core.extensions.storage.persistent`) and in
+  `ExtensionStorageDAO` (`superset/extensions/storage/persistent_dao.py`). It
+  compares the decoded value under the extension-wide lock that `set` takes,
+  and commits inside it, so of two writers that read the same value only the
+  first writes; `None` means the key must have no entry. It is validated and
+  counted against the quota as `set` is.
+- **Scaffolded:** `store/extension_storage_backend.py` keeps each ref and its
+  history in one record, moved by one compare-and-swap, and rolls the older
+  history into immutable chunks so that a record stays below the 1 MB value
+  cap. It verifies content against its hash on read, and passes the SDK's
+  backend conformance suite, also with small chunks. It still refuses to run
+  (see the next gap), so the file store answers `NOT_ENABLED` unless the
+  provider supplies a backend.
+- **Need:** REST exposure scoped to a resource's rows (the storage REST API
   serves an extension's shared rows to any caller with the permission,
-  `superset/extensions/storage/api.py`, `?shared=true`); per-resource quotas;
-  resource fields in `PersistentSetOptions`
-  (`superset-core/src/superset_core/extensions/storage/persistent.py`). The
-  context's storage protocol (`ExtensionStorage.persistent` in
-  `superset_core.extensions.context`) also doesn't declare the `shared`
-  accessor the host provides.
-- **Status:** scaffolded. `store/extension_storage_backend.py` implements the
-  store on extension storage, verifies content against its hash on read, and
-  tags refs with the artifact as their resource; it passes the SDK's backend
-  conformance suite against a fake of the storage it needs. It refuses to run
-  unless the storage has an atomic `compare_and_set` (its
-  `AtomicStorageAccessor` is the shape it expects), so the file store answers
-  `NOT_ENABLED` unless the provider supplies a backend. Until the REST
-  exposure is fixed, a direct write could move a ref past the user's
-  confirmation, which is why it must not run.
-- **Next:** add compare-and-swap with resource tags to the DAO and the
-  accessor, scope the REST API, add quotas.
+  `superset/extensions/storage/api.py`, `?shared=true`), so that a direct
+  write can't move a ref past the user's confirmation; per-resource quotas;
+  resource fields on the compare-and-swap write, so that a ref's record can be
+  tagged with its artifact. The context's storage protocol
+  (`ExtensionStorage.persistent` in `superset_core.extensions.context`) also
+  doesn't declare the `shared` accessor the host provides.
+- **Tests:** `tests/unit_tests/extensions/storage/test_persistent_dao.py` and
+  `test_persistent.py` (the compare-and-swap's comparison, its lock and its
+  validation); `backend/tests/test_ext_storage_backend.py`.
 
 ## A request-time extension context; MCP decorators without MCP
 
