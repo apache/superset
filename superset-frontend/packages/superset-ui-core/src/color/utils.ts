@@ -16,8 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import tinycolor from 'tinycolor2';
+import { colord, extend } from 'colord';
+import namesPlugin from 'colord/plugins/names';
 import { type RGBColor } from '@superset-ui/core/components';
+
+// custom color schemes can name colors such as `forestgreen`
+extend([namesPlugin]);
+
+// Accepts any CSS color, and a hex code without `#` as these helpers always did
+const parseColor = (color: string | RGBColor) => {
+  const parsed = colord(color);
+  return parsed.isValid() || typeof color !== 'string'
+    ? parsed
+    : colord(`#${color}`);
+};
 
 const rgbRegex = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/;
 export function getContrastingColor(color: string, thresholds = 186) {
@@ -56,20 +68,21 @@ export function getContrastingColor(color: string, thresholds = 186) {
 
 export function getAnalogousColors(colors: string[], results: number) {
   const generatedColors: string[] = [];
-  const ext = 3;
 
+  // A fan of `results + 3` opaque hues 12° apart, centered on each color, without
+  // its first three
+  const start = -6 * (results + 3);
   const analogousColors = colors.map(color => {
-    // returns an array of tinycolor instances
-    const result = tinycolor(color).analogous(results + ext);
-    // remove the first three colors to avoid the same or very close colors
-    return result.slice(ext);
+    const base = parseColor(color).alpha(1);
+    return Array.from({ length: results }, (_, i) =>
+      base.rotate(start + 12 * (i + 3)).toHex(),
+    );
   });
 
   // [[A, AA, AAA], [B, BB, BBB]] => [A, B, AA, BB, AAA, BBB]
   while (analogousColors[analogousColors.length - 1]?.length) {
     analogousColors.forEach(colors => {
-      const color = colors.shift() as tinycolor.Instance;
-      generatedColors.push(color.toHexString());
+      generatedColors.push(colors.shift() as string);
     });
   }
 

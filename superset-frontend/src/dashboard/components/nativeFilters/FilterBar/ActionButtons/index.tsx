@@ -27,7 +27,7 @@ import {
 } from '@superset-ui/core';
 import { css, SupersetTheme, styled } from '@apache-superset/core/theme';
 import { Button, Tooltip, Icons, Flex } from '@superset-ui/core/components';
-import tinycolor from 'tinycolor2';
+import { colord } from 'colord';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getFilterBarTestId } from '../utils';
 
@@ -57,7 +57,7 @@ const ButtonsContainer = styled.div<{ isVertical: boolean }>`
             padding: ${theme.sizeUnit * 4}px;
             padding-top: ${theme.sizeUnit * 6}px;
             background: linear-gradient(
-              ${tinycolor(theme.colorBgLayout).setAlpha(0).toRgbString()},
+              ${colord(theme.colorBgLayout).alpha(0).toRgbString()},
               ${theme.colorBgContainer} 20%
             );
           `

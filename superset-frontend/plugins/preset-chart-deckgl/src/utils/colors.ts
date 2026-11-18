@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import tinycolor from 'tinycolor2';
+import { colord, extend } from 'colord';
+import namesPlugin from 'colord/plugins/names';
+
+// colors come from user data, which can name a color or leave out the `#` of a hex code
+extend([namesPlugin]);
 
 // eslint-disable-next-line import/prefer-default-export
 export function hexToRGB(
@@ -26,7 +30,9 @@ export function hexToRGB(
   if (!hex) {
     return [0, 0, 0, alpha];
   }
-  const { r, g, b } = tinycolor(hex).toRgb();
+  const value = hex.trim();
+  const color = colord(value);
+  const { r, g, b } = (color.isValid() ? color : colord(`#${value}`)).toRgb();
 
   return [r, g, b, alpha];
 }

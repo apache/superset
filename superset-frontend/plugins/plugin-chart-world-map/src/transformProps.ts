@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import tinycolor from 'tinycolor2';
+import { colord } from 'colord';
 import {
   ChartProps,
   getColumnLabel,
@@ -110,7 +110,7 @@ export default function transformProps(chartProps: ChartProps) {
     maxBubbleSize: parseInt(maxBubbleSize, 10),
     showBubbles,
     linearColorScheme,
-    color: tinycolor({ r, g, b }).toHexString(),
+    color: colord({ r, g, b }).toHex(),
     colorBy,
     colorScheme,
     sliceId,

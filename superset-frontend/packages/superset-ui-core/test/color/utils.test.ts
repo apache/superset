@@ -24,6 +24,7 @@ import {
   rgbToHex,
   rgbaToHex,
   forceHexAlpha,
+  getAnalogousColors,
 } from '@superset-ui/core';
 
 describe('color utils', () => {
@@ -153,6 +154,30 @@ describe('color utils', () => {
     });
     test('expands a shorthand 4-digit hex string before replacing alpha', () => {
       expect(forceHexAlpha('#ff03')).toBe('#ffff0099');
+    });
+  });
+
+  describe('getAnalogousColors', () => {
+    // Expected values come from the previous implementation,
+    // so the generated palettes stay the same
+    test('interleaves the analogous colors of each base color', () => {
+      expect(getAnalogousColors(['#1f77b4', '#ff7f0e'], 3)).toEqual([
+        '#1f77b4',
+        '#ff7f0e',
+        '#1f59b4',
+        '#ffaf0e',
+        '#1f3bb4',
+        '#ffdf0e',
+      ]);
+    });
+
+    test('keeps the hue spread for an odd number of colors', () => {
+      expect(getAnalogousColors(['#e04355'], 4)).toEqual([
+        '#e04365',
+        '#e04345',
+        '#e06043',
+        '#e07f43',
+      ]);
     });
   });
 });
