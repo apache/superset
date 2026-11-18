@@ -36,6 +36,7 @@ import {
 import { cloneDeep } from 'lodash-es';
 import {
   type DataMask,
+  DatasourceType,
   QueryMode,
   TimeGranularity,
   SMART_DATE_ID,
@@ -49,6 +50,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
+import { TableChartFormData } from '../src/types';
 
 const expectValidAriaLabels = (container: HTMLElement) => {
   const allCells = container.querySelectorAll('tbody td');
@@ -76,6 +78,271 @@ const expectValidAriaLabels = (container: HTMLElement) => {
     expect(referencedHeader).toBeTruthy();
   });
 };
+
+test.each(
+  [DatasourceType.Table, DatasourceType.SemanticView].flatMap(datasourceType =>
+    (['sort', 'search', 'filters'] as const).flatMap(change =>
+      [2, 3].map(page => [datasourceType, change, page] as const),
+    ),
+  ),
+)(
+  '%s Table resets paging after a %s change from page %s',
+  async (datasourceType, change, startingPage) => {
+    const records = Array.from({ length: 30 }, (_, index) => ({
+      name: `User ${String(index + 1).padStart(2, '0')}`,
+      sum__num: index + 1,
+    }));
+    const setDataMask = jest.fn();
+    const renderChart = (
+      rows = records,
+      formData: Partial<TableChartFormData> = {},
+    ) => (
+      <ProviderWrapper>
+        <TableChart
+          {...transformProps({
+            ...testData.basic,
+            datasource: { ...testData.basic.datasource, type: datasourceType },
+            rawFormData: {
+              ...testData.basic.rawFormData,
+              datasource: `1__${datasourceType}`,
+              page_length: 10,
+              include_search: true,
+              metrics: ['sum__num'],
+              groupby: ['name'],
+              ...formData,
+            },
+            queriesData: [
+              {
+                ...testData.basic.queriesData[0],
+                colnames: ['name', 'sum__num'],
+                coltypes: [GenericDataType.String, GenericDataType.Numeric],
+                data: rows,
+              },
+            ],
+            hooks: { setDataMask },
+          })}
+          sticky={false}
+        />
+      </ProviderWrapper>
+    );
+    const { container, rerender } = render(renderChart());
+    const goToLaterPage = () => {
+      // jsdom does not measure the pagination bar's sticky height.
+      fireEvent.click(
+        container.querySelector(`button[aria-label="${startingPage}"]`)!,
+      );
+      expect(container.querySelector('li.active button')).toHaveTextContent(
+        String(startingPage),
+      );
+    };
+    const expectFirstPage = async () => {
+      await waitFor(() =>
+        expect(container.querySelector('li.active button')).toHaveTextContent(
+          '1',
+        ),
+      );
+    };
+
+    goToLaterPage();
+    rerender(renderChart(records.map(row => ({ ...row }))));
+    expect(container.querySelector('li.active button')).toHaveTextContent(
+      String(startingPage),
+    );
+    expect(
+      screen.getByText(`User ${startingPage === 2 ? '11' : '21'}`),
+    ).toBeInTheDocument();
+
+    if (change === 'sort') {
+      fireEvent.click(
+        within(container.querySelector('thead')!).getByText('name'),
+      );
+    } else if (change === 'search') {
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: '1' } });
+    } else {
+      rerender(
+        renderChart(records.slice(0, 20), {
+          extra_form_data: {
+            filters: [
+              {
+                col: 'name',
+                op: 'IN',
+                val: records.slice(0, 20).map(row => row.name),
+              },
+            ],
+          },
+        }),
+      );
+    }
+    await expectFirstPage();
+    const firstRow = { sort: 'User 30', search: 'User 10', filters: 'User 01' }[
+      change
+    ];
+    expect(screen.getByText(firstRow)).toBeInTheDocument();
+  },
+);
+
+test.each([
+  [DatasourceType.Table, 'refresh'],
+  [DatasourceType.SemanticView, 'refresh'],
+  [DatasourceType.Table, 'filters'],
+  [DatasourceType.SemanticView, 'filters'],
+] as const)(
+  '%s Table distinguishes same-question refresh from changed filters (%s)',
+  async (datasourceType, change) => {
+    const records = Array.from({ length: 30 }, (_, index) => ({
+      name: `User ${index + 1}`,
+      sum__num: index,
+    }));
+    const setDataMask = jest.fn();
+    const renderChart = (
+      rows = records,
+      extra: Partial<TableChartFormData> = {},
+    ) => (
+      <ProviderWrapper>
+        <TableChart
+          {...transformProps({
+            ...testData.basic,
+            datasource: { ...testData.basic.datasource, type: datasourceType },
+            rawFormData: {
+              ...testData.basic.rawFormData,
+              datasource: `1__${datasourceType}`,
+              page_length: 10,
+              metrics: ['sum__num'],
+              groupby: ['name'],
+              ...extra,
+            },
+            queriesData: [
+              {
+                ...testData.basic.queriesData[0],
+                colnames: ['name', 'sum__num'],
+                coltypes: [GenericDataType.String, GenericDataType.Numeric],
+                data: rows,
+              },
+            ],
+            hooks: { setDataMask },
+          })}
+          sticky={false}
+        />
+      </ProviderWrapper>
+    );
+    const { container, rerender } = render(renderChart());
+    fireEvent.click(container.querySelector('button[aria-label="2"]')!);
+    expect(screen.getByText('User 11')).toBeInTheDocument();
+    const refreshed = records.map(row => ({
+      ...row,
+      sum__num: row.sum__num + 100,
+    }));
+    if (change === 'refresh') {
+      rerender(renderChart(refreshed));
+      expect(container.querySelector('li.active button')).toHaveTextContent(
+        '2',
+      );
+      expect(screen.getByText('User 11')).toBeInTheDocument();
+    } else {
+      rerender(
+        renderChart(records, {
+          extra_form_data: { filters: [{ col: 'name', op: 'IS NOT NULL' }] },
+        }),
+      );
+      await waitFor(() =>
+        expect(container.querySelector('li.active button')).toHaveTextContent(
+          '1',
+        ),
+      );
+      expect(screen.getByText('User 1')).toBeInTheDocument();
+    }
+  },
+);
+
+test.each([DatasourceType.Table, DatasourceType.SemanticView])(
+  '%s Table resets server pagination when sorting',
+  datasourceType => {
+    const setDataMask = jest.fn();
+    const props = transformProps({
+      ...testData.basic,
+      datasource: { ...testData.basic.datasource, type: datasourceType },
+      rawFormData: {
+        ...testData.basic.rawFormData,
+        datasource: `1__${datasourceType}`,
+        server_pagination: true,
+        server_page_length: 10,
+      },
+      ownState: { currentPage: 2, pageSize: 10 },
+      hooks: { setDataMask },
+    });
+    const { container } = render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+    fireEvent.click(
+      within(container.querySelector('thead')!).getByText('name'),
+    );
+    expect(setDataMask).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          currentPage: 0,
+          pageSize: 10,
+          sortBy: expect.any(Array),
+        }),
+      }),
+    );
+  },
+);
+
+test.each([DatasourceType.Table, DatasourceType.SemanticView])(
+  '%s Table resets the server page when changing the search column',
+  async datasourceType => {
+    const setDataMask = jest.fn();
+    const props = transformProps({
+      ...testData.basic,
+      datasource: { ...testData.basic.datasource, type: datasourceType },
+      rawFormData: {
+        ...testData.basic.rawFormData,
+        datasource: `1__${datasourceType}`,
+        server_pagination: true,
+        include_search: true,
+        server_page_length: 10,
+      },
+      queriesData: [
+        {
+          ...testData.basic.queriesData[0],
+          colnames: ['name', 'city'],
+          coltypes: [GenericDataType.String, GenericDataType.String],
+          data: [{ name: 'Michael', city: 'Paris' }],
+        },
+      ],
+      ownState: {
+        currentPage: 2,
+        pageSize: 10,
+        searchColumn: 'name',
+        searchText: 'Mich',
+      },
+      hooks: { setDataMask },
+    });
+    render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.click(
+      await screen.findByText('city', {
+        selector: '.ant-select-item-option-content',
+      }),
+    );
+    expect(setDataMask).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          currentPage: 0,
+          pageSize: 10,
+          searchColumn: 'city',
+          searchText: '',
+        }),
+      }),
+    );
+  },
+);
 
 test('sanitizeHeaderId should sanitize percent sign', () => {
   expect(sanitizeHeaderId('%pct_nice')).toBe('percentpct_nice');
