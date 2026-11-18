@@ -25,7 +25,7 @@ from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from superset import db, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.dashboard.exceptions import (
     DashboardChartCustomizationsUpdateFailedError,
@@ -34,6 +34,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardInvalidError,
     DashboardNativeFiltersUpdateFailedError,
     DashboardNotFoundError,
+    DashboardRefreshPolicyInvalidError,
     DashboardSlugExistsValidationError,
     DashboardUpdateFailedError,
 )
@@ -48,6 +49,12 @@ from superset.commands.utils import (
 )
 from superset.daos.dashboard import DashboardDAO, reconcile_position_json
 from superset.daos.report import ReportScheduleDAO
+from superset.dashboards.refresh_policy import (
+    check_refresh_policy,
+    log_refresh_policy_change,
+    POLICY_KEY,
+    refresh_settings_changed,
+)
 from superset.dashboards.schemas import validate_css
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
@@ -76,6 +83,13 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
     #: ONLY these fields passes the managed-externally gate.
     _MANAGED_LOCAL_ONLY_FIELDS: frozenset[str] = frozenset({"published"})
 
+    #: Re-check the stored ``auto_refresh_policy`` on every update. The
+    #: native filters, chart customizations and colors commands turn this
+    #: off: their payloads never touch the policy or the refresh frequency,
+    #: so they must not fail on a dashboard whose stored policy no longer
+    #: passes.
+    _checks_refresh_policy: bool = True
+
     def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
@@ -85,6 +99,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         assert self._model is not None
+        old_policy = self._model.params_dict.get(POLICY_KEY)
         # Suppress autoflush during the update body so that Continuum's
         # before_flush baseline listener does not fire mid-operation while
         # the session is only partially populated.
@@ -157,9 +172,17 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 raise
             if metadata is not None:
                 DashboardDAO.set_dash_metadata(dashboard, data=metadata)
+        if is_feature_enabled("AUTO_REFRESH_POLICY"):
+            metadata = dashboard.params_dict
+            if POLICY_KEY in metadata and metadata[POLICY_KEY] is None:
+                metadata.pop(POLICY_KEY)
+                dashboard.json_metadata = json.dumps(metadata)
+        log_refresh_policy_change(
+            dashboard.id, old_policy, dashboard.params_dict.get(POLICY_KEY), "put"
+        )
         return dashboard
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
         slug: Optional[str] = self._properties.get("slug")
         tag_ids: Optional[list[int]] = self._properties.get("tags")
@@ -209,6 +232,22 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     # marshmallow assigns the field name itself regardless
                     # of what's set here.
                     exceptions.append(ValidationError(ex.messages, field_name="css"))
+
+        stored_metadata = self._model.params_dict
+        metadata = stored_metadata.copy()
+        if incoming := self._properties.get("json_metadata"):
+            submitted = json.loads(incoming)
+            metadata.update(submitted)
+        if (
+            self._checks_refresh_policy
+            and refresh_settings_changed(metadata, stored_metadata)
+            and (
+                errors := check_refresh_policy(
+                    metadata, stored_metadata.get(POLICY_KEY)
+                )
+            )
+        ):
+            raise DashboardRefreshPolicyInvalidError(exceptions, errors)
 
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
@@ -355,6 +394,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
 
 class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
+    _checks_refresh_policy = False
+
     @transaction(
         on_error=partial(on_error, reraise=DashboardNativeFiltersUpdateFailedError)
     )
@@ -370,6 +411,8 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
 
 
 class UpdateDashboardChartCustomizationsCommand(UpdateDashboardCommand):
+    _checks_refresh_policy = False
+
     @transaction(
         on_error=partial(
             on_error, reraise=DashboardChartCustomizationsUpdateFailedError
@@ -393,6 +436,7 @@ class UpdateDashboardColorsConfigCommand(UpdateDashboardCommand):
     # inputs are the dashboard's real content, owned by the external source
     # of truth; validate() refuses a payload that would change them.
     _refuses_externally_managed = False
+    _checks_refresh_policy = False
 
     #: json_metadata keys a colors-config save may NOT change on an
     #: externally managed dashboard. The other accepted keys

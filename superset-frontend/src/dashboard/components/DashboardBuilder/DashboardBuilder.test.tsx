@@ -71,6 +71,7 @@ import {
   openVersionHistoryPanel,
   versionRestored,
 } from 'src/features/versionHistory/reducer';
+import { UiConfigContext } from 'src/components/UiConfigContext';
 import * as useNativeFiltersModule from './state';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
@@ -1597,3 +1598,46 @@ test('restored dashboard hydration survives entering edit mode', async () => {
       ));
   }
 });
+test.each([
+  [true, 0],
+  [false, 1],
+])(
+  'embedded hideTitle=%s renders the dashboard header %s times',
+  (hideTitle, headerCount) => {
+    (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+      100,
+      jest.fn(),
+    ]);
+    (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+    (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+    render(
+      <UiConfigContext.Provider
+        value={{
+          hideTitle,
+          hideTab: false,
+          hideNav: false,
+          hideChartControls: false,
+          emitDataMasks: false,
+          showRowLimitWarning: false,
+        }}
+      >
+        <DashboardBuilder />
+      </UiConfigContext.Provider>,
+      {
+        useRedux: true,
+        useRouter: true,
+        store: storeWithState({
+          ...mockState,
+          dashboardLayout: undoableDashboardLayout,
+        }),
+        useDnd: true,
+        useTheme: true,
+      },
+    );
+
+    expect(screen.queryAllByTestId('dashboard-header-container')).toHaveLength(
+      headerCount,
+    );
+  },
+);

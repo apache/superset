@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  AriaAttributes,
+  ChangeEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -134,6 +141,88 @@ export const getRefreshFrequencyOptions = (
     : REFRESH_FREQUENCY_OPTIONS;
 };
 
+const BOUND_UNIT_SECONDS: Record<string, number> = {
+  seconds: 1,
+  minutes: 60,
+  hours: 3600,
+};
+
+// Must match `_bound_seconds` in superset/dashboards/refresh_policy.py, which
+// `check_refresh_policy` uses on the server.
+/** Parse a positive whole duration using the server policy contract. */
+export const getBoundSeconds = (bound: unknown): number | null => {
+  if (!bound || typeof bound !== 'object' || Array.isArray(bound)) {
+    return null;
+  }
+  const keys = Object.keys(bound);
+  if (keys.length !== 2 || !keys.includes('value') || !keys.includes('unit')) {
+    return null;
+  }
+  const { value, unit } = bound as { value: unknown; unit: unknown };
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+    return null;
+  }
+  if (typeof unit !== 'string' || !Object.hasOwn(BOUND_UNIT_SECONDS, unit)) {
+    return null;
+  }
+  return value * BOUND_UNIT_SECONDS[unit];
+};
+
+/** Filter standard runtime choices by the saved dashboard policy. */
+export const getAllowedRefreshOptions = (
+  policy: unknown,
+  configuredIntervals?: unknown,
+): RefreshFrequencyOption[] => {
+  const options = getRefreshFrequencyOptions(configuredIntervals);
+  if (policy === null || policy === undefined) {
+    return options;
+  }
+  if (typeof policy !== 'object' || Array.isArray(policy)) {
+    return [];
+  }
+  const {
+    auto_refresh_allowed: autoRefreshAllowed,
+    minimum_refresh_interval: minimumBound,
+    maximum_refresh_interval: maximumBound,
+  } = policy as Record<string, unknown>;
+  if (autoRefreshAllowed === false) {
+    return [];
+  }
+  const minimum = getBoundSeconds(minimumBound);
+  const maximum = getBoundSeconds(maximumBound);
+  const dontRefresh = options.find(option => option.value === 0) ?? {
+    value: 0,
+    label: t("Don't refresh"),
+  };
+  if (minimum !== null && maximum !== null && minimum > maximum) {
+    return [dontRefresh];
+  }
+  return [
+    dontRefresh,
+    ...options.filter(
+      ({ value }) =>
+        value > 0 &&
+        Number.isInteger(value) &&
+        (minimum === null || value >= minimum) &&
+        (maximum === null || value <= maximum),
+    ),
+  ];
+};
+
+/** Fall back to no refresh when the policy excludes the selected interval. */
+export const getEffectiveRefreshFrequency = (
+  frequency: number,
+  allowedOptions: RefreshFrequencyOption[],
+): number => {
+  if (allowedOptions.some(({ value }) => value === CUSTOM_REFRESH_FREQUENCY)) {
+    return frequency;
+  }
+  return frequency === 0 ||
+    allowedOptions.some(({ value }) => value === frequency)
+    ? frequency
+    : 0;
+};
+
 export const getCustomValue = (
   frequency: number,
   options: RefreshFrequencyOption[] = REFRESH_FREQUENCY_OPTIONS,
@@ -156,10 +245,14 @@ const normalizeRefreshLimitSeconds = (
   return refreshLimit;
 };
 
-export interface RefreshFrequencySelectProps {
+export interface RefreshFrequencySelectProps extends Pick<
+  AriaAttributes,
+  'aria-label' | 'aria-describedby' | 'aria-invalid'
+> {
   value: number;
   onChange: (value: number) => void;
   options?: [number, string][];
+  showCustom?: boolean;
 }
 
 /**
@@ -170,6 +263,8 @@ export const RefreshFrequencySelect = ({
   value,
   onChange,
   options: optionsProp,
+  showCustom = true,
+  ...ariaProps
 }: RefreshFrequencySelectProps) => {
   const configuredIntervals = useSelector(
     (state: RootState) =>
@@ -262,28 +357,34 @@ export const RefreshFrequencySelect = ({
   const isCustomSelected = radioSelection === CUSTOM_REFRESH_FREQUENCY;
 
   return (
-    <StyledRadioGroup value={radioSelection} onChange={handleRadioChange}>
+    <StyledRadioGroup
+      {...ariaProps}
+      value={radioSelection}
+      onChange={handleRadioChange}
+    >
       {presets.map(option => (
         <Radio key={option.value} value={option.value}>
           {option.label}
         </Radio>
       ))}
 
-      <Radio value={CUSTOM_REFRESH_FREQUENCY}>
-        <CustomContent>
-          {t('Custom')}
-          <Input
-            type="number"
-            min={MINIMUM_REFRESH_INTERVAL}
-            value={customValue}
-            onChange={handleCustomInputChange}
-            placeholder={`${MINIMUM_REFRESH_INTERVAL}+`}
-            disabled={!isCustomSelected}
-            onClick={e => e.stopPropagation()}
-          />
-          <span>{t('seconds')}</span>
-        </CustomContent>
-      </Radio>
+      {showCustom && (
+        <Radio value={CUSTOM_REFRESH_FREQUENCY}>
+          <CustomContent>
+            {t('Custom')}
+            <Input
+              type="number"
+              min={MINIMUM_REFRESH_INTERVAL}
+              value={customValue}
+              onChange={handleCustomInputChange}
+              placeholder={`${MINIMUM_REFRESH_INTERVAL}+`}
+              disabled={!isCustomSelected}
+              onClick={e => e.stopPropagation()}
+            />
+            <span>{t('seconds')}</span>
+          </CustomContent>
+        </Radio>
+      )}
     </StyledRadioGroup>
   );
 };

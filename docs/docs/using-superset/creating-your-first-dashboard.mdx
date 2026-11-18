@@ -608,3 +608,79 @@ When saving or adding a chart to a dashboard from Explore, you can select which 
 - [Dashboard Customization](https://docs.preset.io/docs/dashboard-customization) - Advanced dashboard styling and layout options
 - [Blog: BI Dashboard Best Practices](https://preset.io/blog/bi-dashboard-best-practices/)
   :::
+
+
+## Dashboard auto-refresh policy
+
+Operators can enable `AUTO_REFRESH_POLICY` in `FEATURE_FLAGS`; it defaults to
+`False`. With the flag enabled, dashboard editors can use **Dashboard properties
+→ Refresh settings → Use a refresh policy** to allow or prohibit auto-refresh and
+select optional shortest and longest intervals from `DASHBOARD_AUTO_REFRESH_INTERVALS`.
+The shortest interval must not exceed the longest. “Don't refresh” remains
+available. Policy dashboards use standard intervals only; Custom remains available
+on dashboards without a policy.
+
+When auto-refresh is prohibited, its session menu, status indicator and automatic
+timers are absent, including in embedded dashboards with hidden headers. Manual
+refresh remains available. Inactive bounds are retained and validated when
+re-enabled. Turning auto-refresh off keeps the default refresh frequency; a
+positive default shows an error and blocks saving until “Don't refresh” is picked.
+Invalid saved defaults must be corrected before saving; submitted values are never
+silently reset or clamped. Changes apply to viewers on their next load.
+
+Advanced JSON and authorized API/import writes use the same policy. For example,
+inside dashboard JSON metadata:
+
+```json
+{
+  "refresh_frequency": 60,
+  "auto_refresh_policy": {
+    "auto_refresh_allowed": true,
+    "minimum_refresh_interval": {"value": 30, "unit": "seconds"},
+    "maximum_refresh_interval": {"value": 1, "unit": "hours"}
+  }
+}
+```
+
+A dashboard without the key has no policy. A PUT that omits `auto_refresh_policy`
+keeps the stored policy; send `null` (or turn the policy off in Properties) to
+remove it. Dashboard copy also keeps the original policy unless the request sets
+the key. An empty policy object enables standard-only intervals with auto-refresh allowed. Switches
+must be booleans; `auto_refresh_allowed` defaults to `true`. Each bound is optional or
+`null`; otherwise it contains exactly `value` (a positive integer) and `unit`
+(`seconds`, `minutes`, or `hours`). When a policy is enabled or changed, active
+bounds must normalize to configured standard intervals. Unchanged stored bounds
+survive interval-list changes, but positive frequencies must still be standard,
+within the bounds, and leave at least one permitted positive option. There is no
+separate numeric upper limit beyond the configured standard intervals for active
+new bounds. `refresh_frequency` is zero or a positive integer number of seconds.
+Prohibited auto-refresh requires zero.
+
+`POST /api/v1/dashboard/`, `PUT /api/v1/dashboard/<id>` and dashboard copy validate
+the effective metadata before saving. V1 imports, legacy CLI imports, dashboard
+MCP writes and version restores also validate policies. REST PUT, Properties
+saves, MCP updates, and version restores validate refresh rules only when the policy or default
+frequency changes. Unchanged invalid settings appear as warnings in Properties
+and do not block unrelated saves. Warnings without a dedicated control direct
+editors to Advanced settings and show each validation message on its own line,
+with the policy key for field-specific problems. Copy creates a new dashboard and validates all
+refresh rules, so an outdated default must be fixed before copying. Existing dashboard
+permissions apply. Successful policy changes create an existing audit-log row
+with actor, dashboard, timestamp, previous/new policy and write source.
+
+Dashboard REST validation returns HTTP 422 with the existing `message` field map
+and an additional `errors` list containing `field`, `code`, and translated
+`message`. Fields are `json_metadata.refresh_frequency`,
+`json_metadata.auto_refresh_policy`, or a nested policy field such as
+`json_metadata.auto_refresh_policy.minimum_refresh_interval`. Codes are
+`invalid_policy`, `invalid_boundary`, `minimum_greater_than_maximum`,
+`no_standard_interval`,
+`invalid_refresh_frequency`, `auto_refresh_prohibited`, `custom_not_allowed`,
+`below_minimum`, and `above_maximum`. Imports retain their existing bundle-specific
+error envelope; invalid assets imports retain the existing error-status behavior.
+Rejected writes do not persist metadata or successful policy-history changes.
+
+With `AUTO_REFRESH_POLICY` disabled, the editor, timers and selectors retain their
+ordinary behavior, policy validation/history are inactive, and the stored policy
+key is accepted and retained. Turning the flag back on reapplies the stored policy
+and validates it on the next save. No database migration is required.

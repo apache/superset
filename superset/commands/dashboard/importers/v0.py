@@ -20,14 +20,20 @@ from copy import copy
 from datetime import datetime
 from typing import Any, Optional
 
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
+from marshmallow import ValidationError
 from sqlalchemy.orm import make_transient
 
-from superset import db, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dataset.importers.v0 import import_dataset
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.dashboards.refresh_policy import (
+    check_refresh_policy,
+    log_refresh_policy_change,
+    POLICY_KEY,
+)
 from superset.exceptions import DashboardImportException
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard
@@ -256,6 +262,9 @@ def import_dashboard(  # noqa: C901
 
     alter_native_filters(dashboard_to_import)
 
+    old_policy = (
+        existing_dashboard.params_dict.get(POLICY_KEY) if existing_dashboard else None
+    )
     if existing_dashboard:
         existing_dashboard.override(dashboard_to_import)
     else:
@@ -270,6 +279,9 @@ def import_dashboard(  # noqa: C901
     # Migrate any filter-box charts to native dashboard filters.
     migrate_dashboard(dashboard)
     db.session.flush()
+    log_refresh_policy_change(
+        dashboard.id, old_policy, dashboard.params_dict.get(POLICY_KEY), "import_v0"
+    )
     return dashboard.id
 
 
@@ -328,6 +340,18 @@ def import_dashboards(
         import_dashboard(dashboard, dataset_id_mapping, import_time=import_time)
 
 
+def _dashboard_metadata(dashboard: Any) -> dict[str, Any]:
+    """Read legacy dashboard metadata or reject malformed entries."""
+    if not isinstance(dashboard, dict) or not isinstance(
+        columns := dashboard.get("__Dashboard__"), dict
+    ):
+        raise ValueError("Invalid dashboard entry")
+    metadata = json.loads(columns.get("json_metadata") or "{}")
+    if not isinstance(metadata, dict):
+        raise ValueError("Dashboard metadata must be an object")
+    return metadata
+
+
 class ImportDashboardsCommand(BaseCommand):
     """
     Import dashboard in JSON format.
@@ -352,10 +376,31 @@ class ImportDashboardsCommand(BaseCommand):
             import_dashboards(content, self.database_id)
 
     def validate(self) -> None:
+        exceptions: list[ValidationError] = []
         # ensure all files are JSON
-        for content in self.contents.values():
+        for file_name, content in self.contents.items():
             try:
-                json.loads(content)
+                data = json.loads(content)
             except ValueError:
                 logger.exception("Invalid JSON file")
                 raise
+            if not is_feature_enabled("AUTO_REFRESH_POLICY"):
+                continue
+            file_errors: dict[str, list[str]] = {}
+            dashboards = data.get("dashboards") if isinstance(data, dict) else None
+            for dashboard in dashboards if isinstance(dashboards, list) else []:
+                try:
+                    metadata = _dashboard_metadata(dashboard)
+                except (ValueError, TypeError):
+                    file_errors.setdefault(
+                        "json_metadata", [__("Invalid dashboard metadata.")]
+                    )
+                    continue
+                for error in check_refresh_policy(metadata):
+                    file_errors.setdefault(error.field, [error.message])
+            if file_errors:
+                exceptions.append(
+                    ValidationError({file_name: {"json_metadata": file_errors}})
+                )
+        if exceptions:
+            raise CommandInvalidError("Error importing dashboard", exceptions)

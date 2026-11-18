@@ -196,6 +196,7 @@ export type DashboardInfo = {
     )[];
     timed_refresh_immune_slices?: number[];
     refresh_frequency?: number;
+    auto_refresh_policy?: unknown;
     positions?: JsonObject;
     filter_scopes?: JsonObject;
     async_mode?: AsyncModeOverride;
