@@ -804,3 +804,58 @@ test('semantic member filters still carry the source view identity', () => {
     },
   });
 });
+
+test('a SQL chart click mask is excluded from a versioned semantic receiver', () => {
+  const mask: DataMask = {
+    extraFormData: {
+      filters: [{ col: 'Orders.country', op: 'IN', val: ['US'] }],
+    },
+    filterState: { value: ['US'] },
+  };
+  const source = {
+    ...requiredProps.formData,
+    datasource: '12__table',
+    testDataMask: mask,
+  };
+  const updateDataMask = jest.fn();
+  render(
+    <ChartRenderer
+      {...requiredProps}
+      formData={source}
+      latestQueryFormData={source}
+      actions={{ ...requiredProps.actions, updateDataMask }}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Emit test mask' }));
+  const emitted: DataMask = updateDataMask.mock.calls[0][1];
+  expect(emitted).toEqual(mask);
+  const merged = getFormDataWithExtraFilters({
+    chart: {
+      id: 2,
+      form_data: {
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+        semantic_selection_version: 'cube-member-id-v1',
+      },
+    },
+    chartConfiguration: {
+      1: { id: 1, crossFilters: { scope: 'global', chartsInScope: [2] } },
+    },
+    sourceCharts: { 1: { form_data: source } },
+    filters: {},
+    sliceId: 2,
+    nativeFilters: {},
+    dataMask: { 1: { id: '1', ...emitted } },
+    extraControls: {},
+    allSliceIds: [1, 2],
+  });
+  expect(merged.extra_form_data?.filters ?? []).toEqual([]);
+  expect(
+    buildQueryObject({
+      extra_form_data: merged.extra_form_data,
+      semantic_selection_version: merged.semantic_selection_version,
+      datasource: '3__semantic_view',
+      viz_type: 'table',
+    }).extras?.semantic_selection_version,
+  ).toBe('cube-member-id-v1');
+});

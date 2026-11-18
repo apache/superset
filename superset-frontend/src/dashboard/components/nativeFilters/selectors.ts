@@ -28,6 +28,10 @@ import {
   NO_TIME_RANGE,
   QueryFormColumn,
 } from '@superset-ui/core';
+import {
+  getIgnoredSqlFilterIds,
+  FilterSourceCharts,
+} from 'src/dashboard/util/charts/getIgnoredSqlFilterIds';
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import { ChartConfiguration, LayoutItem } from 'src/dashboard/types';
@@ -349,6 +353,7 @@ export const selectChartCrossFilters = (
   appliedColumns: Set<string>,
   rejectedColumns: Set<string>,
   filterEmitter = false,
+  ignoredFilterIds: string[] = [],
 ): Indicator[] | CrossFilterIndicator[] => {
   let crossFilterIndicators: Indicator[] | CrossFilterIndicator[] = [];
   crossFilterIndicators = Object.values(chartConfiguration)
@@ -369,15 +374,17 @@ export const selectChartCrossFilters = (
         dataMask[chartConfig.id],
         chartLayoutItems,
       );
-      const filterStatus = getStatus({
-        label: filterIndicator.value,
-        column: filterIndicator.column
-          ? getColumnLabel(filterIndicator.column)
-          : undefined,
-        type: DataMaskType.CrossFilters,
-        rejectedColumns,
-        appliedColumns,
-      });
+      const filterStatus = ignoredFilterIds.includes(String(chartConfig.id))
+        ? IndicatorStatus.Incompatible
+        : getStatus({
+            label: filterIndicator.value,
+            column: filterIndicator.column
+              ? getColumnLabel(filterIndicator.column)
+              : undefined,
+            type: DataMaskType.CrossFilters,
+            rejectedColumns,
+            appliedColumns,
+          });
 
       return { ...filterIndicator, status: filterStatus };
     })
@@ -400,6 +407,7 @@ const cachedNativeFilterDataForChart: Record<
     dataMask: DataMaskStateWithId;
     appliedColumns: Set<string>;
     rejectedColumns: Set<string>;
+    ignoredFilterIds: string[];
   }
 > = {};
 
@@ -410,7 +418,14 @@ export const selectNativeIndicatorsForChart = (
   chart: any,
   chartLayoutItems: LayoutItem[],
   chartConfiguration: ChartConfiguration = defaultChartConfig,
+  sourceCharts?: FilterSourceCharts,
 ): Indicator[] => {
+  const ignoredFilterIds = getIgnoredSqlFilterIds(
+    chart?.form_data ?? {},
+    nativeFilters,
+    dataMask,
+    sourceCharts,
+  );
   const appliedColumns = getAppliedColumnsWithFallback(
     chart,
     nativeFilters,
@@ -422,6 +437,7 @@ export const selectNativeIndicatorsForChart = (
   const cachedFilterData = cachedNativeFilterDataForChart[chartId];
   if (
     cachedNativeIndicatorsForChart[chartId]?.length &&
+    areObjectsEqual(cachedFilterData.ignoredFilterIds, ignoredFilterIds) &&
     areObjectsEqual(cachedFilterData.appliedColumns, appliedColumns) &&
     areObjectsEqual(cachedFilterData.rejectedColumns, rejectedColumns) &&
     areObjectsEqual(cachedFilterData.nativeFilters, nativeFilters) &&
@@ -447,12 +463,14 @@ export const selectNativeIndicatorsForChart = (
           column,
           name: nativeFilter.name,
           path: [nativeFilter.id],
-          status: getStatus({
-            label,
-            column,
-            rejectedColumns,
-            appliedColumns,
-          }),
+          status: ignoredFilterIds.includes(nativeFilter.id)
+            ? IndicatorStatus.Incompatible
+            : getStatus({
+                label,
+                column,
+                rejectedColumns,
+                appliedColumns,
+              }),
           value: label,
         };
       });
@@ -462,15 +480,31 @@ export const selectNativeIndicatorsForChart = (
     dataMask,
     chartId,
     chartLayoutItems,
-    chartConfiguration,
+    {
+      ...Object.fromEntries(
+        ignoredFilterIds
+          .filter(id => !nativeFilters?.[id])
+          .map(id => [
+            id,
+            {
+              id: Number(id),
+              crossFilters: { scope: 'global', chartsInScope: [chartId] },
+            },
+          ]),
+      ),
+      ...chartConfiguration,
+    },
     appliedColumns,
     rejectedColumns,
+    false,
+    ignoredFilterIds,
   );
   const indicators = crossFilterIndicators.concat(
     nativeFilterIndicators as Indicator[],
   );
   cachedNativeIndicatorsForChart[chartId] = indicators;
   cachedNativeFilterDataForChart[chartId] = {
+    ignoredFilterIds,
     nativeFilters,
     chartLayoutItems,
     chartConfiguration,

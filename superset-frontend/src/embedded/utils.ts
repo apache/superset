@@ -118,6 +118,7 @@ export const getChartDataPayloads = async (
       }
 
       const formData = getFormDataWithExtraFilters({
+        sourceCharts: charts,
         chart: { id: numericId, form_data: (chart as JsonObject).form_data },
         chartConfiguration,
         filters: getAppliedFilterValues(numericId),

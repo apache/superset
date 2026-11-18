@@ -17,6 +17,7 @@
  * under the License.
  */
 import cx from 'classnames';
+import { useAppSelector } from 'src/views/store';
 import {
   useCallback,
   useEffect,
@@ -198,6 +199,7 @@ const Chart = (props: ChartProps) => {
   );
 
   const chart = useSelector((state: RootState) => state.charts[props.id]);
+  const sourceCharts = useAppSelector(state => state.charts);
   const queriesResponse = chart?.queriesResponse;
   const chartUpdateEndTime = chart?.chartUpdateEndTime;
   const chartStatus = chart?.chartStatus;
@@ -479,6 +481,7 @@ const Chart = (props: ChartProps) => {
 
   const formData = useMemo(() => {
     const filteredFormData = getFormDataWithExtraFilters({
+      sourceCharts,
       chart: { id: chart?.id ?? props.id, form_data: chart?.form_data }, // avoid passing the whole chart object
       chartConfiguration,
       chartCustomizationItems: chartCustomizationItems as ChartCustomization[],
@@ -528,6 +531,7 @@ const Chart = (props: ChartProps) => {
       temporal_columns_lookup: temporalColumnsLookup,
     };
   }, [
+    sourceCharts,
     chart?.id,
     chart?.form_data,
     chartConfiguration,

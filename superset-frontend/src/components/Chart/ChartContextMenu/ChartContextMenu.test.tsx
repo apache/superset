@@ -17,9 +17,19 @@
  * under the License.
  */
 import { useRef, useState } from 'react';
-import { ContextMenuFilters, FeatureFlag, VizType } from '@superset-ui/core';
+import {
+  Behavior,
+  ChartMetadata,
+  DataMask,
+  getChartMetadataRegistry,
+  ContextMenuFilters,
+  FeatureFlag,
+  VizType,
+} from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+import * as dataMaskActions from 'src/dataMask/actions';
+import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import mockState from 'spec/fixtures/mockState';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
@@ -367,4 +377,71 @@ test('semantic-view datasource resolves via the structure endpoint and renders t
       'Orders Status',
     );
   });
+});
+
+test('SQL context-menu cross-filter is excluded by semantic dashboard assembly', async () => {
+  const registry = getChartMetadataRegistry();
+  const previous = registry.get(VizType.Pie);
+  registry.registerValue(
+    VizType.Pie,
+    new ChartMetadata({
+      name: 'Pie',
+      description: '',
+      thumbnail: '',
+      behaviors: [Behavior.InteractiveChart],
+    }),
+  );
+  const update = jest.spyOn(dataMaskActions, 'updateDataMask');
+  const mask: DataMask = {
+    filterState: { value: ['US'] },
+    extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
+  };
+  try {
+    render(
+      <TestWrapper
+        openFilters={{
+          crossFilter: { dataMask: mask, isCurrentValueSelected: false },
+        }}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          ...mockState,
+          dashboardInfo: {
+            ...mockState.dashboardInfo,
+            crossFiltersEnabled: true,
+          },
+        },
+      },
+    );
+    await userEvent.click(screen.getByTestId('open-context-menu'));
+    await userEvent.click(await screen.findByText('Add cross-filter'));
+    expect(update).toHaveBeenCalledWith(sliceId, mask);
+    const result = getFormDataWithExtraFilters({
+      chart: {
+        id: 9003,
+        form_data: {
+          datasource: '3__semantic_view',
+          viz_type: 'table',
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      chartConfiguration: {},
+      filters: {},
+      sliceId: 9003,
+      nativeFilters: {},
+      sourceCharts: { [sliceId]: { form_data: defaultFormData } },
+      dataMask: {
+        [sliceId]: { id: String(sliceId), ...update.mock.calls[0][1] },
+      },
+      extraControls: {},
+      allSliceIds: [9003],
+    });
+    expect(result.extra_form_data?.filters ?? []).toEqual([]);
+    expect(result.semantic_selection_version).toBe('cube-member-id-v1');
+  } finally {
+    update.mockRestore();
+    if (previous) registry.registerValue(VizType.Pie, previous);
+    else registry.remove(VizType.Pie);
+  }
 });

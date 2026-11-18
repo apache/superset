@@ -602,3 +602,17 @@ separator, for example `2019-01-02T04:15:00`. Superset renders bounds in this
 format and preserves fractional seconds. Normalize space-separated timestamps
 before applying time ranges; mixing separators can shift even whole-day results.
 Use consistent timezone and precision conventions for stored timestamps and bounds.
+
+
+### Ordinary dataset filters on semantic-view charts
+
+On mixed dashboards, Value and Numerical range filters targeting ordinary datasets,
+and predicate-only cross-filters from ordinary dataset charts, are not applied to
+semantic-view charts that require versioned member identities. The chart's filter
+indicator lists these filters as incompatible, including when column names happen
+to match. This applies to embedded dashboards as well.
+
+Time column overrides, Dynamic group by, selections from another semantic view,
+and selections whose source cannot be identified retain their existing validation.
+Scope these controls away from incompatible charts. Dashboard filters do not replace
+server-side row-level security or guest access restrictions.

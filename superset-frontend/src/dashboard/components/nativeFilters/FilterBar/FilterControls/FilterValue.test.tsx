@@ -33,6 +33,7 @@ import {
 import type { DataMask, Filter } from '@superset-ui/core';
 import { mergeExtraFormData } from '../../utils';
 import FilterValue from './FilterValue';
+import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 
 const mockRequestChartData = jest.fn();
 const mockGetClientErrorObject = jest.fn();
@@ -708,3 +709,42 @@ test('clearing a semantic member filter still carries its provenance', async () 
     { datasource: '3__semantic_view', version: null },
   ]);
 });
+
+test.each([false, true])(
+  'ordinary native values remain excluded after plugin emission (select first: %s)',
+  async defaultToFirstItem => {
+    const filter = createMockFilter({ controlValues: { defaultToFirstItem } });
+    const mask: DataMask = {
+      filterState: { value: ['US'] },
+      extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
+    };
+    const change = await emitFromPlugin(filter, mask);
+    const emitted: DataMask = change.mock.lastCall[1];
+    const result = getFormDataWithExtraFilters({
+      chart: {
+        id: 99,
+        form_data: {
+          datasource: '3__semantic_view',
+          viz_type: 'table',
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      chartConfiguration: {},
+      filters: {},
+      sliceId: 99,
+      nativeFilters: { [filter.id]: { ...filter, chartsInScope: [99] } },
+      dataMask: { [filter.id]: { id: filter.id, ...emitted } },
+      extraControls: {},
+      allSliceIds: [99],
+    });
+    expect(result.extra_form_data?.filters ?? []).toEqual([]);
+    expect(
+      buildQueryObject({
+        extra_form_data: result.extra_form_data,
+        semantic_selection_version: result.semantic_selection_version,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+      }).extras?.semantic_selection_version,
+    ).toBe('cube-member-id-v1');
+  },
+);

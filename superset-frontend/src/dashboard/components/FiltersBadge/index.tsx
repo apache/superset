@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useAppSelector } from 'src/views/store';
 import {
   useCallback,
   useEffect,
@@ -125,6 +126,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const chartConfiguration = useSelector<RootState, JsonObject>(
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
+  const sourceCharts = useAppSelector(state => state.charts);
   const chart = useSelector<RootState, Chart>(state => state.charts[chartId]);
   const chartLayoutItems = useChartLayoutItems();
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
@@ -214,6 +216,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevChartLayoutItems = usePrevious(chartLayoutItems);
   const prevDataMask = usePrevious(dataMask);
   const prevChartConfig = usePrevious(chartConfiguration);
+  const prevSourceCharts = usePrevious(sourceCharts);
 
   useEffect(() => {
     // During auto-refresh, don't clear indicators - preserve previous state
@@ -222,6 +225,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       !showIndicators && nativeIndicators.length > 0 && !isAutoRefreshing;
 
     const shouldRecalculate =
+      sourceCharts !== prevSourceCharts ||
       chart?.queriesResponse?.[0]?.rejected_filters !==
         prevChart?.queriesResponse?.[0]?.rejected_filters ||
       chart?.queriesResponse?.[0]?.applied_filters !==
@@ -244,6 +248,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         chart,
         chartLayoutItems,
         chartConfiguration,
+        sourceCharts,
       );
       setNativeIndicators(newIndicators);
     }
@@ -256,6 +261,8 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     nativeFilters,
     nativeIndicators.length,
     prevChart?.queriesResponse,
+    sourceCharts,
+    prevSourceCharts,
     prevChartConfig,
     prevChartStatus,
     prevDataMask,

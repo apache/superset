@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { Store } from 'redux';
-import { DatasourceType } from '@superset-ui/core';
+import { DatasourceType, Filters } from '@superset-ui/core';
 import { render } from 'spec/helpers/testing-library';
 import {
   CHART_RENDERING_SUCCEEDED,
@@ -266,4 +266,67 @@ test('manual refresh: clears indicators during loading state', () => {
 
   // Badge should disappear during manual refresh loading
   expect(queryByTestId('applied-filter-count')).not.toBeInTheDocument();
+});
+
+test('shows skipped ordinary filters even when the server reports none rejected', () => {
+  const initial = getMockStoreWithNativeFilters().getState();
+  const nativeFilters = Object.fromEntries(
+    Object.entries<Filters[string]>(initial.nativeFilters.filters).map(
+      ([id, filter]) => [
+        id,
+        {
+          ...filter,
+          filterType: 'filter_select',
+          targets: [
+            {
+              datasetId: 12,
+              datasourceType: DatasourceType.Table,
+              column: { name: 'region' },
+            },
+          ],
+          chartsInScope: [sliceId],
+        },
+      ],
+    ),
+  );
+  const dataMask = Object.fromEntries(
+    Object.keys(nativeFilters).map(id => [
+      id,
+      {
+        id,
+        filterState: { value: ['US'] },
+        extraFormData: { filters: [{ col: 'region', op: 'IN', val: ['US'] }] },
+      },
+    ]),
+  );
+  const store = storeWithState({
+    ...initial,
+    dataMask,
+    nativeFilters: { ...initial.nativeFilters, filters: nativeFilters },
+    charts: {
+      ...initial.charts,
+      [sliceId]: {
+        ...initial.charts[sliceId],
+        form_data: {
+          ...initial.charts[sliceId].form_data,
+          datasource: '3__semantic_view',
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+    },
+  });
+  store.dispatch({
+    type: CHART_UPDATE_SUCCEEDED,
+    key: sliceId,
+    queriesResponse: [
+      { status: 'success', applied_filters: [], rejected_filters: [] },
+    ],
+  });
+  const { getByRole } = setup(store);
+  expect(
+    getByRole('button', {
+      name: `Filters (${Object.keys(nativeFilters).length})`,
+    }),
+  ).toBeInTheDocument();
+  expect(getByRole('button')).not.toHaveAccessibleName(/Applied filters/);
 });
