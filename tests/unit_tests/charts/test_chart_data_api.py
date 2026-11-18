@@ -133,6 +133,42 @@ def test_should_run_async_requires_async_mode_flag() -> None:
         assert api._should_run_async({"async_mode": True}, qc) is False
 
 
+@pytest.mark.parametrize(
+    ("query_result_types", "expected"),
+    [
+        ([None], True),
+        ([ChartDataResultType.FULL], True),
+        ([ChartDataResultType.TIMEGRAINS], False),
+        ([ChartDataResultType.COLUMNS], False),
+        ([ChartDataResultType.FULL, ChartDataResultType.TIMEGRAINS], False),
+    ],
+)
+def test_should_run_async_gates_on_effective_query_result_type(
+    query_result_types: list[ChartDataResultType | None], expected: bool
+) -> None:
+    """A full context carrying a metadata query is answered without a task."""
+    api: ChartDataRestApi = ChartDataRestApi()
+    qc: MagicMock = MagicMock()
+    qc.result_format = ChartDataResultFormat.JSON
+    qc.result_type = ChartDataResultType.FULL
+    qc.get_cache_timeout.return_value = 300
+    # A query without its own result type inherits the context's.
+    qc.queries = [MagicMock(result_type=rt) for rt in query_result_types]
+
+    cache_manager: MagicMock
+    with (
+        patch("superset.charts.data.api.is_feature_enabled", return_value=True),
+        patch("superset.charts.data.api.cache_manager") as cache_manager,
+        patch("superset.charts.data.api.get_user_id", return_value=1),
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ),
+    ):
+        cache_manager.data_cache.cache = MagicMock()
+        assert api._should_run_async({"async_mode": True}, qc) is expected
+
+
 def test_should_run_async_requires_subscribeable_identity() -> None:
     """Async needs a user or guest identity to subscribe/observe the task.
 
@@ -1665,3 +1701,64 @@ def test_get_data_response_streaming_up_front_maps_setup_errors(
     assert response.json["message"] == str(exc)
     mock_stream.assert_called_once()
     command.execute.assert_not_called()
+
+
+def test_stop_data_route_is_registered_with_an_existing_permission() -> None:
+    """``stop_data`` must map onto ``can_read on Chart``.
+
+    FAB falls back to ``can_stop_data_Chart`` for an unmapped custom method — a
+    permission no standard role carries, which would make the endpoint
+    unreachable for exactly the users who can run chart queries.
+    """
+    assert "stop_data" in ChartDataRestApi.include_route_methods
+    assert ChartDataRestApi.method_permission_name["stop_data"] == "read"
+    # The mapping must extend, not replace, the inherited one.
+    assert ChartDataRestApi.method_permission_name["get"] == "read"
+
+
+def _raw_stop_data():
+    """The endpoint body, with FAB's auth/metrics decorators unwrapped off."""
+    return inspect.unwrap(ChartDataRestApi.stop_data)
+
+
+def test_stop_data_returns_cancellation_outcome() -> None:
+    api = ChartDataRestApi()
+    api.response = lambda status, **kwargs: (status, kwargs)
+
+    app = Flask(__name__)
+    with app.test_request_context(json={"client_id": "abc123"}):
+        with patch(
+            "superset.charts.data.api.cancel_chart_query_for_user", return_value=True
+        ) as cancel:
+            assert _raw_stop_data()(api) == (200, {"result": {"stopped": True}})
+    cancel.assert_called_once_with("abc123")
+
+
+def test_stop_data_reports_nothing_stopped_without_raising() -> None:
+    # No in-flight query for this user, or an engine that cannot cancel: a
+    # successful response reporting stopped=False, not an error.
+    api = ChartDataRestApi()
+    api.response = lambda status, **kwargs: (status, kwargs)
+
+    app = Flask(__name__)
+    with app.test_request_context(json={"client_id": "abc123"}):
+        with patch(
+            "superset.charts.data.api.cancel_chart_query_for_user", return_value=False
+        ):
+            assert _raw_stop_data()(api) == (200, {"result": {"stopped": False}})
+
+
+@pytest.mark.parametrize(
+    "body",
+    [{}, {"client_id": ""}, {"client_id": "x" * 65}, {"client_id": 5}],
+)
+def test_stop_data_rejects_invalid_bodies(body: dict[str, Any]) -> None:
+    api = ChartDataRestApi()
+    api.response_400 = lambda message: (400, message)
+
+    app = Flask(__name__)
+    with app.test_request_context(json=body):
+        with patch("superset.charts.data.api.cancel_chart_query_for_user") as cancel:
+            status, _ = _raw_stop_data()(api)
+    assert status == 400
+    cancel.assert_not_called()

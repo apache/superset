@@ -101,6 +101,10 @@ LEFT_UNPARSED = {
     # interval. Postgres renders the node as TIMESTAMPDIFF, which is not a
     # name Databend has, so its own spelling is kept instead.
     "TIMESTAMP_DIFF",
+    # Postgres' REGEXP_REPLACE takes a replacement; newer sqlglot pads a missing
+    # one with '' on generation, so the call gains an argument the caller never
+    # wrote. Left unparsed, the arguments reach the server exactly as written.
+    "REGEXP_REPLACE",
 }
 
 

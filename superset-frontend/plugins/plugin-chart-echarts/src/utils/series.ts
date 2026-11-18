@@ -549,6 +549,8 @@ const DEFAULT_STACK_GROUP = '__default__';
  * @param opts.legendState     Active legend state (hidden series are skipped).
  * @param opts.seriesStackIds  Optional per-series stack-group key (parallel to
  *                             `series`). Defaults to a single shared group.
+ * @param opts.seriesIndexOffset  Rendered index of `series[0]`, for charts
+ *                             that render other series before these ones.
  * @returns A `Record<stackGroupKey, number[]>` where each inner array maps
  *          `dataIndex → seriesIndex` of the topmost series in that group.
  */
@@ -560,10 +562,18 @@ export function extractShowValueIndexes(
     isHorizontal?: boolean;
     legendState?: LegendState;
     seriesStackIds?: string[];
+    seriesIndexOffset?: number;
   },
 ): Record<string, number[]> {
   const result: Record<string, number[]> = Object.create(null);
-  const { legendState, stack, isHorizontal, onlyTotal, seriesStackIds } = opts;
+  const {
+    legendState,
+    stack,
+    isHorizontal,
+    onlyTotal,
+    seriesStackIds,
+    seriesIndexOffset = 0,
+  } = opts;
   if (!stack) {
     return result;
   }
@@ -594,6 +604,14 @@ export function extractShowValueIndexes(
       }
     });
   });
+
+  if (seriesIndexOffset) {
+    Object.values(result).forEach(showValueIndexes => {
+      showValueIndexes.forEach((seriesIndex, dataIndex) => {
+        showValueIndexes[dataIndex] = seriesIndex + seriesIndexOffset;
+      });
+    });
+  }
 
   return result;
 }
