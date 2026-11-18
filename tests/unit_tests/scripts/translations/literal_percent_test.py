@@ -66,6 +66,9 @@ def test_is_literal_percent_accepts_percent_followed_by_a_word(msgid: str) -> No
         "%(name)s: % of total",
         # A bare space-flag directive is not followed by a word.
         "% d",
+        # An escaped "%%" means the string is %-formatted.
+        "Up 50%% today",
+        "50%% of rows",
         # Not a "% word" pattern, so out of this check's scope.
         "Contains text (ILIKE %x%)",
     ],
