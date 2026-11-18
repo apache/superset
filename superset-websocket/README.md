@@ -236,7 +236,11 @@ image, review these before exposing it publicly:
   optionally `maxSocketBufferBytes`) to bound resource use and blunt abuse.
   Upgraded sockets that have not yet authenticated count toward
   `maxTotalConnections` while they wait out the 10 second auth window, and
-  `maxPendingConnections` (`MAX_PENDING_CONNECTIONS`) can cap them separately.
+  `maxPendingConnections` (`MAX_PENDING_CONNECTIONS`) caps them separately.
+  Unauthenticated sockets are unlimited by default, so set
+  `maxPendingConnections` too: size it to the number of tabs expected to connect
+  at the same moment (for example, all open tabs reconnecting after a server
+  restart), such as `1000`. A refused client retries with backoff.
   A socket the server refuses or times out is terminated if the client does
   not answer the close frame within one second.
 - **Keepalive/timeouts** — `pingSocketsIntervalMs` / `socketResponseTimeoutMs`

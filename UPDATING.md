@@ -24,6 +24,23 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Realtime websocket authentication (`WEBSOCKET_ENABLE`):** the browser
+  authenticates the socket with a short-lived ticket from
+  `GET /api/v1/realtime/token/` sent in-band, instead of a JWT cookie. The
+  `WEBSOCKET_JWT_COOKIE_NAME`, `WEBSOCKET_JWT_COOKIE_SECURE`,
+  `WEBSOCKET_JWT_COOKIE_SAMESITE` and `WEBSOCKET_JWT_COOKIE_DOMAIN` Flask settings
+  are removed, as is the websocket server's `jwtCookieName` option
+  (`JWT_COOKIE_NAME` environment variable); delete them from `superset_config.py`,
+  the websocket `config.json`, and container environments (they are ignored
+  otherwise). Upgrade the web application and the `superset-websocket` server
+  together: the new server refuses the previous cookie-based client, and the
+  previous server refuses the new ticket-based client, so while the versions are
+  mixed realtime updates stop and async charts waiting on the socket fail with
+  "Realtime connection unavailable". Reload open browser tabs after the upgrade.
+  Unauthenticated sockets are unlimited by default; setting
+  `maxPendingConnections` (`MAX_PENDING_CONNECTIONS`) is recommended, see the
+  [websocket server README](superset-websocket/README.md).
+
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
   `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.
@@ -1230,7 +1247,9 @@ completion transport for async chart-data — see the note on the interval poll)
 > When it is **enabled**, completion is delivered over the socket and the
 > recurring interval poll does not run; a one-shot `status_changes` catch-up on
 > waiter registration and on socket reconnect reconciles anything missed while
-> disconnected. The socket accelerates delivery over the authoritative
+> disconnected. A principal the ticket endpoint refuses (for example an embedded
+> guest whose role lacks `can_read Realtime`) gets no socket and falls back to the
+> interval poll. The socket accelerates delivery over the authoritative
 > `status_changes` API rather than replacing it: Redis Pub/Sub is best-effort
 > (at-most-once, no replay), so a disconnect is reconciled by the catch-up on
 > reconnect/registration. In the rare case a `task.status` is missed while the
