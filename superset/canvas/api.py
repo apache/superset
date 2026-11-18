@@ -35,7 +35,7 @@ from superset_core.canvas import GridPlacement
 from superset_core.widgets import Widget
 
 from superset import is_feature_enabled
-from superset.canvas.data import datasets_payload, PlacementDataRequest
+from superset.canvas.data import data_response, PlacementDataRequest
 from superset.canvas.definition.registry import get_widget_types
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
@@ -46,7 +46,7 @@ from superset.canvas.definition.schemas import (
     Operation,
 )
 from superset.canvas.definition.scopes import resolve_scopes
-from superset.canvas.definition.validation import request_pointer
+from superset.canvas.definition.validation import request_errors
 from superset.canvas.definition.versions import DefinitionVersionError
 from superset.canvas.filters import (
     CanvasAccessFilter,
@@ -88,15 +88,12 @@ from superset.commands.canvas.exceptions import (
 from superset.commands.canvas.placement_data import GetPlacementDataCommand
 from superset.commands.canvas.restore_version import RestoreCanvasVersionCommand
 from superset.commands.canvas.update import UpdateCanvasCommand
-from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.canvas import CanvasDAO
-from superset.daos.exceptions import DatasourceNotFound
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger, security_manager
 from superset.models.canvas import Canvas
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
-from superset.utils import json
 from superset.versioning.api_helpers import (
     list_versions_endpoint,
     PathEntityResponseError,
@@ -166,14 +163,6 @@ def _draft_token() -> str:
     if not token:
         raise CanvasDraftNotFoundError()
     return token
-
-
-def _pydantic_errors(ex: PydanticValidationError) -> list[dict[str, Any]]:
-    """Request errors as JSON-pointer paths into the request body."""
-    return [
-        {"path": request_pointer(error["loc"]), "message": error["msg"]}
-        for error in ex.errors()
-    ]
 
 
 def describe_widget(widget: type[Widget]) -> dict[str, Any]:
@@ -833,7 +822,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         try:
             body = DraftOperationsRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft, ops = ApplyCanvasDraftOperationsCommand(
             _draft_token(), body.revision, body.ops
         ).run()
@@ -926,7 +915,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         try:
             body = CommitDraftRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft = RewindCanvasDraftCommand(
             _draft_token(), body.revision, forward=forward
         ).run()
@@ -965,7 +954,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         try:
             body = CommitDraftRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         draft = load_draft(_draft_token())
         result = CommitCanvasDraftCommand(draft.token, body.revision).run()
         return self.response(
@@ -1098,7 +1087,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                 request.get_json(silent=True) or {}
             )
         except PydanticValidationError as ex:
-            return self.response(400, message=_pydantic_errors(ex))
+            return self.response(400, message=request_errors(ex))
         token = request.headers.get(DRAFT_TOKEN_HEADER) or None
         try:
             version = UUID(request.headers[VERSION_HEADER])
@@ -1106,31 +1095,17 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             version = None
         except ValueError:
             return self.response_400(message="Invalid version UUID")
-        try:
-            data = GetPlacementDataCommand(
+        return data_response(
+            self,
+            body.binding,
+            GetPlacementDataCommand(
                 id_or_uuid,
                 placement_id,
                 body.runtime_filters,
                 token,
                 version,
                 body.binding,
-            ).run()
-        except DatasourceNotFound:
-            return self.response_404()
-        except SupersetSecurityException:
-            return self.response_403()
-        except (QueryObjectValidationError, ChartDataQueryFailedError) as ex:
-            return self.response_400(message=str(ex.message))
-        # Classic charts gate "View query" on the same permission.
-        payload = datasets_payload(
-            body.binding or "main",
-            data,
-            with_query=security_manager.can_access("can_view_query", "Dashboard"),
-        )
-        return Response(
-            json.dumps(payload, default=json.json_int_dttm_ser, ignore_nan=True),
-            status=200,
-            mimetype="application/json",
+            ).run,
         )
 
     @expose("/<uuid_str>/versions/", methods=("GET",))

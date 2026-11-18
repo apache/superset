@@ -28,8 +28,8 @@ from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 
 from superset import is_feature_enabled
-from superset.canvas.data import datasets_payload, PlacementDataRequest
-from superset.commands.chart.exceptions import ChartDataQueryFailedError
+from superset.canvas.data import data_response, PlacementDataRequest
+from superset.canvas.definition.validation import request_errors
 from superset.commands.widget.create import CreateWidgetCommand
 from superset.commands.widget.data import GetWidgetDataCommand
 from superset.commands.widget.delete import DeleteWidgetCommand
@@ -45,12 +45,9 @@ from superset.commands.widget.exceptions import (
 )
 from superset.commands.widget.update import UpdateWidgetCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.exceptions import DatasourceNotFound
 from superset.daos.widget import WidgetDAO
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
-from superset.extensions import event_logger, security_manager
+from superset.extensions import event_logger
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
-from superset.utils import json
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -480,27 +477,16 @@ class WidgetRestApi(BaseSupersetModelRestApi):
                 request.get_json(silent=True) or {}
             )
         except PydanticValidationError as ex:
-            return self.response_400(message=str(ex))
+            return self.response(400, message=request_errors(ex))
         try:
-            data = GetWidgetDataCommand(
-                widget_uuid, body.runtime_filters, body.binding
-            ).run()
-        except (WidgetNotFoundError, DatasourceNotFound):
+            return data_response(
+                self,
+                body.binding,
+                GetWidgetDataCommand(
+                    widget_uuid, body.runtime_filters, body.binding
+                ).run,
+            )
+        except WidgetNotFoundError:
             return self.response_404()
-        except SupersetSecurityException:
-            return self.response_403()
         except WidgetUnboundError as ex:
             return self.response_422(message=str(ex.message))
-        except (QueryObjectValidationError, ChartDataQueryFailedError) as ex:
-            return self.response_400(message=str(ex.message))
-        # Classic charts gate "View query" on the same permission.
-        payload = datasets_payload(
-            body.binding or "main",
-            data,
-            with_query=security_manager.can_access("can_view_query", "Dashboard"),
-        )
-        return Response(
-            json.dumps(payload, default=json.json_int_dttm_ser, ignore_nan=True),
-            status=200,
-            mimetype="application/json",
-        )

@@ -147,7 +147,7 @@ def test_the_route_answers_the_datasets_envelope(
 ) -> None:
     command = mocker.patch("superset.widgets.api.GetWidgetDataCommand")
     command.return_value.run.return_value = DATA
-    mocker.patch("superset.widgets.api.security_manager.can_access", return_value=False)
+    mocker.patch("superset.extensions.security_manager.can_access", return_value=False)
 
     response = client.post(
         URL.format(WIDGET),
@@ -210,6 +210,11 @@ def test_the_route_refuses_a_malformed_request(
 ) -> None:
     command = mocker.patch("superset.widgets.api.GetWidgetDataCommand")
 
-    assert client.post(URL.format(WIDGET), json={"extra": 1}).status_code == 400
+    malformed = client.post(URL.format(WIDGET), json={"extra": 1})
+    assert malformed.status_code == 400
+    # As the placement endpoint answers it: where in the body, and why.
+    assert malformed.json == {
+        "message": [{"path": "/extra", "message": "Extra inputs are not permitted"}]
+    }
     assert client.post(URL.format("not-a-uuid"), json={}).status_code == 404
     command.assert_not_called()

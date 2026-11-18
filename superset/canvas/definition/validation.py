@@ -89,6 +89,14 @@ def pointer(*parts: object) -> str:
     )
 
 
+def request_errors(ex: ValidationError) -> list[dict[str, Any]]:
+    """Request errors as JSON-pointer paths into the request body."""
+    return [
+        {"path": request_pointer(error["loc"]), "message": error["msg"]}
+        for error in ex.errors()
+    ]
+
+
 def request_pointer(loc: tuple[int | str, ...]) -> str:
     """
     A request validation error's location as a JSON pointer into the body.

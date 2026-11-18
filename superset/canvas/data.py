@@ -25,10 +25,15 @@ This stands in for SIP-231's ``build_queries`` until widgets declare their own.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
+
+if TYPE_CHECKING:
+    from flask import Response
+    from flask_appbuilder.api import BaseApi
 
 # Values a select filter publishes.
 FilterScalar = str | int | float | bool
@@ -77,6 +82,47 @@ def datasets_payload(
         dataset["query"] = data.query
         dataset["language"] = data.language
     return {"result": {"datasets": [dataset]}}
+
+
+def data_response(
+    api: BaseApi, binding: str | None, run: Callable[[], PlacementData]
+) -> Response:
+    """
+    A data endpoint's answer to ``run``, which runs a binding's query as
+    ``run_binding`` does: the datasets of ``binding`` (``main`` for none), or
+    the error the caller may see of what it raises.
+    """
+    # pylint: disable=import-outside-toplevel
+    from flask import Response
+
+    from superset.commands.chart.exceptions import ChartDataQueryFailedError
+    from superset.daos.exceptions import DatasourceNotFound
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        SupersetSecurityException,
+    )
+    from superset.extensions import security_manager
+    from superset.utils import json
+
+    try:
+        data = run()
+    except DatasourceNotFound:
+        return api.response_404()
+    except SupersetSecurityException:
+        return api.response_403()
+    except (QueryObjectValidationError, ChartDataQueryFailedError) as ex:
+        return api.response_400(message=str(ex.message))
+    # Classic charts gate "View query" on the same permission.
+    payload = datasets_payload(
+        binding or "main",
+        data,
+        with_query=security_manager.can_access("can_view_query", "Dashboard"),
+    )
+    return Response(
+        json.dumps(payload, default=json.json_int_dttm_ser, ignore_nan=True),
+        status=200,
+        mimetype="application/json",
+    )
 
 
 def binding_dataset_id(props: dict[str, Any]) -> int | None:
