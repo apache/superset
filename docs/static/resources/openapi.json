@@ -26968,6 +26968,30 @@
                   "properties": {
                     "result": {
                       "properties": {
+                        "compatibility_evidence": {
+                          "description": "Optional finite authority for member suggestions. Absent for legacy providers. Unknown or expired evidence must not disable member choices.",
+                          "properties": {
+                            "format_version": {
+                              "type": "integer"
+                            },
+                            "metadata_generation": {
+                              "type": "string"
+                            },
+                            "quality": {
+                              "enum": [
+                                "known",
+                                "partial",
+                                "unknown"
+                              ],
+                              "type": "string"
+                            },
+                            "valid_for_ms": {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "compatible_dimensions": {
                           "items": {
                             "type": "string"
