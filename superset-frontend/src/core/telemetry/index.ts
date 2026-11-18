@@ -35,7 +35,14 @@ const DISALLOWED = /[^a-z0-9_]+/g;
 const MAX_NAME_LENGTH = 64;
 /** Beyond this an event is describing content rather than dimensions. */
 const MAX_KEYS = 32;
-const MAX_VALUE_LENGTH = 256;
+/**
+ * Label-sized on purpose. Truncation is not a privacy control -- the first 256
+ * characters of someone's message are still their message -- so the cap is set
+ * where a value can hold a category, a model name or an error type and cannot
+ * hold prose, a prompt or a list of filter selections. A string long enough to
+ * be content is cut to something that plainly is not.
+ */
+const MAX_VALUE_LENGTH = 64;
 /**
  * Admission control. `DebouncedMessageQueue` caps how many events ride in one
  * request but has no rate limit, so an extension reporting from a render loop

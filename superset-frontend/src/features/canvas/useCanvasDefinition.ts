@@ -76,6 +76,10 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
   const loaded = useRef<string>();
   // The source whose failure has already been reported, cleared on recovery.
   const reported = useRef<string>();
+  // A draft that has been published, discarded or has expired. Polling it
+  // again can only fail again, so the poll stops rather than asking every few
+  // seconds forever -- which also stops the request writing a row each time.
+  const [draftGone, setDraftGone] = useState(false);
   // Drops a response for a source the page has since moved off.
   const source = useRef<string>();
   source.current = `${canvasId}:${draftToken ?? ''}`;
@@ -120,6 +124,7 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
       // rather than from `state`, which would put `state` in this callback's
       // dependencies and make every load schedule the next one.
       const silent = loaded.current === requested;
+      if (draftToken && error.status === 404) setDraftGone(true);
       setState(previous =>
         previous.status === 'complete' && previous.draftToken === draftToken
           ? previous
@@ -146,6 +151,7 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
   }, [canvasId, draftToken, log]);
 
   useEffect(() => {
+    setDraftGone(false);
     revision.current = undefined;
     // Entering or leaving a draft keeps the current definition on screen
     // until the other one arrives, so the page doesn't unmount and refetch.
@@ -157,7 +163,7 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
   }, [canvasId, load]);
 
   useEffect(() => {
-    if (!draftToken) return undefined;
+    if (!draftToken || draftGone) return undefined;
     const reloadIfVisible = () => {
       if (document.visibilityState === 'visible') load();
     };
@@ -169,7 +175,7 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
       if (timer !== undefined) clearInterval(timer);
       window.removeEventListener('focus', reloadIfVisible);
     };
-  }, [draftToken, load]);
+  }, [draftToken, draftGone, load]);
 
   useEffect(() => {
     if (draftToken) return undefined;

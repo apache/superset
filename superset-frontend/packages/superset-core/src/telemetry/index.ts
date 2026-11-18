@@ -37,7 +37,14 @@
  * an extension has to reduce what happened into dimensions -- a count, a
  * duration, a category, a boolean -- rather than handing over a conversation
  * turn, a query result or a user's filter selections. Non-scalar values are
- * rejected by the host rather than stringified.
+ * rejected by the host rather than stringified, and string values are cut to a
+ * label's length.
+ *
+ * Said plainly, because it matters: that cap is not a privacy control. The
+ * first characters of someone's message are still their message. The shape of
+ * this type and the length of a value make content awkward to send and obvious
+ * when sent; they cannot make it impossible. An extension reporting what its
+ * users typed is the extension's bug, and its author's responsibility.
  */
 export type TelemetryEventData = Record<
   string,

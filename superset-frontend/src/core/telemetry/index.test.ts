@@ -97,13 +97,16 @@ test('non-scalar fields are dropped, not stringified', () => {
   expect(eventData).not.toHaveProperty('turns');
 });
 
-test('a long string value is truncated', () => {
+test('a string value is cut to a label, not merely shortened', () => {
+  // Truncation is not a privacy control: the first N characters of someone's
+  // message are still their message. The cap is set where a value can hold a
+  // category or a model name and cannot hold prose.
   createTelemetry('acme.chat').logEvent('message_sent', {
     model: 'm'.repeat(1000),
   });
 
   const { eventData } = eventOf(dispatched()[0]);
-  expect((eventData.model as string).length).toBe(256);
+  expect((eventData.model as string).length).toBe(64);
 });
 
 test('an extension reporting in a loop is rate limited, not allowed to flood', () => {

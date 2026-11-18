@@ -150,7 +150,14 @@ def _report_canvas_error(
             # what is wanted. Resolve it from the draft, and only on the error
             # path, so the extra read costs nothing in the normal case. The
             # token itself never reaches the payload.
-            token = request.headers.get(DRAFT_TOKEN_HEADER)
+            # Not when the draft is the very thing reported missing: the
+            # lookup would just fail again, and a client polling an expired
+            # draft would pay for that read on every attempt.
+            token = (
+                None
+                if isinstance(ex, CanvasDraftNotFoundError)
+                else request.headers.get(DRAFT_TOKEN_HEADER)
+            )
             if token:
                 try:
                     canvas_id = load_draft(token).canvas_id

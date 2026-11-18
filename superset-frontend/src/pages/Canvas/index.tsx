@@ -332,5 +332,9 @@ export default function CanvasPage() {
   const canvasId = useCanvasId(idOrSlug);
   if (canvasId.status === 'error') return notFound;
   if (canvasId.status === 'loading') return <Loading />;
-  return <CanvasContent id={canvasId.id} />;
+  // Keyed: another canvas is another thing. Without this the SPA reuses the
+  // instance, so per-canvas state and refs -- filter values, the chosen
+  // version, whether the mount event has fired -- survive the move and the
+  // first render of the new canvas sees the old one's definition.
+  return <CanvasContent key={canvasId.id} id={canvasId.id} />;
 }

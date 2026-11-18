@@ -150,7 +150,11 @@ Event data is **scalars only, and flat**. That is a privacy guardrail written
 into the type: reduce what happened into dimensions — a count, a duration, a
 category, a boolean — rather than passing a conversation turn, a query result
 or a user's filter selections. Non-scalar values are dropped rather than
-stringified.
+stringified, and strings are cut to a label's length.
+
+That cap is not a privacy control, and should not be relied on as one: the
+first characters of someone's message are still their message. Do not send
+user content.
 
 Telemetry is best-effort and never throws. Invalid names, oversized payloads
 and events beyond the per-extension rate limit are dropped, because reporting
