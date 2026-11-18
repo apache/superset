@@ -60,14 +60,6 @@ const findMatchingFilterKey = (
   return null;
 };
 
-/** `''` is not a display marker. `optionLabel` would turn it into one. */
-function containsEmptyString(value: unknown): boolean {
-  if (value === '') {
-    return true;
-  }
-  return Array.isArray(value) && value.some(item => item === '');
-}
-
 export const simpleFilterToAdhoc = (
   filterClause: QueryObjectFilterClause & {
     filterDataMapping?: Record<string, any[]>;
@@ -101,29 +93,20 @@ export const simpleFilterToAdhoc = (
         timeGrain: filterClause.grain,
         comparator: 'val' in filterClause ? filterClause.val : undefined,
       } as unknown as SimpleAdhocFilter;
-    } else if ('val' in filterClause && containsEmptyString(filterClause.val)) {
-      // Compiling through translateToSql replaces '' with `<empty string>`
-      // and leaves it unquoted, which is not valid SQL.
-      result = {
-        expressionType: 'SIMPLE',
-        clause,
-        operator: filterClause.op,
-        operatorId: Object.entries(OPERATOR_ENUM_TO_OPERATOR_TYPE).find(
-          operatorEntry => operatorEntry[1].operation === filterClause.op,
-        )?.[0],
-        subject: filterClause.col,
-        comparator: filterClause.val,
-      } as unknown as SimpleAdhocFilter;
     } else {
       result = {
         expressionType: 'SQL',
         clause,
-        sqlExpression: translateToSql({
-          expressionType: ExpressionTypes.Simple,
-          subject: `(${filterClause.col.sqlExpression})`,
-          operator: filterClause.op,
-          comparator: 'val' in filterClause ? filterClause.val : undefined,
-        } as SimpleAdhocFilter),
+        // This expression is executed, not displayed as a filter option label.
+        sqlExpression: translateToSql(
+          {
+            expressionType: ExpressionTypes.Simple,
+            subject: `(${filterClause.col.sqlExpression})`,
+            operator: filterClause.op,
+            comparator: 'val' in filterClause ? filterClause.val : undefined,
+          } as SimpleAdhocFilter,
+          { useDisplayValues: false },
+        ),
       };
     }
   } else {

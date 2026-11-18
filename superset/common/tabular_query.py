@@ -288,9 +288,9 @@ def _time_range_filters(
 
     Semantic views need a one-sided range rewritten as an explicit comparison:
     ``_apply_granularity`` removes the granularity column's ``TEMPORAL_RANGE``
-    filter (retaining non-range predicates on that column), and the mapper's
-    ``_get_time_filter`` emits nothing unless both bounds resolve, so the range
-    would vanish and the query would scan the whole view.
+    filter (but keeps non-range predicates when the time column is unchanged),
+    and the mapper's ``_get_time_filter`` emits nothing unless both bounds
+    resolve, so the range would vanish and the query would scan the whole view.
 
     Datasets must keep ``TEMPORAL_RANGE``. ``SqlaTable.get_time_filter`` accepts
     either bound alone and is the only path that applies the dataset's timezone,

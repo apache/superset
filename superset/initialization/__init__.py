@@ -209,7 +209,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
         from superset.dashboards.permalink.api import DashboardPermalinkRestApi
-        from superset.databases.api import DatabaseRestApi
+        from superset.databases.api import DatabaseOAuth2TokensRestApi, DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
@@ -304,6 +304,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
+        appbuilder.add_api(DatabaseOAuth2TokensRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
@@ -650,6 +651,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Conditionally initialize extensions based on feature flag
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             self.init_extensions()
+        else:
+            logger.info("ENABLE_EXTENSIONS is off at startup; extensions not loaded")
 
     def init_extensions(self) -> None:
         from superset.extensions.utils import (
@@ -660,11 +663,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         try:
             extensions = get_extensions()
-        except Exception:  # pylint: disable=broad-except  # noqa: S110
-            # If the db hasn't been initialized yet, an exception will be raised.
-            # It's fine to ignore this, as in this case there are no extensions
-            # present yet.
+        except Exception:  # pylint: disable=broad-except
+            # A discovery failure (for example an unreadable LOCAL_EXTENSIONS
+            # or EXTENSIONS_PATH entry) must not stop the app from starting.
+            logger.warning("Extensions not loaded: discovery failed", exc_info=True)
             return
+
+        failed: int = 0
 
         for extension in extensions.values():
             if backend_files := extension.backend:
@@ -688,6 +693,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         "Failed to initialize extension '%s'",
                         extension.manifest.id,
                     )
+                    failed += 1
+
+        logger.info(
+            "Loaded %d extension(s) at startup; %d failed to initialize",
+            len(extensions) - failed,
+            failed,
+        )
 
     @staticmethod
     def _remove_continuum_write_listeners() -> None:

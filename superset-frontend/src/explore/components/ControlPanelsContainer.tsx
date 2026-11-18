@@ -1036,11 +1036,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                 <>
                   {requiresSemanticReselection && (
                     <ExploreAlert
-                      title={t('Choose current semantic fields')}
+                      title={t('Re-pick fields for this chart')}
                       bodyText={t(
-                        'Start field selection using current member IDs. This clears any existing query and formatting settings. Saved display titles cannot be safely mapped to member IDs. The saved chart is unchanged until you save.',
+                        "This chart was saved with an older format of field names for this semantic view, so the fields it refers to can't be confirmed. Re-pick the metrics and dimensions to keep using it. The saved chart doesn't change until you save.",
                       )}
-                      primaryButtonText={t('Start field selection')}
+                      primaryButtonText={t('Re-pick fields')}
                       primaryButtonAction={() =>
                         actions.resetSemanticSelections(form_data.slice_id)
                       }

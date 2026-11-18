@@ -43,6 +43,7 @@ import {
   type DashboardDatasetsContextValue,
 } from 'src/dashboard/contexts/DashboardDatasetsContext';
 import { buildQuery as buildTableQuery } from '../../../../../plugins/plugin-chart-table/src/buildQuery';
+import { buildQueryUncached as buildInteractiveQuery } from '../../../../../plugins/plugin-chart-ag-grid-table/src/buildQuery';
 import type { TableChartFormData } from '../../../../../plugins/plugin-chart-table/src/types';
 
 let capturedChartContainerProps: Record<string, unknown> = {};
@@ -405,57 +406,62 @@ test('ignores prior metadata when a completed response omits the semantic source
   );
 });
 
-test('omits a dormant semantic grain when current metadata proves the axis non-temporal', () => {
-  const savedFormData = {
-    ...chartQueries[queryId].form_data,
-    datasource: '2__semantic_view',
-    viz_type: VizType.Table,
-    metrics: ['orders'],
-    groupby: ['country'],
-    granularity: undefined,
-    time_grain_sqla: TimeGranularity.DAY,
-    temporal_columns_lookup: { country: true },
-  };
-  setup(
-    {},
-    {
-      charts: {
-        ...defaultState.charts,
-        [queryId]: {
-          ...defaultState.charts[queryId],
-          form_data: savedFormData,
+test.each([VizType.Table, VizType.TableAgGrid])(
+  'omits a dormant semantic grain for %s when current metadata proves the axis non-temporal',
+  vizType => {
+    const savedFormData = {
+      ...chartQueries[queryId].form_data,
+      datasource: '2__semantic_view',
+      viz_type: vizType,
+      metrics: ['orders'],
+      groupby: ['country'],
+      granularity: undefined,
+      time_grain_sqla: TimeGranularity.DAY,
+      temporal_columns_lookup: { country: true },
+    };
+    setup(
+      {},
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            form_data: savedFormData,
+          },
+        },
+        datasources: {
+          '2__semantic_view': {
+            ...mockDatasource['7__table'],
+            type: DatasourceType.SemanticView,
+            columns: [{ column_name: 'country', is_dttm: false }],
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          datasetsStatus: 'complete',
         },
       },
-      datasources: {
-        '2__semantic_view': {
-          ...mockDatasource['7__table'],
-          type: DatasourceType.SemanticView,
-          columns: [{ column_name: 'country', is_dttm: false }],
-        },
+      {
+        dashboardId: props.dashboardId,
+        datasets: [
+          {
+            uid: '2__semantic_view',
+            type: DatasourceType.SemanticView,
+            columns: [{ column_name: 'country', is_dttm: false }],
+          },
+        ],
       },
-      dashboardState: {
-        ...defaultState.dashboardState,
-        datasetsStatus: 'complete',
-      },
-    },
-    {
-      dashboardId: props.dashboardId,
-      datasets: [
-        {
-          uid: '2__semantic_view',
-          type: DatasourceType.SemanticView,
-          columns: [{ column_name: 'country', is_dttm: false }],
-        },
-      ],
-    },
-  );
+    );
 
-  const formData = capturedChartContainerProps.formData as TableChartFormData;
-  expect(formData.temporal_columns_lookup).toEqual({ country: false });
-  expect(buildTableQuery(formData).queries[0].extras).not.toHaveProperty(
-    'time_grain_sqla',
-  );
-});
+    const formData = capturedChartContainerProps.formData as TableChartFormData;
+    expect(formData.temporal_columns_lookup).toEqual({ country: false });
+    expect(
+      (vizType === VizType.Table ? buildTableQuery : buildInteractiveQuery)(
+        formData,
+      ).queries[0].extras,
+    ).not.toHaveProperty('time_grain_sqla');
+  },
+);
 
 test('leaves saved SQL dataset lookup unchanged on dashboards', () => {
   const savedFormData = {
@@ -1253,5 +1259,31 @@ test('preserves the datasource reference when no chart display labels are presen
   setup();
   expect(capturedChartContainerProps.datasource).toBe(
     mockDatasource['7__table'],
+  );
+});
+
+test('passes the form data of the last request to ChartContainer next to the current form data', () => {
+  // With deferred data a chart off screen starts no new query, so the form
+  // data of the request in flight lags behind the current one. A chart kept on
+  // screen draws that request's response with the form data it was sent with.
+  const chart = defaultState.charts[queryId];
+  const queriedFormData = { ...chart.form_data, groupby: ['country'] };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...chart,
+          form_data: { ...chart.form_data, groupby: ['region'] },
+          latestQueryFormData: queriedFormData,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps.latestQueryFormData).toBe(queriedFormData);
+  expect(capturedChartContainerProps.formData).toEqual(
+    expect.objectContaining({ groupby: ['region'] }),
   );
 });

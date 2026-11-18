@@ -88,6 +88,12 @@
         "description": "Try to optimize SQL queries \u2014 for now only predicate pushdown is supported"
       },
       {
+        "name": "PARTITION_FILTER_MAPPING",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Map a dataset's business column onto its physical partition column, so engines that require an explicit partition predicate can prune. Filters on the mapped column are mirrored onto the partition column at query time, so enabling this changes the SQL charts emit rather than only storing configuration."
+      },
+      {
         "name": "PRESTO_EXPAND_DATA",
         "default": false,
         "lifecycle": "development",
@@ -184,6 +190,13 @@
         "description": "Enable dynamic plugin loading"
       },
       {
+        "name": "EMBEDDED_CREDENTIAL_FALLBACK",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Allow a database connection to carry a username with a password or key pair used only for embedded guest requests, while logged-in users continue to authenticate per-user via OAuth2. Requires EMBEDDED_SUPERSET.",
+        "category": "security"
+      },
+      {
         "name": "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT",
         "default": false,
         "lifecycle": "testing",
@@ -206,7 +219,7 @@
         "name": "ENABLE_VIEWERS",
         "default": false,
         "lifecycle": "testing",
-        "description": "Subject-based viewer access control for dashboards and charts. When enabled, resources can have explicit viewer Subject assignments.",
+        "description": "Subject-based viewer access control for dashboards and charts. When enabled, viewers can be assigned through the UI and API. A non-empty viewers list is always enforced, even when this flag is off (legacy DASHBOARD_RBAC roles are migrated into viewers); turning the flag off only blocks adding new viewers, while existing ones can still be removed.",
         "category": "security"
       },
       {

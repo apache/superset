@@ -41,7 +41,7 @@ from flask_appbuilder.const import (
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
-from marshmallow import ValidationError
+from marshmallow import Schema, ValidationError
 from sqlalchemy import asc, case, desc
 from sqlalchemy.orm import Query
 from sqlalchemy.orm.util import AliasedClass
@@ -53,6 +53,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDatasourceFilter,
     ChartDeletedRecencyFilter,
     ChartDeletedStateFilter,
     ChartEditableFilter,
@@ -136,7 +137,6 @@ from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
     ScreenshotCachePayload,
-    StatusValues,
 )
 from superset.utils.urls import get_url_path
 from superset.versioning.api_helpers import (
@@ -382,6 +382,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ChartOwnedCreatedFavoredByMeFilter,
         ],
         "slice_name": [ChartAllTextFilter],
+        "datasource_id": [ChartDatasourceFilter],
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
         "tags": [ChartTagNameFilter, ChartTagIdFilter],
     }
@@ -395,7 +396,12 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = CHART_SCHEMAS + (VersionListItemSchema,)
+    # Annotated as a variable-length tuple (matching the declaration in
+    # BaseSupersetApi) so subclasses can extend it with their own schemas
+    # without tripping mypy's override check on an inferred fixed-length type.
+    openapi_spec_component_schemas: tuple[type[Schema], ...] = CHART_SCHEMAS + (
+        VersionListItemSchema,
+    )
 
     apispec_parameter_schemas = {
         "chart_get_list_schema": chart_get_list_schema,
@@ -1213,9 +1219,21 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force, expected_scope=f"chart:{chart.id}"):
+        if cache_payload.should_trigger_task(
+            force,
+            expected_scope=f"chart:{chart.id}",
+            check_updated_staleness=screenshot_obj.supports_updated_staleness,
+        ):
             logger.info("Triggering screenshot ASYNC")
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
+            if force:
+                # A forced capture stays unavailable until its replacement renders,
+                # so polling image_url cannot mistake the previous image for success.
+                cache_payload.pending()
+                cache_payload.set_scope(f"chart:{chart.id}")
+                screenshot_obj.cache.set(cache_key, cache_payload.to_dict())
+            # Leave force-less retries untouched: the worker must still see the
+            # expired state and retain its last-good image if rendering fails.
+            # Pre-writing fresh COMPUTING would make the worker skip the render.
             cache_chart_thumbnail.delay(
                 current_user=get_current_user(),
                 chart_id=chart.id,
@@ -1283,16 +1301,23 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # serve its image under a different, merely-accessible `pk`.
             if cache_payload.get_scope() != f"chart:{chart.id}":
                 return self.response_404()
-            if cache_payload.status == StatusValues.UPDATED:
-                try:
-                    image = cache_payload.get_image()
-                except ScreenshotImageNotAvailableException:
-                    return self.response_404()
-                return Response(
-                    FileWrapper(image),
-                    mimetype="image/png",
-                    direct_passthrough=True,
-                )
+            # Serve whenever a valid image is present instead of gating on
+            # status == UPDATED. A failed retry leaves the entry in an
+            # ERROR/COMPUTING backoff while still carrying the retained last-good
+            # image; requiring UPDATED here would 404 that image for up to a day.
+            # get_from_cache_key validates whatever image is present regardless of
+            # status (see ScreenshotCachePayload.get_invalid_image_reason), so a
+            # corrupt/blank retained image is rejected as a cache miss and only
+            # genuinely valid bytes reach this point.
+            try:
+                image = cache_payload.get_image()
+            except ScreenshotImageNotAvailableException:
+                return self.response_404()
+            return Response(
+                FileWrapper(image),
+                mimetype="image/png",
+                direct_passthrough=True,
+            )
         return self.response_404()
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
@@ -1364,12 +1389,15 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
         )
 
+        # No check_updated_staleness here on purpose: this high-traffic card-list
+        # thumbnail path must never opt into updated-staleness recompute.
         if cache_payload.should_trigger_task():
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
+            # Preserve a last-good image through retries. The worker rechecks the
+            # expired state and discards retained bytes if their scope differs.
             cache_chart_thumbnail.delay(
                 current_user=current_user,
                 chart_id=chart.id,
@@ -1663,6 +1691,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
+        # The form carries secrets.
+        include_request_data=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -1725,6 +1755,13 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of sensitive values for masked_encrypted_extra fields
+                        of featured databases. Keys are file paths (e.g.,
+                        "databases/db.yaml") and values are JSON objects mapping
+                        JSONPath expressions to secrets.
+                      type: string
           responses:
             200:
               description: Chart import result
@@ -1762,6 +1799,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         ssh_tunnel_priv_key_passwords = parse_json_form_field(
             "ssh_tunnel_private_key_passwords"
         )
+        encrypted_extra_secrets = parse_json_form_field("encrypted_extra_secrets")
 
         command = ImportChartsCommand(
             contents,
@@ -1770,6 +1808,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")
