@@ -573,11 +573,25 @@ export default function getFormDataWithExtraFilters({
     .filter(([, activeFilter]) => activeFilter?.scope?.includes(chart.id))
     .map(([filterId]) => filterId)
     .sort((a, b) => Number(!nativeFilters?.[a]) - Number(!nativeFilters?.[b]));
+  // Control types let the merge drop provenance a cleared grain control
+  // carries, including masks saved before its type was considered.
+  const controlTypes: Record<string, string | undefined> = {
+    ...Object.fromEntries(
+      Object.entries(activeFilters).map(([id, filter]) => [
+        id,
+        filter?.filterType,
+      ]),
+    ),
+    ...Object.fromEntries(
+      (chartCustomizationItems ?? []).map(item => [item.id, item.filterType]),
+    ),
+  };
 
   if (filterIdsAppliedOnChart.length) {
     const aggregatedFormData = getExtraFormData(
       dataMask,
       filterIdsAppliedOnChart,
+      controlTypes,
     );
     extraData = {
       extra_form_data: aggregatedFormData,
@@ -659,7 +673,7 @@ export default function getFormDataWithExtraFilters({
 
   const customizationExtraFormData =
     customizationIds.length > 0
-      ? getExtraFormData(dataMask, customizationIds)
+      ? getExtraFormData(dataMask, customizationIds, controlTypes)
       : {};
 
   const formData: CachedFormDataWithExtraControls = {
