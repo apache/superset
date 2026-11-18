@@ -1133,7 +1133,7 @@ export const checkSockets = () => {
         `closing socket with expired token: ${socketId}, channel: ${socketInstance.channel}`,
       );
       statsd.increment('ws_token_expired_disconnect');
-      socketInstance.ws.close(AUTH_CLOSE_CODE, 'token expired');
+      closeWithinGrace(socketInstance.ws, AUTH_CLOSE_CODE, 'token expired');
       isActive = false;
     } else if (timeout >= opts.socketResponseTimeoutMs) {
       logger.debug(

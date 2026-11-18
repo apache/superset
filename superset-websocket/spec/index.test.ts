@@ -1269,20 +1269,30 @@ describe('server', () => {
     });
 
     test('sockets with expired JWTs are closed with a reauthentication code', () => {
-      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
-      trackSocket(channelId, ws, {
-        identity: makeIdentity(channelId, Date.now() - 1),
-      });
+      vi.useFakeTimers();
+      try {
+        vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
+        trackSocket(channelId, ws, {
+          identity: makeIdentity(channelId, Date.now() - 1),
+        });
 
-      server.checkSockets();
+        server.checkSockets();
 
-      expect(pingSpy).not.toHaveBeenCalled();
-      expect(closeSpy).toHaveBeenCalledWith(4401, 'token expired');
-      expect(terminateSpy).not.toHaveBeenCalled();
-      expect(Object.keys(server.sockets).length).toBe(0);
-      expect(statsdIncrementMock).toHaveBeenCalledWith(
-        'ws_token_expired_disconnect',
-      );
+        expect(pingSpy).not.toHaveBeenCalled();
+        expect(closeSpy).toHaveBeenCalledWith(4401, 'token expired');
+        expect(terminateSpy).not.toHaveBeenCalled();
+        expect(Object.keys(server.sockets).length).toBe(0);
+        expect(statsdIncrementMock).toHaveBeenCalledWith(
+          'ws_token_expired_disconnect',
+        );
+
+        // The mocked peer never answers the close frame: it is terminated after
+        // the grace period rather than left open outside the registry.
+        vi.advanceTimersByTime(server.CLOSE_GRACE_MS);
+        expect(terminateSpy).toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     test('stale sockets', () => {
