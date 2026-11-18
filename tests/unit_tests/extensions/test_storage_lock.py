@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import Any
 from unittest.mock import patch
 
@@ -41,13 +41,20 @@ NO_COORDINATION_BACKEND = patch(
 
 
 @pytest.fixture
-def tables(app_context: None) -> None:
+def tables(app_context: None) -> Iterator[None]:
     from superset import db
     from superset.extensions.storage.persistent_model import ExtensionStorage
     from superset.key_value.models import KeyValueEntry
 
     ExtensionStorage.metadata.create_all(db.engine)  # pylint: disable=no-member
     KeyValueEntry.metadata.create_all(db.engine)  # pylint: disable=no-member
+    yield
+    # The database outlives the test: a lock it left held would still hold
+    # for the next test, until its expiry.
+    db.session.rollback()
+    db.session.query(KeyValueEntry).delete()
+    db.session.query(ExtensionStorage).delete()
+    db.session.commit()  # pylint: disable=consider-using-transaction
 
 
 def other_writer_holds_the_lock() -> Callable[[float], None]:
