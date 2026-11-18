@@ -72,10 +72,10 @@ export function subjectForPill(
  * A drilled time bucket is stored as epoch milliseconds. Show it as a naive
  * datetime so the pill matches the SQL the bucket actually filters.
  */
-function comparatorForDisplay(filter: {
+function formattedBucketComparator(filter: {
   comparator?: unknown;
   timeGrain?: string;
-}): unknown {
+}): string | undefined {
   const { comparator, timeGrain } = filter;
   if (
     timeGrain &&
@@ -84,7 +84,7 @@ function comparatorForDisplay(filter: {
   ) {
     return new Date(comparator).toISOString().slice(0, 19);
   }
-  return comparator;
+  return undefined;
 }
 
 /** Drop the bucket metadata an edit no longer applies to the expression. */
@@ -262,11 +262,17 @@ export default class AdhocFilter {
 
   getDefaultLabel(columns?: VerboseColumn[]): string {
     const pillLabel = subjectForPill(this.subject);
-    const source = {
-      ...(this as unknown as CoreAdhocFilter),
-      comparator: comparatorForDisplay(this),
-      ...(pillLabel ? { subject: pillLabel } : {}),
-    };
+    const formatted = formattedBucketComparator(this);
+    // The core type says a binary comparator is a string. A drilled bucket is
+    // still an epoch number at runtime, so the formatted value has to be
+    // asserted back onto the filter.
+    const base: CoreAdhocFilter = formatted
+      ? ({
+          ...(this as unknown as CoreAdhocFilter),
+          comparator: formatted,
+        } as unknown as CoreAdhocFilter)
+      : (this as unknown as CoreAdhocFilter);
+    const source = pillLabel ? { ...base, subject: pillLabel } : base;
     const label = translateToSql(source, { columns });
     const displayLabel = this.timeGrain
       ? `[${this.timeGrain}] ${label}`
@@ -282,9 +288,8 @@ export default class AdhocFilter {
   }
 
   translateToSql(params: { columns?: VerboseColumn[] } = {}): string {
-    const comparator = comparatorForDisplay(this);
-    const filter =
-      comparator === this.comparator ? this : { ...this, comparator };
+    const formatted = formattedBucketComparator(this);
+    const filter = formatted ? { ...this, comparator: formatted } : this;
     return translateToSql(filter as unknown as CoreAdhocFilter, params);
   }
 }
