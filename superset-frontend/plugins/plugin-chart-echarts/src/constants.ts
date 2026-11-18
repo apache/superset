@@ -115,6 +115,12 @@ export const WEEKLY_TIME_GRAINS: ReadonlySet<string> = new Set([
 ]);
 
 export const TIMEGRAIN_TO_TIMESTAMP = {
+  [TimeGranularity.SECOND]: 1000,
+  [TimeGranularity.MINUTE]: 60 * 1000,
+  [TimeGranularity.FIVE_MINUTES]: 5 * 60 * 1000,
+  [TimeGranularity.TEN_MINUTES]: 10 * 60 * 1000,
+  [TimeGranularity.FIFTEEN_MINUTES]: 15 * 60 * 1000,
+  [TimeGranularity.THIRTY_MINUTES]: 30 * 60 * 1000,
   [TimeGranularity.HOUR]: 3600 * 1000,
   [TimeGranularity.DAY]: 3600 * 1000 * 24,
   [TimeGranularity.MONTH]: 3600 * 1000 * 24 * 31,
