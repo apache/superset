@@ -63,7 +63,7 @@ class RealtimePrincipal(TypedDict):
 def channel_id_for(user_id: int | None, guest_key: str | None) -> str | None:
     """Derive a principal's realtime channel from its identity, or ``None``.
 
-    The socket routing-key format used by the JWT cookie and the websocket
+    The socket routing-key format used by the connection ticket and the websocket
     server's targeted fanout. ``user:<id>`` for an authenticated user; the
     guest's token-derived key (already namespaced ``guest:<hmac>``) for an
     embedded guest; ``None`` when neither identifies a principal. This is the
