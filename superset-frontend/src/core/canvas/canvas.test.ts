@@ -61,3 +61,56 @@ test('active canvas changes fire only when something changed', () => {
   expect(canvas.getActiveCanvas()).toBeUndefined();
   subscription.dispose();
 });
+
+test('active canvas changes fire on the open draft and a version preview', () => {
+  const listener = jest.fn();
+  const subscription = canvas.onDidChangeActiveCanvas(listener);
+  const published = { id: 1, title: 'Exec overview', revision: 2 };
+  const settled = (token: string, revision: number) => ({
+    ...published,
+    draft: { token, pending: false as const, revision },
+  });
+  const pending = (token: string) => ({
+    ...published,
+    draft: { token, pending: true as const },
+  });
+  const previewing = (uuid: string, number: number) => ({
+    ...published,
+    previewedVersion: { uuid, number },
+  });
+
+  setActiveCanvas(undefined);
+  setActiveCanvas(published);
+  setActiveCanvas(settled('tok-1', 0));
+  // A fresh object with the same values, draft included, is no change.
+  setActiveCanvas({ ...published, draft: { ...settled('tok-1', 0).draft } });
+  setActiveCanvas(pending('tok-1'));
+  setActiveCanvas(pending('tok-1'));
+  setActiveCanvas(settled('tok-1', 1));
+  setActiveCanvas(settled('tok-2', 1));
+  setActiveCanvas(pending('tok-2'));
+  setActiveCanvas(published);
+  setActiveCanvas(previewing('v-1', 1));
+  setActiveCanvas({ ...previewing('v-1', 1) });
+  setActiveCanvas(previewing('v-2', 2));
+  // Either part of the version changing is a change.
+  setActiveCanvas(previewing('v-2', 3));
+  setActiveCanvas(previewing('v-3', 3));
+  setActiveCanvas(published);
+
+  expect(listener.mock.calls).toEqual([
+    [published],
+    [settled('tok-1', 0)],
+    [pending('tok-1')],
+    [settled('tok-1', 1)],
+    [settled('tok-2', 1)],
+    [pending('tok-2')],
+    [published],
+    [previewing('v-1', 1)],
+    [previewing('v-2', 2)],
+    [previewing('v-2', 3)],
+    [previewing('v-3', 3)],
+    [published],
+  ]);
+  subscription.dispose();
+});

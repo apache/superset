@@ -151,7 +151,9 @@ export default function DraftBanner({
 }: DraftBannerProps) {
   // Held here so the count can show it is the thing that is open.
   const [listing, setListing] = useState(false);
-  const busy = actions.busy || history.busy;
+  // A step not yet on screen counts: a publish would name the revision it
+  // started from and be rejected.
+  const busy = actions.busy || history.busy || Boolean(history.settling);
   // Held while a write is still going: publishing then would commit the older
   // revision and drop the change the user just made.
   const steppable = !saving && !busy;

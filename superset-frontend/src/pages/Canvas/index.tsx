@@ -211,11 +211,32 @@ function CanvasContent({ id }: { id: number }) {
   const title = metadata.result?.title;
   const revision =
     state.status === 'complete' ? state.result.revision : undefined;
+  const previewed = history.preview?._version;
+  const active =
+    title !== undefined &&
+    revision !== undefined &&
+    state.status === 'complete' &&
+    state.canvasId === id &&
+    (state.result.canvasId ?? id) === id &&
+    metadata.result?.id === id
+      ? {
+          title,
+          revision,
+          draftLoaded:
+            Boolean(draft.token) &&
+            state.draftToken === draft.token &&
+            state.refreshFailed !== 'gone',
+          draftRefreshFailed: state.refreshFailed === 'failed',
+          previewedVersion: previewed && {
+            uuid: previewed.version_uuid,
+            number: previewed.version_number,
+          },
+        }
+      : undefined;
+  const hasActive = active !== undefined;
   useEffect(() => {
-    if (title !== undefined && revision !== undefined) {
-      setActiveCanvas({ id, title, revision });
-    }
-  }, [id, title, revision]);
+    if (!hasActive) setActiveCanvas(undefined);
+  }, [hasActive]);
   useEffect(() => () => setActiveCanvas(undefined), [id]);
 
   // Raised once the canvas is actually on screen -- both the metadata and the
@@ -331,6 +352,7 @@ function CanvasContent({ id }: { id: number }) {
           isEmpty={isEmpty}
           toolbarSlot={toolbarSlot}
           versionUuid={preview?._version.version_uuid}
+          active={active}
         />
         <CanvasVersionHistory
           open={historyOpen}

@@ -169,11 +169,55 @@ export interface CanvasWidgetProps {
   renderGrid: (options?: { chromeAbove?: boolean }) => ReactNode;
 }
 
-/** The canvas the user has open. */
+/**
+ * The draft open on the active canvas. Its `token` authorizes reading,
+ * changing, publishing and discarding the draft as the current user: treat it
+ * as a credential, never log it or send it anywhere the user hasn't asked for.
+ * `pending` is true while a change to the draft is in flight or its last
+ * refresh failed, and `revision` is there only once it has settled.
+ */
+export type ActiveCanvasDraft =
+  | {
+      readonly token: string;
+      readonly pending: true;
+      readonly revision?: undefined;
+    }
+  | {
+      readonly token: string;
+      readonly pending: false;
+      /**
+       * The draft revision on screen, and the one a publish must name. A
+       * present token alone is no evidence the user has seen any revision.
+       * If a publish naming it is rejected with a conflict, don't retry with
+       * a revision the user hasn't seen; wait for the next value.
+       */
+      readonly revision: number;
+    };
+
+/** A saved version, as version history names it. */
+export interface ActiveCanvasVersion {
+  readonly uuid: string;
+  readonly number: number;
+}
+
+/** The canvas the user has open. Values are frozen snapshots. */
 export interface ActiveCanvas {
-  id: number;
-  title: string;
-  revision: number;
+  readonly id: number;
+  readonly title: string;
+  /**
+   * Revision of the canvas or draft definition the page last fetched; a
+   * version preview doesn't change it, and a draft's layout edits move past
+   * it until the next fetch. To publish a draft, name `draft.revision`.
+   */
+  readonly revision: number;
+  /**
+   * The draft open in the page, present once its own definition has loaded
+   * and until the user leaves it, or the draft turns out to be gone. Absent
+   * during a version preview.
+   */
+  readonly draft?: ActiveCanvasDraft;
+  /** The saved version on screen, while one is previewed. */
+  readonly previewedVersion?: ActiveCanvasVersion;
 }
 
 /**
@@ -201,6 +245,9 @@ export declare function getWidgetRenderer(
 export declare function getActiveCanvas(): ActiveCanvas | undefined;
 
 /**
- * Fires when the user opens or leaves a canvas, or the open canvas changes.
+ * Fires when the user opens or leaves a canvas, or the open canvas changes:
+ * entering or leaving a draft, a draft change starting or settling, and
+ * entering, leaving or switching a version preview. To tell a switch to
+ * another canvas apart, compare `id`.
  */
 export declare const onDidChangeActiveCanvas: Event<ActiveCanvas | undefined>;
