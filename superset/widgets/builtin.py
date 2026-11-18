@@ -291,16 +291,39 @@ class FilterSelect(Widget):
     # Labeled with its column.
     ui = WidgetUi(default_size=(6, 2), show_title=False)
 
+    # The most datasets the dataset picker lists, by name.
+    MAX_DATASET_CHOICES: ClassVar[int] = 500
+
     @staticmethod
     def _populate_datasets(
         _schema: dict[str, Any],
         node: dict[str, Any],
-        _parsed: BaseModel | None,
+        parsed: BaseModel | None,
         _series: list[str],
         _upstream: dict[str, Any],
     ) -> None:
-        """Populate the dataset picker with datasets the caller can view."""
-        datasets = DatasetDAO.find_all()
+        """
+        Populate the dataset picker with datasets the caller can view, up to
+        ``MAX_DATASET_CHOICES`` plus the one already chosen.
+
+        Left blank for the base schema, asked for without control values, as
+        the column picker is: listing the catalog there is a large payload on
+        a request that did not ask for choices.
+        """
+        node["enum"] = []
+        node["x-enumNames"] = []
+        if parsed is None:
+            return
+        datasets, _ = DatasetDAO.list(
+            order_column="table_name",
+            order_direction="asc",
+            page_size=FilterSelect.MAX_DATASET_CHOICES,
+            with_count=False,
+        )
+        chosen = getattr(parsed, "dataset_id", None)
+        if chosen and chosen not in {dataset.id for dataset in datasets}:
+            if dataset := DatasetDAO.find_by_id(chosen):
+                datasets = [*datasets, dataset]
         node["enum"] = [dataset.id for dataset in datasets]
         node["x-enumNames"] = [dataset.name for dataset in datasets]
 

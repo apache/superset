@@ -22,6 +22,7 @@ from marshmallow import ValidationError
 from sqlalchemy.orm.exc import StaleDataError
 
 from superset import db, security_manager
+from superset.canvas.definition.ops import entity_props, WidgetContentError
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.utils import compute_subjects
 from superset.commands.widget.exceptions import (
@@ -96,5 +97,21 @@ class UpdateWidgetCommand(UpdateMixin, BaseCommand):
 
         exceptions: list[ValidationError] = []
         compute_subjects(self._model, self._properties, exceptions)
+        self._validate_props(self._model, exceptions)
         if exceptions:
             raise WidgetInvalidError(exceptions=exceptions)
+
+    def _validate_props(self, model: Widget, exceptions: list[ValidationError]) -> None:
+        if "props" not in self._properties and "schema_version" not in self._properties:
+            return
+        try:
+            props, version = entity_props(
+                model.widget_type,
+                self._properties.get("props", model.props) or {},
+                self._properties.get("schema_version", model.schema_version),
+            )
+        except WidgetContentError as ex:
+            exceptions.append(ValidationError(ex.messages, field_name=ex.field_name))
+            return
+        self._properties["props"] = props
+        self._properties["schema_version"] = version

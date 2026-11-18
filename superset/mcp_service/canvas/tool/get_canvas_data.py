@@ -39,7 +39,10 @@ from superset.commands.canvas.exceptions import (
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import GetCanvasDataResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
-from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
+from superset.mcp_service.canvas.tool.canvas_ops_common import (
+    absolute_url,
+    query_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -110,8 +113,7 @@ def _widget_data(
     try:
         rows = run_binding(props["dataBinding"], runtime_filters).rows
     except Exception as ex:  # pylint: disable=broad-except
-        logger.info("Canvas widget query failed for %s: %s", placement_id, ex)
-        entry["error"] = f"The widget's query failed: {ex}"
+        entry["error"] = query_error(ex)["error"]
         return entry
     entry["row_count"] = len(rows)
     entry["columns"] = list(rows[0]) if rows else []

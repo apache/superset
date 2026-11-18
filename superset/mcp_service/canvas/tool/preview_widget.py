@@ -41,12 +41,13 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
 )
 from superset.daos.canvas import CanvasDAO
-from superset.errors import SupersetErrorType
-from superset.exceptions import SupersetSecurityException
-from superset.extensions import security_manager
 from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
-from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
+from superset.mcp_service.canvas.tool.canvas_ops_common import (
+    absolute_url,
+    can_view_query,
+    query_error,
+)
 from superset.models.canvas import Canvas
 from superset.utils import json
 
@@ -115,8 +116,7 @@ def _with_rows(
     result["row_count"] = len(rows)
     result["columns"] = list(rows[0]) if rows else []
     result["sample_rows"] = rows[:SAMPLE_ROWS]
-    # Classic charts gate "View query" on the same permission.
-    if data.query and security_manager.can_access("can_view_query", "Dashboard"):
+    if data.query and can_view_query():
         result["query"] = data.query
         result["query_language"] = data.language
     if not rows:
@@ -238,22 +238,8 @@ def _preview_widget_impl(
     result.update(placement_id=placement_id, widget_type=widget_type)
     try:
         rows = _with_rows(result, props, runtime_filters)
-    except SupersetSecurityException as ex:
-        result["error"] = f"The widget's query failed: {ex}"
-        result["error_type"] = (
-            "DatasetNotAccessible"
-            if ex.error.error_type
-            in {
-                SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
-                SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
-            }
-            else "QueryError"
-        )
-        return result, None
     except Exception as ex:  # pylint: disable=broad-except
-        result["error"] = f"The widget's query failed: {ex}"
-        result["error_type"] = "QueryError"
+        result.update(query_error(ex))
         return result, None
     if widget_type == "echarts" and not _draws_series(props):
         result.setdefault("warnings", []).append(

@@ -28,6 +28,7 @@ from superset.commands.widget.create import CreateWidgetCommand
 from superset.commands.widget.delete import DeleteWidgetCommand
 from superset.commands.widget.exceptions import (
     WidgetForbiddenError,
+    WidgetInvalidError,
     WidgetNotFoundError,
     WidgetRevisionConflictError,
 )
@@ -62,6 +63,53 @@ def test_create_defaults_editors_to_the_creator(
     assert widget.schema_version == 1
     assert widget.props == {"content": "Hi"}
     assert widget.editors == [alice]
+
+
+@pytest.mark.parametrize(
+    "data,field",
+    [
+        ({"widget_type": "no-such-widget", "props": {}}, "widget_type"),
+        # The markdown controls require ``content``.
+        ({"widget_type": "markdown", "props": {}}, "props"),
+        # Newer than the widget supports.
+        (
+            {
+                "widget_type": "markdown",
+                "props": {"content": "Hi"},
+                "schema_version": 9,
+            },
+            "props",
+        ),
+    ],
+)
+def test_create_refuses_what_a_canvas_would_refuse(
+    tables: Session, make_user: MakeUser, data: dict[str, Any], field: str
+) -> None:
+    alice_user, _ = make_user("alice", "Gamma")
+    tables.commit()
+
+    with override_user(alice_user):
+        with pytest.raises(WidgetInvalidError) as excinfo:
+            CreateWidgetCommand({"name": "Notes", "schema_version": 1, **data}).run()
+
+    assert field in excinfo.value.normalized_messages()
+    assert tables.query(Widget).count() == 0
+
+
+def test_update_refuses_props_a_canvas_would_refuse(
+    tables: Session, make_user: MakeUser, make_widget: MakeWidget
+) -> None:
+    alice_user, alice = make_user("alice", "Gamma")
+    widget = make_widget("Notes", editors=[alice])
+    tables.commit()
+
+    with override_user(alice_user):
+        with pytest.raises(WidgetInvalidError) as excinfo:
+            UpdateWidgetCommand(str(widget.uuid), {"props": {"content": 3}}).run()
+
+    assert "props" in excinfo.value.normalized_messages()
+    tables.refresh(widget)
+    assert (widget.props, widget.revision) == ({"content": "Notes"}, 1)
 
 
 def test_update_bumps_the_revision(

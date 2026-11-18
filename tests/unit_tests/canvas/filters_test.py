@@ -134,3 +134,107 @@ def test_extra_access_query_filter_is_skipped_without_a_user(
 
     assert visible(session) == ["edited", "viewed"]
     granted.assert_not_called()
+
+
+CANVAS_ENABLED = pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"CANVAS": True}}], indirect=True
+)
+
+
+@pytest.fixture
+def api_session(mocker: MockerFixture, session: Session) -> None:
+    """FAB's list endpoint queries through the data model's own session."""
+    from superset.canvas.api import CanvasRestApi
+
+    mocker.patch.object(CanvasRestApi.datamodel, "_session", session)
+
+
+@CANVAS_ENABLED
+@pytest.mark.parametrize(
+    "guest, expected",
+    [(False, ["edited", "viewed"]), (True, [])],
+    ids=["restricted-user", "embedded-guest"],
+)
+def test_list_and_get_show_only_the_canvases_the_caller_reads(
+    client: Any,
+    full_api_access: None,
+    api_session: None,
+    session: Session,
+    shared: dict[str, Any],
+    mocker: MockerFixture,
+    guest: bool,
+    expected: list[str],
+) -> None:
+    session.commit()
+    as_user(mocker, guest=guest)
+
+    listed = client.get("/api/v1/canvas/").json
+    assert sorted(row["title"] for row in listed["result"]) == expected
+    assert listed["count"] == len(expected)
+    for title, canvas in shared.items():
+        status = client.get(f"/api/v1/canvas/{canvas.id}").status_code
+        assert status == (200 if title in expected else 404)
+
+
+@CANVAS_ENABLED
+def test_text_search_does_not_widen_what_a_restricted_user_sees(
+    client: Any,
+    full_api_access: None,
+    api_session: None,
+    session: Session,
+    shared: dict[str, Any],
+    mocker: MockerFixture,
+) -> None:
+    import prison
+
+    session.commit()
+    as_user(mocker)
+    # Every title matches, including the one the user cannot see.
+    query = prison.dumps(
+        {"filters": [{"col": "title", "opr": "canvas_all_text", "value": "e"}]}
+    )
+
+    listed = client.get(f"/api/v1/canvas/?q={query}").json
+
+    assert sorted(row["title"] for row in listed["result"]) == ["edited", "viewed"]
+    assert listed["count"] == 2
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"FEATURE_FLAGS": {"CANVAS": True}, "EXCLUDE_USERS_FROM_LISTS": ["robot"]}],
+    indirect=True,
+)
+@pytest.mark.parametrize("field", ["created_by", "changed_by"])
+def test_related_users_leave_out_excluded_users(
+    app: Any,
+    client: Any,
+    full_api_access: None,
+    session: Session,
+    mocker: MockerFixture,
+    field: str,
+) -> None:
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.models.canvas import Canvas
+
+    # Related models are queried through the app builder's session.
+    mocker.patch.object(app.appbuilder, "_session", session)
+
+    Canvas.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    session.add_all(
+        User(
+            username=username,
+            first_name=username,
+            last_name="User",
+            email=f"{username}@example.com",
+            active=True,
+        )
+        for username in ("alice", "robot")
+    )
+    session.commit()
+
+    response = client.get(f"/api/v1/canvas/related/{field}")
+
+    assert response.status_code == 200
+    assert [row["text"] for row in response.json["result"]] == ["alice User"]

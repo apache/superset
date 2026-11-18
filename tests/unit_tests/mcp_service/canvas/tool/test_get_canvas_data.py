@@ -124,7 +124,21 @@ def test_reports_unknown_placements() -> None:
     run.assert_not_called()
 
 
-def test_a_failing_query_is_reported_per_widget() -> None:
-    result, _ = _run(query_error=ValueError("boom"))
+@pytest.mark.parametrize("view_query", [True, False])
+def test_a_failing_query_is_reported_per_widget(view_query: bool) -> None:
+    # Driver errors can echo the SQL, so only who may see the query sees them.
+    with patch(
+        "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
+        return_value=view_query,
+    ):
+        result, _ = _run(query_error=ValueError("boom"))
 
-    assert all("boom" in w["error"] for w in result["widgets"])
+    assert all(
+        w["error"]
+        == (
+            "The widget's query failed: boom"
+            if view_query
+            else "The widget's query failed."
+        )
+        for w in result["widgets"]
+    )

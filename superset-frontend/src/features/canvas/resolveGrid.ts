@@ -433,6 +433,10 @@ export function fitPlacements(
  * the height its container is *stored* as, and the stored height is all
  * `fitContainers` can see until the write lands.
  *
+ * Room is measured against `placements`, the heights the grid already shows,
+ * and not the stored `rowSpan`: a container sized to fit (a tab, whose stored
+ * layout is empty) is taller than it is stored as.
+ *
  * `undefined` when every container already has the room it is asking for,
  * which is almost always -- the caller then keeps the placements it had
  * rather than a second derivation of them.
@@ -440,21 +444,33 @@ export function fitPlacements(
 export function withRoom(
   childIds: string[],
   layouts: Record<string, GridLayout>,
+  placements: Record<string, GridPlacement>,
   columns: number,
   atLeast: Record<string, number>,
 ): Record<string, GridPlacement> | undefined {
-  let held: Record<string, GridLayout> | undefined;
-  childIds.forEach(id => {
+  const shownRows = (id: string) =>
+    Math.max(layouts[id]?.rowSpan || 1, placements[id]?.rowSpan ?? 0);
+  const short = childIds.some(id => {
     const rows = atLeast[id];
-    const layout = layouts[id];
-    if (rows === undefined || !layout || (layout.rowSpan || 1) >= rows) return;
-    held = { ...(held ?? layouts), [id]: { ...layout, rowSpan: rows } };
+    return (
+      rows !== undefined && layouts[id] !== undefined && shownRows(id) < rows
+    );
   });
-  if (!held) return undefined;
+  if (!short) return undefined;
 
-  const grown = held;
+  // Every sibling keeps the height it is shown at, so one held open does not
+  // shrink the others back to their stored heights.
   const resolved = resolveGrid(
-    childIds.map(id => grown[id] ?? {}),
+    childIds.map(id => {
+      const layout = layouts[id] ?? {};
+      const rows = Math.max(
+        shownRows(id),
+        layouts[id] ? (atLeast[id] ?? 0) : 0,
+      );
+      return rows === (layout.rowSpan || 1)
+        ? layout
+        : { ...layout, rowSpan: rows };
+    }),
     columns,
   );
   return Object.fromEntries(childIds.map((id, index) => [id, resolved[index]]));

@@ -74,6 +74,25 @@ def test_create_rejects_widgets_the_author_cannot_place(
     }
 
 
+@pytest.mark.parametrize("widget", ["missing-1", "chart-secret"])
+def test_create_reveals_nothing_about_a_widget_placed_where_it_cannot_go(
+    create_deps: None, widget: str
+) -> None:
+    """A widget the author can't read must not have its type named."""
+    definition = canvas(
+        {"bar": {**node("filterbar"), "children": ["a"]}, "a": node(widget)},
+        children=["bar"],
+    )
+    command = create_command({"title": "x", "definition": definition})
+
+    with pytest.raises(CanvasInvalidError) as excinfo:
+        command.validate()
+
+    assert excinfo.value.normalized_messages() == {
+        "definition": {"/nodes/a/widgetId": ["unknown widget, or no access to it"]}
+    }
+
+
 def test_create_reports_definition_issues(create_deps: None) -> None:
     command = create_command({"title": "x", "definition": {"version": 2}})
 

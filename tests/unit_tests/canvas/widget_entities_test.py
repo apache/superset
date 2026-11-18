@@ -179,10 +179,24 @@ def test_changing_a_placed_widget_saves_the_widget_not_the_canvas(
     widget = saved_widget(session, widget_id)
     assert widget.props == {"metric": "avg"}
     assert widget.revision == 2
-    # The canvas itself didn't change: nothing to replay.
+    # The definition didn't change, but the feed still says what did, so a
+    # client following it doesn't keep showing the old props.
     changes = client.get(f"{URL}/changes?since=2").json["result"]
     assert changes["revision"] == 3
-    assert changes["changes"] == []
+    assert changes["changes"] == [
+        {
+            "revision": 3,
+            "ops": [
+                {
+                    "op": "set_props",
+                    "id": "sales",
+                    "props": {"metric": "avg"},
+                    "schemaVersion": 1,
+                    "widgetId": widget_id,
+                }
+            ],
+        }
+    ]
 
 
 def test_renaming_a_placed_widget_saves_its_name(
@@ -695,3 +709,138 @@ def test_removing_a_saved_widget_placement_preserves_its_deliberate_edit(
     widget = saved_widget(session, widget_id)
     assert widget.props == {"metric": "avg"}
     assert widget.revision == 2
+
+
+def test_a_committed_draft_that_only_changes_widgets_still_feeds_the_change(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    session: Session,
+    draft_cache: SimpleCache,
+) -> None:
+    from superset.commands.canvas.draft import (
+        ApplyCanvasDraftOperationsCommand,
+        CreateCanvasDraftCommand,
+    )
+
+    apply_ops(1, {"op": "add", "id": "sales", "widgetType": "chart"})
+    widget_id = json.loads(canvas.definition)["nodes"]["sales"]["widgetId"]
+    draft = CreateCanvasDraftCommand(canvas.id).run()
+    draft, _ = ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        draft.revision,
+        ops(
+            {"op": "set_props", "id": "sales", "props": {"metric": "avg"}},
+            {"op": "rename", "id": "sales", "name": "Revenue"},
+        ),
+    ).run()
+
+    assert commit_draft(client, draft).status_code == 200
+
+    changes = client.get(f"{URL}/changes?since=2").json["result"]
+    assert changes["changes"] == [
+        {
+            "revision": 3,
+            "ops": [
+                {
+                    "op": "set_props",
+                    "id": "sales",
+                    "props": {"metric": "avg"},
+                    "schemaVersion": 1,
+                    "widgetId": widget_id,
+                },
+                {
+                    "op": "rename",
+                    "id": "sales",
+                    "name": "Revenue",
+                    "widgetId": widget_id,
+                },
+            ],
+        }
+    ]
+
+
+def test_the_changes_feed_stops_at_the_revision_it_reports(
+    client: Any, full_api_access: None, canvas: Any, mocker: MockerFixture
+) -> None:
+    from superset.daos.canvas import CanvasDAO
+
+    apply_ops(1, {"op": "add", "id": "a", "widgetType": "markdown"})
+    ops_since = CanvasDAO.ops_since
+
+    def commit_in_between(canvas_id: int, revision: int, until: Any = None) -> Any:
+        # Another write lands after the revision was read.
+        apply_ops(2, {"op": "add", "id": "b", "widgetType": "markdown"})
+        return ops_since(canvas_id, revision, until)
+
+    mocker.patch.object(CanvasDAO, "ops_since", side_effect=commit_in_between)
+
+    changes = client.get(f"{URL}/changes?since=1").json["result"]
+
+    assert changes["revision"] == 2
+    assert [change["revision"] for change in changes["changes"]] == [2]
+
+
+def test_an_externally_managed_canvas_refuses_operations_and_updates(
+    canvas: Any, session: Session, draft_cache: SimpleCache
+) -> None:
+    from superset.commands.canvas.draft import CreateCanvasDraftCommand
+    from superset.commands.canvas.exceptions import CanvasForbiddenError
+    from superset.commands.canvas.update import UpdateCanvasCommand
+
+    canvas.is_managed_externally = True
+    session.commit()
+
+    with pytest.raises(CanvasForbiddenError):
+        apply_ops(1, {"op": "add", "id": "a", "widgetType": "markdown"})
+    with pytest.raises(CanvasForbiddenError):
+        UpdateCanvasCommand(canvas.id, {"title": "Renamed"}).run()
+    with pytest.raises(CanvasForbiddenError):
+        CreateCanvasDraftCommand(canvas.id).run()
+    session.refresh(canvas)
+    assert (canvas.revision, canvas.title) == (1, "Exec overview")
+
+
+def test_operations_on_a_canvas_deleted_before_the_lock_are_not_found(
+    canvas: Any, mocker: MockerFixture
+) -> None:
+    from sqlalchemy.exc import NoResultFound
+
+    from superset.commands.canvas.exceptions import CanvasNotFoundError
+    from superset.daos.canvas import CanvasDAO
+
+    mocker.patch.object(CanvasDAO, "lock", side_effect=NoResultFound())
+
+    with pytest.raises(CanvasNotFoundError):
+        apply_ops(1, {"op": "add", "id": "a", "widgetType": "markdown"})
+
+
+def test_concurrent_draft_writes_lose_nothing(
+    canvas: Any, draft_cache: SimpleCache
+) -> None:
+    from superset.commands.canvas.draft import (
+        _cache_key,
+        ApplyCanvasDraftOperationsCommand,
+        CreateCanvasDraftCommand,
+        load_draft,
+    )
+    from superset.commands.canvas.exceptions import DraftConflictError
+
+    draft = CreateCanvasDraftCommand(canvas.id).run()
+    # Another write to the same draft is in progress.
+    draft_cache.add(f"{_cache_key(draft.token)}:lock", "other", timeout=30)
+
+    with pytest.raises(DraftConflictError) as excinfo:
+        ApplyCanvasDraftOperationsCommand(
+            draft.token, 0, ops({"op": "add", "id": "a", "widgetType": "markdown"})
+        ).run()
+    assert excinfo.value.draft_revision == 0
+    assert load_draft(draft.token).revision == 0
+
+    draft_cache.delete(f"{_cache_key(draft.token)}:lock")
+    written, _ = ApplyCanvasDraftOperationsCommand(
+        draft.token, 0, ops({"op": "add", "id": "a", "widgetType": "markdown"})
+    ).run()
+    assert written.revision == 1
+    # Released after the write, so the next one goes through.
+    assert draft_cache.get(f"{_cache_key(draft.token)}:lock") is None

@@ -20,10 +20,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from functools import partial
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError, NoResultFound, SQLAlchemyError
 from superset_core.canvas import StoredWidget, WidgetResolver
 
 from superset import db, security_manager
@@ -58,6 +58,7 @@ from superset.commands.canvas.exceptions import (
     DefinitionInvalidError,
     DraftConflictError,
 )
+from superset.commands.utils import raise_if_managed_externally
 from superset.daos.canvas import CanvasDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.canvas import Canvas
@@ -238,11 +239,35 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         if canvas is None:
             raise CanvasNotFoundError()
         self._canvas_id = canvas.id
-        result = self._apply()
+        result = transaction(on_error=self._on_error)(self._apply)()
         publish_canvas_changed(self._canvas_id)
         return result
 
-    @transaction(on_error=partial(on_error, reraise=CanvasUpdateFailedError))
+    def _on_error(self, ex: Exception) -> None:
+        """
+        Map database errors to what they mean for the caller where that is
+        known, and log the rest, which surface only as a generic failure.
+        """
+        if isinstance(ex, NoResultFound):
+            # Deleted after it was looked up, before it was locked.
+            raise CanvasNotFoundError() from ex
+        if isinstance(ex, IntegrityError):
+            # Another write logged the same revision first: a backend without
+            # row locks let both through ``CanvasDAO.lock``.
+            canvas = CanvasDAO.find_by_id(self._canvas_id)
+            if canvas is None:
+                raise CanvasNotFoundError() from ex
+            if self._strict:
+                raise DraftConflictError(
+                    canvas.revision,
+                    canvas_changed=True,
+                    current_canvas_revision=canvas.revision,
+                ) from ex
+            raise DefinitionConflictError(canvas.revision, [], stale=True) from ex
+        if isinstance(ex, SQLAlchemyError):
+            logger.exception("Failed to apply operations to canvas %s", self._canvas_id)
+        on_error(ex, reraise=CanvasUpdateFailedError)
+
     def _apply(self) -> ApplyResult:
         self.validate()
         canvas = CanvasDAO.lock(self._canvas_id)
@@ -264,13 +289,18 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         if self._base_revision != current:
             self._check_overlap(current, applied_touches(applied))
 
-        save_widgets(pending, canvas)
+        widget_changes = save_widgets(pending, canvas, definition)
         revision = current + 1
         canvas.definition = json.dumps(definition)
         canvas.definition_version = definition["version"]
         canvas.revision = revision
+        # Widget edits are logged as what was saved rather than as the
+        # operations that made them, which a draft does not carry to commit.
         CanvasDAO.log(
-            canvas.id, revision, [a for a in applied if a.replay], get_user_id()
+            canvas.id,
+            revision,
+            [a for a in applied if a.replay] + widget_changes,
+            get_user_id(),
         )
         CanvasDAO.prune(canvas.id, revision - OP_LOG_RETAINED_REVISIONS)
         return ApplyResult(
@@ -303,6 +333,7 @@ class ApplyCanvasOperationsCommand(BaseCommand):
             security_manager.raise_for_editorship(canvas)
         except SupersetSecurityException as ex:
             raise CanvasForbiddenError() from ex
+        raise_if_managed_externally(canvas, CanvasForbiddenError)
         resolver = PendingWidgetResolver(get_widget_resolver(), self._widgets)
         if issues := placement_issues(self._ops, resolver):
             raise DefinitionInvalidError(
@@ -310,13 +341,21 @@ class ApplyCanvasOperationsCommand(BaseCommand):
             )
 
 
-def save_widgets(pending: dict[str, StoredWidget], canvas: Canvas) -> None:
+def save_widgets(
+    pending: dict[str, StoredWidget],
+    canvas: Canvas,
+    definition: dict[str, Any] | None = None,
+) -> list[AppliedOperation]:
     """
     Create the new widgets in ``pending`` and write the changed ones, each only
     if nobody saved it since it was loaded. A new widget is edited by the
     canvas's editors and read through the canvases that place it.
+
+    Returns the changes to existing widgets as ``set_props`` and ``rename``
+    operations on each placement of them in ``definition``, for the log.
     """
     changed: list[str] = []
+    changes: list[AppliedOperation] = []
     for widget_id, widget in pending.items():
         if widget.revision is None:
             db.session.add(
@@ -343,6 +382,8 @@ def save_widgets(pending: dict[str, StoredWidget], canvas: Canvas) -> None:
             security_manager.raise_for_editorship(row)
         except SupersetSecurityException as ex:
             raise CanvasForbiddenError() from ex
+        if definition is not None:
+            changes += _widget_changes(definition, widget_id, row, widget)
         row.name = widget.name
         row.props = widget.props
         row.schema_version = widget.schema_version
@@ -354,6 +395,38 @@ def save_widgets(pending: dict[str, StoredWidget], canvas: Canvas) -> None:
             current_canvas_revision=canvas.revision,
         )
     db.session.flush()
+    return changes
+
+
+def _widget_changes(
+    definition: dict[str, Any], widget_id: str, row: Widget, widget: StoredWidget
+) -> list[AppliedOperation]:
+    placements = [
+        node_id
+        for node_id, node in definition["nodes"].items()
+        if node.get("widgetId") == widget_id
+    ]
+    ops: list[dict[str, Any]] = []
+    if row.props != widget.props or row.schema_version != widget.schema_version:
+        ops += [
+            {
+                "op": "set_props",
+                "id": node_id,
+                "props": widget.props,
+                "schemaVersion": widget.schema_version,
+                "widgetId": widget_id,
+            }
+            for node_id in placements
+        ]
+    if row.name != widget.name:
+        ops += [
+            {"op": "rename", "id": node_id, "name": widget.name, "widgetId": widget_id}
+            for node_id in placements
+        ]
+    return [
+        AppliedOperation(op, [Touch(op["id"], FieldGroup.PROPS)], replay=False)
+        for op in ops
+    ]
 
 
 def applied_touches(applied: list[AppliedOperation]) -> list[Touch]:

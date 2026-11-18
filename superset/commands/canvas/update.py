@@ -32,7 +32,7 @@ from superset.commands.canvas.exceptions import (
     CanvasUpdateFailedError,
 )
 from superset.commands.canvas.utils import validate_metadata
-from superset.commands.utils import compute_subjects
+from superset.commands.utils import compute_subjects, raise_if_managed_externally
 from superset.daos.canvas import CanvasDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.canvas import Canvas
@@ -66,6 +66,7 @@ class UpdateCanvasCommand(UpdateMixin, BaseCommand):
             security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise CanvasForbiddenError() from ex
+        raise_if_managed_externally(self._model, CanvasForbiddenError)
         exceptions: list[ValidationError] = []
         compute_subjects(self._model, self._properties, exceptions)
         validate_metadata(self._properties, exceptions, self._model.id)
