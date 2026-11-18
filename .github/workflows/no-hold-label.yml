@@ -28,27 +28,33 @@ jobs:
           const { owner, repo } = context.repo;
           const pr = context.payload.pull_request;
 
-          // The path-based labeler (labeler.yml) starts alongside this job
-          // on these events and applies its labels with GITHUB_TOKEN, which
-          // never emits a `labeled` event. Wait for it to finish, otherwise
+          // The wiki labeler (wiki-labeler.yml) starts alongside this job on
+          // these events and applies its labels with GITHUB_TOKEN, which
+          // never emits a `labeled` event. Wait for it to succeed, otherwise
           // this check passes before a `hold:audit-*` label lands and is
-          // never re-evaluated.
+          // never re-evaluated. A labeler run that failed (say, it could
+          // not read its rules) decided nothing, so that blocks too.
           if (['opened', 'reopened', 'synchronize'].includes(context.payload.action)) {
             const deadline = Date.now() + 5 * 60 * 1000;
-            let labeled = false;
-            while (!labeled && Date.now() < deadline) {
+            let run;
+            while (Date.now() < deadline) {
               await new Promise(resolve => setTimeout(resolve, 10000));
               const { data: { check_runs: runs } } = await github.rest.checks.listForRef({
                 owner,
                 repo,
                 ref: pr.head.sha,
-                check_name: 'labeler',
-                filter: 'all',
+                check_name: 'wiki-labeler',
+                filter: 'latest',
               });
-              labeled = runs.length > 0 && runs.every(run => run.status === 'completed');
+              run = runs[0];
+              if (run?.status === 'completed') break;
             }
-            if (!labeled) {
-              core.setFailed('Timed out waiting for the labeler; re-run this job.');
+            if (run?.status !== 'completed') {
+              core.setFailed('Timed out waiting for the wiki labeler; re-run this job.');
+              return;
+            }
+            if (run.conclusion !== 'success') {
+              core.setFailed(`The wiki labeler ended as "${run.conclusion}", so hold labels were not evaluated; re-run it, then this job.`);
               return;
             }
           }

@@ -159,12 +159,13 @@ When creating a PR, if you're aiming to have it included in a specific release, 
 
 ### Automatically Applied Labels
 
-Some labels are applied by CI rather than by hand. Labels that depend on who opened the PR or issue (for example `utsc2026`, for students contributing through a university course) are driven by rosters kept on the project wiki, so committers can update them without opening a PR:
+Some labels are applied by CI rather than by hand, from rules kept on the project wiki so committers can update them without opening a PR:
 
 - [Labeling Automation](https://github.com/apache/superset/wiki/Labeling-Automation) lists every wiki page that drives labels.
-- [Label Rosters](https://github.com/apache/superset/wiki/Label-Rosters) maps labels to GitHub handles. Adding a handle there takes effect within a few minutes.
+- [Label Rosters](https://github.com/apache/superset/wiki/Label-Rosters) maps labels to GitHub handles, for labels that depend on who opened the PR or issue (for example `utsc2026`, for students contributing through a university course).
+- [Audit Hold Paths](https://github.com/apache/superset/wiki/Audit-Hold-Paths) maps `hold:audit-*` labels to file paths. A PR that changes one of those paths is held from merging until a reviewer has checked the risk described on that page and removed the label.
 
-The wiki is edited by committers, and each page keeps its full edit history. A label must also be on the allowlist in `.github/workflows/author-labeler.yml` before a roster can apply it, so adding a new roster label still takes a PR.
+The wiki is edited by committers, and each page keeps its full edit history. Changes take effect within a few minutes. The workflow (`.github/workflows/wiki-labeler.yml`) limits which labels each page can apply, so adding a new roster label still takes a PR.
 
 ## Revert Guidelines
 
