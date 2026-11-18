@@ -19,10 +19,10 @@ The artifact file store and the backend it runs on.
 
 ``file_store_for`` picks the backend from the provider's store role
 (``ArtifactStoreSource``): the provider's own when it supplies one, otherwise
-the default on extension storage. The default refuses to run until
-extension storage has an atomic compare-and-swap write and a request-time
-context, so that artifacts answer ``NOT_ENABLED`` rather than risk a lost
-update.
+the default on extension storage. The default runs only where extension
+storage can tell which extension calls it, which takes a context the host
+sets while a request runs (see ``extension_storage_backend``); without one,
+artifacts answer ``NOT_ENABLED``.
 """
 
 from __future__ import annotations

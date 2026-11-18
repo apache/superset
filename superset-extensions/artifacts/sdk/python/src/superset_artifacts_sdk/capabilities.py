@@ -26,7 +26,7 @@ sides check the grant; the host's check is the authoritative one, because the
 frame runs untrusted code.
 
 A capability is a namespaced string, and an unknown one fails validation, so
-that new namespaces can come later without widening anything today.
+that a namespace added later widens no grant made before it.
 """
 
 from __future__ import annotations
