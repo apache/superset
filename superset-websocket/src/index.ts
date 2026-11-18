@@ -223,7 +223,10 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
     redisOpts.password = baseConfig.password;
   }
 
-  if (baseConfig.ssl || baseConfig.sentinelSsl) {
+  // `sentinelSsl` only applies in Sentinel mode, so it must not trigger reading
+  // the certificate files for a standalone connection.
+  const sentinelSsl = baseConfig.sentinelSsl && baseConfig.sentinels.length > 0;
+  if (baseConfig.ssl || sentinelSsl) {
     const tlsOpts = buildTlsOptions(baseConfig);
     if (baseConfig.ssl) {
       redisOpts.tls = tlsOpts;
@@ -233,7 +236,7 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
         redisOpts.enableTLSForSentinelMode = true;
       }
     }
-    if (baseConfig.sentinelSsl && redisOpts.sentinels) {
+    if (sentinelSsl) {
       redisOpts.sentinelTLS = tlsOpts;
     }
   }

@@ -435,11 +435,16 @@ def _sentinel_node_pools(backend: Any) -> list[Any]:
     return [node.connection_pool for node in backend._sentinel.sentinels]
 
 
-def test_redis_sentinel_cache_backend_secures_master_and_sentinels_with_tls() -> None:
-    """With ``ssl`` and ``sentinel_ssl`` set, both the sentinel-node connections and
-    the resolved-master connection use TLS with the shared certificate settings."""
+@pytest.mark.parametrize("master_ssl", [True, False])
+def test_redis_sentinel_cache_backend_secures_sentinels_with_tls(
+    master_ssl: bool,
+) -> None:
+    """``sentinel_ssl`` puts the sentinel-node connections on TLS with the shared
+    certificate settings, keeping their credentials and protocol, while ``ssl``
+    independently decides whether the resolved-master connection uses TLS. The
+    master's DB and ACL user are not applied to the sentinel nodes."""
     from redis.connection import SSLConnection
-    from redis.sentinel import SentinelManagedSSLConnection
+    from redis.sentinel import SentinelManagedConnection, SentinelManagedSSLConnection
 
     from superset.coordination.cache_backend import RedisSentinelCacheBackend
 
@@ -452,7 +457,11 @@ def test_redis_sentinel_cache_backend_secures_master_and_sentinels_with_tls() ->
     backend = RedisSentinelCacheBackend(
         sentinels=[("sentinel1", 26379), ("sentinel2", 26379)],
         master="mymaster",
-        ssl=True,
+        password="master-pwd",  # noqa: S106
+        sentinel_password="sentinel-pwd",  # noqa: S106
+        username="master-user",
+        db=3,
+        ssl=master_ssl,
         sentinel_ssl=True,
         ssl_certfile=tls["ssl_certfile"],
         ssl_keyfile=tls["ssl_keyfile"],
@@ -465,10 +474,21 @@ def test_redis_sentinel_cache_backend_secures_master_and_sentinels_with_tls() ->
     for pool in pools:
         assert issubclass(pool.connection_class, SSLConnection)
         assert {k: pool.connection_kwargs[k] for k in tls} == tls
+        assert pool.connection_kwargs["password"] == "sentinel-pwd"  # noqa: S105
+        assert pool.connection_kwargs["protocol"] == 2
+        assert pool.connection_kwargs.get("username") is None
+        assert pool.connection_kwargs.get("db", 0) == 0
 
     master_pool = backend._cache.connection_pool
-    assert issubclass(master_pool.connection_class, SentinelManagedSSLConnection)
-    assert {k: master_pool.connection_kwargs[k] for k in tls} == tls
+    assert master_pool.connection_kwargs["password"] == "master-pwd"  # noqa: S105
+    assert master_pool.connection_kwargs["username"] == "master-user"
+    assert master_pool.connection_kwargs["db"] == 3
+    if master_ssl:
+        assert issubclass(master_pool.connection_class, SentinelManagedSSLConnection)
+        assert {k: master_pool.connection_kwargs[k] for k in tls} == tls
+    else:
+        assert master_pool.connection_class is SentinelManagedConnection
+        assert not tls.keys() & master_pool.connection_kwargs.keys()
 
 
 def test_redis_sentinel_cache_backend_is_plaintext_without_tls() -> None:
