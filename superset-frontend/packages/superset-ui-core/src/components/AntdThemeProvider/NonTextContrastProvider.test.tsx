@@ -19,10 +19,12 @@
 import type { ReactElement } from 'react';
 import type { ThemeConfig } from 'antd';
 import { supersetTheme } from '@apache-superset/core/theme';
-import { render, screen } from '@superset-ui/core/spec';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
 import { AntdThemeProvider } from '.';
 import { Checkbox } from '../Checkbox';
 import { Divider } from '../Divider';
+import { Form } from '../Form';
+import { Radio } from '../Radio';
 import { Input } from '../Input';
 import { Switch } from '../Switch';
 
@@ -138,3 +140,99 @@ test('a theme without its own border setting gets the contrast border', () => {
     inheritedVar(container.querySelector('.ant-input'), '--ant-color-border'),
   ).toBe(supersetTheme.colorTextTertiary);
 });
+
+// A disabled flip must not remount the control: uncontrolled state survives
+// and the DOM node stays the same.
+type Lock = 'prop' | 'config' | 'form';
+
+const locked = (lock: Lock, disabled: boolean, control: ReactElement) => {
+  if (lock === 'config') {
+    return (
+      <AntdThemeProvider componentDisabled={disabled}>
+        {control}
+      </AntdThemeProvider>
+    );
+  }
+  if (lock === 'form') {
+    return <Form disabled={disabled}>{control}</Form>;
+  }
+  return control;
+};
+
+const LOCKS: Lock[] = ['prop', 'config', 'form'];
+
+test.each(LOCKS)(
+  'Checkbox keeps its checked state and node when disabled by %s',
+  async lock => {
+    const checkbox = (disabled: boolean) =>
+      locked(
+        lock,
+        disabled,
+        <Checkbox
+          defaultChecked={false}
+          {...(lock === 'prop' ? { disabled } : {})}
+        />,
+      );
+    const { rerender } = render(checkbox(false));
+    const input = screen.getByRole('checkbox');
+    await userEvent.click(input);
+    expect(input).toBeChecked();
+
+    rerender(checkbox(true));
+
+    expect(screen.getByRole('checkbox')).toBe(input);
+    expect(input).toBeChecked();
+    expect(input).toBeDisabled();
+  },
+);
+
+test.each(LOCKS)(
+  'Switch keeps its state and node when disabled by %s',
+  async lock => {
+    const toggle = (disabled: boolean) =>
+      locked(
+        lock,
+        disabled,
+        <Switch defaultChecked {...(lock === 'prop' ? { disabled } : {})} />,
+      );
+    const { rerender } = render(toggle(false));
+    const button = screen.getByRole('switch');
+    await userEvent.click(button);
+    expect(button).toHaveAttribute('aria-checked', 'false');
+
+    rerender(toggle(true));
+
+    expect(screen.getByRole('switch')).toBe(button);
+    expect(button).toHaveAttribute('aria-checked', 'false');
+    expect(button).toBeDisabled();
+  },
+);
+
+test.each(LOCKS)(
+  'Radio.Group keeps its selection and nodes when disabled by %s',
+  async lock => {
+    const group = (disabled: boolean) =>
+      locked(
+        lock,
+        disabled,
+        <Radio.Group
+          defaultValue="a"
+          options={[
+            { label: 'A', value: 'a' },
+            { label: 'B', value: 'b' },
+          ]}
+          {...(lock === 'prop' ? { disabled } : {})}
+        />,
+      );
+    const { rerender } = render(group(false));
+    const optionB = screen.getByRole('radio', { name: 'B' });
+    await userEvent.click(optionB);
+    expect(optionB).toBeChecked();
+
+    rerender(group(true));
+
+    expect(screen.getByRole('radio', { name: 'B' })).toBe(optionB);
+    expect(optionB).toBeChecked();
+    expect(optionB).toBeDisabled();
+  },
+);

@@ -88,7 +88,20 @@ export function useNonTextContrastColor(
  * antd's colors. Checkbox, radio and switch draw their disabled state from the same
  * tokens; {@link withNonTextContrast} keeps those for disabled controls.
  */
-export function NonTextContrastProvider({ children }: { children: ReactNode }) {
+export function NonTextContrastProvider({
+  children,
+  disabled,
+}: {
+  children: ReactNode;
+  /**
+   * Set by wrappers that keep antd's disabled colors: when true the override
+   * is skipped and the subtree is marked disabled, so wrapped descendants
+   * (e.g. the buttons of a disabled Radio.Group) skip it too. Only the
+   * provider's props change with it, never the element tree, so toggling
+   * `disabled` does not remount the control.
+   */
+  disabled?: boolean;
+}) {
   const { token } = antdTheme.useToken();
   const { theme: parentTheme } = useContext(ConfigProvider.ConfigContext);
   const parentKey = parentTheme?.cssVar?.key;
@@ -101,26 +114,44 @@ export function NonTextContrastProvider({ children }: { children: ReactNode }) {
       // controls under one theme share that block, while controls under
       // differently themed parents never share one; without a parent key,
       // antd falls back to a unique key per provider.
-      ...(parentKey ? { cssVar: { key: `${parentKey}-${KEY_SUFFIX}` } } : {}),
-      components: Object.fromEntries(
-        CONTRAST_TARGETS.filter(
-          ([component, tokenName]) =>
-            !isSetByTheme(parentTheme, tokenName, component),
-        ).map(([component, tokenName]) => [
-          component,
-          { [tokenName]: colorTextTertiary },
-        ]),
-      ),
+      // A disabled subtree carries different tokens, so it gets its own key.
+      ...(parentKey
+        ? {
+            cssVar: {
+              key: `${parentKey}-${KEY_SUFFIX}${disabled ? '-disabled' : ''}`,
+            },
+          }
+        : {}),
+      components: disabled
+        ? {}
+        : Object.fromEntries(
+            CONTRAST_TARGETS.filter(
+              ([component, tokenName]) =>
+                !isSetByTheme(parentTheme, tokenName, component),
+            ).map(([component, tokenName]) => [
+              component,
+              { [tokenName]: colorTextTertiary },
+            ]),
+          ),
     }),
-    [parentKey, parentTheme, colorTextTertiary],
+    [parentKey, parentTheme, colorTextTertiary, disabled],
   );
 
   // Controls nested in an already wrapped control (e.g. a Radio inside a
   // wrapped Radio.Group) inherit its tokens and need no provider of their own.
-  if (parentKey?.endsWith(KEY_SUFFIX)) {
+  if (parentKey?.includes(KEY_SUFFIX)) {
     return <>{children}</>;
   }
-  return <AntdThemeProvider theme={themeConfig}>{children}</AntdThemeProvider>;
+  return (
+    // antd adds a context provider only when `componentDisabled` is defined,
+    // so wrappers that track `disabled` always pass a boolean.
+    <AntdThemeProvider
+      theme={themeConfig}
+      {...(disabled === undefined ? {} : { componentDisabled: disabled })}
+    >
+      {children}
+    </AntdThemeProvider>
+  );
 }
 
 type WithNonTextContrastOptions = {
@@ -158,15 +189,9 @@ export function withNonTextContrast<C extends ElementType>(
         </NonTextContrastProvider>
       );
     }
-    if (props.disabled ?? componentDisabled) {
-      // Marking the subtree disabled lets wrapped descendants (e.g. the
-      // buttons of a disabled Radio.Group) skip the override too.
-      return (
-        <AntdThemeProvider componentDisabled>
-          <Inner {...props} ref={ref} />
-        </AntdThemeProvider>
-      );
-    }
+    // The element tree stays the same whether or not the control is
+    // disabled; only provider props and the class name change.
+    const disabled = Boolean(props.disabled ?? componentDisabled);
     const cls = getPrefixCls();
     const varPrefix = parentTheme?.cssVar?.prefix ?? cls;
     // Only restore what the provider overrides; a theme's own value stays.
@@ -181,15 +206,8 @@ export function withNonTextContrast<C extends ElementType>(
             `& .${cls}-radio-button-wrapper.${cls}-radio-button-wrapper-disabled`,
           ]),
     ];
-    if (!restoredSelectors.length) {
-      return (
-        <NonTextContrastProvider>
-          <Inner {...props} ref={ref} />
-        </NonTextContrastProvider>
-      );
-    }
     return (
-      <NonTextContrastProvider>
+      <NonTextContrastProvider disabled={disabled}>
         <ClassNames>
           {({ css, cx }) => (
             <Inner
@@ -197,11 +215,12 @@ export function withNonTextContrast<C extends ElementType>(
               ref={ref}
               className={cx(
                 props.className as string | undefined,
-                css`
-                  ${restoredSelectors.join(',\n')} {
-                    --${varPrefix}-color-border: ${token.colorBorder};
-                  }
-                `,
+                restoredSelectors.length > 0 &&
+                  css`
+                    ${restoredSelectors.join(',\n')} {
+                      --${varPrefix}-color-border: ${token.colorBorder};
+                    }
+                  `,
               )}
             />
           )}
