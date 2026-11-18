@@ -199,17 +199,15 @@ branch:
 ## Cross-filtering and data events for extension widgets
 
 - **Need:** cross-filters reach other widgets only while the canvas has them
-  on (its `crossFilters` setting, which `CanvasGrid` reads), and there are no
-  standard event kinds.
+  on (its `crossFilters` setting, which `CanvasGrid` reads).
 - **Status:** documented only; whether cross-filters should be on for
   artifacts only or for every widget needs a decision with the Canvas
   maintainers.
-- **Meanwhile:** the renderer maps a declared cross-filter onto the filter bus
-  shape (`{datasetId, column, values}`) and publishes other events as
-  `superset-oss.artifacts.<kind>`.
-- **Next:** standard kinds (cross-filter, selection, highlight, drill) for
-  every widget, and cross-filters on for artifacts, accepting only values the
-  host delivered.
+- **Meanwhile:** cross-filters are the only event an artifact emits; the
+  renderer maps a declared cross-filter onto the filter bus shape
+  (`{datasetId, column, values}`).
+- **Next:** cross-filters on for artifacts, and the filter bus in the
+  `ExtraFormData` shape.
 
 ## Hardened extension storage
 

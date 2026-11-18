@@ -39,8 +39,6 @@ import {
   ArtifactTheme,
   BindingData,
   DataEventValue,
-  EMITTED_EVENT_KINDS,
-  EmittedEventKind,
   FrameErrorKind,
   FrameMessage,
   FrameRequest,
@@ -99,17 +97,13 @@ export interface SupersetRuntime {
    */
   setCrossFilter(value: DataEventValue | null): void;
   /**
-   * Emit a declared selection, highlight or drill event, or clear it with
-   * `null`. Needs `events`.
+   * Ask the host to run the bindings again, fresh from the warehouse. Needs
+   * `data`.
    */
-  emit(kind: EmittedEventKind, value: DataEventValue | null): void;
-  /** Ask the host to run the bindings again. Needs `refresh`. */
   refresh(): void;
 }
 
 const DISCONNECTED = 'the artifact runtime has no connection to a host';
-
-const EVENT_VALUE_HINT = '{ binding, dimension, values } or null';
 
 const installed = new WeakMap<Window, SupersetRuntime>();
 
@@ -226,13 +220,9 @@ export function installRuntime(win: Window = window): SupersetRuntime {
       );
     },
     setCrossFilter(value: DataEventValue | null) {
-      send({ type: 'setCrossFilter', value }, EVENT_VALUE_HINT);
-    },
-    emit(kind: EmittedEventKind, value: DataEventValue | null) {
       send(
-        { type: 'emit', kind, value },
-        `a kind (${EMITTED_EVENT_KINDS.join(', ')}; cross-filters go ` +
-          `through setCrossFilter) and ${EVENT_VALUE_HINT}`,
+        { type: 'setCrossFilter', value },
+        '{ binding, dimension, values } or null',
       );
     },
     refresh() {

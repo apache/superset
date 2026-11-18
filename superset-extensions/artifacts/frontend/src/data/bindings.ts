@@ -37,7 +37,6 @@ import type {
   BindingData,
   DataEventValue,
   DataRow,
-  EventKind,
   QueryRequest,
 } from '@superset-oss/artifacts-sdk';
 import type { canvas } from '@apache-superset/core';
@@ -192,33 +191,21 @@ export function checkQuery(
   return { ok: true, value: request.binding };
 }
 
-/** An event value, if the manifest declares that event on its dimension. */
-export function checkEvent(
-  manifest: HostManifest,
-  kind: EventKind,
-  value: DataEventValue,
-): Checked<DataEventValue> {
-  const declared = (manifest.events ?? []).some(
-    event =>
-      event.kind === kind &&
-      event.binding === value.binding &&
-      event.dimension === value.dimension,
-  );
-  return declared
-    ? { ok: true, value }
-    : {
-        ok: false,
-        reason: `no ${kind} event on ${value.binding}.${value.dimension}`,
-      };
-}
-
 /** A declared cross-filter, as the canvas filter bus carries it. */
 export function crossFilterValue(
   manifest: HostManifest,
   value: DataEventValue,
 ): Checked<SelectFilterValue> {
-  const checked = checkEvent(manifest, 'cross_filter', value);
-  if (!checked.ok) return checked;
+  const declared = (manifest.events ?? []).some(
+    event =>
+      event.binding === value.binding && event.dimension === value.dimension,
+  );
+  if (!declared) {
+    return {
+      ok: false,
+      reason: `no cross_filter event on ${value.binding}.${value.dimension}`,
+    };
+  }
   const source = manifest.bindings?.[value.binding]?.source;
   if (source?.kind !== 'dataset') {
     return { ok: false, reason: 'cross-filters need a dataset binding' };

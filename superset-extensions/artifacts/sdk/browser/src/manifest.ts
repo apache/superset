@@ -27,6 +27,8 @@
 import type { Capability } from './capabilities';
 
 export const MANIFEST_VERSION = '1';
+/** The runtime SDK that the code expects in its frame. */
+export const SDK_VERSION = '1';
 /** Where the manifest lives in an artifact's file tree. */
 export const MANIFEST_FILE = 'manifest.json';
 
@@ -70,6 +72,9 @@ export interface ParameterSpec {
   allowed?: unknown[] | null;
 }
 
+/** Live data runs as the viewer at every view; a snapshot is captured once. */
+export type BindingMode = 'live' | 'snapshot';
+
 /**
  * A named binding to Superset data, which the host runs as the viewer.
  * Bindings shaped like SIP-231's `SemanticQuery` are an open question.
@@ -82,28 +87,29 @@ export interface Binding {
   /** Keyed by parameter name. */
   parameters?: Record<string, ParameterSpec>;
   row_limit?: number | null;
+  /** `live` by default. */
+  mode?: BindingMode;
 }
 
-export type EventKind = 'cross_filter' | 'selection' | 'highlight' | 'drill';
+/** Cross-filters are the only kind of event an artifact emits. */
+export type EventKind = 'cross_filter';
 
-/** A data event the artifact emits, on one dimension of one binding. */
+/** A cross-filter the artifact emits, on one dimension of one binding. */
 export interface EventDecl {
   kind: EventKind;
   binding: string;
   dimension: string;
 }
 
-/** Where a binding's snapshot (static) data came from, and when. */
-export interface SnapshotProvenance {
-  binding: string;
-  /** An ISO 8601 timestamp with a timezone. */
-  captured_at: string;
-  captured_by?: string | null;
-  row_count: number;
-}
+/** What the code is written for; the build decides how to bundle each. */
+export type Runtime = 'html' | 'react';
 
 export interface ArtifactManifest {
   artifact_version: typeof MANIFEST_VERSION;
+  /** `1` by default. */
+  sdk?: typeof SDK_VERSION;
+  /** `html` by default. */
+  runtime?: Runtime;
   /** A path in the artifact's tree; `index.html` by default. */
   entrypoint?: string;
   title?: string | null;
@@ -113,5 +119,6 @@ export interface ArtifactManifest {
   capabilities?: Capability[];
   /** npm package name to exact version, such as `{ "d3": "7.9.0" }`. */
   dependencies?: Record<string, string>;
-  snapshots?: SnapshotProvenance[];
+  /** Opaque, by vendor name; grants nothing. */
+  extensions?: Record<string, Record<string, unknown>>;
 }

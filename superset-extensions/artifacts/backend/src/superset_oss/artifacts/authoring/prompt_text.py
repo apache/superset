@@ -151,14 +151,13 @@ Nothing you write is visible to viewers until the user confirms publishing.
   Find datasets and their saved metrics with the dataset tools.
 - Leave out `parameters`: this Superset can't send parameter values yet, so a
   binding always runs as declared, narrowed only by the canvas filters.
-- `events` declare what the artifact emits: `cross_filter` (other widgets
-  follow it), `selection`, `highlight` or `drill`, each on one dimension of one
-  binding.
+- `events` declare the cross-filters the artifact emits, each on one dimension
+  of one binding; the other widgets follow them. The host accepts only values
+  it delivered to the artifact for that binding and dimension.
 - `capabilities` must cover what the artifact uses: `data` for bindings,
-  `cross_filter` and `events` for events, `refresh`, `theme`. A host may grant
-  fewer in some contexts; code for a missing one.
-- Data captured once (a snapshot) needs an entry in `snapshots` saying where it
-  came from and when: viewers see it as the author's data, not their own.
+  `cross_filter` for events, `theme`, and `compute.wasm` or `compute.workers`
+  for WebAssembly or workers. A host may grant fewer in some contexts, and the
+  policy may refuse some: code for a missing one.
 
 ## window.superset
 
@@ -175,8 +174,7 @@ superset.query("revenue_by_region"); // run one binding again
 const emea = {{binding: "revenue_by_region", dimension: "region", values: ["EMEA"]}};
 superset.setCrossFilter(emea);
 superset.setCrossFilter(null); // clear it
-superset.emit("highlight", emea);
-superset.refresh();
+superset.refresh(); // run the bindings again, fresh from the warehouse
 superset.capabilities; // what this frame was granted
 ```
 
@@ -225,10 +223,7 @@ first. Then adapt the artifact as follows.
 - CDN `<script>` and `<link>` tags: replace each with an npm import, pinned to
   the exact version the tag used.
 - Hard-coded data: replace it with a named binding to Superset data, so that
-  viewers see their own numbers with Superset's metric definitions. Data that
-  has to stay as it is becomes a snapshot, with a `snapshots` entry saying
-  where it came from, when, and how many rows it has; viewers see it as the
-  author's data.
+  viewers see their own numbers with Superset's metric definitions.
 - Data that needs preparing first (map shapes to GeoJSON, say) is prepared on
   your side and uploaded as a file; Superset doesn't run your scripts.
 

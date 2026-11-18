@@ -41,7 +41,7 @@ host page                                          sandboxed frame
 createFrameChannel ── name: {k, grant, origin} ──► installRuntime()
                    ◄── ready {protocol, version} ──
                    ── state {status, bindings, filters, theme?} ──►  onData
-                   ◄── request: query | setCrossFilter | emit | refresh ──
+                   ◄── request: query | setCrossFilter | refresh ──
                    ◄── error {kind, message, stack?} ──
 ```
 

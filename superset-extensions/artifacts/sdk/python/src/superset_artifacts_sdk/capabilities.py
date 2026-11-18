@@ -18,11 +18,15 @@
 """
 Capabilities: the named rights an artifact declares and a host grants.
 
-An artifact lists the capabilities it needs in its manifest. For each context
-it renders the artifact in (a canvas, an embedded page, a standalone page),
-the host grants a subset of them and passes that grant to the frame. Both
+An artifact lists the capabilities it needs in its manifest. The host grants
+the ones its policy allows in the context it renders the artifact in (a
+canvas, an embedded page, a standalone page), and passes that grant to the
+frame: manifest ∩ policy ∩ context (``superset_artifacts_sdk.policy``). Both
 sides check the grant; the host's check is the authoritative one, because the
 frame runs untrusted code.
+
+A capability is a namespaced string, and an unknown one fails validation, so
+that new namespaces can come later without widening anything today.
 """
 
 from __future__ import annotations
@@ -34,18 +38,16 @@ class Capability(StrEnum):
     """A named right that an artifact must declare in its manifest and be granted."""
 
     # Receive the results of the manifest's named bindings and the filters
-    # that reach the artifact, and ask to rerun a binding with new values for
-    # its declared parameters.
+    # that reach the artifact, and ask for a binding again: with new values
+    # for its declared parameters, or fresh from the warehouse.
     DATA = "data"
-    # Set cross-filters that the other widgets on the canvas follow.
+    # Set cross-filters, on declared events, that the other widgets on the
+    # canvas follow.
     CROSS_FILTER = "cross_filter"
-    # Emit the declared data events other than cross-filters: selection,
-    # highlight and drill.
-    EVENTS = "events"
-    # Ask the host to run the artifact's bindings again.
-    REFRESH = "refresh"
     # Receive the canvas theme: its tokens, and light or dark mode.
     THEME = "theme"
-
-    # TODO: decide on a compute capability for WebAssembly, workers and
-    # ``eval``. Until then it is deliberately not part of this enum.
+    # Compile and run WebAssembly: the frame's policy allows
+    # 'wasm-unsafe-eval', and still no network.
+    COMPUTE_WASM = "compute.wasm"
+    # Start workers from blob: URLs, and still no network.
+    COMPUTE_WORKERS = "compute.workers"

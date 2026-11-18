@@ -30,7 +30,7 @@
  *
  * - Host to frame: `state`, everything the frame may know.
  * - Frame to host: `ready` (the versioned handshake), `request` (`query`,
- *   `setCrossFilter`, `emit`, `refresh`) and `error`.
+ *   `setCrossFilter`, `refresh`) and `error`.
  *
  * The parsers here validate a message and return a clean copy holding only
  * the fields the protocol defines. Act on that copy, never on the message
@@ -43,7 +43,6 @@
 // TODO: an Arrow envelope for binding data.
 
 import { Capability, isCapability } from './capabilities';
-import type { EventKind } from './manifest';
 
 export const PROTOCOL_NAME = 'superset-artifacts';
 export const PROTOCOL_VERSION = 1;
@@ -113,27 +112,12 @@ export interface FrameState {
   error?: string;
 }
 
-/** What a data event carries: values of one dimension of one binding. */
+/** What a cross-filter carries: values of one dimension of one binding. */
 export interface DataEventValue {
   binding: string;
   dimension: string;
   values: Scalar[];
 }
-
-/** The event kinds `emit` sends; cross-filters go through `setCrossFilter`. */
-export type EmittedEventKind = Exclude<EventKind, 'cross_filter'>;
-
-// Keyed by kind, so that a new EventKind doesn't compile until it is listed
-// here; a kind left out would be refused by both sides of the bridge.
-const EMITTED: Readonly<Record<EmittedEventKind, true>> = {
-  selection: true,
-  highlight: true,
-  drill: true,
-};
-
-export const EMITTED_EVENT_KINDS: readonly EmittedEventKind[] = Object.freeze(
-  Object.keys(EMITTED) as EmittedEventKind[],
-);
 
 /** Rerun a binding with new values for its declared parameters. */
 export interface QueryRequest {
@@ -148,14 +132,7 @@ export interface SetCrossFilterRequest {
   value: DataEventValue | null;
 }
 
-/** Emit a declared data event, or clear it with `null`. */
-export interface EmitRequest {
-  type: 'emit';
-  kind: EmittedEventKind;
-  value: DataEventValue | null;
-}
-
-/** Run the bindings again. */
+/** Run the bindings again, fresh from the warehouse. */
 export interface RefreshRequest {
   type: 'refresh';
 }
@@ -163,7 +140,6 @@ export interface RefreshRequest {
 export type FrameRequest =
   | QueryRequest
   | SetCrossFilterRequest
-  | EmitRequest
   | RefreshRequest;
 
 export type FrameRequestType = FrameRequest['type'];
@@ -174,8 +150,7 @@ type RequestCapabilities = Readonly<Record<FrameRequestType, Capability>>;
 export const REQUEST_CAPABILITY: RequestCapabilities = Object.freeze({
   query: Capability.DATA,
   setCrossFilter: Capability.CROSS_FILTER,
-  emit: Capability.EVENTS,
-  refresh: Capability.REFRESH,
+  refresh: Capability.DATA,
 });
 
 /** How an error surfaced in the frame. */
@@ -246,9 +221,6 @@ const isScalar = (value: unknown): value is Scalar =>
 const isOneOf = <T>(values: readonly T[], value: unknown): value is T =>
   (values as readonly unknown[]).includes(value);
 
-const isEmittedEventKind = (value: unknown): value is EmittedEventKind =>
-  isOneOf(EMITTED_EVENT_KINDS, value);
-
 const isFrameErrorKind = (value: unknown): value is FrameErrorKind =>
   isOneOf(FRAME_ERROR_KINDS, value);
 
@@ -297,20 +269,15 @@ const isArtifactTheme = (value: unknown): value is ArtifactTheme =>
 /** Validate a frame request; return a copy without unknown fields. */
 export function parseFrameRequest(value: unknown): FrameRequest | undefined {
   if (!isRecord(value)) return undefined;
-  const { binding, kind, params, value: event } = value;
-  const validEvent = event === null || isEventValue(event);
+  const { binding, params, value: event } = value;
   switch (value.type) {
     case 'query':
       return isNonEmptyString(binding) && isRecord(params)
         ? { type: 'query', binding, params: { ...params } }
         : undefined;
     case 'setCrossFilter':
-      return validEvent
+      return event === null || isEventValue(event)
         ? { type: 'setCrossFilter', value: copyEventValue(event) }
-        : undefined;
-    case 'emit':
-      return validEvent && isEmittedEventKind(kind)
-        ? { type: 'emit', kind, value: copyEventValue(event) }
         : undefined;
     case 'refresh':
       return { type: 'refresh' };

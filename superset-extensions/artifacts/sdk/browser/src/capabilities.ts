@@ -19,7 +19,7 @@
 
 /**
  * @fileoverview Capabilities: the named rights an artifact declares in its
- * manifest and a host grants for each context. Mirrors
+ * manifest and a host grants, as its policy allows, for each context. Mirrors
  * `superset_artifacts_sdk.capabilities`; the Python SDK's
  * `test_artifact_typescript_sync.py` checks that the two agree.
  */
@@ -27,21 +27,19 @@
 export const Capability = {
   /**
    * Receive the results of the manifest's bindings and the filters that
-   * reach the artifact, and rerun a binding with new parameter values.
+   * reach the artifact, and ask for a binding again: with new parameter
+   * values, or fresh from the warehouse.
    */
   DATA: 'data',
-  /** Set cross-filters that the canvas's other widgets follow. */
+  /** Set cross-filters, on declared events, that the other widgets follow. */
   CROSS_FILTER: 'cross_filter',
-  /** Emit the declared selection, highlight and drill events. */
-  EVENTS: 'events',
-  /** Ask the host to run the bindings again. */
-  REFRESH: 'refresh',
   /** Receive the canvas theme: its tokens, and light or dark mode. */
   THEME: 'theme',
+  /** Compile and run WebAssembly; still no network. */
+  COMPUTE_WASM: 'compute.wasm',
+  /** Start workers from blob: URLs; still no network. */
+  COMPUTE_WORKERS: 'compute.workers',
 } as const;
-
-// TODO: decide on a compute capability for WebAssembly, workers and eval.
-// Until then it is deliberately not listed.
 
 export type Capability = (typeof Capability)[keyof typeof Capability];
 

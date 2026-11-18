@@ -64,8 +64,8 @@ from superset_artifacts_sdk.manifest import (
     MANIFEST_VERSION as MANIFEST_VERSION,
     ParameterSpec as ParameterSpec,
     SavedChartSource as SavedChartSource,
+    SDK_VERSION as SDK_VERSION,
     SemanticViewSource as SemanticViewSource,
-    SnapshotProvenance as SnapshotProvenance,
 )
 from superset_artifacts_sdk.provider import (
     ArtifactBuilder as ArtifactBuilder,

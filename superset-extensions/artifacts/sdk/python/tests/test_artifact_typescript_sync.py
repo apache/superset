@@ -107,6 +107,8 @@ def test_manifest_literals_match() -> None:
     source = _source("manifest.ts")
     assert _union(source, "ParameterType") == set(get_args(manifest.ParameterType))
     assert _union(source, "EventKind") == set(get_args(manifest.EventKind))
+    assert _union(source, "BindingMode") == set(get_args(manifest.BindingMode))
+    assert _union(source, "Runtime") == set(get_args(manifest.Runtime))
     sources = _declaration(source, r"^export type BindingSource =(.*?);")
     assert set(re.findall(r"\b[A-Z]\w+\b", sources)) == {
         model.__name__ for model in get_args(get_args(manifest.BindingSource)[0])
@@ -116,4 +118,5 @@ def test_manifest_literals_match() -> None:
 def test_manifest_constants_match() -> None:
     source = _source("manifest.ts")
     assert f"export const MANIFEST_VERSION = '{manifest.MANIFEST_VERSION}';" in source
+    assert f"export const SDK_VERSION = '{manifest.SDK_VERSION}';" in source
     assert f"export const MANIFEST_FILE = '{manifest.MANIFEST_FILE}';" in source

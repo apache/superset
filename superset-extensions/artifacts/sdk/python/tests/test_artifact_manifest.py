@@ -33,8 +33,8 @@ from superset_artifacts_sdk.manifest import (
     MANIFEST_VERSION,
     ParameterSpec,
     SavedChartSource,
+    SDK_VERSION,
     SemanticViewSource,
-    SnapshotProvenance,
 )
 
 REVENUE_BINDING: dict[str, Any] = {
@@ -86,7 +86,9 @@ def test_minimal_manifest_gets_its_defaults() -> None:
     assert manifest.events == []
     assert manifest.capabilities == []
     assert manifest.dependencies == {}
-    assert manifest.snapshots == []
+    assert manifest.sdk == SDK_VERSION
+    assert manifest.runtime == "html"
+    assert manifest.extensions == {}
 
 
 def test_full_manifest_round_trips_through_json() -> None:
@@ -108,18 +110,12 @@ def test_full_manifest_round_trips_through_json() -> None:
         },
         events=[
             CROSS_FILTER_ON_REGION,
-            {"kind": "selection", "binding": "top_products", "dimension": "product"},
+            {"kind": "cross_filter", "binding": "top_products", "dimension": "product"},
         ],
-        capabilities=["data", "cross_filter", "events", "refresh", "theme"],
+        capabilities=["data", "cross_filter", "theme", "compute.wasm"],
         dependencies={"three": "0.160.0", "@types/d3": "7.4.3", "d3-geo": "3.1.1-rc.1"},
-        snapshots=[
-            {
-                "binding": "margin",
-                "captured_at": "2026-11-15T09:30:00Z",
-                "captured_by": "alice",
-                "row_count": 120,
-            }
-        ],
+        runtime="react",
+        extensions={"acme": {"theme": "dark"}},
     )
     manifest = ArtifactManifest.model_validate(raw)
 
@@ -181,7 +177,6 @@ def test_undeclared_fields_are_rejected() -> None:
         ParameterSpec,
         SavedChartSource,
         SemanticViewSource,
-        SnapshotProvenance,
     ],
 )
 def test_every_manifest_model_rejects_undeclared_fields(
@@ -230,21 +225,41 @@ def test_event_dimensions_must_belong_to_their_binding() -> None:
     assert "'country' is not a dimension of binding 'revenue_by_region'" in errors
 
 
-@pytest.mark.parametrize(
-    ("kind", "capability"),
-    [
-        ("cross_filter", "cross_filter"),
-        ("selection", "events"),
-        ("highlight", "events"),
-        ("drill", "events"),
-    ],
-)
-def test_events_need_their_capability(kind: str, capability: str) -> None:
+def test_cross_filters_need_their_capability() -> None:
+    errors = _errors(_manifest(capabilities=["data"]))
+    assert "need the 'cross_filter' capability" in errors
+
+
+@pytest.mark.parametrize("kind", ["selection", "highlight", "drill"])
+def test_cross_filters_are_the_only_event_kind(kind: str) -> None:
     event = {**CROSS_FILTER_ON_REGION, "kind": kind}
-    errors = _errors(_manifest(events=[event], capabilities=["data"]))
-    assert f"need the '{capability}' capability" in errors
-    granted = _manifest(events=[event], capabilities=["data", capability])
-    assert ArtifactManifest.model_validate(granted).events[0].kind == kind
+    assert "events.0.kind" in _errors(_manifest(events=[event]))
+
+
+def test_a_binding_is_live_unless_it_says_snapshot() -> None:
+    binding = {**REVENUE_BINDING, "mode": "snapshot"}
+    manifest = ArtifactManifest.model_validate(
+        _manifest(bindings={"revenue_by_region": binding, "live": REVENUE_BINDING})
+    )
+    assert manifest.bindings["revenue_by_region"].mode == "snapshot"
+    assert manifest.bindings["live"].mode == "live"
+    assert "mode" in _errors(
+        _manifest(bindings={"revenue_by_region": {**binding, "mode": "cached"}})
+    )
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [{"sdk": "2"}, {"runtime": "vue"}, {"artifact_version": "2"}],
+)
+def test_unknown_versions_and_runtimes_are_refused(overrides: dict[str, Any]) -> None:
+    field = next(iter(overrides))
+    assert field in _errors(_manifest(**overrides))
+
+
+@pytest.mark.parametrize("vendor", ["Acme", "acme-corp", ""])
+def test_vendor_extensions_are_keyed_by_slugs(vendor: str) -> None:
+    assert "vendor name" in _errors(_manifest(extensions={vendor: {}}))
 
 
 def test_bindings_need_the_data_capability() -> None:
@@ -252,28 +267,22 @@ def test_bindings_need_the_data_capability() -> None:
     assert "bindings need the 'data' capability" in errors
 
 
-def test_unknown_capabilities_are_rejected() -> None:
-    assert "capabilities" in _errors(_manifest(capabilities=["data", "compute"]))
+@pytest.mark.parametrize("capability", ["compute", "events", "refresh", "compute.eval"])
+def test_unknown_capabilities_are_rejected(capability: str) -> None:
+    errors = _errors(_manifest(capabilities=["data", "cross_filter", capability]))
+    assert "capabilities" in errors
 
 
 def test_every_cross_field_problem_is_reported_at_once() -> None:
     errors = _errors(
         _manifest(
-            events=[{"kind": "drill", "binding": "nope", "dimension": "region"}],
+            events=[{"kind": "cross_filter", "binding": "nope", "dimension": "region"}],
             capabilities=[],
-            snapshots=[
-                {
-                    "binding": "gone",
-                    "captured_at": "2026-11-15T09:30:00+01:00",
-                    "row_count": 3,
-                }
-            ],
         )
     )
     assert "events[0] references undeclared binding 'nope'" in errors
-    assert "snapshots[0] references undeclared binding 'gone'" in errors
     assert "need the 'data' capability" in errors
-    assert "need the 'events' capability" in errors
+    assert "need the 'cross_filter' capability" in errors
 
 
 @pytest.mark.parametrize(
@@ -363,24 +372,6 @@ def test_invalid_package_names_are_rejected(name: str) -> None:
     assert "is not a valid npm package name" in errors
 
 
-def test_snapshots_need_a_timezone() -> None:
-    snapshot = {
-        "binding": "revenue_by_region",
-        "captured_at": "2026-11-15T09:30:00",
-        "row_count": 3,
-    }
-    assert "captured_at" in _errors(_manifest(snapshots=[snapshot]))
-
-
-def test_snapshot_row_counts_are_not_negative() -> None:
-    snapshot = {
-        "binding": "revenue_by_region",
-        "captured_at": "2026-11-15T09:30:00Z",
-        "row_count": -1,
-    }
-    assert "row_count" in _errors(_manifest(snapshots=[snapshot]))
-
-
 @pytest.mark.parametrize(
     "entrypoint", ["../index.html", "/index.html", "", "a\\b.html"]
 )
@@ -400,7 +391,7 @@ def test_the_json_schema_describes_the_manifest() -> None:
         "events",
         "capabilities",
         "dependencies",
-        "snapshots",
+        "extensions",
     } <= set(schema["properties"])
     source = schema["$defs"]["Binding"]["properties"]["source"]
     assert source["discriminator"]["propertyName"] == "kind"

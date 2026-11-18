@@ -99,7 +99,7 @@ Superset.
 - **Data and events.** The renderer fetches each named binding through the
   placement data endpoint, naming the binding and sending the draft token, and
   checks every frame request against the manifest before acting:
-  `setCrossFilter` through the canvas, `emit` through `publish`, `refresh` and
+  `setCrossFilter` through the canvas, `refresh` and
   `query` by fetching again. The endpoint asks the artifact widget type for
   the binding (its `binding_resolver`), which reads it from the manifest of
   the version the frame loads; the endpoint then runs it as the viewer, with

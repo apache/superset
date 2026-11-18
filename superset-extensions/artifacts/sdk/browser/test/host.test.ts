@@ -167,23 +167,18 @@ test('passes granted requests on, as clean copies', () => {
 });
 
 test('refuses requests that the grant does not cover', () => {
-  const { errors, fromFrame, handshake, requests } = setup([Capability.DATA]);
+  const { errors, fromFrame, handshake, requests } = setup([Capability.THEME]);
   handshake();
   fromFrame({
     type: 'request',
     request: { type: 'setCrossFilter', value: region },
   });
-  fromFrame({
-    type: 'request',
-    request: { type: 'emit', kind: 'drill', value: region },
-  });
   fromFrame({ type: 'request', request: { type: 'refresh' } });
 
   expect(requests).toEqual([]);
-  expect(errors.map(error => error.source)).toEqual(['host', 'host', 'host']);
+  expect(errors.map(error => error.source)).toEqual(['host', 'host']);
   expect(errors[0].message).toMatch(/"cross_filter" capability/);
-  expect(errors[1].message).toMatch(/"events" capability/);
-  expect(errors[2].message).toMatch(/"refresh" capability/);
+  expect(errors[1].message).toMatch(/"data" capability/);
 });
 
 test('refuses requests before the handshake', () => {
@@ -294,7 +289,7 @@ test('ignores a frame that has no window any more', () => {
   const requests: FrameRequest[] = [];
   const channel = createFrameChannel({
     frame: fakeFrame(null),
-    grant: [Capability.REFRESH],
+    grant: [Capability.DATA],
     onRequest: request => {
       requests.push(request);
     },

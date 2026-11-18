@@ -18,11 +18,19 @@
 """
 The artifact manifest (``manifest.json``): what an artifact asks of its host.
 
-The manifest declares the artifact's named data bindings, the data events it
-emits, the capabilities it needs, its npm dependencies and the provenance of
-any snapshot data. The host validates it on every write, and builds every
-query from the stored manifest as the viewer, never from anything the frame
-sends. Events are checked against it before Canvas applies them.
+The manifest declares the artifact's named data bindings, the cross-filters
+it emits, the capabilities it needs and its npm dependencies: what it
+requests, never what it is allowed (that is the policy's,
+``superset_artifacts_sdk.policy``). The host validates it on every write, and
+builds every query from the stored manifest as the viewer, never from
+anything the frame sends. Events are checked against it before Canvas applies
+them.
+
+The schema is the minimum that can grow safely: undeclared fields, unknown
+capabilities and an unknown ``artifact_version`` are refused, and vendors get
+an opaque ``extensions`` object that grants nothing. The agent writes the
+manifest, so nothing in it is trusted: provenance, for one, belongs to the
+store's record of a version, never here.
 """
 
 from __future__ import annotations
@@ -32,7 +40,6 @@ from collections.abc import Iterable
 from typing import Annotated, Any, Literal
 
 from pydantic import (
-    AwareDatetime,
     BaseModel,
     ConfigDict,
     Field,
@@ -44,6 +51,8 @@ from superset_artifacts_sdk.capabilities import Capability
 from superset_artifacts_sdk.store import normalize_path
 
 MANIFEST_VERSION = "1"
+# The runtime SDK that the code expects in its frame (``window.superset``).
+SDK_VERSION: Literal["1"] = "1"
 # Where the manifest lives in an artifact's file tree.
 MANIFEST_FILE = "manifest.json"
 
@@ -69,7 +78,12 @@ NonEmptyStr = Annotated[str, Field(min_length=1)]
 ParameterType = Literal[
     "string", "number", "boolean", "date", "time_range", "string_list"
 ]
-EventKind = Literal["cross_filter", "selection", "highlight", "drill"]
+# Cross-filters are the only kind of event an artifact emits.
+EventKind = Literal["cross_filter"]
+# Live data runs as the viewer at every view; a snapshot is captured once.
+BindingMode = Literal["live", "snapshot"]
+# What the code is written for; the build decides how to bundle each.
+Runtime = Literal["html", "react"]
 
 
 def _slug_error(kind: str, name: str) -> str | None:
@@ -177,8 +191,9 @@ class Binding(_ManifestModel):
     dimensions: list[NonEmptyStr] = Field(default_factory=list)
     filters: list[dict[str, Any]] = Field(default_factory=list)
     parameters: dict[str, ParameterSpec] = Field(default_factory=dict)
-    # TODO: an upper bound, once query limits are decided.
+    # The policy caps it (``data.max_rows``).
     row_limit: StrictPositiveInt | None = None
+    mode: BindingMode = "live"
 
     @field_validator("parameters")
     @classmethod
@@ -191,29 +206,15 @@ class Binding(_ManifestModel):
 
 class EventDecl(_ManifestModel):
     """
-    A data event the artifact emits: its kind, on one dimension of one binding.
+    A cross-filter the artifact emits, on one dimension of one binding.
 
-    ``cross_filter`` events need the ``cross_filter`` capability; the other
-    kinds need ``events``.
+    It needs the ``cross_filter`` capability, and the host accepts only values
+    that it delivered to the frame for that binding and dimension.
     """
 
     kind: EventKind
     binding: str
     dimension: str
-
-
-class SnapshotProvenance(_ManifestModel):
-    """
-    Where a binding's snapshot (static) data came from, and when.
-
-    A snapshot is captured with its author's access, not the viewer's, so its
-    provenance is mandatory.
-    """
-
-    binding: str
-    captured_at: AwareDatetime
-    captured_by: str | None = None
-    row_count: int = Field(strict=True, ge=0)
 
 
 class ArtifactManifest(_ManifestModel):
@@ -226,6 +227,8 @@ class ArtifactManifest(_ManifestModel):
     """
 
     artifact_version: Literal["1"]
+    sdk: Literal["1"] = SDK_VERSION
+    runtime: Runtime = "html"
     entrypoint: str = "index.html"
     title: str | None = None
     bindings: dict[str, Binding] = Field(default_factory=dict)
@@ -233,7 +236,8 @@ class ArtifactManifest(_ManifestModel):
     capabilities: list[Capability] = Field(default_factory=list)
     # npm package name to exact version.
     dependencies: dict[str, str] = Field(default_factory=dict)
-    snapshots: list[SnapshotProvenance] = Field(default_factory=list)
+    # Opaque, by vendor name, such as {"acme": {...}}; grants nothing.
+    extensions: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
     @field_validator("entrypoint")
     @classmethod
@@ -258,15 +262,17 @@ class ArtifactManifest(_ManifestModel):
         )
         return dependencies
 
+    @field_validator("extensions")
+    @classmethod
+    def _vendor_names_are_slugs(
+        cls, extensions: dict[str, dict[str, Any]]
+    ) -> dict[str, dict[str, Any]]:
+        _check_slugs("vendor", extensions)
+        return extensions
+
     @model_validator(mode="after")
     def _references_and_capabilities(self) -> ArtifactManifest:
-        _raise_errors(
-            [
-                *self._event_errors(),
-                *self._snapshot_errors(),
-                *self._capability_errors(),
-            ]
-        )
+        _raise_errors([*self._event_errors(), *self._capability_errors()])
         return self
 
     def _event_errors(self) -> list[str]:
@@ -284,23 +290,13 @@ class ArtifactManifest(_ManifestModel):
                 )
         return errors
 
-    def _snapshot_errors(self) -> list[str]:
-        return [
-            f"snapshots[{index}] references undeclared binding {snapshot.binding!r}"
-            for index, snapshot in enumerate(self.snapshots)
-            if snapshot.binding not in self.bindings
-        ]
-
     def _capability_errors(self) -> list[str]:
         declared = set(self.capabilities)
         needed: dict[Capability, str] = {}
         if self.bindings:
             needed[Capability.DATA] = "bindings"
-        for event in self.events:
-            if event.kind == "cross_filter":
-                needed.setdefault(Capability.CROSS_FILTER, "cross_filter events")
-            else:
-                needed.setdefault(Capability.EVENTS, f"{event.kind} events")
+        if self.events:
+            needed[Capability.CROSS_FILTER] = "cross_filter events"
         return [
             f"{reason} need the {capability.value!r} capability"
             for capability, reason in needed.items()

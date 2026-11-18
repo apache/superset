@@ -38,15 +38,14 @@ from superset_artifacts_sdk.capabilities import Capability
 from superset_artifacts_sdk.manifest import ArtifactManifest
 from superset_artifacts_sdk.provider import FrameContext, FrameMode
 
-# What each context allows at most.
+# What each context allows at most. A standalone or embedded page has no
+# canvas whose widgets could follow a cross-filter.
+_OFF_CANVAS = frozenset(c for c in Capability if c is not Capability.CROSS_FILTER)
 CONTEXT_CAPABILITIES: Mapping[FrameMode, frozenset[Capability]] = MappingProxyType(
     {
         "canvas": frozenset(Capability),
-        # A standalone page has no canvas to filter or to emit events to.
-        "standalone": frozenset(
-            {Capability.DATA, Capability.REFRESH, Capability.THEME}
-        ),
-        "embedded": frozenset({Capability.DATA, Capability.REFRESH, Capability.THEME}),
+        "standalone": _OFF_CANVAS,
+        "embedded": _OFF_CANVAS,
     }
 )
 

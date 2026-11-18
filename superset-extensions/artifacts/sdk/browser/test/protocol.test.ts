@@ -64,8 +64,7 @@ test('every request needs its capability', () => {
   expect(REQUEST_CAPABILITY).toEqual({
     query: Capability.DATA,
     setCrossFilter: Capability.CROSS_FILTER,
-    emit: Capability.EVENTS,
-    refresh: Capability.REFRESH,
+    refresh: Capability.DATA,
   });
 });
 
@@ -93,14 +92,6 @@ const validFrameMessages: [string, unknown][] = [
   [
     'a cleared cross-filter',
     { k, type: 'request', request: { type: 'setCrossFilter', value: null } },
-  ],
-  [
-    'an event',
-    {
-      k,
-      type: 'request',
-      request: { type: 'emit', kind: 'highlight', value: region },
-    },
   ],
   ['a refresh', { k, type: 'request', request: { type: 'refresh' } }],
   [
@@ -177,11 +168,11 @@ const invalidFrameMessages: [string, unknown][] = [
     },
   ],
   [
-    'a cross-filter sent as an event',
+    'an event other than a cross-filter',
     {
       k,
       type: 'request',
-      request: { type: 'emit', kind: 'cross_filter', value: region },
+      request: { type: 'emit', kind: 'highlight', value: region },
     },
   ],
   ['an error without a message', { k, type: 'error', kind: 'error' }],
@@ -237,9 +228,6 @@ test('requests can be parsed on their own', () => {
   });
   expect(
     parseFrameRequest({ type: 'emit', kind: 'drill', value: null }),
-  ).toEqual({ type: 'emit', kind: 'drill', value: null });
-  expect(
-    parseFrameRequest({ type: 'emit', kind: 'zoom', value: null }),
   ).toBeUndefined();
 });
 

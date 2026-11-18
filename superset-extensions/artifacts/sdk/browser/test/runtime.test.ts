@@ -20,7 +20,6 @@
 import { CAPABILITIES, Capability } from '../src/capabilities';
 import {
   DataEventValue,
-  EmittedEventKind,
   encodeFrameConfig,
   FrameRequestType,
   FrameStatus,
@@ -141,10 +140,7 @@ test('guards every data and event method by its capability', () => {
   expect(() => runtime.setCrossFilter(value)).toThrow(
     /needs the "cross_filter" capability/,
   );
-  expect(() => runtime.emit('drill', value)).toThrow(
-    /needs the "events" capability/,
-  );
-  expect(() => runtime.refresh()).toThrow(/needs the "refresh" capability/);
+  expect(() => runtime.refresh()).toThrow(/needs the "data" capability/);
   expect(runtime.status()).toBe('loading');
   expect(sent()).toEqual([]);
 });
@@ -156,7 +152,6 @@ const requestCalls: Record<
 > = {
   query: runtime => runtime.query('sales'),
   setCrossFilter: runtime => runtime.setCrossFilter(null),
-  emit: runtime => runtime.emit('drill', null),
   refresh: runtime => runtime.refresh(),
 };
 
@@ -179,12 +174,7 @@ const requestCalls: Record<
 });
 
 test('sends granted requests to the host', () => {
-  const { runtime, sent } = setup([
-    Capability.DATA,
-    Capability.CROSS_FILTER,
-    Capability.EVENTS,
-    Capability.REFRESH,
-  ]);
+  const { runtime, sent } = setup([Capability.DATA, Capability.CROSS_FILTER]);
   const value: DataEventValue = {
     binding: 'sales',
     dimension: 'region',
@@ -193,7 +183,6 @@ test('sends granted requests to the host', () => {
   runtime.query('sales', { time_range: 'Last week' });
   runtime.setCrossFilter(value);
   runtime.setCrossFilter(null);
-  runtime.emit('highlight', value);
   runtime.refresh();
   expect(sent()).toEqual([
     {
@@ -207,11 +196,6 @@ test('sends granted requests to the host', () => {
     },
     { k, type: 'request', request: { type: 'setCrossFilter', value } },
     { k, type: 'request', request: { type: 'setCrossFilter', value: null } },
-    {
-      k,
-      type: 'request',
-      request: { type: 'emit', kind: 'highlight', value },
-    },
     { k, type: 'request', request: { type: 'refresh' } },
   ]);
 });
@@ -238,16 +222,9 @@ test('sends only the fields the protocol defines', () => {
 });
 
 test('rejects malformed requests before they leave the frame', () => {
-  const { runtime, sent } = setup([
-    Capability.DATA,
-    Capability.CROSS_FILTER,
-    Capability.EVENTS,
-  ]);
+  const { runtime, sent } = setup([Capability.DATA, Capability.CROSS_FILTER]);
   expect(() => runtime.query('')).toThrow(TypeError);
   expect(() => runtime.setCrossFilter({} as DataEventValue)).toThrow(TypeError);
-  expect(() => runtime.emit('cross_filter' as EmittedEventKind, null)).toThrow(
-    /setCrossFilter/,
-  );
   expect(sent()).toEqual([]);
 });
 

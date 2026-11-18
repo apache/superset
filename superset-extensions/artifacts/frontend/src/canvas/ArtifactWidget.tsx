@@ -26,12 +26,10 @@
  * may see, opens the sandboxed frame on it, sends the frame its state (the
  * bindings' data, the filters that reach it, the theme) and acts on the
  * frame's requests only after checking them against the manifest:
- * `setCrossFilter` through the canvas, `emit` through `publish`, `refresh` and
- * `query` by fetching again.
+ * `setCrossFilter` through the canvas, `refresh` and `query` by fetching
+ * again.
  */
 
-// TODO: standard event kinds for every widget; artifact events are published
-// under this extension's own prefix until then.
 // TODO: a render-complete signal, and cross-filter values accepted only from
 // the data the host delivered.
 
@@ -50,10 +48,8 @@ import type {
   FrameState,
 } from '@superset-oss/artifacts-sdk';
 import PublishRequest from '../authoring/PublishRequest';
-import { EVENT_KIND_PREFIX } from '../constants';
 import {
   artifactFilters,
-  checkEvent,
   checkQuery,
   crossFilterValue,
   fetchBinding,
@@ -83,7 +79,6 @@ export default function ArtifactWidget({
   crossFilters,
   crossFiltersEnabled,
   setCrossFilter,
-  publish,
   refreshKey,
   draftToken,
 }: canvas.CanvasWidgetProps) {
@@ -249,17 +244,6 @@ export default function ArtifactWidget({
           else refuse(checked.reason);
           break;
         }
-        case 'emit': {
-          const kind = `${EVENT_KIND_PREFIX}${request.kind}`;
-          if (request.value === null) {
-            publish(kind, undefined);
-            break;
-          }
-          const checked = checkEvent(manifest, request.kind, request.value);
-          if (checked.ok) publish(kind, checked.value);
-          else refuse(checked.reason);
-          break;
-        }
         case 'refresh':
           setDataNonce(nonce => nonce + 1);
           break;
@@ -267,7 +251,7 @@ export default function ArtifactWidget({
           break;
       }
     },
-    [manifest, publish, refetchBinding, refuse, setCrossFilter],
+    [manifest, refetchBinding, refuse, setCrossFilter],
   );
 
   // Errors are the author's to fix, so only the artifact's owners see them.
