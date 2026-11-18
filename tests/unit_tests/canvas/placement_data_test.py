@@ -414,13 +414,16 @@ def test_a_draft_of_another_canvas_is_not_found(
 
 
 def test_a_placement_loads_with_its_widget_type_and_props(
-    full_api_access: None, canvas: Any
+    full_api_access: None, canvas: Any, widget_types: FakeResolver
 ) -> None:
     from superset.commands.canvas.exceptions import CanvasPlacementNotFoundError
     from superset.commands.canvas.placement_data import load_placement, StoredPlacement
 
     assert load_placement("100", "chart") == StoredPlacement(
-        widget_type="chart", props={"dataBinding": BINDING}, widget_id="chart-1"
+        widget_type="chart",
+        props={"dataBinding": BINDING},
+        widget_id="chart-1",
+        widget=widget_types.widgets({"chart-1"})["chart-1"],
     )
     assert load_placement("100", "text") == StoredPlacement(
         widget_type="markdown", props={}
@@ -429,9 +432,10 @@ def test_a_placement_loads_with_its_widget_type_and_props(
         load_placement("100", "missing")
 
 
-def test_extensions_read_a_placement_through_superset_core(
+def test_extensions_read_a_placed_widget_through_superset_core(
     full_api_access: None,
     canvas: Any,
+    widget_types: FakeResolver,
     mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -441,25 +445,30 @@ def test_extensions_read_a_placement_through_superset_core(
     from superset.core.api.core_api_injection import inject_canvas_implementations
 
     # Puts back whatever the app injected, once the test ends.
-    monkeypatch.setattr(placements, "load_placement", placements.load_placement)
+    for name in ("load_placed_widget", "get_widget_resolver"):
+        monkeypatch.setattr(placements, name, getattr(placements, name))
     inject_canvas_implementations()
     mocker.patch(
         "superset.commands.canvas.placement_data.load_draft",
         side_effect=CanvasForbiddenError(),
     )
 
-    assert placements.load_placement("100", "chart") == placements.StoredPlacement(
-        widget_type="chart", props={"dataBinding": BINDING}, widget_id="chart-1"
+    assert placements.load_placed_widget("100", "chart") == (
+        "chart-1",
+        widget_types.widgets({"chart-1"})["chart-1"],
     )
-    # A missing placement or canvas, and a draft the caller may not use, all
-    # look the same.
+    # The resolver canvases use answers what else an extension asks.
+    assert placements.get_widget_resolver().editable({"chart-1"}) == {"chart-1"}
+    # A missing placement or canvas, a draft the caller may not use, and a
+    # placement that stores its own content all look the same.
     for canvas_id, placement_id, token in [
         ("100", "missing", None),
         ("101", "chart", None),
         ("100", "chart", "token"),
+        ("100", "text", None),
     ]:
         with pytest.raises(placements.PlacementNotFoundError):
-            placements.load_placement(canvas_id, placement_id, token)
+            placements.load_placed_widget(canvas_id, placement_id, token)
 
 
 def test_runtime_filters_narrow_only_the_bindings_dataset() -> None:

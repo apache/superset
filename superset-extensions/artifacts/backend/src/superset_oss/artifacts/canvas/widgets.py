@@ -18,19 +18,20 @@
 ``ArtifactAccess`` on the saved widgets: an artifact's widget, and its editors.
 
 Lookups go through ``WidgetDAO``, whose access filter answers who may read a
-widget; ``is_editor`` answers who may change it, through the user's roles and
-groups too. An artifact's widget is created here, through the same DAO, with
-its author as its editor: the widget row holds its name, editors and viewers,
-and the store only its content.
+widget; the widget resolver that canvases use answers who may change it
+(``editable``), through the user's roles and groups too. An artifact's widget
+is created here, through the same DAO, with its author as its editor: the
+widget row holds its name, editors and viewers, and the store only its
+content.
 """
 
 from __future__ import annotations
 
 from uuid import UUID
 
+from superset_core.canvas import placements
 from superset_core.common.daos import SubjectDAO
 from superset_core.common.models import get_session
-from superset_core.common.security import is_editor
 from superset_core.widgets.daos import WidgetDAO
 from superset_core.widgets.models import WidgetModel
 from superset_oss.artifacts.constants import WIDGET_TYPE
@@ -65,7 +66,10 @@ class WidgetAccess:
 
     def can_edit(self, artifact_id: str) -> bool:
         widget = self._widget(artifact_id)
-        return widget is not None and is_editor(widget)
+        if widget is None:
+            return False
+        widget_id = str(widget.uuid)
+        return widget_id in placements.get_widget_resolver().editable({widget_id})
 
     @staticmethod
     def _widget(artifact_id: str) -> WidgetModel | None:

@@ -14,36 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 """
-A canvas placement as stored, read with the canvas's access rules.
+The widgets canvases place, read with the canvases' own access rules.
 
-An extension endpoint that serves one of its own placements reads it through
-``load_placement``, so that the caller reaches only the placements that the
-canvas's own endpoints would show them.
+An extension endpoint that serves its widget on a canvas reads the placement
+through ``load_placed_widget``, so that the caller reaches only the
+placements that the canvas's own endpoints would show them, and asks the
+host's ``WidgetResolver`` (``get_widget_resolver``) what else it needs, such
+as whether the caller may change the widget (``editable``).
 
 Usage:
     from superset_core.canvas import placements
 
-    placement = placements.load_placement(canvas_id, placement_id, draft_token)
+    widget_id, widget = placements.load_placed_widget(
+        canvas_id, placement_id, draft_token
+    )
+    if widget_id in placements.get_widget_resolver().editable({widget_id}):
+        ...
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
-
-
-@dataclass(frozen=True)
-class StoredPlacement:
-    """A placement's widget type and props, as stored."""
-
-    # ``None`` for a widget entity that no longer resolves.
-    widget_type: str | None
-    props: dict[str, Any]
-    # The UUID of the saved widget the placement shows; ``None`` for a widget
-    # stored on the placement itself, such as a container or text.
-    widget_id: str | None = None
+from superset_core.canvas.base import StoredWidget, WidgetResolver
 
 
 class PlacementNotFoundError(LookupError):
@@ -55,14 +47,15 @@ class PlacementNotFoundError(LookupError):
     """
 
 
-def load_placement(
+def load_placed_widget(
     canvas_id: str,
     placement_id: str,
     draft_token: str | None = None,
-) -> StoredPlacement:
+) -> tuple[str, StoredWidget]:
     """
-    Placement ``placement_id`` of a canvas, as stored, or as the caller's draft
-    of the canvas holds it.
+    The saved widget that placement ``placement_id`` of a canvas shows, as
+    the canvas stores it or as the caller's draft of the canvas holds it: the
+    widget's UUID, and its content as that canvas or draft resolves it.
 
     Host implementations will replace this function during initialization
     with a concrete implementation providing actual functionality.
@@ -72,8 +65,20 @@ def load_placement(
     :param draft_token: A draft of the canvas to read the placement from. It
         must be the caller's own draft of this canvas, and the caller must
         still be allowed to edit the canvas.
-    :returns: The placement's widget type and props, and its saved widget's UUID.
+    :returns: The widget's UUID and content.
     :raises PlacementNotFoundError: If the caller can't read the canvas or the
-        draft, or the canvas has no such placement.
+        draft, the canvas has no such placement, or the placement shows no
+        saved widget (a container or text stores its own content).
+    """
+    raise NotImplementedError("Function will be replaced during initialization")
+
+
+def get_widget_resolver() -> WidgetResolver:
+    """
+    The host's resolver of saved widgets, as canvases use it: their content
+    (``widgets``), and which the current user may change (``editable``).
+
+    Host implementations will replace this function during initialization
+    with a concrete implementation providing actual functionality.
     """
     raise NotImplementedError("Function will be replaced during initialization")

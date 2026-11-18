@@ -19,8 +19,8 @@ The artifact a canvas placement shows, read from the stored canvas.
 
 A placement shows an artifact by holding its saved widget, whose UUID is the
 artifact's id. It is read through ``superset_core``'s placement lookup, which
-applies the canvas's access rules: a canvas the caller can't read looks the
-same as one that doesn't exist.
+applies the canvas's access rules and answers the widget as canvases resolve
+it: a canvas the caller can't read looks the same as one that doesn't exist.
 """
 
 from __future__ import annotations
@@ -43,12 +43,14 @@ def placement_artifact(
     A widget id in the canvas that isn't a UUID names no artifact.
     """
     try:
-        placement = placements.load_placement(canvas_id, placement_id, draft_token)
+        widget_id, widget = placements.load_placed_widget(
+            canvas_id, placement_id, draft_token
+        )
     except placements.PlacementNotFoundError as ex:
         raise PlacementNotFoundError(placement_id) from ex
-    if placement.widget_type != WIDGET_TYPE or placement.widget_id is None:
+    if widget.widget_type != WIDGET_TYPE:
         raise PlacementNotFoundError(placement_id)
     try:
-        return UUID(placement.widget_id)
+        return UUID(widget_id)
     except ValueError:
         raise PlacementNotFoundError(placement_id) from None

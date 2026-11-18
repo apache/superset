@@ -377,49 +377,41 @@ def inject_widget_implementations() -> None:
     import superset.widgets.builtin  # noqa: F401  pylint: disable=unused-import
 
 
-def inject_security_implementations() -> None:
-    """
-    Replace the abstract checks in ``superset_core.common.security`` with the
-    security manager's.
-    """
-    import superset_core.common.security as core_security_module
-    from superset_core.common.models import CoreModel
-
-    def is_editor(resource: CoreModel) -> bool:
-        from superset import security_manager
-
-        return security_manager.is_editor(resource)
-
-    core_security_module.is_editor = is_editor
-
-
 def inject_canvas_implementations() -> None:
     """
-    Replace the abstract placement lookup in ``superset_core.canvas.placements``
-    with the host's, which reads a placement with the canvas's access rules.
+    Replace the abstract lookups in ``superset_core.canvas.placements`` with
+    the host's: a placement's saved widget, read with the canvas's access
+    rules, and the widget resolver canvases use.
     """
     import superset_core.canvas.placements as core_placements_module
-    from superset_core.canvas.placements import (
-        PlacementNotFoundError,
-        StoredPlacement,
-    )
+    from superset_core.canvas import StoredWidget, WidgetResolver
+    from superset_core.canvas.placements import PlacementNotFoundError
 
-    def load_placement(
+    def load_placed_widget(
         canvas_id: str,
         placement_id: str,
         draft_token: str | None = None,
-    ) -> StoredPlacement:
-        from superset.commands.canvas.placement_data import (
-            load_placement as load_host_placement,
-        )
+    ) -> tuple[str, StoredWidget]:
+        from superset.commands.canvas.placement_data import load_placement
         from superset.commands.exceptions import ForbiddenError, ObjectNotFoundError
 
         try:
-            return load_host_placement(canvas_id, placement_id, draft_token)
+            placement = load_placement(canvas_id, placement_id, draft_token)
         except (ObjectNotFoundError, ForbiddenError) as ex:
             raise PlacementNotFoundError(placement_id) from ex
+        if placement.widget_id is None or placement.widget is None:
+            raise PlacementNotFoundError(placement_id)
+        return placement.widget_id, placement.widget
 
-    core_placements_module.load_placement = load_placement
+    def get_widget_resolver() -> WidgetResolver:
+        from superset.canvas.definition.registry import (
+            get_widget_resolver as host_widget_resolver,
+        )
+
+        return host_widget_resolver()
+
+    core_placements_module.load_placed_widget = load_placed_widget
+    core_placements_module.get_widget_resolver = get_widget_resolver
 
 
 def inject_storage_implementations() -> None:
@@ -471,7 +463,6 @@ def initialize_core_api_dependencies() -> None:
     inject_rest_api_implementations()
     inject_semantic_layer_implementations()
     inject_widget_implementations()
-    inject_security_implementations()
     inject_canvas_implementations()
     inject_storage_implementations()
     inject_extension_context()

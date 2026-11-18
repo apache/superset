@@ -45,7 +45,7 @@ from superset_artifacts_sdk.provider import (
     VersionNotFoundError,
 )
 from superset_artifacts_sdk.testing import InMemoryArtifactStore
-from superset_core.canvas import placements
+from superset_core.canvas import placements, StoredWidget
 from superset_core.widgets import Widget
 from superset_oss.artifacts.canvas.controls import ArtifactControls
 from superset_oss.artifacts.constants import WIDGET_TYPE
@@ -351,28 +351,31 @@ def test_a_placement_is_read_through_superset_core(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     artifact_id = "00000000-0000-4000-8000-000000000000"
+
+    def widget(widget_type: str) -> StoredWidget:
+        return StoredWidget(widget_type=widget_type, schema_version=1, name="w")
+
     stored = {
-        "art": placements.StoredPlacement(WIDGET_TYPE, {}, widget_id=artifact_id),
-        "chart": placements.StoredPlacement("chart", {}, widget_id=artifact_id),
-        "inline": placements.StoredPlacement(WIDGET_TYPE, {}),
-        "malformed": placements.StoredPlacement(WIDGET_TYPE, {}, widget_id="x"),
+        "art": (artifact_id, widget(WIDGET_TYPE)),
+        "chart": (artifact_id, widget("chart")),
+        "malformed": ("x", widget(WIDGET_TYPE)),
     }
     reads: list[tuple[str, str, str | None]] = []
 
-    def load_placement(
+    def load_placed_widget(
         canvas_id: str, placement_id: str, draft_token: str | None = None
-    ) -> placements.StoredPlacement:
+    ) -> tuple[str, StoredWidget]:
         reads.append((canvas_id, placement_id, draft_token))
         if placement_id not in stored:
             raise placements.PlacementNotFoundError(placement_id)
         return stored[placement_id]
 
-    monkeypatch.setattr(placements, "load_placement", load_placement)
+    monkeypatch.setattr(placements, "load_placed_widget", load_placed_widget)
 
     assert placement_artifact("7", "art", "token") == UUID(artifact_id)
     assert reads == [("7", "art", "token")]
-    # Nothing the caller may read, another widget type, no saved widget, and a
-    # widget id that isn't one.
-    for placement_id in ("missing", "chart", "inline", "malformed"):
+    # Nothing the caller may read (or no saved widget), another widget type,
+    # and a widget id that isn't one.
+    for placement_id in ("missing", "chart", "malformed"):
         with pytest.raises(PlacementNotFoundError):
             placement_artifact("7", placement_id)

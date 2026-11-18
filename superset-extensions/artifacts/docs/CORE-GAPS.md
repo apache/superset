@@ -72,26 +72,28 @@ branch:
     caller's draft or a version, with the canvas's access rules.
     `GetPlacementDataCommand` uses it.
   - The same lookup for extensions:
-    `superset_core.canvas.placements.load_placement(canvas_id, placement_id,
-    draft_token)`, which the host injects (`inject_canvas_implementations`,
-    `superset/core/api/core_api_injection.py`). It answers a
-    `StoredPlacement`: the widget type, the props and, for a placement that
-    holds a saved widget, that widget's UUID (`widget_id`). It raises
+    `superset_core.canvas.placements.load_placed_widget(canvas_id,
+    placement_id, draft_token)`, which the host injects
+    (`inject_canvas_implementations`,
+    `superset/core/api/core_api_injection.py`). It answers the saved widget
+    the placement shows, as the canvas branch's types have it: its UUID and
+    its `StoredWidget`, as the canvas or the draft resolves it. It raises
     `PlacementNotFoundError` for a canvas, draft or placement the caller can't
-    read. The extension's frame links (`frames/placement.py`) use it, so the
-    extension imports nothing from the host.
-  - `superset_core.common.security.is_editor(resource)`: whether the current
-    user may edit a resource, as the security manager says (through roles and
-    groups, never for guests), which the host injects
-    (`inject_security_implementations`). An extension reads its widgets
-    through `WidgetDAO`'s access filter, and asks this who may change them.
+    read, and for a placement that stores its own content. The extension's
+    frame links (`frames/placement.py`) use it, so the extension imports
+    nothing from the host.
+  - `superset_core.canvas.placements.get_widget_resolver()`: the canvas
+    branch's `WidgetResolver`, which the host injects too. An extension reads
+    its widgets through `WidgetDAO`'s access filter, and asks the resolver
+    who may change them (`editable`: admins and the widget's editors, through
+    roles and groups, never guests).
 - **Tests:** `CanvasGrid.test.tsx` (a renderer gets the draft's token, and
   `undefined` without a draft; added, not run here, as this checkout has no
   `node_modules`); `tests/unit_tests/canvas/placement_data_test.py` (a
   placement loads with its widget type and props; the injected lookup reads
-  it too, and raises `PlacementNotFoundError` for what the caller can't
-  read); `test_ext_imports.py` (the extension imports nothing from
-  `superset`).
+  its saved widget too, and raises `PlacementNotFoundError` for what the
+  caller can't read; the injected resolver answers `editable`);
+  `test_ext_imports.py` (the extension imports nothing from `superset`).
 - **Pending:**
   - the previewed version (`CanvasVersionContext`, `useWidgetRows.ts`) as a
     prop too, and in the `superset_core` lookup, so that an extension

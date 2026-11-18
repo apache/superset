@@ -81,7 +81,8 @@ author as editor; the store keeps only the content, keyed by that UUID.
   its own) follows the widget's access filter, and shows a reader who isn't an
   editor only the published version, as frames do: the draft and the history
   are its editors' own. Changing it (writing files, building, publishing)
-  needs the user to be one of its editors (`is_editor`).
+  needs the user to be one of its editors, as the widget resolver that
+  canvases use says (`editable`).
 - A canvas places the artifact by its widget's id. A canvas reader sees the
   artifact's published version there, as for any widget a canvas places; its
   editors see its draft while the canvas shows a draft.
