@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getSelectExtraFormData } from 'src/filters/utils';
 import getFormDataWithExtraFilters, {
   CachedFormDataWithExtraControls,
   getCustomizationSelectionSources,
@@ -1292,7 +1293,7 @@ function externalPredicateArgs(): GetFormDataWithExtraFiltersArguments {
         crossFilters: { scope: 'global', chartsInScope: [chartId] },
       },
     },
-    sourceCharts: { 42: { form_data: { datasource: '12__table' } } },
+    sourceDatasources: { 42: '12__table' },
     nativeFilters: {},
     dataMask: {
       42: {
@@ -1317,7 +1318,10 @@ test('SQL cross-filter is skipped even when its column matches a semantic member
 test('changing a source chart invalidates cached compatibility', () => {
   const args = externalPredicateArgs();
   const sql = getFormDataWithExtraFilters(args);
-  const unknown = getFormDataWithExtraFilters({ ...args, sourceCharts: {} });
+  const unknown = getFormDataWithExtraFilters({
+    ...args,
+    sourceDatasources: {},
+  });
   expect(unknown).not.toBe(sql);
   expect(chartExtras(unknown)?.semantic_selection_version).toBe(
     'unverified-external-selections',
@@ -1355,10 +1359,10 @@ test.each(['unknown', 'foreign semantic', 'semantic mask on SQL source'])(
   '%s cross-filter retains the identity refusal',
   kind => {
     const args = externalPredicateArgs();
-    if (kind === 'unknown') args.sourceCharts = {};
+    if (kind === 'unknown') args.sourceDatasources = {};
     if (kind === 'foreign semantic')
-      args.sourceCharts = {
-        42: { form_data: { datasource: '9__semantic_view' } },
+      args.sourceDatasources = {
+        42: '9__semantic_view',
       };
     if (kind === 'semantic mask on SQL source') {
       args.dataMask[42].extraFormData!.semantic_selection_sources = [
@@ -1409,5 +1413,38 @@ test('SQL receiving charts still receive SQL cross-filters', () => {
   };
   expect(getFormDataWithExtraFilters(args).extra_form_data?.filters).toEqual(
     args.dataMask[42].extraFormData?.filters,
+  );
+});
+
+test('required SQL Value match-nothing mask is omitted without invalidating identity', () => {
+  const args = externalPredicateArgs();
+  args.nativeFilters = {
+    42: {
+      id: '42',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 12 }],
+      chartsInScope: [chartId],
+    },
+  };
+  args.dataMask[42].extraFormData = getSelectExtraFormData('country', [], true);
+  const result = getFormDataWithExtraFilters(args);
+  expect(result.extra_form_data?.adhoc_filters ?? []).toEqual([]);
+  expect(chartExtras(result)?.semantic_selection_version).toBe(
+    'cube-member-id-v1',
+  );
+});
+
+test('same-view cross-filter remains applied with current identity', () => {
+  const args = externalPredicateArgs();
+  args.sourceDatasources = { 42: '3__semantic_view' };
+  args.dataMask[42].extraFormData!.semantic_selection_sources = [
+    { datasource: '3__semantic_view', version: 'cube-member-id-v1' },
+  ];
+  const result = getFormDataWithExtraFilters(args);
+  expect(result.extra_form_data?.filters).toEqual(
+    args.dataMask[42].extraFormData?.filters,
+  );
+  expect(chartExtras(result)?.semantic_selection_version).toBe(
+    'cube-member-id-v1',
   );
 });

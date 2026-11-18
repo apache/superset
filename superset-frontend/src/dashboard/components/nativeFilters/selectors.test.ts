@@ -758,7 +758,7 @@ test('skipped SQL filters are incompatible by source id, not by column name', ()
   const config: Args[5] = {
     42: { id: 42, crossFilters: { scope: 'global', chartsInScope: [9001] } },
   };
-  const sources: Args[6] = { 42: { form_data: { datasource: '12__table' } } };
+  const sources: Args[6] = { 42: '12__table' };
   const selected = selectNativeIndicatorsForChart(
     native,
     mask,

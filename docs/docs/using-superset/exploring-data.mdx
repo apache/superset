@@ -610,7 +610,9 @@ On mixed dashboards, Value and Numerical range filters targeting ordinary datase
 and predicate-only cross-filters from ordinary dataset charts, are not applied to
 semantic-view charts that require versioned member identities. The chart's filter
 indicator lists these filters as incompatible, including when column names happen
-to match. This applies to embedded dashboards as well.
+to match. This applies to embedded dashboards as well. An empty required Value
+filter on an ordinary dataset is also not applied: it does not hold a semantic-view
+chart empty until a value is chosen. The indicator still marks it as incompatible.
 
 Time column overrides, Dynamic group by, selections from another semantic view,
 and selections whose source cannot be identified retain their existing validation.

@@ -841,7 +841,7 @@ test('a SQL chart click mask is excluded from a versioned semantic receiver', ()
     chartConfiguration: {
       1: { id: 1, crossFilters: { scope: 'global', chartsInScope: [2] } },
     },
-    sourceCharts: { 1: { form_data: source } },
+    sourceDatasources: { 1: source.datasource },
     filters: {},
     sliceId: 2,
     nativeFilters: {},

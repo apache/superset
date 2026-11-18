@@ -48,7 +48,7 @@ import {
 } from './chartTypeLimitations';
 import {
   getIgnoredSqlFilterIds,
-  FilterSourceCharts,
+  ChartDatasources,
 } from './getIgnoredSqlFilterIds';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
@@ -166,7 +166,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   allSliceIds: number[];
   chartCustomization?: JsonObject;
   activeFilters?: ActiveFilters;
-  sourceCharts?: FilterSourceCharts;
+  sourceDatasources?: ChartDatasources;
 }
 
 const createFilterDataMapping = (
@@ -518,13 +518,13 @@ export default function getFormDataWithExtraFilters({
   allSliceIds,
   chartCustomization,
   activeFilters: passedActiveFilters,
-  sourceCharts,
+  sourceDatasources,
 }: GetFormDataWithExtraFiltersArguments) {
   const ignoredFilterIds = getIgnoredSqlFilterIds(
     chart.form_data ?? {},
     nativeFilters,
     dataMask,
-    sourceCharts,
+    sourceDatasources,
   );
   const chartSelectionInput = {
     ignoredFilterIds,

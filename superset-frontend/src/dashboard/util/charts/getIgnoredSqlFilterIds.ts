@@ -16,23 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isEqual } from 'lodash-es';
+import { EMPTY_FILTER_SQL_EXPRESSION } from 'src/utils/common';
+import {
+  Clauses,
+  ExpressionTypes,
+} from 'src/explore/components/controls/FilterControl/types';
 import {
   DataMaskStateWithId,
   DatasourceType,
   PartialFilters,
 } from '@superset-ui/core';
 
-export type FilterSourceCharts = Record<
-  string,
-  { form_data?: { datasource?: string } }
->;
+export type ChartDatasources = Record<string, string | undefined>;
+
+/** Select only query-source identity; callers use shallow equality for stability. */
+export const selectChartDatasources = ({
+  charts,
+}: {
+  charts: Record<string, { form_data?: { datasource?: string } }>;
+}): ChartDatasources =>
+  Object.fromEntries(
+    Object.entries(charts).map(([id, chart]) => [
+      id,
+      chart.form_data?.datasource,
+    ]),
+  );
 
 /** Classify optional dashboard predicates; never certify semantic selections. */
 export function getIgnoredSqlFilterIds(
   receiver: { datasource?: string; semantic_selection_version?: string },
   nativeFilters: PartialFilters,
   dataMask: DataMaskStateWithId,
-  sourceCharts: FilterSourceCharts = {},
+  sourceDatasources: ChartDatasources = {},
 ): string[] {
   if (
     !receiver.datasource?.endsWith(`__${DatasourceType.SemanticView}`) ||
@@ -43,11 +59,22 @@ export function getIgnoredSqlFilterIds(
   return Object.keys(dataMask).filter(id => {
     const native = nativeFilters?.[id];
     const extra = dataMask[id]?.extraFormData;
+    const predicateKey =
+      native?.filterType === 'filter_select' &&
+      isEqual(extra?.adhoc_filters, [
+        {
+          expressionType: ExpressionTypes.Sql,
+          clause: Clauses.Where,
+          sqlExpression: EMPTY_FILTER_SQL_EXPRESSION,
+        },
+      ])
+        ? 'adhoc_filters'
+        : 'filters';
     // Member overrides and customizations retain their identity validation.
     if (
-      !extra?.filters?.length ||
+      !extra?.[predicateKey]?.length ||
       Object.keys(extra).some(
-        key => key !== 'filters' && key !== 'semantic_selection_sources',
+        key => key !== predicateKey && key !== 'semantic_selection_sources',
       ) ||
       (native &&
         !['filter_select', 'filter_range'].includes(native.filterType ?? ''))
@@ -60,7 +87,7 @@ export function getIgnoredSqlFilterIds(
       ? target?.datasetId
         ? `${target.datasetId}__${target.datasourceType || DatasourceType.Table}`
         : undefined
-      : sourceCharts[id]?.form_data?.datasource;
+      : sourceDatasources[id];
     return Boolean(
       source?.endsWith(`__${DatasourceType.Table}`) &&
       (extra.semantic_selection_sources ?? []).every(

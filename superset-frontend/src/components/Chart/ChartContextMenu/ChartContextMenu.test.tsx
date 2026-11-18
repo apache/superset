@@ -430,7 +430,7 @@ test('SQL context-menu cross-filter is excluded by semantic dashboard assembly',
       filters: {},
       sliceId: 9003,
       nativeFilters: {},
-      sourceCharts: { [sliceId]: { form_data: defaultFormData } },
+      sourceDatasources: { [sliceId]: defaultFormData.datasource },
       dataMask: {
         [sliceId]: { id: String(sliceId), ...update.mock.calls[0][1] },
       },

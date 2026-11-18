@@ -311,6 +311,8 @@ test('embedded payload assembly receives cross-filter datasource metadata', asyn
     .mockReturnValue(true);
   await getChartDataPayloads(mockState as RootState);
   expect(getFormDataWithExtraFilters).toHaveBeenCalledWith(
-    expect.objectContaining({ sourceCharts: mockState.charts }),
+    expect.objectContaining({
+      sourceDatasources: { 123: '1__table', 456: '2__table' },
+    }),
   );
 });

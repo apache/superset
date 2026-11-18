@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getSelectExtraFormData } from 'src/filters/utils';
 import { ReactNode } from 'react';
 import { Store } from 'redux';
-import { DatasourceType, Filters } from '@superset-ui/core';
+import { DatasourceType, Filters, NativeFilterType } from '@superset-ui/core';
 import { render } from 'spec/helpers/testing-library';
 import {
   CHART_RENDERING_SUCCEEDED,
@@ -329,4 +330,136 @@ test('shows skipped ordinary filters even when the server reports none rejected'
     }),
   ).toBeInTheDocument();
   expect(getByRole('button')).not.toHaveAccessibleName(/Applied filters/);
+});
+
+test.each([
+  { semanticSelected: false, requiredEmpty: false },
+  { semanticSelected: true, requiredEmpty: false },
+  { semanticSelected: false, requiredEmpty: true },
+])(
+  'same-named SQL filter remains visible: %j',
+  ({ semanticSelected, requiredEmpty }) => {
+    const initial = getMockStoreWithNativeFilters().getState();
+    const nativeFilters: Filters = Object.fromEntries(
+      ['sql', 'semantic'].map(id => [
+        id,
+        {
+          id,
+          name: 'Country',
+          type: NativeFilterType.NativeFilter,
+          filterType: 'filter_select',
+          targets: [
+            {
+              datasetId: id === 'sql' ? 12 : 3,
+              datasourceType:
+                id === 'sql'
+                  ? DatasourceType.Table
+                  : DatasourceType.SemanticView,
+              column: { name: 'country' },
+            },
+          ],
+          chartsInScope: [sliceId],
+          scope: { rootPath: [], excluded: [] },
+          cascadeParentIds: [],
+          defaultDataMask: {},
+          controlValues: {},
+          description: '',
+        },
+      ]),
+    );
+    const store = storeWithState({
+      ...initial,
+      nativeFilters: { ...initial.nativeFilters, filters: nativeFilters },
+      dataMask: {
+        sql: {
+          id: 'sql',
+          filterState: { value: requiredEmpty ? null : ['US'] },
+          extraFormData: getSelectExtraFormData(
+            'country',
+            requiredEmpty ? [] : ['US'],
+            requiredEmpty,
+          ),
+        },
+        semantic: {
+          id: 'semantic',
+          filterState: { value: semanticSelected ? ['US'] : null },
+          extraFormData: {},
+        },
+      },
+      charts: {
+        ...initial.charts,
+        [sliceId]: {
+          ...initial.charts[sliceId],
+          form_data: {
+            ...initial.charts[sliceId].form_data,
+            datasource: '3__semantic_view',
+            semantic_selection_version: 'cube-member-id-v1',
+          },
+        },
+      },
+    });
+    store.dispatch({
+      type: CHART_UPDATE_SUCCEEDED,
+      key: sliceId,
+      queriesResponse: [
+        {
+          status: 'success',
+          applied_filters: semanticSelected ? [{ column: 'country' }] : [],
+          rejected_filters: [],
+        },
+      ],
+    });
+    const { getByRole } = setup(store);
+    expect(
+      getByRole('button', { name: `Filters (${semanticSelected ? 2 : 1})` }),
+    ).toBeInTheDocument();
+  },
+);
+
+test('cross-filter badge resolves the ordinary emitter datasource from Redux', () => {
+  const initial = getMockStoreWithNativeFilters().getState();
+  const store = storeWithState({
+    ...initial,
+    nativeFilters: { ...initial.nativeFilters, filters: {} },
+    dashboardInfo: {
+      ...initial.dashboardInfo,
+      metadata: {
+        ...initial.dashboardInfo.metadata,
+        chart_configuration: {
+          999: {
+            id: 999,
+            crossFilters: { scope: 'global', chartsInScope: [sliceId] },
+          },
+        },
+      },
+    },
+    dataMask: {
+      999: {
+        id: '999',
+        filterState: { value: ['US'] },
+        extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
+      },
+    },
+    charts: {
+      ...initial.charts,
+      999: { form_data: { datasource: '12__table' } },
+      [sliceId]: {
+        ...initial.charts[sliceId],
+        form_data: {
+          ...initial.charts[sliceId].form_data,
+          datasource: '3__semantic_view',
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+    },
+  });
+  store.dispatch({
+    type: CHART_UPDATE_SUCCEEDED,
+    key: sliceId,
+    queriesResponse: [
+      { status: 'success', applied_filters: [], rejected_filters: [] },
+    ],
+  });
+  const { getByRole } = setup(store);
+  expect(getByRole('button', { name: 'Filters (1)' })).toBeInTheDocument();
 });
