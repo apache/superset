@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:13-0700\n"
+"POT-Creation-Date: 2026-11-18 11:44-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16077,6 +16077,9 @@ msgid "Time column to apply time range to"
 msgstr ""
 
 msgid "Time comparison"
+msgstr ""
+
+msgid "Time comparison is not yet supported on semantic views. Remove the time shift and try again."
 msgstr ""
 
 msgid ""

@@ -863,12 +863,15 @@ def test_required_secondary_query_rejection(
         },
     )
     assert response.status_code == 400
-    assert "This semantic provider does not support this query." in response.get_data(
-        as_text=True
+    message: str = (
+        "This semantic provider does not support this query."
+        if phase == "count"
+        else "Time comparison is not yet supported on semantic views."
     )
+    assert message in response.get_data(as_text=True)
     assert "result" not in response.get_json()
     assert date_view.get_row_count.call_count == (1 if phase == "count" else 0)
-    assert date_view.get_table.call_count == (0 if phase == "count" else 2)
+    date_view.get_table.assert_not_called()
 
 
 @pytest.mark.parametrize("kind", ["oauth", "cancel", "worker_timeout", "security"])

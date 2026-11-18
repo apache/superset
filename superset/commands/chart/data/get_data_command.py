@@ -127,3 +127,5 @@ class ChartDataCommand(BaseCommand):
 
     def validate(self) -> None:
         self._query_context.raise_for_access()
+        for query in self._query_context.queries:
+            query.validate_semantic_time_offsets()
