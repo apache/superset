@@ -129,6 +129,29 @@ def test_an_error_never_records_the_request_body(
     }
 
 
+def test_a_draft_route_failure_is_attributed_to_its_canvas(
+    client: Any, full_api_access: None, mocker: MockerFixture
+) -> None:
+    """A draft names its canvas nowhere in the URL, so the error row would
+    otherwise be the one row that cannot be attributed -- and an agent's
+    failing draft write is exactly the row worth attributing."""
+    from superset.commands.canvas.exceptions import DraftConflictError
+
+    mocker.patch("superset.canvas.api.load_draft", return_value=_draft(100))
+    command = mocker.patch("superset.canvas.api.CommitCanvasDraftCommand")
+    command.return_value.run.side_effect = DraftConflictError(2)
+    logged = mocker.patch("superset.canvas.api.event_logger")
+
+    response = client.post(
+        f"{BASE}/draft/commit",
+        json={"revision": 1},
+        headers={"X-Canvas-Draft": "token"},
+    )
+
+    assert response.status_code == 409
+    assert logged.log_with_context.call_args.kwargs["canvas_id"] == 100
+
+
 def test_reporting_never_masks_the_error_it_reports(
     client: Any, full_api_access: None, mocker: MockerFixture
 ) -> None:

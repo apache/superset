@@ -143,6 +143,22 @@ def _report_canvas_error(
         canvas_id = get_object_ids_from_view_args(api, request.view_args or {}).get(
             "canvas_id"
         )
+        if canvas_id is None:
+            # A draft route names its canvas nowhere in the URL -- the token
+            # is a header, deliberately -- so the failure would otherwise be
+            # the one row that cannot be attributed, which is the opposite of
+            # what is wanted. Resolve it from the draft, and only on the error
+            # path, so the extra read costs nothing in the normal case. The
+            # token itself never reaches the payload.
+            token = request.headers.get(DRAFT_TOKEN_HEADER)
+            if token:
+                try:
+                    canvas_id = load_draft(token).canvas_id
+                except Exception:  # pylint: disable=broad-except
+                    # The draft may be the very thing that was missing. An
+                    # unattributed report is still worth far more than none,
+                    # so this must not take the counter and the row with it.
+                    canvas_id = None
         # The class name is a Python identifier from a closed set, so the key
         # space stays bounded. The canvas id deliberately stays out of it:
         # per-canvas analysis is what ``logs.canvas_id`` is for.
