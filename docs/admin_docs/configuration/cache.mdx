@@ -544,10 +544,12 @@ DISTRIBUTED_COORDINATION_CONFIG = {
 }
 ```
 
-TLS connections verify the server certificate and its hostname unless
-`CACHE_REDIS_SSL_CERT_REQS` is `"none"`. Sentinels typically report the master by IP address, so
-TLS to the master needs a certificate with that IP in its subject alternative names, or
-verification turned off with `CACHE_REDIS_SSL_CERT_REQS: "none"`.
+TLS connections verify the server certificate and its hostname. Set
+`CACHE_REDIS_SSL_CHECK_HOSTNAME: False` to skip the hostname check while still verifying the
+certificate, or `CACHE_REDIS_SSL_CERT_REQS: "none"` to skip verification entirely; both apply to
+the master and, with `CACHE_REDIS_SENTINEL_SSL`, to the sentinel nodes. Sentinels typically report
+the master by IP address, so TLS to the master needs a certificate with that IP in its subject
+alternative names, or the hostname check turned off.
 
 Other caches configured with `CACHE_TYPE: "RedisSentinelCache"` (such as `CACHE_CONFIG`) are
 built by Flask-Caching, which forwards options prefixed with `sentinel_` to the sentinel-node

@@ -449,11 +449,12 @@ def test_redis_sentinel_cache_backend_secures_sentinels_with_tls(
 
     from superset.coordination.cache_backend import RedisSentinelCacheBackend
 
-    tls = {
+    tls: dict[str, Any] = {
         "ssl_certfile": "/certs/client.crt",
         "ssl_keyfile": "/certs/client.key",
         "ssl_cert_reqs": "required",
         "ssl_ca_certs": "/certs/ca.crt",
+        "ssl_check_hostname": False,
     }
     backend = RedisSentinelCacheBackend(
         sentinels=[("sentinel1", 26379), ("sentinel2", 26379)],
@@ -468,6 +469,7 @@ def test_redis_sentinel_cache_backend_secures_sentinels_with_tls(
         ssl_keyfile=tls["ssl_keyfile"],
         ssl_cert_reqs=tls["ssl_cert_reqs"],
         ssl_ca_certs=tls["ssl_ca_certs"],
+        ssl_check_hostname=tls["ssl_check_hostname"],
     )
 
     pools = _sentinel_node_pools(backend)
@@ -513,7 +515,8 @@ def test_redis_sentinel_cache_backend_is_plaintext_without_tls() -> None:
 
 
 def test_redis_sentinel_cache_backend_from_config_reads_sentinel_ssl() -> None:
-    """``CACHE_REDIS_SENTINEL_SSL`` enables TLS on the sentinel-node connections."""
+    """``CACHE_REDIS_SENTINEL_SSL`` enables TLS on the sentinel-node connections,
+    which honor ``CACHE_REDIS_SSL_CHECK_HOSTNAME`` like the master connection."""
     from superset.coordination.cache_backend import RedisSentinelCacheBackend
 
     backend = RedisSentinelCacheBackend.from_config(
@@ -523,12 +526,17 @@ def test_redis_sentinel_cache_backend_from_config_reads_sentinel_ssl() -> None:
             "CACHE_REDIS_SSL": True,
             "CACHE_REDIS_SENTINEL_SSL": True,
             "CACHE_REDIS_SSL_CA_CERTS": "/certs/ca.crt",
+            "CACHE_REDIS_SSL_CHECK_HOSTNAME": False,
         }
     )
 
     for pool in _sentinel_node_pools(backend):
         assert issubclass(pool.connection_class, SSLConnection)
         assert pool.connection_kwargs["ssl_ca_certs"] == "/certs/ca.crt"
+        assert pool.connection_kwargs["ssl_check_hostname"] is False
+    assert (
+        backend._cache.connection_pool.connection_kwargs["ssl_check_hostname"] is False
+    )
 
 
 @pytest.mark.parametrize("check_hostname", [None, True, False])

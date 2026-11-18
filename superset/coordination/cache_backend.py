@@ -337,6 +337,7 @@ def _tls_kwargs(
     keyfile: str | None,
     cert_reqs: str,
     ca_certs: str | None,
+    check_hostname: bool,
 ) -> dict[str, Any]:
     """redis-py keyword arguments enabling TLS, omitting unset certificate paths."""
     return {
@@ -347,6 +348,7 @@ def _tls_kwargs(
             "ssl_keyfile": keyfile,
             "ssl_cert_reqs": cert_reqs,
             "ssl_ca_certs": ca_certs,
+            "ssl_check_hostname": check_hostname,
         }.items()
         if v is not None
     }
@@ -377,8 +379,11 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
     ) -> None:
         # ``ssl`` secures the connection to the resolved master and
         # ``sentinel_ssl`` the connections to the sentinel nodes; both use the
-        # same certificate, key, CA and verification settings.
-        tls_kwargs = _tls_kwargs(ssl_certfile, ssl_keyfile, ssl_cert_reqs, ssl_ca_certs)
+        # same certificate, key, CA and verification (including hostname
+        # checking) settings.
+        tls_kwargs = _tls_kwargs(
+            ssl_certfile, ssl_keyfile, ssl_cert_reqs, ssl_ca_certs, ssl_check_hostname
+        )
 
         # Sentinel keyword arguments never include the SSL settings that
         # configure the master connection (those are passed to ``master_for``).
@@ -418,11 +423,7 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
             k: v
             for k, v in {
                 "password": password,
-                **(
-                    {**tls_kwargs, "ssl_check_hostname": ssl_check_hostname}
-                    if ssl
-                    else {}
-                ),
+                **(tls_kwargs if ssl else {}),
             }.items()
             if v is not None
         }
