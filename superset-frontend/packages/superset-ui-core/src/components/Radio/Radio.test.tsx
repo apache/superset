@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, fireEvent } from '@superset-ui/core/spec';
 import '@testing-library/jest-dom';
 import { Radio } from '.';
@@ -43,4 +44,21 @@ describe('Radio Component', () => {
     expect(option1).not.toBeChecked();
     expect(option2).toBeChecked();
   });
+});
+
+test.each([
+  ['Radio', <Radio key="radio" value="a" />],
+  ['Radio.Button', <Radio.Button key="button" value="a" />],
+  [
+    'Radio.Group',
+    <Radio.Group key="group" options={[{ label: 'A', value: 'a' }]} />,
+  ],
+])('%s border uses colorTextTertiary for non-text contrast', (_, element) => {
+  const { container } = render(element);
+  const radio = container.querySelector(
+    '.ant-radio-wrapper, .ant-radio-button-wrapper',
+  ) as Element;
+  expect(getComputedStyle(radio).getPropertyValue('--ant-color-border')).toBe(
+    supersetTheme.colorTextTertiary,
+  );
 });

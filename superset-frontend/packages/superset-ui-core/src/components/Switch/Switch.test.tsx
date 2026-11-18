@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen } from '@superset-ui/core/spec';
 import { Switch } from '.';
 
@@ -38,4 +39,12 @@ test('should have the correct checked prop', () => {
 
   expect(switchElement).toBeInTheDocument();
   expect(switchElement).not.toBeChecked();
+});
+
+test('unchecked Switch track uses colorTextTertiary for non-text contrast', () => {
+  const { container } = render(<Switch />);
+  const root = container.querySelector('.ant-switch') as Element;
+  expect(
+    getComputedStyle(root).getPropertyValue('--ant-color-text-quaternary'),
+  ).toBe(supersetTheme.colorTextTertiary);
 });

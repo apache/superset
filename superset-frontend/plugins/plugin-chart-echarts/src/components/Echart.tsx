@@ -279,9 +279,9 @@ function Echart(
         } as any;
         if (options?.xAxis) {
           echartsTheme.xAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
+            axisLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
             axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            splitLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
             minorSplitLine: {
               lineStyle: { color: antdTheme.colorBorderSecondary },
             },
@@ -289,9 +289,9 @@ function Echart(
         }
         if (options?.yAxis) {
           echartsTheme.yAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
+            axisLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
             axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            splitLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
             minorSplitLine: {
               lineStyle: { color: antdTheme.colorBorderSecondary },
             },

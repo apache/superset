@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { Checkbox } from '.';
 import type { CheckboxProps } from './types';
@@ -119,4 +120,12 @@ describe('Checkbox Component', () => {
       expect(mockAction).toHaveBeenCalled();
     });
   });
+});
+
+test('Checkbox border uses colorTextTertiary for non-text contrast', () => {
+  const { container } = render(<Checkbox />);
+  const root = container.querySelector('[class*="-css-var"]') as Element;
+  expect(getComputedStyle(root).getPropertyValue('--ant-color-border')).toBe(
+    supersetTheme.colorTextTertiary,
+  );
 });

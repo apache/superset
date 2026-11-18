@@ -43,7 +43,7 @@ type RangeValue = [InputValue, InputValue];
 
 const StyledDivider = styled.span`
   margin: 0 ${({ theme }) => theme.sizeUnit * 3}px;
-  color: ${({ theme }) => theme.colorSplit};
+  color: ${({ theme }) => theme.colorTextTertiary};
   font-weight: ${({ theme }) => theme.fontWeightStrong};
   font-size: ${({ theme }) => theme.fontSize}px;
   align-content: center;

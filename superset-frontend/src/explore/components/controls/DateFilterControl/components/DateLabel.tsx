@@ -49,7 +49,7 @@ const LabelContainer = styled.button<{
 
     background-color: ${theme.colorBgContainer};
 
-    border: 1px solid ${isActive ? theme.colorPrimary : theme.colorBorder};
+    border: 1px solid ${isActive ? theme.colorPrimary : theme.colorTextTertiary};
     border-radius: ${theme.borderRadius}px;
 
     cursor: pointer;

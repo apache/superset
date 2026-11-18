@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { EChartsCoreOption } from 'echarts/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, waitFor } from '../../../../spec/helpers/testing-library';
 import Echart, {
   ECHARTS_HOST_CLASS,
@@ -305,4 +306,29 @@ test('marks the host painted only on the ECharts `finished` event', async () => 
   // Simulate ECharts completing its draw -> the host is flagged painted.
   trigger('finished');
   expect(host).toHaveClass(ECHARTS_RENDER_FINISHED_CLASS);
+});
+
+test('draws axis and split lines with 3:1 non-text contrast', async () => {
+  render(
+    renderEchart({
+      echartOptions: {
+        xAxis: { type: 'category' },
+        yAxis: { type: 'value' },
+        series: [],
+      } as EChartsCoreOption,
+    }),
+    { initialState, useRedux: true },
+  );
+
+  await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
+
+  const lastOptions = mockChart.setOption.mock.calls.at(-1)?.[0];
+  ['xAxis', 'yAxis'].forEach(axis => {
+    expect(lastOptions[axis].axisLine.lineStyle.color).toBe(
+      supersetTheme.colorTextTertiary,
+    );
+    expect(lastOptions[axis].splitLine.lineStyle.color).toBe(
+      supersetTheme.colorTextTertiary,
+    );
+  });
 });

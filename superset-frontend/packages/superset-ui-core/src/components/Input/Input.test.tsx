@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render } from '@superset-ui/core/spec';
 import { Input, InputNumber } from '.';
 
@@ -32,4 +33,21 @@ test('should render InputNumber', () => {
 test('should render TextArea', () => {
   const { container } = render(<Input.TextArea />);
   expect(container).toBeInTheDocument();
+});
+
+// WCAG 2.1 SC 1.4.11: the rest-state border must reach 3:1 against the background.
+const restBorderColor = (container: HTMLElement) =>
+  getComputedStyle(
+    container.querySelector('[class*="-css-var"]') as Element,
+  ).getPropertyValue('--ant-color-border');
+
+test.each([
+  ['Input', <Input key="input" />],
+  ['TextArea', <Input.TextArea key="textarea" />],
+  ['Password', <Input.Password key="password" />],
+  ['Search', <Input.Search key="search" />],
+  ['InputNumber', <InputNumber key="number" />],
+])('%s border uses colorTextTertiary for non-text contrast', (_, element) => {
+  const { container } = render(element);
+  expect(restBorderColor(container)).toBe(supersetTheme.colorTextTertiary);
 });

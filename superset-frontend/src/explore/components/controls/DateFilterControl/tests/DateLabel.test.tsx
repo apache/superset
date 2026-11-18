@@ -17,6 +17,7 @@
  * under the License.
  */
 import { createRef } from 'react';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { DateLabel } from '../components';
 
@@ -70,4 +71,12 @@ test('does not submit a surrounding form', async () => {
   await userEvent.click(screen.getByRole('button'));
 
   expect(onSubmit).not.toHaveBeenCalled();
+});
+
+test('draws the inactive label border with 3:1 non-text contrast', () => {
+  render(<DateLabel name="time_range" label="Last week" />);
+
+  expect(screen.getByRole('button')).toHaveStyle({
+    borderColor: supersetTheme.colorTextTertiary,
+  });
 });

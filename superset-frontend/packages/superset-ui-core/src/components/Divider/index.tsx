@@ -18,16 +18,19 @@
  */
 import { css } from '@apache-superset/core/theme';
 import { Divider as AntdDivider } from 'antd';
+import { NonTextContrastProvider } from '../AntdThemeProvider/NonTextContrastProvider';
 import type { DividerProps } from './types';
 
 export function Divider(props: DividerProps) {
   return (
-    <AntdDivider
-      css={theme => css`
-        margin: ${theme.margin}px 0;
-      `}
-      {...props}
-    />
+    <NonTextContrastProvider>
+      <AntdDivider
+        css={theme => css`
+          margin: ${theme.margin}px 0;
+        `}
+        {...props}
+      />
+    </NonTextContrastProvider>
   );
 }
 export type { DividerProps };

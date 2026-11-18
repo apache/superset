@@ -27,6 +27,7 @@ import {
   within,
 } from '@superset-ui/core/spec';
 import { formatNumber } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { Constants } from '@superset-ui/core/components';
 import { Select } from '.';
 
@@ -2032,3 +2033,11 @@ test('renders the option label directly in the option content without a Space wr
  - Requests the correct page and page size
  - Sets the page to zero when a new search is made
  */
+
+test('Select border uses colorTextTertiary for non-text contrast', () => {
+  const { container } = render(<Select {...defaultProps} />);
+  const root = container.querySelector('.ant-select') as Element;
+  expect(getComputedStyle(root).getPropertyValue('--ant-color-border')).toBe(
+    supersetTheme.colorTextTertiary,
+  );
+});

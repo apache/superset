@@ -21,6 +21,7 @@ import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import mockState from 'spec/fixtures/mockState';
 import reducerIndex from 'spec/helpers/reducerIndex';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { screen, render } from 'spec/helpers/testing-library';
 import { initialState } from 'src/SqlLab/fixtures';
 import useFilterFocusHighlightStyles from './useFilterFocusHighlightStyles';
@@ -145,5 +146,26 @@ describe('useFilterFocusHighlightStyles', () => {
 
     const styles = getComputedStyle(container);
     expect(parseFloat(styles.opacity)).toBe(1);
+  });
+
+  test('should outline focused charts with a 3:1 contrast border', async () => {
+    const chartId = 18;
+    mockGetRelatedCharts.mockReturnValue([chartId]);
+    const store = createMockStore({
+      nativeFilters: {
+        focusedFilterId: 'testFilter',
+        filters: {
+          testFilter: {
+            id: 'NATIVE_FILTER-testFilter',
+            chartsInScope: [chartId],
+          },
+        },
+      },
+    });
+    renderWrapper(chartId, store);
+
+    expect(screen.getByTestId('test-component')).toHaveStyle({
+      borderColor: supersetTheme.colorPrimary,
+    });
   });
 });
