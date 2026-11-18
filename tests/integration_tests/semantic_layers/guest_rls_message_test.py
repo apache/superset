@@ -30,6 +30,7 @@ from werkzeug.test import TestResponse
 from superset import security_manager
 from superset.charts.data.api import ChartDataRestApi
 from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.common.query_context_processor import QueryContextProcessor
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
@@ -126,6 +127,53 @@ def test_restricted_guest_gets_fixed_rls_reason(
     assert response.status_code == 403
     assert response.json["message"] == GUEST_RLS_MESSAGE
     assert "result" not in response.json
+
+
+@pytest.mark.parametrize("method", ["GET", "POST"])
+def test_real_access_path_keeps_guest_rls_refusal(
+    test_client: FlaskClient[Any],
+    login_as_admin: None,
+    method: Literal["GET", "POST"],
+) -> None:
+    """The real command and security manager preserve the typed refusal."""
+    rules: list[GuestTokenRlsRule] = [
+        GuestTokenRlsRule(dataset=None, clause="tenant_id = 7")
+    ]
+    view: MagicMock = MagicMock(id=17, type=DatasourceType.SEMANTIC_VIEW)
+    context: MagicMock = MagicMock(datasource=view, queries=[])
+    context.raise_for_access.side_effect = lambda: QueryContextProcessor(
+        context
+    ).raise_for_access()
+    chart: Slice = Slice(
+        id=17,
+        datasource_id=17,
+        datasource_type="semantic_view",
+        params="{}",
+        query_context=json.dumps(CHART_DATA_PAYLOAD),
+    )
+    with (
+        patch.object(
+            security_manager,
+            "get_current_guest_user_if_guest",
+            return_value=_guest(rules),
+        ),
+        patch.object(
+            ChartDataRestApi,
+            "_create_query_context_from_form",
+            return_value=context,
+        ),
+        patch(
+            "flask_appbuilder.models.sqla.interface.SQLAInterface.get",
+            return_value=chart,
+        ),
+    ):
+        response: TestResponse = (
+            test_client.get("/api/v1/chart/17/data/")
+            if method == "GET"
+            else test_client.post("/api/v1/chart/data", json=CHART_DATA_PAYLOAD)
+        )
+    assert response.status_code == 403
+    assert response.json["message"] == GUEST_RLS_MESSAGE
 
 
 @pytest.mark.parametrize("method", ["GET", "POST"])

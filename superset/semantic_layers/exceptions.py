@@ -68,7 +68,7 @@ def rejection_message(code: SemanticQueryErrorCode) -> str:
         )
     if code == SemanticQueryErrorCode.UNSUPPORTED_GROUP_OTHERS_METRIC:
         return _(
-            '"Group remaining as Others" cannot be calculated for this metric '
+            'Group remaining as "Others" cannot be calculated for this metric '
             "on a semantic view. Turn it off, or choose a sum, count, minimum, "
             "or maximum metric."
         )
