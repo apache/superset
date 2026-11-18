@@ -577,6 +577,28 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             engine_information["oauth2_enabled"] = False
         return engine_information
 
+    def stored_sensitive_fields(self) -> dict[str, str]:
+        """
+        Label of each sensitive field stored in `encrypted_extra`, by concrete path.
+
+        Only string values count, sorted by path. Paths declared exactly use their
+        declared label, any other path its last segment. A missing or malformed
+        `encrypted_extra` gives an empty dict.
+        """
+        try:
+            config = json.loads(self.encrypted_extra or "{}")
+        except (TypeError, json.JSONDecodeError):
+            return {}
+
+        spec = self.db_engine_spec
+        labels = spec.encrypted_extra_sensitive_field_labels()
+        return {
+            path: labels.get(path, path.rsplit(".", 1)[-1])
+            for path in json.get_sensitive_field_paths(
+                config, spec.encrypted_extra_sensitive_field_paths()
+            )
+        }
+
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
         cls, uri: str

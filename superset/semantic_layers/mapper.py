@@ -58,7 +58,7 @@ from superset_core.semantic_layers.types import (
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_object import QueryObject
+from superset.common.query_object import QueryObject, selection_version_error
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
@@ -1565,9 +1565,11 @@ def validate_query_object(
 def _validation_metadata(query_object: ValidatedQueryObject) -> _ViewMetadata:
     """Check member identity before fetching metadata for validation."""
     view: SemanticView = query_object.datasource.implementation
-    view.validate_selection_version(
-        query_object.extras.get("semantic_selection_version")
-    )
+    version: object = query_object.extras.get("semantic_selection_version")
+    try:
+        view.validate_selection_version(version)
+    except ValueError as ex:
+        raise selection_version_error(version) from ex
     return _ViewMetadata.from_view(view, DiscoveryTarget.of(query_object.datasource))
 
 

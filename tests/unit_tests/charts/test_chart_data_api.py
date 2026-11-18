@@ -133,6 +133,42 @@ def test_should_run_async_requires_async_mode_flag() -> None:
         assert api._should_run_async({"async_mode": True}, qc) is False
 
 
+@pytest.mark.parametrize(
+    ("query_result_types", "expected"),
+    [
+        ([None], True),
+        ([ChartDataResultType.FULL], True),
+        ([ChartDataResultType.TIMEGRAINS], False),
+        ([ChartDataResultType.COLUMNS], False),
+        ([ChartDataResultType.FULL, ChartDataResultType.TIMEGRAINS], False),
+    ],
+)
+def test_should_run_async_gates_on_effective_query_result_type(
+    query_result_types: list[ChartDataResultType | None], expected: bool
+) -> None:
+    """A full context carrying a metadata query is answered without a task."""
+    api: ChartDataRestApi = ChartDataRestApi()
+    qc: MagicMock = MagicMock()
+    qc.result_format = ChartDataResultFormat.JSON
+    qc.result_type = ChartDataResultType.FULL
+    qc.get_cache_timeout.return_value = 300
+    # A query without its own result type inherits the context's.
+    qc.queries = [MagicMock(result_type=rt) for rt in query_result_types]
+
+    cache_manager: MagicMock
+    with (
+        patch("superset.charts.data.api.is_feature_enabled", return_value=True),
+        patch("superset.charts.data.api.cache_manager") as cache_manager,
+        patch("superset.charts.data.api.get_user_id", return_value=1),
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ),
+    ):
+        cache_manager.data_cache.cache = MagicMock()
+        assert api._should_run_async({"async_mode": True}, qc) is expected
+
+
 def test_should_run_async_requires_subscribeable_identity() -> None:
     """Async needs a user or guest identity to subscribe/observe the task.
 
