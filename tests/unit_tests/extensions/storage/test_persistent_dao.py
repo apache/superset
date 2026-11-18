@@ -26,6 +26,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from flask import Flask
 from flask_babel import Babel
+from sqlalchemy import update
 from sqlalchemy.orm.session import Session
 
 from superset.extensions.storage.codecs import get_codec
@@ -755,6 +756,32 @@ def test_dao_compare_and_set_validates_like_set(
             ExtensionStorageDAO.compare_and_set("my-ext", "key", None, b"x" * 11)
 
     mock_db.session.query.assert_not_called()
+
+
+def test_dao_compare_and_set_compares_the_row_as_stored_now(
+    app: Flask, list_session: Session
+) -> None:
+    """A copy the session loaded before another writer's commit isn't trusted."""
+    entry = _create_entry(list_session, "my-ext", "key", value=b'{"v": 1}')
+    list_session.execute(
+        update(ExtensionStorage)
+        .where(ExtensionStorage.id == entry.id)
+        .values(value=b'{"v": 2}', value_size=8),
+        execution_options={"synchronize_session": False},
+    )
+    assert entry.value == b'{"v": 1}'
+
+    with app.app_context():
+        stale = ExtensionStorageDAO.compare_and_set(
+            "my-ext", "key", {"v": 1}, b'{"v": 3}'
+        )
+        current = ExtensionStorageDAO.compare_and_set(
+            "my-ext", "key", {"v": 2}, b'{"v": 3}'
+        )
+
+    assert not stale
+    assert current
+    assert ExtensionStorageDAO.decode_entry(entry) == {"v": 3}
 
 
 # ── scoping ───────────────────────────────────────────────────────────────────

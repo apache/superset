@@ -308,13 +308,18 @@ def _locked_entry(
     """The entry at a scoped key, read under the extension-wide write lock.
 
     Every write runs and commits inside it; see `ExtensionStorageDAO.set()`.
+    The entry is read as the database holds it now: the session may hold an
+    older copy from a read before the lock, and a query doesn't overwrite
+    what an object in the session has loaded already. Under READ COMMITTED,
+    Superset's default on MySQL and PostgreSQL, the read sees every write
+    committed under the lock.
     """
     with DistributedLock(
         namespace="extension_storage_set",
         ttl_seconds=SET_LOCK_TTL_SECONDS,
         extension_id=extension_id,
     ):
-        yield (
+        entry = (
             db.session.query(ExtensionStorage)
             .filter(
                 and_(
@@ -325,6 +330,9 @@ def _locked_entry(
             )
             .first()
         )
+        if entry is not None:
+            db.session.refresh(entry)
+        yield entry
 
 
 def _upsert(  # noqa: PLR0913
