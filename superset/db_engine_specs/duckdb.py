@@ -198,6 +198,11 @@ class DuckDBParametersMixin:
 
 class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
     engine = "duckdb"
+    # DuckDB can return a Table (``to_arrow_reader`` / ``to_arrow_table``)
+    # without ADBC. Inherited by MotherDuck. The feature flag
+    # ``ARROW_NATIVE_RESULT_SET`` still defaults off, and a cursor with no
+    # Arrow fetch keeps ``fetch_data``.
+    supports_arrow_result = True
     engine_name = "DuckDB"
     default_driver = "duckdb_engine"
 

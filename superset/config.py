@@ -878,6 +878,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Requires `cost_estimate_enabled: true` in database `extra` attribute.
     # @lifecycle: testing
     "ESTIMATE_QUERY_COST": False,
+    # Global rollback for Arrow ingest into SupersetResultSet. Engines opt in
+    # one at a time via ``supports_arrow_result``; off leaves every engine on
+    # ``fetch_data``. The row path stays the default either way.
+    # @lifecycle: development
+    "ARROW_NATIVE_RESULT_SET": False,
     # Enable async queries for dashboards and Explore via WebSocket.
     # Requires Redis 5.0+ and Celery workers.
     # @lifecycle: testing

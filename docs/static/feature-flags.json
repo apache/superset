@@ -22,6 +22,12 @@
         "description": "Enables experimental tabs UI for Alerts and Reports"
       },
       {
+        "name": "ARROW_NATIVE_RESULT_SET",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Global rollback for Arrow ingest into SupersetResultSet. Engines opt in one at a time via ``supports_arrow_result``; off leaves every engine on ``fetch_data``. The row path stays the default either way."
+      },
+      {
         "name": "CHART_PLUGINS_EXPERIMENTAL",
         "default": false,
         "lifecycle": "development",
