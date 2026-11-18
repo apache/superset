@@ -267,6 +267,15 @@ test.each([
   expect(server.channels).toEqual({});
 });
 
+test('frames arriving after a refused frame do not authenticate the closing socket', async () => {
+  const { ws, frames, closed } = await open();
+  ws.send(authFrame('not-a-jwt'));
+  ws.send(authFrame(signTicket()));
+  expect((await closed).code).toBe(4401);
+  expect(frames).toEqual([]);
+  expect(server.sockets).toEqual({});
+});
+
 test('frames that are not auth frames are ignored', async () => {
   const { ws, frames } = await open();
 

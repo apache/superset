@@ -966,6 +966,9 @@ export const wsConnection = (ws: WebSocket) => {
   };
 
   ws.on('message', (raw: WebSocket.RawData) => {
+    // `ws` still emits frames that arrive after a close was initiated; a closing
+    // socket must not authenticate or refresh.
+    if (ws.readyState !== WebSocket.OPEN) return;
     const frame = parseAuthFrame(raw);
     if (!frame) return;
     let identity: SocketIdentity;

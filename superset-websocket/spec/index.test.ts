@@ -126,6 +126,10 @@ const receive = (ws: WebSocket, frame: unknown) => {
     .filter(([event]) => event === 'message')
     .at(-1);
   expect(call).toBeDefined();
+  // Frames arrive on an open connection; an automocked socket reports no state.
+  if (ws.readyState === undefined) {
+    vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
+  }
   (call![1] as (data: Buffer) => void)(
     Buffer.from(typeof frame === 'string' ? frame : JSON.stringify(frame)),
   );
