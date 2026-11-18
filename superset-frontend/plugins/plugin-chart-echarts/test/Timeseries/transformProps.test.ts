@@ -61,6 +61,7 @@ import {
   LabelPositionEnum,
 } from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
+import { getTimeseriesLegendMaxWidth } from '../../src/Timeseries/EchartsTimeseries';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
 
@@ -182,7 +183,11 @@ type CustomLegendResult = {
       name: string;
       selected: boolean;
     }[];
-    orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+    orientation:
+      | LegendOrientation.Top
+      | LegendOrientation.Bottom
+      | LegendOrientation.Left
+      | LegendOrientation.Right;
     showSelectors: boolean;
   };
 };
@@ -1504,7 +1509,12 @@ test('hides legend selector buttons when showSelectorLegend is false', () => {
   ).toBe(false);
 });
 
-test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
+test.each([
+  LegendOrientation.Top,
+  LegendOrientation.Bottom,
+  LegendOrientation.Left,
+  LegendOrientation.Right,
+])(
   'uses the custom HTML legend for a %s-oriented Plain legend',
   legendOrientation => {
     const transformed = transformProps(
@@ -1525,11 +1535,7 @@ test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
   },
 );
 
-test.each([
-  [LegendType.Scroll, LegendOrientation.Top],
-  [LegendType.Plain, LegendOrientation.Left],
-  [LegendType.Plain, LegendOrientation.Right],
-] as const)(
+test.each([[LegendType.Scroll, LegendOrientation.Top]] as const)(
   'keeps %s/%s legends on the native ECharts path',
   (legendType, legendOrientation) => {
     const transformed = transformProps(
@@ -1547,6 +1553,55 @@ test.each([
     expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
       true,
     );
+  },
+);
+
+test('builds interactive items for a Right-oriented custom legend', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      width: 800,
+      height: 400,
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Right,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+    }),
+  );
+
+  expect(getCustomLegend(transformed)).toEqual({
+    grid: expect.any(Object),
+    items: [
+      {
+        color: expect.any(String),
+        icon: expect.any(Object),
+        interactive: true,
+        name: 'San Francisco',
+        selected: true,
+      },
+      {
+        color: expect.any(String),
+        icon: expect.any(Object),
+        interactive: true,
+        name: 'New York',
+        selected: true,
+      },
+    ],
+    orientation: LegendOrientation.Right,
+    showSelectors: true,
+  });
+});
+
+test.each([
+  [0, 0],
+  [100, 40],
+  [500, 200],
+  [800, 320],
+] as const)(
+  'getTimeseriesLegendMaxWidth caps legend at 40%% of %ipx chart width',
+  (chartWidth, expectedMaxWidth) => {
+    expect(getTimeseriesLegendMaxWidth(chartWidth)).toBe(expectedMaxWidth);
   },
 );
 
@@ -4575,6 +4630,118 @@ test('tooltip does not apply a metric currency format to a grouped Percentage ti
   ]);
 
   expect(result).toContain('$ 100');
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});
+
+test('tooltip does not apply a metric currency format to a Percentage comparison labeled `<metric>, <offset>`', () => {
+  // A hidden sort-only metric makes renameOperator keep the metric prefix on the
+  // comparison column, so the label_map entry leads with `<metric>, <offset>`.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'revenue',
+      metrics: ['revenue'],
+      groupby: ['region'],
+      richTooltip: true,
+      time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            'revenue, East': 100,
+            'revenue, 1 year ago, East': 0.25,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            'revenue, East': ['revenue', 'East'],
+            'revenue, 1 year ago, East': ['revenue, 1 year ago', 'East'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        revenue: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'revenue, 1 year ago, East',
+      seriesName: 'revenue, 1 year ago, East',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});
+
+test('tooltip does not apply a metric currency format to an ungrouped Percentage comparison with a sort-only metric', () => {
+  // Without dimensions the flat `revenue, 1 year ago` label is split into a
+  // two-part label_map tuple, so only the whole label marks it as derived.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'revenue',
+      metrics: ['revenue'],
+      groupby: [],
+      richTooltip: true,
+      timeseries_limit_metric: 'sales',
+      x_axis_sort: 'sales',
+      time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            revenue: 100,
+            'revenue, 1 year ago': 0.25,
+            sales: 3,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            revenue: ['revenue'],
+            'revenue, 1 year ago': ['revenue', '1 year ago'],
+            sales: ['sales'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        revenue: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'revenue, 1 year ago',
+      seriesName: 'revenue, 1 year ago',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
   expect(result).toContain('25.00%');
   expect(result).not.toContain('$ 0.25');
 });
