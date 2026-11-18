@@ -31,6 +31,7 @@ import {
   SuperChart,
   Behavior,
   getChartMetadataRegistry,
+  getSemanticSelectionSources,
   VizType,
   isFeatureEnabled,
   FeatureFlag,
@@ -526,7 +527,8 @@ function ChartRendererComponent({
       const sourceForm = dataMaskSourceRef.current;
       actions?.updateDataMask?.(
         chartId,
-        sourceForm.datasource?.endsWith('__semantic_view')
+        sourceForm.datasource?.endsWith('__semantic_view') &&
+          getSemanticSelectionSources(dataMask.extraFormData).length > 0
           ? {
               ...dataMask,
               extraFormData: {
