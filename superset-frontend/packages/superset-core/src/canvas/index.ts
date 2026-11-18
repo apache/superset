@@ -187,12 +187,13 @@ export interface ActiveCanvas {
  *
  * A widget type has one renderer: registering another component for a type
  * that has one throws, as registering a taken widget type does on the
- * server. Registering the same component again is allowed.
+ * server, and so does registering a built-in type, whose renderer is the
+ * host's. Registering the same component again is allowed.
  *
  * @param widgetType The widget type, as the widget provider names it.
  * @param component The renderer.
  * @returns A Disposable that unregisters the renderer when disposed.
- * @throws Error if the widget type has another renderer.
+ * @throws Error if the widget type has another renderer, or is built in.
  */
 export declare function registerWidgetRenderer(
   widgetType: string,

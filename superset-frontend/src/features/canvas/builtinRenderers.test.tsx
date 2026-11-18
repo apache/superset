@@ -17,8 +17,12 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
+import { canvas } from 'src/core';
 import CanvasGrid, { emptyScopeValues } from './CanvasGrid';
-import { registerBuiltinRenderers } from './builtinRenderers';
+import {
+  BUILTIN_RENDERERS,
+  registerBuiltinRenderers,
+} from './builtinRenderers';
 import { CanvasDefinitionResult } from './types';
 
 const inline = (
@@ -69,6 +73,18 @@ const result: CanvasDefinitionResult = {
   layoutConstraints: {},
   canEdit: false,
 };
+
+test('the built-ins register though an extension tried one of their types first', () => {
+  // Before the Canvas page has loaded, as when extensions start up.
+  expect(() => canvas.registerWidgetRenderer('echarts', () => null)).toThrow(
+    'Widget type "echarts" is built in',
+  );
+
+  expect(() => registerBuiltinRenderers()).not.toThrow();
+  Object.entries(BUILTIN_RENDERERS).forEach(([widgetType, component]) =>
+    expect(canvas.getWidgetRenderer(widgetType)).toBe(component),
+  );
+});
 
 test('renders core containers and markdown without extensions', async () => {
   registerBuiltinRenderers();

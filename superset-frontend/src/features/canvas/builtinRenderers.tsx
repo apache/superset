@@ -21,7 +21,8 @@ import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { SafeMarkdown, Tabs, Typography } from '@superset-ui/core/components';
-import { canvas } from 'src/core';
+import { registerBuiltinWidgetRenderer } from 'src/core';
+import type { BuiltinWidgetType } from 'src/core/canvas/builtinWidgetTypes';
 import EchartsRenderer from './echarts/EchartsRenderer';
 import type { DataBinding } from './echarts/chartData';
 import { renderTemplate } from './markdownTemplate';
@@ -176,7 +177,10 @@ const MarkdownRenderer = (widget: Props) => {
 };
 
 /** Renderers for the core containers, filters, text and the ECharts widget. */
-export const BUILTIN_RENDERERS: Record<string, ComponentType<Props>> = {
+export const BUILTIN_RENDERERS: Record<
+  BuiltinWidgetType,
+  ComponentType<Props>
+> = {
   tabs: TabsRenderer,
   tab: GridRenderer,
   group: GroupRenderer,
@@ -194,7 +198,7 @@ let registered = false;
 export function registerBuiltinRenderers(): void {
   if (registered) return;
   registered = true;
-  Object.entries(BUILTIN_RENDERERS).forEach(([widgetType, component]) =>
-    canvas.registerWidgetRenderer(widgetType, component),
+  (Object.keys(BUILTIN_RENDERERS) as BuiltinWidgetType[]).forEach(widgetType =>
+    registerBuiltinWidgetRenderer(widgetType, BUILTIN_RENDERERS[widgetType]),
   );
 }

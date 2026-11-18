@@ -26,10 +26,12 @@ import { ComponentType, useSyncExternalStore } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 import { createValueEventEmitter } from '../utils';
+import { BUILTIN_WIDGET_TYPES, BuiltinWidgetType } from './builtinWidgetTypes';
 
 type WidgetRenderer = ComponentType<canvasApi.CanvasWidgetProps>;
 
 const renderers = new Map<string, WidgetRenderer>();
+const builtinTypes: ReadonlySet<string> = new Set(BUILTIN_WIDGET_TYPES);
 const listeners = new Set<() => void>();
 let version = 0;
 
@@ -38,10 +40,10 @@ const notify = () => {
   listeners.forEach(listener => listener());
 };
 
-const registerWidgetRenderer: typeof canvasApi.registerWidgetRenderer = (
-  widgetType,
-  component,
-) => {
+const register = (
+  widgetType: string,
+  component: WidgetRenderer,
+): Disposable => {
   const existing = renderers.get(widgetType);
   if (existing !== undefined && existing !== component) {
     throw new Error(`Widget type "${widgetType}" already has a renderer`);
@@ -55,6 +57,25 @@ const registerWidgetRenderer: typeof canvasApi.registerWidgetRenderer = (
     }
   });
 };
+
+const registerWidgetRenderer: typeof canvasApi.registerWidgetRenderer = (
+  widgetType,
+  component,
+) => {
+  if (builtinTypes.has(widgetType)) {
+    throw new Error(`Widget type "${widgetType}" is built in`);
+  }
+  return register(widgetType, component);
+};
+
+/**
+ * Registers a built-in widget type's renderer. The host's own, which isn't
+ * in the namespace extensions get: they can't register a built-in type.
+ */
+export const registerBuiltinWidgetRenderer = (
+  widgetType: BuiltinWidgetType,
+  component: WidgetRenderer,
+): Disposable => register(widgetType, component);
 
 const getWidgetRenderer: typeof canvasApi.getWidgetRenderer = widgetType =>
   renderers.get(widgetType);

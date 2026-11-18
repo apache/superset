@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { canvas, setActiveCanvas } from 'src/core';
+import {
+  canvas,
+  registerBuiltinWidgetRenderer,
+  setActiveCanvas,
+} from 'src/core';
 
 const Kpi = () => null;
 
@@ -46,6 +50,19 @@ test('a widget type that has a renderer refuses another', () => {
   const second = canvas.registerWidgetRenderer('test.kpi', Other);
   expect(canvas.getWidgetRenderer('test.kpi')).toBe(Other);
   second.dispose();
+});
+
+test('an extension cannot take a built-in type, before the canvas loads too', () => {
+  const Builtin = () => null;
+
+  // Extensions load at startup; the built-ins once the Canvas page does.
+  expect(() => canvas.registerWidgetRenderer('echarts', Kpi)).toThrow(
+    'Widget type "echarts" is built in',
+  );
+  const builtin = registerBuiltinWidgetRenderer('echarts', Builtin);
+
+  expect(canvas.getWidgetRenderer('echarts')).toBe(Builtin);
+  builtin.dispose();
 });
 
 test('registering the same renderer again is allowed', () => {
