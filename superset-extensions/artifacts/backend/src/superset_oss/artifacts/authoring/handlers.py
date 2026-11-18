@@ -331,7 +331,7 @@ class AuthoringHandlers:
                 result = call.provider.build(ref, call.policy)
             # The extension's own checks, on top of the build's: what the
             # policy refuses fails the build, as publishing it would; a
-            # binding that doesn't map yet only warns.
+            # binding that the host's data request can't run only warns.
             refused = tuple(
                 Diagnostic(problem, file=MANIFEST_FILE)
                 for problem in manifest_problems(manifest, call.policy)

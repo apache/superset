@@ -654,7 +654,7 @@ def test_dao_set_commits_before_releasing_the_lock(
 def test_dao_compare_and_set_creates_an_entry_only_when_none_exists(
     mock_db: MagicMock, app: Flask
 ) -> None:
-    """expected=None means the key must have no entry yet."""
+    """expected=None means the key must have no entry."""
     mock_db.session.query.return_value.filter.return_value.first.return_value = None
 
     with app.app_context():

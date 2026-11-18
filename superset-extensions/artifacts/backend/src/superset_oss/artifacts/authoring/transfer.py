@@ -103,7 +103,7 @@ class TransferSigner:
         return str(self._serializer.dumps(payload)), expires_at
 
     def verify(self, token: str, kind: TransferKind) -> Transfer:
-        """What ``token`` grants; ``InvalidTransferError`` unless it is valid now."""
+        """What ``token`` grants, if it is genuine and unexpired."""
         try:
             payload: Any = self._serializer.loads(token)
         except BadSignature as ex:
