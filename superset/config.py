@@ -3839,6 +3839,7 @@ GTF_ORPHAN_TASK_TIMEOUT = 60  # seconds
 #     "CACHE_REDIS_SSL_KEYFILE": None,
 #     "CACHE_REDIS_SSL_CERT_REQS": "required",
 #     "CACHE_REDIS_SSL_CA_CERTS": None,
+#     "CACHE_REDIS_SSL_CHECK_HOSTNAME": True,  # Verify the certificate hostname
 # }
 #
 # Example with Redis Sentinel:

@@ -45,7 +45,7 @@ from superset.mcp_service.dataset.schemas import DatasetError
 from superset.mcp_service.dataset_scope import OUT_OF_SCOPE_ERROR
 from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
-from superset.utils.core import GenericDataType
+from superset.utils.core import FilterValues, GenericDataType
 from superset.utils.date_parser import get_since_until
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
@@ -1205,6 +1205,102 @@ async def test_query_dataset_invalid_metric(mcp_server: FastMCP) -> None:
     assert "countt" in data["error"]
     # Should suggest "count" as a close match
     assert "count" in data["error"]
+
+
+def _make_temporal_dataset() -> MagicMock:
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    dataset = _make_dataset()
+    dataset.database.db_engine_spec = SqliteEngineSpec
+    for column in dataset.columns:
+        if column.column_name == "order_date":
+            column.type = "DATETIME"
+    return dataset
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "bad_value",
+    ["2000", "not-a-date", "2000-01-01😀12:30:00", "2000-01-01T12:00:00+00:99", 10**30],
+)
+async def test_query_dataset_rejects_invalid_temporal_filter_value(
+    mcp_server: FastMCP, bad_value: str | int
+) -> None:
+    """A non-date comparator on a temporal column never reaches the query."""
+    dataset = _make_temporal_dataset()
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(query_dataset_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "filters": [
+                            {"col": "order_date", "op": ">=", "val": bad_value}
+                        ],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert "order_date" in data["error"]
+    assert "not a valid date" in data["error"]
+    execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "filter_",
+    [
+        {"col": "order_date", "op": ">=", "val": "2000-01-01"},
+        {"col": "order_date", "op": ">=", "val": 946684800000},
+        {"col": "order_date", "op": "IS NULL"},
+        {"col": "category", "op": "==", "val": "2000"},
+    ],
+)
+async def test_query_dataset_keeps_valid_filters(
+    mcp_server: FastMCP, filter_: dict[str, Any]
+) -> None:
+    dataset = _make_temporal_dataset()
+    captured_queries: list[dict[str, Any]] = []
+
+    def capture_create(**kwargs: Any) -> MagicMock:
+        captured_queries.extend(kwargs.get("queries", []))
+        return MagicMock()
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=_mock_command_result(),
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=capture_create,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "filters": [filter_],
+                    }
+                },
+            )
+
+    assert [f["col"] for f in captured_queries[0]["filters"]] == [filter_["col"]]
 
 
 @pytest.mark.asyncio
@@ -2761,3 +2857,159 @@ async def test_scope_refuses_out_of_scope_query_and_admits_in_scope_one(
                     )
                 assert OUT_OF_SCOPE_ERROR in str(excinfo.value)
         assert execute.called is in_scope
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("storage_format", "filter_"),
+    [
+        ("%Y%m%d", {"col": "order_date", "op": "==", "val": "20000101"}),
+        (
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+            {"col": "order_date", "op": "==", "val": "2000-01-01T00:00:00.000Z"},
+        ),
+        (
+            "%Y-%m-%dT%H:%M:%S%z",
+            {"col": "order_date", "op": "IN", "val": ["2000-01-01T00:00:00+00:00"]},
+        ),
+        (
+            "%Y-%m-%dT%H:%M:%S%z",
+            {"col": "order_date", "op": "NOT IN", "val": ["2000-01-01T00:00:00Z"]},
+        ),
+        ("epoch_s", {"col": "order_date", "op": "==", "val": "946684800"}),
+        ("epoch_ms", {"col": "order_date", "op": "==", "val": "946684800000"}),
+        (None, {"col": "order_date", "op": "IN", "val": ["2000-01-01", None]}),
+        (None, {"col": "order_date", "op": "NOT IN", "val": [None, "2000-01-01"]}),
+    ],
+)
+async def test_query_dataset_storage_format_and_null_membership(
+    mcp_server: FastMCP, storage_format: str | None, filter_: dict[str, Any]
+) -> None:
+    dataset = _make_temporal_dataset()
+    if storage_format:
+        column = next(c for c in dataset.columns if c.column_name == "order_date")
+        column.type = "BIGINT" if storage_format.startswith("epoch_") else "VARCHAR"
+        column.python_date_format = storage_format
+    await _assert_query_dataset_filter_preserved(mcp_server, dataset, filter_)
+
+
+async def _assert_query_dataset_filter_preserved(
+    mcp_server: FastMCP, dataset: MagicMock, filter_: dict[str, Any]
+) -> None:
+    """Assert accepted comparators reach the query context without rewriting."""
+    captured_queries: list[dict[str, Any]] = []
+
+    def capture_create(**kwargs: Any) -> MagicMock:
+        captured_queries.extend(kwargs.get("queries", []))
+        return MagicMock()
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=_mock_command_result(),
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=capture_create,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "filters": [filter_],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert "error" not in data, data
+    assert captured_queries[0]["filters"] == [filter_]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operator", ["IN", "NOT IN", "==", "!="])
+@pytest.mark.parametrize("sentinel", ["<NULL>", "<empty string>", "\t<NULL>\n"])
+async def test_query_dataset_temporal_sentinels_are_preserved(
+    mcp_server: FastMCP, operator: str, sentinel: str
+) -> None:
+    """Explore sentinels remain valid through the public dataset query tool."""
+    value = [sentinel, "2000-01-01"] if operator in {"IN", "NOT IN"} else sentinel
+    await _assert_query_dataset_filter_preserved(
+        mcp_server,
+        _make_temporal_dataset(),
+        {"col": "order_date", "op": operator, "val": value},
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operator", ["IN", "NOT IN", "==", "!="])
+async def test_query_dataset_unformatted_temporal_text_is_compared_as_string(
+    mcp_server: FastMCP, operator: str
+) -> None:
+    """The temporal UI flag alone must not restrict VARCHAR string predicates."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    dataset = _make_temporal_dataset()
+    column = next(c for c in dataset.columns if c.column_name == "order_date")
+    column.type = "VARCHAR"
+    column.is_dttm = True
+    column.python_date_format = None
+    value: FilterValues = (
+        ["FY2000", "not-a-date"] if operator in {"IN", "NOT IN"} else "FY2000"
+    )
+    await _assert_query_dataset_filter_preserved(
+        mcp_server, dataset, {"col": "order_date", "op": operator, "val": value}
+    )
+    assert (
+        SqlaTable.filter_values_handler(
+            value,
+            operator,
+            GenericDataType.STRING,
+            "VARCHAR",
+            is_list_target=operator in {"IN", "NOT IN"},
+            db_engine_spec=SqliteEngineSpec,
+        )
+        == value
+    )
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_rejects_stored_month_case_mismatch(
+    mcp_server: FastMCP,
+) -> None:
+    """Stored-name case mismatches must be rejected before query execution."""
+    dataset = _make_temporal_dataset()
+    for column in dataset.columns:
+        if column.column_name == "order_date":
+            column.type = "VARCHAR"
+            column.python_date_format = "%d-%b-%Y"
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(query_dataset_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "filters": [
+                            {"col": "order_date", "op": "==", "val": "01-JAN-2000"}
+                        ],
+                    }
+                },
+            )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert "stored date format" in data["error"]
+    execute.assert_not_called()
