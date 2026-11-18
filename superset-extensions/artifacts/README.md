@@ -70,7 +70,7 @@ rules are pure Python with no Flask imports, so they are tested without
 Superset; they ask who may do what through `ArtifactAccess`, which the entry
 point fills with the widgets' rules.
 
-## Identity
+## An artifact is a saved widget
 
 An artifact is one saved widget of the `artifact` type: the widget's UUID is
 the artifact's id, and the widget row holds its name, its editors and its
@@ -95,6 +95,14 @@ author as editor; the store keeps only the content, keyed by that UUID.
   when none of its files changed since; otherwise it fails with
   `STALE_BASE_VERSION` and changes nothing. `manifest.json` is required and
   validated on every write.
+- **Agents with a disk.** An agent that keeps the project in a folder of its
+  own pulls it with `artifact_land` and pushes it with `artifact_commit_files`,
+  which takes every path's SHA-256 and asks only for the blobs the store
+  lacks. Where the deployment allows it (see "Transfer links"), the bytes
+  move beside the model: `artifact_land` answers a short-lived URL for a tar
+  of the version, and the commit a short-lived upload URL for each missing
+  blob, which the agent's shell uses with `curl`. Otherwise they travel in
+  tool calls: `artifact_land` with `inline`, and `artifact_upload_blobs`.
 - **Publishing.** `artifact_request_publish` only records a request and answers
   `CONFIRMATION_REQUIRED`. The `published` ref moves when an editor confirms it
   where the artifact is shown, under their own browser session
@@ -115,13 +123,21 @@ author as editor; the store keeps only the content, keyed by that UUID.
   `<iframe sandbox="allow-scripts" referrerpolicy="no-referrer">`, without
   `allow-same-origin` or popups.
 - **Data and events.** The renderer fetches each named binding through the
-  placement data endpoint, naming the binding and sending the draft token, and
-  checks every frame request against the manifest before acting:
-  `setCrossFilter` through the canvas, `refresh` and
-  `query` by fetching again. The endpoint asks the artifact widget type for
-  the binding (its `binding_resolver`), which reads it from the manifest of
-  the version the frame loads; the endpoint then runs it as the viewer, with
-  their dataset access, as any other binding.
+  placement data endpoint, naming the binding and sending the draft token; on
+  a page of its own, through the saved widget's data endpoint
+  (`POST /api/v1/widget/<uuid>/data`). Either endpoint asks the artifact
+  widget type for the binding (its `binding_resolver`), which reads it from
+  the manifest of the version the frame loads, and runs it as the viewer, with
+  their dataset access, as any other binding. The frame gets each binding's
+  result in a message of its own, sent only when it changes. The bridge
+  accepts a cross-filter only with values it delivered to that frame, in the
+  binding's latest result, for that dimension; it caps the values in a
+  cross-filter, the requests a second, and the queries that the frame's
+  requests may run (the policy's `data.max_queries`, which comes with each
+  frame link). The renderer then checks every request against the manifest
+  before acting: `setCrossFilter` through the canvas, `refresh` and `query` by
+  fetching again. A frame that never completes its handshake gets one new
+  link, as when its link expired before it loaded.
 
 ## Policy
 
@@ -184,6 +200,44 @@ mode, and wherever else the policy is sent, such as a proxy. Never allow a
 wider source, such as `https:` or `*`: the sandbox's isolation depends on its
 frames loading only from the provider's site.
 
+## Transfer links
+
+Agents with a shell can move an artifact's bytes beside the model, so that the
+model neither writes every uploaded byte nor reads every landed one. The
+links are signed with `SECRET_KEY`, bound to one artifact and one blob or
+version, and expire after 10 minutes; an upload is checked against its blob's
+SHA-256, within the policy's size limit for a file.
+
+- They are built on `WEBDRIVER_BASEURL_USER_FRIENDLY`, the URL that the MCP
+  tools put in every link they answer. Without it, the tools answer no links,
+  and agents use the inline fallbacks.
+- An upload carries no session and no CSRF token, so its route must be exempt
+  from CSRF checks. The link is its only credential, and the route reads no
+  cookie, so the exemption opens no cross-site path:
+
+  ```python
+  WTF_CSRF_EXEMPT_LIST = [
+      # ...the default list, unchanged, then:
+      "superset_oss.artifacts.authoring.transfer_api.upload",
+  ]
+  ```
+
+  Until the route is exempt, commits answer no upload links. Downloads need
+  no exemption.
+
+## Tools
+
+By default a deployment offers the tools every agent needs: `artifact_create`,
+the text editor's commands (`artifact_view`, `artifact_create_file`,
+`artifact_str_replace`, `artifact_insert`), the folder's pull and push
+(`artifact_land`, `artifact_commit_files`, `artifact_upload_blobs`), and
+`artifact_build`, `artifact_check` and `artifact_request_publish`. Every tool
+offered costs every agent context, so the file tools that only agents without
+a disk may want come only with `ARTIFACTS_ALL_FILE_TOOLS = True`:
+`artifact_delete_file`, `artifact_move_file`, `artifact_search`,
+`artifact_history`, `artifact_restore`, `artifact_manifest_get` and
+`artifact_manifest_update`. `MCP_DISABLED_TOOLS` removes any of them.
+
 ## Permissions
 
 The MCP tools reuse the Widget permissions: can_read on Widget to read, and
@@ -194,6 +248,7 @@ has its own permission view, which roles need to be granted:
 |---|---|---|
 | Frame links | `ArtifactFrame` | can_read |
 | Publish confirmation | `ArtifactPublish` | can_write |
+| Transfer links | none: each link is its own credential | none |
 
 They deliberately don't share the `Canvas` or `Widget` views: when an API registers,
 Flask-AppBuilder removes from every role the permissions on its view that the
@@ -263,13 +318,19 @@ def MCP_CODE_ARTIFACTS_ENABLED() -> bool:
   given content exists in that scope. On the default backend, the scope is
   the whole Superset.
 - The page that shows one artifact on its own is the host's to add: the
-  extension only answers its frame link (`page`), and it has no data yet.
+  extension answers its frame link (`page`) and its data.
 - The publish confirmation is a notice by the artifact, not a screen with a
   diff, and refusing `Authorization` headers is a check on the channel, not
   proof that a person clicked.
-- `artifact_upload_blobs` isn't in the SDK's tool contract; it stands in until
-  the contract says how commit by hash uploads. Failures carry the SDK's
-  `AuthoringErrorCode`s, except `PUBLISH_REQUEST_NOT_FOUND`, which only the
-  confirmation endpoint answers.
+- `artifact_upload_blobs`, the inline fallback for uploads, is the extension's
+  own tool: the SDK's contract leaves it to the host. Failures carry the SDK's
+  `AuthoringErrorCode`s, except `PUBLISH_REQUEST_NOT_FOUND` and
+  `TRANSFER_LINK_INVALID`, which only the confirmation endpoint and the
+  transfer routes answer.
+- A transfer link is a bearer credential that passes through the model's
+  context, and its token travels in the URL, where access logs may keep it:
+  its short life is the control. Landing a large project inline takes many
+  pages, and a file too big for a page comes without its content; the
+  download link has neither limit.
 - Request paths are absolute from the site root, so deployments under an
   application root aren't supported yet.

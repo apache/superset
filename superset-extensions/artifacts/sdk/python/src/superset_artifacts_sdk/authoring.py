@@ -37,6 +37,11 @@ the new draft version, for the next write to name.
 
 Paths are relative to the artifact's root and are normalized on input
 (``normalize_path``).
+
+Agents that keep the project on a disk push it with ``artifact_commit_files``
+and pull it back with ``artifact_land``. Where the host offers them, the bytes
+move beside the model, through short-lived URLs: one upload URL for each blob
+a commit lacks, and one download URL for a tar of the landed version.
 """
 
 # TODO: a retry-safe ``op_id`` on every write, so that a retried call can't
@@ -46,6 +51,7 @@ Paths are relative to the artifact's root and are normalized on input
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 from enum import StrEnum
 from types import MappingProxyType
 from typing import Annotated, Literal, TypeVar
@@ -81,17 +87,31 @@ ARTIFACT_MANIFEST_UPDATE = "artifact_manifest_update"
 ARTIFACT_REQUEST_PUBLISH = "artifact_request_publish"
 ARTIFACT_BUILD = "artifact_build"
 ARTIFACT_CHECK = "artifact_check"
-# Commit a whole tree by content hash.
+# Commit a whole tree by content hash, and bring a version back into a folder.
 ARTIFACT_COMMIT_FILES = "artifact_commit_files"
+ARTIFACT_LAND = "artifact_land"
 
 # ``artifact_view``'s path for the artifact's root directory.
 ROOT_PATH = "."
+# The file ``artifact_land`` writes beside the landed files, naming the
+# artifact and the version they came from. It is the agent's, never the
+# artifact's: commits and new artifacts leave it out, and the file tools
+# refuse it.
+LAND_SIDECAR_PATH = ".superset-artifact.json"
+
+
+def _artifact_path(path: str) -> str:
+    normalized = normalize_path(path)
+    if normalized == LAND_SIDECAR_PATH:
+        raise ValueError(f"{LAND_SIDECAR_PATH} is the land sidecar, not a file")
+    return normalized
+
 
 ArtifactId = Annotated[str, Field(min_length=1)]
 Sha256Hex = Annotated[str, Field(pattern=SHA256_HEX_PATTERN)]
 # A version is identified by the hash of its tree.
 Version = Sha256Hex
-TreePath = Annotated[str, AfterValidator(normalize_path)]
+TreePath = Annotated[str, AfterValidator(_artifact_path)]
 
 _V = TypeVar("_V")
 
@@ -102,12 +122,14 @@ def _is_root(path: object) -> bool:
 
 
 def _normalized_paths(files: Mapping[str, _V]) -> dict[str, _V]:
+    """``files`` by their normalized paths, without the land sidecar."""
     normalized: dict[str, _V] = {}
     for path, value in files.items():
         key = normalize_path(path)
         if key in normalized:
             raise ValueError(f"{path!r} names the same file as another path, {key!r}")
         normalized[key] = value
+    normalized.pop(LAND_SIDECAR_PATH, None)
     return normalized
 
 
@@ -368,13 +390,12 @@ class ArtifactCommitFilesRequest(ArtifactWriteRequest):
 
     For agents that keep the project on a disk, such as Claude Code. ``files``
     is the complete new version: every path with the SHA-256 of its content,
-    and a path left out is deleted. When the store lacks some of those blobs,
-    nothing is committed and the response lists them as ``missing``.
+    and a path left out is deleted; the land sidecar is left out. When the
+    store lacks some of those blobs, nothing is committed and the response
+    lists them as ``missing``, with an upload URL for each where the host
+    offers them. Otherwise the agent uploads them in a tool call of the
+    host's.
     """
-
-    # TODO: the contract doesn't define how an agent uploads the blobs that a
-    # commit reports missing (a REST upload, or content in a follow-up tool
-    # call).
 
     files: dict[str, Sha256Hex]
 
@@ -384,6 +405,24 @@ class ArtifactCommitFilesRequest(ArtifactWriteRequest):
         normalized = _normalized_paths(files)
         validate_tree(normalized)
         return normalized
+
+
+class ArtifactLandRequest(ArtifactScopedRequest):
+    """
+    ``artifact_land``: bring a version's files back into the agent's folder.
+
+    The pull that matches ``artifact_commit_files``' push; the draft by
+    default. The answer lists every file with its SHA-256, and the sidecar to
+    write beside them at ``LAND_SIDECAR_PATH``, whose ``base_version`` the next
+    commit names. Where the host offers it, ``download_url`` is a short-lived
+    URL for a tar of the files and the sidecar. With ``inline``, each file's
+    content comes in the answer instead, in pages: text as UTF-8 and other
+    files as base64; a file too big for a page comes without it.
+    """
+
+    version: Version | None = None
+    inline: bool = False
+    page: int | None = Field(default=None, ge=1)
 
 
 class ArtifactCreateResponse(BaseModel):
@@ -399,15 +438,27 @@ class ArtifactWriteResponse(BaseModel):
     version: Version
 
 
+class BlobUploadTarget(BaseModel):
+    """Where to send one missing blob's exact bytes; checked against its hash."""
+
+    sha256: Sha256Hex
+    url: str
+    method: Literal["PUT"] = "PUT"
+
+
 class ArtifactCommitFilesResponse(BaseModel):
     """
     What ``artifact_commit_files`` answers.
 
     Either ``missing`` lists the blobs to upload, and nothing was committed,
-    or ``version`` is the new draft version.
+    or ``version`` is the new draft version. ``uploads`` holds an upload URL
+    for each missing blob where the host offers them, all short-lived, until
+    ``uploads_expire_at``.
     """
 
     missing: list[Sha256Hex] = Field(default_factory=list)
+    uploads: list[BlobUploadTarget] = Field(default_factory=list)
+    uploads_expire_at: datetime | None = None
     version: Version | None = None
 
     @model_validator(mode="after")
@@ -416,7 +467,39 @@ class ArtifactCommitFilesResponse(BaseModel):
             raise ValueError(
                 "set missing (nothing was committed) or version, not both or neither"
             )
+        if not {upload.sha256 for upload in self.uploads} <= set(self.missing):
+            raise ValueError("an upload URL is only for a missing blob")
         return self
+
+
+class LandedFile(BaseModel):
+    """One file of a landed version; with ``inline``, its content."""
+
+    path: str
+    sha256: Sha256Hex
+    size: int | None = Field(default=None, ge=0)
+    content: str | None = None
+    encoding: Literal["utf-8", "base64"] | None = None
+
+
+class LandSidecar(BaseModel):
+    """What ``LAND_SIDECAR_PATH`` holds, as JSON."""
+
+    artifact_id: ArtifactId
+    base_version: Version
+
+
+class ArtifactLandResponse(BaseModel):
+    """What ``artifact_land`` answers: one page of the version's files."""
+
+    artifact_id: ArtifactId
+    version: Version
+    files: list[LandedFile]
+    sidecar: LandSidecar
+    page: int = Field(default=1, ge=1)
+    pages: int = Field(default=1, ge=1)
+    download_url: str | None = None
+    expires_at: datetime | None = None
 
 
 class AuthoringErrorResponse(BaseModel):
@@ -450,5 +533,6 @@ TOOL_REQUESTS: Mapping[str, type[AuthoringRequest]] = MappingProxyType(
         ARTIFACT_BUILD: ArtifactBuildRequest,
         ARTIFACT_CHECK: ArtifactCheckRequest,
         ARTIFACT_COMMIT_FILES: ArtifactCommitFilesRequest,
+        ARTIFACT_LAND: ArtifactLandRequest,
     }
 )

@@ -18,7 +18,10 @@
 
 from __future__ import annotations
 
+import base64
+import io
 import json  # noqa: TID251 -- pure test; the host's JSON utility needs Flask.
+import tarfile
 import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -35,6 +38,7 @@ from superset_artifacts_sdk.authoring import (
     ArtifactDeleteFileRequest,
     ArtifactHistoryRequest,
     ArtifactInsertRequest,
+    ArtifactLandRequest,
     ArtifactManifestGetRequest,
     ArtifactManifestUpdateRequest,
     ArtifactMoveFileRequest,
@@ -44,6 +48,7 @@ from superset_artifacts_sdk.authoring import (
     ArtifactStrReplaceRequest,
     ArtifactViewRequest,
     AuthoringErrorCode,
+    LAND_SIDECAR_PATH,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest
 from superset_artifacts_sdk.policy import LOCKED, policy_layer
@@ -889,3 +894,157 @@ def test_the_policy_sets_the_file_limits(
         create(tight, **{"a.txt": "a", "b.txt": "b"})
     created = create(tight, **{"a.txt": "a"})
     assert created
+
+
+def test_land_lists_a_versions_files_and_the_sidecar(
+    store: ArtifactFileStore, backend: InMemoryArtifactStore
+) -> None:
+    artifact_id, version = create(store)
+    tree = backend.get_tree(version)
+    assert tree is not None
+
+    landed = store.land(ArtifactLandRequest(artifact_id=artifact_id))
+
+    assert landed.version == version
+    assert [(entry.path, entry.sha256) for entry in landed.files] == sorted(
+        tree.items()
+    )
+    assert all(entry.content is None for entry in landed.files)
+    assert landed.sidecar.model_dump() == {
+        "artifact_id": artifact_id,
+        "base_version": version,
+    }
+    assert (landed.page, landed.pages, landed.download_url) == (1, 1, None)
+
+
+def test_land_inline_carries_text_and_base64(store: ArtifactFileStore) -> None:
+    artifact_id, version = create(store)
+    logo = b"\x89PNG\r\n"
+    [logo_hash] = store.put_blobs([logo])
+    tree = {
+        entry.path: entry.sha256
+        for entry in store.land(ArtifactLandRequest(artifact_id=artifact_id)).files
+    }
+    store.commit_files(
+        ArtifactCommitFilesRequest(
+            artifact_id=artifact_id,
+            base_version=version,
+            files={**tree, "logo.png": logo_hash},
+        )
+    )
+
+    landed = store.land(ArtifactLandRequest(artifact_id=artifact_id, inline=True))
+    files = {entry.path: entry for entry in landed.files}
+
+    assert files["src/app.js"].content == APP
+    assert files["src/app.js"].encoding == "utf-8"
+    assert files["src/app.js"].size == len(APP.encode())
+    assert files["logo.png"].encoding == "base64"
+    assert base64.b64decode(files["logo.png"].content or "") == logo
+
+
+def test_land_inline_comes_in_pages_without_what_no_page_holds(
+    store: ArtifactFileStore,
+) -> None:
+    big = "x" * (PAGE_BYTES + 1)
+    half = "y" * (PAGE_BYTES // 2)
+    artifact_id, _ = create(
+        store, **{"a.txt": half, "b.txt": half, "c.txt": big, "index.html": INDEX}
+    )
+    pages = store.land(ArtifactLandRequest(artifact_id=artifact_id, inline=True))
+    entries = [
+        entry
+        for page in range(1, pages.pages + 1)
+        for entry in store.land(
+            ArtifactLandRequest(artifact_id=artifact_id, inline=True, page=page)
+        ).files
+    ]
+
+    assert pages.pages > 1
+    assert sorted(entry.path for entry in entries) == sorted(
+        ["a.txt", "b.txt", "c.txt", "index.html", "manifest.json"]
+    )
+    by_path = {entry.path: entry for entry in entries}
+    assert by_path["c.txt"].content is None
+    assert by_path["c.txt"].size == len(big)
+    assert by_path["a.txt"].content == half
+    with raises(AuthoringErrorCode.INVALID_ARGUMENT):
+        store.land(
+            ArtifactLandRequest(
+                artifact_id=artifact_id, inline=True, page=pages.pages + 1
+            )
+        )
+
+
+def test_land_takes_only_this_artifacts_versions(store: ArtifactFileStore) -> None:
+    artifact_id, first = create(store)
+    other_id, other_version = create(store, **{"index.html": "other"})
+    store.str_replace(
+        ArtifactStrReplaceRequest(
+            artifact_id=artifact_id,
+            base_version=first,
+            path="src/app.js",
+            old_str="41",
+            new_str="42",
+        )
+    )
+
+    earlier = store.land(ArtifactLandRequest(artifact_id=artifact_id, version=first))
+
+    assert earlier.version == first
+    assert earlier.sidecar.base_version == first
+    with raises(AuthoringErrorCode.VERSION_NOT_FOUND):
+        store.land(ArtifactLandRequest(artifact_id=artifact_id, version=other_version))
+    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
+        store.land(ArtifactLandRequest(artifact_id=str(uuid4())))
+    assert other_id != artifact_id
+
+
+def test_an_archive_holds_the_version_and_the_sidecar(
+    store: ArtifactFileStore, clock: Clock
+) -> None:
+    artifact_id, version = create(store)
+    out = io.BytesIO()
+
+    store.archive(artifact_id, version, out)
+
+    out.seek(0)
+    with tarfile.open(fileobj=out) as tar:
+        members = tar.getmembers()
+        contents = {
+            member.name: tar.extractfile(member).read()  # type: ignore[union-attr]
+            for member in members
+        }
+    assert [member.name for member in members] == [
+        "index.html",
+        "manifest.json",
+        "src/app.js",
+        LAND_SIDECAR_PATH,
+    ]
+    assert all(member.isreg() and member.mode == 0o644 for member in members)
+    assert {member.mtime for member in members} == {int(clock.now.timestamp())}
+    assert contents["src/app.js"] == APP.encode()
+    assert json.loads(contents[LAND_SIDECAR_PATH]) == {
+        "artifact_id": artifact_id,
+        "base_version": version,
+    }
+
+
+def test_a_landed_folder_commits_back_without_its_sidecar(
+    store: ArtifactFileStore,
+) -> None:
+    """The push of a landed folder, sidecar and all, changes nothing."""
+    artifact_id, version = create(store)
+    landed = store.land(ArtifactLandRequest(artifact_id=artifact_id))
+    folder = {entry.path: entry.sha256 for entry in landed.files}
+    folder[LAND_SIDECAR_PATH] = sha256_hex(landed.sidecar.model_dump_json().encode())
+
+    committed = store.commit_files(
+        ArtifactCommitFilesRequest(
+            artifact_id=artifact_id,
+            base_version=landed.sidecar.base_version,
+            files=folder,
+        )
+    )
+
+    assert committed.version == version

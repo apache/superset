@@ -18,10 +18,10 @@
 What each authoring tool does: the gate, then the store or the provider.
 
 Pure Python, so the gate and the answers are testable without Flask or MCP;
-``tools.py`` adds the MCP decorators and the caller's identity. Every answer
-is a JSON-ready dict: the tool's response, or a failure with the fields of
-``AuthoringErrorResponse``. With no provider registered, every tool answers
-``NOT_ENABLED`` and touches nothing.
+``tools.py`` adds the MCP decorators, the caller's identity and the transfer
+links. Every answer is a JSON-ready dict: the tool's response, or a failure
+with the fields of ``AuthoringErrorResponse``. With no provider registered,
+every tool answers ``NOT_ENABLED`` and touches nothing.
 """
 
 from __future__ import annotations
@@ -43,6 +43,7 @@ from superset_artifacts_sdk.authoring import (
     ArtifactDeleteFileRequest,
     ArtifactHistoryRequest,
     ArtifactInsertRequest,
+    ArtifactLandRequest,
     ArtifactManifestGetRequest,
     ArtifactManifestUpdateRequest,
     ArtifactMoveFileRequest,
@@ -55,6 +56,7 @@ from superset_artifacts_sdk.authoring import (
     ArtifactWriteRequest,
     AuthoringErrorCode,
     AuthoringErrorResponse,
+    BlobUploadTarget,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest, MANIFEST_FILE
 from superset_artifacts_sdk.policy import ArtifactPolicy, manifest_problems
@@ -64,6 +66,7 @@ from superset_artifacts_sdk.provider import (
     Diagnostic,
 )
 from superset_oss.artifacts.access import ArtifactAccess, require_edit, require_read
+from superset_oss.artifacts.authoring.transfer import TransferLinks
 from superset_oss.artifacts.data.bindings import binding_problems
 from superset_oss.artifacts.errors import (
     ArtifactError,
@@ -170,7 +173,14 @@ class AuthoringHandlers:
     A tool that reads an artifact needs the caller to read its widget, and one
     that changes it needs the caller to edit it; otherwise it answers
     ``ARTIFACT_NOT_FOUND``, as for an artifact that doesn't exist.
+    ``transfer_links`` gives the links that move bytes beside the model, read
+    on each call; without them, every answer carries its bytes itself.
     """
+
+    def __init__(
+        self, transfer_links: Callable[[], TransferLinks | None] = lambda: None
+    ) -> None:
+        self._transfer_links = transfer_links
 
     def run(self, actor: str | None, action: Callable[[_Call], Answer]) -> Answer:
         """Run ``action`` behind the gate, answering failures as errors."""
@@ -354,7 +364,37 @@ class AuthoringHandlers:
     def commit_files(
         self, actor: str | None, request: ArtifactCommitFilesRequest
     ) -> Answer:
-        return self._store(actor, ArtifactFileStore.commit_files, request, "edit")
+        def action(call: _Call) -> object:
+            answer = call.store.commit_files(request)
+            links = self._transfer_links()
+            if not answer.missing or links is None or not links.uploads:
+                return answer
+            artifact_id = call.store.canonical_id(request.artifact_id)
+            uploads = []
+            expires_at = None
+            for blob_hash in answer.missing:
+                url, expires_at = links.upload(artifact_id, blob_hash, call.actor)
+                uploads.append(BlobUploadTarget(sha256=blob_hash, url=url))
+            return answer.model_copy(
+                update={"uploads": uploads, "uploads_expire_at": expires_at}
+            )
+
+        return self._on_artifact(actor, request, "edit", action)
+
+    def land(self, actor: str | None, request: ArtifactLandRequest) -> Answer:
+        def action(call: _Call) -> object:
+            answer = call.store.land(request)
+            links = self._transfer_links()
+            if request.inline or links is None:
+                return answer
+            url, expires_at = links.download(
+                answer.artifact_id, answer.version, call.actor
+            )
+            return answer.model_copy(
+                update={"download_url": url, "expires_at": expires_at}
+            )
+
+        return self._on_artifact(actor, request, "read", action)
 
     def upload_blobs(
         self, actor: str | None, request: ArtifactUploadBlobsRequest

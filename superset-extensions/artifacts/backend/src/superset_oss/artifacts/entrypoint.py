@@ -30,7 +30,7 @@ from __future__ import annotations
 import logging
 
 from flask import current_app
-from superset_oss.artifacts.authoring import confirm_api  # noqa: F401
+from superset_oss.artifacts.authoring import confirm_api, transfer_api  # noqa: F401
 from superset_oss.artifacts.canvas import widget  # noqa: F401
 from superset_oss.artifacts.canvas.widgets import WidgetAccess
 from superset_oss.artifacts.frames import api as frames_api  # noqa: F401

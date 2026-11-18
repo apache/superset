@@ -32,6 +32,8 @@ from superset_artifacts_sdk.authoring import (
     ArtifactCreateRequest,
     ArtifactHistoryRequest,
     ArtifactInsertRequest,
+    ArtifactLandRequest,
+    ArtifactLandResponse,
     ArtifactManifestUpdateRequest,
     ArtifactMoveFileRequest,
     ArtifactRestoreRequest,
@@ -41,6 +43,9 @@ from superset_artifacts_sdk.authoring import (
     ArtifactWriteRequest,
     AuthoringErrorCode,
     AuthoringErrorResponse,
+    BlobUploadTarget,
+    LAND_SIDECAR_PATH,
+    LandSidecar,
     TOOL_REQUESTS,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest
@@ -70,6 +75,7 @@ TOOL_NAMES = [
     "artifact_build",
     "artifact_check",
     "artifact_commit_files",
+    "artifact_land",
 ]
 WRITE_TOOLS = {
     "artifact_create_file",
@@ -346,3 +352,64 @@ def test_a_stale_write_error_carries_the_current_version() -> None:
     )
     assert error.code is AuthoringErrorCode.STALE_BASE_VERSION
     assert error.model_dump(mode="json")["code"] == "STALE_BASE_VERSION"
+
+
+def test_land_reads_the_draft_by_default_by_reference_or_inline() -> None:
+    request = ArtifactLandRequest(artifact_id="artifact-1")
+    assert (request.version, request.inline, request.page) == (None, False, None)
+    with pytest.raises(ValidationError, match="page"):
+        ArtifactLandRequest(artifact_id="artifact-1", inline=True, page=0)
+
+
+def test_the_land_sidecar_names_the_next_commits_base() -> None:
+    sidecar = LandSidecar(artifact_id="artifact-1", base_version=VERSION)
+    answer = ArtifactLandResponse(
+        artifact_id="artifact-1", version=VERSION, files=[], sidecar=sidecar
+    )
+    assert answer.model_dump(mode="json")["sidecar"] == {
+        "artifact_id": "artifact-1",
+        "base_version": VERSION,
+    }
+    with pytest.raises(ValidationError, match="base_version"):
+        LandSidecar(artifact_id="artifact-1", base_version="v5")
+
+
+def test_commits_and_new_artifacts_leave_the_land_sidecar_out() -> None:
+    commit = ArtifactCommitFilesRequest.model_validate(
+        _write(files={"index.html": BLOB, f"./{LAND_SIDECAR_PATH}": BLOB})
+    )
+    created = ArtifactCreateRequest(files={LAND_SIDECAR_PATH: "{}", "a.js": ""})
+    assert commit.files == {"index.html": BLOB}
+    assert list(created.files) == ["a.js"]
+
+
+@pytest.mark.parametrize(
+    ("request_model", "fields"),
+    [
+        (ArtifactCreateFileRequest, {"path": LAND_SIDECAR_PATH, "file_text": ""}),
+        (ArtifactStrReplaceRequest, {"path": LAND_SIDECAR_PATH, "old_str": "a"}),
+        (
+            ArtifactMoveFileRequest,
+            {"old_path": "a.js", "new_path": f"./{LAND_SIDECAR_PATH}"},
+        ),
+    ],
+)
+def test_the_file_tools_refuse_the_land_sidecar(
+    request_model: Any, fields: dict[str, Any]
+) -> None:
+    with pytest.raises(ValidationError, match="land sidecar"):
+        request_model.model_validate(_write(**fields))
+
+
+def test_upload_urls_come_only_for_missing_blobs() -> None:
+    other = sha256_hex(b"other")
+    answer = ArtifactCommitFilesResponse(
+        missing=[BLOB],
+        uploads=[BlobUploadTarget(sha256=BLOB, url="https://superset.example/u/1")],
+    )
+    assert answer.uploads[0].method == "PUT"
+    with pytest.raises(ValidationError, match="only for a missing blob"):
+        ArtifactCommitFilesResponse(
+            missing=[BLOB],
+            uploads=[BlobUploadTarget(sha256=other, url="https://x.example/u")],
+        )

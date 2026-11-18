@@ -40,10 +40,12 @@ branch:
 | [A switch per widget type](#a-switch-per-widget-type) | Implemented here (listing and add operations); the rest documented |
 | [Large props kept out of the canvas read tools](#large-props-kept-out-of-the-canvas-read-tools) | Documented only |
 | [Several named data bindings per widget](#several-named-data-bindings-per-widget) | Implemented here (choosing `bindings[name]`, a binding hook per widget type); the rest documented |
+| [A saved widget's data without a canvas](#a-saved-widgets-data-without-a-canvas) | Implemented here |
 | [Cross-filtering and data events for extension widgets](#cross-filtering-and-data-events-for-extension-widgets) | Documented only |
 | [Hardened extension storage](#hardened-extension-storage) | Implemented here (compare-and-swap); scaffolded (the extension's storage backend); the rest documented |
 | [A request-time extension context; MCP decorators without MCP](#a-request-time-extension-context-mcp-decorators-without-mcp) | Scaffolded (an import guard) |
 | [Extensions declare the CSP they need](#extensions-declare-the-csp-they-need) | Not a core ask (operators configure `TALISMAN_CONFIG`) |
+| [Routes that a link authenticates, exempt from CSRF](#routes-that-a-link-authenticates-exempt-from-csrf) | Not a core ask (operators configure `WTF_CSRF_EXEMPT_LIST`) |
 | [The "no code artifacts" MCP instruction, conditional](#the-no-code-artifacts-mcp-instruction-conditional) | Implemented here |
 | [Artifact guest tokens and standalone embedding](#artifact-guest-tokens-and-standalone-embedding) | Not core asks |
 
@@ -203,6 +205,27 @@ branch:
   - the MCP `get_canvas_data` and `preview_widget` tools, which still read
     `dataBinding` only.
 
+## A saved widget's data without a canvas
+
+- **Implemented:** `POST /api/v1/widget/<uuid>/data` (`superset/widgets/api.py`,
+  `GetWidgetDataCommand` in `superset/commands/widget/data.py`), SIP-231's
+  data endpoint for a saved widget. It runs the widget's stored `dataBinding`,
+  or a named binding from its widget type's resolver or its props, as the
+  caller, narrowed by runtime filters on the binding's dataset: the placement
+  endpoint's binding selection (`select_binding`), runner and checks, and one
+  datasets answer (`superset/canvas/data.py`). Reading needs read access to
+  the widget, through `WidgetDAO`'s filter, and to its dataset; a widget
+  without the binding answers 422. A `BindingRequest` for a widget on its own
+  names the widget and no canvas or placement.
+- **Use here:** the artifact's page of its own runs its bindings through it,
+  and the binding resolver reads them from the version that page's frame
+  loads.
+- **Tests:** `tests/unit_tests/widgets/data_test.py` (a reader runs the
+  widget's own binding; a widget the caller can't read looks missing; a named
+  binding comes from the type's resolver; an unbound widget answers 422; the
+  route's envelope, failures and malformed requests);
+  `tests/unit_tests/canvas/placement_data_test.py` (the shared selection).
+
 ## Cross-filtering and data events for extension widgets
 
 - **Need:** cross-filters reach other widgets only while the canvas has them
@@ -273,6 +296,18 @@ branch:
   `frame-src` in `TALISMAN_CONFIG` themselves, as the README's "Host pages'
   CSP" shows; a host that sets its own policy adds them there.
 
+## Routes that a link authenticates, exempt from CSRF
+
+- **Need:** the transfer routes take uploads from an agent's shell, which has
+  no session and no CSRF token, so the upload route must be exempt from
+  Flask-WTF's checks. An extension can't exempt its own routes: the exempt
+  list is `WTF_CSRF_EXEMPT_LIST`, read when the app starts.
+- **Status:** not a core ask. The operator lists the route's view
+  (`superset_oss.artifacts.authoring.transfer_api.upload`), as the README's
+  "Transfer links" shows; the tools offer upload links only once it is
+  listed. The link is the route's only credential and it reads no cookie, so
+  the exemption opens no cross-site path.
+
 ## The "no code artifacts" MCP instruction, conditional
 
 - **Implemented:** `get_default_instructions` takes `artifacts_enabled`
@@ -314,6 +349,6 @@ branch:
   guest support.
 - **Status:** not core asks. A host adds the page that shows one artifact on
   its own; the extension answers its frame link (`POST .../frames/` with
-  `page`). Guests would see artifacts through an embedded canvas that holds
-  them, with canvas guest tokens, once Canvas has them.
-- **Next:** the widget data endpoint, so that the page gets its data.
+  `page`), and its data comes from the widget data endpoint (above). Guests
+  would see artifacts through an embedded canvas that holds them, with canvas
+  guest tokens, once Canvas has them.

@@ -34,6 +34,7 @@ from superset_oss.artifacts.authoring.prompt_text import (
 )
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.gate import artifacts_on, open_artifacts
+from superset_oss.artifacts.web import all_file_tools
 
 
 @prompt(
@@ -51,7 +52,7 @@ async def create_artifact() -> str:
         artifacts = open_artifacts()
     except ArtifactError:
         return NOT_ENABLED_TEXT
-    return create_artifact_text(artifacts.policy)
+    return create_artifact_text(artifacts.policy, all_file_tools=all_file_tools())
 
 
 @prompt(

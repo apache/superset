@@ -51,13 +51,16 @@ or Superset.
 
 from __future__ import annotations
 
+import base64
+import io
 import json  # noqa: TID251 -- pure module; the host's JSON utility needs Flask.
 import math
+import tarfile
 import uuid
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal, TypeVar
+from typing import Any, BinaryIO, Literal, TypeVar
 
 from superset_artifacts_sdk.authoring import (
     ArtifactCommitFilesRequest,
@@ -68,6 +71,8 @@ from superset_artifacts_sdk.authoring import (
     ArtifactDeleteFileRequest,
     ArtifactHistoryRequest,
     ArtifactInsertRequest,
+    ArtifactLandRequest,
+    ArtifactLandResponse,
     ArtifactManifestGetRequest,
     ArtifactManifestUpdateRequest,
     ArtifactMoveFileRequest,
@@ -79,6 +84,9 @@ from superset_artifacts_sdk.authoring import (
     ArtifactWriteRequest,
     ArtifactWriteResponse,
     AuthoringErrorCode,
+    LAND_SIDECAR_PATH,
+    LandedFile,
+    LandSidecar,
     ROOT_PATH,
 )
 from superset_artifacts_sdk.manifest import (
@@ -302,6 +310,20 @@ def _text_of(data: bytes) -> str | None:
         return data.decode("utf-8")
     except UnicodeDecodeError:
         return None
+
+
+def _landed_size(entry: LandedFile) -> int:
+    """About how much of a page ``entry`` takes in a land answer."""
+    return len(entry.path) + len(entry.sha256) + len(entry.content or "") + 64
+
+
+def _tar_member(path: str, size: int, mtime: datetime) -> tarfile.TarInfo:
+    """A regular file's entry: readable by all, owned by no one in particular."""
+    member = tarfile.TarInfo(path)
+    member.size = size
+    member.mode = 0o644
+    member.mtime = int(mtime.timestamp())
+    return member
 
 
 def _is_directory(tree: Mapping[str, str], path: str) -> bool:
@@ -687,6 +709,49 @@ class ArtifactFileStore:
         written = self._commit(artifact_id, request.base_version, tree, files)
         return ArtifactCommitFilesResponse(version=written.version)
 
+    def land(self, request: ArtifactLandRequest) -> ArtifactLandResponse:
+        """
+        One page of a version's files for an agent's folder, the draft by
+        default; see ``ArtifactLandRequest``.
+        """
+        artifact_id, version = self.resolve_version(
+            request.artifact_id, request.version
+        )
+        tree = self._tree(version)
+        entries = [
+            self._landed(path, tree[path])
+            if request.inline
+            else LandedFile(path=path, sha256=tree[path])
+            for path in sorted(tree)
+        ]
+        pages = _pages(entries, _landed_size, PAGE_BYTES)
+        number, page = _pick_page(pages, request.page)
+        return ArtifactLandResponse(
+            artifact_id=artifact_id,
+            version=version,
+            files=page,
+            sidecar=LandSidecar(artifact_id=artifact_id, base_version=version),
+            page=number,
+            pages=len(pages),
+        )
+
+    def archive(self, artifact_id: str, version: str, out: BinaryIO) -> None:
+        """
+        Write a tar of one of this artifact's versions to ``out``: its files
+        and the land sidecar, in path order. The caller authorizes.
+        """
+        canonical, version = self.resolve_version(artifact_id, version)
+        tree = self._tree(version)
+        sidecar = LandSidecar(artifact_id=canonical, base_version=version)
+        now = self._now()
+        with tarfile.open(fileobj=out, mode="w", format=tarfile.PAX_FORMAT) as tar:
+            for path in sorted(tree):
+                data = self._blob(tree[path])
+                tar.addfile(_tar_member(path, len(data), now), io.BytesIO(data))
+            note = sidecar.model_dump_json(indent=2).encode("utf-8") + b"\n"
+            member = _tar_member(LAND_SIDECAR_PATH, len(note), now)
+            tar.addfile(member, io.BytesIO(note))
+
     # -- Publishing ----------------------------------------------------------
 
     def request_publish(
@@ -954,6 +1019,20 @@ class ArtifactFileStore:
         if data is None:
             raise RuntimeError(f"the store lost blob {blob_hash}")
         return data
+
+    def _landed(self, path: str, blob_hash: str) -> LandedFile:
+        """A file with its content, unless that is too big for a page."""
+        data = self._blob(blob_hash)
+        bare = LandedFile(path=path, sha256=blob_hash, size=len(data))
+        text = _text_of(data)
+        if text is not None:
+            if _text_size(text) > PAGE_BYTES:
+                return bare
+            return bare.model_copy(update={"content": text, "encoding": "utf-8"})
+        encoded = base64.b64encode(data).decode("ascii")
+        if len(encoded) > PAGE_BYTES:
+            return bare
+        return bare.model_copy(update={"content": encoded, "encoding": "base64"})
 
     def _read_text(self, blob_hash: str) -> str | None:
         """The blob as text, or ``None`` when it isn't UTF-8 (a binary file)."""

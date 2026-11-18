@@ -24,6 +24,12 @@ delegates to ``AuthoringHandlers`` with the signed-in user; every answer is a
 JSON object, and a failure carries a ``code`` from ``AuthoringErrorCode`` or
 the extension's own codes.
 
+By default a deployment offers the tools every agent needs: the text editor's
+commands, the push and pull of a folder, and building, checking and
+publishing. Every tool offered costs every agent context, so the rest of the
+file tools (``EXTRA_TOOLS``), which only clients without a disk may want,
+come with ``ARTIFACTS_ALL_FILE_TOOLS = True``.
+
 An artifact is a saved widget, so RBAC reuses the Widget permissions: can_read
 on Widget to read, can_write to write; each tool then checks the artifact's
 own widget, its readers or its editors. Operators can remove any of the tools
@@ -37,7 +43,8 @@ with ``MCP_DISABLED_TOOLS``.
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from superset_artifacts_sdk.authoring import (
     ARTIFACT_BUILD,
@@ -48,6 +55,7 @@ from superset_artifacts_sdk.authoring import (
     ARTIFACT_DELETE_FILE,
     ARTIFACT_HISTORY,
     ARTIFACT_INSERT,
+    ARTIFACT_LAND,
     ARTIFACT_MANIFEST_GET,
     ARTIFACT_MANIFEST_UPDATE,
     ARTIFACT_MOVE_FILE,
@@ -64,6 +72,7 @@ from superset_artifacts_sdk.authoring import (
     ArtifactDeleteFileRequest,
     ArtifactHistoryRequest,
     ArtifactInsertRequest,
+    ArtifactLandRequest,
     ArtifactManifestGetRequest,
     ArtifactMoveFileRequest,
     ArtifactRequestPublishRequest,
@@ -78,14 +87,26 @@ from superset_oss.artifacts.authoring.handlers import (
     ArtifactUploadBlobsRequest,
     AuthoringHandlers,
 )
+from superset_oss.artifacts.authoring.prompt_text import EXTRA_TOOLS
 from superset_oss.artifacts.constants import ARTIFACT_UPLOAD_BLOBS
-from superset_oss.artifacts.web import current_actor
+from superset_oss.artifacts.web import all_file_tools, current_actor, transfer_links
 
 PERMISSION = "Widget"
 READ_TAGS = ["artifacts"]
 WRITE_TAGS = ["artifacts", "mutate"]
 
-handlers = AuthoringHandlers()
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+ALL_FILE_TOOLS = all_file_tools()
+
+handlers = AuthoringHandlers(transfer_links)
+
+
+def _tool(name: str, **options: Any) -> Callable[[_F], _F]:
+    """``@tool`` for a tool this deployment offers; any other stays a function."""
+    if name in EXTRA_TOOLS and not ALL_FILE_TOOLS:
+        return lambda function: function
+    return tool(name=name, class_permission_name=PERMISSION, **options)
 
 
 def _reads(title: str) -> ToolAnnotations:
@@ -111,10 +132,9 @@ def _writes(
     )
 
 
-@tool(
-    name=ARTIFACT_CREATE,
+@_tool(
+    ARTIFACT_CREATE,
     tags=WRITE_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_writes("Create an artifact", idempotent=False),
 )
 def artifact_create(request: ArtifactCreateRequest) -> dict[str, Any]:
@@ -127,10 +147,9 @@ def artifact_create(request: ArtifactCreateRequest) -> dict[str, Any]:
     return handlers.create(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_VIEW,
+@_tool(
+    ARTIFACT_VIEW,
     tags=READ_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_reads("View an artifact file"),
 )
 def artifact_view(request: ArtifactViewRequest) -> dict[str, Any]:
@@ -143,10 +162,9 @@ def artifact_view(request: ArtifactViewRequest) -> dict[str, Any]:
     return handlers.view(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_CREATE_FILE,
+@_tool(
+    ARTIFACT_CREATE_FILE,
     tags=WRITE_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_writes("Create an artifact file", idempotent=True),
 )
 def artifact_create_file(request: ArtifactCreateFileRequest) -> dict[str, Any]:
@@ -157,10 +175,9 @@ def artifact_create_file(request: ArtifactCreateFileRequest) -> dict[str, Any]:
     return handlers.create_file(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_STR_REPLACE,
+@_tool(
+    ARTIFACT_STR_REPLACE,
     tags=WRITE_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_writes("Edit an artifact file", idempotent=True),
 )
 def artifact_str_replace(request: ArtifactStrReplaceRequest) -> dict[str, Any]:
@@ -172,10 +189,9 @@ def artifact_str_replace(request: ArtifactStrReplaceRequest) -> dict[str, Any]:
     return handlers.str_replace(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_INSERT,
+@_tool(
+    ARTIFACT_INSERT,
     tags=WRITE_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_writes("Insert into an artifact file", idempotent=True),
 )
 def artifact_insert(request: ArtifactInsertRequest) -> dict[str, Any]:
@@ -186,10 +202,9 @@ def artifact_insert(request: ArtifactInsertRequest) -> dict[str, Any]:
     return handlers.insert(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_DELETE_FILE,
+@_tool(
+    ARTIFACT_DELETE_FILE,
     tags=WRITE_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_writes("Delete an artifact file", idempotent=True, destructive=True),
 )
 def artifact_delete_file(request: ArtifactDeleteFileRequest) -> dict[str, Any]:
@@ -200,10 +215,9 @@ def artifact_delete_file(request: ArtifactDeleteFileRequest) -> dict[str, Any]:
     return handlers.delete_file(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_MOVE_FILE,
+@_tool(
+    ARTIFACT_MOVE_FILE,
     tags=WRITE_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_writes("Move an artifact file", idempotent=True),
 )
 def artifact_move_file(request: ArtifactMoveFileRequest) -> dict[str, Any]:
@@ -214,10 +228,9 @@ def artifact_move_file(request: ArtifactMoveFileRequest) -> dict[str, Any]:
     return handlers.move_file(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_SEARCH,
+@_tool(
+    ARTIFACT_SEARCH,
     tags=READ_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_reads("Search an artifact"),
 )
 def artifact_search(request: ArtifactSearchRequest) -> dict[str, Any]:
@@ -228,10 +241,9 @@ def artifact_search(request: ArtifactSearchRequest) -> dict[str, Any]:
     return handlers.search(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_HISTORY,
+@_tool(
+    ARTIFACT_HISTORY,
     tags=READ_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_reads("List an artifact's versions"),
 )
 def artifact_history(request: ArtifactHistoryRequest) -> dict[str, Any]:
@@ -242,10 +254,9 @@ def artifact_history(request: ArtifactHistoryRequest) -> dict[str, Any]:
     return handlers.history(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_RESTORE,
+@_tool(
+    ARTIFACT_RESTORE,
     tags=WRITE_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_writes("Restore an artifact version", idempotent=True),
 )
 def artifact_restore(request: ArtifactRestoreRequest) -> dict[str, Any]:
@@ -256,10 +267,9 @@ def artifact_restore(request: ArtifactRestoreRequest) -> dict[str, Any]:
     return handlers.restore(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_MANIFEST_GET,
+@_tool(
+    ARTIFACT_MANIFEST_GET,
     tags=READ_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_reads("Read an artifact's manifest"),
 )
 def artifact_manifest_get(request: ArtifactManifestGetRequest) -> dict[str, Any]:
@@ -267,10 +277,9 @@ def artifact_manifest_get(request: ArtifactManifestGetRequest) -> dict[str, Any]
     return handlers.manifest_get(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_MANIFEST_UPDATE,
+@_tool(
+    ARTIFACT_MANIFEST_UPDATE,
     tags=WRITE_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_writes("Update an artifact's manifest", idempotent=True),
 )
 def artifact_manifest_update(
@@ -283,10 +292,9 @@ def artifact_manifest_update(
     return handlers.manifest_update(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_REQUEST_PUBLISH,
+@_tool(
+    ARTIFACT_REQUEST_PUBLISH,
     tags=WRITE_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_writes("Ask the user to publish an artifact", idempotent=False),
 )
 def artifact_request_publish(
@@ -301,10 +309,9 @@ def artifact_request_publish(
     return handlers.request_publish(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_BUILD,
+@_tool(
+    ARTIFACT_BUILD,
     tags=READ_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_reads("Build an artifact"),
 )
 def artifact_build(request: ArtifactBuildRequest) -> dict[str, Any]:
@@ -316,10 +323,9 @@ def artifact_build(request: ArtifactBuildRequest) -> dict[str, Any]:
     return handlers.build(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_CHECK,
+@_tool(
+    ARTIFACT_CHECK,
     tags=READ_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_reads("Check an artifact in a browser"),
 )
 def artifact_check(request: ArtifactCheckRequest) -> dict[str, Any]:
@@ -331,26 +337,43 @@ def artifact_check(request: ArtifactCheckRequest) -> dict[str, Any]:
     return handlers.check(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_COMMIT_FILES,
+@_tool(
+    ARTIFACT_COMMIT_FILES,
     tags=WRITE_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_writes("Commit artifact files by hash", idempotent=True),
 )
 def artifact_commit_files(request: ArtifactCommitFilesRequest) -> dict[str, Any]:
     """Commit a whole new version as path to SHA-256, for projects on disk.
 
-    A path left out is deleted. When the answer lists missing hashes, nothing
-    was committed: upload them with artifact_upload_blobs, then commit again
-    from the same base_version.
+    A path left out is deleted; the land sidecar is left out. When the answer
+    lists missing hashes, nothing was committed: PUT each one's exact bytes to
+    its URL in uploads (curl -T file URL), or send them with
+    artifact_upload_blobs when there are no uploads or your shell can't reach
+    them, then commit again from the same base_version.
     """
     return handlers.commit_files(current_actor(), request)
 
 
-@tool(
-    name=ARTIFACT_UPLOAD_BLOBS,
+@_tool(
+    ARTIFACT_LAND,
+    tags=READ_TAGS,
+    annotations=_reads("Bring an artifact's files into a folder"),
+)
+def artifact_land(request: ArtifactLandRequest) -> dict[str, Any]:
+    """Bring a version's files, the draft by default, into your folder.
+
+    The answer lists every file with its SHA-256. Download the tar at
+    download_url into the folder (curl -s URL | tar -x); without one, or when
+    your shell can't reach it, call again with inline: true for the contents,
+    in pages. Write the sidecar to .superset-artifact.json: the next
+    artifact_commit_files names its base_version.
+    """
+    return handlers.land(current_actor(), request)
+
+
+@_tool(
+    ARTIFACT_UPLOAD_BLOBS,
     tags=WRITE_TAGS,
-    class_permission_name=PERMISSION,
     annotations=_writes("Upload artifact file contents", idempotent=True),
 )
 def artifact_upload_blobs(request: ArtifactUploadBlobsRequest) -> dict[str, Any]:

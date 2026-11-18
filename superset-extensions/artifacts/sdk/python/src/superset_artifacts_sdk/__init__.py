@@ -39,6 +39,8 @@ from superset_artifacts_sdk.authoring import (
     ArtifactDeleteFileRequest as ArtifactDeleteFileRequest,
     ArtifactHistoryRequest as ArtifactHistoryRequest,
     ArtifactInsertRequest as ArtifactInsertRequest,
+    ArtifactLandRequest as ArtifactLandRequest,
+    ArtifactLandResponse as ArtifactLandResponse,
     ArtifactManifestGetRequest as ArtifactManifestGetRequest,
     ArtifactManifestUpdateRequest as ArtifactManifestUpdateRequest,
     ArtifactMoveFileRequest as ArtifactMoveFileRequest,
@@ -53,6 +55,10 @@ from superset_artifacts_sdk.authoring import (
     AuthoringErrorCode as AuthoringErrorCode,
     AuthoringErrorResponse as AuthoringErrorResponse,
     AuthoringRequest as AuthoringRequest,
+    BlobUploadTarget as BlobUploadTarget,
+    LAND_SIDECAR_PATH as LAND_SIDECAR_PATH,
+    LandedFile as LandedFile,
+    LandSidecar as LandSidecar,
     TOOL_REQUESTS as TOOL_REQUESTS,
 )
 from superset_artifacts_sdk.capabilities import Capability as Capability

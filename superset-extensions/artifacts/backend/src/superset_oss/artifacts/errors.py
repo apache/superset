@@ -46,6 +46,9 @@ class ExtensionErrorCode(StrEnum):
     # newer request, expired or never made. Only the confirmation endpoint,
     # which the user calls rather than an agent, answers it.
     PUBLISH_REQUEST_NOT_FOUND = "PUBLISH_REQUEST_NOT_FOUND"
+    # A transfer link that is forged, malformed, expired or of another kind.
+    # Only the transfer routes, which an agent's shell calls, answer it.
+    TRANSFER_LINK_INVALID = "TRANSFER_LINK_INVALID"
 
 
 ErrorCode: TypeAlias = AuthoringErrorCode | ExtensionErrorCode

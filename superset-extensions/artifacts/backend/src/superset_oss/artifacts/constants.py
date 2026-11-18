@@ -39,3 +39,7 @@ ARTIFACT_UPLOAD_BLOBS = "artifact_upload_blobs"
 
 # Where the host mounts the extension's REST APIs.
 API_BASE_PATH = f"/extensions/{PUBLISHER}/{NAME}"
+
+# The upload route's view, as ``WTF_CSRF_EXEMPT_LIST`` names it: uploads by
+# link carry no session, so they need the route exempt from CSRF checks.
+UPLOAD_VIEW = "superset_oss.artifacts.authoring.transfer_api.upload"

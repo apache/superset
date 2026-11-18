@@ -16,7 +16,8 @@
 # under the License.
 """
 What the REST endpoints and MCP tools share that needs Flask: who is calling,
-the host's URL, and how an ``ArtifactError`` becomes an HTTP answer.
+the host's URL, the transfer links, and how an ``ArtifactError`` becomes an
+HTTP answer.
 """
 
 from __future__ import annotations
@@ -24,8 +25,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from flask import g, jsonify, request, Response
+from flask import current_app, g, has_request_context, jsonify, request, Response
 from superset_artifacts_sdk.authoring import AuthoringErrorCode
+from superset_oss.artifacts.authoring.transfer import TransferLinks, TransferSigner
+from superset_oss.artifacts.constants import API_BASE_PATH, UPLOAD_VIEW
 from superset_oss.artifacts.errors import ArtifactError, ErrorCode, ExtensionErrorCode
 
 # The status of each code an endpoint can answer; any other code is a 400.
@@ -36,6 +39,8 @@ _HTTP_STATUS: Mapping[ErrorCode, int] = {
     # A stored version whose manifest no longer validates.
     AuthoringErrorCode.INVALID_MANIFEST: 422,
     ExtensionErrorCode.PUBLISH_REQUEST_NOT_FOUND: 404,
+    ExtensionErrorCode.TRANSFER_LINK_INVALID: 403,
+    AuthoringErrorCode.TOO_LARGE: 413,
 }
 
 
@@ -48,6 +53,38 @@ def current_actor() -> str | None:
 def host_url() -> str:
     """The URL of this Superset as the server sees it, for allowed parents."""
     return request.host_url
+
+
+def all_file_tools() -> bool:
+    """Whether the deployment offers every file tool (``ARTIFACTS_ALL_FILE_TOOLS``)."""
+    return bool(current_app.config.get("ARTIFACTS_ALL_FILE_TOOLS", False))
+
+
+def transfer_signer() -> TransferSigner:
+    """The signer of transfer links, on the deployment's secret key."""
+    return TransferSigner(current_app.config["SECRET_KEY"])
+
+
+def transfer_links() -> TransferLinks | None:
+    """
+    The transfer links under this Superset's user-facing URL, or ``None``
+    without one. An MCP call has no request to read it from, so the URL the
+    MCP tools put in every link they answer comes first.
+    """
+    config = current_app.config
+    base_url = config.get("WEBDRIVER_BASEURL_USER_FRIENDLY") or (
+        request.host_url if has_request_context() else None
+    )
+    if not base_url or not config.get("SECRET_KEY"):
+        return None
+    uploads = not config.get("WTF_CSRF_ENABLED", True) or UPLOAD_VIEW in config.get(
+        "WTF_CSRF_EXEMPT_LIST", ()
+    )
+    return TransferLinks(
+        transfer_signer(),
+        f"{str(base_url).rstrip('/')}{API_BASE_PATH}/transfer",
+        uploads=uploads,
+    )
 
 
 def json_response(status: int, payload: Mapping[str, Any]) -> Response:

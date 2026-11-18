@@ -36,6 +36,7 @@ from superset_artifacts_sdk.authoring import (
     ArtifactDeleteFileRequest,
     ArtifactHistoryRequest,
     ArtifactInsertRequest,
+    ArtifactLandRequest,
     ArtifactManifestGetRequest,
     ArtifactManifestUpdateRequest,
     ArtifactMoveFileRequest,
@@ -67,8 +68,10 @@ from superset_oss.artifacts.authoring.handlers import (
 )
 from superset_oss.artifacts.authoring.prompt_text import (
     create_artifact_text,
+    EXTRA_TOOLS,
     import_claude_artifact_text,
 )
+from superset_oss.artifacts.authoring.transfer import TransferLinks, TransferSigner
 from superset_oss.artifacts.constants import ID_PREFIX, WIDGET_TYPE
 from superset_oss.artifacts.gate import artifacts_on, configure
 
@@ -234,6 +237,7 @@ EVERY_CALL = [
         "upload_blobs",
         ArtifactUploadBlobsRequest(artifact_id=UUID, blobs=[BlobUpload(content="x")]),
     ),
+    ("land", ArtifactLandRequest(artifact_id=UUID)),
 ]
 
 
@@ -476,7 +480,12 @@ def test_commit_by_hash_with_uploads(
         OWNER, ArtifactViewRequest(artifact_id=artifact_id, path="logo.png")
     )
 
-    assert missing == {"missing": [sha256_hex(b"\x89PNG")], "version": None}
+    assert missing == {
+        "missing": [sha256_hex(b"\x89PNG")],
+        "uploads": [],
+        "uploads_expire_at": None,
+        "version": None,
+    }
     assert uploaded == {"hashes": missing["missing"]}
     assert committed["missing"] == []
     assert viewed["content"] == "(binary file, 4 bytes)\n"
@@ -491,7 +500,7 @@ def test_commit_by_hash_with_uploads(
 
 
 def test_the_prompts_name_the_prefixed_tools_and_a_valid_manifest() -> None:
-    text = create_artifact_text(LOCKED)
+    text = create_artifact_text(LOCKED, all_file_tools=False)
     example = re.search(r"```json\n(.*?)```", text, re.S)
 
     assert f"`{ID_PREFIX}artifact_str_replace`" in text
@@ -504,7 +513,7 @@ def test_the_prompts_name_the_prefixed_tools_and_a_valid_manifest() -> None:
 
 def test_the_prompt_teaches_no_parameter_values() -> None:
     """The host refuses every parameter value, so the contract can't teach one."""
-    text = create_artifact_text(LOCKED)
+    text = create_artifact_text(LOCKED, all_file_tools=True)
     example = re.search(r"```json\n(.*?)```", text, re.S)
 
     assert example is not None
@@ -529,7 +538,7 @@ def test_the_providers_layer_narrows_the_deployments_policy(
 
 def test_the_prompt_teaches_what_the_policy_allows() -> None:
     def prose(policy: ArtifactPolicy) -> str:
-        return " ".join(create_artifact_text(policy).split())
+        return " ".join(create_artifact_text(policy, all_file_tools=False).split())
 
     locked = prose(LOCKED)
     assert "policy is locked" in locked
@@ -605,3 +614,110 @@ def test_readers_view_and_only_editors_change_an_artifact(
 
     access.caller = STRANGER
     assert handlers.view(STRANGER, view)["code"] == "ARTIFACT_NOT_FOUND"
+
+
+def test_the_prompt_teaches_only_the_tools_offered() -> None:
+    default = create_artifact_text(LOCKED, all_file_tools=False)
+    every = create_artifact_text(LOCKED, all_file_tools=True)
+
+    for name in ("artifact_land", "artifact_commit_files", "artifact_insert"):
+        assert f"`{ID_PREFIX}{name}`" in default
+    for name in EXTRA_TOOLS:
+        assert f"`{ID_PREFIX}{name}`" not in default
+        assert f"`{ID_PREFIX}{name}`" in every
+
+
+class Clock:
+    def __init__(self) -> None:
+        self.now = datetime(2026, 11, 18, 9, 0, tzinfo=timezone.utc)
+
+    def __call__(self) -> datetime:
+        return self.now
+
+
+def links_handlers(*, uploads: bool) -> tuple[AuthoringHandlers, TransferSigner]:
+    signer = TransferSigner("a secret key", clock=Clock())
+    links = TransferLinks(signer, "https://superset.example/t", uploads=uploads)
+    return AuthoringHandlers(lambda: links), signer
+
+
+def test_a_commit_answers_an_upload_link_for_each_missing_blob(
+    provider: FakeProvider,
+) -> None:
+    handlers, signer = links_handlers(uploads=True)
+    created = handlers.create(OWNER, ArtifactCreateRequest())
+    landed = handlers.land(
+        OWNER, ArtifactLandRequest(artifact_id=created["artifact_id"])
+    )
+    files = {entry["path"]: entry["sha256"] for entry in landed["files"]}
+    logo = sha256_hex(b"\x89PNG")
+
+    missing = handlers.commit_files(
+        OWNER,
+        ArtifactCommitFilesRequest(
+            artifact_id=created["artifact_id"],
+            base_version=created["version"],
+            files={**files, "logo.png": logo},
+        ),
+    )
+
+    [upload] = missing["uploads"]
+    assert upload["sha256"] == logo
+    assert upload["method"] == "PUT"
+    token = upload["url"].removeprefix("https://superset.example/t/blobs/")
+    granted = signer.verify(token, "blob")
+    assert (granted.artifact_id, granted.target, granted.actor) == (
+        created["artifact_id"],
+        logo,
+        OWNER,
+    )
+    assert datetime.fromisoformat(missing["uploads_expire_at"]) == granted.expires_at
+    json.dumps(missing)
+
+
+def test_no_upload_links_where_the_host_cant_take_them(
+    provider: FakeProvider,
+) -> None:
+    handlers, _ = links_handlers(uploads=False)
+    created = handlers.create(OWNER, ArtifactCreateRequest())
+
+    missing = handlers.commit_files(
+        OWNER,
+        ArtifactCommitFilesRequest(
+            artifact_id=created["artifact_id"],
+            base_version=created["version"],
+            files={"manifest.json": sha256_hex(b"{}")},
+        ),
+    )
+
+    assert missing["missing"] == [sha256_hex(b"{}")]
+    assert missing["uploads"] == []
+
+
+def test_land_answers_a_download_link_unless_asked_inline(
+    provider: FakeProvider, access: FakeAccess
+) -> None:
+    handlers, signer = links_handlers(uploads=False)
+    created = handlers.create(OWNER, ArtifactCreateRequest())
+    artifact_id = created["artifact_id"]
+
+    linked = handlers.land(OWNER, ArtifactLandRequest(artifact_id=artifact_id))
+    inline = handlers.land(
+        OWNER, ArtifactLandRequest(artifact_id=artifact_id, inline=True)
+    )
+    access.caller = READER
+    access.readers.setdefault(artifact_id, set()).add(READER)
+    read = handlers.land(READER, ArtifactLandRequest(artifact_id=artifact_id))
+    access.caller = STRANGER
+    refused = handlers.land(STRANGER, ArtifactLandRequest(artifact_id=artifact_id))
+
+    token = linked["download_url"].removeprefix("https://superset.example/t/versions/")
+    assert signer.verify(token, "version").target == created["version"]
+    assert linked["sidecar"] == {
+        "artifact_id": artifact_id,
+        "base_version": created["version"],
+    }
+    assert inline["download_url"] is None
+    assert inline["files"][0]["content"]
+    assert read["version"] == created["version"]
+    assert refused["code"] == "ARTIFACT_NOT_FOUND"

@@ -37,6 +37,7 @@ from superset_artifacts_sdk.authoring import (
     ARTIFACT_DELETE_FILE,
     ARTIFACT_HISTORY,
     ARTIFACT_INSERT,
+    ARTIFACT_LAND,
     ARTIFACT_MANIFEST_GET,
     ARTIFACT_MANIFEST_UPDATE,
     ARTIFACT_MOVE_FILE,
@@ -45,12 +46,26 @@ from superset_artifacts_sdk.authoring import (
     ARTIFACT_SEARCH,
     ARTIFACT_STR_REPLACE,
     ARTIFACT_VIEW,
+    LAND_SIDECAR_PATH,
 )
 from superset_artifacts_sdk.policy import ArtifactPolicy
 from superset_oss.artifacts.constants import (
     ARTIFACT_UPLOAD_BLOBS,
     ID_PREFIX,
     WIDGET_TYPE,
+)
+
+# The file tools a deployment offers only with ``ARTIFACTS_ALL_FILE_TOOLS``.
+EXTRA_TOOLS = frozenset(
+    {
+        ARTIFACT_DELETE_FILE,
+        ARTIFACT_MOVE_FILE,
+        ARTIFACT_SEARCH,
+        ARTIFACT_HISTORY,
+        ARTIFACT_RESTORE,
+        ARTIFACT_MANIFEST_GET,
+        ARTIFACT_MANIFEST_UPDATE,
+    }
 )
 
 NOT_ENABLED_TEXT = (
@@ -105,9 +120,24 @@ def _compute_rule(policy: ArtifactPolicy) -> str:
     return f"- {named[0].upper()}{named[1:]} work; `eval` and `new Function` never do."
 
 
-def create_artifact_text(policy: ArtifactPolicy) -> str:
-    """What an agent reads before it writes an artifact, under ``policy``."""
+def _extra_tools_text() -> str:
+    return f"""
+- {_tool(ARTIFACT_DELETE_FILE)}(path) and {_tool(ARTIFACT_MOVE_FILE)}(old_path,
+  new_path).
+- {_tool(ARTIFACT_SEARCH)}(query, path?): find plain, case-sensitive text.
+- {_tool(ARTIFACT_HISTORY)}(ref?) and {_tool(ARTIFACT_RESTORE)}(version): list
+  the draft's versions, newest first, and make an earlier one the draft again.
+- {_tool(ARTIFACT_MANIFEST_GET)}() and {_tool(ARTIFACT_MANIFEST_UPDATE)}(manifest):
+  read and replace `manifest.json`; it is validated on every write."""
+
+
+def create_artifact_text(policy: ArtifactPolicy, *, all_file_tools: bool) -> str:
+    """
+    What an agent reads before it writes an artifact, under ``policy``, with
+    the file tools the deployment offers.
+    """
     upload = _tool(ARTIFACT_UPLOAD_BLOBS)
+    extra_tools = _extra_tools_text() if all_file_tools else ""
     return f"""# Writing a Superset artifact
 
 An artifact is a small app (HTML, CSS and JavaScript, or React) that you write
@@ -152,17 +182,23 @@ Nothing you write is visible to viewers until the user confirms publishing.
   string. It must appear exactly once: NO_MATCH or MULTIPLE_MATCHES otherwise;
   add surrounding lines to make it unique. Prefer this to rewriting files.
 - {_tool(ARTIFACT_INSERT)}(path, insert_line, insert_text): insert after a
-  line; 0 is the start of the file.
-- {_tool(ARTIFACT_DELETE_FILE)}(path) and {_tool(ARTIFACT_MOVE_FILE)}(old_path,
-  new_path).
-- {_tool(ARTIFACT_SEARCH)}(query, path?): find plain, case-sensitive text.
-- {_tool(ARTIFACT_HISTORY)}(ref?) and {_tool(ARTIFACT_RESTORE)}(version): list
-  the draft's versions, newest first, and make an earlier one the draft again.
-- {_tool(ARTIFACT_MANIFEST_GET)}() and {_tool(ARTIFACT_MANIFEST_UPDATE)}(manifest):
-  read and replace `manifest.json`; it is validated on every write.
-- {_tool(ARTIFACT_COMMIT_FILES)}(files): with a project on disk, send every
-  path's SHA-256 as the whole new version; when it answers `missing`, upload
-  those contents with {upload}, then commit again from the same base_version.
+  line; 0 is the start of the file.{extra_tools}
+
+## A project on disk
+
+With a folder and a shell of your own, edit there and sync by hash; the
+bytes then never pass through this conversation.
+
+- {_tool(ARTIFACT_LAND)}(artifact_id, version?): bring a version's files, the
+  draft by default, into the folder: `curl -s "$download_url" | tar -x`. When
+  there is no `download_url`, or your shell can't reach it, call it again with
+  `inline: true` for the contents, in pages. Keep the `{LAND_SIDECAR_PATH}`
+  it writes: it names the artifact and the version you started from.
+- {_tool(ARTIFACT_COMMIT_FILES)}(files): send every path's SHA-256 as the whole
+  new version, from the sidecar's `base_version`. When it answers `missing`,
+  PUT each file's exact bytes to its URL in `uploads` (`curl -T path "$url"`),
+  or send them with {upload} when there are no `uploads` or your shell can't
+  reach them, then commit again from the same base_version.
 
 ## manifest.json
 
