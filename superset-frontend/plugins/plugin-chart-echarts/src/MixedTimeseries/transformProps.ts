@@ -839,8 +839,8 @@ export default function transformProps(
     xAxisTitleMarginPx,
   );
 
-  // Built after `chartPadding` so label spacing uses the real plot width,
-  // which a second y-axis, axis titles and a side legend all narrow.
+  // Built after `chartPadding` so label spacing uses the plot width left
+  // after the padding reserved for a left Y-axis title and a side legend.
   const deduplicatedFormatter = showMaxLabel
     ? createSpacedXAxisFormatter(
         xAxisFormatter,

@@ -2015,9 +2015,21 @@ test.each([SMART_DATE_ID, '%d/%m/%Y'])(
   },
 );
 
-test.each([0, 500])(
-  '#45489 Mixed Timeseries uses the plot width after a %spx Y-axis title margin',
-  yAxisTitleMargin => {
+test.each([
+  ['no extra padding', {}, '2016'],
+  ['a 500px Y-axis title margin', { yAxisTitleMargin: 500 }, ''],
+  [
+    'a 500px right legend',
+    {
+      showLegend: true,
+      legendOrientation: LegendOrientation.Right,
+      legendMargin: 500,
+    },
+    '',
+  ],
+] as [string, Partial<EchartsMixedTimeseriesFormData>, string][])(
+  '#45489 Mixed Timeseries uses the plot width after %s',
+  (_label, paddingFormData, expectedMiddleLabel) => {
     getTimeFormatterRegistry().registerValue(
       SMART_DATE_ID,
       createSmartDateFormatter(),
@@ -2054,7 +2066,8 @@ test.each([0, 500])(
           xAxisTimeFormat: SMART_DATE_ID,
           yAxisTitle: 'Sales',
           yAxisTitlePosition: 'Left',
-          yAxisTitleMargin,
+          yAxisTitleMargin: 0,
+          ...paddingFormData,
         },
       }),
     );
@@ -2066,7 +2079,7 @@ test.each([0, 500])(
 
     expect(timestamps.map(formatter)).toEqual([
       'Wed 5 Mar 2014',
-      yAxisTitleMargin === 0 ? '2016' : '',
+      expectedMiddleLabel,
       'Mon 17 Aug 2026',
     ]);
   },
