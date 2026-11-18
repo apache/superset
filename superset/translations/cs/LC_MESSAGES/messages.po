@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -7600,10 +7600,6 @@ msgstr "Nepodařilo se načíst pokročilý typ"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "Nepodařilo se zastavit dotaz."
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "Nepodařilo se uložit přizpůsobení grafu"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Nepodařilo se uložit rozsah křížového filtrování"
@@ -19764,6 +19760,10 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -19773,6 +19773,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -20829,6 +20833,9 @@ msgstr "dokumentaci grafikonu Handlebars"
 msgid "theme"
 msgstr "téma"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "Zobrazit časové razítko"
@@ -20913,6 +20920,9 @@ msgstr "y: hodnoty jsou normalizovány v rámci každého řádku"
 
 msgid "year"
 msgstr "rok"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

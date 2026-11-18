@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -9086,10 +9086,6 @@ msgstr "Neuspelo preuzimanje napredne vrste"
 
 msgid "Failed to revoke API key"
 msgstr "Neuspelo opozivanje API ključa"
-
-# uk]
-msgid "Failed to save chart customization"
-msgstr "Neuspelo čuvanje prilagođavanja grafikona"
 
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Failed to save cross-filter scoping"
@@ -23461,6 +23457,10 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -23470,6 +23470,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -24707,6 +24711,9 @@ msgstr "dokumentaciju Handlebars grafikona"
 msgid "theme"
 msgstr "tema"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "vremenska oznaka"
 
@@ -24813,6 +24820,9 @@ msgstr "y: vrednosti su normalizovane u okviru svakog reda"
 # zh, zh_TW]
 msgid "year"
 msgstr "godina"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 # sk, uk]
 #. do-not-translate

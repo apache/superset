@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -7456,9 +7456,6 @@ msgstr "Neizdevās iegūt papildu tipu"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "Neizdevās apturēt vaicājumu."
-
-msgid "Failed to save chart customization"
-msgstr "Neizdevās saglabāt diagrammas pielāgojumus"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Neizdevās saglabāt krusteniskā filtra tvērumu"
@@ -19396,6 +19393,10 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -19405,6 +19406,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -20445,6 +20450,9 @@ msgstr "Handlebars diagrammas dokumentācija"
 msgid "theme"
 msgstr "motīvs"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "Rādīt laika zīmogu"
@@ -20527,6 +20535,9 @@ msgstr "y: vērtības ir normalizētas katrā rindā"
 
 msgid "year"
 msgstr "gads"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

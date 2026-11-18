@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -8191,10 +8191,6 @@ msgstr "Nie udało się pobrać zaawansowanego typu"
 
 msgid "Failed to revoke API key"
 msgstr ""
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "Nie udało się załadować danych wykresu"
 
 #, fuzzy
 msgid "Failed to save cross-filter scoping"
@@ -21465,6 +21461,10 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -21474,6 +21474,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -22620,6 +22624,9 @@ msgstr "dokumentację wykresu Handlebars"
 msgid "theme"
 msgstr "Czas"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "Pokaż znacznik czasu"
@@ -22718,6 +22725,9 @@ msgstr "y: wartości są normalizowane w każdym wierszu"
 
 msgid "year"
 msgstr "rok"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

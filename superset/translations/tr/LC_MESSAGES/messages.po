@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -7788,9 +7788,6 @@ msgstr "Gelişmiş türü almak için başarısız oldu"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "API anahtarı iptal edilemedi"
-
-msgid "Failed to save chart customization"
-msgstr "Grafik özelleştirmesini kurtarmak için başarısız oldu"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Cross-filter scoping kurtarmak için başarısız oldu"
@@ -20227,6 +20224,10 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -20236,6 +20237,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -21324,6 +21329,9 @@ msgstr "Handlebars grafik belgeleri"
 msgid "theme"
 msgstr "Zaman"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -21409,6 +21417,9 @@ msgstr "y: değerler her satır içinde normalleşir"
 
 msgid "year"
 msgstr "yıl"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

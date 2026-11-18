@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -7853,10 +7853,6 @@ msgstr "Ha fallat en recuperar tipus avançat"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "Ha fallat en aturar consulta."
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "Ha fallat en carregar dades del gràfic"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Ha fallat en desar l'àmbit del filtre creuat"
@@ -20497,6 +20493,10 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -20506,6 +20506,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -21577,6 +21581,9 @@ msgstr "la documentació del gràfic Handlebars"
 msgid "theme"
 msgstr "Temps"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "Mostrar Marca de Temps"
@@ -21661,6 +21668,9 @@ msgstr "y: els valors estan normalitzats dins cada filera"
 
 msgid "year"
 msgstr "any"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

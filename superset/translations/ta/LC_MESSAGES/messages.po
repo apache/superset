@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -7391,9 +7391,6 @@ msgstr "மேம்பட்ட வகையைப் பெறுவதில�
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "அறிக்கையை உருவாக்க முடியவில்லை"
-
-msgid "Failed to save chart customization"
-msgstr "சார்ட் தனிப்பயனாக்கத்தைச் சேமிப்பதில் தோல்வி"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "கிராஸ்-ஃபில்டர் ஸ்கோப்பிங்கைச் சேமிப்பதில் தோல்வி"
@@ -18817,6 +18814,10 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -18826,6 +18827,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -19809,6 +19814,9 @@ msgstr ""
 msgid "theme"
 msgstr "தீம்"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "நேர முத்திரையைக் காண்பி"
@@ -19889,6 +19897,9 @@ msgstr "y: மதிப்புகள் ஒவ்வொரு வரிசை�
 
 msgid "year"
 msgstr "ஆண்டு"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

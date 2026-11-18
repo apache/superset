@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -6873,9 +6873,6 @@ msgstr "高度な型の取得に失敗しました"
 
 msgid "Failed to revoke API key"
 msgstr "APIキーの無効化に失敗しました"
-
-msgid "Failed to save chart customization"
-msgstr "チャートカスタマイズ設定の保存に失敗しました"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "クロスフィルターの適用範囲保存に失敗しました"
@@ -17787,6 +17784,10 @@ msgstr ""
 "です。ダッシュボードのサイズを縮小するか（たとえば複数のダッシュボードに分割するなど）SUPERSET_DASHBOARD_POSITION_DATA_LIMIT"
 " 設定値を上げてください。"
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -17796,6 +17797,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -18761,6 +18766,9 @@ msgstr "Handlebars チャートのドキュメント"
 msgid "theme"
 msgstr "テーマ"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "タイムスタンプ"
 
@@ -18840,6 +18848,9 @@ msgstr "y: 各行内で値を正規化します"
 
 msgid "year"
 msgstr "年"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -8183,10 +8183,6 @@ msgstr "فشل استرداد النوع المتقدم"
 
 msgid "Failed to revoke API key"
 msgstr ""
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "فشل تحميل بيانات المخطط"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "فشلت عملية حفظ تحديد نطاق عوامل التصفية المشتركة"
@@ -21098,6 +21094,10 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -21107,6 +21107,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -22207,6 +22211,9 @@ msgstr "توثيق مخطط Handlebars"
 msgid "theme"
 msgstr "زمن"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "عرض الطابع الزمني"
@@ -22293,6 +22300,9 @@ msgstr "y: يتم تطبيع القيم داخل كل صف"
 
 msgid "year"
 msgstr "عام"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

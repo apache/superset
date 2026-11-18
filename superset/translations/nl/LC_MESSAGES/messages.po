@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -8063,10 +8063,6 @@ msgstr "Geavanceerd type ophalen mislukt"
 
 msgid "Failed to revoke API key"
 msgstr ""
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "Laden van grafiekgegevens mislukt"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Opslaan van cross-filter scope mislukt"
@@ -21106,6 +21102,10 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -21115,6 +21115,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -22202,6 +22206,9 @@ msgstr "de Handlebars-grafiekdocumentatie"
 msgid "theme"
 msgstr "Tijd"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 #, fuzzy
 msgid "timestamp"
 msgstr "Toon Tijdstempel"
@@ -22288,6 +22295,9 @@ msgstr "y: waarden worden binnen elke rij genormaliseerd"
 
 msgid "year"
 msgstr "jaar"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

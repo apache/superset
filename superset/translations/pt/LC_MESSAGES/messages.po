@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -9582,11 +9582,6 @@ msgstr "Falha ao obter o tipo avançado"
 
 msgid "Failed to revoke API key"
 msgstr "Falha ao revogar a chave API"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
-# ro, ru, sr, sr_Latn, tr, uk]
-msgid "Failed to save chart customization"
-msgstr "Falha ao guardar a personalização do gráfico"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -25476,6 +25471,10 @@ msgstr ""
 "exemplo, divida-o em vários dashboards) ou aumente a definição de "
 "configuração SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -25485,6 +25484,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -26870,6 +26873,9 @@ msgstr "a documentação do gráfico Handlebars"
 msgid "theme"
 msgstr "tema"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "carimbo de data/hora"
 
@@ -26978,6 +26984,9 @@ msgstr "y: os valores são normalizados em cada linha"
 
 msgid "year"
 msgstr "ano"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

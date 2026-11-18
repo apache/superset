@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -7331,9 +7331,6 @@ msgstr "Не удалось получить расширенный тип"
 
 msgid "Failed to revoke API key"
 msgstr "Не удалось отозвать ключ API"
-
-msgid "Failed to save chart customization"
-msgstr "Не удалось сохранить настройку диаграммы"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Не удалось сохранить область действия кросс-фильтра"
@@ -19048,6 +19045,10 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -19057,6 +19058,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -20057,6 +20062,9 @@ msgstr "документацию по графикам Handlebars"
 msgid "theme"
 msgstr "тема"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "метка времени"
 
@@ -20139,6 +20147,9 @@ msgstr "y: значения нормированны внутри каждой �
 
 msgid "year"
 msgstr "год"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 # Не переводить
 #. do-not-translate

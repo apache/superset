@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-11-14 11:00-0800\n"
+"POT-Creation-Date: 2026-11-18 14:00-0800\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -7567,9 +7567,6 @@ msgstr "Napaka pri pridobivanju naprednega tipa"
 
 msgid "Failed to revoke API key"
 msgstr "Ključa API-ja ni bilo mogoče preklicati"
-
-msgid "Failed to save chart customization"
-msgstr "Prilagajanja grafikona ni bilo mogoče shraniti"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Shranjevanje dosega medsebojnega filtra ni uspelo"
@@ -19636,6 +19633,10 @@ msgstr ""
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being prepared. You'll receive an email when it's ready."
 msgstr ""
 
@@ -19645,6 +19646,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -20665,6 +20670,9 @@ msgstr "dokumentacija grafikona Handlebars"
 msgid "theme"
 msgstr "tema"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "časovni žig"
 
@@ -20746,6 +20754,9 @@ msgstr "y: vrednosti so normirane znotraj vsake vrstice"
 
 msgid "year"
 msgstr "leto"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"
