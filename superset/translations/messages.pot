@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:13-0700\n"
+"POT-Creation-Date: 2026-11-19 09:45+1100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -7758,6 +7758,12 @@ msgid "Hide Line"
 msgstr ""
 
 msgid "Hide chart description"
+msgstr ""
+
+msgid "Hide columns with only null metric values. Keep columns with zeros or non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
 msgstr ""
 
 msgid "Hide layer"
