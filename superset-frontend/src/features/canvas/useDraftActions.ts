@@ -20,7 +20,12 @@ import { useCallback, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import {
+  LOG_ACTIONS_CANVAS_DRAFT_END,
+  LOG_ACTIONS_CANVAS_ERROR,
+} from 'src/logger/LogUtils';
 import { DRAFT_TOKEN_HEADER } from './useCanvasDefinition';
+import { useCanvasLogger } from './useCanvasLogger';
 
 export interface DraftActions {
   /** Replay the draft onto the canvas, making it everyone's. */
@@ -44,20 +49,36 @@ export function useDraftActions(
   revision: number,
   onClosed: () => void,
   onBusyChange?: (busy: boolean) => void,
+  canvasId?: number,
 ): DraftActions {
   const { addSuccessToast, addDangerToast } = useToasts();
   const [busy, setBusy] = useState(false);
+  const log = useCanvasLogger(canvasId, { isDraft: true });
 
   const run = useCallback(
-    async (action: () => Promise<unknown>, done: string) => {
+    async (
+      action: () => Promise<unknown>,
+      done: string,
+      outcome: 'commit' | 'discard',
+    ) => {
       setBusy(true);
       onBusyChange?.(true);
       try {
         await action();
         addSuccessToast(done);
+        // The close of the draft funnel. An abandoned draft is the absence of
+        // this event, which is why the outcome is a field rather than two
+        // separate names.
+        log(LOG_ACTIONS_CANVAS_DRAFT_END, { outcome, revision });
         onClosed();
       } catch (response) {
         const error = await getClientErrorObject(response);
+        log(LOG_ACTIONS_CANVAS_ERROR, {
+          scope: 'draft',
+          outcome,
+          status: error.status,
+          has_err: true,
+        });
         addDangerToast(
           error.message || error.error || t('Something went wrong'),
         );
@@ -66,7 +87,7 @@ export function useDraftActions(
         onBusyChange?.(false);
       }
     },
-    [addSuccessToast, addDangerToast, onClosed, onBusyChange],
+    [addSuccessToast, addDangerToast, log, onClosed, onBusyChange, revision],
   );
 
   const headers = { [DRAFT_TOKEN_HEADER]: token ?? '' };
@@ -81,6 +102,7 @@ export function useDraftActions(
             jsonPayload: { revision },
           }),
         t('Draft published'),
+        'commit',
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [run, revision, token],
@@ -92,6 +114,7 @@ export function useDraftActions(
         () =>
           SupersetClient.delete({ endpoint: '/api/v1/canvas/draft', headers }),
         t('Draft discarded'),
+        'discard',
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [run, token],

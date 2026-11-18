@@ -45,7 +45,11 @@ import { useDraftToken } from 'src/features/canvas/useDraftToken';
 import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
 import { useCanvasLogger } from 'src/features/canvas/useCanvasLogger';
-import { Logger, LOG_ACTIONS_CANVAS_MOUNT } from 'src/logger/LogUtils';
+import {
+  Logger,
+  LOG_ACTIONS_CANVAS_CHAT_PANEL,
+  LOG_ACTIONS_CANVAS_MOUNT,
+} from 'src/logger/LogUtils';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
 import CanvasBody from 'src/features/canvas/CanvasBody';
 import CanvasVersionHistory from 'src/features/canvas/versionHistory/CanvasVersionHistory';
@@ -111,15 +115,20 @@ const Description = styled.p`
  * Opens the registered chat as a side panel once, when a canvas is shown and a
  * chat is available. Canvas is AI-first: changes come from the chat.
  */
-function useOpenChatPanel() {
+function useOpenChatPanel(canvasId: number) {
   const { chat: registeredChat } = useChat();
   const opened = useRef(false);
+  const log = useCanvasLogger(canvasId);
   useEffect(() => {
     if (!registeredChat || opened.current) return;
     opened.current = true;
     chat.setDisplayMode('panel');
     chat.open();
-  }, [registeredChat]);
+    // Panel open/close is the host's, so it is the one part of the assistant
+    // story this repo can observe. What is said in it belongs to the
+    // extension.
+    log(LOG_ACTIONS_CANVAS_CHAT_PANEL, { open: true, trigger: 'auto' });
+  }, [log, registeredChat]);
 }
 
 const notFound = (
@@ -173,7 +182,7 @@ function CanvasContent({ id }: { id: number }) {
     [],
   );
 
-  useOpenChatPanel();
+  useOpenChatPanel(id);
 
   const customCss = metadata.result?.css;
   useEffect(

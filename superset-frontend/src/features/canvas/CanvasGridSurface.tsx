@@ -75,6 +75,7 @@ import {
   type GridState,
   resolve,
 } from './dragStates';
+import type { LayoutGesture } from './useCanvasLayout';
 import { useCanvasDrag } from './useCanvasDrag';
 import { CanvasWidgetChromeContext } from './widgetChrome';
 import { useCanvasSelection } from './useCanvasSelection';
@@ -934,7 +935,11 @@ export interface CanvasGridSurfaceProps {
   isContainer?: (nodeId: string) => boolean;
   /** What to call a widget out loud, for the selection's accessible name. */
   labelOf?: (nodeId: string) => string;
-  onPlace: (nodeId: string, placement: GridPlacement) => void;
+  onPlace: (
+    nodeId: string,
+    placement: GridPlacement,
+    gesture?: LayoutGesture,
+  ) => void;
   /**
    * Persist two widgets exchanging places, which is what a drop landing
    * squarely on one widget does.
@@ -944,6 +949,7 @@ export interface CanvasGridSurfaceProps {
     placement: GridPlacement,
     partnerId: string,
     partnerPlacement: GridPlacement,
+    gesture?: LayoutGesture,
   ) => void;
   /**
    * Persist a widget dragged into this grid from another one. `index` is
@@ -956,6 +962,7 @@ export interface CanvasGridSurfaceProps {
     parent: string,
     index: number,
     placement: GridPlacement,
+    gesture?: LayoutGesture,
   ) => void;
   renderNode: (nodeId: string) => ReactNode;
 }
@@ -1182,6 +1189,14 @@ export default function CanvasGridSurface({
       snap: GridPlacement | undefined,
       aim: Aim,
       held?: string,
+      // Last on purpose: `held` is positional at the release call site, and
+      // slipping a parameter in ahead of it silently binds the held candidate
+      // to the wrong name -- which is the preview/commit disagreement the
+      // comment below exists to rule out.
+      //
+      // A keyboard nudge reaches this through the same path as a drop, so
+      // without it the nudge would be reported as a drag.
+      via: 'pointer' | 'keyboard' = 'pointer',
     ) => {
       const placement = placements[nodeId];
       if (!snap || !placement) return;
@@ -1199,6 +1214,10 @@ export default function CanvasGridSurface({
       // where the widget already sits.
       if (!chosen || !changesAnything(chosen, origin, placement)) return;
       const { drop } = chosen;
+      // The surface calls a pointer drag a "move"; the event says "drag", so
+      // it cannot be confused with the `move` operation.
+      const gesture: LayoutGesture =
+        via === 'keyboard' ? 'keyboard' : kind === 'resize' ? 'resize' : 'drag';
       if (drop.kind === 'swap' && drop.partner) {
         // Both halves of the exchange, where the grid settled them -- so the
         // drop holds still instead of jumping while the write is in flight.
@@ -1207,10 +1226,11 @@ export default function CanvasGridSurface({
           chosen.placements[nodeId],
           drop.partner,
           chosen.placements[drop.partner],
+          gesture,
         );
         return;
       }
-      onPlace(nodeId, drop.target);
+      onPlace(nodeId, drop.target, gesture);
     },
     [onPlace, onSwap, placements, gridState],
   );
@@ -1402,7 +1422,13 @@ export default function CanvasGridSurface({
       if (landed) {
         // It left its container, which the server takes as a different
         // operation: the layout alone cannot say where a widget now lives.
-        onMove(landed.nodeId, landed.parentId, landed.index, landed.placement);
+        onMove(
+          landed.nodeId,
+          landed.parentId,
+          landed.index,
+          landed.placement,
+          'drag',
+        );
         return;
       }
       const at = originOf(current);
@@ -1507,7 +1533,15 @@ export default function CanvasGridSurface({
       // there is no fraction for the readings to be told apart by, and a
       // nudge onto a neighbour's own slot trades places with it just as a
       // drop there does.
-      commit(nodeId, kind, placement, target, aimAt(target, 0, 0));
+      commit(
+        nodeId,
+        kind,
+        placement,
+        target,
+        aimAt(target, 0, 0),
+        undefined,
+        'keyboard',
+      );
     },
     [placements, commit, columns, constraints, aimAt],
   );
