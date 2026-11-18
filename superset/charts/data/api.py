@@ -489,6 +489,13 @@ class ChartDataRestApi(ChartRestApi):
             and is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
+            # Column and time grain options are read from datasource metadata;
+            # a task would run them down the data path instead.
+            and not any(
+                (query.result_type or query_context.result_type)
+                in ChartDataResultType.datasource_metadata()
+                for query in query_context.queries
+            )
             and query_context.get_cache_timeout() != CACHE_DISABLED_TIMEOUT
             and not isinstance(cache_manager.data_cache.cache, NullCache)
             and (
