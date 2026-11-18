@@ -60,7 +60,11 @@ from superset_artifacts_sdk.store import (
 )
 from superset_artifacts_sdk.testing import InMemoryArtifactStore
 from superset_oss.artifacts.errors import ArtifactError, ExtensionErrorCode
-from superset_oss.artifacts.store.filestore import ArtifactFileStore, PAGE_BYTES
+from superset_oss.artifacts.store.filestore import (
+    ArtifactFileStore,
+    MISSING_PAGE,
+    PAGE_BYTES,
+)
 
 OWNER = "1"
 INDEX = '<!doctype html>\n<h1>Hello</h1>\n<script src="app.js"></script>\n'
@@ -217,13 +221,14 @@ def test_view_pages_stay_under_the_page_budget(store: ArtifactFileStore) -> None
     ]
 
     assert first.pages > 1
-    assert all(len(page.encode()) <= PAGE_BYTES for page in pages)
+    assert all(len(json.dumps(page)) <= PAGE_BYTES + 2 for page in pages)
     assert sum(page.count("\n") for page in pages) == 2_000
     with raises(AuthoringErrorCode.INVALID_ARGUMENT):
         read(store, artifact_id, "big.txt", page=first.pages + 1)
 
 
 def test_one_oversized_line_is_cut_across_pages(store: ArtifactFileStore) -> None:
+    """Pages are measured as the JSON answer escapes them: "é" takes six bytes."""
     artifact_id, _ = create(store, **{"min.js": "é" * 30_000})
 
     first = store.view(ArtifactViewRequest(artifact_id=artifact_id, path="min.js"))
@@ -232,8 +237,8 @@ def test_one_oversized_line_is_cut_across_pages(store: ArtifactFileStore) -> Non
         for page in range(1, first.pages + 1)
     ]
 
-    assert first.pages == 2
-    assert all(len(page.encode()) <= PAGE_BYTES for page in pages)
+    assert first.pages == 5
+    assert all(len(json.dumps(page)) <= PAGE_BYTES + 2 for page in pages)
     assert "".join(pages).count("é") == 30_000
 
 
@@ -1048,3 +1053,81 @@ def test_a_landed_folder_commits_back_without_its_sidecar(
     )
 
     assert committed.version == version
+
+
+def test_a_commit_refuses_a_stored_file_over_the_policys_limit(
+    backend: InMemoryArtifactStore, clock: Clock
+) -> None:
+    """A blob stored under a looser policy is checked again when it is committed."""
+    loose = ArtifactFileStore(
+        backend,
+        policy=policy_layer({"profile": "locked", "limits": {"file_bytes": 5_000}}),
+        clock=clock,
+    )
+    tight = ArtifactFileStore(
+        backend,
+        policy=policy_layer({"profile": "locked", "limits": {"file_bytes": 1_000}}),
+        clock=clock,
+    )
+    artifact_id, version = create(tight)
+    [big] = loose.put_blobs([b"x" * 2_000])
+    tree = backend.get_tree(version)
+    assert tree is not None
+
+    with raises(AuthoringErrorCode.TOO_LARGE):
+        tight.commit_files(
+            ArtifactCommitFilesRequest(
+                artifact_id=artifact_id,
+                base_version=version,
+                files={**tree, "data.json": big},
+            )
+        )
+    assert tight.draft_version(artifact_id) == version
+
+
+def test_a_commit_lists_its_missing_blobs_a_page_at_a_time(
+    store: ArtifactFileStore, backend: InMemoryArtifactStore
+) -> None:
+    artifact_id, version = create(store)
+    tree = backend.get_tree(version)
+    assert tree is not None
+    files = {
+        **tree,
+        **{f"part{n}.js": sha256_hex(f"part {n}".encode()) for n in range(100)},
+    }
+    request = ArtifactCommitFilesRequest(
+        artifact_id=artifact_id, base_version=version, files=files
+    )
+
+    first = store.commit_files(request)
+    store.put_blobs([f"part {n}".encode() for n in range(50)])
+    second = store.commit_files(request)
+
+    assert (len(first.missing), first.missing_total) == (MISSING_PAGE, 100)
+    assert (len(second.missing), second.missing_total) == (50, 50)
+
+
+def test_land_pages_fit_the_answer_whatever_the_script(
+    store: ArtifactFileStore,
+) -> None:
+    """Non-ASCII text takes six bytes a character once the JSON answer escapes it."""
+    # 5,000 characters: 15,000 bytes of UTF-8, but 30,000 in the answer.
+    text = "\u6f22\u5b57" * 2_500
+    artifact_id, _ = create(store, **{f"t{n}.txt": text for n in range(3)})
+    request = ArtifactLandRequest(artifact_id=artifact_id, inline=True)
+    first = store.land(request)
+    pages = [
+        store.land(request.model_copy(update={"page": page}))
+        for page in range(1, first.pages + 1)
+    ]
+
+    assert first.pages == 3
+    assert all(len(json.dumps(page.model_dump(mode="json"))) < 50_000 for page in pages)
+    assert sum(1 for page in pages for entry in page.files if entry.content) == 4
+
+
+def test_no_artifact_holds_a_hidden_file() -> None:
+    """Files land in agents' folders, where hidden ones are what tools run."""
+    for path in (".git/config", "src/.envrc"):
+        with pytest.raises(ValidationError, match="hidden"):
+            ArtifactCreateRequest(files={path: "[core]"})

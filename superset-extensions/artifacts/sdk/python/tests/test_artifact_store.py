@@ -143,6 +143,11 @@ def test_normalize_path_returns_the_canonical_form(raw: str, normalized: str) ->
         "a\tb",
         "a\x7fb",
         "a\x85b",
+        # Hidden files and directories, which an agent's tools run code from.
+        ".git/config",
+        "src/.git/hooks/pre-commit",
+        ".envrc",
+        "...",
     ],
 )
 def test_normalize_path_rejects_unsafe_paths(path: str) -> None:

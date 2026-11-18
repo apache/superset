@@ -117,9 +117,15 @@ def normalize_path(path: str) -> str:
     are dropped (``./src//app.js`` becomes ``src/app.js``) and the result is
     NFC-normalized, so one file can't hide under two spellings.
 
+    No segment may start with a dot. An artifact's files land in agents'
+    folders, where hidden files and directories are what tools read and run
+    code from on their own, as git does from ``.git`` and direnv from
+    ``.envrc``; an artifact needs none.
+
     Raises ``InvalidPathError`` for an empty path, an absolute path, a ``..``
-    segment, a backslash, NUL or any other control character, and a path
-    longer than ``MAX_PATH_LENGTH`` characters.
+    segment or another segment that starts with a dot, a backslash, NUL or
+    any other control character, and a path longer than ``MAX_PATH_LENGTH``
+    characters.
     """
     if not isinstance(path, str):
         raise InvalidPathError("path must be a string")
@@ -138,6 +144,10 @@ def normalize_path(path: str) -> str:
     ]
     if ".." in segments:
         raise InvalidPathError(f"path {path!r} contains a '..' segment")
+    if hidden := next((s for s in segments if s.startswith(".")), None):
+        raise InvalidPathError(
+            f"path {path!r} names a hidden file or directory, {hidden!r}"
+        )
     normalized = "/".join(segments)
     if not normalized:
         raise InvalidPathError(f"path {path!r} names no file")

@@ -349,7 +349,8 @@ def artifact_commit_files(request: ArtifactCommitFilesRequest) -> dict[str, Any]
     lists missing hashes, nothing was committed: PUT each one's exact bytes to
     its URL in uploads (curl -T file URL), or send them with
     artifact_upload_blobs when there are no uploads or your shell can't reach
-    them, then commit again from the same base_version.
+    them, then commit again from the same base_version. An answer lists 64 at
+    most (missing_total counts them all): repeat until nothing is missing.
     """
     return handlers.commit_files(current_actor(), request)
 
@@ -360,7 +361,7 @@ def artifact_commit_files(request: ArtifactCommitFilesRequest) -> dict[str, Any]
     annotations=_reads("Bring an artifact's files into a folder"),
 )
 def artifact_land(request: ArtifactLandRequest) -> dict[str, Any]:
-    """Bring a version's files, the draft by default, into your folder.
+    """Bring a version's files, the draft by default, into a folder of its own.
 
     The answer lists every file with its SHA-256. Download the tar at
     download_url into the folder (curl -s URL | tar -x); without one, or when

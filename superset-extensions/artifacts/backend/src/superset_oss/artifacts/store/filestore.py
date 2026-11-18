@@ -111,9 +111,13 @@ from superset_oss.artifacts.errors import (
     translate_invalid_manifest,
 )
 
-# At most this many UTF-8 bytes of content in one page of ``view`` or
-# ``search``, comfortably under the MCP read tools' 50 KB limit.
+# At most this many bytes of content in one page of ``view``, ``search`` or
+# ``land``, as the tool's JSON answer escapes it, comfortably under the MCP
+# tools' limit of 50,000 bytes on an answer.
 PAGE_BYTES = 40_000
+# At most this many missing blobs in one commit answer, so that their upload
+# links fit in it too.
+MISSING_PAGE = 64
 HISTORY_PAGE_SIZE = 100
 # The most content one ``put_blobs`` call takes.
 MAX_UPLOAD_BYTES = 8_000_000
@@ -221,13 +225,19 @@ def _encode(text: str, what: str) -> bytes:
 
 
 def _char_size(char: str) -> int:
-    """UTF-8 length of one character of already-valid text."""
+    """
+    The bytes one character takes in a JSON answer, which escapes quotes,
+    backslashes, control characters and every non-ASCII character.
+    """
     point = ord(char)
+    if char in '"\\\b\f\n\r\t':
+        return 2
+    if point < 0x20:
+        return 6
     if point < 0x80:
         return 1
-    if point < 0x800:
-        return 2
-    return 3 if point < 0x10000 else 4
+    # \uXXXX, or two of them for a character outside the Basic Multilingual Plane.
+    return 6 if point < 0x10000 else 12
 
 
 def _text_size(text: str) -> int:
@@ -314,7 +324,7 @@ def _text_of(data: bytes) -> str | None:
 
 def _landed_size(entry: LandedFile) -> int:
     """About how much of a page ``entry`` takes in a land answer."""
-    return len(entry.path) + len(entry.sha256) + len(entry.content or "") + 64
+    return _text_size(entry.path) + _text_size(entry.content or "") + 128
 
 
 def _tar_member(path: str, size: int, mtime: datetime) -> tarfile.TarInfo:
@@ -705,7 +715,9 @@ class ArtifactFileStore:
         self._check_file_count(files)
         missing = self._backend.missing_blobs(set(files.values()))
         if missing:
-            return ArtifactCommitFilesResponse(missing=sorted(missing))
+            return ArtifactCommitFilesResponse(
+                missing=sorted(missing)[:MISSING_PAGE], missing_total=len(missing)
+            )
         written = self._commit(artifact_id, request.base_version, tree, files)
         return ArtifactCommitFilesResponse(version=written.version)
 
@@ -915,6 +927,7 @@ class ArtifactFileStore:
         apply to the draft instead, as long as none of the files it changes
         changed meanwhile; otherwise it fails with ``STALE_BASE_VERSION``.
         """
+        self._check_file_sizes(base_tree, new_tree)
         for _attempt in range(_CAS_ATTEMPTS):
             current = self._draft_version(artifact_id)
             if current == base_version:
@@ -958,6 +971,21 @@ class ArtifactFileStore:
     def _stage(self, path: str, text: str) -> str:
         """Store a file's text as a blob; return its hash."""
         return self._backend.put_blob(self._file_bytes(path, text))
+
+    def _check_file_sizes(
+        self, before: Mapping[str, str], after: Mapping[str, str]
+    ) -> None:
+        """
+        Each file that ``after`` adds or changes is within the policy's size
+        limit. Blobs are checked when they are stored, but under the policy of
+        that request: one can be bigger than the policy in force allows.
+        """
+        limit = self._policy.limits.file_bytes
+        for path in sorted(_changed_paths(before, after)):
+            if (blob_hash := after.get(path)) is None:
+                continue
+            if (size := len(self._blob(blob_hash))) > limit:
+                raise self._too_large(f"{path!r} is {size} bytes; the limit is {limit}")
 
     def _check_file_count(self, tree: Mapping[str, Any]) -> None:
         limit = self._policy.limits.files

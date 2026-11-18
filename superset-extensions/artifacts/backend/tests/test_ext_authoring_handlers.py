@@ -482,6 +482,7 @@ def test_commit_by_hash_with_uploads(
 
     assert missing == {
         "missing": [sha256_hex(b"\x89PNG")],
+        "missing_total": 1,
         "uploads": [],
         "uploads_expire_at": None,
         "version": None,
@@ -721,3 +722,30 @@ def test_land_answers_a_download_link_unless_asked_inline(
     assert inline["files"][0]["content"]
     assert read["version"] == created["version"]
     assert refused["code"] == "ARTIFACT_NOT_FOUND"
+
+
+def test_a_commit_answer_with_upload_links_fits_an_mcp_answer(
+    provider: FakeProvider,
+) -> None:
+    """Upload links come for a page of missing blobs at a time, in one answer."""
+    handlers, _ = links_handlers(uploads=True)
+    created = handlers.create(OWNER, ArtifactCreateRequest())
+    landed = handlers.land(
+        OWNER, ArtifactLandRequest(artifact_id=created["artifact_id"])
+    )
+    files = {entry["path"]: entry["sha256"] for entry in landed["files"]}
+    # Locked's policy holds 200 files at most, the manifest among them.
+    files |= {f"part{n}.js": sha256_hex(f"part {n}".encode()) for n in range(150)}
+
+    answer = handlers.commit_files(
+        OWNER,
+        ArtifactCommitFilesRequest(
+            artifact_id=created["artifact_id"],
+            base_version=created["version"],
+            files=files,
+        ),
+    )
+
+    assert answer["missing_total"] == 150
+    assert len(answer["uploads"]) == len(answer["missing"]) < 150
+    assert len(json.dumps(answer)) < 50_000

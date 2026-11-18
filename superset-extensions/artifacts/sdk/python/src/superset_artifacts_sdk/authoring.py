@@ -100,11 +100,17 @@ ROOT_PATH = "."
 LAND_SIDECAR_PATH = ".superset-artifact.json"
 
 
+def _is_land_sidecar(path: object) -> bool:
+    """Whether ``path`` names the land sidecar, as ``./`` and ``//`` spell it too."""
+    return isinstance(path, str) and [
+        segment for segment in path.split("/") if segment not in ("", ".")
+    ] == [LAND_SIDECAR_PATH]
+
+
 def _artifact_path(path: str) -> str:
-    normalized = normalize_path(path)
-    if normalized == LAND_SIDECAR_PATH:
+    if _is_land_sidecar(path):
         raise ValueError(f"{LAND_SIDECAR_PATH} is the land sidecar, not a file")
-    return normalized
+    return normalize_path(path)
 
 
 ArtifactId = Annotated[str, Field(min_length=1)]
@@ -125,11 +131,12 @@ def _normalized_paths(files: Mapping[str, _V]) -> dict[str, _V]:
     """``files`` by their normalized paths, without the land sidecar."""
     normalized: dict[str, _V] = {}
     for path, value in files.items():
+        if _is_land_sidecar(path):
+            continue
         key = normalize_path(path)
         if key in normalized:
             raise ValueError(f"{path!r} names the same file as another path, {key!r}")
         normalized[key] = value
-    normalized.pop(LAND_SIDECAR_PATH, None)
     return normalized
 
 
@@ -450,13 +457,16 @@ class ArtifactCommitFilesResponse(BaseModel):
     """
     What ``artifact_commit_files`` answers.
 
-    Either ``missing`` lists the blobs to upload, and nothing was committed,
-    or ``version`` is the new draft version. ``uploads`` holds an upload URL
-    for each missing blob where the host offers them, all short-lived, until
-    ``uploads_expire_at``.
+    Either ``missing`` lists blobs to upload, and nothing was committed, or
+    ``version`` is the new draft version. ``missing`` holds a page of the
+    missing blobs, and ``missing_total`` counts them all (all of ``missing``
+    by default): upload those, then commit again for the rest. ``uploads``
+    holds an upload URL for each listed blob where the host offers them, all
+    short-lived, until ``uploads_expire_at``.
     """
 
     missing: list[Sha256Hex] = Field(default_factory=list)
+    missing_total: int | None = Field(default=None, ge=0)
     uploads: list[BlobUploadTarget] = Field(default_factory=list)
     uploads_expire_at: datetime | None = None
     version: Version | None = None
@@ -467,6 +477,10 @@ class ArtifactCommitFilesResponse(BaseModel):
             raise ValueError(
                 "set missing (nothing was committed) or version, not both or neither"
             )
+        if self.missing_total is None:
+            self.missing_total = len(self.missing)
+        elif self.missing_total < len(self.missing):
+            raise ValueError("missing_total counts at least the blobs missing lists")
         if not {upload.sha256 for upload in self.uploads} <= set(self.missing):
             raise ValueError("an upload URL is only for a missing blob")
         return self

@@ -190,7 +190,8 @@ With a folder and a shell of your own, edit there and sync by hash; the
 bytes then never pass through this conversation.
 
 - {_tool(ARTIFACT_LAND)}(artifact_id, version?): bring a version's files, the
-  draft by default, into the folder: `curl -s "$download_url" | tar -x`. When
+  draft by default, into a folder of the artifact's own:
+  `curl -s "$download_url" | tar -x`. When
   there is no `download_url`, or your shell can't reach it, call it again with
   `inline: true` for the contents, in pages, and write its `sidecar` to
   `{LAND_SIDECAR_PATH}`, which the tar holds otherwise. Keep that file: it
@@ -199,7 +200,10 @@ bytes then never pass through this conversation.
   new version, from the sidecar's `base_version`. When it answers `missing`,
   PUT each file's exact bytes to its URL in `uploads` (`curl -T path "$url"`),
   or send them with {upload} when there are no `uploads` or your shell can't
-  reach them, then commit again from the same base_version.
+  reach them, then commit again from the same base_version. An answer lists
+  at most 64 (`missing_total` counts them all): repeat until none is missing.
+- Hidden files and directories (a path segment that starts with a dot) are
+  never artifact files, and writes that name one are refused.
 
 ## manifest.json
 

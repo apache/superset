@@ -413,3 +413,12 @@ def test_upload_urls_come_only_for_missing_blobs() -> None:
             missing=[BLOB],
             uploads=[BlobUploadTarget(sha256=other, url="https://x.example/u")],
         )
+
+
+def test_a_commit_answer_counts_every_missing_blob() -> None:
+    assert ArtifactCommitFilesResponse(missing=[BLOB]).missing_total == 1
+    paged = ArtifactCommitFilesResponse(missing=[BLOB], missing_total=70)
+    assert paged.missing_total == 70
+    with pytest.raises(ValidationError, match="missing_total"):
+        ArtifactCommitFilesResponse(missing=[BLOB, VERSION], missing_total=1)
+    assert ArtifactCommitFilesResponse(version=VERSION).missing_total == 0

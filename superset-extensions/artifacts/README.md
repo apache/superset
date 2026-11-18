@@ -102,7 +102,12 @@ author as editor; the store keeps only the content, keyed by that UUID.
   move beside the model: `artifact_land` answers a short-lived URL for a tar
   of the version, and the commit a short-lived upload URL for each missing
   blob, which the agent's shell uses with `curl`. Otherwise they travel in
-  tool calls: `artifact_land` with `inline`, and `artifact_upload_blobs`.
+  tool calls: `artifact_land` with `inline`, and `artifact_upload_blobs`. A
+  commit answers 64 missing blobs at a time, and every page of an answer is
+  measured as the JSON answer escapes it, so answers stay under the MCP
+  tools' limit of 50,000 bytes. Since files land in agents' folders, no path
+  may name a hidden file or directory, which tools such as git run code from
+  on their own.
 - **Publishing.** `artifact_request_publish` only records a request and answers
   `CONFIRMATION_REQUIRED`. The `published` ref moves when an editor confirms it
   where the artifact is shown, under their own browser session
