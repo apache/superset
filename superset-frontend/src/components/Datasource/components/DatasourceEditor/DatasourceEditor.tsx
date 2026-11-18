@@ -51,6 +51,7 @@ import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -134,6 +135,7 @@ import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 import {
   getDatasetCertification,
   isDatasetExtraValid,
+  parseExtra,
 } from './datasetCertification';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -2252,6 +2254,25 @@ function DatasourceEditor({
         label: col.verbose_name || col.column_name,
       }));
 
+    // An unset default time range inherits the instance default. The field is
+    // hidden while the Extra JSON is malformed.
+    const extra = parseExtra(datasource.extra);
+    const defaultTimeRange =
+      typeof extra?.default_time_range === 'string' && extra.default_time_range
+        ? extra.default_time_range
+        : undefined;
+    const setDefaultTimeRange = (default_time_range?: string) => {
+      // Leave the Extra JSON as written when the range does not change.
+      if (default_time_range === defaultTimeRange) return;
+      onDatasourceChange({
+        ...datasource,
+        // JSON.stringify omits the key when the value is undefined.
+        extra: JSON.stringify({ ...extra, default_time_range }),
+      });
+    };
+    const DateFilterComponent =
+      extensionsRegistry.get('filter.dateFilterControl') ?? DateFilterControl;
+
     return (
       <DefaultColumnSettingsContainer data-test="default-column-settings">
         <DefaultColumnSettingsTitle>
@@ -2280,6 +2301,30 @@ function DatasourceEditor({
               data-test="default-datetime-column-select"
             />
           </Flex>
+          {isSqla && extra && (
+            <Flex vertical gap={theme?.sizeUnit ?? 4} align="start">
+              <FieldLabelWithTooltip>
+                <span>{t('Default time range')}</span>
+                <InfoTooltip
+                  tooltip={t('Initial time range for new charts in Explore.')}
+                />
+              </FieldLabelWithTooltip>
+              <DateFilterComponent
+                name="default_time_range"
+                placeholder={t('Use instance default')}
+                value={defaultTimeRange}
+                onChange={setDefaultTimeRange}
+              />
+              {defaultTimeRange && (
+                <Button
+                  buttonStyle="link"
+                  onClick={() => setDefaultTimeRange()}
+                >
+                  {t('Use instance default')}
+                </Button>
+              )}
+            </Flex>
+          )}
           <Flex vertical gap={theme?.sizeUnit ?? 4}>
             <FieldLabelWithTooltip>
               <span>{t('Currency code column')}</span>
@@ -2329,6 +2374,7 @@ function DatasourceEditor({
     theme?.sizeUnit,
     datasource,
     onDatasourceChange,
+    isSqla,
   ]);
 
   const renderCertificationFieldset = useCallback(() => {

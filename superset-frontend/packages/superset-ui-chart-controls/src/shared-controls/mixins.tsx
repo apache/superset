@@ -114,7 +114,10 @@ export const datePickerInAdhocFilterMixin: Pick<
           clause: 'WHERE',
           subject: temporalColumn,
           operator: 'TEMPORAL_RANGE',
-          comparator: state?.common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
+          comparator:
+            state?.initialTimeRange ||
+            state?.common?.conf?.DEFAULT_TIME_FILTER ||
+            NO_TIME_RANGE,
           expressionType: 'SIMPLE',
         },
       ];

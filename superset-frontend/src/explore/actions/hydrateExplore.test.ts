@@ -20,7 +20,12 @@
 import {
   buildQueryContext,
   DatasourceType,
+  ensureIsArray,
+  getChartControlPanelRegistry,
+  isBinaryAdhocFilter,
   isFeatureEnabled,
+  isSimpleAdhocFilter,
+  NO_TIME_RANGE,
   QueryFormData,
   VizType,
 } from '@superset-ui/core';
@@ -30,6 +35,8 @@ import { setStashFormData } from './exploreActions';
 import { HYDRATE_CHART_NORMALIZATION } from 'src/features/versionHistory/reducer';
 import { hydrateExplore, HYDRATE_EXPLORE } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
+import tableControlPanel from '../../../plugins/plugin-chart-table/src/controlPanel';
+import calendarControlPanel from '../../../plugins/plugin-chart-calendar/src/controlPanel';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -487,6 +494,141 @@ test('uses configured default time range if not set', () => {
       }),
     }),
   );
+});
+
+const instanceRange = 'Last year';
+const datasetRange = 'Last day';
+const datasetExtra = JSON.stringify({
+  default_time_range: datasetRange,
+  warning_markdown: 'Note',
+});
+
+// Hydrates a new chart on a dataset whose default datetime column is not its
+// first temporal column, and returns the form data of the first chart query.
+function hydrateNewChartQuery({
+  vizType = VizType.Table,
+  extra = datasetExtra,
+  formData = {},
+  slice = null,
+  dataset = {},
+}: {
+  vizType?: string;
+  extra?: string;
+  formData?: Partial<QueryFormData>;
+  slice?: typeof exploreInitialData.slice;
+  dataset?: Partial<typeof exploreInitialData.dataset>;
+} = {}): QueryFormData {
+  // Table uses ad hoc time filters; the calendar uses a Time range control.
+  // They are registered only while hydrating so other tests keep their state.
+  const registry = getChartControlPanelRegistry();
+  registry.registerValue(VizType.Table, tableControlPanel);
+  registry.registerValue('cal_heatmap', calendarControlPanel);
+  const dispatch = jest.fn();
+  try {
+    hydrateExplore({
+      ...exploreInitialData,
+      dataset: {
+        ...exploreInitialData.dataset,
+        columns: [
+          { column_name: 'ingested_at', is_dttm: true },
+          { column_name: 'created_at', is_dttm: true },
+        ],
+        main_dttm_col: 'created_at',
+        extra,
+        ...dataset,
+      },
+      form_data: {
+        datasource: '8__table',
+        viz_type: vizType,
+        adhoc_filters: [],
+        ...formData,
+      },
+      slice,
+    })(
+      dispatch,
+      () =>
+        ({
+          user: {},
+          charts: {},
+          datasources: {},
+          common: { conf: { DEFAULT_TIME_FILTER: instanceRange } },
+          explore: {},
+        }) as unknown as ExplorePageState,
+    );
+  } finally {
+    registry.remove(VizType.Table);
+    registry.remove('cal_heatmap');
+  }
+  const { charts } = dispatch.mock.calls[0][0].data;
+  return Object.values<{ latestQueryFormData: QueryFormData }>(charts)[0]
+    .latestQueryFormData;
+}
+
+// Returns [column, range] from either an ad hoc filter or the Time range control.
+function getTimeFilter(formData: QueryFormData) {
+  const filter = ensureIsArray(formData.adhoc_filters)
+    .filter(isSimpleAdhocFilter)
+    .filter(isBinaryAdhocFilter)
+    .find(adhocFilter => adhocFilter.operator === 'TEMPORAL_RANGE');
+  return filter
+    ? [filter.subject, filter.comparator]
+    : [formData.granularity_sqla, formData.time_range];
+}
+
+test.each([
+  [VizType.Table, datasetExtra, datasetRange],
+  ['cal_heatmap', datasetExtra, datasetRange],
+  [VizType.Table, `{"default_time_range": "${NO_TIME_RANGE}"}`, NO_TIME_RANGE],
+  ['cal_heatmap', `{"default_time_range": "${NO_TIME_RANGE}"}`, NO_TIME_RANGE],
+  [VizType.Table, '{}', instanceRange],
+  ['cal_heatmap', '{}', instanceRange],
+  [VizType.Table, '{bad', instanceRange],
+])(
+  'a new %s chart on a dataset with extra %s starts with %s on the default datetime column',
+  (vizType, extra, range) => {
+    expect(getTimeFilter(hydrateNewChartQuery({ vizType, extra }))).toEqual([
+      'created_at',
+      range,
+    ]);
+  },
+);
+
+test.each([VizType.Table, 'cal_heatmap'])(
+  'a range supplied to a new %s chart wins over the dataset default',
+  vizType => {
+    const query = hydrateNewChartQuery({
+      vizType,
+      formData: { time_range: NO_TIME_RANGE },
+    });
+    expect(getTimeFilter(query)).toEqual(['created_at', NO_TIME_RANGE]);
+  },
+);
+
+test('an ad hoc time filter supplied to a new chart is its only time filter', () => {
+  const filter = {
+    expressionType: 'SIMPLE',
+    clause: 'WHERE',
+    subject: 'ingested_at',
+    operator: 'TEMPORAL_RANGE',
+    comparator: 'Last week',
+  } as const;
+  const query = hydrateNewChartQuery({ formData: { adhoc_filters: [filter] } });
+  expect(query.adhoc_filters).toEqual([expect.objectContaining(filter)]);
+});
+
+test('a saved chart ignores the dataset default time range', () => {
+  const query = hydrateNewChartQuery({
+    vizType: 'cal_heatmap',
+    slice: exploreInitialData.slice,
+  });
+  expect(query.time_range).toBe(instanceRange);
+});
+
+test('a dataset without temporal columns adds no default time filter', () => {
+  const query = hydrateNewChartQuery({
+    dataset: { columns: [], main_dttm_col: '' },
+  });
+  expect(query.adhoc_filters).toEqual([]);
 });
 
 test('extracts currency formats from metrics in dataset', () => {

@@ -164,6 +164,7 @@ export interface ControlPanelState {
   controls: ControlStateMapping;
   common: JsonObject;
   metadata?: JsonObject | null;
+  initialTimeRange?: string | null;
 }
 
 /**

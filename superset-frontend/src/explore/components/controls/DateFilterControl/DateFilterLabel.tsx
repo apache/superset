@@ -156,6 +156,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const defaultTimeFilter = useDefaultTimeFilter();
 
   const value = props.value ?? defaultTimeFilter;
+  const placeholder = props.value == null ? props.placeholder : undefined;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
@@ -426,9 +427,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
             name={name}
             aria-labelledby={`filter-name-${props.name}`}
             aria-describedby={`date-label-${props.name}`}
-            label={actualTimeRange}
+            label={placeholder ?? actualTimeRange}
             isActive={show}
-            isPlaceholder={actualTimeRange === NO_TIME_RANGE}
+            isPlaceholder={!!placeholder || actualTimeRange === NO_TIME_RANGE}
             ref={labelRef}
           />
         </span>
