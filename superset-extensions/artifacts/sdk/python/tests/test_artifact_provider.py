@@ -257,6 +257,11 @@ def test_frame_links_expire_at_an_aware_instant() -> None:
         FrameLink("https://sandbox.example.com/f", datetime(2026, 11, 15, 9, 30))
 
 
+def test_a_frame_link_is_in_policy_unless_it_says_otherwise() -> None:
+    expires_at = datetime(2026, 11, 15, 9, 30, tzinfo=timezone.utc)
+    assert FrameLink("https://sandbox.example.com/f", expires_at).out_of_policy == ()
+
+
 def test_artifact_ref_defaults_to_the_draft() -> None:
     assert ArtifactRef("artifact-1").version is None
 

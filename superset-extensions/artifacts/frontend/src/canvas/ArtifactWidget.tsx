@@ -58,6 +58,7 @@ import {
 import useBindings from '../data/useBindings';
 import { fetchPlacementFrame, FrameLink } from '../frames/api';
 import FrameHost from '../frames/FrameHost';
+import OutOfPolicy from '../frames/OutOfPolicy';
 import { frameTheme } from '../frames/theme';
 import useFrameLink from '../frames/useFrameLink';
 import { errorMessage } from '../http';
@@ -225,6 +226,7 @@ export default function ArtifactWidget({
           onPublished={reload}
         />
       )}
+      {frame && <OutOfPolicy link={frame} />}
       <div style={{ flex: 1, minHeight: 0 }}>
         {frame ? (
           <FrameHost

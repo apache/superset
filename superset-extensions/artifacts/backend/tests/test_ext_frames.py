@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import json  # noqa: TID251 -- pure test; the host's JSON utility needs Flask.
+from dataclasses import replace
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
@@ -182,14 +183,16 @@ def test_editors_get_drafts_and_others_only_published_versions(
 class RecordingMinter:
     """A provider's frame-link role and nothing else."""
 
-    def __init__(self) -> None:
+    def __init__(self, out_of_policy: tuple[str, ...] = ()) -> None:
         self.minted: list[tuple[ArtifactRef, FrameContext]] = []
+        self.out_of_policy = out_of_policy
 
     def mint_frame_link(self, ref: ArtifactRef, context: FrameContext) -> FrameLink:
         self.minted.append((ref, context))
         return FrameLink(
             url="https://box.example/frame",
             expires_at=datetime(2026, 11, 15, tzinfo=timezone.utc),
+            out_of_policy=self.out_of_policy,
         )
 
 
@@ -225,8 +228,30 @@ def test_a_link_is_minted_for_the_served_version_in_its_context(
         "capabilities": ["compute.wasm", "data", "theme"],
         "limits": {"queries": STANDARD.data.max_queries},
         "manifest": host_manifest(MANIFEST),
+        "out_of_policy": [],
     }
     json.dumps(answer)
+
+
+def test_only_editors_learn_what_the_policy_no_longer_admits(
+    store: ArtifactFileStore,
+) -> None:
+    files = {"manifest.json": MANIFEST.model_dump_json()}
+    created = store.create(str(uuid4()), ArtifactCreateRequest(files=files))
+    minter = RecordingMinter(("d3 isn't on this workspace's package allowlist",))
+
+    def flagged(can_edit: bool) -> object:
+        served = replace(
+            choose_version(store, created.artifact_id, can_edit=True),
+            can_edit=can_edit,
+        )
+        answer = link_payload(
+            minter, store, served, "canvas", "https://superset.example.com/", STANDARD
+        )
+        return answer["out_of_policy"]
+
+    assert flagged(True) == ["d3 isn't on this workspace's package allowlist"]
+    assert flagged(False) == []
 
 
 def test_the_policy_keeps_artifacts_off_a_surface(store: ArtifactFileStore) -> None:

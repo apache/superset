@@ -39,6 +39,7 @@ import { BindingSource, checkQuery, declaredBindings } from '../data/bindings';
 import useBindings from '../data/useBindings';
 import { fetchPageFrame } from '../frames/api';
 import FrameHost from '../frames/FrameHost';
+import OutOfPolicy from '../frames/OutOfPolicy';
 import { frameTheme } from '../frames/theme';
 import useFrameLink from '../frames/useFrameLink';
 
@@ -97,19 +98,29 @@ export default function HostPage({ widgetId }: { widgetId: string }) {
   }
   if (!link) return null;
   return (
-    <div style={{ width: '100%', height: '100%' }}>
-      <FrameHost
-        url={link.url}
-        grant={link.capabilities}
-        limits={link.limits}
-        queriesPerRequest={declaredBindings(link.manifest)}
-        state={state}
-        bindings={bindings}
-        title={link.manifest.title ?? t('Artifact')}
-        onRequest={onRequest}
-        onError={() => undefined}
-        onHandshakeTimeout={onHandshakeTimeout}
-      />
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+      }}
+    >
+      <OutOfPolicy link={link} />
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <FrameHost
+          url={link.url}
+          grant={link.capabilities}
+          limits={link.limits}
+          queriesPerRequest={declaredBindings(link.manifest)}
+          state={state}
+          bindings={bindings}
+          title={link.manifest.title ?? t('Artifact')}
+          onRequest={onRequest}
+          onError={() => undefined}
+          onHandshakeTimeout={onHandshakeTimeout}
+        />
+      </div>
     </div>
   );
 }

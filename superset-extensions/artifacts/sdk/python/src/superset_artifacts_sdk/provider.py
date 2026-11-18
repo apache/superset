@@ -62,8 +62,11 @@ class FrameContext:
     this context (its CSP ``frame-ancestors``). ``capabilities`` is the grant:
     manifest ∩ policy ∩ context (``policy.grant_for``). Its compute part is
     what the frame's own CSP may add; nothing in it opens a network.
-    ``policy`` is the policy in force: a provider serves nothing of what it
-    builds that the policy refuses now, as packages denied since the build.
+    ``policy`` is the policy in force, which a provider checks a version's
+    build against when it mints a link to it: it refuses the build only for a
+    security revocation, such as a package denied since the build, or a
+    quarantine an admin enforces, and serves it, flagged out of policy, for
+    anything else the policy no longer admits (``FrameLink.out_of_policy``).
     """
 
     mode: FrameMode
@@ -79,10 +82,14 @@ class FrameLink:
 
     ``expires_at`` must be timezone-aware, so that every reader compares and
     serializes the same instant; a naive datetime raises ``ValueError``.
+    ``out_of_policy`` says what the policy in force no longer admits of the
+    build the link serves, which the artifact's editors see; it is empty while
+    the policy admits all of it.
     """
 
     url: str
     expires_at: datetime
+    out_of_policy: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.expires_at.utcoffset() is None:

@@ -59,6 +59,11 @@ export interface FrameLink {
   manifest: HostManifest;
   /** For editors: the publish request waiting for them. */
   pending_publish?: PendingPublish | null;
+  /**
+   * For editors: what the policy in force no longer admits of the build the
+   * frame serves, which is shown until an admin enforces the policy.
+   */
+  out_of_policy?: string[];
 }
 
 interface Result<T> {

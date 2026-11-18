@@ -74,7 +74,9 @@ def link_payload(  # noqa: PLR0913
     version's manifest no longer validates (``INVALID_MANIFEST``), and when
     the provider no longer holds the version (``VERSION_NOT_FOUND``), as
     after a publish that lands between reading the version and minting the
-    link.
+    link. The artifact's editors learn what the policy in force no longer
+    admits of the build the frame serves (``out_of_policy``); other viewers
+    get the frame alone.
     """
     if not surface_allowed(policy, mode):
         raise ArtifactError(
@@ -104,4 +106,5 @@ def link_payload(  # noqa: PLR0913
         # The frame host's names for them (the SDK's ``BridgeLimits``).
         "limits": {"queries": policy.data.max_queries},
         "manifest": host_manifest(manifest),
+        "out_of_policy": list(link.out_of_policy) if served.can_edit else [],
     }
