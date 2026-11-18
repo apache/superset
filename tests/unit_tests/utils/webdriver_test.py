@@ -2708,3 +2708,29 @@ class TestWebDriverPlaywrightScreenshotLock:
         assert not cleanup.is_alive()
         assert manager._browser is None
         assert manager._playwright is None
+
+    def test_cleanup_at_exit_gives_up_on_a_held_lock(self):
+        """Interpreter shutdown must not hang on a lock an abandoned task
+        still holds."""
+        manager = _PlaywrightBrowserManager()
+        manager._browser = MagicMock()
+        held_elsewhere = threading.Event()
+        release = threading.Event()
+
+        def hold() -> None:
+            with manager.exclusive():
+                held_elsewhere.set()
+                release.wait(timeout=5)
+
+        holder = threading.Thread(target=hold)
+        holder.start()
+        assert held_elsewhere.wait(timeout=5)
+        try:
+            manager._cleanup_at_exit(timeout=0.1)
+            manager._browser.close.assert_not_called()
+        finally:
+            release.set()
+            holder.join(timeout=5)
+
+        manager._cleanup_at_exit(timeout=0.1)
+        assert manager._browser is None
