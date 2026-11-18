@@ -22,7 +22,8 @@ Where the user confirms publishing.
 
 An agent can only ask (``artifact_request_publish``); the ``published`` ref
 moves when the user, an editor of the artifact, confirms here, from
-Superset's UI, under their own session. No MCP tool calls this. The renderer
+Superset's UI, under their own session, and once the version builds under the
+policy in force (``publishing``). No MCP tool calls this. The renderer
 learns of the request waiting for an editor from the artifact's frame link.
 
 The confirmation refuses requests that authenticate with an ``Authorization``
@@ -43,7 +44,7 @@ from flask_appbuilder.api import expose, permission_name, protect, safe
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from superset_core.rest_api.api import RestApi
 from superset_core.rest_api.decorators import api
-from superset_oss.artifacts.access import require_edit
+from superset_oss.artifacts.authoring.publishing import confirm_publish
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.web import current_actor, error_response, json_response
@@ -123,10 +124,7 @@ class ArtifactPublishRestApi(RestApi):
         except ValidationError as ex:
             return self.response_400(message=str(ex))
         try:
-            require_edit(artifacts.access, artifact_id)
-            version = artifacts.store.confirm_publish(
-                actor, artifact_id, body.request_id
-            )
+            version = confirm_publish(artifacts, actor, artifact_id, body.request_id)
         except ArtifactError as ex:
             return error_response(ex)
         return json_response(200, {"result": {"published_version": version}})

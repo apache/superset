@@ -212,6 +212,8 @@ def test_a_link_is_minted_for_the_served_version_in_its_context(
     [(ref, context)] = minter.minted
     assert ref == ArtifactRef(created.artifact_id, created.version)
     assert context.allowed_parents == ("https://superset.example.com",)
+    # So that the provider serves nothing the policy refuses now.
+    assert context.policy == STANDARD
     assert answer == {
         "url": "https://box.example/frame",
         "expires_at": "2026-11-15T00:00:00+00:00",

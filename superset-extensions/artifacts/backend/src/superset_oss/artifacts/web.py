@@ -40,6 +40,7 @@ _HTTP_STATUS: Mapping[ErrorCode, int] = {
     AuthoringErrorCode.INVALID_MANIFEST: 422,
     ExtensionErrorCode.PUBLISH_REQUEST_NOT_FOUND: 404,
     ExtensionErrorCode.TRANSFER_LINK_INVALID: 403,
+    ExtensionErrorCode.PUBLISH_BUILD_FAILED: 422,
     AuthoringErrorCode.TOO_LARGE: 413,
 }
 

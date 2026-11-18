@@ -113,7 +113,11 @@ author as editor; the store keeps only the content, keyed by that UUID.
 - **Publishing.** `artifact_request_publish` only records a request and answers
   `CONFIRMATION_REQUIRED`. The `published` ref moves when an editor confirms it
   where the artifact is shown, under their own browser session
-  (`POST /extensions/superset-oss/artifacts/publish/<id>/confirm`).
+  (`POST /extensions/superset-oss/artifacts/publish/<id>/confirm`), and once
+  the provider builds the version under the policy in force, which checks
+  everything the version is made of, its locked packages included. Frame
+  links carry that policy too (`FrameContext.policy`), so that a provider
+  serves nothing it built that the policy refuses since.
 - **Rendering.** The renderer asks `POST .../frames/` for a link to the
   artifact it draws, by its widget's UUID: with the canvas placement that
   shows it, or for a page of its own (`page`: `standalone` or `embedded`). On

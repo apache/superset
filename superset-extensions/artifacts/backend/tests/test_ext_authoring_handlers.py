@@ -45,6 +45,7 @@ from superset_artifacts_sdk.authoring import (
     ArtifactSearchRequest,
     ArtifactStrReplaceRequest,
     ArtifactViewRequest,
+    AuthoringErrorCode,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest
 from superset_artifacts_sdk.policy import ArtifactPolicy, LOCKED, policy_layer
@@ -71,8 +72,10 @@ from superset_oss.artifacts.authoring.prompt_text import (
     EXTRA_TOOLS,
     import_claude_artifact_text,
 )
+from superset_oss.artifacts.authoring.publishing import confirm_publish
 from superset_oss.artifacts.authoring.transfer import TransferLinks, TransferSigner
 from superset_oss.artifacts.constants import ID_PREFIX, WIDGET_TYPE
+from superset_oss.artifacts.errors import ArtifactError, ExtensionErrorCode
 from superset_oss.artifacts.gate import artifacts_on, configure, open_artifacts
 
 UUID = "00000000-0000-4000-8000-000000000000"
@@ -90,6 +93,11 @@ class FakeProvider:
         # Whether its store has lost every version, as after a publish that
         # lands between the tool reading a version and the provider call.
         self.lost_versions = False
+        # What its builds answer; a build that fails by default.
+        self.build_result = BuildResult(
+            ok=False,
+            diagnostics=(Diagnostic("missing import", file="index.html", line=3),),
+        )
 
     def mint_frame_link(self, ref: ArtifactRef, context: FrameContext) -> FrameLink:
         return FrameLink(
@@ -104,10 +112,7 @@ class FakeProvider:
         if self.lost_versions:
             raise VersionNotFoundError(f"no version {ref.version}")
         self.built.append((ref, policy))
-        return BuildResult(
-            ok=False,
-            diagnostics=(Diagnostic("missing import", file="index.html", line=3),),
-        )
+        return self.build_result
 
     def check(self, ref: ArtifactRef, policy: ArtifactPolicy) -> CheckResult:
         if self.lost_versions:
@@ -895,3 +900,61 @@ def test_a_commit_answer_with_upload_links_fits_an_mcp_answer(
     assert answer["missing_total"] == 150
     assert len(answer["uploads"]) == len(answer["missing"]) < 150
     assert len(json.dumps(answer)) < 50_000
+
+
+def asked_to_publish(handlers: AuthoringHandlers) -> tuple[str, str, str]:
+    """An artifact whose agent asked to publish it: its id, version and request."""
+    created = handlers.create(OWNER, ArtifactCreateRequest())
+    asked = handlers.request_publish(
+        OWNER,
+        ArtifactRequestPublishRequest(
+            artifact_id=created["artifact_id"], base_version=created["version"]
+        ),
+    )
+    return created["artifact_id"], created["version"], asked["publish_request_id"]
+
+
+def test_a_confirmation_publishes_a_version_that_builds(
+    handlers: AuthoringHandlers, provider: FakeProvider, access: FakeAccess
+) -> None:
+    artifact_id, version, request_id = asked_to_publish(handlers)
+    provider.build_result = BuildResult(ok=True)
+
+    published = confirm_publish(open_artifacts(), OWNER, artifact_id, request_id)
+
+    assert published == version
+    assert open_artifacts().store.published_version(artifact_id) == version
+    [(built, _)] = provider.built
+    assert built.version == version
+
+
+def test_a_version_the_policy_refuses_since_its_build_isnt_published(
+    handlers: AuthoringHandlers, provider: FakeProvider, access: FakeAccess
+) -> None:
+    """The build checks what the manifest doesn't name, as transitive packages."""
+    artifact_id, _, request_id = asked_to_publish(handlers)
+    provider.build_result = BuildResult(
+        ok=False,
+        diagnostics=(Diagnostic("scheduler@0.27.0 is on the package deny-list"),),
+    )
+
+    with pytest.raises(ArtifactError) as refused:
+        confirm_publish(open_artifacts(), OWNER, artifact_id, request_id)
+
+    assert refused.value.code == ExtensionErrorCode.PUBLISH_BUILD_FAILED
+    assert "scheduler@0.27.0" in refused.value.message
+    assert open_artifacts().store.published_version(artifact_id) is None
+
+
+def test_only_an_editor_confirms_a_publish(
+    handlers: AuthoringHandlers, provider: FakeProvider, access: FakeAccess
+) -> None:
+    artifact_id, _, request_id = asked_to_publish(handlers)
+    access.readers[artifact_id] = {READER}
+    access.caller = READER
+
+    with pytest.raises(ArtifactError) as refused:
+        confirm_publish(open_artifacts(), READER, artifact_id, request_id)
+
+    assert refused.value.code == AuthoringErrorCode.ARTIFACT_NOT_FOUND
+    assert provider.built == []

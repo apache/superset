@@ -49,6 +49,9 @@ class ExtensionErrorCode(StrEnum):
     # A transfer link that is forged, malformed, expired or of another kind.
     # Only the transfer routes, which an agent's shell calls, answer it.
     TRANSFER_LINK_INVALID = "TRANSFER_LINK_INVALID"
+    # The version a publish request names doesn't build under the policy in
+    # force, so the confirmation doesn't publish it; the message says why.
+    PUBLISH_BUILD_FAILED = "PUBLISH_BUILD_FAILED"
 
 
 ErrorCode: TypeAlias = AuthoringErrorCode | ExtensionErrorCode

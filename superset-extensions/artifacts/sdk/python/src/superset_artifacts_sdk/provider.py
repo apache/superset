@@ -62,11 +62,14 @@ class FrameContext:
     this context (its CSP ``frame-ancestors``). ``capabilities`` is the grant:
     manifest ∩ policy ∩ context (``policy.grant_for``). Its compute part is
     what the frame's own CSP may add; nothing in it opens a network.
+    ``policy`` is the policy in force: a provider serves nothing of what it
+    builds that the policy refuses now, as packages denied since the build.
     """
 
     mode: FrameMode
     allowed_parents: tuple[str, ...]
     capabilities: frozenset[Capability]
+    policy: ArtifactPolicy | None = None
 
 
 @dataclass(frozen=True)

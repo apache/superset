@@ -53,6 +53,7 @@ def frame_context(
         mode=mode,
         allowed_parents=(origin_of(host_url),),
         capabilities=grant_for(manifest, policy, mode),
+        policy=policy,
     )
 
 
