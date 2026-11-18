@@ -2620,3 +2620,51 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         assert timeout_values == [0], (
             f"Expected only [0] (headstart), got {timeout_values}"
         )
+
+
+class TestWebDriverPlaywrightScreenshotLock:
+    """Screenshots in one worker process run one at a time (#46302)."""
+
+    CONFIG = {
+        "WEBDRIVER_OPTION_ARGS": [],
+        "SCREENSHOT_LOCATE_WAIT": 10,
+        "SCREENSHOT_LOAD_WAIT": 10,
+    }
+
+    @patch("superset.utils.webdriver.app")
+    def test_get_screenshot_holds_the_lock_while_capturing(self, mock_app):
+        mock_app.config = dict(self.CONFIG)
+        driver = WebDriverPlaywright("chrome")
+        lock_state_during_capture: list[bool] = []
+
+        def capture(*_args, **_kwargs):
+            lock_state_during_capture.append(
+                WebDriverPlaywright._screenshot_lock.locked()
+            )
+            return b"png"
+
+        with patch.object(
+            WebDriverPlaywright, "_get_screenshot_locked", side_effect=capture
+        ):
+            result = driver.get_screenshot("http://example.com", "standalone")
+
+        assert result == b"png"
+        assert lock_state_during_capture == [True]
+        assert not WebDriverPlaywright._screenshot_lock.locked()
+
+    @patch("superset.utils.webdriver.app")
+    def test_get_screenshot_releases_the_lock_on_failure(self, mock_app):
+        mock_app.config = dict(self.CONFIG)
+        driver = WebDriverPlaywright("chrome")
+
+        with (
+            patch.object(
+                WebDriverPlaywright,
+                "_get_screenshot_locked",
+                side_effect=RuntimeError("browser gone"),
+            ),
+            pytest.raises(RuntimeError, match="browser gone"),
+        ):
+            driver.get_screenshot("http://example.com", "standalone")
+
+        assert not WebDriverPlaywright._screenshot_lock.locked()
