@@ -36,7 +36,7 @@ from superset_oss.artifacts.data.bindings import (
     BindingError,
     resolve_binding,
 )
-from superset_oss.artifacts.data.resolver import artifact_binding
+from superset_oss.artifacts.data.resolver import artifact_binding, HOST_ROW_LIMIT
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 OWNER = "1"
@@ -190,9 +190,10 @@ def test_a_binding_comes_from_the_version_its_frame_loads(
         )
         return None if binding is None else binding["datasetId"]
 
-    assert artifact_binding(store, LOCKED, VIEWER, asked(artifact_id)) == (
-        resolve_binding(manifest(), "revenue")
-    )
+    assert artifact_binding(store, LOCKED, VIEWER, asked(artifact_id)) == {
+        **resolve_binding(manifest(), "revenue"),
+        "rowLimit": HOST_ROW_LIMIT,
+    }
     # Outside a draft of the canvas, everyone runs the published version.
     assert dataset(VIEWER) == dataset(editor) == 42
     # In their own draft of the canvas, editors run the artifact's draft; anyone
@@ -200,9 +201,10 @@ def test_a_binding_comes_from_the_version_its_frame_loads(
     assert dataset(editor, "token") == 43
     assert dataset(VIEWER, "token") == 42
     # As the frame does, an editor previews an unpublished artifact's draft.
-    assert artifact_binding(store, LOCKED, editor, asked(unpublished)) == (
-        resolve_binding(unpublished_manifest, "revenue")
-    )
+    assert artifact_binding(store, LOCKED, editor, asked(unpublished)) == {
+        **resolve_binding(unpublished_manifest, "revenue"),
+        "rowLimit": HOST_ROW_LIMIT,
+    }
 
 
 def test_a_binding_is_none_when_nothing_would_run(store: ArtifactFileStore) -> None:
@@ -245,6 +247,23 @@ def test_the_policy_is_checked_on_every_query(store: ArtifactFileStore) -> None:
 
     assert artifact_binding(store, LOCKED, VIEWER, asked(artifact_id)) is not None
     assert artifact_binding(store, elsewhere, VIEWER, asked(artifact_id)) is None
+
+
+def test_the_policys_max_rows_caps_every_binding(store: ArtifactFileStore) -> None:
+    undeclared, version = create(store, manifest())
+    publish(store, undeclared, version)
+    declared, version = create(store, manifest(row_limit=50))
+    publish(store, declared, version)
+    hundred = policy_layer({"profile": "locked", "data": {"max_rows": 100}})
+
+    def row_limit(artifact_id: str, policy: Any) -> object:
+        binding = artifact_binding(store, policy, VIEWER, asked(artifact_id))
+        return None if binding is None else binding["rowLimit"]
+
+    # One without a row limit runs with the host's default, capped too.
+    assert row_limit(undeclared, LOCKED) == HOST_ROW_LIMIT
+    assert row_limit(undeclared, hundred) == 100
+    assert row_limit(declared, hundred) == 50
 
 
 def test_a_snapshot_binding_has_no_live_data() -> None:

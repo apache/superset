@@ -46,6 +46,10 @@ from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.frames.access import choose_version
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
+# What the host runs a binding without a row limit with (superset.canvas.data),
+# which the policy's max_rows must cap as well.
+HOST_ROW_LIMIT = 1_000
+
 
 def artifact_binding(
     store: ArtifactFileStore,
@@ -60,7 +64,9 @@ def artifact_binding(
     the artifact, when the version's manifest declares no binding of that
     name, or one that doesn't map onto the host's data request, and when
     ``policy`` refuses it. The host answers each as a widget without the
-    binding.
+    binding. Every binding carries its row limit, capped by the policy's
+    ``data.max_rows``: one declared without any gets the host's default, so
+    capped too.
     """
     if request.widget_id is None:
         return None
@@ -79,6 +85,10 @@ def artifact_binding(
             or binding_problems(request.name, declared, policy)
         ):
             return None
-        return resolve_binding(manifest, request.name)
+        binding = resolve_binding(manifest, request.name)
+        binding["rowLimit"] = min(
+            declared.row_limit or HOST_ROW_LIMIT, policy.data.max_rows
+        )
+        return binding
     except (ArtifactError, BindingError):
         return None
