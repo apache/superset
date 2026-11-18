@@ -19,11 +19,15 @@
 
 /**
  * @fileoverview Frame links from the backend: the provider's short-lived,
- * single-use link to an artifact version, its grant, and the manifest the
- * frame host checks requests against.
+ * single-use link to an artifact version, its grant, the limits of the
+ * frame's requests, and the manifest the frame host checks them against.
  */
 
-import type { ArtifactManifest, Capability } from '@superset-oss/artifacts-sdk';
+import type {
+  ArtifactManifest,
+  BridgeLimits,
+  Capability,
+} from '@superset-oss/artifacts-sdk';
 import { API_BASE_PATH, DRAFT_TOKEN_HEADER } from '../constants';
 import { RequestError, RequestOptions, requestJson } from '../http';
 
@@ -50,6 +54,8 @@ export interface FrameLink {
   /** Whether the viewer is one of the artifact's editors. */
   can_edit: boolean;
   capabilities: Capability[];
+  /** What the frame host holds the frame's requests to. */
+  limits: Partial<BridgeLimits>;
   manifest: HostManifest;
   /** For editors: the publish request waiting for them. */
   pending_publish?: PendingPublish | null;

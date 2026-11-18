@@ -33,14 +33,15 @@ apart. The bridge protocol is defined here only.
 ## The bridge
 
 The frame runs untrusted code on an opaque origin, with no network and no
-login. It learns everything through `state` messages from the host, and asks
-for everything through `request` messages to it.
+login. It learns everything through `state` and `data` messages from the
+host, and asks for everything through `request` messages to it.
 
 ```
 host page                                          sandboxed frame
 createFrameChannel ── name: {k, grant, origin} ──► installRuntime()
                    ◄── ready {protocol, version} ──
-                   ── state {status, bindings, filters, theme?} ──►  onData
+                   ── data {binding, data} ──►  onData, data(binding)
+                   ── state {status, filters, theme?} ──►  onData
                    ◄── request: query | setCrossFilter | refresh ──
                    ◄── error {kind, message, stack?} ──
 ```
@@ -54,10 +55,22 @@ createFrameChannel ── name: {k, grant, origin} ──► installRuntime()
   name it.
 - Both sides check the grant. The runtime throws a `CapabilityError` so that
   the artifact's author learns early; the host's check is the authoritative
-  one, and it also leaves out of `state` what the grant doesn't cover.
+  one, and it also sends nothing that the grant doesn't cover: no `data`
+  without the `data` capability, and only the parts of `state` it covers.
+- A `data` message carries one binding's result, and goes out only when that
+  result changes, so a new result for one binding never sends the others'
+  rows again.
 - The frame never sends queries. `query` asks the host to rerun a declared
   binding with new values for its declared parameters; the host builds the
   query from the stored manifest and runs it as the viewer.
+- A cross-filter ends up in other widgets' queries, so the host accepts one
+  only with values it delivered to that frame, in the binding's latest
+  result, for that dimension. It also caps the values in a cross-filter, the
+  queries that the frame's requests may run and the requests a second
+  (`BridgeLimits`).
+- A frame that never completes its handshake, as when its link expired
+  before it loaded, is reported once (`onHandshakeTimeout`), so that the host
+  can open a new link.
 
 ## Use
 
@@ -94,9 +107,12 @@ const channel = createFrameChannel({
     // Check the request against the manifest, then act on it.
   },
   onError: error => reportToAuthor(error),
+  limits: { queries: policy.maxQueries },
+  onHandshakeTimeout: () => openWithNewLink(),
 });
 frame.name = channel.name; // before the frame loads
 frame.src = frameLink; // a short-lived link from the provider
+channel.postData('revenue_by_region', result); // whenever it changes
 channel.postState(state);
 ```
 

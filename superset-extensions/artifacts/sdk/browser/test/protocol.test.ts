@@ -38,21 +38,19 @@ const region = {
 };
 const state = {
   status: 'ok',
-  bindings: {
-    revenue_by_region: {
-      rows: [{ region: 'EMEA', revenue: 10 }],
-      columns: [{ name: 'region', type: 'STRING' }],
-      definitions: {
-        revenue: {
-          kind: 'metric',
-          expression: 'SUM(revenue)',
-          format: '$,.2f',
-        },
-      },
-    },
-  },
   filters: [{ kind: 'filter', source: 'year-filter', value: 2026 }],
   theme: { mode: 'dark', tokens: { colorPrimary: '#20a7c9' } },
+};
+const result = {
+  rows: [{ region: 'EMEA', revenue: 10 }],
+  columns: [{ name: 'region', type: 'STRING' }],
+  definitions: {
+    revenue: {
+      kind: 'metric',
+      expression: 'SUM(revenue)',
+      format: '$,.2f',
+    },
+  },
 };
 
 test('the protocol has a name and a version', () => {
@@ -241,8 +239,6 @@ test('accepts state from the host', () => {
 
 const invalidStates: [string, unknown][] = [
   ['an unknown status', { ...state, status: 'done' }],
-  ['rows that are not a list', { ...state, bindings: { b: { rows: {} } } }],
-  ['rows that are not objects', { ...state, bindings: { b: { rows: [1] } } }],
   ['filters that are not a list', { ...state, filters: {} }],
   [
     'a filter of an unknown kind',
@@ -257,6 +253,38 @@ invalidStates.forEach(([label, invalid]) => {
     expect(
       parseHostMessage({ k, type: 'state', state: invalid }),
     ).toBeUndefined();
+  });
+});
+
+test('state leaves out the fields the protocol does not define', () => {
+  const parsed = parseHostMessage({
+    k,
+    type: 'state',
+    state: { ...state, bindings: { b: result } },
+  });
+  expect(parsed).toEqual({ k, type: 'state', state });
+});
+
+test("accepts one binding's result from the host", () => {
+  expect(
+    parseHostMessage({ k, type: 'data', binding: 'revenue', data: result }),
+  ).toEqual({ k, type: 'data', binding: 'revenue', data: result });
+});
+
+const invalidData: [string, Record<string, unknown>][] = [
+  ['no binding name', { binding: '', data: result }],
+  ['rows that are not a list', { binding: 'b', data: { rows: {} } }],
+  ['rows that are not objects', { binding: 'b', data: { rows: [1] } }],
+  [
+    'columns without names',
+    { binding: 'b', data: { rows: [], columns: [{ type: 'STRING' }] } },
+  ],
+  ['no result at all', { binding: 'b' }],
+];
+
+invalidData.forEach(([label, fields]) => {
+  test(`rejects data with ${label}`, () => {
+    expect(parseHostMessage({ k, type: 'data', ...fields })).toBeUndefined();
   });
 });
 

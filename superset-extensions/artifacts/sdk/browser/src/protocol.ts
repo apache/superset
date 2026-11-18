@@ -28,7 +28,9 @@
  * iframe's `name` (see {@link FrameConfig}); each side drops messages from
  * any other window or with any other key.
  *
- * - Host to frame: `state`, everything the frame may know.
+ * - Host to frame: `state` (the status, the filters and the theme) whenever
+ *   it changes, and `data`, one binding's result, whenever that changes, so
+ *   that a change to one never sends the others' rows again.
  * - Frame to host: `ready` (the versioned handshake), `request` (`query`,
  *   `setCrossFilter`, `refresh`) and `error`.
  *
@@ -99,13 +101,12 @@ const FRAME_STATUSES = ['loading', 'ok', 'error'] as const;
 export type FrameStatus = (typeof FRAME_STATUSES)[number];
 
 /**
- * Everything the frame may know. The host leaves out what the grant doesn't
- * cover: `bindings` and `filters` need `data`, `theme` needs `theme`.
+ * What the frame may know besides the bindings' data, which arrives one
+ * binding at a time. The host leaves out what the grant doesn't cover:
+ * `filters` need `data`, `theme` needs `theme`.
  */
 export interface FrameState {
   status: FrameStatus;
-  /** Keyed by binding name. */
-  bindings: Record<string, BindingData>;
   filters: ArtifactFilter[];
   theme?: ArtifactTheme;
   /** Why the bindings failed, when `status` is `error`. */
@@ -165,6 +166,14 @@ export interface StateMessage {
   state: FrameState;
 }
 
+/** Host to frame: one binding's result, sent whenever it changes. Needs `data`. */
+export interface DataMessage {
+  k: string;
+  type: 'data';
+  binding: string;
+  data: BindingData;
+}
+
 /** Frame to host: the runtime is listening, and speaks this protocol. */
 export interface ReadyMessage {
   k: string;
@@ -189,7 +198,7 @@ export interface ErrorMessage {
   stack?: string;
 }
 
-export type HostMessage = StateMessage;
+export type HostMessage = StateMessage | DataMessage;
 export type FrameMessage = ReadyMessage | RequestMessage | ErrorMessage;
 
 /**
@@ -322,16 +331,10 @@ export function parseFrameMessage(data: unknown): FrameMessage | undefined {
   }
 }
 
-/** Validate a host-to-frame message. */
-export function parseHostMessage(data: unknown): HostMessage | undefined {
-  if (!isRecord(data)) return undefined;
-  const { k, state } = data;
-  if (!isNonEmptyString(k) || data.type !== 'state') return undefined;
+function parseFrameState(state: unknown): FrameState | undefined {
   if (
     !isRecord(state) ||
     !isFrameStatus(state.status) ||
-    !isRecord(state.bindings) ||
-    !Object.values(state.bindings).every(isBindingData) ||
     !Array.isArray(state.filters) ||
     !state.filters.every(isArtifactFilter) ||
     (state.theme !== undefined && !isArtifactTheme(state.theme)) ||
@@ -340,16 +343,29 @@ export function parseHostMessage(data: unknown): HostMessage | undefined {
     return undefined;
   }
   return {
-    k,
-    type: 'state',
-    state: {
-      status: state.status,
-      bindings: state.bindings as Record<string, BindingData>,
-      filters: state.filters,
-      ...(isArtifactTheme(state.theme) ? { theme: state.theme } : {}),
-      ...(typeof state.error === 'string' ? { error: state.error } : {}),
-    },
+    status: state.status,
+    filters: state.filters,
+    ...(isArtifactTheme(state.theme) ? { theme: state.theme } : {}),
+    ...(typeof state.error === 'string' ? { error: state.error } : {}),
   };
+}
+
+/** Validate a host-to-frame message. */
+export function parseHostMessage(data: unknown): HostMessage | undefined {
+  if (!isRecord(data) || !isNonEmptyString(data.k)) return undefined;
+  const { k } = data;
+  if (data.type === 'state') {
+    const state = parseFrameState(data.state);
+    return state && { k, type: 'state', state };
+  }
+  if (
+    data.type === 'data' &&
+    isNonEmptyString(data.binding) &&
+    isBindingData(data.data)
+  ) {
+    return { k, type: 'data', binding: data.binding, data: data.data };
+  }
+  return undefined;
 }
 
 /** Encode the frame's config as the value of the iframe's `name`. */

@@ -220,6 +220,7 @@ def test_a_link_is_minted_for_the_served_version_in_its_context(
         "is_draft": True,
         "can_edit": True,
         "capabilities": ["compute.wasm", "data", "theme"],
+        "limits": {"queries": STANDARD.data.max_queries},
         "manifest": host_manifest(MANIFEST),
     }
     json.dumps(answer)

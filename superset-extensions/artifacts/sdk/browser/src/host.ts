@@ -22,20 +22,30 @@
  *
  * A channel belongs to one iframe: it accepts only messages whose
  * `event.source` is that iframe's window and that carry its key, and it
- * enforces the capability grant itself. This is the authoritative check: the
- * runtime in the frame checks too, but the frame runs untrusted code.
+ * enforces the capability grant and its limits itself. This is the
+ * authoritative check: the runtime in the frame checks too, but the frame
+ * runs untrusted code.
+ *
+ * A cross-filter ends up in the queries of other widgets, so the channel
+ * accepts only values that it delivered to the frame, in the latest result of
+ * that binding, for that dimension: the frame can point at its data, but
+ * never write text of its own into another query.
  *
  * @example
  * ```typescript
  * const channel = createFrameChannel({ frame, grant, onRequest, onError });
  * frame.name = channel.name; // before the frame loads
  * frame.src = frameLink; // a short-lived link from the provider
+ * channel.postData('revenue_by_region', result);
  * channel.postState(state);
  * ```
  */
 
 import { Capability, isCapability } from './capabilities';
 import {
+  BindingData,
+  DataEventValue,
+  DataMessage,
   encodeFrameConfig,
   FrameErrorKind,
   FrameRequest,
@@ -56,19 +66,53 @@ export interface ChannelError {
   stack?: string;
 }
 
+/** The most a channel accepts from its frame. */
+export interface BridgeLimits {
+  /**
+   * Queries that the frame's own requests may run while the channel is open:
+   * a `query` runs one, a `refresh` one per binding delivered so far.
+   */
+  queries: number;
+  /** Requests the frame may send in any one second. */
+  requestsPerSecond: number;
+  /** Values one cross-filter may carry. */
+  crossFilterValues: number;
+}
+
+export const DEFAULT_BRIDGE_LIMITS: Readonly<BridgeLimits> = Object.freeze({
+  queries: 16,
+  requestsPerSecond: 10,
+  crossFilterValues: 100,
+});
+
+/** How long a frame has to complete its handshake, by default. */
+export const HANDSHAKE_TIMEOUT_MS = 15_000;
+
 export interface FrameChannelOptions {
   /** The artifact's iframe, sandboxed with `allow-scripts` only. */
   frame: HTMLIFrameElement;
   /** The capabilities granted to the frame in this context. */
   grant: readonly Capability[];
   /**
-   * Called for each well-formed request that the grant allows. Check it
-   * against the manifest (declared bindings, parameters and events) before
-   * acting on it.
+   * Called for each well-formed request that the grant and the limits allow.
+   * Check it against the manifest (declared bindings, parameters and events)
+   * before acting on it.
    */
   onRequest: (request: FrameRequest) => void;
   /** Called for the frame's errors, and for messages the host refused. */
   onError: (error: ChannelError) => void;
+  /**
+   * Limits in place of {@link DEFAULT_BRIDGE_LIMITS}, such as the policy's.
+   * One that isn't a number of zero or more keeps its default.
+   */
+  limits?: Partial<BridgeLimits>;
+  /**
+   * Called once if the frame hasn't completed its handshake
+   * `handshakeTimeoutMs` after the channel opened, as when its link expired
+   * before it loaded. Open a new link then: this one is spent.
+   */
+  onHandshakeTimeout?: () => void;
+  handshakeTimeoutMs?: number;
   /** The window to listen on; the page's own window by default. */
   hostWindow?: Window;
 }
@@ -81,7 +125,15 @@ export interface FrameChannel {
    * handshake, the latest state is held and sent when the frame is ready.
    */
   postState(state: FrameState): void;
-  /** Stop listening and drop any held state. */
+  /**
+   * Send the frame a binding's result, if the grant covers `data`. Posting
+   * the result last sent for that binding again sends nothing, so a host can
+   * post every binding whenever one changes. Before the handshake, each
+   * binding's latest result is held. Don't change a result once posted: the
+   * channel checks cross-filters against it.
+   */
+  postData(binding: string, data: BindingData): void;
+  /** Stop listening and drop anything held. */
   dispose(): void;
 }
 
@@ -97,14 +149,29 @@ function stateForGrant(
   state: FrameState,
   granted: ReadonlySet<Capability>,
 ): FrameState {
-  const data = granted.has(Capability.DATA);
   const theme = granted.has(Capability.THEME) ? state.theme : undefined;
   return {
     status: state.status,
-    bindings: data ? state.bindings : {},
-    filters: data ? state.filters : [],
+    filters: granted.has(Capability.DATA) ? state.filters : [],
     ...(theme === undefined ? {} : { theme }),
     ...(state.error === undefined ? {} : { error: state.error }),
+  };
+}
+
+const hasOwn = (row: object, key: string): boolean =>
+  Object.prototype.hasOwnProperty.call(row, key);
+
+function limitsOf(limits: Partial<BridgeLimits> | undefined): BridgeLimits {
+  const pick = (name: keyof BridgeLimits): number => {
+    const value: unknown = limits?.[name];
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0
+      ? value
+      : DEFAULT_BRIDGE_LIMITS[name];
+  };
+  return {
+    queries: pick('queries'),
+    requestsPerSecond: pick('requestsPerSecond'),
+    crossFilterValues: pick('crossFilterValues'),
   };
 }
 
@@ -119,34 +186,122 @@ export function createFrameChannel({
   grant,
   onRequest,
   onError,
+  limits,
+  onHandshakeTimeout,
+  handshakeTimeoutMs = HANDSHAKE_TIMEOUT_MS,
   hostWindow,
 }: FrameChannelOptions): FrameChannel {
   const host = hostWindow ?? window;
   const key = createChannelKey();
   const granted = new Set(grant.filter(isCapability));
+  const caps = limitsOf(limits);
   const name = encodeFrameConfig({
     k: key,
     grant: [...granted],
     origin: host.location.origin,
   });
   let latest: FrameState | undefined;
+  // Each binding's latest result, until the frame is ready for it.
+  const held = new Map<string, BindingData>();
+  // Each binding's result as last sent, and the values of its dimensions,
+  // read from it when a cross-filter first names them.
+  const delivered = new Map<string, BindingData>();
+  const deliveredValues = new Map<string, Map<string, ReadonlySet<unknown>>>();
+  let queries = 0;
+  let arrivals: number[] = [];
+  let throttled = false;
   let ready = false;
   let disposed = false;
 
-  const post = (state: FrameState) => {
-    const message: StateMessage = {
-      k: key,
-      type: 'state',
-      state: stateForGrant(state, granted),
-    };
-    // The frame's origin is opaque, so no target origin can name it; the
-    // channel stays bound to this frame by its window and its key. The
-    // sandbox's headers and the host's exact `frame-src` keep the frame from
-    // navigating elsewhere.
+  const handshakeTimer =
+    onHandshakeTimeout === undefined
+      ? undefined
+      : globalThis.setTimeout(() => {
+          if (!ready && !disposed) onHandshakeTimeout();
+        }, handshakeTimeoutMs);
+
+  // The frame's origin is opaque, so no target origin can name it; the
+  // channel stays bound to this frame by its window and its key. The
+  // sandbox's headers and the host's exact `frame-src` keep the frame from
+  // navigating elsewhere.
+  const send = (message: StateMessage | DataMessage) =>
     frame.contentWindow?.postMessage(message, '*');
+
+  const sendState = (state: FrameState) =>
+    send({ k: key, type: 'state', state: stateForGrant(state, granted) });
+
+  const sendData = (binding: string, data: BindingData) => {
+    if (delivered.get(binding) === data) return;
+    send({ k: key, type: 'data', binding, data });
+    delivered.set(binding, data);
+    deliveredValues.delete(binding);
   };
 
   const refuse = (message: string) => onError({ source: 'host', message });
+
+  const valuesDelivered = (
+    binding: string,
+    dimension: string,
+  ): ReadonlySet<unknown> | undefined => {
+    const data = delivered.get(binding);
+    if (!data) return undefined;
+    const byDimension =
+      deliveredValues.get(binding) ?? new Map<string, ReadonlySet<unknown>>();
+    deliveredValues.set(binding, byDimension);
+    let values = byDimension.get(dimension);
+    if (!values) {
+      values = new Set(
+        data.rows
+          .filter(row => hasOwn(row, dimension))
+          .map(row => row[dimension]),
+      );
+      byDimension.set(dimension, values);
+    }
+    return values;
+  };
+
+  const crossFilterProblem = (
+    value: DataEventValue | null,
+  ): string | undefined => {
+    if (value === null) return undefined;
+    if (value.values.length > caps.crossFilterValues) {
+      return `a cross-filter carries at most ${caps.crossFilterValues} values`;
+    }
+    const values = valuesDelivered(value.binding, value.dimension);
+    if (!values) return `no data was delivered for "${value.binding}"`;
+    if (!value.values.every(candidate => values.has(candidate))) {
+      return (
+        `its values must come from the "${value.dimension}" values ` +
+        `delivered for "${value.binding}"`
+      );
+    }
+    return undefined;
+  };
+
+  const queryProblem = (request: FrameRequest): string | undefined => {
+    const cost = request.type === 'refresh' ? Math.max(1, delivered.size) : 1;
+    if (queries + cost > caps.queries) {
+      return `this frame may run at most ${caps.queries} queries`;
+    }
+    queries += cost;
+    return undefined;
+  };
+
+  /** Whether a request fits the rate limit; refusals are reported once a burst. */
+  const admit = (): boolean => {
+    const now = Date.now();
+    arrivals = arrivals.filter(time => now - time < 1000);
+    if (arrivals.length >= caps.requestsPerSecond) {
+      if (!throttled) {
+        refuse(`refused requests over ${caps.requestsPerSecond} a second`);
+      }
+      throttled = true;
+      return false;
+    }
+    throttled = false;
+    arrivals.push(now);
+    return true;
+  };
 
   const handleRequest = (request: FrameRequest) => {
     const capability = REQUEST_CAPABILITY[request.type];
@@ -157,9 +312,14 @@ export function createFrameChannel({
       );
       return;
     }
-    // TODO: accept only cross-filter values the host delivered, and type and
-    // rate-limit parameters. Canvas then applies events by scope, once it
-    // supports cross-filters and data events from extension widgets.
+    const problem =
+      request.type === 'setCrossFilter'
+        ? crossFilterProblem(request.value)
+        : queryProblem(request);
+    if (problem) {
+      refuse(`refused ${request.type}: ${problem}`);
+      return;
+    }
     onRequest(request);
   };
 
@@ -169,6 +329,7 @@ export function createFrameChannel({
     const message = parseFrameMessage(event.data);
     if (!message || message.k !== key) return;
     if (message.type === 'ready') {
+      globalThis.clearTimeout(handshakeTimer);
       ready =
         message.protocol === PROTOCOL_NAME &&
         message.version === PROTOCOL_VERSION;
@@ -177,9 +338,12 @@ export function createFrameChannel({
           `the frame speaks ${message.protocol} ${message.version}; this ` +
             `host speaks ${PROTOCOL_NAME} ${PROTOCOL_VERSION}`,
         );
-      } else if (latest) {
-        post(latest);
+        return;
       }
+      // Data first, so that a state saying `ok` finds it in place.
+      held.forEach((data, binding) => sendData(binding, data));
+      held.clear();
+      if (latest) sendState(latest);
     } else if (message.type === 'error') {
       // TODO: decide which frame errors may reach an agent.
       onError({
@@ -188,10 +352,9 @@ export function createFrameChannel({
         message: message.message,
         ...(message.stack === undefined ? {} : { stack: message.stack }),
       });
-    } else if (!ready) {
-      refuse(`refused ${message.request.type}: the frame is not ready`);
-    } else {
-      handleRequest(message.request);
+    } else if (admit()) {
+      if (ready) handleRequest(message.request);
+      else refuse(`refused ${message.request.type}: the frame is not ready`);
     }
   };
 
@@ -202,11 +365,20 @@ export function createFrameChannel({
     postState(state: FrameState) {
       if (disposed) return;
       latest = state;
-      if (ready) post(state);
+      if (ready) sendState(state);
+    },
+    postData(binding: string, data: BindingData) {
+      if (disposed || !granted.has(Capability.DATA)) return;
+      if (ready) sendData(binding, data);
+      else held.set(binding, data);
     },
     dispose() {
       disposed = true;
+      globalThis.clearTimeout(handshakeTimer);
       latest = undefined;
+      held.clear();
+      delivered.clear();
+      deliveredValues.clear();
       host.removeEventListener('message', onMessage);
     },
   };

@@ -30,6 +30,8 @@
 
 import { useEffect, useRef } from 'react';
 import {
+  BindingData,
+  BridgeLimits,
   Capability,
   ChannelError,
   createFrameChannel,
@@ -43,16 +45,34 @@ export interface FrameHostProps {
   url: string;
   /** The capabilities granted to the frame in this context. */
   grant: readonly Capability[];
-  /** What the frame may know; sent again whenever it changes. */
+  /** What the frame's requests are held to, as the link's policy says. */
+  limits?: Partial<BridgeLimits>;
+  /** What the frame may know besides its data; sent whenever it changes. */
   state: FrameState;
+  /**
+   * Each binding's latest result. Only a result whose object changed is sent
+   * again, so replace one binding's result without copying the others'.
+   */
+  bindings: Readonly<Record<string, BindingData>>;
   /** The iframe's accessible name. */
   title: string;
   /**
-   * A request the grant allows. Check it against the manifest before acting
-   * on it: the channel checks only the capability.
+   * A request the grant and the limits allow. Check it against the manifest
+   * before acting on it: the channel can't.
    */
   onRequest: (request: FrameRequest) => void;
   onError: (error: ChannelError) => void;
+  /** The frame never completed its handshake: its link needs replacing. */
+  onHandshakeTimeout?: () => void;
+}
+
+function postBindings(
+  channel: FrameChannel,
+  bindings: Readonly<Record<string, BindingData>>,
+) {
+  Object.entries(bindings).forEach(([name, data]) =>
+    channel.postData(name, data),
+  );
 }
 
 /** Only http(s) links load: never `javascript:`, `data:` or `blob:` ones. */
@@ -68,18 +88,39 @@ function isFrameUrl(url: string): boolean {
 export default function FrameHost({
   url,
   grant,
+  limits,
   state,
+  bindings,
   title,
   onRequest,
   onError,
+  onHandshakeTimeout,
 }: FrameHostProps) {
   const container = useRef<HTMLDivElement>(null);
   const channel = useRef<FrameChannel>();
   const frame = useRef<HTMLIFrameElement>();
   // The latest values, read by the long-lived effect below without
   // re-creating the frame when only they change.
-  const latest = useRef({ state, title, grant, onRequest, onError });
-  latest.current = { state, title, grant, onRequest, onError };
+  const latest = useRef({
+    state,
+    bindings,
+    title,
+    grant,
+    limits,
+    onRequest,
+    onError,
+    onHandshakeTimeout,
+  });
+  latest.current = {
+    state,
+    bindings,
+    title,
+    grant,
+    limits,
+    onRequest,
+    onError,
+    onHandshakeTimeout,
+  };
   const grantKey = [...grant].sort().join(',');
 
   useEffect(() => {
@@ -103,11 +144,14 @@ export default function FrameHost({
     const opened = createFrameChannel({
       frame: element,
       grant: latest.current.grant,
+      limits: latest.current.limits,
       onRequest: request => latest.current.onRequest(request),
       onError: error => latest.current.onError(error),
+      onHandshakeTimeout: () => latest.current.onHandshakeTimeout?.(),
     });
     element.name = opened.name;
     element.src = url;
+    postBindings(opened, latest.current.bindings);
     opened.postState(latest.current.state);
     host.appendChild(element);
     channel.current = opened;
@@ -119,6 +163,11 @@ export default function FrameHost({
       frame.current = undefined;
     };
   }, [url, grantKey]);
+
+  // Before the state's effect, so that a state saying `ok` finds its data.
+  useEffect(() => {
+    if (channel.current) postBindings(channel.current, bindings);
+  }, [bindings]);
 
   useEffect(() => {
     channel.current?.postState(state);

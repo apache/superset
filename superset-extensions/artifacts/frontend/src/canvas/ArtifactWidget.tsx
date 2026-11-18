@@ -23,17 +23,17 @@
  *
  * The placement holds the artifact's saved widget, whose UUID is the
  * artifact's id. The renderer asks the backend for a frame link to the
- * version this viewer may see, opens the sandboxed frame on it, sends the frame its state (the
- * bindings' data, the filters that reach it, the theme) and acts on the
+ * version this viewer may see, and opens the sandboxed frame on it. It sends
+ * the frame each binding's result whenever that changes, and its state (the
+ * filters that reach it, the theme) whenever that does, and acts on the
  * frame's requests only after checking them against the manifest:
  * `setCrossFilter` through the canvas, `refresh` and `query` by fetching
  * again.
  */
 
-// TODO: a render-complete signal, and cross-filter values accepted only from
-// the data the host delivered.
+// TODO: a render-complete signal.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   canvas,
   components,
@@ -41,7 +41,6 @@ import {
   translation,
 } from '@apache-superset/core';
 import type {
-  BindingData,
   Capability,
   ChannelError,
   FrameRequest,
@@ -50,15 +49,16 @@ import type {
 import PublishRequest from '../authoring/PublishRequest';
 import {
   artifactFilters,
+  BindingSource,
   checkQuery,
   crossFilterValue,
-  fetchBinding,
-  fetchBindings,
   runtimeFilters,
 } from '../data/bindings';
+import useBindings from '../data/useBindings';
 import { fetchPlacementFrame, FrameLink } from '../frames/api';
 import FrameHost from '../frames/FrameHost';
 import { frameTheme } from '../frames/theme';
+import useFrameLink from '../frames/useFrameLink';
 import { errorMessage } from '../http';
 
 const { Alert } = components;
@@ -82,113 +82,75 @@ export default function ArtifactWidget({
   refreshKey,
   draftToken,
 }: canvas.CanvasWidgetProps) {
-  const [frame, setFrame] = useState<OpenFrame>();
-  const [linkError, setLinkError] = useState<string>();
-  const [linkNonce, setLinkNonce] = useState(0);
-
+  // While the canvas shows a draft, the artifact's editors see its draft, so
+  // that they can check it before they publish it; the server serves
+  // everyone else the published version. The bindings run from the same
+  // version, as their requests carry the same draft token.
+  const fetchLink = useMemo(
+    () =>
+      widgetId
+        ? async (): Promise<OpenFrame> => {
+            const link = await fetchPlacementFrame({
+              widgetId,
+              canvasId,
+              placementId: nodeId,
+              draftToken,
+            });
+            return {
+              ...link,
+              grant: link.capabilities.filter(
+                capability =>
+                  capability !== 'cross_filter' || crossFiltersEnabled,
+              ),
+            };
+          }
+        : undefined,
+    [widgetId, canvasId, nodeId, draftToken, crossFiltersEnabled],
+  );
   // A link is single-use, so every change that needs a new frame fetches a
   // new link, the grant included.
-  useEffect(() => {
-    if (!widgetId) {
-      setFrame(undefined);
-      setLinkError(t('This placement holds no saved artifact.'));
-      return undefined;
-    }
-    let cancelled = false;
-    setLinkError(undefined);
-    // While the canvas shows a draft, the artifact's editors see its draft, so
-    // that they can check it before they publish it; the server serves
-    // everyone else the published version. The bindings run from the same
-    // version, as their requests carry the same draft token.
-    fetchPlacementFrame({
+  const {
+    link: frame,
+    error: linkError,
+    reload,
+    onHandshakeTimeout,
+  } = useFrameLink(
+    fetchLink,
+    JSON.stringify([
       widgetId,
       canvasId,
-      placementId: nodeId,
+      nodeId,
       draftToken,
-    })
-      .then(link => {
-        if (cancelled) return;
-        setFrame({
-          ...link,
-          grant: link.capabilities.filter(
-            capability => capability !== 'cross_filter' || crossFiltersEnabled,
-          ),
-        });
-      })
-      .catch((reason: unknown) => {
-        if (cancelled) return;
-        setFrame(undefined);
-        setLinkError(errorMessage(reason));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [canvasId, nodeId, widgetId, draftToken, crossFiltersEnabled, linkNonce]);
+      crossFiltersEnabled,
+    ]),
+  );
 
   const manifest = frame?.manifest;
+  const source = useMemo<BindingSource>(
+    () => ({ kind: 'placement', canvasId, placementId: nodeId, draftToken }),
+    [canvasId, nodeId, draftToken],
+  );
   const selected = useMemo(
     () => runtimeFilters([...filters, ...crossFilters]),
     [filters, crossFilters],
   );
-  const selectedKey = JSON.stringify(selected);
-  const [bindings, setBindings] = useState<Record<string, BindingData>>({});
-  const [status, setStatus] = useState<FrameState['status']>('loading');
-  const [dataError, setDataError] = useState<string>();
-  const [dataNonce, setDataNonce] = useState(0);
-
-  useEffect(() => {
-    if (!manifest) return undefined;
-    if (Object.keys(manifest.bindings ?? {}).length === 0) {
-      setBindings({});
-      setStatus('ok');
-      setDataError(undefined);
-      return undefined;
-    }
-    let cancelled = false;
-    setStatus('loading');
-    fetchBindings(manifest, {
-      canvasId,
-      placementId: nodeId,
-      draftToken,
-      filters: selected,
-    })
-      .then(data => {
-        if (cancelled) return;
-        setBindings(data);
-        setStatus('ok');
-        setDataError(undefined);
-      })
-      .catch((reason: unknown) => {
-        if (cancelled) return;
-        setStatus('error');
-        setDataError(errorMessage(reason));
-      });
-    return () => {
-      cancelled = true;
-    };
-    // `selectedKey` stands in for `selected`, a new array on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
+  const { bindings, status, error, refresh, rerun } = useBindings(
     manifest,
-    canvasId,
-    nodeId,
-    draftToken,
-    selectedKey,
+    source,
+    selected,
     refreshKey,
-    dataNonce,
-  ]);
+  );
 
   const theme = useTheme();
   const themeForFrame = useMemo(() => frameTheme(theme), [theme]);
   const state = useMemo<FrameState>(
     () => ({
       status,
-      bindings,
       filters: artifactFilters(filters, crossFilters),
       theme: themeForFrame,
-      ...(dataError === undefined ? {} : { error: dataError }),
+      ...(error === undefined ? {} : { error }),
     }),
-    [status, bindings, filters, crossFilters, themeForFrame, dataError],
+    [status, filters, crossFilters, themeForFrame, error],
   );
 
   const [notice, setNotice] = useState<string>();
@@ -196,30 +158,20 @@ export default function ArtifactWidget({
     setNotice(t('The artifact asked for something it may not do: %s', reason));
   }, []);
 
-  const refetchBinding = useCallback(
-    (binding: string) => {
-      fetchBinding({
-        canvasId,
-        placementId: nodeId,
-        binding,
-        draftToken,
-        filters: selected,
-      })
-        .then(data => setBindings(current => ({ ...current, [binding]: data })))
-        .catch((reason: unknown) => setNotice(errorMessage(reason)));
-    },
-    [canvasId, nodeId, draftToken, selected],
-  );
-
-  // The channel has checked the grant; the manifest is checked here.
+  // The channel has checked the grant, its limits and that cross-filter
+  // values were delivered; the manifest is checked here.
   const onRequest = useCallback(
     (request: FrameRequest) => {
       if (!manifest) return;
       switch (request.type) {
         case 'query': {
           const checked = checkQuery(manifest, request);
-          if (checked.ok) refetchBinding(checked.value);
-          else refuse(checked.reason);
+          if (!checked.ok) refuse(checked.reason);
+          else {
+            rerun(checked.value).catch((reason: unknown) =>
+              setNotice(errorMessage(reason)),
+            );
+          }
           break;
         }
         case 'setCrossFilter': {
@@ -233,25 +185,28 @@ export default function ArtifactWidget({
           break;
         }
         case 'refresh':
-          setDataNonce(nonce => nonce + 1);
+          refresh();
           break;
         default:
           break;
       }
     },
-    [manifest, refetchBinding, refuse, setCrossFilter],
+    [manifest, rerun, refresh, refuse, setCrossFilter],
   );
 
   // Errors are the author's to fix, so only the artifact's editors see them.
   // Which of them may reach an agent is still to decide.
   const onError = useCallback(
-    (error: ChannelError) => {
-      if (frame?.can_edit) setNotice(error.message);
+    (channelError: ChannelError) => {
+      if (frame?.can_edit) setNotice(channelError.message);
     },
     [frame?.can_edit],
   );
 
   const shownTitle = title ?? manifest?.title ?? t('Artifact');
+  const shownLinkError = widgetId
+    ? linkError
+    : t('This placement holds no saved artifact.');
 
   return (
     <div
@@ -266,7 +221,7 @@ export default function ArtifactWidget({
         <PublishRequest
           artifactId={frame.artifact_id}
           pending={frame.pending_publish}
-          onPublished={() => setLinkNonce(nonce => nonce + 1)}
+          onPublished={reload}
         />
       )}
       <div style={{ flex: 1, minHeight: 0 }}>
@@ -274,15 +229,18 @@ export default function ArtifactWidget({
           <FrameHost
             url={frame.url}
             grant={frame.grant}
+            limits={frame.limits}
             state={state}
+            bindings={bindings}
             title={shownTitle}
             onRequest={onRequest}
             onError={onError}
+            onHandshakeTimeout={onHandshakeTimeout}
           />
         ) : (
-          linkError && (
+          shownLinkError && (
             <Alert type="warning" closable={false}>
-              {linkError}
+              {shownLinkError}
             </Alert>
           )
         )}

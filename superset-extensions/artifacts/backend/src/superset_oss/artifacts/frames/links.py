@@ -19,8 +19,8 @@ A frame link for the version a viewer is served, and what comes with it.
 
 The canvas and the standalone page answer the same shape: the provider's
 short-lived link, the version it loads, whether the viewer may edit the
-artifact, the grant, and the parts of the manifest that the frame host checks
-the frame's requests against.
+artifact, the grant, the limits the frame host holds the frame's requests to,
+and the parts of the manifest that it checks them against.
 """
 
 from __future__ import annotations
@@ -72,5 +72,7 @@ def link_payload(  # noqa: PLR0913
         "is_draft": served.is_draft,
         "can_edit": served.can_edit,
         "capabilities": sorted(context.capabilities),
+        # The frame host's names for them (the SDK's ``BridgeLimits``).
+        "limits": {"queries": policy.data.max_queries},
         "manifest": host_manifest(manifest),
     }

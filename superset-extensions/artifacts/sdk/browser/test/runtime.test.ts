@@ -38,10 +38,10 @@ const HOST_ORIGIN = 'https://superset.example.com';
 const k = 'c'.repeat(32);
 const okState = {
   status: 'ok',
-  bindings: { sales: { rows: [{ region: 'EMEA', total: 10 }] } },
   filters: [{ kind: 'cross_filter', source: 'map', value: ['EMEA'] }],
   theme: { mode: 'dark', tokens: { colorPrimary: '#20a7c9' } },
 };
+const sales = { rows: [{ region: 'EMEA', total: 10 }] };
 
 function setup(grant: Capability[] = [Capability.DATA]) {
   const host = createFakeWindow({ origin: HOST_ORIGIN });
@@ -90,9 +90,6 @@ test('replays the latest state to each listener, then follows updates', () => {
   fromHost({ type: 'state', state: okState });
   expect(seen).toEqual(['loading', 'ok']);
   expect(runtime.status()).toBe('ok');
-  expect(runtime.data('sales')).toEqual(okState.bindings.sales);
-  expect(runtime.data('missing')).toBeUndefined();
-  expect(runtime.data('__proto__')).toBeUndefined();
   expect(runtime.filters()).toEqual(okState.filters);
 
   const late: FrameStatus[] = [];
@@ -100,6 +97,29 @@ test('replays the latest state to each listener, then follows updates', () => {
     late.push(state.status);
   });
   expect(late).toEqual(['ok']);
+});
+
+test("takes each binding's result on its own, and tells the listeners", () => {
+  const { fromHost, runtime } = setup();
+  let calls = 0;
+  runtime.onData(() => {
+    calls += 1;
+  });
+  fromHost({ type: 'data', binding: 'sales', data: sales });
+  expect(calls).toBe(2);
+  expect(runtime.data('sales')).toEqual(sales);
+
+  const costs = { rows: [{ region: 'EMEA', total: 4 }] };
+  fromHost({ type: 'data', binding: 'costs', data: costs });
+  expect(runtime.data('costs')).toEqual(costs);
+  // A result for one binding leaves the others' in place.
+  expect(runtime.data('sales')).toEqual(sales);
+  expect(runtime.data('missing')).toBeUndefined();
+  expect(runtime.data('__proto__')).toBeUndefined();
+
+  fromHost({ type: 'state', state: { ...okState, status: 'loading' } });
+  expect(runtime.data('sales')).toEqual(sales);
+  expect(calls).toBe(4);
 });
 
 test('unsubscribing stops the updates', () => {
@@ -113,10 +133,16 @@ test('unsubscribing stops the updates', () => {
   expect(seen).toEqual(['loading']);
 });
 
-test('takes state only from its parent, and only with its key', () => {
+test('takes state and data only from its parent, and only with its key', () => {
   const { frame, host, runtime } = setup();
   const stranger = createFakeWindow();
   frame.deliver(stranger.window, { k, type: 'state', state: okState });
+  frame.deliver(stranger.window, {
+    k,
+    type: 'data',
+    binding: 'sales',
+    data: sales,
+  });
   frame.deliver(host.window, {
     k: 'd'.repeat(32),
     type: 'state',
@@ -124,6 +150,7 @@ test('takes state only from its parent, and only with its key', () => {
   });
   frame.deliver(host.window, { k, type: 'state', state: { status: 'done' } });
   expect(runtime.status()).toBe('loading');
+  expect(runtime.data('sales')).toBeUndefined();
 });
 
 test('guards every data and event method by its capability', () => {

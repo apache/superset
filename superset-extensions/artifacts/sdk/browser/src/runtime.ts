@@ -30,7 +30,8 @@
  * code in the frame is untrusted.
  *
  * Results never come back from a request directly: every change, including
- * the result of a `query`, arrives as new state through `onData`.
+ * the result of a `query`, arrives through `onData`, which runs whenever the
+ * state or one binding's result changes.
  */
 
 import { Capability } from './capabilities';
@@ -74,8 +75,8 @@ export interface SupersetRuntime {
   /** The capabilities this frame was granted. */
   readonly capabilities: readonly Capability[];
   /**
-   * Call `listener` with the latest state at once, then on every change.
-   * Returns a function that unsubscribes it.
+   * Call `listener` with the latest state at once, then whenever the state
+   * or a binding's result changes. Returns a function that unsubscribes it.
    */
   onData(listener: StateListener): () => void;
   /** The latest result of a named binding. Needs `data`. */
@@ -138,8 +139,9 @@ export function installRuntime(win: Window = window): SupersetRuntime {
   const { parent } = win;
   const granted = new Set<Capability>(config ? config.grant : []);
   let state: FrameState = config
-    ? { status: 'loading', bindings: {}, filters: [] }
-    : { status: 'error', bindings: {}, filters: [], error: DISCONNECTED };
+    ? { status: 'loading', filters: [] }
+    : { status: 'error', filters: [], error: DISCONNECTED };
+  const bindings = new Map<string, BindingData>();
   let listeners: StateListener[] = [];
 
   const post = (message: FrameMessage) => {
@@ -185,7 +187,8 @@ export function installRuntime(win: Window = window): SupersetRuntime {
     if (!config || event.source !== parent) return;
     const message = parseHostMessage(event.data);
     if (!message || message.k !== config.k) return;
-    ({ state } = message);
+    if (message.type === 'state') ({ state } = message);
+    else bindings.set(message.binding, message.data);
     listeners.forEach(notify);
   };
 
@@ -200,9 +203,7 @@ export function installRuntime(win: Window = window): SupersetRuntime {
     },
     data(name: string) {
       need(Capability.DATA, 'data');
-      return Object.prototype.hasOwnProperty.call(state.bindings, name)
-        ? state.bindings[name]
-        : undefined;
+      return bindings.get(name);
     },
     filters() {
       need(Capability.DATA, 'filters');

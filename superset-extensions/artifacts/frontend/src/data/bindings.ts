@@ -18,19 +18,17 @@
  */
 
 /**
- * @fileoverview Named bindings: their data, fetched through the canvas
- * placement data endpoint as the viewer, and the host-side checks of what the
- * frame asks for.
+ * @fileoverview Named bindings: their data, fetched as the viewer through the
+ * canvas placement data endpoint, or the saved widget's own on a page of its
+ * own, and the host-side checks of what the frame asks for.
  *
  * The server builds every query from the stored manifest of the version the
- * frame loads; the frame only names a declared binding. A request names the
- * binding, and carries the token of the draft the page shows, so that a
- * draft's placement is read from the draft.
+ * frame loads; the frame only names a declared binding. A placement's request
+ * carries the token of the draft the page shows, so that a draft's placement
+ * is read from the draft.
  */
 
 // TODO: typed parameters, so that `query` can send new values.
-// TODO: accept only cross-filter values the host delivered, and rate-limit
-// parameters.
 
 import type {
   ArtifactFilter,
@@ -123,30 +121,48 @@ interface PlacementDataResponse {
   result?: { datasets?: { inline_data?: DataRow[] }[] };
 }
 
-/** Where a placement's bindings run: its canvas, the draft, the filters. */
-export interface BindingRequest {
-  canvasId: number;
-  placementId: string;
-  draftToken?: string;
-  filters: SelectFilterValue[];
+/**
+ * Where a frame's bindings run: the canvas placement that shows it, in the
+ * draft the page shows if any, or the saved widget on a page of its own.
+ */
+export type BindingSource =
+  | {
+      kind: 'placement';
+      canvasId: number;
+      placementId: string;
+      draftToken?: string;
+    }
+  | { kind: 'widget'; widgetId: string };
+
+function dataEndpoint(source: BindingSource): {
+  path: string;
+  headers: Record<string, string>;
+} {
+  if (source.kind === 'widget') {
+    return {
+      path: `/api/v1/widget/${encodeURIComponent(source.widgetId)}/data`,
+      headers: {},
+    };
+  }
+  const { canvasId, placementId, draftToken } = source;
+  return {
+    path: `/api/v1/canvas/${canvasId}/placement/${encodeURIComponent(placementId)}/data`,
+    headers: draftToken ? { [DRAFT_TOKEN_HEADER]: draftToken } : {},
+  };
 }
 
 /** One named binding's rows, run on the server as the viewer. */
-export async function fetchBinding({
-  canvasId,
-  placementId,
-  binding,
-  draftToken,
-  filters,
-}: BindingRequest & { binding: string }): Promise<BindingData> {
-  const json = await requestJson<PlacementDataResponse>(
-    `/api/v1/canvas/${canvasId}/placement/${encodeURIComponent(placementId)}/data`,
-    {
-      method: 'POST',
-      body: { runtime_filters: filters, binding },
-      headers: draftToken ? { [DRAFT_TOKEN_HEADER]: draftToken } : {},
-    },
-  );
+export async function fetchBinding(
+  source: BindingSource,
+  binding: string,
+  filters: SelectFilterValue[],
+): Promise<BindingData> {
+  const { path, headers } = dataEndpoint(source);
+  const json = await requestJson<PlacementDataResponse>(path, {
+    method: 'POST',
+    body: { runtime_filters: filters, binding },
+    headers,
+  });
   // TODO: columns, and the definitions and formats of the metrics.
   return { rows: json.result?.datasets?.[0]?.inline_data ?? [] };
 }
@@ -154,11 +170,12 @@ export async function fetchBinding({
 /** Every binding the manifest declares, fetched together. */
 export async function fetchBindings(
   manifest: HostManifest,
-  request: BindingRequest,
+  source: BindingSource,
+  filters: SelectFilterValue[],
 ): Promise<Record<string, BindingData>> {
   const names = Object.keys(manifest.bindings ?? {});
   const results = await Promise.all(
-    names.map(binding => fetchBinding({ ...request, binding })),
+    names.map(binding => fetchBinding(source, binding, filters)),
   );
   return Object.fromEntries(names.map((name, index) => [name, results[index]]));
 }
