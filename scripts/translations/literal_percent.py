@@ -48,8 +48,9 @@ TRANSLATIONS_DIR: Path = (
 )
 
 # A percent sign followed by a space and a word, as in "% of" or "50% off".
-# A real space-flag directive ("% d") is never followed by more letters.
-_LITERAL_PERCENT = re.compile(r"% (?=[A-Za-z]{2})")
+# A real space-flag directive ("% d") is never followed by more letters, and
+# the second "%" of a "%%" escape is part of a real format string.
+_LITERAL_PERCENT = re.compile(r"(?<!%)% (?=[A-Za-z]{2})")
 
 
 def is_literal_percent(*msgids: str) -> bool:
