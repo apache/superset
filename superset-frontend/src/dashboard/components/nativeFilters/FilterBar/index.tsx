@@ -29,6 +29,8 @@ import {
 } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
+import type { AnyAction } from 'redux';
+import type { ThunkDispatch } from 'redux-thunk';
 import {
   DataMaskStateWithId,
   DataMaskWithId,
@@ -199,7 +201,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   const [pendingCustomizationDataMasks, setPendingCustomizationDataMasks] =
     useState<Record<string, DataMask>>(EMPTY_DATA_MASK_RECORD);
   const chartCustomizationValues = useChartCustomizationConfiguration();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<ThunkDispatch<RootState, null, AnyAction>>();
   const [updateKey, setUpdateKey] = useState(0);
   const tabId = useTabId();
   const filters = useFilters();
@@ -498,8 +500,9 @@ const FilterBar: FC<FiltersBarProps> = ({
         )[]
       ).filter(item => existingCustomizationIds.has(item.id));
 
-      if (pendingItems.length > 0) {
-        dispatch(saveChartCustomization(pendingItems, []));
+      if (canEdit && pendingItems.length > 0) {
+        // The thunk reports save failures; Apply must consume its rejection.
+        dispatch(saveChartCustomization(pendingItems, [])).catch(() => {});
       }
       dispatch(clearAllPendingChartCustomizations());
       setPendingCustomizationDataMasks({});
@@ -519,7 +522,12 @@ const FilterBar: FC<FiltersBarProps> = ({
 
       dispatch(clearAllChartCustomizationsFromMetadata());
 
-      dispatch(saveChartCustomization(clearedChartCustomizations, []));
+      if (canEdit) {
+        // The thunk reports save failures; Clear must consume its rejection.
+        dispatch(saveChartCustomization(clearedChartCustomizations, [])).catch(
+          () => {},
+        );
+      }
     }
 
     setHasClearedChartCustomizations(false);
@@ -532,6 +540,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     pendingCustomizationDataMasks,
     hasClearedChartCustomizations,
     chartCustomizationValues,
+    canEdit,
   ]);
 
   const handleClearAll = useCallback(() => {
