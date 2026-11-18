@@ -75,6 +75,18 @@ FILTER_STATE_CACHE_CONFIG = {
 }
 ```
 
+## Database outages and chart caches
+
+Chart cache keys can depend on template macros and row-level security. If
+collecting template macro keys fails, Superset raises the underlying error
+instead of looking up a result using an incomplete macro cache key.
+For example, a virtual dataset without a schema can still require a database
+connection to discover the effective schema, even when its chart result is
+cached. Such charts can fail during a database outage; a warm cache alone does
+not guarantee availability. When schema resolution can complete from connection
+configuration without connecting, cached results remain available under the same
+security and template context.
+
 ## Dependencies
 
 In order to use dedicated cache stores, additional python libraries must be installed

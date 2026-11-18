@@ -3263,20 +3263,13 @@ class SqlaTable(
                 # the user has to sign in to the database to build the query
                 raise
             except Exception:  # pylint: disable=broad-except
-                from superset.utils.rls import get_rls_lookup_failure_cache_key
-
-                # Building the query can connect to the database (to resolve the
-                # schema of a virtual dataset without one, for instance), so an
-                # outage must not fail the cache key. The macros' keys are
-                # unknown, so fall back to the viewer-scoped key the RLS
-                # collectors use: two viewers never share an entry. A caught DB
-                # error can leave db.session in "pending rollback" state.
+                # An incomplete macro context cannot identify cached results.
+                # In particular, a viewer identity does not capture templated
+                # RLS or guest-token attributes. Preserve the original error
+                # rather than serving a result under a partial key. Query
+                # construction can also leave the metadata session unusable.
                 db.session.rollback()  # pylint: disable=consider-using-transaction
-                logger.warning(
-                    "Unable to collect the extra cache keys of a query",
-                    exc_info=True,
-                )
-                extra_cache_keys.append(get_rls_lookup_failure_cache_key())
+                raise
             else:
                 extra_cache_keys += sqla_query.extra_cache_keys
 

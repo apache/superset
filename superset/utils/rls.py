@@ -60,16 +60,6 @@ def _get_cache_identity() -> str:
     return str(get_user_id())
 
 
-def get_rls_lookup_failure_cache_key() -> str:
-    """
-    The cache key component used when the RLS that applies cannot be determined.
-
-    It is scoped to the viewer, so a failed lookup never lets users with different
-    RLS scopes share a cache entry.
-    """
-    return f"rls-predicate-parse-failed-for-user-{_get_cache_identity()}"
-
-
 class SearchPath:
     """
     The search path a connection reads a table referenced without a schema through
@@ -882,4 +872,4 @@ def collect_rls_predicates_for_sql(
         # the underlying tables. Fall back to a per-user marker instead, so
         # the cache key still varies by user even though we don't know the
         # actual predicates.
-        return [get_rls_lookup_failure_cache_key()]
+        return [f"rls-predicate-parse-failed-for-user-{_get_cache_identity()}"]
