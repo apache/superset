@@ -45,7 +45,13 @@ jobs:
 
           const { owner, repo } = context.repo;
           const url = `https://raw.githubusercontent.com/wiki/${owner}/${repo}/${ROSTER_PAGE}.md`;
-          const response = await fetch(url);
+          let response;
+          try {
+            response = await fetch(url);
+          } catch (error) {
+            core.warning(`Could not read ${url} (${error.message}); no roster labels applied.`);
+            return;
+          }
           if (!response.ok) {
             core.warning(`Could not read ${url} (HTTP ${response.status}); no roster labels applied.`);
             return;
