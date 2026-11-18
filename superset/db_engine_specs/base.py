@@ -1780,6 +1780,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
+    def get_datatype_from_arrow_field(cls, field: Any) -> str | None:
+        """
+        Database type name for an Arrow field.
+
+        Used where the row path calls ``get_datatype(cursor.description[i][1])``.
+        Drivers that know the native type put it in field metadata under a
+        ``<VENDOR>:type`` key (ADBC does this). Without that metadata the
+        caller infers a type from the Arrow type. Returning None is safe.
+
+        :param field: ``pyarrow.Field``
+        :return: Type string, or None
+        """
+        metadata = getattr(field, "metadata", None) or {}
+        for key, value in metadata.items():
+            key_text = key.decode() if isinstance(key, bytes) else str(key)
+            if key_text.endswith(":type"):
+                if isinstance(value, bytes):
+                    return value.decode().upper()
+                return str(value).upper()
+        return None
+
+    @classmethod
     def fetch_data_with_cursor(
         cls,
         database: Database,

@@ -24,6 +24,7 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pyarrow.compute as pc
 from numpy.typing import NDArray
 
 from superset.db_engine_specs import BaseEngineSpec
@@ -141,6 +142,91 @@ def stringify_extension_columns(table: pa.Table) -> pa.Table:
     return table
 
 
+def _opaque_numeric_to_decimal(column: pa.ChunkedArray) -> pa.ChunkedArray:
+    """
+    Cast an ``arrow.opaque`` NUMERIC column (string storage) to a decimal type.
+
+    Some drivers, including the ADBC PostgreSQL driver, return NUMERIC as text
+    rather than as ``decimal128``. The row path receives ``Decimal`` objects.
+
+    * NaN / Infinity become NULL, as ``stringify_values`` does for a
+      non-finite ``Decimal`` ("NaN and Infinity have no exact value").
+    * ``decimal128(38, s)`` is tried first, then ``decimal256(76, s)``.
+      Values that fit neither keep their exact string form.
+    """
+    storage = pa.chunked_array(
+        [chunk.storage for chunk in column.chunks], type=column.type.storage_type
+    )
+    finite = pc.match_substring_regex(storage, pattern=r"^[+-]?[0-9]*\.?[0-9]+$")
+    storage = pc.if_else(finite, storage, pa.scalar(None, pa.string()))
+    if storage.null_count == len(storage):
+        return storage
+    fraction = pc.replace_substring_regex(storage, pattern=r"^[^.]*\.?", replacement="")
+    scale = pc.max(pc.utf8_length(fraction)).as_py() or 0
+    for decimal_type in (pa.decimal128, pa.decimal256):
+        precision = 38 if decimal_type is pa.decimal128 else 76
+        if scale > precision:
+            continue
+        try:
+            return pc.cast(storage, decimal_type(precision, scale))
+        except (pa.ArrowInvalid, pa.ArrowNotImplementedError):
+            continue
+    return storage
+
+
+_HEX_DIGITS = np.frombuffer(b"0123456789abcdef", dtype=np.uint8)
+
+
+def _uuid_to_string(column: pa.ChunkedArray) -> pa.ChunkedArray:
+    """
+    Vectorized ``arrow.uuid`` to the canonical 36-character string.
+
+    ``stringify_extension_columns`` does this with a Python loop over
+    ``to_pylist()``. The bytes are the same as ``str(uuid.UUID)``.
+    """
+    chunks = []
+    for chunk in column.chunks:
+        storage = chunk.storage
+        length = len(storage)
+        if length == 0:
+            chunks.append(pa.array([], type=pa.string()))
+            continue
+        raw = np.frombuffer(
+            storage.buffers()[1], dtype=np.uint8, count=(storage.offset + length) * 16
+        )[storage.offset * 16 :].reshape(length, 16)
+        hexed = np.empty((length, 32), dtype=np.uint8)
+        hexed[:, 0::2] = _HEX_DIGITS[raw >> 4]
+        hexed[:, 1::2] = _HEX_DIGITS[raw & 0x0F]
+        dashed = np.insert(hexed, [8, 12, 16, 20], ord("-"), axis=1)
+        mask = storage.is_null().to_numpy(zero_copy_only=False)
+        values = pa.array(
+            np.ascontiguousarray(dashed).view("S36").ravel(),
+            mask=mask,
+            type=pa.binary(36),
+        )
+        chunks.append(values.cast(pa.string()))
+    return pa.chunked_array(chunks, type=pa.string())
+
+
+def _uint64_over_int64_to_string(column: pa.ChunkedArray) -> pa.ChunkedArray:
+    """
+    Stringify a uint64 column when any value does not fit in int64.
+
+    ``fetchall`` returns Python ints. ``pa.array`` raises ``OverflowError``
+    above 2**63 - 1 and the row constructor then stringifies that whole
+    column (see ``test_integers_outside_int64_are_stringified``). Values that
+    fit stay uint64; the row path would infer int64, which is the same width
+    difference already accepted for int32.
+    """
+    if len(column) == 0:
+        return column
+    limit = pa.scalar(2**63 - 1, type=column.type)
+    exceeds = pc.fill_null(pc.greater(column, limit), False)
+    if pc.any(exceeds).as_py():
+        return pc.cast(column, pa.string())
+    return column
+
+
 def convert_to_string(value: Any) -> str:
     """
     Used to ensure column names from the cursor description are strings.
@@ -205,6 +291,8 @@ class SupersetResultSet:
         stringified_arr: NDArray[Any]
         # Track columns with nested/JSON data to preserve them as objects
         self._nested_columns: dict[str, list[Any]] = {}
+        # Arrow-native path only: JSON text parsed on first sync access.
+        self._lazy_json_columns: dict[str, pa.ChunkedArray] = {}
 
         if cursor_description:
             # get deduped list of column names
@@ -330,6 +418,137 @@ class SupersetResultSet:
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
 
+    @classmethod
+    def from_arrow(
+        cls,
+        table: pa.Table,
+        db_engine_spec: type[BaseEngineSpec],
+        *,
+        truncated: bool = False,
+    ) -> "SupersetResultSet":
+        """
+        Build a result set from a ``pyarrow.Table``.
+
+        The table may come from any producer: an ADBC cursor, DuckDB's
+        ``to_arrow_table``, Flight SQL, or a SQLAlchemy execution that already
+        returned a Table. ADBC is not required, and this constructor does not
+        fetch anything.
+
+        Normalization follows the row constructor, column by column:
+
+        * names are normalized and de-duplicated the same way;
+        * dictionary-encoded columns are decoded (the row path never sees
+          categoricals);
+        * ``arrow.opaque`` NUMERIC becomes a decimal, with NaN/Infinity NULL;
+        * ``arrow.json`` keeps the server's JSON text and parses objects
+          lazily through ``nested_columns`` / ``to_pandas_df()``;
+        * nested list/struct/map values are stringified as JSON and kept in
+          ``nested_columns``, as the row path does for list/dict cells;
+        * ``arrow.uuid`` is stringified; other extension types still go
+          through ``stringify_extension_columns``;
+        * uint64 values above 2**63 - 1 stringify the column, matching the
+          row constructor's ``OverflowError`` fallback.
+        """
+        result_set = cls.__new__(cls)
+        result_set.truncated = truncated
+        result_set.db_engine_spec = db_engine_spec
+        result_set._nested_columns = {}
+        result_set._lazy_json_columns = {}
+
+        column_names = dedup(
+            normalize_cursor_description_names(
+                [(name,) for name in table.column_names]  # type: ignore[misc]
+            )
+        )
+        if column_names != table.column_names:
+            table = table.rename_columns(column_names)
+
+        type_dict: dict[str, Any] = {}
+        for index, field in enumerate(table.schema):
+            column = table.column(index)
+            name = column_names[index]
+            logical_type = (
+                field.type.value_type
+                if pa.types.is_dictionary(field.type)
+                else field.type
+            )
+            # Vendor metadata wins, same as a cursor description. Otherwise use
+            # the same Arrow-type names as ``convert_pa_dtype`` (what the row
+            # path uses when the cursor type is missing). Captured before
+            # normalization so a uint64 column stringified for overflow still
+            # reports INT, matching a cursor type of int.
+            if db_type := db_engine_spec.get_datatype_from_arrow_field(field):
+                type_dict[name] = db_type
+            elif inferred := cls.convert_pa_dtype(logical_type):
+                type_dict[name] = inferred
+            column = result_set._normalize_arrow_column(name, field, column)
+            if column is not table.column(index):
+                table = table.set_column(index, name, column)
+
+        result_set.table = stringify_extension_columns(table)
+        result_set._type_dict = type_dict
+        return result_set
+
+    def _normalize_arrow_column(
+        self, name: str, field: pa.Field, column: pa.ChunkedArray
+    ) -> pa.ChunkedArray:
+        """Per-column normalization for ``from_arrow``."""
+        if pa.types.is_dictionary(field.type):
+            column = column.cast(field.type.value_type)
+            field = field.with_type(field.type.value_type)
+        # Engine specs opt in. Postgres rewrites interval/duration to the
+        # milliseconds ``fetch_data`` already produces. Other specs, including
+        # the default, leave the column alone.
+        normalize = getattr(self.db_engine_spec, "normalize_arrow_column", None)
+        if normalize is not None:
+            replaced = normalize(field, column)
+            if replaced is not None:
+                return replaced
+        if isinstance(field.type, pa.BaseExtensionType):
+            extension_name = getattr(field.type, "extension_name", "")
+            if extension_name == "arrow.json":
+                column = pa.chunked_array(
+                    [chunk.storage for chunk in column.chunks],
+                    type=field.type.storage_type,
+                )
+                self._lazy_json_columns[name] = column
+                return column
+            if extension_name == "arrow.opaque" and (
+                getattr(field.type, "type_name", "") == "numeric"
+            ):
+                return _opaque_numeric_to_decimal(column)
+            if extension_name == "arrow.uuid":
+                return _uuid_to_string(column)
+            return column
+        if pa.types.is_nested(field.type):
+            values = column.to_pylist()
+            self._nested_columns[name] = values
+            return pa.chunked_array(
+                [
+                    pa.array(
+                        [
+                            None if value is None else stringify(value)
+                            for value in values
+                        ],
+                        type=pa.string(),
+                    )
+                ]
+            )
+        if pa.types.is_unsigned_integer(field.type) and field.type.bit_width == 64:
+            return _uint64_over_int64_to_string(column)
+        return column
+
+    def _materialize_lazy_json_columns(self) -> None:
+        for column, values in self._lazy_json_columns.items():
+            parsed = [
+                None if value is None else json.loads(value)
+                for value in values.to_pylist()
+            ]
+            # Same rule as the row path: only containers count as nested.
+            if any(isinstance(value, (list, dict)) for value in parsed):
+                self._nested_columns[column] = parsed
+        self._lazy_json_columns = {}
+
     @staticmethod
     def convert_pa_dtype(pa_dtype: pa.DataType) -> Optional[str]:
         if pa.types.is_boolean(pa_dtype):
@@ -380,6 +599,7 @@ class SupersetResultSet:
         return self.db_engine_spec.resolve_column_type(set_type, pa_mapped)
 
     def to_pandas_df(self) -> pd.DataFrame:
+        self._materialize_lazy_json_columns()
         df = self.convert_table_to_df(self.table)
         # Restore nested/JSON columns as Python objects instead of strings
         # This allows JSON data to be used directly in templates like Handlebars.
@@ -393,6 +613,7 @@ class SupersetResultSet:
     @property
     def nested_columns(self) -> dict[str, list[Any]]:
         """Original nested values restored by the synchronous DataFrame path."""
+        self._materialize_lazy_json_columns()
         return self._nested_columns
 
     @property
