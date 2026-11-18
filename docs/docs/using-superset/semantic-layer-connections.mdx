@@ -89,3 +89,5 @@ with the `TIMEOUT` error type and can be retried in another request; views added
 before the budget ran out stay added. Views that already exist are refused before
 their lookup, so resending the whole request spends the budget only on the views
 that are still missing.
+
+Time grains apply only to date and time fields; grains on other fields are ignored, as with SQL datasets.
