@@ -100,6 +100,7 @@ from superset_artifacts_sdk.store import (
     DRAFT_REF,
     InvalidPathError,
     MissingObjectsError,
+    ObjectTooLargeError,
     PUBLISHED_REF,
     sha256_hex,
     validate_tree,
@@ -454,7 +455,7 @@ class ArtifactFileStore:
         except InvalidPathError as ex:
             raise ArtifactError(AuthoringErrorCode.INVALID_PATH, str(ex)) from ex
         for data in contents.values():
-            self._backend.put_blob(data)
+            self._put_blob(data)
         version = self._put_tree(planned)
         if not self._backend.compare_and_set_ref(artifact_id, DRAFT_REF, None, version):
             raise RuntimeError(f"artifact {artifact_id} has a draft already")
@@ -712,7 +713,7 @@ class ArtifactFileStore:
             raise self._too_large(f"a file is over {limit} bytes")
         if sum(len(content) for content in contents) > MAX_UPLOAD_BYTES:
             raise self._too_large(f"an upload is over {MAX_UPLOAD_BYTES} bytes")
-        return [self._backend.put_blob(bytes(content)) for content in contents]
+        return [self._put_blob(bytes(content)) for content in contents]
 
     def commit_files(
         self, request: ArtifactCommitFilesRequest
@@ -974,6 +975,12 @@ class ArtifactFileStore:
                 return ArtifactWriteResponse(version=version)
         raise self._stale(self._draft_version(artifact_id))
 
+    def _put_blob(self, data: bytes) -> str:
+        try:
+            return self._backend.put_blob(data)
+        except ObjectTooLargeError as ex:
+            raise self._too_large(str(ex)) from ex
+
     def _put_tree(self, tree: Mapping[str, str]) -> str:
         try:
             return self._backend.put_tree(tree)
@@ -984,6 +991,8 @@ class ArtifactFileStore:
                 AuthoringErrorCode.INVALID_ARGUMENT,
                 f"the store doesn't hold {', '.join(sorted(ex.missing))}",
             ) from ex
+        except ObjectTooLargeError as ex:
+            raise self._too_large(str(ex)) from ex
 
     def _file_bytes(self, path: str, text: str) -> bytes:
         """A file's text as UTF-8, within the policy's size limit."""
@@ -997,7 +1006,7 @@ class ArtifactFileStore:
 
     def _stage(self, path: str, text: str) -> str:
         """Store a file's text as a blob; return its hash."""
-        return self._backend.put_blob(self._file_bytes(path, text))
+        return self._put_blob(self._file_bytes(path, text))
 
     def _check_file_sizes(
         self, before: Mapping[str, str], after: Mapping[str, str]
@@ -1153,8 +1162,8 @@ class ArtifactFileStore:
         record: Mapping[str, Any],
     ) -> bool:
         """Point ``ref`` at ``record`` if it still points at ``expected``."""
-        blob_hash = self._backend.put_blob(_canonical_json(record))
-        pointer = self._backend.put_tree({_RECORD_FILE: blob_hash})
+        blob_hash = self._put_blob(_canonical_json(record))
+        pointer = self._put_tree({_RECORD_FILE: blob_hash})
         return self._backend.compare_and_set_ref(artifact_id, ref, expected, pointer)
 
     def _stale(self, current: str | None) -> ArtifactError:

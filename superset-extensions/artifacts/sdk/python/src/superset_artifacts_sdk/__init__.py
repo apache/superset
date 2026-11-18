@@ -119,6 +119,7 @@ from superset_artifacts_sdk.store import (
     MAX_REF_NAME_LENGTH as MAX_REF_NAME_LENGTH,
     MissingObjectsError as MissingObjectsError,
     normalize_path as normalize_path,
+    ObjectTooLargeError as ObjectTooLargeError,
     PUBLISHED_REF as PUBLISHED_REF,
     RefHistory as RefHistory,
     sha256_hex as sha256_hex,

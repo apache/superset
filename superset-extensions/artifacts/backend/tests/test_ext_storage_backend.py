@@ -18,8 +18,8 @@
 The extension-storage backend: the SDK's backend contract, then what is its own.
 
 It runs against a fake of extension storage's shared accessor, which keeps
-values as JSON and compares them on its compare-and-swap write as the host
-does: decoded, under one lock.
+values in their codec, JSON or binary, and compares them on its
+compare-and-swap write as the host does: decoded, under one lock.
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ from superset_artifacts_sdk.authoring import (
     ArtifactStrReplaceRequest,
     AuthoringErrorCode,
 )
+from superset_artifacts_sdk.policy import Profile, PROFILES
 from superset_artifacts_sdk.store import ArtifactStoreBackend, DRAFT_REF
 from superset_artifacts_sdk.testing import (
     ArtifactStoreBackendConformance,
@@ -52,20 +53,25 @@ ARTIFACT_ID = "00000000-0000-4000-8000-000000000000"
 
 
 class SharedStorage:
-    """Extension storage's shared accessor: JSON values, and compare-and-swap."""
+    """Extension storage's shared accessor: coded values, and compare-and-swap."""
 
     def __init__(self) -> None:
-        self.values: dict[str, str] = {}
+        self.values: dict[str, str | bytes] = {}
         self.lock = threading.Lock()
 
     def get(self, key: str) -> Any:
         with self.lock:
             stored = self.values.get(key)
-        return None if stored is None else json.loads(stored)
+        if stored is None or isinstance(stored, bytes):
+            return stored
+        return json.loads(stored)
 
     def set(self, key: str, value: Any, options: Any = None) -> None:
+        binary = options is not None and options.codec == "binary"
+        if binary and not isinstance(value, bytes):
+            raise TypeError("the binary codec stores bytes")
         with self.lock:
-            self.values[key] = json.dumps(value)
+            self.values[key] = value if binary else json.dumps(value)
 
     def compare_and_set(
         self, key: str, expected: Any, value: Any, options: Any = None
@@ -193,7 +199,7 @@ def test_content_changed_in_storage_is_refused(
     blob = artifact_store.put_blob(b"hello")
     tree = artifact_store.put_tree({"index.html": blob})
 
-    storage.set(f"artifacts/blob/{blob}", "Z29vZGJ5ZQ==")  # "goodbye"
+    storage.values[f"artifacts/blob/{blob}"] = b"goodbye"
     storage.set(f"artifacts/tree/{tree}", {"other.html": blob})
 
     with pytest.raises(CorruptObjectError):
@@ -217,6 +223,33 @@ def test_the_file_store_runs_on_it(artifact_store: ExtensionStorageBackend) -> N
     )
 
     assert store.draft_version(created.artifact_id) == written.version
+
+
+def test_a_file_as_large_as_a_policy_allows_fits_one_entry(
+    artifact_store: ExtensionStorageBackend, storage: SharedStorage
+) -> None:
+    content = bytes(range(256)) * (PROFILES[Profile.OPEN].limits.file_bytes // 256)
+    blob = artifact_store.put_blob(content)
+
+    # Its bytes as they are: no base64 that a third larger fills the entry.
+    assert storage.values[f"artifacts/blob/{blob}"] == content
+    assert artifact_store.get_blob(blob) == content
+
+
+def test_what_extension_storage_cant_hold_is_too_large(storage: SharedStorage) -> None:
+    backend = ExtensionStorageBackend(storage, max_value_bytes=200)
+    store = ArtifactFileStore(backend, policy=PROFILES[Profile.OPEN])
+
+    with pytest.raises(ArtifactError) as blob:
+        store.put_blobs([b"x" * 201])
+    with pytest.raises(ArtifactError) as tree:
+        store.create(
+            ARTIFACT_ID,
+            ArtifactCreateRequest(files={f"file{n}.txt": str(n) for n in range(4)}),
+        )
+
+    assert blob.value.code == tree.value.code == AuthoringErrorCode.TOO_LARGE
+    assert "extension storage holds at most 200" in str(tree.value)
 
 
 class StoreOnly:

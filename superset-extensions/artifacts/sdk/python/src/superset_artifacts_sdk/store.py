@@ -86,6 +86,10 @@ class RefHistory:
     total: int
 
 
+class ObjectTooLargeError(Exception):
+    """A blob or tree larger than the backend can hold."""
+
+
 class MissingObjectsError(LookupError):
     """A tree or ref names blobs or trees that the store doesn't hold."""
 
@@ -231,6 +235,8 @@ class ArtifactStoreBackend(Protocol):
         Store ``data`` and return its hash.
 
         Idempotent: storing the same content again returns the same hash.
+        Raises ``ObjectTooLargeError`` for content larger than the backend
+        holds.
         """
         ...
 
@@ -253,7 +259,9 @@ class ArtifactStoreBackend(Protocol):
 
         The tree must pass ``validate_tree`` and every blob it names must be
         stored already; otherwise this raises ``InvalidPathError``,
-        ``ValueError`` or ``MissingObjectsError``. Idempotent.
+        ``ValueError`` or ``MissingObjectsError``. Raises
+        ``ObjectTooLargeError`` for a tree larger than the backend holds.
+        Idempotent.
         """
         ...
 

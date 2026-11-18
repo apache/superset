@@ -19,7 +19,8 @@ The default store backend, on Superset's extension storage. A scaffold.
 
 Entries live in the extension's shared persistent storage, under:
 
-- ``artifacts/blob/<sha256>``: a blob, base64 in the JSON codec;
+- ``artifacts/blob/<sha256>``: a blob, its bytes as they are, in the binary
+  codec;
 - ``artifacts/tree/<sha256>``: a tree, its path-to-hash mapping;
 - ``artifacts/ref/<artifact id>/<ref>``: a ref's record, which holds both the
   version it points to and its history, so that one compare-and-swap moves
@@ -50,8 +51,6 @@ It refuses to run until extension storage has what a store needs:
 
 from __future__ import annotations
 
-import base64
-import binascii
 import json  # noqa: TID251 -- pure module; the host's JSON utility needs Flask.
 from collections.abc import Iterable, Mapping
 from typing import Any, TYPE_CHECKING
@@ -60,6 +59,7 @@ from superset_artifacts_sdk.store import (
     is_ref_name,
     is_sha256_hex,
     MissingObjectsError,
+    ObjectTooLargeError,
     RefHistory,
     sha256_hex,
     tree_hash as compute_tree_hash,
@@ -67,8 +67,11 @@ from superset_artifacts_sdk.store import (
 )
 
 if TYPE_CHECKING:
-    # Imported for its type only: the storage package needs Flask to import.
-    from superset_core.extensions.storage.persistent import PersistentStateAccessor
+    # Imported for its types only: the storage package needs Flask to import.
+    from superset_core.extensions.storage.persistent import (
+        PersistentSetOptions,
+        PersistentStateAccessor,
+    )
 
 KEY_PREFIX = "artifacts"
 # A ref's record keeps at most this many of its newest history entries itself.
@@ -79,6 +82,9 @@ HISTORY_CHUNK_SIZE = 1024
 # Past this many failed writes, a record that keeps changing under the same
 # version is a fault, not contention.
 _CAS_ATTEMPTS = 16
+# Extension storage's default MAX_VALUE_SIZE. A deployment that lowers it
+# lowers what this backend holds, unless it says so here too.
+MAX_VALUE_BYTES = 1024 * 1024
 
 
 class BackendUnavailableError(RuntimeError):
@@ -101,6 +107,12 @@ def _require_ref_name(value: str) -> str:
     return value
 
 
+def _binary() -> PersistentSetOptions:
+    from superset_core.extensions.storage.persistent import PersistentSetOptions
+
+    return PersistentSetOptions(codec="binary")
+
+
 def _chunk_hash(versions: list[str]) -> str:
     return sha256_hex(json.dumps(versions, separators=(",", ":")).encode("ascii"))
 
@@ -113,9 +125,11 @@ class ExtensionStorageBackend:
         storage: PersistentStateAccessor,
         *,
         history_chunk_size: int = HISTORY_CHUNK_SIZE,
+        max_value_bytes: int = MAX_VALUE_BYTES,
     ) -> None:
         self._storage = storage
         self._chunk_size = history_chunk_size
+        self._max_value_bytes = max_value_bytes
 
     @classmethod
     def from_extension_context(cls) -> ExtensionStorageBackend:
@@ -140,12 +154,20 @@ class ExtensionStorageBackend:
 
     # -- Content -------------------------------------------------------------
 
+    def _check_size(self, what: str, size: int) -> None:
+        if size > self._max_value_bytes:
+            raise ObjectTooLargeError(
+                f"{what} is {size} bytes; extension storage holds at most "
+                f"{self._max_value_bytes} in one entry"
+            )
+
     def put_blob(self, data: bytes) -> str:
         content = bytes(data)
         blob_hash = sha256_hex(content)
         key = self._key("blob", blob_hash)
         if self._storage.get(key) is None:
-            self._storage.set(key, base64.b64encode(content).decode("ascii"))
+            self._check_size("a file", len(content))
+            self._storage.set(key, content, _binary())
         return blob_hash
 
     def get_blob(self, blob_hash: str) -> bytes | None:
@@ -153,13 +175,11 @@ class ExtensionStorageBackend:
         stored = self._storage.get(key)
         if stored is None:
             return None
-        try:
-            content = base64.b64decode(stored, validate=True)
-        except (binascii.Error, TypeError, ValueError) as ex:
-            raise CorruptObjectError(f"blob {blob_hash} is not base64") from ex
-        if sha256_hex(content) != blob_hash:
+        if not isinstance(stored, bytes):
+            raise CorruptObjectError(f"blob {blob_hash} isn't stored as bytes")
+        if sha256_hex(stored) != blob_hash:
             raise CorruptObjectError(f"blob {blob_hash} doesn't match its hash")
-        return content
+        return stored
 
     def missing_blobs(self, hashes: Iterable[str]) -> set[str]:
         wanted = {_require_hash(blob_hash) for blob_hash in hashes}
@@ -177,6 +197,7 @@ class ExtensionStorageBackend:
         digest = compute_tree_hash(snapshot)
         key = self._key("tree", digest)
         if self._storage.get(key) is None:
+            self._check_size("a tree", len(json.dumps(snapshot).encode("utf-8")))
             self._storage.set(key, snapshot)
         return digest
 
