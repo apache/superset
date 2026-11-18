@@ -359,10 +359,13 @@ def _rebased(
 ) -> dict[str, str] | None:
     """
     ``mine``'s changes from ``base``, applied to ``current``; ``None`` when a
-    file changed on both sides, or when the result isn't a valid tree.
+    file changed on both sides into different files, or when the result isn't
+    a valid tree. A file both sides changed alike is no conflict, as when a
+    write from an older base repeats a change already committed.
     """
     changed = _changed_paths(base, mine)
-    if changed & _changed_paths(base, current):
+    both = changed & _changed_paths(base, current)
+    if any(mine.get(path) != current.get(path) for path in both):
         return None
     rebased = {path: blob for path, blob in current.items() if path not in changed}
     rebased.update({path: mine[path] for path in changed if path in mine})

@@ -352,6 +352,7 @@ def artifact_commit_files(request: ArtifactCommitFilesRequest) -> dict[str, Any]
     artifact_upload_blobs when there are no uploads or your shell can't reach
     them, then commit again from the same base_version. An answer lists 64 at
     most (missing_total counts them all): repeat until nothing is missing.
+    Then write the version it answers into the sidecar's base_version.
     """
     return handlers.commit_files(current_actor(), request)
 

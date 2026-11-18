@@ -1131,3 +1131,55 @@ def test_no_artifact_holds_a_hidden_file() -> None:
     for path in (".git/config", "src/.envrc"):
         with pytest.raises(ValidationError, match="hidden"):
             ArtifactCreateRequest(files={path: "[core]"})
+
+
+def test_a_write_from_an_older_base_may_repeat_a_committed_change(
+    store: ArtifactFileStore, backend: InMemoryArtifactStore
+) -> None:
+    """The disk loop: every commit sends the whole folder from one base."""
+    artifact_id, base = create(store, **{"a.js": "a1", "b.js": "b1"})
+    tree = backend.get_tree(base)
+    assert tree is not None
+    a2, b2 = store.put_blobs([b"a2", b"b2"])
+
+    first = store.commit_files(
+        ArtifactCommitFilesRequest(
+            artifact_id=artifact_id, base_version=base, files={**tree, "a.js": a2}
+        )
+    )
+    second = store.commit_files(
+        ArtifactCommitFilesRequest(
+            artifact_id=artifact_id,
+            base_version=base,
+            files={**tree, "a.js": a2, "b.js": b2},
+        )
+    )
+
+    assert first.version is not None
+    assert second.version is not None
+    committed = backend.get_tree(second.version)
+    assert committed is not None
+    assert (committed["a.js"], committed["b.js"]) == (a2, b2)
+
+
+def test_a_file_both_writes_changed_differently_still_conflicts(
+    store: ArtifactFileStore, backend: InMemoryArtifactStore
+) -> None:
+    artifact_id, base = create(store, **{"a.js": "a1"})
+    tree = backend.get_tree(base)
+    assert tree is not None
+    mine, theirs = store.put_blobs([b"mine", b"theirs"])
+    store.commit_files(
+        ArtifactCommitFilesRequest(
+            artifact_id=artifact_id, base_version=base, files={**tree, "a.js": theirs}
+        )
+    )
+
+    with raises(AuthoringErrorCode.STALE_BASE_VERSION):
+        store.commit_files(
+            ArtifactCommitFilesRequest(
+                artifact_id=artifact_id,
+                base_version=base,
+                files={**tree, "a.js": mine},
+            )
+        )
