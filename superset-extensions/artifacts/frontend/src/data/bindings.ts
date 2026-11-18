@@ -52,6 +52,14 @@ export interface SelectFilterValue {
 /** A check that passed with a value, or failed with a reason. */
 export type Checked<T> = { ok: true; value: T } | { ok: false; reason: string };
 
+/** `record[name]`, if `record` holds `name` itself: never an inherited one. */
+function own<T>(record: Readonly<Record<string, T>> | undefined, name: string) {
+  return record !== undefined &&
+    Object.prototype.hasOwnProperty.call(record, name)
+    ? record[name]
+    : undefined;
+}
+
 const isFilterScalar = (value: unknown): value is string | number | boolean =>
   typeof value === 'string' ||
   typeof value === 'boolean' ||
@@ -185,13 +193,13 @@ export function checkQuery(
   manifest: HostManifest,
   request: QueryRequest,
 ): Checked<string> {
-  const binding = manifest.bindings?.[request.binding];
+  const binding = own(manifest.bindings, request.binding);
   if (!binding) {
     return { ok: false, reason: `no binding named "${request.binding}"` };
   }
   const declared = binding.parameters ?? {};
   const unknown = Object.keys(request.params).filter(
-    name => !(name in declared),
+    name => own(declared, name) === undefined,
   );
   if (unknown.length > 0) {
     return {
@@ -223,7 +231,7 @@ export function crossFilterValue(
       reason: `no cross_filter event on ${value.binding}.${value.dimension}`,
     };
   }
-  const source = manifest.bindings?.[value.binding]?.source;
+  const source = own(manifest.bindings, value.binding)?.source;
   if (source?.kind !== 'dataset') {
     return { ok: false, reason: 'cross-filters need a dataset binding' };
   }
