@@ -41,7 +41,7 @@ import {
 } from './types';
 import { getServiceVersions, hasAllRequiredWfsParams } from './serviceUtil';
 import { ControlFormItem } from '../ColumnConfigControl/ControlForm';
-import GeoStylerWrapper from './GeoStylerWrapper';
+import { GeoStylerWrapper } from './GeoStylerWrapper';
 
 // Enum for the different tabs
 const LAYER_CONFIG_TABS = {

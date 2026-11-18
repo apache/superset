@@ -61,7 +61,7 @@ import {
   releaseFilterKeyPublish,
   resetFilterKeyHold,
 } from 'src/dashboard/util/sharedFilterStateHold';
-import DashboardPage from './DashboardPage';
+import { DashboardPage } from './DashboardPage';
 
 const mockTheme = {
   id: 42,

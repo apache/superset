@@ -84,7 +84,7 @@ import { Link, useHistory } from 'react-router-dom';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import Chart from 'src/types/Chart';
+import { Chart } from 'src/types/Chart';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import { TagTypeEnum } from 'src/components/Tag/TagType';

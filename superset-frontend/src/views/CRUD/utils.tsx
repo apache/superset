@@ -27,7 +27,7 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
-import Chart from 'src/types/Chart';
+import { Chart } from 'src/types/Chart';
 import {
   deletedToastContent,
   rememberArchivedType,

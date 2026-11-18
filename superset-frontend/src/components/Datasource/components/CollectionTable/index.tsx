@@ -29,7 +29,8 @@ import { t } from '@apache-superset/core/translation';
 import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
 import { Icons, Button, InfoTooltip } from '@superset-ui/core/components';
 import { FilterValue } from 'react-table';
-import Table, {
+import {
+  Table,
   type ColumnsType,
   type SortOrder,
   type SorterResult,
