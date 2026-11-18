@@ -24,6 +24,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
@@ -57,7 +58,6 @@ from superset_oss.artifacts.errors import ArtifactError, ExtensionErrorCode
 from superset_oss.artifacts.store.filestore import ArtifactFileStore, PAGE_BYTES
 
 OWNER = "1"
-STRANGER = "2"
 INDEX = '<!doctype html>\n<h1>Hello</h1>\n<script src="app.js"></script>\n'
 APP = "const answer = 41;\nconsole.log(answer);\n"
 
@@ -87,7 +87,7 @@ def store(backend: InMemoryArtifactStore, clock: Clock) -> ArtifactFileStore:
 
 def create(store: ArtifactFileStore, **files: str) -> tuple[str, str]:
     created = store.create(
-        OWNER,
+        str(uuid4()),
         ArtifactCreateRequest(
             title="Revenue",
             files=files or {"index.html": INDEX, "src/app.js": APP},
@@ -98,7 +98,7 @@ def create(store: ArtifactFileStore, **files: str) -> tuple[str, str]:
 
 def read(store: ArtifactFileStore, artifact_id: str, path: str, **extra: Any) -> str:
     request = ArtifactViewRequest(artifact_id=artifact_id, path=path, **extra)
-    return store.view(OWNER, request).content
+    return store.view(request).content
 
 
 @contextmanager
@@ -120,13 +120,13 @@ def test_create_adds_a_minimal_manifest(store: ArtifactFileStore) -> None:
     artifact_id, version = create(store)
 
     manifest_version, manifest = store.manifest_get(
-        OWNER, ArtifactManifestGetRequest(artifact_id=artifact_id)
+        ArtifactManifestGetRequest(artifact_id=artifact_id)
     )
 
     assert manifest_version == version
     assert manifest.title == "Revenue"
     assert manifest.entrypoint == "index.html"
-    assert store.draft_version(OWNER, artifact_id) == version
+    assert store.draft_version(artifact_id) == version
     assert store.published_version(artifact_id) is None
 
 
@@ -149,7 +149,7 @@ def test_create_rejects_an_invalid_manifest_and_stores_nothing(
     bad = json.dumps({"artifact_version": "1", "dependencies": {"d3": "^7"}})
 
     with raises(AuthoringErrorCode.INVALID_MANIFEST):
-        store.create(OWNER, ArtifactCreateRequest(files={"manifest.json": bad}))
+        store.create(str(uuid4()), ArtifactCreateRequest(files={"manifest.json": bad}))
 
     assert backend.missing_blobs([sha256_hex(bad.encode())])
 
@@ -177,9 +177,7 @@ def test_paths_are_normalized_and_unsafe_ones_rejected() -> None:
 def test_view_numbers_lines_and_lists_directories(store: ArtifactFileStore) -> None:
     artifact_id, version = create(store)
 
-    view = store.view(
-        OWNER, ArtifactViewRequest(artifact_id=artifact_id, path="src/app.js")
-    )
+    view = store.view(ArtifactViewRequest(artifact_id=artifact_id, path="src/app.js"))
     root = read(store, artifact_id, ".")
     src = read(store, artifact_id, "src")
     second = read(store, artifact_id, "src/app.js", view_range=(2, -1))
@@ -207,9 +205,7 @@ def test_view_pages_stay_under_the_page_budget(store: ArtifactFileStore) -> None
     big = "".join(f"line {number} {'x' * 90}\n" for number in range(2_000))
     artifact_id, _ = create(store, **{"big.txt": big})
 
-    first = store.view(
-        OWNER, ArtifactViewRequest(artifact_id=artifact_id, path="big.txt")
-    )
+    first = store.view(ArtifactViewRequest(artifact_id=artifact_id, path="big.txt"))
     pages = [
         read(store, artifact_id, "big.txt", page=page)
         for page in range(1, first.pages + 1)
@@ -225,9 +221,7 @@ def test_view_pages_stay_under_the_page_budget(store: ArtifactFileStore) -> None
 def test_one_oversized_line_is_cut_across_pages(store: ArtifactFileStore) -> None:
     artifact_id, _ = create(store, **{"min.js": "é" * 30_000})
 
-    first = store.view(
-        OWNER, ArtifactViewRequest(artifact_id=artifact_id, path="min.js")
-    )
+    first = store.view(ArtifactViewRequest(artifact_id=artifact_id, path="min.js"))
     pages = [
         read(store, artifact_id, "min.js", page=page)
         for page in range(1, first.pages + 1)
@@ -242,7 +236,6 @@ def test_str_replace_replaces_the_one_exact_match(store: ArtifactFileStore) -> N
     artifact_id, version = create(store)
 
     written = store.str_replace(
-        OWNER,
         ArtifactStrReplaceRequest(
             artifact_id=artifact_id,
             base_version=version,
@@ -260,7 +253,6 @@ def str_replace(
     store: ArtifactFileStore, artifact_id: str, version: str, old: str, new: str = ""
 ) -> str:
     return store.str_replace(
-        OWNER,
         ArtifactStrReplaceRequest(
             artifact_id=artifact_id,
             base_version=version,
@@ -283,7 +275,7 @@ def test_str_replace_needs_exactly_one_match(store: ArtifactFileStore) -> None:
     # Overlapping occurrences count as two.
     with raises(AuthoringErrorCode.MULTIPLE_MATCHES):
         str_replace(store, artifact_id, version, "aa")
-    assert store.draft_version(OWNER, artifact_id) == version
+    assert store.draft_version(artifact_id) == version
 
 
 def test_str_replace_with_an_empty_new_str_deletes_the_match(
@@ -302,7 +294,7 @@ def test_a_write_that_changes_nothing_keeps_the_version(
     artifact_id, version = create(store)
 
     assert str_replace(store, artifact_id, version, "41", "41") == version
-    history = store.history(OWNER, ArtifactHistoryRequest(artifact_id=artifact_id))
+    history = store.history(ArtifactHistoryRequest(artifact_id=artifact_id))
     assert history.versions == (version,)
 
 
@@ -312,7 +304,6 @@ def test_insert_adds_whole_lines(store: ArtifactFileStore) -> None:
     def insert(line: int, text: str) -> None:
         nonlocal version
         version = store.insert(
-            OWNER,
             ArtifactInsertRequest(
                 artifact_id=artifact_id,
                 base_version=version,
@@ -343,7 +334,7 @@ def test_create_file_delete_and_move(store: ArtifactFileStore) -> None:
             ArtifactDeleteFileRequest: store.delete_file,
             ArtifactMoveFileRequest: store.move_file,
         }[type(request)]
-        version = method(OWNER, request).version
+        version = method(request).version
 
     write(
         ArtifactCreateFileRequest(
@@ -414,14 +405,12 @@ def test_the_manifest_stays_and_stays_valid(store: ArtifactFileStore) -> None:
 
     with raises(AuthoringErrorCode.INVALID_MANIFEST):
         store.delete_file(
-            OWNER,
             ArtifactDeleteFileRequest(
                 artifact_id=artifact_id, base_version=version, path="manifest.json"
             ),
         )
     with raises(AuthoringErrorCode.INVALID_MANIFEST):
         store.move_file(
-            OWNER,
             ArtifactMoveFileRequest(
                 artifact_id=artifact_id,
                 base_version=version,
@@ -431,7 +420,6 @@ def test_the_manifest_stays_and_stays_valid(store: ArtifactFileStore) -> None:
         )
     with raises(AuthoringErrorCode.INVALID_MANIFEST):
         store.str_replace(
-            OWNER,
             ArtifactStrReplaceRequest(
                 artifact_id=artifact_id,
                 base_version=version,
@@ -440,7 +428,7 @@ def test_the_manifest_stays_and_stays_valid(store: ArtifactFileStore) -> None:
                 new_str='"artifact_version": "2"',
             ),
         )
-    assert store.draft_version(OWNER, artifact_id) == version
+    assert store.draft_version(artifact_id) == version
 
 
 def test_manifest_update_replaces_the_manifest(store: ArtifactFileStore) -> None:
@@ -461,14 +449,11 @@ def test_manifest_update_replaces_the_manifest(store: ArtifactFileStore) -> None
     )
 
     written = store.manifest_update(
-        OWNER,
         ArtifactManifestUpdateRequest(
             artifact_id=artifact_id, base_version=version, manifest=manifest
         ),
     )
-    _, stored = store.manifest_get(
-        OWNER, ArtifactManifestGetRequest(artifact_id=artifact_id)
-    )
+    _, stored = store.manifest_get(ArtifactManifestGetRequest(artifact_id=artifact_id))
 
     assert stored == manifest
     assert store.manifest_at(artifact_id, written.version) == manifest
@@ -486,7 +471,7 @@ def test_every_write_checks_base_version(store: ArtifactFileStore) -> None:
         "message": stale.value.message,
         "current_version": first,
     }
-    assert store.draft_version(OWNER, artifact_id) == first
+    assert store.draft_version(artifact_id) == first
 
 
 def test_only_one_of_concurrent_writers_wins(store: ArtifactFileStore) -> None:
@@ -509,41 +494,17 @@ def test_only_one_of_concurrent_writers_wins(store: ArtifactFileStore) -> None:
 
     winners = [result for result in results if result != "STALE_BASE_VERSION"]
     assert len(winners) == 1
-    assert store.draft_version(OWNER, artifact_id) == winners[0]
-    history = store.history(OWNER, ArtifactHistoryRequest(artifact_id=artifact_id))
+    assert store.draft_version(artifact_id) == winners[0]
+    history = store.history(ArtifactHistoryRequest(artifact_id=artifact_id))
     assert history.versions == (winners[0], base)
-
-
-def test_only_owners_reach_an_artifact(store: ArtifactFileStore) -> None:
-    artifact_id, version = create(store)
-
-    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
-        store.view(STRANGER, ArtifactViewRequest(artifact_id=artifact_id, path="."))
-    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
-        store.str_replace(
-            STRANGER,
-            ArtifactStrReplaceRequest(
-                artifact_id=artifact_id,
-                base_version=version,
-                path="src/app.js",
-                old_str="41",
-            ),
-        )
-    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
-        store.view(OWNER, ArtifactViewRequest(artifact_id="not-a-uuid", path="."))
-    assert store.is_owner(OWNER, artifact_id.upper())
-    assert not store.is_owner(STRANGER, artifact_id)
-    assert not store.is_owner(None, artifact_id)
 
 
 def test_search_finds_lines_in_text_files(store: ArtifactFileStore) -> None:
     artifact_id, version = create(store)
 
-    found = store.search(
-        OWNER, ArtifactSearchRequest(artifact_id=artifact_id, query="answer")
-    )
+    found = store.search(ArtifactSearchRequest(artifact_id=artifact_id, query="answer"))
     scoped = store.search(
-        OWNER, ArtifactSearchRequest(artifact_id=artifact_id, query="h1", path="src")
+        ArtifactSearchRequest(artifact_id=artifact_id, query="h1", path="src")
     )
 
     assert [(match.path, match.line) for match in found.matches] == [
@@ -554,7 +515,7 @@ def test_search_finds_lines_in_text_files(store: ArtifactFileStore) -> None:
     assert scoped.matches == ()
     with raises(AuthoringErrorCode.FILE_NOT_FOUND):
         store.search(
-            OWNER, ArtifactSearchRequest(artifact_id=artifact_id, query="x", path="no")
+            ArtifactSearchRequest(artifact_id=artifact_id, query="x", path="no")
         )
 
 
@@ -564,12 +525,11 @@ def test_history_and_restore(store: ArtifactFileStore) -> None:
     third = str_replace(store, artifact_id, second, "42", "43")
 
     restored = store.restore(
-        OWNER,
         ArtifactRestoreRequest(
             artifact_id=artifact_id, base_version=third, version=first
         ),
     )
-    history = store.history(OWNER, ArtifactHistoryRequest(artifact_id=artifact_id))
+    history = store.history(ArtifactHistoryRequest(artifact_id=artifact_id))
 
     assert restored.version == first
     assert history.versions == (first, third, second, first)
@@ -582,7 +542,6 @@ def test_restore_takes_only_this_artifacts_versions(store: ArtifactFileStore) ->
 
     with raises(AuthoringErrorCode.VERSION_NOT_FOUND):
         store.restore(
-            OWNER,
             ArtifactRestoreRequest(
                 artifact_id=artifact_id, base_version=version, version=other_version
             ),
@@ -590,7 +549,7 @@ def test_restore_takes_only_this_artifacts_versions(store: ArtifactFileStore) ->
     with raises(AuthoringErrorCode.VERSION_NOT_FOUND):
         store.manifest_at(artifact_id, other_version)
     with raises(AuthoringErrorCode.VERSION_NOT_FOUND):
-        store.resolve_version(OWNER, artifact_id, other_version)
+        store.resolve_version(artifact_id, other_version)
 
 
 def test_history_pages_newest_first(store: ArtifactFileStore) -> None:
@@ -602,15 +561,13 @@ def test_history_pages_newest_first(store: ArtifactFileStore) -> None:
         )
         versions.append(version)
 
-    first = store.history(OWNER, ArtifactHistoryRequest(artifact_id=artifact_id))
-    second = store.history(
-        OWNER, ArtifactHistoryRequest(artifact_id=artifact_id, page=2)
-    )
+    first = store.history(ArtifactHistoryRequest(artifact_id=artifact_id))
+    second = store.history(ArtifactHistoryRequest(artifact_id=artifact_id, page=2))
 
     assert (first.pages, len(first.versions), len(second.versions)) == (2, 100, 51)
     assert first.versions + second.versions == tuple(reversed(versions))
     with raises(AuthoringErrorCode.INVALID_ARGUMENT):
-        store.history(OWNER, ArtifactHistoryRequest(artifact_id=artifact_id, page=3))
+        store.history(ArtifactHistoryRequest(artifact_id=artifact_id, page=3))
 
 
 def test_commit_by_hash_reports_missing_blobs_then_commits(
@@ -626,13 +583,13 @@ def test_commit_by_hash_reports_missing_blobs_then_commits(
         artifact_id=artifact_id, base_version=version, files=tree
     )
 
-    pending = store.commit_files(OWNER, request)
+    pending = store.commit_files(request)
     assert pending.missing == [sha256_hex(b"changed\n")]
     assert pending.version is None
-    assert store.draft_version(OWNER, artifact_id) == version
+    assert store.draft_version(artifact_id) == version
 
-    assert store.put_blobs(OWNER, artifact_id, [b"changed\n"]) == pending.missing
-    committed = store.commit_files(OWNER, request)
+    assert store.put_blobs([b"changed\n"]) == pending.missing
+    committed = store.commit_files(request)
 
     assert committed.missing == []
     assert committed.version == tree_hash(tree)
@@ -645,7 +602,6 @@ def test_commit_by_hash_needs_the_manifest(store: ArtifactFileStore) -> None:
 
     with raises(AuthoringErrorCode.INVALID_MANIFEST):
         store.commit_files(
-            OWNER,
             ArtifactCommitFilesRequest(
                 artifact_id=artifact_id, base_version=version, files=index
             ),
@@ -656,7 +612,6 @@ def write_index(
     store: ArtifactFileStore, artifact_id: str, version: str, title: str
 ) -> str:
     return store.str_replace(
-        OWNER,
         ArtifactStrReplaceRequest(
             artifact_id=artifact_id,
             base_version=version,
@@ -677,10 +632,10 @@ def test_a_write_from_an_older_base_is_rebased_when_its_files_didnt_change(
     second = write_index(store, artifact_id, base, "Revenue")
 
     assert second not in (base, first)
-    assert store.draft_version(OWNER, artifact_id) == second
+    assert store.draft_version(artifact_id) == second
     assert "const answer = 42;" in read(store, artifact_id, "src/app.js")
     assert "<h1>Revenue</h1>" in read(store, artifact_id, "index.html")
-    history = store.history(OWNER, ArtifactHistoryRequest(artifact_id=artifact_id))
+    history = store.history(ArtifactHistoryRequest(artifact_id=artifact_id))
     assert history.versions == (second, first, base)
 
 
@@ -713,7 +668,6 @@ def test_a_rebase_that_would_make_a_file_a_directory_fails(
     """Disjoint paths still clash when one is a file and the other inside it."""
     artifact_id, base = create(store)
     store.create_file(
-        OWNER,
         ArtifactCreateFileRequest(
             artifact_id=artifact_id, base_version=base, path="lib", file_text="x"
         ),
@@ -721,7 +675,6 @@ def test_a_rebase_that_would_make_a_file_a_directory_fails(
 
     with raises(AuthoringErrorCode.STALE_BASE_VERSION):
         store.create_file(
-            OWNER,
             ArtifactCreateFileRequest(
                 artifact_id=artifact_id,
                 base_version=base,
@@ -737,7 +690,6 @@ def test_a_commit_by_hash_from_an_older_base_keeps_the_newer_files(
     """A path the agent's folder never had is another writer's, not a delete."""
     artifact_id, base = create(store)
     added = store.create_file(
-        OWNER,
         ArtifactCreateFileRequest(
             artifact_id=artifact_id,
             base_version=base,
@@ -751,7 +703,6 @@ def test_a_commit_by_hash_from_an_older_base_keeps_the_newer_files(
     backend.put_blob(b"const answer = 43;\n")
 
     committed = store.commit_files(
-        OWNER,
         ArtifactCommitFilesRequest(
             artifact_id=artifact_id, base_version=base, files=files
         ),
@@ -762,14 +713,10 @@ def test_a_commit_by_hash_from_an_older_base_keeps_the_newer_files(
     assert "43" in read(store, artifact_id, "src/app.js")
 
 
-def test_uploads_are_for_owners_and_capped(store: ArtifactFileStore) -> None:
-    artifact_id, _ = create(store)
-
-    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
-        store.put_blobs(STRANGER, artifact_id, [b"x"])
+def test_uploads_are_capped(store: ArtifactFileStore) -> None:
     limit = LOCKED.limits.file_bytes
     with raises(AuthoringErrorCode.TOO_LARGE):
-        store.put_blobs(OWNER, artifact_id, [b"x" * (limit + 1)])
+        store.put_blobs([b"x" * (limit + 1)])
     with raises(AuthoringErrorCode.TOO_LARGE):
         create(store, **{"big.txt": "x" * (limit + 1)})
 
@@ -785,7 +732,7 @@ def test_publishing_waits_for_the_users_confirmation(
     )
 
     assert store.published_version(artifact_id) is None
-    assert store.pending_publish(OWNER, artifact_id) == publish
+    assert store.pending_publish(artifact_id) == publish
     # The agent keeps editing; the user still confirms what was requested.
     newer = str_replace(store, artifact_id, version, "41", "42")
 
@@ -793,11 +740,11 @@ def test_publishing_waits_for_the_users_confirmation(
 
     assert published == version
     assert store.published_version(artifact_id) == version
-    assert store.draft_version(OWNER, artifact_id) == newer
+    assert store.draft_version(artifact_id) == newer
     assert store.has_version(artifact_id, version, ref=PUBLISHED_REF)
-    assert store.pending_publish(OWNER, artifact_id) is None
+    assert store.pending_publish(artifact_id) is None
     history = store.history(
-        OWNER, ArtifactHistoryRequest(artifact_id=artifact_id, ref="published")
+        ArtifactHistoryRequest(artifact_id=artifact_id, ref="published")
     )
     assert history.versions == (version,)
     with raises(ExtensionErrorCode.PUBLISH_REQUEST_NOT_FOUND):
@@ -844,28 +791,9 @@ def test_publish_requests_expire(store: ArtifactFileStore, clock: Clock) -> None
 
     clock.now += timedelta(days=2)
 
-    assert store.pending_publish(OWNER, artifact_id) is None
+    assert store.pending_publish(artifact_id) is None
     with raises(ExtensionErrorCode.PUBLISH_REQUEST_NOT_FOUND):
         store.confirm_publish(OWNER, artifact_id, publish.request_id)
-    assert store.published_version(artifact_id) is None
-
-
-def test_only_owners_request_or_confirm_publishing(store: ArtifactFileStore) -> None:
-    artifact_id, version = create(store)
-    publish = store.request_publish(
-        OWNER,
-        ArtifactRequestPublishRequest(artifact_id=artifact_id, base_version=version),
-    )
-
-    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
-        store.request_publish(
-            STRANGER,
-            ArtifactRequestPublishRequest(
-                artifact_id=artifact_id, base_version=version
-            ),
-        )
-    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
-        store.confirm_publish(STRANGER, artifact_id, publish.request_id)
     assert store.published_version(artifact_id) is None
 
 
@@ -903,7 +831,6 @@ def test_the_policy_refuses_a_manifest_update(
 
     with raises(AuthoringErrorCode.POLICY_DENIED) as denied:
         store.manifest_update(
-            OWNER,
             ArtifactManifestUpdateRequest(
                 artifact_id=artifact_id,
                 base_version=version,
@@ -914,7 +841,7 @@ def test_the_policy_refuses_a_manifest_update(
         )
 
     assert "compute.workers" in denied.value.message
-    assert store.draft_version(OWNER, artifact_id) == version
+    assert store.draft_version(artifact_id) == version
 
 
 def test_a_tighter_policy_stops_the_next_publish(

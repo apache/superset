@@ -31,6 +31,7 @@ import binascii
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, is_dataclass, replace
 from typing import Annotated, Any, Literal, TypeVar
+from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, PlainValidator
 from superset_artifacts_sdk.authoring import (
@@ -54,7 +55,6 @@ from superset_artifacts_sdk.authoring import (
     ArtifactWriteRequest,
     AuthoringErrorCode,
     AuthoringErrorResponse,
-    AuthoringRequest,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest, MANIFEST_FILE
 from superset_artifacts_sdk.policy import ArtifactPolicy, manifest_problems
@@ -63,6 +63,7 @@ from superset_artifacts_sdk.provider import (
     ArtifactRuntimeProvider,
     Diagnostic,
 )
+from superset_oss.artifacts.access import ArtifactAccess, require_edit, require_read
 from superset_oss.artifacts.data.bindings import binding_problems
 from superset_oss.artifacts.errors import (
     ArtifactError,
@@ -73,7 +74,7 @@ from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 Answer = dict[str, Any]
-_Request = TypeVar("_Request", bound=AuthoringRequest)
+_Scoped = TypeVar("_Scoped", bound=ArtifactScopedRequest)
 
 CONFIRMATION_MESSAGE = (
     "Nothing is published yet: publishing waits for the user. Tell them this "
@@ -155,11 +156,21 @@ class _Call:
     store: ArtifactFileStore
     provider: ArtifactRuntimeProvider
     policy: ArtifactPolicy
+    access: ArtifactAccess
     actor: str
 
 
+Access = Literal["read", "edit"]
+
+
 class AuthoringHandlers:
-    """One method per authoring tool; each takes the caller and the request."""
+    """
+    One method per authoring tool; each takes the caller and the request.
+
+    A tool that reads an artifact needs the caller to read its widget, and one
+    that changes it needs the caller to edit it; otherwise it answers
+    ``ARTIFACT_NOT_FOUND``, as for an artifact that doesn't exist.
+    """
 
     def run(self, actor: str | None, action: Callable[[_Call], Answer]) -> Answer:
         """Run ``action`` behind the gate, answering failures as errors."""
@@ -171,74 +182,105 @@ class AuthoringHandlers:
                     "only a signed-in user writes artifacts",
                 )
             return action(
-                _Call(artifacts.store, artifacts.provider, artifacts.policy, actor)
+                _Call(
+                    artifacts.store,
+                    artifacts.provider,
+                    artifacts.policy,
+                    artifacts.access,
+                    actor,
+                )
             )
         except ArtifactError as ex:
             return ex.to_dict()
 
+    def _on_artifact(
+        self,
+        actor: str | None,
+        request: ArtifactScopedRequest,
+        access: Access,
+        action: Callable[[_Call], object],
+    ) -> Answer:
+        """Run ``action`` on the artifact ``request`` names, with ``access`` to it."""
+
+        def checked(call: _Call) -> Answer:
+            require = require_edit if access == "edit" else require_read
+            require(call.access, request.artifact_id)
+            return _jsonable(action(call))
+
+        return self.run(actor, checked)
+
     def _store(
         self,
         actor: str | None,
-        operation: Callable[[ArtifactFileStore, str, _Request], object],
-        request: _Request,
+        operation: Callable[[ArtifactFileStore, _Scoped], object],
+        request: _Scoped,
+        access: Access,
     ) -> Answer:
         """Answer ``request`` with what a file store ``operation`` returns."""
-        return self.run(
-            actor, lambda call: _jsonable(operation(call.store, call.actor, request))
+        return self._on_artifact(
+            actor, request, access, lambda call: operation(call.store, request)
         )
 
     def create(self, actor: str | None, request: ArtifactCreateRequest) -> Answer:
-        return self._store(actor, ArtifactFileStore.create, request)
+        def action(call: _Call) -> Answer:
+            artifact_id = str(uuid4())
+            # The content first: if the widget can't be saved, what was
+            # stored is never reachable, and the store drops it later.
+            created = call.store.create(artifact_id, request)
+            call.access.register(artifact_id, request.title or "Artifact", call.actor)
+            return _jsonable(created)
+
+        return self.run(actor, action)
 
     def view(self, actor: str | None, request: ArtifactViewRequest) -> Answer:
-        return self._store(actor, ArtifactFileStore.view, request)
+        return self._store(actor, ArtifactFileStore.view, request, "read")
 
     def create_file(
         self, actor: str | None, request: ArtifactCreateFileRequest
     ) -> Answer:
-        return self._store(actor, ArtifactFileStore.create_file, request)
+        return self._store(actor, ArtifactFileStore.create_file, request, "edit")
 
     def str_replace(
         self, actor: str | None, request: ArtifactStrReplaceRequest
     ) -> Answer:
-        return self._store(actor, ArtifactFileStore.str_replace, request)
+        return self._store(actor, ArtifactFileStore.str_replace, request, "edit")
 
     def insert(self, actor: str | None, request: ArtifactInsertRequest) -> Answer:
-        return self._store(actor, ArtifactFileStore.insert, request)
+        return self._store(actor, ArtifactFileStore.insert, request, "edit")
 
     def delete_file(
         self, actor: str | None, request: ArtifactDeleteFileRequest
     ) -> Answer:
-        return self._store(actor, ArtifactFileStore.delete_file, request)
+        return self._store(actor, ArtifactFileStore.delete_file, request, "edit")
 
     def move_file(self, actor: str | None, request: ArtifactMoveFileRequest) -> Answer:
-        return self._store(actor, ArtifactFileStore.move_file, request)
+        return self._store(actor, ArtifactFileStore.move_file, request, "edit")
 
     def search(self, actor: str | None, request: ArtifactSearchRequest) -> Answer:
-        return self._store(actor, ArtifactFileStore.search, request)
+        return self._store(actor, ArtifactFileStore.search, request, "read")
 
     def history(self, actor: str | None, request: ArtifactHistoryRequest) -> Answer:
-        return self._store(actor, ArtifactFileStore.history, request)
+        return self._store(actor, ArtifactFileStore.history, request, "read")
 
     def restore(self, actor: str | None, request: ArtifactRestoreRequest) -> Answer:
-        return self._store(actor, ArtifactFileStore.restore, request)
+        return self._store(actor, ArtifactFileStore.restore, request, "edit")
 
     def manifest_get(
         self, actor: str | None, request: ArtifactManifestGetRequest
     ) -> Answer:
         def action(call: _Call) -> Answer:
-            version, manifest = call.store.manifest_get(call.actor, request)
+            version, manifest = call.store.manifest_get(request)
             return {
                 "version": version,
                 "manifest": manifest.model_dump(mode="json", exclude_none=True),
             }
 
-        return self.run(actor, action)
+        return self._on_artifact(actor, request, "read", action)
 
     def manifest_update(
         self, actor: str | None, request: ArtifactManifestUpdateArguments
     ) -> Answer:
-        def action(call: _Call) -> Answer:
+        def action(call: _Call) -> object:
             with translate_invalid_manifest():
                 manifest = ArtifactManifest.model_validate(request.manifest)
             checked = ArtifactManifestUpdateRequest(
@@ -246,9 +288,9 @@ class AuthoringHandlers:
                 base_version=request.base_version,
                 manifest=manifest,
             )
-            return _jsonable(call.store.manifest_update(call.actor, checked))
+            return call.store.manifest_update(checked)
 
-        return self.run(actor, action)
+        return self._on_artifact(actor, request, "edit", action)
 
     def request_publish(
         self, actor: str | None, request: ArtifactRequestPublishRequest
@@ -266,12 +308,12 @@ class AuthoringHandlers:
                 "expires_at": publish.expires_at.isoformat(),
             }
 
-        return self.run(actor, action)
+        return self._on_artifact(actor, request, "edit", action)
 
     def build(self, actor: str | None, request: ArtifactBuildRequest) -> Answer:
         def action(call: _Call) -> Answer:
             artifact_id, version = call.store.resolve_version(
-                call.actor, request.artifact_id, request.version
+                request.artifact_id, request.version
             )
             manifest = call.store.manifest_at(artifact_id, version)
             ref = ArtifactRef(artifact_id, version)
@@ -295,31 +337,30 @@ class AuthoringHandlers:
             )
             return {"version": version, **_jsonable(result)}
 
-        return self.run(actor, action)
+        return self._on_artifact(actor, request, "edit", action)
 
     def check(self, actor: str | None, request: ArtifactCheckRequest) -> Answer:
         def action(call: _Call) -> Answer:
             artifact_id, version = call.store.resolve_version(
-                call.actor, request.artifact_id, request.version
+                request.artifact_id, request.version
             )
             ref = ArtifactRef(artifact_id, version)
             with translate_missing_version(ref):
                 result = call.provider.check(ref, call.policy)
             return {"version": version, **_jsonable(result)}
 
-        return self.run(actor, action)
+        return self._on_artifact(actor, request, "edit", action)
 
     def commit_files(
         self, actor: str | None, request: ArtifactCommitFilesRequest
     ) -> Answer:
-        return self._store(actor, ArtifactFileStore.commit_files, request)
+        return self._store(actor, ArtifactFileStore.commit_files, request, "edit")
 
     def upload_blobs(
         self, actor: str | None, request: ArtifactUploadBlobsRequest
     ) -> Answer:
         def action(call: _Call) -> Answer:
             contents = [blob.data() for blob in request.blobs]
-            hashes = call.store.put_blobs(call.actor, request.artifact_id, contents)
-            return {"hashes": hashes}
+            return {"hashes": call.store.put_blobs(contents)}
 
-        return self.run(actor, action)
+        return self._on_artifact(actor, request, "edit", action)

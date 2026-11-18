@@ -81,6 +81,17 @@ class ArtifactError(Exception):
         }
 
 
+def artifact_not_found(artifact_id: str) -> ArtifactError:
+    """
+    ``ARTIFACT_NOT_FOUND``, alike for an artifact that doesn't exist and for
+    one the caller may not use that way, so that an id doesn't reveal which.
+    """
+    return ArtifactError(
+        AuthoringErrorCode.ARTIFACT_NOT_FOUND,
+        f"artifact {artifact_id!r} not found, or you can't do that with it",
+    )
+
+
 @contextmanager
 def translate_missing_version(ref: ArtifactRef) -> Iterator[None]:
     """

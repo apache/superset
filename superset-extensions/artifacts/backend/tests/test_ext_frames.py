@@ -20,9 +20,9 @@ from __future__ import annotations
 
 import json  # noqa: TID251 -- pure test; the host's JSON utility needs Flask.
 from datetime import datetime, timezone
+from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
 from superset_artifacts_sdk.authoring import (
     ArtifactCreateRequest,
     ArtifactRequestPublishRequest,
@@ -45,6 +45,7 @@ from superset_artifacts_sdk.provider import (
 )
 from superset_artifacts_sdk.testing import InMemoryArtifactStore
 from superset_core.canvas import placements
+from superset_core.widgets import Widget
 from superset_oss.artifacts.canvas.controls import ArtifactControls
 from superset_oss.artifacts.constants import WIDGET_TYPE
 from superset_oss.artifacts.errors import ArtifactError
@@ -57,13 +58,11 @@ from superset_oss.artifacts.frames.grants import (
 from superset_oss.artifacts.frames.links import link_payload
 from superset_oss.artifacts.frames.placement import (
     placement_artifact,
-    PlacementArtifact,
     PlacementNotFoundError,
 )
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 OWNER = "1"
-VIEWER = "2"
 MANIFEST = ArtifactManifest.model_validate(
     {
         "artifact_version": "1",
@@ -135,17 +134,21 @@ def store() -> ArtifactFileStore:
     return ArtifactFileStore(InMemoryArtifactStore(), policy=STANDARD)
 
 
-def test_owners_get_drafts_and_others_only_published_versions(
+def create(store: ArtifactFileStore, **files: str) -> tuple[str, str]:
+    created = store.create(str(uuid4()), ArtifactCreateRequest(files=files))
+    return created.artifact_id, created.version
+
+
+def test_editors_get_drafts_and_others_only_published_versions(
     store: ArtifactFileStore,
 ) -> None:
-    created = store.create(OWNER, ArtifactCreateRequest(files={"index.html": "v1"}))
-    artifact_id, first = created.artifact_id, created.version
+    artifact_id, first = create(store, **{"index.html": "v1"})
 
-    assert choose_version(store, OWNER, artifact_id) == ServedVersion(
+    assert choose_version(store, artifact_id, can_edit=True) == ServedVersion(
         artifact_id, first, is_draft=True, can_edit=True
     )
     with pytest.raises(ArtifactError, match="isn't published"):
-        choose_version(store, VIEWER, artifact_id)
+        choose_version(store, artifact_id, can_edit=False)
 
     publish = store.request_publish(
         OWNER,
@@ -153,7 +156,6 @@ def test_owners_get_drafts_and_others_only_published_versions(
     )
     store.confirm_publish(OWNER, artifact_id, publish.request_id)
     second = store.str_replace(
-        OWNER,
         ArtifactStrReplaceRequest(
             artifact_id=artifact_id,
             base_version=first,
@@ -163,17 +165,17 @@ def test_owners_get_drafts_and_others_only_published_versions(
         ),
     ).version
 
-    assert choose_version(store, VIEWER, artifact_id).version == first
-    assert choose_version(store, None, artifact_id).version == first
-    assert choose_version(store, VIEWER, artifact_id, first).version == first
-    assert choose_version(store, OWNER, artifact_id).version == first
-    assert choose_version(store, OWNER, artifact_id, use_draft=True).version == second
-    assert choose_version(store, OWNER, artifact_id, second).version == second
-    # A viewer asking for the draft, or pinning an unpublished version, gets
-    # neither.
-    assert choose_version(store, VIEWER, artifact_id, use_draft=True).version == first
-    with pytest.raises(ArtifactError, match="isn't a published version"):
-        choose_version(store, VIEWER, artifact_id, second)
+    assert choose_version(store, artifact_id, can_edit=False).version == first
+    assert choose_version(store, artifact_id, can_edit=True).version == first
+    assert (
+        choose_version(store, artifact_id, can_edit=True, use_draft=True).version
+        == second
+    )
+    # A viewer in a draft of the canvas still gets the published version.
+    assert (
+        choose_version(store, artifact_id, can_edit=False, use_draft=True).version
+        == first
+    )
 
 
 class RecordingMinter:
@@ -194,8 +196,8 @@ def test_a_link_is_minted_for_the_served_version_in_its_context(
     store: ArtifactFileStore,
 ) -> None:
     files = {"manifest.json": MANIFEST.model_dump_json()}
-    created = store.create(OWNER, ArtifactCreateRequest(files=files))
-    served = choose_version(store, OWNER, created.artifact_id)
+    created = store.create(str(uuid4()), ArtifactCreateRequest(files=files))
+    served = choose_version(store, created.artifact_id, can_edit=True)
     minter = RecordingMinter()
 
     answer = link_payload(
@@ -224,8 +226,10 @@ def test_a_link_is_minted_for_the_served_version_in_its_context(
 
 
 def test_the_policy_keeps_artifacts_off_a_surface(store: ArtifactFileStore) -> None:
-    created = store.create(OWNER, ArtifactCreateRequest(files={"index.html": "v1"}))
-    served = choose_version(store, OWNER, created.artifact_id)
+    created = store.create(
+        str(uuid4()), ArtifactCreateRequest(files={"index.html": "v1"})
+    )
+    served = choose_version(store, created.artifact_id, can_edit=True)
     minter = RecordingMinter()
 
     with pytest.raises(ArtifactError) as raised:
@@ -251,8 +255,10 @@ def test_a_version_the_provider_no_longer_holds_answers_version_not_found(
     store: ArtifactFileStore,
 ) -> None:
     """As when a publish lands between reading the version and minting."""
-    created = store.create(OWNER, ArtifactCreateRequest(files={"index.html": "v1"}))
-    served = choose_version(store, OWNER, created.artifact_id)
+    created = store.create(
+        str(uuid4()), ArtifactCreateRequest(files={"index.html": "v1"})
+    )
+    served = choose_version(store, created.artifact_id, can_edit=True)
     minter = FailingMinter(VersionNotFoundError("not the draft or published"))
 
     with pytest.raises(ArtifactError) as raised:
@@ -267,8 +273,10 @@ def test_a_version_the_provider_no_longer_holds_answers_version_not_found(
 def test_other_lookup_errors_from_the_provider_still_surface(
     store: ArtifactFileStore,
 ) -> None:
-    created = store.create(OWNER, ArtifactCreateRequest(files={"index.html": "v1"}))
-    served = choose_version(store, OWNER, created.artifact_id)
+    created = store.create(
+        str(uuid4()), ArtifactCreateRequest(files={"index.html": "v1"})
+    )
+    served = choose_version(store, created.artifact_id, can_edit=True)
 
     with pytest.raises(KeyError):
         link_payload(
@@ -281,18 +289,19 @@ def test_other_lookup_errors_from_the_provider_still_surface(
         )
 
 
-def test_props_name_an_artifact_and_optionally_a_version() -> None:
-    props = ArtifactControls.model_validate(
-        {"artifact_id": "00000000-0000-4000-8000-000000000000"}
-    )
+class ArtifactProps(Widget):
+    """The artifact type's props, as the host validates them on every write."""
 
-    assert props.version is None
-    with pytest.raises(ValidationError):
-        ArtifactControls.model_validate({"artifact_id": "not-a-uuid"})
-    with pytest.raises(ValidationError):
-        ArtifactControls.model_validate(
-            {"artifact_id": "00000000-0000-4000-8000-000000000000", "version": "v2"}
-        )
+    controls_class = ArtifactControls
+
+
+def test_the_props_name_nothing() -> None:
+    """The artifact is the saved widget: no prop holds code or a version."""
+    assert ArtifactProps.validate_control_values({}) == []
+    errors = ArtifactProps.validate_control_values(
+        {"artifact_id": "00000000-0000-4000-8000-000000000000", "version": "v2"}
+    )
+    assert {tuple(error["loc"]) for error in errors} == {("artifact_id",), ("version",)}
 
 
 def test_a_placement_is_read_through_superset_core(
@@ -300,11 +309,9 @@ def test_a_placement_is_read_through_superset_core(
 ) -> None:
     artifact_id = "00000000-0000-4000-8000-000000000000"
     stored = {
-        "art": placements.StoredPlacement(
-            WIDGET_TYPE, {"artifact_id": artifact_id, "version": ""}
-        ),
-        "chart": placements.StoredPlacement("chart", {"artifact_id": artifact_id}),
-        "unnamed": placements.StoredPlacement(WIDGET_TYPE, {}),
+        "art": placements.StoredPlacement(WIDGET_TYPE, {}, widget_id=artifact_id),
+        "chart": placements.StoredPlacement("chart", {}, widget_id=artifact_id),
+        "inline": placements.StoredPlacement(WIDGET_TYPE, {}),
     }
     reads: list[tuple[str, str, str | None]] = []
 
@@ -318,11 +325,9 @@ def test_a_placement_is_read_through_superset_core(
 
     monkeypatch.setattr(placements, "load_placement", load_placement)
 
-    assert placement_artifact("7", "art", "token") == PlacementArtifact(
-        artifact_id, None
-    )
+    assert placement_artifact("7", "art", "token") == artifact_id
     assert reads == [("7", "art", "token")]
-    # Nothing the caller may read, another widget type, props without an id.
-    for placement_id in ("missing", "chart", "unnamed"):
+    # Nothing the caller may read, another widget type, no saved widget.
+    for placement_id in ("missing", "chart", "inline"):
         with pytest.raises(PlacementNotFoundError):
             placement_artifact("7", placement_id)

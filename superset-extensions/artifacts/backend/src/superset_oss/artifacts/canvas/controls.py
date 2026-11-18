@@ -15,45 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The artifact widget's props: which artifact a placement shows, and which version.
+The artifact widget's props: none.
 
-Props hold only that reference. The files live in the store, and every viewer
-receives every widget's props, so code in props would grow the canvas past its
-read limits and reach every viewer. The canvas titles the placement with the
-widget's name, as it does every other widget, so the props hold no title.
+The artifact is the saved widget itself: its UUID is the artifact's id, and
+its files and versions live in the store, keyed by that UUID. So the props
+name nothing, and any prop is refused: no code, which would reach every
+viewer and grow the canvas past its read limits, and no version pin, since
+every canvas shows the same artifact and a frozen copy is a fork.
 """
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
-from superset_artifacts_sdk.store import SHA256_HEX_PATTERN
-
-UUID_PATTERN = (
-    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
-)
+from pydantic import BaseModel
 
 
 class ArtifactControls(BaseModel):
-    """Controls for the ``artifact`` widget."""
-
-    model_config = ConfigDict(populate_by_name=True)
-
-    artifact_id: str = Field(
-        title="Artifact",
-        description=(
-            "The artifact's id, as artifact_create returned it. The artifact's "
-            "files live in the artifact store, never in these props."
-        ),
-        pattern=UUID_PATTERN,
-        json_schema_extra={"format": "uuid"},
-    )
-    version: str | None = Field(
-        default=None,
-        title="Version",
-        description=(
-            "A version to pin, as the authoring tools return it. Leave unset to "
-            "show the artifact's published version as it changes."
-        ),
-        # A version is the hash of its tree.
-        pattern=SHA256_HEX_PATTERN,
-    )
+    """Controls for the ``artifact`` widget: there are none."""

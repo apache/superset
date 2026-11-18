@@ -24,8 +24,10 @@ delegates to ``AuthoringHandlers`` with the signed-in user; every answer is a
 JSON object, and a failure carries a ``code`` from ``AuthoringErrorCode`` or
 the extension's own codes.
 
-RBAC reuses the Canvas permissions: can_read on Canvas to read, can_write to
-write. Operators can remove any of the tools with ``MCP_DISABLED_TOOLS``.
+An artifact is a saved widget, so RBAC reuses the Widget permissions: can_read
+on Widget to read, can_write to write; each tool then checks the artifact's
+own widget, its readers or its editors. Operators can remove any of the tools
+with ``MCP_DISABLED_TOOLS``.
 """
 
 # TODO: decorators that don't raise when the MCP extras aren't installed;
@@ -79,7 +81,7 @@ from superset_oss.artifacts.authoring.handlers import (
 from superset_oss.artifacts.constants import ARTIFACT_UPLOAD_BLOBS
 from superset_oss.artifacts.web import current_actor
 
-PERMISSION = "Canvas"
+PERMISSION = "Widget"
 READ_TAGS = ["artifacts"]
 WRITE_TAGS = ["artifacts", "mutate"]
 

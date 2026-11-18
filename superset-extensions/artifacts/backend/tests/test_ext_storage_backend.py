@@ -204,10 +204,9 @@ def test_content_changed_in_storage_is_refused(
 
 def test_the_file_store_runs_on_it(artifact_store: ExtensionStorageBackend) -> None:
     store = ArtifactFileStore(artifact_store)
-    created = store.create("1", ArtifactCreateRequest(files={"a.txt": "one"}))
+    created = store.create(ARTIFACT_ID, ArtifactCreateRequest(files={"a.txt": "one"}))
 
     written = store.str_replace(
-        "1",
         ArtifactStrReplaceRequest(
             artifact_id=created.artifact_id,
             base_version=created.version,
@@ -217,7 +216,7 @@ def test_the_file_store_runs_on_it(artifact_store: ExtensionStorageBackend) -> N
         ),
     )
 
-    assert store.draft_version("1", created.artifact_id) == written.version
+    assert store.draft_version(created.artifact_id) == written.version
 
 
 class StoreOnly:
@@ -232,7 +231,9 @@ class StoreOnly:
 
 def test_the_file_store_needs_only_the_providers_store_role() -> None:
     backend = InMemoryArtifactStore()
-    created = file_store_for(StoreOnly(backend)).create("1", ArtifactCreateRequest())
+    created = file_store_for(StoreOnly(backend)).create(
+        ARTIFACT_ID, ArtifactCreateRequest()
+    )
 
     assert backend.get_ref(created.artifact_id, DRAFT_REF) == created.version
     # Without a backend of the provider's, the default one can't run yet.

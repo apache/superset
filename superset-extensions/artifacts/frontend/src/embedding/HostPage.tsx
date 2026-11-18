@@ -38,7 +38,7 @@ import {
   translation,
 } from '@apache-superset/core';
 import type { FrameState } from '@superset-oss/artifacts-sdk';
-import { fetchStandaloneFrame, FrameLink } from '../frames/api';
+import { fetchPageFrame, FrameLink } from '../frames/api';
 import FrameHost from '../frames/FrameHost';
 import { frameTheme } from '../frames/theme';
 import { errorMessage } from '../http';
@@ -53,7 +53,7 @@ export default function HostPage({ artifactId }: { artifactId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetchStandaloneFrame(artifactId)
+    fetchPageFrame(artifactId)
       .then(link => {
         if (!cancelled) setFrame(link);
       })

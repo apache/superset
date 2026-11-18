@@ -15,17 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-An artifact placement's named bindings, from the manifest its frame runs.
+An artifact's named bindings, from the manifest its frame runs.
 
-The canvas placement data endpoint asks the artifact widget type for a
-placement's binding by name (its ``binding_resolver``). The binding comes from
-the manifest of the version that the caller's frame loads, picked by the
-frame's own rules (``choose_version``): the pinned version, or else the
-published one, and the owner's draft while the placement is read from their
-own draft of the canvas. The policy in force must admit the binding, checked
-on every query, so that a tighter policy reaches a published artifact at its
-next query. The host then runs the binding as it runs any other: as the
-caller, with their dataset access.
+The host asks the artifact widget type for a binding by name (its
+``binding_resolver``), for a placement or for the saved widget itself; the
+artifact is that widget. The binding comes from the manifest of the version
+that the caller's frame loads, picked by the frame's own rules
+(``choose_version``): the published version, and the draft for its editors
+while the placement is read from their draft of the canvas. The policy in
+force must admit the binding, checked on every query, so that a tighter
+policy reaches a published artifact at its next query. The host then runs the
+binding as it runs any other: as the caller, with their dataset access.
 """
 
 # TODO: the frame link and the data request each pick the version, so a write
@@ -40,38 +40,35 @@ from typing import Any
 
 from superset_artifacts_sdk.policy import ArtifactPolicy, binding_problems
 from superset_core.widgets import BindingRequest
+from superset_oss.artifacts.access import ArtifactAccess
 from superset_oss.artifacts.data.bindings import BindingError, resolve_binding
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.frames.access import choose_version
-from superset_oss.artifacts.frames.placement import artifact_of
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 
-def placement_binding(
+def artifact_binding(
     store: ArtifactFileStore,
     policy: ArtifactPolicy,
-    actor: str | None,
+    access: ArtifactAccess,
     request: BindingRequest,
 ) -> dict[str, Any] | None:
     """
-    Binding ``request.name`` of the artifact a placement shows, for ``actor``.
+    Binding ``request.name`` of the artifact that ``request.widget_id`` is.
 
-    ``None`` when the props name no artifact, when ``actor`` may see no version
-    of it, when the version's manifest declares no binding of that name, or
-    one that doesn't map onto placement data, and when ``policy`` refuses it.
-    The host answers each as a placement without the binding.
+    ``None`` when there is no widget, when the caller may see no version of
+    the artifact, when the version's manifest declares no binding of that
+    name, or one that doesn't map onto the host's data request, and when
+    ``policy`` refuses it. The host answers each as a widget without the
+    binding.
     """
-    artifact = artifact_of(request.props)
-    if artifact is None:
+    if request.widget_id is None:
         return None
     try:
         served = choose_version(
             store,
-            actor,
-            artifact.artifact_id,
-            artifact.version,
-            # The renderer asks for the draft exactly while the canvas shows a
-            # draft, so that the frame and its data come from one version.
+            request.widget_id,
+            can_edit=access.can_edit(request.widget_id),
             use_draft=request.draft_token is not None,
         )
         manifest = store.manifest_at(served.artifact_id, served.version)

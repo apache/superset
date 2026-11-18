@@ -45,7 +45,7 @@ branch:
 | [A request-time extension context; MCP decorators without MCP](#a-request-time-extension-context-mcp-decorators-without-mcp) | Scaffolded (an import guard) |
 | [Extensions declare the CSP they need](#extensions-declare-the-csp-they-need) | Not a core ask (operators configure `TALISMAN_CONFIG`) |
 | [The "no code artifacts" MCP instruction, conditional](#the-no-code-artifacts-mcp-instruction-conditional) | Implemented here |
-| [Artifact guest tokens and standalone embedding](#artifact-guest-tokens-and-standalone-embedding) | Documented only |
+| [Artifact guest tokens and standalone embedding](#artifact-guest-tokens-and-standalone-embedding) | Not core asks |
 
 ## Canvas and the widget framework on master
 
@@ -73,10 +73,16 @@ branch:
     `superset_core.canvas.placements.load_placement(canvas_id, placement_id,
     draft_token)`, which the host injects (`inject_canvas_implementations`,
     `superset/core/api/core_api_injection.py`). It answers a
-    `StoredPlacement`, and raises `PlacementNotFoundError` for a canvas, draft
-    or placement the caller can't read. The extension's frame links
-    (`frames/placement.py`) use it, so the extension imports nothing from the
-    host.
+    `StoredPlacement`: the widget type, the props and, for a placement that
+    holds a saved widget, that widget's UUID (`widget_id`). It raises
+    `PlacementNotFoundError` for a canvas, draft or placement the caller can't
+    read. The extension's frame links (`frames/placement.py`) use it, so the
+    extension imports nothing from the host.
+  - `superset_core.common.security.is_editor(resource)`: whether the current
+    user may edit a resource, as the security manager says (through roles and
+    groups, never for guests), which the host injects
+    (`inject_security_implementations`). An extension reads its widgets
+    through `WidgetDAO`'s access filter, and asks this who may change them.
 - **Tests:** `CanvasGrid.test.tsx` (a renderer gets the draft's token, and
   `undefined` without a draft; added, not run here, as this checkout has no
   `node_modules`); `tests/unit_tests/canvas/placement_data_test.py` (a
@@ -174,8 +180,9 @@ branch:
     (`superset_core.widgets.bindings`), for a type whose props don't hold its
     named bindings. When the placement's type sets one, the command asks it
     for the name instead of reading `props.bindings`, with a `BindingRequest`:
-    the canvas, the placement and its props, the name, and the caller's draft
-    token when the placement comes from their draft. The binding it answers
+    the canvas, the placement and its props, the name, the caller's draft
+    token when the placement comes from their draft, and the UUID of the
+    saved widget the placement holds (`widget_id`). The binding it answers
     gets the same checks and runs the same way, as the caller, through the
     chart data pipeline's access checks; `None` answers 422, as an undeclared
     name does. `dataBinding` never goes through it. The artifact widget
@@ -305,11 +312,8 @@ branch:
   only (`superset-embedded-sdk/src/index.ts`); the embedded routes serve
   dashboards (`superset/embedded/view.py`, `/embedded/<uuid>`); Canvas has no
   guest support.
-- **Status:** documented only. The extension's standalone host endpoint is a
-  scaffold for logged-in owners at
-  `/extensions/superset-oss/artifacts/embedded/artifact/<uuid>`: extensions
-  mount only under `/extensions/<publisher>/<name>/` and can't add pages, so
-  `/embedded/artifact/<uuid>` and the route that renders `HostPage` need core.
-- **Next:** an `artifact` resource type, `embedArtifact()`, a core route for
-  the standalone host page, and a data endpoint that runs an artifact's
-  bindings without a canvas placement.
+- **Status:** not core asks. A host adds the page that shows one artifact on
+  its own; the extension answers its frame link (`POST .../frames/` with
+  `page`). Guests would see artifacts through an embedded canvas that holds
+  them, with canvas guest tokens, once Canvas has them.
+- **Next:** the widget data endpoint, so that the page gets its data.

@@ -32,18 +32,17 @@ What it keeps in the backend, for each artifact:
 - ``draft``: the current draft's tree, and the authoritative version. Writes
   move it by compare-and-swap.
 - ``published``: the published tree. Only ``confirm_publish`` moves it.
-- ``_meta`` and ``_publish``: one-file trees holding the artifact's record
-  (its owners) and its latest publish request.
+- ``_publish``: a one-file tree holding its latest publish request.
 
 The backend keeps each ref's history with it, moved in the same atomic step,
 so the versions a ref has pointed to are the backend's to answer.
 
-The module is pure Python, without Flask or Superset: callers pass the acting
-user as ``actor`` and decide who that is.
+It holds content only. An artifact's id is its widget's UUID, and who may
+read or change it is its widget's to say, which callers check before they
+call; the store authorizes nothing. The module is pure Python, without Flask
+or Superset.
 """
 
-# TODO: owners stand in for the editors and viewers that each artifact gets
-# once it is a persisted widget.
 # TODO: per-artifact quotas, beyond the policy's limits on files.
 # TODO: garbage collection of blobs and trees no version holds, retention,
 # and GDPR erasure.
@@ -98,6 +97,7 @@ from superset_artifacts_sdk.store import (
     validate_tree,
 )
 from superset_oss.artifacts.errors import (
+    artifact_not_found,
     ArtifactError,
     ExtensionErrorCode,
     translate_invalid_manifest,
@@ -113,7 +113,6 @@ MAX_UPLOAD_BYTES = 8_000_000
 MAX_MATCH_CHARS = 500
 PUBLISH_REQUEST_TTL = timedelta(hours=24)
 
-_META_REF = "_meta"
 _PUBLISH_REF = "_publish"
 _RECORD_FILE = "record.json"
 # How often a compare-and-swap loop retries under contention before giving up.
@@ -377,11 +376,9 @@ class ArtifactFileStore:
     """
     Artifacts as trees of files with versions, for the authoring tools.
 
-    Every method that takes an ``actor`` checks that the actor owns the
-    artifact, and answers ``ARTIFACT_NOT_FOUND`` otherwise, the same as for an
-    artifact that doesn't exist. Failures raise ``ArtifactError`` and
-    change nothing; blobs a failed write stored stay behind until garbage
-    collection.
+    An artifact the store holds no draft of answers ``ARTIFACT_NOT_FOUND``.
+    Failures raise ``ArtifactError`` and change nothing; blobs a failed write
+    stored stay behind until garbage collection.
     """
 
     def __init__(
@@ -400,10 +397,10 @@ class ArtifactFileStore:
     # -- Authoring -----------------------------------------------------------
 
     def create(
-        self, actor: str, request: ArtifactCreateRequest
+        self, artifact_id: str, request: ArtifactCreateRequest
     ) -> ArtifactCreateResponse:
-        """Start an artifact owned by ``actor``, from ``request.files``."""
-        self._require_actor(actor)
+        """Start the content of artifact ``artifact_id``, from ``request.files``."""
+        artifact_id = self.canonical_id(artifact_id)
         files = dict(request.files)
         if MANIFEST_FILE not in files:
             files[MANIFEST_FILE] = _manifest_text(
@@ -424,21 +421,13 @@ class ArtifactFileStore:
         for data in contents.values():
             self._backend.put_blob(data)
         version = self._put_tree(planned)
-        artifact_id = self._new_id()
-        meta = {
-            "owners": [actor],
-            "created_by": actor,
-            "created_at": self._now().isoformat(),
-        }
-        if not self._write_record(artifact_id, _META_REF, None, meta):
-            raise RuntimeError(f"artifact id {artifact_id} is taken")
         if not self._backend.compare_and_set_ref(artifact_id, DRAFT_REF, None, version):
             raise RuntimeError(f"artifact {artifact_id} has a draft already")
         return ArtifactCreateResponse(artifact_id=artifact_id, version=version)
 
-    def view(self, actor: str, request: ArtifactViewRequest) -> FileView:
+    def view(self, request: ArtifactViewRequest) -> FileView:
         """A page of a draft file's numbered lines, or of a directory's files."""
-        artifact_id = self._authorize(actor, request.artifact_id)
+        artifact_id = self.canonical_id(request.artifact_id)
         version, tree = self._draft(artifact_id)
         path = request.path
         if path == ROOT_PATH or _is_directory(tree, path):
@@ -485,11 +474,9 @@ class ArtifactFileStore:
             numbered.append(f"{number:>6}\t{line}\n")
         return self._view_page(path, "file", numbered, request.page, version)
 
-    def create_file(
-        self, actor: str, request: ArtifactCreateFileRequest
-    ) -> ArtifactWriteResponse:
+    def create_file(self, request: ArtifactCreateFileRequest) -> ArtifactWriteResponse:
         """Add a new file; ``FILE_EXISTS`` when the path is taken."""
-        artifact_id, tree = self._begin_write(actor, request)
+        artifact_id, tree = self._begin_write(request)
         if request.path in tree or _is_directory(tree, request.path):
             raise ArtifactError(
                 AuthoringErrorCode.FILE_EXISTS,
@@ -498,11 +485,9 @@ class ArtifactFileStore:
         new_tree = {**tree, request.path: self._stage(request.path, request.file_text)}
         return self._commit(artifact_id, request.base_version, tree, new_tree)
 
-    def str_replace(
-        self, actor: str, request: ArtifactStrReplaceRequest
-    ) -> ArtifactWriteResponse:
+    def str_replace(self, request: ArtifactStrReplaceRequest) -> ArtifactWriteResponse:
         """Replace the one exact occurrence of ``old_str`` in a file."""
-        artifact_id, tree = self._begin_write(actor, request)
+        artifact_id, tree = self._begin_write(request)
         text = self._existing_text(tree, request.path)
         found: list[int] = []
         index = text.find(request.old_str)
@@ -529,11 +514,9 @@ class ArtifactFileStore:
         new_tree = {**tree, request.path: self._stage(request.path, updated)}
         return self._commit(artifact_id, request.base_version, tree, new_tree)
 
-    def insert(
-        self, actor: str, request: ArtifactInsertRequest
-    ) -> ArtifactWriteResponse:
+    def insert(self, request: ArtifactInsertRequest) -> ArtifactWriteResponse:
         """Insert text after line ``insert_line``; ``0`` is the start of the file."""
-        artifact_id, tree = self._begin_write(actor, request)
+        artifact_id, tree = self._begin_write(request)
         text = self._existing_text(tree, request.path)
         lines = _split_lines(text)
         if request.insert_line > len(lines):
@@ -555,11 +538,9 @@ class ArtifactFileStore:
         new_tree = {**tree, request.path: self._stage(request.path, updated)}
         return self._commit(artifact_id, request.base_version, tree, new_tree)
 
-    def delete_file(
-        self, actor: str, request: ArtifactDeleteFileRequest
-    ) -> ArtifactWriteResponse:
+    def delete_file(self, request: ArtifactDeleteFileRequest) -> ArtifactWriteResponse:
         """Delete one file. ``manifest.json`` can't be deleted."""
-        artifact_id, tree = self._begin_write(actor, request)
+        artifact_id, tree = self._begin_write(request)
         if request.path == MANIFEST_FILE:
             raise self._manifest_required("deleted")
         if request.path not in tree:
@@ -567,11 +548,9 @@ class ArtifactFileStore:
         new_tree = {path: blob for path, blob in tree.items() if path != request.path}
         return self._commit(artifact_id, request.base_version, tree, new_tree)
 
-    def move_file(
-        self, actor: str, request: ArtifactMoveFileRequest
-    ) -> ArtifactWriteResponse:
+    def move_file(self, request: ArtifactMoveFileRequest) -> ArtifactWriteResponse:
         """Move or rename one file; ``FILE_EXISTS`` when ``new_path`` is taken."""
-        artifact_id, tree = self._begin_write(actor, request)
+        artifact_id, tree = self._begin_write(request)
         if request.old_path not in tree:
             raise self._file_not_found(request.old_path)
         if request.old_path == MANIFEST_FILE:
@@ -587,9 +566,9 @@ class ArtifactFileStore:
         new_tree[request.new_path] = tree[request.old_path]
         return self._commit(artifact_id, request.base_version, tree, new_tree)
 
-    def search(self, actor: str, request: ArtifactSearchRequest) -> SearchResult:
+    def search(self, request: ArtifactSearchRequest) -> SearchResult:
         """A page of the draft's lines holding ``query``, plain and case-sensitive."""
-        artifact_id = self._authorize(actor, request.artifact_id)
+        artifact_id = self.canonical_id(request.artifact_id)
         version, tree = self._draft(artifact_id)
         if request.path is None:
             paths = sorted(tree)
@@ -623,9 +602,9 @@ class ArtifactFileStore:
             version=version,
         )
 
-    def history(self, actor: str, request: ArtifactHistoryRequest) -> HistoryPage:
+    def history(self, request: ArtifactHistoryRequest) -> HistoryPage:
         """A page of the versions ``request.ref`` has pointed to, newest first."""
-        artifact_id = self._authorize(actor, request.artifact_id)
+        artifact_id = self._existing(request.artifact_id)
         number = request.page or 1
         history = self._backend.ref_history(
             artifact_id,
@@ -639,9 +618,7 @@ class ArtifactFileStore:
             ref=request.ref, versions=history.versions, page=number, pages=pages
         )
 
-    def restore(
-        self, actor: str, request: ArtifactRestoreRequest
-    ) -> ArtifactWriteResponse:
+    def restore(self, request: ArtifactRestoreRequest) -> ArtifactWriteResponse:
         """
         Make an earlier version's files the draft again.
 
@@ -649,7 +626,7 @@ class ArtifactFileStore:
         history. Its version is the earlier one's, since a version is the hash
         of its files.
         """
-        artifact_id, tree = self._begin_write(actor, request)
+        artifact_id, tree = self._begin_write(request)
         if not self.has_version(artifact_id, request.version):
             raise self._version_not_found(request.version)
         return self._commit(
@@ -657,34 +634,31 @@ class ArtifactFileStore:
         )
 
     def manifest_get(
-        self, actor: str, request: ArtifactManifestGetRequest
+        self, request: ArtifactManifestGetRequest
     ) -> tuple[str, ArtifactManifest]:
         """The draft's version and its validated ``manifest.json``."""
-        artifact_id = self._authorize(actor, request.artifact_id)
+        artifact_id = self.canonical_id(request.artifact_id)
         version, tree = self._draft(artifact_id)
         return version, self._manifest_of(tree)
 
     def manifest_update(
-        self, actor: str, request: ArtifactManifestUpdateRequest
+        self, request: ArtifactManifestUpdateRequest
     ) -> ArtifactWriteResponse:
         """Replace the draft's ``manifest.json``."""
-        artifact_id, tree = self._begin_write(actor, request)
+        artifact_id, tree = self._begin_write(request)
         text = _manifest_text(request.manifest)
         new_tree = {**tree, MANIFEST_FILE: self._stage(MANIFEST_FILE, text)}
         return self._commit(artifact_id, request.base_version, tree, new_tree)
 
     # -- Commit by hash ------------------------------------------------------
 
-    def put_blobs(
-        self, actor: str, artifact_id: str, contents: Sequence[bytes]
-    ) -> list[str]:
+    def put_blobs(self, contents: Sequence[bytes]) -> list[str]:
         """
         Store file contents for a later ``commit_files``; return their hashes.
 
-        Only an artifact's owners upload for it. Blobs belong to the backend,
-        not the artifact, so the same content is stored once.
+        Blobs belong to the backend, not an artifact, so the same content is
+        stored once.
         """
-        self._authorize(actor, artifact_id)
         limit = self._policy.limits.file_bytes
         if any(len(content) > limit for content in contents):
             raise self._too_large(f"a file is over {limit} bytes")
@@ -693,7 +667,7 @@ class ArtifactFileStore:
         return [self._backend.put_blob(bytes(content)) for content in contents]
 
     def commit_files(
-        self, actor: str, request: ArtifactCommitFilesRequest
+        self, request: ArtifactCommitFilesRequest
     ) -> ArtifactCommitFilesResponse:
         """
         Make ``request.files`` (path to content hash) the whole new draft.
@@ -702,7 +676,7 @@ class ArtifactFileStore:
         the answer lists them: upload them with ``put_blobs``, then commit again
         from the same ``base_version``.
         """
-        artifact_id, tree = self._begin_write(actor, request)
+        artifact_id, tree = self._begin_write(request)
         files = dict(request.files)
         if MANIFEST_FILE not in files:
             raise self._manifest_required("left out")
@@ -719,13 +693,14 @@ class ArtifactFileStore:
         self, actor: str, request: ArtifactRequestPublishRequest
     ) -> PublishRequest:
         """
-        Ask the user to publish the current draft, ``request.base_version``.
+        Record ``actor``'s request to publish the current draft,
+        ``request.base_version``.
 
         Nothing is published here: the request waits until the user confirms it
         (``confirm_publish``) or it expires. A newer request replaces it. It is
         never rebased: the user confirms exactly the version the agent saw.
         """
-        artifact_id = self._authorize(actor, request.artifact_id)
+        artifact_id = self.canonical_id(request.artifact_id)
         current = self._draft_version(artifact_id)
         if current != request.base_version:
             raise self._stale(current)
@@ -747,9 +722,9 @@ class ArtifactFileStore:
                 return publish
         raise RuntimeError(f"the publish request of {artifact_id} kept changing")
 
-    def pending_publish(self, actor: str, artifact_id: str) -> PublishRequest | None:
+    def pending_publish(self, artifact_id: str) -> PublishRequest | None:
         """The publish request waiting for the user, if any."""
-        canonical = self._authorize(actor, artifact_id)
+        canonical = self.canonical_id(artifact_id)
         _, record = self._read_record(canonical, _PUBLISH_REF)
         if record is None:
             return None
@@ -762,11 +737,11 @@ class ArtifactFileStore:
         """
         Publish the version of pending request ``request_id``; return it.
 
-        Call this only for the user's own confirmation, never for an agent's
-        request. The confirmed version is the one the request named,
-        even if the draft has moved on since: it is what the user saw.
+        Call this only for the user's own confirmation, ``actor``'s, never for
+        an agent's request. The confirmed version is the one the request
+        named, even if the draft has moved on since: it is what the user saw.
         """
-        canonical = self._authorize(actor, artifact_id)
+        canonical = self.canonical_id(artifact_id)
         pointer, record = self._read_record(canonical, _PUBLISH_REF)
         publish = _publish_from_record(canonical, record) if record else None
         if (
@@ -798,30 +773,18 @@ class ArtifactFileStore:
         self._write_record(canonical, _PUBLISH_REF, pointer, _publish_record(confirmed))
         return publish.version
 
-    # -- Reads for hosts that authorize on their own -------------------------
+    # -- Reads ---------------------------------------------------------------
 
     def canonical_id(self, artifact_id: str) -> str:
         """``artifact_id`` as a canonical UUID; ``ARTIFACT_NOT_FOUND`` if it isn't."""
         try:
             return str(uuid.UUID(artifact_id))
         except (AttributeError, TypeError, ValueError):
-            raise self._not_found(artifact_id) from None
+            raise artifact_not_found(artifact_id) from None
 
-    def is_owner(self, actor: str | None, artifact_id: str) -> bool:
-        """Whether ``actor`` owns the artifact; ``False`` for anyone else."""
-        if not actor:
-            return False
-        try:
-            self._authorize(actor, artifact_id)
-        except ArtifactError:
-            return False
-        return True
-
-    def draft_version(self, actor: str, artifact_id: str) -> str:
-        """The current draft version, for an owner."""
-        canonical = self._authorize(actor, artifact_id)
-        version, _ = self._draft(canonical)
-        return version
+    def draft_version(self, artifact_id: str) -> str:
+        """The current draft version."""
+        return self._draft_version(self.canonical_id(artifact_id))
 
     def published_version(self, artifact_id: str) -> str | None:
         """The published version, if any. The caller decides who may see it."""
@@ -834,11 +797,9 @@ class ArtifactFileStore:
         canonical = self.canonical_id(artifact_id)
         return self._backend.ref_has_held(canonical, ref, version)
 
-    def resolve_version(
-        self, actor: str, artifact_id: str, version: str | None
-    ) -> tuple[str, str]:
+    def resolve_version(self, artifact_id: str, version: str | None) -> tuple[str, str]:
         """The canonical id, and ``version`` checked; the draft when ``None``."""
-        canonical = self._authorize(actor, artifact_id)
+        canonical = self._existing(artifact_id)
         if version is None:
             current, _ = self._draft(canonical)
             return canonical, current
@@ -855,28 +816,19 @@ class ArtifactFileStore:
 
     # -- Internals -----------------------------------------------------------
 
-    @staticmethod
-    def _require_actor(actor: str) -> None:
-        if not actor:
-            raise ValueError("an acting user is required")
-
-    def _authorize(self, actor: str, artifact_id: str) -> str:
-        self._require_actor(actor)
+    def _existing(self, artifact_id: str) -> str:
+        """The canonical id of an artifact the store holds; else ARTIFACT_NOT_FOUND."""
         canonical = self.canonical_id(artifact_id)
-        _, meta = self._read_record(canonical, _META_REF)
-        if meta is None or actor not in meta.get("owners", ()):
-            raise self._not_found(artifact_id)
+        self._draft_version(canonical)
         return canonical
 
-    def _begin_write(
-        self, actor: str, request: ArtifactWriteRequest
-    ) -> tuple[str, dict[str, str]]:
+    def _begin_write(self, request: ArtifactWriteRequest) -> tuple[str, dict[str, str]]:
         """
         The canonical id and the tree of ``base_version``, which the write
         starts from: the draft, or a version it held earlier, which the write
         is then rebased from (see ``_commit``).
         """
-        artifact_id = self._authorize(actor, request.artifact_id)
+        artifact_id = self.canonical_id(request.artifact_id)
         current = self._draft_version(artifact_id)
         if current != request.base_version and not self._backend.ref_has_held(
             artifact_id, DRAFT_REF, request.base_version
@@ -984,7 +936,7 @@ class ArtifactFileStore:
     def _draft_version(self, artifact_id: str) -> str:
         version = self._backend.get_ref(artifact_id, DRAFT_REF)
         if version is None:
-            raise self._not_found(artifact_id)
+            raise artifact_not_found(artifact_id)
         return version
 
     def _draft(self, artifact_id: str) -> tuple[str, dict[str, str]]:
@@ -1077,13 +1029,6 @@ class ArtifactFileStore:
             AuthoringErrorCode.STALE_BASE_VERSION,
             "the draft has moved on from base_version: read it again, then retry",
             current_version=current,
-        )
-
-    @staticmethod
-    def _not_found(artifact_id: str) -> ArtifactError:
-        return ArtifactError(
-            AuthoringErrorCode.ARTIFACT_NOT_FOUND,
-            f"artifact {artifact_id!r} not found, or you can't edit it",
         )
 
     @staticmethod

@@ -17,21 +17,27 @@
 """
 The frame link endpoint, ``POST /extensions/superset-oss/artifacts/frames/``.
 
-The artifact renderer calls it for a placement it draws. The server reads the
-placement's artifact and version from the stored canvas, picks the version the
-caller may see, and has the provider mint a short-lived, single-use link for
-it, with the context taken from the request: the allowed parents (this
-Superset's origin) and the grant (the manifest's capabilities, cut to the
-canvas context).
+The artifact's renderer calls it for the artifact it draws, by its widget's
+UUID: on a canvas placement, or on a page of its own. On a canvas, the server
+reads the placement from the stored canvas (or the caller's own draft of it),
+so a canvas reader sees the published artifact it places; elsewhere, the
+caller must be able to read the artifact's widget. The server then picks the
+version the caller may see, and has the provider mint a short-lived,
+single-use link for it, with the context taken from the request: the allowed
+parents (this Superset's origin) and the grant, manifest ∩ policy ∩ context.
 """
 
 from __future__ import annotations
 
+from typing import Literal
+from uuid import UUID
+
 from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, model_validator, ValidationError
 from superset_core.rest_api.api import RestApi
 from superset_core.rest_api.decorators import api
+from superset_oss.artifacts.access import require_read
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.frames.access import choose_version
 from superset_oss.artifacts.frames.links import link_payload
@@ -51,14 +57,21 @@ DRAFT_TOKEN_HEADER = "X-Canvas-Draft"  # noqa: S105
 
 
 class FrameLinkRequest(BaseModel):
-    """Which placement a frame link is for; the server reads the rest."""
+    """Which artifact a frame link is for, and where; the server reads the rest."""
 
     model_config = ConfigDict(extra="forbid")
 
-    canvas_id: str | int
-    placement_id: str = Field(min_length=1)
-    # The owner's draft of the artifact, instead of its published version.
-    draft: bool = False
+    widget_id: UUID
+    # The placement that shows it on a canvas; without one, a page of its own.
+    canvas_id: str | int | None = None
+    placement_id: str | None = Field(default=None, min_length=1)
+    page: Literal["standalone", "embedded"] = "standalone"
+
+    @model_validator(mode="after")
+    def _a_whole_placement(self) -> FrameLinkRequest:
+        if (self.canvas_id is None) != (self.placement_id is None):
+            raise ValueError("canvas_id and placement_id name a placement together")
+        return self
 
 
 @api(
@@ -68,7 +81,7 @@ class FrameLinkRequest(BaseModel):
     resource_name="frames",
 )
 class ArtifactFramesRestApi(RestApi):
-    """Short-lived links that load an artifact placement's sandboxed frame."""
+    """Short-lived links that load an artifact's sandboxed frame."""
 
     # Its own permission view: sharing an existing one, such as Canvas, would
     # let Flask-AppBuilder prune that view's other permissions from every role
@@ -81,22 +94,26 @@ class ArtifactFramesRestApi(RestApi):
     @safe
     @permission_name("read")
     def mint(self) -> Response:
-        """Mint a frame link for an artifact placement.
+        """Mint a frame link for an artifact.
         ---
         post:
-          summary: Mint a short-lived link to an artifact placement's frame
+          summary: Mint a short-lived link to an artifact's frame
           requestBody:
             content:
               application/json:
                 schema:
                   type: object
                   properties:
+                    widget_id:
+                      type: string
+                      format: uuid
                     canvas_id:
                       type: string
                     placement_id:
                       type: string
-                    draft:
-                      type: boolean
+                    page:
+                      type: string
+                      enum: [standalone, embedded]
           responses:
             200:
               description: The link, the version it loads and its grant
@@ -117,36 +134,40 @@ class ArtifactFramesRestApi(RestApi):
             body = FrameLinkRequest.model_validate(request.get_json(silent=True) or {})
         except ValidationError as ex:
             return self.response_400(message=str(ex))
-        try:
-            placement = placement_artifact(
-                str(body.canvas_id),
-                body.placement_id,
-                request.headers.get(DRAFT_TOKEN_HEADER) or None,
-            )
-        except PlacementNotFoundError:
-            return self.response_404()
+        artifact_id = str(body.widget_id)
+        draft_token = None
+        if body.canvas_id is not None and body.placement_id is not None:
+            draft_token = request.headers.get(DRAFT_TOKEN_HEADER) or None
+            try:
+                placed = placement_artifact(
+                    str(body.canvas_id), body.placement_id, draft_token
+                )
+            except PlacementNotFoundError:
+                return self.response_404()
+            if UUID(placed) != body.widget_id:
+                return self.response_404()
         actor = current_actor()
         store = artifacts.store
         try:
+            if body.canvas_id is None:
+                require_read(artifacts.access, artifact_id)
+            can_edit = actor is not None and artifacts.access.can_edit(artifact_id)
+            # An editor sees the draft exactly while the canvas shows a draft,
+            # as the placement data does, so the frame and its data agree.
             served = choose_version(
                 store,
-                actor,
-                placement.artifact_id,
-                placement.version,
-                use_draft=body.draft,
+                artifact_id,
+                can_edit=can_edit,
+                use_draft=draft_token is not None,
             )
-            # Owners see the publish request waiting for them, so that the
-            # canvas can offer the confirmation where the artifact is placed.
-            pending = (
-                store.pending_publish(actor, served.artifact_id)
-                if actor and served.can_edit
-                else None
-            )
+            # Editors see the publish request waiting for them, so that the
+            # renderer can offer the confirmation where the artifact is shown.
+            pending = store.pending_publish(served.artifact_id) if can_edit else None
             result = link_payload(
                 artifacts.provider,
                 store,
                 served,
-                "canvas",
+                "canvas" if body.canvas_id is not None else body.page,
                 host_url(),
                 artifacts.policy,
             )

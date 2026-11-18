@@ -238,10 +238,11 @@ Uncaught errors are reported to the author.
 
 ## Placing it on a canvas
 
-Add a widget of type `{WIDGET_TYPE}` with the canvas draft tools, with props
-`{{"artifact_id": "<id>"}}` and a `name`, which the canvas shows as its title.
-Leave `version` unset to show the published version as it changes, or set it to
-pin one version. The props name the artifact only; never put code in them.
+The artifact is a saved widget: its `artifact_id` is the widget's id. Place it
+with the canvas draft tools by that id (an `add` operation with `widgetId`),
+never as a new widget of type `{WIDGET_TYPE}`, which would start an empty
+artifact. It has no props. Every canvas that places it shows its published
+version; to keep a frozen copy, start a new artifact from its files.
 """  # noqa: S608 -- prose for an agent, not SQL
 
 
@@ -277,6 +278,6 @@ first. Then adapt the artifact as follows.
 3. {_tool(ARTIFACT_BUILD)}: it reports what still depends on Claude's runtime.
    Fix it, then {_tool(ARTIFACT_CHECK)}.
 4. {_tool(ARTIFACT_REQUEST_PUBLISH)}, and tell the user to confirm in Superset.
-5. Place it on a canvas as a `{WIDGET_TYPE}` widget. Later edits go through the
-   same tools.
+5. Place it on a canvas by its `artifact_id`, which is its saved widget's id.
+   Later edits go through the same tools.
 """

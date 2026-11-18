@@ -22,6 +22,7 @@ import base64
 import json  # noqa: TID251 -- pure test; the host's JSON utility needs Flask.
 import re
 from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any
 
@@ -56,7 +57,7 @@ from superset_artifacts_sdk.provider import (
     VersionNotFoundError,
 )
 from superset_artifacts_sdk.registry import clear_provider, register_provider
-from superset_artifacts_sdk.store import sha256_hex
+from superset_artifacts_sdk.store import DRAFT_REF, sha256_hex
 from superset_artifacts_sdk.testing import InMemoryArtifactStore
 from superset_oss.artifacts.authoring.handlers import (
     ArtifactManifestUpdateArguments,
@@ -69,11 +70,13 @@ from superset_oss.artifacts.authoring.prompt_text import (
     import_claude_artifact_text,
 )
 from superset_oss.artifacts.constants import ID_PREFIX, WIDGET_TYPE
-from superset_oss.artifacts.gate import artifacts_on, set_deployment_policy
+from superset_oss.artifacts.gate import artifacts_on, configure
 
 UUID = "00000000-0000-4000-8000-000000000000"
 VERSION = "0" * 64
 OWNER = "7"
+READER = "8"
+STRANGER = "9"
 
 
 class FakeProvider:
@@ -115,12 +118,51 @@ class FakeProvider:
         return self.layer
 
 
+class FakeAccess:
+    """The artifacts' widgets: who reads and who edits each, as ``caller`` asks."""
+
+    def __init__(self) -> None:
+        self.caller = OWNER
+        self.editors: dict[str, set[str]] = {}
+        self.readers: dict[str, set[str]] = {}
+        self.registered: list[tuple[str, str, str]] = []
+
+    def register(self, artifact_id: str, name: str, editor: str) -> None:
+        self.registered.append((artifact_id, name, editor))
+        self.editors.setdefault(artifact_id, set()).add(editor)
+
+    def can_read(self, artifact_id: str) -> bool:
+        return self.can_edit(artifact_id) or self.caller in self.readers.get(
+            artifact_id, set()
+        )
+
+    def can_edit(self, artifact_id: str) -> bool:
+        return self.caller in self.editors.get(artifact_id, set())
+
+
 @pytest.fixture
-def provider() -> Iterator[FakeProvider]:
+def access() -> Iterator[FakeAccess]:
+    fake = FakeAccess()
+    configure(deployment_policy=None, access=fake)
+    yield fake
+    configure(deployment_policy=None, access=None)
+
+
+@pytest.fixture
+def provider(access: FakeAccess) -> Iterator[FakeProvider]:
     fake = FakeProvider()
     register_provider(fake, replace=True)
     yield fake
     clear_provider()
+
+
+@contextmanager
+def deployment_policy(access: FakeAccess, layer: dict[str, Any]) -> Iterator[None]:
+    configure(deployment_policy=layer, access=access)
+    try:
+        yield
+    finally:
+        configure(deployment_policy=None, access=access)
 
 
 @pytest.fixture
@@ -472,18 +514,15 @@ def test_the_prompt_teaches_no_parameter_values() -> None:
 
 
 def test_the_providers_layer_narrows_the_deployments_policy(
-    provider: FakeProvider, handlers: AuthoringHandlers
+    provider: FakeProvider, handlers: AuthoringHandlers, access: FakeAccess
 ) -> None:
     """A workspace can only narrow: with no deployment layer, it stays Locked."""
     provider.layer = {"profile": "open"}
     created = handlers.create(OWNER, ArtifactCreateRequest())
     handlers.build(OWNER, ArtifactBuildRequest(artifact_id=created["artifact_id"]))
 
-    set_deployment_policy({"profile": "standard"})
-    try:
+    with deployment_policy(access, {"profile": "standard"}):
         handlers.build(OWNER, ArtifactBuildRequest(artifact_id=created["artifact_id"]))
-    finally:
-        set_deployment_policy(None)
 
     assert [policy.profile for _, policy in provider.built] == ["locked", "standard"]
 
@@ -505,11 +544,10 @@ def test_the_prompt_teaches_what_the_policy_allows() -> None:
 
 
 def test_a_build_fails_for_what_the_policy_refuses(
-    provider: FakeProvider, handlers: AuthoringHandlers
+    provider: FakeProvider, handlers: AuthoringHandlers, access: FakeAccess
 ) -> None:
     """A draft the policy refuses fails its build, even if the provider's passes."""
-    set_deployment_policy({"profile": "open"})
-    try:
+    with deployment_policy(access, {"profile": "open"}):
         created = handlers.create(
             OWNER,
             ArtifactCreateRequest(
@@ -520,8 +558,6 @@ def test_a_build_fails_for_what_the_policy_refuses(
                 }
             ),
         )
-    finally:
-        set_deployment_policy(None)
 
     built = handlers.build(
         OWNER, ArtifactBuildRequest(artifact_id=created["artifact_id"])
@@ -529,3 +565,43 @@ def test_a_build_fails_for_what_the_policy_refuses(
 
     assert built["ok"] is False
     assert any("'d3'" in item["message"] for item in built["diagnostics"])
+
+
+def test_the_artifact_is_its_saved_widget(
+    handlers: AuthoringHandlers, provider: FakeProvider, access: FakeAccess
+) -> None:
+    """Creating an artifact saves its widget, with its author as its editor."""
+    created = handlers.create(OWNER, ArtifactCreateRequest(title="Revenue globe"))
+
+    assert access.registered == [(created["artifact_id"], "Revenue globe", OWNER)]
+    assert provider.backend is not None
+    assert (
+        provider.backend.get_ref(created["artifact_id"], DRAFT_REF)
+        == (created["version"])
+    )
+
+
+def test_readers_view_and_only_editors_change_an_artifact(
+    handlers: AuthoringHandlers, provider: FakeProvider, access: FakeAccess
+) -> None:
+    created = handlers.create(OWNER, ArtifactCreateRequest(files={"a.js": "x"}))
+    artifact_id, version = created["artifact_id"], created["version"]
+    access.readers[artifact_id] = {READER}
+    view = ArtifactViewRequest(artifact_id=artifact_id, path="a.js")
+    edit = ArtifactStrReplaceRequest(
+        artifact_id=artifact_id, base_version=version, path="a.js", old_str="x"
+    )
+    publish = ArtifactRequestPublishRequest(
+        artifact_id=artifact_id, base_version=version
+    )
+
+    access.caller = READER
+    assert "x" in handlers.view(READER, view)["content"]
+    assert handlers.str_replace(READER, edit)["code"] == "ARTIFACT_NOT_FOUND"
+    assert handlers.request_publish(READER, publish)["code"] == "ARTIFACT_NOT_FOUND"
+    assert handlers.build(READER, ArtifactBuildRequest(artifact_id=artifact_id))[
+        "code"
+    ] == ("ARTIFACT_NOT_FOUND")
+
+    access.caller = STRANGER
+    assert handlers.view(STRANGER, view)["code"] == "ARTIFACT_NOT_FOUND"

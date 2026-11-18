@@ -17,21 +17,17 @@
 """
 Which version of an artifact a viewer's frame loads.
 
-Owners may load any version of their artifact and its draft. Everyone else
-loads only published versions, and only when the caller has already decided
-they may see the artifact (through a canvas placement they can read).
+The artifact's editors may load its draft; everyone else loads only its
+published version. Who is an editor is the artifact's widget's to say, and
+whether the viewer may see the artifact at all is the caller's to have
+checked: through a canvas placement they can read, or its widget.
 """
-
-# TODO: artifact viewers. Until each artifact is a persisted widget with
-# editors and viewers, a non-owner reaches an artifact only through a canvas
-# placement.
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from superset_artifacts_sdk.authoring import AuthoringErrorCode
-from superset_artifacts_sdk.store import PUBLISHED_REF
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
@@ -48,43 +44,25 @@ class ServedVersion:
 
 def choose_version(
     store: ArtifactFileStore,
-    actor: str | None,
     artifact_id: str,
-    pinned: str | None = None,
     *,
+    can_edit: bool,
     use_draft: bool = False,
 ) -> ServedVersion:
     """
-    The version to serve ``actor`` for an artifact, pinned or not.
+    The version to serve a viewer of ``artifact_id``.
 
-    - An owner who asks for the draft gets it.
-    - A pinned version is served to owners if it is one of the artifact's
-      versions, and to anyone else if it has been published.
-    - Otherwise the published version; an owner of an unpublished artifact
-      gets the draft, so that they can preview it where it is placed.
+    - An editor in a draft of the canvas (``use_draft``) gets the draft.
+    - Everyone else gets the published version; an editor of an unpublished
+      artifact gets the draft, to preview it where it is placed.
     """
     canonical = store.canonical_id(artifact_id)
-    owner = actor if actor and store.is_owner(actor, canonical) else None
-    can_edit = owner is not None
-    if owner is not None and use_draft:
-        return ServedVersion(
-            canonical, store.draft_version(owner, canonical), True, can_edit
-        )
-    if pinned is not None:
-        if (can_edit and store.has_version(canonical, pinned)) or store.has_version(
-            canonical, pinned, ref=PUBLISHED_REF
-        ):
-            return ServedVersion(canonical, pinned, False, can_edit)
-        raise ArtifactError(
-            AuthoringErrorCode.VERSION_NOT_FOUND,
-            f"{pinned} isn't a published version of this artifact",
-        )
+    if can_edit and use_draft:
+        return ServedVersion(canonical, store.draft_version(canonical), True, True)
     if (published := store.published_version(canonical)) is not None:
         return ServedVersion(canonical, published, False, can_edit)
-    if owner is not None:
-        return ServedVersion(
-            canonical, store.draft_version(owner, canonical), True, can_edit
-        )
+    if can_edit:
+        return ServedVersion(canonical, store.draft_version(canonical), True, True)
     raise ArtifactError(
         AuthoringErrorCode.ARTIFACT_NOT_FOUND,
         f"artifact {artifact_id!r} isn't published",

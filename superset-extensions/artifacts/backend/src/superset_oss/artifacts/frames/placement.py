@@ -17,58 +17,30 @@
 """
 The artifact a canvas placement shows, read from the stored canvas.
 
-The artifact id and version come from the placement's stored props (or the
-caller's own draft of the canvas), never from the request. They are read
-through ``superset_core``'s placement lookup, which applies the canvas's
-access rules: a canvas the caller can't read looks the same as one that
-doesn't exist.
+A placement shows an artifact by holding its saved widget, whose UUID is the
+artifact's id. It is read through ``superset_core``'s placement lookup, which
+applies the canvas's access rules: a canvas the caller can't read looks the
+same as one that doesn't exist.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass
-from typing import Any
-
 from superset_core.canvas import placements
 from superset_oss.artifacts.constants import WIDGET_TYPE
-
-
-@dataclass(frozen=True)
-class PlacementArtifact:
-    """The artifact a placement names, and the version it pins, if any."""
-
-    artifact_id: str
-    version: str | None
 
 
 class PlacementNotFoundError(LookupError):
     """No artifact placement there that the caller can read."""
 
 
-def artifact_of(props: Mapping[str, Any]) -> PlacementArtifact | None:
-    """The artifact that an artifact placement's props name, if they name one."""
-    artifact_id = props.get("artifact_id")
-    if not isinstance(artifact_id, str):
-        return None
-    version = props.get("version")
-    return PlacementArtifact(
-        artifact_id=artifact_id,
-        version=version if isinstance(version, str) and version else None,
-    )
-
-
 def placement_artifact(
     canvas_id: str, placement_id: str, draft_token: str | None = None
-) -> PlacementArtifact:
-    """The artifact that placement ``placement_id`` of a canvas shows."""
+) -> str:
+    """The artifact, by its widget's UUID, that placement ``placement_id`` shows."""
     try:
         placement = placements.load_placement(canvas_id, placement_id, draft_token)
     except placements.PlacementNotFoundError as ex:
         raise PlacementNotFoundError(placement_id) from ex
-    artifact = (
-        artifact_of(placement.props) if placement.widget_type == WIDGET_TYPE else None
-    )
-    if artifact is None:
+    if placement.widget_type != WIDGET_TYPE or placement.widget_id is None:
         raise PlacementNotFoundError(placement_id)
-    return artifact
+    return placement.widget_id

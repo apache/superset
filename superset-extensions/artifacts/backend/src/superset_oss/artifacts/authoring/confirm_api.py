@@ -21,9 +21,9 @@ Where the user confirms publishing.
 ``{"request_id": ...}``.
 
 An agent can only ask (``artifact_request_publish``); the ``published`` ref
-moves when the user confirms here, from Superset's UI, under their own
-session. No MCP tool calls this. The canvas learns of the request waiting for
-an owner from the artifact's frame link.
+moves when the user, an editor of the artifact, confirms here, from
+Superset's UI, under their own session. No MCP tool calls this. The renderer
+learns of the request waiting for an editor from the artifact's frame link.
 
 The confirmation refuses requests that authenticate with an ``Authorization``
 header, so that it takes a browser session (with its CSRF token) rather than
@@ -43,6 +43,7 @@ from flask_appbuilder.api import expose, permission_name, protect, safe
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from superset_core.rest_api.api import RestApi
 from superset_core.rest_api.decorators import api
+from superset_oss.artifacts.access import require_edit
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.web import current_actor, error_response, json_response
@@ -105,7 +106,7 @@ class ArtifactPublishRestApi(RestApi):
               $ref: '#/components/responses/404'
         """
         try:
-            store = open_artifacts().store
+            artifacts = open_artifacts()
         except ArtifactError as ex:
             return error_response(ex)
         if request.headers.get("Authorization"):
@@ -122,7 +123,10 @@ class ArtifactPublishRestApi(RestApi):
         except ValidationError as ex:
             return self.response_400(message=str(ex))
         try:
-            version = store.confirm_publish(actor, artifact_id, body.request_id)
+            require_edit(artifacts.access, artifact_id)
+            version = artifacts.store.confirm_publish(
+                actor, artifact_id, body.request_id
+            )
         except ArtifactError as ex:
             return error_response(ex)
         return json_response(200, {"result": {"published_version": version}})

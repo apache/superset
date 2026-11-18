@@ -21,9 +21,9 @@
  * @fileoverview The artifact widget's renderer, and the frame host around its
  * sandbox.
  *
- * The placement's props name an artifact and, optionally, a pinned version.
- * The renderer asks the backend for a frame link to the version this viewer
- * may see, opens the sandboxed frame on it, sends the frame its state (the
+ * The placement holds the artifact's saved widget, whose UUID is the
+ * artifact's id. The renderer asks the backend for a frame link to the
+ * version this viewer may see, opens the sandboxed frame on it, sends the frame its state (the
  * bindings' data, the filters that reach it, the theme) and acts on the
  * frame's requests only after checking them against the manifest:
  * `setCrossFilter` through the canvas, `refresh` and `query` by fetching
@@ -73,7 +73,7 @@ interface OpenFrame extends FrameLink {
 export default function ArtifactWidget({
   canvasId,
   nodeId,
-  props,
+  widgetId,
   title,
   filters,
   crossFilters,
@@ -82,10 +82,6 @@ export default function ArtifactWidget({
   refreshKey,
   draftToken,
 }: canvas.CanvasWidgetProps) {
-  const artifactId =
-    typeof props?.artifact_id === 'string' ? props.artifact_id : undefined;
-  const pinned = typeof props?.version === 'string' ? props.version : undefined;
-
   const [frame, setFrame] = useState<OpenFrame>();
   const [linkError, setLinkError] = useState<string>();
   const [linkNonce, setLinkNonce] = useState(0);
@@ -93,22 +89,22 @@ export default function ArtifactWidget({
   // A link is single-use, so every change that needs a new frame fetches a
   // new link, the grant included.
   useEffect(() => {
-    if (!artifactId) {
+    if (!widgetId) {
       setFrame(undefined);
-      setLinkError(t('This widget names no artifact.'));
+      setLinkError(t('This placement holds no saved artifact.'));
       return undefined;
     }
     let cancelled = false;
     setLinkError(undefined);
+    // While the canvas shows a draft, the artifact's editors see its draft, so
+    // that they can check it before they publish it; the server serves
+    // everyone else the published version. The bindings run from the same
+    // version, as their requests carry the same draft token.
     fetchPlacementFrame({
+      widgetId,
       canvasId,
       placementId: nodeId,
       draftToken,
-      // While the canvas shows a draft, the artifact's owners see the
-      // artifact's draft, so that they can check it before they publish it;
-      // the server serves everyone else a published version. The bindings
-      // run from the same version, as their requests carry the draft token.
-      draft: Boolean(draftToken),
     })
       .then(link => {
         if (cancelled) return;
@@ -127,15 +123,7 @@ export default function ArtifactWidget({
     return () => {
       cancelled = true;
     };
-  }, [
-    canvasId,
-    nodeId,
-    artifactId,
-    pinned,
-    draftToken,
-    crossFiltersEnabled,
-    linkNonce,
-  ]);
+  }, [canvasId, nodeId, widgetId, draftToken, crossFiltersEnabled, linkNonce]);
 
   const manifest = frame?.manifest;
   const selected = useMemo(
@@ -254,7 +242,7 @@ export default function ArtifactWidget({
     [manifest, refetchBinding, refuse, setCrossFilter],
   );
 
-  // Errors are the author's to fix, so only the artifact's owners see them.
+  // Errors are the author's to fix, so only the artifact's editors see them.
   // Which of them may reach an agent is still to decide.
   const onError = useCallback(
     (error: ChannelError) => {

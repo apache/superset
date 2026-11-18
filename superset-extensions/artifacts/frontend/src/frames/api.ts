@@ -47,11 +47,11 @@ export interface FrameLink {
   artifact_id: string;
   version: string;
   is_draft: boolean;
-  /** Whether the viewer owns the artifact, and so may edit it. */
+  /** Whether the viewer is one of the artifact's editors. */
   can_edit: boolean;
   capabilities: Capability[];
   manifest: HostManifest;
-  /** Canvas links only: for owners, the publish request waiting for them. */
+  /** For editors: the publish request waiting for them. */
   pending_publish?: PendingPublish | null;
 }
 
@@ -81,31 +81,38 @@ async function requestLink(
   }
 }
 
-/** A link for the artifact a canvas placement shows. */
+/** A link for an artifact that a canvas placement shows. */
 export async function fetchPlacementFrame({
+  widgetId,
   canvasId,
   placementId,
   draftToken,
-  draft = false,
 }: {
+  /** The artifact: its saved widget's UUID. */
+  widgetId: string;
   canvasId: number;
   placementId: string;
+  /** The canvas draft the page shows, if any: its editors see the draft. */
   draftToken?: string;
-  /** The owner's draft of the artifact rather than its published version. */
-  draft?: boolean;
 }): Promise<FrameLink> {
   return requestLink(`${API_BASE_PATH}/frames/`, {
     method: 'POST',
-    body: { canvas_id: canvasId, placement_id: placementId, draft },
+    body: {
+      widget_id: widgetId,
+      canvas_id: canvasId,
+      placement_id: placementId,
+    },
     headers: draftToken ? { [DRAFT_TOKEN_HEADER]: draftToken } : {},
   });
 }
 
-/** A link for a standalone artifact page. */
-export async function fetchStandaloneFrame(
-  artifactId: string,
+/** A link for an artifact on a page of its own. */
+export async function fetchPageFrame(
+  widgetId: string,
+  page: 'standalone' | 'embedded' = 'standalone',
 ): Promise<FrameLink> {
-  return requestLink(
-    `${API_BASE_PATH}/embedded/artifact/${encodeURIComponent(artifactId)}`,
-  );
+  return requestLink(`${API_BASE_PATH}/frames/`, {
+    method: 'POST',
+    body: { widget_id: widgetId, page },
+  });
 }
