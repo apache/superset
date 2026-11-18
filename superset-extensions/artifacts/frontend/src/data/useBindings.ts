@@ -21,7 +21,8 @@
  * @fileoverview A frame's bindings: every one fetched when the manifest, the
  * source or the filters change, or on `refresh`, and one at a time on
  * `rerun`. A result that `rerun` replaces leaves the others' objects as they
- * were, so the frame host sends the frame only the one that changed.
+ * were, so the frame host sends the frame only the one that changed. A
+ * `rerun` that a full fetch overtakes is dropped, as it ran on older inputs.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -64,8 +65,10 @@ export default function useBindings(
   const filtersKey = JSON.stringify(filters);
   const latest = useRef({ source, filters });
   latest.current = { source, filters };
+  const generation = useRef(0);
 
   useEffect(() => {
+    generation.current += 1;
     const { source: from, filters: selected } = latest.current;
     if (!manifest || !from) return undefined;
     if (Object.keys(manifest.bindings ?? {}).length === 0) {
@@ -98,8 +101,11 @@ export default function useBindings(
   const rerun = useCallback(async (binding: string) => {
     const { source: from, filters: selected } = latest.current;
     if (!from) return;
+    const started = generation.current;
     const data = await fetchBinding(from, binding, selected);
-    setBindings(current => ({ ...current, [binding]: data }));
+    if (generation.current === started) {
+      setBindings(current => ({ ...current, [binding]: data }));
+    }
   }, []);
 
   return { bindings, status, error, refresh, rerun };
