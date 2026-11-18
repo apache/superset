@@ -144,7 +144,7 @@ class ArtifactFramesRestApi(RestApi):
                 )
             except PlacementNotFoundError:
                 return self.response_404()
-            if UUID(placed) != body.widget_id:
+            if placed != body.widget_id:
                 return self.response_404()
         actor = current_actor()
         store = artifacts.store

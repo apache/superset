@@ -25,6 +25,8 @@ same as one that doesn't exist.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from superset_core.canvas import placements
 from superset_oss.artifacts.constants import WIDGET_TYPE
 
@@ -35,12 +37,18 @@ class PlacementNotFoundError(LookupError):
 
 def placement_artifact(
     canvas_id: str, placement_id: str, draft_token: str | None = None
-) -> str:
-    """The artifact, by its widget's UUID, that placement ``placement_id`` shows."""
+) -> UUID:
+    """
+    The artifact, by its widget's UUID, that placement ``placement_id`` shows.
+    A widget id in the canvas that isn't a UUID names no artifact.
+    """
     try:
         placement = placements.load_placement(canvas_id, placement_id, draft_token)
     except placements.PlacementNotFoundError as ex:
         raise PlacementNotFoundError(placement_id) from ex
     if placement.widget_type != WIDGET_TYPE or placement.widget_id is None:
         raise PlacementNotFoundError(placement_id)
-    return placement.widget_id
+    try:
+        return UUID(placement.widget_id)
+    except ValueError:
+        raise PlacementNotFoundError(placement_id) from None

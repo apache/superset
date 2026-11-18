@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import json  # noqa: TID251 -- pure test; the host's JSON utility needs Flask.
 from datetime import datetime, timezone
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from superset_artifacts_sdk.authoring import (
@@ -313,6 +313,7 @@ def test_a_placement_is_read_through_superset_core(
         "art": placements.StoredPlacement(WIDGET_TYPE, {}, widget_id=artifact_id),
         "chart": placements.StoredPlacement("chart", {}, widget_id=artifact_id),
         "inline": placements.StoredPlacement(WIDGET_TYPE, {}),
+        "malformed": placements.StoredPlacement(WIDGET_TYPE, {}, widget_id="x"),
     }
     reads: list[tuple[str, str, str | None]] = []
 
@@ -326,9 +327,10 @@ def test_a_placement_is_read_through_superset_core(
 
     monkeypatch.setattr(placements, "load_placement", load_placement)
 
-    assert placement_artifact("7", "art", "token") == artifact_id
+    assert placement_artifact("7", "art", "token") == UUID(artifact_id)
     assert reads == [("7", "art", "token")]
-    # Nothing the caller may read, another widget type, no saved widget.
-    for placement_id in ("missing", "chart", "inline"):
+    # Nothing the caller may read, another widget type, no saved widget, and a
+    # widget id that isn't one.
+    for placement_id in ("missing", "chart", "inline", "malformed"):
         with pytest.raises(PlacementNotFoundError):
             placement_artifact("7", placement_id)
