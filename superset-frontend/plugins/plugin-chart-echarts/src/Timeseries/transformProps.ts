@@ -545,7 +545,8 @@ export default function transformProps(
   }, {});
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const forecastRebasedData = rebaseForecastDatum(data, verboseMap);
-  let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
+  const xAxisColumn = getXAxisLabel(chartProps.rawFormData) as string;
+  let xAxisLabel = xAxisColumn;
   if (
     isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
     isDefined(verboseMap[xAxisLabel])
@@ -2299,6 +2300,7 @@ export default function transformProps(
     xValueFormatter: tooltipFormatter,
     xAxis: {
       label: xAxisLabel,
+      column: xAxisColumn,
       type: xAxisType,
     },
     resolvedTimeGrain,

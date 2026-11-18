@@ -62,6 +62,7 @@ export default function EchartsMixedTimeseries({
   onLegendStateChanged,
   onLegendScroll,
 }: EchartsMixedTimeseriesChartTransformedProps) {
+  const filterColumn = xAxis.column ?? xAxis.label;
   const echartRef = useRef<EchartsHandler | null>(null);
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
@@ -180,9 +181,9 @@ export default function EchartsMixedTimeseries({
         if (data && xAxis.type === AxisType.Time) {
           drillToDetailFilters.push({
             col:
-              xAxis.label === DTTM_ALIAS
+              filterColumn === DTTM_ALIAS
                 ? formData.granularitySqla
-                : xAxis.label,
+                : filterColumn,
             grain: formData.timeGrainSqla,
             op: '==',
             val: data[0],
@@ -195,7 +196,7 @@ export default function EchartsMixedTimeseries({
           eventParams.name != null
         ) {
           drillToDetailFilters.push({
-            col: xAxis.label,
+            col: filterColumn,
             op: '==',
             val: eventParams.name,
             formattedVal: String(eventParams.name),
@@ -224,10 +225,10 @@ export default function EchartsMixedTimeseries({
         }
         const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
         const xAxisColumn =
-          xAxis.label === DTTM_ALIAS
+          filterColumn === DTTM_ALIAS
             ? (formData.extraFormData?.granularity_sqla ??
               formData.granularitySqla)
-            : xAxis.label;
+            : filterColumn;
         const isTemporalCategory =
           xAxis.type === AxisType.Category &&
           coltypeMapping?.[getColumnLabel(xAxis.label)] ===
