@@ -17,6 +17,7 @@
  * under the License.
  */
 import type React from 'react';
+import type { ToastProps } from 'src/components/MessageToasts/withToasts';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -48,8 +49,8 @@ jest.mock('src/utils/getBootstrapData', () => ({
 // Mock withToasts HOC to inject default toast functions while preserving explicit test spies passed via props
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
-  default: <P extends object>(Component: React.ComponentType<P>) =>
-    function MockWithToasts(props: P) {
+  default: (Component: React.ComponentType<ToastProps>) =>
+    function MockWithToasts(props: Partial<ToastProps>) {
       return (
         <Component
           addDangerToast={jest.fn()}
