@@ -81,13 +81,15 @@ afterEach(() => {
 });
 
 test.each([
-  ['editor', true, false, 200],
-  ['viewer', false, false, 200],
-  ['embedded guest', false, true, 200],
-  ['editor whose permission was revoked', true, false, 403],
+  ['editor', true, false, 200, false],
+  ['viewer', false, false, 200, false],
+  ['viewer without userId', false, true, 200, false],
+  ['editor whose permission was revoked', true, false, 403, false],
+  ['editor on an externally managed dashboard', true, false, 200, true],
 ] as const)(
   'display control Apply and Clear for %s',
-  async (_, canEdit, guest, status) => {
+  async (_, canEdit, withoutUserId, status, isManagedExternally) => {
+    const canSave = canEdit && !isManagedExternally;
     fetchMock.put(
       saveUrl,
       { status, body: { result: [mockControl], message: 'FORBIDDEN' } },
@@ -99,12 +101,13 @@ test.each([
         messageToasts: [],
         user: {
           ...stateWithoutNativeFilters.user,
-          userId: guest ? undefined : 1,
+          userId: withoutUserId ? undefined : 1,
         },
         dashboardInfo: {
           ...stateWithoutNativeFilters.dashboardInfo,
           id: 1,
           dash_edit_perm: canEdit,
+          is_managed_externally: isManagedExternally,
           metadata: {
             ...stateWithoutNativeFilters.dashboardInfo.metadata,
             chart_customization_config: [mockControl],
@@ -136,7 +139,7 @@ test.each([
     await act(async () => {
       fireEvent.click(screen.getByTestId('filter-bar__apply-button'));
     });
-    expect(fetchMock.callHistory.calls(saveUrl)).toHaveLength(canEdit ? 1 : 0);
+    expect(fetchMock.callHistory.calls(saveUrl)).toHaveLength(canSave ? 1 : 0);
     expect(getState().dataMask[mockControl.id]).toMatchObject(mockSelection);
     expect(getState().dashboardInfo.pendingChartCustomizations).toEqual({});
     await waitFor(() =>
@@ -148,11 +151,14 @@ test.each([
     await act(async () => {
       fireEvent.click(screen.getByTestId('filter-bar__apply-button'));
     });
-    expect(fetchMock.callHistory.calls(saveUrl)).toHaveLength(canEdit ? 2 : 0);
+    expect(fetchMock.callHistory.calls(saveUrl)).toHaveLength(canSave ? 2 : 0);
     expect(getState().dataMask[mockControl.id]).toBeUndefined();
     if (status === 403) {
-      expect(getState().messageToasts).toEqual(
-        expect.arrayContaining([
+      await waitFor(() =>
+        expect(getState().messageToasts).toEqual([
+          expect.objectContaining({
+            text: expect.stringContaining('not saved'),
+          }),
           expect.objectContaining({
             text: expect.stringContaining('not saved'),
           }),

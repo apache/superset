@@ -60,6 +60,7 @@ import { URL_PARAMS } from 'src/constants';
 import { applicationRoot } from 'src/utils/getBootstrapData';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
+import { useAppSelector } from 'src/views/store';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
@@ -220,6 +221,9 @@ const FilterBar: FC<FiltersBarProps> = ({
   const previousDashboardId = usePrevious(dashboardId);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
+  );
+  const isManagedExternally = useAppSelector(({ dashboardInfo }) =>
+    Boolean(dashboardInfo.is_managed_externally),
   );
   const user: UserWithPermissionsAndRoles = useSelector<
     RootState,
@@ -500,7 +504,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         )[]
       ).filter(item => existingCustomizationIds.has(item.id));
 
-      if (canEdit && pendingItems.length > 0) {
+      if (canEdit && !isManagedExternally && pendingItems.length > 0) {
         // The thunk reports save failures; Apply must consume its rejection.
         dispatch(saveChartCustomization(pendingItems, [])).catch(() => {});
       }
@@ -522,7 +526,7 @@ const FilterBar: FC<FiltersBarProps> = ({
 
       dispatch(clearAllChartCustomizationsFromMetadata());
 
-      if (canEdit) {
+      if (canEdit && !isManagedExternally) {
         // The thunk reports save failures; Clear must consume its rejection.
         dispatch(saveChartCustomization(clearedChartCustomizations, [])).catch(
           () => {},
@@ -541,6 +545,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     hasClearedChartCustomizations,
     chartCustomizationValues,
     canEdit,
+    isManagedExternally,
   ]);
 
   const handleClearAll = useCallback(() => {
