@@ -57,7 +57,7 @@ from superset_core.semantic_layers.types import (
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_object import QueryObject
+from superset.common.query_object import QueryObject, selection_version_error
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
@@ -87,6 +87,7 @@ from superset.semantic_layers.exceptions import (
     discover_metrics,
     DiscoveryTarget,
     execute_semantic_query,
+    normalize_provider_request_errors,
 )
 from superset.semantic_layers.members import members_by_key
 from superset.semantic_layers.ordering import with_default_order
@@ -252,6 +253,7 @@ class _ViewMetadata:
         )
 
 
+@normalize_provider_request_errors()
 def get_results(query_object: QueryObject) -> QueryResult:
     """
     Run 1+ queries based on `QueryObject` and return the results.
@@ -1046,7 +1048,11 @@ def _convert_query_object_filter(
 
 
 def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
-    """Normalize NULL equality/membership and reject empty membership selections."""
+    """Normalize NULL equality/membership; empty membership stays a SQL constant.
+
+    An empty ``IN`` is FALSE and an empty ``NOT IN`` is TRUE, NULL rows included,
+    at the filter's position in the query. Providers render the constant.
+    """
     negated: bool = filter_.operator in {Operator.NOT_EQUALS, Operator.NOT_IN}
     null_filter: Filter = replace(
         filter_,
@@ -1064,7 +1070,7 @@ def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
         else frozenset({filter_.value})
     )
     if not values:
-        raise QueryObjectValidationError("Semantic IN/NOT IN filters cannot be empty.")
+        return {replace(filter_, value=values)}
     if None not in values:
         return {filter_}
 
@@ -1481,9 +1487,11 @@ def validate_query_object(
 def _validation_metadata(query_object: ValidatedQueryObject) -> _ViewMetadata:
     """Check member identity before fetching metadata for validation."""
     view: SemanticView = query_object.datasource.implementation
-    view.validate_selection_version(
-        query_object.extras.get("semantic_selection_version")
-    )
+    version: object = query_object.extras.get("semantic_selection_version")
+    try:
+        view.validate_selection_version(version)
+    except ValueError as ex:
+        raise selection_version_error(version) from ex
     return _ViewMetadata.from_view(view, DiscoveryTarget.of(query_object.datasource))
 
 

@@ -814,6 +814,40 @@ def test_set_properties_and_payload_preserves_subscription_state(
     assert private["subscription"] == {"consumers": ["user:1:tabA"]}
 
 
+def test_persist_cancellation_preserves_subscription_state(
+    session_with_task: Session,
+) -> None:
+    """Replacing or clearing a running task's cancel handle keeps its tab consumers.
+
+    The chart-data executor rewrites the handle as its query moves from one
+    operation to the next; a tab that joined the SHARED task after the worker
+    picked it up must survive those writes.
+    """
+    from superset.daos.tasks import TaskDAO
+    from superset.tasks.context import TaskContext
+
+    task = create_task(
+        session_with_task,
+        task_uuid=TASK_UUID,
+        task_key="persist-cancellation",
+        properties={"is_abortable": True},
+    )
+    ctx = TaskContext(task)  # worker pickup: no tabs yet
+
+    TaskDAO.merge_subscription_state(task, {"consumers": ["user:1:tabA"]})
+    session_with_task.flush()
+
+    ctx.persist_cancellation(7, "aaaaaaaaaaaaaaaa:0000000000000001")
+    ctx.persist_cancellation(7, None)
+
+    session_with_task.expire_all()
+    fresh = session_with_task.query(Task).filter(Task.uuid == TASK_UUID).one()
+    private = fresh.properties_dict["private"]
+    assert fresh.properties_dict["is_abortable"] is True
+    assert private["task"] == {"cancel_database_id": 7, "cancel_query_id": None}
+    assert private["subscription"] == {"consumers": ["user:1:tabA"]}
+
+
 def test_conditional_status_update_preserves_subscription_state(
     session_with_task: Session,
 ) -> None:

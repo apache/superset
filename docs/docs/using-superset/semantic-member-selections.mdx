@@ -82,6 +82,13 @@ a usability aid for compatible selections, not a guarantee about each filter's
 provenance. The marker is not an authorization check; access to the datasource is
 verified separately.
 
+## Native filter columns
+
+The native-filter column picker lists each semantic member name once, even when
+the provider exposes several time-grain variants of that member. This matches
+Explore's column list: choosing a filter column selects the member, not a grain
+variant. Distinct member names remain separate choices.
+
 ## NULL filter values
 
 For semantic views, a selected NULL value means a missing value, rather than SQL's
@@ -90,8 +97,10 @@ inequality to NULL and `NOT IN (NULL)` use `IS NOT NULL`.
 
 A mixed selection such as `IN ('a', NULL)` means `IN ('a') OR IS NULL`. Its negative
 form, `NOT IN ('a', NULL)`, means `NOT IN ('a') AND IS NOT NULL`; it excludes both
-`'a'` and missing values. Empty IN and NOT IN selections are rejected with a query
-validation error. Non-NULL comparisons retain their existing semantics.
+`'a'` and missing values. An empty IN selection matches no rows and an empty
+NOT IN selection matches every row, including missing values, as in SQL. A total
+without grouping still returns one row, for example a count of 0. Non-NULL
+comparisons retain their existing semantics.
 
 Host filter-value types accept missing values (`None`) inside list selections
 and variable-length tuples, so multi-value selections can preserve NULL members.

@@ -175,14 +175,22 @@ def set_query_stopped(query: Query, end_time: float) -> bool:
     return True
 
 
-def commit_query_unless_stopped(query: Query) -> bool:
-    """Atomically guard execution metadata writes against a concurrent stop."""
+def commit_query_unless_stopped(query: Query, keep_success: bool = False) -> bool:
+    """Atomically guard execution metadata writes against a concurrent stop.
+
+    :param keep_success: Also keep a recorded success, e.g. one whose commit
+        applied but raised before acknowledging it
+    :returns: False, with the recorded row reloaded, if the write was declined
+    """
     with db.session.no_autoflush:
+        guards = [Query.id == query.id, Query.status != QueryStatus.STOPPED]
+        if keep_success:
+            guards.append(Query.status != QueryStatus.SUCCESS)
         # The conditional write acquires the row's write lock until commit.
         # A separate status read cannot protect the subsequent ORM flush.
         updated = (
             db.session.query(Query)
-            .filter(Query.id == query.id, Query.status != QueryStatus.STOPPED)
+            .filter(*guards)
             .update({Query.status: query.status}, synchronize_session=False)
         )
         if not updated:
