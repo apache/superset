@@ -29,6 +29,7 @@ from flask import (
     abort,
     current_app as app,
     g,
+    make_response,
     redirect,
     request,
     Response,
@@ -573,6 +574,19 @@ class Superset(BaseSupersetView):
             ),
         )
 
+    def _dashboard_error_response(self, status: int) -> FlaskResponse:
+        """Render the dashboard SPA for browser errors, preserving the HTTP status."""
+        if "text/html" not in request.accept_mimetypes:
+            abort(status)
+
+        return make_response(
+            self.render_app_template(
+                title=__("Forbidden") if status == 403 else __("Page not found"),
+                standalone_mode=ReservedUrlParameters.is_standalone_mode(),
+            ),
+            status,
+        )
+
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
     @event_logger.log_this_with_extra_payload
@@ -594,7 +608,7 @@ class Superset(BaseSupersetView):
         if not dashboard:
             if not get_current_user():
                 return redirect_to_login()
-            abort(404)
+            return self._dashboard_error_response(404)
 
         # Redirect anonymous users to login for unpublished dashboards,
         # in the edge case where a dataset has been shared with public
@@ -606,7 +620,7 @@ class Superset(BaseSupersetView):
         except SupersetSecurityException:
             if not get_current_user():
                 return redirect_to_login()
-            abort(404)
+            return self._dashboard_error_response(403)
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
