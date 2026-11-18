@@ -20,6 +20,7 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { VizType } from '@superset-ui/core';
 import { ExportStatus } from 'src/components/StreamingExportModal/StreamingExportModal';
+import { FilterMetadata } from 'src/utils/exportFilterMetadata';
 import { useExploreDataExport } from '../useExploreAdditionalActionsMenu/useExploreDataExport';
 import StandaloneDownloadControl from './StandaloneDownloadControl';
 
@@ -63,6 +64,7 @@ describe('StandaloneDownloadControl', () => {
     mockUseExploreDataExport.mockReturnValue({
       exportCSV,
       exportCSVPivoted: jest.fn(),
+      csvWillStream: false,
       exportJson,
       exportExcel,
       handleExportError: jest.fn(),
@@ -110,9 +112,58 @@ describe('StandaloneDownloadControl', () => {
     );
 
     await userEvent.click(screen.getByTestId('standalone-download-button'));
-    await userEvent.click(await screen.findByText('Export to .CSV'));
+    await userEvent.hover(await screen.findByText('Export to .CSV'));
+    await userEvent.click(await screen.findByText('Without filter metadata'));
 
     expect(exportCSV).toHaveBeenCalledTimes(1);
+    expect(exportCSV).toHaveBeenCalledWith(FilterMetadata.None);
+  });
+
+  test('exports CSV with a separate filters file when chosen', async () => {
+    render(
+      <StandaloneDownloadControl
+        latestQueryFormData={latestQueryFormData}
+        canDownload
+      />,
+      { useRedux: true },
+    );
+
+    await userEvent.click(screen.getByTestId('standalone-download-button'));
+    await userEvent.hover(await screen.findByText('Export to .CSV'));
+    await userEvent.click(
+      await screen.findByText('Include filters as a separate file'),
+    );
+
+    expect(exportCSV).toHaveBeenCalledWith(FilterMetadata.Separate);
+  });
+
+  test('greys out the separate filters file for a CSV that will stream', async () => {
+    mockUseExploreDataExport.mockReturnValue({
+      exportCSV,
+      exportCSVPivoted: jest.fn(),
+      csvWillStream: true,
+      exportJson,
+      exportExcel,
+      handleExportError: jest.fn(),
+      streamingExportState,
+    });
+    render(
+      <StandaloneDownloadControl
+        latestQueryFormData={latestQueryFormData}
+        canDownload
+      />,
+      { useRedux: true },
+    );
+
+    await userEvent.click(screen.getByTestId('standalone-download-button'));
+    await userEvent.hover(await screen.findByText('Export to .CSV'));
+    const separate = await screen.findByText(
+      'Include filters as a separate file',
+    );
+
+    expect(separate.closest('li')).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(separate, { pointerEventsCheck: 0 });
+    expect(exportCSV).not.toHaveBeenCalled();
   });
 
   test('exports JSON when JSON option is clicked', async () => {

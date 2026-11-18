@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FilterMetadata } from 'src/utils/exportFilterMetadata';
 import { exportChart } from '.';
 
 jest.mock('src/utils/export', () => ({
@@ -195,6 +196,44 @@ test('exportChart successfully exports chart as CSV', async () => {
     mockBlob,
     expect.stringContaining('.csv'),
   );
+});
+
+test('exportChart sends the filter metadata option with the request', async () => {
+  const onStartStreamingExport = jest.fn();
+  const { getChartBuildQueryRegistry } = jest.requireMock('@superset-ui/core');
+  getChartBuildQueryRegistry.mockImplementationOnce(() => ({
+    get: jest.fn().mockReturnValue(() => ({ queries: [] })),
+  }));
+
+  await exportChart({
+    formData: baseFormData,
+    resultFormat: 'csv',
+    filterMetadata: FilterMetadata.Separate,
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
+  });
+
+  expect(onStartStreamingExport).toHaveBeenCalledWith(
+    expect.objectContaining({
+      payload: expect.objectContaining({ filter_metadata: 'separate' }),
+    }),
+  );
+});
+
+test('exportChart leaves filter metadata out by default', async () => {
+  const onStartStreamingExport = jest.fn();
+  const { getChartBuildQueryRegistry } = jest.requireMock('@superset-ui/core');
+  getChartBuildQueryRegistry.mockImplementationOnce(() => ({
+    get: jest.fn().mockReturnValue(() => ({ queries: [] })),
+  }));
+
+  await exportChart({
+    formData: baseFormData,
+    resultFormat: 'csv',
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
+  });
+
+  const [[{ payload }]] = onStartStreamingExport.mock.calls;
+  expect(payload).not.toHaveProperty('filter_metadata');
 });
 
 test('exportChart successfully exports chart as Excel', async () => {

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-14 23:29-0500\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -429,6 +429,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d rijen teruggegeven"
 
+#, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
@@ -446,6 +450,10 @@ msgstr ""
 "%(validator)s was niet in staat om uw query te controleren.\n"
 "Controleer uw query opnieuw.\n"
 "Uitzondering: %(ex)s"
+
+#, python-format
+msgid "%(values)s and %(count)s more"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s %s"
@@ -923,6 +931,9 @@ msgstr ""
 "-- Let op: Tenzij u uw query opslaat, zullen deze tabbladen NIET bewaard "
 "blijven als u uw cookies leegt of van browser verandert.\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -1593,6 +1604,9 @@ msgstr "Een herbruikbaar dataset wordt opgeslagen met uw grafiek."
 msgid "A rule with this name already exists."
 msgstr "Er bestaat al een regel met deze naam."
 
+msgid "A saved query with this name already exists"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -1763,6 +1777,21 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AUG"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "Gestart"
@@ -1889,6 +1918,9 @@ msgstr "Voeg een Plugin toe"
 
 msgid "Add a dataset"
 msgstr "Een dataset toevoegen"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Een nieuw tabblad toevoegen"
@@ -2020,6 +2052,9 @@ msgstr "Filter toevoegen"
 msgid "Add group"
 msgstr "Groep toevoegen"
 
+msgid "Add interval bounds above to configure colors here."
+msgstr ""
+
 msgid "Add item"
 msgstr "Voeg item toe"
 
@@ -2051,6 +2086,9 @@ msgstr "Filters toevoegen en bewerken"
 #, fuzzy
 msgid "Add or edit filters and controls"
 msgstr "Filters toevoegen en bewerken"
+
+msgid "Add ranges above to configure their colors here."
+msgstr ""
 
 #, fuzzy
 msgid "Add report"
@@ -3534,12 +3572,18 @@ msgstr "Gekoppelde waarschuwingen en rapporten"
 msgid "Asynchronous query execution"
 msgstr "Asynchrone uitvoering van query’s"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 #, fuzzy
 msgid "Attribution"
 msgstr "Verspreiding"
 
 msgid "August"
 msgstr "Augustus"
+
+msgid "Authentication method"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ru, sr, sr_Latn, tr, uk]
@@ -3716,6 +3760,9 @@ msgstr "Staaf oriëntatie"
 msgid "Base"
 msgstr "Basis"
 
+msgid "Base background"
+msgstr ""
+
 #, fuzzy
 msgid "Base exponent"
 msgstr "Database poort"
@@ -3806,6 +3853,9 @@ msgstr "BOOLEAN"
 #, fuzzy, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
 msgstr "Blok %(block_num)s van %(block_count)s"
+
+msgid "Border"
+msgstr ""
 
 #, fuzzy
 msgid "Border color"
@@ -4221,6 +4271,9 @@ msgstr ""
 "voordat u de database verwijdert. Door ze te herstellen (POST "
 "/api/v1/dataset/<uuid>/restore) blijven de datasets behouden, maar de "
 "database kan nog steeds niet worden verwijderd."
+
+msgid "Cannot delete semantic views"
+msgstr ""
 
 #, fuzzy
 msgid "Cannot delete system themes"
@@ -4641,6 +4694,9 @@ msgstr "Grafiek bestaat niet"
 msgid "Chart editors"
 msgstr "Grafiekbewerkers"
 
+msgid "Chart filter"
+msgstr ""
+
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr "De grafiek heeft geen query context opgeslagen. Sla de grafiek opnieuw op."
 
@@ -4773,6 +4829,9 @@ msgstr "Grafieken en dashboards die deze dataset gebruiken worden gecontroleerd�
 #, fuzzy
 msgid "Checking for affected charts and dashboards…"
 msgstr "Getroffen grafieken en dashboards worden gecontroleerd…"
+
+msgid "Checking which charts will be removed…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -5289,6 +5348,20 @@ msgstr "Kleur voor balken aan de rechterkant van de grafiek"
 msgid "Color for breakpoint"
 msgstr "Bucket breakpoints"
 
+msgid "Color for decrease"
+msgstr ""
+
+msgid "Color for increase"
+msgstr ""
+
+#, python-format
+msgid "Color for interval up to %s"
+msgstr ""
+
+#, python-format
+msgid "Color for range up to %s"
+msgstr ""
+
 msgid "Color metric"
 msgstr "Kleur metriek"
 
@@ -5306,6 +5379,16 @@ msgstr "Kleurenschema"
 #, fuzzy, python-format
 msgid "Color scheme: %s"
 msgstr "Kleurenschema: %s"
+
+msgid ""
+"Color used for the arrow and symbols when the metric decreased from the "
+"comparison value. Defaults to red."
+msgstr ""
+
+msgid ""
+"Color used for the arrow and symbols when the metric increased from the "
+"comparison value. Defaults to green."
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5506,15 +5589,6 @@ msgid "Combine metrics"
 msgstr "Combineer metrieken"
 
 msgid ""
-"Comma-separated color picks for the intervals, e.g. 1,2,4. Integers "
-"denote colors from the chosen color scheme and are 1-indexed. Length must"
-" be matching that of interval bounds."
-msgstr ""
-"Kommagescheiden kleurenkiezers voor de intervals, bijvoorbeeld 1,2,4. "
-"Gehele getallen denote kleuren van het gekozen kleurenschema en zijn 1 "
-"geïndexeerd. Lengte moet overeenkomen met die van interval grenzen."
-
-msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Last number should match the value provided for MAX."
 msgstr ""
@@ -5708,6 +5782,9 @@ msgstr ""
 msgid "Configure your how you overlay is displayed here."
 msgstr "Configureer hier hoe uw overlay wordt weergegeven."
 
+msgid "Configured"
+msgstr ""
+
 #, fuzzy
 msgid "Confirm"
 msgstr "Opslaan bevestigen"
@@ -5787,6 +5864,9 @@ msgstr "De verbinding werkt!"
 #, fuzzy
 msgid "Contact the report owner for error details."
 msgstr "Neem contact op met de eigenaar van het rapport voor details over de fout."
+
+msgid "Container background"
+msgstr ""
 
 #, fuzzy
 msgid "Contains"
@@ -6011,14 +6091,14 @@ msgstr ""
 "Kan niet controleren welke grafieken en dashboards afhankelijk zijn van "
 "de geselecteerde %s. Verwijderen kan grafieken en dashboards beschadigen."
 
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
+msgstr ""
+
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Kan niet verbinden met de database: \"%(database)s\""
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr "Kan semantische weergaven %s niet verwijderen: %s"
 
 msgid "Could not fetch all saved charts"
 msgstr "Kon niet alle opgeslagen grafieken ophalen"
@@ -6647,6 +6727,9 @@ msgstr "Dit dashboard is succesvol opgeslagen."
 msgid "Dashboard exported successfully"
 msgstr "Dit dashboard is succesvol opgeslagen."
 
+msgid "Dashboard filter"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Dashboard has no charts to export."
@@ -7180,6 +7263,9 @@ msgstr ""
 "steeds groter zijn dan deze als andere kolommen niet veel ruimte nodig "
 "hebben"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "Standaardwaarde moet worden ingesteld wanneer \"Filter heeft "
@@ -7451,6 +7537,15 @@ msgstr "Geselecteerde verwijderen"
 msgid "Delete template"
 msgstr "Verwijder template"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "Verwijder template"
@@ -7550,6 +7645,12 @@ msgstr "Verwijderd %s"
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s item(s) verwijderd"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -8531,14 +8632,6 @@ msgstr "Of de database is onjuist gespeld of bestaat niet."
 msgid "Either the username \"%(username)s\" or the password is incorrect."
 msgstr "Either the username “%(username)s” or the password is incorrect."
 
-#, python-format
-msgid ""
-"Either the username \"%(username)s\", password, or database name "
-"\"%(database)s\" is incorrect."
-msgstr ""
-"Ofwel is de gebruikersnaam “%(username)s”, ofwel het wachtwoord, ofwel de"
-" databasenaam “%(database)s” niet correct."
-
 msgid "Either the username or the password is wrong."
 msgstr "Ofwel is de gebruikersnaam ofwel het wachtwoord verkeerd."
 
@@ -8600,6 +8693,26 @@ msgstr ""
 #, fuzzy
 msgid "Embedded dashboard could not be deleted."
 msgstr "Dashboard kon niet worden verwijderd."
+
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials can't be added or changed while the embedded "
+"credential fallback is turned off. Leave the stored credentials unchanged"
+" or clear them."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
 
 msgid "Embedding deactivated."
 msgstr "Embedden gedeactiveerd."
@@ -8856,6 +8969,12 @@ msgstr "Naam van de waarschuwing"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Voer de vereiste %(dbModelName)s aanmeldgegevens in"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9401,6 +9520,12 @@ msgstr "Exporteren naar origineel .CSV bestand"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exporteren naar pivoted .CSV"
+
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10184,6 +10309,11 @@ msgid "Fix the Extra JSON to edit certification"
 msgstr "Corrigeer de extra JSON om de certificering te bewerken"
 
 msgid ""
+"Fix the JSON errors below to edit colors here; your changes sync "
+"automatically once the JSON is valid again."
+msgstr ""
+
+msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
 msgstr ""
@@ -10878,8 +11008,6 @@ msgstr "Id"
 msgid "Id of root node of the tree."
 msgstr "Id van root node van de boomstructuur."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "If Presto or Trino, all the queries in SQL Lab are going to be executed "
 "as the currently logged on user who must have permission to run them. If "
@@ -10888,19 +11016,10 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
-"Bij Presto of Trino worden alle query's in SQL Lab uitgevoerd als de "
-"momenteel aangemelde gebruiker, die hiervoor toestemming moet hebben. Bij"
-" Hive met hive.server2.enable.doAs ingeschakeld worden de query's "
-"uitgevoerd als serviceaccount, waarbij de momenteel aangemelde gebruiker "
-"wordt nagebootst via de eigenschap hive.server2.proxy.user. Bij "
-"Databricks wordt OAuth2 gebruikt om te authenticeren als de momenteel "
-"aangemelde gebruiker. Bij Snowflake of Google Sheets worden de query's, "
-"als OAuth-authenticatie voor de database is geconfigureerd, uitgevoerd "
-"als de momenteel aangemelde gebruiker met diens eigen OAuth-"
-"inloggegevens."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr ""
@@ -11107,6 +11226,9 @@ msgstr "Bijlage toevoegen"
 #, fuzzy, python-format
 msgid "Include description to be sent with %s"
 msgstr "Voeg een beschrijving toe die met %s wordt meegestuurd"
+
+msgid "Include filters as a separate file"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11650,6 +11772,9 @@ msgstr "Sleutel"
 msgid "Key Prefix"
 msgstr "Voorvoegsel"
 
+msgid "Key pair"
+msgstr ""
+
 msgid "Keyboard shortcuts"
 msgstr "Toetsenbord snelkoppelingen"
 
@@ -12186,6 +12311,9 @@ msgstr "Lijnen kolom"
 msgid "Lines encoding"
 msgstr "Lijnen codering"
 
+msgid "Link"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy
@@ -12238,6 +12366,15 @@ msgstr "Lijst bijgewerkt"
 msgid "List view"
 msgstr "Splits nummer"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Live render"
 
@@ -12288,6 +12425,9 @@ msgstr "Typen semantische lagen laden…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "Semantische lagen laden…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 #, fuzzy
 msgid "Loading timezones..."
@@ -13372,6 +13512,11 @@ msgstr "Geef uw database een naam"
 msgid "Name your folder and to edit it later, click on the folder name"
 msgstr "Geef uw map een naam en klik op de mapnaam om deze later te bewerken"
 
+msgid ""
+"Named instances can't be entered as the host. Enter only the host and the"
+" port the instance listens on, or connect with a SQLAlchemy URI instead."
+msgstr ""
+
 #, fuzzy
 msgid "Native filter column is required"
 msgstr "Filterwaarde is vereist"
@@ -13623,6 +13768,9 @@ msgstr "Er zijn momenteel geen filters toegevoegd aan dit dashboard."
 msgid "No filters or customizations created yet"
 msgstr "Er zijn nog geen filters of aanpassingen aangemaakt"
 
+msgid "No filters were applied"
+msgstr ""
+
 msgid "No form settings were maintained"
 msgstr "Er zijn geen formulierinstellingen onderhouden"
 
@@ -13761,6 +13909,10 @@ msgid ""
 msgstr ""
 "Er zijn geen semantische lagen voor u beschikbaar. Vraag uw beheerder om "
 "een semantische laag in te stellen of u toegang tot een laag te geven."
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14421,6 +14573,11 @@ msgstr ""
 "Optionele CA_BUNDLE inhoud voor het valideren van HTTPS-verzoeken. Alleen"
 " beschikbaar voor bepaalde database engines."
 
+msgid ""
+"Optional custom color for each range band, e.g. to match a brand palette."
+" Bands left unset use the default shading."
+msgstr ""
+
 msgid "Optional d3 date format string"
 msgstr "Optionele d3 datum opmaak string"
 
@@ -14433,6 +14590,9 @@ msgid ""
 msgstr ""
 "Optionele dimensie om de grafiek in meerdere candlestick-series te "
 "splitsen."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -14934,6 +15094,12 @@ msgstr "Fysiek"
 msgid "Physical (table or view)"
 msgstr "Fysiek (tabel of overzicht)"
 
+msgid ""
+"Pick a color for each interval band defined above by its upper bound. "
+"Charts saved with the legacy 1-indexed \"Interval colors\" text field "
+"keep following the chosen color scheme until an interval color is edited."
+msgstr ""
+
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr "Kies een dimensie van waaruit categorische kleuren worden gedefinieerd"
 
@@ -15414,6 +15580,12 @@ msgstr "Privésleutel & wachtwoord"
 msgid "Private Key Password"
 msgstr "Wachtwoord van privésleutel"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "Doorgaan"
 
@@ -15595,6 +15767,9 @@ msgstr "Bereiken"
 msgid "Range Type"
 msgstr "BEREIK TYPE"
 
+msgid "Range colors"
+msgstr ""
+
 msgid "Range filter"
 msgstr "Bereik filter"
 
@@ -15630,6 +15805,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Ruwe records"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -15763,6 +15941,9 @@ msgstr "Verversen grafieken"
 msgid "Refreshing columns"
 msgstr "Verversen kolommen"
 
+msgid "Region"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Region name"
@@ -15874,6 +16055,9 @@ msgstr "Type visualisatie"
 #, fuzzy
 msgid "Remove dependency"
 msgstr "Afhankelijkheid verwijderen"
+
+msgid "Remove embedded guest credentials"
+msgstr ""
 
 #, fuzzy
 msgid "Remove filter"
@@ -16258,6 +16442,11 @@ msgstr "Vereist als je account al een wachtwoord heeft"
 msgid "Required to mirror range filters, including the time range."
 msgstr "Vereist om bereikfilters, inclusief het tijdsbereik, te spiegelen."
 
+msgid ""
+"Requires an OAuth2 client ID and secret, and “Impersonate logged in user”"
+" (Advanced → Security)."
+msgstr ""
+
 msgid "Resample"
 msgstr "Opnieuw bemonsteren"
 
@@ -16384,6 +16573,16 @@ msgid ""
 msgstr ""
 "Bij het herstellen wordt een nieuwe versie aangemaakt. Je bestaande "
 "versiegeschiedenis blijft behouden."
+
+#, python-format
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Results"
 msgstr "Resultaten"
@@ -16712,6 +16911,15 @@ msgstr "Bezig"
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Lopende verklaring %(block_num)s van %(block_count)s"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "ZA"
@@ -17260,6 +17468,9 @@ msgstr "Secundaire Metriek"
 
 msgid "Secondary currency format"
 msgstr "Secundaire valuta opmaak"
+
+msgid "Secondary text"
+msgstr ""
 
 msgid "Secondary y-axis Bounds"
 msgstr "Secundaire y-as grenzen"
@@ -17889,6 +18100,9 @@ msgstr "Semantische weergaven"
 #, fuzzy
 msgid "Semantic cache"
 msgstr "Semantische cache"
+
+msgid "Semantic colors"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20457,6 +20671,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "De objecteigenschap die voor puntlabels moet worden gebruikt"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "The following charts could not be exported:"
@@ -20794,55 +21018,31 @@ msgstr "Dit dashboard is succesvol opgeslagen."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"De wachtwoorden voor de onderstaande databases zijn nodig om ze samen met"
-" de grafieken te importeren. Houd er rekening mee dat de secties "
-"\"Beveilig Extra\" en \"Certificaat\" van de database-configuratie niet "
-"aanwezig zijn in exportbestanden, en moet indien nodig handmatig worden "
-"toegevoegd na de import."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"De wachtwoorden voor de onderstaande databases zijn nodig om ze samen met"
-" de dashboards te importeren. Houd er rekening mee dat de secties "
-"\"Beveilig Extra\" en \"Certificaat\" van de database-configuratie niet "
-"aanwezig zijn in exportbestanden, en moet indien nodig handmatig worden "
-"toegevoegd na de import."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"De wachtwoorden voor de onderstaande databases zijn nodig om ze samen met"
-" de datasets te importeren. Houd er rekening mee dat de secties "
-"\"Beveilig Extra\" en \"Certificaat\" van de database-configuratie niet "
-"aanwezig zijn in exportbestanden, en moet indien nodig handmatig worden "
-"toegevoegd na de import."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"De wachtwoorden voor de onderstaande databases zijn nodig om ze samen met"
-" de opgeslagen queries te importeren. Houd er rekening mee dat de secties"
-" \"Beveilig Extra\" en \"Certificaat\" van de database-configuratie niet "
-"aanwezig zijn in exportbestanden, en moet indien nodig handmatig worden "
-"toegevoegd na de import."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -21142,16 +21342,12 @@ msgstr "Het rapport is gemaakt"
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr "De schermafbeelding wordt gegenereerd. Verlaat de pagina alstublieft niet."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"The selected %(type)s are linked to %(charts)s and %(dashboards)s. "
 "Archiving them will make dependent charts unavailable until they are "
 "recovered."
 msgstr ""
-"De geselecteerde %(type)s zijn gekoppeld aan %(charts)s op "
-"%(dashboards)s. Als je ze archiveert, zijn afhankelijke grafieken niet "
-"beschikbaar totdat ze worden hersteld."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21163,14 +21359,11 @@ msgstr ""
 "archiveert, zijn afhankelijke grafieken niet beschikbaar totdat ze worden"
 " hersteld."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %s are linked to %s on %s. Deleting them will break those "
+"The selected %s are linked to %s and %s. Deleting them will break those "
 "objects."
 msgstr ""
-"De geselecteerde %s zijn gekoppeld aan %s op %s. Als je ze verwijdert, "
-"werken die objecten niet meer."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22049,15 +22242,11 @@ msgstr ""
 "beheerders kunnen de inhoud wijzigen; stel het veld Uitvoeren als in op "
 "uw eigen account om deze wijziging door te voeren."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it "
 "will make dependent charts unavailable until it is recovered."
 msgstr ""
-"Deze %(type)s is gekoppeld aan %(charts)s op %(dashboards)s. Als u deze "
-"archiveert, zijn afhankelijke grafieken niet beschikbaar totdat deze is "
-"hersteld."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -22176,6 +22365,13 @@ msgstr ""
 "Dit kan een IP-adres zijn (bijv. 127.0.0.1) of een domeinnaam (bijv. "
 "mijndatabase.com)."
 
+msgid ""
+"This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
+"mydatabase.com). For a named instance (host\\INSTANCE), enter only the "
+"host here and the port the instance listens on below, or connect with a "
+"SQLAlchemy URI instead."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "This cannot be undone."
@@ -22202,8 +22398,21 @@ msgstr ""
 "Deze grafiek past kruisfilters toe op grafieken waarvan de datasets "
 "kolommen met dezelfde naam bevatten."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Deze grafiek is verplaatst naar een ander filterbereik."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -22231,6 +22440,11 @@ msgstr "Deze grafiek bestaat niet meer."
 #, fuzzy
 msgid "This chart only"
 msgstr "Alleen deze grafiek"
+
+msgid ""
+"This chart uses legacy color positions past the end of the selected color"
+" scheme, so its band colors cannot be previewed or edited here."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22297,6 +22511,12 @@ msgstr "Deze kolom is mogelijk niet compatibel met het huidige dataset"
 
 msgid "This column must contain date/time information."
 msgstr "Deze kolom moet datum/tijd informatie bevatten."
+
+msgid ""
+"This connection stores embedded guest credentials, which only apply with "
+"\"Impersonate logged in user\" turned on. Clear the embedded credentials "
+"before turning impersonation off."
+msgstr ""
 
 msgid ""
 "This control filters the whole chart based on the selected time range. "
@@ -22496,6 +22716,9 @@ msgstr ""
 "dan het filter bevat, waardoor er geen tegenhanger is waarvoor een "
 "predicaat op de partitiekolom kan dienen. Wijs een kolom toe die de "
 "engine volledig vergelijkt om deze operator te spiegelen."
+
+msgid "This export is too large to include a separate filters file."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy, python-format
@@ -23767,6 +23990,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Kan semantische weergaven niet ophalen. Controleer de laagconfiguratie."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Niet in staat om zo’n holiday te vinden: [%(holiday)s]"
 
@@ -24120,6 +24347,10 @@ msgstr "Naamloze zoekopdracht"
 msgid "Unverified"
 msgstr "Ongedefinieerd"
 
+#, python-format
+msgid "Up to %s"
+msgstr ""
+
 msgid "Update"
 msgstr "Bijwerken"
 
@@ -24264,6 +24495,9 @@ msgstr "Voer huidige query uit"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Gebruik datum opmaak zelfs wanneer metrische waarde geen tijdstempel is"
 
+msgid "Use default"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -24304,6 +24538,9 @@ msgstr "Gebruik metrieken als topniveau groep voor kolommen of rijen"
 msgid "Use only a single value."
 msgstr "Gebruik slechts één waarde."
 
+msgid "Use scheme colors"
+msgstr ""
+
 msgid "Use the Advanced Analytics options below"
 msgstr "Gebruik de onderstaande geavanceerde Analytics opties"
 
@@ -24322,6 +24559,14 @@ msgid ""
 msgstr ""
 "Intern gebruikt om de plugin te identificeren. Moet worden ingesteld op "
 "de pakketnaam van de plugins package.json"
+
+msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
 
 msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
@@ -24678,6 +24923,9 @@ msgstr "Kijker"
 msgid "Viewers"
 msgstr "Kijkers"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -24922,6 +25170,11 @@ msgstr ""
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "We kunnen de kolom \"%(column_name)s\" niet herleiden."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -25400,11 +25653,17 @@ msgstr "Het venster mag niet groter zijn dan %(max)s"
 msgid "With a subheader"
 msgstr "Met een ondertitel"
 
+msgid "Without filter metadata"
+msgstr ""
+
 msgid "Word Cloud"
 msgstr "Woord Cloud"
 
 msgid "Word Rotation"
 msgstr "Woord Rotatie"
+
+msgid "Work Group"
+msgstr ""
 
 msgid "Working"
 msgstr "Werken"
@@ -26396,6 +26655,10 @@ msgstr "achtergrond"
 msgid "banana"
 msgstr "banaan"
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 #, fuzzy
 msgid "begins with"
 msgstr "Log in met"
@@ -26478,10 +26741,6 @@ msgid "code International Olympic Committee (cioc)"
 msgstr "code Internationaal Olympisch Comité (cioc)"
 
 #, fuzzy
-msgid "color scheme for comparison"
-msgstr "Filters voor vergelijking"
-
-#, fuzzy
 msgid "color type"
 msgstr "Kleur op"
 
@@ -26496,6 +26755,12 @@ msgstr "verbinding maken met %(dbModelName)s."
 msgid "containing"
 msgstr "Doorgaan"
 
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
+msgstr ""
+
 #, fuzzy
 msgid "content type"
 msgstr "Stap type"
@@ -26508,6 +26773,9 @@ msgstr "aanmaken"
 
 msgid "create a new chart"
 msgstr "maak een nieuwe grafiek"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "maak data uit SQL query"
@@ -26643,6 +26911,9 @@ msgstr "scheidingslijn"
 msgid "documentation"
 msgstr "Documentatie"
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr "dttm"
@@ -26653,8 +26924,14 @@ msgstr "bijv. ********"
 msgid "e.g. 127.0.0.1"
 msgstr "bijv. 127.0.0.1"
 
+msgid "e.g. 1433"
+msgstr ""
+
 msgid "e.g. 5432"
 msgstr "bijv. 5432"
+
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
 
 msgid "e.g. AccountAdmin"
 msgstr "bijv. AccountAdmin"
@@ -26669,6 +26946,9 @@ msgstr "bijv. compute_wh"
 msgid "e.g. default"
 msgstr "standaard"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -26678,8 +26958,17 @@ msgstr "bijv. hive_metastore"
 msgid "e.g. param1=value1&param2=value2"
 msgstr "bijv. param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "e.g. sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "bijv. wereld_bevolking"
@@ -26713,6 +27002,9 @@ msgstr "Lege rij"
 
 msgid "entries"
 msgstr "items"
+
+msgid "equals"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -26793,6 +27085,10 @@ msgstr "voor meer informatie over de structuur van uw URI."
 msgid "formatted"
 msgstr "Opgemaakte datum"
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 msgid "function type icon"
 msgstr "functie type icoon"
 
@@ -26807,6 +27103,21 @@ msgstr "groen – toename / rood – afname"
 #, fuzzy
 msgid "greeting"
 msgstr "Log retentie"
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26848,6 +27159,9 @@ msgstr "Ongeldige permalink sleutel"
 msgid "is"
 msgstr "in"
 
+msgid "is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -26868,6 +27182,30 @@ msgstr "wordt verwacht een geheel getal te zijn"
 msgid "is false"
 msgstr "Is onwaar"
 
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
+msgstr ""
+
+#, python-format
+msgid ""
+"is linked to %s charts and %s dashboards. Are you sure you want to "
+"continue? Deleting the dataset will break those objects."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sl, sr, sr_Latn, tr, uk, zh]
 #, fuzzy, python-format
@@ -26881,34 +27219,41 @@ msgstr ""
 "gebruiken. Weet u zeker dat u wilt doorgaan? Als u de database "
 "verwijdert, werken die objecten niet meer."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
-# es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh]
-#, fuzzy, python-format
-msgid ""
-"is linked to %s charts that appear on %s dashboards. Are you sure you "
-"want to continue? Deleting the dataset will break those objects."
-msgstr ""
-"is gekoppeld aan %s grafieken die op %s dashboards worden weergegeven. "
-"Weet u zeker dat u wilt doorgaan? Als u de dataset verwijdert, werken die"
-" objecten niet meer."
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "is not"
 msgstr "is niet"
 
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
+
 #, fuzzy
 msgid "is not null"
 msgstr "Is niet null"
+
+msgid "is not one of"
+msgstr ""
 
 #, fuzzy
 msgid "is null"
 msgstr "Is null"
 
+msgid "is one of"
+msgstr ""
+
 #, fuzzy
 msgid "is true"
 msgstr "Is waar"
+
+msgid "is within"
+msgstr ""
 
 msgid "key a-z"
 msgstr "sleutel a-z"

@@ -76,6 +76,7 @@ import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
 import { useExploreDataExport } from './useExploreDataExport';
+import { getCsvFilterMetadataItems } from 'src/utils/exportFilterMetadata';
 
 export const SEARCH_THRESHOLD = 10;
 
@@ -460,6 +461,7 @@ export const useExploreAdditionalActionsMenu = (
   const {
     exportCSV,
     exportCSVPivoted,
+    csvWillStream,
     exportJson,
     exportExcel,
     handleExportError,
@@ -762,32 +764,40 @@ export const useExploreAdditionalActionsMenu = (
           label: dataExportLabel(t('Export to original .CSV')),
           icon: <Icons.FileOutlined />,
           disabled: !canDownloadCSV,
-          onClick: () => {
-            exportCSV();
-            setIsDropdownVisible(false);
-            dispatch(
-              logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
-                chartId: slice?.slice_id,
-                chartName: slice?.slice_name,
-              }),
-            );
-          },
+          children: getCsvFilterMetadataItems({
+            keyPrefix: MENU_KEYS.EXPORT_TO_CSV,
+            separateDisabled: csvWillStream,
+            onSelect: option => {
+              exportCSV(option);
+              setIsDropdownVisible(false);
+              dispatch(
+                logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
+                  chartId: slice?.slice_id,
+                  chartName: slice?.slice_name,
+                }),
+              );
+            },
+          }),
         },
         {
           key: MENU_KEYS.EXPORT_TO_CSV_PIVOTED,
           label: dataExportLabel(t('Export to pivoted .CSV')),
           icon: <Icons.FileOutlined />,
           disabled: !canDownloadCSV,
-          onClick: () => {
-            exportCSVPivoted();
-            setIsDropdownVisible(false);
-            dispatch(
-              logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED, {
-                chartId: slice?.slice_id,
-                chartName: slice?.slice_name,
-              }),
-            );
-          },
+          // A pivoted CSV never streams, so the separate file stays available.
+          children: getCsvFilterMetadataItems({
+            keyPrefix: MENU_KEYS.EXPORT_TO_CSV_PIVOTED,
+            onSelect: option => {
+              exportCSVPivoted(option);
+              setIsDropdownVisible(false);
+              dispatch(
+                logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED, {
+                  chartId: slice?.slice_id,
+                  chartName: slice?.slice_name,
+                }),
+              );
+            },
+          }),
         },
         {
           key: MENU_KEYS.EXPORT_TO_PIVOT_XLSX,
@@ -817,16 +827,20 @@ export const useExploreAdditionalActionsMenu = (
         label: dataExportLabel(t('Export to .CSV')),
         icon: <Icons.FileOutlined />,
         disabled: !canDownloadCSV,
-        onClick: () => {
-          exportCSV();
-          setIsDropdownVisible(false);
-          dispatch(
-            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
-              chartId: slice?.slice_id,
-              chartName: slice?.slice_name,
-            }),
-          );
-        },
+        children: getCsvFilterMetadataItems({
+          keyPrefix: MENU_KEYS.EXPORT_TO_CSV,
+          separateDisabled: csvWillStream,
+          onSelect: option => {
+            exportCSV(option);
+            setIsDropdownVisible(false);
+            dispatch(
+              logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
+                chartId: slice?.slice_id,
+                chartName: slice?.slice_name,
+              }),
+            );
+          },
+        }),
       });
     }
 
@@ -1204,6 +1218,7 @@ export const useExploreAdditionalActionsMenu = (
     dispatch,
     exportCSV,
     exportCSVPivoted,
+    csvWillStream,
     exportExcel,
     exportJson,
     handleExportError,

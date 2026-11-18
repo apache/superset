@@ -27,6 +27,7 @@ import {
 import * as redux from 'redux';
 
 import * as exploreUtils from 'src/explore/exploreUtils';
+import { FilterMetadata } from 'src/utils/exportFilterMetadata';
 import * as chartStateConverter from '../../../util/chartStateConverter';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import mockDatasource from 'spec/fixtures/mockDatasource';
@@ -595,7 +596,8 @@ test('should call exportChart when exportCSV is clicked', async () => {
     {},
     { timeout: 5000 },
   );
-  fireEvent.click(exportAction);
+  fireEvent.mouseOver(exportAction);
+  fireEvent.click(await findByText('Without filter metadata'));
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -604,10 +606,178 @@ test('should call exportChart when exportCSV is clicked', async () => {
       }),
       resultType: 'full',
       resultFormat: 'csv',
+      filterMetadata: FilterMetadata.None,
     }),
   );
   stubbedExportCSV.mockRestore();
 });
+
+test('should export a separate filters file without streaming', async () => {
+  const stubbedExportCSV = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  fireEvent.mouseOver(
+    await findByText('Export to .CSV', {}, { timeout: 5000 }),
+  );
+  fireEvent.click(await findByText('Include filters as a separate file'));
+
+  expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
+  expect(stubbedExportCSV).toHaveBeenCalledWith(
+    expect.objectContaining({
+      resultType: 'full',
+      resultFormat: 'csv',
+      filterMetadata: FilterMetadata.Separate,
+      onStartStreamingExport: null,
+    }),
+  );
+  stubbedExportCSV.mockRestore();
+});
+
+test('exports a pivoted CSV with a separate filters file', async () => {
+  const stubbedExportCSV = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      sliceEntities: {
+        ...defaultState.sliceEntities,
+        slices: {
+          [queryId]: {
+            ...defaultState.sliceEntities.slices[queryId],
+            viz_type: VizType.PivotTable,
+          },
+        },
+      },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  fireEvent.mouseOver(
+    await findByText('Export to Pivoted .CSV', {}, { timeout: 5000 }),
+  );
+  fireEvent.click(await findByText('Include filters as a separate file'));
+
+  expect(stubbedExportCSV).toHaveBeenCalledWith(
+    expect.objectContaining({
+      resultType: 'post_processed',
+      resultFormat: 'csv',
+      filterMetadata: FilterMetadata.Separate,
+      onStartStreamingExport: null,
+    }),
+  );
+  stubbedExportCSV.mockRestore();
+});
+
+test('disables separate filter metadata when a table CSV will stream', async () => {
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      charts: {
+        ...chartQueries,
+        [queryId]: {
+          ...chartQueries[queryId],
+          // A small row limit, so only the table's row count query decides.
+          form_data: {
+            ...chartQueries[queryId].form_data,
+            viz_type: VizType.Table,
+            row_limit: 10,
+          },
+          queriesResponse: [{}, { data: [{ rowcount: 5000 }] }],
+        },
+      },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+        common: {
+          ...defaultState.dashboardInfo.common,
+          conf: {
+            ...defaultState.dashboardInfo.common.conf,
+            CSV_STREAMING_ROW_THRESHOLD: 1000,
+          },
+        },
+      },
+    },
+  );
+
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  fireEvent.mouseOver(
+    await findByText('Export to .CSV', {}, { timeout: 5000 }),
+  );
+
+  const separateMetadata = await findByText(
+    'Include filters as a separate file',
+  );
+  expect(separateMetadata.closest('li')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test.each([
+  ['SQL row count', [{ sql_rowcount: 5000 }]],
+  ['primary query row count', [{ rowcount: 5000 }]],
+])(
+  'streams a table CSV using the %s fallback',
+  async (_label, queriesResponse) => {
+    const stubbedExportCSV = jest
+      .spyOn(exploreUtils, 'exportChart')
+      .mockImplementation((() => {}) as any);
+    const { findByText, getByRole } = setup(
+      {},
+      {
+        charts: {
+          ...chartQueries,
+          [queryId]: {
+            ...chartQueries[queryId],
+            queriesResponse,
+          },
+        },
+        dashboardInfo: {
+          ...defaultState.dashboardInfo,
+          superset_can_download: true,
+          common: {
+            ...defaultState.dashboardInfo.common,
+            conf: {
+              ...defaultState.dashboardInfo.common.conf,
+              CSV_STREAMING_ROW_THRESHOLD: 1000,
+            },
+          },
+        },
+      },
+    );
+
+    fireEvent.click(getByRole('button', { name: 'More Options' }));
+    fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+    fireEvent.mouseOver(
+      await findByText('Export to .CSV', {}, { timeout: 5000 }),
+    );
+    fireEvent.click(await findByText('Without filter metadata'));
+
+    expect(stubbedExportCSV).toHaveBeenCalledWith(
+      expect.objectContaining({
+        onStartStreamingExport: expect.any(Function),
+      }),
+    );
+    stubbedExportCSV.mockRestore();
+  },
+);
 
 test('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', async () => {
   (global as any).featureFlags = {
@@ -632,7 +802,8 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
     {},
     { timeout: 5000 },
   );
-  fireEvent.click(exportAction);
+  fireEvent.mouseOver(exportAction);
+  fireEvent.click(await findByText('Without filter metadata'));
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
     expect.objectContaining({

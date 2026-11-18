@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-14 23:29-0500\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -437,6 +437,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d개 행이 반환되었습니다"
 
+#, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, lv,
 # mi, ro, ru, sl, sr, sr_Latn, uk]
 #, fuzzy, python-format
@@ -458,6 +462,10 @@ msgstr ""
 "%(validator)s에서 쿼리를 확인할 수 없었습니다.\n"
 "쿼리를 다시 확인해 주세요.\n"
 "예외: %(ex)s"
+
+#, python-format
+msgid "%(values)s and %(count)s more"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, sl, sr, sr_Latn, zh]
@@ -970,6 +978,9 @@ msgid ""
 msgstr ""
 "-- 참고: 쿼리를 저장하지 않으면, 쿠키를 지우거나 브라우저를 변경할 경우 이 탭들이 유지되지 않습니다.\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -1832,6 +1843,9 @@ msgstr "재사용 가능한 데이터셋이 차트와 함께 저장됩니다."
 msgid "A rule with this name already exists."
 msgstr "이 이름의 규칙이 이미 있습니다."
 
+msgid "A saved query with this name already exists"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -2022,6 +2036,21 @@ msgstr "비동기 쿼리 실행"
 msgid "AUG"
 msgstr "8월"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "상태"
@@ -2188,6 +2217,9 @@ msgstr "플러그인 추가"
 #, fuzzy
 msgid "Add a dataset"
 msgstr "차트 추가"
+
+msgid "Add a datasource"
+msgstr ""
 
 #, fuzzy
 msgid "Add a new tab"
@@ -2356,6 +2388,9 @@ msgstr "테이블 추가"
 msgid "Add group"
 msgstr "그룹 추가"
 
+msgid "Add interval bounds above to configure colors here."
+msgstr ""
+
 msgid "Add item"
 msgstr "테이블 추가"
 
@@ -2398,6 +2433,9 @@ msgstr "테이블 추가"
 #, fuzzy
 msgid "Add or edit filters and controls"
 msgstr "테이블 추가"
+
+msgid "Add ranges above to configure their colors here."
+msgstr ""
 
 #, fuzzy
 msgid "Add report"
@@ -4334,6 +4372,9 @@ msgstr "연결된 알림 및 보고서"
 msgid "Asynchronous query execution"
 msgstr "비동기 쿼리 실행"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 #, fuzzy
 msgid "Attribution"
 msgstr "설명"
@@ -4344,6 +4385,9 @@ msgstr "설명"
 #, fuzzy
 msgid "August"
 msgstr "8월"
+
+msgid "Authentication method"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ru, sr, sr_Latn, tr, uk]
@@ -4602,6 +4646,9 @@ msgstr "주석"
 msgid "Base"
 msgstr "데이터베이스"
 
+msgid "Base background"
+msgstr ""
+
 #, fuzzy
 msgid "Base exponent"
 msgstr "데이터베이스"
@@ -4728,6 +4775,9 @@ msgstr "활동"
 #, fuzzy, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
 msgstr "%(block_count)s 중 %(block_num)s번째 블록"
+
+msgid "Border"
+msgstr ""
 
 #, fuzzy
 msgid "Border color"
@@ -5315,6 +5365,9 @@ msgstr ""
 " 됩니다. 데이터셋을 복원(POST /api/v1/dataset/<uuid>/restore)하면 데이터셋은 유지되지만 데이터베이스는"
 " 여전히 삭제할 수 없습니다."
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -5881,6 +5934,9 @@ msgstr "차트가 존재하지 않습니다"
 msgid "Chart editors"
 msgstr "차트 편집자"
 
+msgid "Chart filter"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -6045,6 +6101,9 @@ msgstr "이 데이터셋을 사용하는 차트와 대시보드를 확인하는 
 #, fuzzy
 msgid "Checking for affected charts and dashboards…"
 msgstr "영향을 받는 차트와 대시보드를 확인하는 중…"
+
+msgid "Checking which charts will be removed…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -6748,6 +6807,20 @@ msgstr "차트 오른쪽 막대의 색상"
 msgid "Color for breakpoint"
 msgstr "중단점 색상"
 
+msgid "Color for decrease"
+msgstr ""
+
+msgid "Color for increase"
+msgstr ""
+
+#, python-format
+msgid "Color for interval up to %s"
+msgstr ""
+
+#, python-format
+msgid "Color for range up to %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -6778,6 +6851,16 @@ msgstr "색상 구성표"
 #, fuzzy, python-format
 msgid "Color scheme: %s"
 msgstr "색상 구성표: %s"
+
+msgid ""
+"Color used for the arrow and symbols when the metric decreased from the "
+"comparison value. Defaults to red."
+msgstr ""
+
+msgid ""
+"Color used for the arrow and symbols when the metric increased from the "
+"comparison value. Defaults to green."
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -7044,18 +7127,6 @@ msgstr "메트릭"
 # uk, zh, zh_TW]
 #, fuzzy
 msgid ""
-"Comma-separated color picks for the intervals, e.g. 1,2,4. Integers "
-"denote colors from the chosen color scheme and are 1-indexed. Length must"
-" be matching that of interval bounds."
-msgstr ""
-"구간에 대한 쉼표로 구분된 색상 선택(예: 1,2,4). 정수는 선택한 색상 구성표의 색상을 나타내며 1부터 인덱싱됩니다. 길이는 "
-"구간 경계의 수와 일치해야 합니다."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-#, fuzzy
-msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Last number should match the value provided for MAX."
 msgstr ""
@@ -7310,6 +7381,9 @@ msgstr "외부 웹 애플리케이션에 삽입하기 위해 이 대시보드를
 msgid "Configure your how you overlay is displayed here."
 msgstr "오버레이 표시 방법을 여기에서 구성합니다."
 
+msgid "Configured"
+msgstr ""
+
 #, fuzzy
 msgid "Confirm"
 msgstr "대시보드 보기"
@@ -7422,6 +7496,9 @@ msgstr "연결이 정상입니다!"
 #, fuzzy
 msgid "Contact the report owner for error details."
 msgstr "오류 세부 정보는 보고서 소유자에게 문의하세요."
+
+msgid "Container background"
+msgstr ""
 
 #, fuzzy
 msgid "Contains"
@@ -7699,16 +7776,16 @@ msgid ""
 "Deleting them may break charts and dashboards."
 msgstr "선택한 %s에 의존하는 차트와 대시보드를 확인할 수 없습니다. 삭제하면 차트와 대시보드가 손상될 수 있습니다."
 
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "데이터베이스에 연결할 수 없습니다: \"%(database)s\""
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr "시맨틱 뷰 %s을(를) 삭제할 수 없습니다: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
@@ -8477,6 +8554,9 @@ msgstr "대시보드가 예시로 성공적으로 내보내기되었습니다"
 msgid "Dashboard exported successfully"
 msgstr "대시보드"
 
+msgid "Dashboard filter"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Dashboard has no charts to export."
@@ -9170,6 +9250,9 @@ msgid ""
 "than this if other columns don't need much space"
 msgstr "기본 최소 열 너비(픽셀). 다른 열이 많은 공간을 필요로 하지 않으면 실제 너비가 이보다 클 수 있습니다"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -9462,6 +9545,14 @@ msgstr "선택 항목 삭제"
 msgid "Delete template"
 msgstr "템플릿 불러오기"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "템플릿 불러오기"
@@ -9581,6 +9672,11 @@ msgstr "%s을(를) 삭제했습니다"
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s개 항목을 삭제했습니다"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, lv, pt, ro, ru, sl, sr, sr_Latn, ta, tr, uk, zh]
@@ -10908,15 +11004,6 @@ msgstr "사용자 이름 \"%(username)s\" 또는 비밀번호가 올바르지 �
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
-#, fuzzy, python-format
-msgid ""
-"Either the username \"%(username)s\", password, or database name "
-"\"%(database)s\" is incorrect."
-msgstr "사용자 이름 \"%(username)s\", 비밀번호 또는 데이터베이스 이름 \"%(database)s\"이(가) 올바르지 않습니다."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
 #, fuzzy
 msgid "Either the username or the password is wrong."
 msgstr "사용자 이름 또는 비밀번호가 올바르지 않습니다."
@@ -10994,6 +11081,26 @@ msgstr ""
 #, fuzzy
 msgid "Embedded dashboard could not be deleted."
 msgstr "대시보드를 삭제할 수 없습니다."
+
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials can't be added or changed while the embedded "
+"credential fallback is turned off. Leave the stored credentials unchanged"
+" or clear them."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -11355,6 +11462,12 @@ msgstr "테이블 명"
 #, fuzzy, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "필수 %(dbModelName)s 자격 증명을 입력하세요"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -12078,6 +12191,12 @@ msgstr "원본 .CSV로 내보내기"
 #, fuzzy
 msgid "Export to pivoted .CSV"
 msgstr "피벗된 .CSV로 내보내기"
+
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13001,6 +13120,11 @@ msgstr "데이터 맞추기"
 #, fuzzy
 msgid "Fix the Extra JSON to edit certification"
 msgstr "인증을 편집하려면 추가 JSON을 수정하세요"
+
+msgid ""
+"Fix the JSON errors below to edit colors here; your changes sync "
+"automatically once the JSON is valid again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14011,8 +14135,6 @@ msgstr "ID"
 msgid "Id of root node of the tree."
 msgstr "트리의 루트 노드 ID."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
 msgid ""
 "If Presto or Trino, all the queries in SQL Lab are going to be executed "
 "as the currently logged on user who must have permission to run them. If "
@@ -14021,14 +14143,10 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
-"Presto 또는 Trino의 경우 SQL Lab의 모든 쿼리는 현재 로그인한 사용자 권한으로 실행되므로 해당 사용자에게 실행 "
-"권한이 있어야 합니다. Hive에서 hive.server2.enable.doAs가 활성화된 경우 쿼리는 서비스 계정으로 실행되지만 "
-"hive.server2.proxy.user 속성을 통해 현재 로그인한 사용자를 대리합니다. Databricks의 경우 OAuth2를"
-" 사용하여 현재 로그인한 사용자로 인증합니다. Snowflake 또는 Google Sheets에서 데이터베이스에 OAuth 인증이 "
-"구성된 경우 사용자 본인의 OAuth 자격 증명을 통해 현재 로그인한 사용자 권한으로 쿼리를 실행합니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14277,6 +14395,9 @@ msgstr "첨부 파일 포함"
 #, fuzzy, python-format
 msgid "Include description to be sent with %s"
 msgstr "%s와 함께 전송될 설명 포함"
+
+msgid "Include filters as a separate file"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15046,6 +15167,9 @@ msgstr "키"
 msgid "Key Prefix"
 msgstr "데이터 미리보기"
 
+msgid "Key pair"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
@@ -15772,6 +15896,9 @@ msgstr "컬럼 수정"
 msgid "Lines encoding"
 msgstr "선 인코딩"
 
+msgid "Link"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy
@@ -15828,6 +15955,15 @@ msgstr "분기"
 #, fuzzy
 msgid "List view"
 msgstr "저장된 Query 수정"
+
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15891,6 +16027,9 @@ msgstr "시맨틱 레이어 유형을 불러오는 중…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "시맨틱 레이어를 불러오는 중…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, uk]
@@ -17396,6 +17535,11 @@ msgstr "데이터베이스 선택"
 msgid "Name your folder and to edit it later, click on the folder name"
 msgstr "폴더 이름을 지정하고 나중에 편집하려면 폴더 이름을 클릭하세요"
 
+msgid ""
+"Named instances can't be entered as the host. Enter only the host and the"
+" port the instance listens on, or connect with a SQLAlchemy URI instead."
+msgstr ""
+
 #, fuzzy
 msgid "Native filter column is required"
 msgstr "데이터소스"
@@ -17728,6 +17872,9 @@ msgstr "현재 이 대시보드에 추가된 필터가 없습니다."
 msgid "No filters or customizations created yet"
 msgstr "아직 필터 또는 사용자 정의가 생성되지 않았습니다"
 
+msgid "No filters were applied"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -17898,6 +18045,10 @@ msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
 msgstr "사용 가능한 시맨틱 레이어가 없습니다. 관리자에게 시맨틱 레이어를 설정하거나 접근 권한을 부여하도록 요청하세요."
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -18776,6 +18927,11 @@ msgid ""
 " certain database engines."
 msgstr "HTTPS 요청 검증을 위한 선택적 CA_BUNDLE 내용. 특정 데이터베이스 엔진에서만 사용 가능합니다."
 
+msgid ""
+"Optional custom color for each range band, e.g. to match a brand palette."
+" Bands left unset use the default shading."
+msgstr ""
+
 #, fuzzy
 msgid "Optional d3 date format string"
 msgstr "주석"
@@ -18788,6 +18944,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "차트를 여러 캔들스틱 시리즈로 나누는 선택 차원입니다."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -19486,6 +19645,12 @@ msgstr "물리"
 #, fuzzy
 msgid "Physical (table or view)"
 msgstr "물리 (테이블 또는 뷰)"
+
+msgid ""
+"Pick a color for each interval band defined above by its upper bound. "
+"Charts saved with the legacy 1-indexed \"Interval colors\" text field "
+"keep following the chosen color scheme until an interval color is edited."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20198,6 +20363,12 @@ msgstr "개인 키 및 비밀번호"
 msgid "Private Key Password"
 msgstr "비밀번호"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 #, fuzzy
 msgid "Proceed"
 msgstr "생성자"
@@ -20475,6 +20646,9 @@ msgstr "관리"
 msgid "Range Type"
 msgstr "차트 유형"
 
+msgid "Range colors"
+msgstr ""
+
 #, fuzzy
 msgid "Range filter"
 msgstr "테이블 추가"
@@ -20528,6 +20702,9 @@ msgstr ""
 #, fuzzy
 msgid "Raw records"
 msgstr "원시 레코드"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
@@ -20696,6 +20873,9 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "Refreshing columns"
 msgstr "컬럼 수정"
 
+msgid "Region"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Region name"
@@ -20832,6 +21012,9 @@ msgstr "시각화 유형"
 #, fuzzy
 msgid "Remove dependency"
 msgstr "종속성 제거"
+
+msgid "Remove embedded guest credentials"
+msgstr ""
 
 #, fuzzy
 msgid "Remove filter"
@@ -21309,6 +21492,11 @@ msgstr "계정에 이미 비밀번호가 있는 경우 필요합니다"
 msgid "Required to mirror range filters, including the time range."
 msgstr "시간 범위를 포함한 범위 필터를 미러링하는 데 필요합니다."
 
+msgid ""
+"Requires an OAuth2 client ID and secret, and “Impersonate logged in user”"
+" (Advanced → Security)."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
 # zh, zh_TW]
@@ -21455,6 +21643,15 @@ msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
 msgstr "복원하면 새 버전이 생성됩니다. 기존 버전 기록은 유지됩니다."
+
+#, python-format
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
 
 msgid "Results"
 msgstr "결과"
@@ -21916,6 +22113,15 @@ msgstr "실행 중"
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "%(block_count)s 중 %(block_num)s 블록 실행 중"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22649,6 +22855,9 @@ msgstr "메트릭"
 #, fuzzy
 msgid "Secondary currency format"
 msgstr "보조 통화 형식"
+
+msgid "Secondary text"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -23392,6 +23601,9 @@ msgstr "시맨틱 뷰"
 #, fuzzy
 msgid "Semantic cache"
 msgstr "시맨틱 캐시"
+
+msgid "Semantic colors"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -26641,6 +26853,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "포인트 레이블에 사용할 피처 속성"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
 msgid "The following charts could not be exported:"
@@ -27025,61 +27247,33 @@ msgstr "데이터베이스 연결 시 제공한 비밀번호가 유효하지 않
 msgid "The password reset was successful"
 msgstr "비밀번호 재설정이 완료되었습니다."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-#, fuzzy
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"아래 데이터베이스를 차트와 함께 가져오려면 비밀번호가 필요합니다. 데이터베이스 구성의 \"Secure Extra\" 및 "
-"\"Certificate\" 섹션은 내보내기 파일에 포함되지 않으며, 필요한 경우 가져오기 후 수동으로 추가해야 합니다."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-#, fuzzy
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"아래 데이터베이스를 대시보드와 함께 가져오려면 비밀번호가 필요합니다. 데이터베이스 구성의 \"Secure Extra\" 및 "
-"\"Certificate\" 섹션은 내보내기 파일에 포함되지 않으며, 필요한 경우 가져오기 후 수동으로 추가해야 합니다."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
-# zh, zh_TW]
-#, fuzzy
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"아래 데이터베이스의 비밀번호는 데이터셋과 함께 가져오기 위해 필요합니다. 데이터베이스 설정의 \"Secure Extra\" 및 "
-"\"Certificate\" 섹션은 내보내기 파일에 포함되지 않으므로, 필요한 경우 가져오기 후 수동으로 추가해야 합니다."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-#, fuzzy
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"아래 데이터베이스의 비밀번호는 저장된 쿼리와 함께 가져오기 위해 필요합니다. 데이터베이스 설정의 \"Secure Extra\" 및 "
-"\"Certificate\" 섹션은 내보내기 파일에 포함되지 않으므로, 필요한 경우 가져오기 후 수동으로 추가해야 합니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -27438,15 +27632,12 @@ msgstr "주석 레이어"
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr "스크린샷을 생성 중입니다. 페이지를 벗어나지 마세요."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"The selected %(type)s are linked to %(charts)s and %(dashboards)s. "
 "Archiving them will make dependent charts unavailable until they are "
 "recovered."
 msgstr ""
-"선택한 %(type)s은(는) %(dashboards)s의 %(charts)s에 연결되어 있습니다. 보관하면 복구될 때까지 종속된 "
-"차트를 사용할 수 없게 됩니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -27455,12 +27646,11 @@ msgid ""
 "dependent charts unavailable until they are recovered."
 msgstr "선택한 %(type)s은(는) %(charts)s에서 사용 중입니다. 보관하면 복구될 때까지 종속된 차트를 사용할 수 없게 됩니다."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"The selected %s are linked to %s on %s. Deleting them will break those "
+"The selected %s are linked to %s and %s. Deleting them will break those "
 "objects."
-msgstr "선택한 %s은(는) %s의 %s에 연결되어 있습니다. 삭제하면 해당 객체가 손상됩니다."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -28442,14 +28632,11 @@ msgstr ""
 "이 %(schedule)s은(는) 다른 사용자로 실행됩니다. 관리자만 내용을 변경할 수 있습니다. 이 변경을 하려면 '실행 사용자'"
 " 필드를 본인 계정으로 설정하세요."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it "
 "will make dependent charts unavailable until it is recovered."
 msgstr ""
-"이 %(type)s은(는) %(dashboards)s의 %(charts)s에 연결되어 있습니다. 보관하면 복구될 때까지 종속된 "
-"차트를 사용할 수 없게 됩니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -28583,6 +28770,13 @@ msgid ""
 "mydatabase.com)."
 msgstr "IP 주소(예: 127.0.0.1) 또는 도메인 이름(예: mydatabase.com)을 입력할 수 있습니다."
 
+msgid ""
+"This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
+"mydatabase.com). For a named instance (host\\INSTANCE), enter only the "
+"host here and the port the instance listens on below, or connect with a "
+"SQLAlchemy URI instead."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "This cannot be undone."
@@ -28608,12 +28802,25 @@ msgid ""
 " with the same name."
 msgstr "이 차트는 동일한 이름의 열을 포함하는 데이터셋을 가진 차트에 교차 필터를 적용합니다."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
 #, fuzzy
 msgid "This chart has been moved to a different filter scope."
 msgstr "이 차트가 다른 필터 범위로 이동되었습니다."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -28649,6 +28856,11 @@ msgstr "이 차트는 더 이상 존재하지 않습니다."
 #, fuzzy
 msgid "This chart only"
 msgstr "이 차트만"
+
+msgid ""
+"This chart uses legacy color positions past the end of the selected color"
+" scheme, so its band colors cannot be previewed or edited here."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -28715,6 +28927,12 @@ msgstr "이 열은 현재 데이터셋과 호환되지 않을 수 있습니다"
 #, fuzzy
 msgid "This column must contain date/time information."
 msgstr "이 열은 날짜/시간 정보를 포함해야 합니다."
+
+msgid ""
+"This connection stores embedded guest credentials, which only apply with "
+"\"Impersonate logged in user\" turned on. Clear the embedded credentials "
+"before turning impersonation off."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -28944,6 +29162,9 @@ msgid ""
 msgstr ""
 "이 엔진은 %(column)s에서 %(operator)s 값을 필터가 가진 것보다 적게 비교하므로, 파티션 열의 조건자가 대신할 수"
 " 있는 대응 항목이 없습니다. 이 연산자를 대응시키려면 엔진이 전체를 비교하는 열을 매핑하세요."
+
+msgid "This export is too large to include a separate filters file."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy, python-format
@@ -30480,6 +30701,10 @@ msgstr "시맨틱 뷰 구조를 가져올 수 없습니다."
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "시맨틱 뷰를 가져올 수 없습니다. 레이어 구성을 확인해 주세요."
 
+#, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -30916,6 +31141,10 @@ msgstr "Query 공유"
 msgid "Unverified"
 msgstr "수정됨"
 
+#, python-format
+msgid "Up to %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -31105,6 +31334,9 @@ msgstr "Query 실행"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "측정값이 타임스탬프가 아닌 경우에도 날짜 형식 사용"
 
+msgid "Use default"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -31151,6 +31383,9 @@ msgstr "열 또는 행의 최상위 그룹으로 지표 사용"
 msgid "Use only a single value."
 msgstr "단일 값만 사용하세요."
 
+msgid "Use scheme colors"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -31187,6 +31422,14 @@ msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
 " from the pluginʼs package.json"
 msgstr "플러그인을 식별하기 위해 내부적으로 사용됩니다. 플러그인의 package.json에 있는 패키지 이름으로 설정해야 합니다"
+
+msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -31626,6 +31869,9 @@ msgstr "열람자"
 msgid "Viewers"
 msgstr "열람자"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -31946,6 +32192,11 @@ msgstr "%(location)s행의 \"%(column_name)s\" 열을 찾을 수 없습니다."
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "\"%(column_name)s\" 열을 확인할 수 없습니다."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -32660,6 +32911,9 @@ msgstr "기간은 %(max)s을(를) 초과할 수 없습니다"
 msgid "With a subheader"
 msgstr "서브헤더 포함"
 
+msgid "Without filter metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -32670,6 +32924,9 @@ msgstr "워드 클라우드"
 #, fuzzy
 msgid "Word Rotation"
 msgstr "주석"
+
+msgid "Work Group"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -34012,6 +34269,10 @@ msgstr "컬럼 수정"
 msgid "banana"
 msgstr "바나나"
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 #, fuzzy
 msgid "begins with"
 msgstr "차트 유형"
@@ -34150,10 +34411,6 @@ msgid "code International Olympic Committee (cioc)"
 msgstr "국제 올림픽 위원회 코드 (cioc)"
 
 #, fuzzy
-msgid "color scheme for comparison"
-msgstr "컬럼 수정"
-
-#, fuzzy
 msgid "color type"
 msgstr "차트 유형"
 
@@ -34170,6 +34427,12 @@ msgstr "%(dbModelName)s에 연결 중"
 msgid "containing"
 msgstr "컬럼 추가"
 
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
+msgstr ""
+
 #, fuzzy
 msgid "content type"
 msgstr "차트 유형"
@@ -34185,6 +34448,9 @@ msgstr "생성자"
 #, fuzzy
 msgid "create a new chart"
 msgstr "새 차트 생성"
+
+msgid "create a semantic view"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -34398,6 +34664,9 @@ msgstr "구분선"
 msgid "documentation"
 msgstr "주석"
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr "날짜/시간"
@@ -34416,12 +34685,18 @@ msgstr "예: ********"
 msgid "e.g. 127.0.0.1"
 msgstr "예: 127.0.0.1"
 
+msgid "e.g. 1433"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
 #, fuzzy
 msgid "e.g. 5432"
 msgstr "예: 5432"
+
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -34448,6 +34723,9 @@ msgstr "예: compute_wh"
 msgid "e.g. default"
 msgstr "삭제"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -34461,12 +34739,21 @@ msgstr "예: hive_metastore"
 msgid "e.g. param1=value1&param2=value2"
 msgstr "예: param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
 #, fuzzy
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "예: sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -34516,6 +34803,9 @@ msgstr "D3 포멧"
 #, fuzzy
 msgid "entries"
 msgstr "저장된 Query"
+
+msgid "equals"
+msgstr ""
 
 #. do-not-translate
 #, fuzzy
@@ -34626,6 +34916,10 @@ msgstr "URI를 구성하는 방법에 대한 자세한 내용은 다음을 참�
 msgid "formatted"
 msgstr "데이터베이스 선택"
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -34648,6 +34942,21 @@ msgstr "녹색 — 증가 / 빨간색 — 감소"
 #, fuzzy
 msgid "greeting"
 msgstr "생성자"
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -34701,6 +35010,9 @@ msgstr "유효하지 않은 이메일"
 msgid "is"
 msgstr "활동"
 
+msgid "is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -34729,6 +35041,30 @@ msgstr "정수여야 합니다"
 msgid "is false"
 msgstr "테이블 수정"
 
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
+msgstr ""
+
+#, python-format
+msgid ""
+"is linked to %s charts and %s dashboards. Are you sure you want to "
+"continue? Deleting the dataset will break those objects."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
@@ -34741,18 +35077,19 @@ msgstr ""
 "열고 있습니다. 계속하시겠습니까? 데이터베이스를 삭제하면 해당 객체들이 손상됩니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy, python-format
-msgid ""
-"is linked to %s charts that appear on %s dashboards. Are you sure you "
-"want to continue? Deleting the dataset will break those objects."
-msgstr "%s개의 대시보드에 표시되는 %s개의 차트와 연결되어 있습니다. 계속하시겠습니까? 데이터셋을 삭제하면 해당 객체들이 손상됩니다."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "is not"
 msgstr "이(가) 아님"
+
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
@@ -34760,15 +35097,24 @@ msgstr "이(가) 아님"
 msgid "is not null"
 msgstr "null이 아님"
 
+msgid "is not one of"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "is null"
 msgstr "null임"
 
+msgid "is one of"
+msgstr ""
+
 #, fuzzy
 msgid "is true"
 msgstr "Query 검색"
+
+msgid "is within"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
