@@ -44,7 +44,12 @@ const PanelToolbar = ({
     () =>
       primaryItems
         .map(item => {
-          const command = commands.getCommand(item.command)!;
+          // Toolbars run commands; `page` (navigation) items aren't
+          // rendered here.
+          if (!item.command) {
+            return null;
+          }
+          const command = commands.getCommand(item.command);
           if (!command?.icon) {
             return null;
           }
@@ -74,7 +79,12 @@ const PanelToolbar = ({
     () =>
       secondaryItems
         .map(item => {
-          const command = commands.getCommand(item.command)!;
+          // Toolbars run commands; `page` (navigation) items aren't
+          // rendered here.
+          if (!item.command) {
+            return null;
+          }
+          const command = commands.getCommand(item.command);
           if (!command) {
             return null;
           }

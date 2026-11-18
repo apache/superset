@@ -18,7 +18,14 @@
  */
 import React from 'react';
 import { act, render, screen } from 'spec/helpers/testing-library';
-import { views, resolveView, useResolveView } from './index';
+import {
+  canViewPage,
+  createOwnedRegisterView,
+  getRegisteredView,
+  resolveView,
+  useResolveView,
+  views,
+} from './index';
 
 const ThrowingView = () => {
   throw new Error('Boom');
@@ -167,4 +174,122 @@ test('useResolveView gives a fresh error boundary when the id changes', () => {
 
   expect(screen.getByText('Good Content')).toBeInTheDocument();
   expect(screen.queryByText('Unexpected error')).not.toBeInTheDocument();
+});
+
+test('registerView throws on a duplicate id instead of overwriting', () => {
+  disposables.push(
+    views.registerView(
+      { id: 'ext.dup', name: 'First' },
+      'sqllab.panels',
+      () => null,
+    ),
+  );
+  expect(() =>
+    views.registerView(
+      { id: 'ext.dup', name: 'Second' },
+      'sqllab.panels',
+      () => null,
+    ),
+  ).toThrow(/already registered/);
+  expect(views.getViews('sqllab.panels')?.map(v => v.name)).toEqual(['First']);
+});
+
+test('a page id must be a single URL path segment', () => {
+  for (const id of ['acme/page', 'acme.page?x', 'acme page', 'acme%2Fpage']) {
+    expect(() =>
+      views.registerView({ id, name: 'Bad' }, views.Locations.page, () => null),
+    ).toThrow(/single URL path segment/);
+  }
+});
+
+test('the permission options must be set together', () => {
+  expect(() =>
+    views.registerView(
+      { id: 'acme.tools.approvals', name: 'Approvals' },
+      'global.page',
+      () => null,
+      { classPermissionName: 'AcmeApprovalsApi' },
+    ),
+  ).toThrow(/both "classPermissionName" and "methodPermissionName"/);
+});
+
+test('an owned registerView only accepts page ids under its own extension id', () => {
+  const registerView = createOwnedRegisterView('acme.tools');
+  expect(() =>
+    registerView(
+      { id: 'other.ext.page', name: 'Hijack' },
+      'global.page',
+      () => null,
+    ),
+  ).toThrow(/must start with the registering extension's id/);
+  // A look-alike prefix without the dot doesn't count as owned.
+  expect(() =>
+    registerView(
+      { id: 'acme.toolsx.page', name: 'Nope' },
+      'global.page',
+      () => null,
+    ),
+  ).toThrow(/must start with the registering extension's id/);
+  disposables.push(
+    registerView(
+      { id: 'acme.tools.approvals', name: 'Approvals' },
+      'global.page',
+      () => null,
+    ),
+    // Other locations aren't URL-addressable, so no prefix rule there.
+    registerView(
+      { id: 'free.panel', name: 'Panel' },
+      'sqllab.panels',
+      () => null,
+    ),
+  );
+  expect(getRegisteredView('acme.tools.approvals')?.location).toBe(
+    'global.page',
+  );
+});
+
+test('canViewPage checks the declared permission against the user roles', () => {
+  disposables.push(
+    views.registerView(
+      { id: 'open.page', name: 'Open' },
+      'global.page',
+      () => null,
+    ),
+    views.registerView(
+      { id: 'acme.tools.approvals', name: 'Approvals' },
+      'global.page',
+      () => null,
+      {
+        classPermissionName: 'AcmeApprovalsApi',
+        methodPermissionName: 'review',
+      },
+    ),
+  );
+  const open = getRegisteredView('open.page')!;
+  const gated = getRegisteredView('acme.tools.approvals')!;
+  expect(canViewPage(open, {})).toBe(true);
+  expect(canViewPage(gated, { Gamma: [['can_read', 'Dashboard']] })).toBe(
+    false,
+  );
+  expect(
+    canViewPage(gated, { Reviewer: [['can_review', 'AcmeApprovalsApi']] }),
+  ).toBe(true);
+});
+
+test('disposing a stale registration does not remove a newer one', () => {
+  const first = views.registerView(
+    { id: 'ext.cycle', name: 'One' },
+    'sqllab.panels',
+    () => null,
+  );
+  first.dispose();
+  disposables.push(
+    views.registerView(
+      { id: 'ext.cycle', name: 'Two' },
+      'sqllab.panels',
+      () => null,
+    ),
+  );
+  first.dispose();
+  expect(getRegisteredView('ext.cycle')?.view.name).toBe('Two');
 });

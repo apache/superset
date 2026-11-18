@@ -40,16 +40,63 @@
 import { Disposable, Event } from '../common';
 
 /**
- * Represents a menu item that links a view to a command.
+ * Fields shared by every kind of menu item.
  */
-export interface MenuItem {
-  /** The identifier of the view associated with this menu item. */
-  view: string;
-  /** The command to execute when this menu item is selected. */
-  command: string;
+export interface MenuItemBase {
+  /**
+   * The identifier of the view this menu item is attached to (e.g.
+   * `'builtin.editor'` in SQL Lab). Optional: an item in a host menu such as
+   * the Settings menu has no hosting view.
+   */
+  view?: string;
+  /** Icon name, resolved against the host icon set (e.g. `'BellOutlined'`). */
+  icon?: string;
+  /**
+   * Sort weight among the contributed items at a location. Lower sorts
+   * first; items without an `order` sort last, in registration order.
+   */
+  order?: number;
   /** Optional description of the menu item, for display in contribution manifests. */
   description?: string;
 }
+
+/**
+ * A menu item that navigates to an extension page: the id of a view
+ * registered at `global.page` (see `views.Locations.page`). The host renders
+ * it as a real link to `/extensions/pages/<page>`, labelled with the view's
+ * `name`, and skips it while that page isn't registered or the user lacks
+ * the page's permission.
+ */
+export interface PageMenuItem extends MenuItemBase {
+  /** Id of a view registered at `global.page`. */
+  page: string;
+  command?: never;
+}
+
+/**
+ * A menu item that executes a command when selected, labelled with the
+ * command's `title`.
+ */
+export interface CommandMenuItem extends MenuItemBase {
+  /** The command to execute when this menu item is selected. */
+  command: string;
+  page?: never;
+}
+
+/**
+ * A menu item: exactly one of `page` (navigate to an extension page) or
+ * `command` (run a command). `registerMenuItem` throws on an item that sets
+ * neither or both.
+ */
+export type MenuItem = PageMenuItem | CommandMenuItem;
+
+/**
+ * Host menu locations outside SQL Lab that render contributed menu items.
+ */
+export declare const Locations: {
+  /** The "Settings" dropdown in the top navigation bar. */
+  readonly settingsMenu: 'global.settingsMenu';
+};
 
 /**
  * Defines the structure of registered menu items, organized into primary, secondary, and context menus.
@@ -66,10 +113,11 @@ export interface Menu {
 /**
  * Registers a menu item at a specific UI location.
  *
- * @param item The menu item linking a view to a command.
+ * @param item The menu item: a `page` to navigate to or a `command` to run.
  * @param location The location where this menu item should appear (e.g. "sqllab.editor").
  * @param group The menu group to place this item in.
  * @returns A Disposable that unregisters the menu item when disposed.
+ * @throws If the item sets neither or both of `page` and `command`.
  *
  * @example
  * ```typescript
@@ -77,6 +125,13 @@ export interface Menu {
  *   { command: 'sqllab_parquet.export', view: 'builtin.editor' },
  *   'sqllab.editor',
  *   'secondary',
+ * );
+ *
+ * // An entry in the Settings menu that opens an extension page:
+ * menus.registerMenuItem(
+ *   { page: 'acme.catalog.main', icon: 'DatabaseOutlined' },
+ *   menus.Locations.settingsMenu,
+ *   'primary',
  * );
  * ```
  */

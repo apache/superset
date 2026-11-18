@@ -461,7 +461,6 @@ test('Logs out and clears local storage item redux', async () => {
 
 test('renders an extension-contributed item in the Settings dropdown', async () => {
   const { commands, menus } = jest.requireActual('src/core');
-  const { GlobalLocations } = jest.requireActual('src/core/contributions');
 
   const commandCallback = jest.fn();
   const disposeCommand = commands.registerCommand(
@@ -469,8 +468,8 @@ test('renders an extension-contributed item in the Settings dropdown', async () 
     commandCallback,
   );
   const disposeMenuItem = menus.registerMenuItem(
-    { view: 'test-ext.settingsPanel', command: 'test-ext.openSettings' },
-    GlobalLocations.settings.menu,
+    { command: 'test-ext.openSettings' },
+    menus.Locations.settingsMenu,
     'primary',
   );
 
@@ -504,7 +503,6 @@ test('shows an error toast when an extension Settings command throws', async () 
     menus,
     window: extensionWindow,
   } = jest.requireActual('src/core');
-  const { GlobalLocations } = jest.requireActual('src/core/contributions');
 
   const showErrorMessage = jest
     .spyOn(extensionWindow, 'showErrorMessage')
@@ -516,8 +514,8 @@ test('shows an error toast when an extension Settings command throws', async () 
     },
   );
   const disposeMenuItem = menus.registerMenuItem(
-    { view: 'test-ext.settingsPanel', command: 'test-ext.broken' },
-    GlobalLocations.settings.menu,
+    { command: 'test-ext.broken' },
+    menus.Locations.settingsMenu,
     'primary',
   );
 
@@ -541,6 +539,131 @@ test('shows an error toast when an extension Settings command throws', async () 
     showErrorMessage.mockRestore();
     disposeCommand.dispose();
     disposeMenuItem.dispose();
+  }
+});
+
+const renderSettings = async () => {
+  resetUseSelectorMock();
+  render(<RightMenu {...createProps()} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  await userEvent.hover(await screen.findByText(/Settings/i));
+};
+
+test('renders a page item in the Settings dropdown as a link to the page', async () => {
+  const { menus, views } = jest.requireActual('src/core');
+  const disposables = [
+    views.registerView(
+      { id: 'test-ext.catalog', name: 'Data catalog' },
+      views.Locations.page,
+      () => null,
+    ),
+    menus.registerMenuItem(
+      { page: 'test-ext.catalog', icon: 'DatabaseOutlined' },
+      menus.Locations.settingsMenu,
+      'primary',
+    ),
+  ];
+  try {
+    await renderSettings();
+    const link = await screen.findByRole('link', { name: 'Data catalog' });
+    expect(link).toHaveAttribute('href', '/extensions/pages/test-ext.catalog');
+  } finally {
+    disposables.forEach(d => d.dispose());
+  }
+});
+
+test('skips page items whose page is unregistered, misplaced, or not permitted', async () => {
+  const { commands, menus, views } = jest.requireActual('src/core');
+  const disposables = [
+    views.registerView(
+      { id: 'test-ext.panel', name: 'Not a page' },
+      'sqllab.panels',
+      () => null,
+    ),
+    views.registerView(
+      { id: 'test-ext.approvals', name: 'Approvals' },
+      views.Locations.page,
+      () => null,
+      {
+        classPermissionName: 'TestApprovalsApi',
+        methodPermissionName: 'review',
+      },
+    ),
+    commands.registerCommand(
+      { id: 'test-ext.visible', title: 'Visible item' },
+      jest.fn(),
+    ),
+    menus.registerMenuItem(
+      { page: 'test-ext.missing' },
+      menus.Locations.settingsMenu,
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { page: 'test-ext.panel' },
+      menus.Locations.settingsMenu,
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { page: 'test-ext.approvals' },
+      menus.Locations.settingsMenu,
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { command: 'test-ext.visible' },
+      menus.Locations.settingsMenu,
+      'primary',
+    ),
+  ];
+  try {
+    await renderSettings();
+    expect(await screen.findByText('Visible item')).toBeInTheDocument();
+    expect(screen.queryByText('Not a page')).not.toBeInTheDocument();
+    // The mocked user is an Admin without can_review on TestApprovalsApi.
+    expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
+  } finally {
+    disposables.forEach(d => d.dispose());
+  }
+});
+
+test('orders contributed Settings items by order, then registration', async () => {
+  const { commands, menus } = jest.requireActual('src/core');
+  const disposables = ['Third', 'First', 'Second'].flatMap(title => [
+    commands.registerCommand({ id: `test-ext.${title}`, title }, jest.fn()),
+  ]);
+  disposables.push(
+    menus.registerMenuItem(
+      { command: 'test-ext.Third' },
+      menus.Locations.settingsMenu,
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { command: 'test-ext.First', order: 1 },
+      menus.Locations.settingsMenu,
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { command: 'test-ext.Second', order: 2 },
+      menus.Locations.settingsMenu,
+      'primary',
+    ),
+  );
+  try {
+    await renderSettings();
+    const first = await screen.findByText('First');
+    const second = screen.getByText('Second');
+    const third = screen.getByText('Third');
+    expect(
+      first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      second.compareDocumentPosition(third) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  } finally {
+    disposables.forEach(d => d.dispose());
   }
 });
 

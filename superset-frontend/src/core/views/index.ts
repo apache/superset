@@ -27,6 +27,8 @@
 import React, { ComponentType, useSyncExternalStore } from 'react';
 import type { views as viewsApi } from '@apache-superset/core';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
+import { findPermission } from 'src/utils/findPermission';
+import type { UserRoles } from 'src/types/bootstrapTypes';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import { Disposable } from '../models';
 import { createEventEmitter } from '../utils';
@@ -35,11 +37,19 @@ type View = viewsApi.View;
 type ViewRegisteredEvent = viewsApi.ViewRegisteredEvent;
 type ViewUnregisteredEvent = viewsApi.ViewUnregisteredEvent;
 
-interface RegisteredView {
+type ViewOptions = viewsApi.ViewOptions;
+
+export interface RegisteredView {
   view: View;
   location: string;
   component: ComponentType;
+  options?: ViewOptions;
 }
+
+/** Host view locations outside SQL Lab (see `views.Locations` in the SDK). */
+export const ViewLocations: typeof viewsApi.Locations = {
+  page: 'global.page',
+};
 
 const viewRegistry: Map<string, RegisteredView> = new Map();
 
@@ -66,14 +76,52 @@ const notifyUnregister = (event: ViewUnregisteredEvent) => {
   unregisterEmitter.fire(event);
 };
 
-const registerView: typeof viewsApi.registerView = (
+const validateOptions = (id: string, options?: ViewOptions): void => {
+  const hasClass = !!options?.classPermissionName;
+  const hasMethod = !!options?.methodPermissionName;
+  if (hasClass !== hasMethod) {
+    throw new Error(
+      `View "${id}" must set both "classPermissionName" and ` +
+        '"methodPermissionName", or neither.',
+    );
+  }
+};
+
+const registerViewImpl = (
   view: View,
   location: string,
   component: ComponentType,
+  options: ViewOptions | undefined,
+  ownerId: string | undefined,
 ): Disposable => {
   const { id } = view;
 
-  viewRegistry.set(id, { view, location, component });
+  // The registry is keyed on id, so a second registration would silently
+  // replace the first (including another extension's page).
+  if (viewRegistry.has(id)) {
+    throw new Error(`A view with id "${id}" is already registered.`);
+  }
+  // A page id is one path segment of `/extensions/pages/<id>/...`.
+  if (location === ViewLocations.page && !/^[^/?#%\s]+$/.test(id)) {
+    throw new Error(
+      `Page id "${id}" must be a single URL path segment ` +
+        '(no "/", "?", "#", "%" or whitespace).',
+    );
+  }
+  if (
+    ownerId !== undefined &&
+    location === ViewLocations.page &&
+    !id.startsWith(`${ownerId}.`)
+  ) {
+    throw new Error(
+      `Page id "${id}" must start with the registering extension's id ` +
+        `("${ownerId}.").`,
+    );
+  }
+  validateOptions(id, options);
+
+  const entry: RegisteredView = { view, location, component, options };
+  viewRegistry.set(id, entry);
 
   const ids = locationIndex.get(location) ?? new Set();
   ids.add(id);
@@ -81,10 +129,52 @@ const registerView: typeof viewsApi.registerView = (
   notifyRegister({ view, location });
 
   return new Disposable(() => {
+    // Only remove what this registration added.
+    if (viewRegistry.get(id) !== entry) return;
     viewRegistry.delete(id);
     locationIndex.get(location)?.delete(id);
     notifyUnregister({ view, location });
   });
+};
+
+const registerView: typeof viewsApi.registerView = (
+  view,
+  location,
+  component,
+  options,
+) => registerViewImpl(view, location, component, options, undefined);
+
+/**
+ * `registerView` bound to one extension, injected into that extension's
+ * scoped `@apache-superset/core` by the loader, so a `global.page` id must
+ * be prefixed with the registering extension's id. One extension can't
+ * register, or take over, another's page.
+ */
+export const createOwnedRegisterView =
+  (ownerId: string): typeof viewsApi.registerView =>
+  (view, location, component, options) =>
+    registerViewImpl(view, location, component, options, ownerId);
+
+/** The registry entry for `id`, if any. Not reactive; see `useRegisteredView`. */
+export const getRegisteredView = (id: string): RegisteredView | undefined =>
+  viewRegistry.get(id);
+
+/**
+ * Whether a user with `roles` may see the view, per the permission it
+ * declared on `registerView` (checked against bootstrap data). A view that
+ * declares none is visible to any signed-in user.
+ */
+export const canViewPage = (
+  entry: RegisteredView,
+  roles: UserRoles | null | undefined,
+): boolean => {
+  const { classPermissionName, methodPermissionName } = entry.options ?? {};
+  if (!classPermissionName || !methodPermissionName) return true;
+  return findPermission(
+    `can_${methodPermissionName}`,
+    classPermissionName,
+    roles,
+  );
 };
 
 export const resolveView = (id: string): React.ReactElement => {
@@ -117,12 +207,11 @@ export const useRegisteredView = (id: string): RegisteredView | undefined =>
 
 /**
  * Reactive counterpart to `resolveView`, for hosting a single
- * extension-registered view (see `src/pages/ExtensionView`).
+ * extension-registered view (see `src/pages/ExtensionPage`).
  *
  * `resolveView` reads the registry once, synchronously, at call time.
  * That's a real gap for a host page reached by direct/full navigation
- * (a bookmark, a page refresh, or an extension's own menu command using
- * `window.location.assign` -- see `ExtensionView`'s own docstring): the
+ * (a bookmark or a page refresh): the
  * extension providing the view loads asynchronously (its remote entry is
  * fetched over the network), so on first render the registry is still
  * empty and a plain `resolveView` call permanently commits to the
@@ -183,6 +272,7 @@ export const onDidUnregisterView: typeof viewsApi.onDidUnregisterView = (
 ): Disposable => unregisterEmitter.subscribe(listener);
 
 export const views: typeof viewsApi = {
+  Locations: ViewLocations,
   registerView,
   getViews,
   onDidRegisterView,

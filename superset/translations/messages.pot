@@ -9943,6 +9943,10 @@ msgstr ""
 msgid "No entities have this tag currently assigned"
 msgstr ""
 
+#, python-format
+msgid "No extension page with id %(id)s is available. The extension may be disabled or not installed."
+msgstr ""
+
 msgid "No filter"
 msgstr ""
 
@@ -10161,6 +10165,9 @@ msgid "Not added to any dashboard"
 msgstr ""
 
 msgid "Not all required fields are complete. Please provide the following:"
+msgstr ""
+
+msgid "Not authorized"
 msgstr ""
 
 msgid "Not available"
@@ -10692,6 +10699,9 @@ msgid "Page length"
 msgstr ""
 
 msgid "Page navigation"
+msgstr ""
+
+msgid "Page not found"
 msgstr ""
 
 msgid "Paired t-test Table"
@@ -18117,6 +18127,9 @@ msgid "You don't have permission to modify the value."
 msgstr ""
 
 msgid "You don't have permission to view annotation layers."
+msgstr ""
+
+msgid "You don't have permission to view this page."
 msgstr ""
 
 #, python-format

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { menus } from './index';
+import { menus, sortMenuItems } from './index';
 
 const disposables: Array<{ dispose: () => void }> = [];
 
@@ -121,4 +121,55 @@ test('dispose removes the menu registration', () => {
   disposable.dispose();
 
   expect(menus.getMenu('sqllab.editor')).toBeUndefined();
+});
+
+test('registers a page item, with icon and order, at the Settings menu location', () => {
+  disposables.push(
+    menus.registerMenuItem(
+      { page: 'acme.catalog.main', icon: 'DatabaseOutlined', order: 1 },
+      menus.Locations.settingsMenu,
+      'primary',
+    ),
+  );
+  expect(menus.getMenu('global.settingsMenu')?.primary).toEqual([
+    { page: 'acme.catalog.main', icon: 'DatabaseOutlined', order: 1 },
+  ]);
+});
+
+test('registerMenuItem throws on an item with neither page nor command', () => {
+  expect(() =>
+    menus.registerMenuItem(
+      { view: 'builtin.editor' } as never,
+      'sqllab.editor',
+      'primary',
+    ),
+  ).toThrow(/exactly one of "page" or "command".*neither/);
+  expect(menus.getMenu('sqllab.editor')).toBeUndefined();
+});
+
+test('registerMenuItem throws on an item with both page and command', () => {
+  expect(() =>
+    menus.registerMenuItem(
+      { page: 'acme.catalog.main', command: 'acme.open' } as never,
+      'global.settingsMenu',
+      'primary',
+    ),
+  ).toThrow(/exactly one of "page" or "command".*both/);
+});
+
+test('sortMenuItems orders by order, unset last, ties in registration order', () => {
+  const items = [
+    { command: 'c' },
+    { command: 'b', order: 2 },
+    { command: 'a', order: 1 },
+    { command: 'd' },
+    { command: 'e', order: 2 },
+  ];
+  expect(sortMenuItems(items).map(i => i.command)).toEqual([
+    'a',
+    'b',
+    'e',
+    'c',
+    'd',
+  ]);
 });

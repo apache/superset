@@ -258,6 +258,8 @@ def test_validate_publisher_valid(valid_publisher):
         ("-publisher", "must start with a letter and contain only lowercase letters"),
         ("publisher-", "must start with a letter and contain only lowercase letters"),
         ("pub--lisher", "must start with a letter and contain only lowercase letters"),
+        ("list", "is reserved"),
+        ("pages", "is reserved"),
     ],
 )
 def test_validate_publisher_invalid(invalid_publisher, error_match):

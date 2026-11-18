@@ -122,3 +122,20 @@ test('chart/add resolves to explore, not chart_list', async () => {
   notifyLocationChanged('/chart/add');
   expect(navigation.getPage()).toBe('explore');
 });
+
+test('extension pages and their sub-paths resolve to the extension page type', async () => {
+  const { notifyLocationChanged, navigation } = await importNavigation();
+  notifyLocationChanged('/extensions/pages/acme.catalog.main');
+  expect(navigation.getPage()).toBe('extension');
+  notifyLocationChanged('/extensions/pages/acme.catalog.main/42/edit');
+  expect(navigation.getPage()).toBe('extension');
+  notifyLocationChanged('/extensions/list/');
+  expect(navigation.getPage()).toBe('home');
+});
+
+test('navigateTo rejects anything but a router-relative path', async () => {
+  const { navigation } = await importNavigation();
+  for (const bad of ['https://evil.example/', '//evil.example/', 'relative']) {
+    expect(() => navigation.navigateTo(bad)).toThrow(/router-relative path/);
+  }
+});

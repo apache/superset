@@ -59,8 +59,9 @@ export const RoutePaths = {
   USERS: '/users/',
   GROUPS: '/list_groups/',
   EXTENSIONS: '/extensions/list/',
-  // `+` matches one or more path segments, so a view id containing `/`
-  // (e.g. an extension-namespaced id) resolves the same way client-side
-  // as it does on the Flask host route (`<path:view_id>`).
-  EXTENSION_VIEW: '/extensions/view/:viewId+',
+  // An extension-owned page: a view registered at `global.page`. Page ids
+  // are dotted (`acme.catalog.main`), so the id is one plain segment, and
+  // the route is matched non-exactly: everything below it is the page's own
+  // sub-path, read via `navigation.getLocation()`.
+  EXTENSION_PAGE: '/extensions/pages/:pageId',
 } as const;
