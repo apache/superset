@@ -286,7 +286,7 @@ Frontend:
 ```bash
 # @apache-superset/core types come from its lib/; build that package first.
 cd superset-frontend/packages/superset-core && npm run build && cd -
-cd superset-extensions/artifacts/frontend && npm install && npm run typecheck
+cd superset-extensions/artifacts/frontend && npm install && npm run typecheck && npm test
 cd .. && superset-extensions build && superset-extensions bundle
 ```
 

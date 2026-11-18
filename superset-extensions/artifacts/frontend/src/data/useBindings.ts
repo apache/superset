@@ -23,6 +23,11 @@
  * `rerun`. A result that `rerun` replaces leaves the others' objects as they
  * were, so the frame host sends the frame only the one that changed. A
  * `rerun` that a full fetch overtakes is dropped, as it ran on older inputs.
+ *
+ * Results belong to the manifest and the source they were fetched for: until
+ * a new manifest's or source's own results land, there are none, so a new
+ * frame never starts with another version's rows. Across a filter change,
+ * the last results stand until the new ones land.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -48,6 +53,16 @@ export interface Bindings {
   rerun: (binding: string) => Promise<void>;
 }
 
+const NONE: Readonly<Record<string, BindingData>> = Object.freeze({});
+
+interface Fetched {
+  manifest: HostManifest;
+  sourceKey: string;
+  bindings: Record<string, BindingData>;
+  status: FrameStatus;
+  error?: string;
+}
+
 export default function useBindings(
   manifest: HostManifest | undefined,
   source: BindingSource | undefined,
@@ -55,9 +70,7 @@ export default function useBindings(
   /** Changes whenever the host asks for fresh data, as a canvas refresh. */
   refreshKey?: unknown,
 ): Bindings {
-  const [bindings, setBindings] = useState<Record<string, BindingData>>({});
-  const [status, setStatus] = useState<FrameStatus>('loading');
-  const [error, setError] = useState<string>();
+  const [fetched, setFetched] = useState<Fetched>();
   const [nonce, setNonce] = useState(0);
   // The source and the filters change identity on every render of the
   // caller; their keys say when they changed.
@@ -71,25 +84,32 @@ export default function useBindings(
     generation.current += 1;
     const { source: from, filters: selected } = latest.current;
     if (!manifest || !from) return undefined;
+    const settle = (next: Omit<Fetched, 'manifest' | 'sourceKey'>) =>
+      setFetched({ manifest, sourceKey, ...next });
     if (Object.keys(manifest.bindings ?? {}).length === 0) {
-      setBindings({});
-      setStatus('ok');
-      setError(undefined);
+      settle({ bindings: {}, status: 'ok' });
       return undefined;
     }
     let cancelled = false;
-    setStatus('loading');
+    setFetched(
+      current => current && { ...current, status: 'loading', error: undefined },
+    );
     fetchBindings(manifest, from, selected)
       .then(data => {
-        if (cancelled) return;
-        setBindings(data);
-        setStatus('ok');
-        setError(undefined);
+        if (!cancelled) settle({ bindings: data, status: 'ok' });
       })
       .catch((reason: unknown) => {
         if (cancelled) return;
-        setStatus('error');
-        setError(errorMessage(reason));
+        setFetched(current => ({
+          manifest,
+          sourceKey,
+          bindings:
+            current?.manifest === manifest && current.sourceKey === sourceKey
+              ? current.bindings
+              : {},
+          status: 'error',
+          error: errorMessage(reason),
+        }));
       });
     return () => {
       cancelled = true;
@@ -104,9 +124,25 @@ export default function useBindings(
     const started = generation.current;
     const data = await fetchBinding(from, binding, selected);
     if (generation.current === started) {
-      setBindings(current => ({ ...current, [binding]: data }));
+      setFetched(
+        current =>
+          current && {
+            ...current,
+            bindings: { ...current.bindings, [binding]: data },
+          },
+      );
     }
   }, []);
 
-  return { bindings, status, error, refresh, rerun };
+  const own =
+    fetched !== undefined &&
+    fetched.manifest === manifest &&
+    fetched.sourceKey === sourceKey;
+  return {
+    bindings: own ? fetched.bindings : NONE,
+    status: own ? fetched.status : 'loading',
+    error: own ? fetched.error : undefined,
+    refresh,
+    rerun,
+  };
 }
