@@ -21,7 +21,7 @@ import os
 import re
 import subprocess
 import time
-from typing import List, Optional
+from typing import Any, List, Optional
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -265,21 +265,18 @@ def is_int(s: str) -> bool:
     return bool(re.match(r"^-?\d+$", s))
 
 
-def get_push_before_sha() -> Optional[str]:
+def get_push_event() -> dict[str, Any]:
+    """Reads the webhook payload GitHub writes for the triggering event.
+
+    Returns an empty dict when `GITHUB_EVENT_PATH` is unset (local runs).
+    """
     event_path = os.getenv("GITHUB_EVENT_PATH")
 
     if not event_path:
-        return None
+        return {}
 
     with open(event_path, encoding="utf-8") as event_file:
-        event = json.load(event_file)
-
-    before = event.get("before")
-
-    if before and before != ZERO_SHA:
-        return before
-
-    return None
+        return json.load(event_file)
 
 
 def main(event_type: str, sha: str, repo: str) -> None:
@@ -295,10 +292,19 @@ def main(event_type: str, sha: str, repo: str) -> None:
             print_files(files)
 
     elif event_type == "push":
-        before_sha = get_push_before_sha()
-        files = fetch_changed_files_push(repo, sha, before_sha)
-        print("Files touched since previous commit:")
-        print_files(files)
+        event = get_push_event()
+        before_sha = event.get("before")
+        if event.get("forced") or before_sha == ZERO_SHA:
+            # A force push rewrites history, so `before...after` diffs against
+            # the merge base and can miss changes. A zero `before` (a new
+            # branch's first push) has no base to compare against. Treat both
+            # like workflow_dispatch/schedule: every group is changed.
+            print("forced or new-branch push, assuming all changed")
+            files = None
+        else:
+            files = fetch_changed_files_push(repo, sha, before_sha)
+            print("Files touched by push:")
+            print_files(files)
 
     elif event_type in ("workflow_dispatch", "schedule"):
         # Manual or cron-triggered runs aren't tied to a specific diff, so
