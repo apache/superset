@@ -56,7 +56,7 @@ must not be a top-level Python package that exists already, such as
 | `backend/src/superset_oss/artifacts/canvas/` | The `artifact` widget type, which has no props: each artifact is one saved widget of it; and the access rules on those widgets |
 | `backend/.../store/` | The git-shaped file store over an `ArtifactStoreBackend`, and the default backend on extension storage, which refuses to run until extension storage can back it |
 | `backend/.../authoring/` | The MCP authoring tools, the `create_artifact` and `import_claude_artifact` prompts, the endpoint where the user confirms publishing, and the transfer links and their routes |
-| `backend/.../data/` | The mapping of a manifest's named binding onto the canvas placement data request, the bindings that don't map yet, and the widget type's binding resolver |
+| `backend/.../data/` | The mapping of a manifest's named binding onto the canvas placement data request, the bindings that don't map yet, and the widget type's queries (`build_queries`) |
 | `backend/.../frames/` | The host side of the sandbox: which version a viewer's frame loads, its grant and allowed parents, and the frame link endpoint |
 | `backend/.../access.py`, `gate.py`, `errors.py`, `web.py` | Who may read or change an artifact, the provider gate every call goes through, the one error type, and the Flask helpers the endpoints share |
 | `frontend/src/canvas/` | The widget renderer, registered under the full widget id |
@@ -118,8 +118,10 @@ author as editor; the store keeps only the content, keyed by that UUID.
   (`POST /extensions/superset-oss/artifacts/publish/<id>/confirm`), and once
   the provider builds the version under the policy in force, which checks
   everything the version is made of, its locked packages included. Frame
-  links carry that policy too (`FrameContext.policy`), so that a provider
-  serves nothing it built that the policy refuses since.
+  links carry that policy too (`FrameContext.policy`): a provider serves a
+  build that the policy no longer admits flagged out of policy, which only the
+  artifact's editors see, and refuses it only for a security revocation, such
+  as a package denied since the build, or a quarantine the host enforces.
 - **Rendering.** The renderer asks `POST .../frames/` for a link to the
   artifact it draws, by its widget's UUID: with the canvas placement that
   shows it, or with none for a page of its own. The server decides the
@@ -138,22 +140,24 @@ author as editor; the store keeps only the content, keyed by that UUID.
   the version again. The frame is an
   `<iframe sandbox="allow-scripts" referrerpolicy="no-referrer">`, without
   `allow-same-origin` or popups.
-- **Data and events.** The renderer fetches each named binding through the
-  placement data endpoint, naming the binding and sending the draft token; on
-  a page of its own, through the saved widget's data endpoint
-  (`POST /api/v1/widget/<uuid>/data`). Either endpoint asks the artifact
-  widget type for the binding (its `binding_resolver`), which reads it from
-  the manifest of the version the frame loads, and runs it as the viewer, with
-  their dataset access, as any other binding. The frame gets each binding's
-  result in a message of its own, sent only when it changes. The bridge
-  accepts a cross-filter only with values it delivered to that frame, in the
-  binding's latest result, for that dimension; it caps the values in a
-  cross-filter, the requests a second, and the queries that the frame's
-  requests may run (the policy's `data.max_queries`, which comes with each
-  frame link). The renderer then checks every request against the manifest
-  before acting: `setCrossFilter` through the canvas, `refresh` and `query` by
-  fetching again. A frame that never completes its handshake gets one new
-  link, as when its link expired before it loaded.
+- **Data and events.** The renderer fetches every named binding in one
+  request to the placement data endpoint, which takes only the runtime filters
+  and the draft token; on a page of its own, through the saved widget's data
+  endpoint (`POST /api/v1/widget/<uuid>/data`). Either endpoint asks the
+  artifact widget type for its queries (its `build_queries`): one for each
+  live binding the policy admits, from the manifest of the version the frame
+  loads. It runs each as the viewer, with their dataset access, as any other
+  query, and answers each as the dataset of its binding's name. The frame
+  still gets each binding's result in a message of its own, sent only when it
+  changes. The bridge accepts a cross-filter only with values it delivered to
+  that frame, in the binding's latest result, for that dimension; it caps the
+  values in a cross-filter, the requests a second, and the queries that the
+  frame's requests may run (the policy's `data.max_queries`, which comes with
+  each frame link; a `query` costs what a refresh does). The renderer then
+  checks every request against the manifest before acting: `setCrossFilter`
+  through the canvas, `refresh` and `query` by fetching again. A frame that
+  never completes its handshake gets one new link, as when its link expired
+  before it loaded.
 
 ## An artifact's own page
 
