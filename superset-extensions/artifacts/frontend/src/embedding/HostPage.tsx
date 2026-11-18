@@ -35,7 +35,7 @@ import {
   translation,
 } from '@apache-superset/core';
 import type { FrameRequest, FrameState } from '@superset-oss/artifacts-sdk';
-import { BindingSource, checkQuery } from '../data/bindings';
+import { BindingSource, checkQuery, declaredBindings } from '../data/bindings';
 import useBindings from '../data/useBindings';
 import { fetchPageFrame } from '../frames/api';
 import FrameHost from '../frames/FrameHost';
@@ -102,6 +102,7 @@ export default function HostPage({ widgetId }: { widgetId: string }) {
         url={link.url}
         grant={link.capabilities}
         limits={link.limits}
+        refreshQueries={declaredBindings(link.manifest)}
         state={state}
         bindings={bindings}
         title={link.manifest.title ?? t('Artifact')}

@@ -47,6 +47,8 @@ export interface FrameHostProps {
   grant: readonly Capability[];
   /** What the frame's requests are held to, as the link's policy says. */
   limits?: Partial<BridgeLimits>;
+  /** The bindings a refresh fetches again: the manifest's declared ones. */
+  refreshQueries?: number;
   /** What the frame may know besides its data; sent whenever it changes. */
   state: FrameState;
   /**
@@ -89,6 +91,7 @@ export default function FrameHost({
   url,
   grant,
   limits,
+  refreshQueries,
   state,
   bindings,
   title,
@@ -107,6 +110,7 @@ export default function FrameHost({
     title,
     grant,
     limits,
+    refreshQueries,
     onRequest,
     onError,
     onHandshakeTimeout,
@@ -117,6 +121,7 @@ export default function FrameHost({
     title,
     grant,
     limits,
+    refreshQueries,
     onRequest,
     onError,
     onHandshakeTimeout,
@@ -145,6 +150,7 @@ export default function FrameHost({
       frame: element,
       grant: latest.current.grant,
       limits: latest.current.limits,
+      refreshQueries: latest.current.refreshQueries,
       onRequest: request => latest.current.onRequest(request),
       onError: error => latest.current.onError(error),
       onHandshakeTimeout: () => latest.current.onHandshakeTimeout?.(),

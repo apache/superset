@@ -52,6 +52,7 @@ import {
   BindingSource,
   checkQuery,
   crossFilterValue,
+  declaredBindings,
   runtimeFilters,
 } from '../data/bindings';
 import useBindings from '../data/useBindings';
@@ -230,6 +231,7 @@ export default function ArtifactWidget({
             url={frame.url}
             grant={frame.grant}
             limits={frame.limits}
+            refreshQueries={declaredBindings(frame.manifest)}
             state={state}
             bindings={bindings}
             title={shownTitle}

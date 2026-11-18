@@ -70,7 +70,8 @@ export interface ChannelError {
 export interface BridgeLimits {
   /**
    * Queries that the frame's own requests may run while the channel is open:
-   * a `query` runs one, a `refresh` one per binding delivered so far.
+   * a `query` runs one, a `refresh` one per binding it fetches again
+   * (`refreshQueries`).
    */
   queries: number;
   /** Requests the frame may send in any one second. */
@@ -106,6 +107,13 @@ export interface FrameChannelOptions {
    * One that isn't a number of zero or more keeps its default.
    */
   limits?: Partial<BridgeLimits>;
+  /**
+   * The queries a `refresh` runs: one for each binding the manifest declares,
+   * when a refresh fetches them all again. A refresh costs at least one.
+   * Without a number of zero or more, it costs one per binding delivered so
+   * far.
+   */
+  refreshQueries?: number;
   /**
    * Called once if the frame hasn't completed its handshake
    * `handshakeTimeoutMs` after the channel opened, as when its link expired
@@ -161,12 +169,13 @@ function stateForGrant(
 const hasOwn = (row: object, key: string): boolean =>
   Object.prototype.hasOwnProperty.call(row, key);
 
+const isCount = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0;
+
 function limitsOf(limits: Partial<BridgeLimits> | undefined): BridgeLimits {
   const pick = (name: keyof BridgeLimits): number => {
     const value: unknown = limits?.[name];
-    return typeof value === 'number' && Number.isFinite(value) && value >= 0
-      ? value
-      : DEFAULT_BRIDGE_LIMITS[name];
+    return isCount(value) ? value : DEFAULT_BRIDGE_LIMITS[name];
   };
   return {
     queries: pick('queries'),
@@ -187,6 +196,7 @@ export function createFrameChannel({
   onRequest,
   onError,
   limits,
+  refreshQueries,
   onHandshakeTimeout,
   handshakeTimeoutMs = HANDSHAKE_TIMEOUT_MS,
   hostWindow,
@@ -279,7 +289,10 @@ export function createFrameChannel({
   };
 
   const queryProblem = (request: FrameRequest): string | undefined => {
-    const cost = request.type === 'refresh' ? Math.max(1, delivered.size) : 1;
+    const refreshCost = isCount(refreshQueries)
+      ? refreshQueries
+      : delivered.size;
+    const cost = request.type === 'refresh' ? Math.max(1, refreshCost) : 1;
     if (queries + cost > caps.queries) {
       return `this frame may run at most ${caps.queries} queries`;
     }

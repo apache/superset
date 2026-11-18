@@ -175,6 +175,10 @@ export async function fetchBinding(
   return { rows: json.result?.datasets?.[0]?.inline_data ?? [] };
 }
 
+/** The bindings the manifest declares: what `fetchBindings` fetches. */
+export const declaredBindings = (manifest: HostManifest): number =>
+  Object.keys(manifest.bindings ?? {}).length;
+
 /** Every binding the manifest declares, fetched together. */
 export async function fetchBindings(
   manifest: HostManifest,

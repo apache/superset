@@ -57,11 +57,12 @@ const revenue: BindingData = {
 interface SetupOptions {
   limits?: Partial<BridgeLimits>;
   onHandshakeTimeout?: () => void;
+  refreshQueries?: number;
 }
 
 function setup(
   grant: Capability[] = [Capability.DATA, Capability.CROSS_FILTER],
-  { limits, onHandshakeTimeout }: SetupOptions = {},
+  { limits, onHandshakeTimeout, refreshQueries }: SetupOptions = {},
 ) {
   const host = createFakeWindow({ origin: HOST_ORIGIN });
   const frameWindow = createFakeWindow({ parent: host.window });
@@ -77,6 +78,7 @@ function setup(
       errors.push(error);
     },
     limits,
+    refreshQueries,
     onHandshakeTimeout,
     hostWindow: host.window,
   });
@@ -509,6 +511,20 @@ test("the frame's queries are capped, and a refresh counts each binding", () => 
   ]);
   expect(errors.map(error => error.message)).toEqual([
     'refused query: this frame may run at most 4 queries',
+  ]);
+});
+
+test('a refresh costs every binding it fetches again, delivered or not', () => {
+  const { errors, handshake, request, requests } = setup(undefined, {
+    limits: { queries: 16 },
+    refreshQueries: 8,
+  });
+  handshake();
+  // Nothing delivered yet, as while a binding the viewer can't read fails.
+  for (let sent = 0; sent < 3; sent += 1) request({ type: 'refresh' });
+  expect(requests).toHaveLength(2);
+  expect(errors.map(error => error.message)).toEqual([
+    'refused refresh: this frame may run at most 16 queries',
   ]);
 });
 
