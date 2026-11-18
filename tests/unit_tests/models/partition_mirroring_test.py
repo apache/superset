@@ -30,7 +30,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from importlib.util import find_spec
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, cast, NamedTuple
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -4177,23 +4177,78 @@ EPOCH_BUCKET_KEYS = {
     86400: {"first": 1790812800, "second": 1790899200, "last": 1790899200},
 }
 
-# What each operator mirrors to: strict bounds widen to non-strict ones, and
-# every mirror admits the NULL partition. SQLAlchemy drops the parentheses
-# around the range's conjunction; AND binds tighter than OR, so it still reads
-# `(key >= first AND key <= last) OR key IS NULL`.
-GOLDEN_MIRRORS = {
-    "==": "({key} = {first} OR {key} IS NULL)",
-    ">": "({key} >= {first} OR {key} IS NULL)",
-    ">=": "({key} >= {first} OR {key} IS NULL)",
-    "<": "({key} <= {first} OR {key} IS NULL)",
-    "<=": "({key} <= {first} OR {key} IS NULL)",
-    "IN": "({key} IN ({first}, {second}) OR {key} IS NULL)",
-    "range": "({key} >= {first} AND {key} <= {last} OR {key} IS NULL)",
+# The key the recipes partition on, and what each operator mirrors onto it as
+# `(operator, bounds)`: strict bounds widen to non-strict ones, and an `IN`
+# list maps element-wise. Bounds name entries of `EPOCH_BUCKET_KEYS`.
+KEY = "dt_epoch"
+MIRRORED_BOUNDS = {
+    "==": [("=", ["first"])],
+    ">": [(">=", ["first"])],
+    ">=": [(">=", ["first"])],
+    "<": [("<=", ["first"])],
+    "<=": [("<=", ["first"])],
+    "IN": [("IN", ["first", "second"])],
+    "range": [(">=", ["first"]), ("<=", ["last"])],
 }
+COMPARISONS = {exp.EQ: "=", exp.GT: ">", exp.GTE: ">=", exp.LT: "<", exp.LTE: "<="}
 
 
-# PyHive's Hive dialect backtick-quotes every identifier; impyla's does not.
-QUOTED_KEY = {"hive": "`dt_epoch`", "impala": "dt_epoch"}
+class PartitionMirror(NamedTuple):
+    """The mirrored predicate on `KEY`, as the engine's own parser reads it."""
+
+    #: ``(column, operator, values)`` per comparison inside the NULL escape;
+    #: a numeric literal reads as an ``int``, anything else as its SQL text.
+    bounds: list[tuple[str, str, list[int | str]]]
+    #: The columns the conjunction holding the mirror filters on, besides `KEY`.
+    anded_with: set[str]
+
+
+def _literal(node: exp.Expression) -> int | str:
+    if isinstance(node, exp.Literal) and not node.is_string:
+        return int(node.this)
+    return node.sql()
+
+
+def _partition_mirror(sql: str, engine: str) -> PartitionMirror | None:
+    """
+    Find ``<bounds on KEY> OR KEY IS NULL`` in the WHERE clause, or ``None``.
+
+    Read from the sqlglot tree for the engine, so identifier quoting and
+    redundant parentheses -- both rendering choices of the driver -- do not
+    matter; precedence and literal types do.
+    """
+    where = SQLStatement(sql, engine)._parsed.find(exp.Where)  # noqa: SLF001
+    escapes = (
+        node
+        for node in (where.find_all(exp.Or) if where else [])
+        if isinstance(null_check := node.right.unnest(), exp.Is)
+        and null_check.this.name == KEY
+        and isinstance(null_check.expression, exp.Null)
+    )
+    if (escape := next(escapes, None)) is None:
+        return None
+
+    bounds = escape.left.unnest()
+    conjuncts = list(bounds.flatten()) if isinstance(bounds, exp.And) else [bounds]
+    outer: exp.Expression = escape
+    while isinstance(outer.parent, exp.Paren):
+        outer = outer.parent
+    conjunction = outer.parent if isinstance(outer.parent, exp.And) else None
+    return PartitionMirror(
+        bounds=[
+            (
+                conjunct.this.name,
+                "IN" if isinstance(conjunct, exp.In) else COMPARISONS[type(conjunct)],
+                [_literal(value) for value in conjunct.expressions]
+                if isinstance(conjunct, exp.In)
+                else [_literal(conjunct.expression)],
+            )
+            for conjunct in conjuncts
+        ],
+        anded_with={column.name for column in conjunction.find_all(exp.Column)} - {KEY}
+        if conjunction
+        else set(),
+    )
 
 
 def _epoch_key(value: datetime | str, bucket: int) -> int:
@@ -4233,52 +4288,31 @@ def _hive_family_chart_sql(engine: str, bucket: int, operator: str) -> str:
         )
 
 
-@pytest.mark.parametrize("operator", list(GOLDEN_MIRRORS))
+@pytest.mark.parametrize("operator", list(MIRRORED_BOUNDS))
 @pytest.mark.parametrize("bucket", [3600, 86400])
 @pytest.mark.parametrize("engine", HIVE_FAMILY)
-def test_hive_family_mirrors_epoch_buckets_as_unquoted_integers_or_null(
+def test_hive_family_mirrors_epoch_buckets_as_numeric_keys_or_null(
     app: Flask, engine: str, bucket: int, operator: str
 ) -> None:
     """
-    The golden mirrored predicate on Hive and Impala: the key compared with bare
-    integers (a quoted key is a string comparison Hive coerces per row, which
-    prunes nothing), ANDed onto the chart's own filter and escaped for the NULL
-    partition Hive and Impala park unconvertible rows in.
+    On Hive and Impala the mirror compares the key with numeric literals (a
+    quoted key is a string comparison the engine coerces per row, which prunes
+    nothing), widens strict bounds, is escaped for the NULL partition the engines
+    park unconvertible rows in, and is ANDed onto the chart's own filter.
     """
+    keys = EPOCH_BUCKET_KEYS[bucket]
+
     with app.app_context():
         sql = _hive_family_chart_sql(engine, bucket, operator)
 
-    mirror = GOLDEN_MIRRORS[operator].format(
-        key=QUOTED_KEY[engine], **EPOCH_BUCKET_KEYS[bucket]
-    )
-    assert f" AND {mirror}" in sql
+    mirror = _partition_mirror(sql, engine)
+    assert mirror is not None, "no `... OR dt_epoch IS NULL` in the WHERE clause"
+    assert mirror.bounds == [
+        (KEY, mirrored, [keys[name] for name in names])
+        for mirrored, names in MIRRORED_BOUNDS[operator]
+    ]
+    assert mirror.anded_with == {"event_time"}
     assert ":value" not in sql
-
-
-@pytest.mark.parametrize("operator", list(GOLDEN_MIRRORS))
-@pytest.mark.parametrize("bucket", [3600, 86400])
-@pytest.mark.parametrize("engine", HIVE_FAMILY)
-def test_hive_family_mirrored_sql_parses_for_its_engine(
-    app: Flask, engine: str, bucket: int, operator: str
-) -> None:
-    """
-    The engine's own parser reads the mirror as `(...) OR key IS NULL` over
-    numeric literals -- the shape the golden string asserts, checked by
-    structure rather than by spelling.
-    """
-    with app.app_context():
-        sql = _hive_family_chart_sql(engine, bucket, operator)
-
-    statement = SQLStatement(sql, engine)
-    escape = next(
-        node
-        for node in statement._parsed.find_all(exp.Or)  # noqa: SLF001
-        if isinstance(node.right, exp.Is) and node.right.this.name == "dt_epoch"
-    )
-    keys = list(escape.left.find_all(exp.Literal))
-    assert statement.is_select()
-    assert keys
-    assert all(not literal.is_string for literal in keys)
 
 
 @pytest.mark.parametrize("source_type", ["TIMESTAMP", "VARCHAR"])
