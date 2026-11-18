@@ -31,10 +31,12 @@ from superset.commands.chart.exceptions import (
     TimeRangeParseFailError,
 )
 from superset.daos.chart import ChartDAO
+from superset.exceptions import QueryObjectValidationError
 from superset.legacy import update_time_range
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.date_parser import get_since_until
+from superset.utils.error_sanitization import redact_sensitive_query_fields
 from superset.views.base import api, BaseSupersetView
 from superset.views.error_handling import handle_api_exception
 
@@ -68,12 +70,22 @@ class Api(BaseSupersetView):
 
         raises SupersetSecurityException: If the user cannot access the resource
         """
-        query_context = self.get_query_context_factory().create(
-            **json.loads(request.form["query_context"])
-        )
+        try:
+            query_context_params = json.loads(request.form["query_context"])
+        except ValueError as ex:
+            raise QueryObjectValidationError(
+                _("query_context must be valid JSON")
+            ) from ex
+        if not isinstance(query_context_params, dict):
+            raise QueryObjectValidationError(_("query_context must be a JSON object"))
+        query_context = self.get_query_context_factory().create(**query_context_params)
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
+        # These are the same query-context payloads ``/api/v1/chart/data``
+        # returns, including the generated SQL under ``query``, so apply the same
+        # guest redaction before responding.
+        redact_sensitive_query_fields(payload_json)
         return self.json_response(payload_json)
 
     @event_logger.log_this

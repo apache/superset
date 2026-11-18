@@ -43,7 +43,11 @@ from superset.mcp_service.chart.chart_helpers import (
     ChartNotOnDashboardError,
     get_cached_form_data,
 )
-from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.chart_utils import (
+    DatasetValidationResult,
+    validate_chart_dataset,
+    validate_chart_semantic_view,
+)
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartFiltersInfo,
@@ -241,7 +245,11 @@ async def _validate_chart_dataset_access(
     chart = ChartDAO.find_by_id(result.id)
     if not chart:
         return None
-    validation_result = validate_chart_dataset(chart.datasource_id, check_access=True)
+    validation_result: DatasetValidationResult = (
+        validate_chart_semantic_view(chart.datasource_id)
+        if chart.datasource_type == DatasourceType.SEMANTIC_VIEW.value
+        else validate_chart_dataset(chart.datasource_id, check_access=True)
+    )
     if not validation_result.is_valid:
         await ctx.warning(
             "Chart found but dataset is not accessible: %s" % (validation_result.error,)
@@ -278,7 +286,13 @@ async def _attach_dashboard_filters(
             await ctx.warning("Dashboard not accessible: %s" % (str(exc),))
             return ChartError(error=str(exc), error_type="DashboardNotAccessible")
 
-        if dashboard_filters:
+        if dashboard_filters is None:
+            await ctx.warning(
+                "Dashboard %s filter configuration or layout is malformed; "
+                "dashboard filters applied to this chart could not be resolved."
+                % (dashboard_id,)
+            )
+        elif dashboard_filters:
             if result.filters is None:
                 result.filters = ChartFiltersInfo(dashboard_filters=dashboard_filters)
             else:

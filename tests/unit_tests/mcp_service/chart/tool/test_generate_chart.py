@@ -705,6 +705,8 @@ async def _generate_saved_chart(
     refetch: Any,
     compile_result: CompileResult | None = None,
     config: Any = None,
+    chart_name: str | None = None,
+    validate: Any = None,
 ) -> tuple[Any, _DetachableSlice, Mock]:
     """Run generate_chart(save_chart=True) with a chart that detaches on commit.
 
@@ -713,6 +715,7 @@ async def _generate_saved_chart(
     """
     request = GenerateChartRequest(
         dataset_id="1",
+        chart_name=chart_name,
         config=config
         or TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")]),
         save_chart=True,
@@ -734,7 +737,16 @@ async def _generate_saved_chart(
     # The instance is detached right after the commit, before any of the reads
     # that build the response.
     session.refresh.side_effect = lambda _chart: chart.detach()
-    create_command = Mock(return_value=Mock(run=Mock(return_value=chart)))
+
+    command_instance = Mock(run=Mock(return_value=chart))
+
+    def create(payload: dict[str, Any]) -> Mock:
+        """Emulate storing the name passed to the create command."""
+        if chart_name is not None:
+            chart._values["slice_name"] = payload["slice_name"]
+        return command_instance
+
+    create_command = Mock(return_value=command_instance, side_effect=create)
 
     with (
         patch(
@@ -745,6 +757,7 @@ async def _generate_saved_chart(
             "superset.mcp_service.chart.validation.ValidationPipeline."
             "validate_request_with_warnings",
             return_value=validation_result,
+            side_effect=validate,
         ),
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
         patch(
@@ -1162,3 +1175,61 @@ async def test_generate_saved_chart_retains_id_after_response_size_failure() -> 
     assert result.chart.id == 42
     assert result.form_data == {}
     assert result.warnings
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
+    ],
+)
+async def test_generate_chart_literal_less_than_storage_round_trip(title: str) -> None:
+    """The create command and readback retain literal non-tag less-than signs."""
+    result, _, create = await _generate_saved_chart(
+        refetch=Mock(side_effect=SQLAlchemyError("use captured stored scalars")),
+        chart_name=title,
+    )
+    assert create.call_args.args[0]["slice_name"] == title
+    assert result.success is True
+    assert result.chart.slice_name == title
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "chart_name", ["Weekly <img src=x>KPIs", "Q3 <b>revenue</b> &amp; costs"]
+)
+async def test_generate_chart_revalidation_keeps_single_sanitized_name(
+    chart_name: str,
+) -> None:
+    """Schema revalidation persists the name sanitized once at tool entry."""
+    from superset.mcp_service.chart.validation.schema_validator import (
+        SchemaValidator,
+    )
+    from superset.mcp_service.utils.sanitization import sanitize_user_input
+
+    expected = sanitize_user_input(chart_name, "Chart name", max_length=250)
+    with patch(
+        "superset.mcp_service.utils.sanitization.sanitize_user_input",
+        wraps=sanitize_user_input,
+    ) as sanitize:
+
+        def validate(request_data: dict[str, Any]) -> ValidationResult:
+            is_valid, request, error = SchemaValidator.validate_request(request_data)
+            return ValidationResult(
+                is_valid=is_valid, request=request, error=error, warnings={}
+            )
+
+        result, _, create = await _generate_saved_chart(
+            refetch=Mock(side_effect=SQLAlchemyError("use captured stored scalars")),
+            chart_name=chart_name,
+            validate=validate,
+        )
+    name_calls = [c for c in sanitize.call_args_list if c.args[1] == "Chart name"]
+    assert len(name_calls) == 1
+    assert result.success is True
+    assert create.call_args.args[0]["slice_name"] == expected

@@ -27,7 +27,7 @@ import mcp.types as mt
 from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
-from fastmcp.tools.tool import Tool, ToolResult
+from fastmcp.tools import Tool, ToolResult
 from flask import g
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
@@ -59,6 +59,7 @@ from superset.mcp_service.auth import (
 from superset.mcp_service.constants import (
     CONNECTION_ERROR_TYPES,
     DEFAULT_MAX_LIST_ITEMS,
+    DEFAULT_MAX_PNG_RESPONSE_BYTES,
     DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
@@ -67,9 +68,11 @@ from superset.mcp_service.utils.response_size_utils import (
     COMMITTED_WRITE_TOOLS,
     CommittedWriteSpec,
     DATA_QUERY_TOOLS,
+    finalize_dashboard_filter_values_response,
     format_size_limit_error,
     get_response_size_bytes,
     INFO_TOOLS,
+    PNG_PREVIEW_TOOLS,
     RESPONSE_AWARE_SUGGESTION_TOOLS,
     string_clip_chars,
     STRING_FIELD_TRUNCATION_TOOLS,
@@ -1545,6 +1548,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     - max_bytes: Maximum serialized response size in bytes (default: 50,000)
     - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
     - max_list_items: Cap for list fields during dynamic truncation (default: 100)
+    - png_max_bytes: Maximum PNG preview response size (default: 1,000,000)
     - excluded_tools: Tools to skip checking
     """
 
@@ -1554,8 +1558,10 @@ class ResponseSizeGuardMiddleware(Middleware):
         warn_threshold_pct: int = DEFAULT_WARN_THRESHOLD_PCT,
         excluded_tools: list[str] | str | None = None,
         max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
+        png_max_bytes: int = DEFAULT_MAX_PNG_RESPONSE_BYTES,
     ) -> None:
         self.max_bytes = max_bytes
+        self.png_max_bytes = max(1, png_max_bytes)
         self.warn_threshold_pct = warn_threshold_pct
         self.warn_threshold = int(max_bytes * warn_threshold_pct / 100)
         if isinstance(excluded_tools, str):
@@ -1578,7 +1584,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         Returns the payload dict when extraction succeeds, or ``None`` when
         the response is not a ToolResult or cannot be parsed.
         """
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils.json import loads as json_loads
 
@@ -1605,7 +1611,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     @staticmethod
     def _rewrap_as_tool_result(payload: dict[str, Any], original: Any) -> Any:
         """Re-serialize a truncated payload dict back into a ToolResult."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         from superset.utils.json import dumps as json_dumps
@@ -2182,6 +2188,56 @@ class ResponseSizeGuardMiddleware(Middleware):
             )
         )
 
+    @staticmethod
+    def _discovery_target(response: Any, estimation_target: Any) -> Any:
+        """Select the object that carries dashboard filter value discovery."""
+        if isinstance(response, ToolResult) and isinstance(
+            response.structured_content, dict
+        ):
+            structured = response.structured_content
+            if isinstance(structured.get("filter_value_discovery"), dict):
+                # Structured-only results and inconsistent duplicate payloads
+                # must use the same protected final object on both channels.
+                estimation_target = structured
+        if (
+            not isinstance(estimation_target, ToolResult)
+            and hasattr(estimation_target, "model_dump")
+            and getattr(estimation_target, "filter_value_discovery", None) is not None
+        ):
+            estimation_target = estimation_target.model_dump()
+        return estimation_target
+
+    def _bounded_discovery_response(self, response: Any, target: Any) -> Any | None:
+        """Bound a discovery envelope, or return None for any other payload."""
+        if not (
+            isinstance(target, dict)
+            and isinstance(target.get("native_filters"), list)
+            and isinstance(target.get("filter_value_discovery"), dict)
+        ):
+            return None
+        # This also handles the outer call_tool proxy. Run at every size:
+        # the choice cap is smaller than the ordinary whole-response cap.
+        # Never send this envelope through destructive generic truncation.
+        bounded = finalize_dashboard_filter_values_response(
+            target, self.max_bytes, self.max_list_items
+        )
+        if not isinstance(response, ToolResult):
+            return bounded
+        from mcp.types import TextContent
+
+        from superset.utils.json import dumps as json_dumps
+
+        return ToolResult(
+            content=[
+                TextContent(type="text", text=json_dumps(bounded, ensure_ascii=False))
+            ],
+            structured_content=(
+                bounded if response.structured_content is not None else None
+            ),
+            meta=response.meta,
+            is_error=response.is_error,
+        )
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -2190,12 +2246,17 @@ class ResponseSizeGuardMiddleware(Middleware):
         """Check response size after tool execution."""
         tool_name = getattr(context.message, "name", "unknown")
 
-        # Skip excluded tools
-        if tool_name in self.excluded_tools:
-            return await call_next(context)
-
         # Execute the tool
         response = await call_next(context)
+
+        # Excluded catalog and metadata tools need no payload decoding. Only
+        # dashboard info and its configurable proxy can carry discovery.
+        if tool_name in self.excluded_tools and tool_name not in {
+            "get_dashboard_info",
+            "call_tool",
+            LoggingMiddleware._call_tool_proxy_name(),
+        }:
+            return response
 
         # When the response is a ToolResult, measure the size of the actual
         # payload inside content[0].text rather than the ToolResult wrapper
@@ -2203,10 +2264,66 @@ class ResponseSizeGuardMiddleware(Middleware):
         extracted = self._extract_payload_from_tool_result(response)
         estimation_target = extracted if extracted is not None else response
 
+        estimation_target = self._discovery_target(response, estimation_target)
+        bounded = self._bounded_discovery_response(response, estimation_target)
+        if bounded is not None:
+            return bounded
+
+        # Ordinary excluded tools retain their existing behavior. Discovery's
+        # exact-value contract requires its guard even for an excluded proxy.
+        if tool_name in self.excluded_tools:
+            return response
+
         # Never raises: a response that cannot be serialized measures as
         # UNMEASURABLE_RESPONSE_BYTES, which exceeds any limit and so takes
         # the oversized path below rather than slipping through unmeasured.
         actual_bytes = get_response_size_bytes(estimation_target)
+
+        # Choose the image budget from the returned payload, never request args.
+        # Other formats of this tool retain the normal text-response budget.
+        content = (
+            estimation_target.get("content")
+            if isinstance(estimation_target, dict)
+            else None
+        )
+        if (
+            tool_name in PNG_PREVIEW_TOOLS
+            and isinstance(content, dict)
+            and content.get("type") == "png"
+        ):
+            if actual_bytes > self.png_max_bytes:
+                logger.warning(
+                    "Response blocked for %s: %d bytes exceeds png_max_bytes of %d",
+                    tool_name,
+                    actual_bytes,
+                    self.png_max_bytes,
+                )
+                # Hop off the transport loop for the metadata write, as the
+                # text-path audit does: the loop must never wait on a pooled
+                # connection that a tool worker may be holding.
+                try:
+                    await run_in_metadata_thread(
+                        event_logger.log,
+                        user_id=get_user_id(),
+                        action="mcp_response_size_exceeded",
+                        dashboard_id=None,
+                        duration_ms=None,
+                        slice_id=None,
+                        referrer=None,
+                        curated_payload={
+                            "tool": tool_name,
+                            "actual_bytes": actual_bytes,
+                            "max_bytes": self.png_max_bytes,
+                        },
+                    )
+                except Exception as log_error:  # noqa: BLE001
+                    logger.warning("Failed to log size exceeded event: %s", log_error)
+                raise ToolError(
+                    f"PNG preview is {actual_bytes} bytes, exceeding the "
+                    f"{self.png_max_bytes}-byte limit. Request smaller width and "
+                    "height, or use the URL preview format."
+                )
+            return response
 
         # Log warning if approaching limit
         if actual_bytes > self.warn_threshold:
@@ -2332,6 +2449,9 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
             ),
             excluded_tools=config.get("excluded_tools"),
             max_list_items=max_list_items,
+            png_max_bytes=_safe_int_config(
+                config, "png_max_bytes", DEFAULT_MAX_PNG_RESPONSE_BYTES
+            ),
         )
 
         logger.info(

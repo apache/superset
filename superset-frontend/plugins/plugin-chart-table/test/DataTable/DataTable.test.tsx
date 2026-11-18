@@ -175,3 +175,34 @@ test('resets a dragged column order when resetColumnOrder becomes true', () => {
 
   expect(getHeaderOrder()).toEqual(['firstName', 'city']);
 });
+
+test('clamps pageIndex to the last page when it exceeds pageCount', () => {
+  render(
+    renderDataTable(columns, {
+      pageSize: 1,
+      initialState: { pageIndex: 5 },
+      // Disable the post-commit reset to exercise the render-time clamp.
+      autoResetPage: false,
+    }),
+  );
+
+  expect(screen.getByText('Jordan')).toBeInTheDocument();
+  expect(screen.queryByText('No data found')).not.toBeInTheDocument();
+});
+
+test('resets pageIndex to 0 when data becomes empty (pageCount === 0)', () => {
+  const { rerender } = render(
+    renderDataTable(columns, {
+      data: [],
+      rowCount: 0,
+      pageSize: 1,
+      initialState: { pageIndex: 5 },
+      autoResetPage: false,
+    }),
+  );
+
+  expect(screen.getByText('No data found')).toBeInTheDocument();
+
+  rerender(renderDataTable(columns, { pageSize: 1, autoResetPage: false }));
+  expect(screen.getByText('Michael')).toBeInTheDocument();
+});

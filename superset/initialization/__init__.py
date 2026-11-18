@@ -21,7 +21,7 @@ import logging
 import os
 import sys
 import warnings
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, TYPE_CHECKING
 
 import wtforms_json
 from colorama import Fore, Style
@@ -88,6 +88,12 @@ from superset.utils.report_execution import validate_report_execution_config
 if TYPE_CHECKING:
     from superset.app import SupersetApp
 
+# The app that Celery tasks run under when no app context is active. It is
+# set on every initialization, so a process that initializes more than once
+# (the unit suite builds one app per test module) runs its tasks under the
+# most recent app and keeps no earlier app reachable through the task classes.
+_celery_task_app: SupersetApp | None = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -143,17 +149,30 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
 
     def configure_celery(self) -> None:
+        global _celery_task_app  # pylint: disable=global-statement
+
         celery_app.config_from_object(self.config["CELERY_CONFIG"])
         celery_app.set_default()
-        superset_app = self.superset_app
+        _celery_task_app = self.superset_app
 
         # Here, we want to ensure that every call into Celery task has an app context
         # setup properly
         task_base = celery_app.Task
 
+        # ``celery_app`` is a process-wide singleton, so a second initialization
+        # in the same process finds the wrapper installed by the first one.
+        # The wrapper reads the app from this module when a task runs instead
+        # of closing over it, so it is installed once: wrapping again would
+        # grow the task class hierarchy by one level per initialization, and
+        # a wrapper that captured its app would keep every app ever
+        # initialized reachable through the task classes built under it.
+        if "_superset_app_context_task" in vars(task_base):
+            return
+
         class AppContextTask(task_base):  # type: ignore
             # pylint: disable=too-few-public-methods
             abstract = True
+            _superset_app_context_task: ClassVar[bool] = True
 
             # Grab each call into the task and set up an app context, unless
             # one is already active on this thread (e.g. Celery eager mode
@@ -165,7 +184,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
                 if has_app_context():
                     return task_base.__call__(self, *args, **kwargs)
-                with superset_app.app_context():
+                if _celery_task_app is None:
+                    raise RuntimeError("Celery task called before app initialization")
+                with _celery_task_app.app_context():
                     return task_base.__call__(self, *args, **kwargs)
 
         celery_app.Task = AppContextTask
@@ -188,7 +209,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
         from superset.dashboards.permalink.api import DashboardPermalinkRestApi
-        from superset.databases.api import DatabaseRestApi
+        from superset.databases.api import DatabaseOAuth2TokensRestApi, DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
@@ -206,6 +227,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
         from superset.security.api import (
+            PasswordRecoveryRestApi,
             RoleRestAPI,
             SecurityRestApi,
             UserRegistrationsRestAPI,
@@ -282,6 +304,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
+        appbuilder.add_api(DatabaseOAuth2TokensRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
@@ -296,14 +319,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
-        if feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"):
-            from superset.semantic_layers.api import (
-                SemanticLayerRestApi,
-                SemanticViewRestApi,
-            )
+        from superset.semantic_layers.api import (
+            SemanticLayerRestApi,
+            SemanticViewRestApi,
+        )
 
-            appbuilder.add_api(SemanticLayerRestApi)
-            appbuilder.add_api(SemanticViewRestApi)
+        appbuilder.add_api(SemanticLayerRestApi)
+        appbuilder.add_api(SemanticViewRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
@@ -567,6 +589,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
         appbuilder.add_api(SecurityRestApi)
+        appbuilder.add_api(PasswordRecoveryRestApi)
         #
         # Conditionally setup email views
         #
@@ -628,6 +651,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Conditionally initialize extensions based on feature flag
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             self.init_extensions()
+        else:
+            logger.info("ENABLE_EXTENSIONS is off at startup; extensions not loaded")
 
     def init_extensions(self) -> None:
         from superset.extensions.utils import (
@@ -638,11 +663,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         try:
             extensions = get_extensions()
-        except Exception:  # pylint: disable=broad-except  # noqa: S110
-            # If the db hasn't been initialized yet, an exception will be raised.
-            # It's fine to ignore this, as in this case there are no extensions
-            # present yet.
+        except Exception:  # pylint: disable=broad-except
+            # A discovery failure (for example an unreadable LOCAL_EXTENSIONS
+            # or EXTENSIONS_PATH entry) must not stop the app from starting.
+            logger.warning("Extensions not loaded: discovery failed", exc_info=True)
             return
+
+        failed: int = 0
 
         for extension in extensions.values():
             if backend_files := extension.backend:
@@ -666,6 +693,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         "Failed to initialize extension '%s'",
                         extension.manifest.id,
                     )
+                    failed += 1
+
+        logger.info(
+            "Loaded %d extension(s) at startup; %d failed to initialize",
+            len(extensions) - failed,
+            failed,
+        )
 
     @staticmethod
     def _remove_continuum_write_listeners() -> None:
@@ -1084,6 +1118,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_auth_provider()
         self.configure_ssh_manager()
         self.configure_stats_manager()
+        self.configure_semantic_cache()
         self.configure_task_manager()
         self.configure_websocket()
 
@@ -1322,6 +1357,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         register_session_invalidation_events(appbuilder.sm.user_model)
 
+        from superset.models.dashboard import (
+            register_dashboard_copy_events,
+        )
+
+        register_dashboard_copy_events(appbuilder.sm.user_model)
+
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
             # Import here to avoid circular imports
@@ -1447,6 +1488,93 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_stats_manager(self) -> None:
         stats_logger_manager.init_app(self.superset_app)
+
+    def configure_semantic_cache(self) -> None:
+        """Configure optional semantic containment caching for this process."""
+        from typing import cast
+
+        from superset.semantic_layers.cache import (
+            initialize_semantic_cache,
+            SemanticCacheDisabledReason,
+            SemanticCacheMetrics,
+            SemanticCacheState,
+        )
+        from superset.semantic_layers.cache_repository import SemanticCacheBackend
+
+        requested: bool = feature_flag_manager.is_feature_enabled(
+            "SEMANTIC_LAYER_CONTAINMENT_CACHE"
+        )
+        state: SemanticCacheState = initialize_semantic_cache(
+            parent_enabled=feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"),
+            requested=requested,
+            backend=cast(SemanticCacheBackend, cache_manager.data_cache),
+            coordination=cache_manager.semantic_cache_coordination,
+            wait_seconds=self.config["SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS"],
+            lease_seconds=self.config["SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS"],
+            metrics=cast(SemanticCacheMetrics, stats_logger_manager.instance),
+            # The same cap the ordinary result cache applies to a single value;
+            # containment values share that backend.
+            max_value_bytes=self.config.get("DATA_CACHE_MAX_VALUE_SIZE"),
+        )
+        try:
+            stats_logger_manager.instance.gauge(
+                "semantic_cache.containment.enabled",
+                float(state.effective),
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("Semantic cache startup metric emission failed", exc_info=True)
+        if (
+            state.disabled_reason
+            is SemanticCacheDisabledReason.UNSUPPORTED_COORDINATION
+        ):
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.unsupported"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but the configured "
+                "distributed coordination backend does not support owner-token leases; "
+                "containment caching is disabled for this process"
+            )
+        elif state.disabled_reason is SemanticCacheDisabledReason.UNSUPPORTED_BACKEND:
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.unsupported"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but DATA_CACHE_CONFIG "
+                "is not a persistent shared cache that containment can read back "
+                "from (NullCache never retains values; RedisSentinelCache reads "
+                "from replicas); containment caching is disabled for this process"
+            )
+        elif (
+            state.disabled_reason
+            is SemanticCacheDisabledReason.INVALID_COORDINATION_CONFIGURATION
+        ):
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.invalid_configuration"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but its coordination "
+                "timing configuration is invalid; containment caching is disabled "
+                "for this process"
+            )
 
     def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(

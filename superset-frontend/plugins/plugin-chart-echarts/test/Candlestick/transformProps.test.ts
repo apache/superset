@@ -258,6 +258,30 @@ test('applies increase and decrease colors', () => {
   );
 });
 
+test('resolves a hex increase/decrease color carried over from another chart type', () => {
+  // `normalizeRgbaColor` tolerates a hex string left over from switching
+  // viz types (e.g. Big Number with Time Period Comparison, which stores
+  // these controls as hex rather than {r,g,b,a}) -- this exercises that
+  // through the actual Candlestick transform, not `normalizeRgbaColor`
+  // alone.
+  const series = extractSeries(
+    buildProps({
+      increase_color: '#336699',
+      decrease_color: '#996633',
+    }),
+  );
+  expect(series[0]).toEqual(
+    expect.objectContaining({
+      itemStyle: {
+        color: '#336699',
+        color0: '#996633',
+        borderColor: '#336699',
+        borderColor0: '#996633',
+      },
+    }),
+  );
+});
+
 test('keeps increase and decrease colors when Series has a single value', () => {
   const series = extractSeries(
     transform(
@@ -1102,6 +1126,23 @@ test('tooltip reads OHLC from custom-series 5-tuples', () => {
   expect(tooltipHtml).toContain('20');
   expect(tooltipHtml).toContain('34');
   expect(tooltipHtml).toContain(`${CANDLESTICK_SERIES_NAME} (Increase)`);
+});
+
+test('tooltip labels OHLC values with their own price strings', () => {
+  const tooltipHtml = getTooltipHtml(buildProps(), [
+    {
+      dataIndex: 0,
+      name: '2017-10-24',
+      seriesType: 'candlestick',
+      seriesName: CANDLESTICK_SERIES_NAME,
+      value: [20, 34, 10, 38],
+      data: [20, 34, 10, 38],
+    },
+  ]);
+  expect(tooltipHtml).toContain('Open price');
+  expect(tooltipHtml).toContain('Close price');
+  expect(tooltipHtml).toContain('Low price');
+  expect(tooltipHtml).toContain('High price');
 });
 
 test('tooltip lists every candlestick and moving average on the hovered date', () => {

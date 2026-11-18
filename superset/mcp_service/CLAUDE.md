@@ -410,8 +410,9 @@ Used by: `get_chart_info`, `get_chart_preview`, `get_chart_data`, `generate_char
 
 When creating, saving, or previewing charts, run schema validation (Tier 1)
 and optionally a compile check (Tier 2) before persisting or caching.
-``validate_and_compile`` glues both together; tools with tight SLAs
-(``generate_explore_link``, ``update_chart_preview``) opt out of Tier 2.
+``validate_and_compile`` glues both together. Explicitly latency-sensitive
+link-only tools such as ``generate_explore_link`` may opt out of Tier 2;
+mutation and cached-preview update tools run Tier 2 before persistence.
 
 ```python
 from superset.mcp_service.chart.compile import validate_and_compile

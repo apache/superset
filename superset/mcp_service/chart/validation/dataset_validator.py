@@ -43,6 +43,7 @@ from superset.mcp_service.utils.error_builder import (
     MAX_DID_YOU_MEAN_CANDIDATES,
     MAX_ERROR_SUGGESTIONS,
 )
+from superset.utils.core import format_list
 
 _C = TypeVar("_C", bound=ChartConfig)
 _T = TypeVar("_T")
@@ -225,6 +226,42 @@ def resolve_dataset_reference(
     if len(matches) > 1:
         raise AmbiguousDatasetReferenceError(name, matches, reference_kind)
     return matches[0] if matches else None
+
+
+def resolve_dataset_column(
+    column_name: str, dataset_context: DatasetContext
+) -> Mapping[str, Any] | None:
+    """Resolve an exact, otherwise unique case-insensitive dataset column.
+
+    Metadata ordering must never decide which SQL type is used for validation.
+    Exact case is authoritative; a case-insensitive fallback is safe only when
+    it identifies one column.
+    """
+
+    exact = [
+        column
+        for column in dataset_context.available_columns
+        if column["name"] == column_name
+    ]
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
+        raise ValueError(f"Duplicate exact dataset column {column_name!r}")
+
+    folded = [
+        column
+        for column in dataset_context.available_columns
+        if column["name"].casefold() == column_name.casefold()
+    ]
+    if len(folded) == 1:
+        return folded[0]
+    if len(folded) > 1:
+        raise AmbiguousDatasetReferenceError(
+            column_name,
+            [column["name"] for column in folded],
+            "column",
+        )
+    return None
 
 
 class DatasetValidator:
@@ -918,7 +955,7 @@ class DatasetValidator:
         )[:MAX_DID_YOU_MEAN_CANDIDATES]
         if not names:
             return []
-        quoted = ", ".join(f"'{name}'" for name in names)
+        quoted = format_list(names, quote="'")
         return [
             f"Did you mean the saved metric {quoted}? Reference a saved metric "
             'as {"name": "<metric>", "saved_metric": true} rather than setting '

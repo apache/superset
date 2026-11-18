@@ -105,9 +105,6 @@ Affecting the Docker build process:
   for more verbose logging
 - **SUPERSET_DEBUG_ENABLED (default=false)**: Enable Werkzeug debugger with interactive console.
   Set to `true` for debugging: `SUPERSET_DEBUG_ENABLED=true docker compose up`
-- **DISABLE_TS_CHECKER (default=true)**: whether the `superset-node` webpack dev server skips
-  TypeScript type-checking, which speeds up rebuilds and saves several GB of memory. Set to
-  `false` to have webpack surface type errors during development.
 
 For more env vars that affect your configuration, see this
 [superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
@@ -835,6 +832,12 @@ To run a single test file:
 
 ```bash
 npm run test -- path/to/file.js
+```
+
+Jest uses 80% of the machine's cores by default. On a shared or busy machine, cap the worker pool with `JEST_MAX_WORKERS` (a number or a percentage):
+
+```bash
+JEST_MAX_WORKERS=2 npm run test -- path/to/file.js
 ```
 
 #### Known Issues and Workarounds

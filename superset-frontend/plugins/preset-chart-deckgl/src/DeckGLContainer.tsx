@@ -31,6 +31,7 @@ import { isEqual } from 'lodash-es';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
+import * as maplibregl from 'maplibre-gl';
 import type { Layer } from '@deck.gl/core';
 import { JsonObject, JsonValue, usePrevious } from '@superset-ui/core';
 import {
@@ -45,6 +46,16 @@ import DeckGLOverlayMapbox from './components/DeckGLOverlayMapbox';
 import Tooltip, { TooltipProps } from './components/Tooltip';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Viewport } from './utils/fitViewport';
+
+// maplibre-gl 6's ESM-only build derives its worker URL from
+// `import.meta.url`, which our (non-ESM-output) webpack bundle rewrites to
+// a build-time path that doesn't match maplibre's `^https?:` check, so
+// `WORKER_URL` silently resolves to `''` and vector tiles never load. Point
+// it at the copy CopyPlugin emits alongside the rest of our static assets
+// (see webpack.config.js), using the runtime-configurable public path so
+// this also works behind an APPLICATION_ROOT prefix. This must run before
+// the first MapLibre map mounts.
+maplibregl.setWorkerUrl(`${__webpack_public_path__}maplibre-gl-worker.mjs`);
 
 const TICK = 250; // milliseconds
 

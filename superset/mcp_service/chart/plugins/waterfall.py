@@ -92,6 +92,21 @@ class WaterfallChartPlugin(BaseChartPlugin):
     ) -> dict[str, Any]:
         return map_waterfall_config(config)
 
+    def apply_temporal_columns(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        temporal_columns: set[str],
+    ) -> None:
+        """Reject a time grain when the published x-axis is categorical."""
+        if config.time_grain and not is_column_truly_temporal(
+            config.x_axis.name or "", None, temporal_columns=temporal_columns
+        ):
+            raise ValueError(
+                f"Waterfall time_grain requires a temporal x_axis, but "
+                f"'{config.x_axis.name}' is not temporal in the semantic view"
+            )
+
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
         metric_name = config.metric.label or config.metric.name
         axis = config.x_axis.label or config.x_axis.name

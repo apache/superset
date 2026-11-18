@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, within } from 'spec/helpers/testing-library';
 import {
   ChartCustomization,
   ChartCustomizationType,
@@ -25,9 +25,11 @@ import {
   NativeFilterType,
 } from '@superset-ui/core';
 import { ChartCustomizationPlugins } from 'src/constants';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import FilterControl from './FilterControl';
 
 jest.mock('src/dashboard/components/nativeFilters/state', () => ({
+  ...jest.requireActual('src/dashboard/components/nativeFilters/state'),
   useIsFilterInScope: () => () => false,
 }));
 
@@ -122,4 +124,97 @@ test('marks an enableEmptyFilter filter as required', () => {
     />,
   );
   expect(screen.getByText('*')).toBeInTheDocument();
+});
+
+test('shows a warning for a filter without a selected scope', () => {
+  render(
+    <FilterControl
+      filter={{
+        ...nativeFilter,
+        chartsInScope: [],
+        scope: { rootPath: [], excluded: [] },
+      }}
+      onFilterSelectionChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByTestId('out-of-scope-filter-tooltip-icon'),
+  ).toBeInTheDocument();
+});
+
+test('does not show the warning before chart scope is calculated', () => {
+  const { rerender } = render(
+    <FilterControl
+      filter={{ ...nativeFilter, chartsInScope: undefined }}
+      onFilterSelectionChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.queryByTestId('out-of-scope-filter-tooltip-icon'),
+  ).not.toBeInTheDocument();
+
+  rerender(
+    <FilterControl
+      filter={{ ...nativeFilter, chartsInScope: [] }}
+      onFilterSelectionChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByTestId('out-of-scope-filter-tooltip-icon'),
+  ).toBeInTheDocument();
+});
+
+test('does not show a warning for a filter with charts in scope', () => {
+  render(
+    <FilterControl
+      filter={{
+        ...nativeFilter,
+        chartsInScope: [123],
+        tabsInScope: ['INACTIVE_TAB'],
+      }}
+      onFilterSelectionChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.queryByTestId('out-of-scope-filter-tooltip-icon'),
+  ).not.toBeInTheDocument();
+});
+
+test('keeps the warning beside the name in the horizontal More filters layout', () => {
+  const longFilterName =
+    'A very long filter name that must not hide its warning';
+  render(
+    <FilterControl
+      filter={{
+        ...nativeFilter,
+        name: longFilterName,
+        chartsInScope: [],
+        controlValues: { enableEmptyFilter: true },
+        description: 'Filter description',
+        scope: { rootPath: ['ROOT_ID'], excluded: [] },
+      }}
+      orientation={FilterBarOrientation.Horizontal}
+      overflow
+      onFilterSelectionChange={jest.fn()}
+    />,
+  );
+
+  const titleGroup = screen.getByTestId('filter-control-title-group');
+  const name = within(titleGroup).getByTestId('filter-control-name');
+  const requiredIndicator = screen.getByText('*');
+  const warningIcon = within(titleGroup).getByTestId(
+    'out-of-scope-filter-tooltip-icon',
+  );
+  expect(name).toHaveTextContent(longFilterName);
+  expect(name.compareDocumentPosition(requiredIndicator)).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  expect(requiredIndicator.compareDocumentPosition(warningIcon)).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  expect(screen.getAllByRole('button')).toHaveLength(2);
 });

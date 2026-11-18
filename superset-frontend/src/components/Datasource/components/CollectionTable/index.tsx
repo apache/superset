@@ -36,7 +36,7 @@ import Table, {
   type TablePaginationConfig,
   TableSize,
 } from '@superset-ui/core/components/Table';
-import Fieldset from '../Fieldset';
+import Fieldset, { type FieldsetProps } from '../Fieldset';
 import { recurseReactClone } from '../../utils';
 import {
   type CRUDCollectionProps,
@@ -70,15 +70,7 @@ function createKeyedCollection(arr: Array<object>) {
       }) as CollectionItem,
   );
 
-  const collection: Record<PropertyKey, CollectionItem> = {};
-  collectionArray.forEach((o: CollectionItem) => {
-    collection[o.id] = o;
-  });
-
-  return {
-    collection,
-    collectionArray,
-  };
+  return collectionArray;
 }
 
 export default function CRUDCollection({
@@ -99,22 +91,21 @@ export default function CRUDCollection({
   pagination = false,
   filterTerm,
   filterFields,
+  rowClassName,
+  expandItemWhere,
+  expandItemNonce,
 }: CRUDCollectionProps) {
   const [expandedColumns, setExpandedColumns] = useState<
     Record<PropertyKey, boolean>
   >({});
-  // Seed both pieces of state from a single createKeyedCollection() pass so
-  // that items lacking an `id` get one consistent set of synthetic ids
-  // (matching the prior class component, which keyed the collection once).
+  // Seed ids for the first render; the props-sync effect re-keys on each
+  // collection prop change.
   const initialKeyed = useRef<ReturnType<typeof createKeyedCollection>>();
   if (!initialKeyed.current) {
     initialKeyed.current = createKeyedCollection(propsCollection);
   }
-  const [collection, setCollection] = useState<
-    Record<PropertyKey, CollectionItem>
-  >(() => initialKeyed.current!.collection);
   const [collectionArray, setCollectionArray] = useState<CollectionItem[]>(
-    () => initialKeyed.current!.collectionArray,
+    () => initialKeyed.current!,
   );
   const [sortColumn, setSortColumn] = useState<string>('');
   const [sort, setSort] = useState<SortOrderEnum>(SortOrderEnum.Unsorted);
@@ -132,20 +123,45 @@ export default function CRUDCollection({
   // edits whose onChange round trip to the parent hasn't landed back in
   // props yet.
   const unsortedOrderRef = useRef<Array<string | number>>(
-    initialKeyed.current!.collectionArray.map(item => item.id),
+    initialKeyed.current!.map(item => item.id),
   );
 
   const sortRef = useRef<SortOrderEnum>(SortOrderEnum.Unsorted);
   sortRef.current = sort;
   const collectionArrayRef = useRef<CollectionItem[]>(collectionArray);
-  collectionArrayRef.current = collectionArray;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const fieldChangeHandlers = useRef(
+    new Map<
+      CollectionItem['id'],
+      NonNullable<FieldsetProps['onFieldChange']>
+    >(),
+  );
+
+  const setCurrentCollection = useCallback((items: CollectionItem[]) => {
+    // Advance before notifying the parent so queued edits share the same rows.
+    collectionArrayRef.current = items;
+    const ids = new Set(items.map(item => item.id));
+    fieldChangeHandlers.current.forEach((_handler, id) => {
+      if (!ids.has(id)) fieldChangeHandlers.current.delete(id);
+    });
+    if (sortRef.current === SortOrderEnum.Unsorted) {
+      unsortedOrderRef.current = items.map(item => item.id);
+    }
+    setCollectionArray(items);
+  }, []);
+
+  const changeCollection = useCallback(
+    (items: CollectionItem[]) => {
+      setCurrentCollection(items);
+      onChangeRef.current?.(items);
+    },
+    [setCurrentCollection],
+  );
 
   // Sync with props.collection changes
   useEffect(() => {
-    const { collection: newCollection, collectionArray: newCollectionArray } =
-      createKeyedCollection(propsCollection);
-    setCollection(newCollection);
-    setCollectionArray(newCollectionArray);
+    const newCollectionArray = createKeyedCollection(propsCollection);
     // Refresh the restore order too, so that clearing a sort after an
     // external sync (e.g. a source-control-synced column set) reflects the
     // synced order and row set instead of stale, pre-sync ids.
@@ -162,102 +178,28 @@ export default function CRUDCollection({
     if (!isEcho) {
       unsortedOrderRef.current = newIds;
     }
-  }, [propsCollection]);
-
-  useEffect(() => {
-    if (sort === SortOrderEnum.Unsorted) {
-      unsortedOrderRef.current = collectionArray.map(item => item.id);
-    }
-  }, [collectionArray, sort]);
+    setCurrentCollection(newCollectionArray);
+  }, [propsCollection, setCurrentCollection]);
 
   const onCellChange = useCallback(
-    (id: string | number, col: string, val: unknown) => {
-      setCollection(prevCollection => {
-        const updatedCollection = {
-          ...prevCollection,
-          [id]: {
-            ...prevCollection[id],
-            [col]: val,
-          },
-        };
-        return updatedCollection;
-      });
-
-      setCollectionArray(prevCollectionArray => {
-        const updatedCollectionArray = prevCollectionArray.map(item => {
-          if (item.id === id) {
-            return {
-              ...item,
-              [col]: val,
-            };
-          }
-          return item;
-        });
-
-        if (onChange) {
-          onChange(updatedCollectionArray);
-        }
-
-        return updatedCollectionArray;
-      });
+    (id: string | number, col: string | number, val: unknown) => {
+      const items = collectionArrayRef.current;
+      // A delayed control callback must not restore a deleted row.
+      if (!items.some(item => item.id === id)) return;
+      changeCollection(
+        items.map(item => (item.id === id ? { ...item, [col]: val } : item)),
+      );
     },
-    [onChange],
-  );
-
-  const changeCollection = useCallback(
-    (
-      newCollection: Record<PropertyKey, CollectionItem>,
-      currentCollectionArray: CollectionItem[],
-    ) => {
-      // Preserve existing order instead of recreating from Object.keys()
-      const existingIds = new Set(currentCollectionArray.map(item => item.id));
-      const newCollectionArray: CollectionItem[] = [];
-
-      // First pass: preserve existing order and update items
-      for (const existingItem of currentCollectionArray) {
-        if (newCollection[existingItem.id]) {
-          newCollectionArray.push(newCollection[existingItem.id]);
-        }
-      }
-
-      // Second pass: add new items
-      for (const item of Object.values(newCollection)) {
-        if (!existingIds.has(item.id)) {
-          newCollectionArray.push(item);
-        }
-      }
-
-      setCollection(newCollection);
-      setCollectionArray(newCollectionArray);
-
-      if (onChange) {
-        onChange(newCollectionArray);
-      }
-    },
-    [onChange],
+    [changeCollection],
   );
 
   const deleteItem = useCallback(
     (id: string | number) => {
-      setCollection(prevCollection => {
-        const newColl = { ...prevCollection };
-        delete newColl[id];
-        return newColl;
-      });
-
-      setCollectionArray(prevCollectionArray => {
-        const newCollectionArray = prevCollectionArray.filter(
-          item => item.id !== id,
-        );
-
-        if (onChange) {
-          onChange(newCollectionArray);
-        }
-
-        return newCollectionArray;
-      });
+      changeCollection(
+        collectionArrayRef.current.filter(item => item.id !== id),
+      );
     },
-    [onChange],
+    [changeCollection],
   );
 
   const onAddItem = useCallback(() => {
@@ -269,39 +211,13 @@ export default function CRUDCollection({
       }
       delete newItem.expanded;
 
-      setCollection(prevCollection => ({
-        ...prevCollection,
-        [newItem.id]: newItem,
-      }));
-
-      setCollectionArray(prevCollectionArray => {
-        const newCollectionArray = [newItem, ...prevCollectionArray];
-
-        if (onChange) {
-          onChange(newCollectionArray);
-        }
-
-        return newCollectionArray;
-      });
+      changeCollection([newItem, ...collectionArrayRef.current]);
 
       if (shouldStartExpanded) {
         setExpandedColumns(prev => ({ ...prev, [newItem.id]: true }));
       }
     }
-  }, [itemGenerator, onChange]);
-
-  const onFieldsetChange = useCallback(
-    (item: CollectionItem) => {
-      changeCollection(
-        {
-          ...collection,
-          [item.id]: item,
-        },
-        collectionArray,
-      );
-    },
-    [changeCollection, collection, collectionArray],
-  );
+  }, [itemGenerator, changeCollection]);
 
   const getLabel = useCallback(
     (col: string): string => {
@@ -325,6 +241,36 @@ export default function CRUDCollection({
       [id]: !prev[id],
     }));
   }, []);
+
+  // Read through a ref, and keyed on the nonce alone, because callers pass an
+  // inline arrow: an effect depending on the predicate's identity would run on
+  // every render and reopen a row the user had just collapsed, which is the
+  // opposite of the additive behaviour the prop documents.
+  const expandItemWhereRef = useRef(expandItemWhere);
+  expandItemWhereRef.current = expandItemWhere;
+
+  // The collection is read through its ref too, and deliberately not a
+  // dependency: it is replaced wholesale on every cell edit, delete, add and
+  // props sync, so depending on it re-asserted the expansion afterwards and
+  // reopened a row the user had collapsed on their next edit to any row.
+  //
+  // The cost is that a nonce arriving before its target row exists never
+  // retries. Nothing can do that today -- the reveal links are rendered inside
+  // the already-loaded editor and change only the search term and the nonce,
+  // never the collection -- so widening these deps again would trade a
+  // documented behaviour for a case that cannot happen.
+  useEffect(() => {
+    const matches = expandItemWhereRef.current;
+    if (!matches || expandItemNonce === undefined) {
+      return;
+    }
+    const target = collectionArrayRef.current.find(matches);
+    if (!target) {
+      return;
+    }
+    // Merged rather than replaced, so rows the user opened stay open.
+    setExpandedColumns(prev => ({ ...prev, [target.id]: true }));
+  }, [expandItemNonce]);
 
   const handleTableChange = useCallback(
     (
@@ -384,7 +330,7 @@ export default function CRUDCollection({
           // Sort the live, edited collection rather than propsCollection, so
           // an edit that hasn't round-tripped back through onChange yet
           // isn't dropped when a sort is applied.
-          sortedArray = [...collectionArray];
+          sortedArray = [...collectionArrayRef.current];
           // Negate the comparator for descending order (rather than reversing
           // the array) so equal-key rows keep their relative order.
           const direction = newSortOrder === SortOrderEnum.Desc ? -1 : 1;
@@ -393,35 +339,49 @@ export default function CRUDCollection({
               direction * compareSort(a[col] as Sort, b[col] as Sort),
           );
         } else {
-          // Restore the pre-sort order, but take each row's current value
-          // from the live `collection` map (not propsCollection) so an edit
-          // made while sorted survives clearing the sort. Any row not part
-          // of the tracked order (e.g. added while sorted) is appended.
+          // Restore the pre-sort order using the latest row values. Any row
+          // added while sorted is appended after the tracked rows.
+          const itemsById = new Map(
+            collectionArrayRef.current.map(item => [item.id, item]),
+          );
           const trackedIds = new Set(unsortedOrderRef.current);
-          sortedArray = unsortedOrderRef.current
-            .filter(id => collection[id])
-            .map(id => collection[id]);
-          collectionArray.forEach(item => {
+          sortedArray = unsortedOrderRef.current.flatMap(id => {
+            const item = itemsById.get(id);
+            return item ? [item] : [];
+          });
+          collectionArrayRef.current.forEach(item => {
             if (!trackedIds.has(item.id)) {
               sortedArray.push(item);
             }
           });
         }
 
-        setCollectionArray(sortedArray);
+        sortRef.current = newSortOrder;
+        setCurrentCollection(sortedArray);
         setSortColumn(newSortColumn);
         setSort(newSortOrder);
       }
     },
-    [collection, collectionArray, sortColumns, sortColumn, sort],
+    [setCurrentCollection, sortColumns, sortColumn, sort],
   );
 
   const renderExpandableSection = useCallback(
     (item: CollectionItem): ReactNode => {
-      const propsGenerator = () => ({ item, onChange: onFieldsetChange });
+      const { id } = item;
+      // SQL controls cancel their pending debounce when this callback changes.
+      // Keep each row's handler stable across collection edits and expansion.
+      if (!fieldChangeHandlers.current.has(id)) {
+        fieldChangeHandlers.current.set(id, (fieldKey, value) =>
+          onCellChange(id, fieldKey, value),
+        );
+      }
+      const propsGenerator = () => ({
+        item,
+        onFieldChange: fieldChangeHandlers.current.get(id),
+      });
       return recurseReactClone(expandFieldset, Fieldset, propsGenerator);
     },
-    [expandFieldset, onFieldsetChange],
+    [expandFieldset, onCellChange],
   );
 
   const renderCell = useCallback(
@@ -620,6 +580,7 @@ export default function CRUDCollection({
           `
         }
         expandable={expandableConfig}
+        rowClassName={rowClassName}
         size={TableSize.Middle}
         tableLayout="auto"
       />

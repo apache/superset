@@ -88,7 +88,15 @@ def test_version_history_retention_env_loads_application_config(
     assert "SUPERSET_VERSION_HISTORY_RETENTION_DAYS" not in app.config
 
 
-def test_invalid_version_history_retention_env_defers_cleanup(
+def test_semantic_containment_cache_defaults_are_safe() -> None:
+    from superset import config
+
+    assert config.DEFAULT_FEATURE_FLAGS["SEMANTIC_LAYER_CONTAINMENT_CACHE"] is False
+    assert config.SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS == 1.0
+    assert config.SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS == 30
+
+
+def test_invalid_version_history_retention_env_uses_default(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -647,6 +655,26 @@ def test_theme_default_logo_defaults() -> None:
     assert config.LOGO_TARGET_PATH is None
     assert config.THEME_DEFAULT["token"]["brandLogoHref"] == "/"
     assert config.THEME_DEFAULT["token"]["brandLogoUrl"] == config.APP_ICON
+
+
+def test_theme_defaults_seed_tooltip_component_tokens() -> None:
+    """
+    Regression test for #38726: tooltips must render at the small font size.
+
+    The shipped light and dark themes both carry a ``components.Tooltip``
+    override; without it Ant Design falls back to the global ``fontSize``
+    and every tooltip renders two pixels larger than intended.
+    """
+    from superset import config
+
+    expected = {"fontSize": 12, "lineHeight": 1.6}
+    default_components = config.THEME_DEFAULT["components"]
+    assert default_components is not None
+    assert default_components["Tooltip"] == expected
+    assert config.THEME_DARK is not None
+    dark_components = config.THEME_DARK["components"]
+    assert dark_components is not None
+    assert dark_components["Tooltip"] == expected
 
 
 def test_smtp_ssl_server_auth_defaults_to_true() -> None:

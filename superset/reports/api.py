@@ -31,7 +31,6 @@ from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled, security_manager
-from superset.charts.filters import ChartFilter
 from superset.commands.report.create import CreateReportScheduleCommand
 from superset.commands.report.delete import DeleteReportScheduleCommand
 from superset.commands.report.exceptions import (
@@ -51,11 +50,15 @@ from superset.commands.report.update import UpdateReportScheduleCommand
 from superset.commands.report.update_config import UpdateReportConfigCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.report import ReportConfigDAO
-from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import SupersetException
 from superset.extensions import event_logger
-from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
+from superset.reports.filters import (
+    ReportScheduleAllTextFilter,
+    ReportScheduleFilter,
+    ReportTargetChartFilter,
+    ReportTargetDashboardFilter,
+)
 from superset.reports.models import ReportCreationMethod, ReportSchedule
 from superset.reports.schemas import (
     get_delete_ids_schema,
@@ -307,8 +310,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     }
 
     base_related_field_filters = {
-        "chart": [["id", ChartFilter, lambda: []]],
-        "dashboard": [["id", DashboardAccessFilter, lambda: []]],
+        # Narrower than ordinary chart/dashboard visibility: a scheduled report
+        # renders as the deployment's configured executor, not as its author.
+        "chart": [["id", ReportTargetChartFilter, lambda: []]],
+        "dashboard": [["id", ReportTargetDashboardFilter, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],

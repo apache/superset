@@ -19,6 +19,8 @@
 
 import asyncio
 import logging
+import re
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -27,6 +29,7 @@ import pytest
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server, mcp
 from superset.mcp_service.utils.response_size_utils import COMMITTED_WRITE_SPECS
 from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.utils import json
 
 # Patch target for the feature_flag_manager imported inside _apply_config_guards
 _FFM_PATH = "superset.extensions.feature_flag_manager"
@@ -39,12 +42,14 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "add_chart_to_existing_dashboard": "dashboard_url",
     "apply_dashboard_filters": "permalink_key",
     "create_dataset": "table_name",
+    "create_dataset_column": "column",
     "create_dataset_metric": "metric",
     "create_theme": "theme_name",
     "create_virtual_dataset": "dataset_name",
     "delete_chart": "deleted_id",
     "delete_dashboard": "deleted_id",
     "delete_dataset": "deleted_id",
+    "delete_dataset_column": "affected_charts",
     "delete_dataset_metric": "affected_charts",
     "duplicate_dashboard": "duplicated_slices",
     "execute_sql": "statements",
@@ -94,6 +99,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "list_rls_filters": "rls_filters",
     "list_roles": "roles",
     "list_saved_queries": "saved_queries",
+    "list_semantic_views": "sources",
     "list_tags": "tags",
     "list_tasks": "tasks",
     "list_themes": "themes",
@@ -114,6 +120,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "update_chart_preview": "previous_form_data_key",
     "update_dashboard": "changed_fields",
     "update_dataset": "updated_properties",
+    "update_dataset_column": "updated_properties",
     "update_dataset_metric": "updated_properties",
 }
 
@@ -123,6 +130,7 @@ EXPECTED_TOP_LEVEL_OUTPUT_FIELDS = {
     "get_chart_info": {"id", "slice_name", "viz_type", "form_data"},
     "get_dashboard_info": {"dashboard_title", "charts", "filter_state"},
     "get_dataset_info": {"table_name", "schema", "columns", "metrics"},
+    "list_semantic_views": {"sources", "page", "page_size", "has_more", "next_page"},
     "open_sql_lab_with_context": {"url", "title", "database_id"},
     "update_chart_preview": {"chart", "error", "form_data", "success"},
 }
@@ -131,12 +139,14 @@ MUTATING_TOOLS = {
     "add_chart_to_existing_dashboard",
     "apply_dashboard_filters",
     "create_dataset",
+    "create_dataset_column",
     "create_dataset_metric",
     "create_theme",
     "create_virtual_dataset",
     "delete_chart",
     "delete_dashboard",
     "delete_dataset",
+    "delete_dataset_column",
     "delete_dataset_metric",
     "duplicate_dashboard",
     "execute_sql",
@@ -157,6 +167,7 @@ MUTATING_TOOLS = {
     "update_chart_preview",
     "update_dashboard",
     "update_dataset",
+    "update_dataset_column",
     "update_dataset_metric",
 }
 
@@ -177,6 +188,7 @@ DESTRUCTIVE_TOOLS = {
     "delete_chart",
     "delete_dashboard",
     "delete_dataset",
+    "delete_dataset_column",
     "delete_dataset_metric",
     "execute_sql",
     "manage_dashboard_markdown",
@@ -187,6 +199,7 @@ DESTRUCTIVE_TOOLS = {
     "update_chart",
     "update_dashboard",
     "update_dataset",
+    "update_dataset_column",
     "update_dataset_metric",
 }
 
@@ -275,6 +288,7 @@ OMITTED_MEANS_UNCHANGED_TOOLS = (
     "update_chart",
     "update_dashboard",
     "update_dataset",
+    "update_dataset_column",
     "update_dataset_metric",
 )
 
@@ -847,3 +861,23 @@ def test_committed_write_identifying_fields_are_the_container_ones() -> None:
                 named_scalars.setdefault(name, []).append(field)
 
     assert not named_scalars, named_scalars
+
+
+@pytest.mark.asyncio
+async def test_deleted_state_documentation_matches_list_schemas() -> None:
+    """Keep the documented trash-listing support aligned with every list tool."""
+    tools = await mcp.list_tools()
+    supported = {
+        tool.name
+        for tool in tools
+        if tool.name.startswith("list_")
+        and '"deleted_state":' in json.dumps(tool.parameters)
+    }
+
+    doc = (
+        Path(__file__).resolve().parents[3]
+        / "docs/admin_docs/configuration/mcp-server.mdx"
+    ).read_text(encoding="utf-8")
+    statement = re.search(r"`deleted_state` is only defined on ([^.]+)\.", doc)
+    assert statement is not None
+    assert set(re.findall(r"`(list_\w+)`", statement[1])) == supported

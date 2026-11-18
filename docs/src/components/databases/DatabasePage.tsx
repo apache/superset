@@ -18,6 +18,8 @@
  */
 
 import React from 'react';
+import { useColorMode } from '@docusaurus/theme-common';
+import DatabaseLogo from './DatabaseLogo';
 import {
   Card,
   Collapse,
@@ -28,6 +30,8 @@ import {
   Space,
   Divider,
   Tabs,
+  ConfigProvider,
+  theme,
 } from 'antd';
 import {
   CheckCircleOutlined,
@@ -319,8 +323,9 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
             label: (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 {compat.logo && (
-                  <img
-                    src={`/img/databases/${compat.logo}`}
+                  <DatabaseLogo
+                    logo={compat.logo}
+                    logoDark={compat.logo_dark}
                     alt={compat.name}
                     style={{
                       width: 28,
@@ -492,6 +497,30 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
     );
   };
 
+  // Render extended aggregate function support (MEDIAN/STDDEV_SAMP/VAR_SAMP)
+  const renderExtendedAggregations = () => {
+    const aggregations = database.extended_aggregations;
+    if (!aggregations || Object.keys(aggregations).length === 0) return null;
+
+    return (
+      <Card title="Extended Aggregate Functions" style={{ marginBottom: 16 }}>
+        <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+          The base aggregates (SUM, COUNT, AVG, MIN, MAX, COUNT DISTINCT) are
+          supported everywhere; these are opt-in per engine.
+        </Text>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {Object.entries(aggregations).map(([aggregate, supported]) => (
+            <FeatureBadge
+              key={aggregate}
+              supported={supported}
+              label={aggregate}
+            />
+          ))}
+        </div>
+      </Card>
+    );
+  };
+
   // Render troubleshooting / custom errors section
   const renderTroubleshooting = () => {
     if (!docs?.custom_errors?.length) return null;
@@ -627,11 +656,13 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
     <div className="database-page" id={name.toLowerCase().replace(/\s+/g, '-')}>
       <div style={{ marginBottom: 16 }}>
         {docs?.logo && (
-          <img
-            src={`/img/databases/${docs.logo}`}
+          <DatabaseLogo
+            logo={docs.logo}
+            logoDark={docs.logo_dark}
             alt={name}
             style={{
               height: 120,
+              maxWidth: '100%',
               objectFit: 'contain',
               marginBottom: 12,
             }}
@@ -775,6 +806,9 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
       {/* Time Grains */}
       {renderTimeGrains()}
 
+      {/* Extended Aggregate Functions */}
+      {renderExtendedAggregations()}
+
       {/* Troubleshooting / Custom Errors */}
       {renderTroubleshooting()}
 
@@ -857,4 +891,19 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
   );
 };
 
-export default DatabasePage;
+export default function ThemedDatabasePage(
+  props: DatabasePageProps,
+): React.JSX.Element {
+  const { colorMode } = useColorMode();
+
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm:
+          colorMode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+      }}
+    >
+      <DatabasePage {...props} />
+    </ConfigProvider>
+  );
+}

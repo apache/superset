@@ -34,6 +34,12 @@ import {
   QueryFormColumn,
 } from '@superset-ui/core';
 import { MetricsLayoutEnum, ShowValuesAsEnum } from '../types';
+import {
+  getResultAggregation,
+  METRIC_DEFINITION_AGGREGATION,
+  RESULT_AGGREGATIONS,
+  RESULT_AGGREGATION_LABELS,
+} from './resultAggregation';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -107,7 +113,10 @@ const config: ControlPanelConfig = {
             name: 'metricsLayout',
             config: {
               type: 'RadioButtonControl',
-              renderTrigger: true,
+              // Not a renderTrigger: the axis the metrics land on decides which
+              // collapsed rollup level the totals/subtotals options need (see
+              // `buildGroupbyCombinations`), so changing it needs a real
+              // requery rather than a client-side-only re-render.
               label: t('Apply metrics on'),
               default: MetricsLayoutEnum.COLUMNS,
               options: [
@@ -182,9 +191,15 @@ const config: ControlPanelConfig = {
             name: 'rowTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show rows total'),
+              // The displayed value may be a result aggregation (Median,
+              // Average, ...) rather than a plain total once `aggregateFunction`
+              // is set below, so "summary" rather than "total".
+              label: t('Show row summaries'),
               default: false,
-              renderTrigger: true,
+              // Not a renderTrigger: for non-additive metrics, the totals and
+              // subtotals are rollup levels fetched by the query (see
+              // `buildGroupbyCombinations`), so toggling this needs a real
+              // requery rather than a client-side-only re-render.
               description: t('Display row level total'),
             },
           },
@@ -196,7 +211,6 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show rows subtotal'),
               default: false,
-              renderTrigger: true,
               description: t('Display row level subtotal'),
             },
           },
@@ -223,9 +237,8 @@ const config: ControlPanelConfig = {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show columns total'),
+              label: t('Show column summaries'),
               default: false,
-              renderTrigger: true,
               description: t('Display column level total'),
             },
           },
@@ -237,7 +250,6 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show columns subtotal'),
               default: false,
-              renderTrigger: true,
               description: t('Display column level subtotal'),
             },
           },
@@ -249,8 +261,11 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Transpose pivot'),
               default: false,
+              // Not a renderTrigger: swapping rows and columns changes which
+              // dimensions form the rollup levels the totals/subtotals options
+              // need (see `buildGroupbyCombinations`), so it needs a real
+              // requery rather than a client-side-only re-render.
               description: t('Swap rows and columns'),
-              renderTrigger: true,
             },
           },
         ],
@@ -261,11 +276,42 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Combine metrics'),
               default: false,
+              // Not a renderTrigger: combining metrics removes the per-metric
+              // subtotal level and the metric-axis rollup levels (see
+              // `buildGroupbyCombinations`), so changing it needs a real
+              // requery rather than a client-side-only re-render.
               description: t(
                 'Display metrics side by side within each column, as ' +
                   'opposed to each column being displayed side by side for each metric.',
               ),
-              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'aggregateFunction',
+            config: {
+              type: 'SelectControl',
+              label: t('Aggregation function'),
+              default: METRIC_DEFINITION_AGGREGATION,
+              clearable: false,
+              // Not a renderTrigger: switching in or out of a result
+              // aggregation changes whether the query uses GROUPING SETS at
+              // all (see buildQuery.ts), so it needs a real requery.
+              choices: [
+                [METRIC_DEFINITION_AGGREGATION, t('Use metric definition')],
+                ...RESULT_AGGREGATIONS.map(
+                  name =>
+                    [name, RESULT_AGGREGATION_LABELS[name]] as [string, string],
+                ),
+              ],
+              description: t(
+                'Use each metric’s own definition for cells and ' +
+                  'summaries (the default since SIP-216), or aggregate a ' +
+                  'second time over the metric’s own grouped results — ' +
+                  'e.g. the median of a set of per-store averages. Query ' +
+                  'limits apply before a result aggregation runs.',
+              ),
             },
           },
         ],
@@ -292,6 +338,19 @@ const config: ControlPanelConfig = {
                   'subtotals are still computed correctly first; this only ' +
                   'changes how they are displayed.',
               ),
+              // A result aggregation (anything but "Use metric definition")
+              // has its own "... as Fraction of ..." choices built in, and
+              // takes over the cell/summary computation entirely -- this
+              // control's percent transform would otherwise be silently
+              // ignored rather than applied on top of it. Route through
+              // `getResultAggregation` rather than comparing the raw value,
+              // so an unrecognized/stale `aggregateFunction` falls back to
+              // "Use metric definition" the same way the renderer does,
+              // instead of hiding this control for a value that doesn't
+              // actually select a result aggregation.
+              visibility: ({ controls }) =>
+                getResultAggregation(controls?.aggregateFunction?.value) ===
+                undefined,
             },
           },
         ],

@@ -167,7 +167,7 @@ def test_send_redacts_failure_diagnostics(
         return_value=True,
     )
     requester = mocker.patch(
-        "superset.reports.notifications.webhook._get_requester"
+        "superset.reports.notifications.webhook.get_ssrf_safe_requester"
     ).return_value
     requester.post.return_value.status_code = 200
 
@@ -578,94 +578,6 @@ def test_send_max_time_does_not_abandon_recovering_target(
     # would pin elapsed at 0 and pass at any ``max_time``, including a broken
     # ``max_time=1`` — this non-zero tick keeps the guard real.
     assert len(post_calls) == 3
-
-
-def test_peer_validating_connection_blocks_rebound_peer() -> None:
-    """
-    The webhook POST validates the connected peer address, so a hostname that
-    passes ``is_safe_host`` at validation time and then re-resolves to an
-    internal address by the time the connection is opened (DNS rebinding) is
-    rejected before any request bytes are sent -- mirrors the equivalent test
-    for the dataset-import data-URI fetch path.
-    """
-    from unittest.mock import MagicMock, patch
-
-    from urllib3.connection import HTTPConnection
-
-    from superset.reports.notifications.exceptions import NotificationParamException
-    from superset.reports.notifications.webhook import _PeerValidatingHTTPConnection
-
-    sock = MagicMock()
-    sock.getpeername.return_value = ("169.254.169.254", 80)
-
-    with patch.object(
-        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
-    ):
-        conn = _PeerValidatingHTTPConnection("rebinder.example.com")
-        with pytest.raises(NotificationParamException):
-            conn.connect()
-
-
-def test_peer_validating_connection_allows_public_peer() -> None:
-    """A connection whose actual peer resolves to a public address is allowed
-    through unmodified."""
-    from unittest.mock import MagicMock, patch
-
-    from urllib3.connection import HTTPConnection
-
-    from superset.reports.notifications.webhook import _PeerValidatingHTTPConnection
-
-    sock = MagicMock()
-    sock.getpeername.return_value = ("93.184.216.34", 80)  # example.com, public
-
-    with patch.object(
-        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
-    ):
-        conn = _PeerValidatingHTTPConnection("example.com")
-        conn.connect()  # should not raise
-
-
-def test_get_requester_returns_plain_requests_when_internal_hosts_allowed(
-    monkeypatch,
-) -> None:
-    """
-    When the operator opts into internal webhook targets via
-    ``ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS``, ``_get_requester`` must
-    return the plain ``requests`` module (no peer pinning), preserving the
-    documented escape hatch for internal automation targets.
-    """
-    import requests
-
-    from superset.reports.notifications.webhook import _get_requester
-
-    monkeypatch.setattr(
-        "superset.reports.notifications.webhook.current_app", _allow_internal_app()
-    )
-
-    assert _get_requester() is requests
-
-
-def test_get_requester_pins_peer_when_internal_hosts_disallowed(monkeypatch) -> None:
-    """
-    By default (``ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS`` unset/False),
-    ``_get_requester`` returns a session whose adapters validate the
-    connected peer address rather than the plain ``requests`` module.
-    """
-    from superset.reports.notifications.webhook import (
-        _get_requester,
-        _PeerValidatingHTTPAdapter,
-    )
-
-    class MockCurrentApp:
-        config = {"ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS": False}
-
-    monkeypatch.setattr(
-        "superset.reports.notifications.webhook.current_app", MockCurrentApp
-    )
-
-    requester = _get_requester()
-    assert isinstance(requester.get_adapter("http://x/"), _PeerValidatingHTTPAdapter)
-    assert isinstance(requester.get_adapter("https://x/"), _PeerValidatingHTTPAdapter)
 
 
 def test_send_rejects_rebound_peer_despite_passed_hostname_check(
