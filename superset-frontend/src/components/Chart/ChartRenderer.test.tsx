@@ -682,6 +682,58 @@ test('loads legend index from sessionStorage on mount', () => {
   expect(mockCapturedSuperChartProps?.legendIndex).toBe(mockLegendIndex);
 });
 
+test('tracks the chart in the legend LRU list when its legend state changes', () => {
+  render(<ChartRenderer {...requiredProps} />);
+  const hooks = mockCapturedSuperChartProps?.hooks as LegendHooks;
+
+  act(() => {
+    hooks.onLegendStateChanged({ series1: true });
+  });
+
+  expect(
+    JSON.parse(sessionStorage.getItem('chart_legend_lru') as string),
+  ).toEqual([requiredProps.chartId]);
+});
+
+test('evicts the least recently touched chart legend entries beyond the cap', () => {
+  const evictedId = 201;
+  const lru = Array.from({ length: 200 }, (_, i) => i + 2);
+  sessionStorage.setItem('chart_legend_lru', JSON.stringify(lru));
+  sessionStorage.setItem(`chart_legend_state_${evictedId}`, '{"a":true}');
+  sessionStorage.setItem(`chart_legend_index_${evictedId}`, '3');
+
+  render(<ChartRenderer {...requiredProps} />);
+  const hooks = mockCapturedSuperChartProps?.hooks as LegendHooks;
+
+  act(() => {
+    hooks.onLegendStateChanged({ series1: true });
+  });
+
+  expect(sessionStorage.getItem(`chart_legend_state_${evictedId}`)).toBeNull();
+  expect(sessionStorage.getItem(`chart_legend_index_${evictedId}`)).toBeNull();
+  const next = JSON.parse(sessionStorage.getItem('chart_legend_lru') as string);
+  expect(next).toHaveLength(200);
+  expect(next[0]).toBe(requiredProps.chartId);
+});
+
+test('moves an already tracked chart to the front of the legend LRU list without duplicating it', () => {
+  sessionStorage.setItem(
+    'chart_legend_lru',
+    JSON.stringify([5, 6, requiredProps.chartId, 7]),
+  );
+
+  render(<ChartRenderer {...requiredProps} />);
+  const hooks = mockCapturedSuperChartProps?.hooks as LegendHooks;
+
+  act(() => {
+    hooks.onLegendScroll(2);
+  });
+
+  expect(
+    JSON.parse(sessionStorage.getItem('chart_legend_lru') as string),
+  ).toEqual([requiredProps.chartId, 5, 6, 7]);
+});
+
 test('chart mask updates carry the selection sources of the latest query', () => {
   // A cross-filter emitted after a filter change belongs to the query that
   // produced the rows on screen, not to the chart's first query.

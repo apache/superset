@@ -74,6 +74,32 @@ export interface LegendState {
   [name: string]: boolean;
 }
 
+// Caps how many distinct charts' legend state sessionStorage tracks in one
+// tab session. Without this, a long-lived tab that visits many different
+// charts accumulates one entry per chartId ever seen, unbounded, for as long
+// as the tab stays open. Evicting the least-recently-touched chart once the
+// cap is exceeded keeps total storage bounded regardless of session length.
+const MAX_TRACKED_LEGEND_CHARTS = 200;
+const LEGEND_LRU_KEY = 'chart_legend_lru';
+
+function touchLegendLru(chartId: number): void {
+  try {
+    const raw = sessionStorage.getItem(LEGEND_LRU_KEY);
+    const lru: number[] = raw ? JSON.parse(raw) : [];
+    const next = [chartId, ...lru.filter(id => id !== chartId)];
+    next.splice(MAX_TRACKED_LEGEND_CHARTS).forEach(evictedId => {
+      sessionStorage.removeItem(`chart_legend_state_${evictedId}`);
+      sessionStorage.removeItem(`chart_legend_index_${evictedId}`);
+    });
+    sessionStorage.setItem(LEGEND_LRU_KEY, JSON.stringify(next));
+  } catch (error) {
+    logging.warn(
+      '[ChartRenderer] Failed to update legend LRU tracking:',
+      error,
+    );
+  }
+}
+
 // Webpack globals declaration
 declare const __webpack_require__:
   | {
@@ -520,6 +546,7 @@ function ChartRendererComponent({
           `chart_legend_state_${chartId}`,
           JSON.stringify(legendState),
         );
+        touchLegendLru(chartId);
       } catch (error) {
         logging.warn(
           '[ChartRenderer] Failed to save legend state to sessionStorage:',
@@ -538,6 +565,7 @@ function ChartRendererComponent({
           `chart_legend_index_${chartId}`,
           JSON.stringify(legendIndex),
         );
+        touchLegendLru(chartId);
       } catch (error) {
         logging.warn(
           '[ChartRenderer] Failed to save legend index to sessionStorage:',
