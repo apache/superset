@@ -585,13 +585,17 @@ def _map_query_object(
     metrics = [all_metrics[metric] for metric in (query_object.metrics or [])]
 
     grain = _convert_time_grain(query_object.extras.get("time_grain_sqla"))
-    time_axis_column = _get_grain_time_axis_column(query_object, all_dimensions)
+    time_axis_column: str | None = _get_grain_time_axis_column(
+        query_object, all_dimensions, view_dimensions
+    )
     grouping_grains: dict[str, Grain | None] = (
         {time_axis_column: grain}
         if time_axis_column is not None and time_axis_column in normalized_columns
         else {}
     )
-    grouping_grains.update(_explicit_column_grains(query_object, all_dimensions))
+    grouping_grains.update(
+        _explicit_column_grains(query_object, all_dimensions, view_dimensions)
+    )
     grouping_dimensions: dict[str, Dimension] = resolve_dimensions(
         view_dimensions, usage=DimensionUsage.GROUP, grouping_grains=grouping_grains
     )
@@ -1399,9 +1403,11 @@ def _is_temporal_dimension(dimension: Dimension) -> bool:
 
 
 def _is_non_temporal_column(
-    column: str | AdhocColumn, all_dimensions: dict[str, Dimension]
+    column: str | AdhocColumn,
+    all_dimensions: dict[str, Dimension],
+    view_dimensions: tuple[Dimension, ...],
 ) -> bool:
-    """Ignore a dormant grain only when metadata confirms a non-temporal type."""
+    """A known non-temporal field is dormant only without advertised grains."""
     name: str = _normalize_column(column, set(all_dimensions))
     dimension: Dimension | None = all_dimensions.get(name)
     return (
@@ -1409,11 +1415,16 @@ def _is_non_temporal_column(
         and isinstance(dimension.type, pa.DataType)
         and not pa.types.is_null(dimension.type)
         and not _is_temporal_dimension(dimension)
+        and not any(
+            variant.name == name and variant.grain for variant in view_dimensions
+        )
     )
 
 
 def _explicit_column_grains(
-    query_object: ValidatedQueryObject, all_dimensions: dict[str, Dimension]
+    query_object: ValidatedQueryObject,
+    all_dimensions: dict[str, Dimension],
+    view_dimensions: tuple[Dimension, ...],
 ) -> dict[str, Grain | None]:
     """Read applicable grains attached to physical BASE_AXIS references."""
     dimension_names: set[str] = set(all_dimensions)
@@ -1426,13 +1437,14 @@ def _explicit_column_grains(
         and column.get("columnType") == "BASE_AXIS"
         and column.get("isColumnReference") is True
         and column.get("timeGrain")
-        and not _is_non_temporal_column(column, all_dimensions)
+        and not _is_non_temporal_column(column, all_dimensions, view_dimensions)
     }
 
 
 def _get_grain_time_axis_column(
     query_object: ValidatedQueryObject,
     all_dimensions: dict[str, Dimension],
+    view_dimensions: tuple[Dimension, ...],
 ) -> str | None:
     """
     Determine which selected column is the time-axis (the one a time grain
@@ -1449,10 +1461,14 @@ def _get_grain_time_axis_column(
     every column rather than silently applying the grain to whichever
     temporal column happens to be iterated first.
     """
-    if query_object.granularity and not _is_non_temporal_column(
-        query_object.granularity, all_dimensions
-    ):
-        return query_object.granularity
+    if query_object.granularity:
+        return (
+            None
+            if _is_non_temporal_column(
+                query_object.granularity, all_dimensions, view_dimensions
+            )
+            else query_object.granularity
+        )
 
     dimension_names = set(all_dimensions.keys())
     temporal_columns: list[str] = []
@@ -1658,21 +1674,40 @@ def _validate_granularity(
         )
 
     column_grains: dict[str, Grain | None] = _explicit_column_grains(
-        query_object, all_dimensions
+        query_object, all_dimensions, view_dimensions
     )
-    time_grain: str | None
-    if (time_grain := query_object.extras.get("time_grain_sqla")) and (
+    time_grain: str | None = query_object.extras.get("time_grain_sqla")
+    if legacy_time_column and _is_non_temporal_column(
+        legacy_time_column, all_dimensions, view_dimensions
+    ):
+        if (
+            query_object.from_dttm is not None or query_object.to_dttm is not None
+        ) and (
+            time_grain
+            or any(
+                isinstance(column, dict)
+                and column.get("timeGrain")
+                and _normalize_column(column, dimension_names) == legacy_time_column
+                for column in query_object.columns
+            )
+        ):
+            raise QueryObjectValidationError(
+                "The time grain is not supported for the time column in the "
+                "Semantic View."
+            )
+        time_grain = None
+    if time_grain and (
         (
             legacy_time_column
             and pa.types.is_null(all_dimensions[legacy_time_column].type)
         )
         or not all(
-            _is_non_temporal_column(column, all_dimensions)
+            _is_non_temporal_column(column, all_dimensions, view_dimensions)
             for column in query_object.columns
         )
     ):
         time_column: str | None = _get_grain_time_axis_column(
-            query_object, all_dimensions
+            query_object, all_dimensions, view_dimensions
         )
         if not time_column and not column_grains:
             raise SemanticQueryInputError(
