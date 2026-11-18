@@ -549,16 +549,34 @@ test('labels a translucent band from the opaque custom fill beneath it', () => {
 
 test('keeps the default label color for an opaque fill it cannot parse', () => {
   const { echartOptions } = transformProps(
+    chartProps({
+      showLabels: true,
+      rangeColors: ['not-a-color', '#000000', ''],
+    }),
+  );
+  const labelColors = (echartOptions as any).series[0].markArea.data.map(
+    (d: any) => d[0].label.color,
+  );
+  // drawn largest-first: unset, black, an unparseable value covering the black band
+  expect(labelColors).toEqual([
+    supersetTheme.colorTextSecondary,
+    '#ffffff',
+    supersetTheme.colorTextSecondary,
+  ]);
+});
+
+test('derives the label color from a named fill', () => {
+  const { echartOptions } = transformProps(
     chartProps({ showLabels: true, rangeColors: ['yellow', '#000000', ''] }),
   );
   const labelColors = (echartOptions as any).series[0].markArea.data.map(
     (d: any) => d[0].label.color,
   );
-  // drawn largest-first: unset, black, a named color covering the black band
+  // drawn largest-first: unset, black, yellow covering the black band
   expect(labelColors).toEqual([
     supersetTheme.colorTextSecondary,
     '#ffffff',
-    supersetTheme.colorTextSecondary,
+    '#1f1f1f',
   ]);
 });
 

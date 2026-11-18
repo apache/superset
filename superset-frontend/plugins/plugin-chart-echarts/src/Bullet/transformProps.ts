@@ -25,6 +25,7 @@ import {
   sanitizeHtml,
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
+import { colord } from 'colord';
 import type { EChartsCoreOption } from 'echarts/core';
 import { Refs } from '../types';
 import { sanitizeHtml as escapeHtml } from '../utils/series';
@@ -43,19 +44,6 @@ const BAND_LABEL_COLORS = {
   light: '#ffffff',
   // eslint-disable-next-line theme-colors/no-literal-colors
   dark: '#1f1f1f',
-};
-// Relative luminance of each fixed foreground, computed once so the pick
-// between them is a real WCAG contrast comparison against the fill, not a
-// magic threshold that can drift away from these two colors' actual
-// break-even point.
-const BAND_LABEL_LUMINANCE = {
-  light: getColorLuminance(BAND_LABEL_COLORS.light) ?? 1,
-  dark: getColorLuminance(BAND_LABEL_COLORS.dark) ?? 0,
-};
-const wcagContrast = (luminanceA: number, luminanceB: number): number => {
-  const lighter = Math.max(luminanceA, luminanceB);
-  const darker = Math.min(luminanceA, luminanceB);
-  return (lighter + 0.05) / (darker + 0.05);
 };
 const MEASURE_BAR_FRACTION = 0.28;
 // Small pixel gap below the measure bar so the target/marker symbol doesn't
@@ -147,29 +135,29 @@ export default function transformProps(
   // of a nested band ends at its threshold, so the label lands inside the
   // range it names and the rightmost label cannot clip at the chart edge.
   const getBandLabelColor = (fill?: string): string => {
-    const luminance = fill ? getColorLuminance(fill) : null;
-    if (luminance === null) return theme.colorTextSecondary;
+    if (!fill || getColorLuminance(fill) === null) {
+      return theme.colorTextSecondary;
+    }
     // Fixed light/dark foregrounds, not `theme.colorText`: that token flips
     // to a light color in dark themes and would vanish on a light custom
     // fill. Pick whichever foreground actually contrasts better against
     // this fill, rather than a single magic luminance cutoff that doesn't
     // match where white and the dark foreground really break even.
-    return wcagContrast(luminance, BAND_LABEL_LUMINANCE.light) >=
-      wcagContrast(luminance, BAND_LABEL_LUMINANCE.dark)
+    const fillColor = colord(fill);
+    return fillColor.contrast(BAND_LABEL_COLORS.light) >=
+      fillColor.contrast(BAND_LABEL_COLORS.dark)
       ? BAND_LABEL_COLORS.light
       : BAND_LABEL_COLORS.dark;
   };
   // Bands are drawn outermost first, so a band without its own opaque color
   // shows the nearest outer opaque custom fill; its label must contrast with
-  // that. Only a fill known to be translucent defers outward: an opaque color
-  // `getColorLuminance` can't parse (e.g. a named CSS color) still covers the
-  // band beneath it, so its label keeps the default color.
+  // that. Only a fill known to be translucent defers outward: a value that
+  // isn't a color still covers the band beneath it, so its label keeps the
+  // default color.
   let outerCustomFill: string | undefined;
   const bandLabelFills = sortedRanges.map(({ color }) => {
     const translucent =
-      !!color &&
-      getColorLuminance(color) === null &&
-      /^(#[0-9a-f]{8}|rgba\()/i.test(color.trim());
+      !!color && colord(color).isValid() && getColorLuminance(color) === null;
     if (color && !translucent) outerCustomFill = color;
     return outerCustomFill;
   });
