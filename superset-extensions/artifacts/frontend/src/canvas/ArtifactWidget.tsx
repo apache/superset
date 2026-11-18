@@ -231,7 +231,7 @@ export default function ArtifactWidget({
             url={frame.url}
             grant={frame.grant}
             limits={frame.limits}
-            refreshQueries={declaredBindings(frame.manifest)}
+            queriesPerRequest={declaredBindings(frame.manifest)}
             state={state}
             bindings={bindings}
             title={shownTitle}

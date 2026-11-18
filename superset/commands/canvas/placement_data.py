@@ -16,14 +16,13 @@
 # under the License.
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
-from functools import partial
 from typing import Any
 from uuid import UUID
 
 from superset_core.canvas import StoredWidget
-from superset_core.widgets import BindingRequest
+from superset_core.widgets import QueryRequest, Widget
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.canvas.definition.registry import (
@@ -105,11 +104,11 @@ def load_placement(
 
 class GetPlacementDataCommand(BaseCommand):
     """
-    Run a placement's query as the caller. The query comes from the stored
-    definition, the caller's draft of the canvas, or a version of it, and a
-    named binding from the widget type's resolver when the type has one; the
-    caller only adds runtime filters. Reading needs access to the canvas and
-    to the binding's dataset, which the chart data pipeline checks.
+    Run a placement's queries as the caller. They come from the stored
+    definition, the caller's draft of the canvas, or a version of it, as the
+    widget type builds them (``widget_queries``); the caller only adds runtime
+    filters. Reading needs access to the canvas and to each query's dataset,
+    which the chart data pipeline checks.
     """
 
     def __init__(
@@ -119,19 +118,21 @@ class GetPlacementDataCommand(BaseCommand):
         runtime_filters: list[RuntimeFilter],
         draft_token: str | None = None,
         version_uuid: UUID | None = None,
-        binding_name: str | None = None,
     ) -> None:
         self._id_or_uuid = id_or_uuid
         self._placement_id = placement_id
         self._runtime_filters = runtime_filters
         self._draft_token = draft_token
         self._version_uuid = version_uuid
-        self._binding_name = binding_name
-        self._binding: dict[str, Any] = {}
+        self._bindings: dict[str, dict[str, Any]] = {}
 
-    def run(self) -> PlacementData:
+    def run(self) -> dict[str, PlacementData]:
+        """Each query's data, by name; one failing query fails them all."""
         self.validate()
-        return run_binding(self._binding, self._runtime_filters)
+        return {
+            name: run_binding(binding, self._runtime_filters)
+            for name, binding in self._bindings.items()
+        }
 
     def validate(self) -> None:
         placement = load_placement(
@@ -140,12 +141,9 @@ class GetPlacementDataCommand(BaseCommand):
             self._draft_token,
             self._version_uuid,
         )
-        binding = select_binding(
+        self._bindings = widget_queries(
             placement.widget_type,
-            placement.props,
-            self._binding_name,
-            partial(
-                BindingRequest,
+            QueryRequest(
                 self._id_or_uuid,
                 self._placement_id,
                 placement.props,
@@ -153,36 +151,31 @@ class GetPlacementDataCommand(BaseCommand):
                 widget_id=placement.widget_id,
             ),
         )
-        if binding is None:
+        if not self._bindings:
             raise CanvasPlacementUnboundError()
-        self._binding = binding
 
 
-def select_binding(
-    widget_type: str | None,
-    props: Mapping[str, Any],
-    name: str | None,
-    request: Callable[[str], BindingRequest],
-) -> dict[str, Any] | None:
+def widget_queries(
+    widget_type: str | None, request: QueryRequest
+) -> dict[str, dict[str, Any]]:
     """
-    The binding a data request for a widget runs, or ``None`` when it has none.
+    The bindings a data request for a widget runs, by the name of the dataset
+    each answers, as its widget type builds them; a type the host doesn't know
+    has the default, its props' ``dataBinding``. A query whose binding names
+    no dataset isn't bound yet and is left out. Every binding a type builds
+    gets the same checks, and runs the same way, as the caller.
 
-    Without a name, the props' ``dataBinding``. With one, the widget type's
-    resolver answers it, given ``request(name)``, when the type has one, and
-    otherwise the props' ``bindings`` do. A name neither declares is unbound:
-    running another binding instead would answer with data nobody asked for.
-    A binding from the resolver gets the same checks as one from the props,
-    and runs the same way, as the caller.
+    Raises ``ValueError`` for a type that builds two queries of one name: each
+    name is a dataset of the answer.
     """
-    if name is None:
-        binding = props.get("dataBinding")
-    else:
-        widget_cls = get_widget_types().get(widget_type) if widget_type else None
-        if widget_cls is not None and widget_cls.binding_resolver is not None:
-            binding = widget_cls.binding_resolver(request(name))
-        else:
-            named = props.get("bindings")
-            binding = named.get(name) if isinstance(named, dict) else None
-    if not isinstance(binding, dict) or not isinstance(binding.get("datasetId"), int):
-        return None
-    return binding
+    widget_cls = get_widget_types().get(widget_type) if widget_type else None
+    queries = (widget_cls or Widget).build_queries(request)
+    names = [query.name for query in queries]
+    if len(set(names)) != len(names):
+        raise ValueError(f"widget type {widget_type!r} names a query twice: {names}")
+    return {
+        query.name: dict(query.binding)
+        for query in queries
+        if isinstance(query.binding, Mapping)
+        and isinstance(query.binding.get("datasetId"), int)
+    }

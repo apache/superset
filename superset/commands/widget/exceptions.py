@@ -70,4 +70,4 @@ class WidgetRevisionConflictError(CommandException):
 
 class WidgetUnboundError(CommandException):
     status = 422
-    message = _("This widget has no such data binding.")
+    message = _("This widget has no data binding.")

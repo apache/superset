@@ -102,7 +102,7 @@ export default function HostPage({ widgetId }: { widgetId: string }) {
         url={link.url}
         grant={link.capabilities}
         limits={link.limits}
-        refreshQueries={declaredBindings(link.manifest)}
+        queriesPerRequest={declaredBindings(link.manifest)}
         state={state}
         bindings={bindings}
         title={link.manifest.title ?? t('Artifact')}

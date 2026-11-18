@@ -23,9 +23,10 @@
  * own, and the host-side checks of what the frame asks for.
  *
  * The server builds every query from the stored manifest of the version the
- * frame loads; the frame only names a declared binding. A placement's request
- * carries the token of the draft the page shows, so that a draft's placement
- * is read from the draft.
+ * frame loads, and one data request answers them all, each binding as the
+ * dataset of its name; the caller sends only the runtime filters. A
+ * placement's request carries the token of the draft the page shows, so that
+ * a draft's placement is read from the draft.
  */
 
 // TODO: typed parameters, so that `query` can send new values.
@@ -125,8 +126,8 @@ export function artifactFilters(
   ];
 }
 
-interface PlacementDataResponse {
-  result?: { datasets?: { inline_data?: DataRow[] }[] };
+interface DataResponse {
+  result?: { datasets?: { name?: unknown; inline_data?: DataRow[] }[] };
 }
 
 /**
@@ -159,37 +160,41 @@ function dataEndpoint(source: BindingSource): {
   };
 }
 
-/** One named binding's rows, run on the server as the viewer. */
-export async function fetchBinding(
-  source: BindingSource,
-  binding: string,
-  filters: SelectFilterValue[],
-): Promise<BindingData> {
-  const { path, headers } = dataEndpoint(source);
-  const json = await requestJson<PlacementDataResponse>(path, {
-    method: 'POST',
-    body: { runtime_filters: filters, binding },
-    headers,
-  });
-  // TODO: columns, and the definitions and formats of the metrics.
-  return { rows: json.result?.datasets?.[0]?.inline_data ?? [] };
-}
-
-/** The bindings the manifest declares: what `fetchBindings` fetches. */
+/** The bindings the manifest declares: the queries each data request runs. */
 export const declaredBindings = (manifest: HostManifest): number =>
   Object.keys(manifest.bindings ?? {}).length;
 
-/** Every binding the manifest declares, fetched together. */
+/**
+ * Every binding the manifest declares, run on the server as the viewer, from
+ * one data request. A declared binding the answer has no dataset for, as one
+ * the policy refuses, fails them all, as a failing query does.
+ */
 export async function fetchBindings(
   manifest: HostManifest,
   source: BindingSource,
   filters: SelectFilterValue[],
 ): Promise<Record<string, BindingData>> {
-  const names = Object.keys(manifest.bindings ?? {});
-  const results = await Promise.all(
-    names.map(binding => fetchBinding(source, binding, filters)),
+  const { path, headers } = dataEndpoint(source);
+  const json = await requestJson<DataResponse>(path, {
+    method: 'POST',
+    body: { runtime_filters: filters },
+    headers,
+  });
+  const datasets = new Map<unknown, DataRow[]>();
+  (json.result?.datasets ?? []).forEach(dataset =>
+    datasets.set(dataset.name, dataset.inline_data ?? []),
   );
-  return Object.fromEntries(names.map((name, index) => [name, results[index]]));
+  const names = Object.keys(manifest.bindings ?? {});
+  const missing = names.filter(name => !datasets.has(name));
+  if (missing.length > 0) {
+    throw new Error(
+      `no data for ${missing.map(name => `"${name}"`).join(', ')}`,
+    );
+  }
+  // TODO: columns, and the definitions and formats of the metrics.
+  return Object.fromEntries(
+    names.map(name => [name, { rows: datasets.get(name) ?? [] }]),
+  );
 }
 
 /** A `query` request, if it names a declared binding and declared parameters. */

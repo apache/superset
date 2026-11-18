@@ -37,6 +37,7 @@ from tests.unit_tests.widgets.fixtures import MakeUser, MakeWidget
 BINDING = {"datasetId": 13, "metrics": ["count"], "dimensions": ["country"]}
 NAMED = {"datasetId": 14, "metrics": ["sum__revenue"], "dimensions": ["region"]}
 DATA = PlacementData([{"country": "FR", "count": 3}], "SELECT country ...", "sql")
+BY_REGION = PlacementData([{"region": "EMEA", "sum__revenue": 12}], None, None)
 
 
 @pytest.fixture
@@ -57,7 +58,7 @@ def test_a_reader_runs_the_widgets_own_binding(
     with override_user(alice_user):
         data = GetWidgetDataCommand(widget.uuid, filters).run()
 
-    assert data == DATA
+    assert data == {"main": DATA}
     run_binding.assert_called_once_with(BINDING, filters)
 
 
@@ -78,40 +79,38 @@ def test_a_widget_the_caller_cant_read_looks_missing(
     run_binding.assert_not_called()
 
 
-def test_a_named_binding_comes_from_the_widget_types_resolver(
+def test_a_widget_types_queries_come_from_its_builder(
     tables: Session,
     make_user: MakeUser,
     make_widget: MakeWidget,
     run_binding: MagicMock,
     mocker: MockerFixture,
 ) -> None:
-    """The same resolver as a placement's, told there is no canvas."""
-    from superset_core.widgets import BindingRequest
+    """The same builder as a placement's, told there is no canvas."""
+    from superset_core.widgets import QueryRequest, WidgetQuery
 
     from superset.widgets.registry import registry
 
-    asked: list[BindingRequest] = []
-
-    def resolve(request: BindingRequest) -> dict[str, Any] | None:
-        asked.append(request)
-        return NAMED if request.name == "by_region" else None
-
-    mocker.patch.object(registry["markdown"], "binding_resolver", resolve)
+    build = MagicMock(
+        return_value=[WidgetQuery("by_region", NAMED), WidgetQuery("all", BINDING)]
+    )
+    mocker.patch.object(registry["markdown"], "build_queries", build)
+    run_binding.side_effect = [BY_REGION, DATA]
     alice_user, alice = make_user("alice", "Gamma")
     widget = make_widget("Notes", editors=[alice], props={"content": "x"})
 
     with override_user(alice_user):
-        GetWidgetDataCommand(widget.uuid, [], "by_region").run()
-        with pytest.raises(WidgetUnboundError):
-            GetWidgetDataCommand(widget.uuid, [], "unknown").run()
+        data = GetWidgetDataCommand(widget.uuid, []).run()
 
-    assert run_binding.call_args.args[0] == NAMED
-    assert asked[0] == BindingRequest(
-        canvas_id=None,
-        placement_id=None,
-        props={"content": "x"},
-        name="by_region",
-        widget_id=str(widget.uuid),
+    assert data == {"by_region": BY_REGION, "all": DATA}
+    assert [call.args[0] for call in run_binding.call_args_list] == [NAMED, BINDING]
+    build.assert_called_once_with(
+        QueryRequest(
+            canvas_id=None,
+            placement_id=None,
+            props={"content": "x"},
+            widget_id=str(widget.uuid),
+        )
     )
 
 
@@ -124,11 +123,8 @@ def test_a_widget_without_its_binding_is_unbound(
     alice_user, alice = make_user("alice", "Gamma")
     widget = make_widget("Notes", editors=[alice])
 
-    with override_user(alice_user):
-        with pytest.raises(WidgetUnboundError):
-            GetWidgetDataCommand(widget.uuid, []).run()
-        with pytest.raises(WidgetUnboundError):
-            GetWidgetDataCommand(widget.uuid, [], "missing").run()
+    with override_user(alice_user), pytest.raises(WidgetUnboundError):
+        GetWidgetDataCommand(widget.uuid, []).run()
     run_binding.assert_not_called()
 
 
@@ -146,14 +142,13 @@ def test_the_route_answers_the_datasets_envelope(
     client: Any, full_api_access: None, mocker: MockerFixture
 ) -> None:
     command = mocker.patch("superset.widgets.api.GetWidgetDataCommand")
-    command.return_value.run.return_value = DATA
+    command.return_value.run.return_value = {"main": DATA, "by_region": BY_REGION}
     mocker.patch("superset.extensions.security_manager.can_access", return_value=False)
 
     response = client.post(
         URL.format(WIDGET),
         data=json.dumps(
             {
-                "binding": "by_region",
                 "runtime_filters": [
                     {"datasetId": 13, "column": "country", "values": ["FR"]}
                 ],
@@ -167,17 +162,22 @@ def test_the_route_answers_the_datasets_envelope(
         "result": {
             "datasets": [
                 {
-                    "name": "by_region",
+                    "name": "main",
                     "row_count": 1,
                     "inline_data": [{"country": "FR", "count": 3}],
-                }
+                },
+                {
+                    "name": "by_region",
+                    "row_count": 1,
+                    "inline_data": [{"region": "EMEA", "sum__revenue": 12}],
+                },
             ]
         }
     }
-    widget_uuid, filters, binding = command.call_args.args
-    assert widget_uuid == UUID(WIDGET)
-    assert filters == [RuntimeFilter(datasetId=13, column="country", values=["FR"])]
-    assert binding == "by_region"
+    assert command.call_args.args == (
+        UUID(WIDGET),
+        [RuntimeFilter(datasetId=13, column="country", values=["FR"])],
+    )
 
 
 @api_flags
@@ -216,5 +216,8 @@ def test_the_route_refuses_a_malformed_request(
     assert malformed.json == {
         "message": [{"path": "/extra", "message": "Extra inputs are not permitted"}]
     }
+    # The widget's queries are its own: a caller can't pick one.
+    picked = client.post(URL.format(WIDGET), json={"binding": "by_region"})
+    assert picked.status_code == 400
     assert client.post(URL.format("not-a-uuid"), json={}).status_code == 404
     command.assert_not_called()

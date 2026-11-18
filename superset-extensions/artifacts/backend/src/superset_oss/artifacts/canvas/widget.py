@@ -30,40 +30,20 @@ the widget's UUID is the artifact's id, and canvases place it by that id.
 
 from __future__ import annotations
 
-from typing import Any
-
 from superset_core.widgets import (
-    BindingRequest,
+    QueryRequest,
     Widget,
     widget,
     WidgetBehavior,
+    WidgetQuery,
     WidgetUi,
 )
 from superset_oss.artifacts.canvas.controls import ArtifactControls
 from superset_oss.artifacts.constants import WIDGET_TYPE_NAME
-from superset_oss.artifacts.data.resolver import artifact_binding
+from superset_oss.artifacts.data.queries import artifact_queries
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.web import current_is_guest
-
-
-def resolve_artifact_binding(request: BindingRequest) -> dict[str, Any] | None:
-    """
-    The artifact type's ``binding_resolver``: binding ``request.name`` from the
-    manifest of the version the caller's frame loads, or ``None``, as while
-    artifacts are off.
-    """
-    try:
-        artifacts = open_artifacts()
-    except ArtifactError:
-        return None
-    return artifact_binding(
-        artifacts.store,
-        artifacts.policy,
-        artifacts.access,
-        request,
-        guest=current_is_guest(),
-    )
 
 
 @widget(
@@ -85,4 +65,21 @@ class Artifact(Widget):
     controls_class = ArtifactControls
     behavior = WidgetBehavior(filterable=True, emits_filters=True)
     ui = WidgetUi(default_size=(12, 8))
-    binding_resolver = staticmethod(resolve_artifact_binding)
+
+    @classmethod
+    def build_queries(cls, request: QueryRequest) -> list[WidgetQuery]:
+        """
+        The bindings of the manifest of the version the caller's frame loads;
+        none while artifacts are off.
+        """
+        try:
+            artifacts = open_artifacts()
+        except ArtifactError:
+            return []
+        return artifact_queries(
+            artifacts.store,
+            artifacts.policy,
+            artifacts.access,
+            request,
+            guest=current_is_guest(),
+        )

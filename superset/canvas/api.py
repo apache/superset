@@ -1009,10 +1009,11 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         post:
           summary: Get a placement's data
           description: >-
-            Runs the query the placement's stored `dataBinding` describes, as
-            the caller, narrowed by `runtime_filters` on the binding's dataset.
-            With `binding`, runs that one of the named bindings the props
-            declare in `bindings` instead.
+            Runs every query the placement's widget type builds from its
+            stored props, by default the `dataBinding` as the dataset `main`,
+            as the caller, each narrowed by `runtime_filters` on its dataset,
+            and answers each as a dataset of its name. One failing query fails
+            the request.
             With the `X-Canvas-Draft` header, reads the placement from the
             caller's draft of this canvas; with `X-Canvas-Version`, from that
             version of it, which only its editors can read. Each dataset
@@ -1045,8 +1046,6 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                           values:
                             type: array
                             items: {}
-                    binding:
-                      type: string
           responses:
             200:
               description: The placement's datasets
@@ -1101,14 +1100,8 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             return self.response_400(message="Invalid version UUID")
         return data_response(
             self,
-            body.binding,
             GetPlacementDataCommand(
-                id_or_uuid,
-                placement_id,
-                body.runtime_filters,
-                token,
-                version,
-                body.binding,
+                id_or_uuid, placement_id, body.runtime_filters, token, version
             ).run,
         )
 

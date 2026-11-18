@@ -57,12 +57,12 @@ const revenue: BindingData = {
 interface SetupOptions {
   limits?: Partial<BridgeLimits>;
   onHandshakeTimeout?: () => void;
-  refreshQueries?: number;
+  queriesPerRequest?: number;
 }
 
 function setup(
   grant: Capability[] = [Capability.DATA, Capability.CROSS_FILTER],
-  { limits, onHandshakeTimeout, refreshQueries }: SetupOptions = {},
+  { limits, onHandshakeTimeout, queriesPerRequest }: SetupOptions = {},
 ) {
   const host = createFakeWindow({ origin: HOST_ORIGIN });
   const frameWindow = createFakeWindow({ parent: host.window });
@@ -78,7 +78,7 @@ function setup(
       errors.push(error);
     },
     limits,
-    refreshQueries,
+    queriesPerRequest,
     onHandshakeTimeout,
     hostWindow: host.window,
   });
@@ -495,36 +495,33 @@ test('a cross-filter carries a capped number of values', () => {
   );
 });
 
-test("the frame's queries are capped, and a refresh counts each binding", () => {
+test("the frame's queries are capped, each request counting each binding", () => {
   const { channel, errors, request, requests } = delivered({
-    limits: { queries: 4 },
+    limits: { queries: 5 },
   });
   channel.postData('costs', { rows: [] });
   request({ type: 'query', binding: 'costs', params: {} });
   request({ type: 'refresh' });
   request({ type: 'query', binding: 'costs', params: {} });
-  request({ type: 'query', binding: 'costs', params: {} });
-  expect(requests.map(({ type }) => type)).toEqual([
-    'query',
-    'refresh',
-    'query',
-  ]);
+  expect(requests.map(({ type }) => type)).toEqual(['query', 'refresh']);
   expect(errors.map(error => error.message)).toEqual([
-    'refused query: this frame may run at most 4 queries',
+    'refused query: this frame may run at most 5 queries',
   ]);
 });
 
-test('a refresh costs every binding it fetches again, delivered or not', () => {
+test('a request costs every binding it fetches, delivered or not', () => {
   const { errors, handshake, request, requests } = setup(undefined, {
     limits: { queries: 16 },
-    refreshQueries: 8,
+    queriesPerRequest: 8,
   });
   handshake();
   // Nothing delivered yet, as while a binding the viewer can't read fails.
-  for (let sent = 0; sent < 3; sent += 1) request({ type: 'refresh' });
-  expect(requests).toHaveLength(2);
+  request({ type: 'refresh' });
+  request({ type: 'query', binding: 'b', params: {} });
+  request({ type: 'query', binding: 'b', params: {} });
+  expect(requests.map(({ type }) => type)).toEqual(['refresh', 'query']);
   expect(errors.map(error => error.message)).toEqual([
-    'refused refresh: this frame may run at most 16 queries',
+    'refused query: this frame may run at most 16 queries',
   ]);
 });
 

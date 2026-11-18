@@ -15,17 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-An artifact's named bindings, from the manifest its frame runs.
+An artifact's queries: the named bindings of the manifest its frame runs.
 
-The host asks the artifact widget type for a binding by name (its
-``binding_resolver``), for a placement or for the saved widget itself; the
-artifact is that widget. The binding comes from the manifest of the version
-that the caller's frame loads, picked by the frame's own rules
-(``choose_version``): the published version, and the draft for its editors
-while the placement is read from their draft of the canvas. The policy in
-force must admit the binding, checked on every query, so that a tighter
-policy reaches a published artifact at its next query. The host then runs the
-binding as it runs any other: as the caller, with their dataset access.
+The host asks the artifact widget type for a widget's queries (its
+``build_queries``), for a placement or for the saved widget itself; the
+artifact is that widget. They come from the manifest of the version that the
+caller's frame loads, picked by the frame's own rules (``choose_version``):
+the published version, and the draft for its editors while the placement is
+read from their draft of the canvas. The policy in force must admit each
+binding, checked on every data request, so that a tighter policy reaches a
+published artifact at its next one. The host then runs each binding as it runs
+any other: as the caller, with their dataset access, and answers each as the
+dataset of the binding's name.
 """
 
 # TODO: the frame link and the data request each pick the version, so a write
@@ -36,10 +37,8 @@ binding as it runs any other: as the caller, with their dataset access.
 
 from __future__ import annotations
 
-from typing import Any
-
 from superset_artifacts_sdk.policy import ArtifactPolicy, binding_problems
-from superset_core.widgets import BindingRequest
+from superset_core.widgets import QueryRequest, WidgetQuery
 from superset_oss.artifacts.access import ArtifactAccess
 from superset_oss.artifacts.data.bindings import BindingError, resolve_binding
 from superset_oss.artifacts.errors import ArtifactError
@@ -51,28 +50,29 @@ from superset_oss.artifacts.store.filestore import ArtifactFileStore
 HOST_ROW_LIMIT = 1_000
 
 
-def artifact_binding(
+def artifact_queries(
     store: ArtifactFileStore,
     policy: ArtifactPolicy,
     access: ArtifactAccess,
-    request: BindingRequest,
+    request: QueryRequest,
     *,
     guest: bool = False,
-) -> dict[str, Any] | None:
+) -> list[WidgetQuery]:
     """
-    Binding ``request.name`` of the artifact that ``request.widget_id`` is.
+    A query for each binding of the artifact that ``request.widget_id`` is.
 
-    ``None`` when there is no widget, when the caller may see no version of
-    the artifact, when the version's manifest declares no binding of that
-    name, or one that doesn't map onto the host's data request, and when
-    ``policy`` refuses it. The host answers each as a widget without the
-    binding. Every binding carries its row limit, capped by the policy's
-    ``data.max_rows``: one declared without any gets the host's default, so
-    capped too. A ``guest`` gets live rows only where ``surfaces.guest`` is
-    ``live``: what ``snapshot`` allows, snapshots, aren't served yet.
+    None when there is no widget, or when the caller may see no version of the
+    artifact; the host answers that as a widget without data. A binding that
+    doesn't map onto the host's data request, that isn't ``live`` or that
+    ``policy`` refuses has no query, so no dataset, and the renderer fails the
+    frame's data for want of it. Every binding carries its row limit, capped
+    by the policy's ``data.max_rows``: one declared without any gets the
+    host's default, so capped too. A ``guest`` gets live rows only where
+    ``surfaces.guest`` is ``live``: what ``snapshot`` allows, snapshots,
+    aren't served yet.
     """
     if request.widget_id is None or (guest and policy.surfaces.guest != "live"):
-        return None
+        return []
     try:
         served = choose_version(
             store,
@@ -81,17 +81,18 @@ def artifact_binding(
             use_draft=request.draft_token is not None,
         )
         manifest = store.manifest_at(served.artifact_id, served.version)
-        declared = manifest.bindings.get(request.name)
-        if (
-            declared is None
-            or declared.mode != "live"
-            or binding_problems(request.name, declared, policy)
-        ):
-            return None
-        binding = resolve_binding(manifest, request.name)
+    except ArtifactError:
+        return []
+    queries = []
+    for name, declared in manifest.bindings.items():
+        if declared.mode != "live" or binding_problems(name, declared, policy):
+            continue
+        try:
+            binding = resolve_binding(manifest, name)
+        except BindingError:
+            continue
         binding["rowLimit"] = min(
             declared.row_limit or HOST_ROW_LIMIT, policy.data.max_rows
         )
-        return binding
-    except (ArtifactError, BindingError):
-        return None
+        queries.append(WidgetQuery(name, binding))
+    return queries

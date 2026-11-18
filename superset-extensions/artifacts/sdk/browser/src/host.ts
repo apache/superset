@@ -70,8 +70,7 @@ export interface ChannelError {
 export interface BridgeLimits {
   /**
    * Queries that the frame's own requests may run while the channel is open:
-   * a `query` runs one, a `refresh` one per binding it fetches again
-   * (`refreshQueries`).
+   * each `query` and `refresh` runs `queriesPerRequest`.
    */
   queries: number;
   /** Requests the frame may send in any one second. */
@@ -108,12 +107,12 @@ export interface FrameChannelOptions {
    */
   limits?: Partial<BridgeLimits>;
   /**
-   * The queries a `refresh` runs: one for each binding the manifest declares,
-   * when a refresh fetches them all again. A refresh costs at least one.
-   * Without a number of zero or more, it costs one per binding delivered so
-   * far.
+   * The queries each `query` and `refresh` runs: one for each binding the
+   * manifest declares, when one data request fetches them all, as it does for
+   * a widget's data. A request costs at least one. Without a number of zero
+   * or more, it costs one per binding delivered so far.
    */
-  refreshQueries?: number;
+  queriesPerRequest?: number;
   /**
    * Called once if the frame hasn't completed its handshake
    * `handshakeTimeoutMs` after the channel opened, as when its link expired
@@ -196,7 +195,7 @@ export function createFrameChannel({
   onRequest,
   onError,
   limits,
-  refreshQueries,
+  queriesPerRequest,
   onHandshakeTimeout,
   handshakeTimeoutMs = HANDSHAKE_TIMEOUT_MS,
   hostWindow,
@@ -286,11 +285,11 @@ export function createFrameChannel({
     return undefined;
   };
 
-  const queryProblem = (request: FrameRequest): string | undefined => {
-    const refreshCost = isCount(refreshQueries)
-      ? refreshQueries
-      : delivered.size;
-    const cost = request.type === 'refresh' ? Math.max(1, refreshCost) : 1;
+  const queryProblem = (): string | undefined => {
+    const cost = Math.max(
+      1,
+      isCount(queriesPerRequest) ? queriesPerRequest : delivered.size,
+    );
     if (queries + cost > caps.queries) {
       return `this frame may run at most ${caps.queries} queries`;
     }
@@ -336,7 +335,7 @@ export function createFrameChannel({
     const problem =
       request.type === 'setCrossFilter'
         ? crossFilterProblem(request.value)
-        : queryProblem(request);
+        : queryProblem();
     if (problem) {
       refuse(`refused ${request.type}: ${problem}`);
       return;

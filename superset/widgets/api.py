@@ -426,12 +426,12 @@ class WidgetRestApi(BaseSupersetModelRestApi):
         post:
           summary: Get a saved widget's data
           description: >-
-            Runs the query the widget's stored `dataBinding` describes, as the
-            caller, narrowed by `runtime_filters` on the binding's dataset,
-            without a canvas. With `binding`, runs that named binding instead:
-            the widget type's own, or one the props declare in `bindings`.
-            The dataset includes the query that ran when the caller can view
-            queries.
+            Runs every query the widget's type builds from its stored props,
+            by default the `dataBinding` as the dataset `main`, as the caller,
+            each narrowed by `runtime_filters` on its dataset, without a
+            canvas, and answers each as a dataset of its name. One failing
+            query fails the request. Each dataset includes the query that ran
+            when the caller can view queries.
           parameters:
           - in: path
             schema:
@@ -456,8 +456,6 @@ class WidgetRestApi(BaseSupersetModelRestApi):
                           values:
                             type: array
                             items: {}
-                    binding:
-                      type: string
           responses:
             200:
               description: The widget's datasets
@@ -480,11 +478,7 @@ class WidgetRestApi(BaseSupersetModelRestApi):
             return self.response(400, message=request_errors(ex))
         try:
             return data_response(
-                self,
-                body.binding,
-                GetWidgetDataCommand(
-                    widget_uuid, body.runtime_filters, body.binding
-                ).run,
+                self, GetWidgetDataCommand(widget_uuid, body.runtime_filters).run
             )
         except WidgetNotFoundError:
             return self.response_404()

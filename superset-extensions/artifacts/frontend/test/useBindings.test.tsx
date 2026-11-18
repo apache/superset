@@ -28,18 +28,23 @@ type Rows = Record<string, unknown>[];
 function dataRequests() {
   const pending: {
     body: Record<string, unknown>;
-    answer: (rows: Rows) => void;
+    answer: (datasets: Record<string, Rows>) => void;
   }[] = [];
   globalThis.fetch = vi.fn(
     (_path: string, init?: RequestInit) =>
       new Promise<Response>(resolve => {
         pending.push({
           body: JSON.parse(String(init?.body ?? '{}')),
-          answer: rows =>
+          answer: datasets =>
             resolve({
               ok: true,
               json: async () => ({
-                result: { datasets: [{ inline_data: rows }] },
+                result: {
+                  datasets: Object.entries(datasets).map(([name, rows]) => ({
+                    name,
+                    inline_data: rows,
+                  })),
+                },
               }),
             } as Response),
         });
@@ -52,11 +57,18 @@ function dataRequests() {
 async function answer(
   pending: ReturnType<typeof dataRequests>,
   index: number,
-  rows: Rows,
+  datasets: Record<string, Rows>,
 ) {
   await waitFor(() => expect(pending.length).toBeGreaterThan(index));
-  await act(async () => pending[index].answer(rows));
+  await act(async () => pending[index].answer(datasets));
 }
+
+const manifestOf = (...names: string[]) =>
+  ({
+    bindings: Object.fromEntries(
+      names.map(name => [name, { source: { kind: 'dataset', dataset_id: 1 } }]),
+    ),
+  }) as unknown as HostManifest;
 
 const manifestOn = (datasetId: number) =>
   ({
@@ -69,6 +81,62 @@ const source: BindingSource = {
   placementId: 'node',
 };
 
+test('one request fetches every binding, sending only the filters', async () => {
+  const pending = dataRequests();
+  const manifest = manifestOf('sales', 'costs');
+  const filters = [{ datasetId: 1, column: 'region', values: ['EMEA'] }];
+  const { result } = renderHook(() => useBindings(manifest, source, filters));
+
+  await answer(pending, 0, {
+    sales: [{ revenue: 12 }],
+    costs: [{ cost: 3 }],
+    undeclared: [{ secret: 1 }],
+  });
+
+  await waitFor(() => expect(result.current.status).toBe('ok'));
+  expect(pending).toHaveLength(1);
+  expect(pending[0].body).toEqual({ runtime_filters: filters });
+  expect(result.current.bindings).toEqual({
+    sales: { rows: [{ revenue: 12 }] },
+    costs: { rows: [{ cost: 3 }] },
+  });
+});
+
+test('a binding the answer has no dataset for fails them all', async () => {
+  const pending = dataRequests();
+  const manifest = manifestOf('sales', 'costs');
+  const { result } = renderHook(() => useBindings(manifest, source, []));
+
+  await answer(pending, 0, { sales: [{ revenue: 12 }] });
+
+  await waitFor(() => expect(result.current.status).toBe('error'));
+  expect(result.current.error).toBe('no data for "costs"');
+  expect(result.current.bindings).toEqual({});
+});
+
+test('a rerun replaces only the binding it names', async () => {
+  const pending = dataRequests();
+  const manifest = manifestOf('sales', 'costs');
+  const { result } = renderHook(() => useBindings(manifest, source, []));
+  await answer(pending, 0, { sales: [{ v: 1 }], costs: [{ v: 1 }] });
+  await waitFor(() => expect(result.current.status).toBe('ok'));
+  const costs = result.current.bindings.costs;
+
+  let rerun: Promise<void> | undefined;
+  act(() => {
+    rerun = result.current.rerun('sales');
+  });
+  await answer(pending, 1, { sales: [{ v: 2 }], costs: [{ v: 2 }] });
+  await act(async () => {
+    await rerun;
+  });
+
+  expect(pending).toHaveLength(2);
+  expect(result.current.bindings.sales.rows).toEqual([{ v: 2 }]);
+  // The same object, so the frame host doesn't send it again.
+  expect(result.current.bindings.costs).toBe(costs);
+});
+
 test("a new manifest's bindings stay empty until its own results land", async () => {
   const pending = dataRequests();
   const published = manifestOn(1);
@@ -77,7 +145,7 @@ test("a new manifest's bindings stay empty until its own results land", async ()
     ({ manifest }) => useBindings(manifest, source, []),
     { initialProps: { manifest: published } },
   );
-  await answer(pending, 0, [{ region: 'OLD' }]);
+  await answer(pending, 0, { b: [{ region: 'OLD' }] });
   await waitFor(() => expect(result.current.status).toBe('ok'));
   expect(result.current.bindings.b.rows).toEqual([{ region: 'OLD' }]);
 
@@ -85,7 +153,7 @@ test("a new manifest's bindings stay empty until its own results land", async ()
 
   expect(result.current.bindings).toEqual({});
   expect(result.current.status).toBe('loading');
-  await answer(pending, 1, [{ region: 'NEW' }]);
+  await answer(pending, 1, { b: [{ region: 'NEW' }] });
   await waitFor(() => expect(result.current.status).toBe('ok'));
   expect(result.current.bindings.b.rows).toEqual([{ region: 'NEW' }]);
 });
@@ -97,7 +165,7 @@ test('results stand across a filter change until the new ones land', async () =>
     ({ filters }) => useBindings(manifest, source, filters),
     { initialProps: { filters: [] as never[] } },
   );
-  await answer(pending, 0, [{ region: 'EMEA' }]);
+  await answer(pending, 0, { b: [{ region: 'EMEA' }] });
   await waitFor(() => expect(result.current.status).toBe('ok'));
 
   rerender({
@@ -111,7 +179,7 @@ test('a rerun that a full fetch overtakes is dropped', async () => {
   const pending = dataRequests();
   const manifest = manifestOn(1);
   const { result } = renderHook(() => useBindings(manifest, source, []));
-  await answer(pending, 0, [{ v: 'first' }]);
+  await answer(pending, 0, { b: [{ v: 'first' }] });
   await waitFor(() => expect(result.current.status).toBe('ok'));
 
   let rerun: Promise<void> | undefined;
@@ -120,11 +188,11 @@ test('a rerun that a full fetch overtakes is dropped', async () => {
   });
   await waitFor(() => expect(pending).toHaveLength(2));
   act(() => result.current.refresh());
-  await answer(pending, 2, [{ v: 'refreshed' }]);
+  await answer(pending, 2, { b: [{ v: 'refreshed' }] });
   await waitFor(() =>
     expect(result.current.bindings.b.rows).toEqual([{ v: 'refreshed' }]),
   );
-  await answer(pending, 1, [{ v: 'stale rerun' }]);
+  await answer(pending, 1, { b: [{ v: 'stale rerun' }] });
   await act(async () => {
     await rerun;
   });

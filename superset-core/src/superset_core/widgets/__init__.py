@@ -31,10 +31,6 @@ from superset_core.widgets.behavior import (
     WidgetBehavior as WidgetBehavior,
     WidgetUi as WidgetUi,
 )
-from superset_core.widgets.bindings import (
-    BindingRequest as BindingRequest,
-    BindingResolver as BindingResolver,
-)
 from superset_core.widgets.composites import (
     composite_control as composite_control,
     list_composite_controls as list_composite_controls,
@@ -42,3 +38,7 @@ from superset_core.widgets.composites import (
 )
 from superset_core.widgets.decorators import widget as widget
 from superset_core.widgets.enrichment import EnricherFn as EnricherFn
+from superset_core.widgets.queries import (
+    QueryRequest as QueryRequest,
+    WidgetQuery as WidgetQuery,
+)

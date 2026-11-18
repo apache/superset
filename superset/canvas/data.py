@@ -20,12 +20,15 @@ A placement's data, queried on the server from its stored ``dataBinding``.
 The binding always comes from the canvas (or draft) definition; a caller only
 adds runtime filters, which narrow the binding's own dataset. The canvas page,
 MCP tools and anything else reading a placement therefore run the same query.
-This stands in for SIP-231's ``build_queries`` until widgets declare their own.
+A data request runs every query the widget type builds from the props
+(``Widget.build_queries``, by default the ``dataBinding`` alone) and answers
+each as a dataset of its name; bindings stand in for SIP-231's
+``SemanticQuery`` until widgets query through it.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, TYPE_CHECKING
 
@@ -53,9 +56,6 @@ class PlacementDataRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     runtime_filters: list[RuntimeFilter] = Field(default_factory=list, max_length=100)
-    # One of the named bindings the props declare in ``bindings``; without it,
-    # the placement's ``dataBinding`` runs.
-    binding: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 @dataclass(frozen=True)
@@ -67,30 +67,33 @@ class PlacementData:
 
 
 def datasets_payload(
-    name: str, data: PlacementData, *, with_query: bool
+    datasets: Mapping[str, PlacementData], *, with_query: bool
 ) -> dict[str, Any]:
     """
-    A data request's answer: one dataset, ``name``, with its rows, and the
+    A data request's answer: each dataset, by name, with its rows, and the
     query that produced them when the caller may view queries.
     """
-    dataset: dict[str, Any] = {
-        "name": name,
-        "row_count": len(data.rows),
-        "inline_data": data.rows,
-    }
-    if data.query and with_query:
-        dataset["query"] = data.query
-        dataset["language"] = data.language
-    return {"result": {"datasets": [dataset]}}
+    answered: list[dict[str, Any]] = []
+    for name, data in datasets.items():
+        dataset: dict[str, Any] = {
+            "name": name,
+            "row_count": len(data.rows),
+            "inline_data": data.rows,
+        }
+        if data.query and with_query:
+            dataset["query"] = data.query
+            dataset["language"] = data.language
+        answered.append(dataset)
+    return {"result": {"datasets": answered}}
 
 
 def data_response(
-    api: BaseApi, binding: str | None, run: Callable[[], PlacementData]
+    api: BaseApi, run: Callable[[], Mapping[str, PlacementData]]
 ) -> Response:
     """
-    A data endpoint's answer to ``run``, which runs a binding's query as
-    ``run_binding`` does: the datasets of ``binding`` (``main`` for none), or
-    the error the caller may see of what it raises.
+    A data endpoint's answer to ``run``, which runs a widget's queries as
+    ``run_binding`` does: their datasets, or the error the caller may see of
+    what it raises. One failing query fails them all.
     """
     # pylint: disable=import-outside-toplevel
     from flask import Response
@@ -104,8 +107,10 @@ def data_response(
     from superset.extensions import security_manager
     from superset.utils import json
 
+    # TODO: classify failures through canvas_query_error once
+    # https://github.com/apache/superset/pull/46250 merges.
     try:
-        data = run()
+        datasets = run()
     except DatasourceNotFound:
         return api.response_404()
     except SupersetSecurityException:
@@ -114,8 +119,7 @@ def data_response(
         return api.response_400(message=str(ex.message))
     # Classic charts gate "View query" on the same permission.
     payload = datasets_payload(
-        binding or "main",
-        data,
+        datasets,
         with_query=security_manager.can_access("can_view_query", "Dashboard"),
     )
     return Response(

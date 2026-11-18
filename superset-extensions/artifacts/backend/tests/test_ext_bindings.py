@@ -28,15 +28,15 @@ from superset_artifacts_sdk.authoring import (
     ArtifactRequestPublishRequest,
 )
 from superset_artifacts_sdk.manifest import ArtifactManifest
-from superset_artifacts_sdk.policy import LOCKED, policy_layer
+from superset_artifacts_sdk.policy import ArtifactPolicy, LOCKED, policy_layer
 from superset_artifacts_sdk.testing import InMemoryArtifactStore
-from superset_core.widgets import BindingRequest
+from superset_core.widgets import QueryRequest, WidgetQuery
 from superset_oss.artifacts.data.bindings import (
     binding_problems,
     BindingError,
     resolve_binding,
 )
-from superset_oss.artifacts.data.resolver import artifact_binding, HOST_ROW_LIMIT
+from superset_oss.artifacts.data.queries import artifact_queries, HOST_ROW_LIMIT
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 OWNER = "1"
@@ -154,18 +154,26 @@ def publish(store: ArtifactFileStore, artifact_id: str, version: str) -> None:
     store.confirm_publish(OWNER, artifact_id, pending.request_id)
 
 
-def asked(
-    widget_id: str | None, name: str = "revenue", draft_token: str | None = None
-) -> BindingRequest:
+def asked(widget_id: str | None, draft_token: str | None = None) -> QueryRequest:
     """What the host asks the artifact widget type, for one of its placements."""
-    return BindingRequest(
+    return QueryRequest(
         canvas_id="7",
         placement_id="sales",
         props={},
-        name=name,
         draft_token=draft_token,
         widget_id=widget_id,
     )
+
+
+def two_bindings(costs: dict[str, Any]) -> ArtifactManifest:
+    """``manifest()``'s ``revenue``, and a ``costs`` binding as given."""
+    declared = manifest().model_dump(mode="json", exclude_none=True)
+    declared["bindings"]["costs"] = costs
+    return ArtifactManifest.model_validate(declared)
+
+
+def names(queries: list[WidgetQuery]) -> list[str]:
+    return [query.name for query in queries]
 
 
 def test_a_binding_comes_from_the_version_its_frame_loads(
@@ -184,16 +192,18 @@ def test_a_binding_comes_from_the_version_its_frame_loads(
     unpublished, _ = create(store, unpublished_manifest)
     editor = Access(artifact_id, unpublished)
 
-    def dataset(access: Access, draft_token: str | None = None) -> int | None:
-        binding = artifact_binding(
+    def dataset(access: Access, draft_token: str | None = None) -> object:
+        [query] = artifact_queries(
             store, LOCKED, access, asked(artifact_id, draft_token=draft_token)
         )
-        return None if binding is None else binding["datasetId"]
+        return query.binding["datasetId"]
 
-    assert artifact_binding(store, LOCKED, VIEWER, asked(artifact_id)) == {
-        **resolve_binding(manifest(), "revenue"),
-        "rowLimit": HOST_ROW_LIMIT,
-    }
+    assert artifact_queries(store, LOCKED, VIEWER, asked(artifact_id)) == [
+        WidgetQuery(
+            "revenue",
+            {**resolve_binding(manifest(), "revenue"), "rowLimit": HOST_ROW_LIMIT},
+        )
+    ]
     # Outside a draft of the canvas, everyone runs the published version.
     assert dataset(VIEWER) == dataset(editor) == 42
     # In their own draft of the canvas, editors run the artifact's draft; anyone
@@ -201,52 +211,65 @@ def test_a_binding_comes_from_the_version_its_frame_loads(
     assert dataset(editor, "token") == 43
     assert dataset(VIEWER, "token") == 42
     # As the frame does, an editor previews an unpublished artifact's draft.
-    assert artifact_binding(store, LOCKED, editor, asked(unpublished)) == {
-        **resolve_binding(unpublished_manifest, "revenue"),
-        "rowLimit": HOST_ROW_LIMIT,
-    }
-
-
-def test_a_binding_is_none_when_nothing_would_run(store: ArtifactFileStore) -> None:
-    artifact_id, published = create(store, manifest())
-    publish(store, artifact_id, published)
-    unpublished, _ = create(store, manifest())
-    chart, _ = create(
-        store,
-        ArtifactManifest.model_validate(
+    assert artifact_queries(store, LOCKED, editor, asked(unpublished)) == [
+        WidgetQuery(
+            "revenue",
             {
-                "artifact_version": "1",
-                "bindings": {"sales": {"source": {"kind": "chart", "chart_id": 3}}},
-                "capabilities": ["data"],
-            }
-        ),
-    )
-    publish(store, chart, store.draft_version(chart))
+                **resolve_binding(unpublished_manifest, "revenue"),
+                "rowLimit": HOST_ROW_LIMIT,
+            },
+        )
+    ]
 
-    def binding(widget_id: str | None, name: str = "revenue") -> object:
-        return artifact_binding(store, LOCKED, VIEWER, asked(widget_id, name))
+
+def test_every_binding_that_would_run_is_a_query(store: ArtifactFileStore) -> None:
+    both, version = create(
+        store,
+        two_bindings({"source": {"kind": "dataset", "dataset_id": 7}}),
+    )
+    publish(store, both, version)
+
+    queries = artifact_queries(store, LOCKED, VIEWER, asked(both))
+
+    assert names(queries) == ["revenue", "costs"]
+    assert queries[1].binding["datasetId"] == 7
+
+
+def test_no_query_runs_what_nothing_would_run(store: ArtifactFileStore) -> None:
+    unpublished, _ = create(store, manifest())
+    chart, version = create(
+        store, two_bindings({"source": {"kind": "chart", "chart_id": 3}})
+    )
+    publish(store, chart, version)
+
+    def queried(widget_id: str | None) -> list[str]:
+        return names(artifact_queries(store, LOCKED, VIEWER, asked(widget_id)))
 
     # No saved widget, or not one the store holds.
-    assert binding(None) is None
-    assert binding("not-a-uuid") is None
-    assert binding(str(uuid4())) is None
-    # A name the manifest doesn't declare, and a binding that doesn't map.
-    assert binding(artifact_id, "missing") is None
-    assert binding(chart, "sales") is None
+    assert queried(None) == []
+    assert queried("not-a-uuid") == []
+    assert queried(str(uuid4())) == []
+    # A binding that doesn't map has no query; the others still run.
+    assert queried(chart) == ["revenue"]
     # A version a viewer may not see: the draft of an unpublished artifact.
-    assert binding(unpublished) is None
+    assert queried(unpublished) == []
 
 
 def test_the_policy_is_checked_on_every_query(store: ArtifactFileStore) -> None:
     """A tighter policy reaches a published artifact at its next query."""
-    artifact_id, version = create(store, manifest())
+    artifact_id, version = create(
+        store, two_bindings({"source": {"kind": "dataset", "dataset_id": 7}})
+    )
     publish(store, artifact_id, version)
     elsewhere = policy_layer(
         {"profile": "locked", "data": {"resources": ["dataset:7"]}}
     )
 
-    assert artifact_binding(store, LOCKED, VIEWER, asked(artifact_id)) is not None
-    assert artifact_binding(store, elsewhere, VIEWER, asked(artifact_id)) is None
+    def queried(policy: ArtifactPolicy) -> list[str]:
+        return names(artifact_queries(store, policy, VIEWER, asked(artifact_id)))
+
+    assert queried(LOCKED) == ["revenue", "costs"]
+    assert queried(elsewhere) == ["costs"]
 
 
 def test_the_policys_max_rows_caps_every_binding(store: ArtifactFileStore) -> None:
@@ -257,8 +280,8 @@ def test_the_policys_max_rows_caps_every_binding(store: ArtifactFileStore) -> No
     hundred = policy_layer({"profile": "locked", "data": {"max_rows": 100}})
 
     def row_limit(artifact_id: str, policy: Any) -> object:
-        binding = artifact_binding(store, policy, VIEWER, asked(artifact_id))
-        return None if binding is None else binding["rowLimit"]
+        [query] = artifact_queries(store, policy, VIEWER, asked(artifact_id))
+        return query.binding["rowLimit"]
 
     # One without a row limit runs with the host's default, capped too.
     assert row_limit(undeclared, LOCKED) == HOST_ROW_LIMIT
@@ -274,10 +297,10 @@ def test_a_guest_gets_no_live_rows(store: ArtifactFileStore) -> None:
     open_policy = policy_layer({"profile": "open"})
     assert open_policy.surfaces.guest == "snapshot"
 
-    assert artifact_binding(store, open_policy, VIEWER, asked(artifact_id))
+    assert artifact_queries(store, open_policy, VIEWER, asked(artifact_id))
     assert (
-        artifact_binding(store, open_policy, VIEWER, asked(artifact_id), guest=True)
-        is None
+        artifact_queries(store, open_policy, VIEWER, asked(artifact_id), guest=True)
+        == []
     )
 
 
@@ -285,7 +308,14 @@ def test_a_snapshot_binding_has_no_live_data() -> None:
     """Snapshots are minted by the server, never run as the viewer at view time."""
     standard = policy_layer({"profile": "standard"})
     store = ArtifactFileStore(InMemoryArtifactStore(), policy=standard)
-    artifact_id, version = create(store, manifest(mode="snapshot"))
+    artifact_id, version = create(
+        store,
+        two_bindings(
+            {"source": {"kind": "dataset", "dataset_id": 42}, "mode": "snapshot"}
+        ),
+    )
     publish(store, artifact_id, version)
 
-    assert artifact_binding(store, standard, VIEWER, asked(artifact_id)) is None
+    queries = artifact_queries(store, standard, VIEWER, asked(artifact_id))
+
+    assert names(queries) == ["revenue"]

@@ -18,11 +18,12 @@
  */
 
 /**
- * @fileoverview A frame's bindings: every one fetched when the manifest, the
- * source or the filters change, or on `refresh`, and one at a time on
- * `rerun`. A result that `rerun` replaces leaves the others' objects as they
- * were, so the frame host sends the frame only the one that changed. A
- * `rerun` that a full fetch overtakes is dropped, as it ran on older inputs.
+ * @fileoverview A frame's bindings, all from one data request: fetched when
+ * the manifest, the source or the filters change, or on `refresh`. A `rerun`
+ * fetches them all as well, but replaces only the result of the binding it
+ * names, leaving the others' objects as they were, so the frame host sends
+ * the frame only the one that changed. A `rerun` that a full fetch overtakes
+ * is dropped, as it ran on older inputs.
  *
  * Results belong to the manifest and the source they were fetched for: until
  * a new manifest's or source's own results land, there are none, so a new
@@ -34,12 +35,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BindingData, FrameStatus } from '@superset-oss/artifacts-sdk';
 import type { HostManifest } from '../frames/api';
 import { errorMessage } from '../http';
-import {
-  BindingSource,
-  fetchBinding,
-  fetchBindings,
-  SelectFilterValue,
-} from './bindings';
+import { BindingSource, fetchBindings, SelectFilterValue } from './bindings';
 
 export interface Bindings {
   /** Each binding's latest result, by name. */
@@ -49,7 +45,7 @@ export interface Bindings {
   error?: string;
   /** Run every binding again. */
   refresh: () => void;
-  /** Run one binding again; rejects when it fails. */
+  /** Fetch the bindings again for one of them; rejects when that fails. */
   rerun: (binding: string) => Promise<void>;
 }
 
@@ -76,8 +72,8 @@ export default function useBindings(
   // caller; their keys say when they changed.
   const sourceKey = JSON.stringify(source ?? null);
   const filtersKey = JSON.stringify(filters);
-  const latest = useRef({ source, filters });
-  latest.current = { source, filters };
+  const latest = useRef({ manifest, source, filters });
+  latest.current = { manifest, source, filters };
   const generation = useRef(0);
 
   useEffect(() => {
@@ -119,19 +115,25 @@ export default function useBindings(
   const refresh = useCallback(() => setNonce(value => value + 1), []);
 
   const rerun = useCallback(async (binding: string) => {
-    const { source: from, filters: selected } = latest.current;
-    if (!from) return;
+    const {
+      manifest: declared,
+      source: from,
+      filters: selected,
+    } = latest.current;
+    if (!declared || !from) return;
     const started = generation.current;
-    const data = await fetchBinding(from, binding, selected);
-    if (generation.current === started) {
-      setFetched(
-        current =>
-          current && {
-            ...current,
-            bindings: { ...current.bindings, [binding]: data },
-          },
-      );
+    const data = await fetchBindings(declared, from, selected);
+    if (generation.current !== started) return;
+    if (!Object.prototype.hasOwnProperty.call(data, binding)) {
+      throw new Error(`no binding named "${binding}"`);
     }
+    setFetched(
+      current =>
+        current && {
+          ...current,
+          bindings: { ...current.bindings, [binding]: data[binding] },
+        },
+    );
   }, []);
 
   const own =

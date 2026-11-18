@@ -18,15 +18,14 @@
 
 from __future__ import annotations
 
-from functools import partial
 from typing import Any
 from uuid import UUID
 
-from superset_core.widgets import BindingRequest
+from superset_core.widgets import QueryRequest
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.commands.base import BaseCommand
-from superset.commands.canvas.placement_data import select_binding
+from superset.commands.canvas.placement_data import widget_queries
 from superset.commands.widget.exceptions import (
     WidgetNotFoundError,
     WidgetUnboundError,
@@ -36,42 +35,36 @@ from superset.daos.widget import WidgetDAO
 
 class GetWidgetDataCommand(BaseCommand):
     """
-    Run a saved widget's query as the caller, as a placement of it would.
+    Run a saved widget's queries as the caller, as a placement of it would.
 
-    The query comes from the widget's stored props, or from its widget type's
-    binding resolver for a named binding; the caller only adds runtime
-    filters. Reading needs access to the widget, which ``WidgetDAO``'s filter
-    checks, and to the binding's dataset, which the chart data pipeline does.
+    The queries come from the widget's stored props, as its widget type builds
+    them; the caller only adds runtime filters. Reading needs access to the
+    widget, which ``WidgetDAO``'s filter checks, and to each query's dataset,
+    which the chart data pipeline does.
     """
 
-    def __init__(
-        self,
-        widget_uuid: UUID,
-        runtime_filters: list[RuntimeFilter],
-        binding_name: str | None = None,
-    ) -> None:
+    def __init__(self, widget_uuid: UUID, runtime_filters: list[RuntimeFilter]) -> None:
         self._widget_uuid = widget_uuid
         self._runtime_filters = runtime_filters
-        self._binding_name = binding_name
-        self._binding: dict[str, Any] = {}
+        self._bindings: dict[str, dict[str, Any]] = {}
 
-    def run(self) -> PlacementData:
+    def run(self) -> dict[str, PlacementData]:
+        """Each query's data, by name; one failing query fails them all."""
         self.validate()
-        return run_binding(self._binding, self._runtime_filters)
+        return {
+            name: run_binding(binding, self._runtime_filters)
+            for name, binding in self._bindings.items()
+        }
 
     def validate(self) -> None:
         widget = WidgetDAO.find_one_or_none(uuid=self._widget_uuid)
         if widget is None:
             raise WidgetNotFoundError(str(self._widget_uuid))
-        props = dict(widget.props or {})
-        binding = select_binding(
+        self._bindings = widget_queries(
             widget.widget_type,
-            props,
-            self._binding_name,
-            partial(
-                BindingRequest, None, None, props, widget_id=str(self._widget_uuid)
+            QueryRequest(
+                None, None, dict(widget.props or {}), widget_id=str(self._widget_uuid)
             ),
         )
-        if binding is None:
+        if not self._bindings:
             raise WidgetUnboundError()
-        self._binding = binding
