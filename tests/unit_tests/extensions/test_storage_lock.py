@@ -123,7 +123,7 @@ def test_a_compare_and_set_that_outlives_its_lock_writes_nothing_stale(
     results: list[tuple[str, bool]] = []
     lapsed: list[bool] = []
 
-    def outlive_the_lock(*args: Any) -> None:
+    def outlive_the_lock(*args: Any, **kwargs: Any) -> None:
         if not lapsed:
             lapsed.append(True)
             # The first writer's lock ran out here, after its comparison and
@@ -140,7 +140,7 @@ def test_a_compare_and_set_that_outlives_its_lock_writes_nothing_stale(
                     ),
                 )
             )
-        check_quota(*args)
+        check_quota(*args, **kwargs)
 
     with NO_COORDINATION_BACKEND:
         write(lambda storage: storage.set("key", {"v": 1}))

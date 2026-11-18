@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
+from sqlalchemy.orm import Session
 from superset_core.extensions.storage.persistent import (
     PersistentListEntry,
     PersistentListOptions,
@@ -34,6 +35,7 @@ from superset_core.extensions.storage.persistent import (
     PersistentState as CorePersistentState,
 )
 
+from superset import db
 from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec
 from superset.extensions.storage.persistent_dao import ExtensionStorageDAO
 from superset.extensions.storage.utils import (
@@ -95,15 +97,17 @@ def _compare_and_set(
     """Shared `compare_and_set` implementation for both scopes."""
     encrypt = options.encrypt if options is not None else False
     codec = options.codec if options is not None else DEFAULT_CODEC
-    return ExtensionStorageDAO.compare_and_set(
-        extension_id,
-        key,
-        expected,
-        get_codec(codec).encode(value),
-        codec=codec,
-        user_fk=user_fk,
-        encrypt=encrypt,
-    )
+    with Session(bind=db.session.get_bind()) as session:
+        return ExtensionStorageDAO.compare_and_set(
+            extension_id,
+            key,
+            expected,
+            get_codec(codec).encode(value),
+            codec=codec,
+            user_fk=user_fk,
+            encrypt=encrypt,
+            session=session,
+        )
 
 
 class SharedPersistentStateAccessor:
@@ -144,14 +148,16 @@ class SharedPersistentStateAccessor:
         extension_id = _get_extension_id()
         encrypt = options.encrypt if options is not None else False
         codec = options.codec if options is not None else DEFAULT_CODEC
-        ExtensionStorageDAO.set(
-            extension_id,
-            key,
-            get_codec(codec).encode(value),
-            codec=codec,
-            user_fk=None,
-            encrypt=encrypt,
-        )
+        with Session(bind=db.session.get_bind()) as session:
+            ExtensionStorageDAO.set(
+                extension_id,
+                key,
+                get_codec(codec).encode(value),
+                codec=codec,
+                user_fk=None,
+                encrypt=encrypt,
+                session=session,
+            )
 
     def compare_and_set(
         self,
@@ -242,14 +248,16 @@ class PersistentState(CorePersistentState):
         user_id = get_current_user_id("persistent_state")
         encrypt = options.encrypt if options is not None else False
         codec = options.codec if options is not None else DEFAULT_CODEC
-        ExtensionStorageDAO.set(
-            extension_id,
-            key,
-            get_codec(codec).encode(value),
-            codec=codec,
-            user_fk=user_id,
-            encrypt=encrypt,
-        )
+        with Session(bind=db.session.get_bind()) as session:
+            ExtensionStorageDAO.set(
+                extension_id,
+                key,
+                get_codec(codec).encode(value),
+                codec=codec,
+                user_fk=user_id,
+                encrypt=encrypt,
+                session=session,
+            )
 
     @staticmethod
     def compare_and_set(
