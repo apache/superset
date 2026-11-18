@@ -55,6 +55,7 @@ import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import type { RootState, Datasource, Slice } from 'src/dashboard/types';
 import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
+import { selectHasCrossFilterTargets } from 'src/dashboard/util/crossFilters';
 import {
   convertChartStateToOwnState,
   hasChartStateConverter,
@@ -235,17 +236,12 @@ const Chart = (props: ChartProps) => {
     (state: RootState) =>
       state.dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT as number,
   );
-  const emitCrossFilters = useSelector((state: RootState) => {
-    if (!state.dashboardInfo.crossFiltersEnabled) {
-      return false;
-    }
-    // A chart whose cross-filter scope targets no other chart must not emit,
-    // otherwise it creates a filter-bar entry that filters nothing.
-    const chartsInScope =
-      state.dashboardInfo.metadata?.chart_configuration?.[props.id]
-        ?.crossFilters?.chartsInScope;
-    return !chartsInScope || chartsInScope.some(id => id !== props.id);
-  });
+  const emitCrossFilters = useSelector(
+    (state: RootState) => !!state.dashboardInfo.crossFiltersEnabled,
+  );
+  const hasCrossFilterTargets = useSelector((state: RootState) =>
+    selectHasCrossFilterTargets(state, props.id),
+  );
   const maxRows: number = useSelector(
     (state: RootState) => state.dashboardInfo.common.conf.SQL_MAX_ROW as number,
   );
@@ -917,6 +913,7 @@ const Chart = (props: ChartProps) => {
           }
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
+          hasCrossFilterTargets={hasCrossFilterTargets}
           onChartStateChange={handleChartStateChange}
           suppressLoadingSpinner={suppressLoadingSpinner}
           filterState={dataMask[props.id]?.filterState}

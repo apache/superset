@@ -17,8 +17,15 @@
  * under the License.
  */
 import { useRef, useState } from 'react';
-import { ContextMenuFilters, FeatureFlag, VizType } from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  Behavior,
+  ChartMetadata,
+  ContextMenuFilters,
+  FeatureFlag,
+  getChartMetadataRegistry,
+  VizType,
+} from '@superset-ui/core';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import mockState from 'spec/fixtures/mockState';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
@@ -117,11 +124,15 @@ const TestWrapper = ({
   );
 };
 
-const setup = (openFilters?: ContextMenuFilters) =>
+const setup = (
+  openFilters?: ContextMenuFilters,
+  dashboardInfo: Record<string, unknown> = {},
+) =>
   render(<TestWrapper openFilters={openFilters} />, {
     useRedux: true,
     initialState: {
       ...mockState,
+      dashboardInfo: { ...mockState.dashboardInfo, ...dashboardInfo },
       user: {
         ...mockState.user,
         roles: {
@@ -367,4 +378,85 @@ test('semantic-view datasource resolves via the structure endpoint and renders t
       'Orders Status',
     );
   });
+});
+
+const crossFilterMenuFilters = (
+  isCurrentValueSelected: boolean,
+): ContextMenuFilters => ({
+  crossFilter: {
+    dataMask: {
+      extraFormData: { filters: [{ col: 'gender', op: 'IN', val: ['boy'] }] },
+      filterState: { value: ['boy'] },
+    },
+    isCurrentValueSelected,
+  },
+});
+
+const crossFilterDashboardInfo = (chartsInScope: number[]) => ({
+  crossFiltersEnabled: true,
+  metadata: {
+    ...mockState.dashboardInfo.metadata,
+    chart_configuration: {
+      [sliceId]: {
+        id: sliceId,
+        crossFilters: { scope: 'global', chartsInScope },
+      },
+    },
+  },
+});
+
+const openCrossFilterMenuItem = async (label: string) => {
+  await userEvent.click(screen.getByTestId('open-context-menu'));
+  return (await screen.findByText(label)).closest('[role="menuitem"]');
+};
+
+const registerInteractivePie = () => {
+  if (!getChartMetadataRegistry().has(VizType.Pie)) {
+    getChartMetadataRegistry().registerValue(
+      VizType.Pie,
+      new ChartMetadata({
+        name: 'Pie',
+        thumbnail: '',
+        behaviors: [Behavior.InteractiveChart],
+      }),
+    );
+  }
+};
+
+test('Add cross-filter is enabled when the chart cross-filter scope has targets', async () => {
+  registerInteractivePie();
+  setup(crossFilterMenuFilters(false), crossFilterDashboardInfo([sliceId + 1]));
+
+  const item = await openCrossFilterMenuItem('Add cross-filter');
+  expect(item).not.toHaveAttribute('aria-disabled', 'true');
+});
+
+test('Add cross-filter is disabled when the chart cross-filter scope has no targets', async () => {
+  registerInteractivePie();
+  setup(crossFilterMenuFilters(false), crossFilterDashboardInfo([]));
+
+  const item = await openCrossFilterMenuItem('Add cross-filter');
+  expect(item).toHaveAttribute('aria-disabled', 'true');
+
+  await userEvent.hover(
+    within(item as HTMLElement).getByTestId('tooltip-trigger'),
+  );
+  expect(
+    await screen.findByText(
+      "This chart's cross-filtering scope doesn't include any other charts.",
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(
+      'You can also just click on the chart to apply cross-filter.',
+    ),
+  ).not.toBeInTheDocument();
+});
+
+test('Remove cross-filter stays enabled when the chart cross-filter scope has no targets', async () => {
+  registerInteractivePie();
+  setup(crossFilterMenuFilters(true), crossFilterDashboardInfo([]));
+
+  const item = await openCrossFilterMenuItem('Remove cross-filter');
+  expect(item).not.toHaveAttribute('aria-disabled', 'true');
 });

@@ -18,6 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import {
+  createStore,
   render,
   screen,
   selectOption,
@@ -25,6 +26,7 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
@@ -306,4 +308,43 @@ test('edit scope and save', async () => {
       chartsInScope: [1, 3, 4],
     },
   });
+});
+
+const appliedCrossFilter = (value: string) => ({
+  extraFormData: { filters: [{ col: 'gender', op: 'IN', val: [value] }] },
+  filterState: { value: [value] },
+  ownState: { page: 2 },
+});
+
+test('saving a scope that leaves a chart with no targets clears its applied cross-filter', async () => {
+  const store = createStore(
+    {
+      ...INITIAL_STATE,
+      dataMask: {
+        2: { id: 2, ...appliedCrossFilter('girl') },
+        3: { id: 3, ...appliedCrossFilter('boy') },
+      },
+    },
+    reducerIndex,
+  );
+  render(<ScopingModal {...DEFAULT_PROPS} initialChartId={3} />, { store });
+
+  // deselect the only two targets of chart 3's custom scope
+  const tree = within(document.querySelector('.ant-tree')!);
+  await userEvent.click(tree.getByText('chart 2'));
+  await userEvent.click(tree.getByText('chart 4'));
+  await userEvent.click(screen.getByText('Save'));
+
+  await waitFor(() =>
+    expect(store.getState().dataMask[3].filterState).toEqual({
+      value: null,
+      selectedValues: null,
+    }),
+  );
+  expect(store.getState().dataMask[3].extraFormData).toEqual({ filters: [] });
+  expect(store.getState().dataMask[3].ownState).toEqual({ page: 2 });
+  // chart 2 still has targets, so its cross-filter is left alone
+  expect(store.getState().dataMask[2]).toEqual(
+    expect.objectContaining(appliedCrossFilter('girl')),
+  );
 });

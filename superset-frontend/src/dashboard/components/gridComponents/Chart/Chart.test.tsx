@@ -1306,22 +1306,28 @@ const stateWithCrossFilterScope = (chartsInScope?: number[]) => ({
   },
 });
 
-test('does not emit cross-filters when the chart cross-filter scope targets no other chart', () => {
+test('keeps cross-filter rendering on but reports no targets when the chart cross-filter scope targets no other chart', () => {
+  // emitCrossFilters drives plugin rendering (e.g. Table V2's numbered column
+  // and cell truncation), so it must keep following the dashboard setting.
   setup({}, stateWithCrossFilterScope([]));
-  expect(capturedChartContainerProps.emitCrossFilters).toBe(false);
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(false);
 
   setup({}, stateWithCrossFilterScope([queryId]));
-  expect(capturedChartContainerProps.emitCrossFilters).toBe(false);
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(false);
 });
 
-test('emits cross-filters when the chart cross-filter scope targets another chart', () => {
+test('reports cross-filter targets when the chart cross-filter scope targets another chart', () => {
   setup({}, stateWithCrossFilterScope([queryId + 1]));
   expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(true);
 });
 
-test('emits cross-filters when the chart has no cross-filter configuration', () => {
+test('reports cross-filter targets when the chart has no cross-filter configuration', () => {
   setup({}, stateWithCrossFilterScope());
   expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+  expect(capturedChartContainerProps.hasCrossFilterTargets).toBe(true);
 });
 
 test('does not emit cross-filters when cross-filtering is disabled on the dashboard', () => {
