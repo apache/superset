@@ -19,8 +19,8 @@
 import { useEffect, useCallback, type Dispatch } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
-import { Flex, EmptyState } from '@superset-ui/core/components';
-import { DatabaseSelector } from 'src/components/DatabaseSelector';
+import { Flex, EmptyState, Divider } from '@superset-ui/core/components';
+import { DatabaseSelectorPopover } from 'src/components/DatabaseSelector';
 import type { DatabaseObject } from 'src/components';
 import { TableBrowser } from 'src/SqlLab/components/TableExploreTree';
 import type { TableReference } from 'src/SqlLab/components/TableExploreTree/types';
@@ -64,14 +64,24 @@ export default function LeftPanel({
     <Flex
       vertical
       gap="small"
-      style={{ height: '100%', padding: theme.sizeUnit * 4 }}
+      style={{
+        height: '100%',
+        padding: theme.sizeUnit * 4,
+        position: 'relative',
+      }}
     >
-      <DatabaseSelector
-        showSchema={false}
+      <DatabaseSelectorPopover
         db={dataset?.db}
         handleError={addDangerToast}
         onDbChange={setDatabase}
         catalog={dataset?.catalog}
+        schema={dataset?.schema ?? undefined}
+        onSchemaChange={schema =>
+          setDataset({
+            type: DatasetActionType.SelectSchema,
+            payload: { name: 'schema', value: schema },
+          })
+        }
         onCatalogChange={catalog =>
           setDataset({
             type: DatasetActionType.SelectCatalog,
@@ -79,11 +89,13 @@ export default function LeftPanel({
           })
         }
       />
+      <Divider style={{ margin: 0 }} />
       {dataset?.db ? (
         <TableBrowser
           key={`${dataset.db.id}:${dataset.catalog ?? ''}`}
           dbId={dataset.db.id}
           supportsSchemas={dataset.db.supports_schemas}
+          schema={dataset.schema ?? undefined}
           catalog={dataset.catalog}
           onPreviewTable={onPreviewTable}
         />

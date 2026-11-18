@@ -43,6 +43,10 @@ import {
   LabeledValue as AntdLabeledValue,
   Button,
   Icons,
+  EmptyState,
+  Flex,
+  Popover,
+  Typography,
 } from '@superset-ui/core/components';
 
 import { ErrorMessageWithStackTrace } from 'src/components';
@@ -627,6 +631,126 @@ export function DatabaseSelector({
         showSchemaSelector &&
         renderSchemaSelect()}
     </DatabaseSelectorWrapper>
+  );
+}
+
+/** Render SQL Lab's connection/schema summary with a staged selection popover. */
+export function DatabaseSelectorPopover({
+  db,
+  catalog,
+  schema,
+  onDbChange,
+  onCatalogChange,
+  onSchemaChange,
+  compactMode,
+  ...selectorProps
+}: Omit<DatabaseSelectorProps, 'sqlLabMode' | 'onOpenModal'>) {
+  const [open, setOpen] = useState(false);
+  const [selectionSession, setSelectionSession] = useState(0);
+  const [draftDb, setDraftDb] = useState<DatabaseObject>();
+  const [draftCatalog, setDraftCatalog] = useState<string>();
+  const [draftSchema, setDraftSchema] = useState<string>();
+
+  const openSelector = () => {
+    setSelectionSession(session => session + 1);
+    setDraftDb(db ?? undefined);
+    setDraftCatalog(catalog ?? undefined);
+    setDraftSchema(schema);
+    setOpen(true);
+  };
+
+  const applySelection = () => {
+    const databaseChanged = draftDb?.id !== db?.id;
+    const catalogChanged = draftCatalog !== (catalog ?? undefined);
+    if (draftDb && databaseChanged) onDbChange?.(draftDb);
+    if (databaseChanged || catalogChanged) onCatalogChange?.(draftCatalog);
+    if (databaseChanged || catalogChanged || draftSchema !== schema) {
+      onSchemaChange?.(draftSchema);
+    }
+    setOpen(false);
+  };
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={nextOpen => {
+        if (nextOpen) openSelector();
+        else setOpen(false);
+      }}
+      placement="bottomLeft"
+      trigger="click"
+      content={
+        <Flex
+          vertical
+          gap="middle"
+          component="fieldset"
+          aria-label={t('Select Database and Schema')}
+          style={{
+            border: 0,
+            margin: 0,
+            padding: 0,
+            width: 500,
+            maxWidth: 'calc(100vw - 32px)',
+          }}
+        >
+          <Typography.Title level={5} style={{ margin: 0 }}>
+            {t('Select Database and Schema')}
+          </Typography.Title>
+          <DatabaseSelector
+            {...selectorProps}
+            key={`${selectionSession}:${draftDb?.id ?? 'no-db'}:${draftCatalog ?? ''}`}
+            db={draftDb}
+            catalog={draftCatalog}
+            schema={draftSchema}
+            emptyState={<EmptyState />}
+            onDbChange={nextDb => {
+              setDraftDb(nextDb);
+              setDraftCatalog(undefined);
+              setDraftSchema(undefined);
+            }}
+            onCatalogChange={nextCatalog => {
+              setDraftCatalog(nextCatalog);
+              setDraftSchema(undefined);
+            }}
+            onSchemaChange={setDraftSchema}
+          />
+          <Flex justify="flex-end" gap="small">
+            <Button
+              buttonStyle="tertiary"
+              onClick={event => {
+                event?.stopPropagation();
+                setOpen(false);
+              }}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              type="primary"
+              disabled={!draftDb}
+              onClick={event => {
+                event?.stopPropagation();
+                applySelection();
+              }}
+            >
+              {t('Select')}
+            </Button>
+          </Flex>
+        </Flex>
+      }
+    >
+      <span data-test="database-selector-trigger">
+        <DatabaseSelector
+          {...selectorProps}
+          key={`${db?.id ?? 'no-db'}:${catalog ?? ''}:${schema ?? ''}`}
+          db={db}
+          catalog={catalog}
+          schema={schema}
+          sqlLabMode
+          compactMode={compactMode}
+          onOpenModal={openSelector}
+        />
+      </span>
+    </Popover>
   );
 }
 

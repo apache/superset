@@ -24,6 +24,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import AddDataset, { datasetReducer } from '.';
@@ -87,8 +88,14 @@ afterEach(() => {
   localStorage.removeItem(LocalStorageKeys.Database);
 });
 
-async function selectOrders() {
-  await userEvent.click(await screen.findByText('public', { exact: true }));
+async function selectOrders(schemaSelected = false) {
+  if (!schemaSelected) {
+    await userEvent.click(
+      within(await screen.findByRole('tree')).getByText('public', {
+        exact: true,
+      }),
+    );
+  }
   await userEvent.click(await screen.findByText('orders', { exact: true }));
   await waitFor(() =>
     expect(screen.getAllByText('order_id').length).toBeGreaterThan(0),
@@ -109,11 +116,13 @@ test('selects a table through the browser and clears its preview when the connec
   });
   render(<AddDataset />, { useRedux: true, useRouter: true });
   await selectOrders();
-  const connection = screen.getByRole('combobox', {
+  await userEvent.click(screen.getByTestId('database-selector-trigger'));
+  const connection = await screen.findByRole('combobox', {
     name: /Select (database|data connection) or type/i,
   });
   await userEvent.click(connection);
   await userEvent.click(await screen.findByText('analytics', { exact: true }));
+  await userEvent.click(screen.getByRole('button', { name: 'Select' }));
   await waitFor(() =>
     expect(screen.queryByText('order_id')).not.toBeInTheDocument(),
   );
@@ -128,15 +137,22 @@ test('selects a table through the browser and clears its preview when the connec
 test('changing the catalog clears the selected table and column preview', async () => {
   setItem(LocalStorageKeys.Database, database);
   render(<AddDataset />, { useRedux: true, useRouter: true });
-  const catalog = screen.getByRole('combobox', {
-    name: 'Select catalog or type to search catalogs',
+  await userEvent.click(screen.getByTestId('database-selector-trigger'));
+  const catalog = await screen.findByRole('combobox', {
+    name: /^Select catalog or type to search catalogs/,
   });
   await userEvent.click(catalog);
   await userEvent.click(await screen.findByText('main', { exact: true }));
-  await selectOrders();
-  await userEvent.click(catalog);
+  await userEvent.click(screen.getByRole('button', { name: 'Select' }));
+  await selectOrders(true);
+  await userEvent.click(screen.getByTestId('database-selector-trigger'));
+  await userEvent.click(
+    await screen.findByRole('combobox', {
+      name: /^Select catalog or type to search catalogs/,
+    }),
+  );
   await userEvent.click(await screen.findByText('archive', { exact: true }));
-  await userEvent.click(await screen.findByText('public', { exact: true }));
+  await userEvent.click(screen.getByRole('button', { name: 'Select' }));
   expect(
     await screen.findByText('archived_orders', { exact: true }),
   ).toBeVisible();

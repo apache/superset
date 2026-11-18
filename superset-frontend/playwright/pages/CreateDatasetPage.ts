@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Page } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
 import { Button, Select } from '../components/core';
 import { gotoWithRetry } from '../helpers/navigation';
 
@@ -64,11 +64,17 @@ export class CreateDatasetPage {
   }
 
   /**
-   * Select a database from the dropdown
+   * Select a database through the connection/schema popover
    * @param databaseName - The name of the database to select
    */
   async selectDatabase(databaseName: string): Promise<void> {
+    await this.page.getByTestId('database-selector-trigger').click();
     await this.getDatabaseSelect().selectOption(databaseName);
+    const popover = this.page.getByRole('group', {
+      name: 'Select Database and Schema',
+    });
+    await popover.getByRole('button', { name: 'Select', exact: true }).click();
+    await expect(popover).toBeHidden();
   }
 
   /**
@@ -76,11 +82,16 @@ export class CreateDatasetPage {
    * @param schemaName - The name of the schema to select
    */
   async selectSchema(schemaName: string): Promise<void> {
-    await this.page.getByPlaceholder('Enter a part of the object name').clear();
-    await this.page
-      .getByRole('treeitem')
-      .getByText(schemaName, { exact: true })
-      .click();
+    await this.page.getByTestId('database-selector-trigger').click();
+    const dialog = this.page.getByRole('group', {
+      name: 'Select Database and Schema',
+    });
+    await new Select(
+      this.page,
+      dialog.getByRole('combobox', { name: /^Select schema/ }),
+    ).selectOption(schemaName);
+    await dialog.getByRole('button', { name: 'Select', exact: true }).click();
+    await expect(dialog).toBeHidden();
   }
 
   /**
@@ -128,6 +139,8 @@ export class CreateDatasetPage {
    * Wait for the page to load
    */
   async waitForPageLoad(): Promise<void> {
-    await this.getDatabaseSelect().element.waitFor({ state: 'visible' });
+    await this.page
+      .getByTestId('database-selector-trigger')
+      .waitFor({ state: 'visible' });
   }
 }

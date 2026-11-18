@@ -113,3 +113,18 @@ test('shows an empty result when no loaded table matches the search', async () =
     expect(screen.getByText('No matching results found')).toBeVisible(),
   );
 });
+
+test('opens and loads a schema selected through the connection selector', async () => {
+  const onPreviewTable = jest.fn();
+  render(
+    <TableBrowser dbId={1} schema="public" onPreviewTable={onPreviewTable} />,
+    {
+      useRedux: true,
+    },
+  );
+  await userEvent.click(await screen.findByText('orders'));
+  expect(onPreviewTable).toHaveBeenCalledWith({
+    schema: 'public',
+    table_name: 'orders',
+  });
+});

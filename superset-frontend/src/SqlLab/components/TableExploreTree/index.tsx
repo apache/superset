@@ -60,6 +60,7 @@ import { ErrorMessageWithStackTrace } from 'src/components';
 export interface TableBrowserProps {
   dbId?: number;
   supportsSchemas?: boolean;
+  schema?: string;
   catalog?: string | null;
   pinnedTables?: Record<string, TableMetaData | undefined>;
   pinnedTableKeys?: Set<string>;
@@ -181,6 +182,7 @@ export const TableBrowser = ({
   dbId,
   catalog,
   supportsSchemas,
+  schema,
   pinnedTables = EMPTY_PINNED_TABLES,
   pinnedTableKeys = EMPTY_PINNED_KEYS,
   onPinTable: handlePinTable = ignorePin,
@@ -311,6 +313,18 @@ export const TableBrowser = ({
       .filter(([, isOpen]) => isOpen)
       .forEach(([id]) => treeRef.current?.open(id));
   }, [treeData]);
+
+  const revealedSchemaRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const schemaId = dbId && schema ? `schema:${dbId}:${schema}` : undefined;
+    if (revealedSchemaRef.current === schemaId) return;
+    revealedSchemaRef.current = schemaId;
+    setSearchTerm('');
+    if (!schemaId) return;
+    setManuallyOpenedNodes(previous => ({ ...previous, [schemaId]: true }));
+    handleToggle(schemaId, true);
+    treeRef.current?.open(schemaId);
+  }, [dbId, schema, handleToggle]);
 
   // Custom search match function for react-arborist
   const searchMatch = useCallback(
