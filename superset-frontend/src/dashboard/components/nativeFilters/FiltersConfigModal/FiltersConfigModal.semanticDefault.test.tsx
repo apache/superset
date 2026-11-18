@@ -122,11 +122,15 @@ const forbidDatasetRequests = (id: number, body?: object) => {
   );
 };
 
-const mockSemanticViewStructure = (id: number, name = VIEW_NAME) => {
+const mockSemanticViewStructure = (
+  id: number,
+  name = VIEW_NAME,
+  selectionVersion: string | null = null,
+) => {
   fetchMock.get(structureRoute(id), {
     result: {
       name,
-      semantic_selection_version: null,
+      semantic_selection_version: selectionVersion,
       description: null,
       cache_timeout: null,
       dimensions: semanticViewDimensions.map(dimension => ({
@@ -198,6 +202,25 @@ const renderModal = (
     }),
   };
 };
+
+test('the semantic field warning wraps its action in narrow modal content', async () => {
+  forbidDatasetRequests(VIEW_ID);
+  mockSemanticViewStructure(VIEW_ID, VIEW_NAME, 'member-id-v1');
+  renderModal(semanticOnlyState());
+
+  const warning = await screen.findByRole('alert');
+  expect(
+    within(warning).getByText('Choose current semantic filter fields'),
+  ).toBeInTheDocument();
+  const section = warning.querySelector('.ant-alert-section') as HTMLElement;
+  const actions = warning.querySelector('.ant-alert-actions') as HTMLElement;
+  expect(warning.style.flexWrap).toBe('wrap');
+  expect(section.style.flex).toBe('1 1 max-content');
+  expect(actions.style.maxWidth).toBe('100%');
+  expect(actions).toContainElement(
+    within(warning).getByRole('button', { name: 'Start field selection' }),
+  );
+});
 
 const dangerToasts = (store: Store) =>
   (
