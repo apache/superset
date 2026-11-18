@@ -192,8 +192,9 @@ bytes then never pass through this conversation.
 - {_tool(ARTIFACT_LAND)}(artifact_id, version?): bring a version's files, the
   draft by default, into the folder: `curl -s "$download_url" | tar -x`. When
   there is no `download_url`, or your shell can't reach it, call it again with
-  `inline: true` for the contents, in pages. Keep the `{LAND_SIDECAR_PATH}`
-  it writes: it names the artifact and the version you started from.
+  `inline: true` for the contents, in pages, and write its `sidecar` to
+  `{LAND_SIDECAR_PATH}`, which the tar holds otherwise. Keep that file: it
+  names the artifact and the version you started from.
 - {_tool(ARTIFACT_COMMIT_FILES)}(files): send every path's SHA-256 as the whole
   new version, from the sidecar's `base_version`. When it answers `missing`,
   PUT each file's exact bytes to its URL in `uploads` (`curl -T path "$url"`),
