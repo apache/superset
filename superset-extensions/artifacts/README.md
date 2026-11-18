@@ -26,10 +26,11 @@ and it reaches Superset data only through its host, as the viewer.
 
 This extension is a scaffold. It builds on the Superset Artifacts SDK, its
 own packages under `sdk/` (`superset_artifacts_sdk` and
-`@superset-oss/artifacts-sdk`), and on the Canvas widget framework. **With no provider registered, artifacts are off**:
-every tool, prompt and endpoint answers `NOT_ENABLED` and changes nothing. The
-provider (the sandbox host, builds, packages, checks and storage at scale) is
-the host's to supply.
+`@superset-oss/artifacts-sdk`), and on the Canvas widget framework, which is
+not on master yet ([#45022](https://github.com/apache/superset/pull/45022)).
+**With no provider registered, artifacts are off**: every tool, prompt and
+endpoint answers `NOT_ENABLED` and changes nothing. The provider (the sandbox
+host, builds, packages, checks and storage at scale) is the host's to supply.
 
 ## Identity
 
@@ -54,7 +55,7 @@ already, such as `superset`: the backend module would shadow it.
 | `sdk/` | The Superset Artifacts SDK: the contracts the extension and a host share, in a Python and a browser package (`sdk/README.md`) |
 | `backend/src/superset_oss/artifacts/canvas/` | The `artifact` widget type, which has no props: each artifact is one saved widget of it; and the access rules on those widgets |
 | `backend/.../store/` | The git-shaped file store over an `ArtifactStoreBackend`, and the default backend on extension storage, which refuses to run until extension storage can back it |
-| `backend/.../authoring/` | The MCP authoring tools, the `create_artifact` and `import_claude_artifact` prompts, and the endpoint where the user confirms publishing |
+| `backend/.../authoring/` | The MCP authoring tools, the `create_artifact` and `import_claude_artifact` prompts, the endpoint where the user confirms publishing, and the transfer links and their routes |
 | `backend/.../data/` | The mapping of a manifest's named binding onto the canvas placement data request, the bindings that don't map yet, and the widget type's binding resolver |
 | `backend/.../frames/` | The host side of the sandbox: which version a viewer's frame loads, its grant and allowed parents, and the frame link endpoint |
 | `backend/.../access.py`, `gate.py`, `errors.py`, `web.py` | Who may read or change an artifact, the provider gate every call goes through, the one error type, and the Flask helpers the endpoints share |
@@ -121,17 +122,20 @@ author as editor; the store keeps only the content, keyed by that UUID.
   serves nothing it built that the policy refuses since.
 - **Rendering.** The renderer asks `POST .../frames/` for a link to the
   artifact it draws, by its widget's UUID: with the canvas placement that
-  shows it, or for a page of its own (`page`: `standalone` or `embedded`). On
+  shows it, or with none for a page of its own. The server decides the
+  surface from that (`canvas` or `standalone`); no request names one. On
   a canvas, the server reads the placement from the stored canvas (never from
   the request), through the same lookup as the placement data endpoint;
   elsewhere, the caller must be able to read the widget. It picks the version
   the viewer may see (the published one; the draft for editors while the
   canvas shows a draft, or before anything is published), and has the provider
   mint a short-lived link whose allowed parents and grant (manifest ∩ policy
-  ∩ context) come from the request's context. When the provider no longer
-  holds that version, as when a publish lands meanwhile, the endpoint answers
-  `VERSION_NOT_FOUND`, as the build and check tools do; the renderer then
-  asks once more, which reads the version again. The frame is an
+  ∩ context) come from the request's context. A surface the policy keeps
+  artifacts off, or a guest where `surfaces.guest` is `off`, gets
+  `POLICY_DENIED` instead. When the provider no longer holds that version, as
+  when a publish lands meanwhile, the endpoint answers `VERSION_NOT_FOUND`, as
+  the build and check tools do; the renderer then asks once more, which reads
+  the version again. The frame is an
   `<iframe sandbox="allow-scripts" referrerpolicy="no-referrer">`, without
   `allow-same-origin` or popups.
 - **Data and events.** The renderer fetches each named binding through the
@@ -155,12 +159,13 @@ author as editor; the store keeps only the content, keyed by that UUID.
 
 The extension registers a view, `superset-oss.artifacts.page`, at the location
 of the same name. It shows the artifact whose id ends the page's address,
-through a frame link with `page: standalone` and the saved widget's data
-endpoint. Extensions can't add routes, so a host that wants the page adds a
-route, such as `/artifact/<uuid>/`, that renders the location's views. The
-views register when the extension loads, which can be after the route first
-renders, so the route should follow the registry (`useViews` in
-`src/core/views`) rather than read it once.
+through a frame link without a placement and the saved widget's data
+endpoint. Extensions can't add routes until they can contribute pages
+([#45522](https://github.com/apache/superset/pull/45522)), so a host that
+wants the page adds a route, such as `/artifact/<uuid>/`, that renders the
+location's views. The views register when the extension loads, which can be
+after the route first renders, so the route should follow the registry
+(`useViews` in `src/core/views`) rather than read it once.
 
 ## Policy
 
@@ -272,7 +277,8 @@ API doesn't declare.
 
 ## Develop
 
-Backend tests (pure modules only; no Flask or Superset needed):
+Backend tests (no Superset app or database needed; the route tests use Flask
+and Flask-AppBuilder, which come with superset-core's dependencies):
 
 ```bash
 PYTHONPATH=superset-core/src:superset-extensions/artifacts/sdk/python/src:superset-extensions/artifacts/backend/src \
@@ -308,24 +314,25 @@ def MCP_CODE_ARTIFACTS_ENABLED() -> bool:
 
 ## Known limits
 
-- No provider ships here, so nothing renders or builds until a host registers
-  one. Whether Superset should ship a development-only provider is an open
-  question.
+- No provider ships here, not even one for development, so nothing renders or
+  builds until a host registers one.
 - Superset's default CSP (`default-src 'self'`, no `frame-src`) blocks the
   sandbox frame until the operator allows the provider's sandbox site in
-  `frame-src` (see "Host pages' CSP" below).
+  `frame-src` (see "Host pages' CSP" above).
 - The default store backend refuses to run: extension storage's REST API
   exposes an extension's shared rows, and its context isn't set while requests
-  run. A provider must supply the store backend.
+  run. A provider must supply the store backend. Backend-only extension
+  storage and a context for extension APIs are under review in
+  [#45894](https://github.com/apache/superset/pull/45894).
 - `artifact_create` names its author the widget's only editor, and gives it no
   viewers: add them on the widget. A widget of the artifact type made any
   other way, such as by a canvas operation that adds a new one, has no files,
   so it shows nothing.
-- When a widget is deleted, its content stays in the store until a cleanup
-  drops the content of artifacts whose widget no longer exists; there is no
-  such cleanup yet.
+- When a widget is deleted, its content stays in the store: nothing drops the
+  content of an artifact whose widget no longer exists.
 - Only dataset sources map, metrics are saved metrics by name, filters are
-  simple filters, and `query` can't send new parameter values yet.
+  simple filters, and `query` can't send new parameter values: the host
+  refuses a `query` that names any.
 - On the default backend, checking that a version is one of a ref's checks
   its record, then each of its older history chunks: a long history makes an
   old version slower to find.
@@ -333,20 +340,23 @@ def MCP_CODE_ARTIFACTS_ENABLED() -> bool:
   host sets (one tenant, say), so `artifact_commit_files` reveals whether
   given content exists in that scope. On the default backend, the scope is
   the whole Superset.
-- Extensions can't add routes, so the page that shows one artifact on its own
-  needs a host route (see "An artifact's own page").
+- Extensions can't add routes until
+  [#45522](https://github.com/apache/superset/pull/45522) lands, so the page
+  that shows one artifact on its own needs a host route (see "An artifact's
+  own page").
 - The publish confirmation is a notice by the artifact, not a screen with a
   diff, and refusing `Authorization` headers is a check on the channel, not
   proof that a person clicked.
 - `artifact_upload_blobs`, the inline fallback for uploads, is the extension's
   own tool: the SDK's contract leaves it to the host. Failures carry the SDK's
-  `AuthoringErrorCode`s, except `PUBLISH_REQUEST_NOT_FOUND` and
-  `TRANSFER_LINK_INVALID`, which only the confirmation endpoint and the
+  `AuthoringErrorCode`s, except the extension's own codes:
+  `PUBLISH_REQUEST_NOT_FOUND` and `PUBLISH_BUILD_FAILED`, which only the
+  confirmation endpoint answers, and `TRANSFER_LINK_INVALID`, which only the
   transfer routes answer.
 - A transfer link is a bearer credential that passes through the model's
   context, and its token travels in the URL, where access logs may keep it:
   its short life is the control. Landing a large project inline takes many
   pages, and a file too big for a page comes without its content; the
   download link has neither limit.
-- Request paths are absolute from the site root, so deployments under an
-  application root aren't supported yet.
+- Request paths are absolute from the site root, so the extension doesn't
+  work in a deployment under an application root (a subdirectory).

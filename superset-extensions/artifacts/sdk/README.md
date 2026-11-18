@@ -28,10 +28,10 @@ The SDK holds the public contracts for artifacts, in two packages that ship
 with the artifacts extension:
 
 - `python/`: `superset_artifacts_sdk` (distribution `superset-artifacts-sdk`),
-  the server-side contracts. It defines interfaces and models only; the
-  machinery behind them (the sandbox host, builds, packages, checks and
-  storage at scale) belongs to a provider that a host registers. It depends
-  only on pydantic.
+  the server-side contracts. It defines interfaces and models, and the pure
+  rules they share (the policy, paths and hashes); the machinery behind them
+  (the sandbox host, builds, packages, checks and storage at scale) belongs to
+  a provider that a host registers. It depends only on pydantic.
 - `browser/`: `@superset-oss/artifacts-sdk`, the in-frame runtime
   (`window.superset`), the host end of the bridge and the bridge protocol,
   which only browser code speaks. It declares the capabilities and the
@@ -48,8 +48,9 @@ these packages; Superset core depends on neither.
 |---|---|
 | `capabilities` | `Capability`: the named rights an artifact declares and a host grants for each context |
 | `manifest` | `ArtifactManifest` (`manifest.json`): bindings, events, capabilities, exact-pinned dependencies and snapshot provenance, validated on every write |
+| `policy` | `ArtifactPolicy`: the Locked, Standard and Open profiles, layers that only narrow them (`policy_layer`, `resolve_policy`), and the grant a frame gets in each context (`grant_for`: manifest ∩ policy ∩ context) |
 | `store` | The git-shaped file store: path rules, content hashing, `validate_tree` and the `ArtifactStoreBackend` protocol with compare-and-swap refs, which its host scopes (to one tenant, say) |
-| `provider` | `ArtifactRuntimeProvider`: the roles `FrameLinkMinter`, `FrameSources` (the sandbox's sources, for host pages' `frame-src`), `ArtifactBuilder`, `ArtifactChecker` and `ArtifactStoreSource` (the store backend), combined; and `VersionNotFoundError`, which links, builds and checks raise for a version the store doesn't hold |
+| `provider` | `ArtifactRuntimeProvider`: the roles `FrameLinkMinter`, `FrameSources` (the sandbox's sources, for host pages' `frame-src`), `ArtifactBuilder`, `ArtifactChecker`, `ArtifactStoreSource` (the store backend) and `PolicySource` (the provider's policy layer, such as a workspace's), combined; and `VersionNotFoundError`, which links, builds and checks raise for a version the store doesn't hold |
 | `registry` | `register_provider`, `get_provider` and `artifacts_available`: the one switch, a plain module the host calls; no provider means artifacts are off |
 | `authoring` | The authoring tool contract: tool names, request and response models, error codes, mirroring Anthropic's text-editor and memory tools |
 | `testing` | `InMemoryArtifactStore`, an in-memory `ArtifactStoreBackend` for tests and development, and `ArtifactStoreBackendConformance`, the backend contract as tests that any backend's suite inherits |
@@ -73,13 +74,19 @@ cd browser && npm test
   and no move goes unrecorded.
 - Publishing moves the `published` ref only after the user confirms.
 - Dependencies are exact versions, never ranges, tags, URLs or git specs.
+- No capability or policy knob lets a frame reach the network or run `eval`;
+  WebAssembly and workers come only with the `compute.wasm` and
+  `compute.workers` capabilities, where the policy's `compute` allows them.
 
 ## Open questions
 
 These are noted in the code where they apply, and are not adopted:
 
-- A compute capability for WebAssembly, workers and `eval`.
-- Bindings shaped like SIP-231's `SemanticQuery`.
-- A retry-safe `op_id`, and paging limits.
-- The check pool's isolation, the publish confirmation screen, query limits
-  and a smaller provider interface.
+- Bindings shaped like the `SemanticQuery` of
+  [SIP-231](https://github.com/apache/superset/issues/44875) §7.
+- A retry-safe `op_id` on every write, and paging limits for `view`, `search`
+  and `history`.
+- Where the user confirms publishing: a host screen that shows the diff.
+- Parameter values checked against each parameter's `type`.
+- Deletion (retention, GDPR erasure) and per-resource quotas in the store.
+- Screenshots in `check`, and a smaller provider interface.

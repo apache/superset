@@ -24,8 +24,8 @@ calls inside its sandboxed frame (`window.superset`), and the host end of the
 bridge that the Superset page runs around that frame. It has no runtime
 dependencies.
 
-The Python half, with the manifest validation, the file store, the provider
-interface and the authoring tools, is `superset_artifacts_sdk`, in
+The Python half, with the manifest validation, the policy, the file store, the
+provider interface and the authoring tools, is `superset_artifacts_sdk`, in
 `../python`. Both halves declare the capability names and the manifest's
 shape; a test there (`test_artifact_typescript_sync.py`) fails when they drift
 apart. The bridge protocol is defined here only.
@@ -41,7 +41,7 @@ host page                                          sandboxed frame
 createFrameChannel ── name: {k, grant, origin} ──► installRuntime()
                    ◄── ready {protocol, version} ──
                    ── data {binding, data} ──►  onData, data(binding)
-                   ── state {status, filters, theme?} ──►  onData
+                   ── state {status, filters, theme?, error?} ──►  onData
                    ◄── request: query | setCrossFilter | refresh ──
                    ◄── error {kind, message, stack?} ──
 ```
@@ -66,8 +66,8 @@ createFrameChannel ── name: {k, grant, origin} ──► installRuntime()
 - A cross-filter ends up in other widgets' queries, so the host accepts one
   only with values it delivered to that frame, in the binding's latest
   result, for that dimension. It also caps the values in a cross-filter, the
-  queries that the frame's requests may run and the requests a second
-  (`BridgeLimits`).
+  queries that the frame's requests may run, and the requests and the error
+  messages it takes a second (`BridgeLimits`).
 - A frame that never completes its handshake, as when its link expired
   before it loaded, is reported once (`onHandshakeTimeout`), so that the host
   can open a new link.
@@ -131,10 +131,9 @@ so Vitest runs them with `--globals`.
 
 These are noted in the code where they apply:
 
-- The MCP Apps protocol and SDK.
-- MCP Apps names for theme variables and CSP settings.
-- A compute capability for WebAssembly, workers and `eval`.
-- An Arrow envelope for binding data.
-- Cross-filter values only from delivered data, and typed, rate-limited
-  parameters.
-- Which frame errors reach an agent.
+- Adopting the MCP Apps protocol and SDK, after a spike, and MCP Apps names
+  for theme variables and CSP settings.
+- An Arrow envelope for binding data, as
+  [SIP-231](https://github.com/apache/superset/issues/44875) §8 delivers
+  widget results in Apache Arrow.
+- Which frame errors may reach an agent.
