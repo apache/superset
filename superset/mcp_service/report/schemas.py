@@ -28,11 +28,11 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    field_validator,
     model_serializer,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.chart.schemas import UnknownFieldCheckMixin
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
     EditedByMeMixin,
@@ -50,7 +50,6 @@ from superset.mcp_service.system.schemas import (
     serialize_subject_object,
     SubjectInfo,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.response_utils import humanize_timestamp
 
 
@@ -151,6 +150,7 @@ class ReportList(PaginatedResponse[ReportFilter]):
 
 
 class ListReportsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
@@ -158,18 +158,14 @@ class ListReportsRequest(
 ):
     """Request schema for list_reports."""
 
+    model_config = ConfigDict(extra="forbid")
+
 
 class ReportError(BaseModel):
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
-        return sanitize_for_llm_context(value, field_path=("error",))
 
     @classmethod
     def create(cls, error: str, error_type: str) -> "ReportError":
@@ -194,14 +190,8 @@ def serialize_report_object(report: Any) -> ReportInfo | None:
 
     return ReportInfo(
         id=getattr(report, "id", None),
-        name=sanitize_for_llm_context(
-            getattr(report, "name", None),
-            field_path=("name",),
-        ),
-        description=sanitize_for_llm_context(
-            getattr(report, "description", None),
-            field_path=("description",),
-        ),
+        name=getattr(report, "name", None),
+        description=getattr(report, "description", None),
         type=getattr(report, "type", None),
         active=getattr(report, "active", None),
         crontab=getattr(report, "crontab", None),

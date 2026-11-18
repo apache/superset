@@ -18,14 +18,17 @@ import logging
 from functools import partial
 from typing import Optional
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.theme.exceptions import (
     SystemThemeInUseError,
     SystemThemeProtectedError,
     ThemeDeleteFailedError,
+    ThemeForbiddenError,
     ThemeNotFoundError,
 )
 from superset.daos.theme import ThemeDAO
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import Theme
 from superset.utils.decorators import on_error, transaction
@@ -62,6 +65,11 @@ class DeleteThemeCommand(BaseCommand):
             # Check if theme is in use as system default or dark
             if theme.is_system_default or theme.is_system_dark:
                 raise SystemThemeInUseError()
+            # Check editorship per theme (admins bypass)
+            try:
+                security_manager.raise_for_editorship(theme)
+            except SupersetSecurityException as ex:
+                raise ThemeForbiddenError() from ex
 
         # Check for dashboard usage
         self._dashboard_usage = self._get_dashboard_usage()

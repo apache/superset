@@ -17,16 +17,21 @@
  * under the License.
  */
 
+import { GenericDataType } from '@apache-superset/core/common';
 import { QueryFormMetric, TimeGranularity } from '@superset-ui/core';
 import buildGroupbyCombinations, {
-  isAdditiveMetric,
-  allMetricsAdditive,
+  isClientAggregatableMetric,
+  allMetricsClientAggregatable,
   additiveReducerFor,
   synthesizeAdditiveLevels,
   splitGroupingSetsResult,
   groupingMarkerLabel,
 } from '../../src/plugin/utilities';
-import { PivotTableQueryFormData, MetricsLayoutEnum } from '../../src/types';
+import {
+  PivotTableQueryFormData,
+  MetricsLayoutEnum,
+  ShowValuesAsEnum,
+} from '../../src/types';
 
 const baseFormData = {
   groupbyRows: ['row1', 'row2'],
@@ -239,9 +244,9 @@ test('should work with large number of dimensions', () => {
   });
 });
 
-test('isAdditiveMetric: SIMPLE metrics with additive aggregates are additive', () => {
+test('isClientAggregatableMetric: SIMPLE metrics with additive aggregates are additive', () => {
   expect(
-    isAdditiveMetric({
+    isClientAggregatableMetric({
       expressionType: 'SIMPLE',
       aggregate: 'SUM',
       column: { column_name: 'num' },
@@ -249,7 +254,7 @@ test('isAdditiveMetric: SIMPLE metrics with additive aggregates are additive', (
     } as QueryFormMetric),
   ).toBe(true);
   expect(
-    isAdditiveMetric({
+    isClientAggregatableMetric({
       expressionType: 'SIMPLE',
       aggregate: 'COUNT',
       column: { column_name: 'num' },
@@ -258,9 +263,25 @@ test('isAdditiveMetric: SIMPLE metrics with additive aggregates are additive', (
   ).toBe(true);
 });
 
-test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not additive', () => {
+test('isClientAggregatableMetric: MIN/MAX are additive only on numeric columns', () => {
+  const max = (type_generic?: GenericDataType) =>
+    ({
+      expressionType: 'SIMPLE',
+      aggregate: 'MAX',
+      column: { column_name: 'col', type_generic },
+      label: 'max_col',
+    }) as QueryFormMetric;
+  expect(isClientAggregatableMetric(max(GenericDataType.Numeric))).toBe(true);
+  // Text/temporal values do not survive the fast-path's Number() coercion;
+  // an unknown type fails safe to the DB rollup path.
+  expect(isClientAggregatableMetric(max(GenericDataType.String))).toBe(false);
+  expect(isClientAggregatableMetric(max(GenericDataType.Temporal))).toBe(false);
+  expect(isClientAggregatableMetric(max(undefined))).toBe(false);
+});
+
+test('isClientAggregatableMetric: non-additive aggregates, SQL, and saved metrics are not additive', () => {
   expect(
-    isAdditiveMetric({
+    isClientAggregatableMetric({
       expressionType: 'SIMPLE',
       aggregate: 'AVG',
       column: { column_name: 'num' },
@@ -268,7 +289,7 @@ test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not 
     } as QueryFormMetric),
   ).toBe(false);
   expect(
-    isAdditiveMetric({
+    isClientAggregatableMetric({
       expressionType: 'SIMPLE',
       aggregate: 'COUNT_DISTINCT',
       column: { column_name: 'name' },
@@ -276,17 +297,36 @@ test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not 
     } as QueryFormMetric),
   ).toBe(false);
   expect(
-    isAdditiveMetric({
+    isClientAggregatableMetric({
       expressionType: 'SQL',
       sqlExpression: 'SUM(a) / SUM(b)',
       label: 'ratio',
     } as QueryFormMetric),
   ).toBe(false);
   // saved-metric reference: aggregate unknown from form data -> non-additive
-  expect(isAdditiveMetric('count')).toBe(false);
+  expect(isClientAggregatableMetric('count')).toBe(false);
 });
 
-test('allMetricsAdditive: all additive vs any non-additive vs empty', () => {
+test('isClientAggregatableMetric: MEDIAN/STDDEV_SAMP/VAR_SAMP are non-additive, with no dedicated code needed', () => {
+  // Regression guard: MEDIAN/STDDEV_SAMP/VAR_SAMP are new system-wide metric
+  // aggregates (not pivot-table-specific). They must fall outside
+  // ADDITIVE_AGGREGATES so totals/subtotals route through the correct
+  // DB-rollup path automatically, same as AVG/COUNT_DISTINCT already do --
+  // averaging per-group medians (or variances) is exactly the class of bug
+  // SIP-216 fixed for AVG, and would be equally wrong here.
+  (['MEDIAN', 'STDDEV_SAMP', 'VAR_SAMP'] as const).forEach(aggregate => {
+    expect(
+      isClientAggregatableMetric({
+        expressionType: 'SIMPLE',
+        aggregate,
+        column: { column_name: 'num' },
+        label: `${aggregate.toLowerCase()}_num`,
+      } as QueryFormMetric),
+    ).toBe(false);
+  });
+});
+
+test('allMetricsClientAggregatable: all additive vs any non-additive vs empty', () => {
   const sum = {
     expressionType: 'SIMPLE',
     aggregate: 'SUM',
@@ -298,9 +338,9 @@ test('allMetricsAdditive: all additive vs any non-additive vs empty', () => {
     sqlExpression: 'SUM(a)/SUM(b)',
     label: 'r',
   } as QueryFormMetric;
-  expect(allMetricsAdditive([sum, sum])).toBe(true);
-  expect(allMetricsAdditive([sum, ratio])).toBe(false);
-  expect(allMetricsAdditive([])).toBe(false);
+  expect(allMetricsClientAggregatable([sum, sum])).toBe(true);
+  expect(allMetricsClientAggregatable([sum, ratio])).toBe(false);
+  expect(allMetricsClientAggregatable([])).toBe(false);
 });
 
 test('pruning: with all totals/subtotals off, only the leaf level is queried', () => {
@@ -341,8 +381,11 @@ test('pruning: row subtotals on, everything else off', () => {
     colSubTotals: false,
     rowSubTotals: true,
   });
-  // row prefixes: intermediate [row1] + full [row1,row2]; col prefixes: full only
+  // row prefixes: the fully collapsed level (drawn as each metric group's
+  // Subtotal line, since metrics are on rows) + intermediate [row1] + full
+  // [row1,row2]; col prefixes: full only
   expect(combinations).toEqual([
+    { rows: [], columns: ['col1', 'col2'] },
     { rows: ['row1'], columns: ['col1', 'col2'] },
     { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
   ]);
@@ -361,6 +404,70 @@ test('pruning: empty column dims keep the [] (leaf) level regardless of rowTotal
   expect(combinations).toEqual([
     { rows: [], columns: [] },
     { rows: ['row1', 'row2'], columns: [] },
+  ]);
+});
+
+test('pruning: percent_row forces the row-total (columns collapsed) level even with rowTotals off', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.PERCENT_OF_ROW,
+  });
+  expect(combinations).toEqual([
+    { rows: ['row1', 'row2'], columns: [] },
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
+  ]);
+});
+
+test('pruning: percent_col forces the column-total (rows collapsed) level even with colTotals off', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.PERCENT_OF_COLUMN,
+  });
+  expect(combinations).toEqual([
+    { rows: [], columns: ['col1', 'col2'] },
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
+  ]);
+});
+
+test('pruning: percent_total forces the grand-total level even with both totals off', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.PERCENT_OF_TOTAL,
+  });
+  // Rows is the outer loop and columns the inner loop (see
+  // buildGroupbyCombinations's flatMap), so the rows-collapsed level pairs
+  // with every column prefix before the leaf row prefix does.
+  expect(combinations).toEqual([
+    { rows: [], columns: [] },
+    { rows: [], columns: ['col1', 'col2'] },
+    { rows: ['row1', 'row2'], columns: [] },
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
+  ]);
+});
+
+test('pruning: actual (no percent mode) does not force any extra level', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.ACTUAL,
+  });
+  expect(combinations).toEqual([
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
   ]);
 });
 

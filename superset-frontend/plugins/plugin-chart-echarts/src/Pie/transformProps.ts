@@ -46,6 +46,7 @@ import {
   getChartPadding,
   getColtypesMapping,
   getLegendProps,
+  getLegendScrollDataIndex,
   sanitizeHtml,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
@@ -55,15 +56,19 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { getContributionLabel } from './utils';
 
-const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
+const defaultPercentFormatter = getNumberFormatter(
+  NumberFormats.PERCENT_2_POINT,
+);
 
 export function parseParams({
   params,
   numberFormatter,
+  percentFormatter = defaultPercentFormatter,
   sanitizeName = false,
 }: {
   params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
   numberFormatter: ValueFormatter;
+  percentFormatter?: ValueFormatter;
   sanitizeName?: boolean;
 }): string[] {
   const { name: rawName = '', value, percent } = params;
@@ -237,6 +242,8 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     datasource,
+    legendState,
+    legendIndex,
   } = chartProps;
   const {
     columnFormats = {},
@@ -267,6 +274,7 @@ export default function transformProps(
     outerRadius,
     showLabels,
     showLegend,
+    showSelectorLegend,
     showLabelsThreshold,
     startAngle,
     sweptAngle,
@@ -296,6 +304,9 @@ export default function transformProps(
     currencyCodeColumn,
     detectedCurrency,
   );
+  const percentFormatter = numberFormat?.endsWith('%')
+    ? getNumberFormatter(numberFormat)
+    : defaultPercentFormatter;
 
   let data = rawData;
   const otherRows: DataRecord[] = [];
@@ -360,8 +371,15 @@ export default function transformProps(
     };
   }, {});
 
-  const { setDataMask = () => {}, onContextMenu } = hooks;
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const {
+    setDataMask = () => {},
+    onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
+  const colorFn =
+    chartProps.colorScale ??
+    CategoricalColorNamespace.getScale(colorScheme as string);
 
   let totalValue = 0;
 
@@ -446,6 +464,7 @@ export default function transformProps(
     const [name, formattedValue, formattedPercent] = parseParams({
       params,
       numberFormatter,
+      percentFormatter,
     });
     switch (labelType) {
       case EchartsPieLabelType.Key:
@@ -498,6 +517,7 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -566,6 +586,7 @@ export default function transformProps(
         const [name, formattedValue, formattedPercent] = parseParams({
           params,
           numberFormatter,
+          percentFormatter,
           sanitizeName: true,
         });
         if (params?.data?.isOther) {
@@ -583,7 +604,11 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
+        false,
+        legendState,
       ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     graphic: showTotal
@@ -621,6 +646,8 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
     refs,
     emitCrossFilters,
     coltypeMapping,

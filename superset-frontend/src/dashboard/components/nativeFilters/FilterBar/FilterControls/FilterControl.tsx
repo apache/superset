@@ -32,11 +32,13 @@ import { FilterCard } from '../../FilterCard';
 import { FilterBarScrollContext } from '../Vertical';
 import { FilterControlProps } from './types';
 import { FilterCardPlacement } from '../../FilterCard/types';
-import { useIsFilterInScope } from '../../state';
+import { isFilterWithoutScope, useIsFilterInScope } from '../../state';
 import {
   FilterStyledIcon,
+  FilterControlTitleGroup,
   RequiredFieldIndicator,
   DescriptionToolTip,
+  OutOfScopeFilterToolTip,
   DeckglLayerVisibilityTooltip,
   useFilterControlDisplay,
 } from './FilterControlShared';
@@ -67,6 +69,7 @@ const FilterControl = ({
   const validateStatus = isMissingRequiredValue ? 'error' : undefined;
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
   const inverseSelection = !!filter.controlValues?.inverseSelection;
+  const isOutOfScope = isFilterWithoutScope(filter);
 
   const {
     FilterControlContainer,
@@ -78,13 +81,16 @@ const FilterControl = ({
   const label = useMemo(
     () => (
       <FilterControlTitleBox>
-        <FilterControlTitle
-          id={`filter-name-${filter.id}`}
-          data-test="filter-control-name"
-        >
-          {name}
-        </FilterControlTitle>
-        {isRequired && <RequiredFieldIndicator />}
+        <FilterControlTitleGroup data-test="filter-control-title-group">
+          <FilterControlTitle
+            id={`filter-name-${filter.id}`}
+            data-test="filter-control-name"
+          >
+            {name}
+          </FilterControlTitle>
+          {isRequired && <RequiredFieldIndicator />}
+          {isOutOfScope && <OutOfScopeFilterToolTip />}
+        </FilterControlTitleGroup>
         {filter.filterType === 'filter_select' &&
           filter.controlValues?.multiSelect && (
             <DescriptionToolTip
@@ -112,6 +118,7 @@ const FilterControl = ({
       filter.filterType,
       filter.controlValues?.multiSelect,
       icon,
+      isOutOfScope,
     ],
   );
 

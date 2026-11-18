@@ -62,6 +62,7 @@ export function ErrorMessageWithStackTrace({
   fallback,
   compact,
   closable = true,
+  errorMitigationFunction,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
@@ -77,6 +78,7 @@ export function ErrorMessageWithStackTrace({
           error={error}
           source={source}
           subtitle={subtitle}
+          errorMitigationFunction={errorMitigationFunction}
         />
       );
     }

@@ -62,7 +62,7 @@ def has_uuid_column(table_name, bind):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     for table_name, model in models.items():
         # this script adds missing uuid columns
@@ -87,10 +87,11 @@ def upgrade():
 
     # add UUID to Dashboard.position_json; this function is idempotent
     # so we can call it for all objects
+    slices_model = models["slices"]
     slice_uuid_map = {
         slc.id: slc.uuid
-        for slc in session.query(models["slices"])
-        .options(load_only("id", "uuid"))
+        for slc in session.query(slices_model)
+        .options(load_only(slices_model.id, slices_model.uuid))
         .all()
     }
     update_dashboards(session, slice_uuid_map)

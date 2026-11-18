@@ -17,8 +17,14 @@
  * under the License.
  */
 
+import { GenericDataType } from '@apache-superset/core/common';
 import { QueryFormColumn, QueryFormMetric } from '@superset-ui/core';
-import { Groupby, MetricsLayoutEnum, PivotTableQueryFormData } from '../types';
+import {
+  Groupby,
+  MetricsLayoutEnum,
+  PivotTableQueryFormData,
+  ShowValuesAsEnum,
+} from '../types';
 
 // Aggregates whose group total can be derived from per-group results
 // (decomposable): summing sub-sums, counting sub-counts, min-of-mins,
@@ -28,25 +34,37 @@ import { Groupby, MetricsLayoutEnum, PivotTableQueryFormData } from '../types';
 const ADDITIVE_AGGREGATES = new Set(['SUM', 'COUNT', 'MIN', 'MAX']);
 
 /**
- * Whether a metric's total can be derived additively from per-group results.
- * Conservative: only SIMPLE metrics with a known additive aggregate qualify;
- * saved-metric references (strings) and SQL/adhoc metrics are treated as
- * non-additive because their aggregate cannot be determined from form data.
+ * Whether the client may derive a metric's rollup totals from per-group
+ * results (SUM/COUNT by adding, MIN/MAX by taking the min/max). Conservative:
+ * only SIMPLE metrics with one of those aggregates qualify; saved-metric
+ * references (strings) and SQL/adhoc metrics are treated as non-aggregatable
+ * because their aggregate cannot be determined from form data, and MIN/MAX
+ * only qualify on a column known to be numeric (see below).
  */
-export function isAdditiveMetric(metric: QueryFormMetric): boolean {
+export function isClientAggregatableMetric(metric: QueryFormMetric): boolean {
   if (typeof metric === 'string' || metric.expressionType !== 'SIMPLE') {
     return false;
   }
-  return !!metric.aggregate && ADDITIVE_AGGREGATES.has(metric.aggregate);
+  if (!metric.aggregate || !ADDITIVE_AGGREGATES.has(metric.aggregate)) {
+    return false;
+  }
+  // The fast-path reduces values with Number(), which would blank a MIN/MAX
+  // over a text or temporal column, so only numeric columns may take it.
+  if (metric.aggregate === 'MIN' || metric.aggregate === 'MAX') {
+    return metric.column?.type_generic === GenericDataType.Numeric;
+  }
+  return true;
 }
 
 /**
- * True when every metric is additive, so totals/subtotals can use the cheap
- * single-query + client-side summation path instead of one query per rollup
- * level. An empty metric list is not considered additive (nothing to optimize).
+ * True when every metric is client-aggregatable, so totals/subtotals can use
+ * the cheap single-query + client-side reduction path instead of one query per
+ * rollup level. An empty metric list does not qualify (nothing to optimize).
  */
-export function allMetricsAdditive(metrics: QueryFormMetric[]): boolean {
-  return metrics.length > 0 && metrics.every(isAdditiveMetric);
+export function allMetricsClientAggregatable(
+  metrics: QueryFormMetric[],
+): boolean {
+  return metrics.length > 0 && metrics.every(isClientAggregatableMetric);
 }
 
 export type RollupReducer = 'sum' | 'min' | 'max';
@@ -75,9 +93,10 @@ const GROUP_SEP = '\u0000';
  * Additive fast-path: synthesize each rollup level's rows from the full-detail
  * leaf rows by grouping on that level's dimensions and reducing each metric,
  * instead of issuing one query per level. Correct only for additive metrics
- * (see {@link allMetricsAdditive}). Dimension and metric keys are the data-row
- * keys (labels) the caller resolves; `metricReducers` maps each metric key to
- * its reducer. Returns one row array per input level, in the same order.
+ * (see {@link allMetricsClientAggregatable}). Dimension and metric keys are
+ * the data-row keys (labels) the caller resolves; `metricReducers` maps each
+ * metric key to its reducer. Returns one row array per input level, in the
+ * same order.
  */
 export function synthesizeAdditiveLevels(
   leafRows: Record<string, unknown>[],
@@ -189,6 +208,21 @@ export function splitGroupingSetsResult(
  *   - intermediate column prefix         -> column subtotal       -> colSubTotals
  * A full-length prefix (the leaf level) is always emitted; when a dimension
  * list is empty, `[]` *is* the full level and is therefore always kept.
+ *
+ * The metric pseudo-dimension sits first on the axis chosen by `metricsLayout`
+ * (`[metric, ...dims]`), so on that axis the fully collapsed level is the key
+ * `[metric]`, which the renderer draws as each metric group's "Subtotal" line
+ * (and also reuses as the opposite axis's Total). That level is therefore also
+ * requested by the metric axis's own subtotal toggle (rowSubTotals when metrics
+ * are on rows, colSubTotals when on columns). With `combineMetric` the metric
+ * is the innermost key, no such subtotal is drawn, and the level is not
+ * requested for it.
+ *
+ * A "% of row/column/grand total" `showValuesAs` selection needs its
+ * denominator level even when the corresponding Total/subtotal display
+ * toggle is off (that toggle only controls whether the totals row/column is
+ * *rendered*; see `PivotData` in `react-pivottable/utilities.ts`), so the
+ * required collapsed level(s) are forced in regardless of the toggle.
  */
 export default function buildGroupbyCombinations(
   formData: PivotTableQueryFormData,
@@ -207,14 +241,39 @@ export default function buildGroupbyCombinations(
     ...columns.map((_, i) => columns.slice(0, i + 1)),
   ];
 
+  // "% of column total" divides each cell by its column's grand total, which
+  // is computed with all rows collapsed; "% of grand total" needs the same.
+  const needsRowsCollapsed =
+    formData.showValuesAs === ShowValuesAsEnum.PERCENT_OF_COLUMN ||
+    formData.showValuesAs === ShowValuesAsEnum.PERCENT_OF_TOTAL;
+  // "% of row total" divides each cell by its row's grand total, which is
+  // computed with all columns collapsed; "% of grand total" needs the same.
+  const needsColumnsCollapsed =
+    formData.showValuesAs === ShowValuesAsEnum.PERCENT_OF_ROW ||
+    formData.showValuesAs === ShowValuesAsEnum.PERCENT_OF_TOTAL;
+
+  // The collapsed level on the metric axis is the `[metric]` key, drawn as a
+  // per-metric Subtotal line. Not applicable when metrics are combined.
+  const metricsOnRows = formData.metricsLayout === MetricsLayoutEnum.ROWS;
+  const needsMetricRowSubtotal =
+    !formData.combineMetric && !!formData.rowSubTotals && metricsOnRows;
+  const needsMetricColSubtotal =
+    !formData.combineMetric && !!formData.colSubTotals && !metricsOnRows;
+
   const rowPrefixNeeded = (prefix: QueryFormColumn[]): boolean => {
     if (prefix.length === rows.length) return true; // leaf / full level
-    if (prefix.length === 0) return !!formData.colTotals; // bottom Total row
+    if (prefix.length === 0)
+      return (
+        !!formData.colTotals || needsRowsCollapsed || needsMetricRowSubtotal
+      ); // bottom Total row, or the metric group Subtotal line
     return !!formData.rowSubTotals; // row subtotal
   };
   const colPrefixNeeded = (prefix: QueryFormColumn[]): boolean => {
     if (prefix.length === columns.length) return true; // leaf / full level
-    if (prefix.length === 0) return !!formData.rowTotals; // right Total column
+    if (prefix.length === 0)
+      return (
+        !!formData.rowTotals || needsColumnsCollapsed || needsMetricColSubtotal
+      ); // right Total column, or the metric group Subtotal line
     return !!formData.colSubTotals; // column subtotal
   };
 
@@ -227,13 +286,25 @@ export default function buildGroupbyCombinations(
     );
 
   if (formData.combineMetric) {
+    // A forced-in percent-mode denominator level (above) is collapsed on the
+    // opposite axis from a "normal" subtotal, so it can be mistaken for one
+    // and stripped back out here. Exempt it explicitly so combining metrics
+    // doesn't blank out the percent denominator.
+    const isForcedDenominatorLevel = (combination: Groupby): boolean =>
+      (needsRowsCollapsed && combination.rows.length === 0) ||
+      (needsColumnsCollapsed && combination.columns.length === 0);
+
     if (formData.metricsLayout === MetricsLayoutEnum.ROWS) {
       groupbyCombinations = groupbyCombinations.filter(
-        combination => combination.rows.length === rows.length,
+        combination =>
+          combination.rows.length === rows.length ||
+          isForcedDenominatorLevel(combination),
       );
     } else {
       groupbyCombinations = groupbyCombinations.filter(
-        combination => combination.columns.length === columns.length,
+        combination =>
+          combination.columns.length === columns.length ||
+          isForcedDenominatorLevel(combination),
       );
     }
   }

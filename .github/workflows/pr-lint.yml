@@ -19,9 +19,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   lint-check:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       contents: read
       pull-requests: write
@@ -31,7 +34,13 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - uses: ./.github/actions/pr-lint-action
+      # pr-lint-action is a submodule (not a plain directory), and the $/
+      # self-repository syntax resolves action files directly from the
+      # repository without performing a real (submodule-aware) checkout, so
+      # it can't see into a submodule's link. Keep this one on the
+      # workspace-relative ./ form, consistent with every other workflow in
+      # the repo that references a submodule action.
+      - uses: ./.github/actions/pr-lint-action # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           title-regex: "^(build|chore|ci|docs|feat|fix|perf|refactor|style|test|other)(\\(.+\\))?(\\!)?:\\s.+"
           on-failed-regex-fail-action: true

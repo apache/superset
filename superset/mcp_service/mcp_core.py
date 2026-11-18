@@ -70,6 +70,20 @@ F = TypeVar("F", bound=BaseModel)  # For filter types
 L = TypeVar("L", bound=BaseModel)  # For list response schemas
 
 
+# Humanized/computed columns accepted as order_column aliases, mapped to the
+# real sortable column that backs them. Superset's own REST APIs (see the
+# `@renders("changed_on")` binding on `changed_on_delta_humanized` in
+# models/helpers.py, and each ModelRestApi's `order_columns`) already sort
+# by the underlying timestamp when asked to order by the humanized string,
+# since the humanized value is derived from it and isn't itself a queryable
+# column. Mirrored here so DAO.list() (which does a plain
+# `getattr(model, order_column)`) receives an actual column, not a Python
+# property/method.
+_ORDER_COLUMN_ALIASES: dict[str, str] = {
+    "changed_on_delta_humanized": "changed_on",
+}
+
+
 class BaseCore(ABC):
     """
     Abstract base class for all MCP Core classes.
@@ -115,26 +129,28 @@ class BaseCore(ABC):
         self.logger.warning(message)
 
 
-class DeletedStateBoundFilter:
-    """Adapt a FAB deleted-state filter for ``BaseDAO.list`` custom_filters.
+class BoundFilter:
+    """Bind a caller value to a FAB filter used by ``BaseDAO.list``.
 
     ``BaseDAO.list`` invokes custom filters as ``apply(query, None)``, but the
-    ``BaseDeletedStateFilter`` subclasses interpret ``None`` as "live rows
-    only". Binding the value at construction lets the DAO-side invocation
-    reach the FAB filter with the caller's actual ``include``/``only`` choice.
-
-    ``model`` re-exposes the FAB filter's SoftDeleteMixin model class so the
-    caller can scope the session visibility bypass without re-consulting the
-    (Optional) filter-class attribute.
+    request value is already available to MCP callers. Binding it at
+    construction preserves that value for the DAO-side invocation.
     """
 
-    def __init__(self, inner: Any, value: str, model: type) -> None:
+    def __init__(self, inner: Any, value: Any) -> None:
         self._inner = inner
         self._value = value
-        self.model = model
 
     def apply(self, query: Any, value: Any) -> Any:
         return self._inner.apply(query, self._value)
+
+
+class DeletedStateBoundFilter(BoundFilter):
+    """Bound deleted-state filter carrying its visibility-bypass model."""
+
+    def __init__(self, inner: Any, value: str, model: type) -> None:
+        super().__init__(inner, value)
+        self.model = model
 
 
 class ModelListCore(BaseCore, Generic[L]):
@@ -340,6 +356,11 @@ class ModelListCore(BaseCore, Generic[L]):
         inner = self._deleted_state_filter("id", datamodel)
         return DeletedStateBoundFilter(inner, normalized, model)
 
+    def build_bound_filter(self, filter_class: type, value: Any) -> BoundFilter:
+        """Bind an MCP value to a FAB filter for this core's DAO model."""
+        datamodel = SQLAInterface(self.dao_class.model_cls, db.session)
+        return BoundFilter(filter_class("id", datamodel), value)
+
     def run_tool(
         self,
         filters: Any | None = None,
@@ -352,6 +373,7 @@ class ModelListCore(BaseCore, Generic[L]):
         created_by_me: bool = False,
         edited_by_me: bool = False,
         deleted_state: str | None = None,
+        custom_filters: Dict[str, Any] | None = None,
     ) -> L:
         # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
         page_size = min(page_size, MAX_PAGE_SIZE)
@@ -380,6 +402,14 @@ class ModelListCore(BaseCore, Generic[L]):
                 columns_to_load.append(dependency)
 
         self._validate_order_column(order_column)
+        # Resolve humanized/computed aliases (e.g. changed_on_delta_humanized)
+        # to the real column they're derived from. Must happen after
+        # validation (which checks against the advertised sortable_columns,
+        # including the alias) and before the DAO call, since DAO.list()
+        # sorts via `getattr(model, order_column)` and would receive a
+        # Python property/method instead of a SQL column otherwise.
+        if order_column is not None and order_column in self._sortable_columns:
+            order_column = _ORDER_COLUMN_ALIASES.get(order_column, order_column)
 
         deleted_state_bound = self._build_deleted_state_filter(deleted_state)
         if deleted_state_bound is not None:
@@ -401,7 +431,9 @@ class ModelListCore(BaseCore, Generic[L]):
             "search": search,
             "columns_to_load": columns_to_load,
         }
+        dao_custom_filters = dict(custom_filters or {})
         if deleted_state_bound is not None:
+            dao_custom_filters["deleted_state"] = deleted_state_bound
             # The soft-delete ORM listener appends ``deleted_at IS NULL`` at
             # execution time, so the session-scoped bypass must span both
             # executions inside DAO.list (count + fetch). The context manager
@@ -410,11 +442,13 @@ class ModelListCore(BaseCore, Generic[L]):
             # which unhidden rows the caller may actually see.
             with skip_visibility_filter(db.session, deleted_state_bound.model):
                 items, total_count = self._call_dao_list(
-                    custom_filters={"deleted_state": deleted_state_bound},
+                    custom_filters=dao_custom_filters,
                     **dao_kwargs,
                 )
         else:
-            items, total_count = self._call_dao_list(**dao_kwargs)
+            items, total_count = self._call_dao_list(
+                custom_filters=dao_custom_filters or None, **dao_kwargs
+            )
         # Serialize items
         item_objs = []
         for item in items:

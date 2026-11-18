@@ -36,6 +36,10 @@ export function isLabeledValue(value: unknown): value is AntdLabeledValue {
   return isObject(value) && 'value' in value && 'label' in value;
 }
 
+export function isNewOption(option: unknown): boolean {
+  return isObject(option) && Boolean(option.isNewOption);
+}
+
 export function getValue(
   option: string | number | AntdLabeledValue | null | undefined,
 ) {
@@ -51,26 +55,68 @@ export function isEqual(
     isObject(a) && key in a ? a[key as keyof CustomLabeledValue] : a;
   const actualB =
     isObject(b) && key in b ? b[key as keyof CustomLabeledValue] : b;
+
+  if (
+    (typeof actualA === 'number' &&
+      typeof actualB === 'string' &&
+      actualB.trim() === '') ||
+    (typeof actualB === 'number' &&
+      typeof actualA === 'string' &&
+      actualA.trim() === '')
+  ) {
+    return false;
+  }
+
   // When comparing the values we use the equality
   // operator to automatically convert different types
   // eslint-disable-next-line eqeqeq
-  return actualA == actualB;
+  if (actualA == actualB) {
+    return true;
+  }
+  if (
+    key === 'label' &&
+    typeof actualA === 'string' &&
+    typeof actualB === 'string'
+  ) {
+    const trimmedA = actualA.trim();
+    const trimmedB = actualB.trim();
+    return trimmedA.length > 0 && trimmedA === trimmedB;
+  }
+  return false;
 }
 
 export function getOption(
-  value: V,
+  value: V | CustomLabeledValue,
   options?: V | CustomLabeledValue | (V | CustomLabeledValue)[],
   checkLabel = false,
 ): V | CustomLabeledValue {
   const optionsArray = ensureIsArray(options);
-  return optionsArray.find(
-    x =>
-      isEqual(x, value, 'value') || (checkLabel && isEqual(x, value, 'label')),
-  );
+  const targetValue = (isObject(value) ? value.value : value) as V;
+  const targetLabel = (isObject(value) ? value.label : value) as V;
+  for (const x of optionsArray) {
+    if (
+      isEqual(x, targetValue, 'value') ||
+      (checkLabel &&
+        (isEqual(x, targetLabel, 'label') || isEqual(x, targetValue, 'label')))
+    ) {
+      return x;
+    }
+    if (isObject(x) && Array.isArray((x as any).options)) {
+      const child = getOption(
+        value,
+        (x as any).options as (V | CustomLabeledValue)[],
+        checkLabel,
+      );
+      if (child !== undefined) {
+        return child;
+      }
+    }
+  }
+  return undefined;
 }
 
 export function hasOption(
-  value: V,
+  value: V | CustomLabeledValue,
   options?: V | CustomLabeledValue | (V | CustomLabeledValue)[],
   checkLabel = false,
 ): boolean {
@@ -79,17 +125,33 @@ export function hasOption(
 
 /**
  * It creates a comparator to check for a specific property.
- * Can be used with string and number property values.
+ * Can be used with string, number, and bigint property values.
  * */
 export const propertyComparator =
   (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
-    const propertyA = a[property as keyof CustomLabeledValue];
-    const propertyB = b[property as keyof CustomLabeledValue];
+    const propertyA = (a as CustomLabeledValue)[
+      property as keyof CustomLabeledValue
+    ];
+    const propertyB = (b as CustomLabeledValue)[
+      property as keyof CustomLabeledValue
+    ];
     if (typeof propertyA === 'string' && typeof propertyB === 'string') {
       return propertyA.localeCompare(propertyB);
     }
     if (typeof propertyA === 'number' && typeof propertyB === 'number') {
       return propertyA - propertyB;
+    }
+    // BIGINT columns can decode to native `bigint` values (see json-bigint
+    // parsing of large numeric values). Compare numerically rather than
+    // falling through to the string fallback below, which would sort them
+    // lexicographically (e.g. "10", "100", "2").
+    if (
+      (typeof propertyA === 'bigint' || typeof propertyA === 'number') &&
+      (typeof propertyB === 'bigint' || typeof propertyB === 'number')
+    ) {
+      if (propertyA < propertyB) return -1;
+      if (propertyA > propertyB) return 1;
+      return 0;
     }
     return String(propertyA).localeCompare(String(propertyB)); // fallback to string comparison
   };
@@ -228,11 +290,10 @@ export const handleFilterOptionHelper = (
     const searchValue = stripSurroundingQuotes(search).toLowerCase();
     if (optionFilterProps?.length) {
       return optionFilterProps.some(prop => {
-        const optionProp = option?.[prop as keyof CustomLabeledValue]
-          ? String(option[prop as keyof CustomLabeledValue])
-              .trim()
-              .toLowerCase()
-          : '';
+        const propVal = (option as CustomLabeledValue)?.[
+          prop as keyof CustomLabeledValue
+        ];
+        const optionProp = propVal ? String(propVal).trim().toLowerCase() : '';
         return optionProp.includes(searchValue);
       });
     }

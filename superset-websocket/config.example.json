@@ -13,11 +13,19 @@
     "host": "127.0.0.1",
     "password": "",
     "db": 0,
-    "ssl": false
+    "ssl": false,
+    "validateHostname": true,
+    "sslCaCerts": "",
+    "sslCertfile": "",
+    "sslKeyfile": "",
+    "sslCertReqs": "required",
+    "sentinels": [],
+    "sentinelMaster": "",
+    "sentinelPassword": ""
   },
-  "redisStreamPrefix": "async-events-",
   "jwtAlgorithms": ["HS256"],
   "jwtSecret": "CHANGE-ME",
-  "jwtCookieName": "async-token",
+  "previousJwtSecret": "",
+  "jwtCookieName": "superset-ws-token",
   "allowedOrigins": []
 }

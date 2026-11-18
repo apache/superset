@@ -24,10 +24,11 @@ import { DatabaseErrorMessage } from './DatabaseErrorMessage';
 jest.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
-    ({ fileName }: { fileName: string }) => (
-      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors AsyncIcon's real span+role="img" shape
-      <span role="img" aria-label={fileName.replace('_', '-')} />
-    ),
+    ({ fileName }: { fileName: string }) =>
+      (
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors AsyncIcon's real span+role="img" shape
+        <span role="img" aria-label={fileName.replace('_', '-')} />
+      ),
 );
 
 const mockedProps = {
@@ -98,17 +99,17 @@ test('should render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the error message', () => {
+test('should render the error message', async () => {
   render(<DatabaseErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(screen.getByText('Error message')).toBeInTheDocument();
 });
 
-test('should render the issue codes', () => {
+test('should render the issue codes', async () => {
   render(<DatabaseErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(screen.getByText(/This may be triggered by:/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message A/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message B/)).toBeInTheDocument();
@@ -119,10 +120,10 @@ test('should render the engine name', () => {
   expect(screen.getByText(/Engine name/)).toBeInTheDocument();
 });
 
-test('should render the editors', () => {
+test('should render the editors', async () => {
   render(<DatabaseErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(
     screen.getByText('Please reach out to the Chart Editors for assistance.'),
   ).toBeInTheDocument();
@@ -131,7 +132,7 @@ test('should render the editors', () => {
   ).toBeInTheDocument();
 });
 
-test('should NOT render the editors', () => {
+test('should NOT render the editors', async () => {
   const noVisualizationProps = {
     ...mockedProps,
     source: 'sqllab' as ErrorSource,
@@ -140,7 +141,7 @@ test('should NOT render the editors', () => {
     useRedux: true,
   });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(
     screen.queryByText('Chart Editors: Owner A, Owner B'),
   ).not.toBeInTheDocument();

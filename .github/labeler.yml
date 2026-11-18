@@ -22,6 +22,18 @@
   - any-glob-to-any-file:
     - 'scripts/**'
 
+# A chart's `controlPanel` defines the form_data keys persisted on every
+# slice that uses it, and its `transformProps` reads those keys back at
+# render time. Changing either can break charts and dashboards saved
+# against the previous shape. Covers chart plugins, native filters and
+# chart customizations, wherever they live in the frontend.
+"risk:chart-metadata":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset-frontend/**/{controlPanel,transformProps}.{ts,tsx}'
+    - 'superset-frontend/**/config/{controlPanel,transformProps}/index.ts'
+    - 'superset-frontend/src/explore/controlPanels/**'
+
 ############################################
 # Dependencies
 ############################################
@@ -29,7 +41,7 @@
 "dependencies:python":
 - changed-files:
   - any-glob-to-any-file:
-    - 'superset/requirements/**'
+    - 'requirements/**'
     - 'superset/translations/requirements.txt'
     - 'RELEASING/requirements.txt'
 
@@ -42,8 +54,6 @@
     - 'superset-embedded-sdk/package-lock.json'
     - 'superset-websocket/package.json'
     - 'superset-websocket/package-lock.json'
-    - 'superset-frontend/cypress-base/package.json'
-    - 'superset-frontend/cypress-base/package-lock.json'
     - 'superset-frontend/packages/**/package.json'
     - 'superset-frontend/plugins/**/package.json'
 
@@ -67,10 +77,20 @@
   - any-glob-to-any-file:
     - 'superset/translations/**'
 
+"i18n:arabic":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/ar/**'
+
 "i18n:brazilian":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/pt_BR/**'
+
+"i18n:catalan":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/ca/**'
 
 "i18n:chinese":
 - changed-files:
@@ -82,20 +102,25 @@
   - any-glob-to-any-file:
     - 'superset/translations/cs/**'
 
-"i18n:traditional-chinese":
-- changed-files:
-  - any-glob-to-any-file:
-    - 'superset/translations/zh_TW/**'
-
 "i18n:dutch":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/nl/**'
 
+"i18n:finnish":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/fi/**'
+
 "i18n:french":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/fr/**'
+
+"i18n:german":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/de/**'
 
 "i18n:italian":
 - changed-files:
@@ -112,40 +137,90 @@
   - any-glob-to-any-file:
     - 'superset/translations/ko/**'
 
+"i18n:latvian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/lv/**'
+
+"i18n:maori":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/mi/**'
+
+"i18n:persian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/fa/**'
+
+"i18n:polish":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/pl/**'
+
 "i18n:portuguese":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/pt/**'
+
+"i18n:romanian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/ro/**'
 
 "i18n:russian":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/ru/**'
 
+"i18n:serbian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/sr/**'
+
+"i18n:serbian-latin":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/sr_Latn/**'
+
 "i18n:slovak":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/sk/**'
 
-"i18n:latvian":
+"i18n:slovenian":
 - changed-files:
   - any-glob-to-any-file:
-    - 'superset/translations/lv/**'
-
-"i18n:ukrainian":
-- changed-files:
-  - any-glob-to-any-file:
-    - 'superset/translations/uk/**'
+    - 'superset/translations/sl/**'
 
 "i18n:spanish":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/es/**'
 
-"i18n:persian":
+"i18n:tamil":
 - changed-files:
   - any-glob-to-any-file:
-    - 'superset/translations/fa/**'
+    - 'superset/translations/ta/**'
+
+"i18n:thai":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/th/**'
+
+"i18n:traditional-chinese":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/zh_TW/**'
+
+"i18n:turkish":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/tr/**'
+
+"i18n:ukrainian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/uk/**'
 
 ############################################
 # Sub-projects and monorepo packages

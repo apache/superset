@@ -23,11 +23,14 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
+from flask_babel.speaklater import LazyString
+from marshmallow import ValidationError as MarshmallowValidationError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -35,32 +38,79 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     extract_x_axis_col,
+    merge_extra_form_data_filters_into_query,
+    rejected_requested_filter_columns,
+    resolve_form_data_datasource,
     resolve_groupby,
     resolve_metrics,
     resolve_metrics_and_groupby,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.query_result import (
+    _bounded_utf8_length,
+    MAX_QUERY_RESULT_VALUE_BYTES,
+    MAX_QUERY_RESULTS,
+    response_json_failure,
+)
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartSql,
     GetChartSqlRequest,
+    resolve_chart_datasource_name,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
 
+_SEMANTIC_VIEW_SQL_UNSUPPORTED: str = (
+    "SQL is not available for semantic-layer charts; the query is "
+    "compiled by the semantic layer."
+)
 
-def _sanitize_chart_sql_for_llm_context(chart_sql: ChartSql) -> ChartSql:
-    """Wrap chart SQL read-path descriptive fields before LLM exposure."""
-    payload = chart_sql.model_dump(mode="python")
+_MAX_EXCEPTION_PARTS = 3
+_MAX_EXCEPTION_TEXT_BYTES = 2_000
 
-    for field_name in ("chart_name", "datasource_name", "sql", "error"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
 
-    return ChartSql.model_validate(payload)
+def _safe_exception_message(exception: BaseException) -> str:  # noqa: C901
+    """Describe an exception without invoking custom conversion hooks."""
+    try:
+        args = object.__getattribute__(exception, "args")
+    except Exception:  # pragma: no cover - BaseException provides args
+        args = ()
+    parts: list[str] = []
+    used = 0
+    if type(args) is tuple:
+        for index in range(min(tuple.__len__(args), _MAX_EXCEPTION_PARTS)):
+            value = tuple.__getitem__(args, index)
+            if type(value) is str:
+                text = value
+            elif type(value) is int and int.bit_length(value) <= 4_096:
+                text = int.__str__(value)
+            elif type(value) is float:
+                text = float.__repr__(value)
+            elif type(value) is bool:
+                text = "True" if value else "False"
+            elif value is None:
+                text = "None"
+            else:
+                continue
+            remaining = _MAX_EXCEPTION_TEXT_BYTES - used - (2 if parts else 0)
+            if remaining <= 0:
+                break
+            encoded = str.encode(text[:remaining], "utf-8", errors="replace")[
+                :remaining
+            ]
+            bounded = bytes.decode(encoded, "utf-8", errors="ignore")
+            if bounded:
+                parts.append(bounded)
+                used += bytes.__len__(encoded) + (2 if len(parts) > 1 else 0)
+    if parts:
+        return "; ".join(parts)
+    exception_type = type(exception)
+    try:
+        type_name = type.__getattribute__(exception_type, "__name__")
+    except (AttributeError, TypeError):  # pragma: no cover - defensive metaclass
+        type_name = "exception"
+    return type_name if type(type_name) is str else "exception"
 
 
 def _get_cached_form_data(form_data_key: str) -> str | None:
@@ -74,7 +124,10 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
         cmd_params = CommandParameters(key=form_data_key)
         return GetFormDataCommand(cmd_params).run()
     except (KeyError, ValueError, CommandException) as e:
-        logger.warning("Failed to retrieve form_data from cache: %s", e)
+        logger.warning(
+            "Failed to retrieve form_data from cache: %s",
+            _safe_exception_message(e),
+        )
         return None
 
 
@@ -104,6 +157,7 @@ def _extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
 def _build_query_context_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None" = None,
+    extra_form_data: dict[str, Any] | None = None,
 ) -> Any:
     """Build a QueryContext from form_data with result_type=QUERY.
 
@@ -115,6 +169,7 @@ def _build_query_context_from_form_data(
     return build_query_context_from_form_data(
         form_data,
         chart=chart,
+        extra_form_data=extra_form_data,
         result_type=ChartDataResultType.QUERY,
         force=False,
     )
@@ -127,7 +182,7 @@ def _find_chart_by_identifier(
     from superset.daos.chart import ChartDAO
 
     if isinstance(identifier, int) or (
-        isinstance(identifier, str) and identifier.isdigit()
+        isinstance(identifier, str) and identifier.isdecimal()
     ):
         chart_id = int(identifier) if isinstance(identifier, str) else identifier
         return ChartDAO.find_by_id(chart_id)
@@ -164,6 +219,7 @@ def _resolve_effective_form_data(
 
 def _sql_from_saved_query_context(
     chart: "Slice",
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError | None:
     """Try to extract SQL from a chart's saved query_context.
 
@@ -182,15 +238,76 @@ def _sql_from_saved_query_context(
         qc_json["result_type"] = ChartDataResultType.QUERY
         qc_json["force"] = False
 
-        query_context = ChartDataQueryContextSchema().load(qc_json)
+        if extra_form_data:
+            # Resolve the pieces of the saved context the merge depends on first.
+            # Failures here mean the context itself is stale, not that the
+            # request's filters are bad, so the caller should rebuild it from
+            # form_data rather than surfacing a validation error.
+            try:
+                datasource_id = qc_json["datasource"]["id"]
+                datasource_type = qc_json["datasource"]["type"]
+                queries = qc_json.get("queries", [])
+                if not isinstance(queries, list):
+                    raise TypeError("queries must be a list")
+            except (AttributeError, KeyError, TypeError) as ex:
+                logger.warning(
+                    "Saved query context is unusable for chart %s; "
+                    "falling back to form_data: %s",
+                    chart.id,
+                    _safe_exception_message(ex),
+                )
+                return None
+
+            try:
+                for query in queries:
+                    merge_extra_form_data_filters_into_query(
+                        query,
+                        extra_form_data,
+                        datasource_id,
+                        datasource_type,
+                    )
+            except (AttributeError, KeyError, TypeError) as ex:
+                return ChartError(
+                    error=(
+                        f"Invalid extra_form_data filter: {_safe_exception_message(ex)}"
+                    ),
+                    error_type="ValidationError",
+                )
+
+        try:
+            query_context = ChartDataQueryContextSchema().load(qc_json)
+        except MarshmallowValidationError as ex:
+            # A saved query context can become stale as schemas evolve. Let the
+            # caller rebuild it from form_data; malformed request filters will
+            # still produce a ValidationError from that fallback path.
+            logger.warning(
+                "Saved query context validation failed for chart %s; "
+                "falling back to form_data: %s",
+                chart.id,
+                _safe_exception_message(ex),
+            )
+            return None
         query_context.result_type = ChartDataResultType.QUERY
+        # ChartDataDatasourceSchema only requires "id", so fall back to the
+        # chart's own datasource rather than raising on a context that the
+        # schema itself considers valid.
+        datasource_json = qc_json.get("datasource") or {}
+        set_query_context_form_data(
+            query_context,
+            datasource_json.get("id", chart.datasource_id),
+            datasource_json.get("type", chart.datasource_type),
+        )
 
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()
 
         return _extract_sql_from_result(
-            result, chart.id, chart.slice_name, chart.datasource_name
+            result,
+            chart.id,
+            chart.slice_name,
+            resolve_chart_datasource_name(chart),
+            extra_form_data=extra_form_data,
         )
     except SupersetSecurityException:
         raise  # Let access denials propagate for consistent error handling
@@ -208,7 +325,7 @@ def _resolve_datasource_name(
     from form_data so that the response includes a meaningful name.
     """
     if chart:
-        return getattr(chart, "datasource_name", None)
+        return resolve_chart_datasource_name(chart)
 
     # Unsaved chart — resolve from form_data
     datasource_id = form_data.get("datasource_id")
@@ -217,7 +334,7 @@ def _resolve_datasource_name(
     if not datasource_id and (combined := form_data.get("datasource")):
         if isinstance(combined, str) and "__" in combined:
             parts = combined.split("__", 1)
-            datasource_id = int(parts[0]) if parts[0].isdigit() else parts[0]
+            datasource_id = int(parts[0]) if parts[0].isdecimal() else parts[0]
             datasource_type = parts[1] if len(parts) > 1 else "table"
 
     if not datasource_id:
@@ -249,11 +366,26 @@ def _resolve_datasource_name(
 def _sql_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None",
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError:
     """Build SQL from form_data (fallback path)."""
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-    query_context = _build_query_context_from_form_data(form_data, chart)
+    try:
+        _, datasource_type = resolve_form_data_datasource(form_data, chart)
+        query_context = _build_query_context_from_form_data(
+            form_data, chart, extra_form_data=extra_form_data
+        )
+    except (AttributeError, KeyError, TypeError, MarshmallowValidationError) as ex:
+        return ChartError(
+            error=f"Invalid chart query data: {_safe_exception_message(ex)}",
+            error_type="ValidationError",
+        )
+    set_query_context_form_data(
+        query_context,
+        query_context.datasource.id,
+        datasource_type,
+    )
     command = ChartDataCommand(query_context)
     command.validate()
     result = command.run()
@@ -263,14 +395,16 @@ def _sql_from_form_data(
         chart_id=getattr(chart, "id", None),
         chart_name=getattr(chart, "slice_name", None),
         datasource_name=_resolve_datasource_name(form_data, chart),
+        extra_form_data=extra_form_data,
     )
 
 
-def _extract_sql_from_result(
-    result: dict[str, Any],
+def _extract_sql_from_result(  # noqa: C901
+    result: Any,
     chart_id: int | None,
     chart_name: str | None,
     datasource_name: str | None,
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError:
     """Extract SQL query string(s) from the ChartDataCommand result.
 
@@ -278,50 +412,126 @@ def _extract_sql_from_result(
     query entries.  This collects SQL from all of them so that composite
     visualisations do not silently lose part of their SQL.
     """
-    queries = result.get("queries", [])
-    if not queries:
+    if type(result) is not dict:
+        return ChartError(
+            error="Malformed chart SQL result: expected an exact object.",
+            error_type="MalformedQueryResult",
+        )
+    queries = dict.get(result, "queries", [])
+    if type(queries) is not list:
+        return ChartError(
+            error="Malformed chart SQL result: queries must be an exact array.",
+            error_type="MalformedQueryResult",
+        )
+    query_count = list.__len__(queries)
+    if not query_count:
         return ChartError(
             error=(
                 "No query results returned. The chart may have an empty configuration."
             ),
             error_type="EmptyQuery",
         )
+    if query_count > MAX_QUERY_RESULTS:
+        return ChartError(
+            error="Malformed chart SQL result: queries exceeds the item limit.",
+            error_type="MalformedQueryResult",
+        )
+
+    # A filter naming a column the dataset does not have is dropped during query
+    # construction. Returning the resulting unfiltered SQL as a success would
+    # misrepresent it as the SQL for the filters that were asked for.
+    if rejected := rejected_requested_filter_columns(result, extra_form_data):
+        rejected_columns = ", ".join(rejected)
+        return ChartError(
+            error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+            error_type="ValidationError",
+        )
 
     sql_parts: list[str] = []
     errors: list[str] = []
     language = "sql"
 
-    for idx, query_result in enumerate(queries, start=1):
-        if not isinstance(query_result, dict):
-            continue
-        if "language" in query_result and isinstance(query_result["language"], str):
-            language = query_result["language"]
-        query_sql = query_result.get("query", "")
-        query_error = query_result.get("error")
+    source_bytes = 0
+    for offset in range(query_count):
+        idx = offset + 1
+        query_result = list.__getitem__(queries, offset)
+        if type(query_result) is not dict:
+            return ChartError(
+                error=f"Malformed chart SQL result: query {idx} must be an object.",
+                error_type="MalformedQueryResult",
+            )
+        query_language = dict.get(query_result, "language")
+        if query_language is not None:
+            if (
+                type(query_language) is not str
+                or _bounded_utf8_length(query_language, 256) is None
+            ):
+                return ChartError(
+                    error=(
+                        f"Malformed chart SQL result: query {idx} language must be "
+                        "a bounded exact string."
+                    ),
+                    error_type="MalformedQueryResult",
+                )
+            language = query_language
+        query_sql = dict.get(query_result, "query", "")
+        query_error = dict.get(query_result, "error")
+        # QueryObjectValidationError carries Flask-Babel lazy translations.
+        # Resolve only the concrete library type, not arbitrary string hooks.
+        if type(query_error) is LazyString:
+            try:
+                query_error = str(query_error)
+            except Exception:
+                return ChartError(
+                    error=(
+                        f"Malformed chart SQL result: query {idx} error could not "
+                        "be resolved."
+                    ),
+                    error_type="MalformedQueryResult",
+                )
+        for label, value in (("query", query_sql), ("error", query_error)):
+            if value is None:
+                continue
+            if type(value) is not str:
+                return ChartError(
+                    error=(
+                        f"Malformed chart SQL result: query {idx} {label} must be "
+                        "an exact string."
+                    ),
+                    error_type="MalformedQueryResult",
+                )
+            remaining = MAX_QUERY_RESULT_VALUE_BYTES - source_bytes
+            size = _bounded_utf8_length(value, remaining)
+            if size is None:
+                return ChartError(
+                    error="Chart SQL result exceeds the total byte limit.",
+                    error_type="MalformedQueryResult",
+                )
+            source_bytes += size
 
         if query_sql:
             sql_parts.append(
-                query_sql if len(queries) == 1 else f"-- Query {idx}\n{query_sql}"
+                query_sql if query_count == 1 else f"-- Query {idx}\n{query_sql}"
             )
         if query_error:
             errors.append(f"Query {idx}: {query_error}")
 
     if not sql_parts and errors:
-        return ChartError(
+        response = ChartError(
             error="SQL generation failed: " + "; ".join(errors),
             error_type="QueryGenerationFailed",
         )
+        return response_json_failure(response) or response
 
-    return _sanitize_chart_sql_for_llm_context(
-        ChartSql(
-            chart_id=chart_id,
-            chart_name=chart_name,
-            sql="\n\n".join(sql_parts),
-            language=language,
-            datasource_name=datasource_name,
-            error="; ".join(errors) if errors else None,
-        )
+    response = ChartSql(
+        chart_id=chart_id,
+        chart_name=chart_name,
+        sql="\n\n".join(sql_parts),
+        language=language,
+        datasource_name=datasource_name,
+        error="; ".join(errors) if errors else None,
     )
+    return response_json_failure(response) or response
 
 
 @tool(
@@ -332,6 +542,7 @@ def _extract_sql_from_result(
         title="Get chart SQL",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_chart_sql(
@@ -351,6 +562,8 @@ async def get_chart_sql(
     Supports:
     - Numeric ID or UUID lookup
     - form_data_key: get SQL for unsaved chart state from Explore view
+    - extra_form_data: preview SQL with dashboard-filter-style predicates merged
+      in, same format accepted by get_chart_data
 
     Example usage:
     ```json
@@ -367,19 +580,22 @@ async def get_chart_sql(
     )
 
     try:
-        return await _handle_chart_sql_request(request, ctx)
+        response = await _handle_chart_sql_request(request, ctx)
     except SupersetException as e:
-        logger.exception("Superset error in get_chart_sql")
-        return ChartError(
-            error=f"Superset error: {e}",
+        error_text = _safe_exception_message(e)
+        logger.error("Superset error in get_chart_sql: %s", error_text)
+        response = ChartError(
+            error=f"Superset error: {error_text}",
             error_type="SupersetError",
         )
     except (ValueError, TypeError) as e:
-        logger.exception("Unexpected error in get_chart_sql")
-        return ChartError(
-            error=f"Failed to generate chart SQL: {e}",
+        error_text = _safe_exception_message(e)
+        logger.error("Unexpected error in get_chart_sql: %s", error_text)
+        response = ChartError(
+            error=f"Failed to generate chart SQL: {error_text}",
             error_type="QueryGenerationFailed",
         )
+    return response_json_failure(response) or response
 
 
 async def _handle_chart_sql_request(
@@ -398,7 +614,9 @@ async def _handle_chart_sql_request(
 
     # Handle unsaved chart (form_data_key only, no identifier)
     if not request.identifier and request.form_data_key:
-        return await _handle_unsaved_chart_sql(request.form_data_key, ctx)
+        return await _handle_unsaved_chart_sql(
+            request.form_data_key, ctx, request.extra_form_data
+        )
 
     # Find the chart by identifier
     if request.identifier is None:
@@ -415,13 +633,19 @@ async def _handle_chart_sql_request(
             error_type="NotFound",
         )
 
+    if chart.datasource_type == "semantic_view":
+        return ChartError(
+            error=_SEMANTIC_VIEW_SQL_UNSUPPORTED,
+            error_type="Unsupported",
+        )
+
     await ctx.info(
         "Chart found: chart_id=%s, chart_name=%s, viz_type=%s"
         % (chart.id, chart.slice_name, chart.viz_type)
     )
 
     # Validate the chart's dataset is accessible
-    validation_result = validate_chart_dataset(chart, check_access=True)
+    validation_result = validate_chart_dataset(chart.datasource_id, check_access=True)
     if not validation_result.is_valid:
         await ctx.warning(
             "Chart found but dataset is not accessible: %s" % (validation_result.error,)
@@ -441,7 +665,7 @@ async def _handle_chart_sql_request(
     # Try saved query_context first (faster, more accurate)
     with event_logger.log_context(action="mcp.get_chart_sql.build_query"):
         if not using_unsaved_state:
-            saved_result = _sql_from_saved_query_context(chart)
+            saved_result = _sql_from_saved_query_context(chart, request.extra_form_data)
             if saved_result is not None:
                 return saved_result
             await ctx.warning(
@@ -450,18 +674,40 @@ async def _handle_chart_sql_request(
             )
 
         # Fallback: build query context from form_data
-        try:
-            return _sql_from_form_data(effective_form_data, chart)
-        except (SupersetException, CommandException, ValueError) as e:
-            await ctx.warning("Failed to build SQL from form_data: %s" % str(e))
+        return await _sql_from_chart_form_data(
+            effective_form_data, chart, request.extra_form_data, ctx
+        )
+
+
+async def _sql_from_chart_form_data(
+    form_data: dict[str, Any],
+    chart: "Slice",
+    extra_form_data: dict[str, Any] | None,
+    ctx: Context,
+) -> ChartSql | ChartError:
+    """Build saved-chart fallback SQL with its existing error response mapping."""
+    try:
+        datasource_type: str
+        _, datasource_type = resolve_form_data_datasource(form_data, chart)
+        if datasource_type == "semantic_view":
             return ChartError(
-                error="Failed to generate SQL for chart %s: %s" % (chart.id, e),
-                error_type="QueryGenerationFailed",
+                error=_SEMANTIC_VIEW_SQL_UNSUPPORTED,
+                error_type="Unsupported",
             )
+        return _sql_from_form_data(form_data, chart, extra_form_data)
+    except (SupersetException, CommandException, ValueError) as e:
+        error_text = _safe_exception_message(e)
+        await ctx.warning("Failed to build SQL from form_data: %s" % error_text)
+        return ChartError(
+            error="Failed to generate SQL for chart %s: %s" % (chart.id, error_text),
+            error_type="QueryGenerationFailed",
+        )
 
 
 async def _handle_unsaved_chart_sql(
-    form_data_key: str, ctx: Context
+    form_data_key: str,
+    ctx: Context,
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError:
     """Handle SQL retrieval for unsaved charts (form_data_key only)."""
     from superset.utils import json as utils_json
@@ -482,7 +728,9 @@ async def _handle_unsaved_chart_sql(
             form_data = utils_json.loads(cached_form_data)
         except (TypeError, ValueError) as e:
             return ChartError(
-                error=f"Failed to parse cached form_data: {e}",
+                error=(
+                    f"Failed to parse cached form_data: {_safe_exception_message(e)}"
+                ),
                 error_type="ParseError",
             )
         if not isinstance(form_data, dict):
@@ -492,10 +740,20 @@ async def _handle_unsaved_chart_sql(
             )
 
         try:
-            return _sql_from_form_data(form_data, chart=None)
+            datasource_type: str
+            _, datasource_type = resolve_form_data_datasource(form_data, chart=None)
+            if datasource_type == "semantic_view":
+                return ChartError(
+                    error=_SEMANTIC_VIEW_SQL_UNSUPPORTED,
+                    error_type="Unsupported",
+                )
+            return _sql_from_form_data(
+                form_data, chart=None, extra_form_data=extra_form_data
+            )
         except (SupersetException, CommandException, ValueError) as e:
-            await ctx.warning("Failed to generate SQL from form_data: %s" % str(e))
+            error_text = _safe_exception_message(e)
+            await ctx.warning("Failed to generate SQL from form_data: %s" % error_text)
             return ChartError(
-                error="Failed to generate SQL from cached form_data: %s" % str(e),
+                error="Failed to generate SQL from cached form_data: %s" % error_text,
                 error_type="QueryGenerationFailed",
             )

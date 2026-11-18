@@ -70,10 +70,26 @@ def get_query_by_id(id: int):
 
 @pytest.fixture(autouse=True, scope="module")
 def setup_sqllab():
+    # These tests exercise CTAS/CVAS, which the example database must be
+    # granted to allow. Enable the grants for the duration of the module and
+    # restore the originals afterwards.
+    with app.app_context():
+        example_db = get_example_database()
+        original_allow_ctas = example_db.allow_ctas
+        original_allow_cvas = example_db.allow_cvas
+        example_db.allow_ctas = True
+        example_db.allow_cvas = True
+        db.session.commit()
+
     yield
+
     # clean up after all tests are done
     # use a new app context
     with app.app_context():
+        example_db = get_example_database()
+        example_db.allow_ctas = original_allow_ctas
+        example_db.allow_cvas = original_allow_cvas
+        db.session.commit()
         db.session.query(Query).delete()
         db.session.commit()
         for tbl in TMP_TABLES:

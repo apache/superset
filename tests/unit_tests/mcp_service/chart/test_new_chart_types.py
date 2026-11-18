@@ -279,7 +279,7 @@ class TestPivotTableChartConfigSchema:
         assert config.chart_type == "pivot_table"
         assert len(config.rows) == 1
         assert len(config.metrics) == 1
-        assert config.aggregate_function == "Sum"
+        assert config.aggregate_function == "Metric"
         assert config.show_row_totals is True
         assert config.show_column_totals is True
 
@@ -350,7 +350,27 @@ class TestPivotTableChartConfigSchema:
             )
 
     def test_pivot_table_valid_aggregate_functions(self) -> None:
-        for agg in ["Sum", "Average", "Median", "Count", "Minimum", "Maximum"]:
+        for agg in [
+            "Metric",
+            "Sum",
+            "Average",
+            "Median",
+            "Sample Variance",
+            "Sample Standard Deviation",
+            "Count",
+            "Count Unique Values",
+            "List Unique Values",
+            "Minimum",
+            "Maximum",
+            "First",
+            "Last",
+            "Sum as Fraction of Total",
+            "Sum as Fraction of Rows",
+            "Sum as Fraction of Columns",
+            "Count as Fraction of Total",
+            "Count as Fraction of Rows",
+            "Count as Fraction of Columns",
+        ]:
             config = PivotTableChartConfig(
                 chart_type="pivot_table",
                 rows=[ColumnRef(name="product")],
@@ -381,7 +401,7 @@ class TestMapPivotTableConfig:
         assert result["groupbyColumns"] == []
         assert len(result["metrics"]) == 1
         assert result["metrics"][0]["aggregate"] == "SUM"
-        assert result["aggregateFunction"] == "Sum"
+        assert result["aggregateFunction"] == "Metric"
         assert result["rowTotals"] is True
         assert result["colTotals"] is True
         assert result["metricsLayout"] == "COLUMNS"
@@ -646,8 +666,8 @@ class TestMapMixedTimeseriesConfig:
         )
         result = map_mixed_timeseries_config(config, dataset_id=1)
 
-        assert "groupby" not in result
-        assert "groupby_b" not in result
+        assert result["groupby"] == []
+        assert result["groupby_b"] == []
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
     def test_mixed_form_data_with_axis_config(self, mock_is_temporal) -> None:
@@ -1239,6 +1259,66 @@ class TestTableFormattingOptions:
         result = map_table_config(config)
 
         assert "color_scheme" not in result
+
+    def test_column_config_in_form_data(self) -> None:
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [
+                    {"name": "order_date"},
+                    {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
+                ],
+                "column_config": {
+                    "order_date": {
+                        "columnWidth": 120,
+                        "d3TimeFormat": "%Y-%m-%d",
+                    },
+                    "Revenue": {"d3NumberFormat": "$,.2f"},
+                },
+            }
+        )
+
+        result = map_table_config(config)
+
+        assert result["column_config"] == {
+            "order_date": {"columnWidth": 120, "d3TimeFormat": "%Y-%m-%d"},
+            "Revenue": {"d3NumberFormat": "$,.2f"},
+        }
+
+    def test_column_config_rejects_unknown_setting(self) -> None:
+        with pytest.raises(ValidationError, match="Unknown field 'width'"):
+            TableChartConfig.model_validate(
+                {
+                    "chart_type": "table",
+                    "columns": [{"name": "product"}],
+                    "column_config": {"product": {"width": 120}},
+                }
+            )
+
+    def test_column_config_preserves_explicit_null_to_clear_formatting(self) -> None:
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [{"name": "revenue"}],
+                "column_config": {
+                    "revenue": {
+                        "columnWidth": None,
+                        "d3NumberFormat": None,
+                        "d3TimeFormat": None,
+                    }
+                },
+            }
+        )
+
+        result = map_table_config(config)
+
+        assert result["column_config"] == {
+            "revenue": {
+                "columnWidth": None,
+                "d3NumberFormat": None,
+                "d3TimeFormat": None,
+            }
+        }
 
 
 class TestCurrencyFormatModel:

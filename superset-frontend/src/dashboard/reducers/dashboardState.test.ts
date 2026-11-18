@@ -28,6 +28,7 @@ import {
   SET_EDIT_MODE,
   SET_FOCUSED_FILTER_FIELD,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
+  SET_REFRESH_FREQUENCY,
   SET_UNSAVED_CHANGES,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
@@ -273,6 +274,29 @@ describe('DashboardState reducer', () => {
         expect.arrayContaining(['TAB-Outer1', 'TAB-Inner1']),
       );
     });
+
+    // The component tests assert on a `setActiveTab` mock, so they stop short
+    // of the state that actually gets serialized into the permalink body.
+    test('stores a resolved tab id so activeTabs serializes without null', () => {
+      const store = mockStore({
+        dashboardState: { activeTabs: [] },
+        dashboardLayout: { present: { 'TAB-1': { parents: [] } } },
+      });
+      const thunkAction = setActiveTab('TAB-1')(
+        store.dispatch,
+        store.getState as () => RootState,
+      );
+
+      const result = typedDashboardStateReducer(
+        createMockDashboardState({ activeTabs: [] }),
+        thunkAction,
+      );
+
+      expect(result.activeTabs).toEqual(['TAB-1']);
+      expect(JSON.stringify({ activeTabs: result.activeTabs })).toBe(
+        '{"activeTabs":["TAB-1"]}',
+      );
+    });
   });
   // Pins a side effect of seeding activeTabs at hydration (see
   // actions/hydrate.ts / util/getDefaultActiveTabs.ts): a non-empty seeded
@@ -355,11 +379,18 @@ describe('DashboardState reducer', () => {
         { expandedSlices: { 1: true, 2: false } } as Partial<DashboardState>,
         { type: TOGGLE_EXPAND_SLICE, sliceId: 1 },
       ),
-    ).toEqual({ expandedSlices: { 2: false } });
+    ).toEqual({ expandedSlices: { 1: false, 2: false } });
 
     expect(
       typedDashboardStateReducer(
         { expandedSlices: { 1: true, 2: false } } as Partial<DashboardState>,
+        { type: TOGGLE_EXPAND_SLICE, sliceId: 2 },
+      ),
+    ).toEqual({ expandedSlices: { 1: true, 2: true } });
+
+    expect(
+      typedDashboardStateReducer(
+        { expandedSlices: { 1: true } } as Partial<DashboardState>,
         { type: TOGGLE_EXPAND_SLICE, sliceId: 2 },
       ),
     ).toEqual({ expandedSlices: { 1: true, 2: true } });
@@ -382,6 +413,54 @@ describe('DashboardState reducer', () => {
     ).toEqual({
       hasUnsavedChanges: false,
     });
+  });
+
+  test('SET_REFRESH_FREQUENCY never clears existing unsaved changes', () => {
+    // A persistent update marks the dashboard dirty.
+    expect(
+      typedDashboardStateReducer({} as Partial<DashboardState>, {
+        type: SET_REFRESH_FREQUENCY,
+        refreshFrequency: 30,
+        isPersistent: true,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        refreshFrequency: 30,
+        shouldPersistRefreshFrequency: true,
+        hasUnsavedChanges: true,
+      }),
+    );
+
+    // A non-persistent update must preserve, not clear, pending unsaved changes
+    // (e.g. the dashboard header's unmount cleanup during a remount).
+    expect(
+      typedDashboardStateReducer(
+        { hasUnsavedChanges: true } as Partial<DashboardState>,
+        {
+          type: SET_REFRESH_FREQUENCY,
+          refreshFrequency: 0,
+          isPersistent: false,
+        },
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        refreshFrequency: 0,
+        shouldPersistRefreshFrequency: false,
+        hasUnsavedChanges: true,
+      }),
+    );
+
+    // With no pending changes, a non-persistent update leaves the flag false.
+    expect(
+      typedDashboardStateReducer(
+        { hasUnsavedChanges: false } as Partial<DashboardState>,
+        {
+          type: SET_REFRESH_FREQUENCY,
+          refreshFrequency: 0,
+          isPersistent: false,
+        },
+      ).hasUnsavedChanges,
+    ).toBe(false);
   });
 
   test('should set maxUndoHistoryExceeded', () => {

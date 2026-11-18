@@ -18,19 +18,23 @@
 # pylint: disable=line-too-long, import-outside-toplevel, protected-access, invalid-name
 
 from datetime import datetime
+from itertools import islice
+from types import SimpleNamespace
 from typing import Any, Optional
 from unittest import mock
 
 import pytest
+from google.cloud.bigquery import SchemaField
 from pytest_mock import MockerFixture
-from sqlalchemy import select
+from sqlalchemy import column, select
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
 
 from superset.sql.parse import Table
-from superset.superset_typing import ResultSetColumnType
+from superset.superset_typing import FetchedRows, ResultSetColumnType
 from superset.utils import json
+from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -526,6 +530,76 @@ def test_get_time_partition_column_uses_catalog_in_table_reference(
     client.get_table.assert_called_once_with("other_project.my_dataset.my_table")
 
 
+def test_get_extra_table_metadata_table_not_found(mocker: MockerFixture) -> None:
+    """
+    Test that a missing table yields empty extra metadata instead of raising.
+    """
+    from google.api_core.exceptions import NotFound
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    mocker.patch.object(
+        BigQueryEngineSpec,
+        "get_time_partition_column",
+        side_effect=NotFound("table gone"),
+    )
+
+    result = BigQueryEngineSpec.get_extra_table_metadata(
+        mock.Mock(), Table("my_table", "my_dataset", "my_project")
+    )
+
+    assert result == {}
+
+
+def test_get_extra_table_metadata_other_errors_propagate(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that errors other than NotFound (e.g. 403) are not swallowed.
+    """
+    from google.api_core.exceptions import Forbidden
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    mocker.patch.object(
+        BigQueryEngineSpec,
+        "get_time_partition_column",
+        side_effect=Forbidden("denied"),
+    )
+
+    with pytest.raises(Forbidden):
+        BigQueryEngineSpec.get_extra_table_metadata(
+            mock.Mock(), Table("my_table", "my_dataset", "my_project")
+        )
+
+
+def test_get_extra_table_metadata_partitioned(mocker: MockerFixture) -> None:
+    """
+    Test that partitioned tables still return partition metadata.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    mocker.patch.object(
+        BigQueryEngineSpec, "get_time_partition_column", return_value="ds"
+    )
+    mocker.patch.object(
+        BigQueryEngineSpec, "get_max_partition_id", return_value="20240101"
+    )
+    mocker.patch.object(BigQueryEngineSpec, "select_star", return_value="SELECT 1")
+    mocker.patch.object(BigQueryEngineSpec, "get_engine")
+
+    result = BigQueryEngineSpec.get_extra_table_metadata(
+        mock.Mock(), Table("my_table", "my_dataset", "my_project")
+    )
+
+    assert result["partitions"] == {
+        "cols": ["ds"],
+        "latest": {"ds": "20240101"},
+        "partitionQuery": "SELECT 1",
+    }
+    assert result["indexes"][0]["cols"] == ["ds"]
+
+
 def test_adjust_engine_params_catalog_as_host() -> None:
     """
     Test passing a custom catalog.
@@ -715,12 +789,33 @@ def _patch_bq_fetch_deps(
     mocker: MockerFixture, max_mb: int = 200
 ) -> tuple[mock.MagicMock, mock.MagicMock]:
     """Helper to patch Flask g and current_app for BigQuery fetch_data tests."""
-    flask_g = mocker.patch("superset.db_engine_specs.bigquery.g")
-    app = mocker.patch("superset.db_engine_specs.bigquery.current_app")
+    # `new_callable=mock.MagicMock` is pinned explicitly rather than relying on
+    # ``mocker.patch``'s auto-detection of the mock class. That detection
+    # inspects whatever object currently sits at the patched attribute, so if
+    # an earlier test in the same session ever leaves an ``AsyncMock`` there
+    # (e.g. an improperly torn-down patch), every subsequent patch of the same
+    # attribute -- even ones created fresh here -- would also become an
+    # ``AsyncMock``, since ``AsyncMock`` classifies its own non-dunder child
+    # attributes as ``AsyncMock`` too. Pinning the callable sidesteps that
+    # self-perpetuating class inference entirely.
+    flask_g = mocker.patch(
+        "superset.db_engine_specs.bigquery.g", new_callable=mock.MagicMock
+    )
+    app = mocker.patch(
+        "superset.db_engine_specs.bigquery.current_app", new_callable=mock.MagicMock
+    )
     # Make current_app truthy and .config.get() return a plain int
     app.__bool__ = mock.Mock(return_value=True)
     app.config = mock.MagicMock()
     app.config.get = mock.Mock(return_value=max_mb)
+    # ``fetch_data`` only records ``g.bq_memory_limited*`` when
+    # ``has_request_context()`` is true. Outside of a real Flask request
+    # (as in these unit tests) that's always false, so without patching it
+    # the assignments never happen and the mocked ``g`` attributes stay
+    # unset child mocks instead of the expected booleans/counts.
+    mocker.patch(
+        "superset.db_engine_specs.bigquery.has_request_context", return_value=True
+    )
     return flask_g, app
 
 
@@ -772,6 +867,42 @@ def test_fetch_data_truncated_by_memory_limit(mocker: MockerFixture) -> None:
     assert flask_g.bq_memory_limited_row_count == len(first_batch)
 
 
+@pytest.mark.parametrize("row_count", [3, 4, 5])
+@pytest.mark.parametrize("limit", [None, 4, 8])
+def test_fetch_data_eof_probe_preserves_budgeted_rows(
+    mocker: MockerFixture, row_count: int, limit: int | None
+) -> None:
+    """Only an explicitly truncated result omits the out-of-budget probe row."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    flask_g, app = _patch_bq_fetch_deps(mocker, max_mb=1)
+    mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
+    app.config = {"BQ_FETCH_MAX_MB": 1}
+    mocker.patch("superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", 4)
+    # Each one-cell row is estimated at 256 KiB: four rows exactly fill 1 MiB.
+    mocker.patch("superset.db_engine_specs.bigquery.sys.getsizeof", return_value=131072)
+    rows = [(i,) for i in range(row_count)]
+    remaining = iter(rows)
+    cursor = mock.MagicMock()
+    cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=limit)
+
+    assert result == rows[:4]
+    assert isinstance(result, FetchedRows)
+    assert result.truncated is (row_count > 4)
+    assert flask_g.bq_memory_limited is (row_count > 4)
+    assert flask_g.bq_memory_limited_row_count == len(result)
+    if not result.truncated:
+        assert result == rows
+    expected_calls = [mock.call(4)]
+    if row_count >= 4:
+        expected_calls.append(mock.call(1))
+    assert cursor.fetchmany.call_args_list == expected_calls
+    assert list(remaining) == []
+    cursor.fetchall.assert_not_called()
+
+
 def test_fetch_data_empty_result(mocker: MockerFixture) -> None:
     """
     Test that fetch_data handles an empty result set gracefully.
@@ -809,6 +940,54 @@ def test_fetch_data_fallback_on_exception(mocker: MockerFixture) -> None:
     assert result == [(1, "a"), (2, "b")]
     assert flask_g.bq_memory_limited is False
     assert flask_g.bq_memory_limited_row_count == 2
+
+
+@pytest.mark.parametrize("bounded", [False, True])
+@pytest.mark.parametrize("failure_stage", ["probe", "second_batch", "estimate"])
+def test_fetch_data_does_not_discard_sample_after_error(
+    mocker: MockerFixture, bounded: bool, failure_stage: str
+) -> None:
+    """A failure after consuming rows must not return only the cursor remainder."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+    from superset.sql.execution.executor import _LimitedCursor
+
+    _, app = _patch_bq_fetch_deps(mocker)
+    mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
+    app.config = {"BQ_FETCH_MAX_MB": 1}
+    mocker.patch("superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", 2)
+    mocker.patch.object(
+        BigQueryEngineSpec,
+        "get_dbapi_exception_mapping",
+        return_value={OSError: SupersetDBAPIConnectionError},
+    )
+    # Two ~600 KB rows exceed 1 MiB (EOF probe); ~300 KB rows leave room
+    # for a second batch after the two-row sample.
+    probe_cell_bytes = 600_000
+    second_batch_cell_bytes = 300_000
+    cell_bytes = (
+        probe_cell_bytes if failure_stage == "probe" else second_batch_cell_bytes
+    )
+    row = ("x" * cell_bytes,)
+    cursor = mock.MagicMock()
+    cursor.description = [("n", "STRING", None, None, None, None, None)]
+    cursor.fetchmany.side_effect = (
+        [[row, row]]
+        if failure_stage == "estimate"
+        else [[row, row], OSError("read failed")]
+    )
+    cursor.fetchall.return_value = [row]
+    if failure_stage == "estimate":
+        mocker.patch(
+            "superset.db_engine_specs.bigquery.sys.getsizeof",
+            side_effect=OSError("read failed"),
+        )
+
+    with pytest.raises(SupersetDBAPIConnectionError, match="read failed"):
+        BigQueryEngineSpec.fetch_data(_LimitedCursor(cursor, 5) if bounded else cursor)
+
+    assert cursor.fetchmany.call_count == (1 if failure_stage == "estimate" else 2)
+    cursor.fetchall.assert_not_called()
 
 
 def test_fetch_data_converts_bigquery_row_objects(mocker: MockerFixture) -> None:
@@ -1101,3 +1280,321 @@ def test_monkeypatch_handles_missing_bigquery_package() -> None:
     with mock.patch("builtins.__import__", side_effect=mock_import):
         # Should not raise — the except ImportError branch handles it
         _monkeypatch_bigquery_string_literal()
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """BigQuery quotes identifiers with backticks, not ANSI double quotes, and
+    escapes an embedded backtick with a backslash rather than by doubling it."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    assert BigQueryEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": False,
+    }
+
+
+def test_where_latest_partition_filters_null_partitions(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_max_partition_id excludes __NULL__ and __UNPARTITIONED__.
+
+    When a table has NULL values in the partitioning column, BigQuery creates a
+    partition named __NULL__. If no explicit WHERE filter is applied during
+    the initial scan, BigQuery may also report an __UNPARTITIONED__ partition.
+    Both of these special IDs sort lexicographically higher than numeric
+    YYYYMMDD strings and would otherwise become max(partition_id), causing
+    PARSE_DATE('%Y%m%d', '__NULL__') to fail.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    database = mock.MagicMock()
+    engine = mock.MagicMock()
+    engine_ctx = mock.MagicMock()
+    engine_ctx.__enter__.return_value = engine
+    mocker.patch.object(BigQueryEngineSpec, "get_engine", return_value=engine_ctx)
+
+    # Mock the partition metadata query: __NULL__ partitions are filtered out
+    cursor_mock = mock.MagicMock()
+    cursor_mock.fetchone.return_value = ("20251231",)
+    raw_conn_mock = mock.MagicMock()
+    raw_conn_mock.cursor.return_value = cursor_mock
+    database.get_raw_connection.return_value.__enter__.return_value = raw_conn_mock
+    database.get_dialect.return_value = BigQueryDialect()
+
+    # Mock time_partitioning to identify the partition column
+    client = mocker.patch.object(BigQueryEngineSpec, "_get_client").return_value
+    bq_table_mock = mock.MagicMock()
+    bq_table_mock.time_partitioning.field = "partition_date"
+    client.get_table.return_value = bq_table_mock
+
+    table = Table("test_table", "test_dataset", "test_project")
+
+    # Ensure the generated SQL filters out __NULL__ and __UNPARTITIONED__
+    max_partition = BigQueryEngineSpec.get_max_partition_id(database, table)
+    assert max_partition == "20251231"
+
+    # The returned SQL should be the result of filtering, not one of the special IDs
+    executed_sql = cursor_mock.execute.call_args[0][0]
+    assert "__NULL__" in executed_sql or "NOT IN" in executed_sql
+    assert "__UNPARTITIONED__" in executed_sql or "NOT IN" in executed_sql
+
+
+def test_where_latest_partition_skips_where_clause_when_max_is_none(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that where_latest_partition leaves the query untouched when the table
+    has only reserved partitions and get_max_partition_id returns None.
+
+    Without the guard, the filter would compile to
+    PARSE_DATE('%Y%m%d', None), which fails at query time.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    database = mock.MagicMock()
+
+    # All partitions are reserved, so the aggregate returns NULL
+    cursor_mock = mock.MagicMock()
+    cursor_mock.fetchone.return_value = (None,)
+    raw_conn_mock = mock.MagicMock()
+    raw_conn_mock.cursor.return_value = cursor_mock
+    database.get_raw_connection.return_value.__enter__.return_value = raw_conn_mock
+    database.get_dialect.return_value = BigQueryDialect()
+
+    client = mocker.patch.object(BigQueryEngineSpec, "_get_client").return_value
+    bq_table_mock = mock.MagicMock()
+    bq_table_mock.time_partitioning.field = "partition_date"
+    client.get_table.return_value = bq_table_mock
+
+    table = Table("test_table", "test_dataset", "test_project")
+    query = select(column("foo"))
+
+    filtered = BigQueryEngineSpec.where_latest_partition(database, table, query)
+
+    # No WHERE clause was appended: the query is returned unchanged
+    assert filtered is query
+    assert not query.whereclause
+
+
+def _struct_schema() -> list[SchemaField]:
+    return [
+        SchemaField("date", "DATE"),
+        SchemaField(
+            "calendar",
+            "RECORD",
+            fields=[
+                SchemaField("day_num_of_month", "INTEGER"),
+                SchemaField("day", "STRING"),
+                SchemaField("client_year", "INTEGER"),
+                SchemaField(
+                    "client",
+                    "RECORD",
+                    fields=[
+                        SchemaField("week_number", "INTEGER"),
+                        SchemaField("week_start_date", "DATE"),
+                    ],
+                ),
+            ],
+        ),
+        SchemaField("currency", "STRING"),
+        SchemaField("event_count", "INTEGER"),
+    ]
+
+
+def _top_level_columns(schema: list[SchemaField]) -> list[ResultSetColumnType]:
+    return [
+        ResultSetColumnType(
+            name=field.name,
+            column_name=field.name,
+            type=field.field_type,
+            is_dttm=field.field_type == "DATE",
+        )
+        for field in schema
+    ]
+
+
+EXPANDED_STRUCT_NAMES = [
+    "date",
+    "calendar",
+    "calendar.day_num_of_month",
+    "calendar.day",
+    "calendar.client_year",
+    "calendar.client",
+    "calendar.client.week_number",
+    "calendar.client.week_start_date",
+    "currency",
+    "event_count",
+]
+
+
+def test_expand_nested_columns_adds_struct_fields() -> None:
+    """
+    STRUCT members dropped by ``cursor.description`` are added as dotted columns.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = _struct_schema()
+    columns = _top_level_columns(schema)
+    cursor = SimpleNamespace(_query_rows=SimpleNamespace(schema=schema))
+
+    result = BigQueryEngineSpec.expand_nested_columns(cursor, columns)
+
+    assert [col["column_name"] for col in result] == EXPANDED_STRUCT_NAMES
+    assert result[0] is columns[0]
+    assert result[1] is columns[1]
+    assert result[8] is columns[2]
+    assert result[9] is columns[3]
+    by_name = {col["column_name"]: col for col in result}
+    assert by_name["calendar.day"]["type"] == "STRING"
+    assert by_name["calendar.day"]["type_generic"] == GenericDataType.STRING
+    assert by_name["calendar.day"]["is_dttm"] is False
+    assert by_name["calendar.day"]["nested_field"] is True
+    assert "nested_field" not in by_name["calendar"]
+    assert by_name["calendar.day_num_of_month"]["type_generic"] == (
+        GenericDataType.NUMERIC
+    )
+    assert by_name["calendar.client"]["type"] == "RECORD"
+    assert by_name["calendar.client"]["type_generic"] is None
+    week_start = by_name["calendar.client.week_start_date"]
+    assert week_start["type"] == "DATE"
+    assert week_start["is_dttm"] is True
+    assert week_start["type_generic"] == GenericDataType.TEMPORAL
+
+
+def test_expand_nested_columns_skips_repeated_record_children() -> None:
+    """
+    Children of an ARRAY<STRUCT> are not selectable as ``a.b`` and are skipped;
+    REPEATED members are typed as arrays, like the inspector does.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = [
+        SchemaField(
+            "calendar",
+            "RECORD",
+            fields=[
+                SchemaField("tags", "STRING", mode="REPEATED"),
+                SchemaField("dates", "DATE", mode="REPEATED"),
+                SchemaField(
+                    "items",
+                    "RECORD",
+                    mode="REPEATED",
+                    fields=[SchemaField("sku", "STRING")],
+                ),
+            ],
+        ),
+        SchemaField(
+            "trailer",
+            "RECORD",
+            mode="REPEATED",
+            fields=[SchemaField("key", "STRING"), SchemaField("value", "STRING")],
+        ),
+    ]
+    cursor = SimpleNamespace(_query_rows=SimpleNamespace(schema=schema))
+
+    result = BigQueryEngineSpec.expand_nested_columns(
+        cursor, _top_level_columns(schema)
+    )
+
+    assert [col["column_name"] for col in result] == [
+        "calendar",
+        "calendar.tags",
+        "calendar.dates",
+        "calendar.items",
+        "trailer",
+    ]
+    for col in result[1:4]:
+        assert col["type"] == "ARRAY"
+        assert col["type_generic"] is None
+        assert col["is_dttm"] is False
+        assert col["nested_field"] is True
+
+
+@pytest.mark.parametrize(
+    "cursor",
+    [
+        SimpleNamespace(_query_rows=None, query_job=None),
+        SimpleNamespace(),
+        SimpleNamespace(
+            _query_rows=None,
+            query_job=SimpleNamespace(result=mock.Mock(side_effect=AssertionError)),
+        ),
+    ],
+)
+def test_expand_nested_columns_without_schema_is_noop(cursor: Any) -> None:
+    """
+    Without a result schema on the cursor the columns are returned unchanged.
+
+    ``query_job`` is never read, since it costs an API call.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    columns = _top_level_columns(_struct_schema())
+
+    assert BigQueryEngineSpec.expand_nested_columns(cursor, columns) is columns
+
+
+def test_expand_nested_columns_schema_length_mismatch_is_noop() -> None:
+    """
+    A schema that does not line up with the columns is ignored.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = _struct_schema()
+    columns = _top_level_columns(schema)
+    cursor = SimpleNamespace(_query_rows=SimpleNamespace(schema=schema[:2]))
+
+    assert BigQueryEngineSpec.expand_nested_columns(cursor, columns) == columns
+
+
+def test_expand_nested_columns_reads_real_dbapi_cursor(mocker: MockerFixture) -> None:
+    """
+    The nested schema is read from the DB-API cursor without an extra API call.
+    """
+    from google.cloud.bigquery.dbapi import Connection
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = _struct_schema()
+    client = mocker.MagicMock()
+    client.query_and_wait.return_value = SimpleNamespace(
+        schema=schema, total_rows=0, num_dml_affected_rows=None, job_id=None
+    )
+    cursor = Connection(client=client).cursor()
+    cursor.execute("SELECT * FROM t")
+
+    result = BigQueryEngineSpec.expand_nested_columns(
+        cursor, _top_level_columns(schema)
+    )
+
+    assert [col["column_name"] for col in result] == EXPANDED_STRUCT_NAMES
+    client.get_job.assert_not_called()
+
+
+def test_expand_nested_columns_keeps_user_alias() -> None:
+    """
+    A selected column already named like a STRUCT member is not duplicated.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = [
+        SchemaField(
+            "calendar",
+            "RECORD",
+            fields=[SchemaField("day", "STRING"), SchemaField("year", "INTEGER")],
+        ),
+        SchemaField("calendar.day", "STRING"),
+    ]
+    columns = _top_level_columns(schema)
+    cursor = SimpleNamespace(_query_rows=SimpleNamespace(schema=schema))
+
+    result = BigQueryEngineSpec.expand_nested_columns(cursor, columns)
+
+    assert [col["column_name"] for col in result] == [
+        "calendar",
+        "calendar.year",
+        "calendar.day",
+    ]
+    assert result[2] is columns[1]

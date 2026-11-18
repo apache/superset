@@ -84,4 +84,14 @@ describe('ensureStaticPrefix should be idempotent', () => {
     staticAssetsPrefixMock.mockReturnValue('');
     expect(ensureStaticPrefix('/static/x.png')).toBe('/static/x.png');
   });
+
+  test('returns undefined instead of throwing when passed undefined', () => {
+    staticAssetsPrefixMock.mockReturnValue('/superset');
+    expect(ensureStaticPrefix(undefined)).toBeUndefined();
+  });
+
+  test('returns undefined instead of throwing when passed null', () => {
+    staticAssetsPrefixMock.mockReturnValue('/superset');
+    expect(ensureStaticPrefix(null)).toBeUndefined();
+  });
 });

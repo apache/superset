@@ -30,7 +30,8 @@ const defaultMockLoadFormData = jest.fn(({ formData }: { formData: unknown }) =>
 );
 
 type MockLoadFormData =
-  typeof defaultMockLoadFormData | jest.Mock<Promise<unknown>, unknown[]>;
+  | typeof defaultMockLoadFormData
+  | jest.Mock<Promise<unknown>, unknown[]>;
 
 let mockLoadFormData: MockLoadFormData = defaultMockLoadFormData;
 

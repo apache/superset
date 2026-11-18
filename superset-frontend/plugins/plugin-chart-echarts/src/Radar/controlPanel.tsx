@@ -34,6 +34,7 @@ import {
   ControlFormItemSpec,
   getStandardizedControls,
   DEFAULT_TIME_FORMAT,
+  getKnownColumnConfigKeys,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { LabelPositionEnum } from '../types';
@@ -221,9 +222,17 @@ const config: ControlPanelConfig = {
 
                 return {
                   queryResponse: chart?.queriesResponse?.[0] as
-                    ChartDataResponseResult | undefined,
+                    | ChartDataResponseResult
+                    | undefined,
                   appliedColumnNames: metricColumn,
-                  columnsPropsObject: { colnames, coltypes },
+                  columnsPropsObject: {
+                    colnames,
+                    coltypes,
+                    knownKeys: getKnownColumnConfigKeys(
+                      colnames,
+                      explore.datasource,
+                    ),
+                  },
                 };
               },
             },

@@ -16,10 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { LabeledValue as AntdLabeledValue } from 'antd/es/select';
 import {
   splitWithQuoteEscaping,
   stripSurroundingQuotes,
   makeQuoteAwareTokenizer,
+  propertyComparator,
+  isNewOption,
+  isEqual,
+  getOption,
+  hasOption,
 } from './utils';
 
 test('stripSurroundingQuotes removes matching surrounding double quotes', () => {
@@ -137,4 +143,119 @@ test('makeQuoteAwareTokenizer detects any separator from the list outside quotes
   const tokenize = makeQuoteAwareTokenizer([',', '\n']);
   expect(tokenize('a\nb')).toEqual(['a', 'b']);
   expect(tokenize('"a\nb"')).toEqual(['"a\nb"']);
+});
+
+test('propertyComparator sorts string properties lexicographically', () => {
+  const compare = propertyComparator('label');
+  const ten = { label: '10' } as AntdLabeledValue;
+  const two = { label: '2' } as AntdLabeledValue;
+  const hundred = { label: '100' } as AntdLabeledValue;
+  expect([ten, two, hundred].sort(compare)).toEqual([ten, hundred, two]);
+});
+
+test('propertyComparator sorts number properties numerically', () => {
+  const compare = propertyComparator('value');
+  const ten = { value: 10 } as unknown as AntdLabeledValue;
+  const two = { value: 2 } as unknown as AntdLabeledValue;
+  const hundred = { value: 100 } as unknown as AntdLabeledValue;
+  expect([ten, two, hundred].sort(compare)).toEqual([two, ten, hundred]);
+});
+
+test('propertyComparator sorts bigint properties numerically, not lexicographically', () => {
+  const compare = propertyComparator('value');
+  const ten = { value: 10n } as unknown as AntdLabeledValue;
+  const two = { value: 2n } as unknown as AntdLabeledValue;
+  const hundred = { value: 100n } as unknown as AntdLabeledValue;
+  expect([ten, two, hundred].sort(compare)).toEqual([two, ten, hundred]);
+});
+
+test('propertyComparator sorts diverging-digit-length bigint values numerically', () => {
+  const compare = propertyComparator('value');
+  const a = { value: 10000000000000002n } as unknown as AntdLabeledValue;
+  const b = { value: 9000000000000001n } as unknown as AntdLabeledValue;
+  const c = { value: 10000000000000001n } as unknown as AntdLabeledValue;
+  expect([a, b, c].sort(compare)).toEqual([b, c, a]);
+});
+
+test('propertyComparator sorts mixed bigint and number properties numerically', () => {
+  const compare = propertyComparator('value');
+  const bigTen = { value: 10n } as unknown as AntdLabeledValue;
+  const two = { value: 2 } as unknown as AntdLabeledValue;
+  const bigHundred = { value: 100n } as unknown as AntdLabeledValue;
+  expect([bigTen, two, bigHundred].sort(compare)).toEqual([
+    two,
+    bigTen,
+    bigHundred,
+  ]);
+});
+
+test('isEqual handles matching numbers and strings', () => {
+  expect(isEqual(1, 1, 'value')).toBe(true);
+  expect(isEqual(1, '1', 'value')).toBe(true);
+  expect(isEqual({ value: 1 }, 1, 'value')).toBe(true);
+  expect(isEqual({ value: 1 }, '1', 'value')).toBe(true);
+  expect(isEqual(' test ', 'test', 'value')).toBe(false);
+  expect(isEqual(' test ', 'test', 'label')).toBe(true);
+  expect(isEqual({ value: 'abc' }, { value: 'abc' }, 'value')).toBe(true);
+  expect(isEqual({ value: 'abc' }, { value: 'def' }, 'value')).toBe(false);
+});
+
+test('isEqual distinguishes empty strings and whitespace while preserving deduplication', () => {
+  expect(isEqual('', ' ', 'value')).toBe(false);
+  expect(isEqual(' ', '', 'value')).toBe(false);
+  expect(isEqual('', '   ', 'value')).toBe(false);
+  expect(isEqual(' ', '   ', 'value')).toBe(false);
+  expect(isEqual('', '', 'value')).toBe(true);
+  expect(isEqual(' ', ' ', 'value')).toBe(true);
+  expect(isEqual(' test ', 'test', 'value')).toBe(false);
+  expect(isEqual(' test ', 'test', 'label')).toBe(true);
+  expect(isEqual(' Sales ', 'Sales', 'value')).toBe(false);
+  expect(isEqual(' Sales ', 'Sales', 'label')).toBe(true);
+  expect(isEqual('Sales', ' Sales ', 'value')).toBe(false);
+  expect(isEqual('Sales', ' Sales ', 'label')).toBe(true);
+  expect(isEqual('Sales', 'sales', 'value')).toBe(false);
+  expect(isEqual(0, '', 'value')).toBe(false);
+  expect(isEqual(0, ' ', 'value')).toBe(false);
+  expect(isEqual(0, '0', 'value')).toBe(true);
+  expect(isEqual(1, '1', 'value')).toBe(true);
+  expect(isEqual(null, undefined, 'value')).toBe(true);
+  expect(isEqual(null, '', 'value')).toBe(false);
+  expect(isEqual({ value: 0 }, '', 'value')).toBe(false);
+  expect(isEqual({ value: 0 }, '0', 'value')).toBe(true);
+  expect(isEqual({ label: ' Sales ' }, 'Sales', 'label')).toBe(true);
+});
+
+test('getOption and hasOption locate options by value or label', () => {
+  const options = [
+    { label: 'Option 1', value: 1 },
+    { label: 'Option 2', value: 2 },
+    { label: 'New Option', value: 'New Option', isNewOption: true },
+  ];
+  expect(hasOption(1, options)).toBe(true);
+  expect(hasOption(99, options)).toBe(false);
+  expect(hasOption('Option 2', options, true)).toBe(true);
+  expect(hasOption('Option 2', options, false)).toBe(false);
+  expect(getOption(2, options)).toEqual({ label: 'Option 2', value: 2 });
+  expect(getOption('Option 1', options, true)).toEqual({
+    label: 'Option 1',
+    value: 1,
+  });
+  expect(getOption({ value: 2 }, options)).toEqual({
+    label: 'Option 2',
+    value: 2,
+  });
+  expect(getOption({ label: 'Option 1' }, options, true)).toEqual({
+    label: 'Option 1',
+    value: 1,
+  });
+});
+
+test('isNewOption detects temporary new option flag safely', () => {
+  expect(isNewOption({ label: 'test', value: 'test', isNewOption: true })).toBe(
+    true,
+  );
+  expect(isNewOption({ label: 'test', value: 'test' })).toBe(false);
+  expect(isNewOption(null)).toBe(false);
+  expect(isNewOption('string')).toBe(false);
+  expect(isNewOption(123)).toBe(false);
 });

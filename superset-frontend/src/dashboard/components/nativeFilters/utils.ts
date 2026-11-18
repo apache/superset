@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core/translation';
 import {
   AdhocFilter,
+  getSemanticSelectionSources,
   Behavior,
   ChartCustomization,
   DataMaskStateWithId,
@@ -31,9 +32,12 @@ import {
   QueryFormData,
   ExtraFormDataOverride,
   ExtraFormDataAppend,
+  isGrainOnlyExtraFormData,
 } from '@superset-ui/core';
-import { LayoutItem } from 'src/dashboard/types';
+import { ChartCustomizationPlugins, FilterPlugins } from 'src/constants';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
+import { getChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
+import type { ChartLayoutItems } from 'src/dashboard/util/getChartIdsInFilterScope';
 import { isIterable } from 'src/utils/types';
 import { TAB_TYPE } from '../../util/componentTypes';
 import getBootstrapData from '../../../utils/getBootstrapData';
@@ -48,6 +52,7 @@ const getDefaultRowLimit = (): number => {
 export const getFormData = ({
   datasetId,
   datasourceType,
+  semantic_selection_version,
   dependencies = {},
   groupby,
   defaultDataMask,
@@ -65,6 +70,7 @@ export const getFormData = ({
   dashboardId: number;
   datasetId?: number;
   datasourceType?: DatasourceType;
+  semantic_selection_version?: string;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
@@ -95,6 +101,7 @@ export const getFormData = ({
 
   return {
     ...controlValues,
+    semantic_selection_version,
     ...timeGrainsFormData,
     ...otherProps,
     adhoc_filters: adhoc_filters ?? [],
@@ -141,6 +148,15 @@ export function mergeExtraFormData(
       mergedExtra[key] = newValue;
     }
   });
+  if (
+    originalExtra.semantic_selection_sources?.length ||
+    newExtra.semantic_selection_sources?.length
+  ) {
+    mergedExtra.semantic_selection_sources = [
+      ...getSemanticSelectionSources(originalExtra),
+      ...getSemanticSelectionSources(newExtra),
+    ];
+  }
   return mergedExtra as ExtraFormData;
 }
 
@@ -151,15 +167,74 @@ export function isCrossFilter(vizType: string) {
   );
 }
 
+/** Controls whose values are time grains: durations, never semantic members. */
+const GRAIN_CONTROL_TYPES: ReadonlySet<string> = new Set([
+  FilterPlugins.TimeGrain,
+  ChartCustomizationPlugins.TimeGrain,
+]);
+
+/**
+ * Whether a known time grain control's mask selects no semantic member: it
+ * sets only a grain, or nothing at all (cleared, or saved without a default).
+ * Masks from any other control type keep their provenance.
+ */
+export function isSelectionFreeGrainControlMask(
+  filterType: string | undefined,
+  extraFormData: ExtraFormData = {},
+): boolean {
+  return (
+    !!filterType &&
+    GRAIN_CONTROL_TYPES.has(filterType) &&
+    (isGrainOnlyExtraFormData(extraFormData) ||
+      Object.entries(extraFormData).every(
+        ([key, value]) =>
+          key === 'semantic_selection_sources' || value === undefined,
+      ))
+  );
+}
+
+/**
+ * Settle a grain control's provenance before merging, which can drop fields
+ * such as an object-valued member override. A selection-free mask loses the
+ * provenance it never needed; any other mask keeps its explicit sources or
+ * records the inferred ones, so the merged result cannot pass as grain-only.
+ */
+export function withGrainControlProvenance(
+  filterType: string | undefined,
+  extraFormData: ExtraFormData = {},
+): ExtraFormData {
+  if (!filterType || !GRAIN_CONTROL_TYPES.has(filterType)) {
+    return extraFormData;
+  }
+  if (isSelectionFreeGrainControlMask(filterType, extraFormData)) {
+    return Object.fromEntries(
+      Object.entries(extraFormData).filter(
+        ([key]) => key !== 'semantic_selection_sources',
+      ),
+    ) as ExtraFormData;
+  }
+  if (extraFormData.semantic_selection_sources?.length) {
+    return extraFormData;
+  }
+  const inferred = getSemanticSelectionSources(extraFormData);
+  return inferred.length
+    ? { ...extraFormData, semantic_selection_sources: inferred }
+    : extraFormData;
+}
+
 export function getExtraFormData(
   dataMask: DataMaskStateWithId,
   filterIdsAppliedOnChart: string[],
+  filterTypes: Record<string, string | undefined> = {},
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};
   filterIdsAppliedOnChart.forEach(key => {
     extraFormData = mergeExtraFormData(
       extraFormData,
-      dataMask[key]?.extraFormData ?? {},
+      withGrainControlProvenance(
+        filterTypes[key],
+        dataMask[key]?.extraFormData ?? {},
+      ),
     );
   });
   return extraFormData;
@@ -173,19 +248,24 @@ export function nativeFilterGate(behaviors: Behavior[]): boolean {
 }
 
 export const findTabsWithChartsInScope = (
-  chartLayoutItems: LayoutItem[],
+  chartLayoutItems: ChartLayoutItems,
   chartsInScope: number[],
-) =>
-  new Set<string>(
-    chartsInScope
-      .map(chartId =>
-        chartLayoutItems
-          .find(item => item?.meta?.chartId === chartId)
-          ?.parents?.filter(parent => parent.startsWith(`${TAB_TYPE}-`)),
-      )
-      .filter(id => id !== undefined)
-      .flat() as string[],
-  );
+) => {
+  const chartLayoutItemMap = getChartLayoutItemMap(chartLayoutItems);
+  const tabsInScope = new Set<string>();
+
+  chartsInScope.forEach(chartId => {
+    chartLayoutItemMap.get(chartId)?.forEach(layoutItem => {
+      layoutItem.parents?.forEach(parent => {
+        if (parent.startsWith(`${TAB_TYPE}-`)) {
+          tabsInScope.add(parent);
+        }
+      });
+    });
+  });
+
+  return tabsInScope;
+};
 
 export const getFilterValueForDisplay = (
   value?: string[] | null | string | number | object,

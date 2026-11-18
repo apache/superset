@@ -17,12 +17,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, TYPE_CHECKING
 
 from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.exc import NoSuchTableError
 
 from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.constants import EMBEDDED_CREDENTIALS_KEY
 from superset.sql.parse import Table
+from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.databases.schemas import (
@@ -72,17 +76,42 @@ def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
     :return: Dict table metadata ready for API response
     """
     keys = []
-    columns = database.get_columns(table)
-    primary_key = database.get_pk_constraint(table)
+    table_missing = False
+    try:
+        # get_columns is the table-existence check: SQLAlchemy 2.0's sqlite
+        # dialect raises NoSuchTableError from reflection for a table that
+        # doesn't exist - 1.4's sqlite dialect silently returned empty
+        # results instead, which this API has always relied on to answer
+        # with an empty-but-200 payload for sqlite specifically (other
+        # backends' dialects already raised on missing tables pre-2.0, so
+        # they're unaffected and still surface as the 422 below). Only
+        # sqlite gets the graceful fallback, matching that pre-existing,
+        # dialect-driven difference in behavior between backends. Only this
+        # first call is guarded, so a NoSuchTableError raised later while
+        # reflecting fks/indexes/comments for a table confirmed to exist
+        # still propagates instead of being mistaken for a missing table.
+        columns = database.get_columns(table)
+    except NoSuchTableError:
+        if database.backend != "sqlite":
+            raise
+        table_missing = True
+        columns = []
+    if not table_missing:
+        primary_key = database.get_pk_constraint(table)
+        foreign_keys = get_foreign_keys_metadata(database, table)
+        indexes = get_indexes_metadata(database, table)
+        table_comment = database.get_table_comment(table)
+    else:
+        primary_key = {"constrained_columns": None, "name": None}
+        foreign_keys = []
+        indexes = []
+        table_comment = None
     if primary_key and primary_key.get("constrained_columns"):
         primary_key["column_names"] = primary_key.pop("constrained_columns")
         primary_key["type"] = "pk"
         keys += [primary_key]
-    foreign_keys = get_foreign_keys_metadata(database, table)
-    indexes = get_indexes_metadata(database, table)
     keys += foreign_keys + indexes
     payload_columns: list[TableMetadataColumnsResponse] = []
-    table_comment = database.get_table_comment(table)
     for col in columns:
         dtype = get_col_type(col)
         payload_columns.append(
@@ -102,7 +131,12 @@ def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
             show_cols=True if columns else False,
             indent=True,
             cols=columns,
-            latest_partition=True,
+            # A missing table has no partitions to look up, and asking
+            # anyway would just re-trigger the same NoSuchTableError via
+            # select_star()'s own internal database.get_columns() fallback
+            # (it re-fetches columns itself whenever `cols` is empty and
+            # either show_cols or latest_partition is set).
+            latest_partition=not table_missing,
         ),
         "primaryKey": primary_key,
         "foreignKeys": foreign_keys,
@@ -129,3 +163,138 @@ def make_url_safe(raw_url: str | URL) -> URL:
 
     else:
         return raw_url
+
+
+def _is_present(value: Any) -> bool:
+    """Is a credential field actually filled in? Whitespace does not count."""
+    if isinstance(value, str):
+        return bool(value.strip())
+    return bool(value)
+
+
+def validated_embedded_credentials(credentials: Any) -> dict[str, str] | None:
+    """
+    Return a complete embedded fallback credential, or ``None``.
+
+    The canonical shape is ``{username, password}`` or ``{username, auth_method:
+    "keypair", privatekey_body, privatekey_pass}``; a half-filled credential is
+    ignored rather than half-applied. Engines may override this default through
+    ``BaseEngineSpec.validate_embedded_credentials`` for both query-time and
+    authoring-time validation.
+    """
+    if not isinstance(credentials, dict):
+        return None
+
+    username = credentials.get("username")
+    if not isinstance(username, str) or not _is_present(username):
+        return None
+
+    auth_method = credentials.get("auth_method", "password")
+    if auth_method == "keypair":
+        privatekey_body = credentials.get("privatekey_body")
+        privatekey_pass = credentials.get("privatekey_pass", "")
+        if (
+            not isinstance(privatekey_body, str)
+            or not _is_present(privatekey_body)
+            or not isinstance(privatekey_pass, str)
+        ):
+            return None
+        return {
+            "username": username,
+            "auth_method": "keypair",
+            "privatekey_body": privatekey_body,
+            "privatekey_pass": privatekey_pass,
+        }
+
+    password = credentials.get("password")
+    if auth_method != "password" or not isinstance(password, str) or not password:
+        return None
+    return {"username": username, "password": password}
+
+
+def embedded_credentials_present(value: Any) -> bool:
+    """
+    Does a stored or submitted value configure an embedded credential at all?
+
+    Absent, empty and entirely blank values mean "no credential configured";
+    ``auth_method`` alone does not count, since the dialog writes it as soon as the
+    selector renders. Anything else counts, complete or not.
+    """
+    if value is None or value == "":
+        return False
+    if isinstance(value, dict):
+        return any(
+            _is_present(field) for key, field in value.items() if key != "auth_method"
+        )
+    return True
+
+
+def embedded_credentials_incomplete(
+    value: Any,
+    validate_credentials: Callable[[Any], dict[str, str] | None],
+    *,
+    accept_json_string: bool = True,
+) -> bool:
+    """
+    Is an embedded credential malformed or incomplete for its engine?
+
+    Absent and entirely blank values pass -- they mean "no credential configured".
+    Accepts the value as a dict or as the JSON string the connection dialog posts.
+    Saving passes ``accept_json_string=False``: the value is stored as sent, and a
+    string is refused at query time however complete the JSON inside it.
+    Use the engine's query-time validator when the connection is known, keeping
+    authoring checks consistent with engine-specific credential shapes.
+    """
+    if value is None or value == "":
+        return False
+
+    is_string = isinstance(value, str)
+    if is_string:
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            return True
+
+    if value is None:
+        return False
+    if not isinstance(value, dict):
+        return True
+
+    # `auth_method` alone is not a credential -- the dialog writes it as soon as the
+    # selector renders, so an untouched sub-form must not count as half-filled.
+    if not any(
+        _is_present(field) for key, field in value.items() if key != "auth_method"
+    ):
+        return False
+
+    if is_string and not accept_json_string:
+        return True
+
+    return validate_credentials(value) is None
+
+
+def embedded_credentials_missing_fields(credentials: Any) -> list[str]:
+    """
+    Name the fields of the canonical credential shape that ``credentials`` lacks.
+
+    Paths are JSONPath into Secure Extra (``$.embedded_credentials.<field>``), the
+    form the import already uses to name a secret it needs. Returns an empty list
+    when nothing canonical is missing, e.g. an unknown ``auth_method`` or a shape
+    only an engine-specific validator rejects.
+    """
+    if not isinstance(credentials, dict):
+        return []
+
+    missing: list[str] = []
+    if not _is_present(credentials.get("username")):
+        missing.append("username")
+
+    auth_method = credentials.get("auth_method", "password")
+    if auth_method == "keypair":
+        if not _is_present(credentials.get("privatekey_body")):
+            missing.append("privatekey_body")
+    elif auth_method == "password":
+        if not _is_present(credentials.get("password")):
+            missing.append("password")
+
+    return [f"$.{EMBEDDED_CREDENTIALS_KEY}.{field}" for field in missing]

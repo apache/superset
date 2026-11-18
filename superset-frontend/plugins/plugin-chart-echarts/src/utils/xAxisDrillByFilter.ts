@@ -1,0 +1,264 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import {
+  BinaryQueryObjectFilterClause,
+  QueryFormColumn,
+  TimeGranularity,
+} from '@superset-ui/core';
+
+import type { EChartsType } from 'echarts/core';
+import type GlobalModel from 'echarts/types/src/model/Global';
+import type { CartesianAxisModel } from 'echarts/types/src/coord/cartesian/AxisModel';
+
+/** Read the category domain ECharts collected across all series on the axis. */
+export const getCategoryAxisValues = (
+  chart: EChartsType | undefined,
+  valueIndex = 0,
+): readonly unknown[] | undefined => {
+  // ECharts omits auto-collected categories from getOption(). Use the axis
+  // model so a sparse series shares the same domain as the rendered axis.
+  const model = (
+    chart as unknown as { getModel: () => GlobalModel } | undefined
+  )?.getModel();
+  const axis = model?.getComponent(valueIndex === 1 ? 'yAxis' : 'xAxis', 0) as
+    | CartesianAxisModel
+    | undefined;
+  return axis?.getCategories();
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Format a Date as a naive ISO datetime string (UTC, no timezone suffix),
+ * the format Superset's time range parser expects, e.g. "2021-01-01T00:00:00".
+ * Sub-second precision is preserved when present (e.g.
+ * "2021-01-01T00:00:00.123") so exact-match filters on high-frequency
+ * timestamps don't get truncated to the containing second.
+ */
+export const formatNaiveDateTime = (date: Date): string => {
+  const iso = date.toISOString();
+  return date.getUTCMilliseconds() === 0 ? iso.slice(0, 19) : iso.slice(0, 23);
+};
+
+/**
+ * Given the start (label) of a time bucket and its time grain, return the
+ * [since, until) range covering the bucket, using calendar-aware UTC
+ * arithmetic. Week-ending grains are labeled by the last day of the bucket,
+ * so their range extends backwards from the label. Returns undefined for
+ * unknown grains.
+ */
+export const getTimeBucketRange = (
+  bucketLabel: Date,
+  grain: TimeGranularity,
+): { since: Date; until: Date } | undefined => {
+  const until = new Date(bucketLabel.getTime());
+  switch (grain) {
+    case TimeGranularity.SECOND:
+      until.setUTCSeconds(until.getUTCSeconds() + 1);
+      break;
+    case TimeGranularity.MINUTE:
+      until.setUTCMinutes(until.getUTCMinutes() + 1);
+      break;
+    case TimeGranularity.FIVE_MINUTES:
+      until.setUTCMinutes(until.getUTCMinutes() + 5);
+      break;
+    case TimeGranularity.TEN_MINUTES:
+      until.setUTCMinutes(until.getUTCMinutes() + 10);
+      break;
+    case TimeGranularity.FIFTEEN_MINUTES:
+      until.setUTCMinutes(until.getUTCMinutes() + 15);
+      break;
+    case TimeGranularity.THIRTY_MINUTES:
+      until.setUTCMinutes(until.getUTCMinutes() + 30);
+      break;
+    case TimeGranularity.HOUR:
+      until.setUTCHours(until.getUTCHours() + 1);
+      break;
+    case TimeGranularity.DATE:
+    case TimeGranularity.DAY:
+      until.setUTCDate(until.getUTCDate() + 1);
+      break;
+    case TimeGranularity.WEEK:
+    case TimeGranularity.WEEK_STARTING_SUNDAY:
+    case TimeGranularity.WEEK_STARTING_MONDAY:
+      until.setUTCDate(until.getUTCDate() + 7);
+      break;
+    case TimeGranularity.WEEK_ENDING_SATURDAY:
+    case TimeGranularity.WEEK_ENDING_SUNDAY:
+      // These buckets are labeled with their last day: the bucket spans
+      // the 6 days before the label plus the label day itself.
+      until.setUTCDate(until.getUTCDate() + 1);
+      return { since: new Date(bucketLabel.getTime() - 6 * DAY_MS), until };
+    case TimeGranularity.MONTH:
+      until.setUTCMonth(until.getUTCMonth() + 1);
+      break;
+    case TimeGranularity.QUARTER:
+      until.setUTCMonth(until.getUTCMonth() + 3);
+      break;
+    case TimeGranularity.YEAR:
+      until.setUTCFullYear(until.getUTCFullYear() + 1);
+      break;
+    default:
+      return undefined;
+  }
+  return { since: new Date(bucketLabel.getTime()), until };
+};
+
+// Matches an explicit timezone designator (Z or ±HH:MM/±HHMM) at the end of
+// a datetime string.
+const TIMEZONE_SUFFIX_RE = /(Z|[+-]\d{2}:?\d{2})$/;
+
+/**
+ * Parse a datetime string the same way regardless of the host's local
+ * timezone. Superset's backend returns naive datetime strings (no timezone
+ * designator) that represent UTC instants; passing those directly to `new
+ * Date()` would interpret them as local wall-clock time and shift the
+ * result by the browser's UTC offset. Strings that already carry an
+ * explicit timezone designator are parsed as-is.
+ */
+const parseAsUtc = (value: string): Date =>
+  new Date(TIMEZONE_SUFFIX_RE.test(value) ? value : `${value}Z`);
+
+/**
+ * Convert a temporal record value (epoch milliseconds, naive UTC datetime
+ * string or Date) to a Date. Returns undefined for anything else.
+ */
+export const parseTemporalValue = (value: unknown): Date | undefined => {
+  let date: Date;
+  if (value instanceof Date) {
+    date = value;
+  } else if (typeof value === 'string') {
+    date = parseAsUtc(value);
+  } else if (typeof value === 'number') {
+    date = new Date(value);
+  } else {
+    return undefined;
+  }
+  return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
+/**
+ * Build a drill-by filter clause matching the clicked value on a temporal
+ * x-axis. When a known time grain is active, the clause is a TEMPORAL_RANGE
+ * covering the clicked bucket; otherwise it falls back to an exact match on
+ * the timestamp.
+ */
+export const getTemporalXAxisDrillByFilter = (
+  col: QueryFormColumn,
+  value: unknown,
+  grain?: TimeGranularity,
+  formattedVal?: string,
+): BinaryQueryObjectFilterClause | undefined => {
+  const bucketLabel = parseTemporalValue(value);
+  if (!col || !bucketLabel) {
+    return undefined;
+  }
+  const range = grain ? getTimeBucketRange(bucketLabel, grain) : undefined;
+  if (!range) {
+    return {
+      col,
+      op: '==',
+      val: formatNaiveDateTime(bucketLabel),
+      formattedVal,
+    };
+  }
+  return {
+    col,
+    op: 'TEMPORAL_RANGE',
+    val: `${formatNaiveDateTime(range.since)} : ${formatNaiveDateTime(range.until)}`,
+    formattedVal,
+  };
+};
+
+/**
+ * Build the Drill by filter for a clicked temporal bucket. With a time grain
+ * it matches the grained column, like Drill to detail: the backend compares
+ * the bucket the chart grouped by (same grain, Hours offset and Time Column)
+ * and, unlike a TEMPORAL_RANGE, never replaces it with a query time range, so
+ * the drill keeps every other filter of the chart as the chart applied it.
+ * Without a grain it falls back to an exact match on the timestamp.
+ */
+export const getTemporalBucketDrillByFilter = (
+  col: QueryFormColumn,
+  value: unknown,
+  grain?: TimeGranularity,
+  formattedVal?: string,
+): BinaryQueryObjectFilterClause | undefined => {
+  const bucket = parseTemporalValue(value);
+  if (!col || !bucket) {
+    return undefined;
+  }
+  return grain
+    ? { col, op: '==', val: bucket.getTime(), grain, formattedVal }
+    : { col, op: '==', val: formatNaiveDateTime(bucket), formattedVal };
+};
+
+/** Resolve a markerless line/area click to a real bucket in that series. */
+export const getTimeAxisDrillByValue = (
+  data: unknown,
+  series: unknown,
+  coordinate: unknown,
+  valueIndex = 0,
+  categorical = false,
+  axisCategories: readonly unknown[] = [],
+): unknown => {
+  if (Array.isArray(data)) {
+    return data[valueIndex];
+  }
+  if (typeof data === 'number' || typeof data === 'string') {
+    return data;
+  }
+  const axisValue = Array.isArray(coordinate)
+    ? coordinate[valueIndex]
+    : coordinate;
+  if (
+    typeof axisValue !== 'number' ||
+    !Number.isFinite(axisValue) ||
+    typeof series !== 'object' ||
+    series === null ||
+    !('data' in series) ||
+    !Array.isArray(series.data)
+  ) {
+    return undefined;
+  }
+  if (categorical) {
+    const category = axisCategories[Math.round(axisValue)];
+    if (category === undefined) {
+      return undefined;
+    }
+    const point: unknown = series.data.find(
+      (item: unknown) =>
+        Array.isArray(item) && String(item[valueIndex]) === String(category),
+    );
+    return Array.isArray(point) ? point[valueIndex] : undefined;
+  }
+  let nearest: number | undefined;
+  series.data.forEach((point: unknown) => {
+    const value = Array.isArray(point) ? point[valueIndex] : undefined;
+    if (
+      typeof value === 'number' &&
+      Number.isFinite(value) &&
+      (nearest === undefined ||
+        Math.abs(value - axisValue) < Math.abs(nearest - axisValue))
+    ) {
+      nearest = value;
+    }
+  });
+  return nearest;
+};

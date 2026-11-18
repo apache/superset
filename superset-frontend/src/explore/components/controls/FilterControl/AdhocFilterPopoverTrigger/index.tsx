@@ -29,6 +29,7 @@ interface AdhocFilterPopoverTriggerProps {
   operators?: Operators[];
   adhocFilter: AdhocFilter;
   options: OptionSortType[];
+  semanticSelectionVersion?: string;
   datasource: Record<string, any>;
   onFilterEdit: (editedFilter: AdhocFilter) => void;
   partitionColumn?: string;
@@ -46,6 +47,7 @@ function AdhocFilterPopoverTrigger({
   adhocFilter,
   options,
   datasource,
+  semanticSelectionVersion,
   onFilterEdit,
   partitionColumn,
   isControlledComponent,
@@ -88,6 +90,7 @@ function AdhocFilterPopoverTrigger({
         adhocFilter={adhocFilter}
         options={options}
         datasource={datasource}
+        semanticSelectionVersion={semanticSelectionVersion}
         partitionColumn={partitionColumn}
         onResize={onPopoverResize}
         onClose={closePopover ?? (() => {})}
@@ -108,9 +111,13 @@ function AdhocFilterPopoverTrigger({
       onOpenChange={togglePopover}
       destroyOnHidden
     >
-      {/* Wrap in span so the Popover can attach a ref without relying
-          on findDOMNode (deprecated in React 18+). */}
-      <span>{children}</span>
+      {/* Wrap in a span so the Popover can attach a ref without relying
+          on findDOMNode (deprecated in React 18+). It must be block-level:
+          a zero-height placeholder can collapse an inline wrapper to a point.
+          Block layout preserves the control width used by right placement,
+          without adding height. Nonempty block children need not collapse
+          (sc-120502). */}
+      <span style={{ display: 'block' }}>{children}</span>
     </ControlPopover>
   );
 }

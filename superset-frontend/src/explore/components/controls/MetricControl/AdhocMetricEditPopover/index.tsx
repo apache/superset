@@ -36,6 +36,7 @@ import {
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 import {
+  AGGREGATES_LABELS,
   AGGREGATES_OPTIONS,
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
@@ -49,7 +50,7 @@ import {
 } from 'src/explore/components/optionRenderers';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
-import type { ExplorePageState } from 'src/explore/types';
+import { selectCompatibleMetricNames } from 'src/explore/selectors/compatibility';
 import type { RefObject } from 'react';
 
 interface ColumnType {
@@ -135,10 +136,7 @@ function AdhocMetricEditPopover({
   const [width, setWidth] = useState(POPOVER_INITIAL_WIDTH);
   const [height, setHeight] = useState(POPOVER_INITIAL_HEIGHT);
 
-  const compatibleMetrics = useSelector<
-    ExplorePageState,
-    string[] | null | undefined
-  >(state => state.explore?.compatibleMetrics);
+  const compatibleMetrics = useSelector(selectCompatibleMetricNames);
 
   const aceEditorRef = useRef<editors.EditorHandle>(null);
 
@@ -548,7 +546,7 @@ function AdhocMetricEditPopover({
                   <Select
                     options={AGGREGATES_OPTIONS.map(option => ({
                       value: option,
-                      label: option,
+                      label: AGGREGATES_LABELS[option] ?? option,
                       key: option,
                     }))}
                     {...aggregateSelectProps}

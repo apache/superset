@@ -46,6 +46,7 @@ import {
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
+import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import type { LayoutItem, RootState } from 'src/dashboard/types';
 import type {
   DropResult,
@@ -155,6 +156,14 @@ const Tab = (props: TabProps): ReactElement => {
   const canEdit = useSelector(
     (state: RootState) => state.dashboardInfo.dash_edit_perm,
   );
+  // The empty-state call to action offers a route into edit mode; during a
+  // version preview the grid gate blocks its activation, but it would still
+  // render as a live-looking link that silently does nothing. Withhold the
+  // affordance instead, as DashboardBuilder's empty state does.
+  const isVersionPreviewActive = useSelector(
+    selectIsDashboardVersionPreviewActive,
+  );
+  const canEnterEditMode = canEdit && !isVersionPreviewActive;
   const dashboardLayout = useSelector(
     (state: RootState) => state.dashboardLayout.present,
   );
@@ -329,7 +338,7 @@ const Tab = (props: TabProps): ReactElement => {
                       : t('There are no components added to this tab')
                   }
                   description={
-                    canEdit &&
+                    canEnterEditMode &&
                     (editMode ? (
                       <span>
                         {t('You can')}{' '}

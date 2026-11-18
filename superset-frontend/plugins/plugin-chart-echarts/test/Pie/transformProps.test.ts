@@ -141,7 +141,7 @@ describe('Pie transformProps', () => {
     ]);
   });
 
-  test('falls back to scroll for plain legends with overlong labels', () => {
+  test('honors an explicit List selection for plain legends with overlong labels', () => {
     const longLegendChartProps = new ChartProps({
       formData: {
         colorScheme: 'bnbColors',
@@ -182,7 +182,7 @@ describe('Pie transformProps', () => {
     );
 
     expect((transformed.echartOptions.legend as any).type).toBe(
-      LegendType.Scroll,
+      LegendType.Plain,
     );
   });
 });
@@ -309,6 +309,26 @@ describe('Pie label string template', () => {
         number_format: ',d',
       }),
     ).toEqual('Tablet:123,456\n55.50%');
+  });
+
+  test('should format percentages using a percentage number format', () => {
+    expect(
+      format({
+        label_type: 'template',
+        label_template: '{name}:{value}\n{percent}',
+        number_format: '.1%',
+      }),
+    ).toEqual('Tablet:12345600.0%\n55.5%');
+  });
+
+  test('should use the default percentage format when number format is absent', () => {
+    expect(
+      format({
+        label_type: 'template',
+        label_template: '{name}:{value}\n{percent}',
+        number_format: undefined,
+      }),
+    ).toEqual('Tablet:123k\n55.50%');
   });
 
   test('should be compatible with ECharts raw variable syntax', () => {

@@ -81,7 +81,7 @@ describe('ColorBreakpointOption', () => {
     renderComponent({ onClose });
 
     const removeBtn = await screen.findByTestId('remove-control-button');
-    userEvent.click(removeBtn);
+    await userEvent.click(removeBtn);
 
     expect(onClose).toHaveBeenCalledWith(0);
   });
@@ -92,7 +92,7 @@ describe('ColorBreakpointOption', () => {
     const breakpointOption = await screen.findByTestId(
       'color-breakpoint-trigger',
     );
-    userEvent.click(breakpointOption);
+    await userEvent.click(breakpointOption);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
@@ -110,6 +110,31 @@ describe('ColorBreakpointOption', () => {
 
     const colorPreview = await screen.findByTestId('color-preview');
     expect(colorPreview).toBeInTheDocument();
+  });
+
+  test('should coerce non-numeric color channels instead of injecting CSS', async () => {
+    // Stored form_data is opaque JSON, so a saved chart can carry a string
+    // channel crafted to break out of the styled-component declaration.
+    const maliciousBreakpoint = {
+      id: 3,
+      color: {
+        r: '0,0,0,1); } body { display: none } .x { background: rgba(0' as unknown as number,
+        g: 0,
+        b: 0,
+        a: 1,
+      },
+      minValue: 0,
+      maxValue: 100,
+    };
+
+    renderComponent({ breakpoint: maliciousBreakpoint });
+
+    const colorPreview = await screen.findByTestId('color-preview');
+    expect(colorPreview).toBeInTheDocument();
+    // The malicious string is coerced to a safe numeric channel (0), so the
+    // rendered rule is a plain rgba() value with no injected CSS.
+    expect(colorPreview).toHaveStyle({ background: 'rgba(0, 0, 0, 1)' });
+    expect(document.body).toBeVisible();
   });
 
   test('should handle decimal values', async () => {

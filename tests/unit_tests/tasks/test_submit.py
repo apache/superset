@@ -1,0 +1,126 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Unit tests for SubmitTaskCommand lock/transaction ordering."""
+
+from contextlib import contextmanager
+from unittest import mock
+
+import pytest
+from flask import g
+from pytest_mock import MockerFixture
+from sqlalchemy.exc import IntegrityError
+
+from superset.commands.tasks.submit import SubmitTaskCommand
+
+
+def test_lock_encloses_create_or_join(mocker: MockerFixture) -> None:
+    """The task lock must be held across the whole create-or-join transaction.
+
+    Regression: the lock previously wrapped only the find/create inside
+    ``run_with_info`` while ``@transaction`` committed *after* the lock was
+    released, letting a concurrent submitter read-before-commit and insert a
+    duplicate ``dedup_key``. The lock must now enclose ``_create_or_join``
+    (which commits on return), so the observable order is
+    enter-lock -> create/join(+commit) -> exit-lock.
+    """
+    order: list[str] = []
+
+    @contextmanager
+    def fake_lock(dedup_key: str):
+        order.append("lock-enter")
+        try:
+            yield
+        finally:
+            order.append("lock-exit")
+
+    mocker.patch("superset.commands.tasks.submit.task_lock", fake_lock)
+    mocker.patch("superset.commands.tasks.submit.get_user_id", return_value=1)
+
+    def fake_create_or_join(*args, **kwargs):
+        order.append("create-or-join")
+        return mock.MagicMock(), True
+
+    mocker.patch.object(
+        SubmitTaskCommand, "_create_or_join", side_effect=fake_create_or_join
+    )
+
+    task, is_new = SubmitTaskCommand(
+        {"task_type": "superset.query_object_v1", "scope": "shared"}
+    ).run_with_info()
+
+    assert is_new is True
+    assert order == ["lock-enter", "create-or-join", "lock-exit"]
+
+
+def test_refuses_to_run_inside_an_outer_transaction(mocker: MockerFixture) -> None:
+    """Submitting inside an outer @transaction must fail loudly.
+
+    The lock-across-commit guarantee requires SubmitTaskCommand to own its
+    transaction; an outer @transaction (signalled by ``g.in_transaction``) would
+    make the inner commit reentrant and defer it past the lock release, silently
+    reopening the dedup race. Guard against that.
+    """
+    entered = mocker.patch(
+        "superset.commands.tasks.submit.task_lock",
+    )
+    g.in_transaction = True
+    try:
+        with pytest.raises(RuntimeError, match="must own its transaction"):
+            SubmitTaskCommand(
+                {"task_type": "superset.query_object_v1", "scope": "shared"}
+            ).run_with_info()
+    finally:
+        g.in_transaction = False
+
+    # We must bail before taking the lock.
+    entered.assert_not_called()
+
+
+def test_create_race_joins_winner_on_unique_violation(
+    mocker: MockerFixture,
+) -> None:
+    """A dedup_key unique violation during create must join the winner, not 500.
+
+    Backstop for the lock expiring mid-transaction (fixed TTL) or otherwise
+    failing to serialize: the SAVEPOINT rolls back and the command re-reads and
+    joins the concurrently-created task instead of surfacing the IntegrityError.
+    """
+    winner = mock.MagicMock()
+    winner.properties_dict = {}
+    winner.has_subscriber.return_value = False
+
+    dao = mocker.patch("superset.daos.tasks.TaskDAO")
+    # No task on the first look (before create), the winner on the post-rollback
+    # re-read.
+    dao.find_by_task_key.side_effect = [None, winner]
+    dao.create_task.side_effect = IntegrityError("dup", None, Exception())
+    # begin_nested() is only a no-op savepoint here; let the IntegrityError from
+    # create_task propagate out to the except clause.
+    mocker.patch("superset.db.session.begin_nested", return_value=_null_cm())
+
+    task, is_new = SubmitTaskCommand({})._create_or_join(
+        "superset.query_object_v1", "k", "shared", 1, None, None
+    )
+
+    assert is_new is False
+    assert task is winner
+    dao.add_subscriber.assert_called_once_with(winner.id, 1)
+
+
+@contextmanager
+def _null_cm():
+    yield

@@ -21,12 +21,21 @@ import logging
 import os
 import sys
 import warnings
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, TYPE_CHECKING
 
 import wtforms_json
 from colorama import Fore, Style
 from deprecation import deprecated
-from flask import abort, current_app, Flask, redirect, request, session, url_for
+from flask import (
+    abort,
+    current_app,
+    Flask,
+    has_app_context,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
 from flask_appbuilder.utils.base import get_safe_redirect
@@ -41,16 +50,15 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import (
-    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
     CHANGE_ME_SECRET_KEY,
+    CHANGE_ME_WEBSOCKET_JWT_SECRET,
 )
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
     APP_DIR,
     appbuilder,
-    async_query_manager_factory,
     cache_manager,
     celery_app,
     csrf,
@@ -75,9 +83,16 @@ from superset.superset_typing import FlaskResponse
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.utils.report_execution import validate_report_execution_config
 
 if TYPE_CHECKING:
     from superset.app import SupersetApp
+
+# The app that Celery tasks run under when no app context is active. It is
+# set on every initialization, so a process that initializes more than once
+# (the unit suite builds one app per test module) runs its tasks under the
+# most recent app and keeps no earlier app reachable through the task classes.
+_celery_task_app: SupersetApp | None = None
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +138,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         Called before all other init tasks are complete
         """
+        validate_report_execution_config(self.config)
         wtforms_json.init()
 
         os.makedirs(self.config["DATA_DIR"], exist_ok=True)
@@ -133,21 +149,44 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
 
     def configure_celery(self) -> None:
+        global _celery_task_app  # pylint: disable=global-statement
+
         celery_app.config_from_object(self.config["CELERY_CONFIG"])
         celery_app.set_default()
-        superset_app = self.superset_app
+        _celery_task_app = self.superset_app
 
         # Here, we want to ensure that every call into Celery task has an app context
         # setup properly
         task_base = celery_app.Task
 
+        # ``celery_app`` is a process-wide singleton, so a second initialization
+        # in the same process finds the wrapper installed by the first one.
+        # The wrapper reads the app from this module when a task runs instead
+        # of closing over it, so it is installed once: wrapping again would
+        # grow the task class hierarchy by one level per initialization, and
+        # a wrapper that captured its app would keep every app ever
+        # initialized reachable through the task classes built under it.
+        if "_superset_app_context_task" in vars(task_base):
+            return
+
         class AppContextTask(task_base):  # type: ignore
             # pylint: disable=too-few-public-methods
             abstract = True
+            _superset_app_context_task: ClassVar[bool] = True
 
-            # Grab each call into the task and set up an app context
+            # Grab each call into the task and set up an app context, unless
+            # one is already active on this thread (e.g. Celery eager mode
+            # invoked from within an existing request/test context) - Flask-
+            # SQLAlchemy 3.x scopes db.session by the active app context's
+            # object identity rather than by thread, so pushing a redundant
+            # nested context here would silently hand the task a second,
+            # blind session unable to see the caller's uncommitted work.
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
-                with superset_app.app_context():
+                if has_app_context():
+                    return task_base.__call__(self, *args, **kwargs)
+                if _celery_task_app is None:
+                    raise RuntimeError("Celery task called before app initialization")
+                with _celery_task_app.app_context():
                     return task_base.__call__(self, *args, **kwargs)
 
         celery_app.Task = AppContextTask
@@ -162,7 +201,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.advanced_data_type.api import AdvancedDataTypeRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
-        from superset.async_events.api import AsyncEventsRestApi
         from superset.available_domains.api import AvailableDomainsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
@@ -171,7 +209,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
         from superset.dashboards.permalink.api import DashboardPermalinkRestApi
-        from superset.databases.api import DatabaseRestApi
+        from superset.databases.api import DatabaseOAuth2TokensRestApi, DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
@@ -189,6 +227,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
         from superset.security.api import (
+            PasswordRecoveryRestApi,
             RoleRestAPI,
             SecurityRestApi,
             UserRegistrationsRestAPI,
@@ -202,6 +241,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
+        from superset.views.archived_assets import ArchivedAssetsView
         from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import CssTemplateModelView
@@ -251,7 +291,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         appbuilder.add_api(AnnotationRestApi)
         appbuilder.add_api(AnnotationLayerRestApi)
-        appbuilder.add_api(AsyncEventsRestApi)
         appbuilder.add_api(AdvancedDataTypeRestApi)
         appbuilder.add_api(AvailableDomainsRestApi)
         appbuilder.add_api(CacheRestApi)
@@ -265,6 +304,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
+        appbuilder.add_api(DatabaseOAuth2TokensRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
@@ -279,14 +319,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
-        if feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"):
-            from superset.semantic_layers.api import (
-                SemanticLayerRestApi,
-                SemanticViewRestApi,
-            )
+        from superset.semantic_layers.api import (
+            SemanticLayerRestApi,
+            SemanticViewRestApi,
+        )
 
-            appbuilder.add_api(SemanticLayerRestApi)
-            appbuilder.add_api(SemanticViewRestApi)
+        appbuilder.add_api(SemanticLayerRestApi)
+        appbuilder.add_api(SemanticViewRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
@@ -526,7 +565,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
-        appbuilder.add_api(LogRestApi)
+        appbuilder.add_view(
+            ArchivedAssetsView,
+            "Recently Archived",
+            label=_("Recently Archived"),
+            icon="fa-archive",
+            category_icon="",
+            category="Manage",
+            category_label=_("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("SOFT_DELETE"),
+        )
         appbuilder.add_api(UserRegistrationsRestAPI)
         appbuilder.add_view(
             ActionLogView,
@@ -541,6 +589,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
         appbuilder.add_api(SecurityRestApi)
+        appbuilder.add_api(PasswordRecoveryRestApi)
         #
         # Conditionally setup email views
         #
@@ -602,6 +651,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Conditionally initialize extensions based on feature flag
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             self.init_extensions()
+        else:
+            logger.info("ENABLE_EXTENSIONS is off at startup; extensions not loaded")
 
     def init_extensions(self) -> None:
         from superset.extensions.utils import (
@@ -612,11 +663,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         try:
             extensions = get_extensions()
-        except Exception:  # pylint: disable=broad-except  # noqa: S110
-            # If the db hasn't been initialized yet, an exception will be raised.
-            # It's fine to ignore this, as in this case there are no extensions
-            # present yet.
+        except Exception:  # pylint: disable=broad-except
+            # A discovery failure (for example an unreadable LOCAL_EXTENSIONS
+            # or EXTENSIONS_PATH entry) must not stop the app from starting.
+            logger.warning("Extensions not loaded: discovery failed", exc_info=True)
             return
+
+        failed: int = 0
 
         for extension in extensions.values():
             if backend_files := extension.backend:
@@ -640,6 +693,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         "Failed to initialize extension '%s'",
                         extension.manifest.id,
                     )
+                    failed += 1
+
+        logger.info(
+            "Loaded %d extension(s) at startup; %d failed to initialize",
+            len(extensions) - failed,
+            failed,
+        )
 
     @staticmethod
     def _remove_continuum_write_listeners() -> None:
@@ -761,16 +821,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         Must be called after all versioned model classes have been imported so
         that VERSIONED_MODELS can be populated and configure_mappers() has run.
 
-        ``ENABLE_VERSIONING_CAPTURE`` (ships default ``False``) gates the two
-        before-flush listener registrations. The flag is operational, not
-        feature: with it off the infrastructure is inert (no save writes
-        shadow rows); flipping it on activates capture. The switch also lets
-        an operator who observes a versioning-induced regression (e.g. a
-        save-path slowdown attributable to the change-record listener)
-        disable capture in ``superset_config.py`` and restart workers — a
-        30-second recovery instead of revert-and-redeploy. Shadow tables
-        already created by the migration stay; they just stop accumulating
-        new rows.
+        ``ENABLE_VERSIONING_CAPTURE`` gates the baseline and change-record
+        listener registrations. When disabled, initialization also detaches
+        SQLAlchemy-Continuum's write listeners.
 
         The fallback here is ``False`` so that any app-factory path that
         does not load ``superset.config`` (some test factories, embedded
@@ -873,6 +926,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         register_baseline_listener()
         register_change_record_listener()
 
+        from superset.versioning.savepoints import register_savepoint_listeners
+
+        register_savepoint_listeners()
+
         # Retention is time-based and runs out-of-band as a Celery beat
         # task — see ``superset/tasks/version_history_retention.py``
         # and the ``version_history.prune_old_versions`` entry in
@@ -881,17 +938,43 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # retention work doesn't add latency to user saves.
 
     _RETENTION_TASK_NAME: str = "version_history.prune_old_versions"
+    _PURGE_TASK_NAME: str = "deletion_retention.purge_soft_deleted"
+    _PRUNE_AUDIT_TASK_NAME: str = "deletion_retention.prune_purge_audit"
+    #: Module each task lives in. A beat entry alone is not enough — a worker
+    #: that never imported the module answers ``NotRegistered`` when the task
+    #: fires, which is the same silent non-execution one layer down.
+    _RETENTION_TASK_MODULE: str = "superset.tasks.version_history_retention"
+    _PURGE_TASK_MODULE: str = "superset.tasks.deletion_retention"
 
     def _warn_if_retention_beat_missing(self) -> None:
-        """WARN at startup when the resolved Celery beat schedule has no
-        ``version_history.prune_old_versions`` entry.
+        """WARN when the Celery configuration omits a retention task.
+
+        * ``version_history.prune_old_versions`` — checked always, since
+          shadow rows written by prior deploys keep ageing even when
+          capture is off;
+        * ``deletion_retention.purge_soft_deleted`` — checked only when
+          ``SOFT_DELETE`` is enabled, because the purge task itself
+          no-ops while the flag is off, so a missing entry is only
+          actionable once soft delete is statically configured. Dynamic
+          request-time feature resolvers are intentionally excluded from this
+          startup diagnostic; and
+        * ``deletion_retention.prune_purge_audit`` — checked whenever audit
+          pruning is enabled, because historical audit rows remain after
+          ``SOFT_DELETE`` is turned off.
+
+        Each task needs an entry in ``beat_schedule``. When ``imports`` is
+        explicitly configured, its module is checked there as well. An absent
+        ``imports`` setting is not diagnosed because Celery may register tasks
+        through ``include``, autodiscovery, or worker startup imports.
 
         Operators who redefine ``CeleryConfig`` in ``superset_config.py``
         — instead of subclassing or merging the default — silently lose
-        the retention task. Capture continues writing rows; the prune
-        never runs; disk grows until paged. The default config carries
-        the entry; this check makes the misconfiguration visible in the
-        deploy log before disk pressure makes it visible at 03:00.
+        these tasks. Capture continues writing rows; the prune
+        never runs; disk grows until paged. Archived objects likewise
+        accumulate forever instead of purging after the retention window.
+        The default config carries all three entries; this check makes the
+        misconfiguration visible in the deploy log before disk pressure
+        makes it visible at 03:00.
 
         Handles four shapes of ``CELERY_CONFIG``:
         * ``None`` — Celery deliberately disabled, no retention either
@@ -910,11 +993,25 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             return  # Celery disabled entirely; no retention task to warn about.
         if isinstance(celery_config, str):
             return  # Celery resolves dotted config references in its loader.
-        beat_schedule = (
+        beat_schedule: Any = (
             celery_config.get("beat_schedule")
             if isinstance(celery_config, dict)
             else getattr(celery_config, "beat_schedule", None)
         )
+        celery_imports: Any = (
+            celery_config.get("imports")
+            if isinstance(celery_config, dict)
+            else getattr(celery_config, "imports", None)
+        )
+        # A str is iterable, so guard it explicitly: ``imports = "superset.foo"``
+        # would otherwise be treated as a sequence of characters and every
+        # module would read as absent.
+        imported_modules: frozenset[str] = frozenset(
+            celery_imports
+            if isinstance(celery_imports, (list, tuple, set, frozenset))
+            else ()
+        )
+        imports_configured: bool = celery_imports is not None
         # Match on the ``task`` each entry runs, not the schedule entry key:
         # an operator may register the retention task under any key (e.g.
         # ``{"prune_versions": {"task": "version_history.prune_old_versions"}}``),
@@ -934,6 +1031,81 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "default CeleryConfig or add the entry to your override.",
                 self._RETENTION_TASK_NAME,
             )
+        if imports_configured and self._RETENTION_TASK_MODULE not in imported_modules:
+            logger.warning(
+                "versioning: CELERY_CONFIG.imports is missing %r — workers "
+                "will not register the retention task, so a scheduled run "
+                "fails with NotRegistered. Either inherit from the default "
+                "CeleryConfig or add the module to your override.",
+                self._RETENTION_TASK_MODULE,
+            )
+        default_flags: dict[str, Any] = self.config.get("DEFAULT_FEATURE_FLAGS", {})
+        configured_flags: dict[str, Any] = self.config.get("FEATURE_FLAGS", {})
+        soft_delete_enabled: bool = bool(
+            configured_flags.get("SOFT_DELETE", default_flags.get("SOFT_DELETE", False))
+        )
+        audit_pruning_switch: Any = self.config.get(
+            "PURGE_AUDIT_PRUNING_ENABLED", False
+        )
+        if not isinstance(audit_pruning_switch, bool):
+            # The task fails closed on anything but the literal True, so a
+            # typo such as "true" or 1 silently leaves the audit log
+            # growing. Surface it here, where the operator is looking.
+            logger.warning(
+                "soft-delete: PURGE_AUDIT_PRUNING_ENABLED=%r is not a boolean — "
+                "audit pruning stays disabled (the prune task removes nothing "
+                "unless the value is exactly True) and the purge audit log "
+                "will grow without bound. Set it to True or False.",
+                audit_pruning_switch,
+            )
+        audit_pruning_enabled: bool = audit_pruning_switch is True
+        if soft_delete_enabled and (
+            not beat_schedule or self._PURGE_TASK_NAME not in registered_tasks
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.beat_schedule is missing the "
+                "%r entry — archived objects will never be purged and "
+                "will accumulate indefinitely. Either inherit from the "
+                "default CeleryConfig or add the entry to your override.",
+                self._PURGE_TASK_NAME,
+            )
+        if (
+            soft_delete_enabled
+            and imports_configured
+            and self._PURGE_TASK_MODULE not in imported_modules
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.imports is missing %r — workers "
+                "will not register the purge task, so a scheduled run fails "
+                "with NotRegistered and archived objects are never purged. "
+                "Either inherit from the default CeleryConfig or add the "
+                "module to your override.",
+                self._PURGE_TASK_MODULE,
+            )
+        if audit_pruning_enabled and (
+            not beat_schedule or self._PRUNE_AUDIT_TASK_NAME not in registered_tasks
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.beat_schedule is missing the "
+                "%r entry — the purge audit log will never be pruned and "
+                "will grow without bound. Either inherit from the default "
+                "CeleryConfig or add the entry to your override.",
+                self._PRUNE_AUDIT_TASK_NAME,
+            )
+        if (
+            audit_pruning_enabled
+            and imports_configured
+            and self._PURGE_TASK_MODULE not in imported_modules
+            and not soft_delete_enabled
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.imports is missing %r — workers "
+                "will not register the audit-prune task, so a scheduled run "
+                "fails with NotRegistered and the purge audit log grows "
+                "without bound. Either inherit from the default CeleryConfig "
+                "or add the module to your override.",
+                self._PURGE_TASK_MODULE,
+            )
 
     def init_app_in_ctx(self) -> None:
         """
@@ -944,10 +1116,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_url_map_converters()
         self.configure_data_sources()
         self.configure_auth_provider()
-        self.configure_async_queries()
         self.configure_ssh_manager()
         self.configure_stats_manager()
+        self.configure_semantic_cache()
         self.configure_task_manager()
+        self.configure_websocket()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -1035,31 +1208,86 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         sys.exit(1)
 
-    def check_async_query_secret(self) -> None:
-        """Refuse to start with the default async JWT secret when GAQ is enabled."""
-        if not feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+    def check_websocket_secret(self) -> None:
+        """Refuse to start with a default/weak websocket JWT secret when enabled."""
+        if not self.config.get("WEBSOCKET_ENABLE"):
             return
-        if (
-            self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
-            != CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
-        ):
+        secret = self.config.get("WEBSOCKET_JWT_SECRET") or ""
+        if secret != CHANGE_ME_WEBSOCKET_JWT_SECRET and len(secret) >= 32:
             return
         self._log_config_warning(
-            "GLOBAL_ASYNC_QUERIES is enabled but GLOBAL_ASYNC_QUERIES_JWT_SECRET "
-            "has not been changed from its default value.\n"
-            "The default value is publicly known and must be replaced before "
-            "running in production.\n"
-            "Set a strong random value (at least 32 bytes) in superset_config.py:\n"
-            "  GLOBAL_ASYNC_QUERIES_JWT_SECRET = "
-            "'<output of: openssl rand -base64 42>'"
+            "WEBSOCKET_ENABLE is on but WEBSOCKET_JWT_SECRET is the default "
+            "placeholder or shorter than 32 bytes.\n"
+            "The default is publicly known; a weak secret lets an attacker forge "
+            "channel tokens and subscribe to another user's private channel.\n"
+            "Set a strong random value in superset_config.py:\n"
+            "  WEBSOCKET_JWT_SECRET = '<output of: openssl rand -base64 42>'"
         )
         if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
             return
         logger.error(
-            "Refusing to start: insecure GLOBAL_ASYNC_QUERIES_JWT_SECRET "
-            "with GLOBAL_ASYNC_QUERIES enabled"
+            "Refusing to start: insecure WEBSOCKET_JWT_SECRET with WEBSOCKET_ENABLE"
         )
         sys.exit(1)
+
+    def check_encryption_engine(self) -> None:
+        """Warn when app-encrypted fields use the legacy AES-CBC engine.
+
+        ``SQLALCHEMY_ENCRYPTED_FIELD_ENGINE`` defaults to ``"aes"`` for backward
+        compatibility: every secret an existing install has ever written through
+        this mechanism (database passwords, SSH tunnel credentials, OAuth2
+        tokens, and similar) is stored in that engine's ciphertext format, and
+        there is no per-value marker recording which engine produced it — the
+        engine is a single, global setting shared by every encrypted column.
+
+        Unlike ``check_secret_key`` and its siblings, this never refuses to
+        start. ``"aes"`` is a working, still-supported configuration, not a
+        known-bad placeholder value: blocking startup on it would turn an
+        opt-in hardening step into a forced-migration outage for every
+        deployment that has not yet run the engine migration. It only warns,
+        on every boot, so operators have a documented path to the
+        authenticated ``"aes-gcm"`` engine (see ``superset re-encrypt-secrets``
+        and ``docs/sip/authenticated-encryption-at-rest.md``).
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.utils.encrypt import (
+            BackwardCompatibleAesEngine,
+            DEFAULT_ENCRYPTION_ENGINE_NAME,
+            resolve_encryption_engine,
+        )
+
+        engine_name = self.config.get(
+            "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", DEFAULT_ENCRYPTION_ENGINE_NAME
+        )
+        try:
+            engine_cls = resolve_encryption_engine(engine_name)
+        except ValueError:
+            # An unrecognized value already fails closed at field construction
+            # (see ``resolve_encryption_engine``); nothing more to warn about.
+            return
+        # "aes" resolves to BackwardCompatibleAesEngine (see superset.utils.encrypt),
+        # not the raw sqlalchemy_utils AesEngine, so check against that subclass.
+        if engine_cls is not BackwardCompatibleAesEngine:
+            return
+        self._log_config_warning(
+            "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE is set to the legacy 'aes' "
+            "engine (AES-CBC, unauthenticated). App-encrypted fields — "
+            "database passwords, SSH tunnel credentials, OAuth2 tokens, and "
+            "similar — would benefit from the authenticated 'aes-gcm' engine "
+            "instead.\n"
+            "Switching engines on a populated database requires "
+            "re-encrypting existing values first, since the two ciphertext "
+            "formats are not interchangeable:\n"
+            "  1. Back up the metadata database.\n"
+            "  2. superset re-encrypt-secrets --engine aes-gcm\n"
+            "  3. Set SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = 'aes-gcm' in "
+            "superset_config.py.\n"
+            "  4. Restart Superset, then re-run the command above once more "
+            "to sweep up any values written during the cutover.\n"
+            "See UPDATING.md and "
+            "docs/sip/authenticated-encryption-at-rest.md for the full "
+            "runbook."
+        )
 
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
@@ -1073,7 +1301,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             register_password_change_enforcement,
         )
 
-        # Redirect users with a pending forced password change to the reset
+        # Redirect users with a pending forced password change to the profile
         # page (no-op unless ENABLE_FORCE_PASSWORD_CHANGE is enabled).
         register_password_change_enforcement(self.superset_app)
 
@@ -1129,6 +1357,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         register_session_invalidation_events(appbuilder.sm.user_model)
 
+        from superset.models.dashboard import (
+            register_dashboard_copy_events,
+        )
+
+        register_dashboard_copy_events(appbuilder.sm.user_model)
+
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
             # Import here to avoid circular imports
@@ -1141,7 +1375,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     default=json.pessimistic_json_iso_dttm_ser,
                 )
 
-            return {"bootstrap_data": serialize_bootstrap_data}
+            return {
+                "bootstrap_data": serialize_bootstrap_data,
+                "is_feature_enabled": feature_flag_manager.is_feature_enabled,
+            }
 
     def check_and_warn_database_connection(self) -> None:
         """Check database connection and warn if unavailable"""
@@ -1182,7 +1419,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # conditionally
         self.configure_feature_flags()
         self.check_guest_token_secret()
-        self.check_async_query_secret()
+        self.check_websocket_secret()
+        self.check_encryption_engine()
         self.configure_db_encrypt()
         self.setup_db()
 
@@ -1199,6 +1437,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_cache()
         self.set_db_default_isolation()
         self.configure_sqlglot_dialects()
+        self.configure_extra_post_processing_ops()
 
         with self.superset_app.app_context():
             self.init_app_in_ctx()
@@ -1231,7 +1470,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 set_isolation_level_to,
             )
             with self.superset_app.app_context():
-                db.engine.execution_options(isolation_level=set_isolation_level_to)
+                # update_execution_options mutates the engine in place.
+                # Its generative sibling execution_options() returns a NEW
+                # engine and leaves this one untouched — using it here
+                # silently discarded the isolation default for years,
+                # leaving MySQL deployments on InnoDB's REPEATABLE READ
+                # while this method logged the opposite (sc-120480).
+                db.engine.update_execution_options(
+                    isolation_level=set_isolation_level_to
+                )
 
     def configure_auth_provider(self) -> None:
         machine_auth_provider_factory.init_app(self.superset_app)
@@ -1241,6 +1488,93 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_stats_manager(self) -> None:
         stats_logger_manager.init_app(self.superset_app)
+
+    def configure_semantic_cache(self) -> None:
+        """Configure optional semantic containment caching for this process."""
+        from typing import cast
+
+        from superset.semantic_layers.cache import (
+            initialize_semantic_cache,
+            SemanticCacheDisabledReason,
+            SemanticCacheMetrics,
+            SemanticCacheState,
+        )
+        from superset.semantic_layers.cache_repository import SemanticCacheBackend
+
+        requested: bool = feature_flag_manager.is_feature_enabled(
+            "SEMANTIC_LAYER_CONTAINMENT_CACHE"
+        )
+        state: SemanticCacheState = initialize_semantic_cache(
+            parent_enabled=feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"),
+            requested=requested,
+            backend=cast(SemanticCacheBackend, cache_manager.data_cache),
+            coordination=cache_manager.semantic_cache_coordination,
+            wait_seconds=self.config["SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS"],
+            lease_seconds=self.config["SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS"],
+            metrics=cast(SemanticCacheMetrics, stats_logger_manager.instance),
+            # The same cap the ordinary result cache applies to a single value;
+            # containment values share that backend.
+            max_value_bytes=self.config.get("DATA_CACHE_MAX_VALUE_SIZE"),
+        )
+        try:
+            stats_logger_manager.instance.gauge(
+                "semantic_cache.containment.enabled",
+                float(state.effective),
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("Semantic cache startup metric emission failed", exc_info=True)
+        if (
+            state.disabled_reason
+            is SemanticCacheDisabledReason.UNSUPPORTED_COORDINATION
+        ):
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.unsupported"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but the configured "
+                "distributed coordination backend does not support owner-token leases; "
+                "containment caching is disabled for this process"
+            )
+        elif state.disabled_reason is SemanticCacheDisabledReason.UNSUPPORTED_BACKEND:
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.unsupported"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but DATA_CACHE_CONFIG "
+                "is not a persistent shared cache that containment can read back "
+                "from (NullCache never retains values; RedisSentinelCache reads "
+                "from replicas); containment caching is disabled for this process"
+            )
+        elif (
+            state.disabled_reason
+            is SemanticCacheDisabledReason.INVALID_COORDINATION_CONFIGURATION
+        ):
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.invalid_configuration"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but its coordination "
+                "timing configuration is invalid; containment caching is disabled "
+                "for this process"
+            )
 
     def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(
@@ -1271,6 +1605,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             extensions = extensions()
 
         SQLGLOT_DIALECTS.update(extensions)
+
+    def configure_extra_post_processing_ops(self) -> None:
+        from superset.utils.pandas_postprocessing import (
+            __all__ as builtin_ops,
+            build_extra_ops_map,
+        )
+
+        extra = self.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        for name in build_extra_ops_map(extra):
+            if name in builtin_ops:
+                logger.warning(
+                    "EXTRA_PANDAS_POSTPROCESSING_OPS: '%s' conflicts with a "
+                    "built-in post-processing operation and will never fire. "
+                    "Rename the custom function to avoid the conflict.",
+                    name,
+                )
 
     @transaction()
     def configure_fab(self) -> None:
@@ -1446,26 +1796,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             for ex in csrf_exempt_list:
                 csrf.exempt(ex)
 
-    def configure_async_queries(self) -> None:
-        if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-            # In production, check_async_query_secret() already aborts startup when
-            # the default secret is present, so this branch is never reached with it.
-            # In debug/testing the check only warns, so skip async-query init here to
-            # avoid AsyncQueryManager.init_app() hard-failing on the too-short default
-            # secret and crashing startup despite the warn-only intent.
-            if (
-                self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
-                == CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
-            ):
-                return
-            async_query_manager_factory.init_app(self.superset_app)
-
     def configure_task_manager(self) -> None:
         """Initialize the TaskManager for GTF realtime notifications."""
         if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             from superset.tasks.manager import TaskManager
 
             TaskManager.init_app(self.superset_app)
+
+    def configure_websocket(self) -> None:
+        """Mint the websocket channel-token cookie when the transport is enabled."""
+        if self.config.get("WEBSOCKET_ENABLE"):
+            from superset.websocket.channel import register_ws_channel_cookie
+
+            register_ws_channel_cookie(self.superset_app)
 
     def register_blueprints(self) -> None:
         # Register custom blueprints from config

@@ -31,154 +31,9 @@ Key features:
 
 import html
 import re
-from typing import Any
 
 import nh3
-
-LLM_CONTEXT_OPEN_DELIMITER = "<UNTRUSTED-CONTENT>"
-LLM_CONTEXT_CLOSE_DELIMITER = "</UNTRUSTED-CONTENT>"
-LLM_CONTEXT_ESCAPED_OPEN_DELIMITER = "[ESCAPED-UNTRUSTED-CONTENT-OPEN]"
-LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER = "[ESCAPED-UNTRUSTED-CONTENT-CLOSE]"
-LLM_CONTEXT_EXCLUDED_FIELD_NAMES = frozenset(
-    {
-        "cache_key",
-        "database",
-        "database_name",
-        "schema",
-        "schema_name",
-        "slug",
-        "url",
-        "urls",
-        "uuid",
-    }
-)
-
-
-def _normalize_field_name(field_name: str) -> str:
-    """Normalize a field name for exclusion matching."""
-    return field_name.strip().lower().replace("-", "_")
-
-
-def _escape_llm_context_delimiters(value: str) -> str:
-    """Escape delimiter tokens without wrapping the value."""
-    return value.replace(
-        LLM_CONTEXT_OPEN_DELIMITER,
-        LLM_CONTEXT_ESCAPED_OPEN_DELIMITER,
-    ).replace(
-        LLM_CONTEXT_CLOSE_DELIMITER,
-        LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER,
-    )
-
-
-def _escape_llm_context_dict_key(key: Any) -> Any:
-    """Escape delimiter tokens in string dict keys."""
-    if isinstance(key, str):
-        return _escape_llm_context_delimiters(key)
-    return key
-
-
-def escape_llm_context_delimiters(value: Any) -> Any:
-    """Escape delimiter tokens in operational values that should not be wrapped."""
-    if isinstance(value, str):
-        return _escape_llm_context_delimiters(value)
-    if isinstance(value, dict):
-        return {
-            _escape_llm_context_dict_key(key): escape_llm_context_delimiters(
-                nested_value
-            )
-            for key, nested_value in value.items()
-        }
-    if isinstance(value, list):
-        return [escape_llm_context_delimiters(item) for item in value]
-    if isinstance(value, tuple):
-        return tuple(escape_llm_context_delimiters(item) for item in value)
-    return value
-
-
-def _wrap_llm_context_string(value: str) -> str:
-    """Wrap an untrusted string with explicit LLM-context delimiters."""
-    wrapped_prefix = f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
-    wrapped_suffix = f"\n{LLM_CONTEXT_CLOSE_DELIMITER}"
-    if value.startswith(wrapped_prefix) and value.endswith(wrapped_suffix):
-        inner_value = value[len(wrapped_prefix) : -len(wrapped_suffix)]
-        return (
-            f"{wrapped_prefix}"
-            f"{_escape_llm_context_delimiters(inner_value)}"
-            f"{wrapped_suffix}"
-        )
-
-    escaped_value = _escape_llm_context_delimiters(value)
-    return (
-        f"{LLM_CONTEXT_OPEN_DELIMITER}\n{escaped_value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
-    )
-
-
-def sanitize_for_llm_context(
-    value: Any,
-    *,
-    field_path: tuple[str, ...] = (),
-    excluded_field_names: frozenset[str] | None = None,
-) -> Any:
-    """
-    Recursively wrap user-controlled strings before placing them in LLM context.
-
-    Strings are wrapped in explicit untrusted-content delimiters unless the
-    current field name is part of the shared operational exclusion policy.
-    Container shapes and non-string values are preserved.  String dict keys
-    are only delimiter-escaped (not wrapped) to keep the original structure
-    navigable; any UNTRUSTED-CONTENT tokens embedded in a key are replaced
-    with their escaped forms so they cannot prematurely close a value wrapper.
-
-    Args:
-        value: The value to sanitize.
-        field_path: Tuple of field name segments leading to this value.
-        excluded_field_names: Field names whose values are only delimiter-escaped
-            rather than wrapped.  Defaults to LLM_CONTEXT_EXCLUDED_FIELD_NAMES.
-            Pass ``frozenset()`` to wrap every string leaf without exclusions.
-    """
-    excluded_names = (
-        LLM_CONTEXT_EXCLUDED_FIELD_NAMES
-        if excluded_field_names is None
-        else excluded_field_names
-    )
-    normalized_exclusions = frozenset(
-        _normalize_field_name(field_name) for field_name in excluded_names
-    )
-
-    def _sanitize(current_value: Any, current_path: tuple[str, ...]) -> Any:
-        current_field_name = current_path[-1] if current_path else ""
-        if current_field_name and (
-            _normalize_field_name(current_field_name) in normalized_exclusions
-        ):
-            return escape_llm_context_delimiters(current_value)
-
-        if isinstance(current_value, str):
-            return _wrap_llm_context_string(current_value)
-
-        if isinstance(current_value, dict):
-            return {
-                _escape_llm_context_dict_key(key): _sanitize(
-                    nested_value,
-                    (*current_path, str(key)),
-                )
-                for key, nested_value in current_value.items()
-            }
-
-        if isinstance(current_value, list):
-            return [
-                _sanitize(item, (*current_path, str(index)))
-                for index, item in enumerate(current_value)
-            ]
-
-        if isinstance(current_value, tuple):
-            return tuple(
-                _sanitize(item, (*current_path, str(index)))
-                for index, item in enumerate(current_value)
-            )
-
-        return current_value
-
-    return _sanitize(value, field_path)
+from pydantic_core import PydanticCustomError
 
 
 def _strip_html_tags(value: str) -> str:
@@ -188,9 +43,9 @@ def _strip_html_tags(value: str) -> str:
     Decodes all layers of HTML entity encoding BEFORE passing to nh3,
     so entity-encoded tags (e.g., ``&lt;script&gt;``) are decoded into
     real tags that nh3 can detect and strip. After nh3 removes all tags,
-    we only restore ``&amp;`` back to ``&`` (not a full html.unescape)
-    to preserve ampersands in display text without risking XSS from
-    re-introducing angle brackets or other HTML-significant characters.
+    we restore ampersands and less-than signs that cannot start HTML tags.
+    Tag-opening angle brackets remain escaped; a full html.unescape here
+    could reconstruct markup from text joined by tag removal.
 
     Args:
         value: The input string that may contain HTML
@@ -215,21 +70,78 @@ def _strip_html_tags(value: str) -> str:
     # url_schemes=set() blocks all URL schemes in any remaining attributes
     cleaned = nh3.clean(decoded, tags=set(), url_schemes=set())
 
-    # Only restore &amp; → & to preserve ampersands in display text (e.g. "A & B").
-    # Do NOT use html.unescape() here: nh3 may pass through HTML entities from
-    # the input (e.g. &lt;script&gt;), and a full unescape would re-introduce
-    # raw angle brackets, creating an XSS vector.
-    return cleaned.replace("&amp;", "&")
+    # Restore brackets only before comparison punctuation, numbers or whitespace.
+    # Non-ASCII letters can case-fold into tag names in downstream renderers;
+    # leave those and reconstructed tag openers escaped.
+    # Normalize removable characters before deciding whether a bracket is safe;
+    # otherwise a later Unicode strip could turn <\u200bscript into markup.
+    cleaned = _remove_dangerous_unicode(cleaned)
+    # Greater-than signs and NBSP cannot open tags. Restore them so plain text
+    # neither changes on display nor outgrows the model-column length limits.
+    return (
+        re.sub(
+            # Control whitespace stays escaped: report titles strip it, which
+            # could join "<" to a Slack control sequence such as <!channel>.
+            r"&lt;(?=[\d$€£¥%+=.,:;)\]&-]|[^\S\x00-\x1f\x7f-\x9f]|(?:\s|&nbsp;)*$)",
+            "<",
+            cleaned,
+        )
+        .replace("&gt;", ">")
+        .replace("&nbsp;", "\u00a0")
+        .replace("&amp;", "&")
+    )
 
 
-_DANGEROUS_URL_SCHEME_RE = re.compile(r"\b(javascript|vbscript|data):", re.IGNORECASE)
+# A tag opener left escaped by _strip_html_tags: markup reconstructed by
+# decoding or by joining text around a stripped tag.
+_ESCAPED_TAG_OPENER_RE = re.compile(r"&lt;[A-Za-z/!?]")
+
+
+def _check_stable_html(value: str, field_name: str) -> None:
+    """Reject stripped text that would change when submitted again."""
+    # Tag or Unicode removal can join entity fragments (e.g. &am<b></b>p;).
+    # Check the complete stripping pass, including recursive entity decoding,
+    # rather than just looking for literal escaped tag openers.
+    if _ESCAPED_TAG_OPENER_RE.search(value) or _strip_html_tags(value) != value:
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially malicious HTML"
+        )
+
+
+def _scheme_pattern(scheme: str) -> str:
+    """Match ``scheme:`` with ASCII tab, LF, or CR between its characters.
+
+    WHATWG URL parsing removes those characters, even inside a scheme.
+    Matching them in place, rather than deleting them before the check,
+    keeps the word boundary before a scheme that starts a new line.
+    """
+    return r"[\t\n\r]*".join(scheme) + r"[\t\n\r]*:"
+
+
+# Script schemes remain forbidden regardless of payload whitespace. A data URL
+# starts a value or has an adjacent or comma-delimited payload, even after spaces.
+# Invalid MIME types still load as text/plain in browsers, so a comma-bearing
+# prose label cannot safely be distinguished from a data URL by its MIME type.
+_SCRIPT_SCHEMES = "|".join(_scheme_pattern(s) for s in ("javascript", "vbscript"))
+_DATA_SCHEME = _scheme_pattern("data")
+_DANGEROUS_URL_SCHEME_RE = re.compile(
+    rf"\b(?:{_SCRIPT_SCHEMES})|^\s*{_DATA_SCHEME}|\b{_DATA_SCHEME}(?=\S|$)",
+    re.IGNORECASE,
+)
+_WHITESPACE_DATA_SCHEME_RE = re.compile(rf"\b{_DATA_SCHEME}\s", re.IGNORECASE)
 
 
 def _check_dangerous_url_scheme(value: str, field_name: str) -> None:
     """Raise if ``value`` contains a ``javascript:`` / ``vbscript:`` / ``data:``
     URL scheme."""
-    if _DANGEROUS_URL_SCHEME_RE.search(value):
-        raise ValueError(f"{field_name} contains potentially malicious URL scheme")
+    # Only the first whitespace-prefixed payload and the last comma are needed.
+    # Avoid rescanning the suffix for every data: token in comma-free prose.
+    data_scheme = _WHITESPACE_DATA_SCHEME_RE.search(value)
+    has_data_payload = data_scheme is not None and value.rfind(",") >= data_scheme.end()
+    if _DANGEROUS_URL_SCHEME_RE.search(value) or has_data_payload:
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially malicious URL scheme"
+        )
 
 
 def _check_dangerous_stored_procedures(value: str, field_name: str) -> None:
@@ -237,7 +149,10 @@ def _check_dangerous_stored_procedures(value: str, field_name: str) -> None:
     ``sp_executesql``."""
     v_lower = value.lower()
     if "xp_cmdshell" in v_lower or "sp_executesql" in v_lower:
-        raise ValueError(f"{field_name} contains potentially malicious SQL procedures.")
+        raise PydanticCustomError(
+            "unsafe_text",
+            f"{field_name} contains potentially malicious SQL procedures.",
+        )
 
 
 def _check_dangerous_patterns(value: str, field_name: str) -> None:
@@ -259,7 +174,9 @@ def _check_dangerous_patterns(value: str, field_name: str) -> None:
     # NOTE: this regex false-positives on SQL like ``monthly = 12`` (matches
     # ``on``+``thly``+``=``); ``sanitize_sql_expression`` skips this check.
     if re.search(r"on\w+\s*=", value, re.IGNORECASE):
-        raise ValueError(f"{field_name} contains potentially malicious event handler")
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially malicious event handler"
+        )
 
 
 def _check_sql_patterns(value: str, field_name: str) -> None:
@@ -279,15 +196,22 @@ def _check_sql_patterns(value: str, field_name: str) -> None:
         value,
         re.IGNORECASE,
     ):
-        raise ValueError(f"{field_name} contains potentially unsafe SQL keywords")
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially unsafe SQL keywords"
+        )
 
     # Check for shell metacharacters and SQL comments
     if re.search(r"[;|&$`]|--", value):
-        raise ValueError(f"{field_name} contains potentially unsafe characters")
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially unsafe characters"
+        )
 
     # Check for SQL comment start
     if "/*" in value:
-        raise ValueError(f"{field_name} contains potentially unsafe SQL comment syntax")
+        raise PydanticCustomError(
+            "unsafe_text",
+            f"{field_name} contains potentially unsafe SQL comment syntax",
+        )
 
 
 def _remove_dangerous_unicode(value: str) -> str:
@@ -349,7 +273,7 @@ def sanitize_user_input(
     Args:
         value: The input string to sanitize
         field_name: Name of the field (for error messages)
-        max_length: Maximum allowed length
+        max_length: Maximum allowed sanitized length; raw input is bounded separately
         check_sql_keywords: Whether to check for SQL injection keywords
         allow_empty: Whether to allow empty/None values
 
@@ -361,6 +285,7 @@ def sanitize_user_input(
 
     Security checks performed:
         - Strips all HTML tags using nh3 (Rust-based sanitizer)
+        - Rejects tag-shaped text left after stripping (e.g. encoded tags)
         - Blocks JavaScript/VBScript/data URL schemes
         - Blocks event handlers (onclick=, onerror=, etc.)
         - Removes dangerous Unicode characters (zero-width, control chars)
@@ -369,24 +294,66 @@ def sanitize_user_input(
     if value is None:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
     value = value.strip()
 
     if not value:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
-    # Length check first to prevent ReDoS attacks
-    if len(value) > max_length:
-        raise ValueError(
+    # Bound parser/regex work independently of the persisted text budget.
+    # Markup and entities can be longer than the text they sanitize to.
+    raw_max_length = max(10000, max_length)
+    if len(value) > raw_max_length:
+        raise PydanticCustomError(
+            "string_too_long",
             f"{field_name} too long ({len(value)} characters). "
-            f"Maximum allowed length is {max_length} characters."
+            f"Maximum allowed length is {raw_max_length} characters.",
         )
 
-    # Strip all HTML tags using nh3
+    # Remove dangerous Unicode characters BEFORE any check so zero-widths
+    # smuggled inside a denylisted keyword can't slip past the pattern
+    # checks below (mirrors sanitize_sql_expression's ordering).
+    value = _remove_dangerous_unicode(value)
+
+    # Canonicalization above can reduce a truthy input (e.g. a lone
+    # zero-width character) to "" — recheck emptiness so that case still
+    # honors the documented non-empty / allow_empty contract instead of
+    # silently returning "".
+    if not value:
+        if allow_empty:
+            return None
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
+
+    # Strip all HTML tags using nh3. This decodes HTML entities internally
+    # (see _strip_html_tags), which can turn an entity-encoded zero-width
+    # character (e.g. "&#8203;") into the raw character -- re-run the
+    # Unicode strip below so an entity-encoded smuggling attempt is caught
+    # too, not just a raw one. Deliberately no emptiness recheck here: nh3
+    # legitimately reduces tag-heavy input (e.g. "<script>...</script>") to
+    # an empty string as the correct sanitized result, not an error case --
+    # unlike the recheck above, which guards the value *before* any content
+    # has been intentionally stripped away.
     value = _strip_html_tags(value)
+    value = _remove_dangerous_unicode(value)
+    # Tag removal and entity decoding can expose surrounding whitespace.
+    # Apply the text cap to the trimmed value that callers persist.
+    value = value.strip()
+
+    # Reject rather than store tag-shaped text: a later sanitizer pass would
+    # decode and strip it, so the stored value would not be stable.
+    _check_stable_html(value, field_name)
+
+    # Conservative bracket escaping can expand text even after tags are removed.
+    # Enforce the storage cap for callers without a Pydantic Field length limit.
+    if len(value) > max_length:
+        raise PydanticCustomError(
+            "string_too_long",
+            f"{field_name} too long ({len(value)} characters). "
+            f"Maximum allowed length is {max_length} characters.",
+        )
 
     # Check for dangerous patterns (URL schemes, event handlers)
     _check_dangerous_patterns(value, field_name)
@@ -394,9 +361,6 @@ def sanitize_user_input(
     # SQL keyword and shell metacharacter checks (for column names, etc.)
     if check_sql_keywords:
         _check_sql_patterns(value, field_name)
-
-    # Remove dangerous Unicode characters
-    value = _remove_dangerous_unicode(value)
 
     return value
 
@@ -428,13 +392,26 @@ def sanitize_filter_value(
 
     # Length check first
     if len(value) > max_length:
-        raise ValueError(
+        raise PydanticCustomError(
+            "string_too_long",
             f"Filter value too long ({len(value)} characters). "
-            f"Maximum allowed length is {max_length} characters."
+            f"Maximum allowed length is {max_length} characters.",
         )
 
-    # Strip all HTML tags using nh3
+    # Remove dangerous Unicode characters BEFORE any check so zero-widths
+    # smuggled inside a denylisted pattern can't slip past the pattern
+    # checks below (mirrors sanitize_sql_expression's ordering).
+    value = _remove_dangerous_unicode(value)
+
+    # Strip all HTML tags using nh3. This decodes HTML entities internally
+    # (see _strip_html_tags), which can turn an entity-encoded zero-width
+    # character (e.g. "&#8203;") into the raw character -- re-run the
+    # Unicode strip below so an entity-encoded smuggling attempt is caught
+    # too, not just a raw one.
     value = _strip_html_tags(value)
+    value = _remove_dangerous_unicode(value)
+
+    _check_stable_html(value, "Filter value")
 
     # Check for dangerous patterns
     _check_dangerous_patterns(value, "Filter value")
@@ -452,22 +429,24 @@ def sanitize_filter_value(
     ]
     for pattern in sql_patterns:
         if re.search(pattern, value, re.IGNORECASE):
-            raise ValueError(
-                "Filter value contains potentially malicious SQL patterns."
+            raise PydanticCustomError(
+                "unsafe_text",
+                "Filter value contains potentially malicious SQL patterns.",
             )
 
     # Check for shell metacharacters that could indicate injection attempts
     # Note: We allow '&' alone as it's common in text ("A & B") and is only
     # dangerous in shell contexts, not in database queries
     if re.search(r"[;|`$()]", value):
-        raise ValueError("Filter value contains potentially unsafe shell characters.")
+        raise PydanticCustomError(
+            "unsafe_text", "Filter value contains potentially unsafe shell characters."
+        )
 
     # Check for hex encoding
     if re.search(r"\\x[0-9a-fA-F]{2}", value):
-        raise ValueError("Filter value contains hex encoding which is not allowed.")
-
-    # Remove dangerous Unicode characters
-    value = _remove_dangerous_unicode(value)
+        raise PydanticCustomError(
+            "unsafe_text", "Filter value contains hex encoding which is not allowed."
+        )
 
     return value
 
@@ -504,22 +483,26 @@ def sanitize_sql_expression(  # noqa: C901
     if value is None:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
     value = value.strip()
     if not value:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
     if len(value) > max_length:
-        raise ValueError(
+        raise PydanticCustomError(
+            "string_too_long",
             f"{field_name} too long ({len(value)} characters). "
-            f"Maximum allowed length is {max_length} characters."
+            f"Maximum allowed length is {max_length} characters.",
         )
 
-    # Strip + decode entities BEFORE any check so zero-widths and entity
-    # encoding can't smuggle past the tag-pattern / keyword scans.
+    # Strip zero-widths, then decode entities, then strip again: decoding
+    # can turn an entity-encoded zero-width character (e.g. "&#8203;") into
+    # the raw character, so a single strip-then-decode order would let an
+    # entity-encoded smuggling attempt through the tag-pattern / keyword
+    # scans below.
     value = _remove_dangerous_unicode(value)
     prev: str | None = None
     iterations = 0
@@ -527,24 +510,39 @@ def sanitize_sql_expression(  # noqa: C901
         prev = value
         value = html.unescape(value)
         iterations += 1
+    value = _remove_dangerous_unicode(value)
+
+    # Canonicalization above can reduce a truthy input (e.g. a lone
+    # zero-width character) to "" — recheck emptiness so that case still
+    # honors the documented non-empty / allow_empty contract instead of
+    # silently returning "".
+    if not value:
+        if allow_empty:
+            return None
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
     if _HTML_TAG_LIKE_RE.search(value):
-        raise ValueError(
+        raise PydanticCustomError(
+            "unsafe_text",
             f"{field_name} contains an HTML tag-like construct "
-            f"(SQL expressions cannot embed HTML)"
+            f"(SQL expressions cannot embed HTML)",
         )
 
     if ";" in value:
-        raise ValueError(
-            f"{field_name} contains ';' — statement stacking is not allowed"
+        raise PydanticCustomError(
+            "unsafe_text",
+            f"{field_name} contains ';' — statement stacking is not allowed",
         )
     if "--" in value or "/*" in value or "*/" in value:
-        raise ValueError(f"{field_name} contains SQL comment syntax")
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains SQL comment syntax"
+        )
 
     if _SQL_EXPR_DDL_DML_RE.search(value):
-        raise ValueError(
+        raise PydanticCustomError(
+            "unsafe_text",
             f"{field_name} contains a disallowed SQL keyword "
-            f"(DDL/DML statements are not permitted in metrics)"
+            f"(DDL/DML statements are not permitted in metrics)",
         )
 
     _check_dangerous_stored_procedures(value, field_name)

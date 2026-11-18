@@ -112,3 +112,26 @@ test('shows a Tooltip for the verbose metric name', () => {
   const { getByTestId } = setup();
   expect(getByTestId('mock-tooltip')).toBeInTheDocument();
 });
+test('does not render javascript: URLs as links', () => {
+  // Regression test: the url prop can be creator-authored and must
+  // never become a script-bearing href for other viewers.
+  const { queryByRole, getByText } = setup({
+    url: 'javascript:alert(document.domain)', // eslint-disable-line no-script-url
+  });
+  expect(queryByRole('link')).not.toBeInTheDocument();
+  expect(getByText(defaultProps.metric.verbose_name)).toBeInTheDocument();
+});
+test('does not render data: URLs as links', () => {
+  const { queryByRole } = setup({
+    url: 'data:text/html,<script>alert(1)</script>',
+  });
+  expect(queryByRole('link')).not.toBeInTheDocument();
+});
+test('renders relative URLs as links', () => {
+  const { getByRole } = setup({
+    url: '/superset/dashboard/1/',
+  });
+  expect(
+    getByRole('link', { name: defaultProps.metric.verbose_name }),
+  ).toHaveAttribute('href', '/superset/dashboard/1/');
+});

@@ -114,6 +114,21 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
                 "is_recommended": True,
             },
         ],
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "couchbase-sqlalchemy (latest PyPI release 1.0.3, and its main "
+                    "branch) hard-pins sqlalchemy>=1.3.0,<2.0; installing it into a "
+                    "Superset environment downgrades SQLAlchemy to 1.4 and breaks "
+                    "Superset."
+                ),
+                "tracking_url": (
+                    "https://github.com/couchbase/couchbase-sqlalchemy/issues/3"
+                ),
+                "since": "2026-10-27",
+            }
+        ],
     }
 
     _time_grain_expressions = {
@@ -175,14 +190,16 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
                 port=parameters.get("port"),
                 query=query_params,
             )
-        print(uri)
-        return str(uri)
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return uri.render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(
         cls, uri: str, encrypted_extra: Optional[dict[str, Any]] = None
     ) -> BaseBasicParametersType:
-        print("get_parameters is called : ", uri)
         url = make_url_safe(uri)
         query = {
             key: value
@@ -284,4 +301,7 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
         """
         Return the configured schema.
         """
+        if not sqlalchemy_uri.database:
+            return None
+
         return parse.unquote(sqlalchemy_uri.database)

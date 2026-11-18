@@ -1,0 +1,142 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import {
+  ChartProps,
+  getColumnLabel,
+  getMetricLabel,
+  getValueFormatter,
+} from '@superset-ui/core';
+import { getColorFormatters } from '@superset-ui/chart-controls';
+
+import normalizeRegions from './normalizeRegions';
+
+export default function transformProps(chartProps: ChartProps) {
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    datasource,
+    hooks = {},
+    filterState,
+    emitCrossFilters,
+    theme,
+  } = chartProps;
+  const {
+    entity,
+    linearColorScheme,
+    numberFormat,
+    currencyFormat,
+    selectCountry,
+    colorScheme,
+    sliceId,
+    metric,
+    conditionalFormatting,
+  } = formData;
+
+  const {
+    currencyFormats = {},
+    columnFormats = {},
+    currencyCodeColumn,
+  } = datasource;
+  const { data: rawData, detected_currency: detectedCurrency } = queriesData[0];
+
+  // The legacy explore_json endpoint renamed the entity and metric columns
+  // server-side; the v1 chart data endpoint returns them under their own
+  // labels, so the rename happens here.
+  const entityLabel = getColumnLabel(entity);
+  const metricLabel = getMetricLabel(metric);
+  const country = String(selectCountry).toLowerCase();
+  const displayData = formData.regionFormat
+    ? normalizeRegions(
+        rawData ?? [],
+        entityLabel,
+        country,
+        formData.regionFormat,
+      )
+    : (rawData ?? []);
+  // Every normalized region maps back to its source value, including regions
+  // whose metric is blank, so cross-filters and drills on returned regions
+  // filter on the original identifier rather than the boundary ISO.
+  const sourceValues: Record<string, string> = {};
+  if (formData.regionFormat) {
+    displayData.forEach((row: Record<string, unknown>, index: number) => {
+      sourceValues[String(row[entityLabel])] = rawData[index][entityLabel];
+    });
+  }
+  const data = displayData.flatMap(
+    (row: Record<string, unknown>, index: number) => {
+      // Validate regions even for sparse rows. A row without a finite metric
+      // is omitted from the rendered data, so its region stays unshaded.
+      if (
+        formData.regionFormat &&
+        (typeof row[metricLabel] !== 'number' ||
+          !Number.isFinite(row[metricLabel]))
+      ) {
+        return [];
+      }
+      // Pre-shaped legacy payloads already carry country_id and metric.
+      return [
+        entityLabel in row && metricLabel in row
+          ? {
+              country_id: row[entityLabel],
+              metric: row[metricLabel],
+              ...(formData.regionFormat
+                ? { source_value: rawData[index][entityLabel] }
+                : {}),
+            }
+          : row,
+      ];
+    },
+  );
+  const formatters = getColorFormatters(conditionalFormatting, data, theme);
+
+  const formatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
+    undefined, // key - not needed for single-metric charts
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
+  );
+
+  const { onContextMenu, setDataMask } = hooks;
+
+  return {
+    width,
+    height,
+    data,
+    sourceValues: formData.regionFormat ? sourceValues : undefined,
+    country: selectCountry ? country : null,
+    linearColorScheme,
+    numberFormat, // left for backward compatibility
+    colorScheme,
+    sliceId,
+    formatter,
+    entity,
+    onContextMenu,
+    setDataMask,
+    emitCrossFilters,
+    filterState,
+    formatters,
+  };
+}

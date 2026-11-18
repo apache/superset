@@ -81,11 +81,10 @@ test('should delete a dashboard with confirmation', async ({
   const deleteModal = new DeleteConfirmationModal(page);
   await deleteModal.waitForVisible();
 
-  // Type "DELETE" to confirm
-  await deleteModal.fillConfirmationInput('DELETE');
-
-  // Click the Delete button (waits for it to become enabled)
-  await deleteModal.clickDelete();
+  // Confirm: types "DELETE" while the modal is destructive, and goes straight
+  // through once SOFT_DELETE makes it a recoverable archive instead. Either
+  // way it waits for the action to become enabled.
+  await deleteModal.confirmDeletion();
 
   // Modal should close
   await deleteModal.waitForHidden();
@@ -141,7 +140,7 @@ test('should export a dashboard as a zip file', async ({
 
   // Wait for export API response and validate zip contents
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'dashboards',
     expectedNames: [dashboardName],
   });
@@ -191,11 +190,9 @@ test('should bulk delete multiple dashboards', async ({
   const deleteModal = new DeleteConfirmationModal(page);
   await deleteModal.waitForVisible();
 
-  // Type "DELETE" to confirm
-  await deleteModal.fillConfirmationInput('DELETE');
-
-  // Click the Delete button
-  await deleteModal.clickDelete();
+  // Confirm: types "DELETE" while the modal is destructive, and goes straight
+  // through once SOFT_DELETE makes it a recoverable archive instead.
+  await deleteModal.confirmDeletion();
 
   // Modal should close
   await deleteModal.waitForHidden();
@@ -274,7 +271,7 @@ test('should bulk export multiple dashboards', async ({
 
   // Wait for export API response and validate zip contains both dashboards
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'dashboards',
     minCount: 2,
     expectedNames: [dashboard1.name, dashboard2.name],

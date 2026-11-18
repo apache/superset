@@ -17,7 +17,7 @@
 import builtins
 from typing import Callable, Union
 
-from flask import g, redirect, Response, url_for
+from flask import current_app, g, redirect, Response, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -94,6 +94,9 @@ class Dashboard(BaseSupersetView):
             viewers=get_default_viewers_for_new_asset(g.user.id if g.user else None),
         )
         db.session.add(new_dashboard)
+        if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
+            db.session.flush()
+            after_create(new_dashboard, "dashboard")
         db.session.commit()  # pylint: disable=consider-using-transaction
         return redirect(
             url_for(

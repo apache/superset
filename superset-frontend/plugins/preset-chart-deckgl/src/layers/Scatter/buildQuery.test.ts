@@ -530,3 +530,27 @@ test('Scatter buildQuery should deduplicate legacy string metric with existing m
   expect(query.metrics).toEqual(['COUNT(*)', 'SUM(value)']);
   expect(query.metrics).toHaveLength(2);
 });
+
+test.each(['100', '2.5'])(
+  'typed geographic buildQuery treats numeric-string radius %s as fixed',
+  radius => {
+    const [query] = buildQuery({
+      ...baseFormData,
+      mcp_geographic: true,
+      point_radius_fixed: radius,
+    }).queries;
+
+    expect(query.metrics).toEqual([]);
+    expect(query.orderby).toEqual([]);
+  },
+);
+
+test('native buildQuery keeps a numeric-string radius as a saved metric', () => {
+  const [query] = buildQuery({
+    ...baseFormData,
+    point_radius_fixed: '100',
+  }).queries;
+
+  expect(query.metrics).toEqual(['100']);
+  expect(query.orderby).toEqual([['100', false]]);
+});

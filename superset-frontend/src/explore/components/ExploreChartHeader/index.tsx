@@ -19,7 +19,7 @@
 import { FC, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import type { Location } from 'history';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Tooltip,
   Button,
@@ -56,8 +56,9 @@ import { Tag } from 'src/components/Tag';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { ReportObject } from 'src/features/reports/types';
-import { User } from 'src/types/bootstrapTypes';
-import getBootstrapData from 'src/utils/getBootstrapData';
+import { User, isUserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
+import { selectIsChartVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -110,7 +111,7 @@ const additionalItemsStyles = (theme: SupersetTheme) => css`
 const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   dashboardId,
   colorScheme: dashboardColorScheme,
-  slice,
+  slice: rawSlice,
   actions,
   formData,
   ownState,
@@ -124,7 +125,23 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   metadata,
   isSaveModalVisible,
 }) => {
+  const slice = useMemo(
+    () =>
+      rawSlice
+        ? {
+            ...rawSlice,
+            editors: rawSlice.editors?.filter(Number.isInteger),
+            extra_editors: rawSlice.extra_editors?.filter(Number.isInteger),
+          }
+        : rawSlice,
+    [rawSlice],
+  );
+  const canWriteChart = useSelector<
+    { explore?: { can_add?: boolean } },
+    boolean
+  >(state => state.explore?.can_add ?? false);
   const dispatch = useDispatch();
+  const isVersionPreviewActive = useSelector(selectIsChartVersionPreviewActive);
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -289,23 +306,31 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     }
   }, [showUnsavedChangesModal, shouldForceCloseModal]);
 
-  const userSubjects = useMemo(
-    () => new Set(getBootstrapData()?.common?.user_subjects ?? []),
-    [],
-  );
-
   const editableTitleProps = useMemo(
     () => ({
       title: sliceName ?? '',
       canEdit:
-        !slice ||
-        canOverwrite ||
-        Boolean(slice?.editors?.some(editor => userSubjects.has(editor))),
+        !isVersionPreviewActive &&
+        (!slice ||
+          (canWriteChart &&
+            canOverwriteSlice({
+              slice,
+              user: isUserWithPermissionsAndRoles(user) ? user : undefined,
+              canOverwrite,
+            }))),
       onSave: actions.updateChartTitle,
       placeholder: t('Add the name of the chart'),
       label: t('Chart title'),
     }),
-    [actions.updateChartTitle, canOverwrite, slice, sliceName, userSubjects],
+    [
+      actions.updateChartTitle,
+      canOverwrite,
+      canWriteChart,
+      isVersionPreviewActive,
+      slice,
+      sliceName,
+      user,
+    ],
   );
 
   const certificatiedBadgeProps = useMemo(
@@ -366,7 +391,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
           <Button
             buttonStyle="secondary"
             onClick={showModal}
-            disabled={saveDisabled}
+            disabled={saveDisabled || isVersionPreviewActive}
             data-test="query-save-button"
             css={saveButtonStyles}
             icon={<Icons.SaveOutlined />}
@@ -376,15 +401,16 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         </div>
       </Tooltip>
     ),
-    [saveDisabled, showModal],
+    [isVersionPreviewActive, saveDisabled, showModal],
   );
 
   const menuDropdownProps = useMemo(
     () => ({
       open: isDropdownVisible,
       onOpenChange: setIsDropdownVisible,
+      disabled: isVersionPreviewActive,
     }),
-    [isDropdownVisible, setIsDropdownVisible],
+    [isDropdownVisible, isVersionPreviewActive, setIsDropdownVisible],
   );
 
   return (

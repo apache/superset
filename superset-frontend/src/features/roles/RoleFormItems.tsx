@@ -19,7 +19,11 @@
 import { useCallback } from 'react';
 import { FormItem, Input, AsyncSelect } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
-import { fetchUserOptions } from '../groups/utils';
+import {
+  fetchUserOptions,
+  USER_OPTION_FILTER_PROPS,
+  userOptionSortComparator,
+} from '../groups/utils';
 import { fetchGroupOptions, fetchPermissionOptions } from './utils';
 
 interface AsyncOptionsFieldProps {
@@ -60,6 +64,26 @@ export const PermissionsField = ({
         placeholder={t('Select permissions')}
         options={options}
         loading={loading}
+        // formatPermissionLabel renders underscores as spaces and encoded dots
+        // as periods, so AsyncSelect's default client-side
+        // re-filter never matches a raw-name search term (e.g. "stg_silver")
+        // against the displayed label ("stg silver") and hides the
+        // server-matched option. Normalize both sides so client-side narrowing
+        // still works without hiding valid matches. See #42041.
+        filterOption={(input, option) =>
+          String(option?.label ?? '')
+            .toLowerCase()
+            .replace(/_/g, ' ')
+            .includes(
+              input.toLowerCase().replace(/_/g, ' ').replace(/%2e/g, '.'),
+            )
+        }
+        // Permission labels are long ("all datasource access on all_datasource_access",
+        // "can write on DashboardFilterStateRestApi"), and the dropdown otherwise
+        // inherits the trigger's width inside the modal, so every option was truncated
+        // to the point of being indistinguishable. Let the popup size to its content
+        // instead. See #40430.
+        popupMatchSelectWidth={false}
         getPopupContainer={trigger => trigger.closest('.ant-modal-container')}
         data-test="permissions-select"
       />
@@ -83,6 +107,10 @@ export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
         options={options}
         loading={loading}
         data-test="roles-select"
+        // The server matches on username and email too; re-filter on the
+        // option's plain-text name, email and username, not its React label.
+        optionFilterProps={USER_OPTION_FILTER_PROPS}
+        sortComparator={userOptionSortComparator}
       />
     </FormItem>
   );
