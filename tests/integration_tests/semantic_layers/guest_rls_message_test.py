@@ -174,6 +174,7 @@ def test_real_access_path_keeps_guest_rls_refusal(
         )
     assert response.status_code == 403
     assert response.json["message"] == GUEST_RLS_MESSAGE
+    assert "result" not in response.json
 
 
 @pytest.mark.parametrize("method", ["GET", "POST"])
