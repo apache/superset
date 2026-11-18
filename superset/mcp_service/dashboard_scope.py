@@ -1264,6 +1264,12 @@ SCOPE_REWRITERS: dict[str, Rewriter] = {
     **{name: _refuse_while_scoped(name) for name in DEFINITION_CHANGING_TOOLS},
 }
 
+# Data tools with no scoped rewrite: refused while a scope is active, as any
+# unlisted tool is. Listed so that the choice is explicit, not an omission.
+SCOPE_UNSUPPORTED_TOOLS = frozenset(
+    {"render_chart", "render_chart_requery", "render_dashboard"}
+)
+
 # Tools that return no dataset rows: metadata, links, and writes. Keep this an
 # explicit list — a tool missing from both maps is refused while a scope is
 # active, which is the safe failure for anything that might read data.

@@ -55,6 +55,7 @@ from superset.mcp_service.dashboard_scope import (
     REFUSAL_PREFIX,
     SCOPE_NEUTRAL_TOOLS,
     SCOPE_REWRITERS,
+    SCOPE_UNSUPPORTED_TOOLS,
     scoped_dataset_query,
 )
 from superset.mcp_service.dataset.schemas import QueryDatasetRequest
@@ -669,9 +670,21 @@ async def test_every_registered_tool_is_classified() -> None:
     """A new tool must be classified before it can run under a scope; the
     runtime default (refuse) covers extension tools this test cannot see."""
     names = {tool.name for tool in await mcp.list_tools(run_middleware=False)}
-    classified = set(SCOPE_REWRITERS) | SCOPE_NEUTRAL_TOOLS
+    classified = set(SCOPE_REWRITERS) | SCOPE_NEUTRAL_TOOLS | SCOPE_UNSUPPORTED_TOOLS
     assert names - classified == set()
     assert set(SCOPE_REWRITERS) & SCOPE_NEUTRAL_TOOLS == set()
+    assert (
+        set(SCOPE_REWRITERS) | SCOPE_NEUTRAL_TOOLS
+    ) & SCOPE_UNSUPPORTED_TOOLS == set()
+
+
+@pytest.mark.parametrize("tool_name", sorted(SCOPE_UNSUPPORTED_TOOLS))
+def test_unsupported_data_tools_are_refused_under_scope(tool_name: str) -> None:
+    with (
+        scope_header(encode(scope_payload({"11": {"filters": [CLIENT_A]}}))),
+        pytest.raises(MCPDashboardScopeError, match="does not support dashboard"),
+    ):
+        apply_call_dashboard_scope(tool_name, inspect.Signature(), (), {})
 
 
 @pytest.mark.parametrize(
