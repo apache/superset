@@ -832,8 +832,8 @@ test('shows Excel export progress after the header menu closes', async () => {
   });
 
   await openActionsDropdown();
-  userEvent.hover(screen.getByText('Download'));
-  userEvent.click(await screen.findByText('Export Data to Excel'));
+  await userEvent.hover(screen.getByText('Download'));
+  await userEvent.click(await screen.findByText('Export Data to Excel'));
 
   await waitFor(() => {
     expect(addInfoToast).toHaveBeenCalledWith(

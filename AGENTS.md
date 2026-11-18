@@ -44,8 +44,7 @@ Common pre-commit failures:
 ### Testing Strategy Migration
 - **Prefer unit tests** over integration tests
 - **Prefer integration tests** over end-to-end tests
-- **Use Playwright for E2E tests** - Migrating from Cypress
-- **Cypress is deprecated** - Will be removed once migration is completed
+- **Use Playwright for E2E tests** - Cypress has been removed
 - **Use Jest + React Testing Library** for component testing
 - **Use `test()` instead of `describe()`** - Follow [avoid nesting when testing](https://kentcdodds.com/blog/avoid-nesting-when-youre-testing) principles
 
@@ -201,18 +200,14 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 # Frontend
 npm run test                           # All tests
 npm run test -- filename.test.tsx     # Single file
+JEST_MAX_WORKERS=2 npm run test -- filename.test.tsx  # Cap workers on a shared machine
 
-# E2E Tests (Playwright - NEW)
+# E2E Tests (Playwright)
 npm run playwright:test                # All Playwright tests
 npm run playwright:ui                  # Interactive UI mode
 npm run playwright:headed              # See browser during tests
 npx playwright test tests/auth/login.spec.ts  # Single file
 npm run playwright:debug tests/auth/login.spec.ts  # Debug specific file
-
-# E2E Tests (Cypress - DEPRECATED)
-cd superset-frontend/cypress-base
-npm run cypress-run-chrome             # All Cypress tests (headless)
-npm run cypress-debug                  # Interactive Cypress UI
 
 # Backend  
 pytest                                 # All tests
@@ -253,6 +248,7 @@ curl -f http://localhost:8088/health || echo "❌ Setup required - see https://s
    - Format: `type(scope): description`
    - Example: `fix(dashboard): load charts correctly`
    - Types: `fix`, `feat`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
+4. **Follow guideline on AI-assisted PRs**: Understands expectations from reviewers for AI-assisted PRs in `docs/developer_docs/contributing/ai-pr-guideline.md`.
 
 **Important**: Always reference the actual template file at `.github/PULL_REQUEST_TEMPLATE.md` instead of using cached content, as the template may be updated over time.
 

@@ -19,6 +19,8 @@
 Unit tests for MCP chart schema validation.
 """
 
+from typing import Any
+
 import pytest
 from pydantic import ValidationError
 
@@ -37,6 +39,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SortByConfig,
     TableChartConfig,
     UpdateChartRequest,
     XYChartConfig,
@@ -744,6 +747,83 @@ class TestUnknownFieldDetection:
             AxisConfig.model_validate({"title": "State", "sort_by": "metric"})
 
 
+class TestXAxisRouting:
+    """``x_axis`` names the x column and the axis styling; both must work.
+
+    Strict nested field checking makes the overlap load-bearing: a payload
+    routed to the wrong model is rejected rather than quietly half-applied.
+    """
+
+    XY_BASE = {"chart_type": "xy", "y": [{"name": "sales", "aggregate": "SUM"}]}
+    MIXED_BASE = {
+        "chart_type": "mixed_timeseries",
+        "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+        "metrics_b": [{"name": "orders", "aggregate": "COUNT"}],
+    }
+
+    @pytest.mark.parametrize(
+        "value", [{"name": "category"}, {"column_name": "category"}, "category"]
+    )
+    def test_column_shaped_x_axis_becomes_the_x_column(self, value: Any) -> None:
+        config = XYChartConfig.model_validate({**self.XY_BASE, "x_axis": value})
+        assert config.x is not None
+        assert config.x.name == "category"
+        assert config.x_axis is None
+
+    def test_styling_shaped_x_axis_configures_the_axis(self) -> None:
+        config = XYChartConfig.model_validate(
+            {**self.XY_BASE, "x_axis": {"title": "State", "scale": "log"}}
+        )
+        assert config.x is None
+        assert config.x_axis is not None
+        assert config.x_axis.title == "State"
+        assert config.x_axis.scale == "log"
+
+    def test_column_and_styling_both_supplied(self) -> None:
+        config = XYChartConfig.model_validate(
+            {**self.XY_BASE, "x": {"name": "category"}, "x_axis": {"title": "State"}}
+        )
+        assert config.x is not None
+        assert config.x.name == "category"
+        assert config.x_axis is not None
+        assert config.x_axis.title == "State"
+
+    def test_column_named_twice_is_rejected(self) -> None:
+        """``x`` and a column-shaped ``x_axis`` together are ambiguous."""
+        with pytest.raises(ValidationError, match="Pass the column once"):
+            XYChartConfig.model_validate(
+                {**self.XY_BASE, "x": {"name": "a"}, "x_axis": {"name": "b"}}
+            )
+
+    def test_mistyped_styling_key_reported_against_the_axis(self) -> None:
+        """A styling payload stays a styling payload, typo and all."""
+        with pytest.raises(ValidationError, match="Unknown field 'sort_by'"):
+            XYChartConfig.model_validate(
+                {**self.XY_BASE, "x_axis": {"title": "State", "sort_by": "metric"}}
+            )
+
+    def test_mistyped_column_key_reported_against_the_column(self) -> None:
+        with pytest.raises(ValidationError, match="did you mean 'aggregate'"):
+            XYChartConfig.model_validate(
+                {**self.XY_BASE, "x_axis": {"name": "category", "aggregat": "SUM"}}
+            )
+
+    def test_mixed_timeseries_x_axis_becomes_the_x_column(self) -> None:
+        config = MixedTimeseriesChartConfig.model_validate(
+            {**self.MIXED_BASE, "x_axis": {"name": "ds"}}
+        )
+        assert config.x.name == "ds"
+        assert config.x_axis is None
+
+    def test_mixed_timeseries_x_axis_styling(self) -> None:
+        config = MixedTimeseriesChartConfig.model_validate(
+            {**self.MIXED_BASE, "x": {"name": "ds"}, "x_axis": {"title": "Date"}}
+        )
+        assert config.x.name == "ds"
+        assert config.x_axis is not None
+        assert config.x_axis.title == "Date"
+
+
 class TestColumnRefSavedMetric:
     """Test ColumnRef saved_metric support."""
 
@@ -1219,3 +1299,267 @@ class TestRequestSchemaAliasChoices:
     def test_list_charts_select_columns_columns_alias(self) -> None:
         req = ListChartsRequest.model_validate({"columns": ["id", "slice_name"]})
         assert req.select_columns == ["id", "slice_name"]
+
+
+class TestXYChartConfigSortBy:
+    """Test sort_by options, coercions, and aliases in XYChartConfig."""
+
+    def test_sort_by_default_none(self) -> None:
+        """Verify sort_by defaults to None when omitted."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+        )
+        assert config.sort_by is None
+
+    def test_sort_by_bare_string_coerced(self) -> None:
+        """Verify bare string sort_by coerces to descending SortByConfig."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by="sales",
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is False
+
+    def test_sort_by_single_item_string_list_coerced(self) -> None:
+        """Verify single-item list of strings coerces to descending SortByConfig."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=["sales"],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is False
+
+    def test_sort_by_single_item_config_list(self) -> None:
+        """Verify single-item list containing SortByConfig is unwrapped."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=[SortByConfig(column="sales", ascending=True)],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
+
+    def test_sort_by_single_item_dict_list(self) -> None:
+        """Verify single-item list containing dict coerces to SortByConfig."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=[{"column": "sales", "ascending": True}],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
+
+    def test_sort_by_config_object(self) -> None:
+        """Verify direct SortByConfig object assignment is preserved."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=SortByConfig(column="sales", ascending=True),
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
+
+    def test_sort_by_dict(self) -> None:
+        """Verify dictionary sort_by coerces to SortByConfig."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by={"column": "sales", "ascending": True},
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
+
+    def test_sort_by_alias_x_axis_sort(self) -> None:
+        """Verify x_axis_sort alias is accepted and mapped to sort_by."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            x_axis_sort="sales",
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is False
+
+    def test_sort_by_alias_order_by(self) -> None:
+        """Verify order_by alias is accepted and mapped to sort_by."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            order_by="sales",
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is False
+
+    def test_sort_by_empty_list_results_in_none(self) -> None:
+        """Verify empty sort_by list evaluates to None."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=[],
+        )
+        assert config.sort_by is None
+
+    def test_sort_by_empty_string_fails_validation(self) -> None:
+        """Verify empty sort_by string raises validation error."""
+        with pytest.raises(ValidationError):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="category"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                sort_by="",
+            )
+
+    def test_sort_by_model_dump_and_validate_roundtrip(self) -> None:
+        """Verify sort_by serialization and deserialization roundtrip."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by="sales",
+        )
+        dumped = config.model_dump()
+        assert dumped["sort_by"] == {
+            "column": "sales",
+            "ascending": False,
+            "saved_metric": None,
+        }
+
+        restored = XYChartConfig.model_validate(dumped)
+        assert isinstance(restored.sort_by, SortByConfig)
+        assert restored.sort_by.column == "sales"
+        assert restored.sort_by.ascending is False
+        assert restored.sort_by.saved_metric is None
+
+    def test_sort_by_pair_format(self) -> None:
+        """Verify [column, ascending] pair format coerces to SortByConfig."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=["sales", True],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
+
+        # Nested in a single-element list
+        config_nested = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=[["sales", True]],
+        )
+        assert isinstance(config_nested.sort_by, SortByConfig)
+        assert config_nested.sort_by.column == "sales"
+        assert config_nested.sort_by.ascending is True
+
+    def test_sort_by_alias_order_by_cols(self) -> None:
+        """Verify order_by_cols alias is accepted and mapped to sort_by."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            order_by_cols=["sales", False],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is False
+
+    def test_sort_by_saved_metric_field(self) -> None:
+        """Verify saved_metric boolean flag roundtrips on SortByConfig."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=SortByConfig(
+                column="total_sales", ascending=True, saved_metric=True
+            ),
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "total_sales"
+        assert config.sort_by.ascending is True
+        assert config.sort_by.saved_metric is True
+
+    def test_sort_by_multiple_columns_fails_validation(self) -> None:
+        """Verify multi-column sort lists are rejected with explicit error message."""
+        with pytest.raises(
+            ValidationError, match="XY charts support only a single sort column"
+        ):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="category"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                sort_by=["sales", "revenue"],
+            )
+
+        with pytest.raises(
+            ValidationError, match="XY charts support only a single sort column"
+        ):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="category"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                sort_by=[
+                    SortByConfig(column="sales", ascending=True),
+                    SortByConfig(column="revenue", ascending=False),
+                ],
+            )
+
+    def test_sort_by_pair_format_valid_against_json_schema(self) -> None:
+        """Verify pair format [col, asc] validates cleanly against the JSON schema."""
+        import jsonschema
+
+        schema = XYChartConfig.model_json_schema()
+        validator = jsonschema.Draft202012Validator(schema)
+        instance = {
+            "chart_type": "xy",
+            "x": {"name": "category"},
+            "y": [{"name": "sales"}],
+            "sort_by": ["sales", True],
+        }
+        assert validator.is_valid(instance)
+        config = XYChartConfig(**instance)
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
+
+
+def test_number_format_examples_are_currency_neutral() -> None:
+    """Published number-format examples must not infer a currency."""
+    from importlib import import_module
+
+    from superset.mcp_service.chart.schemas import (
+        BigNumberChartConfig,
+        TableColumnConfig,
+    )
+
+    assert "$,.2f" not in (
+        BigNumberChartConfig.model_fields["y_axis_format"].description or ""
+    )
+    assert "$,.2f" not in (
+        TableColumnConfig.model_fields["d3_number_format"].description or ""
+    )
+    metric_module = import_module(
+        "superset.mcp_service.dataset.tool.update_dataset_metric"
+    )
+    assert "$,.2f" not in (metric_module.update_dataset_metric.__doc__ or "")

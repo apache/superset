@@ -18,7 +18,6 @@
  */
 import { HTMLAttributes, memo, useMemo, useCallback } from 'react';
 import {
-  ColumnInstance,
   HeaderGroup,
   Row,
   SortingRule,
@@ -33,7 +32,9 @@ import {
   SorterResult,
 } from 'antd/es/table/interface';
 import type { TableProps } from 'antd/es/table';
-import { mapColumns, mapRows } from './utils';
+import { mapColumns, mapRows, type ListViewColumn } from './utils';
+
+export type { ListViewColumn };
 
 export interface TableCollectionProps<T extends object> {
   getTableProps: TablePropGetter<T>;
@@ -41,7 +42,7 @@ export interface TableCollectionProps<T extends object> {
   prepareRow: (row: Row<T>) => void;
   headerGroups: HeaderGroup<T>[];
   rows: Row<T>[];
-  columns: ColumnInstance<T>[];
+  columns: ListViewColumn<T>[];
   loading: boolean;
   highlightRowId?: number;
   // Optional predicate to highlight arbitrary rows (in addition to
@@ -50,6 +51,7 @@ export interface TableCollectionProps<T extends object> {
   isRowHighlighted?: (record: Record<string, unknown>) => boolean;
   columnsForWrapText?: string[];
   setSortBy?: (updater: SortingRule<T>[]) => void;
+  sortBy?: SortingRule<T>[];
   bulkSelectEnabled?: boolean;
   selectedFlatRows?: Row<T>[];
   toggleRowSelected?: (rowId: string, value: boolean) => void;
@@ -167,6 +169,7 @@ function TableCollection<T extends object>({
   highlightRowId,
   isRowHighlighted,
   setSortBy,
+  sortBy,
   headerGroups,
   columnsForWrapText,
   bulkSelectEnabled = false,
@@ -185,8 +188,8 @@ function TableCollection<T extends object>({
   expandable,
 }: TableCollectionProps<T>) {
   const mappedColumns = useMemo(
-    () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
-    [columns, headerGroups, columnsForWrapText],
+    () => mapColumns<T>(columns, headerGroups, columnsForWrapText, sortBy),
+    [columns, headerGroups, columnsForWrapText, sortBy],
   );
 
   const mappedRows = useMemo(

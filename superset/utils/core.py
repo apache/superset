@@ -212,6 +212,42 @@ class AnnotationType(StrEnum):
     TIME_SERIES = "TIME_SERIES"
 
 
+# Annotation source types whose ``value`` field references another Chart
+# (resolved to a local Slice.id on import / serialised back to UUID on export).
+# Add new chart-referencing source types here; all consumers pick them up
+# automatically via this single definition.
+ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE: frozenset[str] = frozenset(
+    {
+        "table",
+        "line",
+    }
+)
+
+
+def get_annotation_layer_lists(
+    params: Any, query_context: Any
+) -> list[list[dict[str, Any]]]:
+    """
+    Return every ``annotation_layers`` list of a chart: the one in ``params``
+    plus those in ``query_context["queries"]`` and ``query_context["form_data"]``.
+
+    The lists are returned by reference so callers can rewrite them in place.
+    Containers that are missing or malformed are skipped.
+    """
+    containers: list[Any] = [params]
+    if isinstance(query_context, dict):
+        queries = query_context.get("queries")
+        if isinstance(queries, list):
+            containers.extend(queries)
+        containers.append(query_context.get("form_data"))
+    return [
+        container["annotation_layers"]
+        for container in containers
+        if isinstance(container, dict)
+        and isinstance(container.get("annotation_layers"), list)
+    ]
+
+
 class GenericDataType(IntEnum):
     """
     Generic database column type that fits both frontend and backend.
@@ -259,6 +295,7 @@ class DatasourceDict(TypedDict):
 
 
 class AdhocFilterClause(TypedDict, total=False):
+    timeGrain: str | None
     clause: str
     expressionType: str
     filterOptionName: str | None
@@ -275,6 +312,7 @@ class QueryObjectFilterClause(TypedDict, total=False):
     val: FilterValues | None
     grain: str | None
     isExtra: bool | None
+    is_literal: bool
 
 
 class ExtraFiltersTimeColumnType(StrEnum):
@@ -1089,6 +1127,8 @@ def simple_filter_to_adhoc(
         "operator": filter_clause["op"],
         "subject": cast(str, filter_clause["col"]),
     }
+    if filter_clause.get("grain"):
+        result["timeGrain"] = filter_clause["grain"]
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
     result["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], result))
@@ -1512,6 +1552,15 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                             "col": adhoc_filter.get("subject"),
                             "op": adhoc_filter.get("operator"),
                             "val": adhoc_filter.get("comparator"),
+                            **(
+                                {"grain": adhoc_filter["timeGrain"]}
+                                if adhoc_filter.get("timeGrain")
+                                else {}
+                            ),
+                            # keep dashboard provenance for semantic-view reporting
+                            **(
+                                {"isExtra": True} if adhoc_filter.get("isExtra") else {}
+                            ),
                         }
                     )
             elif expression_type == "SQL":
@@ -1598,14 +1647,18 @@ def override_user(user: User | None, force: bool = True) -> Iterator[Any]:
         if force or g.user is None:
             current = g.user
             g.user = user
-            yield
-            g.user = current
+            try:
+                yield
+            finally:
+                g.user = current
         else:
             yield
     else:
         g.user = user
-        yield
-        delattr(g, "user")
+        try:
+            yield
+        finally:
+            delattr(g, "user")
 
 
 def parse_ssl_cert(certificate: str) -> Certificate:
@@ -2018,6 +2071,7 @@ class DateColumn:
     offset: int | None = None
     time_shift: str | None = None
     timezone: str | None = None  # IANA timezone name
+    date_only: bool = False  # e.g. a DATE column, which the timezone cannot move
 
     def __hash__(self) -> int:
         return hash(self.col_label)
@@ -2032,12 +2086,14 @@ class DateColumn:
         offset: int | None,
         time_shift: str | None,
         timezone: str | None = None,
+        date_only: bool = False,
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
             offset=offset,
             time_shift=time_shift,
             timezone=timezone,
+            date_only=date_only,
             col_label=DTTM_ALIAS,
         )
 
@@ -2138,13 +2194,17 @@ def normalize_dttm_col(
         if _col.timezone and isinstance(_col.timezone, str):
             try:
                 tz = ZoneInfo(_col.timezone)
-                # Data is stored in UTC, convert to the dataset's configured timezone
-                # First make the datetime UTC-aware, then convert to target timezone
+                # Naive values are assumed to be UTC; values that already carry
+                # a timezone are converted from it directly
+                # A date has no time of day, so it is left as it is
                 series = df[_col.col_label]
-                if not series.empty and series.notna().any():
-                    # Convert UTC to target timezone
+                if not _col.date_only and not series.empty and series.notna().any():
                     df[_col.col_label] = (
-                        series.dt.tz_localize("UTC")
+                        (
+                            series.dt.tz_localize("UTC")
+                            if series.dt.tz is None
+                            else series
+                        )
                         .dt.tz_convert(tz)
                         .dt.tz_localize(None)  # Remove timezone info for display
                     )

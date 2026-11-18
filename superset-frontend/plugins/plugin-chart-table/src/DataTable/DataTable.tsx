@@ -81,7 +81,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange?: () => void;
-  renderGroupingHeaders?: () => JSX.Element;
+  resetColumnOrder?: boolean;
+  renderGroupingHeaders?: () => ReactNode;
   renderTimeComparisonDropdown?: () => JSX.Element;
   handleSortByChange: (sortBy: SortByItem[]) => void;
   sortByFromParent: SortByItem[];
@@ -161,6 +162,7 @@ export default typedMemo(function DataTable<D extends object>({
   serverPagination,
   wrapperRef: userWrapperRef,
   onColumnOrderChange,
+  resetColumnOrder = false,
   renderGroupingHeaders,
   renderTimeComparisonDropdown,
   handleSortByChange,
@@ -300,6 +302,22 @@ export default typedMemo(function DataTable<D extends object>({
     },
     ...tableHooks,
   );
+
+  // Clamp pageIndex when filtered data shrinks below current view (#31403).
+  // pageCount is derived from the filtered rows, so zero rows always means
+  // pageCount === 0 and is handled by the second branch.
+  if (pageCount > 0 && pageIndex >= pageCount) {
+    gotoPage(pageCount - 1);
+  } else if (pageCount === 0 && pageIndex !== 0) {
+    gotoPage(0);
+  }
+
+  const columnOrderKey = columnNames.join('\0');
+  useEffect(() => {
+    if (resetColumnOrder) {
+      setColumnOrder(columnOrderKey ? columnOrderKey.split('\0') : []);
+    }
+  }, [columnOrderKey, resetColumnOrder, setColumnOrder]);
 
   const rowSignature = useMemo(
     // sort the rows by id to ensure the total is not recalculated when the rows are only reordered

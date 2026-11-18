@@ -35,6 +35,7 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     GenerateChartRequest,
     PivotTableChartConfig,
+    SortByConfig,
     TableChartConfig,
     TableColumnConfig,
     XYChartConfig,
@@ -230,6 +231,26 @@ class TestNormalizeColumnNames:
         assert normalized.filters[0].column == "ProductLine"
 
     @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_xy_chart_config_with_sort_by(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Test normalization of XY chart config with sort_by."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            sort_by="productline",
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert isinstance(normalized.sort_by, SortByConfig)
+        assert normalized.sort_by.column == "ProductLine"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
     def test_normalize_table_chart_config(
         self, mock_get_context, mock_dataset_context: DatasetContext
     ) -> None:
@@ -297,6 +318,38 @@ class TestNormalizeColumnNames:
         assert normalized.config.column_config["SUM(Sales)"].model_dump(
             by_alias=True, exclude_unset=True
         ) == {"columnWidth": 120}
+
+    @pytest.mark.parametrize(
+        "chart_name", ["Weekly <img src=x>KPIs", "Q3 <b>revenue</b> &amp; costs"]
+    )
+    def test_pipeline_keeps_single_sanitized_chart_name(
+        self, mock_dataset_context: DatasetContext, chart_name: str
+    ) -> None:
+        """Normalization must not sanitize an already-sanitized name again."""
+        from superset.mcp_service.utils.sanitization import sanitize_user_input
+
+        request = GenerateChartRequest.model_validate(
+            {
+                "dataset_id": 18,
+                "chart_name": chart_name,
+                "config": {"chart_type": "table", "columns": [{"name": "sales"}]},
+            }
+        )
+
+        with patch(
+            "superset.mcp_service.utils.sanitization.sanitize_user_input",
+            wraps=sanitize_user_input,
+        ) as sanitize:
+            normalized = ValidationPipeline._normalize_column_names(
+                request,
+                mock_dataset_context,
+                typed_config=request.config,
+            )
+
+        assert not [c for c in sanitize.call_args_list if c.args[1] == "Chart name"]
+        assert isinstance(normalized.config, TableChartConfig)
+        assert normalized.config.columns[0].name == "Sales"
+        assert normalized.chart_name == request.chart_name
 
     @patch.object(DatasetValidator, "_get_dataset_context")
     def test_table_normalization_canonicalizes_raw_column_config_key(
@@ -846,6 +899,11 @@ class TestValidateSavedMetrics:
         assert not is_valid
         assert error is not None
         assert error.error_code == "INVALID_SAVED_METRIC"
+        # Uses the saved-metric template, so the message names a metric (not a
+        # column) and the metric list has no "Did you mean" wrapper around it.
+        assert error.message == "Saved metric 'nonexistent_metric' not found in dataset"
+        assert "Available saved metrics: TotalRevenue" in error.suggestions
+        assert all(not s.startswith("Did you mean:") for s in error.suggestions)
 
 
 class TestGetCanonicalMetricName:

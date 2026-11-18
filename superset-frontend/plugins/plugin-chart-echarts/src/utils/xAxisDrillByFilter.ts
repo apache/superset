@@ -22,6 +22,26 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 
+import type { EChartsType } from 'echarts/core';
+import type GlobalModel from 'echarts/types/src/model/Global';
+import type { CartesianAxisModel } from 'echarts/types/src/coord/cartesian/AxisModel';
+
+/** Read the category domain ECharts collected across all series on the axis. */
+export const getCategoryAxisValues = (
+  chart: EChartsType | undefined,
+  valueIndex = 0,
+): readonly unknown[] | undefined => {
+  // ECharts omits auto-collected categories from getOption(). Use the axis
+  // model so a sparse series shares the same domain as the rendered axis.
+  const model = (
+    chart as unknown as { getModel: () => GlobalModel } | undefined
+  )?.getModel();
+  const axis = model?.getComponent(valueIndex === 1 ? 'yAxis' : 'xAxis', 0) as
+    | CartesianAxisModel
+    | undefined;
+  return axis?.getCategories();
+};
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -116,6 +136,24 @@ const parseAsUtc = (value: string): Date =>
   new Date(TIMEZONE_SUFFIX_RE.test(value) ? value : `${value}Z`);
 
 /**
+ * Convert a temporal record value (epoch milliseconds, naive UTC datetime
+ * string or Date) to a Date. Returns undefined for anything else.
+ */
+export const parseTemporalValue = (value: unknown): Date | undefined => {
+  let date: Date;
+  if (value instanceof Date) {
+    date = value;
+  } else if (typeof value === 'string') {
+    date = parseAsUtc(value);
+  } else if (typeof value === 'number') {
+    date = new Date(value);
+  } else {
+    return undefined;
+  }
+  return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
+/**
  * Build a drill-by filter clause matching the clicked value on a temporal
  * x-axis. When a known time grain is active, the clause is a TEMPORAL_RANGE
  * covering the clicked bucket; otherwise it falls back to an exact match on
@@ -127,23 +165,8 @@ export const getTemporalXAxisDrillByFilter = (
   grain?: TimeGranularity,
   formattedVal?: string,
 ): BinaryQueryObjectFilterClause | undefined => {
-  if (
-    !col ||
-    (typeof value !== 'number' &&
-      typeof value !== 'string' &&
-      !(value instanceof Date))
-  ) {
-    return undefined;
-  }
-  let bucketLabel: Date;
-  if (value instanceof Date) {
-    bucketLabel = value;
-  } else if (typeof value === 'string') {
-    bucketLabel = parseAsUtc(value);
-  } else {
-    bucketLabel = new Date(value);
-  }
-  if (Number.isNaN(bucketLabel.getTime())) {
+  const bucketLabel = parseTemporalValue(value);
+  if (!col || !bucketLabel) {
     return undefined;
   }
   const range = grain ? getTimeBucketRange(bucketLabel, grain) : undefined;
@@ -161,4 +184,81 @@ export const getTemporalXAxisDrillByFilter = (
     val: `${formatNaiveDateTime(range.since)} : ${formatNaiveDateTime(range.until)}`,
     formattedVal,
   };
+};
+
+/**
+ * Build the Drill by filter for a clicked temporal bucket. With a time grain
+ * it matches the grained column, like Drill to detail: the backend compares
+ * the bucket the chart grouped by (same grain, Hours offset and Time Column)
+ * and, unlike a TEMPORAL_RANGE, never replaces it with a query time range, so
+ * the drill keeps every other filter of the chart as the chart applied it.
+ * Without a grain it falls back to an exact match on the timestamp.
+ */
+export const getTemporalBucketDrillByFilter = (
+  col: QueryFormColumn,
+  value: unknown,
+  grain?: TimeGranularity,
+  formattedVal?: string,
+): BinaryQueryObjectFilterClause | undefined => {
+  const bucket = parseTemporalValue(value);
+  if (!col || !bucket) {
+    return undefined;
+  }
+  return grain
+    ? { col, op: '==', val: bucket.getTime(), grain, formattedVal }
+    : { col, op: '==', val: formatNaiveDateTime(bucket), formattedVal };
+};
+
+/** Resolve a markerless line/area click to a real bucket in that series. */
+export const getTimeAxisDrillByValue = (
+  data: unknown,
+  series: unknown,
+  coordinate: unknown,
+  valueIndex = 0,
+  categorical = false,
+  axisCategories: readonly unknown[] = [],
+): unknown => {
+  if (Array.isArray(data)) {
+    return data[valueIndex];
+  }
+  if (typeof data === 'number' || typeof data === 'string') {
+    return data;
+  }
+  const axisValue = Array.isArray(coordinate)
+    ? coordinate[valueIndex]
+    : coordinate;
+  if (
+    typeof axisValue !== 'number' ||
+    !Number.isFinite(axisValue) ||
+    typeof series !== 'object' ||
+    series === null ||
+    !('data' in series) ||
+    !Array.isArray(series.data)
+  ) {
+    return undefined;
+  }
+  if (categorical) {
+    const category = axisCategories[Math.round(axisValue)];
+    if (category === undefined) {
+      return undefined;
+    }
+    const point: unknown = series.data.find(
+      (item: unknown) =>
+        Array.isArray(item) && String(item[valueIndex]) === String(category),
+    );
+    return Array.isArray(point) ? point[valueIndex] : undefined;
+  }
+  let nearest: number | undefined;
+  series.data.forEach((point: unknown) => {
+    const value = Array.isArray(point) ? point[valueIndex] : undefined;
+    if (
+      typeof value === 'number' &&
+      Number.isFinite(value) &&
+      (nearest === undefined ||
+        Math.abs(value - axisValue) < Math.abs(nearest - axisValue))
+    ) {
+      nearest = value;
+    }
+  });
+  return nearest;
 };

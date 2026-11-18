@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { GenericDataType } from '@apache-superset/core/common';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import {
   fetchSemanticViewStructure,
@@ -45,6 +46,7 @@ test('maps the structure payload', async () => {
   fetchMock.get('glob:*/api/v1/semantic_view/501/structure', {
     result: {
       name: 'orders',
+      semantic_selection_version: 'cube-member-id-v1',
       dimensions: [{ name: 'Status', type: 'VARCHAR' }],
       metrics: [{ name: 'revenue', definition: 'SUM(amount)' }],
     },
@@ -53,16 +55,15 @@ test('maps the structure payload', async () => {
   const structure = await fetchSemanticViewStructure(501);
 
   expect(structure.name).toBe('orders');
+  expect(structure.semantic_selection_version).toBe('cube-member-id-v1');
   expect(structure.dimensions).toEqual([{ name: 'Status', type: 'VARCHAR' }]);
   expect(structure.metrics).toEqual([
     { name: 'revenue', definition: 'SUM(amount)' },
   ]);
 });
 
-test('evicts the cache on failure so a later call refetches after recovery', async () => {
+test('refetches the structure after a transient failure', async () => {
   const endpoint = 'glob:*/api/v1/semantic_view/502/structure';
-  // First response fails: without eviction, the rejected promise would stay
-  // cached and every later call would replay the failure for the session.
   fetchMock.getOnce(endpoint, 500);
 
   await expect(fetchSemanticViewStructure(502)).rejects.toBeTruthy();
@@ -70,8 +71,6 @@ test('evicts the cache on failure so a later call refetches after recovery', asy
     fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/502/structure'),
   ).toHaveLength(1);
 
-  // Endpoint healthy again: the second call must hit the network, not a
-  // poisoned cache entry.
   fetchMock.get(endpoint, {
     result: { name: 'orders', dimensions: [], metrics: [] },
   });
@@ -83,3 +82,63 @@ test('evicts the cache on failure so a later call refetches after recovery', asy
     fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/502/structure'),
   ).toHaveLength(2);
 });
+
+test.each([undefined, null])(
+  'does not invent a selection version for an unversioned structure (%s)',
+  async version => {
+    fetchMock.get('glob:*/api/v1/semantic_view/503/structure', {
+      result: { name: 'orders', semantic_selection_version: version },
+    });
+    const structure = await fetchSemanticViewStructure(503);
+    expect(structure.semantic_selection_version).toBeUndefined();
+  },
+);
+
+test.each([
+  'bigint',
+  'integer',
+  'smallint',
+  'tinyint',
+  'numeric',
+  'numeric(10,2)',
+  'real',
+  'BIGINT',
+  'INTEGER',
+])('preserves SQL numeric dimension %s in the shared column metadata', type => {
+  expect(semanticViewDimensionsToColumns([{ name: 'amount', type }])).toEqual([
+    expect.objectContaining({
+      column_name: 'amount',
+      type_generic: GenericDataType.Numeric,
+    }),
+  ]);
+});
+
+test.each([
+  'int8',
+  'int16',
+  'int32',
+  'int64',
+  'uint8',
+  'uint16',
+  'uint32',
+  'uint64',
+  'halffloat',
+  'float',
+  'double',
+  'decimal32(7, 2)',
+  'decimal64(7, 2)',
+  'decimal128(10, 2)',
+  'decimal256(40, 2)',
+])(
+  'preserves Arrow numeric dimension %s in the shared column metadata',
+  type => {
+    expect(semanticViewDimensionsToColumns([{ name: 'amount', type }])).toEqual(
+      [
+        expect.objectContaining({
+          column_name: 'amount',
+          type_generic: GenericDataType.Numeric,
+        }),
+      ],
+    );
+  },
+);

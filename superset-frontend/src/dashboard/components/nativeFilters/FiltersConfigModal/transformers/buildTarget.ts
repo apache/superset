@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, NativeFilterTarget } from '@superset-ui/core';
+import {
+  DataMask,
+  DatasourceType,
+  NativeFilterTarget,
+} from '@superset-ui/core';
 
 /**
  * Minimal shape of the form inputs that drive ``NativeFilterTarget``
@@ -27,6 +31,7 @@ export interface TargetFormInputs {
   dataset?: { value: number } | number;
   datasourceType?: DatasourceType;
   column?: string;
+  semantic_selection_version?: string;
 }
 
 /**
@@ -61,5 +66,35 @@ export function buildNativeFilterTarget(
     target.column = { name: formInputs.column };
   }
 
+  if (formInputs.dataset != null && formInputs.semantic_selection_version) {
+    target.semantic_selection_version = formInputs.semantic_selection_version;
+  }
   return target;
+}
+
+/** Retain the explicit saved generation on defaults produced by the reset form. */
+export function buildNativeFilterDefaultDataMask(
+  formInputs: TargetFormInputs,
+  mask: DataMask,
+): DataMask {
+  const target = buildNativeFilterTarget(formInputs);
+  if (
+    target.datasourceType !== DatasourceType.SemanticView ||
+    !target.semantic_selection_version ||
+    (mask.filterState?.value === undefined &&
+      !Object.keys(mask.extraFormData ?? {}).length)
+  )
+    return mask;
+  return {
+    ...mask,
+    extraFormData: {
+      ...mask.extraFormData,
+      semantic_selection_sources: [
+        {
+          datasource: `${target.datasetId}__${target.datasourceType}`,
+          version: target.semantic_selection_version,
+        },
+      ],
+    },
+  };
 }

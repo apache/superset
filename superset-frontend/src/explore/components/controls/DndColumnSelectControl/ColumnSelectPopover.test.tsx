@@ -360,7 +360,7 @@ const renderSemanticPopover = (
 
 const openDimensionsDropdown = async () => {
   const combobox = screen.getByRole('combobox', { name: 'Dimensions' });
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
   await getDropdown();
   return combobox;
 };
@@ -410,8 +410,10 @@ test('Simple-only callers can select a saved-only semantic dimension', async () 
     );
   }
   await openDimensionsDropdown();
-  userEvent.click(within(await getDropdown()).getByText('Product Category'));
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(
+    within(await getDropdown()).getByText('Product Category'),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[1]),
   );
@@ -492,10 +494,10 @@ test('lists every expression-less dimension as a Saved option without mutating m
   expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
   expect(within(dropdown).getByText('region')).toBeInTheDocument();
 
-  userEvent.click(within(dropdown).getByText('Order Date'));
+  await userEvent.click(within(dropdown).getByText('Order Date'));
   const saveButton = screen.getByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
 
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]),
@@ -551,7 +553,7 @@ test('clearing the Saved-only dimension resets the selection', async () => {
   ) as HTMLElement;
   expect(clearButton).toBeInTheDocument();
 
-  userEvent.click(clearButton);
+  await userEvent.click(clearButton);
 
   await waitFor(() => expect(setLabel).toHaveBeenCalledWith(''));
 });
@@ -585,7 +587,7 @@ test('clearing the Simple-mode item resets the selection', async () => {
   ) as HTMLElement;
   expect(clearButton).toBeInTheDocument();
 
-  userEvent.click(clearButton);
+  await userEvent.click(clearButton);
 
   await waitFor(() => expect(setLabel).toHaveBeenCalledWith(''));
 });
@@ -723,10 +725,10 @@ test('an edited dimension that became incompatible cannot be saved until replace
 
   await openDimensionsDropdown();
   const dropdown = await getDropdown();
-  userEvent.click(within(dropdown).getByText('Order Date'));
+  await userEvent.click(within(dropdown).getByText('Order Date'));
 
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]),
   );
@@ -761,10 +763,10 @@ test('a legacy edited adhoc value opens Saved, stays inspectable, and blocks Sav
   fireEvent.click(screen.getByRole('tab', { name: 'Saved' }));
   await openDimensionsDropdown();
   const dropdown = await getDropdown();
-  userEvent.click(within(dropdown).getByText('Order Date'));
+  await userEvent.click(within(dropdown).getByText('Order Date'));
 
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(SEMANTIC_COLUMNS[0]),
   );
@@ -806,7 +808,7 @@ test('disables Saved metrics by the compatible-metric list, not the dimension li
   const combobox = screen.getByRole('combobox', {
     name: 'Dimensions and metrics',
   });
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
 
   expect(await getOptionItem('Total Sales')).not.toHaveClass(
     'ant-select-item-option-disabled',
@@ -827,7 +829,7 @@ test('a metrics-only semantic view still renders the Saved select', async () => 
   const combobox = screen.getByRole('combobox', {
     name: 'Dimensions and metrics',
   });
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
 
   expect(await getOptionItem('Total Sales')).toBeInTheDocument();
   expect(await getOptionItem('Tax Amount')).toBeInTheDocument();
@@ -868,7 +870,7 @@ test('table datasources keep expression-based classification and enabled modes',
   const combobox = screen.getByRole('combobox', {
     name: 'Columns and metrics',
   });
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
   const dropdown = await getDropdown();
   expect(within(dropdown).getByText('plain_col')).toBeInTheDocument();
   expect(within(dropdown).queryByText('calc_col')).not.toBeInTheDocument();
@@ -934,17 +936,17 @@ test('a feature-declaring semantic view keeps expression-based classification an
   const simpleCombobox = screen.getByRole('combobox', {
     name: 'Columns and metrics',
   });
-  userEvent.click(simpleCombobox);
+  await userEvent.click(simpleCombobox);
   const dropdown = await getDropdown();
   expect(within(dropdown).getByText('Plain Dimension')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('calc_dimension'),
   ).not.toBeInTheDocument();
 
-  userEvent.click(within(dropdown).getByText('Plain Dimension'));
+  await userEvent.click(within(dropdown).getByText('Plain Dimension'));
   const saveButton = screen.getByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
   await waitFor(() => expect(onChange).toHaveBeenCalledWith(columns[0]));
 
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -976,7 +978,7 @@ test('non-semantic datasources still filter Saved options by compatibility metad
     { store },
   );
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('combobox', { name: 'Columns and metrics' }),
   );
   const dropdown = await getDropdown();

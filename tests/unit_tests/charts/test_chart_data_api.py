@@ -22,7 +22,7 @@ from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
-from flask import Flask, g
+from flask import Flask, g, Response
 
 from superset.charts.data.api import ChartDataRestApi
 from superset.charts.data.dashboard_filter_context import (
@@ -458,6 +458,50 @@ def test_send_chart_response_excludes_timing_by_default(app: SupersetApp) -> Non
     assert "timing" not in query_payload
 
 
+@pytest.mark.parametrize(
+    ("semantic_cache_statuses", "expected_status"),
+    [
+        (["HIT"], "HIT"),
+        (["MISS"], "MISS"),
+        ([None], "MISS"),
+        (["MIXED"], "MIXED"),
+        (["HIT", "MISS"], "MIXED"),
+        (["HIT", "MIXED"], "MIXED"),
+        (["HIT", None], "MIXED"),
+    ],
+)
+def test_send_chart_response_reports_semantic_cache_status(
+    app: SupersetApp,
+    semantic_cache_statuses: list[str | None],
+    expected_status: str,
+) -> None:
+    query_context: MagicMock = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.JSON
+    query_results: tuple[QueryDataResult, ...] = tuple(
+        QueryDataResult(
+            payload={"semantic_cache_status": cache_status},
+            timing=_query_timing(),
+        )
+        for cache_status in semantic_cache_statuses
+    )
+    result: ChartDataExecutionResult = ChartDataExecutionResult(
+        query_context=query_context,
+        queries=query_results,
+    )
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=False,
+        ),
+    ):
+        response: Response = ChartDataRestApi()._send_chart_response(result)
+
+    assert response.headers["X-Superset-Semantic-Cache"] == expected_status
+
+
 def test_send_chart_response_includes_opt_in_timing(app: SupersetApp) -> None:
     query_payload = {"data": [{"col1": 1}], "query": "SELECT 1"}
     result = _json_execution_result(query_payload)
@@ -616,6 +660,47 @@ def test_send_chart_response_still_redacts_guest_errors_when_query_permitted(
     assert query["query"] == "SELECT 1"
     assert query["error"] == str(GENERIC_ERROR_MESSAGE)
     assert "stacktrace" not in query
+
+
+def test_send_chart_response_does_not_half_redact_guest_query_error(
+    app: SupersetApp,
+) -> None:
+    """
+    The redaction decision is resolved once and threaded down, so the block can
+    never pop ``stacktrace`` while leaking the raw ``error``. When the guest check
+    raises (e.g. a broken DB session), the request's guest token makes the
+    fallback fail closed, and both the stacktrace and the error are redacted.
+    """
+    result = _json_execution_result(
+        {
+            "error": "Table mydb.myschema.mytable was not found",
+            "stacktrace": "Traceback ...",
+            "query": "SELECT 1",
+        },
+        result_type=ChartDataResultType.QUERY,
+    )
+
+    header = app.config["GUEST_TOKEN_HEADER_NAME"]
+    api = ChartDataRestApi()
+    with (
+        app.test_request_context(
+            "/api/v1/chart/data", headers={header: "a.guest.token"}
+        ),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            side_effect=RuntimeError("session broke mid-request"),
+        ) as mock_is_guest_user,
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=False,
+        ),
+    ):
+        response = api._send_chart_response(result)
+
+    query = json.loads(response.get_data(as_text=True))["result"][0]
+    assert query["error"] == str(GENERIC_ERROR_MESSAGE)
+    assert "stacktrace" not in query
+    mock_is_guest_user.assert_called_once()
 
 
 def test_get_data_response_redacts_guest_query_failure(app: SupersetApp) -> None:
@@ -1580,3 +1665,64 @@ def test_get_data_response_streaming_up_front_maps_setup_errors(
     assert response.json["message"] == str(exc)
     mock_stream.assert_called_once()
     command.execute.assert_not_called()
+
+
+def test_stop_data_route_is_registered_with_an_existing_permission() -> None:
+    """``stop_data`` must map onto ``can_read on Chart``.
+
+    FAB falls back to ``can_stop_data_Chart`` for an unmapped custom method — a
+    permission no standard role carries, which would make the endpoint
+    unreachable for exactly the users who can run chart queries.
+    """
+    assert "stop_data" in ChartDataRestApi.include_route_methods
+    assert ChartDataRestApi.method_permission_name["stop_data"] == "read"
+    # The mapping must extend, not replace, the inherited one.
+    assert ChartDataRestApi.method_permission_name["get"] == "read"
+
+
+def _raw_stop_data():
+    """The endpoint body, with FAB's auth/metrics decorators unwrapped off."""
+    return inspect.unwrap(ChartDataRestApi.stop_data)
+
+
+def test_stop_data_returns_cancellation_outcome() -> None:
+    api = ChartDataRestApi()
+    api.response = lambda status, **kwargs: (status, kwargs)
+
+    app = Flask(__name__)
+    with app.test_request_context(json={"client_id": "abc123"}):
+        with patch(
+            "superset.charts.data.api.cancel_chart_query_for_user", return_value=True
+        ) as cancel:
+            assert _raw_stop_data()(api) == (200, {"result": {"stopped": True}})
+    cancel.assert_called_once_with("abc123")
+
+
+def test_stop_data_reports_nothing_stopped_without_raising() -> None:
+    # No in-flight query for this user, or an engine that cannot cancel: a
+    # successful response reporting stopped=False, not an error.
+    api = ChartDataRestApi()
+    api.response = lambda status, **kwargs: (status, kwargs)
+
+    app = Flask(__name__)
+    with app.test_request_context(json={"client_id": "abc123"}):
+        with patch(
+            "superset.charts.data.api.cancel_chart_query_for_user", return_value=False
+        ):
+            assert _raw_stop_data()(api) == (200, {"result": {"stopped": False}})
+
+
+@pytest.mark.parametrize(
+    "body",
+    [{}, {"client_id": ""}, {"client_id": "x" * 65}, {"client_id": 5}],
+)
+def test_stop_data_rejects_invalid_bodies(body: dict[str, Any]) -> None:
+    api = ChartDataRestApi()
+    api.response_400 = lambda message: (400, message)
+
+    app = Flask(__name__)
+    with app.test_request_context(json=body):
+        with patch("superset.charts.data.api.cancel_chart_query_for_user") as cancel:
+            status, _ = _raw_stop_data()(api)
+    assert status == 400
+    cancel.assert_not_called()

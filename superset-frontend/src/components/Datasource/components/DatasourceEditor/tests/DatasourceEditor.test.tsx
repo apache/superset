@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import rison from 'rison';
 import {
   fireEvent,
   screen,
@@ -69,6 +70,66 @@ test('renders Tabs', async () => {
     datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
   });
   expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
+});
+
+test('Usage excludes semantic-view charts whose datasource id matches the dataset', async () => {
+  const testProps = createProps();
+  const charts = [
+    {
+      id: 101,
+      slice_name: 'Dataset chart',
+      datasource_id: testProps.datasource.id,
+      datasource_type: DatasourceType.Table,
+    },
+    {
+      id: 102,
+      slice_name: 'Semantic view chart',
+      datasource_id: testProps.datasource.id,
+      datasource_type: DatasourceType.SemanticView,
+    },
+    {
+      id: 103,
+      slice_name: 'Other dataset chart',
+      datasource_id: testProps.datasource.id + 1,
+      datasource_type: DatasourceType.Table,
+    },
+  ];
+  fetchMock.removeRoutes();
+  fetchMock.get(DATASOURCE_ENDPOINT, []);
+  fetchMock.get('glob:*/api/v1/chart/*', ({ url }) => {
+    const { filters } = rison.decode<{
+      filters: {
+        col: 'datasource_id' | 'datasource_type';
+        opr: string;
+        value: string | number;
+      }[];
+    }>(new URL(url, 'http://localhost').searchParams.get('q') ?? '');
+    const matches = charts.filter(chart =>
+      filters.every(filter => chart[filter.col] === filter.value),
+    );
+    return {
+      count: matches.length,
+      ids: matches.map(chart => chart.id),
+      result: matches.map(chart => ({
+        ...chart,
+        url: `/explore/?slice_id=${chart.id}`,
+        changed_on_delta_humanized: 'a day ago',
+        changed_by: null,
+        dashboards: [],
+      })),
+    };
+  });
+  setupDatasourceEditorMocks();
+
+  await asyncRender(testProps);
+  await userEvent.click(screen.getByRole('tab', { name: /usage/i }));
+
+  expect(
+    await screen.findByRole('link', { name: 'Dataset chart' }),
+  ).toBeVisible();
+  expect(screen.queryByText('Semantic view chart')).not.toBeInTheDocument();
+  expect(screen.queryByText('Other dataset chart')).not.toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: /usage/i })).toHaveTextContent('1');
 });
 
 test('recommends a registered client route for the default URL', async () => {
@@ -918,4 +979,82 @@ test('DatasourceEditor source pins getSQLLabUrl/openOnSqlLab to the makeUrl + op
   expect(src).toMatch(
     /import \{ makeUrl, openInNewTab \} from 'src\/utils\/navigationUtils';/,
   );
+});
+
+const renderWithOneColumn = async () => {
+  const baseProps = createProps();
+  const limitedProps = {
+    ...baseProps,
+    onChange: jest.fn(),
+    datasource: {
+      ...baseProps.datasource,
+      table_name: 'Vehicle Sales +',
+      columns: baseProps.datasource.columns
+        .slice(0, 1)
+        .map(column => ({ ...column })),
+    },
+  };
+  fastRender(limitedProps);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  return limitedProps;
+};
+
+const syncColumnsFromSource = async (
+  testProps: Awaited<ReturnType<typeof renderWithOneColumn>>,
+) => {
+  const [{ column_name, type, is_dttm }] = testProps.datasource.columns;
+  fetchMock.removeRoute(DATASOURCE_ENDPOINT);
+  fetchMock.get(DATASOURCE_ENDPOINT, [{ column_name, type, is_dttm }], {
+    name: DATASOURCE_ENDPOINT,
+  });
+  testProps.onChange.mockClear();
+  await userEvent.click(screen.getByText(/sync columns from source/i));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(DATASOURCE_ENDPOINT)).toBe(true),
+  );
+  await waitFor(() => expect(testProps.onChange).toHaveBeenCalled());
+  return testProps.onChange.mock.lastCall![0].columns;
+};
+
+test('syncing columns keeps column edits made in the session', async () => {
+  const testProps = await renderWithOneColumn();
+  const [toggle] = await screen.findAllByRole('button', {
+    name: /expand row/i,
+  });
+  await userEvent.click(toggle);
+  fireEvent.change(screen.getByPlaceholderText('Label'), {
+    target: { value: 'edited_label' },
+  });
+  await waitFor(() =>
+    expect(testProps.onChange.mock.lastCall?.[0].columns[0].verbose_name).toBe(
+      'edited_label',
+    ),
+  );
+
+  const columns = await syncColumnsFromSource(testProps);
+
+  expect(columns).toHaveLength(1);
+  expect(columns[0]).toMatchObject({ id: 1, verbose_name: 'edited_label' });
+});
+
+test('syncing restores a column deleted in the session as its saved row', async () => {
+  const testProps = await renderWithOneColumn();
+  const columnsPanel = within(
+    await screen.findByRole('tabpanel', { name: /columns/i }),
+  );
+  await userEvent.click(
+    (await columnsPanel.findAllByRole('button', { name: /expand row/i }))[0],
+  );
+  await userEvent.click(
+    (await columnsPanel.findAllByRole('button', { name: /delete item/i }))[0],
+  );
+  await waitFor(() =>
+    expect(testProps.onChange.mock.lastCall?.[0].columns).toHaveLength(0),
+  );
+
+  const columns = await syncColumnsFromSource(testProps);
+
+  expect(columns).toHaveLength(1);
+  expect(columns[0]).toMatchObject({ id: 1, column_name: 'ds' });
 });

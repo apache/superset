@@ -151,12 +151,20 @@ class ImportModelsCommand(BaseCommand):
                 exceptions,
             )
 
+    def _reused_dependency_uuids(self) -> set[str]:
+        """
+        UUIDs of bundled ``prefix`` files that are only dependencies of other
+        files. Existing ones are reused unchanged, so they skip the overwrite
+        check.
+        """
+        return set()
+
     def _prevent_overwrite_existing_model(  # pylint: disable=invalid-name
         self, exceptions: list[ValidationError]
     ) -> None:
         """check if the object exists and shouldn't be overwritten"""
         if not self.overwrite:
-            existing_uuids = self._get_uuids()
+            existing_uuids = self._get_uuids() - self._reused_dependency_uuids()
             for file_name, config in self._configs.items():
                 if (
                     file_name.startswith(self.prefix)

@@ -30,6 +30,7 @@ import {
   getCategoricalSchemeRegistry,
   promiseTimeout,
   JsonObject,
+  DatasourceType,
 } from '@superset-ui/core';
 import {
   addChart,
@@ -66,11 +67,14 @@ import type { ThunkDispatch } from 'redux-thunk';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import type { AgGridChartState } from '@superset-ui/core';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
+import { nanoid } from 'nanoid';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
   saveChartConfiguration,
   dashboardInfoChanged,
   SAVE_CHART_CONFIG_COMPLETE,
+  provenSemanticDatasets,
+  replaceDashboardSemanticDatasets,
 } from './dashboardInfo';
 import { fetchDatasourceMetadata, setDatasources } from './datasources';
 import { updateDirectPathToFilter } from './dashboardFilters';
@@ -592,6 +596,35 @@ export function saveDashboardRequest(
         .result as JsonObject;
       const lastModifiedTime = (response.json as JsonObject)
         .last_modified_time as number;
+      // A successful save can change the source schema. Until its response
+      // arrives, the previous snapshot cannot prove an axis is non-temporal.
+      const requestId = nanoid();
+      dispatch(replaceDashboardSemanticDatasets(id, null, requestId, true));
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/${id}/datasets`,
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(({ json }: { json: JsonObject }) => {
+          const datasources = json?.result;
+          dispatch(
+            replaceDashboardSemanticDatasets(
+              id,
+              provenSemanticDatasets(datasources),
+              requestId,
+            ),
+          );
+          if (Array.isArray(datasources) && datasources.length) {
+            dispatch(
+              setDatasources(
+                datasources as Parameters<typeof setDatasources>[0],
+              ),
+            );
+          }
+        })
+        .catch((error: Error) => {
+          dispatch(replaceDashboardSemanticDatasets(id, null, requestId));
+          logging.error('Error fetching dashboard datasets:', error);
+        });
       // syncing with the backend transformations of the metadata
       if (updatedDashboard.json_metadata) {
         const parsedMetadata: JsonObject = JSON.parse(
@@ -610,25 +643,6 @@ export function saveDashboardRequest(
             filterConfig: parsedMetadata.native_filter_configuration,
           });
         }
-
-        // fetch datasets to make sure they are up to date
-        SupersetClient.get({
-          endpoint: `/api/v1/dashboard/${id}/datasets`,
-          headers: { 'Content-Type': 'application/json' },
-        })
-          .then(({ json }: { json: JsonObject }) => {
-            const datasources = json?.result ?? [];
-            if ((datasources as JsonObject[]).length) {
-              dispatch(
-                setDatasources(
-                  datasources as Parameters<typeof setDatasources>[0],
-                ),
-              );
-            }
-          })
-          .catch((error: Error) => {
-            logging.error('Error fetching dashboard datasets:', error);
-          });
       }
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
@@ -937,7 +951,16 @@ export function addSliceToDashboard(
 
     return Promise.all([
       dispatch(addChart(newChart, id)),
-      dispatch(fetchDatasourceMetadata(form_data.datasource as string)),
+      dispatch(
+        fetchDatasourceMetadata(
+          form_data.datasource as string,
+          (form_data.datasource as string).endsWith(
+            `__${DatasourceType.SemanticView}`,
+          )
+            ? getState().dashboardInfo.id
+            : undefined,
+        ),
+      ),
     ]).then(() => {
       dispatch(addSlice(selectedSlice as Slice));
     });

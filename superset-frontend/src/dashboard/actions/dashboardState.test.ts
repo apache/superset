@@ -37,6 +37,7 @@ import {
   fetchFaveStar,
   saveFaveStar,
   savePublished,
+  addSliceToDashboard,
 } from 'src/dashboard/actions/dashboardState';
 import { refreshChart } from 'src/components/Chart/chartAction';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
@@ -54,6 +55,7 @@ import {
 } from 'spec/fixtures/mockSliceEntities';
 import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
+import type { RootState } from 'src/dashboard/types';
 import { navigateTo, navigateWithState } from 'src/utils/navigationUtils';
 
 jest.mock('@superset-ui/core', () => ({
@@ -62,6 +64,7 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 jest.mock('src/components/Chart/chartAction', () => ({
+  addChart: jest.fn(() => ({ type: 'MOCK_ADD_CHART' })),
   refreshChart: jest.fn(() => () => Promise.resolve()),
 }));
 
@@ -133,8 +136,151 @@ describe('dashboardState actions', () => {
     return { getState, dispatch, state };
   }
 
+  test('adding a semantic Table chart refreshes its source without reloading the dashboard', async () => {
+    const sourceKey = '2__semantic_view';
+    const state = {
+      dashboardInfo: { id: 1 },
+      datasources: {},
+      sliceEntities: {
+        slices: {
+          2: {
+            slice_id: 2,
+            form_data: { datasource: sourceKey, viz_type: 'table' },
+          },
+        },
+      },
+    } as unknown as RootState;
+    const getState = () => state;
+    const dispatch: jest.Mock = jest.fn(action =>
+      typeof action === 'function' ? action(dispatch, getState) : action,
+    );
+    getStub.mockResolvedValue({
+      json: {
+        id: 2,
+        uid: 'provider-source-identity',
+        type: 'semantic_view',
+        columns: [{ column_name: 'country', is_dttm: false }],
+      },
+    } as unknown as JsonResponse);
+
+    await addSliceToDashboard(2)(dispatch, getState);
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+        dashboardId: 1,
+        sourceKey,
+        dataset: expect.objectContaining({ uid: sourceKey }),
+      }),
+    );
+    expect(mockNavigateTo).not.toHaveBeenCalled();
+  });
+
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('saveDashboardRequest', () => {
+    test('refreshes the proven semantic snapshot after a saved schema change', async () => {
+      const dashboardId = 1;
+      const { getState, dispatch } = setup();
+      const source = {
+        uid: '2__semantic_view',
+        type: 'semantic_view',
+        columns: [{ column_name: 'event_time', is_dttm: true }],
+      };
+      putStub.mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, json_metadata: '{}' },
+          last_modified_time: 0,
+        },
+      } as unknown as JsonResponse);
+      getStub.mockResolvedValue({
+        json: { result: [source] },
+      } as unknown as JsonResponse);
+
+      await saveDashboardRequest(
+        newDashboardData,
+        dashboardId,
+        SAVE_TYPE_OVERWRITE,
+      )(dispatch, getState);
+      await waitFor(() =>
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+            dashboardId,
+            datasets: [source],
+          }),
+        ),
+      );
+      expect(dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+          dashboardId,
+          datasets: null,
+        }),
+      );
+    });
+
+    test('omitted semantic source replaces old snapshot with an empty one', async () => {
+      const { getState, dispatch } = setup();
+      putStub.mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, json_metadata: '{}' },
+          last_modified_time: 0,
+        },
+      } as unknown as JsonResponse);
+      getStub.mockResolvedValue({
+        json: { result: [] },
+      } as unknown as JsonResponse);
+
+      await saveDashboardRequest(
+        newDashboardData,
+        1,
+        SAVE_TYPE_OVERWRITE,
+      )(dispatch, getState);
+      await waitFor(() =>
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+            dashboardId: 1,
+            datasets: [],
+          }),
+        ),
+      );
+    });
+
+    test('failed post-save dataset fetch settles the snapshot as unproven', async () => {
+      const { getState, dispatch } = setup();
+      putStub.mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, json_metadata: '{}' },
+          last_modified_time: 0,
+        },
+      } as unknown as JsonResponse);
+      getStub.mockRejectedValue(new Error('datasets unavailable'));
+
+      await saveDashboardRequest(
+        newDashboardData,
+        1,
+        SAVE_TYPE_OVERWRITE,
+      )(dispatch, getState);
+      await waitFor(() =>
+        expect(
+          dispatch.mock.calls.filter(
+            ([action]) => action.type === 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+          ),
+        ).toHaveLength(2),
+      );
+      expect(
+        dispatch.mock.calls.filter(
+          ([action]) => action.type === 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+        )[1][0],
+      ).toEqual(
+        expect.objectContaining({
+          dashboardId: 1,
+          datasets: null,
+          isRefreshStart: false,
+        }),
+      );
+    });
     const findDangerToast = (dispatch: jest.Mock) =>
       dispatch.mock.calls
         .map(call => call[0])

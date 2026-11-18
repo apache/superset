@@ -32,6 +32,7 @@ import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
 import {
   DataMaskStateWithId,
+  DatasourceType,
   Filters,
   JsonObject,
   usePrevious,
@@ -293,8 +294,16 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
   const filterCount =
     appliedIndicators.length + appliedCrossFilterIndicators.length;
+  const incompatibleIndicators = chart?.form_data?.datasource?.endsWith(
+    `__${DatasourceType.SemanticView}`,
+  )
+    ? indicators.filter(
+        indicator => indicator.status === IndicatorStatus.Incompatible,
+      )
+    : [];
+  const totalFilterCount = filterCount + incompatibleIndicators.length;
 
-  if (!appliedCrossFilterIndicators.length && !appliedIndicators.length) {
+  if (!totalFilterCount) {
     return null;
   }
 
@@ -302,6 +311,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     <DetailsPanelPopover
       appliedCrossFilterIndicators={appliedCrossFilterIndicators}
       appliedIndicators={appliedIndicators}
+      incompatibleIndicators={incompatibleIndicators}
       onHighlightFilterSource={onHighlightFilterSource}
       setPopoverVisible={setPopoverVisible}
       popoverVisible={popoverVisible}
@@ -310,7 +320,11 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     >
       <StyledFilterCount
         type="button"
-        aria-label={t('Applied filters (%s)', filterCount)}
+        aria-label={
+          incompatibleIndicators.length
+            ? t('Filters (%s)', totalFilterCount)
+            : t('Applied filters (%s)', filterCount)
+        }
         aria-haspopup="true"
         ref={popoverTriggerRef}
         className={cx(
@@ -323,7 +337,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         <StyledBadge
           data-test="applied-filter-count"
           className="applied-count"
-          count={filterCount}
+          count={totalFilterCount}
           size="small"
           showZero
         />

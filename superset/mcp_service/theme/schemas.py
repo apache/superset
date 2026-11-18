@@ -31,6 +31,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
+from pydantic_core import PydanticCustomError
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.pagination_schemas import (
@@ -139,7 +140,7 @@ class CreateThemeRequest(BaseModel):
 
     theme_name: Annotated[
         str,
-        Field(description="Human-readable name for the theme"),
+        Field(description="Human-readable name for the theme", max_length=250),
     ]
     json_data: Annotated[
         dict[str, Any] | str,
@@ -149,12 +150,17 @@ class CreateThemeRequest(BaseModel):
         ),
     ]
 
-    @field_validator("theme_name")
+    @field_validator("theme_name", mode="before")
     @classmethod
-    def reject_blank_theme_name(cls, value: str) -> str:
-        """Mirror the REST ThemePostSchema check: no empty/whitespace names."""
-        if not value or not value.strip():
-            raise ValueError("Theme name cannot be empty.")
+    def reject_blank_theme_name(cls, value: object) -> object:
+        """Reject blank names before the length cap without trimming valid names."""
+        if isinstance(value, (bytes, bytearray)):
+            try:
+                value = value.decode()
+            except UnicodeDecodeError:
+                return value  # Let Pydantic report its string_unicode error.
+        if isinstance(value, str) and not value.strip():
+            raise PydanticCustomError("empty_text", "Theme name cannot be empty.")
         return value
 
 

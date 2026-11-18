@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core/translation';
 import {
   AdhocFilter,
+  getSemanticSelectionSources,
   Behavior,
   ChartCustomization,
   DataMaskStateWithId,
@@ -49,6 +50,7 @@ const getDefaultRowLimit = (): number => {
 export const getFormData = ({
   datasetId,
   datasourceType,
+  semantic_selection_version,
   dependencies = {},
   groupby,
   defaultDataMask,
@@ -66,6 +68,7 @@ export const getFormData = ({
   dashboardId: number;
   datasetId?: number;
   datasourceType?: DatasourceType;
+  semantic_selection_version?: string;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
@@ -96,6 +99,7 @@ export const getFormData = ({
 
   return {
     ...controlValues,
+    semantic_selection_version,
     ...timeGrainsFormData,
     ...otherProps,
     adhoc_filters: adhoc_filters ?? [],
@@ -142,6 +146,15 @@ export function mergeExtraFormData(
       mergedExtra[key] = newValue;
     }
   });
+  if (
+    originalExtra.semantic_selection_sources?.length ||
+    newExtra.semantic_selection_sources?.length
+  ) {
+    mergedExtra.semantic_selection_sources = [
+      ...getSemanticSelectionSources(originalExtra),
+      ...getSemanticSelectionSources(newExtra),
+    ];
+  }
   return mergedExtra as ExtraFormData;
 }
 
