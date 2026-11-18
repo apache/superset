@@ -15,43 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Shared query validation utilities for MCP tools."""
+"""Shared name validation for MCP tools.
 
-import difflib
+The name-validator implementation lives in ``superset.common.tabular_query`` so the REST
+endpoint and the MCP tools cannot drift apart.
+"""
+
+from superset.common.tabular_query import validate_names
+
+__all__: list[str] = ["validate_names", "validate_selection_names"]
 
 
-def validate_names(
-    requested: list[str],
-    valid: set[str],
-    kind: str,
-    *,
-    empty_hint: str | None = None,
-    list_valid_on_miss: bool = False,
-    full_list_hint: str = "call get_dataset_info for the full list",
+def validate_selection_names(
+    selected_metrics: list[str],
+    selected_dimensions: list[str],
+    valid_metrics: set[str],
+    valid_dimensions: set[str],
 ) -> list[str]:
-    """Return list of error messages for names not found in *valid*.
-
-    Includes close-match suggestions when available. When *valid* is empty,
-    appends *empty_hint* instead of a useless fuzzy match. When no close
-    match exists and *list_valid_on_miss* is set, lists the valid names so
-    the caller does not have to guess again; *full_list_hint* names the tool
-    to call when the valid list is truncated.
-    """
-    errors: list[str] = []
-    for name in requested:
-        if name not in valid:
-            msg = f"Unknown {kind}: '{name}'"
-            if not valid:
-                if empty_hint:
-                    msg += f". {empty_hint}"
-            else:
-                suggestions = difflib.get_close_matches(name, valid, n=3, cutoff=0.6)
-                if suggestions:
-                    msg += f". Did you mean: {', '.join(suggestions)}?"
-                elif list_valid_on_miss:
-                    shown = sorted(valid)[:10]
-                    more = len(valid) - len(shown)
-                    suffix = f" (and {more} more; {full_list_hint})" if more > 0 else ""
-                    msg += f". Valid {kind}s: {', '.join(shown)}{suffix}"
-            errors.append(msg)
-    return errors
+    """Report unknown selected members using the shared validation messages."""
+    return validate_names(selected_metrics, valid_metrics, "metric") + validate_names(
+        selected_dimensions, valid_dimensions, "dimension"
+    )

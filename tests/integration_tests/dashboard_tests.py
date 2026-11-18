@@ -23,7 +23,8 @@ from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
 import pytest
-from flask import Response, escape, url_for
+from flask import Response, url_for
+from markupsafe import escape
 from sqlalchemy import func
 
 from superset import db, security_manager

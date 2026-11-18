@@ -28,7 +28,7 @@ from flask.cli import with_appcontext
 
 from superset import security_manager
 from superset.extensions import db
-from superset.utils.core import override_user
+from superset.utils.core import override_user, write_zip_entry
 
 logger = logging.getLogger(__name__)
 
@@ -105,8 +105,7 @@ def export_dashboards(dashboard_file: Optional[str] = None) -> None:
     try:
         with ZipFile(dashboard_file, "w") as bundle:
             for file_name, file_content in ExportDashboardsCommand(dashboard_ids).run():
-                with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content().encode())
+                write_zip_entry(bundle, f"{root}/{file_name}", file_content().encode())
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "There was an error when exporting the dashboards, please check "
@@ -138,8 +137,7 @@ def export_datasources(datasource_file: Optional[str] = None) -> None:
     try:
         with ZipFile(datasource_file, "w") as bundle:
             for file_name, file_content in ExportDatasetsCommand(dataset_ids).run():
-                with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content().encode())
+                write_zip_entry(bundle, f"{root}/{file_name}", file_content().encode())
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "There was an error when exporting the datasets, please check "

@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 
 from superset.common import query_actions
@@ -25,6 +26,7 @@ from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
     QueryAcquisitionTiming,
 )
+from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import (
     _prepare_drill_detail_query,
     _prepare_samples_query,
@@ -34,6 +36,34 @@ from superset.common.query_actions import (
 from superset.common.query_object import QueryObject
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import QueryObjectFilterClause
+
+
+@pytest.mark.parametrize("cache_status", ["HIT", "MISS", "MIXED"])
+def test_results_payload_preserves_semantic_cache_provenance(cache_status: str) -> None:
+    """RESULTS filtering retains the status consumed by the response header."""
+    context: MagicMock = MagicMock()
+    query: MagicMock = MagicMock(result_type=ChartDataResultType.RESULTS)
+    context.get_data.return_value = [{"revenue": 5}]
+    payload: dict[str, Any] = {
+        "df": pd.DataFrame({"revenue": [5]}),
+        "status": QueryStatus.SUCCESS,
+        "rowcount": 1,
+        "semantic_cache_status": cache_status,
+        "applied_filter_columns": [],
+        "rejected_filter_columns": [],
+    }
+    with (
+        patch.object(query_actions, "_get_datasource", return_value=MagicMock()),
+        patch.object(query_actions, "_detect_currency", return_value=None),
+        patch.object(query_actions, "_filter_status", return_value={}),
+        patch.object(query_actions, "extract_dataframe_dtypes", return_value=[0]),
+    ):
+        result: dict[str, Any] = query_actions._materialize_full_payload(
+            context, query, payload
+        )
+    assert result["semantic_cache_status"] == cache_status
+    assert result["data"] == [{"revenue": 5}]
+    assert "df" not in result
 
 
 def test_prepare_drill_detail_query_does_not_strip_filters() -> None:
@@ -281,3 +311,99 @@ def test_legacy_result_wrapper_delegates_to_timed_resolver() -> None:
         query_obj,
         False,
     )
+
+
+def test_get_query_surfaces_rejected_filter_columns() -> None:
+    """The QUERY result type must report filters dropped while building the SQL.
+
+    A filter naming a column the dataset does not have is silently discarded
+    during query construction. Without this, a caller asking only for the SQL
+    (e.g. the MCP get_chart_sql tool, or "View query") receives the unfiltered
+    statement with no indication that a filter was dropped.
+    """
+    from superset.common.query_actions import _get_query
+    from superset.models.helpers import QueryStringExtended
+
+    extended = QueryStringExtended(
+        applied_template_filters=[],
+        applied_filter_columns=["country"],
+        rejected_filter_columns=["does_not_exist"],
+        labels_expected=[],
+        prequeries=[],
+        sql="SELECT country FROM sales",
+        sql_shifted_temporal_labels=set(),
+    )
+
+    mock_query_obj = MagicMock()
+    mock_query_obj.to_dict.return_value = {}
+    mock_query_obj.applied_time_extras = {}
+
+    with (
+        patch.object(query_actions, "_get_datasource") as mock_get_ds,
+        patch.object(query_actions, "get_time_filter_status", return_value=([], [])),
+    ):
+        datasource = MagicMock()
+        datasource.query_language = "sql"
+        datasource.get_query_str_extended.return_value = extended
+        mock_get_ds.return_value = datasource
+
+        result = _get_query(MagicMock(), mock_query_obj, False)
+
+    assert result["query"] == "SELECT country FROM sales;"
+    assert result["applied_filters"] == [{"column": "country"}]
+    assert [entry["column"] for entry in result["rejected_filters"]] == [
+        "does_not_exist"
+    ]
+    assert result["rejected_filter_columns"] == ["does_not_exist"]
+
+
+def test_materialized_payload_preserves_datasource_rejection_origin() -> None:
+    """Data results retain provenance alongside combined temporal status."""
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_obj = MagicMock()
+    query_obj.result_type = ChartDataResultType.FULL
+    query_obj.applied_time_extras = {}
+    payload = {
+        "df": None,
+        "status": QueryStatus.FAILED,
+        "applied_filter_columns": [],
+        "rejected_filter_columns": ["__time_col"],
+    }
+
+    with (
+        patch.object(query_actions, "_get_datasource", return_value=MagicMock()),
+        patch.object(
+            query_actions,
+            "get_time_filter_status",
+            return_value=(
+                [],
+                [{"reason": "not_in_datasource", "column": "__time_col"}],
+            ),
+        ),
+    ):
+        result = query_actions._materialize_full_payload(
+            query_context, query_obj, payload
+        )
+
+    assert result["rejected_filter_columns"] == ["__time_col"]
+    assert len(result["rejected_filters"]) == 2
+
+
+def test_get_query_falls_back_when_datasource_has_no_extended_form() -> None:
+    """Datasources without get_query_str_extended keep the plain string path."""
+    from superset.common.query_actions import _get_query
+
+    mock_query_obj = MagicMock()
+    mock_query_obj.to_dict.return_value = {}
+
+    with patch.object(query_actions, "_get_datasource") as mock_get_ds:
+        datasource = MagicMock(spec=["query_language", "get_query_str"])
+        datasource.query_language = "sql"
+        datasource.get_query_str.return_value = "SELECT 1;"
+        mock_get_ds.return_value = datasource
+
+        result = _get_query(MagicMock(), mock_query_obj, False)
+
+    assert result["query"] == "SELECT 1;"
+    assert "rejected_filters" not in result

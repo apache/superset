@@ -34,6 +34,7 @@ import {
   CrossFilterTransformedProps,
   LabelPositionEnum,
   LegendFormData,
+  LegendOrientation,
   StackType,
   TitleFormData,
 } from '../types';
@@ -51,6 +52,14 @@ export enum EchartsTimeseriesSeriesType {
   Start = 'start',
   Middle = 'middle',
   End = 'end',
+}
+
+export enum BarValueLabelPosition {
+  Auto = 'auto',
+  InsideEnd = 'insideEnd',
+  OutsideEnd = 'outsideEnd',
+  InsideCenter = 'insideCenter',
+  InsideBase = 'insideBase',
 }
 
 export type EchartsTimeseriesFormData = QueryFormData & {
@@ -73,6 +82,9 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   metrics: QueryFormMetric[];
   minorSplitLine: boolean;
   minorTicks: boolean;
+  gridlines: boolean;
+  axisTicks: boolean;
+  valueAxisLabels: boolean;
   opacity: number;
   orderDesc: boolean;
   rowLimit: number;
@@ -93,6 +105,8 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   xAxisNumberFormat?: string;
   timeGrainSqla?: TimeGranularity;
   forceMaxInterval?: boolean;
+  xAxisMinInterval?: number | string | null;
+  yAxisMinInterval?: number | string | null;
   xAxisBounds: [number | undefined | null, number | undefined | null];
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
@@ -100,6 +114,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   xAxisLabelRotation: number;
   xAxisLabelInterval: number | string;
   showValue: boolean;
+  valueLabelPosition: BarValueLabelPosition;
   /**
    * Where the data label sits relative to its data point, applied when
    * `showValue` is on.
@@ -122,10 +137,45 @@ export interface EchartsTimeseriesChartProps extends BaseChartProps<EchartsTimes
   formData: EchartsTimeseriesFormData;
 }
 
+export type TimeseriesLegendLineType = 'solid' | 'dashed' | 'dotted' | number[];
+
+/** What the legend draws for an item: the icon the ECharts legend would use for the series. */
+export type TimeseriesLegendIcon = { opacity: number } & (
+  | { shape: 'box' }
+  | { shape: 'symbol'; symbol: string }
+  | {
+      shape: 'line';
+      lineType: TimeseriesLegendLineType;
+      lineWidth: number;
+      symbol: string;
+      /** The symbol's own opacity (ECharts uses itemStyle.opacity); 0 hides it. */
+      symbolOpacity: number;
+    }
+);
+
+export type TimeseriesLegendItem = {
+  color: string;
+  icon: TimeseriesLegendIcon;
+  interactive: boolean;
+  name: string;
+  selected: boolean;
+};
+
+export type TimeseriesCustomLegend = {
+  grid: {
+    bottom: number | string;
+    top: number | string;
+  };
+  items: TimeseriesLegendItem[];
+  orientation: LegendOrientation;
+  showSelectors: boolean;
+};
+
 export type TimeseriesChartTransformedProps =
   BaseTransformedProps<EchartsTimeseriesFormData> &
     ContextMenuTransformedProps &
     CrossFilterTransformedProps & {
+      customLegend?: TimeseriesCustomLegend;
       legendData?: OptionName[];
       isRefreshing?: boolean;
       xValueFormatter: TimeFormatter | StringConstructor;

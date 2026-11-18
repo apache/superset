@@ -26,6 +26,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from superset.common.db_query_status import QueryStatus
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -47,8 +50,523 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     ASCIIPreviewStrategy,
     PreviewFormatStrategy,
     TablePreviewStrategy,
+    VegaLitePreviewStrategy,
 )
 from superset.utils import json as utils_json
+from superset.utils.core import GenericDataType
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
+)
+
+
+@pytest.mark.parametrize(
+    "strategy_class,preview_format",
+    [
+        (ASCIIPreviewStrategy, "ascii"),
+        (TablePreviewStrategy, "table"),
+        (VegaLitePreviewStrategy, "vega_lite"),
+    ],
+)
+def test_saved_virtual_dataset_previews_seed_all_jinja_form_data_macros(
+    app: Any,
+    strategy_class: type[PreviewFormatStrategy],
+    preview_format: str,
+) -> None:
+    """Saved preview strategies seed url_param/filter_values/get_filters inputs."""
+    from flask import g
+
+    from superset.common.query_object import QueryObject
+    from superset.jinja_context import ExtraCache
+
+    query = QueryObject(
+        columns=["region"],
+        metrics=["count"],
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+    )
+    query_context = SimpleNamespace(
+        queries=[query],
+        form_data={"url_params": {"tenant": "acme"}},
+    )
+    events: list[str] = []
+
+    class ChartDataCommand:
+        def __init__(self, built_query_context: object) -> None:
+            events.append("construct")
+            assert built_query_context is query_context
+            # Construction may initialize datasource/query processors, so all
+            # three virtual-dataset Jinja inputs must already be available.
+            assert g.form_data["queries"][0]["url_params"] == {"tenant": "acme"}
+            cache = ExtraCache(
+                query_context_filters=g.form_data["queries"][0]["filters"]
+            )
+            assert cache.url_param("tenant", escape_result=False) == "acme"
+            assert cache.filter_values("region") == ["North"]
+            assert cache.get_filters("region") == [
+                {"col": "region", "op": "IN", "val": ["North"]}
+            ]
+
+        def validate(self) -> None:
+            events.append("validate")
+
+        def run(self) -> dict[str, Any]:
+            events.append("run")
+            return chart_data_command_result(
+                [{"region": "North", "count": float("nan")}],
+                columns=["region", "count"],
+                coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+            )
+
+    chart = SimpleNamespace(
+        id=17,
+        slice_name="Virtual dataset chart",
+        viz_type="table",
+        datasource_id=9,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "table",
+                "groupby": ["region"],
+                "metrics": ["count"],
+                "url_params": {"tenant": "acme"},
+            }
+        ),
+    )
+
+    with (
+        app.app_context(),
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=query_context,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            ChartDataCommand,
+        ),
+    ):
+        result = strategy_class(
+            chart,
+            GetChartPreviewRequest(identifier=17, format=preview_format),
+        ).generate()
+
+    assert not isinstance(result, ChartError)
+    assert events == ["construct", "validate", "run"]
+
+
+@pytest.mark.parametrize(
+    "strategy_class,preview_format",
+    [
+        (ASCIIPreviewStrategy, "ascii"),
+        (TablePreviewStrategy, "table"),
+        (VegaLitePreviewStrategy, "vega_lite"),
+    ],
+)
+def test_saved_preview_seeding_keeps_strict_first_query_result_validation(
+    strategy_class: type[PreviewFormatStrategy],
+    preview_format: str,
+) -> None:
+    query_context = MagicMock()
+
+    class ChartDataCommand:
+        def __init__(self, built_query_context: object) -> None:
+            assert built_query_context is query_context
+
+        def validate(self) -> None:
+            pass
+
+        def run(self) -> dict[str, Any]:
+            return {"queries": []}
+
+    chart = SimpleNamespace(
+        id=18,
+        slice_name="Malformed saved result",
+        viz_type="table",
+        datasource_id=9,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {"viz_type": "table", "groupby": ["region"], "metrics": ["count"]}
+        ),
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=query_context,
+        ),
+        patch(
+            "superset.charts.data.form_data.set_query_context_form_data",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            ChartDataCommand,
+        ),
+    ):
+        result = strategy_class(
+            chart,
+            GetChartPreviewRequest(identifier=18, format=preview_format),
+        ).generate()
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidQueryResult"
+    assert result.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize(
+    "strategy_class,preview_format",
+    [
+        (ASCIIPreviewStrategy, "ascii"),
+        (TablePreviewStrategy, "table"),
+        (VegaLitePreviewStrategy, "vega_lite"),
+    ],
+)
+def test_saved_previews_validate_hostile_secondary_results_without_hooks(
+    strategy_class: type[PreviewFormatStrategy], preview_format: str
+) -> None:
+    class HostileList(list[object]):
+        def __iter__(self):
+            raise AssertionError("hostile secondary list hook executed")
+
+    command = MagicMock()
+    command.run.return_value = {
+        "queries": [{"data": [{"region": "North"}]}, {"data": HostileList()}]
+    }
+    chart = SimpleNamespace(
+        id=19,
+        slice_name="Hostile secondary result",
+        viz_type="table",
+        datasource_id=9,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {"viz_type": "table", "groupby": ["region"], "metrics": ["count"]}
+        ),
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=MagicMock(),
+        ),
+        patch("superset.charts.data.form_data.set_query_context_form_data"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = strategy_class(
+            chart,
+            GetChartPreviewRequest(identifier=19, format=preview_format),
+        ).generate()
+
+    assert isinstance(result, ChartError)
+
+
+@pytest.mark.parametrize(
+    "strategy_class,preview_format",
+    [
+        (ASCIIPreviewStrategy, "ascii"),
+        (TablePreviewStrategy, "table"),
+        (VegaLitePreviewStrategy, "vega_lite"),
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [10**5000, b"\xff" * 65_537, QueryStatus.SUCCESS],
+    ids=["huge-int", "oversized-bytes", "query-status"],
+)
+def test_saved_previews_reject_noncanonical_scalars_before_rendering(
+    strategy_class: type[PreviewFormatStrategy], preview_format: str, value: Any
+) -> None:
+    command = MagicMock()
+    command.run.return_value = {
+        "queries": [
+            {
+                "data": [{"value": value}],
+                "colnames": ["value"],
+                "coltypes": [0],
+            }
+        ]
+    }
+    chart = SimpleNamespace(
+        id=20,
+        slice_name="Invalid scalar",
+        viz_type="table",
+        datasource_id=9,
+        datasource_type="table",
+        params=utils_json.dumps({"viz_type": "table", "all_columns": ["value"]}),
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=MagicMock(),
+        ),
+        patch("superset.charts.data.form_data.set_query_context_form_data"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = strategy_class(
+            chart,
+            GetChartPreviewRequest(identifier=20, format=preview_format),
+        ).generate()
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize(
+    "strategy_class,preview_format",
+    [
+        (ASCIIPreviewStrategy, "ascii"),
+        (TablePreviewStrategy, "table"),
+        (VegaLitePreviewStrategy, "vega_lite"),
+    ],
+)
+def test_saved_previews_reject_hostile_enum_without_dispatching_hooks(
+    strategy_class: type[PreviewFormatStrategy], preview_format: str
+) -> None:
+    from enum import Enum
+
+    class HostileEnum(Enum):
+        VALUE = "hostile"
+
+        def __getattribute__(self, name):
+            if name == "value":
+                raise AssertionError("hostile enum value hook executed")
+            return object.__getattribute__(self, name)
+
+        def __str__(self):
+            raise AssertionError("hostile enum string hook executed")
+
+    command = MagicMock()
+    command.run.return_value = {
+        "queries": [{"data": [], "metadata": HostileEnum.VALUE}]
+    }
+    chart = SimpleNamespace(
+        id=20,
+        slice_name="Hostile enum result",
+        viz_type="table",
+        datasource_id=9,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {"viz_type": "table", "groupby": ["region"], "metrics": ["count"]}
+        ),
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=MagicMock(),
+        ),
+        patch("superset.charts.data.form_data.set_query_context_form_data"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = strategy_class(
+            chart,
+            GetChartPreviewRequest(identifier=20, format=preview_format),
+        ).generate()
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidQueryResult"
+
+
+def _gauge_chart() -> SimpleNamespace:
+    """Build a saved Gauge chart with its native form_data controls."""
+    return SimpleNamespace(
+        id=104,
+        slice_name="SLA Gauge",
+        viz_type="gauge_chart",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "gauge_chart",
+                "metric": "saved_sla",
+                "groupby": ["team"],
+                "row_limit": 3,
+                "min_val": 0,
+                "max_val": 100,
+                "value_formatter": "{value}%",
+            }
+        ),
+    )
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_gauge_ascii_preview_uses_native_row_limit_and_renderer(
+    mock_build_query_context, mock_command
+) -> None:
+    query_context = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_build_query_context.return_value = query_context
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": 88}]}]
+    }
+
+    preview = ASCIIPreviewStrategy(
+        _gauge_chart(), GetChartPreviewRequest(identifier=104, format="ascii")
+    ).generate()
+
+    assert isinstance(preview, ASCIIPreview)
+    assert "Gauge Chart" in preview.ascii_content
+    assert "Blue" in preview.ascii_content
+    assert "88%" in preview.ascii_content
+    assert mock_build_query_context.call_args.kwargs["row_limit"] == 3
+
+
+def _bubble_chart() -> SimpleNamespace:
+    """Build a saved Bubble chart with its native form_data controls."""
+    return SimpleNamespace(
+        id=109,
+        slice_name="GDP vs life expectancy",
+        viz_type="bubble_v2",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "bubble_v2",
+                "entity": "country",
+                "series": "continent",
+                "x": {"label": "AVG(gdp)"},
+                "y": {"label": "AVG(life_expectancy)"},
+                "size": {"label": "SUM(population)"},
+                "row_limit": 100,
+            }
+        ),
+    )
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_chart_preview_forwards_its_own_sort_direction(
+    mock_build_query_context, mock_command
+) -> None:
+    """The preview must not assert a sort direction the chart did not ask for.
+
+    These strategies used to pass a hardcoded order_desc=True. Since an
+    explicit argument outranks form_data in the query builder, that silently
+    flipped a saved ascending sort to descending — with a row limit, it
+    changes which rows come back, not just their order.
+    """
+    chart = _bubble_chart()
+    chart.params = utils_json.dumps(
+        {
+            "viz_type": "bubble_v2",
+            "entity": "country",
+            "x": {"label": "AVG(gdp)"},
+            "y": {"label": "AVG(life_expectancy)"},
+            "size": {"label": "SUM(population)"},
+            "orderby": {"label": "SUM(population)"},
+            "order_desc": False,
+            "row_limit": 1,
+        }
+    )
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["SUM(population)"], columns=["country"])]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"country": "France", "SUM(population)": 67000000}]}]
+    }
+
+    VegaLitePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=109, format="vega_lite")
+    ).generate()
+
+    assert mock_build_query_context.call_args.kwargs["order_desc"] is False
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_bubble_vega_preview_encodes_its_three_metrics(
+    mock_build_query_context, mock_command
+) -> None:
+    """A saved bubble chart must reach the bubble renderer, not the fallback.
+
+    The generic spec builder reads positions off the first columns it finds,
+    which for bubble result rows means x=country, y=continent and no size or
+    color encoding at all.
+    """
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[
+            SimpleNamespace(
+                metrics=["AVG(gdp)", "AVG(life_expectancy)", "SUM(population)"],
+                columns=["country", "continent"],
+            )
+        ]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [
+            {
+                "data": [
+                    {
+                        "country": "France",
+                        "continent": "Europe",
+                        "AVG(gdp)": 44.5,
+                        "AVG(life_expectancy)": 82.5,
+                        "SUM(population)": 67000000,
+                    }
+                ]
+            }
+        ]
+    }
+
+    preview = VegaLitePreviewStrategy(
+        _bubble_chart(), GetChartPreviewRequest(identifier=109, format="vega_lite")
+    ).generate()
+
+    assert isinstance(preview, VegaLitePreview)
+    assert preview.specification["mark"] == "circle"
+    encoding = preview.specification["encoding"]
+    assert encoding["x"]["field"] == "AVG(gdp)"
+    assert encoding["y"]["field"] == "AVG(life_expectancy)"
+    assert encoding["size"]["field"] == "SUM(population)"
+    assert encoding["color"]["field"] == "continent"
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_gauge_vega_preview_surfaces_runtime_metric_error(
+    mock_build_query_context, mock_command
+) -> None:
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
+    }
+
+    preview = VegaLitePreviewStrategy(
+        _gauge_chart(), GetChartPreviewRequest(identifier=104, format="vega_lite")
+    ).generate()
+
+    assert isinstance(preview, ChartError)
+    assert preview.error_type == "NonNumericGaugeMetric"
 
 
 class TestPreviewXAxisInQueryContext:
@@ -302,7 +820,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(form_data=kwargs.get("form_data"), queries=[])
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -312,15 +830,11 @@ class TestGetChartPreview:
                 pass
 
             def run(self) -> dict[str, Any]:
-                return {
-                    "queries": [
-                        {
-                            "data": [{"gender": "boy", "count": 1}],
-                            "colnames": ["gender", "count"],
-                            "rowcount": 1,
-                        }
-                    ]
-                }
+                return chart_data_command_result(
+                    [{"gender": "boy", "count": 1}],
+                    columns=["gender", "count"],
+                    coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+                )
 
         monkeypatch.setattr(
             query_context_factory_module,
@@ -381,7 +895,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(form_data=kwargs.get("form_data"), queries=[])
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -396,6 +910,7 @@ class TestGetChartPreview:
                         {
                             "data": [{"count": 10}],
                             "colnames": ["count"],
+                            "coltypes": [0],
                             "rowcount": 1,
                         }
                     ]
@@ -452,7 +967,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(form_data=kwargs.get("form_data"), queries=[])
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -467,6 +982,7 @@ class TestGetChartPreview:
                         {
                             "data": [{"count": 10}],
                             "colnames": ["count"],
+                            "coltypes": [0],
                             "rowcount": 1,
                         }
                     ]
@@ -584,7 +1100,7 @@ class TestGetChartPreview:
 
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
-                return object()
+                return SimpleNamespace(form_data=kwargs.get("form_data"), queries=[])
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -594,7 +1110,16 @@ class TestGetChartPreview:
                 pass
 
             def run(self) -> dict[str, Any]:
-                return {"queries": [{"data": None, "colnames": [], "rowcount": 0}]}
+                return {
+                    "queries": [
+                        {
+                            "data": None,
+                            "colnames": [],
+                            "coltypes": [],
+                            "rowcount": 0,
+                        }
+                    ]
+                }
 
         monkeypatch.setattr(
             query_context_factory_module,
@@ -670,7 +1195,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(form_data=kwargs.get("form_data"), queries=[])
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -685,6 +1210,7 @@ class TestGetChartPreview:
                         {
                             "data": [{"gender": "boy", "count": 1}],
                             "colnames": ["gender", "count"],
+                            "coltypes": [0, 0],
                             "rowcount": 1,
                         }
                     ]
@@ -784,6 +1310,142 @@ class TestGetChartPreview:
         assert isinstance(result, ChartPreview)
         query = captured_query_contexts[0]["queries"][0]
         assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("preview_format", ["table", "ascii", "vega_lite"])
+    async def test_extra_form_data_filters_reach_preview_query(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        preview_format: str,
+    ) -> None:
+        """extra_form_data (e.g. a dashboard's active native filters) must merge
+        into the preview query so the preview reflects the filtered view, for
+        every render format (each strategy builds its own query context)."""
+        from contextlib import nullcontext
+
+        get_chart_preview_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_preview"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        class AsyncContext:
+            async def debug(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def error(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def info(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def report_progress(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def warning(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"gender": "girl", "count": 1}],
+                            "colnames": ["gender", "count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        chart = SimpleNamespace(
+            id=42,
+            slice_name="Saved Chart Preview",
+            viz_type="table",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "table",
+                    "groupby": ["gender"],
+                    "metrics": ["count"],
+                    "adhoc_filters": [],
+                }
+            ),
+        )
+
+        monkeypatch.setattr(
+            get_chart_preview_module,
+            "find_chart_by_identifier",
+            lambda identifier: chart,
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module,
+            "validate_chart_dataset",
+            lambda *args, **kwargs: SimpleNamespace(
+                is_valid=True,
+                warnings=[],
+                error=None,
+            ),
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module.db.session,
+            "refresh",
+            lambda chart: None,
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module.event_logger,
+            "log_context",
+            lambda **kwargs: nullcontext(),
+        )
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module,
+            "ChartDataCommand",
+            ChartDataCommand,
+        )
+
+        await get_chart_preview_module._get_chart_preview_internal(
+            GetChartPreviewRequest(
+                identifier=42,
+                format=preview_format,
+                extra_form_data={
+                    "filters": [{"col": "gender", "op": "==", "val": "girl"}]
+                },
+            ),
+            AsyncContext(),
+        )
+
+        # Each strategy builds its own query context; assert the forwarded filter
+        # reached the query regardless of render format (the capture happens before
+        # any format-specific rendering).
+        query = captured_query_contexts[0]["queries"][0]
+        assert {
+            "col": "gender",
+            "op": "==",
+            "val": "girl",
+            "isExtra": True,
+        } in query["filters"]
 
     @pytest.mark.asyncio
     async def test_preview_dimensions(self):
@@ -1439,3 +2101,623 @@ def test_authorize_guest_query_noop_for_non_guest() -> None:
         strategy._authorize_guest_query(MagicMock())
 
     mock_authorize.assert_not_called()
+
+
+@pytest.mark.parametrize("stored_viz_type", [None, "table", "gauge_chart"])
+@pytest.mark.parametrize(
+    "strategy", [ASCIIPreviewStrategy, TablePreviewStrategy, VegaLitePreviewStrategy]
+)
+def test_saved_gauge_dispatch_and_validation_agree(
+    stored_viz_type: str | None, strategy: type[PreviewFormatStrategy]
+) -> None:
+    """Saved chart identity drives query construction and numeric validation."""
+    chart = _gauge_chart()
+    form_data = utils_json.loads(chart.params)
+    form_data["viz_type"] = stored_viz_type
+    chart.params = utils_json.dumps(form_data)
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        build.return_value = SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["saved_sla"])]
+        )
+        command.return_value.run.return_value = {
+            "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
+        }
+        result = strategy(chart, GetChartPreviewRequest(identifier=104)).generate()
+    assert isinstance(result, ChartError)
+    assert result.error_type == "NonNumericGaugeMetric"
+    assert build.call_args.args[0]["viz_type"] == "gauge_chart"
+
+
+@pytest.mark.parametrize(
+    "strategy", [ASCIIPreviewStrategy, TablePreviewStrategy, VegaLitePreviewStrategy]
+)
+def test_saved_gauge_preview_skips_empty_aggregate_groups(
+    strategy: type[PreviewFormatStrategy],
+) -> None:
+    """Every saved preview format retains the finite dial from mixed query output."""
+    chart = _gauge_chart()
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        build.return_value = SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["saved_sla"])]
+        )
+        command.return_value.run.return_value = {
+            "queries": [
+                {
+                    "data": [
+                        {"team": "Empty", "saved_sla": None},
+                        {"team": "NaN", "saved_sla": float("nan")},
+                        {"team": "Blue", "saved_sla": 42},
+                    ]
+                }
+            ]
+        }
+        result = strategy(chart, GetChartPreviewRequest(identifier=104)).generate()
+    assert not isinstance(result, ChartError)
+    if isinstance(result, VegaLitePreview):
+        assert [row["saved_sla"] for row in result.specification["data"]["values"]] == [
+            42
+        ]
+    elif isinstance(result, TablePreview):
+        assert result.row_count == 1
+        assert "Blue" in result.table_data
+        assert "Empty" not in result.table_data
+    else:
+        assert "Blue" in result.ascii_content
+        assert "Empty" not in result.ascii_content
+
+
+@pytest.mark.parametrize(
+    ("viz_type", "form_data", "expects_empty_preview"),
+    [
+        (
+            "bubble_v2",
+            {"entity": "name", "x": "x_metric", "y": "y_metric", "size": "size"},
+            True,
+        ),
+        ("gauge_chart", {"metric": "count"}, True),
+        ("bar", {"x_axis": "region", "metrics": ["count"]}, False),
+        (
+            "gantt_chart",
+            {"start_time": "start_time", "end_time": "end_time", "y_axis": "task"},
+            True,
+        ),
+    ],
+)
+def test_saved_vega_preview_empty_result_honors_allows_empty_result(
+    viz_type: str, form_data: dict[str, Any], expects_empty_preview: bool
+) -> None:
+    """Only plugins declaring ``allows_empty_result`` render an empty result;
+    every other saved chart keeps the explicit NoDataError response."""
+    chart = SimpleNamespace(
+        id=1,
+        slice_name="Empty",
+        viz_type=viz_type,
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps({**form_data, "viz_type": viz_type}),
+    )
+    strategy = VegaLitePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=1, format="vega_lite")
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch.object(strategy, "_authorize_guest_query"),
+    ):
+        command.return_value.run.return_value = {"queries": [{"data": []}]}
+        preview = strategy.generate()
+
+    if expects_empty_preview:
+        assert isinstance(preview, VegaLitePreview)
+        assert preview.specification["data"]["values"] == []
+    else:
+        assert isinstance(preview, ChartError)
+        assert preview.error_type == "NoDataError"
+
+
+@pytest.mark.parametrize("viz_type", ["funnel", "sankey", "radar", "unknown"])
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_preview_fallback_dispatch(
+    mock_build_query_context: MagicMock, mock_command: MagicMock, viz_type: str
+) -> None:
+    """Saved previews use funnel, unsupported, or generic fallback contracts."""
+    chart = SimpleNamespace(
+        id=109,
+        viz_type=viz_type,
+        params=utils_json.dumps(
+            {"viz_type": viz_type, "groupby": ["stage"], "metric": "value"}
+        ),
+        datasource_id=1,
+        datasource_type="table",
+    )
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["value"], columns=["stage"])]
+    )
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"stage": "Visit", "value": 10}]}]
+    }
+    result = VegaLitePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=109, format="vega_lite")
+    ).generate()
+    if viz_type in ("sankey", "radar"):
+        assert isinstance(result, ChartError)
+        assert result.error_type == "UnsupportedFormat"
+    else:
+        assert isinstance(result, VegaLitePreview)
+        if viz_type == "funnel":
+            assert result.specification["encoding"]["y"]["field"] == "stage"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("user_id", [11, 29])
+async def test_png_preview_renders_as_caller_in_isolated_context(app_context, user_id):
+    import base64
+    import threading
+    from io import BytesIO
+
+    from flask import g
+    from PIL import Image
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    caller_thread = threading.get_ident()
+    g.user = SimpleNamespace(id=user_id)
+    g.request_marker = "request-only"
+    user = SimpleNamespace(id=user_id, is_active=True)
+    chart = SimpleNamespace(id=104)
+    png = BytesIO()
+    Image.new("RGB", (80, 60), "white").save(png, format="PNG")
+
+    def screenshot(url, element, *, user):
+        assert threading.get_ident() != caller_thread
+        assert g.user.id == user_id
+        assert not hasattr(g, "request_marker")
+        assert user.id == user_id
+        assert url == "http://localhost/superset/slice/104/?standalone=true"
+        assert element == "chart-container"
+        return png.getvalue()
+
+    with (
+        patch.object(module, "security_manager", new=MagicMock()) as manager,
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(module.guest_scope, "is_guest_read", return_value=False),
+        patch("superset.is_feature_enabled", return_value=False),
+        patch(
+            "superset.utils.urls.get_url_path",
+            return_value="http://localhost/superset/slice/104/?standalone=true",
+        ),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as browser_manager,
+        patch("superset.utils.webdriver.WebDriverPlaywright") as driver,
+    ):
+        manager.find_user.return_value = user
+        driver.return_value.get_screenshot.side_effect = screenshot
+        result = await module._generate_png_preview(
+            104, GetChartPreviewRequest(identifier=104, format="png")
+        )
+        assert base64.b64decode(result.data) == png.getvalue()
+        assert (result.width, result.height) == (80, 60)
+        manager.raise_for_access.assert_called_once_with(chart=chart)
+        browser_manager.return_value._cleanup.assert_called_once()
+        assert (
+            driver.call_args.kwargs["browser_manager"] is browser_manager.return_value
+        )
+        assert g.request_marker == "request-only"
+        assert g.user.id == user_id
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "guest,kwargs",
+    [
+        (True, {}),
+        (False, {"form_data_key": "unsaved"}),
+        (False, {"extra_form_data": {"filters": []}}),
+    ],
+)
+async def test_png_preview_rejects_unpropagated_context(app_context, guest, kwargs):
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    with (
+        patch.object(module.guest_scope, "is_guest_read", return_value=guest),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as manager,
+    ):
+        result = await module._generate_png_preview(
+            104, GetChartPreviewRequest(identifier=104, format="png", **kwargs)
+        )
+        assert result.error_type == "UnsupportedFormat"
+        manager.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["denied", "missing", "inactive", "export"])
+async def test_png_preview_authorizes_before_browser(app_context, failure):
+    from flask import g
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    g.user = SimpleNamespace(id=11)
+    with (
+        patch.object(module, "security_manager", new=MagicMock()) as manager,
+        patch.object(
+            module,
+            "find_chart_by_identifier",
+            return_value=None if failure == "missing" else SimpleNamespace(id=104),
+        ),
+        patch.object(module.guest_scope, "is_guest_read", return_value=False),
+        patch("superset.is_feature_enabled", return_value=failure == "export"),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as browser,
+    ):
+        manager.find_user.return_value = SimpleNamespace(
+            id=11, is_active=failure != "inactive"
+        )
+        manager.can_access.return_value = False
+        if failure == "denied":
+            # raise_for_access raises SupersetSecurityException on denial; the
+            # message must not leak into the client-facing error.
+            manager.raise_for_access.side_effect = SupersetSecurityException(
+                SupersetError(
+                    message="secret denied URL",
+                    error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+        result = await module._generate_png_preview(
+            104, GetChartPreviewRequest(identifier=104, format="png")
+        )
+        assert isinstance(result, ChartError)
+        assert "secret" not in result.error
+        if failure == "denied":
+            # Authorization denials must surface as Forbidden, not RenderError.
+            assert result.error_type == "Forbidden"
+        browser.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("image", [None, b"not an image", b"\xff\xd8\xffjpeg"])
+async def test_png_preview_cleans_up_failed_capture(app_context, image):
+    from flask import g
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    g.user = SimpleNamespace(id=11)
+    with (
+        patch.object(module, "security_manager", new=MagicMock()) as manager,
+        patch.object(
+            module, "find_chart_by_identifier", return_value=SimpleNamespace(id=104)
+        ),
+        patch.object(module.guest_scope, "is_guest_read", return_value=False),
+        patch("superset.is_feature_enabled", return_value=False),
+        patch(
+            "superset.utils.urls.get_url_path",
+            return_value="http://localhost/chart/104",
+        ),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as browser,
+        patch("superset.utils.webdriver.WebDriverPlaywright") as driver,
+    ):
+        manager.find_user.return_value = SimpleNamespace(id=11, is_active=True)
+        driver.return_value.get_screenshot.return_value = image
+        result = await module._generate_png_preview(
+            104, GetChartPreviewRequest(identifier=104, format="png")
+        )
+        assert result.error_type == "RenderError"
+        browser.return_value._cleanup.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_png_preview_cleans_up_browser_exception(app_context):
+    from flask import g
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    g.user = SimpleNamespace(id=11)
+    with (
+        patch.object(module, "security_manager", new=MagicMock()) as manager,
+        patch.object(
+            module, "find_chart_by_identifier", return_value=SimpleNamespace(id=104)
+        ),
+        patch.object(module.guest_scope, "is_guest_read", return_value=False),
+        patch("superset.is_feature_enabled", return_value=False),
+        patch(
+            "superset.utils.urls.get_url_path",
+            return_value="http://localhost/chart/104",
+        ),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as browser,
+        patch("superset.utils.webdriver.WebDriverPlaywright") as driver,
+    ):
+        manager.find_user.return_value = SimpleNamespace(id=11, is_active=True)
+        driver.return_value.get_screenshot.side_effect = RuntimeError(
+            "sensitive page data"
+        )
+        result = await module._generate_png_preview(
+            104, GetChartPreviewRequest(identifier=104, format="png")
+        )
+        assert result.error_type == "RenderError"
+        assert "sensitive" not in result.error
+        browser.return_value._cleanup.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_png_worker_preserves_parent_mcp_orm_session(app_context):
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+    from sqlalchemy import inspect
+
+    from superset.extensions import db
+    from superset.mcp_service.auth import _mcp_tool_call_context
+    from superset.mcp_service.session_scope import mcp_session_scopefunc
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    with patch.object(db.session.registry, "scopefunc", mcp_session_scopefunc):
+        with _mcp_tool_call_context():
+            g.user = SimpleNamespace(id=11)
+            parent_session = db.session()
+            parent_key = mcp_session_scopefunc()
+            parent_entity = User(username="parent-only")
+            parent_session.add(parent_entity)
+            worker_keys = []
+
+            def lookup(*, id):
+                worker_keys.append(mcp_session_scopefunc())
+                assert db.session() is not parent_session
+                return SimpleNamespace(id=id, is_active=False)
+
+            with (
+                patch.object(module, "security_manager", new=MagicMock()) as manager,
+                patch.object(module.guest_scope, "is_guest_read", return_value=False),
+            ):
+                manager.find_user.side_effect = lookup
+                result = await module._generate_png_preview(
+                    104, GetChartPreviewRequest(identifier=104, format="png")
+                )
+                assert worker_keys
+                assert worker_keys[0] != parent_key
+                assert result.error_type == "Forbidden"
+                assert db.session() is parent_session
+                assert inspect(parent_entity).session is parent_session
+                parent_session.expunge(parent_entity)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("dimension", [0, 63, 4097])
+@pytest.mark.parametrize("field", ["width", "height"])
+async def test_png_preview_rejects_invalid_viewport(app_context, dimension, field):
+    from flask import g
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    g.user = SimpleNamespace(id=11)
+    with (
+        patch.object(module.guest_scope, "is_guest_read", return_value=False),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as browser,
+    ):
+        result = await module._generate_png_preview(
+            104,
+            GetChartPreviewRequest(identifier=104, format="png", **{field: dimension}),
+        )
+        assert result.error_type == "ValidationError"
+        browser.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_png_preview_passes_default_response_size_guard():
+    import base64
+    import os
+    from io import BytesIO
+    from unittest.mock import AsyncMock
+
+    from PIL import Image
+
+    from superset.mcp_service.chart.schemas import PNGPreview
+    from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
+    from superset.mcp_service.middleware import ResponseSizeGuardMiddleware
+    from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+
+    # Actual PNG bytes with enough detail to exceed the default text budget.
+    png = BytesIO()
+    Image.frombytes("L", (800, 600), os.urandom(800 * 600)).save(png, format="PNG")
+    preview = PNGPreview(
+        data=base64.b64encode(png.getvalue()).decode("ascii"), width=800, height=600
+    )
+    response = {"content": preview.model_dump()}
+    assert get_response_size_bytes(response) > MCP_RESPONSE_SIZE_CONFIG["max_bytes"]
+    context = MagicMock()
+    context.message.name = "get_chart_preview"
+    context.message.arguments = {"identifier": 104, "format": "png"}
+    call_next = AsyncMock(return_value=response)
+    middleware = ResponseSizeGuardMiddleware(
+        max_bytes=MCP_RESPONSE_SIZE_CONFIG["max_bytes"],
+        excluded_tools=MCP_RESPONSE_SIZE_CONFIG["excluded_tools"],
+    )
+    result = await middleware.on_call_tool(context, call_next)
+    assert PNGPreview.model_validate(result["content"]) == preview
+    call_next.assert_awaited_once_with(context)
+
+
+@pytest.mark.asyncio
+async def test_png_workers_do_not_starve_auth_or_release_on_cancellation():
+    import asyncio
+    import threading
+    from contextvars import ContextVar
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    started = [threading.Event(), threading.Event(), threading.Event()]
+    release = threading.Event()
+    marker = ContextVar("png_test_marker", default=None)
+    marker.set("caller")
+
+    def render(index):
+        assert marker.get() == "caller"
+        started[index].set()
+        assert release.wait(timeout=10)
+        return None
+
+    tasks = [
+        asyncio.create_task(module._run_png_render(lambda i=i: render(i)))
+        for i in range(3)
+    ]
+    try:
+        for event in started[:2]:
+            assert await asyncio.to_thread(event.wait, 5)
+        assert not started[2].is_set()
+        tasks[0].cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await tasks[0]
+        assert not started[2].is_set()
+        assert await asyncio.wait_for(asyncio.to_thread(lambda: "auth"), 1) == "auth"
+    finally:
+        release.set()
+        await asyncio.gather(*tasks, return_exceptions=True)
+    assert started[2].is_set()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("size", [800, 4096])
+async def test_png_response_budget_over_real_mcp_transport(size):
+    import base64
+    import os
+    from io import BytesIO
+
+    from fastmcp import Client, FastMCP
+    from fastmcp.exceptions import ToolError
+    from PIL import Image
+
+    from superset.mcp_service.middleware import ResponseSizeGuardMiddleware
+
+    png = BytesIO()
+    Image.frombytes("L", (size, size), os.urandom(size * size)).save(png, format="PNG")
+    encoded = base64.b64encode(png.getvalue()).decode("ascii")
+    server = FastMCP("PNG budget test")
+    server.add_middleware(ResponseSizeGuardMiddleware())
+
+    @server.tool
+    def get_chart_preview() -> dict:
+        return {
+            "content": {"type": "png", "data": encoded, "width": size, "height": size}
+        }
+
+    async with Client(server) as client:
+        if size == 4096:
+            with pytest.raises(ToolError, match="PNG preview.*1000000.*smaller"):
+                await client.call_tool("get_chart_preview")
+        else:
+            result = await client.call_tool("get_chart_preview")
+            assert result.data["content"]["data"] == encoded
+
+
+@pytest.mark.asyncio
+async def test_png_over_budget_rejection_is_audited():
+    from unittest.mock import AsyncMock, patch
+
+    from fastmcp.exceptions import ToolError
+
+    from superset.mcp_service.middleware import ResponseSizeGuardMiddleware
+    from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+
+    response = {"content": {"type": "png", "data": "A" * 4000}}
+    actual_bytes = get_response_size_bytes(response)
+    budget = actual_bytes - 1
+    middleware = ResponseSizeGuardMiddleware(png_max_bytes=budget)
+    context = MagicMock()
+    context.message.name = "get_chart_preview"
+    with (
+        patch("superset.mcp_service.middleware.get_user_id", return_value=7),
+        patch("superset.mcp_service.middleware.event_logger") as mock_event_logger,
+        patch(
+            "superset.mcp_service.middleware.run_in_metadata_thread",
+            new=AsyncMock(side_effect=lambda fn, *args, **kwargs: fn(*args, **kwargs)),
+        ) as mock_hop,
+        pytest.raises(ToolError, match="PNG preview"),
+    ):
+        await middleware.on_call_tool(context, AsyncMock(return_value=response))
+
+    # The audit write must hop off the transport loop rather than run inline.
+    mock_hop.assert_awaited_once()
+    assert mock_hop.await_args.args[0] is mock_event_logger.log
+    mock_event_logger.log.assert_called_once()
+    kwargs = mock_event_logger.log.call_args.kwargs
+    assert kwargs["user_id"] == 7
+    assert kwargs["action"] == "mcp_response_size_exceeded"
+    assert kwargs["curated_payload"] == {
+        "tool": "get_chart_preview",
+        "actual_bytes": actual_bytes,
+        "max_bytes": budget,
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("preview_type", ["ascii", "table", "vega_lite"])
+async def test_non_png_previews_keep_text_response_budget(preview_type):
+    from unittest.mock import AsyncMock
+
+    from fastmcp.exceptions import ToolError
+
+    from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
+    from superset.mcp_service.middleware import ResponseSizeGuardMiddleware
+
+    middleware = ResponseSizeGuardMiddleware(
+        excluded_tools=MCP_RESPONSE_SIZE_CONFIG["excluded_tools"],
+    )
+    context = MagicMock()
+    context.message.name = "get_chart_preview"
+    # The returned format, not caller-supplied arguments, chooses the limit.
+    context.message.arguments = {"format": "png"}
+    response = {"content": {"type": preview_type, "data": "x" * 60_000}}
+    with pytest.raises(ToolError):
+        await middleware.on_call_tool(context, AsyncMock(return_value=response))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("headroom", [0, -1])
+async def test_png_budget_counts_metadata_at_exact_boundary(headroom):
+    from unittest.mock import AsyncMock
+
+    from fastmcp.exceptions import ToolError
+
+    from superset.mcp_service.middleware import ResponseSizeGuardMiddleware
+    from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+
+    response = {"chart_name": "A chart", "content": {"type": "png", "data": "AAAA"}}
+    budget = get_response_size_bytes(response) + headroom
+    middleware = ResponseSizeGuardMiddleware(png_max_bytes=budget)
+    context = MagicMock()
+    context.message.name = "get_chart_preview"
+    call_next = AsyncMock(return_value=response)
+    if headroom < 0:
+        with pytest.raises(ToolError, match="PNG preview"):
+            await middleware.on_call_tool(context, call_next)
+    else:
+        assert await middleware.on_call_tool(context, call_next) is response

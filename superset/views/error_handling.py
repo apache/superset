@@ -31,6 +31,8 @@ from flask import (
     send_file,
 )
 from flask_babel import gettext as _
+from flask_babel.speaklater import LazyString
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFError
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
@@ -72,7 +74,7 @@ def get_error_level_from_status(
 
 
 def json_error_response(
-    error_details: str | SupersetError | list[SupersetError] | None = None,
+    error_details: str | LazyString | SupersetError | list[SupersetError] | None = None,
     status: int = 500,
     payload: dict[str, Any] | None = None,
 ) -> FlaskResponse:
@@ -88,6 +90,15 @@ def json_error_response(
         ]
     elif isinstance(error_details, str):
         payload["error"] = sanitize_error_message(error_details, status)
+    elif isinstance(error_details, LazyString):
+        # A flask-babel LazyString fails the isinstance(str) check above,
+        # and the body used to silently degrade to ``{}`` — an error
+        # response whose status said "denied" but whose payload said
+        # nothing. Coerce so the message survives; call sites should still
+        # prefer the eager gettext alias for error bodies. Deliberately
+        # narrow: any OTHER out-of-contract object keeps degrading to an
+        # empty body rather than leaking ``str(obj)`` to the client.
+        payload["error"] = sanitize_error_message(str(error_details), status)
 
     return Response(
         json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
@@ -128,7 +139,7 @@ def handle_api_exception(  # noqa: C901
     exceptions.
     """
 
-    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
+    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:  # noqa: C901
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
@@ -165,6 +176,9 @@ def handle_api_exception(  # noqa: C901
             return json_error_response(utils.error_msg_from_exception(ex), status=422)
         except sshtunnel.BaseSSHTunnelForwarderError as ex:
             return handle_ssh_tunnel_error(ex)
+        except NoAuthorizationError as ex:
+            logger.warning("Api failed- no authorization", exc_info=True)
+            return json_error_response(str(ex), status=401)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(utils.error_msg_from_exception(ex))
@@ -218,13 +232,33 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         logger.warning("Refresh CSRF token error", exc_info=True)
 
         if request.is_json:
-            return show_http_exception(ex)
+            return json_error_response(
+                [
+                    SupersetError(
+                        message=ex.description
+                        or _("The CSRF token could not be validated."),
+                        error_type=SupersetErrorType.CSRF_ERROR,
+                        level=ErrorLevel.WARNING,
+                    ),
+                ],
+                status=ex.code or 400,
+            )
 
         return redirect_to_login()
 
     @app.errorhandler(HTTPException)
     def show_http_exception(ex: HTTPException) -> FlaskResponse:
-        logger.warning("HTTPException", exc_info=True)
+        status = ex.code or 500
+        if status == 404 and request.url_rule is None:
+            # Only unmatched URLs (routing NotFound) are demoted; scanner
+            # traffic makes them frequent and they carry no server-side signal.
+            # A 404 raised inside a matched view is kept at WARNING because
+            # views also use abort(404) to mask authorization denials.
+            logger.debug("HTTPException: 404 %r", request.path)
+        elif status < 500:
+            logger.warning("HTTPException: %r on %r", str(ex), request.path)
+        else:
+            logger.warning("HTTPException", exc_info=True)
 
         if (
             "text/html" in request.accept_mimetypes
@@ -294,7 +328,16 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
 
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
-            return send_file(path, max_age=0), 500
+            # Try to serve HTML file; fall back to JSON if it can't be read. This
+            # is the last-resort handler, so ``500.html`` being absent (a webpack
+            # artifact missing in API-only/unbuilt deployments) or unreadable must
+            # not raise its own ``OSError`` and collapse the response to a bare
+            # 500 with no SIP-40 body. A sibling handler whose ``send_file`` raises
+            # lands here too, so it degrades to a SIP-40 500 rather than a bare one.
+            try:
+                return send_file(path, max_age=0), 500
+            except OSError:
+                pass
 
         return json_error_response(
             [

@@ -18,10 +18,11 @@ from __future__ import annotations
 
 import base64
 import logging
+import uuid
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import cast, TYPE_CHECKING, TypedDict
+from typing import Any, cast, TYPE_CHECKING, TypedDict
 
 from flask import current_app as app
 
@@ -32,6 +33,8 @@ from superset.exceptions import (
     ScreenshotImageNotAvailableException,
 )
 from superset.extensions import event_logger
+from superset.key_value.types import JsonKeyValueCodec
+from superset.key_value.utils import get_uuid_namespace
 from superset.utils.hashing import hash_from_dict
 from superset.utils.report_execution import ReportExecutionContext
 from superset.utils.urls import modify_url_query
@@ -51,6 +54,10 @@ DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
 DEFAULT_CHART_WINDOW_SIZE = DEFAULT_CHART_THUMBNAIL_SIZE = 800, 600
 DEFAULT_DASHBOARD_WINDOW_SIZE = 1600, 1200
 DEFAULT_DASHBOARD_THUMBNAIL_SIZE = 800, 600
+# Bounds how far THUMBNAIL_UPDATED_CACHE_TTL extends the API request pointer, so
+# a very large or infinite TTL (refresh effectively disabled) cannot overflow the
+# pointer's expiry datetime.
+MAX_API_POINTER_TTL_EXTENSION_SECONDS = 10 * 365 * 24 * 60 * 60
 
 try:
     from PIL import Image
@@ -61,12 +68,18 @@ if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
     from flask_caching import Cache
 
+    from superset.extensions.metastore_cache import SupersetMetastoreCache
+
 
 class StatusValues(Enum):
     PENDING = "Pending"
     COMPUTING = "Computing"
     UPDATED = "Updated"
     ERROR = "Error"
+
+
+class ScreenshotCacheError(RuntimeError):
+    """Raised when screenshot state cannot be read or persisted."""
 
 
 class ScreenshotCachePayloadType(TypedDict):
@@ -80,6 +93,11 @@ class ScreenshotCachePayloadType(TypedDict):
     # until the entry is recomputed. Optional at the type level via `.get()`
     # in `from_dict` for that reason.
     scope: str | None
+
+
+class DashboardScreenshotPointerType(TypedDict):
+    cache_key: str
+    scope: str
 
 
 # Magic bytes for a cheap image sanity check. This is intentionally not a full
@@ -117,7 +135,7 @@ class ScreenshotCachePayload:
 
     @classmethod
     def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
-        return cls(
+        instance = cls(
             image=base64.b64decode(payload["image"]) if payload["image"] else None,
             status=StatusValues(payload["status"]),
             timestamp=payload["timestamp"],
@@ -125,6 +143,14 @@ class ScreenshotCachePayload:
             # field existed won't have the key.
             scope=payload.get("scope"),
         )
+        # `__init__` infers UPDATED whenever an image is present -- convenient for
+        # the `ScreenshotCachePayload(image=bytes)` and legacy bytes-reconstruction
+        # paths, but wrong when rehydrating a persisted entry: an ERROR or COMPUTING
+        # entry keeps its previous image, and re-inferring UPDATED here would mask it
+        # as fresh and bypass the shorter ERROR/COMPUTING recovery TTLs. Restore the
+        # persisted status explicitly.
+        instance.status = StatusValues(payload["status"])
+        return instance
 
     def to_dict(self) -> ScreenshotCachePayloadType:
         return {
@@ -159,10 +185,24 @@ class ScreenshotCachePayload:
         self.status = StatusValues.UPDATED
         self._image = image
 
-    def error(
-        self,
-    ) -> None:
+    def retain_image(self, image: bytes | None) -> None:
+        """Attach an already-rendered image without changing status or timestamp.
+
+        Unlike ``update`` (which marks the entry ``UPDATED``), this leaves the
+        status in progress. It is used when a staleness refresh publishes a
+        successor generation: carrying the prior generation's last-good image
+        keeps the read path serving it while the refresh renders, and a failed
+        render that transitions to ``ERROR`` retains it (``error()`` without
+        ``discard_image``) instead of leaving ``image_url`` at 404. Keeping the
+        successor ``PENDING`` means concurrent producers still coalesce and the
+        worker's ``should_trigger_task`` still recomputes it.
+        """
+        self._image = image
+
+    def error(self, *, discard_image: bool = False) -> None:
         self.update_timestamp()
+        if discard_image:
+            self._image = None
         self.status = StatusValues.ERROR
 
     def get_image(self) -> BytesIO:
@@ -177,27 +217,142 @@ class ScreenshotCachePayload:
         return self.status.value
 
     def get_invalid_image_reason(self) -> str | None:
-        """Reason this payload's image should not be served/cached, or None if
-        it passes validation (or it isn't claiming a successful screenshot)."""
-        if self.status != StatusValues.UPDATED:
+        # Validate whenever an image is present, regardless of status: retained
+        # ERROR/COMPUTING entries still carry their previous image and are now
+        # served by the read paths, so a corrupt/blank retained image must be
+        # rejected (treated as a cache miss) too.
+        if self._image is None:
             return None
         return validate_screenshot_image(self._image)
 
+    def _age_seconds(self) -> float | None:
+        """Seconds since this entry's timestamp.
+
+        Timestamps are stored NAIVE (``datetime.now().isoformat()``), so the age
+        is computed against a naive ``datetime.now()``. Keeping the naive format
+        means old pods reading entries written by a newer pod (and vice versa)
+        during a rolling deploy never hit a naive-minus-aware ``TypeError``.
+
+        Corrupt or offset-aware timestamps return None so callers can recover.
+        Negative ages are preserved and read as fresh by every caller: a worker
+        whose clock (or timezone) runs ahead of the web host writes timestamps
+        that look in the future, and treating those as expired would make the
+        web tier re-enqueue every request instead of converging. Such an entry
+        expires once its web-clock age passes the TTL, i.e. after TTL + skew.
+        """
+        try:
+            age = (
+                datetime.now() - datetime.fromisoformat(self.get_timestamp())
+            ).total_seconds()
+        except (ValueError, TypeError):
+            logger.warning(
+                "Unusable screenshot cache timestamp %r; "
+                "treating entry as expired/stale",
+                self.get_timestamp(),
+            )
+            return None
+        return age
+
     def is_error_cache_ttl_expired(self) -> bool:
-        error_cache_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+        # strict '>' (an entry exactly at the TTL is still fresh). An unusable
+        # timestamp (age is None) is treated as expired so the entry self-heals.
+        age_seconds = self._age_seconds()
         return (
-            datetime.now() - datetime.fromisoformat(self.get_timestamp())
-        ).total_seconds() > error_cache_ttl
+            age_seconds is None or age_seconds > app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+        )
 
     def is_computing_stale(self) -> bool:
         """Check if a COMPUTING status is stale (task likely failed or stuck)."""
-        computing_ttl = app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
-        return (
-            datetime.now() - datetime.fromisoformat(self.get_timestamp())
-        ).total_seconds() >= computing_ttl
+        return self.is_in_progress_stale()
+
+    def is_in_progress_stale(self, max_age_seconds: float | None = None) -> bool:
+        """Check if a pending or computing request has exceeded its lease."""
+        # '>=' (unlike the strict '>' of the ERROR/UPDATED helpers). An unusable
+        # timestamp (age is None) is treated as stale so the entry self-heals.
+        computing_ttl = (
+            max_age_seconds
+            if max_age_seconds is not None
+            else app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
+        )
+        age_seconds = self._age_seconds()
+        return age_seconds is None or age_seconds >= computing_ttl
+
+    def is_updated_stale(self) -> bool:
+        """Return whether an UPDATED entry needs refreshing when freshness is enabled.
+
+        An unset/zero TTL disables the check. Unusable timestamps are stale so
+        the entry self-heals. Future timestamps (negative ages) are fresh, like
+        the ERROR backoff and COMPUTING lease checks, so a worker clock running
+        ahead of the web host cannot turn every just-rendered image into a
+        refresh; the entry expires once real age exceeds TTL plus the skew.
+        """
+        # `.get` (not `[]` like the sibling ERROR/COMPUTING helpers) on purpose:
+        # a deployment whose config predates this key should silently disable the
+        # feature, not raise KeyError. Checked first so a disabled feature never
+        # parses/logs an unusable timestamp.
+        updated_ttl = app.config.get("THUMBNAIL_UPDATED_CACHE_TTL")
+        if not updated_ttl:  # None or 0 => disabled
+            return False
+        # strict '>' (an image exactly at the TTL is still fresh), matching
+        # is_error_cache_ttl_expired -- not the '>=' of is_computing_stale. An
+        # unusable timestamp (age is None) is treated as stale so it self-heals.
+        age_seconds = self._age_seconds()
+        return age_seconds is None or age_seconds > updated_ttl
+
+    def is_in_progress(self) -> bool:
+        """Return whether screenshot computation has not reached a terminal state."""
+
+        return self.status in (StatusValues.PENDING, StatusValues.COMPUTING)
+
+    def is_updated(self) -> bool:
+        """Return whether screenshot computation completed successfully."""
+
+        return self.status == StatusValues.UPDATED
+
+    def should_enqueue_task(
+        self,
+        force: bool = False,
+        expected_scope: str | None = None,
+        force_retry_after_seconds: float | None = None,
+        check_updated_staleness: bool = False,
+    ) -> bool:
+        """Return whether an API producer should enqueue a new generation.
+
+        Fresh pending/computing state is already accepted work for ordinary
+        callers. An explicit forced request may replace it after an optional
+        coalescing window, which lets simultaneous forced requests share one
+        generation while still allowing prompt recovery if a producer died before
+        broker publication. A stale in-progress state remains retryable without
+        force.
+
+        ``check_updated_staleness`` is forwarded to ``should_trigger_task`` so a
+        successfully-rendered (``UPDATED``) entry older than
+        ``THUMBNAIL_UPDATED_CACHE_TTL`` enqueues a refresh for callers that opt in
+        (see ``BaseScreenshot.supports_updated_staleness``).
+        """
+
+        if expected_scope is not None and self._scope != expected_scope:
+            return True
+        if self.is_in_progress():
+            return self.is_in_progress_stale() or (
+                force
+                and (
+                    force_retry_after_seconds is None
+                    or self.is_in_progress_stale(force_retry_after_seconds)
+                )
+            )
+        return self.should_trigger_task(
+            force,
+            expected_scope,
+            check_updated_staleness=check_updated_staleness,
+        )
 
     def should_trigger_task(
-        self, force: bool = False, expected_scope: str | None = None
+        self,
+        force: bool = False,
+        expected_scope: str | None = None,
+        retry_fresh_error: bool = False,
+        check_updated_staleness: bool = False,
     ) -> bool:
         """
         :param expected_scope: The scope (e.g. "dashboard:<id>") the caller
@@ -207,19 +362,30 @@ class ScreenshotCachePayload:
             indistinguishable from a fresh, valid ``UPDATED`` entry, which
             would leave them permanently un-refreshed: the scope check at
             read time rejects them, but nothing ever re-triggers computation.
-            Treat a scope mismatch on an ``UPDATED`` entry as a cache miss so
-            it gets recomputed and re-scoped.
+            Treat a scope mismatch in any state as a cache miss so another
+            object's backoff or computation lease cannot block this request.
+        :param check_updated_staleness: Whether a successfully-rendered
+            (``UPDATED``) entry older than ``THUMBNAIL_UPDATED_CACHE_TTL``
+            should be treated as a cache miss and recomputed. Enabled per
+            screenshot type (see ``BaseScreenshot.supports_updated_staleness``):
+            only ``DashboardScreenshot`` opts in, keeping this fix scoped to the
+            reported dashboard endpoint; the high-traffic card-list thumbnail
+            endpoints never pass it.
         """
         return (
             force
+            or (expected_scope is not None and self._scope != expected_scope)
             or self.status == StatusValues.PENDING
-            or (self.status == StatusValues.ERROR and self.is_error_cache_ttl_expired())
+            or (
+                self.status == StatusValues.ERROR
+                and (retry_fresh_error or self.is_error_cache_ttl_expired())
+            )
             or (self.status == StatusValues.COMPUTING and self.is_computing_stale())
             or (self.status == StatusValues.UPDATED and self._image is None)
             or (
                 self.status == StatusValues.UPDATED
-                and expected_scope is not None
-                and self._scope != expected_scope
+                and check_updated_staleness
+                and self.is_updated_stale()
             )
         )
 
@@ -233,6 +399,11 @@ class BaseScreenshot:
     window_size: WindowSize = DEFAULT_SCREENSHOT_WINDOW_SIZE
     thumb_size: WindowSize = DEFAULT_SCREENSHOT_THUMBNAIL_SIZE
     cache: Cache = thumbnail_cache
+    # Tests may inject an in-memory implementation. Production pointers use the
+    # metadata-backed cache so their atomic publication does not depend on the
+    # configured thumbnail backend supporting conditional writes (S3 and other
+    # object-store caches may not).
+    api_pointer_cache: SupersetMetastoreCache | None = None
     # Set by the caller (e.g. "dashboard:<id>" or "chart:<id>") before
     # compute_and_cache() so the resulting cache entry records which object it
     # was rendered for -- callers that later serve a cache entry by a
@@ -240,11 +411,32 @@ class BaseScreenshot:
     # they're authorizing, since the same cache backend is shared across
     # every dashboard and chart.
     cache_scope: str | None = None
+    # Whether a stale-but-valid UPDATED cache entry should be recomputed on a
+    # force-less on-demand request (see should_trigger_task's
+    # ``check_updated_staleness``). Off by default; only DashboardScreenshot
+    # enables it, keeping this fix scoped to the reported dashboard endpoint.
+    # ChartScreenshot is left out by scope, not by a read-path limit: the chart
+    # endpoint has no producer lock or generation pointer to coalesce a refresh,
+    # so it would rewrite the entry behind its image_url in place (at default
+    # sizes, the same entry the card-list thumbnail serves), and
+    # compute_and_cache reads this flag for every unpinned task, so opting in
+    # would also make compute-thumbnails without --force re-render stale charts.
+    # Of the endpoints, only the on-demand screenshot ones thread this through
+    # -- the high-traffic card-list thumbnail endpoints deliberately call
+    # should_trigger_task() with no args so they never opt into
+    # updated-staleness recompute.
+    supports_updated_staleness: bool = False
 
-    def __init__(self, url: str, digest: str | None):
+    def __init__(
+        self,
+        url: str,
+        digest: str | None,
+        require_complete_capture: bool = False,
+    ) -> None:
         self.digest = digest
         self.url = url
         self.screenshot = None
+        self.require_complete_capture = require_complete_capture
 
     def driver(
         self,
@@ -252,7 +444,11 @@ class BaseScreenshot:
     ) -> WebDriverProxy:
         window_size = window_size or self.window_size
         # Empty string for driver_type — unused by WebDriverPlaywright internals
-        return WebDriverPlaywright("", window_size)
+        return WebDriverPlaywright(
+            "",
+            window_size,
+            require_complete_capture=self.require_complete_capture,
+        )
 
     def get_screenshot(
         self,
@@ -296,19 +492,47 @@ class BaseScreenshot:
         return self.get_from_cache_key(cache_key)
 
     @classmethod
-    def get_from_cache_key(cls, cache_key: str) -> ScreenshotCachePayload | None:
+    def get_from_cache_key(
+        cls,
+        cache_key: str,
+        *,
+        raise_on_error: bool = False,
+    ) -> ScreenshotCachePayload | None:
         logger.info("Attempting to get from cache: %s", cache_key)
-        if payload := cls.cache.get(cache_key):
+        try:
+            payload = cls.cache.get(cache_key)
+        except Exception as ex:  # pylint: disable=broad-except
+            if raise_on_error:
+                raise ScreenshotCacheError(
+                    f"Could not read screenshot cache key {cache_key}"
+                ) from ex
+            # Existing thumbnail/chart callers historically propagate cache
+            # backend failures. Only strict API callers opt into the translated
+            # error above so they can return a deliberate service response.
+            raise
+        if payload:
             # Initially, only bytes were stored. This was changed to store an instance
             # of ScreenshotCachePayload, but since it can't be serialized in all
             # backends it was further changed to a dict of attributes.
-            if isinstance(payload, bytes):
-                payload = ScreenshotCachePayload(payload)
-            elif isinstance(payload, ScreenshotCachePayload):
-                pass
-            elif isinstance(payload, dict):
-                payload = cast(ScreenshotCachePayloadType, payload)
-                payload = ScreenshotCachePayload.from_dict(payload)
+            try:
+                if isinstance(payload, bytes):
+                    payload = ScreenshotCachePayload(payload)
+                elif isinstance(payload, ScreenshotCachePayload):
+                    pass
+                elif isinstance(payload, dict):
+                    payload = cast(ScreenshotCachePayloadType, payload)
+                    payload = ScreenshotCachePayload.from_dict(payload)
+                else:
+                    raise TypeError(
+                        f"Unexpected screenshot cache payload: {type(payload)!r}"
+                    )
+            except (KeyError, TypeError, ValueError):
+                logger.warning(
+                    "Rejecting malformed screenshot cache payload for %s",
+                    cache_key,
+                    exc_info=True,
+                )
+                return None
             if invalid_reason := payload.get_invalid_image_reason():
                 logger.warning(
                     "Rejecting cached screenshot for %s: %s image payload; "
@@ -321,24 +545,99 @@ class BaseScreenshot:
         logger.info("Failed at getting from cache: %s", cache_key)
         return None
 
-    def compute_and_cache(  # pylint: disable=too-many-arguments
+    @classmethod
+    def store_cache_payload(
+        cls,
+        cache_key: str,
+        cache_payload: ScreenshotCachePayload,
+    ) -> None:
+        """Persist screenshot state or raise when the backend rejects it."""
+
+        try:
+            stored = cls.cache.set(cache_key, cache_payload.to_dict())
+        except Exception as ex:  # pylint: disable=broad-except
+            raise ScreenshotCacheError(
+                f"Could not persist screenshot cache key {cache_key}"
+            ) from ex
+        # Flask-Caching permits custom backends whose successful ``set``
+        # returns None, so only an explicit False is a failed write.
+        if stored is False:
+            raise ScreenshotCacheError(
+                f"Could not persist screenshot cache key {cache_key}"
+            )
+
+    @classmethod
+    def mark_cache_error_if_incomplete(cls, cache_key: str, scope: str) -> None:
+        """Mark an accepted generation failed without clobbering another worker."""
+
+        try:
+            with DistributedLock(
+                namespace="thumbnail",
+                key=cache_key,
+                ttl_seconds=app.config["THUMBNAIL_COMPUTING_CACHE_TTL"],
+            ):
+                cache_payload = cls.get_from_cache_key(
+                    cache_key,
+                    raise_on_error=True,
+                )
+                if cache_payload and cache_payload.is_updated():
+                    return
+                cache_payload = cache_payload or ScreenshotCachePayload(scope=scope)
+                # Keep a valid last-good image rendered for this same object so
+                # image_url keeps serving it through the error backoff (e.g. when
+                # broker publication failed after a staleness refresh carried the
+                # prior capture forward). Only drop bytes that fail validation or
+                # were rendered for a different scope -- those must never surface
+                # under this object's authorized URL.
+                discard_image = (
+                    cache_payload.get_scope() != scope
+                    or cache_payload.get_invalid_image_reason() is not None
+                )
+                cache_payload.set_scope(scope)
+                cache_payload.error(discard_image=discard_image)
+                cls.store_cache_payload(cache_key, cache_payload)
+        except LockAlreadyHeldException:
+            # A worker owns the generation and will persist its terminal state.
+            logger.info(
+                "Not replacing active screenshot generation with Error: %s",
+                cache_key,
+            )
+        except ScreenshotCacheError:
+            logger.exception(
+                "Could not persist screenshot Error state for %s",
+                cache_key,
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "Could not coordinate screenshot Error state for %s",
+                cache_key,
+            )
+
+    def compute_and_cache(  # pylint: disable=too-many-arguments  # noqa: C901
         self,
         force: bool,
         user: User = None,
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
         cache_key: str | None = None,
+        retry_fresh_error: bool = False,
     ) -> None:
         """
         Computes the thumbnail and caches the result
 
         :param user: If no user is given will use the current context
-        :param cache: The cache to keep the thumbnail payload
+        :param cache_key: The cache key to store the thumbnail payload under.
+            Complete captures with an explicit key pin an API generation, whose
+            completed result must survive duplicate deliveries unchanged.
         :param window_size: The window size from which will process the thumb
         :param thumb_size: The final thumbnail size
         :param force: Will force the computation even if it's already cached
         :return: Image payload
         """
+        is_pinned_generation = cache_key is not None and self.require_complete_capture
+        check_updated_staleness = (
+            self.supports_updated_staleness and not is_pinned_generation
+        )
         cache_key = cache_key or self.get_cache_key(window_size, thumb_size)
         try:
             with DistributedLock(
@@ -347,10 +646,17 @@ class BaseScreenshot:
                 ttl_seconds=app.config["THUMBNAIL_COMPUTING_CACHE_TTL"],
             ):
                 cache_payload = (
-                    self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
+                    self.get_from_cache_key(
+                        cache_key,
+                        raise_on_error=self.require_complete_capture,
+                    )
+                    or ScreenshotCachePayload()
                 )
                 if not cache_payload.should_trigger_task(
-                    force=force, expected_scope=self.cache_scope
+                    force=force,
+                    expected_scope=self.cache_scope,
+                    retry_fresh_error=retry_fresh_error,
+                    check_updated_staleness=check_updated_staleness,
                 ):
                     logger.info(
                         "Skipping compute - already processed for thumbnail: %s",
@@ -361,11 +667,30 @@ class BaseScreenshot:
                 window_size = window_size or self.window_size
                 thumb_size = thumb_size or self.thumb_size
                 logger.info("Processing url for thumbnail: %s", cache_key)
+                if (
+                    self.cache_scope is not None
+                    and cache_payload.get_scope() != self.cache_scope
+                ):
+                    # Rebinding a cache entry to a different object (the
+                    # scope-mismatch clause of should_trigger_task fired): never
+                    # carry the previous scope's image into the new one. The read
+                    # paths serve any valid retained image regardless of status, so
+                    # bytes left on a rescoped COMPUTING/ERROR entry would be
+                    # servable under the new object's authorized URL. Start the
+                    # rebind from a clean, imageless payload.
+                    cache_payload = ScreenshotCachePayload()
                 cache_payload.set_scope(self.cache_scope)
                 cache_payload.computing()
-                self.cache.set(cache_key, cache_payload.to_dict())
+                last_good_image: bytes | None = None
+                if self.require_complete_capture:
+                    try:
+                        last_good_image = cache_payload.get_image().getvalue()
+                    except ScreenshotImageNotAvailableException:
+                        pass
+                    self.store_cache_payload(cache_key, cache_payload)
+                else:
+                    self.cache.set(cache_key, cache_payload.to_dict())
                 image = None
-                # Assuming all sorts of things can go wrong with Selenium
                 try:
                     logger.info(
                         "trying to generate screenshot for cache_key=%s", cache_key
@@ -428,7 +753,37 @@ class BaseScreenshot:
                         cache_payload.error()
 
                 logger.info("Caching thumbnail: %s", cache_key)
-                self.cache.set(cache_key, cache_payload.to_dict())
+                if self.require_complete_capture:
+                    try:
+                        self.store_cache_payload(cache_key, cache_payload)
+                    except ScreenshotCacheError:
+                        if cache_payload.status == StatusValues.UPDATED:
+                            # Image-bearing writes can be rejected by bounded
+                            # caches. Prefer the validated same-scope image from
+                            # before rendering, then a small terminal Error if
+                            # the backend cannot store that retained image either.
+                            cache_payload.error(discard_image=True)
+                            fallback_images = (
+                                (last_good_image, None)
+                                if last_good_image is not None
+                                else (None,)
+                            )
+                            for fallback_image in fallback_images:
+                                cache_payload.retain_image(fallback_image)
+                                try:
+                                    self.store_cache_payload(cache_key, cache_payload)
+                                except ScreenshotCacheError:
+                                    if fallback_image is None:
+                                        logger.exception(
+                                            "Could not persist fallback Error state "
+                                            "for %s",
+                                            cache_key,
+                                        )
+                                else:
+                                    break
+                        raise
+                else:
+                    self.cache.set(cache_key, cache_payload.to_dict())
                 logger.info(
                     "Updated thumbnail cache for %s; Status: %s",
                     cache_key,
@@ -452,7 +807,7 @@ class BaseScreenshot:
         context_suffix = f" [{log_context}]" if log_context else ""
         thumb_size = thumb_size or cls.thumb_size
         img = Image.open(BytesIO(img_bytes))
-        logger.debug("Selenium image size: %s%s", str(img.size), context_suffix)
+        logger.debug("Screenshot image size: %s%s", str(img.size), context_suffix)
         if crop and img.size[1] != cls.window_size[1]:
             desired_ratio = float(cls.window_size[1]) / cls.window_size[0]
             desired_width = int(img.size[0] * desired_ratio)
@@ -484,10 +839,15 @@ class ChartScreenshot(BaseScreenshot):
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
     ):
-        # Chart reports are in standalone="true" mode
+        # Chart reports render chart-only, with no nav and no editor controls.
+        # REPORT rather than HIDE_NAV so the frontend can distinguish an automated
+        # capture from a live standalone embed: `isReportScreenshotMode()` in
+        # plugin-chart-echarts suppresses animation for captures, which prevents a
+        # screenshot catching a chart mid-draw. HIDE_NAV (1) is a live embed there
+        # and deliberately keeps its animation.
         url = modify_url_query(
             url,
-            standalone=ChartStandaloneMode.HIDE_NAV.value,
+            standalone=ChartStandaloneMode.REPORT.value,
         )
         super().__init__(url, digest)
         self.window_size = window_size or DEFAULT_CHART_WINDOW_SIZE
@@ -497,6 +857,9 @@ class ChartScreenshot(BaseScreenshot):
 class DashboardScreenshot(BaseScreenshot):
     thumbnail_type: str = "dashboard"
     element: str = "standalone"
+    # The on-demand endpoint carries the last-good image into a new PENDING
+    # generation, keeping it servable while a stale capture is refreshed.
+    supports_updated_staleness: bool = True
 
     def __init__(
         self,
@@ -504,14 +867,19 @@ class DashboardScreenshot(BaseScreenshot):
         digest: str | None,
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
-    ):
+        require_complete_capture: bool = False,
+    ) -> None:
         # per the element above, dashboard screenshots
         # should always capture in standalone
         url = modify_url_query(
             url,
             standalone=DashboardStandaloneMode.REPORT.value,
         )
-        super().__init__(url, digest)
+        super().__init__(
+            url,
+            digest,
+            require_complete_capture=require_complete_capture,
+        )
         self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
         self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE
 
@@ -532,3 +900,198 @@ class DashboardScreenshot(BaseScreenshot):
             "permalink_key": permalink_key,
         }
         return hash_from_dict(args)
+
+    def get_api_request_cache_key(
+        self,
+        window_size: bool | WindowSize | None,
+        thumb_size: bool | WindowSize | None,
+        permalink_key: str,
+        scope: str,
+        guest_key: str | None = None,
+    ) -> str:
+        """
+        Return the stable pointer key for one API screenshot request state.
+
+        ``guest_key`` identifies the embedded guest the screenshot is rendered
+        for. The digest does not cover every claim that can change a guest's
+        rendering (e.g. user attributes) and may be unavailable, so guests are
+        kept apart by their own key. It is omitted for other callers, which
+        leaves their keys unchanged.
+        """
+
+        args: dict[str, Any] = {
+            "type": "dashboard_screenshot_api_request",
+            "version": 1,
+            "legacy_cache_key": self.get_cache_key(
+                window_size,
+                thumb_size,
+                permalink_key,
+            ),
+            "scope": scope,
+        }
+        if guest_key:
+            args["guest"] = guest_key
+        return hash_from_dict(args)
+
+    @staticmethod
+    def get_next_api_generation_cache_key(
+        request_cache_key: str,
+        previous_cache_key: str | None,
+    ) -> str:
+        """Return a unique successor; the producer lock coalesces racers."""
+
+        return hash_from_dict(
+            {
+                "type": "dashboard_screenshot_api_generation",
+                "request_cache_key": request_cache_key,
+                "previous_cache_key": previous_cache_key,
+                # The request pointer can expire before its last image because
+                # successful image storage refreshes that generation's TTL.
+                # A nonce prevents a later request from recreating and
+                # overwriting the still-downloadable first-generation key.
+                "generation_id": uuid.uuid4().hex,
+            }
+        )
+
+    @staticmethod
+    def get_api_generation_pointer_cache_key(request_cache_key: str) -> str:
+        """Return the metadata-cache key for an API screenshot request."""
+
+        return hash_from_dict(
+            {
+                "type": "dashboard_screenshot_api_generation_pointer",
+                "version": 1,
+                "request_cache_key": request_cache_key,
+            }
+        )
+
+    @classmethod
+    def _get_api_pointer_cache(cls) -> SupersetMetastoreCache:
+        if cls.api_pointer_cache is not None:
+            return cls.api_pointer_cache
+
+        # Imported lazily to avoid initializing the metadata-backed cache while
+        # Superset's application extensions are still being constructed.
+        from superset.extensions.metastore_cache import SupersetMetastoreCache
+
+        thumbnail_backend = cls.cache.cache
+        configured_timeout = getattr(
+            thumbnail_backend,
+            "default_timeout",
+            None,
+        )
+        default_timeout = int(
+            configured_timeout
+            if configured_timeout is not None
+            else app.config["CACHE_DEFAULT_TIMEOUT"]
+        )
+        # The pointer is written at publication, before the worker stamps the
+        # capture's UPDATED time, so expiring it with the backend timeout alone
+        # drops it before the capture ages past THUMBNAIL_UPDATED_CACHE_TTL
+        # whenever that timeout does not exceed the TTL (as with the defaults).
+        # A force-less request would then publish an imageless generation
+        # instead of carrying the stale capture forward. Adding that TTL plus one
+        # computing lease keeps the pointer of a capture stamped within the lease
+        # alive for the backend timeout after the capture turns stale, so an
+        # evicting backend drops the capture before its pointer. A backend
+        # timeout of 0 (no expiry) and a disabled TTL keep the backend timeout.
+        updated_ttl = app.config.get("THUMBNAIL_UPDATED_CACHE_TTL") or 0
+        if default_timeout > 0 and updated_ttl > 0:
+            default_timeout += int(
+                min(
+                    updated_ttl + app.config["THUMBNAIL_COMPUTING_CACHE_TTL"],
+                    MAX_API_POINTER_TTL_EXTENSION_SECONDS,
+                )
+            )
+        return SupersetMetastoreCache(
+            namespace=get_uuid_namespace(
+                "dashboard_screenshot_api_generation_pointer",
+                app,
+            ),
+            codec=JsonKeyValueCodec(),
+            default_timeout=default_timeout,
+        )
+
+    @classmethod
+    def _get_api_generation_pointer(
+        cls, pointer_cache_key: str, scope: str
+    ) -> str | None:
+        """Read and validate one API generation pointer."""
+
+        try:
+            pointer = cls._get_api_pointer_cache().get(pointer_cache_key)
+        except Exception as ex:  # pylint: disable=broad-except
+            raise ScreenshotCacheError(
+                f"Could not read screenshot request key {pointer_cache_key}"
+            ) from ex
+        if not pointer:
+            return None
+        if not isinstance(pointer, dict):
+            logger.warning(
+                "Rejecting malformed screenshot request pointer for %s",
+                pointer_cache_key,
+            )
+            return None
+        pointer = cast(DashboardScreenshotPointerType, pointer)
+        cache_key = pointer.get("cache_key")
+        if pointer.get("scope") != scope or not isinstance(cache_key, str):
+            logger.warning(
+                "Rejecting mismatched screenshot request pointer for %s",
+                pointer_cache_key,
+            )
+            return None
+        return cache_key
+
+    @classmethod
+    def get_current_api_generation_cache_key(
+        cls,
+        request_cache_key: str,
+        scope: str,
+    ) -> str | None:
+        """Resolve the current generation for a stable API request key."""
+
+        pointer_cache_key = cls.get_api_generation_pointer_cache_key(request_cache_key)
+        return cls._get_api_generation_pointer(pointer_cache_key, scope)
+
+    @classmethod
+    def set_current_api_generation_cache_key(
+        cls,
+        request_cache_key: str,
+        cache_key: str,
+        scope: str,
+        previous_cache_key: str | None,
+    ) -> bool:
+        """Publish a generation only if its observed predecessor is still current.
+
+        The pointer uses Superset's metadata-backed cache, whose compare-and-set is
+        atomic. This avoids relying on conditional writes from the configured
+        thumbnail backend, which may be an object store without that capability.
+
+        :return: ``True`` when this generation won publication, ``False`` when
+            another producer already published the same predecessor's successor.
+        """
+
+        pointer: DashboardScreenshotPointerType = {
+            "cache_key": cache_key,
+            "scope": scope,
+        }
+        pointer_cache_key = cls.get_api_generation_pointer_cache_key(request_cache_key)
+        pointer_cache = cls._get_api_pointer_cache()
+        expected = (
+            {
+                "cache_key": previous_cache_key,
+                "scope": scope,
+            }
+            if previous_cache_key is not None
+            else None
+        )
+        try:
+            return pointer_cache.compare_and_set(
+                pointer_cache_key,
+                pointer,
+                expected,
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            raise ScreenshotCacheError(
+                f"Could not persist screenshot request key {request_cache_key}"
+            ) from ex

@@ -16,6 +16,7 @@
 # under the License.
 from datetime import datetime
 from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
 import pytest
@@ -31,7 +32,10 @@ from superset.utils.urls import get_url_path
 from tests.integration_tests.fixtures.tabbed_dashboard import (
     tabbed_dashboard,  # noqa: F401
 )
-from tests.integration_tests.reports.utils import create_dashboard_report
+from tests.integration_tests.reports.utils import (
+    create_dashboard_report,
+    SCREENSHOT_FILE,
+)
 
 
 @patch("superset.reports.notifications.email.send_email_smtp")
@@ -47,7 +51,7 @@ def test_report_for_dashboard_with_tabs(
     send_email_smtp_mock: MagicMock,
     tabbed_dashboard: Dashboard,  # noqa: F811
 ) -> None:
-    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
+    dashboard_screenshot_mock.return_value.get_screenshot.return_value = SCREENSHOT_FILE
     current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
     with create_dashboard_report(
         dashboard=tabbed_dashboard,
@@ -67,7 +71,11 @@ def test_report_for_dashboard_with_tabs(
             str(dashboard.uuid), dashboard_state
         ).run()
 
-        expected_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
+        expected_url = get_url_path(
+            "Superset.dashboard_permalink",
+            key=permalink_key,
+            force="false",
+        )
 
         assert dashboard_screenshot_mock.call_count == 1
         called_url = dashboard_screenshot_mock.call_args.args[0]
@@ -90,7 +98,7 @@ def test_report_with_header_data(
     send_email_smtp_mock: MagicMock,
     tabbed_dashboard: Dashboard,  # noqa: F811
 ) -> None:
-    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
+    dashboard_screenshot_mock.return_value.get_screenshot.return_value = SCREENSHOT_FILE
     current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
 
     with create_dashboard_report(
@@ -114,7 +122,9 @@ def test_report_with_header_data(
         assert dashboard_screenshot_mock.call_count == 1
         url = dashboard_screenshot_mock.call_args.args[0]
 
-        assert url.endswith(f"/dashboard/p/{permalink_key}/")
+        parsed_url = urlparse(url)
+        assert parsed_url.path.endswith(f"/dashboard/p/{permalink_key}/")
+        assert parse_qs(parsed_url.query).get("force") == ["false"]
         assert send_email_smtp_mock.call_count == 1
         header_data = send_email_smtp_mock.call_args.kwargs["header_data"]
         assert header_data.get("dashboard_id") == dashboard.id

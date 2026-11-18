@@ -34,34 +34,34 @@ test('renders with default props', () => {
   expect(screen.getByRole('img', { name: 'edit' })).toBeInTheDocument();
 });
 
-test('renders popover on edit', () => {
+test('renders popover on edit', async () => {
   render(<TimeSeriesColumnControl />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
   expect(screen.getByRole('tooltip')).toBeInTheDocument();
   expect(screen.getByText('Label')).toBeInTheDocument();
   expect(screen.getByText('Tooltip')).toBeInTheDocument();
   expect(screen.getByText('Type')).toBeInTheDocument();
 });
 
-test('renders time comparison', () => {
+test('renders time comparison', async () => {
   render(<TimeSeriesColumnControl colType="time" />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
   expect(screen.getByText('Time lag')).toBeInTheDocument();
   expect(screen.getAllByText('Type')[1]).toBeInTheDocument();
   expect(screen.getByText('Color bounds')).toBeInTheDocument();
   expect(screen.getByText('Number format')).toBeInTheDocument();
 });
 
-test('renders contribution', () => {
+test('renders contribution', async () => {
   render(<TimeSeriesColumnControl colType="contrib" />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
   expect(screen.getByText('Color bounds')).toBeInTheDocument();
   expect(screen.getByText('Number format')).toBeInTheDocument();
 });
 
-test('renders sparkline', () => {
+test('renders sparkline', async () => {
   render(<TimeSeriesColumnControl colType="spark" />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
   expect(screen.getByText('Width')).toBeInTheDocument();
   expect(screen.getByText('Height')).toBeInTheDocument();
   expect(screen.getByText('Time ratio')).toBeInTheDocument();
@@ -71,170 +71,177 @@ test('renders sparkline', () => {
   expect(screen.getByText('Date format')).toBeInTheDocument();
 });
 
-test('renders period average', () => {
+test('renders period average', async () => {
   render(<TimeSeriesColumnControl colType="avg" />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
   expect(screen.getByText('Time lag')).toBeInTheDocument();
   expect(screen.getByText('Color bounds')).toBeInTheDocument();
   expect(screen.getByText('Number format')).toBeInTheDocument();
 });
 
-test('triggers onChange when type changes', () => {
+test('triggers onChange when type changes', async () => {
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
-  userEvent.click(screen.getByText('Select ...'));
-  userEvent.click(screen.getByText('Time comparison'));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  // The placeholder text node itself has `pointer-events: none` in antd's
+  // CSS; click its parent selector box, which is the real click target.
+  await userEvent.click(screen.getByText('Select ...').parentElement!);
+  await userEvent.click(screen.getByText('Time comparison'));
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({ colType: 'time' }),
   );
 });
 
-test('triggers onChange when time lag changes', () => {
+test('triggers onChange when time lag changes', async () => {
   const timeLag = '1';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
   const timeLagInput = screen.getByPlaceholderText('Time Lag');
-  userEvent.clear(timeLagInput);
-  userEvent.type(timeLagInput, timeLag);
+  await userEvent.clear(timeLagInput);
+  await userEvent.type(timeLagInput, timeLag);
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ timeLag }));
 });
 
-test('time lag allows negative values', () => {
+test('time lag allows negative values', async () => {
   const timeLag = '-1';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
   const timeLagInput = screen.getByPlaceholderText('Time Lag');
-  userEvent.clear(timeLagInput);
-  userEvent.type(timeLagInput, timeLag);
+  await userEvent.clear(timeLagInput);
+  await userEvent.type(timeLagInput, timeLag);
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ timeLag }));
 });
 
-test('triggers onChange when color bounds changes', () => {
+test('triggers onChange when color bounds changes', async () => {
   const min = 1;
   const max = 5;
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
   const minInput = screen.getByPlaceholderText('Min');
   const maxInput = screen.getByPlaceholderText('Max');
-  userEvent.type(minInput, min.toString());
-  userEvent.type(maxInput, max.toString());
+  await userEvent.type(minInput, min.toString());
+  await userEvent.type(maxInput, max.toString());
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenLastCalledWith(
     expect.objectContaining({ bounds: [min, max] }),
   );
 });
 
-test('triggers onChange when time type changes', () => {
+test('triggers onChange when time type changes', async () => {
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
-  userEvent.click(screen.getByText('Select ...'));
-  userEvent.click(screen.getByText('Difference'));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  // The placeholder text node itself has `pointer-events: none` in antd's
+  // CSS; click its parent selector box, which is the real click target.
+  await userEvent.click(screen.getByText('Select ...').parentElement!);
+  await userEvent.click(screen.getByText('Difference'));
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({ comparisonType: 'diff' }),
   );
 });
 
-test('triggers onChange when number format changes', () => {
+test('triggers onChange when number format changes', async () => {
   const numberFormatString = 'Test format';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
-  userEvent.type(
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.type(
     screen.getByPlaceholderText('Number format string'),
     numberFormatString,
   );
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({ d3format: numberFormatString }),
   );
 });
 
-test('triggers onChange when width changes', () => {
+test('triggers onChange when width changes', async () => {
   const width = '10';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
-  userEvent.type(screen.getByPlaceholderText('Width'), width);
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.type(screen.getByPlaceholderText('Width'), width);
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ width }));
 });
 
-test('triggers onChange when height changes', () => {
+test('triggers onChange when height changes', async () => {
   const height = '10';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
-  userEvent.type(screen.getByPlaceholderText('Height'), height);
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.type(screen.getByPlaceholderText('Height'), height);
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ height }));
 });
 
-test('triggers onChange when time ratio changes', () => {
+test('triggers onChange when time ratio changes', async () => {
   const timeRatio = '10';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
-  userEvent.type(screen.getByPlaceholderText('Time Ratio'), timeRatio);
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.type(screen.getByPlaceholderText('Time Ratio'), timeRatio);
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ timeRatio }));
 });
 
-test('triggers onChange when show Y-axis changes', () => {
+test('triggers onChange when show Y-axis changes', async () => {
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
-  userEvent.click(screen.getByRole('checkbox'));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.click(screen.getByRole('checkbox'));
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({ showYAxis: true }),
   );
 });
 
-test('triggers onChange when Y-axis bounds changes', () => {
+test('triggers onChange when Y-axis bounds changes', async () => {
   const min = 1;
   const max = 5;
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
   const minInput = screen.getByPlaceholderText('Min');
   const maxInput = screen.getByPlaceholderText('Max');
-  userEvent.type(minInput, min.toString());
-  userEvent.clear(maxInput);
-  userEvent.type(maxInput, max.toString());
+  await userEvent.type(minInput, min.toString());
+  await userEvent.clear(maxInput);
+  await userEvent.type(maxInput, max.toString());
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({ yAxisBounds: [min, max] }),
   );
 });
 
-test('triggers onChange when date format changes', () => {
+test('triggers onChange when date format changes', async () => {
   const dateFormat = 'yy/MM/dd';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
-  userEvent.click(screen.getByRole('img', { name: 'edit' }));
-  userEvent.type(screen.getByPlaceholderText('Date format string'), dateFormat);
+  await userEvent.click(screen.getByRole('img', { name: 'edit' }));
+  await userEvent.type(
+    screen.getByPlaceholderText('Date format string'),
+    dateFormat,
+  );
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({ dateFormat }),
   );

@@ -438,3 +438,39 @@ test('recordKey separates same-path records that differ only by value', () => {
   expect(recordKey(first)).not.toBe(recordKey(second));
   expect(mergeActivityPages([first], [second])).toHaveLength(2);
 });
+
+test('a __creation__ record forms its own group carrying creationKind, with no change rows', () => {
+  const entries = buildTimeline([
+    record({ transaction_id: 30, kind: 'metric', operation: 'add' }),
+    record({
+      transaction_id: 5,
+      kind: '__creation__',
+      operation: 'announce',
+      creation_kind: 'created',
+      path: ['__creation__'],
+      version_uuid: 'v-created',
+    }),
+  ]);
+
+  expect(entries).toHaveLength(2);
+  const creation = entries[1] as SaveGroup;
+  expect(creation.type).toBe('group');
+  expect(creation.creationKind).toBe('created');
+  expect(creation.versionUuid).toBe('v-created');
+  // Like __meta__, the announce record stays out of the change list.
+  expect(creation.records).toHaveLength(0);
+});
+
+test('creationKind survives for pre_tracking and imported variants', () => {
+  (['pre_tracking', 'imported'] as const).forEach(kind => {
+    const entries = buildTimeline([
+      record({
+        transaction_id: 5,
+        kind: '__creation__',
+        operation: 'announce',
+        creation_kind: kind,
+      }),
+    ]);
+    expect((entries[0] as SaveGroup).creationKind).toBe(kind);
+  });
+});

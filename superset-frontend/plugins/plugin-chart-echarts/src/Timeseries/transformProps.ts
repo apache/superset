@@ -25,6 +25,7 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  ComparisonType,
   CurrencyFormatter,
   DataRecordValue,
   DTTM_ALIAS,
@@ -36,22 +37,27 @@ import {
   getNumberFormatter,
   getXAxisLabel,
   isDefined,
+  isAdhocMetricSimple,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
+  isXAxisSet,
+  LegendState,
   resolveAutoCurrency,
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
   NumberFormats,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { isThemeDark } from '@apache-superset/core/theme';
 import {
   extractExtraMetrics,
   getOriginalSeries,
   getTimeOffset,
   isDerivedSeries,
+  SortSeriesType,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type {
@@ -63,8 +69,13 @@ import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
+  BarValueLabelPosition,
   OrientationType,
+  TimeseriesCustomLegend,
   TimeseriesChartTransformedProps,
+  TimeseriesLegendIcon,
+  TimeseriesLegendItem,
+  TimeseriesLegendLineType,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import {
@@ -85,9 +96,14 @@ import {
   getAreaScaledSymbolSize,
   getAxisType,
   getColtypesMapping,
+  getGrainBarMaxWidth,
   getHorizontalLegendAvailableWidth,
   getLegendProps,
+  getLegendScrollDataIndex,
   getMinAndMaxFromBounds,
+  getTemporalAxisTickConfig,
+  resolveTemporalTickValues,
+  XAxisSortSeries,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -108,6 +124,7 @@ import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getBaselineSeriesForStream,
   getPadding,
+  getViableTimeseriesEchartOptions,
   transformEventAnnotation,
   transformFormulaAnnotation,
   transformIntervalAnnotation,
@@ -122,13 +139,165 @@ import {
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
+  createDedupXAxisFormatter,
+  createSpacedXAxisFormatter,
+  getBoundaryTimeFormatter,
+  getZoomLabelOptions,
   getPercentFormatter,
   getTooltipTimeFormatter,
+  getXAxisDomain,
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
+
+type LegendSeriesVisual = {
+  itemStyle?: { color?: unknown; opacity?: unknown };
+  lineStyle?: {
+    color?: unknown;
+    opacity?: unknown;
+    type?: unknown;
+    width?: unknown;
+  };
+  name?: string | number;
+  symbol?: unknown;
+  type?: string;
+};
+
+// ECharts draws a circle for `none` and falls back to the series default when unset.
+function normalizeLegendSymbol(symbol: unknown, fallback: string): string {
+  if (symbol === 'none') {
+    return 'circle';
+  }
+  return typeof symbol === 'string' ? symbol : fallback;
+}
+
+// The icon inherits the series opacity, except that an invisible series
+// (opacity 0) still gets a visible icon so the legend entry can be read.
+function normalizeLegendOpacity(opacity: unknown): number {
+  return typeof opacity === 'number' && opacity > 0 && opacity < 1
+    ? opacity
+    : 1;
+}
+
+// The symbol on a line icon takes itemStyle.opacity, as in ECharts. transformSeries
+// sets it to 0 when rich tooltip and markers are both off, which hides the symbol.
+function normalizeLegendSymbolOpacity(opacity: unknown): number {
+  return typeof opacity === 'number' && opacity >= 0 && opacity <= 1
+    ? opacity
+    : 1;
+}
+
+/**
+ * The icon the ECharts legend would draw for a series: its line in the series'
+ * dash style with its symbol, the symbol alone for scatter, a box otherwise.
+ * The legend line is 2px like ECharts' `lineStyle.width: 'auto'`, or hidden
+ * when the series hides its own line.
+ */
+export function getLegendSeriesIcon(
+  series: SeriesOption | undefined,
+): TimeseriesLegendIcon {
+  const visual = series as LegendSeriesVisual | undefined;
+  if (visual?.type === 'scatter') {
+    return {
+      shape: 'symbol',
+      opacity: normalizeLegendOpacity(visual.itemStyle?.opacity),
+      symbol: normalizeLegendSymbol(visual.symbol, 'circle'),
+    };
+  }
+  if (visual?.type !== 'line') {
+    return {
+      shape: 'box',
+      opacity: normalizeLegendOpacity(visual?.itemStyle?.opacity),
+    };
+  }
+  const { opacity, type, width } = visual.lineStyle ?? {};
+  let lineType: TimeseriesLegendLineType = 'solid';
+  if (type === 'dashed' || type === 'dotted') {
+    lineType = type;
+  } else if (typeof type === 'number') {
+    lineType = [type];
+  } else if (Array.isArray(type)) {
+    lineType = type;
+  }
+  return {
+    shape: 'line',
+    lineType,
+    lineWidth: width === 0 ? 0 : 2,
+    opacity: normalizeLegendOpacity(opacity),
+    symbol: normalizeLegendSymbol(visual.symbol, 'emptyCircle'),
+    symbolOpacity: normalizeLegendSymbolOpacity(visual.itemStyle?.opacity),
+  };
+}
+
+function getLegendSeriesColor(
+  series: SeriesOption | undefined,
+  fallbackColor: string,
+): string {
+  const visual = series as LegendSeriesVisual | undefined;
+  const color = visual?.itemStyle?.color ?? visual?.lineStyle?.color;
+  return typeof color === 'string' ? color : fallbackColor;
+}
+
+function buildTimeseriesCustomLegend({
+  fallbackColor,
+  grid,
+  interactive,
+  legendNames,
+  legendState,
+  orientation,
+  series,
+  showSelectors,
+}: {
+  fallbackColor: string;
+  grid: TimeseriesCustomLegend['grid'];
+  interactive: boolean;
+  legendNames: string[];
+  legendState?: LegendState;
+  orientation: LegendOrientation;
+  series: SeriesOption[];
+  showSelectors: boolean;
+}): TimeseriesCustomLegend {
+  const firstSeriesByName = new Map<string, SeriesOption>();
+  series.forEach(seriesOption => {
+    const { name } = seriesOption as LegendSeriesVisual;
+    if (name !== undefined && !firstSeriesByName.has(String(name))) {
+      firstSeriesByName.set(String(name), seriesOption);
+    }
+  });
+
+  const seen = new Set<string>();
+  const items = legendNames.flatMap<TimeseriesLegendItem>(name => {
+    if (seen.has(name)) {
+      return [];
+    }
+    seen.add(name);
+
+    const rowBreak = name === '' || name === '\n';
+    const matchingSeries = firstSeriesByName.get(name);
+    if (!rowBreak && !matchingSeries) {
+      return [];
+    }
+
+    return [
+      {
+        color: getLegendSeriesColor(matchingSeries, fallbackColor),
+        icon: getLegendSeriesIcon(matchingSeries),
+        interactive: interactive && !rowBreak,
+        name,
+        selected: legendState?.[name] !== false,
+      },
+    ];
+  });
+
+  return {
+    grid,
+    items,
+    orientation,
+    showSelectors,
+  };
+}
 
 const visibleDashPatterns: ([number, number] | 'dashed' | 'dotted')[] = [
   'dashed',
@@ -145,43 +314,17 @@ const visibleSymbols = [
   'pin',
 ] as const;
 
-function getSymbolMarker(symbol: string, color: string) {
-  const size = 10;
-  switch (symbol) {
-    case 'circle':
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;
-        border-radius:50%;background:${color};margin-right:5px"></span>`;
-    case 'rect':
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;
-        background:${color};margin-right:5px"></span>`;
-    case 'roundRect':
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;border-radius:2px;
-        background:${color};margin-right:5px"></span>`;
-    case 'triangle':
-      return `<span style="
-        display:inline-block;width:0;height:0;
-        border-left:${size / 2}px solid transparent;
-        border-right:${size / 2}px solid transparent;
-        border-bottom:${size}px solid ${color};
-        margin-right:5px"></span>`;
-    case 'diamond':
-      return `<span style="
-        display:inline-block;width:${size - 2}px;height:${size - 2}px;
-        background:${color};transform: rotate(45deg) translateX(1px) translateY(-1px);
-        margin-right:5px"></span>`;
-    case 'pin':
-      return `<span style="
-        display:inline-block;width:${size - 2}px;height:${size - 2}px;
-        background:${color};transform: rotate(45deg) translateX(1px) translateY(-1px);
-        border-radius:50%;border-bottom-right-radius:0;margin-right:5px"></span>`;
-    default:
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;
-        border-radius:50%;background:${color};margin-right:5px"></span>`;
-  }
+/**
+ * Parses a user supplied minimum axis interval into a positive number.
+ * Returns undefined when the control is empty or not a valid number, so
+ * ECharts falls back to its automatic tick calculation.
+ */
+function parseMinInterval(
+  value: number | string | null | undefined,
+): number | undefined {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
 /**
@@ -283,6 +426,9 @@ export default function transformProps(
     metrics,
     minorSplitLine,
     minorTicks,
+    gridlines,
+    axisTicks,
+    valueAxisLabels,
     onlyTotal,
     opacity,
     orientation,
@@ -290,7 +436,9 @@ export default function transformProps(
     richTooltip,
     seriesType,
     showLegend,
+    showSelectorLegend,
     showValue,
+    valueLabelPosition,
     size,
     labelPosition,
     colorByPrimaryAxis,
@@ -320,27 +468,78 @@ export default function transformProps(
     xAxisNumberFormat,
     xAxisTitle,
     xAxisTitleMargin,
+    xAxisMinInterval,
     yAxisBounds,
     yAxisFormat,
     currencyFormat,
+    yAxisMinInterval,
     yAxisTitle,
     yAxisTitleMargin,
     yAxisTitlePosition,
     zoomable,
     stackDimension,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  const resolvedValueLabelPosition =
+    valueLabelPosition ?? BarValueLabelPosition.OutsideEnd;
 
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
+  // Series whose `label_map` entry led with a time offset, recorded before the shift
+  // below drops it. That leading column is the only structural marker distinguishing a
+  // derived comparison row from a base row whose dimension value happens to read like
+  // the offset, and it is gone from `labelMap` by the time the formatters run.
+  const derivedComparisonSeries = new Set<string>();
+  // The `<metric>, <offset>` labels `renameOperator` generates when more than one
+  // metric (displayed or sort-only) is pivoted with an actual-values comparison.
+  const sortOnlyMetrics = extractExtraMetrics(chartProps.rawFormData);
+  const allMetricLabels = new Set(
+    [...ensureIsArray(metrics), ...sortOnlyMetrics].map(getMetricLabel),
+  );
+  // A `<metric>, <offset>` label equal to a metric's own label is never
+  // generated: `renameOperator` leaves that comparison column unrenamed
+  // (`<metric>__<offset>`, or `<type>__<metric>__<metric>__<offset>` for a
+  // Difference/Percentage/Ratio comparison) rather than collide with it.
+  const comparisonType = chartProps.rawFormData?.comparison_type;
+  const metricOffsetLabels = new Set(
+    [...allMetricLabels].flatMap(metricLabel =>
+      ensureIsArray(timeCompare).map(offset => {
+        const renamed = `${metricLabel}, ${offset}`;
+        if (!allMetricLabels.has(renamed)) {
+          return renamed;
+        }
+        const withOffset = `${metricLabel}__${offset}`;
+        return comparisonType === ComparisonType.Values
+          ? withOffset
+          : `${comparisonType}__${metricLabel}__${withOffset}`;
+      }),
+    ),
+  );
   const labelMap: { [key: string]: string[] } = Object.entries(
     label_map,
   ).reduce((acc, entry) => {
     if (
       entry[1].length > groupBy.length &&
       Array.isArray(timeCompare) &&
+      // a sort-only metric means more than one metric is pivoted, so the
+      // offset never leads the entry; a leading offset-like part is then a
+      // hidden metric that happens to share the offset's label
+      sortOnlyMetrics.length === 0 &&
       timeCompare.includes(entry[1][0])
     ) {
+      derivedComparisonSeries.add(entry[0]);
       entry[1].shift();
+    } else if (
+      entry[1].length > groupBy.length &&
+      Array.isArray(timeCompare) &&
+      (metricOffsetLabels.has(entry[1][0]) ||
+        // without dimensions the flat `<metric>, <offset>` label is split
+        // into a tuple, so the whole label is the key
+        (groupBy.length === 0 && metricOffsetLabels.has(entry[0])))
+    ) {
+      // `renameOperator` emits `<metric>, <offset>` as the leading part when more
+      // than one metric is pivoted (including a hidden sort-only metric), so the
+      // offset trails the metric instead of leading the entry.
+      derivedComparisonSeries.add(entry[0]);
     }
     return { ...acc, [entry[0]]: entry[1] };
   }, {});
@@ -366,14 +565,78 @@ export default function transformProps(
       rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
     : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
+  // With dimensions set, the pivot splits a metric into one
+  // `<metric>, <dimension values>` column per series. `label_map` lists each
+  // flattened column as `[metric, ...dimension values]`, so a metric's
+  // columns are resolved through it rather than by matching on the column
+  // name. A single-metric chart with `truncate_metric` drops the metric part
+  // from its value columns, which is fine: only sort-only metrics need
+  // resolving, and those always keep it.
+  // `label_map` is built from the cached DataFrame's final columns, after
+  // every post-processing operator (including Prophet) has run, so a
+  // forecast's `<metric>, <dims>__yhat`/`__yhat_lower`/`__yhat_upper`
+  // columns have the same `[metric, ...dims]` shape and would otherwise be
+  // mistaken for one of the metric's own pivoted columns. Those are excluded
+  // the same way they are hidden from the rendered series (see
+  // extractForecastSeriesContext usage above), so the sort key never
+  // depends on the forecast trend or confidence bounds.
+  const pivotedColumnsOf = (
+    metricLabel: string,
+    { includeForecast = false }: { includeForecast?: boolean } = {},
+  ): string[] =>
+    Object.entries(labelMap)
+      .filter(
+        ([column, parts]) =>
+          column !== metricLabel &&
+          // without dimensions nothing is pivoted, and `label_map` maps a SQL
+          // metric's label to its expression, which must not be mistaken for
+          // a pivoted column of a sort-only metric with that expression
+          groupBy.length > 0 &&
+          // a metric-prefixed column carries the metric plus one part per
+          // dimension; a truncated dimension tuple has no metric part and
+          // must not be mistaken for one when a dimension value reads like
+          // the metric label
+          parts.length === groupBy.length + 1 &&
+          parts[0] === metricLabel &&
+          !derivedComparisonSeries.has(column) &&
+          (includeForecast ||
+            extractForecastSeriesContext(column).type ===
+              ForecastSeriesEnum.Observation),
+      )
+      .map(([column]) => column);
   // rebasedData's keys have already been through rebaseForecastDatum, which
   // renames a key to its verboseMap entry when one is configured for that
   // metric. extraMetricLabels must be mapped the same way, or a sort-only
   // metric with a verbose_name set would silently fail to match here (and in
-  // extractSeries below, which has the same requirement).
-  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
-    .map(getMetricLabel)
-    .map(label => verboseMap[label] ?? label);
+  // extractSeries below, which has the same requirement). The pivoted columns
+  // keep their raw names (verbose mapping only applies to an exact metric
+  // label), and must be excluded too so a sort-only metric is neither
+  // rendered as series nor counted in stacked totals.
+  // The scatter dot-size metric is also queried as an extra metric when it
+  // doubles as the sort target; it must stay in the extracted series so the
+  // size lookup can read it (it is hidden from rendering separately).
+  const sizeMetricLabel =
+    seriesType === EchartsTimeseriesSeriesType.Scatter && size
+      ? getMetricLabel(size)
+      : undefined;
+  const extraMetrics = extractExtraMetrics(chartProps.rawFormData);
+  const extraMetricLabels = extraMetrics.map(getMetricLabel).flatMap(label =>
+    label === sizeMetricLabel
+      ? []
+      : [
+          // with dimensions the data is pivoted, so a sort-only metric has no
+          // bare column of its own; a bare key whose label-map tuple is a
+          // plain dimension tuple is a displayed series whose dimension value
+          // happens to read like the metric label and must stay visible
+          ...(groupBy.length > 0 &&
+          labelMap[verboseMap[label] ?? label]?.length === groupBy.length
+            ? []
+            : [verboseMap[label] ?? label]),
+          // forecast columns of a sort-only metric stay hidden too, even
+          // though the sort key itself ignores them
+          ...pivotedColumnsOf(label, { includeForecast: true }),
+        ],
+  );
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
@@ -386,7 +649,184 @@ export default function transformProps(
   );
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
-  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  // `x_axis_sort` stores either a series aggregate (a `SortSeriesType`) or
+  // the label of the x-axis column or of a metric. A single-series chart is
+  // sorted by the backend sort operator; with several series the rows are
+  // ordered here instead: by axis value, by an aggregate over every series,
+  // or by the sum of the chosen metric's columns. The field is carried
+  // through as-is, so a column or metric that happens to be named like an
+  // aggregate is never guessed at.
+  const sortSeriesTypes = new Set<string>(Object.values(SortSeriesType));
+  const resolveXAxisSortSeries = (): XAxisSortSeries | undefined => {
+    if (!isMultiSeries || typeof xAxisSort !== 'string') {
+      return undefined;
+    }
+    if (sortSeriesTypes.has(xAxisSort)) {
+      return xAxisSort as SortSeriesType;
+    }
+    if (
+      xAxisSort === xAxisLabel ||
+      xAxisSort === getXAxisLabel(chartProps.rawFormData)
+    ) {
+      return { axisValue: true };
+    }
+    const dataColumns = new Set(Object.keys(rebasedData[0] ?? {}));
+    // `truncate_metric` drops the metric label from its own pivoted columns
+    // when it is the sole displayed metric (see the comment on
+    // `pivotedColumnsOf`), so that lookup finds nothing when a chart's only
+    // metric is also the chosen sort target. With a single displayed metric,
+    // every remaining series column is that metric's own pivoted value, so
+    // fall back to summing them directly.
+    const soleValueMetricLabel = isMultiSeries
+      ? ensureIsArray(metrics).length === 1
+        ? getMetricLabel(ensureIsArray(metrics)[0])
+        : undefined
+      : undefined;
+    const isSoleValueMetricSort =
+      isDefined(soleValueMetricLabel) &&
+      (verboseMap[soleValueMetricLabel!] ?? soleValueMetricLabel) ===
+        (verboseMap[xAxisSort] ?? xAxisSort);
+    const truncatedMetricColumns =
+      isSoleValueMetricSort && !pivotedColumnsOf(xAxisSort).length
+        ? Object.keys(rebasedData[0] ?? {}).filter(
+            column =>
+              column !== xAxisLabel &&
+              !extraMetricLabels.includes(column) &&
+              // forecast trend and bounds never drive the sort key
+              extractForecastSeriesContext(column).type ===
+                ForecastSeriesEnum.Observation,
+          )
+        : [];
+    const baseColumn = verboseMap[xAxisSort] ?? xAxisSort;
+    // A Difference/Percentage/Ratio comparison drops the metric's own base
+    // column (see the `compare` post-processing operator's
+    // `drop_original_columns`) and replaces it with one
+    // `<metric>, <offset>` column per configured offset (see
+    // renameOperator), so when that metric is also the sort target, its
+    // base column is gone from `dataColumns` and the renamed comparison
+    // column(s) have to be summed instead. Guarded on the base column being
+    // missing so an "actual values" comparison, which keeps it, is
+    // unaffected. With dimensions, `label_map` (keyed by the raw metric
+    // label) is consulted instead, see below.
+    const comparisonColumnsOf = (metricLabel: string): string[] => {
+      if (groupBy.length === 0) {
+        return !dataColumns.has(metricLabel)
+          ? ensureIsArray(timeCompare).map(
+              offset => `${metricLabel}, ${offset}`,
+            )
+          : [];
+      }
+      // With dimensions and more than one pivoted metric, the comparison
+      // columns read `<metric>, <offset>, <dims>`, so `label_map` leads them
+      // with the `<metric>, <offset>` label. Only summed when the metric's own
+      // pivoted columns were dropped by the comparison.
+      if (pivotedColumnsOf(xAxisSort).length) {
+        return [];
+      }
+      const offsetLabels = new Set(
+        ensureIsArray(timeCompare).map(offset => `${xAxisSort}, ${offset}`),
+      );
+      return Object.entries(labelMap)
+        .filter(
+          ([column, parts]) =>
+            parts.length === groupBy.length + 1 &&
+            offsetLabels.has(parts[0]) &&
+            extractForecastSeriesContext(column).type ===
+              ForecastSeriesEnum.Observation,
+        )
+        .map(([column]) => column);
+    };
+    // With dimensions the metric has no bare column of its own, so a bare key
+    // whose tuple is a plain dimension tuple is a displayed series whose
+    // dimension value reads like the metric label; summing it in would let a
+    // displayed value drive the sort.
+    const baseColumnIsDimensionTuple =
+      groupBy.length > 0 && labelMap[baseColumn]?.length === groupBy.length;
+    const sumOfColumns = [
+      ...(baseColumnIsDimensionTuple ? [] : [baseColumn]),
+      ...pivotedColumnsOf(xAxisSort),
+      ...truncatedMetricColumns,
+      ...comparisonColumnsOf(baseColumn),
+    ].filter(column => dataColumns.has(column));
+    if (!sumOfColumns.length) {
+      return undefined;
+    }
+    // The ungrouped MIN/MAX of a metric equals the MIN/MAX of its
+    // per-dimension MIN/MAX values, the same way the ungrouped SUM equals
+    // the sum of its per-dimension sums, so a simple MIN/MAX metric rolls
+    // up the same way across the pivoted columns above. Other aggregates
+    // (AVG, COUNT DISTINCT, ...) are not decomposable this way from
+    // already-aggregated values and keep the Sum default (see
+    // XAxisSortBySumOfColumns), a known limitation for those.
+    const sortMetric = [...ensureIsArray(metrics), ...extraMetrics].find(
+      candidate => getMetricLabel(candidate) === xAxisSort,
+    );
+    const aggregation =
+      isAdhocMetricSimple(sortMetric) &&
+      (sortMetric.aggregate === 'MIN' || sortMetric.aggregate === 'MAX')
+        ? (SortSeriesType[
+            sortMetric.aggregate === 'MIN' ? 'Min' : 'Max'
+          ] as SortSeriesType)
+        : undefined;
+    return { sumOfColumns, ...(aggregation && { aggregation }) };
+  };
+  const xAxisSortSeries = resolveXAxisSortSeries();
+  const rawXAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+
+  // A dashboard-level time grain override (e.g. via a filter or the temporal
+  // range control) is delivered in extraFormData and should take precedence
+  // over the chart's own time grain when formatting temporal axes/tooltips.
+  const resolvedTimeGrain =
+    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
+
+  // `coltypes` on the query response can fail to mark the designated x-axis
+  // column Temporal for reasons unrelated to what the column actually is (a
+  // missing entry, or a raw SQL-type string instead of a GenericDataType
+  // member) — the ticket's actual bug shape is exactly this: the dataset's
+  // own column metadata correctly says the column is temporal, but that
+  // particular query response's `coltypes` is malformed. Cross-reference
+  // the datasource's own column definition for the x-axis column
+  // (`is_dttm`/`type_generic`, set once at the dataset/schema level,
+  // independent of any given query response) instead of a resolved time
+  // grain: a chart's x-axis column identity is fixed regardless of which
+  // filters happen to be active, whereas a resolved `time_grain_sqla` can
+  // come from an unrelated dashboard-level cross-filter that applies to
+  // every chart on a dashboard, including ones whose x-axis has nothing to
+  // do with time — trusting grain-presence alone would wrongly coerce a
+  // genuinely non-temporal x-axis (e.g. `price`) in that case.
+  //
+  // The x-axis column identifier used to look it up mirrors
+  // getXAxisColumn's own precedence exactly (@superset-ui/core's
+  // query/getXAxis.ts): `isXAxisSet` (= isQueryFormColumn(x_axis), true for
+  // EITHER a physical column string OR a valid ad-hoc/computed column) is
+  // what decides whether `x_axis` is "the selected axis" — granularity_sqla
+  // is only the fallback when x_axis isn't set at all, not merely whenever
+  // the selected x_axis happens to be non-physical. An ad-hoc x_axis (e.g.
+  // a computed `double_price` expression) is still "selected" and must not
+  // fall through to an unrelated granularity_sqla column's metadata; it
+  // simply has no datasource.columns entry to look up by name (it isn't a
+  // physical dataset column at all), so the lookup below correctly finds
+  // nothing and leaves it uncoerced. (xAxisLabel/xAxisOrig can't be reused
+  // for this lookup either way — for a legacy, non-Generic-X-Axis chart
+  // they resolve to the DTTM_ALIAS query-response key, not the real
+  // underlying column name that datasource.columns indexes by.)
+  const rawXAxisDataTypeIsUsable = typeof rawXAxisDataType === 'number';
+  const rawXAxisColumnName = isXAxisSet(chartProps.rawFormData)
+    ? isPhysicalColumn(chartProps.rawFormData.x_axis)
+      ? chartProps.rawFormData.x_axis
+      : undefined
+    : ((chartProps.rawFormData as { granularity_sqla?: string })
+        ?.granularity_sqla ?? undefined);
+  const xAxisDatasourceColumn = datasource.columns?.find(
+    column => column.column_name === rawXAxisColumnName,
+  );
+  const isDesignatedTemporalColumn =
+    !!xAxisDatasourceColumn?.is_dttm ||
+    xAxisDatasourceColumn?.type_generic === GenericDataType.Temporal;
+  const xAxisDataType =
+    !rawXAxisDataTypeIsUsable && isDesignatedTemporalColumn
+      ? GenericDataType.Temporal
+      : rawXAxisDataType;
   const xAxisType = getAxisType(
     stack,
     xAxisForceCategorical,
@@ -405,19 +845,28 @@ export default function transformProps(
       isHorizontal,
       sortSeriesType,
       sortSeriesAscending,
-      xAxisSortSeries: isMultiSeries ? xAxisSort : undefined,
-      xAxisSortSeriesAscending: isMultiSeries ? xAxisSortAsc : undefined,
+      xAxisSortSeries,
+      xAxisSortSeriesAscending: isDefined(xAxisSortSeries)
+        ? xAxisSortAsc
+        : undefined,
       xAxisType,
     },
   );
+  // thresholdValues was computed from the pre-sort row order above; once
+  // xAxisSortSeries reorders the rows (sortedTotalValues carries that same
+  // permutation), a percentage-threshold label would otherwise be checked
+  // against another category's stacked total. Rederive it from the already
+  // correctly-permuted totals instead of re-sorting a second array in
+  // lockstep.
+  const sortedThresholdValues = isDefined(xAxisSortSeries)
+    ? sortedTotalValues.map(
+        total => ((percentageThreshold || 0) / 100) * (total ?? 0),
+      )
+    : thresholdValues;
 
   // Dot size by metric (scatter): the size metric's series are excluded from
   // rendering and instead provide per-point values that scale each marker's
   // area between minMarkerSize and maxMarkerSize.
-  const sizeMetricLabel =
-    seriesType === EchartsTimeseriesSeriesType.Scatter && size
-      ? getMetricLabel(size)
-      : undefined;
   const sizeSeriesLabel = isDefined(sizeMetricLabel)
     ? (verboseMap[sizeMetricLabel!] ?? sizeMetricLabel)
     : undefined;
@@ -548,11 +997,73 @@ export default function transformProps(
       ? [minMarkerSize, maxMarkerSize]
       : [maxMarkerSize, minMarkerSize];
 
+  // When stackDimension is configured, each series is assigned to a separate
+  // ECharts stack group keyed by the dimension value. Compute this mapping
+  // before calling extractShowValueIndexes so each group's topmost series is
+  // tracked independently (fixing the bug where only the last series across
+  // all groups was flagged to show the total label).
+  // The label-map tuple is [metric, dim0, dim1, ...] when it carries a metric
+  // (or offset) prefix and [dim0, dim1, ...] when the metric label was
+  // truncated. The prefix length is derived per series below, so this index
+  // is only the position of the stackDimension within the groupby list.
+  const idxSelectedDimension =
+    stack === StackControlsValue.Stack &&
+    stackDimension &&
+    chartProps.rawFormData?.groupby &&
+    (chartProps.rawFormData.groupby as string[]).includes(stackDimension)
+      ? (chartProps.rawFormData.groupby as string[]).indexOf(stackDimension)
+      : -1;
+
+  const seriesStackIds: string[] = rawSeries.map(entry => {
+    if (idxSelectedDimension >= 0 && entry.id) {
+      const parts = labelMap[entry.id];
+      // a tuple carries a leading metric (or offset) part whenever it is
+      // longer than the dimension list, which also covers comparison series
+      // that keep their metric prefix for a single displayed metric
+      const metricPartCount = Math.max(
+        0,
+        (parts?.length ?? 0) - groupBy.length,
+      );
+      const dimensionValue = parts?.[metricPartCount + idxSelectedDimension];
+      if (dimensionValue !== undefined) {
+        return String(dimensionValue);
+      }
+    }
+    return '__default__';
+  });
+
+  // Compute per-stack-group totalStackedValues so each group's "onlyTotal"
+  // label shows that group's own sum rather than the global sum across all
+  // groups. Group series by their stack group key and sum their data.
+  const perGroupTotalStackedValues: Record<string, number[]> =
+    Object.create(null);
+  if (stack && onlyTotal) {
+    rawSeries.forEach((entry, idx) => {
+      const group = seriesStackIds[idx];
+      if (
+        !Object.prototype.hasOwnProperty.call(perGroupTotalStackedValues, group)
+      ) {
+        perGroupTotalStackedValues[group] = [];
+      }
+      const groupTotals = perGroupTotalStackedValues[group];
+      (entry.data as [any, number][] | undefined)?.forEach(
+        (datum, dataIndex) => {
+          if (entry.id && legendState && !legendState[entry.id]) return;
+          const val = isHorizontal ? datum[0] : datum[1];
+          if (typeof val === 'number') {
+            groupTotals[dataIndex] = (groupTotals[dataIndex] ?? 0) + val;
+          }
+        },
+      );
+    });
+  }
+
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
     onlyTotal,
     isHorizontal,
     legendState,
+    seriesStackIds,
   });
   const seriesContexts = extractForecastSeriesContexts(
     rawSeries.map(series => series.name as string),
@@ -594,6 +1105,51 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
+  // A Percentage or Ratio time comparison replaces the derived series' values with a
+  // dimensionless number, so that row is no longer in the source metric's units and
+  // must not inherit its currency/D3 format.
+  //
+  // `label_map` carries the structured identity behind a rendered series name, and
+  // `renameOperator` puts the offset at the front of a derived row's entry:
+  //
+  //   derived  '1 week ago, East'  -> ['1 week ago', 'East']
+  //   derived  'count, 1 year ago' -> ['1 year ago', 'count']
+  //   base     'sum__num, East'    -> ['sum__num', 'East']
+  //
+  // so the leading column says which it is. Matching the rendered name instead would
+  // misread a base series whose dimension value happens to equal the offset — a region
+  // literally named "1 week ago" gives 'sum__num, 1 week ago', which reads as derived.
+  const isDerivedComparisonSeries = (seriesKey: string) => {
+    // Recorded above, before the offset was shifted off the `label_map` entry.
+    if (derivedComparisonSeries.has(seriesKey)) {
+      return true;
+    }
+    const columns = labelMap?.[seriesKey];
+    // The shift only runs when `timeCompare` is populated; otherwise the entry still
+    // leads with the offset and can be read directly.
+    return columns?.length
+      ? array.includes(columns[0])
+      : array.includes(seriesKey);
+  };
+
+  // Percentage yields `(s - c) / c`, which reads as a percentage. Ratio yields `s / c`,
+  // a plain multiplier, so it takes a unitless number format rather than a percent one.
+  const ratioFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
+
+  const getComparisonFormatter = (seriesKey: string) => {
+    if (!isDerivedComparisonSeries(seriesKey)) {
+      return undefined;
+    }
+    switch (chartProps.rawFormData?.comparison_type) {
+      case ComparisonType.Percentage:
+        return percentFormatter;
+      case ComparisonType.Ratio:
+        return ratioFormatter;
+      default:
+        return undefined;
+    }
+  };
+
   // With the "full range" time-shift option, offset series are outer-joined onto
   // the main series, which inserts null rows into the main series wherever the
   // comparison period has data the current period lacks. Connect nulls so the
@@ -613,7 +1169,7 @@ export default function transformProps(
   let dataMax: number | undefined;
   let dataMin: number | undefined;
 
-  rawSeries.forEach(entry => {
+  rawSeries.forEach((entry, seriesIdx) => {
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
     // isDerivedSeries checks for time comparison series patterns:
@@ -739,10 +1295,15 @@ export default function transformProps(
               labelMap?.[seriesName]?.[0],
             ) ?? defaultFormatter),
         showValue,
+        valueLabelPosition: resolvedValueLabelPosition,
         onlyTotal,
-        totalStackedValues: sortedTotalValues,
+        totalStackedValues:
+          onlyTotal && Object.keys(perGroupTotalStackedValues).length > 0
+            ? perGroupTotalStackedValues
+            : sortedTotalValues,
         showValueIndexes,
-        thresholdValues,
+        stackGroup: seriesStackIds[seriesIdx],
+        thresholdValues: sortedThresholdValues,
         richTooltip,
         sliceId,
         isHorizontal,
@@ -910,14 +1471,15 @@ export default function transformProps(
     stackDimension &&
     chartProps.rawFormData.groupby
   ) {
-    const idxSelectedDimension =
-      formData.metrics.length > 1
-        ? 1
-        : 0 + chartProps.rawFormData.groupby.indexOf(stackDimension);
     for (const s of series) {
-      if (s.id) {
+      if (s.id && idxSelectedDimension >= 0) {
         const columnsArr = labelMap[s.id];
-        const dimensionValue = columnsArr?.[idxSelectedDimension];
+        const metricPartCount = Math.max(
+          0,
+          (columnsArr?.length ?? 0) - groupBy.length,
+        );
+        const dimensionValue =
+          columnsArr?.[metricPartCount + idxSelectedDimension];
         if (dimensionValue !== undefined) {
           (s as any).stack = dimensionValue;
         }
@@ -1053,12 +1615,6 @@ export default function transformProps(
     });
   }
 
-  // A dashboard-level time grain override (e.g. via a filter or the temporal
-  // range control) is delivered in extraFormData and should take precedence
-  // over the chart's own time grain when formatting temporal axes/tooltips.
-  const resolvedTimeGrain =
-    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
-
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
       ? getTooltipTimeFormatter(tooltipTimeFormat, resolvedTimeGrain)
@@ -1125,9 +1681,32 @@ export default function transformProps(
     name,
     icon: 'roundRect',
   }));
+  const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
+  const usesCompactLayout = height <= TIMESERIES_CONSTANTS.compactChartHeight;
+  const isLegendVisible = showLegend && !usesCompactLayout;
+  const usesPrimaryAxisLegend = colorByPrimaryAxis && groupBy.length === 0;
+  const resolvedLegendData = usesPrimaryAxisLegend
+    ? colorByPrimaryAxisLegendData
+    : sortedLegendData;
+  const resolvedLegendNames = (
+    usesPrimaryAxisLegend ? legendData : sortedLegendData
+  ).map(String);
+  const usesCustomLegend =
+    isLegendVisible &&
+    legendType === LegendType.Plain &&
+    (legendOrientation === LegendOrientation.Top ||
+      legendOrientation === LegendOrientation.Bottom ||
+      legendOrientation === LegendOrientation.Left ||
+      legendOrientation === LegendOrientation.Right);
+  const nativeLegendVisible = isLegendVisible && !usesCustomLegend;
+  // Use the exact final ordering ECharts receives. Forecast components share
+  // a legend name, and ECharts takes the first matching series as its visual.
+  const renderedSeries = dedupSeries(
+    reorderForecastSeries([...series]) as SeriesOption[],
+  );
   const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
     const padding = getPadding(
-      showLegend,
+      nativeLegendVisible,
       legendOrientation,
       addYAxisLabelOffset,
       zoomable,
@@ -1152,20 +1731,18 @@ export default function transformProps(
           : undefined,
       chartHeight: height,
       chartWidth: width,
-      legendItems:
-        colorByPrimaryAxis && groupBy.length === 0
-          ? colorByPrimaryAxisLegendData
-          : sortedLegendData,
+      legendItems: resolvedLegendData,
       legendMargin: candidateLegendMargin,
       orientation: legendOrientation,
-      show: showLegend,
-      showSelectors: !(colorByPrimaryAxis && groupBy.length === 0),
+      show: nativeLegendVisible,
+      showSelectors: !usesPrimaryAxisLegend && showSelectorLegend !== false,
       theme,
       type: legendType,
     });
   };
   const initialLegendLayout = getLegendLayout(legendMargin);
   const legendLayout =
+    nativeLegendVisible &&
     isHorizontal &&
     legendOrientation === LegendOrientation.Bottom &&
     initialLegendLayout.effectiveLegendType === LegendType.Plain
@@ -1179,7 +1756,7 @@ export default function transformProps(
       ? legendMargin
       : legendLayout.effectiveLegendMargin;
   const padding = getPadding(
-    showLegend,
+    nativeLegendVisible,
     legendOrientation,
     addYAxisLabelOffset,
     zoomable,
@@ -1194,7 +1771,7 @@ export default function transformProps(
   // Reduce grid padding for small charts to maximize the drawing area.
   // Keep enough top padding so the max label doesn't clip against the cell border.
   // Preserve bottom padding when zoomable, since getPadding() reserves space for the dataZoom slider.
-  if (height < TIMESERIES_CONSTANTS.compactChartHeight) {
+  if (usesCompactLayout) {
     padding.top = Math.min(padding.top, 12);
     if (!zoomable) {
       padding.bottom = Math.min(padding.bottom, 5);
@@ -1203,89 +1780,86 @@ export default function transformProps(
 
   // When showMaxLabel is true, ECharts may render a label at the axis
   // boundary that formats identically to the last data-point tick (e.g.
-  // "2005" appears twice with Year grain). Wrap the formatter to suppress
-  // consecutive duplicate labels.
+  // "2005" appears twice with Year grain), and hideOverlap must stay off so
+  // that forced boundary label is never suppressed (#39899). Wrap the
+  // formatter to suppress consecutive duplicate labels and to thin out
+  // labels that would otherwise visually collide, since hideOverlap can no
+  // longer do that for us. The spacing estimate assumes the axis runs along
+  // the bottom of the chart (pixel width, character width); a horizontal
+  // orientation chart puts the time axis on the side instead, so it falls
+  // back to dedup-only there.
   const showMaxLabel =
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
+  // "All" (interval === '0') means every label is meant to show, so the
+  // spacing check below (which blanks labels that would otherwise visually
+  // collide) has to be bypassed too, not just ECharts' own hideOverlap.
+  const showAllLabels = xAxisLabelInterval === '0';
+  const xAxisDomain = getXAxisDomain(
+    [rebasedData as Record<string, unknown>[]],
+    xAxisLabel,
+  );
+  const boundaryFormatter = getBoundaryTimeFormatter(
+    xAxisTimeFormat,
+    resolvedTimeGrain,
+  );
   const deduplicatedFormatter = showMaxLabel
-    ? (() => {
-        let lastLabel: string | undefined;
-        let lastValue: number | undefined;
-        const wrapper = (value: number | string) => {
-          // ECharts formats the labels in repeated ascending passes. Reset the
-          // dedup state when the sequence restarts so a forced boundary label
-          // (e.g. the min date) isn't blanked by the previous pass's last label
-          // when both format identically (e.g. a May-to-May range).
-          if (
-            typeof value === 'number' &&
-            lastValue !== undefined &&
-            value <= lastValue
-          ) {
-            lastLabel = undefined;
-          }
-          if (typeof value === 'number') {
-            lastValue = value;
-          }
-          const label =
-            typeof xAxisFormatter === 'function'
-              ? (xAxisFormatter as Function)(value)
-              : String(value);
-          if (label === lastLabel) {
-            return '';
-          }
-          lastLabel = label;
-          return label;
-        };
-        if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
-          (wrapper as any).id = (xAxisFormatter as any).id;
-        }
-        return wrapper;
-      })()
+    ? isHorizontal
+      ? createDedupXAxisFormatter(xAxisFormatter)
+      : createSpacedXAxisFormatter(
+          xAxisFormatter,
+          ...xAxisDomain,
+          Math.max(width - padding.left - padding.right, 0),
+          showAllLabels,
+          boundaryFormatter,
+        )
     : xAxisFormatter;
+
+  const temporalTickValues = resolveTemporalTickValues(
+    rebasedData,
+    xAxisLabel,
+    xAxisType,
+    resolvedTimeGrain,
+    annotationLayers,
+  );
+
+  const temporalAxisTickConfig = getTemporalAxisTickConfig(
+    temporalTickValues,
+    showMaxLabel,
+    xAxisType,
+    xAxisLabelRotation,
+    showAllLabels ? 0 : xAxisLabelInterval,
+    deduplicatedFormatter,
+    isHorizontal,
+    zoomable,
+  );
+
+  const parsedXAxisMinInterval = parseMinInterval(xAxisMinInterval);
+  const parsedYAxisMinInterval = parseMinInterval(yAxisMinInterval);
 
   let xAxis: any = {
     type: xAxisType,
     name: xAxisTitle,
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
-    ...((xAxisType === AxisType.Category || xAxisType === AxisType.Time) &&
-      groupBy.length === 0 && {
-        triggerEvent: true,
-      }),
-    axisLabel: {
-      // When rotation is applied on time axes, hideOverlap can
-      // aggressively hide the last label. Rotated labels already
-      // have less overlap, so disabling hideOverlap is safe.
-      // At 0° rotation, also disable hideOverlap when showMaxLabel
-      // is active so the forced boundary label is never suppressed
-      // by ECharts' overlap detection (#39899).
-      hideOverlap: showMaxLabel
-        ? false
-        : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
-      formatter: deduplicatedFormatter,
-      rotate: xAxisLabelRotation,
-      interval: xAxisLabelInterval,
-      // Force the boundary labels on non-rotated time axes so the first
-      // and last dates stay visible: hideOverlap can hide the last label,
-      // and a min date that falls between "nice" ticks otherwise renders
-      // no beginning label. Skipped when rotated to avoid phantom labels
-      // at the axis boundary.
-      ...(showMaxLabel && {
-        showMaxLabel: true,
-        alignMaxLabel: 'right',
-        showMinLabel: true,
-        alignMinLabel: 'left',
-      }),
-    },
+    ...((xAxisType === AxisType.Category || xAxisType === AxisType.Time) && {
+      triggerEvent: true,
+    }),
+    ...temporalAxisTickConfig,
     minorTick: { show: minorTicks },
+    axisTick: {
+      ...temporalAxisTickConfig.axisTick,
+      show: axisTicks ? 'auto' : false,
+    },
+    ...(gridlines ? {} : { splitLine: { show: false } }),
     minInterval:
-      xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
+      parsedXAxisMinInterval ??
+      (xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
         ? (TIMEGRAIN_TO_TIMESTAMP[
             resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
           ] ?? 0)
-        : 0,
+        : 0),
     maxInterval:
       xAxisType === AxisType.Time && resolvedTimeGrain && forceMaxInterval
         ? TIMEGRAIN_TO_TIMESTAMP[
@@ -1305,7 +1879,6 @@ export default function transformProps(
   // >= 100px: full axis with proportional tick count
   // 60-99px: show only min/max boundary labels (splitNumber=1), hide lines/ticks
   // < 60px: hide all axis decorations, show line only
-  const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
   const isMicroChart = height < TIMESERIES_CONSTANTS.microChartHeight;
   const yAxisSplitNumber = isMicroChart
     ? undefined
@@ -1322,13 +1895,16 @@ export default function transformProps(
     ...(yAxisSplitNumber !== undefined && { splitNumber: yAxisSplitNumber }),
     min: yAxisMin,
     max: yAxisMax,
+    ...(parsedYAxisMinInterval !== undefined && {
+      minInterval: parsedYAxisMinInterval,
+    }),
     minorTick: { show: isSmallChart ? false : minorTicks },
     minorSplitLine: { show: isSmallChart ? false : minorSplitLine },
-    splitLine: { show: !isSmallChart },
+    splitLine: { show: isSmallChart ? false : gridlines },
     axisLabel: {
-      show: !isMicroChart,
-      showMinLabel: !isMicroChart,
-      showMaxLabel: !isMicroChart,
+      show: isMicroChart ? false : valueAxisLabels,
+      showMinLabel: isMicroChart ? false : valueAxisLabels,
+      showMaxLabel: isMicroChart ? false : valueAxisLabels,
       hideOverlap: true,
       formatter: getYAxisFormatter(
         metrics,
@@ -1338,7 +1914,7 @@ export default function transformProps(
         yAxisFormat,
       ),
     },
-    axisTick: { show: !isSmallChart },
+    axisTick: { show: isSmallChart ? false : axisTicks },
     scale: truncateYAxis,
     name: isSmallChart ? undefined : yAxisTitle,
     nameGap: convertInteger(yAxisTitleMargin),
@@ -1373,11 +1949,59 @@ export default function transformProps(
     }
   }
 
+  // Size a bar series to its own grain-bucket pixel width instead of a flat
+  // constant, so a sparse bucket doesn't visually spill into neighboring,
+  // unpopulated buckets. Computed here — after `padding` is fully finalized
+  // (legend layout, compact-chart clamping, rotated-label extra padding,
+  // and the horizontal-orientation swap above have all already run) and
+  // applied as a post-pass over the already-built `renderedSeries` — so the
+  // plot-length used matches the *actual* grid area ECharts will render
+  // into, not a flat per-side constant: a heavily-padded chart (e.g. a
+  // side legend eating a large share of a narrow chart) genuinely has far
+  // less plot area than `width`/`height` alone would suggest. Only
+  // meaningful when a bar series is actually rendered — skip the domain
+  // scan otherwise. See getGrainBarMaxWidth for the domain/grain part of
+  // the mechanism.
+  if (seriesType === EchartsTimeseriesSeriesType.Bar) {
+    const barMaxWidthPx = getGrainBarMaxWidth(
+      xAxisType,
+      resolvedTimeGrain,
+      [rebasedData as Record<string, unknown>[]],
+      xAxisLabel,
+      isHorizontal
+        ? Math.max(height - padding.top - padding.bottom, 0)
+        : Math.max(width - padding.left - padding.right, 0),
+    );
+    if (barMaxWidthPx !== undefined) {
+      renderedSeries.forEach(s => {
+        if (s.type === 'bar') {
+          (s as { barMaxWidth?: number }).barMaxWidth = barMaxWidthPx;
+        }
+      });
+    }
+  }
+
+  // Looked up per tooltip row; built once since the formatter runs on every mousemove.
+  const symbolBySeriesName = new Map<string, string>();
+  series.forEach(s => {
+    const { symbol } = s as { symbol?: unknown };
+    if (typeof s.name === 'string' && typeof symbol === 'string') {
+      symbolBySeriesName.set(s.name, symbol);
+    }
+  });
+
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
+    ...(seriesType === EchartsTimeseriesSeriesType.Bar &&
+    resolvedValueLabelPosition === BarValueLabelPosition.Auto
+      ? { darkMode: isThemeDark(theme) }
+      : {}),
     grid: {
       ...defaultGrid,
       ...padding,
+      // Compact charts prioritize a viable coordinate system over keeping
+      // axis labels inside an already constrained grid rectangle.
+      containLabel: !usesCompactLayout,
     },
     xAxis,
     yAxis,
@@ -1426,6 +2050,31 @@ export default function transformProps(
             value.forecastTrend || value.forecastLower || value.forecastUpper,
         );
 
+        // Resolve the value formatter per series so each metric keeps its own
+        // D3/currency format, matching how the series labels are formatted.
+        // Without the series key, `getCustomFormatter` returns undefined for
+        // multi-metric charts and every row falls back to `defaultFormatter`,
+        // rendering the y-axis/currency format for all metrics.
+        //
+        // The tooltip key is the rendered series name, so resolve it through
+        // `labelMap`, whose values lead with the raw metric label. Series
+        // renamed by a verbose_name are absent from that map, so fall back to
+        // the verbose-name inversion, as MixedTimeseries does. A Percentage or
+        // Ratio comparison row is dimensionless rather than a value in the
+        // metric's units, so it takes its own formatter instead of the metric's.
+        const getSeriesFormatter = (seriesKey: string) =>
+          forcePercentFormatter
+            ? percentFormatter
+            : (getComparisonFormatter(seriesKey) ??
+              getCustomFormatter(
+                customFormatters,
+                metrics,
+                labelMap?.[seriesKey]?.[0] ?? inverted[seriesKey],
+              ) ??
+              defaultFormatter);
+
+        // The total row aggregates every series, so it keeps the chart-level
+        // formatter rather than any single metric's format.
         const formatter = forcePercentFormatter
           ? percentFormatter
           : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
@@ -1448,16 +2097,11 @@ export default function transformProps(
             if (value.observation === 0 && stack) {
               return;
             }
-            const seriesForKey = series.find(s => s.name === key);
-            const symbolForSeries = (seriesForKey as any)?.symbol || 'circle';
-            const marker = value.color
-              ? getSymbolMarker(symbolForSeries, value.color)
-              : value.marker;
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
-              formatter,
-              marker,
+              symbol: symbolBySeriesName.get(key),
+              formatter: getSeriesFormatter(key),
               truncation: tooltipTruncation,
             });
 
@@ -1504,41 +2148,44 @@ export default function transformProps(
       ...getLegendProps(
         effectiveLegendType,
         legendOrientation,
-        // Hide legend on compact charts — not enough vertical space
-        isSmallChart ? false : showLegend,
+        nativeLegendVisible,
         theme,
+        showSelectorLegend,
         zoomable,
         legendState,
         padding,
       ),
-      scrollDataIndex: legendIndex || 0,
-      data:
-        colorByPrimaryAxis && groupBy.length === 0
-          ? colorByPrimaryAxisLegendData
-          : sortedLegendData,
+      scrollDataIndex: getLegendScrollDataIndex(
+        legendIndex,
+        resolvedLegendData.length,
+      ),
+      data: resolvedLegendData,
       // Disable legend selection and buttons when colorByPrimaryAxis is enabled
-      ...(colorByPrimaryAxis && groupBy.length === 0
+      ...(usesPrimaryAxisLegend
         ? {
             selectedMode: false, // Disable clicking legend items
             selector: false, // Hide All/Invert buttons
           }
         : {}),
     },
-    series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
-    toolbox: {
-      show: zoomable,
-      top: TIMESERIES_CONSTANTS.toolboxTop,
-      right: TIMESERIES_CONSTANTS.toolboxRight,
-      feature: {
-        dataZoom: {
-          ...(stack ? { yAxisIndex: false } : {}), // disable y-axis zoom for stacked charts
-          title: {
-            zoom: t('zoom area'),
-            back: t('restore zoom'),
+    series: renderedSeries,
+    // A hidden toolbox still registers its dataZoom feature, which filters
+    // out points (e.g. wide confidence bands) even when zooming is disabled.
+    toolbox: zoomable
+      ? {
+          top: TIMESERIES_CONSTANTS.toolboxTop,
+          right: TIMESERIES_CONSTANTS.toolboxRight,
+          feature: {
+            dataZoom: {
+              ...(stack ? { yAxisIndex: false } : {}), // disable y-axis zoom for stacked charts
+              title: {
+                zoom: t('zoom area'),
+                back: t('restore zoom'),
+              },
+            },
           },
-        },
-      },
-    },
+        }
+      : undefined,
     dataZoom: zoomable
       ? [
           {
@@ -1546,6 +2193,9 @@ export default function transformProps(
             start: TIMESERIES_CONSTANTS.dataZoomStart,
             end: TIMESERIES_CONSTANTS.dataZoomEnd,
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
+            ...(!isHorizontal && xAxisType === AxisType.Time
+              ? getZoomLabelOptions(width, xAxisDomain, boundaryFormatter)
+              : {}),
             yAxisIndex: isHorizontal ? 0 : undefined,
           },
           {
@@ -1581,9 +2231,58 @@ export default function transformProps(
   const mergedEchartOptions = customEchartOptions
     ? mergeCustomEChartOptions(echartOptions, customEchartOptions)
     : echartOptions;
+  const viableEchartOptions = getViableTimeseriesEchartOptions(
+    mergedEchartOptions,
+    height,
+    zoomable,
+  );
+  const mergedSeries = viableEchartOptions.series;
+  const finalSeries = Array.isArray(mergedSeries)
+    ? (mergedSeries as SeriesOption[])
+    : mergedSeries && typeof mergedSeries === 'object'
+      ? [mergedSeries as SeriesOption]
+      : renderedSeries;
+  const mergedGrid = Array.isArray(viableEchartOptions.grid)
+    ? viableEchartOptions.grid[0]
+    : viableEchartOptions.grid;
+  const finalGrid =
+    mergedGrid && typeof mergedGrid === 'object' ? mergedGrid : padding;
+  const customLegend = usesCustomLegend
+    ? buildTimeseriesCustomLegend({
+        fallbackColor: theme.colorTextSecondary,
+        grid: {
+          bottom:
+            typeof finalGrid.bottom === 'number' ||
+            typeof finalGrid.bottom === 'string'
+              ? finalGrid.bottom
+              : padding.bottom,
+          top:
+            typeof finalGrid.top === 'number' ||
+            typeof finalGrid.top === 'string'
+              ? finalGrid.top
+              : padding.top,
+        },
+        interactive: !usesPrimaryAxisLegend,
+        showSelectors: !usesPrimaryAxisLegend && showSelectorLegend !== false,
+        legendNames: resolvedLegendNames,
+        legendState,
+        orientation: legendOrientation,
+        series: finalSeries,
+      })
+    : undefined;
+  const finalEchartOptions = usesCustomLegend
+    ? {
+        ...viableEchartOptions,
+        legend: {
+          ...(viableEchartOptions.legend as Record<string, unknown>),
+          show: false,
+        },
+      }
+    : viableEchartOptions;
 
   return {
-    echartOptions: mergedEchartOptions,
+    customLegend,
+    echartOptions: finalEchartOptions,
     emitCrossFilters,
     formData,
     groupby: groupBy,

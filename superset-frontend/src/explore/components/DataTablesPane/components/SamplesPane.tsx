@@ -24,6 +24,7 @@ import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
+import { PreformattedErrorDescription } from 'src/components/ErrorMessage/PreformattedErrorDescription';
 import { GridTable } from 'src/components/GridTable';
 import { GridSize } from 'src/components/GridTable/constants';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
@@ -70,6 +71,8 @@ export const SamplesPane = ({
   const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [rowcount, setRowCount] = useState<number>(0);
+  const [rowcountIsLowerBound, setRowcountIsLowerBound] =
+    useState<boolean>(false);
   const [responseError, setResponseError] = useState<string>('');
   const { gridHeight, measuredRef } = useGridHeight();
   const datasourceId = useMemo(
@@ -116,6 +119,12 @@ export const SamplesPane = ({
           // controls only render when there are rows, and a hardcoded 0 would
           // label a populated table as "0 rows".
           setRowCount(response?.rowcount ?? rows.length);
+          // Partitioned datasets skip the exact COUNT(*), which would scan the
+          // whole table; the backend flags instead that rows exist past this
+          // page. `total_count` itself is not needed here.
+          setRowcountIsLowerBound(
+            Boolean(response?.total_count_is_lower_bound),
+          );
           setResponseError('');
           cache.set(queryFormData, true);
           if (queryForce) {
@@ -126,6 +135,7 @@ export const SamplesPane = ({
           setData([]);
           setColnames([]);
           setColtypes([]);
+          setRowcountIsLowerBound(false);
           setResponseError(`${error.name}: ${error.message}`);
         })
         .finally(() => {
@@ -160,6 +170,7 @@ export const SamplesPane = ({
           columnNames={colnames}
           columnTypes={coltypes}
           rowcount={rowcount}
+          rowcountIsLowerBound={rowcountIsLowerBound}
           datasourceId={datasourceId}
           onInputChange={handleInputChange}
           filterText={filterText}
@@ -175,7 +186,11 @@ export const SamplesPane = ({
             type="error"
             showIcon
             message={t('Failed to load samples')}
-            description={responseError}
+            description={
+              <PreformattedErrorDescription>
+                {responseError}
+              </PreformattedErrorDescription>
+            }
           />
         </ErrorAlertWrapper>
       </>
@@ -197,6 +212,7 @@ export const SamplesPane = ({
         columnNames={colnames}
         columnTypes={coltypes}
         rowcount={rowcount}
+        rowcountIsLowerBound={rowcountIsLowerBound}
         datasourceId={datasourceId}
         onInputChange={handleInputChange}
         filterText={filterText}

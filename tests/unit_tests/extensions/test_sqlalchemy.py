@@ -19,6 +19,7 @@
 import os
 import re
 from collections.abc import Iterator
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 import pytest
@@ -796,3 +797,91 @@ def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> 
 (Background on this error at: https://sqlalche.me/e/XX/f405)
         """.strip()
     )
+
+
+@pytest.fixture
+def table_dates(session: Session, database1: "Database") -> Iterator[None]:
+    """
+    A table with a DATE column holding 2026-09-19 to 2026-09-22.
+    """
+    with database1.get_sqla_engine() as engine:
+        with engine.begin() as conn:
+            conn.execute(text("CREATE TABLE table_dates (day DATE)"))
+            conn.execute(
+                text(
+                    "INSERT INTO table_dates (day) VALUES "
+                    "('2026-09-19'), ('2026-09-20'), ('2026-09-21'), ('2026-09-22')"
+                )
+            )
+        db.session.commit()
+
+        yield
+
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE table_dates"))
+        db.session.commit()
+
+
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
+@pytest.mark.parametrize(
+    "start,end",
+    [
+        (datetime(2026, 9, 20), datetime(2026, 9, 22)),
+        (datetime(2026, 9, 20, 12), datetime(2026, 9, 22, 12)),
+    ],
+)
+def test_time_filter_on_date_column(
+    mocker: MockerFixture,
+    app_context: None,
+    table_dates: None,
+    start: datetime,
+    end: datetime,
+) -> None:
+    """
+    Test that a time filter on a DATE column is applied.
+
+    Shillelagh reads a date filter with ``date.fromisoformat``, so a bound with a
+    time part would be dropped and every row would come back. The filter comes
+    from ``get_time_filter``, as in a chart query.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    # Mock the security_manager.raise_for_access to allow access
+    mocker.patch(
+        "superset.extensions.metadb.security_manager.raise_for_access",
+        return_value=None,
+    )
+
+    # Mock Flask g.user for security checks
+    # In Python 3.8+, we can't directly patch flask.g
+    # Instead, we need to ensure g.user exists in the context
+    from flask import g
+
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
+
+    try:
+        engine = create_engine("superset://")
+    except Exception as e:
+        # Skip test if superset:// dialect can't be loaded (common in Docker)
+        pytest.skip(f"Superset dialect not available: {e}")
+
+    column = TableColumn(column_name="day", type="DATE", is_dttm=True)
+    table = SqlaTable(
+        table_name="database1.table_dates",
+        columns=[column],
+        database=Database(database_name="meta", sqlalchemy_uri="superset://"),
+    )
+    time_filter = table.get_time_filter(column, start, end)
+    assert time_filter is not None
+    where = time_filter.compile(engine, compile_kwargs={"literal_binds": True})
+
+    with engine.connect() as conn:
+        results = conn.execute(
+            text(
+                'SELECT day FROM "database1.table_dates" '  # noqa: S608
+                f"WHERE {where} ORDER BY day"
+            )
+        )
+        assert list(results) == [(date(2026, 9, 20),), (date(2026, 9, 21),)]

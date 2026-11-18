@@ -57,7 +57,7 @@ test('shows the row count when the result fills the selected row limit', () => {
 test('warns that the row limit was reached when the result fills it', async () => {
   setup({ rowcount: 100, rowLimit: 100 });
 
-  userEvent.hover(screen.getByTestId('row-count-label'));
+  await userEvent.hover(screen.getByTestId('row-count-label'));
 
   expect(await screen.findByRole('tooltip')).toHaveTextContent(
     'The row limit set for the chart was reached',
@@ -68,7 +68,7 @@ test('does not warn when the result is smaller than the selected row limit', asy
   setup({ rowcount: 42, rowLimit: 100 });
 
   expect(screen.getByTestId('row-count-label')).toHaveTextContent('42 rows');
-  userEvent.hover(screen.getByTestId('row-count-label'));
+  await userEvent.hover(screen.getByTestId('row-count-label'));
 
   // Wait past antd's 0.1s mouseEnterDelay so a regression that made the
   // tooltip appear would be caught here instead of racing the delay.
@@ -80,7 +80,7 @@ test('does not warn when the result is smaller than the selected row limit', asy
 test("warns when the chart's own row limit truncates below the selected row limit", async () => {
   setup({ rowcount: 250, rowLimit: 1000, effectiveRowLimit: 250 });
 
-  userEvent.hover(screen.getByTestId('row-count-label'));
+  await userEvent.hover(screen.getByTestId('row-count-label'));
 
   expect(await screen.findByRole('tooltip')).toHaveTextContent(
     'The row limit set for the chart was reached',

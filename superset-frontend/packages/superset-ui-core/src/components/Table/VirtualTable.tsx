@@ -23,7 +23,7 @@ import {
   TableProps as AntTableProps,
 } from 'antd/es/table';
 import classNames from 'classnames';
-import { useResizeDetector } from 'react-resize-detector';
+import { type ResizePayload, useResizeDetector } from 'react-resize-detector';
 import { useRef, useState, useCallback, type UIEvent } from 'react';
 import {
   Grid,
@@ -34,7 +34,6 @@ import { safeHtmlSpan } from '@superset-ui/core';
 import { useTheme, styled, SupersetTheme } from '@apache-superset/core/theme';
 
 import { TableSize, ETableAction } from './index';
-import getScrollBarSize from './utils/getScrollBarSize';
 
 export interface VirtualTableProps<
   RecordType,
@@ -139,51 +138,29 @@ const VirtualTable = <RecordType extends object>(
     height,
     scroll,
     size,
-    dataSource,
     allowHTML = false,
   } = props;
   const [tableWidth, setTableWidth] = useState<number>(0);
-  const onResize = useCallback((width?: number) => {
+  const onResize = useCallback(({ width }: ResizePayload) => {
     setTableWidth(width ?? 0);
   }, []);
   const { ref } = useResizeDetector({ onResize });
   const theme = useTheme();
-
-  const cellSize = size === TableSize.Middle ? MIDDLE : SMALL;
-
-  // The header is rendered by antd as a plain `<thead>`, separate from the
-  // react-window `Grid` that renders the body. When the Grid's own vertical
-  // scrollbar appears, it eats into the body's visible column width without
-  // shrinking the header - misaligning the two. Reserve that same space when
-  // sizing columns so both stay in sync (mirrors the fix applied to
-  // `useSticky.tsx` for the non-virtualized table's sticky header).
-  const availableHeight = height || (scroll?.y as number) || 0;
-  // `dataSource` is the full (unpaginated) dataset - when pagination is on,
-  // only a page's worth of rows actually mounts in the Grid at a time, so
-  // that (not the full dataset length) is what determines whether its
-  // vertical scrollbar appears.
-  const pageSize =
-    pagination && typeof pagination === 'object'
-      ? pagination.pageSize
-      : undefined;
-  const rowCount = pageSize ?? dataSource?.length ?? 0;
-  const hasVerticalScroll = rowCount * cellSize > availableHeight;
-  const scrollBarSize = hasVerticalScroll ? getScrollBarSize() : 0;
-  const columnSizingWidth = Math.max(tableWidth - scrollBarSize, 0);
 
   // If a column definition has no width, react-window will use this as the default column width
   const DEFAULT_COL_WIDTH = theme?.sizeUnit * 37 || 150;
   const widthColumnCount = columns!.filter(({ width }) => !width).length;
   let staticColWidthTotal = 0;
   columns?.forEach(column => {
-    if (column.width) {
-      staticColWidthTotal += column.width as number;
+    if (typeof column.width === 'number') {
+      staticColWidthTotal += column.width;
     }
   });
 
+  // Sum of numeric widths; also sizes the antd header (scroll.x) to match the Grid.
   let totalWidth = 0;
   const defaultWidth = Math.max(
-    Math.floor((columnSizingWidth - staticColWidthTotal) / widthColumnCount),
+    Math.floor((tableWidth - staticColWidthTotal) / widthColumnCount),
     50,
   );
 
@@ -193,7 +170,9 @@ const VirtualTable = <RecordType extends object>(
       if (!column.width) {
         modifiedColumn.width = defaultWidth;
       }
-      totalWidth += modifiedColumn.width as number;
+      if (typeof modifiedColumn.width === 'number') {
+        totalWidth += modifiedColumn.width;
+      }
       return modifiedColumn;
     }) ?? [];
 
@@ -201,10 +180,11 @@ const VirtualTable = <RecordType extends object>(
    * There are cases where a user could set the width of each column and the total width is less than width of
    * the table.  In this case we will stretch the last column to use the extra space
    */
-  if (totalWidth < columnSizingWidth) {
-    const lastColumn = mergedColumns[mergedColumns.length - 1];
-    lastColumn.width =
-      (lastColumn.width as number) + Math.floor(columnSizingWidth - totalWidth);
+  const lastColumn = mergedColumns[mergedColumns.length - 1];
+  if (totalWidth < tableWidth && typeof lastColumn?.width === 'number') {
+    const extra = Math.floor(tableWidth - totalWidth);
+    lastColumn.width += extra;
+    totalWidth += extra;
   }
 
   const gridRef = useRef<GridImperativeAPI>(null);
@@ -266,6 +246,7 @@ const VirtualTable = <RecordType extends object>(
   ) => {
     // eslint-disable-next-line no-param-reassign
     ref.current = connectObject;
+    const cellSize = size === TableSize.Middle ? MIDDLE : SMALL;
     return (
       <Grid
         gridRef={gridRef}
@@ -311,7 +292,7 @@ const VirtualTable = <RecordType extends object>(
           body: renderVirtualList,
         }}
         pagination={pagination ? modifiedPagination : false}
-        scroll={scroll}
+        scroll={{ ...scroll, x: totalWidth || scroll?.x }}
         columns={mergedColumns}
       />
     </div>

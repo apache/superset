@@ -52,11 +52,8 @@ async def health_check() -> HealthCheckResponse:
     Returns basic system information and confirms the service is running.
     This is useful for testing connectivity and basic functionality.
 
-    Parameters:
-        None - This tool does not accept any parameters
-
     Returns:
-        HealthCheckResponse: Health status and system information including:
+        (HealthCheckResponse): Health status and system information including:
             - status: "healthy" or "error"
             - timestamp: ISO format timestamp
             - service: Service name derived from APP_NAME config

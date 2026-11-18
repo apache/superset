@@ -30,6 +30,9 @@
 import path from 'path';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineConfig } from '@playwright/test';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const serverURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
 const baseURL = serverURL.endsWith('/') ? serverURL : `${serverURL}/`;

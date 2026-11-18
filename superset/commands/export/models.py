@@ -17,9 +17,10 @@
 
 from collections.abc import Iterator
 from datetime import datetime, timezone
-from typing import Callable
+from typing import Any, Callable
 
 import yaml
+from flask import current_app
 from flask_appbuilder import Model
 
 from superset.commands.base import BaseCommand
@@ -30,13 +31,35 @@ from superset.utils.dict_import_export import EXPORT_VERSION
 METADATA_FILE_NAME = "metadata.yaml"
 
 
+def get_extra_export_fields(model: Model, asset_type: str) -> dict[str, Any]:
+    """Collect deployment-specific fields to serialise under ``extra``.
+
+    Returns an empty mapping when no ``EXTRA_ASSET_EXPORT_FIELDS`` hook is
+    configured, so exports are unchanged by default.
+    """
+    hook = current_app.config.get("EXTRA_ASSET_EXPORT_FIELDS")
+    if not hook:
+        return {}
+    return hook(model, asset_type) or {}
+
+
 class ExportModelsCommand(BaseCommand):
     dao: type[BaseDAO[Model]] = BaseDAO
     not_found: type[CommandException] = CommandException
 
-    def __init__(self, model_ids: list[int], export_related: bool = True):
+    def __init__(
+        self,
+        model_ids: list[int],
+        export_related: bool = True,
+        include_deleted: bool = False,
+    ):
         self.model_ids = model_ids
         self.export_related = export_related
+        # Soft-deleted rows are hidden from ``find_by_ids`` by the visibility
+        # filter. Nested exports set this so a parent asset that sits in the
+        # trash still reaches the bundle, keeping the bundle's internal
+        # references resolvable; the base (permission) filter still applies.
+        self.include_deleted = include_deleted
 
         # this will be set when calling validate()
         self._models: list[Model] = []
@@ -91,6 +114,10 @@ class ExportModelsCommand(BaseCommand):
                     seen.add(file_name)
 
     def validate(self) -> None:
-        self._models = self.dao.find_by_ids(self.model_ids)
+        self._models = (
+            self.dao.find_by_ids(self.model_ids, skip_visibility_filter=True)
+            if self.include_deleted
+            else self.dao.find_by_ids(self.model_ids)
+        )
         if len(self._models) != len(self.model_ids):
             raise self.not_found()
