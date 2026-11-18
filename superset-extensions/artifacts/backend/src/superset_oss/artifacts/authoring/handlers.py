@@ -116,9 +116,9 @@ class ArtifactUploadBlobsRequest(ArtifactScopedRequest):
     """
     ``artifact_upload_blobs``: store file contents that a commit by hash lacks.
 
-    TODO: the authoring contract doesn't define how an agent uploads the blobs
-    that ``artifact_commit_files`` reports missing; this extension tool stands
-    in until it does.
+    The upload in a tool call, which the authoring contract leaves to the
+    host: for agents that get no upload links, or whose shell can't reach
+    them.
     """
 
     blobs: list[BlobUpload] = Field(min_length=1, max_length=200)
