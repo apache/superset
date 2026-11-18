@@ -874,11 +874,11 @@
       "compact_description_chars": 279,
       "description_chars": 712,
       "entry_bytes": {
-        "structured": 4885,
+        "structured": 5411,
         "text_only": 2067
       },
       "input_schema_bytes": 1099,
-      "output_schema_bytes": 2802
+      "output_schema_bytes": 3328
     },
     "list_queries": {
       "annotations": {
@@ -1331,11 +1331,11 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 555469,
+      "structured": 555995,
       "text_only": 228596
     },
     "compact_catalog_bytes": {
-      "structured": 497902,
+      "structured": 498428,
       "text_only": 171029
     },
     "largest_entry": {

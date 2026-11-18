@@ -3311,6 +3311,83 @@ def test_connection_does_not_re_exchange_a_refused_refresh_token(
     engine.raw_connection.assert_not_called()
 
 
+def _catch_all_database() -> Database:
+    """A database on an engine with the catch-all rule and a mixed payload."""
+    return Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(
+            {
+                "api_key": "x",
+                "connect_args": {"timeout": 5},
+                "oauth2_client_info": {"secret": "s"},
+            }
+        ),
+    )
+
+
+def test_stored_sensitive_fields_catch_all_rule() -> None:
+    """
+    On an engine with the catch-all rule, only the stored string fields are listed,
+    labeled by key name unless the path has a declared label.
+    """
+    assert _catch_all_database().stored_sensitive_fields() == {
+        "$.api_key": "api_key",
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+
+def test_stored_sensitive_fields_only_stored_declared_fields() -> None:
+    """
+    A declared field is listed with its label only when it is stored.
+    """
+    database = Database(
+        database_name="druid",
+        sqlalchemy_uri="druid://localhost:8082/druid/v2/sql/",
+        encrypted_extra=json.dumps({"connect_args": {"scheme": "https"}}),
+    )
+    assert database.stored_sensitive_fields() == {}
+
+    database.encrypted_extra = json.dumps(
+        {"connect_args": {"scheme": "https", "jwt": "token"}}
+    )
+    assert database.stored_sensitive_fields() == {"$.connect_args.jwt": "JWT Token"}
+
+
+@pytest.mark.parametrize("encrypted_extra", [None, "", "{oops", "[1, 2]", '"x"', "{}"])
+def test_stored_sensitive_fields_missing_or_malformed(
+    encrypted_extra: str | None,
+) -> None:
+    """
+    A missing, empty or malformed `encrypted_extra` lists no sensitive fields.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=encrypted_extra,
+    )
+
+    assert database.stored_sensitive_fields() == {}
+
+
+def test_engine_information_keeps_declared_patterns() -> None:
+    """
+    The engine information of a database lists the engine's declared patterns,
+    whatever is stored.
+    """
+    assert _catch_all_database().engine_information[
+        "encrypted_extra_sensitive_fields"
+    ] == {
+        "$.*": "Encrypted Extra",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+
 def _embedded_snowflake_database(
     *,
     username: str = "embedded_svc",
