@@ -97,6 +97,8 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
+    OAuth2Error,
+    OAuth2RedirectError,
     QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetParseError,
@@ -3251,12 +3253,32 @@ class SqlaTable(
             # which the Jinja template processor collects, and the mapping's own
             # identity is appended below. A miss falls through to SQL
             # generation, which probes.
-            sqla_query = self.get_sqla_query(
-                **cast(Any, filtered_query_obj),
-                mirror_partition_filters=False,
-                execute_prequeries=False,
-            )
-            extra_cache_keys += sqla_query.extra_cache_keys
+            try:
+                sqla_query = self.get_sqla_query(
+                    **cast(Any, filtered_query_obj),
+                    mirror_partition_filters=False,
+                    execute_prequeries=False,
+                )
+            except (OAuth2RedirectError, OAuth2Error):
+                # the user has to sign in to the database to build the query
+                raise
+            except Exception:  # pylint: disable=broad-except
+                from superset.utils.rls import get_rls_lookup_failure_cache_key
+
+                # Building the query can connect to the database (to resolve the
+                # schema of a virtual dataset without one, for instance), so an
+                # outage must not fail the cache key. The macros' keys are
+                # unknown, so fall back to the viewer-scoped key the RLS
+                # collectors use: two viewers never share an entry. A caught DB
+                # error can leave db.session in "pending rollback" state.
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+                logger.warning(
+                    "Unable to collect the extra cache keys of a query",
+                    exc_info=True,
+                )
+                extra_cache_keys.append(get_rls_lookup_failure_cache_key())
+            else:
+                extra_cache_keys += sqla_query.extra_cache_keys
 
         resolve_catalog = cache(self.database.get_default_catalog)
         resolve_schema = cache(self._get_rls_schema)

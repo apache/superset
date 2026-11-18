@@ -1590,6 +1590,39 @@ def test_expression_cache_key_parse_failure_is_user_scoped(
 
 
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_with_database_outage_is_user_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """A schemaless dataset with a cache-key macro must key without the database."""
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.schema = None
+    virtual.sql = "SELECT col1 FROM physical WHERE '{{ current_username() }}' != ''"
+    mocker.patch.object(
+        virtual.database,
+        "resolve_query_default_schema",
+        side_effect=ConnectionError("database unreachable"),
+    )
+    mocker.patch(
+        "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    user_id = mocker.patch("superset.utils.rls.get_user_id", return_value=41)
+    query = QueryObject(datasource=virtual, columns=["col1"], metrics=[])
+
+    first_user = virtual.get_extra_cache_keys(query.to_dict())
+    assert first_user == virtual.get_extra_cache_keys(query.to_dict())
+    user_id.return_value = 42
+    second_user = virtual.get_extra_cache_keys(query.to_dict())
+
+    assert "rls-predicate-parse-failed-for-user-41" in first_user
+    assert "rls-predicate-parse-failed-for-user-42" in second_user
+    assert not set(first_user) & set(second_user)
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
 @pytest.mark.parametrize(
     "sink", ["series_columns", "series_limit_metric", "fetch_values_predicate"]
 )
