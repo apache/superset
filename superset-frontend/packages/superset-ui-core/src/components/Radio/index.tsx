@@ -25,7 +25,9 @@ import {
 import { Space, type SpaceProps } from '../Space';
 import { withNonTextContrast } from '../AntdThemeProvider/NonTextContrastProvider';
 
-const AntRadioGroup = withNonTextContrast(AntRadio.Group);
+const keepDisabled = { keepDisabledColors: true };
+
+const AntRadioGroup = withNonTextContrast(AntRadio.Group, keepDisabled);
 
 export type RadioGroupWrapperProps = RadioGroupProps & {
   spaceConfig?: {
@@ -53,11 +55,14 @@ const RadioGroup = ({
     </AntRadioGroup>
   );
 };
-export const Radio = Object.assign(withNonTextContrast(AntRadio), {
-  Group: AntRadioGroup,
-  GroupWrapper: RadioGroup,
-  Button: withNonTextContrast(AntRadio.Button),
-});
+export const Radio = Object.assign(
+  withNonTextContrast(AntRadio, keepDisabled),
+  {
+    Group: AntRadioGroup,
+    GroupWrapper: RadioGroup,
+    Button: withNonTextContrast(AntRadio.Button, keepDisabled),
+  },
+);
 export type {
   RadioChangeEvent,
   RadioGroupProps,

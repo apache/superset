@@ -62,3 +62,50 @@ test.each([
     supersetTheme.colorTextTertiary,
   );
 });
+
+// Custom properties inherit; resolve the value the element actually uses.
+const inheritedVar = (el: Element | null, name: string): string => {
+  const value = el ? getComputedStyle(el).getPropertyValue(name) : '';
+  return value || !el?.parentElement
+    ? value
+    : inheritedVar(el.parentElement, name);
+};
+
+test.each([
+  ['Radio', <Radio key="radio" value="a" disabled />, '.ant-radio-disabled'],
+  [
+    'Radio.Button',
+    <Radio.Button key="button" value="a" disabled />,
+    '.ant-radio-button-wrapper-disabled',
+  ],
+  [
+    'Radio.Group',
+    <Radio.Group key="group" disabled options={[{ label: 'A', value: 'a' }]} />,
+    '.ant-radio-disabled',
+  ],
+])('disabled %s keeps the default disabled border', (_, element, selector) => {
+  const { container } = render(element);
+  const radio = container.querySelector(selector);
+  expect(inheritedVar(radio, '--ant-color-border')).toBe(
+    supersetTheme.colorBorder,
+  );
+});
+
+test('Radio.Button in a disabled Radio.Group keeps the default disabled border', () => {
+  const { container } = render(
+    <Radio.Group disabled value="a">
+      <Radio.Button value="a">A</Radio.Button>
+      <Radio.Button value="b">B</Radio.Button>
+    </Radio.Group>,
+  );
+  container
+    .querySelectorAll('.ant-radio-button-wrapper-disabled')
+    .forEach(button =>
+      expect(inheritedVar(button, '--ant-color-border')).toBe(
+        supersetTheme.colorBorder,
+      ),
+    );
+  expect(
+    container.querySelectorAll('.ant-radio-button-wrapper-disabled'),
+  ).toHaveLength(2);
+});

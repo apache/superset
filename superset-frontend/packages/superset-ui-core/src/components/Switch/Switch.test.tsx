@@ -48,3 +48,19 @@ test('unchecked Switch track uses colorTextTertiary for non-text contrast', () =
     getComputedStyle(root).getPropertyValue('--ant-color-text-quaternary'),
   ).toBe(supersetTheme.colorTextTertiary);
 });
+
+test('Switch keeps the default hover track color', () => {
+  const { container } = render(<Switch />);
+  const root = container.querySelector('.ant-switch') as Element;
+  expect(
+    getComputedStyle(root).getPropertyValue('--ant-color-text-tertiary'),
+  ).toBe(supersetTheme.colorTextTertiary);
+});
+
+test('disabled Switch keeps the default track color', () => {
+  const { container } = render(<Switch disabled />);
+  const root = container.querySelector('.ant-switch-disabled') as Element;
+  expect(
+    getComputedStyle(root).getPropertyValue('--ant-color-text-quaternary'),
+  ).toBe(supersetTheme.colorTextQuaternary);
+});

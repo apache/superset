@@ -18,6 +18,7 @@
  */
 import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
+import { AntdThemeProvider } from '../AntdThemeProvider';
 import { Checkbox } from '.';
 import type { CheckboxProps } from './types';
 
@@ -127,5 +128,33 @@ test('Checkbox border uses colorTextTertiary for non-text contrast', () => {
   const root = container.querySelector('[class*="-css-var"]') as Element;
   expect(getComputedStyle(root).getPropertyValue('--ant-color-border')).toBe(
     supersetTheme.colorTextTertiary,
+  );
+});
+
+// Custom properties inherit; resolve the value the element actually uses.
+const inheritedVar = (el: Element | null, name: string): string => {
+  const value = el ? getComputedStyle(el).getPropertyValue(name) : '';
+  return value || !el?.parentElement
+    ? value
+    : inheritedVar(el.parentElement, name);
+};
+
+test('disabled Checkbox keeps the default disabled border', () => {
+  const { container } = render(<Checkbox disabled />);
+  const box = container.querySelector('.ant-checkbox-disabled');
+  expect(inheritedVar(box, '--ant-color-border')).toBe(
+    supersetTheme.colorBorder,
+  );
+});
+
+test('Checkbox in a disabled form keeps the default disabled border', () => {
+  const { container } = render(
+    <AntdThemeProvider componentDisabled>
+      <Checkbox />
+    </AntdThemeProvider>,
+  );
+  const box = container.querySelector('.ant-checkbox-disabled');
+  expect(inheritedVar(box, '--ant-color-border')).toBe(
+    supersetTheme.colorBorder,
   );
 });

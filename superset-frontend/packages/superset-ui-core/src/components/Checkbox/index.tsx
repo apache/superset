@@ -19,8 +19,13 @@
 import { Checkbox as AntdCheckbox } from 'antd';
 import { withNonTextContrast } from '../AntdThemeProvider/NonTextContrastProvider';
 
-export const Checkbox = Object.assign(withNonTextContrast(AntdCheckbox), {
-  Group: withNonTextContrast(AntdCheckbox.Group),
-});
+const keepDisabled = { keepDisabledColors: true };
+
+export const Checkbox = Object.assign(
+  withNonTextContrast(AntdCheckbox, keepDisabled),
+  {
+    Group: withNonTextContrast(AntdCheckbox.Group, keepDisabled),
+  },
+);
 
 export type { CheckboxProps, CheckboxChangeEvent } from './types';
