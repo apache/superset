@@ -17,14 +17,14 @@
  * under the License.
  */
 import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { ImportResourceName } from 'src/views/CRUD/types';
 import type { ImportModelsModalProps } from './types';
 import { ImportModal } from '.';
 
-const mockStore = configureStore([thunk]);
+const mockStore = createMockStore([thunk]);
 const store = mockStore({});
 
 const DATABASE_IMPORT_URL = 'glob:*/api/v1/database/import/';

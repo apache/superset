@@ -19,7 +19,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { ReactNode } from 'react';
-import configureStore from 'redux-mock-store';
+import createMockStore from 'redux-mock-store';
 import { LOCALE_MAPPING, toDayjsLocale, useLocale } from './useLocale';
 
 // jest.mock is hoisted before variable declarations, so jest.fn() must be
@@ -128,7 +128,7 @@ jest.mock(
   { virtual: true },
 );
 
-const mockStore = configureStore([]);
+const mockStore = createMockStore([]);
 
 function createWrapper(locale: string) {
   const store = mockStore({ common: { locale } });
