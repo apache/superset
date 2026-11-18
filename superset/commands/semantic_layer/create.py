@@ -130,6 +130,9 @@ class CreateSemanticViewCommand(BaseCommand):
         # resent batch reaches its remaining views within the bulk time budget.
         self._validate_uniqueness(name, layer_uuid, configuration)
         try:
+            configuration = layer.implementation.prepare_view_configuration(
+                name, configuration
+            )
             view: SemanticViewABC | None = layer.implementation.get_semantic_view(
                 name, configuration
             )
@@ -153,6 +156,8 @@ class CreateSemanticViewCommand(BaseCommand):
                     "or the semantic layer is unreachable."
                 )
             ) from None
+
+        self._properties["configuration"] = configuration
 
         # Check again after the lookup to keep the check-to-insert window short.
         # Best effort: under REPEATABLE READ this sees the transaction's snapshot.

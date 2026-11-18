@@ -113,12 +113,27 @@ or a constructed provider. The host uses this form before credentials exist and
 when identifying secret fields. See [readiness and failures](../semantic-provider-boundary.md)
 for the schema contract and safe error signals.
 
+Catalog discovery returns one `Dimension` per stable name, with a `frozenset` of
+supported `grains`. Query dimensions, filter leaves, order/group-limit operands,
+value lookups and compatibility inputs use `DimensionSelection(dimension, grain)`.
+`grain=None` selects provider-native behavior, not necessarily raw timestamp
+precision. Compatibility results remain catalog dimensions with support narrowed
+to the selected metrics and configured restrictions.
+
+`allows_default_grain` is independent of explicit support. `omitted_grain` and
+`ungrained_filter` declare how omitted grouping and implicit filter/value requests
+resolve: `GrainDefault.NATIVE`, an allowed `Grain`, or `GrainDefault.REJECT`.
+A curated day-only field can preserve omitted requests as explicit day selections
+while refusing native selection. Explicitly raw predicates do not inherit an
+implicit bucket default. Providers revalidate against their authoritative catalog;
+caller-supplied capability metadata cannot grant support.
+
 `get_values(dimension, filters)` returns its Arrow value column under
 `dimension.name` for nonempty results. The private `id` and display `verbose_name`
 are not result-column names. Legacy single-column and empty-result handling are
 unchanged. Apply filters or refuse the request; never drop them
 and retry. See the SDK `SemanticView` docstrings for member identity, grain
-variants and ordering before limit, and the [query error guide](../../semantic-query-errors.md)
+selections and ordering before limit, and the [query error guide](../../semantic-query-errors.md)
 for typed refusals versus operational faults. The selection-version guard is a
 separate boundary and raises `ValueError`; it does not classify provider faults.
 
@@ -572,3 +587,22 @@ Table and Interactive Table omit a dormant duration grain from semantic aggregat
 requests when current metadata proves that all selected columns are non-temporal.
 The saved grain is retained for later temporal selections. Unknown metadata and
 explicit temporal requests continue through normal semantic validation.
+
+### Finite compatibility evidence
+
+`SemanticView.get_compatibility_evidence()` is an optional cache-only SDK method.
+Its default `None` preserves legacy providers. An opted-in provider returns a
+frozen `CompatibilityEvidence(quality, valid_for_ms)`: `known` for complete
+profiles, `partial` when complete profiles prove only some exclusions, and
+`unknown` when no exclusions are established. The non-negative integer lifetime
+is the remaining lifetime of the immutable catalog snapshot, not its original
+TTL. Expired opted-in providers return unknown, never the legacy `None` fallback.
+This method must not fetch metadata or renew its lifetime.
+
+Core attaches its own metadata generation to the `compatibility_evidence` API
+sibling (format version 1), validates cache generation and expiry, and subtracts
+elapsed processing time. Explore subtracts request duration and expires member
+restrictions locally. `dimension_support` and explicit `dimension_grains` keep
+their separate contracts; freshness is not a grant of grain support. Compatibility
+cache revision v4 excludes older cached representations. Deploy this SDK, API and
+expiry-aware UI together before enabling a provider that relies on finite evidence.

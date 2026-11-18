@@ -470,3 +470,212 @@ test('fetchCompatibility ignores a stale failure after a newer success', async (
 
   postSpy.mockRestore();
 });
+
+test('fetchCompatibility retains contextual grain support beside member names', async () => {
+  const dispatch = jest.fn();
+  const support = {
+    event_time: {
+      grains: ['P1M'],
+      allows_default_grain: false,
+      omitted_grain: 'P1M',
+      ungrained_filter: 'P1D',
+    },
+  };
+  const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValueOnce({
+    json: {
+      result: {
+        compatible_metrics: ['m1'],
+        compatible_dimensions: ['event_time'],
+        dimension_support: support,
+      },
+    },
+  } as never);
+  await actions.fetchCompatibility('semantic_view', 7, ['m1'], [])(dispatch);
+  expect(
+    getCompatibilityActions(dispatch).at(-1).compatibility.dimensionSupport,
+  ).toEqual(support);
+  postSpy.mockRestore();
+});
+
+test('SQL axis changes invalidate pending compatibility without idle redispatch', async () => {
+  const dispatch = jest.fn();
+  await actions.fetchCompatibility(
+    'table',
+    3,
+    [],
+    ['event_time'],
+  )(dispatch, () => ({ explore: { compatibility: { status: 'idle' } } }));
+  expect(dispatch).not.toHaveBeenCalled();
+});
+
+test('finite compatibility expires without polling or changing selected controls', async () => {
+  jest.useFakeTimers();
+  const dispatch = jest.fn();
+  const post = jest
+    .spyOn(SupersetClient, 'post')
+    .mockImplementationOnce(async () => {
+      jest.advanceTimersByTime(200);
+      return {
+        json: {
+          result: {
+            compatible_metrics: [],
+            compatible_dimensions: [],
+            dimension_support: { d: { grains: ['P1D'] } },
+            compatibility_evidence: {
+              format_version: 1,
+              quality: 'partial',
+              metadata_generation: 'G',
+              valid_for_ms: 1000,
+            },
+          },
+        },
+      } as never;
+    });
+  try {
+    await actions.fetchCompatibility('semantic_view', 7, [], [])(dispatch);
+    expect(getCompatibilityActions(dispatch).at(-1).compatibility.status).toBe(
+      'verified',
+    );
+    jest.advanceTimersByTime(799);
+    expect(getCompatibilityActions(dispatch).at(-1).compatibility.status).toBe(
+      'verified',
+    );
+    jest.advanceTimersByTime(1);
+    expect(getCompatibilityActions(dispatch).at(-1).compatibility).toEqual({
+      status: 'unknown',
+      dimensionSupport: { d: { grains: ['P1D'] } },
+    });
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(
+      dispatch.mock.calls.every(
+        ([action]) => action.type === actions.SET_COMPATIBILITY,
+      ),
+    ).toBe(true);
+  } finally {
+    post.mockRestore();
+    jest.useRealTimers();
+  }
+});
+
+test.each([
+  {
+    format_version: 1,
+    quality: 'unknown',
+    valid_for_ms: 1000,
+    metadata_generation: 'G',
+  },
+  {
+    format_version: 2,
+    quality: 'known',
+    valid_for_ms: 1000,
+    metadata_generation: 'G',
+  },
+  {
+    format_version: 1,
+    quality: 'known',
+    valid_for_ms: 0,
+    metadata_generation: 'G',
+  },
+  {
+    format_version: 1,
+    quality: 'known',
+    valid_for_ms: Infinity,
+    metadata_generation: 'G',
+  },
+  { format_version: 1, quality: 'known', valid_for_ms: 1000 },
+  null,
+])(
+  'unsupported or expired evidence permits member choices (%j)',
+  async evidence => {
+    const dispatch = jest.fn();
+    const post = jest.spyOn(SupersetClient, 'post').mockResolvedValueOnce({
+      json: {
+        result: {
+          compatible_metrics: [],
+          compatible_dimensions: [],
+          compatibility_evidence: evidence,
+        },
+      },
+    } as never);
+    try {
+      await actions.fetchCompatibility('semantic_view', 7, [], [])(dispatch);
+      expect(
+        getCompatibilityActions(dispatch).at(-1).compatibility.status,
+      ).toBe('unknown');
+    } finally {
+      post.mockRestore();
+    }
+  },
+);
+
+test('reset fences replies after unmount and cancels the expiry timer', async () => {
+  jest.useFakeTimers();
+  const dispatch = jest.fn();
+  let resolve!: (value: CompatibilityResponse) => void;
+  const post = jest.spyOn(SupersetClient, 'post').mockImplementationOnce(
+    () =>
+      new Promise<CompatibilityResponse>(done => {
+        resolve = done;
+      }) as never,
+  );
+  try {
+    const pending = actions.fetchCompatibility(
+      'semantic_view',
+      7,
+      [],
+      [],
+    )(dispatch);
+    dispatch(actions.resetCompatibility());
+    resolve({
+      json: { result: { compatible_metrics: [], compatible_dimensions: [] } },
+    });
+    await pending;
+    jest.runOnlyPendingTimers();
+    expect(getCompatibilityActions(dispatch).at(-1).compatibility).toEqual({
+      status: 'idle',
+    });
+  } finally {
+    post.mockRestore();
+    jest.useRealTimers();
+  }
+});
+
+test('datasource change cancels the previous expiry without affecting the new result', async () => {
+  jest.useFakeTimers();
+  const dispatch = jest.fn();
+  const post = jest
+    .spyOn(SupersetClient, 'post')
+    .mockResolvedValueOnce({
+      json: {
+        result: {
+          compatible_metrics: [],
+          compatible_dimensions: [],
+          compatibility_evidence: {
+            format_version: 1,
+            quality: 'known',
+            metadata_generation: 'G',
+            valid_for_ms: 1000,
+          },
+        },
+      },
+    } as never)
+    .mockResolvedValueOnce({
+      json: {
+        result: { compatible_metrics: ['legacy'], compatible_dimensions: [] },
+      },
+    } as never);
+  try {
+    await actions.fetchCompatibility('semantic_view', 7, [], [])(dispatch);
+    expect(jest.getTimerCount()).toBe(1);
+    await actions.fetchCompatibility('semantic_view', 8, [], [])(dispatch);
+    expect(jest.getTimerCount()).toBe(0);
+    jest.advanceTimersByTime(2000);
+    expect(
+      getCompatibilityActions(dispatch).at(-1).compatibility.metrics,
+    ).toEqual(['legacy']);
+  } finally {
+    dispatch(actions.resetCompatibility());
+    post.mockRestore();
+    jest.useRealTimers();
+  }
+});

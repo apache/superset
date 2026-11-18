@@ -226,6 +226,7 @@ def test_generation_binding_precedes_provider_construction(
         assert view.get_extra_cache_keys({}) == [
             layer.metadata_generation,
             "semantic-null-filters-v1",
+            "semantic-grain-selection-v2",
         ]
 
 
@@ -243,6 +244,7 @@ def test_host_generation_is_named_apart_from_provider_token(
         assert view.get_extra_cache_keys({}) == [
             layer.metadata_generation,
             "semantic-null-filters-v1",
+            "semantic-grain-selection-v2",
         ]
 
 
@@ -345,7 +347,7 @@ def test_suggestion_cache_rotates_with_metadata_generation(
     view.metrics = [Mock(metric_name="metric")]
     view.columns = [Mock(column_name="dimension")]
     view.get_compatible_metrics.return_value = []
-    view.get_compatible_dimensions.return_value = []
+    view.get_compatible_dimension_metadata.return_value = set()
     view.values_for_column.return_value = ["one"]
     cache: Mock
     with (
@@ -731,6 +733,7 @@ def test_cache_keys_compose_metadata_and_producer_versions(
         assert first_result == [
             first_generation,
             "semantic-null-filters-v1",
+            "semantic-grain-selection-v2",
             ("semantic-result-version", "test", "v1"),
         ]
         assert first_annotation["source_versions"] == {"7": first_generation}
@@ -779,4 +782,98 @@ def test_clear_does_not_load_expired_view_relationships(
         event.remove(session.get_bind(), "before_cursor_execute", record_statement)
     assert not any(
         statement.lstrip().upper().startswith("SELECT") for statement in statements
+    )
+
+
+@pytest.mark.parametrize("fail_write", [False, True])
+def test_field_reselection_keeps_references_and_rotates_atomically(
+    app: Flask,
+    session: Session,
+    layer: SemanticLayer,
+    fail_write: bool,
+) -> None:
+    from unittest.mock import MagicMock
+
+    from sqlalchemy import text
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from superset.commands.semantic_layer.exceptions import (
+        SemanticViewUpdateFailedError,
+    )
+    from superset.commands.semantic_layer.update import UpdateSemanticViewCommand
+    from superset.daos.semantic_layer import SemanticViewDAO
+    from superset.models.slice import Slice
+    from superset.utils import json
+
+    original: str = json.dumps({"dimensions": ["time__day"]})
+    prepared: dict[str, Any] = {"grain_config_version": 2, "dimensions": []}
+    session.execute(
+        SemanticView.__table__.insert().values(
+            id=42,
+            uuid=uuid4(),
+            name="saved",
+            semantic_layer_uuid=layer.uuid,
+            configuration=original,
+        )
+    )
+    params: str = json.dumps(
+        {"datasource": "42__semantic_view", "time_grain_sqla": "P1D"}
+    )
+    session.execute(
+        Slice.__table__.insert().values(
+            id=43,
+            slice_name="saved chart",
+            datasource_id=42,
+            datasource_type="semantic_view",
+            params=params,
+        )
+    )
+    session.commit()
+    provider: MagicMock = MagicMock()
+    provider.prepare_view_configuration.return_value = prepared
+    update: Any = SemanticViewDAO.update
+    with (
+        app.app_context(),
+        patch.object(SemanticView, "raise_for_access"),
+        patch.object(SemanticLayer, "raise_for_access"),
+        patch.object(
+            SemanticLayer,
+            "implementation",
+            new_callable=PropertyMock,
+            return_value=provider,
+        ),
+        patch(
+            "superset.commands.semantic_layer.update.current_user_can_modify_object",
+            return_value=True,
+        ),
+        patch("superset.security_manager.semantic_view_before_update"),
+        patch.object(
+            SemanticViewDAO,
+            "update",
+            side_effect=SQLAlchemyError("fixture failure") if fail_write else update,
+        ),
+    ):
+        command: UpdateSemanticViewCommand = UpdateSemanticViewCommand(
+            42, {"configuration": {"dimensions": []}}
+        )
+        if fail_write:
+            with pytest.raises(SemanticViewUpdateFailedError):
+                command.run()
+        else:
+            command.run()
+    session.expire_all()
+    restored: SemanticView = session.get(SemanticView, 42)
+    assert json.loads(restored.configuration) == (
+        json.loads(original) if fail_write else prepared
+    )
+    assert session.get(SemanticLayer, layer.uuid).cache_version == (
+        0 if fail_write else 1
+    )
+    assert session.get(Slice, 43).params == params
+    assert session.get(Slice, 43).datasource_id == 42
+    assert (
+        session.execute(
+            text("SELECT configuration FROM semantic_views WHERE id=42")
+        ).scalar_one()
+        != restored.configuration
     )

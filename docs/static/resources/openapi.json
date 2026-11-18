@@ -1221,6 +1221,14 @@
             "nullable": true,
             "type": "array"
           },
+          "dimension_grains": {
+            "additionalProperties": {
+              "nullable": true,
+              "type": "string"
+            },
+            "description": "Explicit semantic dimension grains; null selects native.",
+            "type": "object"
+          },
           "having": {
             "description": "HAVING clause to be added to aggregate queries using AND operator.",
             "type": "string"
@@ -12373,6 +12381,9 @@
           "cache_timeout": {
             "nullable": true,
             "type": "integer"
+          },
+          "configuration": {
+            "type": "object"
           },
           "description": {
             "nullable": true,
@@ -27021,6 +27032,14 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "dimension_grains": {
+                    "additionalProperties": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "description": "Selected dimension names mapped to ISO durations; null explicitly requests native values.",
+                    "type": "object"
+                  },
                   "selected_dimensions": {
                     "items": {
                       "type": "string"
@@ -27048,6 +27067,30 @@
                   "properties": {
                     "result": {
                       "properties": {
+                        "compatibility_evidence": {
+                          "description": "Optional finite authority for member suggestions. Absent for legacy providers. Unknown or expired evidence must not disable member choices.",
+                          "properties": {
+                            "format_version": {
+                              "type": "integer"
+                            },
+                            "metadata_generation": {
+                              "type": "string"
+                            },
+                            "quality": {
+                              "enum": [
+                                "known",
+                                "partial",
+                                "unknown"
+                              ],
+                              "type": "string"
+                            },
+                            "valid_for_ms": {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "compatible_dimensions": {
                           "items": {
                             "type": "string"
@@ -27059,6 +27102,13 @@
                             "type": "string"
                           },
                           "type": "array"
+                        },
+                        "dimension_support": {
+                          "additionalProperties": {
+                            "type": "object"
+                          },
+                          "description": "Per-dimension supported grains and omission defaults.",
+                          "type": "object"
                         }
                       },
                       "type": "object"
@@ -27081,6 +27131,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "description": "Saved semantic configuration needs field re-selection; includes error_type and recovery identifiers."
           }
         },
         "security": [

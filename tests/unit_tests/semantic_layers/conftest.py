@@ -40,6 +40,7 @@ from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     Metric,
     SemanticQuery,
@@ -89,7 +90,7 @@ def build_semantic_query() -> SemanticQuery:
         name="Country",
         type=pa.string(),
     )
-    return SemanticQuery(metrics=[metric], dimensions=[dimension])
+    return SemanticQuery(metrics=[metric], dimensions=[DimensionSelection(dimension)])
 
 
 def build_semantic_result() -> SemanticResult:
@@ -131,7 +132,7 @@ class LegacyView(SemanticView):
         return {Metric("orders", "Orders", pa.int64(), "orders")}
 
     def get_values(
-        self, dimension: Dimension, filters: set[Filter] | None = None
+        self, dimension: DimensionSelection, filters: set[Filter] | None = None
     ) -> SemanticResult:
         return SemanticResult([], pa.table({"value": [17]}))
 
@@ -142,12 +143,16 @@ class LegacyView(SemanticView):
         return SemanticResult([], pa.table({"count": [1]}))
 
     def get_compatible_metrics(
-        self, selected_metrics: set[Metric], selected_dimensions: set[Dimension]
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Metric]:
         return self.get_metrics()
 
     def get_compatible_dimensions(
-        self, selected_metrics: set[Metric], selected_dimensions: set[Dimension]
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[DimensionSelection],
     ) -> set[Dimension]:
         return self.get_dimensions()
 

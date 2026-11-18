@@ -30,6 +30,7 @@ from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only, Query
 from superset_core.semantic_layers.config import SemanticCredentialReadiness
+from superset_core.semantic_layers.errors import SemanticViewConfigurationError
 from superset_core.semantic_layers.transport import ProviderRequestError
 
 from superset import db, event_logger, is_feature_enabled, security_manager
@@ -67,11 +68,15 @@ from superset.daos.semantic_layer import SemanticLayerDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
+from superset.explorables.base import TimeGrainDict
 from superset.models.core import Database
 from superset.semantic_layers.access import is_semantic_layers_enabled
+from superset.semantic_layers.dimension_resolution import dimension_support
 from superset.semantic_layers.exceptions import (
+    configuration_recovery_message,
     log_provider_failure,
     provider_request_message,
+    SemanticLayerConfigurationError,
 )
 from superset.semantic_layers.masking import credential_readiness, mask_configuration
 from superset.semantic_layers.models import SemanticLayer, SemanticView
@@ -320,13 +325,13 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
             return self.response(403, message=ex.message)
 
         try:
-            dimensions = [
+            dimensions: list[dict[str, Any]] = [
                 {
                     "name": dim.name,
                     "type": str(dim.type),
                     "definition": dim.definition,
                     "description": dim.description,
-                    "grain": dim.grain.name if dim.grain else None,
+                    **dimension_support(dim),
                 }
                 for dim in sorted(
                     view.implementation.get_dimensions(), key=lambda d: d.name
@@ -343,8 +348,20 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                     view.implementation.get_metrics(), key=lambda m: m.name
                 )
             ]
+            time_grains: list[TimeGrainDict] = view.get_time_grains()
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
+        except (SemanticViewConfigurationError, SemanticLayerConfigurationError):
+            return self.response(
+                422,
+                message=configuration_recovery_message(),
+                error_type="SemanticViewConfigurationError",
+                recovery={
+                    "id": view.id,
+                    "name": view.name,
+                    "semantic_layer_uuid": str(view.semantic_layer_uuid),
+                },
+            )
         except Exception as ex:  # pylint: disable=broad-except
             log_provider_failure(
                 "Error fetching semantic view structure",
@@ -368,6 +385,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                 "description": view.description,
                 "cache_timeout": view.cache_timeout,
                 "dimensions": dimensions,
+                "time_grains": time_grains,
                 "metrics": metrics,
             },
         )
@@ -1068,6 +1086,15 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
         try:
             views = layer.implementation.get_semantic_views(runtime_data)
+            prepared_keys: dict[str, str] = {
+                view.name: json.dumps(
+                    layer.implementation.prepare_view_configuration(
+                        view.name, runtime_data or {}
+                    ),
+                    sort_keys=True,
+                )
+                for view in views
+            }
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except
@@ -1091,12 +1118,11 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             if isinstance(config, str):
                 config = json.loads(config)
             existing_keys.add((v.name, json.dumps(config or {}, sort_keys=True)))
-        runtime_key = json.dumps(runtime_data or {}, sort_keys=True)
 
-        result = [
+        result: list[dict[str, Any]] = [
             {
                 "name": v.name,
-                "already_added": (v.name, runtime_key) in existing_keys,
+                "already_added": (v.name, prepared_keys[v.name]) in existing_keys,
             }
             for v in sorted(views, key=lambda v: v.name)
         ]

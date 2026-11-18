@@ -24,6 +24,7 @@ import pytest
 from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
+    DimensionSelection,
     Filter,
     Metric,
     Operator,
@@ -45,12 +46,14 @@ from superset.semantic_layers.cache_types import (
 )
 from superset.semantic_layers.ordering import with_default_order
 
-COUNTRY: Dimension = Dimension("country", "Country", pa.string())
-CITY: Dimension = Dimension("city", "City", pa.string())
+COUNTRY: DimensionSelection = DimensionSelection(
+    Dimension("country", "Country", pa.string())
+)
+CITY: DimensionSelection = DimensionSelection(Dimension("city", "City", pa.string()))
 
 
 def _reuse(
-    query: SemanticQuery, source: pa.Table, dimensions: list[Dimension]
+    query: SemanticQuery, source: pa.Table, dimensions: list[DimensionSelection]
 ) -> pa.Table:
     """Transform only after the real policy proves the cached shape eligible."""
     capabilities: ContainmentCapabilities = ContainmentCapabilities(comparisons=True)
@@ -92,7 +95,9 @@ def test_filtered_containment_matches_provider_types_and_values(
     arrow_type: pa.DataType, value: object
 ) -> None:
     """Filtering another dimension cannot coerce a nullable provider value."""
-    identifier: Dimension = Dimension("identifier", "Identifier", arrow_type)
+    identifier: DimensionSelection = DimensionSelection(
+        Dimension("identifier", "Identifier", arrow_type)
+    )
     metric: Metric = Metric(
         "count", "Count", pa.int64(), "SUM(count)", aggregation=AggregationType.SUM
     )

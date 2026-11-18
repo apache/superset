@@ -39,7 +39,11 @@ export const selectCompatibleMetricNames = (
   state: ExplorePageState,
 ): string[] | null => {
   const compatibility = selectCompatibility(state);
-  return compatibility.status === 'verified' ? compatibility.metrics : null;
+  return compatibility.status === 'verified' &&
+    (compatibility.expiresAt === undefined ||
+      performance.now() < compatibility.expiresAt)
+    ? compatibility.metrics
+    : null;
 };
 
 /**
@@ -51,5 +55,9 @@ export const selectCompatibleDimensionNames = (
   state: ExplorePageState,
 ): string[] | null => {
   const compatibility = selectCompatibility(state);
-  return compatibility.status === 'verified' ? compatibility.dimensions : null;
+  return compatibility.status === 'verified' &&
+    (compatibility.expiresAt === undefined ||
+      performance.now() < compatibility.expiresAt)
+    ? compatibility.dimensions
+    : null;
 };

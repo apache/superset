@@ -150,7 +150,14 @@ const VerticalFormFields = styled.div`
   }
 `;
 
+export interface ExistingSemanticView {
+  id: number;
+  name: string;
+  semantic_layer_uuid: string;
+}
+
 interface AddSemanticViewModalProps {
+  existingView?: ExistingSemanticView;
   show: boolean;
   onHide: () => void;
   onSuccess: () => void;
@@ -161,6 +168,7 @@ interface AddSemanticViewModalProps {
 }
 
 export default function AddSemanticViewModal({
+  existingView,
   show,
   onHide,
   onSuccess,
@@ -603,6 +611,7 @@ export default function AddSemanticViewModal({
   useEffect(() => {
     if (show) {
       fetchLayers();
+      if (existingView) handleLayerChange(existingView.semantic_layer_uuid);
     } else {
       fetchGenRef.current += 1;
       if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
@@ -631,15 +640,19 @@ export default function AddSemanticViewModal({
       setCreationErrors([]);
       lastViewsKeyRef.current = '';
     }
-  }, [show, layerCreatedSignal]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [show, layerCreatedSignal, existingView?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // =========================================================================
   // Save
   // =========================================================================
 
-  const newViewCount = availableViews.filter(
-    v => selectedViewNames.includes(v.name) && !v.already_added,
-  ).length;
+  const newViewCount = existingView
+    ? availableViews.some(view => view.name === existingView.name)
+      ? 1
+      : 0
+    : availableViews.filter(
+        v => selectedViewNames.includes(v.name) && !v.already_added,
+      ).length;
 
   const handleSave = async () => {
     if (!selectedLayerUuid || newViewCount === 0) return;
@@ -647,6 +660,16 @@ export default function AddSemanticViewModal({
     setSaving(true);
     setCreationErrors([]);
     try {
+      if (existingView) {
+        await SupersetClient.put({
+          endpoint: `/api/v1/semantic_view/${existingView.id}`,
+          jsonPayload: { configuration: runtimeData },
+        });
+        addSuccessToast(t('Semantic view fields updated'));
+        onSuccess();
+        if (gen === fetchGenRef.current) onHide();
+        return;
+      }
       const viewsToCreate = availableViews
         .filter(v => selectedViewNames.includes(v.name) && !v.already_added)
         .map(v => ({
@@ -723,8 +746,11 @@ export default function AddSemanticViewModal({
       }
     } catch {
       if (gen !== fetchGenRef.current) return;
-      setCreationErrors([{ name: '', message: creationErrorMessage() }]);
-      addDangerToast(creationErrorMessage());
+      const message = existingView
+        ? t('Semantic view fields could not be updated. Please try again.')
+        : creationErrorMessage();
+      setCreationErrors([{ name: '', message }]);
+      addDangerToast(message);
     } finally {
       if (gen === fetchGenRef.current) setSaving(false);
     }
@@ -792,7 +818,11 @@ export default function AddSemanticViewModal({
       show={show}
       onHide={onHide}
       onSave={handleSave}
-      title={t('Add Semantic View')}
+      title={
+        existingView
+          ? t('Re-select fields for %s', existingView.name)
+          : t('Add Semantic View')
+      }
       icon={<Icons.PlusOutlined />}
       width={MODAL_STANDARD_WIDTH}
       saveDisabled={
@@ -802,7 +832,13 @@ export default function AddSemanticViewModal({
         staleSchemaOptions ||
         refreshingSchema
       }
-      saveText={newViewCount > 0 ? t('Add %s view(s)', newViewCount) : t('Add')}
+      saveText={
+        existingView
+          ? t('Save fields')
+          : newViewCount > 0
+            ? t('Add %s view(s)', newViewCount)
+            : t('Add')
+      }
       saveLoading={saving}
     >
       <ModalContent>
@@ -811,10 +847,18 @@ export default function AddSemanticViewModal({
           <Alert
             type="error"
             showIcon
-            message={t('Some semantic views could not be added')}
+            message={
+              existingView
+                ? t('Semantic view fields could not be updated')
+                : t('Some semantic views could not be added')
+            }
             description={
               <FailureDetails
-                aria-label={t('Some semantic views could not be added')}
+                aria-label={
+                  existingView
+                    ? t('Semantic view fields could not be updated')
+                    : t('Some semantic views could not be added')
+                }
                 tabIndex={0}
               >
                 <List
@@ -877,7 +921,10 @@ export default function AddSemanticViewModal({
             placeholder={t('Select a semantic layer')}
             loading={loadingLayers}
             disabled={
-              saving || layerStatus !== 'success' || layers.length === 0
+              Boolean(existingView) ||
+              saving ||
+              layerStatus !== 'success' ||
+              layers.length === 0
             }
             value={selectedLayerUuid}
             onChange={value => handleLayerChange(value as string)}
@@ -921,21 +968,24 @@ export default function AddSemanticViewModal({
             (e.g. MetricFlow cubes) whose runtime form fully describes a
             single view set that flag so the picker disappears and the
             view is auto-selected when ``get_semantic_views`` returns it. */}
-        {selectedLayerUuid && !loadingRuntime && !singleViewMode && (
-          <ModalFormField label={t('Semantic Views')}>
-            <Select
-              ariaLabel={t('Semantic views')}
-              placeholder={t('Select semantic views')}
-              mode="multiple"
-              loading={loadingViews}
-              disabled={viewsDisabled || saving}
-              value={selectedViewNames}
-              onChange={values => setSelectedViewNames(values as string[])}
-              options={viewOptions}
-              getPopupContainer={() => document.body}
-            />
-          </ModalFormField>
-        )}
+        {selectedLayerUuid &&
+          !loadingRuntime &&
+          !singleViewMode &&
+          !existingView && (
+            <ModalFormField label={t('Semantic Views')}>
+              <Select
+                ariaLabel={t('Semantic views')}
+                placeholder={t('Select semantic views')}
+                mode="multiple"
+                loading={loadingViews}
+                disabled={viewsDisabled || saving}
+                value={selectedViewNames}
+                onChange={values => setSelectedViewNames(values as string[])}
+                options={viewOptions}
+                getPopupContainer={() => document.body}
+              />
+            </ModalFormField>
+          )}
       </ModalContent>
     </StandardModal>
   );

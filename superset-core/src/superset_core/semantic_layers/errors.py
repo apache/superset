@@ -90,3 +90,18 @@ class SemanticBackendError(Exception):
     def __str__(self) -> str:
         """Return fixed text independent of provider diagnostics."""
         return "Semantic provider execution failed."
+
+
+class SemanticViewConfigurationError(ValueError):
+    """Signal a saved view format that requires explicit field re-selection.
+
+    This is a finite recovery signal, not a wrapper for provider diagnostics.
+    Hosts must supply their own fixed, localized message.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            "This semantic view configuration version is no longer supported. "
+            "Re-open the view, re-select its fields, and save. If field editing "
+            "is unavailable, delete the view and re-add it."
+        )

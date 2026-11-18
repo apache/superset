@@ -704,3 +704,80 @@ test.each([
   expect(updated.slice?.editors).toEqual([8]);
   expect(updated.sliceName).toBe('Renamed');
 });
+
+test('compatibility updates stored grain choices without erasing an invalid saved choice', () => {
+  const initial: ExploreState = {
+    datasource: {
+      id: 1,
+      type: DatasourceType.SemanticView,
+      time_grain_sqla: [
+        ['P1D', 'Day'],
+        ['P1M', 'Month'],
+      ],
+      columns: [],
+      metrics: [],
+      column_formats: {},
+      verbose_map: {},
+      main_dttm_col: 'event_time',
+      datasource_name: 'Fixture',
+      description: null,
+    },
+    form_data: {
+      datasource: '1__semantic_view',
+      viz_type: VizType.Table,
+      x_axis: 'event_time',
+      time_grain_sqla: 'P1D',
+    },
+    controls: {
+      time_grain_sqla: { ...sharedControls.time_grain_sqla, value: 'P1D' },
+    },
+  };
+  const verified = exploreReducer(
+    initial,
+    setCompatibility({
+      status: 'verified',
+      metrics: [],
+      dimensions: ['event_time'],
+      dimensionSupport: {
+        event_time: {
+          grains: ['P1M'],
+          allows_default_grain: false,
+          omitted_grain: 'P1M',
+          ungrained_filter: 'P1M',
+        },
+      },
+    }) as Parameters<typeof exploreReducer>[1],
+  );
+  expect(verified.controls.time_grain_sqla.choices).toEqual([['P1M', 'Month']]);
+  expect(verified.controls.time_grain_sqla.value).toBe('P1D');
+  expect(verified.controls.time_grain_sqla.clearable).toBe(false);
+  const expired = exploreReducer(
+    verified,
+    setCompatibility({
+      status: 'unknown',
+      dimensionSupport:
+        verified.compatibility?.status === 'verified'
+          ? verified.compatibility.dimensionSupport
+          : undefined,
+    }) as Parameters<typeof exploreReducer>[1],
+  );
+  expect(expired.controls.time_grain_sqla.choices).toEqual([['P1M', 'Month']]);
+  expect(expired.controls.time_grain_sqla.clearable).toBe(false);
+  expect(expired.controls.time_grain_sqla.value).toBe('P1D');
+  const later = exploreReducer(verified, {
+    type: 'SET_FORCE_QUERY',
+    force: true,
+  });
+  expect(later.controls.time_grain_sqla.choices).toEqual([['P1M', 'Month']]);
+  const failed = exploreReducer(
+    later,
+    setCompatibility({ status: 'failed' }) as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+  expect(failed.controls.time_grain_sqla.choices).toEqual(
+    initial.datasource?.time_grain_sqla,
+  );
+  expect(failed.controls.time_grain_sqla.value).toBe('P1D');
+  expect(failed.controls.time_grain_sqla.clearable).toBe(true);
+});

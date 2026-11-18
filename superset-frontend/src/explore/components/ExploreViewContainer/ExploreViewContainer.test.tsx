@@ -2027,3 +2027,111 @@ test('document.title falls back to the app name on unmount, not the title presen
     document.title = titleBeforeTest;
   }
 });
+
+test('grain support requests leave the axis grain unpinned so it can be changed', async () => {
+  const fetchCompatibility = jest
+    .spyOn(exploreActions, 'fetchCompatibility')
+    .mockImplementation(() => async () => undefined);
+  const initial = stateWithControls({
+    datasource: { value: '1__semantic_view' },
+    x_axis: { value: 'event_time' },
+    time_grain_sqla: { value: 'P1D' },
+    metrics: { value: ['count'] },
+  });
+  renderWithRouter({
+    initialState: {
+      ...initial,
+      explore: {
+        ...initial.explore,
+        datasource: {
+          ...reduxState.explore.datasource,
+          type: 'semantic_view',
+          columns: [{ column_name: 'event_time', is_dttm: true }],
+        },
+      },
+    },
+  });
+  await waitFor(() => expect(fetchCompatibility).toHaveBeenCalled());
+  expect(fetchCompatibility.mock.calls.at(-1)?.slice(0, 4)).toEqual([
+    'semantic_view',
+    1,
+    ['count'],
+    ['event_time'],
+  ]);
+  expect(fetchCompatibility.mock.calls.at(-1)).toHaveLength(4);
+});
+
+test('viz switches refetch grain support even when selections do not change', async () => {
+  const fetchCompatibility = jest
+    .spyOn(exploreActions, 'fetchCompatibility')
+    .mockImplementation(() => async () => undefined);
+  const registry = getChartControlPanelRegistry();
+  registry.registerValue('grain-switch', {
+    controlPanelSections: [
+      {
+        controlSetRows: [
+          [
+            {
+              name: 'x_axis',
+              config: { type: 'TextControl', default: 'event_time' },
+            },
+          ],
+          ['metrics'],
+          ['time_grain_sqla'],
+        ],
+      },
+    ],
+  });
+  const initial = stateWithControls({
+    datasource: { value: '1__semantic_view' },
+    x_axis: { value: 'event_time' },
+    time_grain_sqla: { value: 'P1D' },
+    metrics: { value: ['count'] },
+  });
+  const initialState = {
+    ...initial,
+    explore: {
+      ...initial.explore,
+      form_data: {
+        datasource: '1__semantic_view',
+        viz_type: VizType.Table,
+        x_axis: 'event_time',
+        metrics: ['count'],
+        time_grain_sqla: 'P1D',
+      },
+      datasource: {
+        ...reduxState.explore.datasource,
+        type: 'semantic_view',
+        columns: [{ column_name: 'event_time', is_dttm: true }],
+      },
+    },
+  };
+  const store = createStore(initialState, reducerIndex);
+  try {
+    renderWithRouter({ initialState, store: store as Store });
+    await waitFor(() => expect(fetchCompatibility).toHaveBeenCalled());
+    const previous = fetchCompatibility.mock.calls.at(-1);
+    fetchCompatibility.mockClear();
+    act(() => {
+      store.dispatch(
+        exploreActions.setControlValue('viz_type', 'grain-switch'),
+      );
+    });
+    await waitFor(() => expect(fetchCompatibility).toHaveBeenCalled());
+    expect(fetchCompatibility.mock.calls.at(-1)).toEqual(previous);
+  } finally {
+    registry.remove('grain-switch');
+  }
+});
+
+test('compatibility cleanup fences pending replies on unmount', async () => {
+  const fetch = jest
+    .spyOn(exploreActions, 'fetchCompatibility')
+    .mockImplementation(() => async () => undefined);
+  const reset = jest.spyOn(exploreActions, 'resetCompatibility');
+  const { unmount } = renderWithRouter({ initialState: reduxState });
+  await waitFor(() => expect(fetch).toHaveBeenCalled());
+  reset.mockClear();
+  unmount();
+  expect(reset).toHaveBeenCalledTimes(1);
+});
