@@ -29,13 +29,44 @@ import { AntdThemeProvider } from '.';
 
 const KEY_SUFFIX = 'superset-contrast';
 
+type ComponentName = keyof NonNullable<ThemeConfig['components']>;
+type ContrastToken = 'colorBorder' | 'colorSplit' | 'colorTextQuaternary';
+
+const CONTRAST_TARGETS: [ComponentName, ContrastToken][] = [
+  ['Checkbox', 'colorBorder'],
+  ['DatePicker', 'colorBorder'],
+  ['Divider', 'colorSplit'],
+  ['Input', 'colorBorder'],
+  ['InputNumber', 'colorBorder'],
+  ['Radio', 'colorBorder'],
+  ['Select', 'colorBorder'],
+  ['Switch', 'colorTextQuaternary'],
+];
+
+/**
+ * Whether the theme configuration itself sets `tokenName`, globally or for
+ * `component`. Reads the configured theme (as passed to antd's
+ * ConfigProvider), not the algorithm-derived tokens.
+ */
+const isSetByTheme = (
+  themeConfig: ThemeConfig | undefined,
+  component: ComponentName,
+  tokenName: ContrastToken,
+) =>
+  themeConfig?.token?.[tokenName] !== undefined ||
+  (
+    themeConfig?.components?.[component] as Record<string, unknown> | undefined
+  )?.[tokenName] !== undefined;
+
 /**
  * Raises the rest-state border of form controls and the divider line to the
  * 3:1 non-text contrast WCAG 2.1 SC 1.4.11 requires, using `colorTextTertiary`
  * in place of `colorBorder` (inputs, selects, pickers, checkboxes, radios),
  * `colorSplit` (dividers) and `colorTextQuaternary` (the unchecked switch
- * track). Hover, focus and status borders use other tokens and keep antd's
- * colors. Checkbox, radio and switch draw their disabled state from the same
+ * track). A value the theme sets itself, globally (`token.colorBorder`) or
+ * per component (`components.Input.colorBorder`), takes precedence and is
+ * left untouched. Hover, focus and status borders use other tokens and keep
+ * antd's colors. Checkbox, radio and switch draw their disabled state from the same
  * tokens; {@link withNonTextContrast} keeps those for disabled controls.
  */
 export function NonTextContrastProvider({ children }: { children: ReactNode }) {
@@ -52,18 +83,17 @@ export function NonTextContrastProvider({ children }: { children: ReactNode }) {
       // differently themed parents never share one; without a parent key,
       // antd falls back to a unique key per provider.
       ...(parentKey ? { cssVar: { key: `${parentKey}-${KEY_SUFFIX}` } } : {}),
-      components: {
-        Checkbox: { colorBorder: colorTextTertiary },
-        DatePicker: { colorBorder: colorTextTertiary },
-        Divider: { colorSplit: colorTextTertiary },
-        Input: { colorBorder: colorTextTertiary },
-        InputNumber: { colorBorder: colorTextTertiary },
-        Radio: { colorBorder: colorTextTertiary },
-        Select: { colorBorder: colorTextTertiary },
-        Switch: { colorTextQuaternary: colorTextTertiary },
-      },
+      components: Object.fromEntries(
+        CONTRAST_TARGETS.filter(
+          ([component, tokenName]) =>
+            !isSetByTheme(parentTheme, component, tokenName),
+        ).map(([component, tokenName]) => [
+          component,
+          { [tokenName]: colorTextTertiary },
+        ]),
+      ),
     }),
-    [parentKey, colorTextTertiary],
+    [parentKey, parentTheme, colorTextTertiary],
   );
 
   // Controls nested in an already wrapped control (e.g. a Radio inside a
@@ -120,6 +150,25 @@ export function withNonTextContrast<C extends ElementType>(
     }
     const cls = getPrefixCls();
     const varPrefix = parentTheme?.cssVar?.prefix ?? cls;
+    // Only restore what the provider overrides; a theme's own value stays.
+    const restoredSelectors = [
+      ...(isSetByTheme(parentTheme, 'Checkbox', 'colorBorder')
+        ? []
+        : [`& .${cls}-checkbox-disabled`]),
+      ...(isSetByTheme(parentTheme, 'Radio', 'colorBorder')
+        ? []
+        : [
+            `& .${cls}-radio-disabled`,
+            `& .${cls}-radio-button-wrapper.${cls}-radio-button-wrapper-disabled`,
+          ]),
+    ];
+    if (!restoredSelectors.length) {
+      return (
+        <NonTextContrastProvider>
+          <Inner {...props} ref={ref} />
+        </NonTextContrastProvider>
+      );
+    }
     return (
       <NonTextContrastProvider>
         <ClassNames>
@@ -130,9 +179,7 @@ export function withNonTextContrast<C extends ElementType>(
               className={cx(
                 props.className as string | undefined,
                 css`
-                  & .${cls}-checkbox-disabled,
-                  & .${cls}-radio-disabled,
-                  & .${cls}-radio-button-wrapper.${cls}-radio-button-wrapper-disabled {
+                  ${restoredSelectors.join(',\n')} {
                     --${varPrefix}-color-border: ${token.colorBorder};
                   }
                 `,
