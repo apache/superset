@@ -29,6 +29,7 @@ from typing import Any, cast, Optional, TYPE_CHECKING, TypeVar, Union
 
 import backoff
 import msgpack
+import pyarrow as pa
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app, has_app_context, has_request_context
 from flask_babel import gettext as __
@@ -330,6 +331,44 @@ def apply_limit(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
         )
 
 
+def _read_sqllab_payload(
+    query: Query,
+    cursor: Any,
+    db_engine_spec: type[BaseEngineSpec],
+) -> tuple[Any, Any]:
+    """
+    Read one SQL Lab statement, Arrow first and rows as the fallback.
+
+    Returns ``(table, None)`` when ``maybe_fetch_arrow`` produced a table,
+    or ``(None, rows)`` for the existing ``fetch_data`` path. The feature
+    flag and ``supports_arrow_result`` are enforced inside
+    ``maybe_fetch_arrow``; a decline does not consume the cursor.
+
+    ``query.limit + 1`` is fetched so an over-limit result can be told apart
+    from one that fits. The extra row is dropped here. ``limiting_factor``
+    is set to ``NOT_LIMITED`` only when the result fits, matching the
+    previous row-only behavior. The caller builds the ``SupersetResultSet``.
+    """
+    increased_limit = None if query.limit is None else query.limit + 1
+    table = db_engine_spec.maybe_fetch_arrow(cursor, increased_limit)
+    if isinstance(table, pa.Table):
+        if query.limit is None or table.num_rows <= query.limit:
+            query.limiting_factor = LimitingFactor.NOT_LIMITED
+        else:
+            # Same trim as ``data[:-1]`` on the row path: one extra row was
+            # requested, and ``fetch_arrow`` already stopped at that count.
+            table = table.slice(0, query.limit)
+        return table, None
+
+    data = db_engine_spec.fetch_data(cursor, increased_limit)
+    if query.limit is None or len(data) <= query.limit:
+        query.limiting_factor = LimitingFactor.NOT_LIMITED
+    else:
+        # return 1 row less than increased_query
+        data = data[:-1]
+    return None, data
+
+
 def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # noqa: C901
     query: Query,
     cursor: Any,
@@ -349,6 +388,8 @@ def _execute_query(
     """Run a statement inside the engine's interruption-safe cursor scope."""
     database = query.database
     db_engine_spec = database.db_engine_spec
+    arrow_table = None
+    data = None
     try:
         log_query = app.config["QUERY_LOGGER"]
         if log_query:
@@ -384,13 +425,11 @@ def _execute_query(
                     query.id,
                     str(query.to_dict()),
                 )
-                increased_limit = None if query.limit is None else query.limit + 1
-                data = db_engine_spec.fetch_data(cursor, increased_limit)
-                if query.limit is None or len(data) <= query.limit:
-                    query.limiting_factor = LimitingFactor.NOT_LIMITED
-                else:
-                    # return 1 row less than increased_query
-                    data = data[:-1]
+                # Arrow when the flag is on, the engine opted in, and the
+                # cursor can produce a Table. Otherwise the row path, including
+                # its limit trim, is unchanged. JSON serialization of the
+                # result set is unchanged either way.
+                arrow_table, data = _read_sqllab_payload(query, cursor, db_engine_spec)
     except SoftTimeLimitExceeded as ex:
         query.status = QueryStatus.TIMED_OUT
 
@@ -421,6 +460,8 @@ def _execute_query(
         raise SqlLabException(db_engine_spec.extract_error_message(ex)) from ex
 
     logger.debug("Query %d: Fetching cursor description", query.id)
+    if arrow_table is not None:
+        return SupersetResultSet.from_arrow(arrow_table, db_engine_spec)
     cursor_description = cursor.description
     return SupersetResultSet(data, cursor_description, db_engine_spec)
 
