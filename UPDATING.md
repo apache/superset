@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The `lean` Docker image, and the `py311`/`py312` variants built from the same
+  stage, no longer ship the `libpq-dev`, `libsasl2-dev` and `libldap2-dev`
+  header packages; only the runtime libraries remain. Images built on top of
+  them that compile native drivers (for example `python-ldap`, or `psycopg2`
+  from source) must install the headers they need themselves, for instance with
+  `apt-get install`.
+
 - Semantic cache rollups serve limited queries only when the post-filter,
   rolled-up result fits within the limit. Queries with nonzero row offsets bypass
   containment reuse. Larger rolled-up results fall back to
