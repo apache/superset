@@ -16,11 +16,17 @@
 # under the License.
 from __future__ import annotations
 
+import re
+from copy import deepcopy
+from typing import Any
 from unittest.mock import MagicMock
 
 from superset.exceptions import SupersetSecurityException
 from superset.widgets.builtin import Balloons, FilterSelect
+from superset.widgets.controls import BalloonsControls
 from superset.widgets.registry import registry
+
+HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{3,8}$")
 
 
 def _series_properties(control_values, series):
@@ -54,7 +60,22 @@ def test_series_stays_open_ended_without_dimension_or_series() -> None:
     assert "properties" not in series
 
 
-def test_series_populated_per_value_with_palette_colors() -> None:
+def _hex_defaults(node: Any) -> list[str]:
+    """Every hex-color ``default`` anywhere in a JSON Schema fragment."""
+    found: list[str] = []
+    if isinstance(node, dict):
+        default = node.get("default")
+        if isinstance(default, str) and HEX_COLOR.match(default):
+            found.append(default)
+        for value in node.values():
+            found.extend(_hex_defaults(value))
+    elif isinstance(node, list):
+        for item in node:
+            found.extend(_hex_defaults(item))
+    return found
+
+
+def test_series_populated_per_value_without_invented_colors() -> None:
     series = _series_properties(
         {
             "dataBinding": {
@@ -68,16 +89,62 @@ def test_series_populated_per_value_with_palette_colors() -> None:
     assert set(series["properties"]) == {"boy", "girl", "other"}
     # Open-ended map is replaced by concrete per-series styles.
     assert "additionalProperties" not in series
-    # Each entry is titled by its series value and pre-colored from the palette.
+    # Each entry is titled by its series value; its color is left to the
+    # renderer rather than pre-filled with a schema-invented hex value.
     assert series["properties"]["boy"]["title"] == "boy"
-    assert (
-        series["properties"]["boy"]["properties"]["color"]["default"]
-        == Balloons.PALETTE[0]
+    for style in series["properties"].values():
+        assert style["properties"]["color"]["default"] == ""
+    assert _hex_defaults(series) == []
+
+
+def test_base_schema_has_no_invented_color_defaults() -> None:
+    widget = registry.get("balloons")
+    assert widget is not None
+    schema = widget.get_control_schema(None, None)
+    color = schema["$defs"]["SeriesStyle"]["properties"]["color"]
+    assert color["default"] == ""
+    assert color["description"] == (
+        "Empty means no explicit color; the renderer chooses."
     )
-    assert (
-        series["properties"]["girl"]["properties"]["color"]["default"]
-        == Balloons.PALETTE[1]
-    )
+    assert _hex_defaults(schema["$defs"]) == []
+
+
+def test_series_color_optional_and_explicit_colors_survive() -> None:
+    widget = registry.get("balloons")
+    assert widget is not None
+    props = {
+        "dataBinding": {
+            "datasetId": 1,
+            "metrics": ["count"],
+            "dimensions": ["gender"],
+        },
+        "customize": {
+            "series": {
+                # Omitted and empty colors both mean "renderer chooses".
+                "boy": {"sizeScale": 2.0},
+                "girl": {"color": ""},
+                # An explicitly authored color is kept verbatim.
+                "other": {"color": "#123456"},
+                # A stored override for a value the query no longer returns.
+                "retired": {"color": "#abcdef"},
+            }
+        },
+    }
+    assert widget.validate_control_values(props) == []
+
+    parsed = BalloonsControls.model_validate(props)
+    stored = parsed.customize.series
+    assert stored["boy"].color == ""
+    assert stored["girl"].color == ""
+    assert stored["other"].color == "#123456"
+    assert stored["retired"].color == "#abcdef"
+
+    # Enriching the schema for the live series neither rewrites nor drops the
+    # stored props it was computed from.
+    snapshot = deepcopy(props)
+    series = _series_properties(props, ["boy", "girl", "other"])
+    assert props == snapshot
+    assert _hex_defaults(series) == []
 
 
 def test_series_deduped_and_capped() -> None:

@@ -287,11 +287,19 @@ def _assert_operation_schema(
 
 
 # What the draft tools must advertise even within the shipped prose budgets of
-# tool search and compact native listings.
+# tool search and compact native listings, while publishing is enabled.
 DRAFT_RECOVERY_GUIDANCE = {
+    "create_canvas_draft": (
+        "Every canvas content change goes through a draft",
+        "published only when the user explicitly asks",
+        "give the user its review URL",
+        "Edit with ``apply_canvas_draft_ops``",
+        "Publish with ``commit_canvas_draft``, if available",
+        "otherwise the user publishes in the UI",
+    ),
     "apply_canvas_draft_ops": (
         "in order and atomically",
-        "Only the draft changes; ``commit_canvas_draft`` publishes it",
+        "Only the draft changes, until it is published at the user's explicit request",
         "Send the last ``draft_revision`` as ``revision``",
         "``DraftRevisionConflict``, reload the draft",
     ),
@@ -304,17 +312,49 @@ DRAFT_RECOVERY_GUIDANCE = {
     ),
 }
 
+# With ``MCP_CANVAS_AGENT_PUBLISH`` off the commit tool is not registered, so
+# the remaining draft tools must still carry explicit publish intent on their
+# own, without depending on the absent tool's guidance.
+PUBLISH_DISABLED_GUIDANCE = {
+    name: phrases
+    for name, phrases in DRAFT_RECOVERY_GUIDANCE.items()
+    if name != "commit_canvas_draft"
+}
+
 
 def _assert_draft_recovery_guidance(
-    descriptions: dict[str, str], *, budget: int | None
+    descriptions: dict[str, str],
+    *,
+    budget: int | None,
+    guidance: dict[str, tuple[str, ...]] = DRAFT_RECOVERY_GUIDANCE,
 ) -> None:
     """Publish intent and conflict recovery survive the advertised prose budget."""
-    for name, phrases in DRAFT_RECOVERY_GUIDANCE.items():
+    for name, phrases in guidance.items():
         description = descriptions[name]
         if budget:
             assert len(description) <= budget, name
         prose = " ".join(description.split())
         assert [phrase for phrase in phrases if phrase not in prose] == [], name
+
+
+async def _publish_disabled_server(**kwargs: Any) -> FastMCP:
+    """The canvas tools as registered while agent publishing is turned off."""
+    server = await _server(structured=False, **kwargs)
+    # Mirrors the removal ``MCP_CANVAS_AGENT_PUBLISH=False`` performs.
+    server.local_provider.remove_tool("commit_canvas_draft")
+    return server
+
+
+def _assert_publish_disabled_guidance(
+    descriptions: dict[str, str], *, budget: int
+) -> None:
+    """Draft guidance stands alone when the commit tool is not advertised."""
+    assert "commit_canvas_draft" not in descriptions
+    _assert_draft_recovery_guidance(
+        descriptions, budget=budget, guidance=PUBLISH_DISABLED_GUIDANCE
+    )
+    # Applying ops never sends the client to the absent publish tool.
+    assert "commit_canvas_draft" not in descriptions["apply_canvas_draft_ops"]
 
 
 @pytest.mark.asyncio
@@ -378,6 +418,39 @@ async def test_canvas_search_preserves_full_schema_or_explicit_summary(
             _assert_operation_schema(
                 tool["inputSchema"], create=name == "create_canvas"
             )
+
+
+@pytest.mark.asyncio
+async def test_compact_listing_keeps_draft_guidance_without_publish_tool() -> None:
+    """Compact native listing keeps publish intent when commit is disabled."""
+    server = await _publish_disabled_server(compact=True)
+    async with Client(server) as client:
+        descriptions = {
+            tool.name: tool.description or "" for tool in await client.list_tools()
+        }
+    _assert_publish_disabled_guidance(
+        descriptions, budget=MCP_NATIVE_TOOL_LIST_CONFIG["max_description_length"]
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("summary", [False, True])
+async def test_search_keeps_draft_guidance_without_publish_tool(
+    summary: bool,
+) -> None:
+    """Tool search keeps publish intent when commit is disabled."""
+    server = await _publish_disabled_server(proxy=True, summary=summary)
+    async with Client(server) as client:
+        result = await client.call_tool_mcp("search_tools", {})
+    assert result.isError is False
+    block = result.content[0]
+    assert isinstance(block, TextContent)
+    descriptions = {
+        tool["name"]: tool["description"] for tool in json.loads(block.text)
+    }
+    _assert_publish_disabled_guidance(
+        descriptions, budget=MCP_TOOL_SEARCH_CONFIG["max_description_length"]
+    )
 
 
 @pytest.mark.asyncio

@@ -453,7 +453,8 @@ was saved or that a provider query executed successfully.
 ## Canvas authoring and recovery
 
 Canvas tools require the `CANVAS` feature flag and the caller's Canvas permissions.
-Agents change canvas content only through drafts. `create_canvas` always publishes
+Agents change canvas content only through drafts, including one-off fixes, and
+publish a draft only when the user explicitly asks. `create_canvas` always publishes
 an empty canvas; initial `ops` are applied to a draft of it, and the response
 carries that draft's `token`, `draft_url` and `draft_revision`. If an initial
 operation fails, neither the canvas nor the draft is retained. To change an

@@ -104,9 +104,9 @@ def apply_canvas_draft_ops(
     token: str, revision: int, ops: DraftOpsInput
 ) -> CanvasDraftResponse:
     """Apply operations to a canvas draft, in order and atomically. Only the
-    draft changes; ``commit_canvas_draft`` publishes it. Send the last
-    ``draft_revision`` as ``revision``; the response carries the next one. On
-    ``DraftRevisionConflict``, reload the draft before writing again.
+    draft changes, until it is published at the user's explicit request. Send
+    the last ``draft_revision`` as ``revision``; the response carries the next
+    one. On ``DraftRevisionConflict``, reload the draft before writing again.
 
     On any error nothing changes, and the error names the operation and the
     path at fault. ``ValidationError`` leaves the draft unchanged.

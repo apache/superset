@@ -14,15 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from copy import deepcopy
 from typing import Any
 
 import pytest
+from superset_core.widgets import Widget
 
+from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import empty_definition
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
     normalize_definition,
 )
+from superset.widgets.builtin import Group
 from tests.unit_tests.canvas.fixtures import (
     canvas,
     canvas_widget_types,
@@ -335,3 +339,145 @@ def test_nesting_depth_is_not_capped() -> None:
     result = normalize(canvas(nodes, children=["g0"]))
 
     assert len(result["nodes"]) == 30
+
+
+def real_group_types() -> dict[str, type[Widget]]:
+    """The test widgets, with the builtin ``Group`` (one chrome row for its
+    title) standing in for the simplified, chrome-less test group."""
+    return {**canvas_widget_types(), "group": Group}
+
+
+def normalize_with_real_group(raw: dict[str, Any]) -> dict[str, Any]:
+    return normalize_definition(deepcopy(raw), real_group_types(), FakeResolver())
+
+
+def group(title: str, children: list[str], layout: dict[str, Any]) -> dict[str, Any]:
+    return inline("group", {"title": title}, children=children, layout=layout)
+
+
+def test_the_builtin_group_reserves_a_title_row() -> None:
+    assert Group.ui.chrome_rows == 1
+
+
+@pytest.mark.parametrize("title", ["Revenue KPIs", ""])
+def test_a_group_grows_by_its_title_row_and_pushes_its_sibling_down(
+    title: str,
+) -> None:
+    raw = canvas(
+        {
+            "g": group(title, ["a"], {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 6}),
+            "a": node(
+                "chart-1", layout={"col": 1, "row": 1, "colSpan": 12, "rowSpan": 6}
+            ),
+            "below": node(
+                "chart-2", layout={"col": 1, "row": 7, "colSpan": 24, "rowSpan": 4}
+            ),
+        },
+        children=["g", "below"],
+    )
+
+    result = normalize_with_real_group(raw)
+
+    # Six child rows plus the title row: the group's last row is 7, so the
+    # full-width sibling stored at row 7 moves to row 8 instead of being
+    # drawn over the group's last row.
+    assert result["nodes"]["g"]["layout"]["rowSpan"] == 7
+    assert result["nodes"]["a"]["layout"]["row"] == 1
+    assert result["nodes"]["below"]["layout"]["row"] == 8
+
+    context = render_context(result, real_group_types(), FakeResolver())
+    assert context["chromeRows"] == {"g": 1}
+    assert context["layoutConstraints"]["g"]["minRowSpan"] == 7
+    assert context["placements"]["below"]["row"] == 8
+
+
+def test_an_auto_placed_sibling_lands_below_the_grown_group() -> None:
+    raw = canvas(
+        {
+            "g": group(
+                "Revenue KPIs",
+                ["a"],
+                {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 6},
+            ),
+            "a": node(
+                "chart-1", layout={"col": 1, "row": 1, "colSpan": 12, "rowSpan": 6}
+            ),
+            "below": node("chart-2", layout={"colSpan": 24, "rowSpan": 4}),
+        },
+        children=["g", "below"],
+    )
+
+    result = normalize_with_real_group(raw)
+
+    assert result["nodes"]["g"]["layout"]["rowSpan"] == 7
+    # Automatic placement leaves the stored row absent; only the resolved
+    # placement says where the sibling is drawn.
+    assert "row" not in result["nodes"]["below"]["layout"]
+    placements = render_context(result, real_group_types(), FakeResolver())[
+        "placements"
+    ]
+    assert placements["g"] == {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 7}
+    assert placements["below"] == {"col": 1, "row": 8, "colSpan": 24, "rowSpan": 4}
+
+
+NESTED_GROUPS = canvas(
+    {
+        "outer": group(
+            "Outer", ["inner"], {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 6}
+        ),
+        "inner": group(
+            "Inner", ["a"], {"col": 1, "row": 1, "colSpan": 12, "rowSpan": 6}
+        ),
+        "a": node("chart-1", layout={"col": 1, "row": 1, "colSpan": 12, "rowSpan": 6}),
+        "below": node("chart-2", layout={"colSpan": 24, "rowSpan": 4}),
+    },
+    children=["outer", "below"],
+)
+
+
+def test_nested_groups_each_add_their_title_row() -> None:
+    result = normalize_with_real_group(NESTED_GROUPS)
+
+    # Six child rows -> seven inner rows -> eight outer rows.
+    assert result["nodes"]["inner"]["layout"]["rowSpan"] == 7
+    assert result["nodes"]["outer"]["layout"]["rowSpan"] == 8
+
+    context = render_context(result, real_group_types(), FakeResolver())
+    assert context["chromeRows"] == {"outer": 1, "inner": 1}
+    assert context["layoutConstraints"]["inner"]["minRowSpan"] == 7
+    assert context["layoutConstraints"]["outer"]["minRowSpan"] == 8
+    assert context["placements"]["below"]["row"] == 9
+
+
+def test_a_group_taller_than_its_content_keeps_its_height() -> None:
+    raw = canvas(
+        {
+            "g": group(
+                "Revenue KPIs",
+                ["a"],
+                {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 10},
+            ),
+            "a": node(
+                "chart-1", layout={"col": 1, "row": 1, "colSpan": 12, "rowSpan": 6}
+            ),
+            "below": node(
+                "chart-2", layout={"col": 1, "row": 11, "colSpan": 24, "rowSpan": 4}
+            ),
+        },
+        children=["g", "below"],
+    )
+
+    result = normalize_with_real_group(raw)
+
+    # Growing never shrinks: an explicitly larger group keeps its rows, and
+    # the sibling already clear of it is not moved.
+    assert result["nodes"]["g"]["layout"]["rowSpan"] == 10
+    assert result["nodes"]["below"]["layout"]["row"] == 11
+
+
+def test_group_sizing_normalization_is_idempotent() -> None:
+    once = normalize_with_real_group(NESTED_GROUPS)
+    twice = normalize_with_real_group(once)
+
+    assert twice == once
+    assert twice["nodes"]["outer"]["layout"]["rowSpan"] == 8

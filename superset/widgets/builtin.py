@@ -108,11 +108,6 @@ class Echarts(Widget):
     behavior = CHART
     ui = WidgetUi(default_size=(12, 8))
 
-    # Default color per series index, matching the frontend's structured
-    # series builder so a series' color is stable before the author touches
-    # customize (same convention as Balloons.PALETTE).
-    PALETTE = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6", "#1abc9c"]
-
     # Upper bound on distinct series inlined into the schema (see Balloons.MAX_SERIES).
     MAX_SERIES = 100
 
@@ -150,11 +145,10 @@ class Echarts(Widget):
         all_keys = combined_keys[: Echarts.MAX_SERIES]
         node.pop("additionalProperties", None)
         properties: dict[str, Any] = {}
-        for index, key in enumerate(all_keys):
+        for key in all_keys:
+            # The color default stays empty: an unset color lets the renderer
+            # choose, so only explicitly authored colors are applied.
             style = deepcopy(style_def)
-            style["properties"]["color"]["default"] = Echarts.PALETTE[
-                index % len(Echarts.PALETTE)
-            ]
             style["title"] = key
             properties[key] = style
         node["properties"] = properties
@@ -206,11 +200,6 @@ class Balloons(Widget):
     behavior = QUERYING
     ui = WidgetUi(default_size=(12, 8))
 
-    # Default color per series index. Must match the frontend widget's palette
-    # so a series' color is stable before the author touches the customize
-    # control.
-    PALETTE = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6", "#1abc9c"]
-
     # Upper bound on distinct series inlined into the schema, so a caller can't
     # force unbounded schema construction / serialization by submitting a huge
     # (or duplicate-heavy) series list.
@@ -243,14 +232,12 @@ class Balloons(Widget):
         # Dedupe (preserving order) and cap before doing per-series work, so an
         # oversized/duplicate list can't blow up CPU, memory, or response size.
         unique_series = list(dict.fromkeys(series))[: Balloons.MAX_SERIES]
-        # Replace the open-ended map with one inlined, pre-colored style per series.
+        # Replace the open-ended map with one inlined style per series. Its
+        # color default stays empty, leaving the color to the renderer.
         node.pop("additionalProperties", None)
         properties: dict[str, Any] = {}
-        for index, value in enumerate(unique_series):
+        for value in unique_series:
             style = deepcopy(style_def)
-            style["properties"]["color"]["default"] = Balloons.PALETTE[
-                index % len(Balloons.PALETTE)
-            ]
             # Title each group with the series value so the control panel labels
             # it by series rather than by the shared model name ("SeriesStyle").
             style["title"] = value

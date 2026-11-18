@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useMemo } from 'react';
+import { createContext, ReactNode, useContext, useMemo } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
@@ -93,6 +93,44 @@ function eventsByNode(
   });
   return byNode;
 }
+
+/**
+ * The change mark of the container being rendered, for a container that draws
+ * a title strip of its own to show in that strip; see `CanvasMarkHost`. Null
+ * for every other widget, so a container's mark never reaches the containers
+ * inside it.
+ */
+const CanvasMarkContext = createContext<ReactNode>(null);
+
+/** The change mark this container shows in its own title strip, if any. */
+export const useCanvasMark = (): ReactNode => useContext(CanvasMarkContext);
+
+/**
+ * A renderer that draws a title strip of its own for its change mark to sit
+ * in says so, for the props it is given; see `useCanvasMark`.
+ *
+ * That strip is exactly the row the server keeps for the container's chrome,
+ * and a container clips, so a row of the mark's own above it would push the
+ * container's last row out of its box. Asking the renderer rather than the
+ * widget type keeps an extension's replacement for a built-in container, which
+ * cannot know about the mark, on the row of its own.
+ */
+export type CanvasMarkHost = {
+  hostsMark?: (props: Record<string, unknown> | undefined) => boolean;
+};
+
+/**
+ * Room a container leaves at the right of a strip it shares with its remove
+ * button, set only while editing, when there is one.
+ */
+const GridRoot = styled.div<{ $editable: boolean }>`
+  ${({ theme, $editable }) =>
+    $editable &&
+    css`
+      --canvas-controls-inset: ${theme.sizeUnit * 12}px;
+    `}
+`;
+
 const Stack = styled.div`
   ${({ theme }) => css`
     display: flex;
@@ -202,6 +240,15 @@ const WidgetTitle = styled.div`
 const TitledBody = styled.div`
   flex: 1;
   min-height: 0;
+`;
+
+/**
+ * A container whose mark sits in its own chrome: the whole cell, with no row
+ * above it. Still the content box's child, where the surface reads the mark
+ * to frame the widget (see `Interactive`).
+ */
+const MarkedInChrome = styled.div`
+  height: 100%;
 `;
 
 const Placeholder = styled.div`
@@ -533,23 +580,40 @@ export default function CanvasGrid({
       </ErrorBoundary>
     );
     const mark = marks[nodeId];
+    const tag = mark && mark !== 'removed' && (
+      <Mark color={MARKS[mark].color} data-test="canvas-widget-mark">
+        {MARKS[mark].label()}
+      </Mark>
+    );
+    const frame = mark && OUTLINED.has(mark) ? mark : undefined;
+    const inChrome =
+      Boolean(mark) &&
+      !title &&
+      Boolean(
+        (Renderer as CanvasMarkHost).hostsMark?.(contentOf(nodeId)?.props),
+      );
+    // Every widget sets it, so a container's mark stops at its own chrome.
+    const body = (
+      <CanvasMarkContext.Provider value={inChrome ? tag : null}>
+        {widget}
+      </CanvasMarkContext.Provider>
+    );
+    if (inChrome) {
+      return <MarkedInChrome data-canvas-mark={frame}>{body}</MarkedInChrome>;
+    }
     // A widget with neither a name nor a change has no row to draw.
-    if (!title && !mark) return widget;
+    if (!title && !mark) return body;
     return (
-      <Titled data-canvas-mark={mark && OUTLINED.has(mark) ? mark : undefined}>
+      <Titled data-canvas-mark={frame}>
         <TitleRow $align={display.titleAlign ?? 'left'} $inset={editable}>
           {title && (
             <WidgetTitle title={title} data-test="canvas-widget-title">
               {title}
             </WidgetTitle>
           )}
-          {mark && mark !== 'removed' && (
-            <Mark color={MARKS[mark].color} data-test="canvas-widget-mark">
-              {MARKS[mark].label()}
-            </Mark>
-          )}
+          {tag}
         </TitleRow>
-        <TitledBody>{widget}</TitledBody>
+        <TitledBody>{body}</TitledBody>
       </Titled>
     );
   }
@@ -560,7 +624,7 @@ export default function CanvasGrid({
           its container is a conversation between two of them. */}
       <CanvasDragProvider>
         <CanvasVersionContext.Provider value={versionUuid}>
-          <div data-test="canvas-grid">
+          <GridRoot data-test="canvas-grid" $editable={editable}>
             {renderGrid(
               ROOT_NODE_ID,
               orderOf(ROOT_NODE_ID, definition.root.children),
@@ -568,7 +632,7 @@ export default function CanvasGrid({
               renderNode,
               0,
             )}
-          </div>
+          </GridRoot>
         </CanvasVersionContext.Provider>
       </CanvasDragProvider>
     </CanvasDraftContext.Provider>

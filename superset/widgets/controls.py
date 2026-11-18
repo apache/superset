@@ -167,8 +167,9 @@ class SeriesStyle(BaseModel):
     dimension is set and its distinct values are known."""
 
     color: str = Field(
-        default="#e74c3c",
+        default="",
         title="Color",
+        description="Empty means no explicit color; the renderer chooses.",
         json_schema_extra={"x-control": "color"},
     )
     size_scale: float = Field(
@@ -301,7 +302,7 @@ class SeriesOverride(BaseModel):
     color: str = Field(
         default="",
         title="Color",
-        description="Empty keeps the palette-assigned default.",
+        description="Empty means no explicit color; the renderer chooses.",
         json_schema_extra={"x-control": "color"},
     )
     visible: bool = Field(
