@@ -485,6 +485,19 @@ test('legacy permalink values require an explicit reset before the plugin can em
   };
   renderFilterValue({ filter, onFilterSelectionChange });
   expect(screen.getByText('Reselect saved filter values')).toBeInTheDocument();
+  const warning = screen.getByRole('alert');
+  const section = warning.querySelector('.ant-alert-section') as HTMLElement;
+  const actions = warning.querySelector('.ant-alert-actions') as HTMLElement;
+  // JSDOM does not lay out flex items; pin the wrapping and sizing mechanism.
+  expect(warning.style.flexWrap).toBe('wrap');
+  expect(section.style.flex).toBe('1 1 max-content');
+  expect(actions.style.marginInlineStart).toBe('0');
+  expect(actions.style.maxWidth).toBe('100%');
+  const resetButton = screen.getByRole('button', {
+    name: 'Reset and reselect values',
+  });
+  expect(actions).toContainElement(resetButton);
+  expect(resetButton).toHaveStyleRule('white-space', 'normal');
   expect(screen.queryByTestId('mock-super-chart')).not.toBeInTheDocument();
   await userEvent.click(
     screen.getByRole('button', { name: 'Reset and reselect values' }),

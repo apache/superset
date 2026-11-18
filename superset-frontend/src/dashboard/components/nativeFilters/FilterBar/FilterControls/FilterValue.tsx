@@ -87,6 +87,12 @@ const StyledDiv = styled.div<{
   }
 `;
 
+const ReselectActionButton = styled(Button)`
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+`;
+
 const queriesDataPlaceholder = [{ data: [{}] }];
 
 const useShouldFilterRefresh = () => {
@@ -485,18 +491,23 @@ const FilterValue: FC<FilterValueProps> = ({
     return (
       <Alert
         type="warning"
+        styles={{
+          root: { flexWrap: 'wrap', rowGap: theme.sizeUnit * 2 },
+          section: { flex: '1 1 max-content', minWidth: 0 },
+          actions: { marginInlineStart: 0, minWidth: 0, maxWidth: '100%' },
+        }}
         message={t('Reselect saved filter values')}
         description={t(
           'This saved filter state predates the member-ID format. Reset it and explicitly choose its values again.',
         )}
         action={
-          <Button
+          <ReselectActionButton
             onClick={() =>
               setDataMask({ filterState: {}, ownState: {}, extraFormData: {} })
             }
           >
             {t('Reset and reselect values')}
-          </Button>
+          </ReselectActionButton>
         }
       />
     );
