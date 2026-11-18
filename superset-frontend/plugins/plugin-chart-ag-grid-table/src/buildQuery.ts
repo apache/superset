@@ -18,7 +18,6 @@
  */
 import {
   AdhocColumn,
-  DatasourceType,
   buildQueryContext,
   ensureIsArray,
   getColumnLabel,
@@ -37,7 +36,6 @@ import {
 } from '@superset-ui/core';
 import {
   getTotalsMetrics,
-  omitDormantTimeGrain,
   isTimeComparison,
   timeCompareOperator,
   toTotalsAggregate,
@@ -812,14 +810,6 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
 
     return [queryObject, ...extraQueries];
   });
-  if (
-    context.datasource.type === DatasourceType.SemanticView &&
-    queryMode === QueryMode.Aggregate
-  ) {
-    context.queries = context.queries.map(query =>
-      omitDormantTimeGrain(query, formData.temporal_columns_lookup),
-    );
-  }
   return context;
 };
 

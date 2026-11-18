@@ -28,9 +28,11 @@ import {
   SemanticSelectionSource,
   DatasourceType,
   buildQueryObject,
+  buildQueryContext,
   QueryFormData,
 } from '@superset-ui/core';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
+import buildBigNumberQuery from '../../../plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/buildQuery';
 
 type ChartCustomizationItem = NonNullable<
   GetFormDataWithExtraFiltersArguments['chartCustomizationItems']
@@ -1240,6 +1242,86 @@ test.each([
     });
     expect(chartExtras(result)?.semantic_selection_version).toEqual(
       'unverified-external-selections',
+    );
+  },
+);
+
+test.each(
+  ['native filter', 'display control'].flatMap(source =>
+    ['3__semantic_view', '3__table'].flatMap(datasource =>
+      [false, true].map(hasTime => ({ source, datasource, hasTime })),
+    ),
+  ),
+)(
+  '$source grain on $datasource with temporal column $hasTime',
+  ({ source, datasource, hasTime }) => {
+    const native = source === 'native filter';
+    const id = native
+      ? 'NATIVE_FILTER-duration'
+      : 'CHART_CUSTOMIZATION-duration';
+    const form = {
+      ...mockChart.form_data,
+      datasource,
+      viz_type: 'big_number_total',
+      metrics: ['revenue'],
+      groupby: hasTime ? ['created'] : [],
+      temporal_columns_lookup: { created: true },
+      time_grain_sqla: 'P1D',
+      time_range: '2026-01-01 : 2026-04-01',
+      semantic_selection_version: 'cube-member-id-v1',
+    };
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: { ...mockChart, form_data: form },
+      dataMask: {
+        [id]: {
+          id,
+          filterState: { value: ['P1M'] },
+          extraFormData: { time_grain_sqla: 'P1M' },
+        },
+      },
+      nativeFilters: native
+        ? ({
+            [id]: {
+              id,
+              filterType: 'filter_timegrain',
+              chartsInScope: [chartId],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              targets: [],
+            },
+          } as GetFormDataWithExtraFiltersArguments['nativeFilters'])
+        : {},
+      chartCustomizationItems: native
+        ? []
+        : [
+            createChartCustomization({
+              id,
+              filterType: 'chart_customization_timegrain',
+              targets: [],
+            }),
+          ],
+    });
+    const buildQuery = hasTime ? buildQueryContext : buildBigNumberQuery;
+    const query = buildQuery({
+      ...result,
+      datasource: form.datasource,
+      viz_type: form.viz_type,
+    } as QueryFormData).queries[0];
+    expect(query.extras?.time_grain_sqla).toBe(
+      datasource.endsWith('__semantic_view') && !hasTime ? undefined : 'P1M',
+    );
+    expect(query).toMatchObject({
+      columns: form.groupby,
+      metrics: ['revenue'],
+      time_range: form.time_range,
+      extras: { semantic_selection_version: 'cube-member-id-v1' },
+    });
+    expect(form.time_grain_sqla).toBe('P1D');
+    expect(result).toMatchObject(
+      native
+        ? { extra_form_data: { time_grain_sqla: 'P1M' } }
+        : { time_grain_sqla: 'P1M' },
     );
   },
 );

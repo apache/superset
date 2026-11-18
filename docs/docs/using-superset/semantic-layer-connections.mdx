@@ -89,3 +89,13 @@ with the `TIMEOUT` error type and can be retried in another request; views added
 before the budget ran out stay added. Views that already exist are refused before
 their lookup, so resending the whole request spends the budget only on the views
 that are still missing.
+
+
+## Dashboard time grain
+
+On semantic-view aggregate charts, a Time grain filter or display control changes
+an active time dimension. A chart without a time dimension ignores a recognized
+duration such as Day or Month; its metrics and time-range filters are preserved.
+If the chart's selected columns cannot be confirmed as non-temporal, its grain is
+retained for validation. Saved query contexts must be rebuilt by the frontend to
+apply this behavior.

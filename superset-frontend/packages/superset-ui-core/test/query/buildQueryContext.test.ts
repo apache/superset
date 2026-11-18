@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, VizType } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  QueryMode,
+  QueryObject,
+  QueryFormData,
+  TimeGranularity,
+  VizType,
+} from '@superset-ui/core';
 import * as queryModule from '../../src/query/normalizeTimeColumn';
 
 test('semantic queries omit a positive limit without final series columns', () => {
@@ -195,4 +202,58 @@ describe('buildQueryContext', () => {
     expect(spyNormalizeTimeColumn).toHaveBeenCalled();
     spyNormalizeTimeColumn.mockRestore();
   });
+});
+
+test('normalizes dormant grain per final semantic query without mutating inputs', () => {
+  const formData: QueryFormData = {
+    datasource: '5__semantic_view',
+    viz_type: VizType.BigNumberTotal,
+    metrics: ['revenue'],
+    extra_form_data: { time_grain_sqla: 'P1M' },
+    temporal_columns_lookup: { category: false, created: true },
+  };
+  const finalQueries: QueryObject[] = [
+    { columns: [], extras: { time_grain_sqla: 'P1M' } },
+    { columns: ['category'], extras: { time_grain_sqla: 'P1M' } },
+    { columns: ['created'], extras: { time_grain_sqla: 'P1M' } },
+    { columns: ['unknown'], extras: { time_grain_sqla: 'P1M' } },
+    { columns: [], is_timeseries: true, extras: { time_grain_sqla: 'P1M' } },
+    { columns: [], granularity: 'created', extras: { time_grain_sqla: 'P1M' } },
+    { columns: [], extras: { time_grain_sqla: TimeGranularity.DATE } },
+  ];
+  finalQueries.forEach(query => {
+    Object.freeze(query.extras);
+    Object.freeze(query);
+  });
+  Object.freeze(formData.extra_form_data);
+  Object.freeze(formData);
+  const context = buildQueryContext(formData, () => finalQueries);
+  expect(context.queries.map(query => query.extras?.time_grain_sqla)).toEqual([
+    undefined,
+    undefined,
+    'P1M',
+    'P1M',
+    'P1M',
+    'P1M',
+    'date',
+  ]);
+  expect(finalQueries[0].extras?.time_grain_sqla).toBe('P1M');
+  expect(context.form_data).toBe(formData);
+});
+
+test.each([
+  { query_mode: QueryMode.Raw },
+  { all_columns: ['category'] },
+  { query_mode: 'invalid' as QueryMode, all_columns: ['category'] },
+  { datasource: '5__table' },
+])('preserves dormant grain outside semantic aggregation: %j', overrides => {
+  const context = buildQueryContext({
+    datasource: '5__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['revenue'],
+    temporal_columns_lookup: { category: false },
+    extra_form_data: { time_grain_sqla: 'P1M' },
+    ...overrides,
+  });
+  expect(context.queries[0].extras?.time_grain_sqla).toBe('P1M');
 });

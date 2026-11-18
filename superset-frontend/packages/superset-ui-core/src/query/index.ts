@@ -51,3 +51,5 @@ export {
   getSemanticSelectionSources,
   isGrainOnlyExtraFormData,
 } from './semanticSelection';
+
+export { omitDormantTimeGrain } from './omitDormantTimeGrain';

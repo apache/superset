@@ -33,7 +33,6 @@ import {
 
 import {
   getTotalsMetrics,
-  omitDormantTimeGrain,
   isTimeComparison,
   timeCompareOperator,
   toTotalsAggregate,
@@ -424,17 +423,6 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     return [queryObject, ...extraQueries];
   });
 
-  // Normalize only rebuilt frontend requests, never saved form data. GET chart
-  // data can bypass this builder, so old stored query contexts may still fail
-  // strict host validation. Classify each final query, including derived ones.
-  if (
-    context.datasource.type === DatasourceType.SemanticView &&
-    queryMode === QueryMode.Aggregate
-  ) {
-    context.queries = context.queries.map(query =>
-      omitDormantTimeGrain(query, formData.temporal_columns_lookup),
-    );
-  }
   return context;
 };
 

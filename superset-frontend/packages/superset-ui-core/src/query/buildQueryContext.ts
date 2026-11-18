@@ -26,6 +26,8 @@ import { SetDataMaskHook } from '../chart';
 import { JsonObject } from '../connection';
 import { normalizeTimeColumn } from './normalizeTimeColumn';
 import { isXAxisSet } from './getXAxis';
+import { omitDormantTimeGrain } from './omitDormantTimeGrain';
+import { QueryMode } from './types';
 
 const WRAP_IN_ARRAY = (baseQueryObject: QueryObject) => [baseQueryObject];
 
@@ -62,6 +64,16 @@ export default function buildQueryContext(
   }
   const datasource = new DatasourceKey(formData.datasource).toObject();
   if (datasource.type === DatasourceType.SemanticView) {
+    const isRawQuery =
+      formData.query_mode === QueryMode.Raw ||
+      (formData.query_mode !== QueryMode.Aggregate &&
+        !!formData.all_columns?.length);
+    // Classify final queries, including totals, without changing saved form data.
+    if (!isRawQuery) {
+      queries = queries.map(query =>
+        omitDormantTimeGrain(query, formData.temporal_columns_lookup),
+      );
+    }
     queries = queries.map(query => {
       const hasInferredSeriesColumns =
         query.is_timeseries && query.metrics?.length && query.columns?.length;
