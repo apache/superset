@@ -169,9 +169,19 @@ class _PlaywrightBrowserManager:
                     pass
                 self._playwright = None
 
+    def _cleanup_at_exit(self, timeout: float = 30) -> None:
+        """Cleanup for interpreter shutdown: never hang on a lock that an
+        abandoned task still holds; the OS reclaims the browser anyway."""
+        if not self._lock.acquire(timeout=timeout):
+            return
+        try:
+            self._cleanup()
+        finally:
+            self._lock.release()
+
 
 _browser_manager = _PlaywrightBrowserManager()
-atexit.register(_browser_manager._cleanup)
+atexit.register(_browser_manager._cleanup_at_exit)
 
 
 class DashboardStandaloneMode(Enum):
