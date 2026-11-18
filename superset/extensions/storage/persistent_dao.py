@@ -31,7 +31,7 @@ from typing import Any
 import backoff
 from flask import current_app
 from flask_babel import gettext as _
-from sqlalchemy import and_, desc, func, LargeBinary
+from sqlalchemy import and_, desc, func, LargeBinary, update
 
 from superset import db
 from superset.daos.base import BaseDAO
@@ -383,6 +383,37 @@ def _upsert(  # noqa: PLR0913
     return entry
 
 
+def _replace_unchanged(
+    entry: ExtensionStorage,
+    extension_id: str,
+    stored_value: bytes,
+    codec: str,
+    encrypt: bool,
+) -> bool:
+    """Write `stored_value` over `entry` while its row still holds the value
+    read; commit it, and return whether it was written.
+
+    The comparison is part of the write, so a writer that outlives the lock
+    can't overwrite a value written since it read.
+    """
+    entry_id, read_value, read_size = entry.id, entry.value, entry.value_size
+    new_size = len(stored_value)
+    _check_quota(extension_id, new_size, read_size)
+    written = db.session.execute(
+        update(ExtensionStorage)
+        .where(ExtensionStorage.id == entry_id, ExtensionStorage.value == read_value)
+        .values(
+            value=stored_value,
+            value_size=new_size,
+            codec=codec,
+            is_encrypted=encrypt,
+        )
+        .execution_options(synchronize_session=False)
+    ).rowcount
+    db.session.commit()  # pylint: disable=consider-using-transaction
+    return written == 1
+
+
 def _holds(entry: ExtensionStorage | None, expected: Any) -> bool:
     """Whether `entry` holds `expected`: no entry for `None`, else its value."""
     if expected is None:
@@ -679,6 +710,10 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         wrap it in a `@transaction()` of their own, inside which the lock
         can't be taken as its own unit of work.
 
+        The lock lasts SET_LOCK_TTL_SECONDS: a section that outlives it, as a
+        slow quota sum or a large value can, no longer excludes a second
+        writer, and two inserts of a new key can then both land.
+
         :raises ExtensionStorageKeyTooLong: if `key` exceeds MAX_KEY_LENGTH.
         :raises ExtensionStorageValueTooLarge: if `value` exceeds
             MAX_VALUE_SIZE.
@@ -728,6 +763,11 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         inside it, so of two writers that read the same value only the first
         writes. The write is validated and counted as `set()`'s is.
 
+        The lock lasts SET_LOCK_TTL_SECONDS. An update compares the value it
+        read as part of its write, so it stays atomic past that; an insert
+        (`expected=None`) has only the lock, so two writers whose sections
+        outlive it can both insert the key, as with `set()`.
+
         :raises ExtensionStorageKeyTooLong: if `key` exceeds MAX_KEY_LENGTH.
         :raises ExtensionStorageValueTooLarge: if `value` exceeds
             MAX_VALUE_SIZE.
@@ -740,8 +780,12 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
         ) as entry:
             if not _holds(entry, expected):
                 return False
+            if entry is not None:
+                return _replace_unchanged(
+                    entry, extension_id, stored_value, codec, encrypt
+                )
             _upsert(
-                entry,
+                None,
                 extension_id,
                 key,
                 stored_value,

@@ -690,9 +690,10 @@ def test_dao_compare_and_set_writes_when_the_decoded_value_matches(
 ) -> None:
     """The comparison is on the decoded value, not the stored bytes."""
     existing = MagicMock(
-        value=b'{"b": 2, "a": 1}', value_size=16, codec="json", is_encrypted=False
+        id=7, value=b'{"b": 2, "a": 1}', value_size=16, codec="json", is_encrypted=False
     )
     mock_db.session.query.return_value.filter.return_value.first.return_value = existing
+    mock_db.session.execute.return_value.rowcount = 1
 
     with app.app_context():
         written = ExtensionStorageDAO.compare_and_set(
@@ -700,9 +701,31 @@ def test_dao_compare_and_set_writes_when_the_decoded_value_matches(
         )
 
     assert written
-    assert existing.value == b'{"a": 1, "b": 3}'
+    # One UPDATE, which writes only while the row holds the bytes read.
+    params = mock_db.session.execute.call_args.args[0].compile().params
+    assert params["value"] == b'{"a": 1, "b": 3}'
+    assert params["id_1"] == 7
+    assert params["value_1"] == b'{"b": 2, "a": 1}'
     mock_db.session.add.assert_not_called()
     mock_db.session.commit.assert_called_once()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_compare_and_set_refuses_when_the_row_changed_as_it_wrote(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    existing = MagicMock(
+        id=7, value=b'{"v": 1}', value_size=8, codec="json", is_encrypted=False
+    )
+    mock_db.session.query.return_value.filter.return_value.first.return_value = existing
+    mock_db.session.execute.return_value.rowcount = 0
+
+    with app.app_context():
+        written = ExtensionStorageDAO.compare_and_set(
+            "my-ext", "key", {"v": 1}, b'{"v": 2}'
+        )
+
+    assert not written
 
 
 @patch("superset.extensions.storage.persistent_dao.db")

@@ -262,6 +262,8 @@ When several requests may write the same key, `compare_and_set` writes only whil
 
 Each write (`set` and `compare_and_set`) takes the extension's storage lock and commits inside it, so don't call them inside a `@transaction()` of your own: there, the lock can't be taken as a unit of work of its own, and the second writer of a race fails instead of waiting its turn.
 
+The lock expires after a few seconds, so that a crashed writer can't hold it for long. A `compare_and_set` over an existing entry compares as it writes, so it stays atomic even when its write outlives the lock. A write that creates a key has only the lock: two of them that both outlive it can each create the key.
+
 ```python
 config = ctx.storage.persistent.shared.get('global_config')
 updated = {**config, 'version': config['version'] + 1}

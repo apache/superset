@@ -110,3 +110,52 @@ def test_a_lock_held_throughout_is_reported_as_held(tables: None) -> None:
         ).run()
         with patch("time.sleep"), pytest.raises(LockAlreadyHeldException):
             write(lambda storage: storage.compare_and_set("key", None, {"v": 1}))
+
+
+def test_a_compare_and_set_that_outlives_its_lock_writes_nothing_stale(
+    tables: None,
+) -> None:
+    from superset import db
+    from superset.extensions.storage import persistent_dao
+    from superset.key_value.models import KeyValueEntry
+
+    check_quota = persistent_dao._check_quota
+    results: list[tuple[str, bool]] = []
+    lapsed: list[bool] = []
+
+    def outlive_the_lock(*args: Any) -> None:
+        if not lapsed:
+            lapsed.append(True)
+            # The first writer's lock ran out here, after its comparison and
+            # before its write; another writer then runs a whole write.
+            db.session.query(KeyValueEntry).delete()
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            results.append(
+                (
+                    "second",
+                    write(
+                        lambda storage: storage.compare_and_set(
+                            "key", {"v": 1}, {"v": "second"}
+                        )
+                    ),
+                )
+            )
+        check_quota(*args)
+
+    with NO_COORDINATION_BACKEND:
+        write(lambda storage: storage.set("key", {"v": 1}))
+        with patch.object(persistent_dao, "_check_quota", side_effect=outlive_the_lock):
+            results.append(
+                (
+                    "first",
+                    write(
+                        lambda storage: storage.compare_and_set(
+                            "key", {"v": 1}, {"v": "first"}
+                        )
+                    ),
+                )
+            )
+        stored = write(lambda storage: storage.get("key"))
+
+    assert results == [("second", True), ("first", False)]
+    assert stored == {"v": "second"}
