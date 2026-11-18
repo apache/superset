@@ -48,9 +48,9 @@ The `apache-superset-core` provider contract is imported from these explicit mod
 | `semantic_layers.layer` | `SemanticLayer`, `SemanticCacheResponsibility`, `SemanticCacheScope`, `SemanticCacheCapabilities`, `SemanticCacheExecutionContext`, `SemanticCacheIdentityMaterial` |
 | `semantic_layers.view` | `SemanticView`, `SemanticViewFeature` |
 | `semantic_layers.context` | `ExecutionOrigin`, `ExecutionMethod`, `SemanticExecutionContext`, `SemanticCredentials` |
-| `semantic_layers.types` | `Grain`, `Grains`, `Dimension`, `Metric`, `AdhocExpression`, `AggregationType`, `Operator`, `PredicateType`, `FilterValues`, `Filter`, `OrFilter`, `FilterExpression`, `OrderDirection`, `GroupLimit`, `SemanticRequest`, `SemanticResult`, `SemanticQuery` |
+| `semantic_layers.types` | `Grain`, `Grains`, `Dimension`, `Metric`, `AdhocExpression`, `AggregationType`, `Operator`, `PredicateType`, `FilterValues`, `Filter`, `OrFilter`, `FilterExpression`, `OrderDirection`, `OrderTuple`, `GroupLimit`, `SemanticRequest`, `SemanticResult`, `SemanticQuery` |
 | `semantic_layers.config` | `build_configuration_schema`, `check_dependencies`, `SemanticCredentialReadiness` |
-| `semantic_layers.errors` | `SemanticQueryErrorCode`, `SemanticQueryRejectedError`, `SemanticResultCompletenessError`, `SemanticBackendError` |
+| `semantic_layers.errors` | `SemanticQueryErrorCode`, `SemanticQueryRejectedError`, `SemanticResultCompletenessError`, `SemanticResultCompletenessReason`, `SemanticBackendError` |
 | `semantic_layers.transport` | `ProviderTransport`, `ProviderResponse`, `ProviderRequestError`, `ProviderRequestFailure`, `RequestBudget` |
 | `semantic_layers.testing` | `SemanticProviderConformance` and the documented pytest fixtures |
 

@@ -37,8 +37,9 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
   (`superset_core.semantic_layers.errors`).
 - `SemanticView` selection identity versioning (`selection_identity_version`,
   `validate_selection_version`), `preferred_temporal_dimension`,
-  `metadata_cache_token`, and the `ROW_OFFSET` and `ADHOC_COLUMN_EXPRESSIONS`
-  features.
+  `metadata_cache_token`, and the `ROW_OFFSET` feature. The
+  `ADHOC_COLUMN_EXPRESSIONS` member is importable but reserved: declaring it
+  grants no capability.
 - `StatementResult.truncated` in `superset_core.queries.types`.
 - `SemanticResultCompletenessError` for providers that cannot guarantee a complete
   result. See the [result-completeness guide](../docs/developer_docs/semantic-result-completeness.md).

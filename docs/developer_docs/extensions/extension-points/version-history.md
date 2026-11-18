@@ -40,4 +40,6 @@ federation; importing it in a `.supx` extension does not reach the host registry
 
 The slot does not change access to history or retention settings. Deployments
 are responsible for deciding when their footer content is suitable. It is
-available only in builds containing this slot and the version history panel.
+available only in builds containing this slot and where the version history
+panel renders: `VERSION_HISTORY` must be enabled, and embedded dashboards do
+not show it.
