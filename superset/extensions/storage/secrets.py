@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy.orm import Session
-from superset_core.extensions.storage.models import StorageAccess
+from superset_core.extensions.storage.models import StorageStore
 from superset_core.extensions.storage.secrets import SecretsState as CoreSecretsState
 
 from superset import db
@@ -46,7 +46,7 @@ class SecretsState(CoreSecretsState):
             extension_id,
             key,
             user_fk=user_id,
-            access=StorageAccess.BACKEND,
+            store=StorageStore.SECRETS,
         )
 
     @staticmethod
@@ -62,7 +62,7 @@ class SecretsState(CoreSecretsState):
                 codec=DEFAULT_CODEC,
                 user_fk=user_id,
                 encrypt=True,
-                access=StorageAccess.BACKEND,
+                store=StorageStore.SECRETS,
                 session=session,
             )
 
@@ -76,7 +76,7 @@ class SecretsState(CoreSecretsState):
                 extension_id,
                 key,
                 user_fk=user_id,
-                access=StorageAccess.BACKEND,
+                store=StorageStore.SECRETS,
                 session=session,
             )
             session.commit()  # pylint: disable=consider-using-transaction

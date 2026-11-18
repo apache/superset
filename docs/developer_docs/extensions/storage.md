@@ -464,7 +464,8 @@ other credentials that must stay on the server.
 
 ### Backend-only secrets
 
-Backend extensions can store user-scoped credentials through the Python-only
+The secrets store complements ephemeral and persistent storage and is available
+only to backend extensions. Store user-scoped credentials through the Python-only
 secrets accessor:
 
 ```python
@@ -486,9 +487,10 @@ ctx.storage.secrets.remove("oauth2:quiver")
 Secrets are always encrypted at rest and scoped to the current authenticated
 user and extension. They cannot be read, listed, overwritten, or deleted
 through the extension storage REST API and are not exposed by the TypeScript
-SDK. The accessor intentionally has no `list()` or `.shared` operation. Use
-deployment configuration for extension-wide client secrets or service
-credentials.
+SDK. Persistent values and secrets use separate stores, so the same key can
+exist in both without either overwriting the other. The accessor intentionally
+has no `list()` or `.shared` operation. Use deployment configuration for
+extension-wide client secrets or service credentials.
 
 Secret writes and removals commit in a separate database session. They survive
 a later failure or rollback of the operation that requested credentials, without

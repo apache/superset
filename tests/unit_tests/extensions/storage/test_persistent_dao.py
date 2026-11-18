@@ -28,7 +28,7 @@ from flask import Flask
 from flask_babel import Babel
 from sqlalchemy.dialects.sqlite import dialect
 from sqlalchemy.orm.session import Session
-from superset_core.extensions.storage.models import StorageAccess
+from superset_core.extensions.storage.models import StorageStore
 
 from superset.extensions.storage.codecs import get_codec
 from superset.extensions.storage.filters import ExtensionStorageFilter
@@ -130,7 +130,7 @@ def _create_entry(
     resource_type: str | None = None,
     resource_uuid: str | None = None,
     is_encrypted: bool = False,
-    access: StorageAccess = StorageAccess.FRONTEND,
+    store: StorageStore = StorageStore.PERSISTENT,
 ) -> ExtensionStorage:
     """Insert an ExtensionStorage row directly, bypassing DAO.set() (whose
     own validation isn't what these `list()` tests are exercising)."""
@@ -144,7 +144,7 @@ def _create_entry(
         resource_type=resource_type,
         resource_uuid=resource_uuid,
         is_encrypted=is_encrypted,
-        access=access.value,
+        store=store.value,
     )
     session.add(entry)
     session.flush()
@@ -393,7 +393,7 @@ def test_dao_set_encrypts_value_when_requested(
 
 @patch("superset.extensions.storage.persistent_dao._enc_type")
 @patch("superset.extensions.storage.persistent_dao.db")
-def test_dao_set_forces_encryption_for_backend_access(
+def test_dao_set_forces_encryption_for_secrets_store(
     mock_db: MagicMock,
     mock_enc_type: MagicMock,
     app: Flask,
@@ -408,12 +408,12 @@ def test_dao_set_forces_encryption_for_backend_access(
             "token",
             b"plaintext",
             user_fk=1,
-            access=StorageAccess.BACKEND,
+            store=StorageStore.SECRETS,
         )
 
     added_entry = mock_db.session.add.call_args[0][0]
     assert added_entry.is_encrypted is True
-    assert added_entry.access == StorageAccess.BACKEND.value
+    assert added_entry.store == StorageStore.SECRETS.value
     mock_enc_type.return_value.process_bind_param.assert_called_once_with(
         b"plaintext", mock_db.engine.dialect
     )
@@ -902,22 +902,22 @@ def test_list_scopes_by_user_fk(app: Flask, list_session: Session) -> None:
     assert entries[0].key == "mine"
 
 
-def test_list_scopes_by_access(app: Flask, list_session: Session) -> None:
-    """Frontend listing cannot count or return backend-only entries."""
+def test_list_scopes_by_store(app: Flask, list_session: Session) -> None:
+    """Persistent listing cannot count or return secrets store entries."""
     _create_entry(list_session, "my-ext", "preference", user_fk=1)
     _create_entry(
         list_session,
         "my-ext",
         "oauth2",
         user_fk=1,
-        access=StorageAccess.BACKEND,
+        store=StorageStore.SECRETS,
     )
 
     with app.app_context():
         entries, total_count = ExtensionStorageDAO.list_entries(
             "my-ext",
             user_fk=1,
-            access=StorageAccess.FRONTEND,
+            store=StorageStore.PERSISTENT,
         )
 
     assert total_count == 1
@@ -1124,7 +1124,7 @@ def test_list_returns_empty_when_no_entries_match(
 
 
 @pytest.mark.parametrize("resource_scoped", [False, True])
-def test_frontend_crud_preserves_backend_row(
+def test_persistent_crud_preserves_secrets_row(
     app: Flask,
     list_session: Session,
     resource_scoped: bool,
@@ -1132,7 +1132,7 @@ def test_frontend_crud_preserves_backend_row(
     """Real scoped queries cannot read, overwrite, or remove a personal secret."""
     resource_type = "chart" if resource_scoped else None
     resource_uuid = "chart-uuid" if resource_scoped else None
-    backend = _create_entry(
+    secret = _create_entry(
         list_session,
         "ext",
         "oauth",
@@ -1140,9 +1140,9 @@ def test_frontend_crud_preserves_backend_row(
         user_fk=42,
         resource_type=resource_type,
         resource_uuid=resource_uuid,
-        access=StorageAccess.BACKEND,
+        store=StorageStore.SECRETS,
     )
-    frontend = _create_entry(
+    persistent = _create_entry(
         list_session,
         "ext",
         "oauth",
@@ -1165,7 +1165,7 @@ def test_frontend_crud_preserves_backend_row(
             resource_uuid=resource_uuid,
         )
         assert entry is not None
-        assert entry.id == frontend.id
+        assert entry.id == persistent.id
         ExtensionStorageDAO.set(
             "ext",
             "oauth",
@@ -1200,16 +1200,16 @@ def test_frontend_crud_preserves_backend_row(
             )
             is None
         )
-        list_session.refresh(backend)
-        assert backend.value == b"secret"
-        assert backend.access == StorageAccess.BACKEND.value
+        list_session.refresh(secret)
+        assert secret.value == b"secret"
+        assert secret.store == StorageStore.SECRETS.value
         entry = ExtensionStorageDAO.get(
             "ext",
             "oauth",
-            access=StorageAccess.BACKEND,
+            store=StorageStore.SECRETS,
             user_fk=42,
             resource_type=resource_type,
             resource_uuid=resource_uuid,
         )
         assert entry is not None
-        assert entry.id == backend.id
+        assert entry.id == secret.id

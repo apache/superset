@@ -981,7 +981,7 @@ whose cached JSON results were produced before upgrading all workers.
 
 Migration `4c8f2a1d9b73` adds backend-only extension storage for personal secrets,
 including OAuth tokens. Downgrading past this migration permanently deletes all
-storage rows marked `access=backend` before removing the access classification.
+storage rows marked `store=secrets` before removing the store discriminator.
 This prevents secrets from becoming readable through the older browser storage
 API. Back up the metadata database before downgrading. Users must reconnect their
 personal accounts if they upgrade again after the downgrade.

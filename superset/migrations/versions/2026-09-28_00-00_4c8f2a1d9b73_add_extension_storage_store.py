@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Add browser access classification to extension storage.
+"""Add a secrets store alongside persistent extension storage.
 
 Revision ID: 4c8f2a1d9b73
 Revises: b8f3a2c91d64
@@ -32,7 +32,7 @@ _LOOKUP_COLUMNS = [
     "user_fk",
     "resource_type",
     "resource_uuid",
-    "access",
+    "store",
     "key",
 ]
 _LEGACY_LOOKUP_COLUMNS = [
@@ -48,9 +48,9 @@ def upgrade() -> None:
     with op.batch_alter_table("extension_storage") as batch_op:
         batch_op.add_column(
             sa.Column(
-                "access",
+                "store",
                 sa.String(length=32),
-                server_default="frontend",
+                server_default="persistent",
                 nullable=False,
             )
         )
@@ -71,10 +71,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Backend entries must never become browser-readable after a downgrade.
+    # Secrets must never become browser-readable after a downgrade.
     op.execute(
-        sa.delete(sa.table("extension_storage", sa.column("access"))).where(
-            sa.column("access") == "backend"
+        sa.delete(sa.table("extension_storage", sa.column("store"))).where(
+            sa.column("store") == "secrets"
         )
     )
     with op.batch_alter_table("extension_storage") as batch_op:
@@ -92,4 +92,4 @@ def downgrade() -> None:
             _LEGACY_LOOKUP_COLUMNS,
             unique=False,
         )
-        batch_op.drop_column("access")
+        batch_op.drop_column("store")

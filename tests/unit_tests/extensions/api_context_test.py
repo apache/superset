@@ -153,11 +153,11 @@ def test_extension_api_resolves_principal_after_protect(
         assert response.status_code == 401
         get_secret.assert_not_called()
     else:
-        from superset_core.extensions.storage.models import StorageAccess
+        from superset_core.extensions.storage.models import StorageStore
 
         assert response.status_code == 200
         assert response.json == {"user_id": 42}
         get_secret.assert_called_once_with(
-            "acme.semantic", "token", user_fk=42, access=StorageAccess.BACKEND
+            "acme.semantic", "token", user_fk=42, store=StorageStore.SECRETS
         )
     assert get_current_extension_context() is None

@@ -40,11 +40,11 @@ if TYPE_CHECKING:
     from datetime import datetime
 
 
-class StorageAccess(str, Enum):
-    """Controls whether a persistent storage entry is browser-accessible."""
+class StorageStore(str, Enum):
+    """Identifies the persistent or secrets store containing an entry."""
 
-    FRONTEND = "frontend"
-    BACKEND = "backend"
+    PERSISTENT = "persistent"
+    SECRETS = "secrets"
 
 
 class ExtensionStorageEntry(CoreModel):
@@ -74,7 +74,7 @@ class ExtensionStorageEntry(CoreModel):
     value_size: int
     codec: str
     is_encrypted: bool
-    access: str
+    store: str
 
     # Audit fields
     created_on: "datetime | None"

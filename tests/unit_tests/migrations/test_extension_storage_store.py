@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Exercise the access classification migration against a legacy storage table."""
+"""Exercise the store migration against a legacy extension storage table."""
 
 from importlib import import_module
 
@@ -25,15 +25,15 @@ from alembic.operations import Operations
 
 migration = import_module(
     "superset.migrations.versions."
-    "2026-09-28_00-00_4c8f2a1d9b73_add_extension_storage_access"
+    "2026-09-28_00-00_4c8f2a1d9b73_add_extension_storage_store"
 )
 
 
 @pytest.mark.parametrize("resource_scoped", [False, True])
-def test_access_migration_preserves_frontend_rows_and_removes_secrets(
+def test_store_migration_preserves_persistent_rows_and_removes_secrets(
     resource_scoped: bool,
 ) -> None:
-    """Upgrade classifies legacy rows; downgrade never exposes backend secrets."""
+    """Upgrade assigns legacy rows to persistent; downgrade removes secrets."""
     engine = sa.create_engine("sqlite:///:memory:")
     metadata = sa.MetaData()
     scoped_key = [
@@ -76,14 +76,14 @@ def test_access_migration_preserves_frontend_rows_and_removes_secrets(
                     "extension_storage", sa.MetaData(), autoload_with=connection
                 )
                 row = connection.execute(sa.select(upgraded)).mappings().one()
-                assert row["access"] == "frontend"
+                assert row["store"] == "persistent"
                 assert row["value"] == legacy_value
 
-                # Both access classes must coexist under the same scoped key.
+                # Both stores must coexist under the same scoped key.
                 connection.execute(
                     upgraded.insert().values(
                         id=2,
-                        access="backend",
+                        store="secrets",
                         value=b"encrypted-personal-token",
                         **scope,
                     )
@@ -92,7 +92,7 @@ def test_access_migration_preserves_frontend_rows_and_removes_secrets(
                     upgraded.insert().values(
                         **{**scope, "key": "refresh_token"},
                         id=3,
-                        access="backend",
+                        store="secrets",
                         value=b"encrypted-refresh-token",
                     )
                 )
@@ -101,7 +101,7 @@ def test_access_migration_preserves_frontend_rows_and_removes_secrets(
             downgraded = sa.Table(
                 "extension_storage", sa.MetaData(), autoload_with=connection
             )
-            assert "access" not in downgraded.c
+            assert "store" not in downgraded.c
             assert connection.execute(sa.select(downgraded)).mappings().all() == [
                 {"id": 1, "value": legacy_value, **scope}
             ]

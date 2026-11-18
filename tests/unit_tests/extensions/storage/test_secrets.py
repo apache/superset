@@ -26,7 +26,7 @@ import pytest
 from flask import Flask
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
-from superset_core.extensions.storage.models import StorageAccess
+from superset_core.extensions.storage.models import StorageStore
 
 from superset.extensions.context import use_context
 from superset.extensions.storage.persistent_model import ExtensionStorage
@@ -55,7 +55,7 @@ def test_secrets_state_get_is_user_scoped(
     mock_dao: MagicMock,
     app: Flask,
 ) -> None:
-    """Secret reads use backend access and the authenticated user."""
+    """Secret reads use the secrets store and the authenticated user."""
     mock_dao.get_decoded_value.return_value = {"access_token": "token"}
 
     with app.app_context(), use_context(create_context()):
@@ -66,7 +66,7 @@ def test_secrets_state_get_is_user_scoped(
         "test-org.test-ext",
         "oauth2",
         user_fk=42,
-        access=StorageAccess.BACKEND,
+        store=StorageStore.SECRETS,
     )
     assert result == {"access_token": "token"}
 
@@ -94,7 +94,7 @@ def test_secrets_state_set_forces_encryption(
         codec="json",
         user_fk=42,
         encrypt=True,
-        access=StorageAccess.BACKEND,
+        store=StorageStore.SECRETS,
         session=mock_session.return_value.__enter__.return_value,
     )
 
@@ -108,7 +108,7 @@ def test_secrets_state_remove_is_backend_only(
     mock_session: MagicMock,
     app: Flask,
 ) -> None:
-    """Removing a secret cannot remove a frontend entry with the same key."""
+    """Removing a secret cannot remove a persistent entry with the same key."""
     with app.app_context(), use_context(create_context()):
         set_user(42)
         SecretsState.remove("oauth2")
@@ -117,7 +117,7 @@ def test_secrets_state_remove_is_backend_only(
         "test-org.test-ext",
         "oauth2",
         user_fk=42,
-        access=StorageAccess.BACKEND,
+        store=StorageStore.SECRETS,
         session=mock_session.return_value.__enter__.return_value,
     )
 
@@ -149,7 +149,7 @@ def test_secret_changes_survive_outer_rollback(
                         value=b"pending",
                         value_size=7,
                         codec="json",
-                        access="frontend",
+                        store="persistent",
                     )
                 )
                 if operation == "rotate":
