@@ -33,4 +33,4 @@ class DashboardPermalinkGetFailedError(CommandException):
 
 class DashboardPermalinkInvalidKeyError(DashboardPermalinkGetFailedError):
     status = 404
-    message = _("Invalid permalink key.")
+    message = _("Invalid permalink key")
