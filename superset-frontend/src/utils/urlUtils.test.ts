@@ -17,7 +17,10 @@
  * under the License.
  */
 
+import fetchMock from 'fetch-mock';
 import {
+  getChartPermalink,
+  getDashboardPermalink,
   isUrlExternal,
   parseUrl,
   rewritePermalinkOrigin,
@@ -26,6 +29,89 @@ import {
   getUrlParam,
 } from './urlUtils';
 import { URL_PARAMS } from '../constants';
+
+test.each([0n, 9007199254740993n, -9007199254740993n])(
+  'getDashboardPermalink preserves BigInt filter and chart state values: %s',
+  async value => {
+    const endpoint = 'http://localhost/api/v1/dashboard/26/permalink';
+    const permalink = {
+      key: 'test-key',
+      url: 'http://localhost/superset/dashboard/p/test-key/',
+    };
+    const dataMask = {
+      filter: {
+        filterState: { value: [value], label: 'Selected ID' },
+        extraFormData: {
+          filters: [{ col: 'id', op: 'IN', val: [value] }],
+        },
+      },
+    };
+    fetchMock.post(endpoint, permalink, { name: endpoint });
+
+    try {
+      await expect(
+        getDashboardPermalink({
+          dashboardId: 26,
+          dataMask,
+          activeTabs: ['tab-1'],
+          chartStates: { chart: { selectedValues: [value] } },
+          includeChartState: true,
+        }),
+      ).resolves.toEqual(permalink);
+
+      const calls = fetchMock.callHistory.calls(endpoint);
+      expect(calls).toHaveLength(1);
+      expect(JSON.parse(calls[0].options?.body as string)).toEqual({
+        urlParams: [],
+        dataMask: {
+          filter: {
+            filterState: { value: [value.toString()], label: 'Selected ID' },
+            extraFormData: {
+              filters: [{ col: 'id', op: 'IN', val: [value.toString()] }],
+            },
+          },
+        },
+        activeTabs: ['tab-1'],
+        chartStates: { chart: { selectedValues: [value.toString()] } },
+      });
+      expect(dataMask.filter.filterState.value).toEqual([value]);
+    } finally {
+      fetchMock.removeRoute(endpoint);
+      fetchMock.clearHistory();
+    }
+  },
+);
+
+test('getChartPermalink preserves BigInt values and ordinary JSON values', async () => {
+  const endpoint = 'http://localhost/api/v1/explore/permalink';
+  const permalink = {
+    key: 'chart-key',
+    url: 'http://localhost/explore/p/chart-key/',
+  };
+  const chartState = {
+    values: [9007199254740993n, 42, 1.5, 'text', true, null],
+  };
+  fetchMock.post(endpoint, permalink, { name: endpoint });
+
+  try {
+    await expect(
+      getChartPermalink({ datasource: '1__table' }, undefined, chartState),
+    ).resolves.toEqual(permalink);
+
+    const calls = fetchMock.callHistory.calls(endpoint);
+    expect(calls).toHaveLength(1);
+    expect(JSON.parse(calls[0].options?.body as string)).toEqual({
+      formData: { datasource: '1__table' },
+      urlParams: [],
+      chartState: {
+        values: ['9007199254740993', 42, 1.5, 'text', true, null],
+      },
+    });
+  } finally {
+    fetchMock.removeRoute(endpoint);
+    fetchMock.clearHistory();
+  }
+});
 
 test('isUrlExternal', () => {
   expect(isUrlExternal('http://google.com')).toBeTruthy();
