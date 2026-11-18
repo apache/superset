@@ -464,9 +464,23 @@ const FilterValue: FC<FilterValueProps> = ({
   const selectionSources = getSemanticSelectionSources(
     filter.dataMask?.extraFormData,
   );
+  const selectedValue = filter.dataMask?.filterState?.value;
+  const hasEmptyValue =
+    selectedValue === undefined ||
+    selectedValue === null ||
+    (Array.isArray(selectedValue) &&
+      (selectedValue.length === 0 ||
+        (filter.filterType === 'filter_range' &&
+          selectedValue.length === 2 &&
+          selectedValue.every(value => value === null))));
+  // An empty display value must not hide stale provenance or member predicates.
+  // In particular, [null] in a select is a selected NULL, not a cleared value.
   const hasSavedSelection =
-    filter.dataMask?.filterState?.value !== undefined ||
-    selectionSources.length > 0;
+    !hasEmptyValue ||
+    selectionSources.length > 0 ||
+    Object.values(filter.dataMask?.extraFormData ?? {}).some(
+      value => value !== undefined,
+    );
   const staleSelection =
     semantic_selection_version &&
     hasSavedSelection &&

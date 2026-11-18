@@ -29,7 +29,12 @@ import {
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { testWithId } from 'src/utils/testUtils';
-import { Preset, makeApi, fetchTimeRange } from '@superset-ui/core';
+import {
+  Preset,
+  makeApi,
+  fetchTimeRange,
+  DatasourceType,
+} from '@superset-ui/core';
 import {
   TimeFilterPlugin,
   SelectFilterPlugin,
@@ -96,6 +101,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  fetchMock.removeRoute('semantic-clear-chart-data');
   fetchMock.removeRoute('index-create-filter-key');
   fetchMock.removeRoute('index-create-filter-key-2');
   fetchMock.removeRoute('index-update-filter-key');
@@ -1850,3 +1856,138 @@ test('FilterBar keeps the link key while a fallback hold is active, then writes 
   );
   resetFilterKeyHold();
 });
+
+test.each([
+  { filterType: 'filter_select', value: ['East'], required: false },
+  { filterType: 'filter_select', value: undefined, required: false },
+  { filterType: 'filter_range', value: [1, 10], required: false },
+  { filterType: 'filter_select', value: ['East'], required: true },
+])(
+  'semantic Clear all stages a current empty mask: %j',
+  async ({ filterType, value, required }) => {
+    fetchMock.post(
+      'glob:*/api/v1/chart/data',
+      {
+        result: [
+          {
+            data: [{ test_column: 'East' }, { test_column: 'West' }],
+            colnames: ['test_column'],
+            coltypes: [1],
+          },
+        ],
+      },
+      { name: 'semantic-clear-chart-data' },
+    );
+    const id = 'NATIVE_FILTER-semantic-clear';
+    const sources = [
+      { datasource: '7__semantic_view', version: 'member-id-v1' },
+    ];
+    const extraFormData = {
+      semantic_selection_sources: sources,
+      ...(value === undefined
+        ? {}
+        : { filters: [{ col: 'test_column', op: 'IN', val: value }] }),
+    };
+    const filter = createFilter({
+      id,
+      filterType,
+      name: 'Semantic region',
+      chartsInScope: [18],
+      targets: [
+        {
+          datasetId: 7,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'test_column' },
+          semantic_selection_version: 'member-id-v1',
+        },
+      ],
+      controlValues: { enableEmptyFilter: required },
+      defaultDataMask: { filterState: { value }, extraFormData },
+    });
+    const state = createStateWithFilter(
+      filter,
+      createDataMask(id, value, extraFormData),
+      { filterBarOrientation: FilterBarOrientation.Vertical },
+    );
+    const siblingId = 'NATIVE_FILTER-semantic-sibling';
+    const sibling = createFilter({
+      ...filter,
+      id: siblingId,
+      name: 'Other region',
+    });
+    state.nativeFilters.filters[siblingId] = sibling;
+    state.dashboardInfo.metadata.native_filter_configuration.push(sibling);
+    state.dataMask[siblingId] = createDataMask(siblingId, ['West'], {
+      semantic_selection_sources: sources,
+      filters: [{ col: 'test_column', op: 'IN', val: ['West'] }],
+    });
+    const store = createStore(state, reducerIndex);
+    // createStore's object-typed reducer map loses the supplied reducer state.
+    const selectedMask = () =>
+      (store.getState() as unknown as Pick<RootState, 'dataMask'>).dataMask[id];
+    const mount = () =>
+      render(
+        <FilterBar
+          orientation={FilterBarOrientation.Vertical}
+          verticalConfig={{
+            width: 280,
+            height: 400,
+            offset: 0,
+            ...createOpenedBarProps(),
+          }}
+        />,
+        { store, useDnd: true, useRedux: true, useRouter: true },
+      );
+    const view = mount();
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(
+      screen.queryByText('Reselect saved filter values'),
+    ).not.toBeInTheDocument();
+    const beforeClear = selectedMask();
+    await userEvent.click(screen.getByTestId(getTestId('clear-button')));
+    expect(
+      screen.queryByText('Reselect saved filter values'),
+    ).not.toBeInTheDocument();
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(selectedMask()).toEqual(beforeClear);
+    const apply = screen.getByTestId(getTestId('apply-button'));
+    if (required) {
+      expect(apply).toBeDisabled();
+    } else {
+      await userEvent.click(apply);
+      expect(selectedMask()).toEqual(
+        expect.objectContaining({
+          filterState: expect.objectContaining({
+            value: filterType === 'filter_range' ? [null, null] : null,
+          }),
+          extraFormData: { semantic_selection_sources: sources },
+        }),
+      );
+      view.unmount();
+      mount();
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(
+        screen.queryByText('Reselect saved filter values'),
+      ).not.toBeInTheDocument();
+      expect(selectedMask().filterState?.value).toEqual(
+        filterType === 'filter_range' ? [null, null] : null,
+      );
+      if (filterType === 'filter_select') {
+        await userEvent.click(screen.getAllByRole('combobox')[0]);
+        await userEvent.click(
+          await screen.findByRole('option', { name: 'East' }),
+        );
+        expect(
+          screen.getByTestId(getTestId('apply-button')),
+        ).not.toBeDisabled();
+      }
+    }
+    fetchMock.removeRoute('semantic-clear-chart-data');
+  },
+);

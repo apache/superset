@@ -708,3 +708,111 @@ test('clearing a semantic member filter still carries its provenance', async () 
     { datasource: '3__semantic_view', version: null },
   ]);
 });
+
+test.each([
+  ['never initialized', 'filter_select', undefined],
+  ['Clear all select', 'filter_select', null],
+  ['empty select', 'filter_select', []],
+  ['Clear all range', 'filter_range', [null, null]],
+])(
+  '%s empty state is not a legacy saved selection',
+  async (_label, filterType, value) => {
+    mockRequestChartData.mockResolvedValue([{ data: [] }]);
+    const filter = {
+      ...createMockFilter({
+        filterType,
+        targets: [
+          {
+            datasetId: 7,
+            datasourceType: DatasourceType.SemanticView,
+            column: { name: 'Orders.status' },
+            semantic_selection_version: 'member-id-v1',
+          },
+        ],
+      }),
+      dataMask: { filterState: { value }, extraFormData: {} },
+    };
+    renderFilterValue({ filter });
+    expect(
+      screen.queryByText('Reselect saved filter values'),
+    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+    );
+  },
+);
+
+test('nonempty unversioned saved values still require reset', () => {
+  mockRequestChartData.mockResolvedValue([{ data: [] }]);
+  const filter = {
+    ...createMockFilter({
+      targets: [
+        {
+          datasetId: 7,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'Orders.status' },
+          semantic_selection_version: 'member-id-v1',
+        },
+      ],
+    }),
+    dataMask: { filterState: { value: ['legacy'] }, extraFormData: {} },
+  };
+  renderFilterValue({ filter });
+  expect(screen.getByText('Reselect saved filter values')).toBeInTheDocument();
+});
+
+test.each([
+  { value: 0 },
+  { value: false },
+  { value: [null] },
+  { value: [null, null] },
+  {
+    value: null,
+    extraFormData: {
+      filters: [{ col: 'Orders.status', op: 'IN' as const, val: ['AIR'] }],
+    },
+  },
+  {
+    value: null,
+    extraFormData: { custom_form_data: { groupby: ['Orders.status'] } },
+  },
+  {
+    value: null,
+    extraFormData: {
+      semantic_selection_sources: [
+        { datasource: '7__semantic_view', version: 'old' },
+      ],
+    },
+  },
+  {
+    value: [],
+    extraFormData: {
+      semantic_selection_sources: [
+        { datasource: '8__semantic_view', version: 'member-id-v1' },
+      ],
+    },
+  },
+])(
+  'empty-looking or genuine legacy selection still warns: %j',
+  ({ value, extraFormData = {} }) => {
+    mockRequestChartData.mockResolvedValue([{ data: [] }]);
+    renderFilterValue({
+      filter: {
+        ...createMockFilter({
+          targets: [
+            {
+              datasetId: 7,
+              datasourceType: DatasourceType.SemanticView,
+              column: { name: 'Orders.status' },
+              semantic_selection_version: 'member-id-v1',
+            },
+          ],
+        }),
+        dataMask: { filterState: { value }, extraFormData },
+      },
+    });
+    expect(
+      screen.getByText('Reselect saved filter values'),
+    ).toBeInTheDocument();
+  },
+);

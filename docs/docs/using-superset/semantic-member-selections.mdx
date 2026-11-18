@@ -82,6 +82,14 @@ a usability aid for compatible selections, not a guarantee about each filter's
 provenance. The marker is not an authorization check; access to the datasource is
 verified separately.
 
+## Clearing dashboard filters
+
+**Clear all** stages empty values for in-scope filters; **Apply** commits the
+clear. Cleared semantic filters remain usable without a reselection warning,
+including filters that had no selected value. Saved defaults do not return after
+applying the clear. Required filters still need a value before Apply is enabled.
+Genuinely legacy saved selections still require reset and explicit reselection.
+
 ## Native filter columns
 
 The native-filter column picker lists each semantic member name once, even when
