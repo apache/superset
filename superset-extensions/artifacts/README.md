@@ -233,19 +233,12 @@ SHA-256, within the policy's size limit for a file.
 - They are built on `WEBDRIVER_BASEURL_USER_FRIENDLY`, the URL that the MCP
   tools put in every link they answer. Without it, the tools answer no links,
   and agents use the inline fallbacks.
-- An upload carries no session and no CSRF token, so its route must be exempt
-  from CSRF checks. The link is its only credential, and the route reads no
-  cookie, so the exemption opens no cross-site path:
-
-  ```python
-  WTF_CSRF_EXEMPT_LIST = [
-      # ...the default list, unchanged, then:
-      "superset_oss.artifacts.authoring.transfer_api.upload",
-  ]
-  ```
-
-  Until the route is exempt, commits answer no upload links. Downloads need
-  no exemption.
+- An upload carries no session and no CSRF token, so the transfer API is
+  exempt from CSRF checks by its own setting (`csrf_exempt`). The link is its
+  only credential, and the routes read no cookie, so the exemption opens no
+  cross-site path. The extension's APIs that take a browser session, the
+  frame links and the publish confirmation, aren't exempt: their writes need
+  the CSRF token, which the renderer sends.
 
 ## Tools
 

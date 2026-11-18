@@ -127,8 +127,9 @@ class TransferLinks:
     """
     Mints the URLs of the transfer routes under ``base_url``.
 
-    ``uploads`` says whether the host can take an upload there: an upload has
-    no session, so only a route exempt from CSRF checks takes it.
+    ``uploads`` says whether the host takes uploads there: an upload has no
+    session, so only a route exempt from CSRF checks takes it, as the
+    extension's own transfer API is.
     """
 
     def __init__(self, signer: TransferSigner, base_url: str, *, uploads: bool) -> None:

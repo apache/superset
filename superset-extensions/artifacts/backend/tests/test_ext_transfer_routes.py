@@ -37,7 +37,6 @@ from superset_artifacts_sdk.policy import Profile, PROFILES
 from superset_artifacts_sdk.store import sha256_hex
 from superset_artifacts_sdk.testing import InMemoryArtifactStore
 from superset_oss.artifacts.authoring.transfer import TransferKind, TransferSigner
-from superset_oss.artifacts.constants import UPLOAD_VIEW
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 from werkzeug.test import EnvironBuilder, run_wsgi_app
 
@@ -97,14 +96,16 @@ def store() -> ArtifactFileStore:
     return ArtifactFileStore(InMemoryArtifactStore(), policy=POLICY)
 
 
-def app_for(
+@pytest.fixture
+def app(
     transfer_api: ModuleType,
     store: ArtifactFileStore,
     monkeypatch: pytest.MonkeyPatch,
-    *,
-    exempt: bool = True,
 ) -> flask.Flask:
-    """An app that serves the routes, with CSRF checks on, as Superset's has."""
+    """
+    An app that serves the routes as Flask-AppBuilder registers an API, with
+    CSRF checks on, as Superset's has.
+    """
     monkeypatch.setattr(
         transfer_api,
         "open_artifacts",
@@ -112,23 +113,12 @@ def app_for(
     )
     app = flask.Flask(__name__)
     app.config.update(SECRET_KEY=SIGNING_KEY, WTF_CSRF_ENABLED=True)
+    CSRFProtect(app)
     routes = transfer_api.ArtifactTransferRestApi()
-    app.add_url_rule("/blobs/<token>", view_func=routes.upload, methods=["PUT"])
-    app.add_url_rule("/versions/<token>", view_func=routes.download, methods=["GET"])
-    csrf = CSRFProtect(app)
-    if exempt:
-        # What a deployment's WTF_CSRF_EXEMPT_LIST does with the name.
-        csrf.exempt(UPLOAD_VIEW)
+    routes.route_base = "/transfer"
+    with app.app_context():
+        app.register_blueprint(routes.create_blueprint(SimpleNamespace()))
     return app
-
-
-@pytest.fixture
-def app(
-    transfer_api: ModuleType,
-    store: ArtifactFileStore,
-    monkeypatch: pytest.MonkeyPatch,
-) -> flask.Flask:
-    return app_for(transfer_api, store, monkeypatch)
 
 
 def link(kind: TransferKind, target: str) -> str:
@@ -140,7 +130,9 @@ def test_an_upload_stores_the_bytes_its_link_names(
     app: flask.Flask, store: ArtifactFileStore
 ) -> None:
     data = b"console.log(42);\n"
-    status, answer, body = put(app, f"/blobs/{link('blob', sha256_hex(data))}", data)
+    status, answer, body = put(
+        app, f"/transfer/blobs/{link('blob', sha256_hex(data))}", data
+    )
 
     assert status == 200
     assert answer == {"result": {"sha256": sha256_hex(data)}}
@@ -162,7 +154,7 @@ def test_an_upload_stores_the_bytes_its_link_names(
 def test_a_link_is_checked_before_its_body_is_read(
     app: flask.Flask, token: str
 ) -> None:
-    status, answer, body = put(app, f"/blobs/{token}", b"x")
+    status, answer, body = put(app, f"/transfer/blobs/{token}", b"x")
 
     assert status == 403
     assert answer["code"] == "TRANSFER_LINK_INVALID"
@@ -172,7 +164,7 @@ def test_a_link_is_checked_before_its_body_is_read(
 def test_an_upload_over_the_file_size_limit_is_413(app: flask.Flask) -> None:
     limit = POLICY.limits.file_bytes
     data = b"x" * (limit + 1)
-    url = f"/blobs/{link('blob', sha256_hex(data))}"
+    url = f"/transfer/blobs/{link('blob', sha256_hex(data))}"
 
     # Said by its length, before any of it is read; or found by reading it.
     declared = put(app, url, b"x", content_length=limit + 1)
@@ -184,7 +176,9 @@ def test_an_upload_over_the_file_size_limit_is_413(app: flask.Flask) -> None:
 
 
 def test_bytes_other_than_the_links_are_refused(app: flask.Flask) -> None:
-    status, answer, _ = put(app, f"/blobs/{link('blob', sha256_hex(b'one'))}", b"two")
+    status, answer, _ = put(
+        app, f"/transfer/blobs/{link('blob', sha256_hex(b'one'))}", b"two"
+    )
 
     assert status == 400
     assert answer["code"] == "INVALID_ARGUMENT"
@@ -198,26 +192,18 @@ def test_a_download_is_the_versions_tar_and_never_cached(
     ).version
     client = app.test_client()
 
-    response = client.get(f"/versions/{link('version', version)}")
+    response = client.get(f"/transfer/versions/{link('version', version)}")
 
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.mimetype == "application/x-tar"
     with tarfile.open(fileobj=io.BytesIO(response.get_data())) as tar:
         assert tar.getnames() == ["index.html", "manifest.json", LAND_SIDECAR_PATH]
-    assert client.get(f"/versions/{link('blob', version)}").status_code == 403
+    assert client.get(f"/transfer/versions/{link('blob', version)}").status_code == 403
 
 
-def test_the_upload_route_is_the_view_its_csrf_exemption_names(
-    transfer_api: ModuleType,
-    store: ArtifactFileStore,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_uploads_need_no_csrf_token(app: flask.Flask) -> None:
+    # A shell has none: the transfer API is exempt by its own setting.
     data = b"x"
-    url = f"/blobs/{link('blob', sha256_hex(data))}"
-    unexempt = app_for(transfer_api, store, monkeypatch, exempt=False)
-    exempt = app_for(transfer_api, store, monkeypatch)
-
-    # A shell has no CSRF token: only the exemption lets its upload through.
-    assert unexempt.test_client().put(url, data=data).status_code == 400
-    assert exempt.test_client().put(url, data=data).status_code == 200
+    url = f"/transfer/blobs/{link('blob', sha256_hex(data))}"
+    assert app.test_client().put(url, data=data).status_code == 200

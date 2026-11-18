@@ -68,6 +68,9 @@ class ArtifactFramesRestApi(RestApi):
     # when this API registers. Roles need can_read on ArtifactFrame.
     class_permission_name = "ArtifactFrame"
     openapi_spec_tag = "Artifacts"
+    # A browser session reaches it, so its POST needs the CSRF token, which
+    # Flask-AppBuilder's APIs skip unless they say otherwise.
+    csrf_exempt = False
 
     @expose("/", methods=("POST",))
     @protect()

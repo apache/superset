@@ -26,10 +26,9 @@ links that the authoring tools mint (``transfer``):
 
 The link's token is the only credential: the routes read no session and need
 no role. So a cross-site request gains nothing from the viewer's cookies, and
-the upload route can be exempt from CSRF checks, which it needs, as a shell
-has no CSRF token: ``WTF_CSRF_EXEMPT_LIST`` names it (``UPLOAD_VIEW``). Until
-a deployment exempts it, the tools offer no upload links, and agents upload
-in a tool call instead.
+the API is exempt from CSRF checks (``csrf_exempt``), which uploads need, as a
+shell has no CSRF token. The extension's other APIs take a browser session,
+so they aren't.
 """
 
 from __future__ import annotations
@@ -68,6 +67,9 @@ class ArtifactTransferRestApi(RestApi):
     """Uploads and downloads by link, for agents that move bytes with a shell."""
 
     openapi_spec_tag = "Artifacts"
+    # A shell's upload carries no CSRF token, and the link is the route's only
+    # credential: it reads no session, so a cross-site request gains nothing.
+    csrf_exempt = True
 
     @expose("/blobs/<token>", methods=("PUT",))
     @safe

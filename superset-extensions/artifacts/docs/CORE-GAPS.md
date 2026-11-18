@@ -45,7 +45,7 @@ branch:
 | [Hardened extension storage](#hardened-extension-storage) | Implemented here (compare-and-swap); scaffolded (the extension's storage backend); the rest documented |
 | [A request-time extension context; MCP decorators without MCP](#a-request-time-extension-context-mcp-decorators-without-mcp) | Scaffolded (an import guard) |
 | [Extensions declare the CSP they need](#extensions-declare-the-csp-they-need) | Not a core ask (operators configure `TALISMAN_CONFIG`) |
-| [Routes that a link authenticates, exempt from CSRF](#routes-that-a-link-authenticates-exempt-from-csrf) | Not a core ask (operators configure `WTF_CSRF_EXEMPT_LIST`) |
+| [Routes that a link authenticates, exempt from CSRF](#routes-that-a-link-authenticates-exempt-from-csrf) | Not a core ask (each API's `csrf_exempt`) |
 | [The "no code artifacts" MCP instruction, conditional](#the-no-code-artifacts-mcp-instruction-conditional) | Implemented here |
 | [Artifact guest tokens and standalone embedding](#artifact-guest-tokens-and-standalone-embedding) | Not core asks |
 
@@ -300,13 +300,12 @@ branch:
 
 - **Need:** the transfer routes take uploads from an agent's shell, which has
   no session and no CSRF token, so the upload route must be exempt from
-  Flask-WTF's checks. An extension can't exempt its own routes: the exempt
-  list is `WTF_CSRF_EXEMPT_LIST`, read when the app starts.
-- **Status:** not a core ask. The operator lists the route's view
-  (`superset_oss.artifacts.authoring.transfer_api.upload`), as the README's
-  "Transfer links" shows; the tools offer upload links only once it is
-  listed. The link is the route's only credential and it reads no cookie, so
-  the exemption opens no cross-site path.
+  Flask-WTF's checks.
+- **Status:** not a core ask. An extension's `RestApi` decides it per API:
+  Flask-AppBuilder exempts an API's blueprint unless it sets
+  `csrf_exempt = False`. The transfer API stays exempt, since the link is its
+  only credential and it reads no cookie; the frame link and publish
+  confirmation APIs, which take a browser session, set it to `False`.
 
 ## The "no code artifacts" MCP instruction, conditional
 

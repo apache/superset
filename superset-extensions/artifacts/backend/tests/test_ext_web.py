@@ -14,20 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""The transfer links' settings: their base URL, and when uploads are offered."""
+"""The transfer links' settings: their base URL, and their uploads."""
 
 from __future__ import annotations
 
-import ast
-from pathlib import Path
 from typing import Any
 
 import pytest
 from flask import Flask
-from superset_oss.artifacts.constants import API_BASE_PATH, UPLOAD_VIEW
+from superset_oss.artifacts.constants import API_BASE_PATH
 from superset_oss.artifacts.web import transfer_links
 
-SOURCE = Path(__file__).parents[1] / "src"
 ARTIFACT = "00000000-0000-4000-8000-000000000000"
 VERSION = "a" * 64
 
@@ -37,7 +34,7 @@ def config() -> dict[str, Any]:
     return {
         "SECRET_KEY": "a secret key",
         "WEBDRIVER_BASEURL_USER_FRIENDLY": "https://superset.example/",
-        "WTF_CSRF_EXEMPT_LIST": ["superset.charts.data.api.data"],
+        "WTF_CSRF_ENABLED": True,
     }
 
 
@@ -67,36 +64,11 @@ def test_without_a_user_facing_url_a_request_names_the_host(
     assert url.startswith(f"https://requested.example{API_BASE_PATH}/transfer/")
 
 
-def test_uploads_need_the_route_exempt_from_csrf_checks(
-    config: dict[str, Any],
-) -> None:
-    assert not _links(config).uploads
-    config["WTF_CSRF_EXEMPT_LIST"] = [*config["WTF_CSRF_EXEMPT_LIST"], UPLOAD_VIEW]
-    assert _links(config).uploads
-    config["WTF_CSRF_EXEMPT_LIST"] = []
-    config["WTF_CSRF_ENABLED"] = False
+def test_uploads_are_offered_with_csrf_checks_on(config: dict[str, Any]) -> None:
+    # The transfer API is exempt by its own setting: no deployment list needed.
     assert _links(config).uploads
 
 
 def test_no_links_without_a_secret_key(config: dict[str, Any]) -> None:
     config["SECRET_KEY"] = ""
     assert _links(config) is None
-
-
-def test_the_exempt_view_is_the_upload_route() -> None:
-    """``WTF_CSRF_EXEMPT_LIST`` names a view by its module and function."""
-    module, function = UPLOAD_VIEW.rsplit(".", 1)
-    path = SOURCE.joinpath(*module.split(".")).with_suffix(".py")
-    tree = ast.parse(path.read_text())
-    routes = {
-        node.name
-        for node in ast.walk(tree)
-        if isinstance(node, ast.FunctionDef)
-        and any(
-            isinstance(decorator, ast.Call)
-            and getattr(decorator.func, "id", None) == "expose"
-            and "PUT" in ast.unparse(decorator)
-            for decorator in node.decorator_list
-        )
-    }
-    assert routes == {function}

@@ -71,6 +71,9 @@ class ArtifactPublishRestApi(RestApi):
     # on ArtifactPublish.
     class_permission_name = "ArtifactPublish"
     openapi_spec_tag = "Artifacts"
+    # The confirmation takes the user's browser session, so it needs the CSRF
+    # token too; see ArtifactFramesRestApi.
+    csrf_exempt = False
 
     @expose("/<artifact_id>/confirm", methods=("POST",))
     @protect()

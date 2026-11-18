@@ -28,7 +28,7 @@ from typing import Any
 from flask import current_app, g, has_request_context, jsonify, request, Response
 from superset_artifacts_sdk.authoring import AuthoringErrorCode
 from superset_oss.artifacts.authoring.transfer import TransferLinks, TransferSigner
-from superset_oss.artifacts.constants import API_BASE_PATH, UPLOAD_VIEW
+from superset_oss.artifacts.constants import API_BASE_PATH
 from superset_oss.artifacts.errors import ArtifactError, ErrorCode, ExtensionErrorCode
 
 # The status of each code an endpoint can answer; any other code is a 400.
@@ -83,13 +83,10 @@ def transfer_links() -> TransferLinks | None:
     )
     if not base_url or not config.get("SECRET_KEY"):
         return None
-    uploads = not config.get("WTF_CSRF_ENABLED", True) or UPLOAD_VIEW in config.get(
-        "WTF_CSRF_EXEMPT_LIST", ()
-    )
     return TransferLinks(
         transfer_signer(),
         f"{str(base_url).rstrip('/')}{API_BASE_PATH}/transfer",
-        uploads=uploads,
+        uploads=True,
     )
 
 
