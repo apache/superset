@@ -17,25 +17,30 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# `superset_core.artifacts`: the Superset Artifacts SDK
+# The Superset Artifacts SDK
 
 An artifact is a small app that an agent writes and places on a Canvas. Its
 code is untrusted: it runs only in a sandboxed frame on a separate site, with
 no login and no network, and it reaches Superset data only through its host,
 as the viewer.
 
-This package holds the public contracts for artifacts. It defines interfaces
-and models only; the machinery behind them (the sandbox host, builds,
-packages, checks and storage at scale) belongs to a provider that a host
-registers. It depends only on pydantic.
+The SDK holds the public contracts for artifacts, in two packages that ship
+with the artifacts extension:
 
-The browser half of the SDK is `@apache-superset/artifact-sdk` in
-`superset-frontend/packages/superset-artifact-sdk`: the in-frame runtime
-(`window.superset`), the host end of the bridge and the bridge protocol,
-which only browser code speaks. It declares the capabilities and the
-manifest's shape again, for TypeScript;
-`tests/artifacts/test_artifact_typescript_sync.py` fails when the two halves
-drift apart.
+- `python/`: `superset_artifacts_sdk` (distribution `superset-artifacts-sdk`),
+  the server-side contracts. It defines interfaces and models only; the
+  machinery behind them (the sandbox host, builds, packages, checks and
+  storage at scale) belongs to a provider that a host registers. It depends
+  only on pydantic.
+- `browser/`: `@superset-oss/artifacts-sdk`, the in-frame runtime
+  (`window.superset`), the host end of the bridge and the bridge protocol,
+  which only browser code speaks. It declares the capabilities and the
+  manifest's shape again, for TypeScript;
+  `python/tests/test_artifact_typescript_sync.py` fails when the two halves
+  drift apart.
+
+The extension and a host (the code that registers a provider) both depend on
+these packages; Superset core depends on neither.
 
 ## Modules
 
@@ -44,12 +49,17 @@ drift apart.
 | `capabilities` | `Capability`: the named rights an artifact declares and a host grants for each context |
 | `manifest` | `ArtifactManifest` (`manifest.json`): bindings, events, capabilities, exact-pinned dependencies and snapshot provenance, validated on every write |
 | `store` | The git-shaped file store: path rules, content hashing, `validate_tree` and the `ArtifactStoreBackend` protocol with compare-and-swap refs, which its host scopes (to one tenant, say) |
-| `provider` | `ArtifactRuntimeProvider`: the roles `FrameLinkMinter`, `FrameSources` (the sandbox's sources, for host pages' `frame-src`), `ArtifactBuilder`, `ArtifactChecker` and `ArtifactStoreSource` (the store backend), combined; `VersionNotFoundError`, which links, builds and checks raise for a version the store doesn't hold; and a placeholder registry, where no provider means artifacts are off |
+| `provider` | `ArtifactRuntimeProvider`: the roles `FrameLinkMinter`, `FrameSources` (the sandbox's sources, for host pages' `frame-src`), `ArtifactBuilder`, `ArtifactChecker` and `ArtifactStoreSource` (the store backend), combined; and `VersionNotFoundError`, which links, builds and checks raise for a version the store doesn't hold |
+| `registry` | `register_provider`, `get_provider` and `artifacts_available`: the one switch, a plain module the host calls; no provider means artifacts are off |
 | `authoring` | The authoring tool contract: tool names, request and response models, error codes, mirroring Anthropic's text-editor and memory tools |
 | `testing` | `InMemoryArtifactStore`, an in-memory `ArtifactStoreBackend` for tests and development, and `ArtifactStoreBackendConformance`, the backend contract as tests that any backend's suite inherits |
 
-`provider.register_provider` is a stand-in until Superset settles how a host
-implements an interface that an extension defines.
+## Develop
+
+```bash
+PYTHONPATH=python/src python -m pytest python/tests -q
+cd browser && npm test
+```
 
 ## Invariants the contracts encode
 

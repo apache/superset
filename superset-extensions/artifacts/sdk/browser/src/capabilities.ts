@@ -20,7 +20,7 @@
 /**
  * @fileoverview Capabilities: the named rights an artifact declares in its
  * manifest and a host grants for each context. Mirrors
- * `superset_core.artifacts.capabilities`; superset-core's
+ * `superset_artifacts_sdk.capabilities`; the Python SDK's
  * `test_artifact_typescript_sync.py` checks that the two agree.
  */
 

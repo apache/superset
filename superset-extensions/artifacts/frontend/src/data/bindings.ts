@@ -39,7 +39,7 @@ import type {
   DataRow,
   EventKind,
   QueryRequest,
-} from '@apache-superset/artifact-sdk';
+} from '@superset-oss/artifacts-sdk';
 import type { canvas } from '@apache-superset/core';
 import { DRAFT_TOKEN_HEADER } from '../constants';
 import type { HostManifest } from '../frames/api';

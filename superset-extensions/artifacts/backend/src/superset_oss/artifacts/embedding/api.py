@@ -45,7 +45,7 @@ from __future__ import annotations
 
 from flask import Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
-from superset_core.artifacts.authoring import AuthoringErrorCode
+from superset_artifacts_sdk.authoring import AuthoringErrorCode
 from superset_core.rest_api.api import RestApi
 from superset_core.rest_api.decorators import api
 from superset_oss.artifacts.errors import ArtifactError

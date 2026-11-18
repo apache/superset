@@ -19,31 +19,26 @@
 The artifact runtime provider interface.
 
 Artifacts need machinery that a plain Superset deployment doesn't run: a
-sandbox host on a separate site that serves each frame, a build service, a
-package host and headless checks. Superset defines this interface; a host
-implements it and registers one provider at startup. With no provider
-registered, artifacts stay off (``artifacts_available``).
+sandbox host on a separate site that serves each frame, a build service and
+headless checks. This interface names that machinery; a host implements it
+and registers one provider at startup (``superset_artifacts_sdk.registry``).
+With no provider registered, artifacts stay off.
 
 Each service is also a role of its own (``FrameLinkMinter``,
 ``FrameSources``, ``ArtifactBuilder``, ``ArtifactChecker`` and
 ``ArtifactStoreSource``), which ``ArtifactRuntimeProvider`` combines, so that
 code using one service depends on that service only.
-
-The registry is a placeholder until Superset decides how a host implements
-an interface that an extension defines. Whether plain Superset should ship
-a development-only provider is an open question.
 """
 
 from __future__ import annotations
 
-import threading
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Protocol, runtime_checkable
 
-from superset_core.artifacts.capabilities import Capability
-from superset_core.artifacts.store import ArtifactStoreBackend
+from superset_artifacts_sdk.capabilities import Capability
+from superset_artifacts_sdk.store import ArtifactStoreBackend
 
 FrameMode = Literal["canvas", "embedded", "standalone"]
 Severity = Literal["error", "warning"]
@@ -257,57 +252,3 @@ class ArtifactRuntimeProvider(
     """
 
     # TODO: consider making this interface smaller.
-
-
-class ProviderAlreadyRegisteredError(RuntimeError):
-    """A provider is registered already; pass ``replace=True`` to swap it."""
-
-
-_lock = threading.Lock()
-_provider: ArtifactRuntimeProvider | None = None
-
-
-def register_provider(
-    provider: ArtifactRuntimeProvider, *, replace: bool = False
-) -> None:
-    """
-    Register the host's provider, which turns artifacts on.
-
-    Raises ``ProviderAlreadyRegisteredError`` if one is registered already and
-    ``replace`` is false, and ``TypeError`` if ``provider`` doesn't implement
-    ``ArtifactRuntimeProvider``.
-    """
-    global _provider
-    if not isinstance(provider, ArtifactRuntimeProvider):
-        raise TypeError(
-            f"{type(provider).__name__} does not implement ArtifactRuntimeProvider"
-        )
-    with _lock:
-        if _provider is not None and not replace:
-            raise ProviderAlreadyRegisteredError(
-                f"an artifact runtime provider is registered already "
-                f"({type(_provider).__name__}); pass replace=True to swap it"
-            )
-        _provider = provider
-
-
-def get_provider() -> ArtifactRuntimeProvider | None:
-    """Return the registered provider, or ``None`` if there is none."""
-    with _lock:
-        return _provider
-
-
-def clear_provider() -> None:
-    """Unregister the provider, which turns artifacts off."""
-    global _provider
-    with _lock:
-        _provider = None
-
-
-def artifacts_available() -> bool:
-    """
-    Whether artifacts are available: true only when a provider is registered.
-
-    Per-workspace switches and a kill switch are the host's to add on top.
-    """
-    return get_provider() is not None

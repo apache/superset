@@ -26,7 +26,7 @@
 // rather than Superset's token names.
 
 import { theme as themeApi } from '@apache-superset/core';
-import type { ArtifactTheme } from '@apache-superset/artifact-sdk';
+import type { ArtifactTheme } from '@superset-oss/artifacts-sdk';
 
 export const FRAME_THEME_TOKENS = [
   'colorPrimary',

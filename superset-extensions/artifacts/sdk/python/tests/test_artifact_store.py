@@ -22,7 +22,7 @@ from __future__ import annotations
 import hashlib
 
 import pytest
-from superset_core.artifacts.store import (
+from superset_artifacts_sdk.store import (
     DRAFT_REF,
     InvalidPathError,
     is_ref_name,
@@ -34,7 +34,7 @@ from superset_core.artifacts.store import (
     tree_hash,
     validate_tree,
 )
-from superset_core.artifacts.testing import (
+from superset_artifacts_sdk.testing import (
     ArtifactStoreBackendConformance,
     InMemoryArtifactStore,
 )

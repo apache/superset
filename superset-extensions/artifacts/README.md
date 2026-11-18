@@ -24,9 +24,9 @@ places on a Superset Canvas. An artifact's code is untrusted, so it runs only
 in a sandboxed frame from a runtime provider, with no login and no network,
 and it reaches Superset data only through its host, as the viewer.
 
-This extension is a scaffold. It builds on the Superset Artifacts SDK
-(`superset_core.artifacts` and `@apache-superset/artifact-sdk`) and on the
-Canvas widget framework. **With no provider registered, artifacts are off**:
+This extension is a scaffold. It builds on the Superset Artifacts SDK, its
+own packages under `sdk/` (`superset_artifacts_sdk` and
+`@superset-oss/artifacts-sdk`), and on the Canvas widget framework. **With no provider registered, artifacts are off**:
 every tool, prompt and endpoint answers `NOT_ENABLED` and changes nothing. The
 provider (the sandbox host, builds, packages, checks and storage at scale) is
 the host's to supply.
@@ -51,6 +51,7 @@ already, such as `superset`: the backend module would shadow it.
 
 | Folder | What it holds |
 |---|---|
+| `sdk/` | The Superset Artifacts SDK: the contracts the extension and a host share, in a Python and a browser package (`sdk/README.md`) |
 | `backend/src/superset_oss/artifacts/canvas/` | The `artifact` widget type, whose props hold only `artifact_id` and an optional pinned `version` |
 | `backend/.../store/` | The git-shaped file store over an `ArtifactStoreBackend`, and the default backend on extension storage, which refuses to run until extension storage can back it |
 | `backend/.../authoring/` | The MCP authoring tools, the `create_artifact` and `import_claude_artifact` prompts, and the endpoint where the user confirms publishing |
@@ -148,7 +149,7 @@ API doesn't declare.
 Backend tests (pure modules only; no Flask or Superset needed):
 
 ```bash
-PYTHONPATH=superset-core/src:superset-extensions/artifacts/backend/src \
+PYTHONPATH=superset-core/src:superset-extensions/artifacts/sdk/python/src:superset-extensions/artifacts/backend/src \
   python -m pytest superset-extensions/artifacts/backend/tests -q
 ```
 
@@ -161,12 +162,23 @@ cd superset-extensions/artifacts/frontend && npm install && npm run typecheck
 cd .. && superset-extensions build && superset-extensions bundle
 ```
 
-The artifact SDK compiles from its sources through an alias, so it needs no
-build of its own. Then add the extension to `LOCAL_EXTENSIONS`, turn on
-`ENABLE_EXTENSIONS` and `CANVAS`, and register an `ArtifactRuntimeProvider`
-(`superset_core.artifacts.provider.register_provider`) whose `store_backend()`
-returns a backend, for example the SDK's `InMemoryArtifactStore` in
-development.
+The browser SDK compiles from its sources through an alias, so it needs no
+build of its own. The Python SDK must be installed where Superset runs
+(`pip install superset-extensions/artifacts/sdk/python`), since the
+extension's bundle holds only its own backend. Then add the extension to
+`LOCAL_EXTENSIONS`, turn on `ENABLE_EXTENSIONS` and `CANVAS`, and register an
+`ArtifactRuntimeProvider` (`superset_artifacts_sdk.registry.register_provider`)
+whose `store_backend()` returns a backend, for example the SDK's
+`InMemoryArtifactStore` in development. Point `MCP_CODE_ARTIFACTS_ENABLED` at
+the same registry, so that the MCP instructions allow the artifact tools while
+a provider is registered:
+
+```python
+def MCP_CODE_ARTIFACTS_ENABLED() -> bool:
+    from superset_artifacts_sdk.registry import artifacts_available
+
+    return artifacts_available()
+```
 
 ## Known limits
 

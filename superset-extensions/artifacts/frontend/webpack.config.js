@@ -25,10 +25,7 @@ const { ModuleFederationPlugin } = require('webpack').container;
 const packageConfig = require('./package');
 const extensionConfig = require('../extension.json');
 
-const ARTIFACT_SDK = path.resolve(
-  __dirname,
-  '../../../superset-frontend/packages/superset-artifact-sdk/src',
-);
+const ARTIFACT_SDK = path.resolve(__dirname, '../sdk/browser/src');
 
 module.exports = (env, argv) => {
   const isProd = argv.mode === 'production';
@@ -52,7 +49,7 @@ module.exports = (env, argv) => {
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.jsx'],
       alias: {
-        '@apache-superset/artifact-sdk$': ARTIFACT_SDK,
+        '@superset-oss/artifacts-sdk$': ARTIFACT_SDK,
       },
     },
     module: {

@@ -27,12 +27,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from superset_core.artifacts.authoring import AuthoringErrorCode
-from superset_core.artifacts.provider import (
-    ArtifactRuntimeProvider,
-    artifacts_available,
-    get_provider,
-)
+from superset_artifacts_sdk.authoring import AuthoringErrorCode
+from superset_artifacts_sdk.provider import ArtifactRuntimeProvider
+from superset_artifacts_sdk.registry import artifacts_available, get_provider
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.store import file_store_for
 from superset_oss.artifacts.store.filestore import ArtifactFileStore

@@ -41,7 +41,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from superset_core.artifacts.manifest import ArtifactManifest, DatasetSource
+from superset_artifacts_sdk.manifest import ArtifactManifest, DatasetSource
 
 
 class BindingError(ValueError):

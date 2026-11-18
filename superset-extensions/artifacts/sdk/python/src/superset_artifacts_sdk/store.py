@@ -28,7 +28,7 @@ An artifact is a tree of files with versions, shaped like git:
   compare-and-swap: a write that names a stale version never wins.
 
 This module holds the pure helpers every backend shares and the backend
-protocol. ``superset_core.artifacts.testing`` has an in-memory backend.
+protocol. ``superset_artifacts_sdk.testing`` has an in-memory backend.
 """
 
 from __future__ import annotations

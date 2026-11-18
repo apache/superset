@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@apache-superset/artifact-sdk": "file:../../../superset-frontend/packages/superset-artifact-sdk"
+    "@superset-oss/artifacts-sdk": "file:../sdk/browser"
   },
   "devDependencies": {
     "@apache-superset/core": "file:../../../superset-frontend/packages/superset-core",

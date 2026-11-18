@@ -25,7 +25,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from flask import g, jsonify, request, Response
-from superset_core.artifacts.authoring import AuthoringErrorCode
+from superset_artifacts_sdk.authoring import AuthoringErrorCode
 from superset_oss.artifacts.errors import ArtifactError, ErrorCode, ExtensionErrorCode
 
 # The status of each code an endpoint can answer; any other code is a 400.

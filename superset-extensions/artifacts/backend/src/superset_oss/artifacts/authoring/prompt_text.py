@@ -28,7 +28,7 @@ be read and tested without the host.
 
 from __future__ import annotations
 
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk.authoring import (
     ARTIFACT_BUILD,
     ARTIFACT_CHECK,
     ARTIFACT_COMMIT_FILES,

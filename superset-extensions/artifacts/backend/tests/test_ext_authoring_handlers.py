@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import pytest
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk.authoring import (
     ArtifactBuildRequest,
     ArtifactCheckRequest,
     ArtifactCommitFilesRequest,
@@ -44,20 +44,19 @@ from superset_core.artifacts.authoring import (
     ArtifactStrReplaceRequest,
     ArtifactViewRequest,
 )
-from superset_core.artifacts.manifest import ArtifactManifest
-from superset_core.artifacts.provider import (
+from superset_artifacts_sdk.manifest import ArtifactManifest
+from superset_artifacts_sdk.provider import (
     ArtifactRef,
     BuildResult,
     CheckResult,
-    clear_provider,
     Diagnostic,
     FrameContext,
     FrameLink,
-    register_provider,
     VersionNotFoundError,
 )
-from superset_core.artifacts.store import sha256_hex
-from superset_core.artifacts.testing import InMemoryArtifactStore
+from superset_artifacts_sdk.registry import clear_provider, register_provider
+from superset_artifacts_sdk.store import sha256_hex
+from superset_artifacts_sdk.testing import InMemoryArtifactStore
 from superset_oss.artifacts.authoring.handlers import (
     ArtifactManifestUpdateArguments,
     ArtifactUploadBlobsRequest,

@@ -48,7 +48,7 @@ import type {
   ChannelError,
   FrameRequest,
   FrameState,
-} from '@apache-superset/artifact-sdk';
+} from '@superset-oss/artifacts-sdk';
 import PublishRequest from '../authoring/PublishRequest';
 import { EVENT_KIND_PREFIX } from '../constants';
 import {

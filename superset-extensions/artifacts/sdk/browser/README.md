@@ -17,7 +17,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# @apache-superset/artifact-sdk
+# @superset-oss/artifacts-sdk
 
 The browser half of the Superset Artifacts SDK: the runtime that artifact code
 calls inside its sandboxed frame (`window.superset`), and the host end of the
@@ -25,8 +25,8 @@ bridge that the Superset page runs around that frame. It has no runtime
 dependencies.
 
 The Python half, with the manifest validation, the file store, the provider
-interface and the authoring tools, is `superset_core.artifacts` in
-`superset-core`. Both halves declare the capability names and the manifest's
+interface and the authoring tools, is `superset_artifacts_sdk`, in
+`../python`. Both halves declare the capability names and the manifest's
 shape; a test there (`test_artifact_typescript_sync.py`) fails when they drift
 apart. The bridge protocol is defined here only.
 
@@ -64,7 +64,7 @@ createFrameChannel ── name: {k, grant, origin} ──► installRuntime()
 In the frame, before any artifact code:
 
 ```typescript
-import { installRuntime } from '@apache-superset/artifact-sdk';
+import { installRuntime } from '@superset-oss/artifacts-sdk';
 
 installRuntime();
 ```
@@ -85,7 +85,7 @@ chart.on('click', region =>
 On the host:
 
 ```typescript
-import { createFrameChannel } from '@apache-superset/artifact-sdk';
+import { createFrameChannel } from '@superset-oss/artifacts-sdk';
 
 const channel = createFrameChannel({
   frame,
@@ -105,9 +105,11 @@ channel.postState(state);
 ```bash
 npm run build   # tsc -p tsconfig.json, into lib/
 npm run type    # type-check only
+npm test        # the tests in test/, with Vitest
 ```
 
-The tests in `test/` run under the frontend's Jest setup.
+The tests are written as Jest tests (`test()` and `expect`, no `describe()`),
+so Vitest runs them with `--globals`.
 
 ## Open questions
 

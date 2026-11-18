@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset_core.artifacts.provider import ArtifactRef, FrameLinkMinter, FrameMode
+from superset_artifacts_sdk.provider import ArtifactRef, FrameLinkMinter, FrameMode
 from superset_oss.artifacts.errors import translate_missing_version
 from superset_oss.artifacts.frames.access import ServedVersion
 from superset_oss.artifacts.frames.grants import frame_context, host_manifest

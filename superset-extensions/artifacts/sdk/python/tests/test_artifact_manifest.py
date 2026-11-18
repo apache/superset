@@ -24,8 +24,8 @@ from typing import Any, get_args
 
 import pytest
 from pydantic import BaseModel, ValidationError
-from superset_core.artifacts.capabilities import Capability
-from superset_core.artifacts.manifest import (
+from superset_artifacts_sdk.capabilities import Capability
+from superset_artifacts_sdk.manifest import (
     ArtifactManifest,
     Binding,
     DatasetSource,

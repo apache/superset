@@ -58,7 +58,7 @@ import binascii
 from collections.abc import Iterable, Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from superset_core.artifacts.store import (
+from superset_artifacts_sdk.store import (
     is_ref_name,
     is_sha256_hex,
     MissingObjectsError,

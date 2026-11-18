@@ -26,7 +26,7 @@ widget's name, as it does every other widget, so the props hold no title.
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
-from superset_core.artifacts.store import SHA256_HEX_PATTERN
+from superset_artifacts_sdk.store import SHA256_HEX_PATTERN
 
 UUID_PATTERN = (
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"

@@ -1,5 +1,5 @@
 {
-  "name": "@apache-superset/artifact-sdk",
+  "name": "@superset-oss/artifacts-sdk",
   "version": "0.1.0",
   "private": true,
   "description": "Superset Artifacts SDK for the browser: the in-frame window.superset runtime and the host side of the artifact bridge.",
@@ -19,7 +19,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/apache/superset.git",
-    "directory": "superset-frontend/packages/superset-artifact-sdk"
+    "directory": "superset-extensions/artifacts/sdk/browser"
   },
   "files": [
     "lib"
@@ -30,6 +30,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf lib",
+    "test": "vitest run --globals",
     "type": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.11"
   }
 }

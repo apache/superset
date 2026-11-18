@@ -24,30 +24,32 @@ from dataclasses import FrozenInstanceError
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from superset_core import artifacts as sdk
-from superset_core.artifacts.capabilities import Capability
-from superset_core.artifacts.provider import (
+import superset_artifacts_sdk as sdk
+from superset_artifacts_sdk.capabilities import Capability
+from superset_artifacts_sdk.provider import (
     ArtifactBuilder,
     ArtifactChecker,
     ArtifactRef,
     ArtifactRuntimeProvider,
-    artifacts_available,
     ArtifactStoreSource,
     BuildResult,
     CheckResult,
-    clear_provider,
     Diagnostic,
     FrameContext,
     FrameLink,
     FrameLinkMinter,
     FrameSources,
+    VersionNotFoundError,
+)
+from superset_artifacts_sdk.registry import (
+    artifacts_available,
+    clear_provider,
     get_provider,
     ProviderAlreadyRegisteredError,
     register_provider,
-    VersionNotFoundError,
 )
-from superset_core.artifacts.store import ArtifactStoreBackend
-from superset_core.artifacts.testing import InMemoryArtifactStore
+from superset_artifacts_sdk.store import ArtifactStoreBackend
+from superset_artifacts_sdk.testing import InMemoryArtifactStore
 
 
 class FakeProvider:

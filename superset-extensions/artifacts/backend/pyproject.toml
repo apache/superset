@@ -25,6 +25,7 @@ requires-python = ">=3.11"
 dependencies = [
     "apache-superset-core",
     "pydantic>=2.9",
+    "superset-artifacts-sdk",
 ]
 
 [tool.apache_superset_extensions.build]

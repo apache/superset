@@ -34,9 +34,9 @@ from types import MappingProxyType
 from typing import Any
 from urllib.parse import urlsplit
 
-from superset_core.artifacts.capabilities import Capability
-from superset_core.artifacts.manifest import ArtifactManifest
-from superset_core.artifacts.provider import FrameContext, FrameMode
+from superset_artifacts_sdk.capabilities import Capability
+from superset_artifacts_sdk.manifest import ArtifactManifest
+from superset_artifacts_sdk.provider import FrameContext, FrameMode
 
 # What each context allows at most.
 CONTEXT_CAPABILITIES: Mapping[FrameMode, frozenset[Capability]] = MappingProxyType(

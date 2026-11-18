@@ -23,10 +23,7 @@
  * frame host checks requests against.
  */
 
-import type {
-  ArtifactManifest,
-  Capability,
-} from '@apache-superset/artifact-sdk';
+import type { ArtifactManifest, Capability } from '@superset-oss/artifacts-sdk';
 import { API_BASE_PATH, DRAFT_TOKEN_HEADER } from '../constants';
 import { RequestError, RequestOptions, requestJson } from '../http';
 

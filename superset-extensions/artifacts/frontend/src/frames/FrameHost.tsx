@@ -36,7 +36,7 @@ import {
   FrameChannel,
   FrameRequest,
   FrameState,
-} from '@apache-superset/artifact-sdk';
+} from '@superset-oss/artifacts-sdk';
 
 export interface FrameHostProps {
   /** The provider's short-lived link to the artifact version. */

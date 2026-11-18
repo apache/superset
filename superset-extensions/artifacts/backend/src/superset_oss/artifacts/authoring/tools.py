@@ -37,7 +37,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk.authoring import (
     ARTIFACT_BUILD,
     ARTIFACT_CHECK,
     ARTIFACT_COMMIT_FILES,

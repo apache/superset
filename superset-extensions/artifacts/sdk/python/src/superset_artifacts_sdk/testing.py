@@ -33,7 +33,7 @@ from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 
-from superset_core.artifacts.store import (
+from superset_artifacts_sdk.store import (
     ArtifactStoreBackend,
     DRAFT_REF,
     InvalidPathError,
@@ -170,7 +170,7 @@ class ArtifactStoreBackendConformance:
     concurrent writers too. Scoping, such as keeping one tenant's objects
     from another's, is the host's to test, and what a backend does with
     malformed input beyond that is its own. For assertion details on failure,
-    load this module as a pytest plugin (``-p superset_core.artifacts.testing``).
+    load this module as a pytest plugin (``-p superset_artifacts_sdk.testing``).
     """
 
     artifact_id = "artifact-1"

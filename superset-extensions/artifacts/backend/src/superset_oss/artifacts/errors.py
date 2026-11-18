@@ -27,12 +27,12 @@ from enum import StrEnum
 from typing import Any, TypeAlias
 
 from pydantic import ValidationError
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk.authoring import (
     AuthoringErrorCode,
     AuthoringErrorResponse,
 )
-from superset_core.artifacts.manifest import MANIFEST_FILE
-from superset_core.artifacts.provider import ArtifactRef, VersionNotFoundError
+from superset_artifacts_sdk.manifest import MANIFEST_FILE
+from superset_artifacts_sdk.provider import ArtifactRef, VersionNotFoundError
 
 
 class ExtensionErrorCode(StrEnum):

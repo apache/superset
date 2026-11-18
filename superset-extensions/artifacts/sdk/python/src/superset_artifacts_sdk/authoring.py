@@ -20,8 +20,8 @@ The authoring tool contract: what agents call to write artifacts.
 
 This module has no implementation. It names the tools and defines their
 requests, their responses and their error codes; an extension implements the
-tools over the file store (``superset_core.artifacts.store``) and the provider
-(``superset_core.artifacts.provider``).
+tools over the file store (``superset_artifacts_sdk.store``) and the provider
+(``superset_artifacts_sdk.provider``).
 
 The file tools mirror Anthropic's text-editor tool (``view``, ``create``,
 ``str_replace``, ``insert``) and its memory tool (``delete``, ``rename``): the
@@ -58,8 +58,8 @@ from pydantic import (
     model_validator,
 )
 
-from superset_core.artifacts.manifest import ArtifactManifest
-from superset_core.artifacts.store import (
+from superset_artifacts_sdk.manifest import ArtifactManifest
+from superset_artifacts_sdk.store import (
     normalize_path,
     SHA256_HEX_PATTERN,
     validate_tree,
@@ -340,7 +340,7 @@ class ArtifactBuildRequest(ArtifactScopedRequest):
     """
     ``artifact_build``: build a version, the draft by default.
 
-    Answered by a ``BuildResult`` (``superset_core.artifacts.provider``).
+    Answered by a ``BuildResult`` (``superset_artifacts_sdk.provider``).
     """
 
     version: Version | None = None
@@ -350,7 +350,7 @@ class ArtifactCheckRequest(ArtifactScopedRequest):
     """
     ``artifact_check``: run a version in a headless browser, the draft by default.
 
-    Answered by a ``CheckResult`` (``superset_core.artifacts.provider``).
+    Answered by a ``CheckResult`` (``superset_artifacts_sdk.provider``).
     """
 
     version: Version | None = None

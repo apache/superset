@@ -27,9 +27,9 @@ update.
 
 from __future__ import annotations
 
-from superset_core.artifacts.authoring import AuthoringErrorCode
-from superset_core.artifacts.provider import ArtifactStoreSource
-from superset_core.artifacts.store import ArtifactStoreBackend
+from superset_artifacts_sdk.authoring import AuthoringErrorCode
+from superset_artifacts_sdk.provider import ArtifactStoreSource
+from superset_artifacts_sdk.store import ArtifactStoreBackend
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.store.extension_storage_backend import (
     BackendUnavailableError,

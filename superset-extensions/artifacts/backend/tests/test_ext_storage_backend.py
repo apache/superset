@@ -27,13 +27,13 @@ import threading
 from typing import Any
 
 import pytest
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk.authoring import (
     ArtifactCreateRequest,
     ArtifactStrReplaceRequest,
     AuthoringErrorCode,
 )
-from superset_core.artifacts.store import ArtifactStoreBackend, DRAFT_REF
-from superset_core.artifacts.testing import (
+from superset_artifacts_sdk.store import ArtifactStoreBackend, DRAFT_REF
+from superset_artifacts_sdk.testing import (
     ArtifactStoreBackendConformance,
     InMemoryArtifactStore,
 )

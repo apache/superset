@@ -21,13 +21,13 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk.authoring import (
     ArtifactCreateRequest,
     ArtifactManifestUpdateRequest,
     ArtifactRequestPublishRequest,
 )
-from superset_core.artifacts.manifest import ArtifactManifest
-from superset_core.artifacts.testing import InMemoryArtifactStore
+from superset_artifacts_sdk.manifest import ArtifactManifest
+from superset_artifacts_sdk.testing import InMemoryArtifactStore
 from superset_core.widgets import BindingRequest
 from superset_oss.artifacts.data.bindings import (
     binding_problems,

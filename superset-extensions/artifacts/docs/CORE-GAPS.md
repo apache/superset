@@ -280,7 +280,7 @@ branch:
 
   ```python
   def MCP_CODE_ARTIFACTS_ENABLED() -> bool:
-      from superset_core.artifacts.provider import artifacts_available
+      from superset_artifacts_sdk.registry import artifacts_available
 
       return artifacts_available()
   ```

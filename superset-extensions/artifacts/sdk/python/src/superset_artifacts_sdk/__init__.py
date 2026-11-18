@@ -23,11 +23,11 @@ Superset data only through its host, as the viewer. This package defines the
 server-side contracts the pieces share: the manifest and its capabilities, the
 file store, the provider a host implements and the authoring tools agents
 call. The bridge between the frame and its host page is browser code, so its
-protocol is defined in ``@apache-superset/artifact-sdk``. This package has no
+protocol is defined in ``@superset-oss/artifacts-sdk``. This package has no
 implementation of the machinery itself, and depends only on pydantic.
 """
 
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk.authoring import (
     ArtifactBuildRequest as ArtifactBuildRequest,
     ArtifactCheckRequest as ArtifactCheckRequest,
     ArtifactCommitFilesRequest as ArtifactCommitFilesRequest,
@@ -54,8 +54,8 @@ from superset_core.artifacts.authoring import (
     AuthoringRequest as AuthoringRequest,
     TOOL_REQUESTS as TOOL_REQUESTS,
 )
-from superset_core.artifacts.capabilities import Capability as Capability
-from superset_core.artifacts.manifest import (
+from superset_artifacts_sdk.capabilities import Capability as Capability
+from superset_artifacts_sdk.manifest import (
     ArtifactManifest as ArtifactManifest,
     Binding as Binding,
     DatasetSource as DatasetSource,
@@ -67,28 +67,30 @@ from superset_core.artifacts.manifest import (
     SemanticViewSource as SemanticViewSource,
     SnapshotProvenance as SnapshotProvenance,
 )
-from superset_core.artifacts.provider import (
+from superset_artifacts_sdk.provider import (
     ArtifactBuilder as ArtifactBuilder,
     ArtifactChecker as ArtifactChecker,
     ArtifactRef as ArtifactRef,
     ArtifactRuntimeProvider as ArtifactRuntimeProvider,
-    artifacts_available as artifacts_available,
     ArtifactStoreSource as ArtifactStoreSource,
     BuildResult as BuildResult,
     CheckResult as CheckResult,
-    clear_provider as clear_provider,
     Diagnostic as Diagnostic,
     FrameContext as FrameContext,
     FrameLink as FrameLink,
     FrameLinkMinter as FrameLinkMinter,
     FrameMode as FrameMode,
     FrameSources as FrameSources,
+    VersionNotFoundError as VersionNotFoundError,
+)
+from superset_artifacts_sdk.registry import (
+    artifacts_available as artifacts_available,
+    clear_provider as clear_provider,
     get_provider as get_provider,
     ProviderAlreadyRegisteredError as ProviderAlreadyRegisteredError,
     register_provider as register_provider,
-    VersionNotFoundError as VersionNotFoundError,
 )
-from superset_core.artifacts.store import (
+from superset_artifacts_sdk.store import (
     ArtifactStoreBackend as ArtifactStoreBackend,
     DRAFT_REF as DRAFT_REF,
     InvalidPathError as InvalidPathError,

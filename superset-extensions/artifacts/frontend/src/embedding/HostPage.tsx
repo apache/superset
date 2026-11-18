@@ -37,7 +37,7 @@ import {
   theme as themeApi,
   translation,
 } from '@apache-superset/core';
-import type { FrameState } from '@apache-superset/artifact-sdk';
+import type { FrameState } from '@superset-oss/artifacts-sdk';
 import { fetchStandaloneFrame, FrameLink } from '../frames/api';
 import FrameHost from '../frames/FrameHost';
 import { frameTheme } from '../frames/theme';

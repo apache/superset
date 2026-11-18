@@ -27,7 +27,7 @@ from typing import Any
 
 import pytest
 from pydantic import ValidationError
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk.authoring import (
     ArtifactCommitFilesRequest,
     ArtifactCreateFileRequest,
     ArtifactCreateRequest,
@@ -44,14 +44,14 @@ from superset_core.artifacts.authoring import (
     ArtifactViewRequest,
     AuthoringErrorCode,
 )
-from superset_core.artifacts.manifest import ArtifactManifest
-from superset_core.artifacts.store import (
+from superset_artifacts_sdk.manifest import ArtifactManifest
+from superset_artifacts_sdk.store import (
     DRAFT_REF,
     PUBLISHED_REF,
     sha256_hex,
     tree_hash,
 )
-from superset_core.artifacts.testing import InMemoryArtifactStore
+from superset_artifacts_sdk.testing import InMemoryArtifactStore
 from superset_oss.artifacts.errors import ArtifactError, ExtensionErrorCode
 from superset_oss.artifacts.store.filestore import (
     ArtifactFileStore,

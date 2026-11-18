@@ -18,8 +18,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@apache-superset/artifact-sdk": [
-        "../../../superset-frontend/packages/superset-artifact-sdk/src/index.ts"
+      "@superset-oss/artifacts-sdk": [
+        "../sdk/browser/src/index.ts"
       ]
     }
   },

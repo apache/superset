@@ -23,8 +23,8 @@ from typing import Any, get_args
 
 import pytest
 from pydantic import ValidationError
-from superset_core.artifacts import authoring
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk import authoring
+from superset_artifacts_sdk.authoring import (
     ArtifactBuildRequest,
     ArtifactCommitFilesRequest,
     ArtifactCommitFilesResponse,
@@ -43,8 +43,8 @@ from superset_core.artifacts.authoring import (
     AuthoringErrorResponse,
     TOOL_REQUESTS,
 )
-from superset_core.artifacts.manifest import ArtifactManifest
-from superset_core.artifacts.store import (
+from superset_artifacts_sdk.manifest import ArtifactManifest
+from superset_artifacts_sdk.store import (
     DRAFT_REF,
     is_sha256_hex,
     PUBLISHED_REF,

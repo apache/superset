@@ -23,21 +23,21 @@ from datetime import datetime, timezone
 
 import pytest
 from pydantic import ValidationError
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk.authoring import (
     ArtifactCreateRequest,
     ArtifactRequestPublishRequest,
     ArtifactStrReplaceRequest,
     AuthoringErrorCode,
 )
-from superset_core.artifacts.capabilities import Capability
-from superset_core.artifacts.manifest import ArtifactManifest
-from superset_core.artifacts.provider import (
+from superset_artifacts_sdk.capabilities import Capability
+from superset_artifacts_sdk.manifest import ArtifactManifest
+from superset_artifacts_sdk.provider import (
     ArtifactRef,
     FrameContext,
     FrameLink,
     VersionNotFoundError,
 )
-from superset_core.artifacts.testing import InMemoryArtifactStore
+from superset_artifacts_sdk.testing import InMemoryArtifactStore
 from superset_core.canvas import placements
 from superset_oss.artifacts.canvas.controls import ArtifactControls
 from superset_oss.artifacts.constants import WIDGET_TYPE

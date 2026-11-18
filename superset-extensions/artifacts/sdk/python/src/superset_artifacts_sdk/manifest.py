@@ -40,8 +40,8 @@ from pydantic import (
     model_validator,
 )
 
-from superset_core.artifacts.capabilities import Capability
-from superset_core.artifacts.store import normalize_path
+from superset_artifacts_sdk.capabilities import Capability
+from superset_artifacts_sdk.store import normalize_path
 
 MANIFEST_VERSION = "1"
 # Where the manifest lives in an artifact's file tree.

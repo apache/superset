@@ -18,7 +18,7 @@
 """
 The TypeScript SDK's copies of these contracts, checked against them.
 
-``@apache-superset/artifact-sdk`` declares the capability names and the shape
+``@superset-oss/artifacts-sdk`` declares the capability names and the shape
 of ``manifest.json`` again, for the browser. These tests read its sources and
 fail when the two halves drift apart: a field, a literal or a capability that
 one side has and the other doesn't, or a field that is optional on one side
@@ -32,22 +32,11 @@ import re
 from pathlib import Path
 from typing import get_args
 
-import pytest
 from pydantic import BaseModel
-from superset_core.artifacts import manifest
-from superset_core.artifacts.capabilities import Capability
+from superset_artifacts_sdk import manifest
+from superset_artifacts_sdk.capabilities import Capability
 
-SDK_SOURCES = (
-    Path(__file__).resolve().parents[3]
-    / "superset-frontend"
-    / "packages"
-    / "superset-artifact-sdk"
-    / "src"
-)
-
-pytestmark = pytest.mark.skipif(
-    not SDK_SOURCES.is_dir(), reason="the TypeScript SDK isn't in this checkout"
-)
+SDK_SOURCES = Path(__file__).resolve().parents[2] / "browser" / "src"
 
 _INTERFACE = re.compile(
     r"^export interface (\w+) \{\n(.*?)^\}", re.MULTILINE | re.DOTALL

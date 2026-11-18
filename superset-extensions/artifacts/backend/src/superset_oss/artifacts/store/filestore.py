@@ -63,7 +63,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, TypeVar
 
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk.authoring import (
     ArtifactCommitFilesRequest,
     ArtifactCommitFilesResponse,
     ArtifactCreateFileRequest,
@@ -85,12 +85,12 @@ from superset_core.artifacts.authoring import (
     AuthoringErrorCode,
     ROOT_PATH,
 )
-from superset_core.artifacts.manifest import (
+from superset_artifacts_sdk.manifest import (
     ArtifactManifest,
     MANIFEST_FILE,
     MANIFEST_VERSION,
 )
-from superset_core.artifacts.store import (
+from superset_artifacts_sdk.store import (
     ArtifactStoreBackend,
     DRAFT_REF,
     InvalidPathError,

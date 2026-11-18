@@ -19,8 +19,8 @@
 
 /**
  * @fileoverview The shape of an artifact's `manifest.json`, with its JSON
- * (snake_case) keys. Mirrors `superset_core.artifacts.manifest`, where the
- * host validates manifests on every write; superset-core's
+ * (snake_case) keys. Mirrors `superset_artifacts_sdk.manifest`, where the
+ * host validates manifests on every write; the Python SDK's
  * `test_artifact_typescript_sync.py` checks that the two agree.
  */
 

@@ -30,8 +30,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from superset_core.artifacts.authoring import AuthoringErrorCode
-from superset_core.artifacts.store import PUBLISHED_REF
+from superset_artifacts_sdk.authoring import AuthoringErrorCode
+from superset_artifacts_sdk.store import PUBLISHED_REF
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 

@@ -33,7 +33,7 @@ from dataclasses import asdict, dataclass, is_dataclass, replace
 from typing import Annotated, Any, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, PlainValidator
-from superset_core.artifacts.authoring import (
+from superset_artifacts_sdk.authoring import (
     ArtifactBuildRequest,
     ArtifactCheckRequest,
     ArtifactCommitFilesRequest,
@@ -56,8 +56,8 @@ from superset_core.artifacts.authoring import (
     AuthoringErrorResponse,
     AuthoringRequest,
 )
-from superset_core.artifacts.manifest import ArtifactManifest, MANIFEST_FILE
-from superset_core.artifacts.provider import (
+from superset_artifacts_sdk.manifest import ArtifactManifest, MANIFEST_FILE
+from superset_artifacts_sdk.provider import (
     ArtifactRef,
     ArtifactRuntimeProvider,
     Diagnostic,
