@@ -52,6 +52,8 @@ class BindingRequest:
     # it. The host has checked that the draft is the caller's own, and that
     # they may edit the canvas.
     draft_token: str | None = None
+    # The UUID of the saved widget the placement shows, when it shows one.
+    widget_id: str | None = None
 
 
 # Answers binding ``name`` in the shape of a placement's ``dataBinding``, or

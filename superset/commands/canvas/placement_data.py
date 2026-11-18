@@ -74,8 +74,10 @@ def load_placement(
     if widget_id := node.get("widgetId"):
         widget = resolver.widgets({widget_id}).get(widget_id)
         if widget is None:
-            return StoredPlacement(widget_type=None, props={})
-        return StoredPlacement(widget_type=widget.widget_type, props=widget.props)
+            return StoredPlacement(widget_type=None, props={}, widget_id=widget_id)
+        return StoredPlacement(
+            widget_type=widget.widget_type, props=widget.props, widget_id=widget_id
+        )
     return StoredPlacement(
         widget_type=node.get("widgetType"), props=node.get("props") or {}
     )
@@ -151,6 +153,7 @@ class GetPlacementDataCommand(BaseCommand):
                     props=placement.props,
                     name=name,
                     draft_token=self._draft_token or None,
+                    widget_id=placement.widget_id,
                 )
             )
         named = placement.props.get("bindings")

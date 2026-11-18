@@ -41,6 +41,9 @@ class StoredPlacement:
     # ``None`` for a widget entity that no longer resolves.
     widget_type: str | None
     props: dict[str, Any]
+    # The UUID of the saved widget the placement shows; ``None`` for a widget
+    # stored on the placement itself, such as a container or text.
+    widget_id: str | None = None
 
 
 class PlacementNotFoundError(LookupError):
@@ -69,7 +72,7 @@ def load_placement(
     :param draft_token: A draft of the canvas to read the placement from. It
         must be the caller's own draft of this canvas, and the caller must
         still be allowed to edit the canvas.
-    :returns: The placement's widget type and props.
+    :returns: The placement's widget type and props, and its saved widget's UUID.
     :raises PlacementNotFoundError: If the caller can't read the canvas or the
         draft, or the canvas has no such placement.
     """

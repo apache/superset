@@ -246,6 +246,7 @@ def test_a_widget_type_resolves_its_own_named_bindings(
             placement_id="chart",
             props={"dataBinding": BINDING, "bindings": {"by_country": BINDING}},
             name="by_region",
+            widget_id="chart-1",
         )
     ]
     # The type's resolver answers for its names, so the props' bindings don't.
@@ -380,7 +381,7 @@ def test_a_placement_loads_with_its_widget_type_and_props(
     from superset.commands.canvas.placement_data import load_placement, StoredPlacement
 
     assert load_placement("100", "chart") == StoredPlacement(
-        widget_type="chart", props={"dataBinding": BINDING}
+        widget_type="chart", props={"dataBinding": BINDING}, widget_id="chart-1"
     )
     assert load_placement("100", "text") == StoredPlacement(
         widget_type="markdown", props={}
@@ -409,7 +410,7 @@ def test_extensions_read_a_placement_through_superset_core(
     )
 
     assert placements.load_placement("100", "chart") == placements.StoredPlacement(
-        widget_type="chart", props={"dataBinding": BINDING}
+        widget_type="chart", props={"dataBinding": BINDING}, widget_id="chart-1"
     )
     # A missing placement or canvas, and a draft the caller may not use, all
     # look the same.
