@@ -289,6 +289,51 @@ class QueryContextProcessor:
             self._emit_acquisition_metrics(phases, metrics_start_ns)
         return result
 
+    def _resolve_annotations(  # noqa: PLR0913
+        self,
+        *,
+        query_obj: QueryObject,
+        cache: QueryCacheManager,
+        annotation_key: str | None,
+        annotation_force_query: bool,
+        force_cached: bool | None,
+        data_acquisition_ns: int | None,
+    ) -> tuple[dict[str, Any], int | None]:
+        """
+        Resolve annotation data under its own cache entry, marking ``cache`` as
+        failed on a validation error and folding the time into the data
+        acquisition total.
+        """
+        annotation_data: dict[str, Any] = {}
+        if (
+            query_obj
+            and query_obj.annotation_layers
+            and cache.status != QueryStatus.FAILED
+        ):
+            annotation_start_ns = time.perf_counter_ns()
+            try:
+                with timed("chart_data.query.annotations"):
+                    annotation_data = self._get_annotation_data_cached(
+                        query_obj=query_obj,
+                        cache_key=annotation_key,
+                        force_query=annotation_force_query,
+                        force_cached=force_cached,
+                        timeout=self.get_cache_timeout(),
+                        datasource_uid=self._qc_datasource.uid,
+                    )
+            except SemanticResultCompletenessError:
+                raise
+            except QueryObjectValidationError as ex:
+                cache.error_message = QueryObjectValidationMessage(ex)
+                cache.status = QueryStatus.FAILED
+            finally:
+                # Annotation work is part of data acquisition, summed with the
+                # dataframe time when both ran.
+                data_acquisition_ns = (data_acquisition_ns or 0) + max(
+                    0, time.perf_counter_ns() - annotation_start_ns
+                )
+        return annotation_data, data_acquisition_ns
+
     def _get_df_payload_result(
         self,
         query_obj: QueryObject,
@@ -430,34 +475,14 @@ class QueryContextProcessor:
         # resolved and cached under its own entry — independent of whether the
         # (shareable) dataframe above was a hit or a miss — rather than forcing
         # every viewer of the same chart onto their own full dataframe copy.
-        annotation_data: dict[str, Any] = {}
-        if (
-            query_obj
-            and query_obj.annotation_layers
-            and cache.status != QueryStatus.FAILED
-        ):
-            annotation_start_ns = time.perf_counter_ns()
-            try:
-                with timed("chart_data.query.annotations"):
-                    annotation_data = self._get_annotation_data_cached(
-                        query_obj=query_obj,
-                        cache_key=annotation_key,
-                        force_query=annotation_force_query,
-                        force_cached=force_cached,
-                        timeout=self.get_cache_timeout(),
-                        datasource_uid=self._qc_datasource.uid,
-                    )
-            except SemanticResultCompletenessError:
-                raise
-            except QueryObjectValidationError as ex:
-                cache.error_message = QueryObjectValidationMessage(ex)
-                cache.status = QueryStatus.FAILED
-            finally:
-                # Annotation work is part of data acquisition, summed with the
-                # dataframe time when both ran.
-                data_acquisition_ns = (data_acquisition_ns or 0) + max(
-                    0, time.perf_counter_ns() - annotation_start_ns
-                )
+        annotation_data, data_acquisition_ns = self._resolve_annotations(
+            query_obj=query_obj,
+            cache=cache,
+            annotation_key=annotation_key,
+            annotation_force_query=annotation_force_query,
+            force_cached=force_cached,
+            data_acquisition_ns=data_acquisition_ns,
+        )
 
         payload_assembly_start_ns = time.perf_counter_ns()
         phases["payload_assembly_start_ns"] = payload_assembly_start_ns
