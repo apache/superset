@@ -56,15 +56,18 @@ describe('color utils', () => {
       expect(color2).toBe('#FFF');
     });
 
-    test('when called with rgba color, throw error', () => {
-      expect(() => {
-        getContrastingColor('rgba(0, 0, 0, 0.1)');
-      }).toThrow();
+    test('when called with other CSS colors', () => {
+      expect(getContrastingColor('rgba(0, 0, 0, 0.1)')).toBe('#FFF');
+      expect(getContrastingColor('hsl(0, 0%, 100%)')).toBe('#000');
+      expect(getContrastingColor('white')).toBe('#000');
     });
 
     test('when called with invalid color, throw error', () => {
       expect(() => {
-        getContrastingColor('#0000');
+        getContrastingColor('#00000');
+      }).toThrow();
+      expect(() => {
+        getContrastingColor('not a color');
       }).toThrow();
     });
   });
