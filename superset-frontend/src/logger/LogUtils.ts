@@ -112,11 +112,6 @@ export const LOG_ACTIONS_CANVAS_DRAFT_START = 'canvas_draft_start';
 // events: the funnel is then arithmetic against `canvas_draft_start`, and an
 // abandoned draft is the absence of this event, which no constant can capture.
 export const LOG_ACTIONS_CANVAS_DRAFT_END = 'canvas_draft_end';
-export const LOG_ACTIONS_CANVAS_DRAFT_HISTORY = 'canvas_draft_history';
-export const LOG_ACTIONS_CANVAS_FILTER_CHANGE = 'canvas_filter_change';
-export const LOG_ACTIONS_CANVAS_REFRESH_WIDGET = 'canvas_refresh_widget';
-export const LOG_ACTIONS_CANVAS_VERSION_PREVIEW = 'canvas_version_preview';
-export const LOG_ACTIONS_CANVAS_VERSION_RESTORE = 'canvas_version_restore';
 export const LOG_ACTIONS_CANVAS_CHAT_PANEL = 'canvas_chat_panel';
 export const LOG_ACTIONS_CANVAS_ERROR = 'canvas_error';
 

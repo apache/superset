@@ -147,13 +147,18 @@ def _report_canvas_error(
         # space stays bounded. The canvas id deliberately stays out of it:
         # per-canvas analysis is what ``logs.canvas_id`` is for.
         stats_logger_manager.instance.incr(f"canvas.error.{error_type}")
-        logger.warning(
-            "Canvas request failed: error_type=%s status=%s scope=%s canvas_id=%s",
-            error_type,
-            status,
-            scope,
-            canvas_id,
-        )
+        # Only unexpected failures get a log line. The counter and the row
+        # already cover the expected ones, and a draft 404 or an edit conflict
+        # is ordinary traffic -- warning on each would bury the failures worth
+        # reading among them.
+        if status >= 500:
+            logger.warning(
+                "Canvas request failed: error_type=%s status=%s scope=%s canvas_id=%s",
+                error_type,
+                status,
+                scope,
+                canvas_id,
+            )
         event_logger.log_with_context(
             action="canvas_error",
             log_to_statsd=False,
@@ -1080,11 +1085,10 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        # Resolved before the delete, which is what makes a discarded draft
-        # attributable to the canvas it was abandoning.
-        draft = load_draft(_draft_token())
+        # The command returns the draft it discarded, which is what makes a
+        # discarded draft attributable to the canvas it was abandoning.
+        draft = DeleteCanvasDraftCommand(_draft_token()).run()
         add_extra_log_payload(canvas_id=draft.canvas_id)
-        DeleteCanvasDraftCommand(draft.token).run()
         return self.response(200, message="OK")
 
     @expose("/<id_or_uuid>/placement/<placement_id>/data", methods=("POST",))

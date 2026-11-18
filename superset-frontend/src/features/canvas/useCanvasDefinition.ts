@@ -71,8 +71,11 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
   const revision = useRef<number>();
   const loadedCanvas = useRef<number>();
   // The source a complete result was last loaded for, so a failed refresh can
-  // tell itself apart from a failed first open without reading state.
+  // tell itself apart from a failed first open without reading state, and so
+  // a repeated poll of the same source is not reported twice.
   const loaded = useRef<string>();
+  // The source whose failure has already been reported, cleared on recovery.
+  const reported = useRef<string>();
   // Drops a response for a source the page has since moved off.
   const source = useRef<string>();
   source.current = `${canvasId}:${draftToken ?? ''}`;
@@ -93,14 +96,22 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
       );
       if (source.current !== requested) return;
       revision.current = json.result.revision;
+      // Only the first load of a source is reported. This runs again on every
+      // draft poll (CANVAS_DRAFT_POLL_INTERVAL, 5s) and on every window focus,
+      // so logging each one would write a row every few seconds per open tab
+      // and say nothing new.
+      const first = loaded.current !== requested;
       loaded.current = requested;
+      reported.current = undefined;
       setState({ status: 'complete', result: json.result, draftToken });
-      log(LOG_ACTIONS_CANVAS_LOAD_DEFINITION, {
-        revision: json.result.revision,
-        definition_version: json.result.definition?.version,
-        widget_count: Object.keys(json.result.definition?.nodes ?? {}).length,
-        duration: Logger.getTimestamp() - startedAt,
-      });
+      if (first) {
+        log(LOG_ACTIONS_CANVAS_LOAD_DEFINITION, {
+          revision: json.result.revision,
+          definition_version: json.result.definition?.version,
+          widget_count: Object.keys(json.result.definition?.nodes ?? {}).length,
+          duration: Logger.getTimestamp() - startedAt,
+        });
+      }
     } catch (response) {
       const error = await getClientErrorObject(response);
       if (source.current !== requested) return;
@@ -114,6 +125,11 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
           ? previous
           : { status: 'error', error },
       );
+      // Once per source, for the same reason as the success event: an
+      // expired draft keeps polling, and reporting each failure would write a
+      // row every few seconds for a single broken state.
+      if (reported.current === requested) return;
+      reported.current = requested;
       // `is_silent` marks the refresh case above, which shows the user
       // nothing at all. This event is the only signal it ever produces.
       log(LOG_ACTIONS_CANVAS_ERROR, {

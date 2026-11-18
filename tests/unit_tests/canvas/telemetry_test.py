@@ -169,7 +169,10 @@ def test_a_draft_route_attributes_its_canvas(
     mocker.patch("superset.canvas.api.load_draft", return_value=_draft(100))
     commit = mocker.patch("superset.canvas.api.CommitCanvasDraftCommand")
     commit.return_value.run.return_value.revision = 2
-    mocker.patch("superset.canvas.api.DeleteCanvasDraftCommand")
+    # The delete command returns the draft it discarded; that return is where
+    # the canvas id comes from, so there is no second read.
+    discard = mocker.patch("superset.canvas.api.DeleteCanvasDraftCommand")
+    discard.return_value.run.return_value = _draft(100)
     mocker.patch("superset.canvas.api.draft_payload", return_value={})
     mock_log = mocker.patch.object(DBEventLogger, "log")
 
