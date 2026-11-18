@@ -745,6 +745,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  // Bumped after each successful update, so revealed secret endings reset.
+  const [secretsGeneration, setSecretsGeneration] = useState(0);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [
     validationErrors,
@@ -1175,6 +1177,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (result) onDatabaseAdd?.();
       if (!shouldApplyResponse()) return;
       if (result) {
+        setSecretsGeneration(generation => generation + 1);
         dbConfigExtraExtension
           ?.onSave(extraExtensionComponentState, db)
           .then(({ error }: { error: any }) => {
@@ -1185,11 +1188,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         if (dbConfigExtraExtensionOnSaveError) {
           setLoading(false);
+          // The modal stays open on what the server now holds, stored
+          // secret fields included, as the create flow does on Back.
+          fetchResource(db.id as number, getResponseGuard());
           return;
         }
         if (!editNewDb) {
           onClose();
           addSuccessToast(t('Database settings updated'));
+        } else {
+          fetchResource(db.id as number, getResponseGuard());
         }
       }
     } else if (db) {
@@ -2375,6 +2383,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <ExtraOptions
                 extraExtension={dbConfigExtraExtension}
                 db={db as DatabaseObject}
+                secretsGeneration={secretsGeneration}
                 onInputChange={(e: CheckboxChangeEvent) => {
                   const { target } = e;
                   handleChangeWithValidation(ActionType.InputChange, {
