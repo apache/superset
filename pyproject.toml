@@ -299,7 +299,7 @@ spark = [
 ]
 tdengine = [
     "taospy>=2.8.10",
-    "taos-ws-py>=0.7.0"
+    "taos-ws-py>=0.7.1"
 ]
 teradata = ["teradatasql>=20.0.0.72"]
 # TimescaleDB is a genuine Postgres extension, not a fork - connects via the
