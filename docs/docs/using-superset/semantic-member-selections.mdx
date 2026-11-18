@@ -86,9 +86,13 @@ verified separately.
 
 **Clear all** stages empty values for in-scope filters; **Apply** commits the
 clear. Cleared semantic filters remain usable without a reselection warning,
-including filters that had no selected value. Saved defaults do not return after
-applying the clear. Required filters still need a value before Apply is enabled.
-Genuinely legacy saved selections still require reset and explicit reselection.
+including filters that had no selected value. Saved defaults stay cleared while
+the cleared state is carried in the session, filter-state key, or permalink; a
+fresh dashboard load without that state restores the defaults. Required filters
+still need a value before Apply is enabled. Clear all also discards stale values
+for in-scope filters and dismisses their reselection warning. The discarded
+predicates are not applied to charts; the previously applied state remains until
+Apply. To use legacy selections again, reset and explicitly reselect them.
 
 ## Native filter columns
 

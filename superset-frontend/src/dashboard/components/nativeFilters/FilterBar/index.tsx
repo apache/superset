@@ -35,7 +35,6 @@ import {
   Filter,
   Divider,
   DataMask,
-  DatasourceType,
   isNativeFilter,
   usePrevious,
   NativeFilterTarget,
@@ -76,7 +75,7 @@ import {
   getFiltersToApply,
 } from './utils';
 import { extractLabel } from '../selectors';
-import { isSelectionFreeGrainControlMask } from '../utils';
+import { withNativeFilterProvenance } from '../utils';
 import { FiltersBarProps } from './types';
 import {
   useAllAppliedDataMask,
@@ -555,21 +554,11 @@ const FilterBar: FC<FiltersBarProps> = ({
         // Stage the cleared value locally; do NOT dispatch to Redux here.
         // Persistence happens when the user clicks Apply.
         setDataMaskSelected(draft => {
-          const target = filter.targets?.[0];
-          // Clearing removes all member selections, but preserves the configured
-          // target's generation just like the plugin's normal empty emission.
-          draft[id].extraFormData =
-            target?.datasourceType === DatasourceType.SemanticView &&
-            !isSelectionFreeGrainControlMask(filterType, {})
-              ? {
-                  semantic_selection_sources: [
-                    {
-                      datasource: `${target.datasetId}__${target.datasourceType}`,
-                      version: target.semantic_selection_version ?? null,
-                    },
-                  ],
-                }
-              : {};
+          draft[id].extraFormData = withNativeFilterProvenance(
+            { extraFormData: {} },
+            filterType,
+            filter.targets?.[0],
+          ).extraFormData;
           const { filterState } = draft[id];
           if (filterState) {
             filterState.value = clearedValue;

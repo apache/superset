@@ -65,7 +65,11 @@ import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import isSemanticRange from 'src/filters/components/Range/isSemanticRange';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
-import { getFormData, isSelectionFreeGrainControlMask } from '../../utils';
+import {
+  getFormData,
+  isSelectionFreeGrainControlMask,
+  withNativeFilterProvenance,
+} from '../../utils';
 import { useFilterDependencies, useTransitiveParentIds } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
 
@@ -356,27 +360,11 @@ const FilterValue: FC<FilterValueProps> = ({
     (dataMask: DataMask) =>
       onFilterSelectionChange(
         filter,
-        // A grain-only value, or a cleared grain control, selects no member,
-        // so it has no provenance.
-        datasourceType === DatasourceType.SemanticView &&
-          !isGrainOnlyExtraFormData(dataMask.extraFormData) &&
-          !isSelectionFreeGrainControlMask(
-            filter.filterType,
-            dataMask.extraFormData,
-          )
-          ? {
-              ...dataMask,
-              extraFormData: {
-                ...dataMask.extraFormData,
-                semantic_selection_sources: [
-                  {
-                    datasource: `${datasetId}__${datasourceType || DatasourceType.Table}`,
-                    version: semantic_selection_version ?? null,
-                  },
-                ],
-              },
-            }
-          : dataMask,
+        withNativeFilterProvenance(dataMask, filter.filterType, {
+          datasetId,
+          datasourceType,
+          semantic_selection_version,
+        }),
       ),
     [
       filter,

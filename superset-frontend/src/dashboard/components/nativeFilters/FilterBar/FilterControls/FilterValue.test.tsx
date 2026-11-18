@@ -31,7 +31,7 @@ import {
   buildQueryObject,
 } from '@superset-ui/core';
 import type { DataMask, Filter } from '@superset-ui/core';
-import { mergeExtraFormData } from '../../utils';
+import { mergeExtraFormData, withNativeFilterProvenance } from '../../utils';
 import FilterValue from './FilterValue';
 
 const mockRequestChartData = jest.fn();
@@ -762,10 +762,22 @@ test('nonempty unversioned saved values still require reset', () => {
 });
 
 test.each([
+  { value: '' },
+  { value: [0] },
+  { value: { key: 'legacy' } },
+  { value: [null, 5], filterType: 'filter_range' },
+  { value: [5, null], filterType: 'filter_range' },
+  {
+    value: [null, null],
+    filterType: 'filter_range',
+    extraFormData: {
+      filters: [{ col: 'Orders.amount', op: '>' as const, val: 5 }],
+    },
+  },
   { value: 0 },
   { value: false },
   { value: [null] },
-  { value: [null, null] },
+  { value: [null, null], filterType: 'filter_select' },
   {
     value: null,
     extraFormData: {
@@ -794,11 +806,12 @@ test.each([
   },
 ])(
   'empty-looking or genuine legacy selection still warns: %j',
-  ({ value, extraFormData = {} }) => {
+  ({ value, extraFormData = {}, filterType = 'filter_select' }) => {
     mockRequestChartData.mockResolvedValue([{ data: [] }]);
     renderFilterValue({
       filter: {
         ...createMockFilter({
+          filterType,
           targets: [
             {
               datasetId: 7,
@@ -814,5 +827,54 @@ test.each([
     expect(
       screen.getByText('Reselect saved filter values'),
     ).toBeInTheDocument();
+  },
+);
+
+test.each([undefined, 'member-id-v1'])(
+  'an unmounted clear has the same chart-side provenance as plugin emission (version %s)',
+  async version => {
+    const filter = createMockFilter({
+      targets: [
+        {
+          datasetId: 3,
+          datasourceType: DatasourceType.SemanticView,
+          semantic_selection_version: version,
+          column: { name: 'Orders.status' },
+        },
+      ],
+    });
+    const empty: DataMask = { filterState: { value: null }, extraFormData: {} };
+    const beforeMount = withNativeFilterProvenance(
+      empty,
+      filter.filterType,
+      filter.targets[0],
+    );
+    expect(mockSuperChartProps).not.toHaveBeenCalled();
+    const onChange = await emitFromPlugin(filter, empty);
+    const mounted: DataMask = onChange.mock.lastCall![1];
+    expect(beforeMount).toEqual(mounted);
+    expect(beforeMount.extraFormData?.semantic_selection_sources).toEqual([
+      { datasource: '3__semantic_view', version: version ?? null },
+    ]);
+    for (const [datasource, chartVersion] of [
+      ['3__semantic_view', 'member-id-v1'],
+      ['4__semantic_view', 'member-id-v1'],
+      ['3__semantic_view', 'another-version'],
+    ]) {
+      for (const mask of [beforeMount, mounted]) {
+        expect(
+          buildQueryObject({
+            datasource,
+            viz_type: 'table',
+            semantic_selection_version: chartVersion,
+            extra_form_data: mergeExtraFormData({}, mask.extraFormData),
+          }).extras?.semantic_selection_version,
+        ).toBe(
+          datasource === '3__semantic_view' && version === chartVersion
+            ? chartVersion
+            : 'unverified-external-selections',
+        );
+      }
+    }
   },
 );

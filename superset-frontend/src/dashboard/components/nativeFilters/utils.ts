@@ -23,6 +23,8 @@ import {
   Behavior,
   ChartCustomization,
   DataMaskStateWithId,
+  DataMask,
+  NativeFilterTarget,
   DatasourceType,
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
@@ -191,6 +193,32 @@ export function isSelectionFreeGrainControlMask(
           key === 'semantic_selection_sources' || value === undefined,
       ))
   );
+}
+
+/** Stamp member selections with the configured target's identity, including clears. */
+export function withNativeFilterProvenance(
+  dataMask: DataMask,
+  filterType: string,
+  target: Partial<NativeFilterTarget> = {},
+): DataMask {
+  const { datasetId, datasourceType, semantic_selection_version } = target;
+  // A grain-only value, or a cleared grain control, selects no member.
+  return datasourceType === DatasourceType.SemanticView &&
+    !isGrainOnlyExtraFormData(dataMask.extraFormData) &&
+    !isSelectionFreeGrainControlMask(filterType, dataMask.extraFormData)
+    ? {
+        ...dataMask,
+        extraFormData: {
+          ...dataMask.extraFormData,
+          semantic_selection_sources: [
+            {
+              datasource: `${datasetId}__${datasourceType}`,
+              version: semantic_selection_version ?? null,
+            },
+          ],
+        },
+      }
+    : dataMask;
 }
 
 /**
