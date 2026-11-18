@@ -1308,7 +1308,20 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             # instead of raising 403, raise 404 to hide table existence
             raise TableNotFoundException("No such table") from ex
 
-        payload = database.db_engine_spec.get_extra_table_metadata(database, table)
+        try:
+            payload = database.db_engine_spec.get_extra_table_metadata(database, table)
+        except SQLAlchemyError as ex:
+            # Failures talking to the customer's database (e.g. unreachable or
+            # overloaded workers) are not Superset errors; log below ERROR so they
+            # are not reported to error trackers.
+            logger.warning(
+                "Failed to fetch extra metadata for table %s on database %s: %s",
+                table,
+                pk,
+                ex,
+            )
+            self.incr_stats("error", self.table_extra_metadata.__name__)
+            return self.response_422(error_msg_from_exception(ex))
 
         return self.response(200, **payload)
 

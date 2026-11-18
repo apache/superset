@@ -32,6 +32,7 @@ from flask import current_app
 from flask.testing import FlaskClient
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.session import Session
 from werkzeug.test import TestResponse
 
@@ -2827,6 +2828,34 @@ def test_table_extra_metadata_happy_path(
         database,
         Table("t", "s", "c"),
     )
+
+
+def test_table_extra_metadata_database_error(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_extra_metadata` endpoint when the database itself fails.
+
+    Errors raised by the customer's database should result in a 422 and not be
+    logged as unhandled exceptions.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_extra_table_metadata.side_effect = OperationalError(
+        "SELECT 1", {}, Exception("too many errors talking to a worker node")
+    )
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+    logger = mocker.patch("superset.databases.api.logger")
+
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
+
+    assert response.status_code == 422
+    assert "too many errors talking to a worker node" in response.json["message"]
+    logger.warning.assert_called_once()
+    logger.exception.assert_not_called()
+    logger.error.assert_not_called()
 
 
 def test_table_extra_metadata_no_table(
