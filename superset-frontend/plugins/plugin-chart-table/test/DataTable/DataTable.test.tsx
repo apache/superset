@@ -206,3 +206,29 @@ test('resets pageIndex to 0 when data becomes empty (pageCount === 0)', () => {
   rerender(renderDataTable(columns, { pageSize: 1, autoResetPage: false }));
   expect(screen.getByText('Michael')).toBeInTheDocument();
 });
+
+test('leaves server page navigation and incoming pages under caller control', () => {
+  const onServerPaginationChange = jest.fn();
+  const props = {
+    pageSize: 10,
+    rowCount: 30,
+    serverPagination: true,
+    serverPaginationData: { currentPage: 1, pageSize: 10 },
+    onServerPaginationChange,
+  };
+  const { container, rerender } = render(renderDataTable(columns, props));
+  fireEvent.click(container.querySelector('button[aria-label="3"]')!);
+  expect(onServerPaginationChange).toHaveBeenCalledTimes(1);
+  expect(onServerPaginationChange).toHaveBeenLastCalledWith(2, 10);
+
+  rerender(
+    renderDataTable(columns, {
+      ...props,
+      serverPaginationData: { currentPage: 2, pageSize: 10 },
+      data: [{ firstName: 'Page three', city: 'Paris' }],
+    }),
+  );
+  expect(container.querySelector('li.active button')).toHaveTextContent('3');
+  expect(screen.getByText('Page three')).toBeInTheDocument();
+  expect(onServerPaginationChange).toHaveBeenCalledTimes(1);
+});
