@@ -23,7 +23,6 @@
  */
 
 import { ComponentType, useSyncExternalStore } from 'react';
-import { logging } from '@apache-superset/core/utils';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 import { createValueEventEmitter } from '../utils';
@@ -45,9 +44,7 @@ const registerWidgetRenderer: typeof canvasApi.registerWidgetRenderer = (
 ) => {
   const existing = renderers.get(widgetType);
   if (existing !== undefined && existing !== component) {
-    logging.warn(
-      `Widget type "${widgetType}" already has a renderer. Replacing it.`,
-    );
+    throw new Error(`Widget type "${widgetType}" already has a renderer`);
   }
   renderers.set(widgetType, component);
   notify();

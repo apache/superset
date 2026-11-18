@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { logging } from '@apache-superset/core/utils';
 import { canvas, setActiveCanvas } from 'src/core';
 
 const Kpi = () => null;
@@ -33,32 +32,29 @@ test('widget renderers register and unregister by type', () => {
   expect(canvas.getWidgetRenderer('test.kpi')).toBeUndefined();
 });
 
-test('disposing a replaced renderer keeps the newer one', () => {
-  const warn = jest.spyOn(logging, 'warn').mockImplementation();
+test('a widget type that has a renderer refuses another', () => {
   const Other = () => null;
   const first = canvas.registerWidgetRenderer('test.kpi', Kpi);
-  const second = canvas.registerWidgetRenderer('test.kpi', Other);
 
-  first.dispose();
-
-  expect(canvas.getWidgetRenderer('test.kpi')).toBe(Other);
-  expect(warn).toHaveBeenCalledWith(
-    'Widget type "test.kpi" already has a renderer. Replacing it.',
+  expect(() => canvas.registerWidgetRenderer('test.kpi', Other)).toThrow(
+    'Widget type "test.kpi" already has a renderer',
   );
+  expect(canvas.getWidgetRenderer('test.kpi')).toBe(Kpi);
+
+  // Once its renderer is disposed, the type takes another.
+  first.dispose();
+  const second = canvas.registerWidgetRenderer('test.kpi', Other);
+  expect(canvas.getWidgetRenderer('test.kpi')).toBe(Other);
   second.dispose();
-  warn.mockRestore();
 });
 
-test('registering the same renderer again does not warn', () => {
-  const warn = jest.spyOn(logging, 'warn').mockImplementation();
+test('registering the same renderer again is allowed', () => {
   const first = canvas.registerWidgetRenderer('test.kpi', Kpi);
   const again = canvas.registerWidgetRenderer('test.kpi', Kpi);
 
   expect(canvas.getWidgetRenderer('test.kpi')).toBe(Kpi);
-  expect(warn).not.toHaveBeenCalled();
   again.dispose();
   first.dispose();
-  warn.mockRestore();
 });
 
 test('active canvas changes fire only when something changed', () => {
