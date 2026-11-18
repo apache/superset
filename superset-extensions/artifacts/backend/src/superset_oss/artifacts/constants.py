@@ -39,7 +39,3 @@ ARTIFACT_UPLOAD_BLOBS = "artifact_upload_blobs"
 
 # Where the host mounts the extension's REST APIs.
 API_BASE_PATH = f"/extensions/{PUBLISHER}/{NAME}"
-
-# The standalone page that shows one artifact. The host prefixes no frontend
-# id, so the page carries the full prefix, as the frontend registers it.
-STANDALONE_PAGE = f"{ID_PREFIX}standalone"

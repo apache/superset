@@ -19,20 +19,14 @@
 
 /**
  * @fileoverview The extension's frontend entry: the host loads it with
- * Module Federation, and importing it registers the renderer and the
- * standalone page.
+ * Module Federation, and importing it registers the renderer.
  */
 
-import { canvas, pages } from '@apache-superset/core';
+import { canvas } from '@apache-superset/core';
 import ArtifactWidget from './canvas/ArtifactWidget';
-import { STANDALONE_PAGE, WIDGET_TYPE } from './constants';
-import HostPage from './embedding/HostPage';
+import { WIDGET_TYPE } from './constants';
 
 // The host prefixes the backend's widget id but not frontend ids, so the
 // renderer registers under the full `extensions.<publisher>.<name>.artifact`;
 // any other id leaves the canvas showing "No renderer for widget type".
 canvas.registerWidgetRenderer(WIDGET_TYPE, ArtifactWidget);
-
-// The page that `embedded/artifact/<uuid>/page` answers, under the same full
-// id that its endpoint passes to `render_page`.
-pages.registerPage(STANDALONE_PAGE, HostPage);

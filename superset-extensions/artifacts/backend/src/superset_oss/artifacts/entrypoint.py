@@ -27,17 +27,12 @@ from __future__ import annotations
 
 import logging
 
-from superset_core.extensions.csp import add_csp_sources
 from superset_oss.artifacts.authoring import confirm_api  # noqa: F401
 from superset_oss.artifacts.canvas import widget  # noqa: F401
 from superset_oss.artifacts.embedding import api as embedding_api  # noqa: F401
 from superset_oss.artifacts.frames import api as frames_api  # noqa: F401
-from superset_oss.artifacts.frames.csp import frame_csp_sources
 
 logger = logging.getLogger(__name__)
-
-# Host pages allow the provider's sandbox site while artifacts are on.
-add_csp_sources(frame_csp_sources)
 
 try:
     from superset_oss.artifacts.authoring import prompts, tools  # noqa: F401

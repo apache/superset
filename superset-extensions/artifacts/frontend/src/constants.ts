@@ -35,12 +35,6 @@ export const WIDGET_TYPE = `extensions.${PUBLISHER}.${NAME}.artifact`;
 /** Where the host mounts the extension's REST APIs. */
 export const API_BASE_PATH = `/extensions/${PUBLISHER}/${NAME}`;
 
-/**
- * The standalone page that shows one artifact, by the full id that its
- * endpoint passes to `render_page`.
- */
-export const STANDALONE_PAGE = `extensions.${PUBLISHER}.${NAME}.standalone`;
-
 export const DRAFT_TOKEN_HEADER = 'X-Canvas-Draft';
 
 /**

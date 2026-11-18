@@ -56,13 +56,13 @@ already, such as `superset`: the backend module would shadow it.
 | `backend/.../authoring/` | The MCP authoring tools, the `create_artifact` and `import_claude_artifact` prompts, and the endpoint where the user confirms publishing |
 | `backend/.../data/` | The mapping of a manifest's named binding onto the canvas placement data request, the bindings that don't map yet, and the widget type's binding resolver |
 | `backend/.../frames/` | The host side of the sandbox: which version a viewer's frame loads, its grant and allowed parents, and the frame link endpoint |
-| `backend/.../embedding/` | The standalone host page and the frame link it fetches, which share their checks |
+| `backend/.../embedding/` | The standalone host page's endpoint |
 | `backend/.../gate.py`, `errors.py`, `web.py` | The provider gate every call goes through, the one error type, and the Flask helpers the endpoints share |
 | `frontend/src/canvas/` | The widget renderer, registered under the full widget id |
 | `frontend/src/frames/` | The frame host (the sandboxed iframe and the host end of the bridge) and frame links |
 | `frontend/src/data/` | Named bindings through the placement data endpoint, and the host-side checks of the frame's requests |
 | `frontend/src/authoring/` | Where an owner confirms a pending publish request |
-| `frontend/src/embedding/` | The standalone host page, registered as a standalone page of the extension |
+| `frontend/src/embedding/` | The standalone host page shell |
 | `docs/CORE-GAPS.md` | What Superset core still needs, and the small core changes on this branch |
 
 The store, the authoring handlers, the gate, the data mapping and the frame
@@ -93,16 +93,6 @@ Superset.
   frame is an
   `<iframe sandbox="allow-scripts" referrerpolicy="no-referrer">`, without
   `allow-same-origin` or popups.
-- **Standalone page.** `GET .../embedded/artifact/<uuid>/page` answers
-  Superset's app shell without its menu (`render_page` in
-  `superset_core.extensions.pages`), which renders `HostPage`. The page then
-  fetches `GET .../embedded/artifact/<uuid>` for a frame link with the
-  `standalone` context. Both run the same checks, and the page carries only
-  the artifact's id.
-- **Host pages' CSP.** While artifacts are on, the extension declares the
-  provider's `frame_sources()` under `frame-src`
-  (`superset_core.extensions.csp`), and Superset merges them into each page's
-  policy, so the sandbox frame isn't blocked.
 - **Data and events.** The renderer fetches each named binding through the
   placement data endpoint, naming the binding and sending the draft token, and
   checks every frame request against the manifest before acting:
@@ -111,6 +101,31 @@ Superset.
   the binding (its `binding_resolver`), which reads it from the manifest of
   the version the frame loads; the endpoint then runs it as the viewer, with
   their dataset access, as any other binding.
+
+## Host pages' CSP
+
+A Superset page shows an artifact's frame only if its Content Security Policy
+allows the sandbox site in `frame-src`, and only the provider knows that site
+(`FrameSources.frame_sources()`). Superset's default `TALISMAN_CONFIG` has no
+`frame-src`, so frames fall back to `default-src 'self'` and the browser
+refuses them. In `superset_config.py`, copy the default `TALISMAN_CONFIG`
+and add exactly the provider's sources to its `content_security_policy`:
+
+```python
+TALISMAN_CONFIG = {
+    "content_security_policy": {
+        # ...the default policy's directives, unchanged, then:
+        # what the provider's frame_sources() returns, its sandbox site only.
+        "frame-src": ["'self'", "https://*.sandbox.example.com"],
+    },
+    # ...the default's other keys, unchanged.
+}
+```
+
+Do the same in `TALISMAN_DEV_CONFIG`, which Superset uses instead in debug
+mode, and wherever else the policy is sent, such as a proxy. Never allow a
+wider source, such as `https:` or `*`: the sandbox's isolation depends on its
+frames loading only from the provider's site.
 
 ## Permissions
 
@@ -158,9 +173,9 @@ development.
 - No provider ships here, so nothing renders or builds until a host registers
   one. Whether Superset should ship a development-only provider is an open
   question.
-- The sandbox site reaches the pages' policy only where Superset sets it,
-  through Talisman: an operator who sends the CSP from elsewhere, such as a
-  proxy, adds the provider's frame sources to `frame-src` there.
+- Superset's default CSP (`default-src 'self'`, no `frame-src`) blocks the
+  sandbox frame until the operator allows the provider's sandbox site in
+  `frame-src` (see "Host pages' CSP" below).
 - The default store backend refuses to run: extension storage has no
   compare-and-swap write, its REST API exposes an extension's shared rows, and
   its context isn't set while requests run. A provider must supply the store
@@ -178,12 +193,11 @@ development.
   host sets (one tenant, say), so `artifact_commit_files` reveals whether
   given content exists in that scope. On the default backend, the scope is
   the whole Superset.
-- The standalone page lives at
-  `/extensions/superset-oss/artifacts/embedded/artifact/<uuid>/page`, not at
-  `/embedded/artifact/<uuid>`, because extensions mount only under
-  `/extensions/<publisher>/<name>/`. It has no guest tokens and no data yet,
-  and a visitor who isn't signed in gets the API's 401 rather than the
-  sign-in page.
+- The standalone host page has no route, no guest tokens and no data; its
+  endpoint lives at
+  `/extensions/superset-oss/artifacts/embedded/artifact/<uuid>` and answers
+  JSON, because extensions mount only under `/extensions/<publisher>/<name>/`
+  and can't add pages.
 - The publish confirmation is a notice by the artifact, not a screen with a
   diff, and refusing `Authorization` headers is a check on the channel, not
   proof that a person clicked.
