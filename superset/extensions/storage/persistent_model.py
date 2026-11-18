@@ -31,6 +31,7 @@ from sqlalchemy import (
 from sqlalchemy_utils import UUIDType
 from superset_core.extensions.storage.models import (
     ExtensionStorageEntry as CoreExtensionStorageEntry,
+    StorageStore,
 )
 
 from superset.models.helpers import AuditMixinNullable
@@ -40,7 +41,7 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
     """Generic persistent key-value storage for extensions (Tier 3).
 
     Each row is identified by (extension_id, user_fk, resource_type,
-    resource_uuid, key):
+    resource_uuid, store, key):
 
     * Global scope      — user_fk IS NULL, resource_type IS NULL
     * User scope        — user_fk set, resource_type IS NULL
@@ -103,6 +104,12 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
     value_size = Column(Integer, nullable=False)
     codec = Column(String(255), nullable=False, default="json")
     is_encrypted = Column(Boolean, nullable=False, default=False)
+    store = Column(
+        String(32),
+        nullable=False,
+        default=StorageStore.PERSISTENT.value,
+        server_default=StorageStore.PERSISTENT.value,
+    )
 
     __table_args__ = (
         # user_fk, resource_type, and resource_uuid are nullable, and
@@ -114,6 +121,7 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
             "user_fk",
             "resource_type",
             "resource_uuid",
+            "store",
             "key",
             name="uq_extension_storage_scoped_key",
         ),
@@ -124,6 +132,7 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
             "user_fk",
             "resource_type",
             "resource_uuid",
+            "store",
             "key",
         ),
         # Covers both extension_id-only lookups (leftmost prefix) and the

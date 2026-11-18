@@ -32,6 +32,7 @@ from unittest.mock import MagicMock, patch
 
 from flask import Flask, g
 from flask_babel import Babel
+from superset_core.extensions.storage.models import StorageStore
 
 from superset.extensions.storage.api import ExtensionStorageRestApi
 from superset.extensions.storage.codecs import get_codec
@@ -733,6 +734,7 @@ def test_persistent_set_defaults_codec_to_json(
             codec="json",
             user_fk=42,
             encrypt=False,
+            store=StorageStore.PERSISTENT,
         )
 
 
@@ -773,6 +775,7 @@ def test_persistent_set_with_binary_flag_decodes_base64(
             codec="binary",
             user_fk=42,
             encrypt=False,
+            store=StorageStore.PERSISTENT,
         )
 
 
@@ -943,6 +946,7 @@ def test_list_persistent_returns_decoded_entries_and_count(
             resource_uuid=None,
             page=0,
             page_size=10,
+            store=StorageStore.PERSISTENT,
         )
 
 
@@ -1063,6 +1067,7 @@ def test_list_persistent_passes_query_params_to_dao(
             resource_uuid="uuid-1",
             page=2,
             page_size=25,
+            store=StorageStore.PERSISTENT,
         )
 
 

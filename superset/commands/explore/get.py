@@ -34,7 +34,7 @@ from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2RedirectError, SupersetException
 from superset.explore.exceptions import WrongEndpointError
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import security_manager
@@ -208,6 +208,8 @@ class GetExploreCommand(BaseCommand, ABC):
         try:
             if datasource:
                 datasource_data = datasource.data
+        except OAuth2RedirectError:
+            raise
         except SupersetException as ex:
             message = ex.message
         except SQLAlchemyError:

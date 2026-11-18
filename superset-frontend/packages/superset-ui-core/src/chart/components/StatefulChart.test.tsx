@@ -17,9 +17,15 @@
  * under the License.
  */
 
-import { render, waitFor, configure, act } from '@testing-library/react';
+import {
+  render,
+  waitFor,
+  configure,
+  act,
+  fireEvent,
+} from '@testing-library/react';
 import '@testing-library/jest-dom';
-import type { QueryData } from '../..';
+import { ErrorTypeEnum, QueryData, SupersetError } from '../..';
 import StatefulChart from './StatefulChart';
 import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
@@ -1148,6 +1154,59 @@ test('preserves the detailed message from an async (array) rejection', async () 
     expect(onError.mock.calls[0][0].message).toContain('table not found');
   });
 });
+
+test.each([false, true])(
+  'renders structured OAuth errors and retries the self-contained chart (array: %s)',
+  async asArray => {
+    mockChartClient.client.post.mockResolvedValue({
+      response: { status: 202 } as Response,
+      json: { task_ids: ['oauth-task'] },
+    });
+    const oauthError: SupersetError = {
+      error_type: ErrorTypeEnum.OAUTH2_REDIRECT,
+      level: 'warning',
+      message: 'Authorization needed',
+      extra: { url: '/connect', tab_id: 'oauth-tab' },
+    };
+    const failure = { errors: [oauthError] };
+    const handleAsyncChartData = jest
+      .fn()
+      .mockRejectedValueOnce(asArray ? [failure] : failure)
+      .mockResolvedValueOnce([{ data: 'authorized' }]);
+    const onError = jest.fn();
+    const onLoad = jest.fn();
+    const renderQueryError = jest.fn(
+      (error: SupersetError, retry: () => void) => (
+        <button type="button" onClick={retry}>
+          {error.message}
+        </button>
+      ),
+    );
+    const { findByRole, queryByRole } = render(
+      <StatefulChart
+        formData={mockFormData}
+        hooks={{ handleAsyncChartData, renderQueryError }}
+        onError={onError}
+        onLoad={onLoad}
+      />,
+    );
+    fireEvent.click(
+      await findByRole('button', { name: 'Authorization needed' }),
+    );
+    expect(renderQueryError).toHaveBeenCalledWith(
+      oauthError,
+      expect.any(Function),
+    );
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ errors: [oauthError] }),
+    );
+    await waitFor(() =>
+      expect(onLoad).toHaveBeenCalledWith([{ data: 'authorized' }]),
+    );
+    expect(queryByRole('button')).not.toBeInTheDocument();
+    expect(handleAsyncChartData).toHaveBeenCalledTimes(2);
+  },
+);
 
 test('refetches with the latest formData rather than the initial props', async () => {
   mockChartClient.client.post.mockResolvedValue({

@@ -444,3 +444,64 @@ def test_engine_migration_unreadable_value_counts_as_failure() -> None:
 
     assert stats == ReEncryptStats(failed=1)
     assert conn.execute.call_count == 0
+
+
+@pytest.mark.parametrize("user_fk", [None, 42, 43])
+@pytest.mark.parametrize(
+    "rotate_key,source_engine,target_engine",
+    [
+        (True, "aes", "aes"),
+        (True, "aes-gcm", "aes-gcm"),
+        (False, "aes", "aes-gcm"),
+        (True, "aes", "aes-gcm"),
+        (False, "aes-gcm", "aes"),
+    ],
+)
+def test_extension_storage_rotation_preserves_user_keys(
+    user_fk: int | None,
+    rotate_key: bool,
+    source_engine: str,
+    target_engine: str,
+) -> None:
+    """Rotation and engine changes preserve the storage envelope and user scope."""
+    from flask import Flask
+
+    from superset.extensions.storage.persistent_dao import (
+        _decrypt_value,
+        _encrypt_value,
+    )
+    from superset.extensions.storage.persistent_model import ExtensionStorage
+
+    app = Flask(__name__)
+    app.config["SECRET_KEY"] = "old-key" if rotate_key else SECRET_KEY
+    app.config["SQLALCHEMY_ENCRYPTED_FIELD_ENGINE"] = source_engine
+    value = b'{"access_token":"private-token"}'
+    with app.app_context():
+        encrypted = _encrypt_value(value, user_fk, DIALECT)
+        migrator = _engine_migrator(resolve_encryption_engine(target_engine))
+        migrator._previous_secret_key = app.config["SECRET_KEY"]
+        migrator._db = MagicMock()
+        migrator._db.metadata.tables = {"extension_storage": ExtensionStorage.__table__}
+        conn = MagicMock()
+        row = _Row({"id": 1, "value": encrypted, "user_fk": user_fk})
+        conn.execute.return_value = [row]
+        app.config["SECRET_KEY"] = SECRET_KEY
+        stats = ReEncryptStats()
+        migrator._re_encrypt_conditional_table(
+            conn, "extension_storage", "value", "is_encrypted", stats
+        )
+        assert stats == ReEncryptStats(re_encrypted=1)
+        migrated_value = conn.execute.call_args.args[1]["value"]
+        app.config["SQLALCHEMY_ENCRYPTED_FIELD_ENGINE"] = target_engine
+        assert _decrypt_value(migrated_value, user_fk, DIALECT) == value
+        # Repeating the migration must leave the row unchanged.
+        conn.reset_mock()
+        conn.execute.return_value = [
+            _Row({"id": 1, "value": migrated_value, "user_fk": user_fk})
+        ]
+        stats = ReEncryptStats()
+        migrator._re_encrypt_conditional_table(
+            conn, "extension_storage", "value", "is_encrypted", stats
+        )
+        assert stats == ReEncryptStats(skipped=1)
+        assert conn.execute.call_count == 1

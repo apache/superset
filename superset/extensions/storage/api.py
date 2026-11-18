@@ -33,6 +33,7 @@ from typing import Any
 from flask import g, request
 from flask.wrappers import Response
 from flask_appbuilder.api import expose, protect, safe
+from superset_core.extensions.storage.models import StorageStore
 
 from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec, SAFE_CODECS
 from superset.extensions.storage.ephemeral_dao import (
@@ -478,6 +479,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
                 resource_uuid=resource_uuid,
                 page=page,
                 page_size=page_size,
+                store=StorageStore.PERSISTENT,
             )
         except ExtensionStorageListPayloadTooLarge as ex:
             return self.response(ex.status, message=ex.message)
@@ -567,7 +569,12 @@ class ExtensionStorageRestApi(BaseSupersetApi):
 
         shared = request.args.get("shared", "false").lower() == "true"
         user_fk = None if shared else g.user.id
-        entry = ExtensionStorageDAO.get(extension_id, key, user_fk=user_fk)
+        entry = ExtensionStorageDAO.get(
+            extension_id,
+            key,
+            user_fk=user_fk,
+            store=StorageStore.PERSISTENT,
+        )
         if entry is None:
             return self.response(200, result=None)
         if entry.codec not in SAFE_CODECS:
@@ -693,6 +700,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
                 codec=codec,
                 user_fk=user_fk,
                 encrypt=encrypt,
+                store=StorageStore.PERSISTENT,
             )
         except (
             ExtensionStorageKeyTooLong,
@@ -752,6 +760,11 @@ class ExtensionStorageRestApi(BaseSupersetApi):
 
         shared = request.args.get("shared", "false").lower() == "true"
         user_fk = None if shared else g.user.id
-        ExtensionStorageDAO.delete_by_key(extension_id, key, user_fk=user_fk)
+        ExtensionStorageDAO.delete_by_key(
+            extension_id,
+            key,
+            user_fk=user_fk,
+            store=StorageStore.PERSISTENT,
+        )
 
         return self.response(200, message="Value deleted successfully")

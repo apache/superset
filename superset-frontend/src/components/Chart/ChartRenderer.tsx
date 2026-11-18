@@ -48,6 +48,7 @@ import {
   isMatrixifyEnabled,
   type MatrixifyFormData,
   type Hooks,
+  type SupersetError,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
@@ -64,6 +65,7 @@ import ChartContextMenu, {
 import { handleChartDataResponse } from './chartAction';
 import { AsyncModeOverride, resolveAsyncMode } from 'src/utils/asyncMode';
 import { getTabId } from 'src/hooks/useTabId';
+import { ErrorMessageWithStackTrace } from 'src/components/ErrorMessage';
 import { getDisplayControlNames } from 'src/explore/controlUtils/getDisplayControlNames';
 
 // Types for filter values
@@ -160,7 +162,7 @@ export interface ChartRendererProps {
 // import app-level async-event middleware themselves.
 type AsyncChartHooks = Pick<
   Hooks,
-  'handleAsyncChartData' | 'resolveAsyncMode' | 'getTabId'
+  'handleAsyncChartData' | 'resolveAsyncMode' | 'getTabId' | 'renderQueryError'
 >;
 
 // Hooks interface
@@ -575,6 +577,14 @@ function ChartRendererComponent({
       // backend ref-counts the tab (per-tab cancel/detach), matching the Redux
       // chart path (see chartAction.ts).
       getTabId: () => getTabId(),
+      renderQueryError: (error: SupersetError, retry: () => void) => (
+        <ErrorMessageWithStackTrace
+          error={error}
+          subtitle={error.message}
+          closable={false}
+          errorMitigationFunction={retry}
+        />
+      ),
     }),
     [
       handleAddFilter,

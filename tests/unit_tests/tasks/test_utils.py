@@ -996,3 +996,18 @@ def test_floored_status_cursor_drops_subsecond_precision() -> None:
 
     cursor = floored_status_cursor()
     assert cursor.microsecond == 0
+
+
+def test_oauth_failure_preserves_actionable_error_for_async_clients() -> None:
+    """Task consumers can authorize and retry without receiving provider secrets."""
+    from superset.semantic_layers.oauth2 import SemanticLayerOAuth2RedirectError
+
+    exception = SemanticLayerOAuth2RedirectError(
+        "/oauth2/start", "flow-id", "/oauth2/complete"
+    )
+    properties = error_update(exception)
+    error = properties["errors"][0]
+    assert error["error_type"] == "OAUTH2_REDIRECT"
+    assert error["extra"]["url"] == "/oauth2/start"
+    assert error["extra"]["tab_id"] == "flow-id"
+    assert "errors" not in error_update(ValueError("ordinary failure"))

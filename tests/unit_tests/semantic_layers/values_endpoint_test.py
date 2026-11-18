@@ -24,6 +24,7 @@ header contract.
 
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock
 
@@ -379,12 +380,12 @@ def test_unregistered_provider_values_return_safe_error_before_cache_lookup(
 
 
 @pytest.mark.parametrize("provider_type", ["sql", "cube", "snowflake", "metricflow"])
-def test_default_provider_value_cache_key_matches_legacy_bytes(
+def test_default_provider_value_cache_key_preserves_scope(
     semantic_view_datasource: SemanticView,
     mocker: MockerFixture,
     provider_type: str,
 ) -> None:
-    """An SDK-default provider adds no producer field to metadata-versioned keys."""
+    """Default providers retain RLS scope and add user scope for semantic views."""
     import hashlib
 
     from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
@@ -392,6 +393,7 @@ def test_default_provider_value_cache_key_matches_legacy_bytes(
     from superset.datasource.api import _column_values_cache_key
     from superset.utils import json
 
+    mocker.patch("superset.datasource.api.get_user_id", return_value=42)
     datasource: Any = semantic_view_datasource
     if provider_type == "sql":
         datasource = MagicMock(uid="semantic_view_uid_123", changed_on=None)
@@ -419,12 +421,65 @@ def test_default_provider_value_cache_key_matches_legacy_bytes(
     }
     if isinstance(datasource, SemanticView):
         legacy["metadata_version"] = datasource.metadata_generation
+        legacy["semantic_layer_user"] = 42
     expected: str = (
         "col_values:"
         + hashlib.sha256(json.dumps(legacy, sort_keys=True).encode()).hexdigest()
     )
     assert _column_values_cache_key(datasource, query) == expected
     assert "semantic_result_version" not in query
+
+
+@pytest.mark.parametrize("authorized", [True, False])
+def test_column_values_cache_isolates_personal_grants(
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    authorized: bool,
+) -> None:
+    """A warm cache cannot bypass another user's narrower or missing OAuth grant."""
+    from superset.datasource.api import get_cached_column_values
+    from superset.exceptions import OAuth2RedirectError
+
+    user = mocker.patch("superset.datasource.api.get_user_id", return_value=42)
+    mocker.patch(
+        "superset.datasource.api.security_manager.get_rls_cache_key", return_value=[]
+    )
+    cache = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    stored: dict[str, Any] = {}
+    cache.get.side_effect = stored.get
+    cache.set.side_effect = lambda key, value, **kwargs: stored.__setitem__(key, value)
+    implementation = cast(MagicMock, semantic_view_datasource.implementation)
+
+    def values() -> tuple[list[Any], bool]:
+        return get_cached_column_values(
+            semantic_view_datasource,
+            column_name="category",
+            limit=500,
+            denormalize_column=False,
+        )
+
+    assert values() == (["Books", "Clothing"], False)
+    assert values() == (["Books", "Clothing"], True)
+    implementation.get_values.assert_called_once()
+
+    user.return_value = 43
+    if authorized:
+        implementation.get_values.return_value = SemanticResult(
+            requests=[], results=pa.table({"category": ["Books"]})
+        )
+        assert values() == (["Books"], False)
+        assert values() == (["Books"], True)
+    else:
+        implementation.get_values.side_effect = OAuth2RedirectError(
+            "https://example.com/oauth", "tab-id", "https://example.com/complete"
+        )
+        with pytest.raises(OAuth2RedirectError):
+            values()
+        assert cache.set.call_count == 1
+
+    assert implementation.get_values.call_count == 2
+    user.return_value = 42
+    assert values() == (["Books", "Clothing"], True)
 
 
 def test_versioned_suggestions_are_unavailable_before_cache(
@@ -833,3 +888,88 @@ def test_ambiguous_values_are_a_400_without_query_or_cache_write(
     assert "ambiguous" in response.json["message"]
     implementation.get_values.assert_not_called()
     cache.set.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "method,path,payload",
+    [
+        (
+            "get_values",
+            "/api/v1/datasource/semantic_view/1/column/category/values/",
+            None,
+        ),
+        ("get_compatible_metrics", "/api/v1/datasource/semantic_view/1/compatible", {}),
+        (
+            "get_compatible_dimensions",
+            "/api/v1/datasource/semantic_view/1/compatible",
+            {},
+        ),
+        (
+            "get_metrics",
+            "/api/v1/datasource/semantic_view/1/compatible",
+            {"selected_metrics": ["orders"]},
+        ),
+    ],
+)
+def test_metadata_endpoints_preserve_oauth(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    method: str,
+    path: str,
+    payload: dict[str, Any] | None,
+) -> None:
+    """Metadata calls preserve structured authorization rather than generic 500s."""
+    from superset.exceptions import OAuth2RedirectError
+
+    mocker.patch(
+        "superset.datasource.api.cache_manager"
+    ).data_cache.get.return_value = None
+    error = OAuth2RedirectError("/connect", "flow", "/complete")
+    getattr(semantic_view_datasource.implementation, method).side_effect = error
+    response = client.get(path) if payload is None else client.post(path, json=payload)
+    assert response.status_code == 403
+    assert response.json["errors"][0]["error_type"] == "OAUTH2_REDIRECT"
+    assert response.json["errors"][0]["extra"] == error.error.extra
+
+
+def test_compatibility_cache_is_user_scoped(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+) -> None:
+    """Even empty selections cannot return another user's cached member lists."""
+    cached: dict[str, Any] = {}
+    cache = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.side_effect = cached.get
+    cache.set.side_effect = lambda key, value, **kwargs: cached.update({key: value})
+    identity = mocker.patch("superset.datasource.api.get_user_id", return_value=1)
+    provider = semantic_view_datasource.implementation
+    provider.get_compatible_metrics.return_value = [
+        SimpleNamespace(**{"name": "alice_metric"})
+    ]
+    provider.get_compatible_dimensions.return_value = [
+        SimpleNamespace(**{"name": "alice_dimension"})
+    ]
+    path = "/api/v1/datasource/semantic_view/1/compatible"
+    assert client.post(path, json={}).json["result"]["compatible_metrics"] == [
+        "alice_metric"
+    ]
+    identity.return_value = 2
+    provider.get_compatible_metrics.return_value = [
+        SimpleNamespace(**{"name": "bob_metric"})
+    ]
+    provider.get_compatible_dimensions.return_value = [
+        SimpleNamespace(**{"name": "bob_dimension"})
+    ]
+    assert client.post(path, json={}).json["result"]["compatible_metrics"] == [
+        "bob_metric"
+    ]
+    assert len(cached) == 2
+    assert provider.get_compatible_metrics.call_count == 2
+    assert client.post(path, json={}).json["result"]["compatible_metrics"] == [
+        "bob_metric"
+    ]
+    assert provider.get_compatible_metrics.call_count == 2

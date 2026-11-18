@@ -30,6 +30,7 @@ Usage:
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -37,6 +38,13 @@ from superset_core.common.models import CoreModel
 
 if TYPE_CHECKING:
     from datetime import datetime
+
+
+class StorageStore(str, Enum):
+    """Identifies the persistent or secrets store containing an entry."""
+
+    PERSISTENT = "persistent"
+    SECRETS = "secrets"
 
 
 class ExtensionStorageEntry(CoreModel):
@@ -66,6 +74,7 @@ class ExtensionStorageEntry(CoreModel):
     value_size: int
     codec: str
     is_encrypted: bool
+    store: str
 
     # Audit fields
     created_on: "datetime | None"

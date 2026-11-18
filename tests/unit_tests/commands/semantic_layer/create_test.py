@@ -626,3 +626,28 @@ def test_create_semantic_view_malformed_configuration(
     assert error.value.__cause__ is None
     layer.implementation.get_semantic_view.assert_not_called()
     dao.create.assert_not_called()
+
+
+def test_create_semantic_view_preserves_oauth_redirect(mocker: MockerFixture) -> None:
+    """Expired grants remain recoverable when validation looks up the view."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.exceptions import OAuth2RedirectError
+
+    layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO"
+    ).find_by_uuid.return_value
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO.validate_uniqueness",
+        return_value=True,
+    )
+    error = OAuth2RedirectError("/connect", "flow", "/complete")
+    layer.implementation.get_semantic_view.side_effect = error
+    with pytest.raises(OAuth2RedirectError) as raised:
+        CreateSemanticViewCommand(
+            {"name": "orders", "semantic_layer_uuid": "layer"}
+        ).validate()
+    assert raised.value is error

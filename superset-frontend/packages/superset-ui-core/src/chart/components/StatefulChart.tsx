@@ -30,6 +30,8 @@ import {
   RequestConfig,
   getClientErrorObject,
   ensureIsArray,
+  ClientErrorObject,
+  SupersetError,
 } from '../..';
 import { Loading } from '../../components/Loading';
 import ChartClient from '../clients/ChartClient';
@@ -223,7 +225,7 @@ function extractRows(json: JsonObject | JsonObject[]): QueryData[] {
 export default function StatefulChart(props: StatefulChartProps) {
   const [status, setStatus] = useState<LoadingState>('uninitialized');
   const [data, setData] = useState<QueryData[]>();
-  const [error, setError] = useState<Error>();
+  const [error, setError] = useState<Error & { errors?: SupersetError[] }>();
   const [formData, setFormData] = useState<QueryFormData>();
 
   const chartClientRef = useRef<ChartClient>();
@@ -465,25 +467,32 @@ export default function StatefulChart(props: StatefulChartProps) {
       const rawError = Array.isArray(err) ? err[0] : err;
 
       let errorMessage: string | undefined;
+      let queryErrors: SupersetError[] | undefined;
       if (
         rawError &&
         typeof rawError === 'object' &&
         !(rawError instanceof Error) &&
         !(rawError instanceof Response) &&
-        typeof (rawError as { error?: unknown }).error === 'string'
+        ('error' in rawError || 'errors' in rawError)
       ) {
         // Already a parsed client-error object (e.g. from the async handler);
         // getClientErrorObject would discard its `error` field, so read it here.
-        const parsed = rawError as { error?: string; message?: string };
-        errorMessage = parsed.error || parsed.message;
+        const parsed = rawError as Partial<ClientErrorObject>;
+        queryErrors = parsed.errors;
+        errorMessage =
+          parsed.error || parsed.message || queryErrors?.[0]?.message;
       } else {
         const parsedError = await getClientErrorObject(
           rawError as Parameters<typeof getClientErrorObject>[0],
         );
         errorMessage = parsedError.error || parsedError.message;
+        queryErrors = parsedError.errors;
       }
 
-      const errorObj = new Error(errorMessage || 'An error occurred');
+      const errorObj = Object.assign(
+        new Error(errorMessage || 'An error occurred'),
+        { errors: queryErrors },
+      );
 
       // The request may have been superseded while its error response was being
       // parsed above (or in the render->effect gap before its abort ran); don't
@@ -604,6 +613,10 @@ export default function StatefulChart(props: StatefulChartProps) {
   if (status === 'error' && error) {
     if (ErrorComponent) {
       return <ErrorComponent error={error} />;
+    }
+
+    if (error.errors?.length && props.hooks?.renderQueryError) {
+      return <>{props.hooks.renderQueryError(error.errors[0], fetchData)}</>;
     }
 
     const errorDiv = (
