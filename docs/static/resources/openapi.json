@@ -8779,6 +8779,10 @@
             "nullable": true,
             "type": "string"
           },
+          "canvas_id": {
+            "nullable": true,
+            "type": "integer"
+          },
           "dashboard_id": {
             "nullable": true,
             "type": "integer"
@@ -8843,6 +8847,10 @@
             "maxLength": 512,
             "nullable": true,
             "type": "string"
+          },
+          "canvas_id": {
+            "nullable": true,
+            "type": "integer"
           },
           "dashboard_id": {
             "nullable": true,
