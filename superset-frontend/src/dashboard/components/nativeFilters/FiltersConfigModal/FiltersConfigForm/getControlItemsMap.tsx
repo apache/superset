@@ -48,7 +48,7 @@ import { ColumnSelect } from './ColumnSelect';
 
 export interface ControlItemsProps {
   expanded: boolean;
-  datasetId: number;
+  datasetId?: number;
   datasourceType?: DatasourceType;
   disabled: boolean;
   forceUpdate: Function;
@@ -147,6 +147,7 @@ export default function getControlItemsMap({
                 doesColumnMatchFilterType(
                   formFilter?.filterType || '',
                   column,
+                  datasourceType,
                 ) && !!column?.filterable
               }
               onChange={() => {
@@ -172,7 +173,8 @@ export default function getControlItemsMap({
         controlItem?.config?.renderTrigger &&
         controlItem.name !== 'sortAscending' &&
         controlItem.name !== 'enableSingleValue' &&
-        controlItem.name !== 'operatorType',
+        controlItem.name !== 'operatorType' &&
+        controlItem.name !== 'displayFormat',
     )
     .forEach(controlItem => {
       const initialValue =

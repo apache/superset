@@ -178,7 +178,7 @@ test('should remove tab', async () => {
   expect(removeButton).toBeTruthy();
 
   if (removeButton) {
-    userEvent.click(removeButton);
+    await userEvent.click(removeButton);
   }
 
   await waitFor(() => {

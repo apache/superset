@@ -55,9 +55,6 @@ export const isUserInSubjects = (
   );
 };
 
-const isUserInEditors = (editors: Subject[] = []): boolean =>
-  isUserInSubjects(editors);
-
 export const isUserAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,
 ) =>
@@ -66,10 +63,12 @@ export const isUserAdmin = (
     role => role.toLowerCase() === ADMIN_ROLE_NAME.toLowerCase(),
   );
 
+/** `extraEditors` is editorship granted via a deployment's EXTRA_EDITORS_RESOLVER. */
 export const isUserEditorOrAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,
   editors: Subject[] = [],
-): boolean => isUserInEditors(editors) || isUserAdmin(user);
+  extraEditors?: SubjectRef[] | null,
+): boolean => isUserInSubjects(editors, extraEditors) || isUserAdmin(user);
 
 /**
  * Editorship of *dashboard*, matching the server's `is_editor`: the explicit

@@ -16,8 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import fetchMock from 'fetch-mock';
+import userEvent from '@testing-library/user-event';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   setupMocks,
   setupApiPermissions,
@@ -28,7 +36,13 @@ import {
   mockExportOnlyUser,
   mockDatasets,
   mockDatasetListEndpoints,
+  API_ENDPOINTS,
 } from './DatasetList.testHelpers';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 // Increase default timeout for tests that involve multiple async operations
 // CI parallel load can cause timeouts with default 15s
@@ -105,6 +119,30 @@ test('read-only users cannot see Actions column', async () => {
     expect(within(table).queryByText(/Actions/i)).not.toBeInTheDocument();
   });
 });
+
+test.each([
+  [true, 'archive'],
+  [false, 'delete'],
+])(
+  'soft delete %s uses the dataset row permission hint for %s',
+  async (enabled, verb) => {
+    (isFeatureEnabled as jest.Mock).mockImplementation(
+      flag => enabled && flag === FeatureFlag.SoftDelete,
+    );
+    setupApiPermissions(['can_read', 'can_write']);
+    renderDatasetList(mockWriteUser);
+    const row = (await screen.findByText(mockDatasets[0].table_name)).closest(
+      'tr',
+    );
+    const action = within(row!).getByTestId('dataset-row-delete');
+    await act(async () => {
+      action.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      `You must be a dataset editor in order to ${verb}.`,
+    );
+  },
+);
 
 test('read-only users cannot see bulk select button', async () => {
   // Setup API with read-only permissions
@@ -394,4 +432,333 @@ test('user with can_duplicate sees duplicate button only for virtual datasets', 
   // Virtual dataset SHOULD have duplicate button
   const virtualDuplicateButton = within(virtualRow!).getByTestId('copy');
   expect(virtualDuplicateButton).toBeInTheDocument();
+});
+
+describe('semantic layer setup transition', () => {
+  const configure = (canWriteLayer: boolean) => {
+    jest
+      .mocked(isFeatureEnabled)
+      .mockImplementation(flag => flag === 'SEMANTIC_LAYERS');
+    setupApiPermissions(['can_read', 'can_write']);
+    fetchMock.get(
+      'glob:*/api/v1/semantic_layer/',
+      { result: [] },
+      { name: 'setup-layers' },
+    );
+    fetchMock.get(
+      'glob:*/api/v1/semantic_layer/types',
+      { result: [] },
+      { name: 'setup-types' },
+    );
+    return {
+      ...mockAdminUser,
+      roles: {
+        Custom: [
+          ['can_read', 'SemanticLayer'],
+          ...(canWriteLayer ? [['can_write', 'SemanticLayer']] : []),
+        ],
+      },
+    };
+  };
+
+  const openView = async () => {
+    await userEvent.click(await screen.findByTestId('btn-create-new'));
+    await userEvent.click(
+      await screen.findByText('Semantic View', {
+        selector: '.ant-dropdown-menu-title-content',
+      }),
+    );
+  };
+
+  test('layer writers can switch dialogs and cancel back to a fresh layer list', async () => {
+    renderDatasetList(configure(true));
+    await openView();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Create semantic layer' }),
+    );
+    expect(
+      await screen.findByText(
+        'No semantic layer types are available. Ask your administrator to check the semantic layer setup for this deployment.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    fireEvent.keyDown(screen.getByRole('dialog'), {
+      key: 'Escape',
+      keyCode: 27,
+    });
+    expect(
+      await screen.findByRole('button', { name: 'Create semantic layer' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(fetchMock.callHistory.calls('setup-layers')).toHaveLength(2);
+    expect(
+      fetchMock.callHistory
+        .calls()
+        .filter(call => call.options.method === 'POST'),
+    ).toHaveLength(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('btn-create-new')).toHaveFocus(),
+    );
+  });
+
+  test('dataset writers without layer-write permission get administrator guidance', async () => {
+    renderDatasetList(configure(false));
+    await openView();
+    expect(
+      await screen.findByText(
+        /Ask your administrator to set up a semantic layer or grant you access/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Create semantic layer' }),
+    ).not.toBeInTheDocument();
+  });
+
+  test.each([true, false])(
+    'creation success=%s returns only after a successful save',
+    async succeeds => {
+      const user = configure(true);
+      fetchMock.removeRoutes({ names: ['setup-types'] });
+      fetchMock.get('glob:*/api/v1/semantic_layer/types', {
+        result: [{ id: 'example', name: 'Example provider' }],
+      });
+      fetchMock.post('glob:*/api/v1/semantic_layer/schema/configuration', {
+        result: { type: 'object', properties: {} },
+      });
+      fetchMock.post(
+        'glob:*/api/v1/semantic_layer/',
+        succeeds ? { result: { uuid: 'new-layer' } } : 500,
+        { name: 'create-layer' },
+      );
+      renderDatasetList(user);
+      await openView();
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Create semantic layer' }),
+      );
+      const typePicker = await screen.findByRole('combobox', {
+        name: 'Semantic layer type',
+      });
+      await waitFor(() => expect(typePicker).toBeEnabled());
+      fireEvent.mouseDown(typePicker);
+      await userEvent.click(
+        await screen.findByText('Example provider', {
+          selector: '.ant-select-item-option-content',
+        }),
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+      const create = await screen.findByRole('button', { name: 'Create' });
+      await waitFor(() => expect(create).toBeEnabled());
+      fetchMock.removeRoutes({ names: ['setup-layers'] });
+      fetchMock.get(
+        'glob:*/api/v1/semantic_layer/',
+        { result: [{ uuid: 'new-layer', name: 'Example provider' }] },
+        { name: 'refreshed-layers' },
+      );
+      await userEvent.click(create);
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls('create-layer')).toHaveLength(1),
+      );
+      if (succeeds) {
+        await waitFor(() =>
+          expect(fetchMock.callHistory.calls('refreshed-layers')).toHaveLength(
+            1,
+          ),
+        );
+        const layerPicker = await screen.findByRole('combobox', {
+          name: 'Semantic layer',
+        });
+        const layerSelect = layerPicker.closest('.ant-select');
+        expect(layerSelect).toHaveTextContent('Select a semantic layer');
+        expect(
+          layerSelect?.querySelector('.ant-select-selection-item'),
+        ).toBeNull();
+        expect(
+          fetchMock.callHistory
+            .calls()
+            .filter(call =>
+              /\/api\/v1\/semantic_layer\/[^/]+\/(schema\/runtime|views)/.test(
+                String(call.url),
+              ),
+            ),
+        ).toHaveLength(0);
+        expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+      } else {
+        await waitFor(() => expect(create).toBeEnabled());
+        expect(
+          screen.queryByRole('combobox', { name: 'Semantic layer' }),
+        ).not.toBeInTheDocument();
+        expect(fetchMock.callHistory.calls('refreshed-layers')).toHaveLength(0);
+      }
+      expect(screen.getAllByRole('dialog')).toHaveLength(1);
+      expect(
+        fetchMock.callHistory
+          .calls()
+          .filter(
+            call =>
+              String(call.url).includes('/semantic_view/') &&
+              call.options.method === 'POST',
+          ),
+      ).toHaveLength(0);
+    },
+  );
+
+  test('late layer creation cannot replace a newer setup session', async () => {
+    const user = configure(true);
+    fetchMock.removeRoutes({ names: ['setup-types'] });
+    fetchMock.get('glob:*/api/v1/semantic_layer/types', {
+      result: [{ id: 'example', name: 'Example provider' }],
+    });
+    fetchMock.post('glob:*/api/v1/semantic_layer/schema/configuration', {
+      result: { type: 'object', properties: {} },
+    });
+    let finishSave!: (value: { result: { uuid: string } }) => void;
+    fetchMock.post(
+      'glob:*/api/v1/semantic_layer/',
+      () =>
+        new Promise(resolve => {
+          finishSave = resolve;
+        }),
+      { name: 'pending-create' },
+    );
+    renderDatasetList(user);
+    await openView();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Create semantic layer' }),
+    );
+    const typePicker = await screen.findByRole('combobox', {
+      name: 'Semantic layer type',
+    });
+    await waitFor(() => expect(typePicker).toBeEnabled());
+    fireEvent.mouseDown(typePicker);
+    await userEvent.click(
+      await screen.findByText('Example provider', {
+        selector: '.ant-select-item-option-content',
+      }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+    const create = await screen.findByRole('button', { name: 'Create' });
+    await waitFor(() => expect(create).toBeEnabled());
+    await userEvent.click(create);
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('pending-create')).toHaveLength(1),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Create semantic layer' }),
+    );
+    expect(
+      await screen.findByRole('combobox', { name: 'Semantic layer type' }),
+    ).toBeInTheDocument();
+    await act(async () => {
+      finishSave({ result: { uuid: 'old-layer' } });
+      await fetchMock.callHistory.flush(true);
+    });
+    expect(
+      screen.getByRole('combobox', { name: 'Semantic layer type' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: 'Semantic layer' }),
+    ).not.toBeInTheDocument();
+    expect(fetchMock.callHistory.calls('setup-layers')).toHaveLength(2);
+  });
+
+  test('late layer creation refreshes the view picker after cancel without stale UI', async () => {
+    const user = configure(true);
+    const addSuccessToast = jest.fn();
+    fetchMock.removeRoutes({ names: ['setup-types'] });
+    fetchMock.get('glob:*/api/v1/semantic_layer/types', {
+      result: [{ id: 'example', name: 'Example provider' }],
+    });
+    fetchMock.post('glob:*/api/v1/semantic_layer/schema/configuration', {
+      result: { type: 'object', properties: {} },
+    });
+    let finishSave!: (value: { result: { uuid: string } }) => void;
+    fetchMock.post(
+      'glob:*/api/v1/semantic_layer/',
+      () =>
+        new Promise(resolve => {
+          finishSave = resolve;
+        }),
+      { name: 'pending-create' },
+    );
+    renderDatasetList(user, { addSuccessToast });
+    await openView();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Create semantic layer' }),
+    );
+    const typePicker = await screen.findByRole('combobox', {
+      name: 'Semantic layer type',
+    });
+    await waitFor(() => expect(typePicker).toBeEnabled());
+    fireEvent.mouseDown(typePicker);
+    await userEvent.click(
+      await screen.findByText('Example provider', {
+        selector: '.ant-select-item-option-content',
+      }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+    const create = await screen.findByRole('button', { name: 'Create' });
+    await waitFor(() => expect(create).toBeEnabled());
+    await userEvent.click(create);
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('pending-create')).toHaveLength(1),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(
+      await screen.findByText(/No semantic layers are available to you/),
+    ).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls('setup-layers')).toHaveLength(2);
+    fetchMock.removeRoutes({ names: ['setup-layers'] });
+    fetchMock.get(
+      'glob:*/api/v1/semantic_layer/',
+      { result: [{ uuid: 'new-layer', name: 'Example provider' }] },
+      { name: 'refreshed-layers' },
+    );
+    await act(async () => {
+      finishSave({ result: { uuid: 'new-layer' } });
+      await fetchMock.callHistory.flush(true);
+    });
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('refreshed-layers')).toHaveLength(1),
+    );
+    const layerPicker = screen.getByRole('combobox', {
+      name: 'Semantic layer',
+    });
+    expect(layerPicker).toBeEnabled();
+    fireEvent.mouseDown(layerPicker);
+    expect(
+      await screen.findByText('Example provider', {
+        selector: '.ant-select-item-option-content',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(addSuccessToast).not.toHaveBeenCalled();
+  });
+
+  test('flag off keeps the setup entry unavailable', async () => {
+    const user = configure(true);
+    jest.mocked(isFeatureEnabled).mockReturnValue(false);
+    fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS_INFO] });
+    let respondPermissions!: (value: { permissions: string[] }) => void;
+    fetchMock.get(
+      API_ENDPOINTS.DATASETS_INFO,
+      () =>
+        new Promise(resolve => {
+          respondPermissions = resolve;
+        }),
+      { name: API_ENDPOINTS.DATASETS_INFO },
+    );
+    renderDatasetList(user);
+    expect(await screen.findByText('Datasets')).toBeInTheDocument();
+    await act(async () =>
+      respondPermissions({ permissions: ['can_read', 'can_write'] }),
+    );
+    expect(await screen.findByTestId('import-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('btn-create-new')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /(?:plus\s*)?Dataset$/i }),
+    ).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls('setup-layers')).toHaveLength(0);
+  });
 });

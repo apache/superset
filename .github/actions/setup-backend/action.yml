@@ -26,8 +26,9 @@ runs:
         if [ "$INPUT_PYTHON_VERSION" = "current" ]; then
           RESOLVED_VERSION="3.11"
         elif [ "$INPUT_PYTHON_VERSION" = "next" ]; then
-          # currently disabled in GHA matrixes because of library compatibility issues
-          RESOLVED_VERSION="3.12"
+          # tracks the next Python minor we're evaluating for support; exercised
+          # by the nightly canary (python-nightly-canary.yml), not PR/push CI
+          RESOLVED_VERSION="3.13"
         elif printf '%s' "$INPUT_PYTHON_VERSION" | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
           RESOLVED_VERSION="$INPUT_PYTHON_VERSION"
         else
@@ -41,7 +42,7 @@ runs:
         python-version: ${{ steps.set-python-version.outputs.python-version }}
     - name: Install uv
       if: inputs.install-superset == 'true'
-      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       with:
         python-version: ${{ steps.set-python-version.outputs.python-version }}
         enable-cache: true
@@ -51,7 +52,11 @@ runs:
       # or package lookups silently resolve to an empty list.
       if: inputs.install-superset == 'true'
       shell: bash
-      run: sudo apt-get update
+      run: |
+        # Use the runner's preinstalled Chrome; these dependencies do not need
+        # its apt repository. Mirror index failures must not block their setup.
+        sudo rm -f /etc/apt/sources.list.d/google-chrome*.list /etc/apt/sources.list.d/google-chrome*.sources
+        sudo apt-get update
     - name: Install apt packages
       if: inputs.install-superset == 'true'
       uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3

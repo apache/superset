@@ -62,7 +62,7 @@ def add_parent_ids(node, layout):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
@@ -88,7 +88,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):

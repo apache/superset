@@ -33,27 +33,33 @@ from superset.commands.report.exceptions import (
 )
 from superset.reports.models import ReportScheduleType
 
-REPORT_TYPES = {
+# Tuples, not sets: these feed ``@pytest.mark.parametrize``, and pytest-xdist
+# requires every worker to collect the same test ids in the same order. A set
+# of strings iterates in per-process hash order (PYTHONHASHSEED), so a set here
+# makes workers disagree and xdist aborts with "Different tests were collected".
+REPORT_TYPES: tuple[ReportScheduleType, ...] = (
     ReportScheduleType.ALERT,
     ReportScheduleType.REPORT,
-}
+)
 
-TEST_SCHEDULES_EVERY_MINUTE = {
+TEST_SCHEDULES_EVERY_MINUTE: tuple[str, ...] = (
     "* * * * *",
     "1-5 * * * *",
     "10-20 * * * *",
     "0,45,10-20 * * * *",
     "23,45,50,51 * * * *",
     "10,20,30,40-45 * * * *",
-}
+)
 
-TEST_SCHEDULES_SINGLE_MINUTES = {
+TEST_SCHEDULES_SINGLE_MINUTES: tuple[str, ...] = (
     "1,5,8,10,12 * * * *",
     "10 1 * * *",
     "27,2 1-5 * * *",
-}
+)
 
-TEST_SCHEDULES = TEST_SCHEDULES_EVERY_MINUTE.union(TEST_SCHEDULES_SINGLE_MINUTES)
+TEST_SCHEDULES: tuple[str, ...] = (
+    TEST_SCHEDULES_EVERY_MINUTE + TEST_SCHEDULES_SINGLE_MINUTES
+)
 
 
 def dynamic_alert_minimum_interval(**kwargs) -> int:
@@ -410,3 +416,242 @@ def test_validate_alert_query_rejects_unauthorized_tables(
 
     assert len(exceptions) == 1
     assert isinstance(exceptions[0], AlertQueryDataAccessValidationError)
+
+
+# -- Report target exclusions --
+#
+# The related-field filter narrows the picker, but a list filter is not an
+# authorisation boundary: ``_check_object_access`` resolves the posted id
+# through ``find_by_id``, which applies the ordinary access filter. These go
+# through that method rather than the exclusion helper in isolation, so a
+# regression in the key mapping or the raise is caught.
+
+
+def test_check_object_access_refuses_an_excluded_report_target(
+    mocker: MockerFixture,
+) -> None:
+    """An excluded id posted directly must be refused, not merely hidden."""
+    from superset.commands.report.exceptions import ReportScheduleForbiddenError
+
+    excluded = mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+    dao = mocker.MagicMock()
+    dao.find_by_id.return_value = mocker.MagicMock()
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {}
+
+    with pytest.raises(ReportScheduleForbiddenError):
+        cmd._check_object_access(
+            42,
+            kind="dashboard",
+            dao=dao,
+            not_found_exc=ValueError,
+            exceptions=[],
+        )
+
+    # The key is derived from the kind, which is what a rename would break.
+    assert excluded.call_args.args[0] == "report_target_dashboards"
+
+
+def test_check_object_access_allows_a_target_that_is_not_excluded(
+    mocker: MockerFixture,
+) -> None:
+    """With no exclusion configured the ordinary access check decides."""
+    mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=False,
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.report.base.security_manager"
+    ).raise_for_access
+    dao = mocker.MagicMock()
+    resolved = mocker.MagicMock()
+    dao.find_by_id.return_value = resolved
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {}
+    cmd._check_object_access(
+        42,
+        kind="chart",
+        dao=dao,
+        not_found_exc=ValueError,
+        exceptions=[],
+    )
+
+    raise_for_access.assert_called_once_with(chart=resolved)
+    assert cmd._properties["chart"] is resolved
+
+
+def test_an_update_omitting_the_target_still_checks_the_stored_one(
+    mocker: MockerFixture,
+) -> None:
+    """Reactivating a report must not resume a schedule on a withheld target.
+
+    ``PUT /api/v1/report/<id>`` with only ``{"active": true}`` reaches the
+    branch that takes the target from the stored model, so without this the
+    schedule resumes while resubmitting that same target is refused.
+    """
+    from superset.commands.report.exceptions import ReportScheduleForbiddenError
+
+    excluded = mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": True}
+    # The class declares no ``_model``; production reads it via ``getattr``.
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9)
+
+    with pytest.raises(ReportScheduleForbiddenError):
+        cmd.validate_chart_dashboard([], update=True)
+
+    assert excluded.call_args.args == ("report_target_dashboards", 9)
+
+
+def test_an_update_omitting_the_target_passes_when_not_withheld(
+    mocker: MockerFixture,
+) -> None:
+    """With no exclusion configured the stored target is left alone."""
+    mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=False,
+    )
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": True}
+    # The class declares no ``_model``; production reads it via ``getattr``.
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9)
+
+    exceptions: list[Any] = []
+    cmd.validate_chart_dashboard(exceptions, update=True)
+    assert exceptions == []
+
+
+def test_deactivating_a_report_on_a_withheld_target_is_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """Pausing must never be refused.
+
+    Refusing it traps the owner: they can neither pause the report nor stop the
+    scheduler selecting it, so the withheld asset keeps being delivered. That is
+    strictly worse than not checking at all.
+    """
+    excluded = mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": False}
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9, active=True)
+
+    exceptions: list[Any] = []
+    cmd.validate_chart_dashboard(exceptions, update=True)
+
+    assert exceptions == []
+    excluded.assert_not_called()
+
+
+def test_pausing_from_the_edit_modal_is_allowed(mocker: MockerFixture) -> None:
+    """A pause that resends the target must be honoured too.
+
+    ``AlertReportModal`` spreads the whole form into its PUT and always sets
+    ``chart``/``dashboard`` from the loaded report, so a pause from there arrives
+    as ``{"active": false, "dashboard": 9}`` and takes the *submitted*-target
+    branch -- not the stored-target branch the list page's toggle reaches, which
+    sends ``{"active": false}`` alone. An exemption only the stored path could
+    see left the modal returning 403, so the owner could not pause at all.
+    """
+    excluded = mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+    mocker.patch("superset.commands.report.base.security_manager")
+    dao = mocker.patch("superset.commands.report.base.DashboardDAO")
+    dao.find_by_id.return_value = mocker.MagicMock()
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": False, "dashboard": 9}
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9, active=True)
+
+    exceptions: list[Any] = []
+    cmd.validate_chart_dashboard(exceptions, update=True)
+
+    assert exceptions == []
+    excluded.assert_not_called()
+
+
+def test_activating_from_the_edit_modal_is_still_refused(
+    mocker: MockerFixture,
+) -> None:
+    """The pause exemption must not become a way in.
+
+    Same payload shape as the test above with the switch the other way: a
+    schedule that will run is checked, so nothing is gained by routing the
+    request through the modal.
+    """
+    from superset.commands.report.exceptions import ReportScheduleForbiddenError
+
+    mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+    mocker.patch("superset.commands.report.base.security_manager")
+    dao = mocker.patch("superset.commands.report.base.DashboardDAO")
+    dao.find_by_id.return_value = mocker.MagicMock()
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": True, "dashboard": 9}
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9, active=False)
+
+    with pytest.raises(ReportScheduleForbiddenError):
+        cmd.validate_chart_dashboard([], update=True)
+
+
+def test_an_already_paused_report_may_be_edited(mocker: MockerFixture) -> None:
+    """The check guards delivery, not editing."""
+    excluded = mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"crontab": "0 9 * * *"}
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9, active=False)
+
+    exceptions: list[Any] = []
+    cmd.validate_chart_dashboard(exceptions, update=True)
+
+    assert exceptions == []
+    excluded.assert_not_called()
+
+
+def test_the_stored_target_asks_both_exclusion_keys(
+    mocker: MockerFixture,
+) -> None:
+    """A submitted target reaches the ordinary key through ``find_by_id``.
+
+    So a stored target asking only ``report_target_*`` would accept what
+    resubmitting the same id refuses.
+    """
+    from superset.commands.report.exceptions import ReportScheduleForbiddenError
+
+    # Withheld by the ordinary key only.
+    def only_ordinary(key: str, _id: int) -> bool:
+        return key == "dashboards"
+
+    mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        side_effect=only_ordinary,
+    )
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": True}
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9, active=False)
+
+    with pytest.raises(ReportScheduleForbiddenError):
+        cmd.validate_chart_dashboard([], update=True)

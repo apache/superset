@@ -70,6 +70,20 @@ F = TypeVar("F", bound=BaseModel)  # For filter types
 L = TypeVar("L", bound=BaseModel)  # For list response schemas
 
 
+# Humanized/computed columns accepted as order_column aliases, mapped to the
+# real sortable column that backs them. Superset's own REST APIs (see the
+# `@renders("changed_on")` binding on `changed_on_delta_humanized` in
+# models/helpers.py, and each ModelRestApi's `order_columns`) already sort
+# by the underlying timestamp when asked to order by the humanized string,
+# since the humanized value is derived from it and isn't itself a queryable
+# column. Mirrored here so DAO.list() (which does a plain
+# `getattr(model, order_column)`) receives an actual column, not a Python
+# property/method.
+_ORDER_COLUMN_ALIASES: dict[str, str] = {
+    "changed_on_delta_humanized": "changed_on",
+}
+
+
 class BaseCore(ABC):
     """
     Abstract base class for all MCP Core classes.
@@ -388,6 +402,14 @@ class ModelListCore(BaseCore, Generic[L]):
                 columns_to_load.append(dependency)
 
         self._validate_order_column(order_column)
+        # Resolve humanized/computed aliases (e.g. changed_on_delta_humanized)
+        # to the real column they're derived from. Must happen after
+        # validation (which checks against the advertised sortable_columns,
+        # including the alias) and before the DAO call, since DAO.list()
+        # sorts via `getattr(model, order_column)` and would receive a
+        # Python property/method instead of a SQL column otherwise.
+        if order_column is not None and order_column in self._sortable_columns:
+            order_column = _ORDER_COLUMN_ALIASES.get(order_column, order_column)
 
         deleted_state_bound = self._build_deleted_state_filter(deleted_state)
         if deleted_state_bound is not None:

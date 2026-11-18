@@ -34,7 +34,37 @@ import { getDashboardUrlParams } from 'src/utils/urlUtils';
 import { DownloadScreenshotFormat } from '../components/menu/DownloadMenuItems/types';
 
 const RETRY_INTERVAL = 3000;
-const MAX_RETRIES = 30;
+const DEFAULT_SCREENSHOT_TASK_TIMEOUT_SECONDS = 6 * 60;
+
+type ScreenshotTaskResponse = {
+  cache_key?: string;
+  task_timeout_seconds?: number;
+};
+
+type ScreenshotTaskErrorResponse = {
+  extra?: {
+    task_status?: string;
+  };
+};
+
+const getScreenshotTaskStatus = async (error: unknown) => {
+  const apiError = error as SupersetApiError | undefined;
+  if (typeof apiError?.extra?.task_status === 'string') {
+    return apiError.extra.task_status;
+  }
+  const response = error as Response | undefined;
+  if (typeof response?.clone !== 'function') {
+    return undefined;
+  }
+  try {
+    const payload = (await response
+      .clone()
+      .json()) as ScreenshotTaskErrorResponse;
+    return payload.extra?.task_status;
+  } catch {
+    return undefined;
+  }
+};
 
 export const useDownloadScreenshot = (
   dashboardId: number,
@@ -74,8 +104,12 @@ export const useDownloadScreenshot = (
   const downloadScreenshot = useCallback(
     (format: DownloadScreenshotFormat) => {
       let retries = 0;
+      let maxRetries = Math.ceil(
+        (DEFAULT_SCREENSHOT_TASK_TIMEOUT_SECONDS * 1000) / RETRY_INTERVAL,
+      );
       let isFetching = false;
       let isDownloaded = false;
+      let hasFailed = false;
 
       const toastIntervalId = setInterval(
         () =>
@@ -120,7 +154,7 @@ export const useDownloadScreenshot = (
             return response.blob().then(blob => ({ blob, fileName }));
           })
           .then(({ blob, fileName }) => {
-            if (isDownloaded) {
+            if (isDownloaded || hasFailed) {
               return;
             }
             isDownloaded = true;
@@ -134,17 +168,28 @@ export const useDownloadScreenshot = (
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
           })
-          .catch(err => {
+          .catch(async err => {
             if ((err as SupersetApiError).status === 404) {
+              if ((await getScreenshotTaskStatus(err)) === 'Error') {
+                hasFailed = true;
+                stopIntervals('failure');
+                logging.error('Screenshot generation failed', {
+                  cacheKey,
+                  dashboardId,
+                  format,
+                });
+                return;
+              }
               throw new Error('Image not ready');
             }
           });
 
       const fetchImageWithRetry = (cacheKey: string) => {
-        if (isDownloaded || isFetching) {
+        if (isDownloaded || hasFailed || isFetching) {
           return;
         }
-        if (retries >= MAX_RETRIES) {
+        if (retries >= maxRetries) {
+          hasFailed = true;
           stopIntervals('failure');
           logging.error('Max retries reached', {
             cacheKey,
@@ -173,9 +218,19 @@ export const useDownloadScreenshot = (
         },
       })
         .then(({ json }) => {
-          const cacheKey = json?.cache_key;
+          const task = json as ScreenshotTaskResponse | undefined;
+          const cacheKey = task?.cache_key;
           if (!cacheKey) {
             throw new Error('No image URL in response');
+          }
+          if (
+            typeof task.task_timeout_seconds === 'number' &&
+            Number.isFinite(task.task_timeout_seconds) &&
+            task.task_timeout_seconds > 0
+          ) {
+            maxRetries = Math.ceil(
+              (task.task_timeout_seconds * 1000) / RETRY_INTERVAL,
+            );
           }
           const retryIntervalId = setInterval(() => {
             fetchImageWithRetry(cacheKey);

@@ -40,8 +40,6 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
-from superset.async_events.async_query_manager import AsyncQueryManager
-from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
 from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.security.manager import SupersetSecurityManager
@@ -147,10 +145,6 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
 
 APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)
 appbuilder = AppBuilder(update_perms=False)
-async_query_manager_factory = AsyncQueryManagerFactory()
-async_query_manager: AsyncQueryManager = LocalProxy(
-    async_query_manager_factory.instance
-)
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
@@ -181,10 +175,12 @@ from superset.versioning.factory import (  # noqa: E402
     VersioningFlaskPlugin,
     VersionTransactionFactory,
 )
+from superset.versioning.unit_of_work import CaptureUnitOfWork  # noqa: E402
 
-# Rename the transaction table from "transaction" (SQL reserved word) to
-# "version_transaction" via the custom factory before make_versioned() fires.
+# Configure the transaction table and runtime write boundary before listeners
+# are registered; neither setting is mutated per request.
 _continuum_manager.transaction_cls = VersionTransactionFactory()
+_continuum_manager.uow_class = CaptureUnitOfWork
 
 make_versioned(
     user_cls=None,

@@ -276,9 +276,43 @@ def test_model_list_tool_rejects_private_order_column():
         tool.run_tool(order_column="created_by_fk")
 
 
-def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared():
-    """When sortable_columns is not provided, order_column is passed through to the DAO
-    without validation (backward-compatible behaviour)."""
+def test_model_list_tool_resolves_changed_on_delta_humanized_alias():
+    """order_column='changed_on_delta_humanized' is accepted when declared in
+    sortable_columns and is translated to the real 'changed_on' column before
+    reaching the DAO — the humanized value is a Python property (rendered via
+    FAB's @renders("changed_on")), not a queryable SQLAlchemy column, so
+    passing it straight through would break DAO.list()'s
+    `getattr(model, order_column)` sort.
+    """
+    captured: dict = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, order_column=None, **kwargs):
+            captured["order_column"] = order_column
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        sortable_columns=["id", "name", "changed_on", "changed_on_delta_humanized"],
+    )
+
+    # Should not raise, and the DAO must receive the real column name.
+    tool.run_tool(order_column="changed_on_delta_humanized")
+
+    assert captured["order_column"] == "changed_on"
+
+
+def test_model_list_tool_rejects_unknown_order_column_even_with_alias_declared():
+    """A genuinely unknown order_column must still raise, even when the tool
+    also declares the changed_on_delta_humanized alias as sortable."""
     tool = ModelListCore(
         dao_class=DummyDAO,
         output_schema=DummyOutputSchema,
@@ -288,10 +322,39 @@ def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared(
         search_columns=["name"],
         list_field_name="items",
         output_list_schema=DummyListSchema,
+        sortable_columns=["id", "name", "changed_on", "changed_on_delta_humanized"],
+    )
+
+    with pytest.raises(ValueError, match="Invalid order_column 'random'"):
+        tool.run_tool(order_column="random")
+
+
+def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared():
+    """When sortable_columns is not provided, order_column is passed through to the DAO
+    without validation (backward-compatible behaviour)."""
+    captured: dict = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, order_column=None, **kwargs):
+            captured["order_column"] = order_column
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
         # sortable_columns intentionally omitted
     )
-    # Should not raise even though "name" is not in the (empty) sortable list
-    tool.run_tool(order_column="name")
+    # The no-allowlist path preserves the order column without alias resolution.
+    tool.run_tool(order_column="changed_on_delta_humanized")
+
+    assert captured["order_column"] == "changed_on_delta_humanized"
 
 
 def test_model_list_tool_injects_current_user_id_for_created_by_me():

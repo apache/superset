@@ -24,15 +24,28 @@ import importlib
 from collections.abc import Generator
 from types import ModuleType
 from typing import Any
-from unittest.mock import call, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, call, MagicMock, Mock, patch, PropertyMock
 
+import pyarrow as pa
 import pytest
-from fastmcp import Client, FastMCP
+from fastmcp import Client, Context, FastMCP
+from fastmcp.client.client import CallToolResult
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
+from superset_core.semantic_layers.types import Dimension, Grains
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.mcp_service.app import mcp
+from superset.mcp_service.constants import DEFAULT_MAX_RESPONSE_BYTES
+from superset.mcp_service.middleware import (
+    create_response_size_guard_middleware,
+    ResponseSizeGuardMiddleware,
+)
+from superset.mcp_service.semantic_layer.schemas import ListMetricsRequest
+from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
 list_metrics_module: ModuleType = importlib.import_module(
@@ -95,7 +108,9 @@ def _make_dataset(dataset_id: int = 1) -> MagicMock:
 
 
 def _make_view(view_id: int = 5) -> MagicMock:
-    view = MagicMock()
+    view: MagicMock = MagicMock(
+        implementation=MagicMock(selection_identity_version=None)
+    )
     view.id = view_id
     view.name = f"view_{view_id}"
     view.raise_for_access = MagicMock(return_value=None)
@@ -103,6 +118,158 @@ def _make_view(view_id: int = 5) -> MagicMock:
     view.columns = [_make_column("listing__country_name"), _make_column("channel")]
     view.get_compatible_dimensions = MagicMock(return_value=["listing__country_name"])
     return view
+
+
+@pytest.fixture
+def large_metric_catalog() -> Generator[MagicMock, None, None]:
+    """Expose a large catalog through the real dimension-name projection."""
+    view: MagicMock = _make_view(5)
+    view.metrics = [_make_metric(f"metric_{i}") for i in range(60)]
+    view.columns = [_make_column(f"dimension_{i}") for i in range(40)]
+    dimensions: set[Dimension] = {
+        Dimension(
+            id=f"dimension_{i}",
+            name=f"dimension_{i}",
+            type=pa.timestamp("us"),
+            definition=f"dimension_{i}",
+            grain=grain,
+        )
+        for i in range(40)
+        for grain in (
+            Grains.HOUR,
+            Grains.DAY,
+            Grains.WEEK,
+            Grains.MONTH,
+            Grains.QUARTER,
+            Grains.YEAR,
+        )
+    }
+    view.implementation.get_dimensions.return_value = dimensions
+    view.implementation.get_metrics.return_value = []
+    view.implementation.get_compatible_dimensions.return_value = dimensions
+    semantic_view: SemanticView = SemanticView()
+    dataset: MagicMock = _make_dataset(1)
+    dataset.metrics = [_make_metric(f"builtin_{i}") for i in range(20)]
+    dataset.columns = [_make_column(f"column_{i}") for i in range(30)]
+    view_dao: MagicMock
+    # `implementation` is a plain (non-settable) property resolved through
+    # `SemanticBindingMemo`; patch it directly rather than assigning to it, and
+    # keep the patch alive across the yield since `get_compatible_dimensions`
+    # reads `self.implementation` again when the test later invokes it.
+    with (
+        patch.object(
+            SemanticView,
+            "implementation",
+            new_callable=PropertyMock,
+            return_value=view.implementation,
+        ),
+        _patched_dataset_search([dataset]) as (_, view_dao, _),
+    ):
+        view.get_compatible_dimensions.side_effect = (
+            semantic_view.get_compatible_dimensions
+        )
+        view_dao.find_accessible.return_value = [view]
+        view_dao.find_by_id.return_value = view
+        yield view
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+async def test_list_metrics_default_page_byte_bound(
+    mcp_server: FastMCP,
+    large_metric_catalog: MagicMock,
+) -> None:
+    """Default discovery leaves size headroom without embedded dimensions."""
+    async with Client(mcp_server) as client:
+        data: dict[str, Any] = json.loads(
+            (await client.call_tool("list_metrics", {})).content[0].text
+        )
+    assert data["success"] is True
+    assert data["total_count"] == 80
+    assert get_response_size_bytes(data) <= DEFAULT_MAX_RESPONSE_BYTES // 2
+    assert data["page_size"] == 25
+    assert len(data["metrics"]) == 25
+    assert all(metric["compatible_dimensions"] == [] for metric in data["metrics"])
+    large_metric_catalog.get_compatible_dimensions.assert_not_called()
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+async def test_list_metrics_embedded_page_byte_bound(
+    mcp_server: FastMCP,
+    large_metric_catalog: MagicMock,
+) -> None:
+    """The largest embedded page fits after grain variants are collapsed."""
+    async with Client(mcp_server) as client:
+        data: dict[str, Any] = json.loads(
+            (
+                await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "view_id": 5,
+                            "include_compatible_dimensions": True,
+                            "page_size": 4,
+                        }
+                    },
+                )
+            )
+            .content[0]
+            .text
+        )
+    assert data["success"] is True
+    assert len(data["metrics"]) == data["page_size"] == 4
+    assert data["total_count"] == 60
+    metric: dict[str, Any]
+    for metric in data["metrics"]:
+        assert len(metric["compatible_dimensions"]) == 40
+        assert len({dim["name"] for dim in metric["compatible_dimensions"]}) == 40
+    assert get_response_size_bytes(data) < DEFAULT_MAX_RESPONSE_BYTES
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_embedded_page_over_cap_rejected(
+    mcp_server: FastMCP,
+) -> None:
+    """Oversized embedded pages fail validation with a recovery suggestion."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError, match="get_compatible_dimensions"):
+            await client.call_tool(
+                "list_metrics",
+                {
+                    "request": {
+                        "include_compatible_dimensions": True,
+                        "page_size": 9,
+                    }
+                },
+            )
+
+
+@pytest.mark.parametrize("max_bytes", [10000, 50000])
+def test_embedding_cap_is_independent_of_configured_max_bytes(
+    max_bytes: int,
+) -> None:
+    """The guard honors overrides without changing the fixed embedding cap."""
+    app: MagicMock = MagicMock()
+    app.config = {"MCP_RESPONSE_SIZE_CONFIG": {"max_bytes": max_bytes}}
+    with patch("superset.mcp_service.flask_singleton.get_flask_app", return_value=app):
+        guard: ResponseSizeGuardMiddleware | None = (
+            create_response_size_guard_middleware()
+        )
+    assert guard is not None
+    assert guard.max_bytes == max_bytes
+    assert (
+        ListMetricsRequest(include_compatible_dimensions=True, page_size=4).page_size
+        == 4
+    )
+    error: pytest.ExceptionInfo[ValidationError]
+    with pytest.raises(ValidationError) as error:
+        ListMetricsRequest(include_compatible_dimensions=True, page_size=5)
+    message: str = str(error.value)
+    assert "MCP_RESPONSE_SIZE_CONFIG['max_bytes']" in message
+    assert "50k by default" in message
+    assert "page_size <= 4" in message
+    assert "get_compatible_dimensions" in message
 
 
 def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityException:
@@ -178,6 +345,7 @@ async def test_list_metrics_builtin_happy_path(mcp_server: FastMCP) -> None:
     assert all(m["dataset_id"] == 42 for m in metrics)
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_mutual_exclusion_validation(mcp_server: FastMCP) -> None:
     """list_metrics returns a validation error when dataset_id and view_id coexist."""
@@ -228,12 +396,16 @@ async def test_list_metrics_search_filter(mcp_server: FastMCP) -> None:
     assert metrics[0]["name"] == "revenue"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_external_includes_verbose_name(
     mcp_server: FastMCP,
 ) -> None:
     """External metrics include verbose_name, matching the builtin path."""
-    mock_view = _make_view(5)
+    mock_view: MagicMock = _make_view(5)
+    mock_view.implementation.configure_mock(
+        selection_identity_version="cube-member-id-v1"
+    )
     mock_view.metrics[0].verbose_name = "Bookings Count"
 
     with patch.object(list_metrics_module, "SemanticViewDAO") as mock_view_dao:
@@ -248,8 +420,10 @@ async def test_list_metrics_external_includes_verbose_name(
 
     metrics = {m["name"]: m for m in data["metrics"]}
     assert metrics["bookings"]["verbose_name"] == "Bookings Count"
+    assert metrics["bookings"]["semantic_selection_version"] == "cube-member-id-v1"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_external_access_denied(mcp_server: FastMCP) -> None:
     """An explicit view_id lookup surfaces AccessDenied instead of InternalError."""
@@ -270,6 +444,7 @@ async def test_list_metrics_external_access_denied(mcp_server: FastMCP) -> None:
     assert data["error_type"] == "AccessDenied"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_external_per_metric_compatible_dimensions(
     mcp_server: FastMCP,
@@ -290,7 +465,13 @@ async def test_list_metrics_external_per_metric_compatible_dimensions(
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "list_metrics",
-                {"request": {"view_id": 5, "include_compatible_dimensions": True}},
+                {
+                    "request": {
+                        "view_id": 5,
+                        "include_compatible_dimensions": True,
+                        "page_size": 4,
+                    }
+                },
             )
         data = json.loads(result.content[0].text)
 
@@ -373,6 +554,7 @@ async def test_list_metrics_nonexistent_dataset_id_returns_empty(
     mock_dao.find_by_id.assert_called_once()
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_nonexistent_view_id_returns_empty(
     mcp_server: FastMCP,
@@ -477,6 +659,83 @@ async def test_list_metrics_page_size_over_max_rejected(mcp_server: FastMCP) -> 
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("page_size", [9, 25, 500])
+async def test_builtin_embedded_metrics_reject_oversized_pages(
+    mcp_server: FastMCP, page_size: int
+) -> None:
+    """Dataset scoping must not bypass the embedded page cap."""
+    mock_ds: MagicMock = _make_dataset(42)
+    with _patched_dataset_lookup(mock_ds):
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError, match="page_size <= 4"):
+                await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "dataset_id": 42,
+                            "page_size": page_size,
+                            "include_compatible_dimensions": True,
+                        }
+                    },
+                )
+
+
+@pytest.mark.asyncio
+async def test_builtin_embedded_metrics_realistic_byte_bound(
+    mcp_server: FastMCP,
+) -> None:
+    """Twenty metrics with thirty columns require bounded, lossless pages."""
+    dataset: MagicMock = _make_dataset(42)
+    dataset.metrics = [_make_metric(f"builtin_{i}") for i in range(20)]
+    dataset.columns = [_make_column(f"column_{i}") for i in range(30)]
+    names: list[str] = []
+    page: int
+    metric: dict[str, Any]
+    with _patched_dataset_lookup(dataset):
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError, match="page_size <= 4"):
+                await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "dataset_id": 42,
+                            "include_compatible_dimensions": True,
+                        }
+                    },
+                )
+            for page in (1, 2, 3, 4, 5):
+                result: Any = await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "dataset_id": 42,
+                            "include_compatible_dimensions": True,
+                            "page_size": 4,
+                            "page": page,
+                        }
+                    },
+                )
+                data: dict[str, Any] = json.loads(result.content[0].text)
+                assert data["success"] is True
+                assert data["total_count"] == 20
+                assert data["total_pages"] == 5
+                assert data["page_size"] == 4
+                assert len(data["metrics"]) == 4
+                assert get_response_size_bytes(data) < DEFAULT_MAX_RESPONSE_BYTES
+                for metric in data["metrics"]:
+                    assert len(metric["compatible_dimensions"]) == 30
+                    names.append(metric["name"])
+    assert len(names) == len(set(names)) == 20
+
+
+@pytest.mark.parametrize("scope", [{}, {"view_id": 42}])
+def test_external_embedded_metrics_retain_page_ceiling(scope: dict[str, int]) -> None:
+    """Unscoped and view-scoped requests can carry external dimensions."""
+    with pytest.raises(ValidationError, match="page_size <= 4"):
+        ListMetricsRequest(**scope, include_compatible_dimensions=True, page_size=9)
+
+
+@pytest.mark.asyncio
 async def test_list_metrics_page_size_at_max_accepted(mcp_server: FastMCP) -> None:
     """page_size == 500 (the max) is accepted and echoed back."""
     mock_ds: MagicMock = _make_dataset(42)
@@ -519,3 +778,100 @@ async def test_list_metrics_page_beyond_last_page_returns_empty(
     assert data["total_count"] == 2
     assert data["page"] == 9999
     assert data["total_pages"] == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error_class", [RuntimeError, QueryObjectValidationError])
+async def test_list_metrics_unexpected_error_is_sanitized(
+    mcp_server: FastMCP,
+    error_class: type[Exception],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Outer failures retain diagnostics only in server logs, not MCP messages."""
+    error: Exception = error_class("provider-private-detail")
+    message: str = "Unable to retrieve metrics."
+    notify: AsyncMock
+    client: Client
+    with (
+        patch.object(list_metrics_module.DatasetDAO, "find_by_id", side_effect=error),
+        patch.object(Context, "error", new_callable=AsyncMock) as notify,
+    ):
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "list_metrics", {"request": {"dataset_id": 42}}
+            )
+        data: dict[str, object] = json.loads(result.content[0].text)
+
+    assert data["success"] is False
+    assert data["error_type"] == "InternalError"
+    assert data["error"] == message
+    assert data["message"] == message
+    assert "provider-private-detail" not in str(result)
+    notify.assert_awaited_once_with(message)
+    assert f"{error_class.__name__}: provider-private-detail" in caplog.text
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error_class", [RuntimeError, QueryObjectValidationError, AmbiguousDimensionError]
+)
+@pytest.mark.parametrize("failure_site", ["columns", "compatibility"])
+async def test_list_metrics_partial_failure_keeps_only_safe_warning(
+    mcp_server: FastMCP,
+    error_class: type[Exception],
+    failure_site: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """One broken view does not hide healthy metrics or expose provider details."""
+    safe: bool = error_class is AmbiguousDimensionError
+    detail: str = (
+        "Semantic dimension 'x' has ambiguous variants for grain 'day'."
+        if safe
+        else "provider-private-detail"
+    )
+    error: Exception = error_class(detail)
+    view: MagicMock = _make_view(5)
+    healthy_view: MagicMock = _make_view(6)
+    if failure_site == "compatibility":
+        view.get_compatible_dimensions.side_effect = error
+    warning: AsyncMock
+    notify: AsyncMock
+    daos: tuple[MagicMock, MagicMock, MagicMock]
+    client: Client
+    with (
+        _patched_dataset_search([]) as daos,
+        patch.object(
+            type(view),
+            "columns",
+            new_callable=PropertyMock,
+            create=True,
+            return_value=view.columns,
+            side_effect=error if failure_site == "columns" else None,
+        ),
+        patch.object(Context, "warning", new_callable=AsyncMock) as warning,
+        patch.object(Context, "error", new_callable=AsyncMock) as notify,
+    ):
+        daos[1].find_accessible.return_value = [view, healthy_view]
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "list_metrics",
+                {"request": {"include_compatible_dimensions": True, "page_size": 4}},
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["total_count"] == 2
+    assert {metric["view_id"] for metric in data["metrics"]} == {6}
+    assert {metric["name"] for metric in data["metrics"]} == {"bookings", "revenue"}
+    notify.assert_not_awaited()
+    if safe:
+        warning.assert_awaited_once_with(
+            f"Could not load metrics for view id=5: {detail}"
+        )
+    else:
+        warning.assert_awaited_once_with(
+            "Unable to retrieve metrics for semantic view id=5."
+        )
+        assert "provider-private-detail" not in str(result)
+        assert f"{error_class.__name__}: provider-private-detail" in caplog.text

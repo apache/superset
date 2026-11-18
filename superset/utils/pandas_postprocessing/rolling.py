@@ -26,6 +26,28 @@ from superset.utils.pandas_postprocessing.utils import (
     validate_column_args,
 )
 
+# Upper bound on integer window sizes, matching the documented schema range
+# (1-10000). ``window`` arrives through the post-processing ``options`` dict,
+# which is not schema-validated; a huge integer window combined with
+# ``win_type`` makes scipy allocate a weights array proportional to it.
+MAX_ROLLING_WINDOW = 10_000
+
+
+def _translate_rolling_type_options(
+    rolling_type: str, rolling_type_options: dict[str, Any]
+) -> dict[str, Any]:
+    """Translate our public ``rolling_type_options`` API for the pandas call.
+
+    pandas renamed ``Rolling.quantile``'s ``quantile`` parameter to ``q``;
+    ``quantile`` stays the option key in our own public API/schema and is
+    translated here rather than changing what callers send us.
+    """
+    if rolling_type == "quantile" and "quantile" in rolling_type_options:
+        call_options = {**rolling_type_options, "q": rolling_type_options["quantile"]}
+        del call_options["quantile"]
+        return call_options
+    return rolling_type_options
+
 
 @validate_column_args("columns")
 def rolling(  # pylint: disable=too-many-arguments
@@ -67,6 +89,15 @@ def rolling(  # pylint: disable=too-many-arguments
         raise InvalidPostProcessingError(_("Undefined window for rolling operation"))
     if window == 0:
         raise InvalidPostProcessingError(_("Window must be > 0"))
+    # Offset-string windows (e.g. "2D") are bounded by the data span and are
+    # left to pandas to validate; only integer windows are capped.
+    if isinstance(window, int) and window > MAX_ROLLING_WINDOW:
+        raise InvalidPostProcessingError(
+            _(
+                "Window must not exceed %(max)s",
+                max=MAX_ROLLING_WINDOW,
+            )
+        )
 
     kwargs["window"] = window
     if min_periods is not None:
@@ -83,8 +114,9 @@ def rolling(  # pylint: disable=too-many-arguments
         raise InvalidPostProcessingError(
             _("Invalid rolling_type: %(type)s", type=rolling_type)
         )
+    call_options = _translate_rolling_type_options(rolling_type, rolling_type_options)
     try:
-        df_rolling = getattr(df_rolling, rolling_type)(**rolling_type_options)
+        df_rolling = getattr(df_rolling, rolling_type)(**call_options)
     except TypeError as ex:
         raise InvalidPostProcessingError(
             _(

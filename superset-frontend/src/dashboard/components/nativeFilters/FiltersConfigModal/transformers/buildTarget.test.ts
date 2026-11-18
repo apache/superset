@@ -17,7 +17,10 @@
  * under the License.
  */
 import { DatasourceType } from '@superset-ui/core';
-import { buildNativeFilterTarget } from './buildTarget';
+import {
+  buildNativeFilterTarget,
+  buildNativeFilterDefaultDataMask,
+} from './buildTarget';
 
 test('returns an empty target when no dataset is selected', () => {
   expect(buildNativeFilterTarget({})).toEqual({});
@@ -71,4 +74,53 @@ test('omits datasourceType when undefined', () => {
     column: 'colD',
   });
   expect(target).not.toHaveProperty('datasourceType');
+});
+
+test('omits datasourceType when there is no dataset', () => {
+  // The modal stamps a hidden ``datasourceType`` field on every filter form,
+  // including dataset-less types. Without a dataset there is nothing for it to
+  // describe, and emitting it would diverge from the ``{}`` target the import
+  // and seed paths write.
+  expect(
+    buildNativeFilterTarget({ datasourceType: DatasourceType.Table }),
+  ).toEqual({});
+});
+
+test('persists only explicitly supplied selection generation across a target round trip', () => {
+  const old = buildNativeFilterTarget({
+    dataset: 7,
+    datasourceType: DatasourceType.SemanticView,
+    column: 'Orders.b',
+  });
+  expect(old).not.toHaveProperty('semantic_selection_version');
+  const current = buildNativeFilterTarget({
+    dataset: 7,
+    datasourceType: DatasourceType.SemanticView,
+    column: 'Orders.b',
+    semantic_selection_version: 'cube-member-id-v1',
+  });
+  expect(JSON.parse(JSON.stringify(current)).semantic_selection_version).toBe(
+    'cube-member-id-v1',
+  );
+});
+
+test('only an explicitly versioned semantic form certifies its new default', () => {
+  const mask = {
+    extraFormData: {
+      filters: [{ col: 'Orders.status', op: 'IN' as const, val: ['paid'] }],
+    },
+  };
+  const form = { dataset: 7, datasourceType: DatasourceType.SemanticView };
+  expect(buildNativeFilterDefaultDataMask(form, mask)).toEqual(mask);
+  expect(
+    buildNativeFilterDefaultDataMask(
+      { ...form, semantic_selection_version: 'cube-member-id-v1' },
+      mask,
+    ).extraFormData,
+  ).toEqual({
+    ...mask.extraFormData,
+    semantic_selection_sources: [
+      { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+    ],
+  });
 });

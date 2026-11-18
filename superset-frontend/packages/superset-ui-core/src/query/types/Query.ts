@@ -63,6 +63,7 @@ export type QueryObjectFilterClause =
   | UnaryQueryObjectFilterClause;
 
 export type QueryObjectExtras = Partial<{
+  semantic_selection_version?: string;
   /** HAVING condition for SQLAlchemy */
   having?: string;
   relative_start?: string;
@@ -164,12 +165,19 @@ export interface QueryContext {
   };
   /** Force refresh of all queries */
   force: boolean;
+  /** Idempotency token for a forced refresh (present only when forcing) */
+  force_nonce?: string;
   /** Type of result to return for queries */
   result_type: string;
   /** Response format */
   result_format: string;
   queries: QueryObject[];
   form_data?: QueryFormData;
+  /**
+   * Client-generated id for this chart query, used to locate the query
+   * server-side so it can be cancelled while still running.
+   */
+  client_id?: string;
 }
 
 // Keep in sync with superset/errors.py
@@ -243,6 +251,7 @@ export const ErrorTypeEnum = {
   INVALID_PAYLOAD_FORMAT_ERROR: 'INVALID_PAYLOAD_FORMAT_ERROR',
   INVALID_PAYLOAD_SCHEMA_ERROR: 'INVALID_PAYLOAD_SCHEMA_ERROR',
   MARSHMALLOW_ERROR: 'MARSHMALLOW_ERROR',
+  CSRF_ERROR: 'CSRF_ERROR',
 
   // Report errors
   REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR',
@@ -492,5 +501,3 @@ export enum ContributionType {
 export type DatasourceSamplesQuery = {
   filters?: QueryObjectFilterClause[];
 };
-
-export default {};

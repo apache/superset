@@ -18,6 +18,7 @@
  */
 import { ChartProps, getNumberFormatter } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
+import type { FunnelSeriesOption } from 'echarts/charts';
 import transformProps, { parseParams } from '../../src/Funnel/transformProps';
 import {
   EchartsFunnelChartProps,
@@ -71,6 +72,40 @@ describe('Funnel transformProps', () => {
         }),
       }),
     );
+  });
+
+  test('should reserve extra space for a top horizontal legend by default (40 instead of 20)', () => {
+    const { echartOptions } = transformProps(
+      chartProps as EchartsFunnelChartProps,
+    );
+    const series = echartOptions.series as FunnelSeriesOption[];
+    expect(series[0].top).toBe(40);
+  });
+
+  test('should reserve extra space for a bottom horizontal legend by default (40 instead of 20)', () => {
+    const props = new ChartProps({
+      formData: { ...formData, legendOrientation: 'bottom' },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+    const { echartOptions } = transformProps(props as EchartsFunnelChartProps);
+    const series = echartOptions.series as FunnelSeriesOption[];
+    expect(series[0].bottom).toBe(40);
+  });
+
+  test('should respect an explicit legend margin', () => {
+    const props = new ChartProps({
+      formData: { ...formData, legendMargin: 80 },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+    const { echartOptions } = transformProps(props as EchartsFunnelChartProps);
+    const series = echartOptions.series as FunnelSeriesOption[];
+    expect(series[0].top).toBe(80);
   });
 
   test('does not apply a text border to segment labels', () => {

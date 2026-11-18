@@ -123,6 +123,7 @@ export const RESERVED_CHART_URL_PARAMS: string[] = [
   URL_PARAMS.datasourceId.name,
   URL_PARAMS.datasourceType.name,
   URL_PARAMS.datasetId.name,
+  URL_PARAMS.permalinkKey.name,
   URL_PARAMS.versionHistory.name,
 ];
 export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [

@@ -28,6 +28,7 @@ import { getControlsState, handleDeprecatedControls } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
   Currency,
+  DatasourceType,
   DataMaskStateWithId,
   JsonObject,
   ensureIsArray,
@@ -49,6 +50,10 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { findPermission } from 'src/utils/findPermission';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { nanoid } from 'nanoid';
+import cloneDeep from 'lodash-es/cloneDeep';
+import { hydrateChartNormalization } from 'src/features/versionHistory/reducer';
+import { automaticNormalizationTransitions } from 'src/features/versionHistory/normalization';
 
 enum ColorSchemeType {
   CATEGORICAL = 'CATEGORICAL',
@@ -56,6 +61,26 @@ enum ColorSchemeType {
 }
 
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
+
+function isNeutralNewChartEntry([key, value]: [string, unknown]): boolean {
+  if (key === 'datasource' || key === 'viz_type') return true;
+  if (key === 'adhoc_filters') return Array.isArray(value) && !value.length;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (key === 'applied_time_extras') return Object.keys(value).length === 0;
+  if (key !== 'url_params') return false;
+  // Navigation identities cannot carry field selections; reject other URL state.
+  return Object.entries(value).every(
+    ([param, identity]) =>
+      [
+        'datasource_id',
+        'datasource_type',
+        'viz_type',
+        'slice_id',
+        'form_data_key',
+      ].includes(param) && typeof identity === 'string',
+  );
+}
+
 export const hydrateExplore =
   ({
     form_data,
@@ -78,12 +103,27 @@ export const hydrateExplore =
     const fallbackSlice = sliceId ? sliceEntities?.slices?.[sliceId] : null;
     const initialSlice = slice ?? fallbackSlice;
     const initialFormData = form_data ?? initialSlice?.form_data;
+    const persistedFormData = cloneDeep(initialSlice?.form_data ?? {});
+    const preHydrationFormData = cloneDeep(initialFormData ?? {});
     const isCachedFormData = getUrlParam(URL_PARAMS.formDataKey) !== null;
     const [primarySliceNameSource, fallbackSliceNameSource] = isCachedFormData
       ? [initialFormData, initialSlice]
       : [initialSlice, initialFormData];
     const initialSliceName =
       primarySliceNameSource?.slice_name ?? fallbackSliceNameSource?.slice_name;
+    // Only identities and empty filter containers are free of selections.
+    // Stamp before defaults, controls and chart query snapshots are constructed.
+    if (
+      !initialSlice &&
+      !sliceId &&
+      dataset.type === DatasourceType.SemanticView &&
+      dataset.semantic_selection_version &&
+      Object.keys(explore.hiddenFormData ?? {}).length === 0 &&
+      Object.entries(initialFormData).every(isNeutralNewChartEntry)
+    ) {
+      initialFormData.semantic_selection_version =
+        dataset.semantic_selection_version;
+    }
     if (!initialFormData.viz_type) {
       const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
       initialFormData.viz_type =
@@ -213,6 +253,10 @@ export const hydrateExplore =
         exploreState,
       );
     });
+    const hydratedFormData = {
+      ...initialFormData,
+      ...getFormDataFromControls(exploreState.controls),
+    };
     const sliceFormData = initialSlice
       ? getFormDataFromControls(initialControls)
       : null;
@@ -233,7 +277,7 @@ export const hydrateExplore =
       lastRendered: 0,
     };
 
-    return dispatch({
+    const result = dispatch({
       type: HYDRATE_EXPLORE,
       data: {
         charts: {
@@ -253,6 +297,28 @@ export const hydrateExplore =
         dataMask,
       },
     });
+    if (
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      initialSlice?.slice_id &&
+      !isCachedFormData &&
+      !dashboardId &&
+      getUrlParam(URL_PARAMS.vizType) === null
+    ) {
+      dispatch(
+        hydrateChartNormalization({
+          chartId: initialSlice.slice_id,
+          hydrationSessionId: nanoid(),
+          transitions: automaticNormalizationTransitions(
+            persistedFormData,
+            preHydrationFormData,
+            hydratedFormData,
+          ),
+          invalidatedControls: {},
+          saveAttemptId: null,
+        }),
+      );
+    }
+    return result;
   };
 
 export type HydrateExplore = {

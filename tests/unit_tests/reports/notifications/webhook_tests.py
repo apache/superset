@@ -19,6 +19,7 @@
 import pandas as pd
 import pytest
 from freezegun import freeze_time
+from pytest_mock import MockerFixture
 
 from superset.reports.notifications.exceptions import (
     NotificationParamException,
@@ -121,11 +122,79 @@ def test_get_req_payload_basic(mock_header_data) -> None:
     assert payload["name"] == "Payload Name"
     assert payload["description"] == "Payload Description"
     assert payload["url"] == "http://example.com/report"
-    assert payload["text"] == "Report Text"
+    assert payload["text"] == "Contact the report owner for error details."
     assert isinstance(payload["header"], dict)
     # Optional fields from header_data
     assert payload["header"]["notification_format"] == "PNG"
     assert payload["header"]["notification_type"] == "Alert"
+
+
+@pytest.mark.parametrize("notification_type", ["Alert", "Report"])
+@pytest.mark.parametrize("notice", ["ordinary", "retry", "final"])
+@pytest.mark.parametrize("multipart", [False, True])
+def test_send_redacts_failure_diagnostics(
+    mocker: MockerFixture,
+    mock_header_data: HeaderDataType,
+    notification_type: str,
+    notice: str,
+    multipart: bool,
+) -> None:
+    """Both webhook encodings redact all failure notices for alerts and reports."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    header = mock_header_data.copy()
+    header["notification_type"] = notification_type
+    raw_error = "Database password=private-value; SMTP recipient=private@example.com"
+    content = NotificationContent(
+        name="test report",
+        header_data=header,
+        text=raw_error,
+        retry_attempt=1 if notice == "retry" else None,
+        retry_max_attempts=3 if notice != "ordinary" else None,
+        csv=b"value\n42" if multipart else None,
+    )
+    notification = WebhookNotification(
+        ReportRecipients(
+            type=ReportRecipientType.WEBHOOK,
+            recipient_config_json='{"target": "https://example.com/webhook"}',
+        ),
+        content,
+    )
+    mocker.patch.object(notification, "_validate_webhook_url")
+    mocker.patch(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    requester = mocker.patch(
+        "superset.reports.notifications.webhook.get_ssrf_safe_requester"
+    ).return_value
+    requester.post.return_value.status_code = 200
+
+    notification.send()
+
+    requester.post.assert_called_once()
+    kwargs = requester.post.call_args.kwargs
+    payload = kwargs["data" if multipart else "json"]
+    assert payload["text"] == "Contact the report owner for error details."
+    assert "private-value" not in str(kwargs)
+    assert "private@example.com" not in str(kwargs)
+    assert content.text == raw_error
+
+
+@pytest.mark.parametrize("text", [None, ""])
+def test_success_payload_does_not_gain_error_text(
+    mock_header_data: HeaderDataType, text: str | None
+) -> None:
+    """Successful content retains the existing empty-text payload contract."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    notification = WebhookNotification(
+        ReportRecipients(type=ReportRecipientType.WEBHOOK),
+        NotificationContent(name="report", header_data=mock_header_data, text=text),
+    )
+    assert notification._get_req_payload()["text"] == text
 
 
 def test_get_files_includes_all_content_types(mock_header_data) -> None:
@@ -509,3 +578,114 @@ def test_send_max_time_does_not_abandon_recovering_target(
     # would pin elapsed at 0 and pass at any ``max_time``, including a broken
     # ``max_time=1`` — this non-zero tick keeps the guard real.
     assert len(post_calls) == 3
+
+
+def test_send_rejects_rebound_peer_despite_passed_hostname_check(
+    monkeypatch, mock_header_data
+) -> None:
+    """
+    End-to-end regression for the DNS-rebinding TOCTOU: the hostname check in
+    ``_validate_webhook_url`` runs once, ahead of time, and is simulated here
+    as having passed (as it would for a low-TTL record that resolves publicly
+    at that moment) via monkeypatching ``is_safe_host``. The actual POST
+    still connects to a loopback test server. Before the fix this reaches the
+    server and succeeds; after the fix the connected peer is validated
+    independently and the request is rejected regardless of what the
+    hostname check concluded earlier.
+    """
+    import http.server
+    import threading
+
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_POST(self) -> None:  # noqa: N802
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"ok")
+
+        def log_message(self, *_args: object) -> None:
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    port = server.server_port
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        content = NotificationContent(
+            name="test alert",
+            header_data=mock_header_data,
+            description="Test description",
+        )
+        webhook_notification = WebhookNotification(
+            recipient=ReportRecipients(
+                type=ReportRecipientType.WEBHOOK,
+                recipient_config_json=(f'{{"target": "http://127.0.0.1:{port}/"}}'),
+            ),
+            content=content,
+        )
+
+        class MockCurrentApp:
+            config = {
+                "ALERT_REPORTS_WEBHOOK_HTTPS_ONLY": False,
+                "ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS": False,
+                "ALERT_REPORTS_WEBHOOK_TIMEOUT": 5,
+            }
+
+        monkeypatch.setattr(
+            "superset.reports.notifications.webhook.current_app", MockCurrentApp
+        )
+        monkeypatch.setattr(
+            "superset.reports.notifications.webhook.feature_flag_manager."
+            "is_feature_enabled",
+            lambda flag: True,
+        )
+        # Simulate the hostname check having passed at validation time (a
+        # low-TTL DNS record resolving publicly at that instant).
+        monkeypatch.setattr(
+            "superset.reports.notifications.webhook.is_safe_host",
+            lambda host: True,
+        )
+
+        with pytest.raises(
+            (NotificationParamException, NotificationUnprocessableException)
+        ):
+            webhook_notification.send()
+    finally:
+        server.shutdown()
+
+
+def test_send_error_message_omits_response_body(monkeypatch, mock_header_data) -> None:
+    """
+    A failing response's body must not be interpolated into the raised
+    exception message: that message is persisted verbatim as the report
+    execution log's error message and readable via the logs API, which would
+    otherwise turn the webhook target into a readback oracle for whatever
+    it returns (e.g. a cloud metadata service reached via DNS rebinding).
+    """
+    webhook_notification = _make_webhook(mock_header_data)
+    leaked_response_content = "internal-metadata-service-response-body"
+
+    class _LeakyResponse:
+        status_code = 502
+        text = leaked_response_content
+
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.current_app", _allow_internal_app()
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        lambda flag: True,
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.requests.post",
+        lambda *args, **kwargs: _LeakyResponse(),
+    )
+    monkeypatch.setattr("time.sleep", lambda *a, **k: None)
+
+    with pytest.raises(NotificationUnprocessableException) as excinfo:
+        webhook_notification.send()
+
+    assert leaked_response_content not in str(excinfo.value)
+    assert "502" in str(excinfo.value)

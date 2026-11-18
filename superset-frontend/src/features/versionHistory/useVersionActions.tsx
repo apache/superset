@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactElement, useCallback, useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from '@superset-ui/core';
@@ -89,7 +90,7 @@ export function useVersionActions(
   entityType: VersionedEntityType,
   uuid: string | undefined,
 ): UseVersionActionsResult {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { addSuccessToast, addInfoToast, addWarningToast, addDangerToast } =
     useToasts();
   const [restoreTarget, setRestoreTarget] =
@@ -311,7 +312,9 @@ export function useVersionActions(
 
   const restoreModal = (
     <RestoreConfirmModal
+      key={`${entityType}:${uuid}:${restoreTarget?.versionUuid ?? ''}`}
       entityType={entityType}
+      entityUuid={uuid}
       target={restoreTarget}
       isRestoring={isRestoring}
       onCancel={cancelRestore}

@@ -15,9 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import gzip
+import io
+import ipaddress
 import logging
 import os
 import re
+import socket
+from http.client import HTTPConnection, HTTPResponse, HTTPSConnection
 from typing import Any
 from urllib import request
 from urllib.parse import urljoin, urlparse
@@ -25,29 +29,48 @@ from urllib.request import HTTPRedirectHandler
 
 import pandas as pd
 from flask import current_app as app
+from jinja2.exceptions import TemplateError
 from pandas.errors import OutOfBoundsDatetime
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.types import TypeEngine
 
-from superset import db, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
+    get_template_render_error_msg,
     MultiCatalogDisabledValidationError,
+    TEMPLATE_RENDER_ERRORS,
 )
 from superset.commands.exceptions import ImportFailedError
-from superset.commands.importers.v1.utils import find_existing_for_import
+from superset.commands.importers.exceptions import IncorrectFormatError
+from superset.commands.importers.v1.utils import (
+    find_existing_by_import_identity,
+    find_existing_for_import,
+)
 from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.partition_mapping import (
+    drop_unmapped_value_transforms,
+    FEATURE_FLAG as PARTITION_FILTER_MAPPING,
+    is_unfinished,
+    stored_expression_error,
+    validate_transform,
+)
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
-from superset.models.helpers import ChildMultipleResultsFound
+from superset.models.helpers import (
+    ChildMultipleResultsFound,
+    parse_template_params,
+    template_params_equivalent,
+    template_params_for_access_check,
+)
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
-from superset.utils.network import is_safe_host
+from superset.utils.network import is_safe_host, is_safe_ip
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +97,47 @@ class _ValidatingRedirectHandler(HTTPRedirectHandler):
         absolute_url = urljoin(req.full_url, newurl)
         validate_data_uri(absolute_url)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _raise_for_unsafe_peer(sock: socket.socket) -> None:
+    """
+    Validate that an established connection's actual peer is publicly
+    routable, so the address reached matches the policy applied to the host.
+    """
+    peer = sock.getpeername()[0]
+    if not is_safe_ip(ipaddress.ip_address(peer)):
+        raise DatasetForbiddenDataURI()
+
+
+class _PeerValidatingHTTPConnection(HTTPConnection):
+    """HTTP connection that validates the peer address on connect."""
+
+    def connect(self) -> None:
+        super().connect()
+        _raise_for_unsafe_peer(self.sock)
+
+
+class _PeerValidatingHTTPSConnection(HTTPSConnection):
+    """HTTPS connection that validates the peer address after the handshake."""
+
+    def connect(self) -> None:
+        super().connect()
+        _raise_for_unsafe_peer(self.sock)
+
+
+class _PeerValidatingHTTPHandler(request.HTTPHandler):
+    """Opens HTTP connections through the peer-validating connection class."""
+
+    def http_open(self, req: request.Request) -> HTTPResponse:
+        return self.do_open(_PeerValidatingHTTPConnection, req)
+
+
+class _PeerValidatingHTTPSHandler(request.HTTPSHandler):
+    """Opens HTTPS connections through the peer-validating connection class."""
+
+    def https_open(self, req: request.Request) -> HTTPResponse:
+        context = self._context  # type: ignore[attr-defined]
+        return self.do_open(_PeerValidatingHTTPSConnection, req, context=context)
 
 
 CHUNKSIZE = 512
@@ -198,6 +262,253 @@ def validate_catalog(config: dict[str, Any]) -> None:
         raise MultiCatalogDisabledValidationError()
 
 
+def _readable_template_params(value: Any) -> dict[str, Any] | None:
+    """Template params as execution will read them, or ``None`` if it can't.
+
+    A config's params arrive as a dict, which the import stores as
+    ``json.dumps(value)`` (see ``JSON_KEYS``) and execution reads back with
+    ``json_to_dict``. That round trip can change values (``json_to_dict``
+    rewrites ``", }"`` even inside a string; ``NaN`` and dates serialize
+    differently), so a dict is put through the same round trip before it is
+    compared or rendered.
+
+    ``None`` never equals readable params, so unreadable params always count
+    as a change, and the binding check below refuses to render with them.
+    """
+    try:
+        if isinstance(value, dict):
+            value = json.dumps(value)
+        return parse_template_params(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _raise_for_import_binding_access(
+    config: dict[str, Any], existing: SqlaTable | None
+) -> None:
+    """Authorize the table binding a dataset import will apply.
+
+    Runs BEFORE ``import_from_dict`` mutates the row, against the *requested*
+    (``config``) binding rather than the stored dataset: the per-table lookup
+    would otherwise resolve the dataset being imported itself (whose ``perm``
+    is schema-blind), letting a ``datasource_access`` holder repoint it to
+    another schema and read it through chart-data. ``allow_editorship=False``
+    means editorship of a same-named dataset is not accepted -- defining or
+    repointing a dataset over a table requires real data access to that
+    table. Skipped when the binding is unchanged (a metadata-only re-import is
+    not a repoint), matching ``UpdateDatasetCommand``.
+    """
+    database = db.session.query(Database).filter_by(id=config["database_id"]).first()
+    if database is None:
+        # A missing database is reported downstream by import_from_dict; there
+        # is no table binding to authorize here.
+        return
+
+    # Resolve the requested binding by MERGING the config over the stored row:
+    # an overwrite only applies the keys the upload carries, so an omitted
+    # field keeps its stored value. Resolving in isolation would mis-authorize
+    # (e.g. omitted ``sql`` -> treat a virtual dataset as physical; omitted
+    # ``template_params`` -> render against ``{}`` while the stored params are
+    # kept).
+    requested_sql = (
+        config["sql"] if "sql" in config else (existing.sql if existing else None)
+    ) or None
+    requested_table_name = config.get("table_name") or (
+        existing.table_name if existing else None
+    )
+    requested_schema = config.get("schema", existing.schema if existing else None)
+    requested_catalog = config.get("catalog", existing.catalog if existing else None)
+    stored_params = (
+        _readable_template_params(existing.template_params) if existing else {}
+    )
+    if "template_params" in config:
+        requested_params = _readable_template_params(config["template_params"])
+        # Re-importing the value already stored is not a change, even when it
+        # is a legacy non-object value (``import_from_dict`` stores it as
+        # ``json.dumps(config[...])``), matching UpdateDatasetCommand's echo
+        # handling. Otherwise compared type-sensitively the way execution reads
+        # them: ``1`` and ``true`` differ even though the dicts are
+        # Python-equal; an unreadable value that is a real change fails closed.
+        config_stored_form = (
+            json.dumps(config["template_params"])
+            if config["template_params"] is not None
+            else None
+        )
+        params_unchanged = (
+            existing is not None and config_stored_form == existing.template_params
+        ) or (
+            requested_params is not None
+            and stored_params is not None
+            and template_params_equivalent(requested_params, stored_params)
+        )
+    else:
+        requested_params = stored_params
+        params_unchanged = True
+
+    if existing is not None and (
+        config["database_id"] == existing.database_id
+        and requested_sql == (existing.sql or None)
+        # A virtual dataset's table_name is only a label -- its SQL is the
+        # binding -- so renaming one is not a repoint, as with PUT and
+        # ``/datasource/save/``.
+        and (bool(requested_sql) or requested_table_name == existing.table_name)
+        and requested_schema == existing.schema
+        and requested_catalog == existing.catalog
+        and params_unchanged
+    ):
+        # Binding unchanged -- a metadata-only re-import, not a repoint.
+        # The database and template_params are part of the binding: an
+        # overwrite that keeps table/schema/catalog/sql but points at a
+        # different database, or changes the params a templated FROM renders
+        # against, still repoints the dataset and must be re-authorized
+        # (matching UpdateDatasetCommand).
+        return
+
+    if requested_sql:
+        if requested_params is None:
+            # Execution would read these params differently than any access
+            # decision made here could, so fail closed as a bad payload.
+            raise IncorrectFormatError("Invalid template_params: must be a JSON object")
+        try:
+            security_manager.raise_for_access(
+                database=database,
+                sql=requested_sql,
+                # Empty strings would qualify table names against a nonexistent
+                # catalog/schema, so they are normalized to None.
+                catalog=requested_catalog or None,
+                schema=requested_schema or None,
+                template_params=template_params_for_access_check(requested_params),
+                allow_editorship=False,
+            )
+        except TEMPLATE_RENDER_ERRORS as ex:
+            # SQL that can't be rendered with its params can't be
+            # access-checked: fail closed as a bad payload, not a 500.
+            raise IncorrectFormatError(
+                f"Invalid SQL: {get_template_render_error_msg(ex)}"
+            ) from ex
+    elif isinstance(requested_table_name, str):
+        # A physical dataset always carries a table_name (the import schema
+        # requires it); the guard also narrows the type for the check below.
+        security_manager.raise_for_access(
+            database=database,
+            table=Table(
+                requested_table_name,
+                requested_schema or None,
+                requested_catalog or None,
+            ),
+            allow_editorship=False,
+        )
+
+
+def _default_omitted_monotonic_declarations(columns: list[dict[str, Any]]) -> None:
+    """
+    Materialize `partition_transform_is_monotonic` wherever a transform is set.
+
+    `ImportV1ColumnSchema` gives the declaration a `load_default` of False so a
+    bundle predating the field cannot claim its transform preserves ordering.
+    That default never reaches storage: the import pipeline validates the
+    payload and then applies the *raw* config, so on an overwrite an omitted key
+    keeps whatever is stored -- including a True left behind by the transform
+    this bundle is replacing. A non-monotonic transform declared monotonic
+    enables range mirrors that exclude rows the filter keeps.
+
+    Only columns that supply a transform are touched, so a re-import that says
+    nothing about a column stays idempotent.
+    """
+    for column in columns:
+        if column.get("partition_value_transform"):
+            column.setdefault("partition_transform_is_monotonic", False)
+
+
+def drop_unusable_partition_transforms(
+    config: dict[str, Any], database: Database | None = None
+) -> None:
+    """
+    Drop a partition value transform the save path would have rejected.
+
+    Import is the one door into this field that does not go through
+    `UpdateDatasetCommand`, so a bundle can carry a transform holding Jinja or
+    calling a non-deterministic function -- one that will never mirror a filter,
+    and that the editor can only report as broken after the fact. Dropping it on
+    the way in leaves the column with no transform, a state an owner can see and
+    fix, rather than a stored expression that looks configured and is not.
+
+    Deliberately sanitizes rather than raises. A bundle is imported as a whole,
+    and failing someone's entire dataset over one unusable expression is a worse
+    trade than importing the dataset without it. This is the same bargain
+    `DatasetDAO.clear_dangling_partition_mapping` already strikes for a mapping
+    whose column went away.
+
+    Two kinds of check, and only one of them answers to the feature flag. The
+    usability checks ask whether a transform will ever mirror a filter, which
+    is a question about a live feature; with the flag off nothing mirrors, so
+    rewriting the bundle would discard configuration for no gain. The
+    structural check asks whether the expression is one this product stores at
+    all, and that answer does not change with a flag -- an import written while
+    the flag was off would otherwise sit in the metadata DB fully armed,
+    waiting for an operator to turn the flag on.
+
+    ``database`` is accepted already resolved for the v0 importer, whose bundles
+    nest a dataset under the connection being imported and so carry no
+    ``database_id`` to look one up by. Resolving it here as before when the
+    caller passes nothing.
+    """
+    columns = config.get("columns")
+    if not columns:
+        return
+    if not any(column.get("partition_value_transform") for column in columns):
+        return
+
+    _default_omitted_monotonic_declarations(columns)
+
+    database = database or (
+        db.session.query(Database).filter_by(id=config["database_id"]).first()
+    )
+    if database is None:
+        return
+
+    check_usability = is_feature_enabled(PARTITION_FILTER_MAPPING)
+    catalog = config.get("catalog")
+    schema = config.get("schema")
+
+    for column in columns:
+        transform = column.get("partition_value_transform")
+        if not transform:
+            continue
+
+        reasons: list[str] = []
+        # Skipped only for a transform that is not SQL yet, which is the same
+        # condition `UpdateDatasetCommand` puts in front of this gate. A PUT
+        # stores a half-typed transform and reports the mapping inactive, and
+        # `stored_expression_error` fails closed on anything that does not
+        # parse -- as it must, for the probe's sake. Asking it here
+        # unconditionally made export-then-import discard configuration the
+        # editor keeps, flag on or off. Note this is narrower than "does not
+        # parse": a multi-statement transform also fails to parse as a
+        # statement, and it still has to be dropped.
+        if not is_unfinished(transform, database.backend):
+            if reason := stored_expression_error(database, catalog, schema, transform):
+                reasons.append(reason)
+        if check_usability:
+            reasons.extend(
+                str(issue.message)
+                for issue in validate_transform(transform, database.backend)
+                if issue.blocking
+            )
+
+        if reasons:
+            logger.warning(
+                "Dropping the partition value transform on %s.%s (dataset %s) "
+                "during import: %s",
+                config.get("table_name"),
+                column.get("column_name"),
+                config.get("uuid"),
+                "; ".join(reasons),
+            )
+            column["partition_value_transform"] = None
+            column["partition_transform_is_monotonic"] = False
+
+
 def import_dataset(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
@@ -248,7 +559,15 @@ def import_dataset(  # noqa: C901
     # implicit-restore re-import is a clean replacement, not a merge.
     is_soft_deleted_match = False
 
-    if existing := find_existing_for_import(SqlaTable, config["uuid"]):
+    existing = find_existing_for_import(SqlaTable, config["uuid"])
+    if not existing and can_write:
+        # A fresh UUID over the (database, catalog, schema, table) identity of
+        # an existing dataset is still matched-and-updated by
+        # ``import_from_dict``, so resolving only the UUID would leave that
+        # update ungated. Resolve the identity the same way the import will.
+        # (Soft-deleted twins are handled in the create branch further down.)
+        existing = find_existing_by_import_identity(SqlaTable, config)
+    if existing:
         if existing.deleted_at is not None:
             # RESTORE path — re-importing a soft-deleted UUID is an implicit
             # restore-with-update, a distinct operation from overwriting an
@@ -409,6 +728,19 @@ def import_dataset(  # noqa: C901
     # untrusted user imports validate the catalog, like the access checks below.
     if not ignore_permissions:
         validate_catalog(config)
+        # Authorize the table binding the import will apply BEFORE the row is
+        # mutated, against the requested config values (see
+        # ``_raise_for_import_binding_access``).
+        try:
+            _raise_for_import_binding_access(config, existing)
+        except SupersetSecurityException as ex:
+            raise DatasetAccessDeniedError() from ex
+        # SQL that can't be parsed or rendered can't be access-checked, so fail
+        # closed, but as an invalid payload (422) rather than an access denial.
+        except SupersetParseError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex.error.message}") from ex
+        except TemplateError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex}") from ex
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
@@ -429,6 +761,50 @@ def import_dataset(  # noqa: C901
                     )
                     attributes["extra"] = None
 
+    drop_unusable_partition_transforms(config)
+    # And the mapping's one-transform invariant, against the columns this bundle
+    # writes. `DatasetDAO.clear_unmapped_partition_transforms` runs on both
+    # sides of the import below, but it is gated on the feature flag -- it
+    # discards stored configuration -- so a bundle imported during a flag-off
+    # window could park a transform on a column the mapping does not mirror and
+    # have it stored. Nothing reads it while the flag is off, and then the flag
+    # goes on and the mapping resolves onto it. Dropped rather than refused, the
+    # same bargain the sanitizer above strikes and for the same reason: a bundle
+    # is imported whole.
+    #
+    # Each reference falls back to the stored dataset, because an overwrite
+    # keeps whatever the bundle omits -- so a bundle that says nothing about
+    # `partition_column` is still mapping onto the stored one.
+    if cleared := drop_unmapped_value_transforms(
+        config.get("columns"),
+        partition_column=config.get(
+            "partition_column", getattr(existing, "partition_column", None)
+        ),
+        partition_mapped_column=config.get(
+            "partition_mapped_column",
+            getattr(existing, "partition_mapped_column", None),
+        ),
+        main_dttm_col=config.get(
+            "main_dttm_col", getattr(existing, "main_dttm_col", None)
+        ),
+        # So an overwrite that echoes the stored transform keeps it; only a
+        # value the bundle introduces on an unmapped column is dropped.
+        stored_by_name={
+            column.column_name: (
+                column.partition_value_transform,
+                bool(column.partition_transform_is_monotonic),
+            )
+            for column in getattr(existing, "columns", None) or []
+        },
+    ):
+        logger.warning(
+            "Dropping the partition value transform on %s.%s (dataset %s) "
+            "during import: the mapping does not mirror those columns",
+            config.get("table_name"),
+            ", ".join(cleared),
+            config.get("uuid"),
+        )
+
     # should we delete columns and metrics not present in the current import?
     # Restore-via-import of a soft-deleted dataset is implicitly a clean
     # replacement (Option C): the user is bringing the dataset back by
@@ -439,6 +815,16 @@ def import_dataset(  # noqa: C901
 
     # should we also load data into the dataset?
     data_uri = config.get("data")
+
+    # Disarm transforms parked on the *old* mapping before the new references
+    # land, the way `DatasetDAO.update` does. Omitted column fields keep their
+    # stored values, so a bundle that clears the mapped-column override -- or
+    # re-points `main_dttm_col` -- makes a column that was previously unmapped
+    # the effective one. Run only afterwards, the cleanup below would resolve
+    # the new mapping, find that column effective and skip it, and a transform
+    # nobody in this bundle authored would go live.
+    if existing is not None:
+        DatasetDAO.clear_unmapped_partition_transforms(existing)
 
     # import recursively to include columns and metrics
     try:
@@ -475,10 +861,8 @@ def import_dataset(  # noqa: C901
         # raise so the operator can resolve the legacy-NULL-schema
         # ambiguity before re-uploading.
         if is_soft_deleted_match:
-            # ``is_soft_deleted_match`` is only ever set inside the
-            # ``if existing := ...`` walrus block, so ``existing`` is
-            # guaranteed non-None here. The assert pins the invariant
-            # for mypy.
+            # Set only inside the ``if existing:`` block above; the assert
+            # pins that invariant for mypy.
             assert existing is not None
             existing.deleted_at = original_deleted_at
             db.session.flush()
@@ -489,40 +873,103 @@ def import_dataset(  # noqa: C901
                 "manually before retrying."
             ) from ex
         # On the non-soft-deleted overwrite path the legacy contract
-        # holds: return the existing row unmodified. Bypasses the
-        # visibility filter so a soft-deleted duplicate can be located
-        # too — without the bypass the listener would hide the row and
-        # the ``.one()`` would raise NoResultFound, masking the
-        # original MultipleResultsFound.
-        dataset = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter_by(uuid=config["uuid"])
-            .one()
-        )
+        # holds: return the existing row unmodified. Prefer the row already
+        # resolved above — on an identity match the incoming uuid belongs to
+        # no row at all, so looking it up again would raise NoResultFound and
+        # mask the original MultipleResultsFound. Falling back to the uuid
+        # lookup bypasses the visibility filter so a soft-deleted duplicate
+        # can still be located, for the same reason.
+        dataset = existing
+        if dataset is None:
+            dataset = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter_by(uuid=config["uuid"])
+                .one()
+            )
 
     if dataset.id is None:
         db.session.flush()
 
+    # A bundle can name a mapped column and still carry transforms on other
+    # columns; the editor's client-side guard never runs here. Left in place, a
+    # transform on an unmirrored column is invisible and still stored, ready to
+    # go live the moment the mapped column resolves back to it.
+    DatasetDAO.clear_unmapped_partition_transforms(dataset)
+
+    # And repair a reference the import itself broke: a `sync` deletion can
+    # remove the column `partition_column` names, which otherwise leaves the
+    # dataset failing `UpdateDatasetCommand`'s validation on every later edit --
+    # including a description-only PUT, which carries no columns payload and so
+    # cannot reach the forgiveness branch that tolerates a stored-only dangle.
+    #
+    # Flushed and expired first: the `sync` deletion is still pending here, and
+    # reading the relationship without flushing loads the removed rows back and
+    # un-deletes them.
+    db.session.flush()
+    db.session.expire(dataset, ["columns"])
+    DatasetDAO.clear_dangling_partition_mapping(
+        dataset, {column.column_name for column in dataset.columns}
+    )
+
+    # The same repair for the other reference a bundle can leave unsaveable. A
+    # dangling reference is not the only mapping `UpdateDatasetCommand` refuses:
+    # an *explicit* self-mapping -- `partition_mapped_column` equal to
+    # `partition_column` -- is blocking there too. A bundle setting both to
+    # `event_time` imported happily and then failed every later edit, including
+    # a description-only PUT, until someone repaired the mapping by hand.
+    #
+    # Cleared rather than refused, which is the bargain the rest of this
+    # function strikes: a bundle is imported as a whole, and failing someone's
+    # dataset over one unusable reference is the worse trade. Dropping only the
+    # override leaves the mapping following `main_dttm_col`, which is the state
+    # a bundle that simply omitted the field would have produced.
+    if (
+        dataset.partition_mapped_column
+        and dataset.partition_mapped_column == dataset.partition_column
+    ):
+        logger.warning(
+            "Clearing the partition mapped column on %s (dataset %s) during "
+            "import: it names the partition column itself, which no later save "
+            "would accept",
+            config.get("table_name"),
+            config.get("uuid"),
+        )
+        dataset.partition_mapped_column = None
+
     if not ignore_permissions:
+        # Object-level access to the dataset itself (editor/owner, #20382). A
+        # change to the table binding this dataset points at was authorized
+        # before the row was mutated, in ``_raise_for_import_binding_access``
+        # above.
         try:
             security_manager.raise_for_access(datasource=dataset)
         except SupersetSecurityException as ex:
             raise DatasetAccessDeniedError() from ex
 
-    try:
-        table_exists = dataset.database.has_table(
-            Table(dataset.table_name, dataset.schema, dataset.catalog),
-        )
-    except Exception:  # pylint: disable=broad-except
-        # MySQL doesn't play nice with GSheets table names
-        logger.warning(
-            "Couldn't check if table %s exists, assuming it does", dataset.table_name
-        )
-        table_exists = True
+    # `has_table` opens a live connection to the target database to run a
+    # schema-introspection query. Its result is only ever consulted below to
+    # decide whether to call `load_data`, which itself is a no-op unless
+    # `data_uri` is set - so for imports that don't carry inline data (the
+    # common case when bulk-importing dataset *metadata*, e.g. hundreds of
+    # datasets at once), this was an unconditional, unnecessary round trip
+    # to every target database on every single dataset, and a major
+    # contributor to bulk imports timing out.
+    if data_uri:
+        try:
+            table_exists = dataset.database.has_table(
+                Table(dataset.table_name, dataset.schema, dataset.catalog),
+            )
+        except Exception:  # pylint: disable=broad-except
+            # MySQL doesn't play nice with GSheets table names
+            logger.warning(
+                "Couldn't check if table %s exists, assuming it does",
+                dataset.table_name,
+            )
+            table_exists = True
 
-    if data_uri and (not table_exists or force_data):
-        load_data(data_uri, dataset, dataset.database)
+        if not table_exists or force_data:
+            load_data(data_uri, dataset, dataset.database)
 
     if user:
         from superset.subjects.utils import get_user_subject
@@ -567,6 +1014,29 @@ def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
                 df[column_name] = converted
 
 
+def _read_bounded(stream: Any, max_bytes: int) -> io.BytesIO:
+    """
+    Read ``stream`` into memory, failing once more than ``max_bytes`` bytes
+    have been produced.
+
+    Bounds both the raw download and gzip decompression amplification for
+    dataset data URIs: the ``.gz`` path had no analogue of
+    ``check_is_safe_zip`` and allowed unbounded expansion from a small
+    payload.
+    """
+    buffer = io.BytesIO()
+    while chunk := stream.read(1024 * 1024):
+        # Both http.client responses and gzip.open() yield bytes; a handful
+        # of tests substitute a text stream, so normalize either shape.
+        if isinstance(chunk, str):
+            chunk = chunk.encode("utf-8")
+        buffer.write(chunk)
+        if buffer.tell() > max_bytes:
+            raise ImportFailedError("Data URI payload exceeds the maximum allowed size")
+    buffer.seek(0)
+    return buffer
+
+
 def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
     """
     Load data from a data URI into a dataset.
@@ -581,11 +1051,27 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
 
     validate_data_uri(data_uri)
     logger.info("Downloading data from %s", data_uri)
-    opener = request.build_opener(_ValidatingRedirectHandler)
+    handlers: list[request.BaseHandler | type[request.BaseHandler]] = [
+        _ValidatingRedirectHandler
+    ]
+    if not app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"]:
+        # Also enforce the policy at the socket layer: re-check the peer of
+        # every connection, including each redirect hop. Disable proxies so the
+        # connection is made directly to the destination and the peer check
+        # validates the destination address rather than a proxy's.
+        handlers.append(request.ProxyHandler({}))
+        handlers.extend([_PeerValidatingHTTPHandler, _PeerValidatingHTTPSHandler])
+    opener = request.build_opener(*handlers)
     data = opener.open(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
+    # Cap the bytes materialized from the download, before and after gzip
+    # decompression (same per-file knob as ZIP bundle uploads): a gzip
+    # stream can carry oversized headers, trailing data, or additional
+    # members that would otherwise let the raw (compressed) download exceed
+    # the limit even when the decompressed CSV stays within it.
+    max_bytes = app.config["ZIPPED_FILE_MAX_SIZE"]
     if data_uri.endswith(".gz"):
-        data = gzip.open(data)
-    df = pd.read_csv(data, encoding="utf-8")
+        data = gzip.open(_read_bounded(data, max_bytes))
+    df = pd.read_csv(_read_bounded(data, max_bytes), encoding="utf-8")
     dtype = get_dtype(df, dataset)
 
     _convert_temporal_columns(df, dtype)

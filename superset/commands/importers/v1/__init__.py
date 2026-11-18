@@ -137,10 +137,12 @@ class ImportModelsCommand(BaseCommand):
                 # Extract detailed error information
                 if hasattr(ex, "messages") and isinstance(ex.messages, dict):
                     for file_name, errors in ex.messages.items():
-                        logger.error("Validation failed for %s: %s", file_name, errors)
+                        logger.warning(
+                            "Validation failed for %s: %s", file_name, errors
+                        )
                         detailed_errors.append(f"{file_name}: {errors}")
                 else:
-                    logger.error("Import validation error: %s", ex)
+                    logger.warning("Import validation error: %s", ex)
                     detailed_errors.append(str(ex))
 
             error_summary = "; ".join(detailed_errors)
@@ -149,12 +151,20 @@ class ImportModelsCommand(BaseCommand):
                 exceptions,
             )
 
+    def _reused_dependency_uuids(self) -> set[str]:
+        """
+        UUIDs of bundled ``prefix`` files that are only dependencies of other
+        files. Existing ones are reused unchanged, so they skip the overwrite
+        check.
+        """
+        return set()
+
     def _prevent_overwrite_existing_model(  # pylint: disable=invalid-name
         self, exceptions: list[ValidationError]
     ) -> None:
         """check if the object exists and shouldn't be overwritten"""
         if not self.overwrite:
-            existing_uuids = self._get_uuids()
+            existing_uuids = self._get_uuids() - self._reused_dependency_uuids()
             for file_name, config in self._configs.items():
                 if (
                     file_name.startswith(self.prefix)

@@ -102,7 +102,7 @@ test('should render all the tabs links', async () => {
 
 test('should render dropdownlinks', async () => {
   setup();
-  userEvent.hover(screen.getByText('test an upload'));
+  await userEvent.hover(screen.getByText('test an upload'));
   const label = await screen.findByText('test an upload');
   expect(label).toBeInTheDocument();
 });
@@ -124,7 +124,7 @@ test('should render the buttons', async () => {
   setup({ buttons });
   const testButton = screen.getByText(buttons[0].name);
   expect(await screen.findAllByRole('button')).toHaveLength(2);
-  userEvent.click(testButton);
+  await userEvent.click(testButton);
   expect(mockFunc).toHaveBeenCalled();
 });
 

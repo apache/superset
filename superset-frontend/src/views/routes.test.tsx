@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { matchPath } from 'react-router-dom';
 import { isFrontendRoute, routes } from './routes';
 
 jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
@@ -80,4 +81,13 @@ test('isFrontendRoute accepts both bare-route and appRoot-prefixed menu URLs', a
     document.body.innerHTML = previousBody;
     jest.resetModules();
   }
+});
+
+test('password recovery pages are matched before the /login/ prefix route', () => {
+  // The route switch matches by prefix, so a recovery page listed after
+  // /login/ would render the sign-in form instead.
+  ['/login/forgot_password/', '/login/reset_password/'].forEach(pathname => {
+    const firstMatch = routes.find(r => matchPath(pathname, { path: r.path }));
+    expect(firstMatch?.path).toBe(pathname);
+  });
 });

@@ -22,7 +22,54 @@ Disables RBAC permission checks for integration tests.
 RBAC logic is tested directly in test_auth_rbac.py.
 """
 
+from collections.abc import Iterator
+from contextvars import Token
+from typing import Any
+from unittest.mock import Mock
+
 import pytest
+from flask_appbuilder.security.sqla.models import User
+
+from superset.mcp_service.auth import _mcp_user_id_var
+
+
+def regular_user(**attributes: Any) -> Mock:
+    """Build a regular MCP principal without implicit, truthy mock attributes.
+
+    Use this for authenticated-user fixtures, including with embedding enabled.
+    Guest tests should construct their guest principal explicitly instead.
+    """
+    if attributes.pop("is_guest_user", False) is not False:
+        raise ValueError("regular_user cannot represent a guest")
+    return Mock(
+        spec=User,
+        is_guest_user=False,
+        is_anonymous=False,
+        is_authenticated=True,
+        **{"roles": [], "groups": [], **attributes},
+    )
+
+
+@pytest.fixture(autouse=True)
+def isolate_mcp_user_id_var() -> Iterator[None]:
+    """Reset the ``_mcp_user_id_var`` ContextVar around every MCP test.
+
+    ``_setup_user_context()`` sets the var and relies on ``on_call_tool``'s
+    ``finally`` to clear it. Tests that call ``_setup_user_context()`` (or set
+    the var) directly, without going through the middleware, leave it set in
+    the thread's base context, and pytest-asyncio copies that context into
+    every later async test's task -- so a resolved user id leaks into
+    unrelated tests. In a serial run a middleware-exercising test file that
+    sorts between the leaking file and its victim happened to clear the var;
+    under pytest-xdist the files land on different workers and the leak
+    surfaces as a flake. Scoping the var to each test removes the ordering
+    dependence.
+    """
+    token: Token[int | None] = _mcp_user_id_var.set(None)
+    try:
+        yield
+    finally:
+        _mcp_user_id_var.reset(token)
 
 
 @pytest.fixture(autouse=True)

@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable import/no-extraneous-dependencies */
 import { useState } from 'react';
-import { Dropdown } from 'antd';
+import { Dropdown } from '@superset-ui/core/components';
 import { TableOutlined, DownOutlined, CheckOutlined } from '@ant-design/icons';
 import { t } from '@apache-superset/core/translation';
 import { InfoText, ColumnLabel, CheckIconWrapper } from '../../styles';

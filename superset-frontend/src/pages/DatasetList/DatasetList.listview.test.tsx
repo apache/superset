@@ -429,6 +429,7 @@ test('delete button opens modal with dataset details', async () => {
   // Verify delete modal appears
   const modal = await screen.findByRole('dialog');
   expect(modal).toBeInTheDocument();
+  expect(modal).toHaveTextContent('is linked to 3 charts and 2 dashboards.');
 });
 
 test('delete action successfully deletes dataset and refreshes list', async () => {
@@ -1157,6 +1158,34 @@ test('dataset links use internal routing when PREVENT_UNSAFE_DEFAULT_URLS_ON_DAT
   });
 });
 
+test('legacy dashboard default URLs use the registered client route', async () => {
+  const dataset = {
+    ...mockDatasets[0],
+    explore_url: '/superset/dashboard/123/?standalone=1#section',
+  };
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {
+      common: {
+        conf: {
+          PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET: true,
+        },
+      },
+    },
+  );
+
+  const datasetLink = await screen.findByRole('link', {
+    name: dataset.table_name,
+  });
+  expect(datasetLink).toHaveAttribute(
+    'href',
+    '/dashboard/123/?standalone=1#section',
+  );
+});
+
 // Note: These delete error tests verify that the modal doesn't open when fetching
 // related_objects fails. The component's openDatasetDeleteModal error handler
 // (index.tsx:262-268) returns a string but doesn't call addDangerToast(), so no
@@ -1808,6 +1837,10 @@ test('bulk delete error shows toast without refreshing list', async () => {
     status: 500,
     body: { message: 'Bulk delete failed' },
   });
+  fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
+    charts: { count: 0, result: [] },
+    dashboards: { count: 0, result: [] },
+  });
 
   mockDatasetListEndpoints({
     result: [mockDatasets[0]],
@@ -1863,6 +1896,8 @@ test('bulk delete error shows toast without refreshing list', async () => {
   const confirmButton = within(modal)
     .getAllByRole('button', { name: /^delete$/i })
     .pop();
+  // The button stays disabled until the dependents lookup resolves.
+  await waitFor(() => expect(confirmButton).toBeEnabled());
   await userEvent.click(confirmButton!);
 
   // Wait for error toast
@@ -1973,6 +2008,39 @@ test('bulk select shows "N Selected (Physical)" for physical-only selection', as
     /1 Selected \(Physical\)/i,
   );
 }, 30000);
+
+test.each(['physical', 'virtual'] as const)(
+  'bulk select names both %s and semantic-view selections',
+  async kind => {
+    const dataset = mockDatasets.find(d => d.kind === kind)!;
+    const semanticView = {
+      ...dataset,
+      id: 999,
+      table_name: 'semantic_sales',
+      kind: 'semantic_view',
+    };
+    mockDatasetListEndpoints({
+      result: [dataset, semanticView],
+      count: 2,
+    });
+
+    renderDatasetList(mockAdminUser);
+    const table = await screen.findByTestId('listview-table');
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    await within(table).findAllByRole('checkbox');
+    for (const name of [dataset.table_name, semanticView.table_name]) {
+      const row = screen.getByText(name).closest('tr')!;
+      await userEvent.click(within(row).getByRole('checkbox'));
+    }
+
+    await waitFor(() =>
+      expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+        `2 Selected (1 ${kind === 'physical' ? 'Physical' : 'Virtual'}, 1 Semantic View)`,
+      ),
+    );
+  },
+  30000,
+);
 
 test('bulk select shows mixed count for virtual and physical selection', async () => {
   // Use a small mixed set - 1 physical + 1 virtual

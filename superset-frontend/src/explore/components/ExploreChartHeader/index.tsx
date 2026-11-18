@@ -56,8 +56,8 @@ import { Tag } from 'src/components/Tag';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { ReportObject } from 'src/features/reports/types';
-import { User } from 'src/types/bootstrapTypes';
-import getBootstrapData from 'src/utils/getBootstrapData';
+import { User, isUserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
 import { selectIsChartVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
@@ -111,7 +111,7 @@ const additionalItemsStyles = (theme: SupersetTheme) => css`
 const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   dashboardId,
   colorScheme: dashboardColorScheme,
-  slice,
+  slice: rawSlice,
   actions,
   formData,
   ownState,
@@ -125,6 +125,21 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   metadata,
   isSaveModalVisible,
 }) => {
+  const slice = useMemo(
+    () =>
+      rawSlice
+        ? {
+            ...rawSlice,
+            editors: rawSlice.editors?.filter(Number.isInteger),
+            extra_editors: rawSlice.extra_editors?.filter(Number.isInteger),
+          }
+        : rawSlice,
+    [rawSlice],
+  );
+  const canWriteChart = useSelector<
+    { explore?: { can_add?: boolean } },
+    boolean
+  >(state => state.explore?.can_add ?? false);
   const dispatch = useDispatch();
   const isVersionPreviewActive = useSelector(selectIsChartVersionPreviewActive);
   const { latestQueryFormData, sliceFormData } = chart;
@@ -291,19 +306,18 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     }
   }, [showUnsavedChangesModal, shouldForceCloseModal]);
 
-  const userSubjects = useMemo(
-    () => new Set(getBootstrapData()?.common?.user_subjects ?? []),
-    [],
-  );
-
   const editableTitleProps = useMemo(
     () => ({
       title: sliceName ?? '',
       canEdit:
         !isVersionPreviewActive &&
         (!slice ||
-          canOverwrite ||
-          Boolean(slice?.editors?.some(editor => userSubjects.has(editor)))),
+          (canWriteChart &&
+            canOverwriteSlice({
+              slice,
+              user: isUserWithPermissionsAndRoles(user) ? user : undefined,
+              canOverwrite,
+            }))),
       onSave: actions.updateChartTitle,
       placeholder: t('Add the name of the chart'),
       label: t('Chart title'),
@@ -311,10 +325,11 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [
       actions.updateChartTitle,
       canOverwrite,
+      canWriteChart,
       isVersionPreviewActive,
       slice,
       sliceName,
-      userSubjects,
+      user,
     ],
   );
 

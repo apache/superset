@@ -45,7 +45,7 @@ from superset.extensions import cache_manager
 from superset.extensions.metastore_cache import SupersetMetastoreCache
 from superset.reports.schemas import SlackChannelSchema
 from superset.utils.backports import StrEnum
-from superset.utils.core import recipients_string_to_list
+from superset.utils.core import recipients_string_to_list, remove_duplicates
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +141,10 @@ _TRANSIENT_SLACK_API_ERROR_CODES = frozenset(
     }
 )
 
+_AUTH_ERROR_CODES = frozenset(
+    {"not_authed", "invalid_auth", "account_inactive", "token_revoked", "token_expired"}
+)
+
 SLACK_TRANSIENT_TRANSPORT_ERRORS: tuple[type[Exception], ...] = (
     SlackClientNotConnectedError,
     URLError,
@@ -154,7 +158,7 @@ NO_SLACK_RECIPIENTS_MESSAGE = "No recipients saved in the report"
 
 def parse_slack_recipient_targets(target: str) -> list[str]:
     """Parse Slack targets, removing duplicates while preserving their order."""
-    return list(dict.fromkeys(recipients_string_to_list(target)))
+    return remove_duplicates(recipients_string_to_list(target))
 
 
 def get_slack_api_error_data(ex: SlackApiError) -> dict[str, Any]:
@@ -392,12 +396,24 @@ def _get_channels(team_id: Optional[str] = None) -> list[SlackChannel]:
         )
         return channels
     except SlackApiError as ex:
-        logger.error(
-            "Failed to fetch Slack channels after %d pages: %s",
-            page_count,
-            str(ex),
-            exc_info=True,
-        )
+        # Only bot-token auth failures (invalid/revoked/deactivated) are the
+        # expected, already-handled multi-tenant condition this is meant to
+        # quiet down. Rate limits and Slack server/API errors are actionable
+        # outages, so they keep ERROR-level logging with a traceback.
+        error_code = get_slack_api_error_code(ex)
+        if error_code in _AUTH_ERROR_CODES:
+            logger.warning(
+                "Failed to fetch Slack channels after %d pages: %s",
+                page_count,
+                str(ex),
+            )
+        else:
+            logger.error(
+                "Failed to fetch Slack channels after %d pages: %s",
+                page_count,
+                str(ex),
+                exc_info=True,
+            )
         raise
 
 

@@ -21,6 +21,7 @@ import { versionSessionLogMiddleware } from './sessionLogMiddleware';
 import {
   APPEND_VERSION_SESSION_LOG,
   CLEAR_VERSION_SESSION_LOG,
+  INVALIDATE_CHART_NORMALIZATION_CONTROLS,
 } from './reducer';
 
 jest.mock('@superset-ui/core', () => ({
@@ -77,7 +78,7 @@ test('falls back to a humanized control name when no label exists', () => {
   );
 });
 
-test('skips programmatic control writes so untouched charts stay clean', async () => {
+test('programmatic writes invalidate normalization without logging an edit', async () => {
   // Effects rewrite controls with no user gesture (transferred-control
   // cleanup after load, derived margins); logging them would report unsaved
   // edits the user never made. Built with the REAL action creator so the
@@ -89,13 +90,52 @@ test('skips programmatic control writes so untouched charts stay clean', async (
     explore: { controls: { metrics: { label: 'Metrics' } } },
   });
   run(store, setControlValue('metrics', [], undefined, { programmatic: true }));
-  expect(store.dispatch).not.toHaveBeenCalled();
+  expect(store.dispatch).toHaveBeenCalledTimes(1);
+  expect(store.dispatch).toHaveBeenCalledWith({
+    type: INVALIDATE_CHART_NORMALIZATION_CONTROLS,
+    controls: ['metrics'],
+  });
 
   // The same creator without the mark still logs.
+  store.dispatch.mockClear();
   run(store, setControlValue('metrics', []));
   expect(store.dispatch).toHaveBeenCalledWith(
     expect.objectContaining({ type: APPEND_VERSION_SESSION_LOG }),
   );
+});
+
+test('a write matching the hydrated default preserves normalization', async () => {
+  const { setControlValue } =
+    await import('src/explore/actions/exploreActions');
+  const store = buildStore({
+    explore: {
+      controls: { show_totals: { label: 'Show totals' } },
+      form_data: { show_totals: false },
+    },
+    versionHistory: {
+      chartNormalization: {
+        chartId: 7,
+        hydrationSessionId: 'hydration-a',
+        saveAttemptId: null,
+        invalidatedControls: {},
+        transitions: {
+          show_totals: {
+            control: 'show_totals',
+            from_present: false,
+            to_present: true,
+            to_value: false,
+          },
+        },
+      },
+    },
+  });
+
+  run(
+    store,
+    setControlValue('show_totals', false, undefined, { programmatic: true }),
+  );
+
+  expect(store.dispatch).not.toHaveBeenCalled();
 });
 
 test('clears the session log when the explore page hydrates', () => {
@@ -188,7 +228,7 @@ test('a history step cannot collapse into an adjacent control entry', async () =
     await import('src/explore/actions/exploreActions');
   const store = buildStore({ explore: { controls: {} } });
   run(store, setExploreControls({} as never));
-  const { entry } = store.dispatch.mock.calls[0][0];
+  const [[{ entry }]] = store.dispatch.mock.calls;
   expect(entry.controlName).not.toMatch(/^[a-z]/);
 });
 

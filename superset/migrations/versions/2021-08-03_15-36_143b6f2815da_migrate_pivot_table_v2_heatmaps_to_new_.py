@@ -56,7 +56,7 @@ VALID_RENDERERS = (
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     slices = (
         session.query(Slice)

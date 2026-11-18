@@ -16,8 +16,10 @@
 # under the License.
 """DB-touching helpers for the activity-view read path.
 
-All Phase A relationship walks (``charts_attached_to_dashboard``,
-``datasets_used_by_chart``, ``batch_datasets_used_by_charts``),
+The Phase A relationship walks (``datasets_used_by_chart``,
+``batch_datasets_used_by_charts``; the dashboard-membership walk
+``chart_attachment_windows_for_dashboard`` lives in
+:mod:`superset.versioning.membership`),
 the Phase B change-record fetch (``fetch_change_records`` /
 ``_select_change_rows_for_kinds``), the name-denormalization helpers
 (``_resolve_names_for_kind`` / ``apply_entity_name_denormalization``), the
@@ -57,7 +59,10 @@ from superset.versioning.activity.kinds import (
     Window,
 )
 from superset.versioning.activity.windows import row_within_any_window
-from superset.versioning.changes import version_changes_table
+from superset.versioning.changes import (
+    ACTION_KINDS,
+    version_changes_table,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -116,60 +121,6 @@ def first_tracked_tx(
 
 
 # ---- Phase A: relationship-traversal queries ------------------------------
-
-
-def charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]:
-    """Return ``(slice_id, window)`` for every chart that has ever been on
-    *dashboard_id*, with each association's validity window in
-    transaction-id space.
-
-    Reads from ``dashboard_slices_version`` (Continuum's auto-generated
-    M2M shadow). Rows with ``operation_type = 2`` (DELETE) are excluded
-    so we don't synthesize a phantom window from a detachment row.
-    """
-    # pylint: disable=import-outside-toplevel
-    from sqlalchemy_continuum import version_class
-
-    from superset.models.dashboard import Dashboard
-
-    metadata = version_class(Dashboard).__table__.metadata
-    m2m_tbl = metadata.tables.get("dashboard_slices_version")
-    if m2m_tbl is None:
-        return []
-
-    rows = (
-        db.session.connection()
-        .execute(
-            sa.select(
-                m2m_tbl.c.slice_id,
-                m2m_tbl.c.transaction_id,
-                m2m_tbl.c.end_transaction_id,
-            ).where(
-                m2m_tbl.c.dashboard_id == dashboard_id,
-                m2m_tbl.c.operation_type != 2,
-                m2m_tbl.c.slice_id.is_not(None),
-            )
-        )
-        .all()
-    )
-    result: list[tuple[int, Window]] = []
-    for row in rows:
-        try:
-            window = Window(row[1], row[2])
-        except ValueError:
-            # A degenerate shadow row (end_tx <= start_tx) must not 500 the
-            # endpoint; skip it and leave a breadcrumb for investigation.
-            logger.warning(
-                "activity: skipping degenerate dashboard_slices_version row "
-                "(dashboard_id=%s, slice_id=%s, tx=%s, end_tx=%s)",
-                dashboard_id,
-                row[0],
-                row[1],
-                row[2],
-            )
-            continue
-        result.append((row[0], window))
-    return result
 
 
 def datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:
@@ -423,7 +374,11 @@ def _select_change_rows_for_kinds(
         # declared on the Continuum Table by ``VersionTransactionFactory``,
         # so ``tx_tbl.c.action_kind`` resolves cleanly here. See
         # the three change-record dimensions.
-        tx_tbl.c.action_kind,
+        # Internal provenance is not part of the public action vocabulary.
+        sa.case(
+            (tx_tbl.c.action_kind.in_(sorted(ACTION_KINDS)), tx_tbl.c.action_kind),
+            else_=None,
+        ).label("action_kind"),
         user_tbl.c.id.label("changed_by_id"),
         user_tbl.c.first_name,
         user_tbl.c.last_name,
@@ -470,10 +425,17 @@ def _select_change_rows_for_kinds(
                 vc.c.sequence.desc(),
                 vc.c.entity_id.desc(),
             )
+            # stream_results rides the STATEMENT, never the connection:
+            # ``Connection.execution_options`` mutates the session's
+            # connection in place, permanently flipping every later
+            # statement on the request into a server-side cursor — on
+            # PostgreSQL that wraps subsequent INSERTs/SAVEPOINTs in
+            # ``DECLARE ... CURSOR FOR`` and they fail with a syntax
+            # error (observed: Continuum's transaction insert and the
+            # DBEventLogger write after an activity read; sc-120955).
             result = (
                 db.session.connection()
-                .execution_options(stream_results=True)
-                .execute(stmt)
+                .execute(stmt.execution_options(stream_results=True))
                 .mappings()
             )
             ordinal = _merge_result_into_heap(
@@ -680,10 +642,10 @@ def _resolve_names_for_kind(
     return resolved
 
 
-def _resolve_uuids_for_kind(
+def _resolve_snapshots_for_kind(
     api_kind: str, pairs: set[tuple[int, int]]
-) -> dict[tuple[int, int], UUID]:
-    """Resolve the entity UUID valid at each target transaction."""
+) -> dict[tuple[int, int], tuple[UUID, int]]:
+    """Resolve the entity UUID and snapshot transaction valid at each target."""
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import version_class
 
@@ -719,7 +681,7 @@ def _resolve_uuids_for_kind(
         for row in rows:
             per_entity.setdefault(row[0], []).append((row[1], row[2], row[3]))
 
-    resolved: dict[tuple[int, int], UUID] = {}
+    resolved: dict[tuple[int, int], tuple[UUID, int]] = {}
     for entity_id, target_tx in pairs:
         for start_tx, end_tx, entity_uuid in per_entity.get(entity_id, []):
             if (
@@ -727,15 +689,15 @@ def _resolve_uuids_for_kind(
                 and start_tx <= target_tx
                 and (end_tx is None or end_tx > target_tx)
             ):
-                resolved[(entity_id, target_tx)] = entity_uuid
+                resolved[(entity_id, target_tx)] = (entity_uuid, start_tx)
                 break
     return resolved
 
 
-def resolve_historical_entity_uuids(
+def resolve_historical_entity_snapshots(
     records: list[dict[str, Any]],
-) -> dict[tuple[str, int, int], UUID]:
-    """Return UUIDs keyed by API kind, entity id, and record transaction."""
+) -> dict[tuple[str, int, int], tuple[UUID, int]]:
+    """Return (UUID, snapshot tx) keyed by API kind, id, and record tx."""
     needed_by_kind: dict[str, set[tuple[int, int]]] = {}
     for record in records:
         api_kind = TABLE_KIND_TO_API.get(record["entity_kind"])
@@ -745,12 +707,12 @@ def resolve_historical_entity_uuids(
             (record["entity_id"], record["transaction_id"])
         )
 
-    resolved: dict[tuple[str, int, int], UUID] = {}
+    resolved: dict[tuple[str, int, int], tuple[UUID, int]] = {}
     for api_kind, pairs in needed_by_kind.items():
-        for (entity_id, target_tx), entity_uuid in _resolve_uuids_for_kind(
+        for (entity_id, target_tx), snapshot in _resolve_snapshots_for_kind(
             api_kind, pairs
         ).items():
-            resolved[(api_kind, entity_id, target_tx)] = entity_uuid
+            resolved[(api_kind, entity_id, target_tx)] = snapshot
     return resolved
 
 

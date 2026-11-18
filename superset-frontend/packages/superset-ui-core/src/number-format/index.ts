@@ -19,6 +19,8 @@
 
 export { default as NumberFormats } from './NumberFormats';
 export { default as NumberFormatter, PREVIEW_VALUE } from './NumberFormatter';
+export { formatSpecifier } from 'd3-format';
+export type { FormatLocaleDefinition } from 'd3-format';
 export { DEFAULT_D3_FORMAT } from './D3FormatConfig';
 
 export {
