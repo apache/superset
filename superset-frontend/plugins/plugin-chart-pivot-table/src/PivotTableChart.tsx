@@ -238,6 +238,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     colSubTotals,
     rowTotals,
     rowSubTotals,
+    collapseRows,
     valueFormat,
     currencyFormat,
     currencyCodeColumn,
@@ -250,6 +251,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     currencyFormats,
     metricsLayout,
     showValuesAs,
+    aggregateFunction,
     metricColorFormatters,
     dateFormatters,
     onContextMenu,
@@ -630,6 +632,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       colSubTotals,
       rowTotals,
       rowSubTotals,
+      collapseRows,
       highlightHeaderCellsOnHover:
         emitCrossFilters ||
         isFeatureEnabled(FeatureFlag.DrillBy) ||
@@ -648,6 +651,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       dateFormatters,
       emitCrossFilters,
       metricColorFormatters,
+      collapseRows,
       rowTotals,
       rowSubTotals,
       selectedFilters,
@@ -756,6 +760,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           onContextMenu={handleContextMenu}
           allowRenderHtml={allowRenderHtml}
           showValuesAs={showValuesAs}
+          aggregateFunction={aggregateFunction}
         />
       </PivotTableWrapper>
     </Styles>

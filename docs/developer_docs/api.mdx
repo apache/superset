@@ -54,6 +54,54 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 ---
 
+### Database connection secrets
+
+The create (`POST /api/v1/database/`) and update (`PUT /api/v1/database/{pk}`)
+responses mask sensitive fields in `result.masked_encrypted_extra` with `XXXXXXXXXX`,
+using the same engine-specific masking as `GET /api/v1/database/{pk}/connection`.
+The submitted secrets are still stored. Sending the masked values back in a later
+update preserves the stored secrets; send new values to replace them.
+
+### Editor and viewer identifiers
+
+For chart, dashboard, dataset, and report create/update requests, prefer explicit
+principal references in `editors`. Charts and dashboards also accept these
+references in `viewers`:
+
+```json
+{
+  "editors": [
+    {"type": "user", "id": 50},
+    {"type": "group", "id": 7}
+  ]
+}
+```
+
+`type` selects the ID namespace: `user`, `role`, or `group` means the underlying
+user, role, or group ID. `subject` means the internal Subject ID. Types are
+lowercase and explicit IDs must be positive integers. Superset resolves these
+references inside the authorized write command; callers do not need permission
+to list the Subject directory. Normal asset permissions and protection against
+non-admin callers removing their own edit access still apply. An unknown
+principal fails validation; it never falls back to the Subject with the same
+number.
+
+Legacy bare integers remain **Subject IDs**, not user IDs. For example,
+`{"editors": [50]}` identifies Subject 50, which may belong to a different user
+than User 50. Superset cannot infer which namespace a caller intended from the
+number alone. Do not migrate a user-ID-based script by renaming its field to
+`editors` while retaining the integers. Use explicit `user` references instead.
+This backwards-compatible addition does not reject ambiguous legacy requests.
+
+A PUT replaces the supplied editor/viewer list (subject to self-retention rules),
+including existing role/group grants. Include every principal that should retain
+access. Omitting the field preserves the current list; an empty list retains its
+existing clearing/defaulting behavior. Explicit references and bare Subject IDs
+can be combined, but using explicit references throughout makes intent clearer.
+GET responses continue to identify editors/viewers by Subject ID; they are not
+write-ready principal references. Other Subject-based APIs retain their existing
+input contracts.
+
 ### API Endpoints
 
 #### Core Resources
@@ -186,6 +234,16 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `POST` | [Validate database connection parameters](/developer-docs/api/validate-database-connection-parameters) | `/api/v1/database/validate_parameters/` |
 
 </details>
+
+The database OAuth2 callback at `/api/v1/database/oauth2/` returns HTTP 400
+when authorization is denied or callback state is missing or invalid. Provider
+error text is not echoed in the response; authorization denials use the message
+"The OAuth2 provider denied the request". Restart the OAuth2 flow to retry.
+
+When a database rejects an OAuth2 access token, connection and metadata
+inspection attempt one forced refresh and retry. Reopening a connection inside
+that query retry does not trigger another exchange. If the replacement token is
+also rejected, Superset asks the user to sign in again.
 
 #### Data Exploration
 

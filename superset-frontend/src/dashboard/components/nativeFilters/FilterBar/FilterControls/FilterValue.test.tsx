@@ -16,15 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { NativeFilterType } from '@superset-ui/core';
-import type { Filter } from '@superset-ui/core';
+import {
+  NativeFilterType,
+  DatasourceType,
+  buildQueryObject,
+} from '@superset-ui/core';
+import type { DataMask, Filter } from '@superset-ui/core';
+import { mergeExtraFormData } from '../../utils';
 import FilterValue from './FilterValue';
 
 const mockRequestChartData = jest.fn();
+const mockGetClientErrorObject = jest.fn();
+const mockSuperChartProps = jest.fn();
 jest.mock('src/components/Chart/chartAction', () => ({
   requestChartDataResolved: (...args: unknown[]) =>
     mockRequestChartData(...args),
@@ -37,19 +49,17 @@ jest.mock('@superset-ui/core', () => {
     getChartMetadataRegistry: () => ({
       get: () => ({ enableNoResults: false }),
     }),
-    SuperChart: (props: Record<string, unknown>) => (
-      <div data-test="mock-super-chart" data-chart-type={props.chartType}>
-        SuperChart
-      </div>
-    ),
+    SuperChart: (props: Record<string, unknown>) => {
+      mockSuperChartProps(props);
+      return (
+        <div data-test="mock-super-chart" data-chart-type={props.chartType}>
+          SuperChart
+        </div>
+      );
+    },
     isFeatureEnabled: () => false,
-    getClientErrorObject: (_err: unknown) =>
-      Promise.resolve({
-        message: 'Something went wrong',
-        errors: [
-          { message: 'Test error', error_type: 'GENERIC_BACKEND_ERROR' },
-        ],
-      }),
+    getClientErrorObject: (...args: unknown[]) =>
+      mockGetClientErrorObject(...args),
   };
 });
 
@@ -127,6 +137,34 @@ function renderFilterValue(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Exercise the real parsing so each rejection shape is handled as in
+  // production.
+  mockGetClientErrorObject.mockImplementation(
+    jest.requireActual('@superset-ui/core').getClientErrorObject,
+  );
+});
+
+test('semantic range renders without fetching bounds', async () => {
+  mockUseTransitiveParentIds.mockReturnValue([]);
+  mockUseFilterDependencies.mockReturnValue({});
+  mockRequestChartData.mockResolvedValue([{ data: [{ min: 1, max: 2 }] }]);
+  renderFilterValue({
+    filter: createMockFilter({
+      filterType: 'filter_range',
+      targets: [
+        {
+          datasetId: 3,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'Orders.age' },
+        },
+      ],
+    }),
+  });
+  await waitFor(() =>
+    expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+  );
+  expect(mockRequestChartData).not.toHaveBeenCalled();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
 });
 
 test('renders loading spinner when filter has a data source', () => {
@@ -170,6 +208,28 @@ test('forwards the dashboard async override to the request', async () => {
   );
 });
 
+const FRIENDLY_MESSAGE = 'Sorry, something went wrong. Try again later.';
+const NETWORK_MESSAGE = 'Network error while attempting to fetch resource';
+
+// The compact ErrorAlert shows only its title inline; the message is in a
+// hover tooltip and a click-to-open modal. Open both so every rendered
+// surface is checked.
+async function expectErrorAlert(title: string, message: string) {
+  const trigger = await screen.findByText(title);
+  await userEvent.hover(trigger);
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    `${title}: ${message}`,
+  );
+  await userEvent.click(trigger);
+  expect(await screen.findByRole('dialog')).toHaveTextContent(message);
+}
+
+function expectNotInDocument(...fragments: string[]) {
+  fragments.forEach(fragment => {
+    expect(document.body.textContent).not.toContain(fragment);
+  });
+}
+
 test('renders error state when API call fails', async () => {
   mockRequestChartData.mockRejectedValue(
     new Response(JSON.stringify({ message: 'Server Error' }), { status: 500 }),
@@ -177,17 +237,80 @@ test('renders error state when API call fails', async () => {
 
   renderFilterValue();
 
-  await waitFor(() => {
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-  });
-
-  // No ErrorMessageComponent is registered for GENERIC_BACKEND_ERROR in the
-  // test environment, so FilterValue renders its fallback ErrorAlert.
-  expect(await screen.findByText('Network error')).toBeInTheDocument();
+  await expectErrorAlert('Cannot load filter', FRIENDLY_MESSAGE);
+  expectNotInDocument('Server Error', 'Network error');
 });
+
+test('does not expose database error details without an error_type', async () => {
+  const dbError =
+    'Error: Received ClickHouse exception, code: 396, DB::Exception: Limit for temporary files size exceeded. (TOO_MANY_ROWS_OR_BYTES) (for url https://db.internal:8443)';
+  mockRequestChartData.mockRejectedValue(
+    new Response(JSON.stringify({ errors: [{ message: dbError }] }), {
+      status: 500,
+    }),
+  );
+
+  renderFilterValue();
+
+  await expectErrorAlert('Cannot load filter', FRIENDLY_MESSAGE);
+  expectNotInDocument(
+    'ClickHouse',
+    'DB::Exception',
+    'TOO_MANY_ROWS_OR_BYTES',
+    '396',
+    'db.internal',
+    'Network error',
+  );
+});
+
+test('does not expose the message of a server-side failure without a response body', async () => {
+  // e.g. the async query path rejecting after a query task failed
+  mockRequestChartData.mockRejectedValue(new Error('some server message'));
+
+  renderFilterValue();
+
+  await expectErrorAlert('Cannot load filter', FRIENDLY_MESSAGE);
+  expectNotInDocument('some server message', 'Network error');
+});
+
+test.each([
+  ['Chromium', 'Failed to fetch'],
+  ['Firefox', 'NetworkError when attempting to fetch resource.'],
+  ['Safari', 'Load failed'],
+])(
+  'shows the network error when the request gets no response (%s)',
+  async (_browser, fetchMessage) => {
+    mockRequestChartData.mockRejectedValue(new TypeError(fetchMessage));
+
+    renderFilterValue();
+
+    await expectErrorAlert('Network error', NETWORK_MESSAGE);
+    expectNotInDocument('Cannot load filter', FRIENDLY_MESSAGE);
+  },
+);
 
 test('does not fetch data when filter has not been in view', () => {
   renderFilterValue({ inView: false });
+
+  expect(mockRequestChartData).not.toHaveBeenCalled();
+});
+
+test('fetches data when inView is false if filter has requiredFirst', () => {
+  mockRequestChartData.mockReturnValue(new Promise(() => {}));
+  const requiredFirstFilter = createMockFilter({
+    requiredFirst: true,
+  });
+  renderFilterValue({ filter: requiredFirstFilter, inView: false });
+
+  expect(mockRequestChartData).toHaveBeenCalled();
+});
+
+test('does not fetch data when inView is false if filter is filter_time even with requiredFirst', () => {
+  const requiredFirstTimeFilter = createMockFilter({
+    requiredFirst: true,
+    filterType: 'filter_time',
+  });
+  renderFilterValue({ filter: requiredFirstTimeFilter, inView: false });
 
   expect(mockRequestChartData).not.toHaveBeenCalled();
 });
@@ -342,4 +465,246 @@ test('skips data fetch when cascade parent filters have no values selected', () 
   );
 
   expect(mockRequestChartData).not.toHaveBeenCalled();
+});
+
+test('legacy permalink values require an explicit reset before the plugin can emit current identity', async () => {
+  mockRequestChartData.mockResolvedValue([{ data: [] }]);
+  const onFilterSelectionChange = jest.fn();
+  const filter = {
+    ...createMockFilter({
+      targets: [
+        {
+          datasetId: 7,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'Orders.status' },
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      ],
+    }),
+    dataMask: { filterState: { value: ['Orders.status'] }, extraFormData: {} },
+  };
+  renderFilterValue({ filter, onFilterSelectionChange });
+  expect(screen.getByText('Reselect saved filter values')).toBeInTheDocument();
+  expect(screen.queryByTestId('mock-super-chart')).not.toBeInTheDocument();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Reset and reselect values' }),
+  );
+  expect(onFilterSelectionChange).toHaveBeenCalledWith(filter, {
+    filterState: {},
+    ownState: {},
+    extraFormData: {
+      semantic_selection_sources: [
+        { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+      ],
+    },
+  });
+});
+
+test('semantic select still requests chart data for its options', async () => {
+  mockUseTransitiveParentIds.mockReturnValue([]);
+  mockUseFilterDependencies.mockReturnValue({});
+  mockRequestChartData.mockResolvedValue([
+    { data: [{ 'Orders.status': 'Open' }] },
+  ]);
+  renderFilterValue({
+    filter: createMockFilter({
+      filterType: 'filter_select',
+      targets: [
+        {
+          datasetId: 3,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'Orders.status' },
+        },
+      ],
+    }),
+  });
+  await waitFor(() => expect(mockRequestChartData).toHaveBeenCalled());
+  expect(mockRequestChartData.mock.calls[0][0].formData).toEqual(
+    expect.objectContaining({
+      datasource: '3__semantic_view',
+      viz_type: 'filter_select',
+    }),
+  );
+  await waitFor(() =>
+    expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+  );
+});
+
+const semanticGrainControl = (semantic_selection_version?: string) =>
+  createMockFilter({
+    id: 'CHART_CUSTOMIZATION-grain',
+    filterType: 'chart_customization_timegrain',
+    targets: [
+      {
+        datasetId: 3,
+        datasourceType: DatasourceType.SemanticView,
+        semantic_selection_version,
+      },
+    ],
+  });
+
+async function emitFromPlugin(
+  filter: Filter,
+  dataMask: DataMask,
+): Promise<jest.Mock> {
+  mockRequestChartData.mockResolvedValue([{ data: [] }]);
+  const onFilterSelectionChange: jest.Mock = jest.fn();
+  renderFilterValue({ filter, onFilterSelectionChange });
+  await waitFor(() =>
+    expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+  );
+  expect(mockSuperChartProps).toHaveBeenCalled();
+  const [props] = mockSuperChartProps.mock.lastCall as [
+    { hooks: { setDataMask: (mask: DataMask) => void } },
+  ];
+  props.hooks.setDataMask(dataMask);
+  return onFilterSelectionChange;
+}
+
+test.each([undefined, 'cube-member-id-v1'])(
+  'a grain-only value carries no selection provenance (target version %s)',
+  async version => {
+    const filter: Filter = semanticGrainControl(version);
+    const mask: DataMask = {
+      filterState: { value: ['P1Y'] },
+      extraFormData: { time_grain_sqla: 'P1Y' },
+    };
+    const onFilterSelectionChange: jest.Mock = await emitFromPlugin(
+      filter,
+      mask,
+    );
+    expect(onFilterSelectionChange).toHaveBeenCalledWith(filter, mask);
+  },
+);
+
+test('a semantic member selection is still stamped with its provenance', async () => {
+  const filter: Filter = createMockFilter({
+    filterType: 'filter_select',
+    targets: [
+      {
+        datasetId: 3,
+        datasourceType: DatasourceType.SemanticView,
+        column: { name: 'Orders.status' },
+      },
+    ],
+  });
+  const filters = [{ col: 'Orders.status', op: 'IN' as const, val: ['Open'] }];
+  const onFilterSelectionChange: jest.Mock = await emitFromPlugin(filter, {
+    filterState: { value: ['Open'] },
+    extraFormData: { filters },
+  });
+  expect(onFilterSelectionChange).toHaveBeenCalledWith(filter, {
+    filterState: { value: ['Open'] },
+    extraFormData: {
+      filters,
+      semantic_selection_sources: [
+        { datasource: '3__semantic_view', version: null },
+      ],
+    },
+  });
+});
+
+test('a saved grain-only value is not reported as a stale selection', async () => {
+  mockRequestChartData.mockResolvedValue([{ data: [] }]);
+  renderFilterValue({
+    filter: {
+      ...semanticGrainControl('cube-member-id-v1'),
+      // Persisted before grain-only values stopped carrying provenance.
+      dataMask: {
+        filterState: { value: ['P1Y'] },
+        extraFormData: {
+          time_grain_sqla: 'P1Y',
+          semantic_selection_sources: [
+            { datasource: '3__semantic_view', version: null },
+          ],
+        },
+      },
+    },
+  });
+  await waitFor(() =>
+    expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+  );
+  expect(
+    screen.queryByText('Reselect saved filter values'),
+  ).not.toBeInTheDocument();
+});
+
+const grainControlOfType = (
+  filterType: string,
+  semantic_selection_version?: string,
+): Filter =>
+  createMockFilter({
+    id:
+      filterType === 'filter_timegrain'
+        ? 'NATIVE_FILTER-grain'
+        : 'CHART_CUSTOMIZATION-grain',
+    filterType,
+    targets: [
+      {
+        datasetId: 3,
+        datasourceType: DatasourceType.SemanticView,
+        semantic_selection_version,
+      },
+    ],
+  });
+
+const versionAfterApplying = (emitted: DataMask): string | undefined =>
+  buildQueryObject({
+    datasource: '3__semantic_view',
+    viz_type: 'table',
+    semantic_selection_version: 'cube-member-id-v1',
+    extra_form_data: mergeExtraFormData({}, emitted.extraFormData),
+  }).extras?.semantic_selection_version;
+
+test.each(['chart_customization_timegrain', 'filter_timegrain'])(
+  'clearing a %s control restores the chart identity',
+  async filterType => {
+    const onFilterSelectionChange: jest.Mock = await emitFromPlugin(
+      grainControlOfType(filterType),
+      { extraFormData: {}, filterState: { value: null, label: undefined } },
+    );
+    const emitted: DataMask = onFilterSelectionChange.mock.lastCall![1];
+    expect(emitted.extraFormData?.semantic_selection_sources).toBeUndefined();
+    expect(versionAfterApplying(emitted)).toBe('cube-member-id-v1');
+  },
+);
+
+test.each(['chart_customization_timegrain', 'filter_timegrain'])(
+  'a %s control saved without a default is not a stale selection',
+  async filterType => {
+    mockRequestChartData.mockResolvedValue([{ data: [] }]);
+    renderFilterValue({
+      filter: {
+        ...grainControlOfType(filterType, 'cube-member-id-v1'),
+        dataMask: { filterState: { value: null }, extraFormData: {} },
+      },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByText('Reselect saved filter values'),
+    ).not.toBeInTheDocument();
+  },
+);
+
+test('clearing a semantic member filter still carries its provenance', async () => {
+  const filter: Filter = createMockFilter({
+    filterType: 'filter_select',
+    targets: [
+      {
+        datasetId: 3,
+        datasourceType: DatasourceType.SemanticView,
+        column: { name: 'Orders.status' },
+      },
+    ],
+  });
+  const onFilterSelectionChange: jest.Mock = await emitFromPlugin(filter, {
+    extraFormData: {},
+    filterState: { value: null },
+  });
+  const emitted: DataMask = onFilterSelectionChange.mock.lastCall![1];
+  expect(emitted.extraFormData?.semantic_selection_sources).toEqual([
+    { datasource: '3__semantic_view', version: null },
+  ]);
 });

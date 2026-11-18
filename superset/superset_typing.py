@@ -138,6 +138,10 @@ class ResultSetColumnType(TypedDict):
     # identifier.
     expression: NotRequired[Any]
 
+    # Set on columns an engine spec expanded from a nested type (e.g. a STRUCT
+    # member); such a column never replaces a calculated column of its name.
+    nested_field: NotRequired[bool]
+
 
 CacheConfig: TypeAlias = dict[str, Any]
 DbapiDescriptionRow: TypeAlias = tuple[
@@ -154,12 +158,23 @@ DbapiDescription: TypeAlias = (
 )
 DbapiResult: TypeAlias = Sequence[list[Any] | tuple[Any, ...]]
 FilterValue: TypeAlias = bool | datetime | float | int | str
-FilterValues: TypeAlias = FilterValue | list[FilterValue] | tuple[FilterValue]
+FilterValues: TypeAlias = (
+    FilterValue | list[FilterValue | None] | tuple[FilterValue | None, ...]
+)
 FormData: TypeAlias = dict[str, Any]
 Granularity: TypeAlias = str | dict[str, str | float]
 Column: TypeAlias = AdhocColumn | str
 Metric: TypeAlias = AdhocMetric | str
 OrderBy: TypeAlias = tuple[Metric | Column, bool]
+
+
+class FetchedRows(list[tuple[Any, ...]]):
+    """List-compatible engine results carrying fetch truncation metadata."""
+
+    def __init__(self, rows: list[tuple[Any, ...]], *, truncated: bool) -> None:
+        """Keep engine truncation with the rows, independent of Flask context."""
+        super().__init__(rows)
+        self.truncated = truncated
 
 
 class QueryObjectDict(TypedDict, total=False):
@@ -207,9 +222,11 @@ class QueryObjectDict(TypedDict, total=False):
 
     # Core fields from QueryObject.to_dict()
     apply_fetch_values_predicate: bool
+    cache_timeout: int | None
     columns: list[Column]
     extras: dict[str, Any]
     filter: list["QueryObjectFilterClause"]
+    force_query: bool
     from_dttm: datetime | None
     granularity: str | None
     inner_from_dttm: datetime | None
@@ -292,6 +309,9 @@ class ExplorableData(TypedDict, total=False):
         time_grain_sqla: Available time grains
         main_dttm_col: Main datetime column
         currency_code_column: Column containing currency codes for dynamic formatting
+        partition_column: Physical column the engine partitions on
+        partition_mapped_column: Explicit override for the mirrored column
+        partition_filter_mapping: Summary of the active mapping, or None
         fetch_values_predicate: Predicate for fetching filter values
         template_params: Template parameters for Jinja
         is_sqllab_view: Whether this is a SQL Lab view
@@ -300,6 +320,8 @@ class ExplorableData(TypedDict, total=False):
         always_filter_main_dttm: Whether to always filter on main datetime
         normalize_columns: Whether to normalize column names
     """
+
+    semantic_selection_version: str | None
 
     # Core fields from BaseDatasource.data
     id: int | str  # String for UUID-based explorables like SemanticView
@@ -331,6 +353,12 @@ class ExplorableData(TypedDict, total=False):
     verbose_map: dict[str, str]
     select_star: str | None
 
+    # Semantic-view fields
+    # Stable string values of the SemanticViewFeature members the view's
+    # provider declares; consumed by the explore UI to derive picker
+    # capabilities. Absent for non-semantic explorables.
+    semantic_view_features: list[str]
+
     # Additional fields from SqlaTable and data_for_slices
     column_types: list["GenericDataType"]
     column_names: set[str] | list[str]
@@ -345,6 +373,12 @@ class ExplorableData(TypedDict, total=False):
     extra: str | None
     always_filter_main_dttm: bool
     normalize_columns: bool
+    partition_column: str | None
+    partition_mapped_column: str | None
+    # Self-contained summary for the Explore indicator. Kept separate from
+    # `columns` because `data_for_slices` prunes columns no chart references,
+    # and the partition column is typically referenced by none of them.
+    partition_filter_mapping: dict[str, Any] | None
     rls_filters: list[dict[str, Any]]
     # Set by datasources that cannot return raw row samples (e.g. semantic
     # views, which only expose pre-defined metrics and dimensions).

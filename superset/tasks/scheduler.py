@@ -43,6 +43,7 @@ from superset.commands.tasks.prune import TaskPruneCommand
 from superset.commands.tasks.reap import ReapOrphanedTasksCommand
 from superset.daos.report import ReportScheduleDAO
 from superset.daos.tasks import TaskDAO
+from superset.exceptions import SupersetException
 from superset.extensions import celery_app, db
 from superset.key_value.commands.prune import KeyValuePruneCommand
 from superset.reports.models import ReportScheduleType
@@ -135,9 +136,20 @@ def execute(
     self: Task,
     report_schedule_id: int,
     scheduled_dttm_iso: str | None = None,
+    expected_owner: str | None = None,
 ) -> None:
     stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
     stats_logger.incr("reports.execute")
+
+    if scheduled_dttm_iso is not None and not expected_owner:
+        stats_logger.incr("reports.execute.legacy_retry_discarded")
+        logger.warning(
+            "report_retry_discarded report_schedule_id=%s execution_id=%s "
+            "reason=missing_execution_owner action=rerun_after_worker_upgrade",
+            report_schedule_id,
+            self.request.id,
+        )
+        return
 
     task_id = None
     try:
@@ -165,6 +177,8 @@ def execute(
             task_id,
             report_schedule_id,
             scheduled_dttm,
+            is_retry=scheduled_dttm_iso is not None,
+            expected_owner=expected_owner,
         ).run()
     except SoftTimeLimitExceeded:
         stats_logger.incr("reports.execute.celery_soft_timeout")
@@ -637,13 +651,30 @@ def _execute_task_body(  # noqa: C901
                 set_ended_at=True,
             ).run()
 
-            logger.error(
-                "Task %s (uuid=%s) failed with error: %s",
-                task_type,
-                task_uuid,
-                str(ex),
-                exc_info=True,
-            )
+            # Client-class SupersetExceptions (e.g. QueryObjectValidationError,
+            # status 400) are user-fixable and already surfaced to the user via the
+            # task's error properties; they are not server faults, so avoid ERROR +
+            # traceback. Other exceptions keep ERROR regardless of any ``status``.
+            status = getattr(ex, "status", None)
+            if (
+                isinstance(ex, SupersetException)
+                and isinstance(status, int)
+                and 400 <= status < 500
+            ):
+                logger.warning(
+                    "Task %s (uuid=%s) failed with client error: %s",
+                    task_type,
+                    task_uuid,
+                    str(ex),
+                )
+            else:
+                logger.error(
+                    "Task %s (uuid=%s) failed with error: %s",
+                    task_type,
+                    task_uuid,
+                    str(ex),
+                    exc_info=True,
+                )
 
             stats_logger = current_app.config["STATS_LOGGER"]
             stats_logger.incr("gtf.task.failure")

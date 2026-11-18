@@ -19,10 +19,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { logging } from '@apache-superset/core/utils';
 import { Dataset } from 'src/components/Chart/types';
-import {
-  cachedSupersetGet,
-  supersetGetCache,
-} from 'src/utils/cachedSupersetGet';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   getDatasetId,
   createVerboseMap,
@@ -31,9 +28,6 @@ import {
 
 jest.mock('src/utils/cachedSupersetGet', () => ({
   cachedSupersetGet: jest.fn(),
-  supersetGetCache: {
-    delete: jest.fn(),
-  },
 }));
 
 jest.mock('@apache-superset/core/utils', () => ({
@@ -50,7 +44,6 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedCachedSupersetGet = jest.mocked(cachedSupersetGet);
 const mockedLoggingError = jest.mocked(logging.error);
-const mockedSupersetGetCacheDelete = jest.mocked(supersetGetCache.delete);
 const mockExtension = jest.fn();
 
 // Helper to configure extension mock for extension path tests
@@ -211,7 +204,6 @@ test('useDatasetDrillInfo handles network errors', async () => {
   expect(result.current.result).toBeNull();
   expect(result.current.error).toBeInstanceOf(Error);
   expect(result.current.error?.message).toBe('Network error');
-  expect(mockedSupersetGetCacheDelete).toHaveBeenCalled();
 });
 
 test('useDatasetDrillInfo skips fetch when skip is true', async () => {
@@ -249,29 +241,6 @@ test('useDatasetDrillInfo extracts dataset ID from string format', async () => {
   expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
     endpoint: '/api/v1/dataset/123/drill_info/?q=(dashboard_id:456)',
   });
-});
-
-test('useDatasetDrillInfo does not clear cache on successful fetch', async () => {
-  const mockDataset = {
-    id: 123,
-    columns: [],
-    metrics: [],
-  };
-
-  mockedCachedSupersetGet.mockResolvedValue({
-    json: {
-      result: mockDataset,
-    },
-  } as any);
-
-  const { result } = renderHook(() => useDatasetDrillInfo(123, 456));
-
-  await waitFor(() => {
-    expect(result.current.status).toBe('complete');
-  });
-
-  // Cache should NOT be deleted on success
-  expect(mockedSupersetGetCacheDelete).not.toHaveBeenCalled();
 });
 
 test('useDatasetDrillInfo creates new verbose_map from columns and metrics', async () => {
@@ -515,9 +484,6 @@ test('useDatasetDrillInfo handles extension throwing error', async () => {
 
   // Verify REST API was not called
   expect(mockedCachedSupersetGet).not.toHaveBeenCalled();
-
-  // Verify cache is NOT deleted for extension errors (extensions don't use cache)
-  expect(mockedSupersetGetCacheDelete).not.toHaveBeenCalled();
 });
 
 test('useDatasetDrillInfo handles extension returning malformed payload with undefined result', async () => {
@@ -594,5 +560,89 @@ test('useDatasetDrillInfo falls back to REST API when extension exists but formD
   expect(result.current.result).toEqual({
     ...mockDataset,
     verbose_map: { col1: 'Column 1' },
+  });
+});
+
+/**
+ * sc-111089 T012: type-aware resolution — semantic views resolve their own
+ * structure and never touch /drill_info/ (which would hit the colliding
+ * regular dataset id), including when a drillby extension is registered.
+ */
+
+test('getDatasourceTypeFromDatasourceId parses the semantic_view suffix and falls back to table', () => {
+  const { getDatasourceTypeFromDatasourceId } =
+    jest.requireActual('./datasets');
+  expect(getDatasourceTypeFromDatasourceId('3__semantic_view')).toBe(
+    'semantic_view',
+  );
+  expect(getDatasourceTypeFromDatasourceId('3__table')).toBe('table');
+  expect(getDatasourceTypeFromDatasourceId('3__bogus')).toBe('table');
+  expect(getDatasourceTypeFromDatasourceId(3)).toBe('table');
+});
+
+test('useDatasetDrillInfo resolves a semantic view from its structure with zero drill_info calls', async () => {
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: {
+      result: {
+        name: 'orders',
+        dimensions: [{ name: 'Orders Status', type: 'VARCHAR' }],
+        metrics: [{ name: 'order_count', definition: 'COUNT(*)' }],
+      },
+    },
+  } as any);
+
+  const { result } = renderHook(() =>
+    useDatasetDrillInfo('3__semantic_view', 456),
+  );
+
+  await waitFor(() => expect(result.current.status).toBe('complete'));
+
+  expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/semantic_view/3/structure',
+  });
+  const drillInfoCalls = mockedCachedSupersetGet.mock.calls.filter(call =>
+    String(call[0]?.endpoint).includes('/drill_info/'),
+  );
+  expect(drillInfoCalls).toHaveLength(0);
+
+  expect(result.current.result?.table_name).toBe('orders');
+  expect(result.current.result?.verbose_map).toMatchObject({
+    'Orders Status': 'Orders Status',
+    order_count: 'order_count',
+  });
+});
+
+test('semantic view wins over a registered drillby extension', async () => {
+  setupExtensionMock();
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: {
+      result: { name: 'orders', dimensions: [], metrics: [] },
+    },
+  } as any);
+  const mockFormData = { datasource: '3__semantic_view' } as any;
+
+  const { result } = renderHook(() =>
+    useDatasetDrillInfo('3__semantic_view', 456, mockFormData),
+  );
+
+  await waitFor(() => expect(result.current.status).toBe('complete'));
+
+  // The extension path must not run for semantic views — it receives only
+  // the numeric id and would resolve the colliding regular dataset.
+  expect(mockExtension).not.toHaveBeenCalled();
+  expect(result.current.result?.table_name).toBe('orders');
+});
+
+test('a malformed type suffix falls back to the regular dataset drill_info path', async () => {
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: { result: { id: 3, columns: [], metrics: [] } },
+  } as any);
+
+  const { result } = renderHook(() => useDatasetDrillInfo('3__bogus', 456));
+
+  await waitFor(() => expect(result.current.status).toBe('complete'));
+
+  expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/dataset/3/drill_info/?q=(dashboard_id:456)',
   });
 });

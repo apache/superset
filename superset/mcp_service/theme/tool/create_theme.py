@@ -20,7 +20,9 @@ Create theme FastMCP tool
 
 Creates a reusable Superset theme from an antd design-token configuration.
 The supplied json_data is sanitized and validated with the same routine the
-REST API uses before the theme is persisted via ThemeDAO.
+REST API uses, and the theme is persisted via CreateThemeCommand — the same
+command the REST API uses — so the creating user is seeded as an editor and
+remains able to update/delete the theme afterward.
 """
 
 import logging
@@ -28,10 +30,14 @@ from typing import Any
 
 from fastmcp import Context
 from marshmallow import ValidationError
-from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import db, event_logger
+from superset.commands.theme.create import CreateThemeCommand
+from superset.commands.theme.exceptions import (
+    ThemeCreateFailedError,
+    ThemeInvalidError,
+)
+from superset.extensions import event_logger
 from superset.mcp_service.theme.schemas import CreateThemeRequest, CreateThemeResponse
 from superset.themes.schemas import _sanitize_and_validate_theme_config
 from superset.utils import json
@@ -114,17 +120,13 @@ async def create_theme(
         )
 
     try:
-        from superset.daos.theme import ThemeDAO
-
         with event_logger.log_context(action="mcp.create_theme"):
-            theme = ThemeDAO.create(
-                attributes={
+            theme = CreateThemeCommand(
+                {
                     "theme_name": request.theme_name,
                     "json_data": json.dumps(sanitized),
-                    "is_system": False,
                 }
-            )
-            db.session.commit()  # pylint: disable=consider-using-transaction
+            ).run()
 
         await ctx.info(
             "Theme created: id=%s, uuid=%s" % (theme.id, getattr(theme, "uuid", None))
@@ -137,19 +139,22 @@ async def create_theme(
             message=f"Theme '{theme.theme_name}' created successfully",
         )
 
-    except SQLAlchemyError as exc:
-        db.session.rollback()  # pylint: disable=consider-using-transaction
-        logger.exception("Failed to create theme")
-        await ctx.error("Failed to create theme: %s" % (str(exc),))
+    except ThemeInvalidError as exc:
+        await ctx.warning("Theme validation failed: %s" % (exc.normalized_messages(),))
         return CreateThemeResponse(
             success=False,
-            # Raw SQLAlchemy text can leak SQL/connection details; the full
-            # exception is already in the server log via logger.exception.
-            error="Failed to create theme due to a database error.",
+            error=str(exc.normalized_messages()),
+            error_type="ValidationError",
+        )
+    except ThemeCreateFailedError:
+        logger.exception("Failed to create theme")
+        await ctx.error("Failed to create theme")
+        return CreateThemeResponse(
+            success=False,
+            error="Failed to create theme.",
             error_type="CreateFailedError",
         )
     except Exception as exc:
-        db.session.rollback()  # pylint: disable=consider-using-transaction
         logger.exception("Unexpected error in create_theme")
         await ctx.error("Unexpected error: %s" % (type(exc).__name__,))
         raise

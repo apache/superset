@@ -25,13 +25,66 @@ for input parameters, making MCP tools more flexible for different clients.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any, Callable, List, Type, TypeVar
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, GetJsonSchemaHandler, ValidationError
+from pydantic_core import PydanticCustomError
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+
+@contextmanager
+def field_validation_error(field_name: str) -> Iterator[None]:
+    """Attach a declared field location to checks in a model-level validator.
+
+    Keep the original message for Pydantic consumers; the MCP diagnostic
+    formatter exposes only the schema-backed location and a static reason.
+    """
+    try:
+        yield
+    except UnicodeDecodeError as ex:
+        raise ValidationError.from_exception_data(
+            "Field validation",
+            [{"type": "string_unicode", "loc": (field_name,), "input": ex.object}],
+        ) from ex
+    except ValueError as ex:
+        error = (
+            ex
+            if isinstance(ex, PydanticCustomError)
+            else PydanticCustomError("unsafe_text", "{error}", {"error": str(ex)})
+        )
+        raise ValidationError.from_exception_data(
+            "Field validation", [{"type": error, "loc": (field_name,)}]
+        ) from ex
+
+
+class OmittedMeansUnchanged(BaseModel):
+    """Base for models that tell an omitted field from an explicit ``null``.
+
+    These models read ``model_fields_set``, so leaving a field out is not the
+    same as passing ``null``. Pydantic advertises ``"default": null`` for every
+    optional field, and a client that materialises those defaults then sends
+    nulls the caller never named, which the model reads as deliberate input.
+
+    Dropping the advertised default keeps the fields optional without handing
+    clients a value to fill in. Nothing else changes: an omitted field is still
+    unset, and an explicit ``null`` still means whatever the tool already made
+    it mean.
+    """
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls, core_schema: Any, handler: GetJsonSchemaHandler
+    ) -> dict[str, Any]:
+        schema = handler(core_schema)
+        for field in schema.get("properties", {}).values():
+            if "default" in field and field["default"] is None:
+                del field["default"]
+        return schema
 
 
 class JSONParseError(ValueError):

@@ -21,6 +21,12 @@ from typing import Any
 
 from superset.mcp_service.utils import _is_uuid
 
+SQL_DATASET_SOURCE_GUIDANCE: str = (
+    "This tool supports SQL datasets only. For semantic views, discover sources "
+    "with list_semantic_views, then selected-view metrics with list_metrics "
+    "and query with get_table."
+)
+
 
 def resolve_dataset(
     identifier: int | str, eager_options: list[Any] | None = None

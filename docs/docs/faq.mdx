@@ -67,6 +67,11 @@ import FAQSchema from '@site/src/components/FAQSchema';
         'Superset is tested using MySQL, PostgreSQL, and SQLite backends for storing its internal metadata. While Superset supports many databases as data sources, only these are recommended for the metadata store in production.',
     },
     {
+      question: 'Can I hide an unavailable Druid database from SQL Lab?',
+      answer:
+        'Yes. Edit the existing Druid connection and uncheck Expose database in SQL Lab. Keep the database name and connection settings unchanged. If the connection check fails during permission synchronization, Superset saves the option and logs a warning without deleting the connection, datasets, or charts.',
+    },
+    {
       question: 'How can I configure OAuth authentication and authorization?',
       answer:
         'Take a look at the Flask-AppBuilder OAuth configuration example, which shows how to configure OAuth authentication and authorization in Superset.',
@@ -298,6 +303,14 @@ Superset on one of these database servers for production. Installation on other 
 may work but isn’t tested. It has been reported that [Microsoft SQL Server does _not_
 work as a Superset backend](https://github.com/apache/superset/issues/18961). Column-store,
 non-OLTP databases are not designed for this type of workload.
+
+## Can I hide an unavailable Druid database from SQL Lab?
+
+Yes. Edit the existing Druid connection and uncheck **Expose database in SQL Lab**.
+Keep its database name and connection settings unchanged. If the connection check fails
+during permission synchronization, Superset saves the option and logs a warning without
+deleting the connection, datasets, or charts. Changes to the database name, credentials,
+or other connection settings still require successful synchronization.
 
 ## How can I configure OAuth authentication and authorization?
 

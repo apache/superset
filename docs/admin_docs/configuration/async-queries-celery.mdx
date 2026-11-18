@@ -95,6 +95,13 @@ issues arise. Please clear your existing results cache store when upgrading an e
   - [s3werkzeugcache](https://pypi.python.org/pypi/s3werkzeugcache) for S3
   - [minio-flask-cache](https://github.com/greggailly/minio-flask-cache) for MinIO or other S3 compatible service
 
+When Global Async Queries is enabled for charts, a failed, aborted, or timed-out
+chart query displays its task failure message in the chart error panel. The
+browser reads that message from the authorized task-status endpoint after a
+terminal status arrives by polling or websocket. Embedded guest viewers receive
+the same redacted message as synchronous chart requests. If no detail is
+available, the chart displays a generic failure message.
+
 ## Celery Flower
 
 Flower is a web based tool for monitoring the Celery cluster which you can install from pip:

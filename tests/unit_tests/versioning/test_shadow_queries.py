@@ -17,7 +17,7 @@
 """Unit tests for the change-record shadow queries (sc-120007).
 
 ``_dashboard_slice_uuids_at_tx`` takes a dashboard's precomputed attachment
-windows (from :func:`charts_attached_to_dashboard`, which pairs the
+windows (from :func:`chart_attachment_windows_for_dashboard`, which pairs the
 ``dashboard_slices_version`` INSERT/DELETE rows into ``[attach, detach)``
 intervals) and keeps only the charts whose window contains the target tx. The
 raw association-shadow validity predicate must NOT be used: Continuum never
@@ -191,7 +191,7 @@ def test_child_records_threads_committing_session_into_membership(
     sc-120007 HIGH regression guard: ``_dashboard_child_records_for_tx_from_shadows``
     runs during commit finalization, when the current transaction's association
     rows are flushed-but-not-committed and visible only on the committing
-    connection. It must pass that session to ``charts_attached_to_dashboard``;
+    connection. It must pass that session to ``chart_attachment_windows_for_dashboard``;
     reading via ``db.session`` would miss those rows on a non-scoped committing
     session and silently drop the change record. Asserted at the call site so
     dropping ``session=session`` fails here even though the direct-window tests
@@ -209,7 +209,7 @@ def test_child_records_threads_committing_session_into_membership(
             return_value={7},
         ),
         patch(
-            "superset.versioning.membership.charts_attached_to_dashboard",
+            "superset.versioning.membership.chart_attachment_windows_for_dashboard",
             spy,
         ),
     ):
@@ -220,31 +220,110 @@ def test_child_records_threads_committing_session_into_membership(
     spy.assert_called_once_with(7, session=committing_session)
 
 
-def test_charts_attached_to_dashboard_uses_the_passed_session(
+def test_chart_attachment_windows_for_dashboard_uses_the_passed_session(
     app_context: None,
 ) -> None:
     """The membership helper reads on the passed session, never db.session."""
-    from superset.versioning.membership import charts_attached_to_dashboard
+    from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
     passed = MagicMock(name="passed_session")
     passed.connection.return_value.execute.return_value.all.return_value = []
 
     with patch("superset.versioning.membership.db") as mock_db:
-        charts_attached_to_dashboard(1, session=passed)
+        chart_attachment_windows_for_dashboard(1, session=passed)
 
     passed.connection.assert_called_once_with()
     mock_db.session.connection.assert_not_called()
 
 
-def test_charts_attached_to_dashboard_defaults_to_db_session(
+def test_chart_attachment_windows_for_dashboard_defaults_to_db_session(
     app_context: None,
 ) -> None:
     """With no session, the helper falls back to the Flask-scoped db.session."""
-    from superset.versioning.membership import charts_attached_to_dashboard
+    from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
     with patch("superset.versioning.membership.db") as mock_db:
         db_result = mock_db.session.connection.return_value.execute.return_value
         db_result.all.return_value = []
-        charts_attached_to_dashboard(1)
+        chart_attachment_windows_for_dashboard(1)
 
     mock_db.session.connection.assert_called_once_with()
+
+
+# Shadow timeline for one dataset (id 7): column "country" relabelled at
+# tx 30; metric "count" edited alone at tx 20. Each row is
+# (start_tx, end_tx, live values); validity follows Continuum's rule.
+_TIMELINE: dict[str, list[tuple[int, int | None, dict[str, Any]]]] = {
+    "table_columns_version": [
+        (10, 30, {"column_name": "country", "verbose_name": None}),
+        (30, None, {"column_name": "country", "verbose_name": "Country"}),
+    ],
+    "sql_metrics_version": [
+        (10, 20, {"metric_name": "count", "expression": "COUNT(*)"}),
+        (20, None, {"metric_name": "count", "expression": "COUNT(1)"}),
+    ],
+}
+
+
+def _rows_valid_at(
+    _session: Any, table: Any, _fk: str, _dataset_id: int, tx: int
+) -> list[dict[str, Any]]:
+    return [
+        {"table_id": 7, **values}
+        for start, end, values in _TIMELINE[table.name]
+        if start <= tx and (end is None or end > tx)
+    ]
+
+
+def _session_answering_max_prior_tx() -> MagicMock:
+    """``max(transaction_id) < tx`` per shadow table, from the timeline."""
+
+    def _execute(stmt: Any) -> MagicMock:
+        compiled = stmt.compile(dialect=sqlite.dialect())
+        table_name = next(t.name for t in stmt.get_final_froms())
+        tx = next(
+            value
+            for name, value in compiled.params.items()
+            if name.startswith("transaction_id")
+        )
+        prior = [s for s, _, _ in _TIMELINE[table_name] if s < tx]
+        result = MagicMock()
+        result.scalar.return_value = max(prior) if prior else None
+        return result
+
+    session = MagicMock()
+    session.connection.return_value.execute.side_effect = _execute
+    return session
+
+
+def test_dataset_child_records_do_not_replay_an_earlier_metric_only_edit(
+    app_context: None,
+) -> None:
+    """A metric-only edit at tx 20 is not emitted again by a later save at tx 30.
+
+    Pre-state must be the state just before the transaction, for both shadow
+    tables, not the state at the latest *column* shadow (tx 10).
+    """
+    from superset.versioning.changes.shadow_queries import (
+        _dataset_child_records_for_tx_from_shadows,
+    )
+
+    with (
+        patch(
+            "superset.versioning.changes.shadow_queries._affected_dataset_ids_at_tx",
+            return_value={7},
+        ),
+        patch(
+            "superset.versioning.changes.shadow_queries.shadow_rows_valid_at",
+            side_effect=_rows_valid_at,
+        ),
+    ):
+        at_30 = _dataset_child_records_for_tx_from_shadows(
+            _session_answering_max_prior_tx(), 30
+        )
+        at_20 = _dataset_child_records_for_tx_from_shadows(
+            _session_answering_max_prior_tx(), 20
+        )
+
+    assert [(r.kind, r.path) for r in at_30[7]] == [("column", ["columns", "country"])]
+    assert [(r.kind, r.path) for r in at_20[7]] == [("metric", ["metrics", "count"])]

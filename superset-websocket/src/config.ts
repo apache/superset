@@ -21,6 +21,14 @@ import { readFileSync } from 'fs';
 import { merge as _merge } from 'lodash-es';
 import { resolve } from 'path';
 
+export interface SentinelNode {
+  host: string;
+  port: number;
+}
+
+/** Mirrors the Python ``CACHE_REDIS_SSL_CERT_REQS`` values. */
+export type SslCertReqs = 'required' | 'optional' | 'none';
+
 export interface RedisConfig {
   port: number;
   host: string;
@@ -29,6 +37,21 @@ export interface RedisConfig {
   db: number;
   ssl: boolean;
   validateHostname: boolean;
+  // Paths to PEM files. The CA bundle is trusted in addition to the system's
+  // public CAs, so a private CA and public CAs can coexist.
+  sslCaCerts: string;
+  sslCertfile: string;
+  sslKeyfile: string;
+  // Only 'none' disables certificate verification: for a TLS client Python's
+  // 'optional' is equivalent to 'required', so both verify the server.
+  sslCertReqs: SslCertReqs;
+  // A non-empty list selects Sentinel mode: `host`/`port` are ignored and the
+  // master named `sentinelMaster` is resolved through the sentinels.
+  sentinels: SentinelNode[];
+  sentinelMaster: string;
+  // Credentials for the sentinel nodes themselves (`password`/`username`
+  // authenticate against the resolved master).
+  sentinelPassword: string;
 }
 
 type ConfigType = {
@@ -90,6 +113,13 @@ function defaultConfig(): ConfigType {
       db: 0,
       ssl: false,
       validateHostname: true,
+      sslCaCerts: '',
+      sslCertfile: '',
+      sslKeyfile: '',
+      sslCertReqs: 'required',
+      sentinels: [],
+      sentinelMaster: '',
+      sentinelPassword: '',
     },
   };
 }
@@ -133,6 +163,41 @@ const toStringArray = (s: string) =>
     .split(',')
     .map(entry => entry.trim())
     .filter(entry => entry.length > 0);
+
+// Parse "host:port,host:port" (IPv6 hosts as "[::1]:26379"). A missing port
+// defaults to the Sentinel port; an unparseable entry is skipped with a warning.
+function toSentinelNodes(s: string): SentinelNode[] {
+  return toStringArray(s).flatMap(entry => {
+    const sep = entry.lastIndexOf(':');
+    const hasPort = sep > 0 && !entry.endsWith(']');
+    const host = (hasPort ? entry.slice(0, sep) : entry).replace(
+      /^\[|\]$/g,
+      '',
+    );
+    const port = hasPort ? Number(entry.slice(sep + 1)) : 26379;
+    if (!host || !Number.isInteger(port) || port <= 0 || port > 65535) {
+      console.warn(`Ignoring invalid sentinel address "${entry}".`);
+      return [];
+    }
+    return [{ host, port }];
+  });
+}
+
+function toSslCertReqs(val: string, fallback: SslCertReqs): SslCertReqs {
+  const normalized = val.trim().toLowerCase();
+  if (
+    normalized === 'required' ||
+    normalized === 'optional' ||
+    normalized === 'none'
+  ) {
+    return normalized;
+  }
+  console.warn(
+    `Invalid REDIS_SSL_CERT_REQS "${val}"; expected required, optional or ` +
+      `none. Falling back to ${fallback}.`,
+  );
+  return fallback;
+}
 
 function applyEnvOverrides(config: ConfigType): ConfigType {
   // Every numeric override goes through `toNonNegativeNumber` so a typo'd value
@@ -186,6 +251,16 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     REDIS_DB: val =>
       (config.redis.db = toNonNegativeNumber(val, config.redis.db)),
     REDIS_SSL: val => (config.redis.ssl = toBoolean(val)),
+    REDIS_VALIDATE_HOSTNAME: val =>
+      (config.redis.validateHostname = toBoolean(val)),
+    REDIS_SSL_CA_CERTS: val => (config.redis.sslCaCerts = val),
+    REDIS_SSL_CERTFILE: val => (config.redis.sslCertfile = val),
+    REDIS_SSL_KEYFILE: val => (config.redis.sslKeyfile = val),
+    REDIS_SSL_CERT_REQS: val =>
+      (config.redis.sslCertReqs = toSslCertReqs(val, config.redis.sslCertReqs)),
+    REDIS_SENTINELS: val => (config.redis.sentinels = toSentinelNodes(val)),
+    REDIS_SENTINEL_MASTER: val => (config.redis.sentinelMaster = val),
+    REDIS_SENTINEL_PASSWORD: val => (config.redis.sentinelPassword = val),
     STATSD_HOST: val => (config.statsd.host = val),
     STATSD_PORT: val =>
       (config.statsd.port = toNonNegativeNumber(val, config.statsd.port)),

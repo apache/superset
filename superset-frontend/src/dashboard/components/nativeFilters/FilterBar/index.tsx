@@ -62,8 +62,18 @@ import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  isFilterKeyPublishHeld,
+  isProtectedFilterKey,
+  releaseFilterKeyPublish,
+} from 'src/dashboard/util/sharedFilterStateHold';
 import { isChartCustomization } from '../FiltersConfigModal/utils';
-import { checkIsApplyDisabled, getFiltersToApply } from './utils';
+import {
+  checkIsApplyDisabled,
+  clearedCustomizationTarget,
+  getAppliedFilterLogPayload,
+  getFiltersToApply,
+} from './utils';
 import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
 import {
@@ -102,6 +112,7 @@ const publishDataMask = debounce(
     dataMaskSelected: DataMaskStateWithId,
     tabId,
   ) => {
+    if (isFilterKeyPublishHeld()) return;
     const { location } = history;
     const { search } = location;
     const previousParams = new URLSearchParams(search);
@@ -122,9 +133,12 @@ const publishDataMask = debounce(
     const nativeFiltersCacheKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
     const dataMask = JSON.stringify(dataMaskSelected);
 
+    // The key of a shared link whose state could not be loaded is never
+    // updated in place; a new key is created so the link keeps its state.
     if (
       updateKey &&
       nativeFiltersCacheKey &&
+      !isProtectedFilterKey(nativeFiltersCacheKey) &&
       (await updateFilterKey(
         dashboardId,
         dataMask,
@@ -429,12 +443,22 @@ const FilterBar: FC<FiltersBarProps> = ({
   );
 
   const handleApply = useCallback(() => {
-    dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
+    releaseFilterKeyPublish();
     setUpdateKey(1);
 
     const filtersToApply = getFiltersToApply(
       dataMaskSelected,
       inScopeFilterIds,
+    );
+
+    dispatch(
+      logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
+        filters: getAppliedFilterLogPayload(
+          filtersToApply,
+          filters,
+          dataMaskSelected,
+        ),
+      }),
     );
 
     filtersToApply.forEach(filterId => {
@@ -482,11 +506,11 @@ const FilterBar: FC<FiltersBarProps> = ({
     } else if (hasClearedChartCustomizations) {
       const clearedChartCustomizations = chartCustomizationValues.map(item => ({
         ...item,
-        targets: [
-          {
-            datasetId: item.targets?.[0]?.datasetId,
-          },
-        ] as [Partial<NativeFilterTarget>],
+        // Keep the datasource type through a clear (sc-111089) — the invariant
+        // and its regression test live in clearedCustomizationTarget.
+        targets: [clearedCustomizationTarget(item.targets?.[0])] as [
+          Partial<NativeFilterTarget>,
+        ],
       }));
 
       chartCustomizationValues.forEach(item => {
@@ -502,6 +526,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   }, [
     dataMaskSelected,
     dispatch,
+    filters,
     inScopeFilterIds,
     pendingChartCustomizations,
     pendingCustomizationDataMasks,

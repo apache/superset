@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   CurrencyFormatter,
   DataRecordValue,
@@ -122,8 +123,8 @@ export const valueFormatter = (
 export const valueGetter = (params: ValueGetterParams, col: InputColumn) => {
   // @ts-expect-error
   if (params?.colDef?.isMain) {
-    const modifiedColId = `Main ${params.column.getColId()}`;
-    return params.data[modifiedColId];
+    const modifiedColId = `${t('Main')} ${params.column.getColId()}`;
+    return params.data?.[modifiedColId];
   }
   if (isDefined(params.data?.[params.column.getColId()])) {
     return params.data[params.column.getColId()];

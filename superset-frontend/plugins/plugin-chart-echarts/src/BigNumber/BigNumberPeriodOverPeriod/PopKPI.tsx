@@ -25,10 +25,7 @@ import {
 } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
-import {
-  DEFAULT_DATE_PATTERN,
-  ColorSchemeEnum,
-} from '@superset-ui/chart-controls';
+import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash-es';
 import {
   PopKPIComparisonSymbolStyleProps,
@@ -36,6 +33,7 @@ import {
   PopKPIProps,
 } from './types';
 import { useOverflowDetection } from './useOverflowDetection';
+import { getComparisonColorTokens, resolveComparisonColorKeys } from './utils';
 
 const MetricNameText = styled.div<{ metricNameFontSize?: number }>`
   ${({ theme, metricNameFontSize }) => `
@@ -68,6 +66,16 @@ const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
   `}
 `;
 
+// Styled (like `SymbolWrapper` below) rather than a `css` prop so the
+// resolved color is a real style rule on the element, which keeps it
+// observable in component tests.
+const ArrowIndicator = styled.span<{ indicatorColor: string }>`
+  ${({ theme, indicatorColor }) => `
+    color: ${indicatorColor};
+    margin-left: ${theme.sizeUnit}px;
+  `}
+`;
+
 const SymbolWrapper = styled.span<PopKPIComparisonSymbolStyleProps>`
   ${({ theme, backgroundColor, textColor }) => `
     background-color: ${backgroundColor};
@@ -92,6 +100,8 @@ export default function PopKPI(props: PopKPIProps) {
     subheaderFontSize,
     comparisonColorEnabled,
     comparisonColorScheme,
+    increaseColor,
+    decreaseColor,
     percentDifferenceNumber,
     currentTimeRangeFilter,
     startDateOffset,
@@ -167,27 +177,29 @@ export default function PopKPI(props: PopKPIProps) {
   `}
   `;
 
-  const getArrowIndicatorColor = () => {
-    if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
-      return theme.colorTextTertiary;
-    }
+  // `increase_color` / `decrease_color` (ColorPickerControl, added after the
+  // original 2-choice `comparison_color_scheme` select) hold either a
+  // semantic token name ('Green' | 'Red') or a literal hex color; see
+  // `resolveComparisonColorKeys` in utils.ts for how charts saved before
+  // those controls existed keep rendering with the same colors.
+  const {
+    increaseColor: resolvedIncreaseColor,
+    decreaseColor: resolvedDecreaseColor,
+  } = resolveComparisonColorKeys(
+    comparisonColorScheme,
+    increaseColor,
+    decreaseColor,
+  );
 
-    if (percentDifferenceNumber > 0) {
-      // Positive difference
-      return comparisonColorScheme === ColorSchemeEnum.Green
-        ? theme.colorSuccess
-        : theme.colorError;
-    }
-    // Negative difference
-    return comparisonColorScheme === ColorSchemeEnum.Red
-      ? theme.colorSuccess
-      : theme.colorError;
-  };
+  // Single source of truth for "which comparison color applies", shared by
+  // the arrow indicator and the pill background/text so they can't diverge.
+  const comparisonColorValue =
+    percentDifferenceNumber > 0 ? resolvedIncreaseColor : resolvedDecreaseColor;
 
-  const arrowIndicatorStyle = css`
-    color: ${getArrowIndicatorColor()};
-    margin-left: ${theme.sizeUnit}px;
-  `;
+  const arrowIndicatorColor =
+    !comparisonColorEnabled || percentDifferenceNumber === 0
+      ? theme.colorTextTertiary
+      : getComparisonColorTokens(comparisonColorValue, theme).text;
 
   const defaultBackgroundColor = theme.colorBgContainer;
   const defaultTextColor = theme.colorTextTertiary;
@@ -195,15 +207,9 @@ export default function PopKPI(props: PopKPIProps) {
     let bgColor = defaultBackgroundColor;
     let txtColor = defaultTextColor;
     if (comparisonColorEnabled && percentDifferenceNumber !== 0) {
-      const useSuccess =
-        (percentDifferenceNumber > 0 &&
-          comparisonColorScheme === ColorSchemeEnum.Green) ||
-        (percentDifferenceNumber < 0 &&
-          comparisonColorScheme === ColorSchemeEnum.Red);
-
-      // Set background and text colors based on the conditions
-      bgColor = useSuccess ? theme.colorSuccessBg : theme.colorErrorBg;
-      txtColor = useSuccess ? theme.colorSuccessText : theme.colorErrorText;
+      const tokens = getComparisonColorTokens(comparisonColorValue, theme);
+      bgColor = tokens.background;
+      txtColor = tokens.strongText;
     }
 
     return {
@@ -212,9 +218,11 @@ export default function PopKPI(props: PopKPIProps) {
     };
   }, [
     theme,
-    comparisonColorScheme,
+    comparisonColorValue,
     comparisonColorEnabled,
     percentDifferenceNumber,
+    defaultBackgroundColor,
+    defaultTextColor,
   ]);
 
   const SYMBOLS_WITH_VALUES = useMemo(
@@ -284,9 +292,9 @@ export default function PopKPI(props: PopKPIProps) {
         <div css={bigValueContainerStyles}>
           {bigNumber}
           {percentDifferenceNumber !== 0 && (
-            <span css={arrowIndicatorStyle}>
+            <ArrowIndicator indicatorColor={arrowIndicatorColor}>
               {percentDifferenceNumber > 0 ? '↑' : '↓'}
-            </span>
+            </ArrowIndicator>
           )}
         </div>
         {subtitle && (

@@ -64,6 +64,13 @@ export class Menu {
   }
 
   /**
+   * Gets the menu element locator
+   */
+  get element(): Locator {
+    return this.locator;
+  }
+
+  /**
    * Selects a top-level menu item by its accessible name.
    *
    * Ant Design menu items render as `div[role="menuitem"]` labelled by their

@@ -23,3 +23,20 @@ class SubjectsNotFoundValidationError(ValidationError):
 
     def __init__(self, field_name: str = "subjects") -> None:
         super().__init__([_("Subjects are invalid")], field_name=field_name)
+
+
+class ViewersDisabledValidationError(ValidationError):
+    """Viewers cannot be added while ``ENABLE_VIEWERS`` is off."""
+
+    status = 422
+
+    def __init__(self, field_name: str = "viewers") -> None:
+        super().__init__(
+            [
+                _(
+                    "Viewers cannot be added while the ENABLE_VIEWERS feature "
+                    "flag is disabled"
+                )
+            ],
+            field_name=field_name,
+        )
