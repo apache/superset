@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view column pickers only offer saved dimensions, including for older metadata without feature declarations. `ADHOC_COLUMN_EXPRESSIONS` remains importable but is reserved and grants no capability. Providers must use recognized SDK enum members; raw-string declarations are ignored. SQL dataset expression controls are unchanged.
+
 - Semantic-layer connection updates that reuse masked credentials require a
   usable provider configuration schema. Non-secret settings must stay unchanged
   at every nesting depth, including dictionary keys. While any mask is retained,
@@ -439,8 +441,11 @@ assists people when migrating to a new version.
   semantic view. Interactive dashboards retain unavailable semantic charts and
   continue rendering ordinary datasets. Dual-source MCP tools retain dataset
   access; unscoped metric listings omit semantic views. Legacy batch warm-up
-  reports a per-chart error for a disabled semantic chart and continues. Existing
-  permissions remain required when enabled. Run `superset init` during upgrade
+  reports a per-chart error for a disabled semantic chart and continues. Endpoint
+  permissions are checked before the flag: callers without access receive 401 or
+  403 in either state, and permitted callers receive 404 while the feature is
+  disabled. Automatic OPTIONS responses report allowed methods in either state
+  without executing a semantic handler. Run `superset init` during upgrade
   to register the existing semantic permissions even when the feature is off.
   Runtime flag hooks can enable the feature without another restart or permission
   sync; provider extensions must already be loaded. Do not target runtime
@@ -502,7 +507,12 @@ assists people when migrating to a new version.
 - Semantic-view providers may declare `SemanticView.preferred_temporal_dimension`
   to choose the default exposed temporal dimension for new charts. The declaration
   is optional; absent, unknown or non-temporal names retain the existing fallback.
-  Saved chart selections are preserved.
+  Explicit saved time bindings are preserved. Saved charts with omitted bindings
+  may adopt a newly declared default and change results without saving. An
+  explicit temporal filter does not prevent an omitted granularity from adopting
+  the default for independently supplied time-range bounds. No chart migration
+  or compatibility shim is applied. The provider conformance kit validates the
+  optional declaration and its stability across equivalent catalog reloads.
 
 ### Dashboard layout chart access
 
