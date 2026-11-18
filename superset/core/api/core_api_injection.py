@@ -377,6 +377,22 @@ def inject_widget_implementations() -> None:
     import superset.widgets.builtin  # noqa: F401  pylint: disable=unused-import
 
 
+def inject_security_implementations() -> None:
+    """
+    Replace the abstract checks in ``superset_core.common.security`` with the
+    security manager's.
+    """
+    import superset_core.common.security as core_security_module
+    from superset_core.common.models import CoreModel
+
+    def is_editor(resource: CoreModel) -> bool:
+        from superset import security_manager
+
+        return security_manager.is_editor(resource)
+
+    core_security_module.is_editor = is_editor
+
+
 def inject_canvas_implementations() -> None:
     """
     Replace the abstract placement lookup in ``superset_core.canvas.placements``
@@ -455,6 +471,7 @@ def initialize_core_api_dependencies() -> None:
     inject_rest_api_implementations()
     inject_semantic_layer_implementations()
     inject_widget_implementations()
+    inject_security_implementations()
     inject_canvas_implementations()
     inject_storage_implementations()
     inject_extension_context()
