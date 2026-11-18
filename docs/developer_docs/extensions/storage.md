@@ -260,6 +260,8 @@ config = ctx.storage.persistent.shared.get('global_config')
 
 When several requests may write the same key, `compare_and_set` writes only while the stored value is still the one you read, so a stale write never wins. Pass `None` as the expected value to write only if the key has no entry yet. The comparison is on the decoded value, and it is one atomic step with the write, as long as the metadata database runs at READ COMMITTED, Superset's default on MySQL and PostgreSQL. It is available on the backend only.
 
+Each write (`set` and `compare_and_set`) takes the extension's storage lock and commits inside it, so don't call them inside a `@transaction()` of your own: there, the lock can't be taken as a unit of work of its own, and the second writer of a race fails instead of waiting its turn.
+
 ```python
 config = ctx.storage.persistent.shared.get('global_config')
 updated = {**config, 'version': config['version'] + 1}

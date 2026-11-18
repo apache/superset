@@ -124,7 +124,6 @@ class SharedPersistentStateAccessor:
         extension_id = _get_extension_id()
         return ExtensionStorageDAO.get_decoded_value(extension_id, key, user_fk=None)
 
-    @transaction()
     def set(
         self, key: str, value: Any, options: PersistentSetOptions | None = None
     ) -> None:
@@ -154,7 +153,6 @@ class SharedPersistentStateAccessor:
             encrypt=encrypt,
         )
 
-    @transaction()
     def compare_and_set(
         self,
         key: str,
@@ -225,7 +223,6 @@ class PersistentState(CorePersistentState):
         return ExtensionStorageDAO.get_decoded_value(extension_id, key, user_fk=user_id)
 
     @staticmethod
-    @transaction()
     def set(key: str, value: Any, options: PersistentSetOptions | None = None) -> None:
         """
         Set a value in user-scoped persistent state.
@@ -255,7 +252,6 @@ class PersistentState(CorePersistentState):
         )
 
     @staticmethod
-    @transaction()
     def compare_and_set(
         key: str,
         expected: Any,

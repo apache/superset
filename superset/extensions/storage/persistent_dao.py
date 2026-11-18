@@ -307,7 +307,11 @@ def _locked_entry(
 ) -> Iterator[ExtensionStorage | None]:
     """The entry at a scoped key, read under the extension-wide write lock.
 
-    Every write runs and commits inside it; see `ExtensionStorageDAO.set()`.
+    Every write runs and commits inside it, and rolls back inside it when it
+    fails; see `ExtensionStorageDAO.set()`. The lock has to be its own unit of
+    work: taken inside a caller's `@transaction()`, a lock row isn't committed
+    and a held lock isn't reported as one, so the second writer of a race
+    fails where it should wait its turn.
     The entry is read as the database holds it now: the session may hold an
     older copy from a read before the lock, and a query doesn't overwrite
     what an object in the session has loaded already. Under READ COMMITTED,
@@ -319,20 +323,24 @@ def _locked_entry(
         ttl_seconds=SET_LOCK_TTL_SECONDS,
         extension_id=extension_id,
     ):
-        entry = (
-            db.session.query(ExtensionStorage)
-            .filter(
-                and_(
-                    *_scope_filter(
-                        extension_id, key, user_fk, resource_type, resource_uuid
+        try:
+            entry = (
+                db.session.query(ExtensionStorage)
+                .filter(
+                    and_(
+                        *_scope_filter(
+                            extension_id, key, user_fk, resource_type, resource_uuid
+                        )
                     )
                 )
+                .first()
             )
-            .first()
-        )
-        if entry is not None:
-            db.session.refresh(entry)
-        yield entry
+            if entry is not None:
+                db.session.refresh(entry)
+            yield entry
+        except Exception:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            raise
 
 
 def _upsert(  # noqa: PLR0913
@@ -369,10 +377,8 @@ def _upsert(  # noqa: PLR0913
         )
         db.session.add(entry)
     db.session.flush()
-    # Committed here, inside the lock, rather than left to the caller's
-    # @transaction(): that decorator only commits after the write returns,
-    # which is after the lock has already been released; see
-    # `ExtensionStorageDAO.set()`.
+    # Committed here, inside the lock: a commit after the write returns would
+    # come after the lock is released; see `ExtensionStorageDAO.set()`.
     db.session.commit()  # pylint: disable=consider-using-transaction
     return entry
 
@@ -665,12 +671,13 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
           before the other commits, both pass the check, and land a combined
           write that exceeds the extension's quota.
 
-        The commit happens here, inside the lock, rather than being left to
-        the caller's `@transaction()` — releasing the lock before the row is
-        committed would let a second writer's `SELECT`, run right after
-        acquiring the now-free lock, still miss the first writer's
+        The commit happens here, inside the lock — releasing the lock before
+        the row is committed would let a second writer's `SELECT`, run right
+        after acquiring the now-free lock, still miss the first writer's
         not-yet-committed row under READ COMMITTED isolation, recreating the
-        exact duplicate-row race the lock exists to prevent.
+        exact duplicate-row race the lock exists to prevent. So callers don't
+        wrap it in a `@transaction()` of their own, inside which the lock
+        can't be taken as its own unit of work.
 
         :raises ExtensionStorageKeyTooLong: if `key` exceeds MAX_KEY_LENGTH.
         :raises ExtensionStorageValueTooLarge: if `value` exceeds
