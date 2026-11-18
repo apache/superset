@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- MCP `list_metrics` returns a partial catalog for unscoped semantic-view discovery
+  refusals, with `incomplete: true` and `refused_views` containing safe view IDs.
+  No metrics from a refused view are included; counts and pages cover only usable
+  metrics. Clients must check `incomplete` before treating the catalog as complete.
+  Scoped `view_id` requests whose view refuses while loading metrics, columns or
+  compatible dimensions now return `AccessDenied` instead of success with a warning.
+  Ordinary provider failures also mark the catalog incomplete, retaining safe
+  warnings without refusal markers.
+
 - Semantic cache rollups serve limited queries only when the post-filter,
   rolled-up result fits within the limit. Queries with nonzero row offsets bypass
   containment reuse. Larger rolled-up results fall back to
