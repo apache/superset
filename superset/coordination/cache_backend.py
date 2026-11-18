@@ -266,6 +266,7 @@ class RedisCacheBackend(RedisCommandsMixin, RedisCache):
         ssl_ca_certs: str | None = None,
         socket_timeout: float | None = None,
         socket_connect_timeout: float | None = None,
+        ssl_check_hostname: bool = True,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -295,6 +296,7 @@ class RedisCacheBackend(RedisCommandsMixin, RedisCache):
             "ssl_keyfile": ssl_keyfile,
             "ssl_cert_reqs": ssl_cert_reqs,
             "ssl_ca_certs": ssl_ca_certs,
+            "ssl_check_hostname": ssl_check_hostname,
             "socket_timeout": socket_timeout,
             "socket_connect_timeout": socket_connect_timeout,
             "protocol": 2,
@@ -316,6 +318,7 @@ class RedisCacheBackend(RedisCommandsMixin, RedisCache):
             "ssl_keyfile": config.get("CACHE_REDIS_SSL_KEYFILE", None),
             "ssl_cert_reqs": config.get("CACHE_REDIS_SSL_CERT_REQS", "required"),
             "ssl_ca_certs": config.get("CACHE_REDIS_SSL_CA_CERTS", None),
+            "ssl_check_hostname": config.get("CACHE_REDIS_SSL_CHECK_HOSTNAME", True),
             "socket_timeout": config.get("CACHE_REDIS_SOCKET_TIMEOUT", None),
             "socket_connect_timeout": config.get(
                 "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT", None
@@ -369,6 +372,7 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
         force_master_ip: str | None = None,
         sentinel_ssl: bool = False,
         username: str | None = None,
+        ssl_check_hostname: bool = True,
         **kwargs: Any,
     ) -> None:
         # ``ssl`` secures the connection to the resolved master and
@@ -414,7 +418,11 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
             k: v
             for k, v in {
                 "password": password,
-                **(tls_kwargs if ssl else {}),
+                **(
+                    {**tls_kwargs, "ssl_check_hostname": ssl_check_hostname}
+                    if ssl
+                    else {}
+                ),
             }.items()
             if v is not None
         }
@@ -460,6 +468,7 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
             "ssl_keyfile": config.get("CACHE_REDIS_SSL_KEYFILE", None),
             "ssl_cert_reqs": config.get("CACHE_REDIS_SSL_CERT_REQS", "required"),
             "ssl_ca_certs": config.get("CACHE_REDIS_SSL_CA_CERTS", None),
+            "ssl_check_hostname": config.get("CACHE_REDIS_SSL_CHECK_HOSTNAME", True),
             "socket_timeout": config.get("CACHE_REDIS_SOCKET_TIMEOUT", None),
             "socket_connect_timeout": config.get(
                 "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT", None

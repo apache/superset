@@ -1,0 +1,93 @@
+name: "Author Labeler"
+
+on: # zizmor: ignore[dangerous-triggers] - needs pull_request_target for a
+  # writable token on fork PRs; the script only reads the opaque author
+  # login/number fields below, never PR-controlled free text (title, body,
+  # branch), and nothing is interpolated into a shell `run:`
+  pull_request_target:
+    branches: [master]
+    types: [opened]
+  issues:
+    types: [opened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  label:
+    name: Label
+    permissions:
+      contents: read
+      issues: write # to add a roster label to a matching issue
+      pull-requests: write # to add a roster label to a matching PR
+    runs-on: ubuntu-slim
+    steps:
+    - name: Label if the author is on a wiki roster
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          // Rosters live on the wiki so committers can edit them without a
+          // PR: https://github.com/apache/superset/wiki/Label-Rosters
+          // Each `## heading` on that page is a label; each list item under
+          // it is a GitHub handle.
+          const ROSTER_PAGE = 'Label-Rosters';
+
+          // The wiki can only assign labels named here. Wiki edits are not
+          // reviewed, and some labels drive other workflows (`hold`,
+          // showtime), so adding a label to this list takes a PR while
+          // adding handles to a roster does not.
+          const ALLOWED_LABELS = ['utsc2026'];
+
+          const { owner, repo } = context.repo;
+          const url = `https://raw.githubusercontent.com/wiki/${owner}/${repo}/${ROSTER_PAGE}.md`;
+          let response;
+          try {
+            response = await fetch(url);
+          } catch (error) {
+            core.warning(`Could not read ${url} (${error.message}); no roster labels applied.`);
+            return;
+          }
+          if (!response.ok) {
+            core.warning(`Could not read ${url} (HTTP ${response.status}); no roster labels applied.`);
+            return;
+          }
+
+          const rosters = new Map();
+          let label = null;
+          for (const line of (await response.text()).split('\n')) {
+            const heading = line.match(/^##\s+`?([^`]+?)`?\s*$/);
+            if (heading) {
+              label = heading[1];
+              continue;
+            }
+            const handle = line.match(/^\s*[-*]\s+@?([A-Za-z0-9-]+)\s*$/);
+            if (label && handle) {
+              if (!rosters.has(label)) rosters.set(label, new Set());
+              rosters.get(label).add(handle[1].toLowerCase());
+            }
+          }
+
+          const target = context.payload.pull_request ?? context.payload.issue;
+          const author = target.user.login.toLowerCase();
+          const labels = [...rosters.keys()].filter(name => rosters.get(name).has(author));
+
+          const blocked = labels.filter(name => !ALLOWED_LABELS.includes(name));
+          if (blocked.length) {
+            core.warning(`Skipping roster label(s) missing from ALLOWED_LABELS: ${blocked.join(', ')}`);
+          }
+          const allowed = labels.filter(name => ALLOWED_LABELS.includes(name));
+          if (!allowed.length) {
+            return;
+          }
+
+          await github.rest.issues.addLabels({
+            owner,
+            repo,
+            issue_number: target.number,
+            labels: allowed,
+          });

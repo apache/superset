@@ -23,11 +23,13 @@ change production connection behavior (redis-py 8 defaults to RESP3 on
 the wire and a 5s socket timeout).
 """
 
+import ssl
 from typing import Any
 from unittest import mock
 
 import pytest
 from pytest_mock import MockerFixture
+from redis.connection import SSLConnection
 from redis.exceptions import ConnectionError as RedisConnectionError
 
 
@@ -443,7 +445,6 @@ def test_redis_sentinel_cache_backend_secures_sentinels_with_tls(
     certificate settings, keeping their credentials and protocol, while ``ssl``
     independently decides whether the resolved-master connection uses TLS. The
     master's DB and ACL user are not applied to the sentinel nodes."""
-    from redis.connection import SSLConnection
     from redis.sentinel import SentinelManagedConnection, SentinelManagedSSLConnection
 
     from superset.coordination.cache_backend import RedisSentinelCacheBackend
@@ -493,7 +494,6 @@ def test_redis_sentinel_cache_backend_secures_sentinels_with_tls(
 
 def test_redis_sentinel_cache_backend_is_plaintext_without_tls() -> None:
     """TLS stays off for the sentinels and the master unless configured."""
-    from redis.connection import SSLConnection
     from redis.sentinel import SentinelManagedSSLConnection
 
     from superset.coordination.cache_backend import RedisSentinelCacheBackend
@@ -514,8 +514,6 @@ def test_redis_sentinel_cache_backend_is_plaintext_without_tls() -> None:
 
 def test_redis_sentinel_cache_backend_from_config_reads_sentinel_ssl() -> None:
     """``CACHE_REDIS_SENTINEL_SSL`` enables TLS on the sentinel-node connections."""
-    from redis.connection import SSLConnection
-
     from superset.coordination.cache_backend import RedisSentinelCacheBackend
 
     backend = RedisSentinelCacheBackend.from_config(
@@ -531,3 +529,41 @@ def test_redis_sentinel_cache_backend_from_config_reads_sentinel_ssl() -> None:
     for pool in _sentinel_node_pools(backend):
         assert issubclass(pool.connection_class, SSLConnection)
         assert pool.connection_kwargs["ssl_ca_certs"] == "/certs/ca.crt"
+
+
+@pytest.mark.parametrize("check_hostname", [None, True, False])
+def test_redis_hostname_verification_config(check_hostname: bool | None) -> None:
+    """TLS verifies hostnames by default and respects an explicit opt-out."""
+    from superset.coordination.cache_backend import RedisCacheBackend
+
+    config: dict[str, Any] = {"CACHE_REDIS_SSL": True}
+    if check_hostname is not None:
+        config["CACHE_REDIS_SSL_CHECK_HOSTNAME"] = check_hostname
+    backend = RedisCacheBackend.from_config(config)
+    connection = backend._cache.connection_pool.make_connection()
+    assert isinstance(connection, SSLConnection)
+    assert connection.check_hostname is (check_hostname is not False)
+    assert connection.cert_reqs == ssl.CERT_REQUIRED
+
+
+@pytest.mark.parametrize("use_ssl", [True, False])
+@pytest.mark.parametrize("check_hostname", [None, True, False])
+def test_sentinel_hostname_verification_config(
+    mocker: MockerFixture, use_ssl: bool, check_hostname: bool | None
+) -> None:
+    """Only the TLS master connection receives the hostname verification option."""
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+
+    sentinel = mocker.patch("superset.coordination.cache_backend.Sentinel")
+    config: dict[str, Any] = {"CACHE_REDIS_SSL": use_ssl}
+    if check_hostname is not None:
+        config["CACHE_REDIS_SSL_CHECK_HOSTNAME"] = check_hostname
+    RedisSentinelCacheBackend.from_config(config)
+    master_kwargs = sentinel.return_value.master_for.call_args.kwargs
+    if use_ssl:
+        assert master_kwargs["ssl_check_hostname"] is (check_hostname is not False)
+        assert master_kwargs["ssl_cert_reqs"] == "required"
+    else:
+        assert "ssl_check_hostname" not in master_kwargs
+    assert "ssl_check_hostname" not in sentinel.call_args.kwargs
+    assert "ssl_check_hostname" not in sentinel.call_args.kwargs["sentinel_kwargs"]

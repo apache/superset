@@ -126,6 +126,7 @@ updates:
           - "oxlint"
           - "oxlint-tsgolint"
           - "react-resize-detector"
+          - "vitest"
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
