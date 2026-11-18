@@ -158,3 +158,23 @@ test('Checkbox in a disabled form keeps the default disabled border', () => {
     supersetTheme.colorBorder,
   );
 });
+
+test('disabled options of an enabled Checkbox.Group keep the default border', () => {
+  const { container } = render(
+    <Checkbox.Group
+      options={[
+        { label: 'A', value: 'a', disabled: true },
+        { label: 'B', value: 'b' },
+      ]}
+    />,
+  );
+  const [disabledBox, enabledBox] = Array.from(
+    container.querySelectorAll('.ant-checkbox'),
+  );
+  expect(inheritedVar(disabledBox, '--ant-color-border')).toBe(
+    supersetTheme.colorBorder,
+  );
+  expect(inheritedVar(enabledBox, '--ant-color-border')).toBe(
+    supersetTheme.colorTextTertiary,
+  );
+});

@@ -29,6 +29,7 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import { ensureIsArray } from '@superset-ui/core';
+import { useNonTextContrastColor } from '@superset-ui/core/components';
 import type GlobalModel from 'echarts/types/src/model/Global';
 import type CartesianAxisModel from 'echarts/types/src/coord/cartesian/AxisModel';
 
@@ -169,6 +170,7 @@ function Echart(
   ref: Ref<EchartsHandler>,
 ) {
   const theme = useTheme();
+  const axisLineColor = useNonTextContrastColor('colorSplit');
   const divRef = useRef<HTMLDivElement>(null);
   if (refs) {
     // eslint-disable-next-line no-param-reassign
@@ -279,9 +281,9 @@ function Echart(
         } as any;
         if (options?.xAxis) {
           echartsTheme.xAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
+            axisLine: { lineStyle: { color: axisLineColor } },
             axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
+            splitLine: { lineStyle: { color: axisLineColor } },
             minorSplitLine: {
               lineStyle: { color: antdTheme.colorBorderSecondary },
             },
@@ -289,9 +291,9 @@ function Echart(
         }
         if (options?.yAxis) {
           echartsTheme.yAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
+            axisLine: { lineStyle: { color: axisLineColor } },
             axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
+            splitLine: { lineStyle: { color: axisLineColor } },
             minorSplitLine: {
               lineStyle: { color: antdTheme.colorBorderSecondary },
             },
@@ -433,6 +435,7 @@ function Echart(
     queryEventHandlers,
     zrEventHandlers,
     theme,
+    axisLineColor,
     vizType,
   ]);
 

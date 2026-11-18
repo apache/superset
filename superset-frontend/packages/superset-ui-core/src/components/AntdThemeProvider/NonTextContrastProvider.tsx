@@ -44,19 +44,38 @@ const CONTRAST_TARGETS: [ComponentName, ContrastToken][] = [
 ];
 
 /**
- * Whether the theme configuration itself sets `tokenName`, globally or for
- * `component`. Reads the configured theme (as passed to antd's
+ * Whether the theme configuration itself sets `tokenName`, globally or, when
+ * given, for `component`. Reads the configured theme (as passed to antd's
  * ConfigProvider), not the algorithm-derived tokens.
  */
 const isSetByTheme = (
   themeConfig: ThemeConfig | undefined,
-  component: ComponentName,
   tokenName: ContrastToken,
+  component?: ComponentName,
 ) =>
   themeConfig?.token?.[tokenName] !== undefined ||
-  (
-    themeConfig?.components?.[component] as Record<string, unknown> | undefined
-  )?.[tokenName] !== undefined;
+  (component !== undefined &&
+    (
+      themeConfig?.components?.[component] as
+        | Record<string, unknown>
+        | undefined
+    )?.[tokenName] !== undefined);
+
+/**
+ * Color for a boundary drawn outside the wrapped antd controls (chart axes,
+ * custom controls): the theme's own `tokenName` when the configured theme sets
+ * it, otherwise `colorTextTertiary` for 3:1 non-text contrast (WCAG 2.1
+ * SC 1.4.11). Without a configured theme it falls back to the latter.
+ */
+export function useNonTextContrastColor(
+  tokenName: 'colorBorder' | 'colorSplit',
+): string {
+  const { token } = antdTheme.useToken();
+  const { theme: configuredTheme } = useContext(ConfigProvider.ConfigContext);
+  return isSetByTheme(configuredTheme, tokenName)
+    ? token[tokenName]
+    : token.colorTextTertiary;
+}
 
 /**
  * Raises the rest-state border of form controls and the divider line to the
@@ -86,7 +105,7 @@ export function NonTextContrastProvider({ children }: { children: ReactNode }) {
       components: Object.fromEntries(
         CONTRAST_TARGETS.filter(
           ([component, tokenName]) =>
-            !isSetByTheme(parentTheme, component, tokenName),
+            !isSetByTheme(parentTheme, tokenName, component),
         ).map(([component, tokenName]) => [
           component,
           { [tokenName]: colorTextTertiary },
@@ -152,10 +171,10 @@ export function withNonTextContrast<C extends ElementType>(
     const varPrefix = parentTheme?.cssVar?.prefix ?? cls;
     // Only restore what the provider overrides; a theme's own value stays.
     const restoredSelectors = [
-      ...(isSetByTheme(parentTheme, 'Checkbox', 'colorBorder')
+      ...(isSetByTheme(parentTheme, 'colorBorder', 'Checkbox')
         ? []
         : [`& .${cls}-checkbox-disabled`]),
-      ...(isSetByTheme(parentTheme, 'Radio', 'colorBorder')
+      ...(isSetByTheme(parentTheme, 'colorBorder', 'Radio')
         ? []
         : [
             `& .${cls}-radio-disabled`,

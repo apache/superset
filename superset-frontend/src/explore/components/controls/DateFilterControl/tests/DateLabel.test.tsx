@@ -19,6 +19,7 @@
 import { createRef } from 'react';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { AntdThemeProvider } from '@superset-ui/core/components';
 import { DateLabel } from '../components';
 
 test('renders a string label inside a button', () => {
@@ -79,4 +80,14 @@ test('draws the inactive label border with 3:1 non-text contrast', () => {
   expect(screen.getByRole('button')).toHaveStyle({
     borderColor: supersetTheme.colorTextTertiary,
   });
+});
+
+test("keeps a theme's own colorBorder on the inactive label border", () => {
+  render(
+    <AntdThemeProvider theme={{ token: { colorBorder: '#0000ff' } }}>
+      <DateLabel name="time_range" label="Last week" />
+    </AntdThemeProvider>,
+  );
+
+  expect(screen.getByRole('button')).toHaveStyle({ borderColor: '#0000ff' });
 });

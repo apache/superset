@@ -18,6 +18,7 @@
  */
 import type { EChartsCoreOption } from 'echarts/core';
 import { supersetTheme } from '@apache-superset/core/theme';
+import { AntdThemeProvider } from '@superset-ui/core/components';
 import { render, waitFor } from '../../../../spec/helpers/testing-library';
 import Echart, {
   ECHARTS_HOST_CLASS,
@@ -330,5 +331,28 @@ test('draws axis and split lines with 3:1 non-text contrast', async () => {
     expect(lastOptions[axis].splitLine.lineStyle.color).toBe(
       supersetTheme.colorTextTertiary,
     );
+  });
+});
+
+test("keeps a theme's own colorSplit on axis and split lines", async () => {
+  render(
+    <AntdThemeProvider theme={{ token: { colorSplit: '#ff0000' } }}>
+      {renderEchart({
+        echartOptions: {
+          xAxis: { type: 'category' },
+          yAxis: { type: 'value' },
+          series: [],
+        } as EChartsCoreOption,
+      })}
+    </AntdThemeProvider>,
+    { initialState, useRedux: true },
+  );
+
+  await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
+
+  const lastOptions = mockChart.setOption.mock.calls.at(-1)?.[0];
+  ['xAxis', 'yAxis'].forEach(axis => {
+    expect(lastOptions[axis].axisLine.lineStyle.color).toBe('#ff0000');
+    expect(lastOptions[axis].splitLine.lineStyle.color).toBe('#ff0000');
   });
 });
