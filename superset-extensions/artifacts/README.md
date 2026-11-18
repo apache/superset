@@ -43,10 +43,10 @@ host, builds, packages, checks and storage at scale) is the host's to supply.
 | REST APIs | `/extensions/superset-oss/artifacts/<resource>/...` |
 | Module Federation name | `supersetOss_artifacts` |
 
-**The publisher is a placeholder to decide before the first release.** Every id
-above derives from it, so changing it later orphans every placed artifact
-widget. Its module form must not be a top-level Python package that exists
-already, such as `superset`: the backend module would shadow it.
+**The publisher, `superset-oss`, is a placeholder.** Every id above derives
+from it, so changing it orphans every placed artifact widget. Its module form
+must not be a top-level Python package that exists already, such as
+`superset`: the backend module would shadow it.
 
 ## Layout
 

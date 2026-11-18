@@ -133,13 +133,18 @@ decided:
 - **Tests:** `src/core/canvas/canvas.test.ts` (a type that has a renderer
   refuses another; registering the same component again is allowed; added,
   not run here).
-- **Pending:** prefix frontend renderer ids per extension, as the backend does
-  (`superset/core/api/core_api_injection.py`) and as SIP-231 §2 namespaces
-  them (`extensions.<publisher>.<name>.<widget id>`), so that no extension
-  takes a built-in type: built-in renderers register only when the Canvas page
-  loads (`registerBuiltinRenderers`), which can be after extensions have. In
-  the Canvas branch ([#45022](https://github.com/apache/superset/pull/45022)).
-  Until then the extension registers under its full id.
+- **Limit:** frontend renderer ids aren't namespaced per extension, as the
+  backend's are (`superset/core/api/core_api_injection.py`) and as SIP-231 §2
+  has them (`extensions.<publisher>.<name>.<widget id>`), so an extension can
+  take a built-in type. Built-in renderers register only when the Canvas page
+  loads (`registerBuiltinRenderers`, called by `src/pages/Canvas/index.tsx`),
+  which can be after extensions have: the built-in's registration then
+  throws, and the Canvas page fails to load. This extension registers under
+  its full id, so it takes no built-in type.
+- **Pending**, in the Canvas branch
+  ([#45022](https://github.com/apache/superset/pull/45022)): prefix frontend
+  renderer ids per extension, or register the built-in renderers before
+  extensions load.
 
 ## Props validated on every write path
 
@@ -324,6 +329,8 @@ decided:
 - **Next:** restore the context around each request, MCP call and task
   ([#45894](https://github.com/apache/superset/pull/45894) does it for
   extension REST APIs); make the decorators no-ops when MCP isn't installed.
+  [#43842](https://github.com/apache/superset/pull/43842) makes them no-ops
+  where the MCP service isn't loaded, but not where `fastmcp` is missing.
 
 ## Extensions declare the CSP they need
 
@@ -376,11 +383,11 @@ decided:
   rule changes, and only while enabled; a static setting builds the server's
   instructions; a callable is read per session and fails closed;
   `DEFAULT_INSTRUCTIONS` keeps the rule against generating code).
-- **Pending:** review the other tool-only rules that
+- **Limits:** while artifacts are on, the other tool-only rules that
   [#38391](https://github.com/apache/superset/pull/38391) added ("Do NOT
-  generate HTML dashboards, embed scripts, or custom frontend code") for when
-  artifacts are on. A setting that answers `True` without this extension
-  loaded still lifts the rule, which then names tools that aren't there.
+  generate HTML dashboards, embed scripts, or custom frontend code") stay as
+  they are. A setting that answers `True` without this extension loaded still
+  lifts the rule, which then names tools that aren't there.
 
 ## Artifact guest tokens and standalone embedding
 

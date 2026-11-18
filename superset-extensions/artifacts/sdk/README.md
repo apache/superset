@@ -78,15 +78,18 @@ cd browser && npm test
   WebAssembly and workers come only with the `compute.wasm` and
   `compute.workers` capabilities, where the policy's `compute` allows them.
 
-## Open questions
+## Known limits
 
-These are noted in the code where they apply, and are not adopted:
+Each is noted in the code where it applies:
 
-- Bindings shaped like the `SemanticQuery` of
+- Bindings aren't shaped like the `SemanticQuery` of
   [SIP-231](https://github.com/apache/superset/issues/44875) §7.
-- A retry-safe `op_id` on every write, and paging limits for `view`, `search`
-  and `history`.
-- Where the user confirms publishing: a host screen that shows the diff.
-- Parameter values checked against each parameter's `type`.
-- Deletion (retention, GDPR erasure) and per-resource quotas in the store.
-- Screenshots in `check`, and a smaller provider interface.
+- Writes carry no retry-safe `op_id`, and `view`, `search` and `history`
+  have no paging limits.
+- The contract doesn't say where the user confirms publishing, and no host
+  screen shows the diff.
+- Parameter values aren't checked against each parameter's `type`.
+- The store has no deletion (retention, GDPR erasure) and no per-resource
+  quotas.
+- `check` takes no screenshots, and `ArtifactRuntimeProvider` combines every
+  role, so a provider implements all six.

@@ -127,13 +127,15 @@ npm test        # the tests in test/, with Vitest
 The tests are written as Jest tests (`test()` and `expect`, no `describe()`),
 so Vitest runs them with `--globals`.
 
-## Open questions
+## Known limits
 
-These are noted in the code where they apply:
+Each is noted in the code where it applies:
 
-- Adopting the MCP Apps protocol and SDK, after a spike, and MCP Apps names
-  for theme variables and CSP settings.
-- An Arrow envelope for binding data, as
+- The bridge is shaped like MCP Apps, but it doesn't speak the MCP Apps
+  protocol or use its SDK, nor its names for theme variables and CSP
+  settings.
+- Binding data travels as JSON rows, while
   [SIP-231](https://github.com/apache/superset/issues/44875) §8 delivers
   widget results in Apache Arrow.
-- Which frame errors may reach an agent.
+- No rule says which frame errors may reach an agent: the extension's canvas
+  renderer shows them only to the artifact's editors.
