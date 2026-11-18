@@ -27,7 +27,7 @@ type JsonObject = Record<string, unknown>;
 const isJsonObject = (value: unknown): value is JsonObject =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const parseExtra = (extra?: string): JsonObject | undefined => {
+export const parseExtra = (extra?: string): JsonObject | undefined => {
   if (!extra?.trim()) {
     return {};
   }

@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlStateMapping } from '@superset-ui/chart-controls';
+import {
+  ControlStateMapping,
+  Dataset,
+  getTemporalColumns,
+} from '@superset-ui/chart-controls';
 
 import {
   ChartState,
@@ -37,8 +41,10 @@ import {
   getColumnLabel,
   getSequentialSchemeRegistry,
   isFeatureEnabled,
+  isSimpleAdhocFilter,
   NO_TIME_RANGE,
   QueryFormColumn,
+  QueryFormData,
   VizType,
 } from '@superset-ui/core';
 import {
@@ -82,6 +88,35 @@ function isNeutralNewChartEntry([key, value]: [string, unknown]): boolean {
   );
 }
 
+/**
+ * Returns the dataset's `extra.default_time_range` for a new chart, unless the
+ * chart already has a time filter or the dataset has no temporal column.
+ * Unparseable metadata falls back to the instance default.
+ */
+function getDatasetDefaultTimeRange(
+  dataset: Dataset,
+  formData: QueryFormData,
+): string | undefined {
+  const hasTimeFilter = ensureIsArray(formData.adhoc_filters).some(
+    filter =>
+      isSimpleAdhocFilter(filter) && filter.operator === 'TEMPORAL_RANGE',
+  );
+  if (hasTimeFilter || !getTemporalColumns(dataset).defaultTemporalColumn) {
+    return undefined;
+  }
+  let range: unknown;
+  try {
+    const extra =
+      typeof dataset.extra === 'string'
+        ? JSON.parse(dataset.extra)
+        : dataset.extra;
+    range = extra?.default_time_range;
+  } catch {
+    return undefined;
+  }
+  return typeof range === 'string' && range ? range : undefined;
+}
+
 export const hydrateExplore =
   ({
     form_data,
@@ -112,12 +147,12 @@ export const hydrateExplore =
       : [initialSlice, initialFormData];
     const initialSliceName =
       primarySliceNameSource?.slice_name ?? fallbackSliceNameSource?.slice_name;
+    const isNewChart = !initialSlice && !sliceId;
     // Only identities and empty filter containers are free of selections.
     // Stamp before defaults, controls and chart query snapshots are constructed.
     // The replaced state's stash is discarded by HYDRATE_EXPLORE, so it is ignored.
     if (
-      !initialSlice &&
-      !sliceId &&
+      isNewChart &&
       dataset.type === DatasourceType.SemanticView &&
       dataset.semantic_selection_version &&
       Object.entries(initialFormData).every(isNeutralNewChartEntry)
@@ -132,7 +167,9 @@ export const hydrateExplore =
     }
     if (!initialFormData.time_range) {
       initialFormData.time_range =
-        common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE;
+        (isNewChart && getDatasetDefaultTimeRange(dataset, initialFormData)) ||
+        common?.conf?.DEFAULT_TIME_FILTER ||
+        NO_TIME_RANGE;
     }
     if (
       initialFormData.include_time &&
@@ -248,10 +285,15 @@ export const hydrateExplore =
     // apply initial mapStateToProps for all controls, must execute AFTER
     // bootstrapState has initialized `controls`. Order of execution is not
     // guaranteed, so controls shouldn't rely on each other's mapped state.
+    // New charts seed an ad hoc time filter with the same initial range.
+    const controlPanelState = {
+      ...exploreState,
+      initialTimeRange: isNewChart ? initialFormData.time_range : undefined,
+    };
     Object.entries(exploreState.controls).forEach(([key, controlState]) => {
       exploreState.controls[key] = applyMapStateToPropsToControl(
         controlState,
-        exploreState,
+        controlPanelState,
       );
     });
     const hydratedFormData = {
