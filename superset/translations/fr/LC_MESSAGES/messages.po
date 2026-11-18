@@ -2215,6 +2215,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Alerte"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "Alerte « %(alertName)s » déclenchée avec succès"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "Alerte déclenchée, -période de grâce"
 
@@ -9098,6 +9102,14 @@ msgstr "Échec de l'étiquetage des éléments"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "Échec du déclenchement de %(alertType)s « %(alertName)s » : %(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "Échec du déclenchement de l'alerte « %(alertName)s » : %(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "Échec du déclenchement du rapport « %(alertName)s » : %(error)s"
+
 msgid "Failed to update report"
 msgstr "Échec de la mise à jour du rapport"
 
@@ -14905,6 +14917,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "Rapport"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "Rapport « %(alertName)s » déclenché avec succès"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
