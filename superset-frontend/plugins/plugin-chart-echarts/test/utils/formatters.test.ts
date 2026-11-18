@@ -30,6 +30,8 @@ import {
   coerceTemporalMs,
   createSpacedXAxisFormatter,
   getPercentFormatter,
+  getBoundaryTimeFormatter,
+  getZoomLabelOptions,
   getTooltipTimeFormatter,
   getXAxisDomain,
   getXAxisFormatter,
@@ -43,6 +45,73 @@ beforeAll(() => {
   getTimeFormatterRegistry()
     .registerValue(SMART_DATE_ID, createSmartDateFormatter())
     .registerValue(SMART_DATE_VERBOSE_ID, createSmartDateVerboseFormatter());
+});
+
+test.each([
+  [TimeGranularity.DAY, 'Mon 17 Aug 2026'],
+  [TimeGranularity.WEEK, 'Mon 17 Aug 2026'],
+  [TimeGranularity.MONTH, 'Aug 2026'],
+  [TimeGranularity.QUARTER, '2026 Q3'],
+  [TimeGranularity.YEAR, '2026'],
+  [TimeGranularity.HOUR, '2026-08-17 09:30'],
+])(
+  'boundary formatter includes standalone context for %s',
+  (grain, expected) => {
+    expect(
+      getBoundaryTimeFormatter(
+        SMART_DATE_ID,
+        grain as TimeGranularity,
+      )(Date.UTC(2026, 7, 17, 9, 30)),
+    ).toBe(expected);
+  },
+);
+
+test('boundary labels use separate rows when both full dates cannot fit', () => {
+  const min = Date.UTC(2014, 2, 5);
+  const max = Date.UTC(2026, 7, 17);
+  const formatter = createSpacedXAxisFormatter(
+    getXAxisFormatter(SMART_DATE_ID),
+    min,
+    max,
+    115,
+    false,
+    getBoundaryTimeFormatter(SMART_DATE_ID, TimeGranularity.DAY),
+  );
+  expect(formatter(min)).toBe('Wed 5 Mar 2014');
+  expect(formatter(max)).toBe('\nMon 17 Aug 2026');
+  formatter.getAxisLayout = () => ({
+    domainMin: min,
+    domainMax: max,
+    plotWidthPx: 600,
+  });
+  expect(formatter(min)).toBe('Wed 5 Mar 2014');
+  expect(formatter(max)).toBe('Mon 17 Aug 2026');
+});
+
+test('slider dates have side gutters when they fit and hide details on narrow tiles', () => {
+  const domain: [number, number] = [Date.UTC(2026, 0, 1), Date.UTC(2027, 0, 1)];
+  const formatter = getBoundaryTimeFormatter('%Y-%m-%d');
+  const options = getZoomLabelOptions(400, domain, formatter);
+  expect(options).toMatchObject({ left: 86, right: 86, showDetail: true });
+  expect(options.labelFormatter(domain[0])).toBe('2026-01-01');
+  expect(getZoomLabelOptions(200, domain, formatter)).toMatchObject({
+    showDetail: false,
+  });
+  expect(getZoomLabelOptions(200, domain, formatter)).not.toHaveProperty(
+    'left',
+  );
+});
+
+test.each([
+  ['%d/%m/%Y', '17/08/2026'],
+  ['%b %d', 'Aug 17'],
+])('boundary formatter preserves the custom format %s', (format, expected) => {
+  expect(
+    getBoundaryTimeFormatter(
+      format,
+      TimeGranularity.MONTH,
+    )(Date.UTC(2026, 7, 17)),
+  ).toBe(expected);
 });
 
 test('getPercentFormatter should format as percent if no format is specified', () => {
@@ -367,6 +436,23 @@ test('createSpacedXAxisFormatter blanks labels that would visually collide', () 
   expect(labels).toEqual(['0', '', '', '300', '1000']);
 });
 
+test('createSpacedXAxisFormatter uses raw tick text without a formatter', () => {
+  const formatter = createSpacedXAxisFormatter(undefined, 0, 1000, 400);
+
+  expect([0, 500, 1000, 'label'].map(formatter)).toEqual([
+    '0',
+    '500',
+    '1000',
+    'label',
+  ]);
+});
+
+test('createSpacedXAxisFormatter keeps nearby ticks when the starting boundary is unknown', () => {
+  const formatter = createSpacedXAxisFormatter(String, undefined, 1000, 100);
+
+  expect([100, 101, 1000].map(formatter)).toEqual(['100', '101', '1000']);
+});
+
 test('createSpacedXAxisFormatter shows every label when showAllLabels bypasses the spacing check', () => {
   const formatter = createSpacedXAxisFormatter(
     (value: number | string) => String(value),
@@ -388,6 +474,247 @@ test('createSpacedXAxisFormatter still dedupes identical consecutive labels when
 
   expect(labels).toEqual(['Jan', '', '']);
 });
+
+test('#45489 keeps ticks outside the data domain subject to neighboring-label spacing', () => {
+  const formatter = createSpacedXAxisFormatter(String, 100, 200, 1000);
+
+  expect([0, 1, 50, 100, 150, 200, 250, 251, 300].map(formatter)).toEqual([
+    '0',
+    '',
+    '50',
+    '100',
+    '150',
+    '200',
+    '250',
+    '',
+    '300',
+  ]);
+});
+
+test('#45489 handles January 1–31 ticks when data covers January 10–20', () => {
+  const january = (day: number) => Date.UTC(2026, 0, day);
+  const data = Array.from({ length: 11 }, (_, index) => ({
+    __timestamp: january(index + 10),
+  }));
+  const [domainMin, domainMax] = getXAxisDomain([data], '__timestamp');
+  expect([domainMin, domainMax]).toEqual([january(10), january(20)]);
+
+  const formatter = createSpacedXAxisFormatter(
+    getXAxisFormatter('%d %b', TimeGranularity.DAY),
+    domainMin,
+    domainMax,
+    1000,
+    false,
+    getTooltipTimeFormatter('%d %b %Y', TimeGranularity.DAY),
+  );
+  const labels = Array.from({ length: 31 }, (_, index) =>
+    formatter(january(index + 1)),
+  );
+
+  expect(labels).toEqual(
+    Array.from({ length: 31 }, (_, index) => {
+      const day = index + 1;
+      if (day === 11 || day === 19) {
+        return '';
+      }
+      return `${String(day).padStart(2, '0')} Jan${day === 10 || day === 20 ? ' 2026' : ''}`;
+    }),
+  );
+});
+
+test.each(['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%a %d %b %Y', SMART_DATE_ID])(
+  '#45489 recomputes spacing across zoom, pan, resize and reset (%s)',
+  format => {
+    const day = (month: number, date: number) => Date.UTC(2026, month, date);
+    const start = day(0, 1);
+    const end = Date.UTC(2027, 0, 1);
+    const width = format.includes('%H') ? 800 : 400;
+    const formatter = createSpacedXAxisFormatter(
+      getXAxisFormatter(format, TimeGranularity.DAY),
+      start,
+      end,
+      width,
+      false,
+      getTooltipTimeFormatter(format, TimeGranularity.DAY),
+    );
+    let layout = { domainMin: start, domainMax: end, plotWidthPx: width };
+    formatter.getAxisLayout = () => layout;
+    const fullTicks = [start, day(0, 10), day(5, 1), day(11, 25), end];
+    const fullLabels = fullTicks.map(formatter);
+    expect(fullLabels[0]).not.toBe('');
+    expect(fullLabels.at(-1)).not.toBe('');
+    expect(fullLabels[3]).toBe('');
+
+    for (const [domainMin, domainMax] of [
+      [day(0, 10), day(2, 1)],
+      [day(5, 1), day(6, 1)],
+      [day(0, 10), day(2, 1)],
+    ]) {
+      layout = { ...layout, domainMin, domainMax };
+      expect(formatter(domainMin)).not.toBe('');
+      expect(formatter((domainMin + domainMax) / 2)).not.toBe('');
+      expect(formatter(domainMax)).not.toBe('');
+    }
+
+    layout = { domainMin: start, domainMax: end, plotWidthPx: 1200 };
+    expect(fullTicks.map(formatter)[2]).not.toBe('');
+    layout = { domainMin: start, domainMax: end, plotWidthPx: width };
+    expect(fullTicks.map(formatter)).toEqual(fullLabels);
+  },
+);
+
+test('#45489 retains hour precision at zoomed boundaries', () => {
+  const formatter = createSpacedXAxisFormatter(
+    getXAxisFormatter(SMART_DATE_ID, TimeGranularity.HOUR),
+    Date.UTC(2026, 0, 1),
+    Date.UTC(2027, 0, 1),
+    800,
+    false,
+    getTooltipTimeFormatter(SMART_DATE_ID, TimeGranularity.HOUR),
+  );
+  formatter.getAxisLayout = () => ({
+    domainMin: Date.UTC(2026, 0, 10, 9),
+    domainMax: Date.UTC(2026, 0, 10, 15),
+    plotWidthPx: 800,
+  });
+  expect(formatter(Date.UTC(2026, 0, 10, 9))).toBe('2026-01-10 09:00');
+  expect(formatter(Date.UTC(2026, 0, 10, 15))).toBe('2026-01-10 15:00');
+});
+
+test('#45489 protects the visible boundaries when zoom retains either original endpoint', () => {
+  const formatter = createSpacedXAxisFormatter(String, 0, 1000, 400);
+  formatter.getAxisLayout = () => ({
+    domainMin: 0,
+    domainMax: 100,
+    plotWidthPx: 400,
+  });
+  expect([0, 1, 50, 100].map(formatter)).toEqual(['0', '', '50', '100']);
+  formatter.getAxisLayout = () => ({
+    domainMin: 900,
+    domainMax: 1000,
+    plotWidthPx: 400,
+  });
+  expect([900, 999, 1000].map(formatter)).toEqual(['900', '', '1000']);
+});
+
+test('#45489 retains the All labels option in a zoomed range', () => {
+  const formatter = createSpacedXAxisFormatter(String, 0, 1000, 400, true);
+  formatter.getAxisLayout = () => ({
+    domainMin: 1,
+    domainMax: 10,
+    plotWidthPx: 10,
+  });
+  expect([1, 2, 3, 10].map(formatter)).toEqual(['1', '2', '3', '10']);
+});
+
+test('#45489 protects pinned boundary ticks inside a zoomed axis extent', () => {
+  const formatter = createSpacedXAxisFormatter(
+    () => 'tick',
+    0,
+    1000,
+    400,
+    false,
+    (value: number | string) => `boundary ${value}`,
+  );
+  formatter.getAxisLayout = () => ({
+    domainMin: 100,
+    domainMax: 900,
+    plotWidthPx: 400,
+    minLabelValue: 150,
+    maxLabelValue: 850,
+  });
+  expect([150, 200, 500, 800, 850].map(formatter)).toEqual([
+    'boundary 150',
+    '',
+    'tick',
+    '',
+    'boundary 850',
+  ]);
+});
+
+test('#45489 reserves space for both aligned boundary labels', () => {
+  const formatter = createSpacedXAxisFormatter(
+    () => 'Year',
+    0,
+    1000,
+    400,
+    false,
+    (value: number | string) => (value === 0 ? '5 Mar 2014' : '17 Aug 2026'),
+  );
+  const ticks = [0, 200, 500, 800, 1000];
+  const expected = ['5 Mar 2014', '', 'Year', '', '17 Aug 2026'];
+
+  expect(ticks.map(formatter)).toEqual(expected);
+  // ECharts formats the axis repeatedly during layout.
+  expect(ticks.map(formatter)).toEqual(expected);
+});
+
+test('#45489 protects boundaries even when ECharts does not format them first', () => {
+  const formatter = createSpacedXAxisFormatter(String, 0, 1000, 100);
+
+  expect(formatter(100)).toBe('');
+  expect(formatter(500)).toBe('500');
+  expect(formatter(800)).toBe('');
+  expect(formatter(1000)).toBe('1000');
+});
+
+test('#45489 allows ticks only outside the aligned boundary text and gap', () => {
+  const formatter = createSpacedXAxisFormatter(
+    String,
+    0,
+    1000,
+    1000,
+    false,
+    (value: number | string) => (value === 0 ? '5 Mar 2014' : '17 Aug 2026'),
+  );
+
+  expect([0, 84, 85, 904, 905, 1000].map(formatter)).toEqual([
+    '5 Mar 2014',
+    '',
+    '85',
+    '904',
+    '',
+    '17 Aug 2026',
+  ]);
+});
+
+test.each([0, 10])('#45489 retains boundaries on a %spx plot', width => {
+  const formatter = createSpacedXAxisFormatter(String, 0, 1000, width);
+  expect([0, 500, 1000].map(formatter)).toEqual([
+    '0',
+    '',
+    width > 0 ? '\n1000' : '1000',
+  ]);
+});
+
+test('#45489 retains full boundary dates when showing all labels', () => {
+  const start = Date.UTC(2014, 2, 5);
+  const end = Date.UTC(2026, 7, 17);
+  const formatter = createSpacedXAxisFormatter(
+    getXAxisFormatter(SMART_DATE_ID, TimeGranularity.DAY),
+    start,
+    end,
+    100,
+    true,
+    getTooltipTimeFormatter(SMART_DATE_ID, TimeGranularity.DAY),
+  );
+
+  expect([start, Date.UTC(2026, 0, 1), end].map(formatter)).toEqual([
+    '2014-03-05',
+    '2026',
+    '2026-08-17',
+  ]);
+  expect((formatter as { id?: string }).id).toBe(SMART_DATE_ID);
+});
+
+test.each([undefined, 0, -1])(
+  '#45489 tolerates an unavailable or degenerate domain (%s)',
+  domainMax => {
+    const formatter = createSpacedXAxisFormatter(String, 0, domainMax, 400);
+    expect(formatter(100)).toBe('100');
+    expect(formatter(200)).toBe('200');
+  },
+);
 
 describe('coerceTemporalMs', () => {
   test('passes a number through unchanged', () => {

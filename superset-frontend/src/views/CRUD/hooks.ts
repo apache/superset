@@ -426,7 +426,7 @@ export function useSingleViewResource<
   );
 
   const fetchResource = useCallback(
-    (resourceID: number) => {
+    (resourceID: number, shouldApplyResponse: () => boolean = () => true) => {
       // Set loading state
       updateState({
         loading: true,
@@ -440,13 +440,16 @@ export function useSingleViewResource<
       })
         .then(
           ({ json = {} }) => {
-            updateState({
-              resource: json.result,
-              error: null,
-            });
+            if (shouldApplyResponse()) {
+              updateState({
+                resource: json.result,
+                error: null,
+              });
+            }
             return json.result;
           },
           createErrorHandler((errMsg: Record<string, string[] | string>) => {
+            if (!shouldApplyResponse()) return;
             handleErrorMsg(
               t(
                 'An error occurred while fetching %ss: %s',
@@ -468,7 +471,11 @@ export function useSingleViewResource<
   );
 
   const createResource = useCallback(
-    (resource: P, hideToast = false) => {
+    (
+      resource: P,
+      hideToast = false,
+      shouldApplyResponse: () => boolean = () => true,
+    ) => {
       // Set loading state
       updateState({
         loading: true,
@@ -481,13 +488,16 @@ export function useSingleViewResource<
       })
         .then(
           ({ json = {} }) => {
-            updateState({
-              resource: { id: json.id, ...json.result },
-              error: null,
-            });
+            if (shouldApplyResponse()) {
+              updateState({
+                resource: { id: json.id, ...json.result },
+                error: null,
+              });
+            }
             return json.id;
           },
           createErrorHandler((errMsg: Record<string, string[] | string>) => {
+            if (!shouldApplyResponse()) return;
             // we did not want toasts for db-connection-ui but did not want to disable it everywhere
             if (!hideToast) {
               handleErrorMsg(
@@ -512,7 +522,13 @@ export function useSingleViewResource<
   );
 
   const updateResource = useCallback(
-    (resourceID: number, resource: P, hideToast = false, setLoading = true) => {
+    (
+      resourceID: number,
+      resource: P,
+      hideToast = false,
+      setLoading = true,
+      shouldApplyResponse: () => boolean = () => true,
+    ) => {
       // Set loading state
       if (setLoading) {
         updateState({
@@ -527,13 +543,16 @@ export function useSingleViewResource<
       })
         .then(
           ({ json = {} }) => {
-            updateState({
-              resource: { ...json.result, id: json.id },
-              error: null,
-            });
+            if (shouldApplyResponse()) {
+              updateState({
+                resource: { ...json.result, id: json.id },
+                error: null,
+              });
+            }
             return json.result;
           },
           createErrorHandler(errMsg => {
+            if (!shouldApplyResponse()) return errMsg;
             if (!hideToast) {
               handleErrorMsg(
                 t(

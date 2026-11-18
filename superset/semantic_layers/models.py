@@ -72,6 +72,7 @@ from superset.semantic_layers.exceptions import (
     discover_metrics,
     DiscoveryTarget,
     execute_semantic_query,
+    normalize_provider_request_errors,
     provider_code,
     SemanticLayerQueryRejectedError,
 )
@@ -485,6 +486,7 @@ class SemanticView(AuditMixinNullable, Model):
         """
         return False
 
+    @normalize_provider_request_errors()
     def values_for_column(
         self,
         column_name: str,
@@ -626,6 +628,7 @@ class SemanticView(AuditMixinNullable, Model):
         )
 
     @property
+    @normalize_provider_request_errors()
     def metrics(self) -> list[MetricMetadata]:
         return [
             MetricMetadata(
@@ -639,6 +642,7 @@ class SemanticView(AuditMixinNullable, Model):
         ]
 
     @property
+    @normalize_provider_request_errors()
     def _unique_dimensions(self) -> list[Dimension]:
         # A semantic view may expose multiple ``Dimension`` objects sharing the
         # same ``name`` but different grains (one variant per supported time

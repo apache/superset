@@ -25,6 +25,7 @@ import mockDatasource, { datasourceId, id } from 'spec/fixtures/mockDatasource';
 import { buildNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import {
   fireEvent,
+  act,
   render,
   screen,
   userEvent,
@@ -453,6 +454,48 @@ test('filters are draggable', async () => {
     displays cancel message when there are pending operations
     do not displays cancel message when there are no pending operations
 */
+
+test('disables and spins Save during a request and enables retry after failure', async () => {
+  let finish: () => void = () => {};
+  const pending = new Promise<void>(resolve => {
+    finish = resolve;
+  });
+  const onSave = jest.fn(async () => {
+    await pending;
+    throw new Error('save failed');
+  });
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: [
+          buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+        ],
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false, onSave });
+  fireEvent.click(
+    screen
+      .getByTestId('filter-title-container')
+      .querySelector('[data-icon="delete"]')!,
+  );
+  const save = screen.getByRole('button', { name: SAVE_REGEX });
+  await userEvent.click(save);
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  expect(save).toBeDisabled();
+  expect(save.querySelector('.ant-btn-loading-icon')).toBeInTheDocument();
+  fireEvent.click(save);
+  expect(onSave).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    finish();
+  });
+  await waitFor(() => expect(save).toBeEnabled());
+  expect(save.querySelector('.ant-btn-loading-icon')).not.toBeInTheDocument();
+  await userEvent.click(save);
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+});
 
 test('deletes a filter', async () => {
   const nativeFilterConfig = [
@@ -1314,3 +1357,63 @@ test('semantic filter reset requires reselection and survives save and reopen', 
   ).not.toBeInTheDocument();
   expect(screen.queryByText('old default')).not.toBeInTheDocument();
 });
+
+const partitionedDatasetResult = (evaluable: boolean | null) => {
+  const response = datasetResult(id);
+  return {
+    ...response,
+    result: {
+      ...response.result,
+      columns: [
+        ...response.result.columns,
+        {
+          column_name: 'event_time',
+          id: 99,
+          type_generic: GenericDataType.Temporal,
+          filterable: true,
+          is_dttm: true,
+        },
+      ],
+      partition_filter_mapping: {
+        active: true,
+        evaluable,
+        is_monotonic: true,
+        mapped_column: 'event_time',
+      },
+    },
+  };
+};
+
+const datasetCalls = () =>
+  fetchMock.callHistory.calls(`path:/api/v1/dataset/${id}`);
+
+/** Serve the bound dataset with the given verdict; the first route wins. */
+const servePartitionedDataset = (evaluable: boolean | null) => {
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+  fetchMock.get(
+    `path:/api/v1/dataset/${id}`,
+    partitionedDatasetResult(evaluable),
+  );
+  setupFetchMocks();
+};
+
+test('a new filter on a partition-mapped dataset defaults to Last week only on a confirmed verdict', async () => {
+  // SC-130302. `evaluable: null` -- never probed, or the verdict expired -- used
+  // to get the default, and for a transform that emits no predicate the value
+  // list was then narrowed to last week while still scanning every partition.
+  servePartitionedDataset(null);
+  const { unmount } = defaultRender();
+  await waitFor(() => expect(datasetCalls().length).toBeGreaterThan(0));
+  await screen.findByText(COLUMN_REGEX);
+  expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
+  unmount();
+
+  // The verdict changes without the dataset changing. A reopened modal reads
+  // it afresh rather than replaying the response it saw last time.
+  servePartitionedDataset(true);
+  defaultRender();
+  await waitFor(() => expect(datasetCalls().length).toBeGreaterThan(0));
+  await waitFor(() => expect(getCheckbox(PRE_FILTER_REGEX)).toBeChecked());
+  expect(await screen.findByText('Last week')).toBeInTheDocument();
+}, 30000);
