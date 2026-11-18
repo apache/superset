@@ -114,7 +114,7 @@ def test_pivot_fill_column_values():
         aggregates={"idx_nulls": {"operator": "sum"}},
     )
     assert len(df) == 101
-    assert df.columns.tolist() == [("idx_nulls", "<NULL>")]
+    assert df.columns.tolist() == [("idx_nulls", NULL_STRING)]
 
 
 def test_pivot_exceptions():

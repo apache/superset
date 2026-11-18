@@ -19,6 +19,7 @@ import dataclasses
 from typing import Any, Optional
 
 from superset.common.chart_data import ChartDataResultType
+from superset.constants import NULL_STRING
 from superset.utils.core import AnnotationType, DTTM_ALIAS
 
 query_birth_names = {
@@ -35,7 +36,7 @@ query_birth_names = {
     "filters": [
         {"col": "gender", "op": "==", "val": "boy"},
         {"col": "num", "op": "IS NOT NULL"},
-        {"col": "name", "op": "NOT IN", "val": ["<NULL>", '"abc"']},
+        {"col": "name", "op": "NOT IN", "val": [NULL_STRING, '"abc"']},
     ],
     "having": "",
     "where": "",

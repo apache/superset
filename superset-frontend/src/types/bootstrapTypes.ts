@@ -26,6 +26,7 @@ import {
 } from '@apache-superset/core/theme';
 import type {
   ColorSchemeConfig,
+  ConstantLabelMap,
   FeatureFlagMap,
   FormatLocaleDefinition,
   JsonObject,
@@ -177,6 +178,7 @@ export interface CommonBootstrapData {
   pdf_compression_level: 'NONE' | 'FAST' | 'MEDIUM' | 'SLOW';
   user_subject_id?: number;
   user_subjects?: number[];
+  constant_labels: ConstantLabelMap;
 }
 
 export interface BootstrapData {

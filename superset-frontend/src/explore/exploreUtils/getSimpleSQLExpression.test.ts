@@ -17,7 +17,12 @@
  * under the License.
  */
 import { cleanup } from 'spec/helpers/testing-library';
-import { EMPTY_STRING, NULL_STRING } from 'src/utils/common';
+import {
+  EMPTY_STRING,
+  FALSE_STRING,
+  NULL_STRING,
+  TRUE_STRING,
+} from '@superset-ui/core';
 import { getSimpleSQLExpression } from '.';
 import { Operators } from '../constants';
 
@@ -73,13 +78,13 @@ test('Should return correct string when subject and operator are valid values', 
 
 test('Should handle boolean false comparator as a string value', () => {
   expect(getSimpleSQLExpression(params.subject, params.operator, false)).toBe(
-    "subject operator 'FALSE'",
+    `subject operator '${FALSE_STRING}'`,
   );
 });
 
 test('Should handle boolean true comparator as a string value', () => {
   expect(getSimpleSQLExpression(params.subject, params.operator, true)).toBe(
-    "subject operator 'TRUE'",
+    `subject operator '${TRUE_STRING}'`,
   );
 });
 

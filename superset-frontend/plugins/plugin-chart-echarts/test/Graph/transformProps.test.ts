@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData } from '@superset-ui/core';
+import {
+  ChartProps,
+  FALSE_STRING,
+  getConstantLabel,
+  SqlaFormData,
+  TRUE_STRING,
+} from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { GraphSeriesOption } from 'echarts/charts';
 import transformProps from '../../src/Graph/transformProps';
@@ -88,7 +94,7 @@ test.each([false, true, 0])('preserves the label for category %s', category => {
       expect.objectContaining({
         category:
           typeof category === 'boolean'
-            ? `${column}_category_column: ${category}`
+            ? `${column}_category_column: ${getConstantLabel(category ? TRUE_STRING : FALSE_STRING)}`
             : '0',
       }),
     ),

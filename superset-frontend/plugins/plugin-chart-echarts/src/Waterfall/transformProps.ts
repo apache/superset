@@ -20,10 +20,12 @@ import {
   CurrencyFormatter,
   DataRecord,
   ensureIsArray,
+  getConstantLabel,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
   isAdhocColumn,
+  NULL_STRING,
   NumberFormatter,
   rgbToHex,
   tooltipHtml,
@@ -43,7 +45,6 @@ import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
 import { getColtypesMapping } from '../utils/series';
 import { normalizeRgbaColor } from '../utils/colors';
 import { Refs } from '../types';
-import { NULL_STRING } from '../constants';
 
 type EChartsOption = ComposeOption<BarSeriesOption>;
 
@@ -71,7 +72,7 @@ function formatTooltip({
 
   const isTotal = series?.seriesName === totalMark;
   if (!series) {
-    return NULL_STRING;
+    return getConstantLabel(NULL_STRING);
   }
 
   const title =
@@ -352,7 +353,7 @@ export default function transformProps(
       value = row[breakdownName];
     }
     if (!value) {
-      value = NULL_STRING;
+      value = getConstantLabel(NULL_STRING);
     }
     if (typeof value !== 'string' && typeof value !== 'number') {
       value = String(value);

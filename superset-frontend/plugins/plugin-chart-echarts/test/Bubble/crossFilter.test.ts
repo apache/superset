@@ -17,7 +17,12 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/common';
-import { getTimeFormatter } from '@superset-ui/core';
+import {
+  EMPTY_STRING,
+  getConstantLabel,
+  getTimeFormatter,
+  NULL_STRING,
+} from '@superset-ui/core';
 import {
   formatBubbleValue,
   getBubbleCrossFilterDataMask,
@@ -122,8 +127,8 @@ test('getBubbleCrossFilterDataMask stores bigint as a JSON-safe string', () => {
 });
 
 test('formatBubbleValue formats null and empty string distinctly', () => {
-  expect(formatBubbleValue(null)).toBe('<NULL>');
-  expect(formatBubbleValue('')).toBe('<empty string>');
+  expect(formatBubbleValue(null)).toBe(getConstantLabel(NULL_STRING));
+  expect(formatBubbleValue('')).toBe(getConstantLabel(EMPTY_STRING));
   expect(formatBubbleValue(0)).toBe('0');
   expect(formatBubbleValue(false)).toBe('false');
 });
