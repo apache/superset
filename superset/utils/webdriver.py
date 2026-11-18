@@ -123,35 +123,51 @@ class _PlaywrightBrowserManager:
     so a single browser instance per process is safe and avoids the overhead
     of launching/destroying Chromium on every screenshot task. Each task
     creates a lightweight, isolated browser context instead of a full browser.
+
+    Playwright's sync API drives one asyncio event loop per OS thread and this
+    manager keeps one Playwright instance per process, so neither tolerates
+    concurrent use. On green-thread pools (gevent, eventlet) every task shares
+    the thread, and without serialization a second screenshot fails at once
+    with "Playwright Sync API inside the asyncio loop", or a cache warmup's
+    cleanup closes the browser under a report that is still capturing. The
+    lock below makes those callers wait for each other; on the prefork pool it
+    is never contended.
     """
 
     def __init__(self) -> None:
         self._playwright: Any = None
         self._browser: Any = None
+        self._lock = threading.RLock()
+
+    def exclusive(self) -> threading.RLock:
+        """Lock to hold around any use of the browser or of Playwright."""
+        return self._lock
 
     def get_browser(self, browser_args: list[str]) -> Any:
         """Return a reusable browser, creating one if needed."""
-        if self._browser is not None and self._browser.is_connected():
+        with self._lock:
+            if self._browser is not None and self._browser.is_connected():
+                return self._browser
+
+            self._cleanup()
+            self._playwright = sync_playwright().start()
+            self._browser = self._playwright.chromium.launch(args=browser_args)
             return self._browser
 
-        self._cleanup()
-        self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(args=browser_args)
-        return self._browser
-
     def _cleanup(self) -> None:
-        if self._browser is not None:
-            try:
-                self._browser.close()
-            except Exception:  # noqa: S110
-                pass
-            self._browser = None
-        if self._playwright is not None:
-            try:
-                self._playwright.stop()
-            except Exception:  # noqa: S110
-                pass
-            self._playwright = None
+        with self._lock:
+            if self._browser is not None:
+                try:
+                    self._browser.close()
+                except Exception:  # noqa: S110
+                    pass
+                self._browser = None
+            if self._playwright is not None:
+                try:
+                    self._playwright.stop()
+                except Exception:  # noqa: S110
+                    pass
+                self._playwright = None
 
 
 _browser_manager = _PlaywrightBrowserManager()
@@ -923,14 +939,6 @@ class WebDriverPlaywright(WebDriverProxy):
                 context_suffix,
             )
 
-    # Playwright's sync API drives one asyncio event loop per OS thread, and the
-    # browser manager keeps one Playwright instance per worker process. Neither
-    # tolerates concurrent use. On the prefork pool tasks run one at a time, so
-    # the lock is never contended. On green-thread pools (gevent, eventlet) every
-    # task shares the thread; without the lock a second screenshot fails at once
-    # with "Playwright Sync API inside the asyncio loop".
-    _screenshot_lock = threading.Lock()
-
     def get_screenshot(
         self,
         url: str,
@@ -939,8 +947,9 @@ class WebDriverPlaywright(WebDriverProxy):
         log_context: str | None = None,
         report_execution_context: ReportExecutionContext | None = None,
     ) -> bytes | None:
+        # One screenshot at a time per browser manager; see the manager's doc.
         waited_from = time.monotonic()
-        with self._screenshot_lock:
+        with self._browser_manager.exclusive():
             waited = time.monotonic() - waited_from
             if waited >= 1:
                 logger.info(
