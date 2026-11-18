@@ -18,12 +18,17 @@
  */
 import type { SupersetTheme } from '@apache-superset/core/theme';
 import { ColorSchemeEnum } from '@superset-ui/chart-controls';
+import { colord, extend } from 'colord';
+import namesPlugin from 'colord/plugins/names';
 import { rgbaToHex } from '@superset-ui/core';
 import {
   headerFontSize,
   subheaderFontSize,
   metricNameFontSize,
 } from '../sharedControls';
+
+// comparison colors can be named, such as `papayawhip`
+extend([namesPlugin]);
 
 const headerFontSizes = [16, 20, 30, 48, 60];
 const sharedFontSizes = [16, 20, 26, 32, 40];
@@ -176,48 +181,24 @@ export const getComparisonColorTokens = (
     ? themeColors[colorValue]
     : undefined;
   const rawColor = typeof themeValue === 'string' ? themeValue : colorValue;
-  // Expand 3/4-digit shorthand hex (e.g. a theme token set to `#abc`) so it
-  // takes the hex tint path below instead of passing through with the pill
-  // background equal to its own text color.
-  const resolvedColor = /^#[0-9a-f]{3,4}$/i.test(rawColor)
-    ? `#${Array.from(rawColor.slice(1), c => c + c).join('')}`
-    : rawColor;
-  // An 8-digit hex (alpha-enabled picker) already carries its own alpha
-  // channel; strip it before appending the tint suffix below so the
-  // background stays a valid 8-digit hex instead of stacking a second one.
-  const isEightDigitHex = /^#[0-9a-f]{8}$/i.test(resolvedColor);
-  const isSixDigitHex = /^#[0-9a-f]{6}$/i.test(resolvedColor);
-  if (!isEightDigitHex && !isSixDigitHex) {
-    // Non-hex theme tokens (e.g. an antd token resolving to an
-    // `rgb(...)`/`rgba(...)` string) can't take a hex alpha suffix without
-    // producing invalid CSS. Rebuild the background with a low alpha from
-    // the color's own r/g/b components instead, so the pill still gets a
-    // light tint rather than becoming the same color as its own text.
-    const rgbMatch = resolvedColor.match(
-      /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*[\d.]+\s*)?\)$/i,
-    );
-    if (rgbMatch) {
-      const [, r, g, b] = rgbMatch;
-      return {
-        text: resolvedColor,
-        background: `rgba(${r}, ${g}, ${b}, 0.1)`,
-        strongText: resolvedColor,
-      };
-    }
-    // Any other unrecognized format (e.g. a named CSS color) is passed
-    // through unchanged rather than risk producing invalid CSS.
+  const color = colord(rawColor);
+  // A value that isn't a color is passed through rather than risk invalid CSS
+  if (!color.isValid()) {
+    return { text: rawColor, background: rawColor, strongText: rawColor };
+  }
+  // A hex color stays hex (shorthand expanded) with a hex tint suffix, dropping
+  // its own alpha first; any other format gets an rgba() tint of its channels
+  if (rawColor.startsWith('#')) {
+    const hex = color.toHex();
     return {
-      text: resolvedColor,
-      background: resolvedColor,
-      strongText: resolvedColor,
+      text: hex,
+      background: `${color.alpha(1).toHex()}${COMPARISON_TINT_ALPHA_HEX}`,
+      strongText: hex,
     };
   }
-  const opaqueColor = isEightDigitHex
-    ? resolvedColor.slice(0, 7)
-    : resolvedColor;
   return {
-    text: resolvedColor,
-    background: `${opaqueColor}${COMPARISON_TINT_ALPHA_HEX}`,
-    strongText: resolvedColor,
+    text: rawColor,
+    background: color.alpha(0.1).toRgbString(),
+    strongText: rawColor,
   };
 };
