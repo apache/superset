@@ -42,6 +42,7 @@ import {
   getClientErrorObject,
   getSemanticSelectionSources,
   isChartCustomization,
+  isGrainOnlyExtraFormData,
 } from '@superset-ui/core';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
@@ -64,7 +65,7 @@ import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import isSemanticRange from 'src/filters/components/Range/isSemanticRange';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
-import { getFormData } from '../../utils';
+import { getFormData, isSelectionFreeGrainControlMask } from '../../utils';
 import { useFilterDependencies, useTransitiveParentIds } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
 
@@ -355,7 +356,14 @@ const FilterValue: FC<FilterValueProps> = ({
     (dataMask: DataMask) =>
       onFilterSelectionChange(
         filter,
-        datasourceType === DatasourceType.SemanticView
+        // A grain-only value, or a cleared grain control, selects no member,
+        // so it has no provenance.
+        datasourceType === DatasourceType.SemanticView &&
+          !isGrainOnlyExtraFormData(dataMask.extraFormData) &&
+          !isSelectionFreeGrainControlMask(
+            filter.filterType,
+            dataMask.extraFormData,
+          )
           ? {
               ...dataMask,
               extraFormData: {
@@ -462,6 +470,11 @@ const FilterValue: FC<FilterValueProps> = ({
   const staleSelection =
     semantic_selection_version &&
     hasSavedSelection &&
+    !isGrainOnlyExtraFormData(filter.dataMask?.extraFormData) &&
+    !isSelectionFreeGrainControlMask(
+      filter.filterType,
+      filter.dataMask?.extraFormData,
+    ) &&
     (selectionSources.length === 0 ||
       selectionSources.some(
         source =>

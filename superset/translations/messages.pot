@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-17 16:13-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1404,6 +1404,9 @@ msgstr ""
 msgid "Add group"
 msgstr ""
 
+msgid "Add interval bounds above to configure colors here."
+msgstr ""
+
 msgid "Add item"
 msgstr ""
 
@@ -1429,6 +1432,9 @@ msgid "Add or edit display controls"
 msgstr ""
 
 msgid "Add or edit filters and controls"
+msgstr ""
+
+msgid "Add ranges above to configure their colors here."
 msgstr ""
 
 msgid "Add report"
@@ -2646,6 +2652,9 @@ msgstr ""
 msgid "Base"
 msgstr ""
 
+msgid "Base background"
+msgstr ""
+
 msgid "Base exponent"
 msgstr ""
 
@@ -2715,6 +2724,9 @@ msgstr ""
 msgid "Block %(block_num)s out of %(block_count)s"
 msgstr ""
 
+msgid "Border"
+msgstr ""
+
 msgid "Border color"
 msgstr ""
 
@@ -2771,6 +2783,9 @@ msgid ""
 msgstr ""
 
 msgid "Box Plot"
+msgstr ""
+
+msgid "Break"
 msgstr ""
 
 msgid "Breakdowns"
@@ -3802,6 +3817,20 @@ msgstr ""
 msgid "Color for breakpoint"
 msgstr ""
 
+msgid "Color for decrease"
+msgstr ""
+
+msgid "Color for increase"
+msgstr ""
+
+#, python-format
+msgid "Color for interval up to %s"
+msgstr ""
+
+#, python-format
+msgid "Color for range up to %s"
+msgstr ""
+
 msgid "Color metric"
 msgstr ""
 
@@ -3816,6 +3845,12 @@ msgstr ""
 
 #, python-format
 msgid "Color scheme: %s"
+msgstr ""
+
+msgid "Color used for the arrow and symbols when the metric decreased from the comparison value. Defaults to red."
+msgstr ""
+
+msgid "Color used for the arrow and symbols when the metric increased from the comparison value. Defaults to green."
 msgstr ""
 
 msgid "Color used when the close value is greater than or equal to the open value."
@@ -3962,9 +3997,6 @@ msgid "Columns viewers can choose to group charts by."
 msgstr ""
 
 msgid "Combine metrics"
-msgstr ""
-
-msgid "Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote colors from the chosen color scheme and are 1-indexed. Length must be matching that of interval bounds."
 msgstr ""
 
 msgid "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and 4-5. Last number should match the value provided for MAX."
@@ -4157,6 +4189,9 @@ msgstr ""
 msgid "Contact the report owner for error details."
 msgstr ""
 
+msgid "Container background"
+msgstr ""
+
 msgid "Contains"
 msgstr ""
 
@@ -4338,6 +4373,10 @@ msgid "Could not load database driver for: %(engine)s"
 msgstr ""
 
 msgid "Could not load metadata for this configuration; showing the default form. See the server logs for details."
+msgstr ""
+
+#, python-format
+msgid "Could not load the stored secrets: %s"
 msgstr ""
 
 msgid "Could not parse the CSS to convert @import rules. Check for syntax errors and try again."
@@ -6306,6 +6345,10 @@ msgid "Ends With"
 msgstr ""
 
 #, python-format
+msgid "Ends with %s."
+msgstr ""
+
+#, python-format
 msgid "Ends with (ILIKE %x)"
 msgstr ""
 
@@ -7011,9 +7054,6 @@ msgstr ""
 msgid "Failed to revoke API key"
 msgstr ""
 
-msgid "Failed to save chart customization"
-msgstr ""
-
 msgid "Failed to save cross-filter scoping"
 msgstr ""
 
@@ -7301,6 +7341,9 @@ msgid "Fit data"
 msgstr ""
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the JSON errors below to edit colors here; your changes sync automatically once the JSON is valid again."
 msgstr ""
 
 msgid "Fix the trend line to the full time range specified in case filtered results do not include the start or end dates"
@@ -7780,6 +7823,9 @@ msgstr ""
 msgid "How do you want to enter service account credentials?"
 msgstr ""
 
+msgid "How labels wider than the max width are shortened. \"Truncate\" cuts the label and adds an ellipsis. \"Break\" wraps the label onto additional lines."
+msgstr ""
+
 msgid "How many buckets should the data be grouped in."
 msgstr ""
 
@@ -8224,6 +8270,10 @@ msgid "Invalid tab ids: %(tab_ids)s"
 msgstr ""
 
 #, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
@@ -8388,6 +8438,12 @@ msgid "Label Contents"
 msgstr ""
 
 msgid "Label Line"
+msgstr ""
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
 msgstr ""
 
 msgid "Label Position"
@@ -8755,6 +8811,9 @@ msgid "Lines column"
 msgstr ""
 
 msgid "Lines encoding"
+msgstr ""
+
+msgid "Link"
 msgstr ""
 
 msgid "Link Copied!"
@@ -9146,6 +9205,9 @@ msgid "Maximum value"
 msgstr ""
 
 msgid "Maximum value on the gauge axis"
+msgstr ""
+
+msgid "Maximum width (in pixels) of each line of a slice label. Set to 0 for no limit."
 msgstr ""
 
 msgid "Maximum width size of the path, in pixels or meters."
@@ -9811,6 +9873,9 @@ msgstr ""
 msgid "No description available."
 msgstr ""
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 msgid "No entities have this tag currently assigned"
 msgstr ""
 
@@ -10309,6 +10374,10 @@ msgid "Only the default catalog is supported for this connection"
 msgstr ""
 
 #, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
+
+#, python-format
 msgid "Only the first %s values are listed."
 msgstr ""
 
@@ -10391,6 +10460,9 @@ msgid "Operator undefined for aggregator: %(name)s"
 msgstr ""
 
 msgid "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines."
+msgstr ""
+
+msgid "Optional custom color for each range band, e.g. to match a brand palette. Bands left unset use the default shading."
 msgstr ""
 
 msgid "Optional d3 date format string"
@@ -10754,6 +10826,9 @@ msgid "Physical"
 msgstr ""
 
 msgid "Physical (table or view)"
+msgstr ""
+
+msgid "Pick a color for each interval band defined above by its upper bound. Charts saved with the legacy 1-indexed \"Interval colors\" text field keep following the chosen color scheme until an interval color is edited."
 msgstr ""
 
 msgid "Pick a dimension from which categorical colors are defined"
@@ -11276,6 +11351,9 @@ msgstr ""
 msgid "Range Type"
 msgstr ""
 
+msgid "Range colors"
+msgstr ""
+
 msgid "Range filter"
 msgstr ""
 
@@ -11404,13 +11482,13 @@ msgstr ""
 msgid "Refreshing columns"
 msgstr ""
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
 msgid "Region value format"
-msgstr ""
-
-msgid "Region"
 msgstr ""
 
 msgid "Register"
@@ -12511,6 +12589,9 @@ msgstr ""
 msgid "Secondary currency format"
 msgstr ""
 
+msgid "Secondary text"
+msgstr ""
+
 msgid "Secondary y-axis Bounds"
 msgstr ""
 
@@ -12917,6 +12998,9 @@ msgid "Semantic Views"
 msgstr ""
 
 msgid "Semantic cache"
+msgstr ""
+
+msgid "Semantic colors"
 msgstr ""
 
 #, python-format
@@ -13880,6 +13964,10 @@ msgstr ""
 msgid "Storage key exceeds the maximum allowed length of %(max_length)d characters."
 msgstr ""
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 msgid "Stream"
 msgstr ""
 
@@ -14589,6 +14677,9 @@ msgstr ""
 msgid "The encoding format of the lines"
 msgstr ""
 
+msgid "The ending is hidden because the secret is too short."
+msgstr ""
+
 msgid "The engine_params object gets unpacked into the sqlalchemy.create_engine call."
 msgstr ""
 
@@ -14605,14 +14696,10 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr ""
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
+msgid "The filters from the link you opened could not be loaded, so this link shares the default view."
 msgstr ""
 
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
+msgid "The filters from this link have expired, so you’re seeing the default view."
 msgstr ""
 
 msgid "The following charts could not be exported:"
@@ -15575,10 +15662,10 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
-msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgid "This chart is archived or unavailable."
 msgstr ""
 
-msgid "This chart is archived or unavailable."
+msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
 msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -15598,6 +15685,9 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid "This chart uses legacy color positions past the end of the selected color scheme, so its band colors cannot be previewed or edited here."
 msgstr ""
 
 msgid "This chart version can't be restored because the dataset it used has been permanently deleted. Restore a version that uses an existing dataset, or recreate the chart."
@@ -16177,6 +16267,9 @@ msgstr ""
 msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
 msgstr ""
 
+msgid "Too short to show safely"
+msgstr ""
+
 msgid "Tool Panel"
 msgstr ""
 
@@ -16291,6 +16384,9 @@ msgid "Trigger now"
 msgstr ""
 
 msgid "True"
+msgstr ""
+
+msgid "Truncate"
 msgstr ""
 
 msgid "Truncate Axis"
@@ -16705,6 +16801,10 @@ msgstr ""
 msgid "Unverified"
 msgstr ""
 
+#, python-format
+msgid "Up to %s"
+msgstr ""
+
 msgid "Update"
 msgstr ""
 
@@ -16815,6 +16915,9 @@ msgstr ""
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 
+msgid "Use default"
+msgstr ""
+
 msgid "Use each metric’s own definition for cells and summaries (the default since SIP-216), or aggregate a second time over the metric’s own grouped results — e.g. the median of a set of per-store averages. Query limits apply before a result aggregation runs."
 msgstr ""
 
@@ -16831,6 +16934,9 @@ msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
 
 msgid "Use only a single value."
+msgstr ""
+
+msgid "Use scheme colors"
 msgstr ""
 
 msgid "Use the Advanced Analytics options below"
@@ -17233,9 +17339,7 @@ msgstr ""
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr ""
 
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
+msgid "We couldn’t load the filters from this link, so you’re seeing the default view."
 msgstr ""
 
 #, python-format
@@ -17997,6 +18101,10 @@ msgstr ""
 msgid "Your dashboard is too large to save: the serialized layout length is %s but the limit is %s. Reduce the dashboard size (for example, split it into multiple dashboards) or raise the SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid "Your export is being generated and will download automatically when ready. We'll also email you a download link."
 msgstr ""
 
@@ -18015,6 +18123,10 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
 msgstr ""
 
 msgid "Your password could not be reset. Please try again later."
@@ -18279,9 +18391,6 @@ msgid "code ISO 3166-1 alpha-3 (cca3)"
 msgstr ""
 
 msgid "code International Olympic Committee (cioc)"
-msgstr ""
-
-msgid "color scheme for comparison"
 msgstr ""
 
 msgid "color type"
@@ -19004,6 +19113,9 @@ msgstr ""
 msgid "theme"
 msgstr ""
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr ""
 
@@ -19080,6 +19192,9 @@ msgid "y: values are normalized within each row"
 msgstr ""
 
 msgid "year"
+msgstr ""
+
+msgid "you do not have permission to edit this dashboard."
 msgstr ""
 
 #. do-not-translate
