@@ -31,9 +31,9 @@ Usage:
   # Dry run (print what would be translated without writing)
   python scripts/translations/backfill_po.py --lang de --dry-run
 
-  # Limit to 100 entries and use a specific model
+  # Limit to 100 entries and pin a specific model
   python scripts/translations/backfill_po.py --lang es --limit 100 \
-    --model claude-opus-4-6
+    --model claude-opus-5-5
 
 Options:
   --lang LANG        ISO language code to backfill (required)
@@ -41,7 +41,9 @@ Options:
   --limit N          Stop after translating N entries (default: unlimited)
   --min-context N    Skip entries with fewer than N existing translations across
                      reference languages (default: 0 — translate everything)
-  --model MODEL      Claude model ID (default: claude-sonnet-4-6)
+  --model MODEL      Claude model ID or alias (default: sonnet, i.e. the latest
+                     Sonnet; the alias is resolved once per run and the concrete
+                     model ID is recorded in each entry's attribution comment)
   --index PATH       Path to translation_index.json (default: auto-detect)
   --dry-run          Print translations without writing to .po file
   --no-fuzzy         Do not mark generated translations as fuzzy (default: mark fuzzy)
@@ -55,6 +57,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -66,7 +69,11 @@ except ImportError:
 
 TRANSLATIONS_DIR = Path(__file__).parent.parent.parent / "superset" / "translations"
 DEFAULT_INDEX = TRANSLATIONS_DIR / "translation_index.json"
-DEFAULT_MODEL = "claude-sonnet-4-6"
+# A Claude Code model alias rather than a pinned ID, so the script tracks the
+# latest Sonnet without edits. ``resolve_model`` turns it into the concrete ID
+# that gets recorded in the attribution comment.
+DEFAULT_MODEL = "sonnet"
+_CLAUDE_MODEL_ALIASES = frozenset({"sonnet", "opus", "haiku"})
 DEFAULT_BATCH_SIZE = 50
 
 _ASF_LICENSE_HEADER = """\
@@ -438,6 +445,95 @@ def parse_response(text: str, batch_size: int) -> dict[int, str]:
     }
 
 
+def _claude_command(claude_bin: str, model: str, *extra: str) -> list[str]:
+    """Build a ``claude -p`` invocation for a pure text-in/text-out request.
+
+    Tools are disabled (``--tools ""``): translation never needs file, shell or
+    web access, and running with none keeps an unattended run (e.g. the
+    scheduled CI backfill) from acting on anything the prompt happens to say.
+    """
+    return [
+        claude_bin,
+        "--model",
+        model,
+        "-p",
+        "--tools",
+        "",
+        "--no-session-persistence",
+        *extra,
+    ]
+
+
+# Seconds to wait before each retry of a failed ``claude -p`` call. Gateways
+# (and the API under load) fail individual requests transiently; without a
+# retry one such failure loses an entire batch.
+_RETRY_DELAYS: tuple[float, ...] = (10, 30)
+
+
+def _run_claude(cmd: list[str], prompt: str) -> subprocess.CompletedProcess[str]:
+    """Run a ``claude -p`` command, retrying non-zero exits with backoff.
+
+    Returns the last attempt's result; the caller decides what a final
+    failure means.
+    """
+    for delay in (*_RETRY_DELAYS, None):
+        # cmd[0] is resolved via shutil.which — not user-controlled input
+        result = subprocess.run(  # noqa: S603
+            cmd,
+            input=prompt,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 or delay is None:
+            return result
+        print(
+            f"  claude exited with code {result.returncode}; retrying in {delay:g}s …",
+            file=sys.stderr,
+        )
+        time.sleep(delay)
+    raise AssertionError("unreachable")
+
+
+def resolve_model(model: str) -> str:
+    """Resolve a model alias such as ``sonnet`` to the concrete model ID.
+
+    Anything other than a Claude Code alias (a concrete ``claude-...`` ID, or
+    a model served through another Anthropic-compatible gateway via
+    ``ANTHROPIC_BASE_URL``) is returned unchanged. For an alias, one tiny
+    request is made with JSON output and the model ID it reports is returned,
+    so every entry translated in this run is attributed to (and produced by)
+    the same pinned model. Falls back to the alias if the response can't be
+    read.
+    """
+    if model not in _CLAUDE_MODEL_ALIASES:
+        return model
+    claude_bin = shutil.which("claude")
+    if not claude_bin:
+        raise RuntimeError(
+            "claude CLI not found. Install Claude Code or add it to PATH."
+        )
+    # claude_bin is resolved via shutil.which — not user-controlled input
+    result = subprocess.run(  # noqa: S603
+        _claude_command(claude_bin, model, "--output-format", "json"),
+        input="Reply with the single word OK.",
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"claude exited with code {result.returncode}:\n{result.stderr}"
+        )
+    try:
+        usage = json.loads(result.stdout).get("modelUsage") or {}
+    except (json.JSONDecodeError, AttributeError):
+        return model
+    ids = [m for m in usage if isinstance(m, str) and m.startswith("claude-")]
+    preferred = [m for m in ids if model in m]
+    return (preferred or ids or [model])[0]
+
+
 def translate_batch(
     model: str,
     target_lang: str,
@@ -457,14 +553,7 @@ def translate_batch(
     # Pipe the prompt over stdin rather than passing it as argv: a single batch
     # with many reference languages can grow into the tens of KB and approach
     # ARG_MAX on some platforms.
-    # claude_bin is resolved via shutil.which — not user-controlled input
-    result = subprocess.run(  # noqa: S603
-        [claude_bin, "--model", model, "-p"],
-        input=prompt,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _run_claude(_claude_command(claude_bin, model), prompt)
     if result.returncode != 0:
         raise RuntimeError(
             f"claude exited with code {result.returncode}:\n{result.stderr}"
@@ -520,14 +609,7 @@ def _translate_single_plaintext(
         lines.append("Reference translations in other languages:")
         lines.extend(ref_lines)
     prompt = "\n".join(lines)
-    # claude_bin is resolved via shutil.which — not user-controlled input
-    result = subprocess.run(  # noqa: S603
-        [claude_bin, "--model", model, "-p"],
-        input=prompt,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _run_claude(_claude_command(claude_bin, model), prompt)
     if result.returncode != 0:
         return None
     text = result.stdout.strip()
@@ -728,6 +810,38 @@ def _process_batches(
     return translated_count, failed_count
 
 
+# Mirrors the post-processing at the end of babel_update.sh: Babel tags these
+# msgids python-format because of the bare ``%``, but they are literal labels.
+_PERCENT_LABEL_MSGIDS = {"% calculation", "% of parent", "% of total"}
+
+
+def normalize_catalog(po_path: Path) -> None:
+    """Re-serialize a catalog in the canonical form ``babel_update.sh`` writes.
+
+    polib writes long strings unwrapped and reorders some header fields, while
+    the committed catalogs are produced by ``pybabel update`` (76-column
+    wrapping). Without this pass a backfill re-wraps thousands of untouched
+    lines, burying the actual translations in the diff and churning again on
+    the next catalog sync. Only formatting changes: the entry set, comments,
+    flags and translations are preserved.
+    """
+    from babel.messages.pofile import read_po, write_po
+
+    lang = po_path.parent.parent.name
+    with open(po_path, "rb") as f:
+        catalog = read_po(f, locale=lang)
+    for message in catalog:
+        if message.id in _PERCENT_LABEL_MSGIDS and "python-format" in message.flags:
+            message.flags.discard("python-format")
+            message.flags.add("no-python-format")
+    with open(po_path, "wb") as f:
+        write_po(f, catalog, width=76)
+    # babel_update.sh also strips the final blank line Babel leaves behind.
+    text = po_path.read_text(encoding="utf-8")
+    if text.endswith("\n\n"):
+        po_path.write_text(text[:-1], encoding="utf-8")
+
+
 def backfill(
     lang: str,
     *,
@@ -814,6 +928,9 @@ def backfill(
         print("Nothing to do.", file=sys.stderr)
         return
 
+    model = resolve_model(model)
+    print(f"Using model {model}.", file=sys.stderr)
+
     translated_count, failed_count = _process_batches(
         missing,
         index,
@@ -831,6 +948,7 @@ def backfill(
         file=sys.stderr,
     )
     if not dry_run and translated_count > 0:
+        normalize_catalog(po_path)
         print(
             f"Translations written to {po_path} (marked #, fuzzy for review).",
             file=sys.stderr,
@@ -862,7 +980,10 @@ def main() -> None:
     parser.add_argument(
         "--model",
         default=DEFAULT_MODEL,
-        help=f"Claude model ID (default: {DEFAULT_MODEL})",
+        help=(
+            f"Claude model ID or alias (default: {DEFAULT_MODEL}, the latest "
+            "Sonnet). Aliases are resolved to a concrete ID once per run."
+        ),
     )
     parser.add_argument(
         "--index",
