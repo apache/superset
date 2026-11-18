@@ -53,6 +53,7 @@ def semantic_view_datasource(app: Flask, mocker: MockerFixture) -> SemanticView:
         app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "values-endpoint-tests"}
     )
     implementation: MagicMock = MagicMock(selection_identity_version=None)
+    implementation.get_compatibility_evidence.return_value = None
     implementation.uid.return_value = "semantic_view_uid_123"
     implementation.get_dimensions.return_value = [
         Dimension(id="orders.category", name="category", type=pa.utf8()),
