@@ -133,7 +133,7 @@ export interface SetCrossFilterRequest {
   value: DataEventValue | null;
 }
 
-/** Run the bindings again, fresh from the warehouse. */
+/** Run every binding again; the host's cache may answer it. */
 export interface RefreshRequest {
   type: 'refresh';
 }

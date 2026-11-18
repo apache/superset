@@ -98,8 +98,8 @@ export interface SupersetRuntime {
    */
   setCrossFilter(value: DataEventValue | null): void;
   /**
-   * Ask the host to run the bindings again, fresh from the warehouse. Needs
-   * `data`.
+   * Ask the host to run every binding again. It answers as it answers any
+   * request, from its cache where it keeps one. Needs `data`.
    */
   refresh(): void;
 }

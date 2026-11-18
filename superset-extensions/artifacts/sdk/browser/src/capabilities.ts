@@ -27,8 +27,8 @@
 export const Capability = {
   /**
    * Receive the results of the manifest's bindings and the filters that
-   * reach the artifact, and ask for a binding again: with new parameter
-   * values, or fresh from the warehouse.
+   * reach the artifact, and run bindings again: one with new parameter
+   * values, or all of them.
    */
   DATA: 'data',
   /** Set cross-filters, on declared events, that the other widgets follow. */

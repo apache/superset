@@ -38,8 +38,8 @@ class Capability(StrEnum):
     """A named right that an artifact must declare in its manifest and be granted."""
 
     # Receive the results of the manifest's named bindings and the filters
-    # that reach the artifact, and ask for a binding again: with new values
-    # for its declared parameters, or fresh from the warehouse.
+    # that reach the artifact, and run bindings again: one with new values
+    # for its declared parameters, or all of them.
     DATA = "data"
     # Set cross-filters, on declared events, that the other widgets on the
     # canvas follow.

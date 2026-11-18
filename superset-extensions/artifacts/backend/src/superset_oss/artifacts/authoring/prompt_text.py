@@ -258,7 +258,7 @@ superset.query("revenue_by_region"); // run one binding again
 const emea = {{binding: "revenue_by_region", dimension: "region", values: ["EMEA"]}};
 superset.setCrossFilter(emea);
 superset.setCrossFilter(null); // clear it
-superset.refresh(); // run the bindings again, fresh from the warehouse
+superset.refresh(); // run every binding again; the host's cache may answer
 superset.capabilities; // what this frame was granted
 ```
 
