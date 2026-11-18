@@ -7993,6 +7993,9 @@ msgstr "Direccional"
 msgid "Dynamic group by"
 msgstr "Agrupación dinámica"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Función de agregación dinámica"

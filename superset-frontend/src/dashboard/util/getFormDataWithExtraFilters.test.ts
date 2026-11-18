@@ -770,6 +770,51 @@ test('chart customization does not match across datasource ID spaces', () => {
   expect(result).not.toHaveProperty('time_grain_sqla');
 });
 
+test.each([
+  ['selected on Apply', ['Orders.status']],
+  ['cleared after Clear all', null],
+])(
+  'hidden required semantic group-by contributes no mask or provenance when %s',
+  (_, value) => {
+    const customizationId = 'CHART_CUSTOMIZATION-hidden-required';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          datasource: '3__semantic_view',
+          semantic_selection_version: 'cube-member-id-v1',
+          groupby: ['Orders.status'],
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          filterState: { value },
+          extraFormData: {
+            semantic_selection_sources: [{ datasource: '', version: null }],
+          },
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+          targets: [
+            { datasetId: 3, datasourceType: DatasourceType.SemanticView },
+          ],
+          controlValues: { enableEmptyFilter: true },
+        }),
+      ],
+    });
+    expectGroupBy(result, ['Orders.status']);
+    expect(result).toHaveProperty('semantic_selection_sources', []);
+    expect(result).not.toHaveProperty(
+      'extra_form_data.semantic_selection_sources',
+    );
+  },
+);
+
 test.each([false, true])(
   'saved semantic-view dynamic group-by mask does not alter the chart request (current=%s)',
   current => {

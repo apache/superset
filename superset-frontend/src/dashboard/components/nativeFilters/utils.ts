@@ -43,7 +43,6 @@ import type { ChartLayoutItems } from 'src/dashboard/util/getChartIdsInFilterSco
 import { isIterable } from 'src/utils/types';
 import { TAB_TYPE } from '../../util/componentTypes';
 import getBootstrapData from '../../../utils/getBootstrapData';
-import { ChartCustomizationPlugins } from 'src/constants';
 
 export const isHiddenSemanticCustomization = (
   item: ChartCustomization | ChartCustomizationDivider,

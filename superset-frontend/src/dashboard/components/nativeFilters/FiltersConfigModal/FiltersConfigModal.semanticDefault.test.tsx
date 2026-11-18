@@ -447,7 +447,7 @@ test('Dynamic group by defaults to an ordinary dataset on a mixed dashboard', as
   ).toBeInTheDocument();
 });
 
-test('editing a saved semantic Dynamic group by does not offer semantic fields', async () => {
+test('a saved semantic Dynamic group by is shown as an unsupported removable control', async () => {
   mockSemanticViewStructure(VIEW_ID);
   const savedControl: ChartCustomization = {
     id: 'CHART_CUSTOMIZATION-saved-semantic',
@@ -474,18 +474,67 @@ test('editing a saved semantic Dynamic group by does not offer semantic fields',
       initialFilterId: savedControl.id,
     },
   );
-  await userEvent.click(
-    await screen.findByRole('combobox', { name: 'Customization type' }),
-  );
   expect(
-    await screen.findByTestId(
-      `customization-type-option-${ChartCustomizationPlugins.DynamicGroupBy}`,
+    await screen.findByText(
+      'Dynamic group by is not supported on semantic views. Remove this display control to stop storing it.',
     ),
   ).toBeInTheDocument();
   expect(
-    within(await findDatasourceField()).queryByText(VIEW_NAME),
+    screen.queryByRole('combobox', { name: 'Customization type' }),
   ).not.toBeInTheDocument();
+  expect(screen.queryByText('Datasource is required')).not.toBeInTheDocument();
+  expect(
+    within(screen.getByTestId('customization-title-container')).getByRole(
+      'button',
+      { name: 'Remove customization' },
+    ),
+  ).toBeInTheDocument();
   expect(fetchMock.callHistory.called(structureRoute(VIEW_ID))).toBe(false);
+});
+
+test('editing another filter saves with a hidden semantic group-by preserved', async () => {
+  const onSave = jest.fn().mockResolvedValue(undefined);
+  const savedControl: ChartCustomization = {
+    id: 'CHART_CUSTOMIZATION-hidden-semantic',
+    name: 'Saved group by',
+    type: ChartCustomizationType.ChartCustomization,
+    filterType: ChartCustomizationPlugins.DynamicGroupBy,
+    targets: [
+      { datasetId: VIEW_ID, datasourceType: DatasourceType.SemanticView },
+    ],
+    scope: { rootPath: [], excluded: [] },
+    controlValues: { enableEmptyFilter: true },
+    defaultDataMask: { filterState: { value: ['Orders.status'] } },
+  };
+  const filter = savedSemanticFilter(
+    'NATIVE_FILTER-status',
+    'Status',
+    VIEW_ID,
+    DatasourceType.SemanticView,
+    'Orders.status',
+  );
+  mockSemanticViewStructure(VIEW_ID);
+  const state = stateFor(
+    dashboardDatasources(semanticViewEntry(VIEW_ID)),
+    [`${VIEW_ID}__semantic_view`],
+    [filter],
+    [savedControl],
+  );
+  renderModal(state, {
+    ...props,
+    onSave,
+    createNewOnOpen: false,
+    initialFilterId: savedControl.id,
+  });
+  await userEvent.click(
+    within(screen.getByTestId('filter-title-container')).getByText('Status'),
+  );
+  const changes = await saveAndCapture(onSave, 'Updated status');
+  expect(changes.filterChanges.modified[0].name).toBe('Updated status');
+  expect(changes.customizationChanges).toBeUndefined();
+  expect(state.dashboardInfo.metadata.chart_customization_config).toEqual([
+    savedControl,
+  ]);
 });
 
 test('a same-id SQL dataset never supplies data to a semantic-view default', async () => {

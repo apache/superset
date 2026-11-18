@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:13-0700\n"
+"POT-Creation-Date: 2026-11-18 10:49-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5981,6 +5981,9 @@ msgid "Dynamic Section Label"
 msgstr ""
 
 msgid "Dynamic group by"
+msgstr ""
+
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
 msgstr ""
 
 msgid "Dynamic section description"

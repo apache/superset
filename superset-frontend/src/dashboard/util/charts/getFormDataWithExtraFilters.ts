@@ -507,7 +507,7 @@ export default function getFormDataWithExtraFilters({
   ownColorScheme,
   colorNamespace,
   sliceId,
-  dataMask,
+  dataMask: allDataMask,
   extraControls,
   labelsColor,
   labelsColorMap,
@@ -516,6 +516,18 @@ export default function getFormDataWithExtraFilters({
   chartCustomization,
   activeFilters: passedActiveFilters,
 }: GetFormDataWithExtraFiltersArguments) {
+  const hiddenCustomizationIds = new Set(
+    (chartCustomizationItems ?? [])
+      .filter(isHiddenSemanticCustomization)
+      .map(item => item.id),
+  );
+  const dataMask = hiddenCustomizationIds.size
+    ? (Object.fromEntries(
+        Object.entries(allDataMask).filter(
+          ([id]) => !hiddenCustomizationIds.has(id),
+        ),
+      ) as DataMaskStateWithId)
+    : allDataMask;
   const chartSelectionInput = {
     datasource: chart.form_data?.datasource,
     semantic_selection_version: chart.form_data?.semantic_selection_version,

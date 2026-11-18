@@ -207,6 +207,33 @@ const FilterBar: FC<FiltersBarProps> = ({
       ),
     [chartCustomizationValues],
   );
+  const hiddenCustomizationIds = useMemo(
+    () =>
+      new Set(
+        chartCustomizationValues
+          .filter(isHiddenSemanticCustomization)
+          .map(item => item.id),
+      ),
+    [chartCustomizationValues],
+  );
+  const visibleDataMaskSelected = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(dataMaskSelected).filter(
+          ([id]) => !hiddenCustomizationIds.has(id),
+        ),
+      ) as DataMaskStateWithId,
+    [dataMaskSelected, hiddenCustomizationIds],
+  );
+  const visibleDataMaskApplied = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(dataMaskApplied).filter(
+          ([id]) => !hiddenCustomizationIds.has(id),
+        ),
+      ) as DataMaskStateWithId,
+    [dataMaskApplied, hiddenCustomizationIds],
+  );
   const dispatch = useDispatch();
   const [updateKey, setUpdateKey] = useState(0);
   const tabId = useTabId();
@@ -455,7 +482,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     setUpdateKey(1);
 
     const filtersToApply = getFiltersToApply(
-      dataMaskSelected,
+      visibleDataMaskSelected,
       inScopeFilterIds,
     );
 
@@ -535,6 +562,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     setHasClearedChartCustomizations(false);
   }, [
     dataMaskSelected,
+    visibleDataMaskSelected,
     dispatch,
     filters,
     inScopeFilterIds,
@@ -646,8 +674,8 @@ const FilterBar: FC<FiltersBarProps> = ({
     }) || false;
 
   const checkResult = checkIsApplyDisabled(
-    dataMaskSelected,
-    dataMaskApplied,
+    visibleDataMaskSelected,
+    visibleDataMaskApplied,
     filtersInScope.filter(isNativeFilter),
     nativeFilterValues,
   );

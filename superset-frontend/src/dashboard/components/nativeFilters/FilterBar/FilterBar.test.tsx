@@ -335,7 +335,7 @@ test('a hidden semantic display control does not block Apply or enable Clear all
 });
 
 test('a hidden semantic display control does not populate the filter bar', async () => {
-  const customization = hiddenSemanticCustomization();
+  const customization = hiddenSemanticCustomization(true);
   const state = {
     ...stateWithoutNativeFilters,
     dashboardInfo: {
@@ -354,6 +354,7 @@ test('a hidden semantic display control does not populate the filter bar', async
     jest.advanceTimersByTime(1000);
   });
   expect(screen.getByTestId(getTestId('clear-button'))).toBeDisabled();
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   expect(
     screen.getByText('No global filters are currently added'),
   ).toBeInTheDocument();

@@ -6923,6 +6923,9 @@ msgstr "動的セクションラベル"
 msgid "Dynamic group by"
 msgstr "動的グループ化"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "動的セクションの説明"
 

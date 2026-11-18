@@ -10607,6 +10607,9 @@ msgstr "동적 섹션 레이블"
 msgid "Dynamic group by"
 msgstr "동적 그룹화"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "설명"

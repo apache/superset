@@ -8322,6 +8322,9 @@ msgstr "Directioneel"
 msgid "Dynamic group by"
 msgstr "NOT GROUPED BY"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Dynamische Aggregatie Functie"

@@ -7241,6 +7241,9 @@ msgstr "Bezeichnung für dynamischen Abschnitt"
 msgid "Dynamic group by"
 msgstr "Dynamisch gruppieren nach"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Beschreibung für dynamischen Abschnitt"
 
