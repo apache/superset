@@ -297,32 +297,34 @@ branch:
 ## The "no code artifacts" MCP instruction, conditional
 
 - **Implemented:** `get_default_instructions` takes `artifacts_enabled`
-  (`superset/mcp_service/app.py`). `init_fastmcp_server` and
-  `create_mcp_app` pass `artifacts_available()` (`superset_core.artifacts`),
-  which is true while an artifact runtime provider is registered: the gate
-  the extension's tools have, so the instructions and the tools agree. While
-  it is true, the first tool-only rule (`_snippet_artifacts_allowed` instead
-  of `_SNIPPET_NO_CODE_ARTIFACTS`) lets agents write artifacts with the
-  artifact tools after reading their prompt, and still forbids code for the
-  user to run outside Superset. There is no config key of its own:
-  registering a provider is what turns artifacts on.
-- **Order:** a host registers its provider while the app initializes
-  (`init_core_dependencies`). The MCP server builds its instructions once the
-  Flask app is up (`init_fastmcp_server`, and `create_mcp_app` on the factory
-  path), so they see the provider. `DEFAULT_INSTRUCTIONS` is built at import,
-  which can come first, so it always keeps the rule against generating code.
+  (`superset/mcp_service/app.py`), and a generic setting,
+  `MCP_CODE_ARTIFACTS_ENABLED` (`superset/mcp_service/mcp_config.py`), turns
+  it on. It is `False` by default, `True`, or a callable with no arguments
+  that `CodeArtifactsInstructionsMiddleware` reads as each MCP session
+  initializes. While it is on, the first tool-only rule
+  (`_snippet_artifacts_allowed` instead of `_SNIPPET_NO_CODE_ARTIFACTS`) lets
+  agents write artifacts with the artifact tools after reading their prompt,
+  and still forbids code for the user to run outside Superset. Anything but
+  `True`, and a callable that raises, keep the rule. Core imports nothing of
+  this extension.
+- **Turning it on:** the host points the setting at this extension's
+  registry, so that the instructions and the tools follow the same switch:
+
+  ```python
+  def MCP_CODE_ARTIFACTS_ENABLED() -> bool:
+      from superset_core.artifacts.provider import artifacts_available
+
+      return artifacts_available()
+  ```
+
 - **Tests:** `tests/unit_tests/mcp_service/test_mcp_config.py` (only the first
-  rule changes, and only while enabled; `init_fastmcp_server` and
-  `create_mcp_app` follow the registered provider; `DEFAULT_INSTRUCTIONS`
-  keeps the rule against generating code). The two tests in
-  `test_mcp_tool_registration.py` that replace `get_default_instructions`
-  take the new argument.
-- **Pending:** artifacts should turn on only once the community accepts
-  sandboxed code in widgets, which SIP-231 §11 ("data only, never code") rules
-  out today. Review the other tool-only rules ("Do NOT generate HTML
+  rule changes, and only while enabled; a static setting builds the server's
+  instructions; a callable is read per session and fails closed;
+  `DEFAULT_INSTRUCTIONS` keeps the rule against generating code).
+- **Pending:** review the other tool-only rules ("Do NOT generate HTML
   dashboards, embed scripts, or custom frontend code") for when artifacts are
-  on. A provider registered without this extension loaded still allows the
-  rule, which then names tools that aren't there.
+  on. A setting that answers `True` without this extension loaded still lifts
+  the rule, which then names tools that aren't there.
 
 ## Artifact guest tokens and standalone embedding
 

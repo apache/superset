@@ -27,7 +27,6 @@ from typing import Any, Callable, Dict, List, Sequence, Set
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware
-from superset_core.artifacts import artifacts_available
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +80,9 @@ _SNIPPET_CONNECT_GUIDANCE = (
     "\nWhen you first connect, call get_instance_info to learn the user's identity.\n"
     "Greet them by their first name (from current_user) and offer to help.\n"
 )
-# The first tool-only rule. While an artifact runtime provider is registered
-# (superset_core.artifacts.artifacts_available), it allows artifacts: code
-# written with an extension's artifact tools, which runs only in a sandbox.
+# The first tool-only rule. While MCP_CODE_ARTIFACTS_ENABLED is on, it allows
+# artifacts instead: code written with an extension's artifact tools, which runs
+# only in a sandbox.
 _SNIPPET_NO_CODE_ARTIFACTS = (
     "- Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended\n"
     "  for the user to run. All visualization, data retrieval, and authentication are handled\n"
@@ -117,10 +116,9 @@ def get_default_instructions(
             (e.g., "ACME Analytics", "Apache Superset")
         disabled_tools: Set of tool names to omit from the tool listing.
             When ``None`` (default) all tools are included.
-        artifacts_enabled: Whether agents may write artifacts with the artifact
-            tools instead of being told never to generate code. Callers pass
-            ``artifacts_available()``, which is true while an artifact runtime
-            provider is registered, the same gate the artifact tools have.
+        artifacts_enabled: Whether agents may write artifacts with an
+            extension's artifact tools instead of being told never to generate
+            code, as ``MCP_CODE_ARTIFACTS_ENABLED`` decides.
 
     Returns:
         Formatted instructions string with branding applied
@@ -685,9 +683,7 @@ Input format:
     return "".join(filtered_lines)
 
 
-# For backwards compatibility, keep DEFAULT_INSTRUCTIONS pointing to default branding.
-# Built at import, which can run before the host registers its artifact runtime
-# provider, so it always keeps the rule against generating code.
+# For backwards compatibility, keep DEFAULT_INSTRUCTIONS pointing to default branding
 DEFAULT_INSTRUCTIONS = get_default_instructions()
 
 
@@ -792,14 +788,13 @@ def create_mcp_app(
     if name is None:
         name = "MCP Server"
 
-    # Use default instructions if none provided. They are built now, not at
-    # import, so that the artifacts rule follows the provider registered by
-    # the time of this call.
+    # Use default instructions if none provided
     if instructions is None:
-        instructions = get_default_instructions(
-            "Apache Superset" if branding is None else branding,
-            artifacts_enabled=artifacts_available(),
-        )
+        # If branding is provided, use it to generate instructions
+        if branding is not None:
+            instructions = get_default_instructions(branding)
+        else:
+            instructions = DEFAULT_INSTRUCTIONS
 
     # Build FastMCP constructor arguments
     mcp_kwargs = _build_mcp_kwargs(
@@ -1212,6 +1207,9 @@ def init_fastmcp_server(
     # circular import: flask_singleton imports from superset.extensions which
     # re-enters mcp_service during startup; must stay lazy inside the function.
     from superset.mcp_service.flask_singleton import app as flask_app  # noqa: PLC0415
+    from superset.mcp_service.middleware import (  # noqa: PLC0415
+        CodeArtifactsInstructionsMiddleware,
+    )
     from superset.mcp_service.session_scope import (  # noqa: PLC0415
         install_mcp_session_scoping,
     )
@@ -1239,12 +1237,19 @@ def init_fastmcp_server(
         # Merge MCP_DISABLED_TOOLS with config-guard removals so the instructions
         # never advertise tools that have been suppressed by either mechanism.
         all_disabled = disabled_tools | config_guard_removed
-        # The flask_singleton import above has built the app, and a host
-        # registers its artifact runtime provider while the app initializes
-        # (init_core_dependencies), so the artifacts rule can follow it here.
+        code_artifacts = flask_app.config.get("MCP_CODE_ARTIFACTS_ENABLED", False)
         instructions = get_default_instructions(
-            branding, all_disabled, artifacts_enabled=artifacts_available()
+            branding, all_disabled, artifacts_enabled=code_artifacts is True
         )
+        if callable(code_artifacts):
+            mcp.add_middleware(
+                CodeArtifactsInstructionsMiddleware(
+                    code_artifacts,
+                    get_default_instructions(
+                        branding, all_disabled, artifacts_enabled=True
+                    ),
+                )
+            )
 
     # Configure the global mcp instance with provided settings.
     # Tools are already registered on this instance via @tool decorator imports above.

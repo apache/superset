@@ -1321,6 +1321,43 @@ class RBACToolVisibilityMiddleware(Middleware):
             return tools
 
 
+class CodeArtifactsInstructionsMiddleware(Middleware):
+    """Answer each session's ``initialize`` with the instructions that a
+    callable ``MCP_CODE_ARTIFACTS_ENABLED`` picks for it.
+
+    The server's own instructions keep the rule against generating code. A
+    session for which ``enabled`` returns ``True`` gets ``instructions``, which
+    allow an extension's artifact tools instead. Any other answer, and an
+    exception, keep the rule.
+    """
+
+    def __init__(self, enabled: Callable[[], bool], instructions: str) -> None:
+        self._enabled = enabled
+        self._instructions = instructions
+
+    async def on_initialize(
+        self,
+        context: MiddlewareContext[mt.InitializeRequest],
+        call_next: CallNext[mt.InitializeRequest, mt.InitializeResult | None],
+    ) -> mt.InitializeResult | None:
+        result = await call_next(context)
+        if result is None or not self._session_enabled():
+            return result
+        return result.model_copy(update={"instructions": self._instructions})
+
+    def _session_enabled(self) -> bool:
+        try:
+            with _get_app_context_manager():
+                return self._enabled() is True
+        except Exception:  # noqa: BLE001 — operator-supplied callable may raise anything
+            logger.warning(
+                "MCP_CODE_ARTIFACTS_ENABLED raised; keeping the rule against "
+                "generating code for this session",
+                exc_info=True,
+            )
+            return False
+
+
 class GlobalErrorHandlerMiddleware(Middleware):
     """
     Global error handler middleware that provides consistent error responses

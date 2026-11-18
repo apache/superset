@@ -17,18 +17,20 @@
 
 """Tests for MCP service configuration and branding."""
 
+from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
+import mcp.types as mt
 import pytest
 
 from superset.mcp_service.app import (
     _snippet_artifacts_allowed,
     _SNIPPET_NO_CODE_ARTIFACTS,
-    create_mcp_app,
     DEFAULT_INSTRUCTIONS,
     get_default_instructions,
     init_fastmcp_server,
 )
+from superset.mcp_service.middleware import CodeArtifactsInstructionsMiddleware
 
 
 def test_get_default_instructions_with_default_branding():
@@ -182,47 +184,130 @@ def test_init_fastmcp_server_derives_server_name_from_app_name():
             assert mock_mcp._mcp_server.name == expected_server_name
 
 
-@pytest.mark.parametrize("available", [False, True])
-def test_init_fastmcp_server_follows_the_artifact_provider(available):
-    """The artifacts rule follows a registered provider, as the artifact tools do."""
-    mock_flask_app = _mock_flask_config("Superset")
+def _mock_flask_with_code_artifacts(setting: object) -> MagicMock:
+    """A Flask app mock whose MCP_CODE_ARTIFACTS_ENABLED is ``setting``."""
+    mock = _mock_flask_config("Superset")
+    plain = mock.config.get.side_effect
+    mock.config.get.side_effect = lambda key, default=None: (
+        setting if key == "MCP_CODE_ARTIFACTS_ENABLED" else plain(key, default)
+    )
+    return mock
 
+
+def _init_with_code_artifacts(setting: object) -> MagicMock:
+    """The global MCP instance as init_fastmcp_server configures it."""
     with patch.dict(
         "sys.modules",
-        {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
+        {
+            "superset.mcp_service.flask_singleton": MagicMock(
+                app=_mock_flask_with_code_artifacts(setting)
+            )
+        },
     ):
-        with (
-            patch("superset.mcp_service.app.mcp") as mock_mcp,
-            patch(
-                "superset.mcp_service.app.artifacts_available", return_value=available
-            ),
-        ):
+        with patch("superset.mcp_service.app.mcp") as mock_mcp:
             init_fastmcp_server()
+    return mock_mcp
+
+
+@pytest.mark.parametrize(
+    ("setting", "allowed"),
+    [(False, False), (True, True), ("yes", False), (1, False), (None, False)],
+)
+def test_init_fastmcp_server_follows_a_static_code_artifacts_setting(setting, allowed):
+    """Only True lifts the no-code rule; no per-session middleware is added."""
+    mock_mcp = _init_with_code_artifacts(setting)
 
     instructions = mock_mcp._mcp_server.instructions
-    assert ("Do NOT generate code artifacts" in instructions) is not available
-    assert ("artifact authoring tools" in instructions) is available
-
-
-@pytest.mark.parametrize("available", [False, True])
-@pytest.mark.parametrize("branding", [None, "ACME Analytics"])
-def test_create_mcp_app_reads_the_artifact_provider_when_called(branding, available):
-    """The factory builds its instructions when it runs, not at import."""
-    with (
-        patch("superset.mcp_service.app.FastMCP") as fast_mcp,
-        patch("superset.mcp_service.app.artifacts_available", return_value=available),
-    ):
-        create_mcp_app(branding=branding)
-
-    instructions = fast_mcp.call_args.kwargs["instructions"]
-    assert ("artifact authoring tools" in instructions) is available
-    assert instructions == get_default_instructions(
-        branding or "Apache Superset", artifacts_enabled=available
+    assert ("Do NOT generate code artifacts" in instructions) is not allowed
+    assert ("artifact authoring tools" in instructions) is allowed
+    assert not any(
+        isinstance(call.args[0], CodeArtifactsInstructionsMiddleware)
+        for call in mock_mcp.add_middleware.call_args_list
     )
 
 
+def test_init_fastmcp_server_reads_a_callable_setting_per_session():
+    """A callable keeps the rule in the server's instructions and is read later."""
+    setting = MagicMock(return_value=True)
+    mock_mcp = _init_with_code_artifacts(setting)
+
+    instructions = mock_mcp._mcp_server.instructions
+    assert _SNIPPET_NO_CODE_ARTIFACTS in instructions
+    setting.assert_not_called()
+    [middleware] = [
+        call.args[0]
+        for call in mock_mcp.add_middleware.call_args_list
+        if isinstance(call.args[0], CodeArtifactsInstructionsMiddleware)
+    ]
+    # Only the rule differs, and the disabled tools stay out of both.
+    assert middleware._instructions == instructions.replace(
+        _SNIPPET_NO_CODE_ARTIFACTS, _snippet_artifacts_allowed("Superset")
+    )
+
+
+def _initialize_result(instructions: str) -> mt.InitializeResult:
+    return mt.InitializeResult(
+        protocolVersion="2025-06-18",
+        capabilities=mt.ServerCapabilities(),
+        serverInfo=mt.Implementation(name="Superset MCP Server", version="1"),
+        instructions=instructions,
+    )
+
+
+async def _initialize(
+    middleware: CodeArtifactsInstructionsMiddleware,
+) -> mt.InitializeResult | None:
+    async def call_next(_context: object) -> mt.InitializeResult:
+        return _initialize_result("rules without artifacts")
+
+    with patch(
+        "superset.mcp_service.middleware._get_app_context_manager",
+        return_value=nullcontext(),
+    ):
+        return await middleware.on_initialize(MagicMock(), call_next)
+
+
+@pytest.mark.asyncio
+async def test_code_artifacts_middleware_swaps_instructions_for_an_enabled_session():
+    middleware = CodeArtifactsInstructionsMiddleware(
+        lambda: True, "rules with artifacts"
+    )
+
+    result = await _initialize(middleware)
+
+    assert result is not None
+    assert result.instructions == "rules with artifacts"
+    assert result.serverInfo.name == "Superset MCP Server"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("answer", [False, None, "yes", 1])
+async def test_code_artifacts_middleware_keeps_the_rule_unless_true(answer):
+    middleware = CodeArtifactsInstructionsMiddleware(
+        lambda: answer, "rules with artifacts"
+    )
+
+    result = await _initialize(middleware)
+
+    assert result is not None
+    assert result.instructions == "rules without artifacts"
+
+
+@pytest.mark.asyncio
+async def test_code_artifacts_middleware_fails_closed_when_the_callable_raises():
+    def enabled() -> bool:
+        raise RuntimeError("the switch is down")
+
+    middleware = CodeArtifactsInstructionsMiddleware(enabled, "rules with artifacts")
+
+    result = await _initialize(middleware)
+
+    assert result is not None
+    assert result.instructions == "rules without artifacts"
+
+
 def test_default_instructions_keep_the_no_code_rule():
-    """Built at import, which can run before a provider registers."""
+    """Off by default: the instructions forbid generating code."""
     assert DEFAULT_INSTRUCTIONS == get_default_instructions()
     assert _SNIPPET_NO_CODE_ARTIFACTS in DEFAULT_INSTRUCTIONS
 
