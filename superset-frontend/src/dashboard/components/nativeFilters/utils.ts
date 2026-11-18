@@ -22,6 +22,8 @@ import {
   getSemanticSelectionSources,
   Behavior,
   ChartCustomization,
+  ChartCustomizationDivider,
+  isChartCustomizationDivider,
   DataMaskStateWithId,
   DatasourceType,
   EXTRA_FORM_DATA_APPEND_KEYS,
@@ -39,6 +41,14 @@ import type { ChartLayoutItems } from 'src/dashboard/util/getChartIdsInFilterSco
 import { isIterable } from 'src/utils/types';
 import { TAB_TYPE } from '../../util/componentTypes';
 import getBootstrapData from '../../../utils/getBootstrapData';
+import { ChartCustomizationPlugins } from 'src/constants';
+
+export const isHiddenSemanticCustomization = (
+  item: ChartCustomization | ChartCustomizationDivider,
+): boolean =>
+  !isChartCustomizationDivider(item) &&
+  item.filterType === ChartCustomizationPlugins.DynamicGroupBy &&
+  item.targets?.[0]?.datasourceType === DatasourceType.SemanticView;
 
 const getDefaultRowLimit = (): number => {
   const bootstrapData = getBootstrapData();

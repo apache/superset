@@ -19,7 +19,6 @@
 import {
   DataMask,
   DataMaskStateWithId,
-  DatasourceType,
   DataRecordFilters,
   DataRecordValue,
   ensureIsArray,
@@ -37,7 +36,10 @@ import {
   ChartQueryPayload,
   ActiveFilters,
 } from 'src/dashboard/types';
-import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
+import {
+  getExtraFormData,
+  isHiddenSemanticCustomization,
+} from 'src/dashboard/components/nativeFilters/utils';
 import { ChartCustomizationPlugins } from 'src/constants';
 import { isChartCustomization } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { isEqual } from 'lodash-es';
@@ -638,11 +640,11 @@ export default function getFormDataWithExtraFilters({
           customization.chartsInScope.includes(chart.id));
 
       const isUnsupportedGroupBy =
-        customization?.filterType ===
-          ChartCustomizationPlugins.DynamicGroupBy &&
-        (isSemanticChart ||
-          customization.targets?.[0]?.datasourceType ===
-            DatasourceType.SemanticView);
+        customization &&
+        (isHiddenSemanticCustomization(customization) ||
+          (isSemanticChart &&
+            customization.filterType ===
+              ChartCustomizationPlugins.DynamicGroupBy));
       if (isInScope && !isUnsupportedGroupBy) {
         customizationIds.push(key);
       }

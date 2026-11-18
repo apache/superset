@@ -1316,6 +1316,7 @@ const FiltersConfigForm = (
                             pluginKey =>
                               ordinaryDatasets.length > 0 ||
                               !hasSemanticDataset ||
+                              customizationToEdit?.filterType === pluginKey ||
                               pluginKey !==
                                 ChartCustomizationPlugins.DynamicGroupBy,
                           )

@@ -474,6 +474,14 @@ test('editing a saved semantic Dynamic group by does not offer semantic fields',
       initialFilterId: savedControl.id,
     },
   );
+  await userEvent.click(
+    await screen.findByRole('combobox', { name: 'Customization type' }),
+  );
+  expect(
+    await screen.findByTestId(
+      `customization-type-option-${ChartCustomizationPlugins.DynamicGroupBy}`,
+    ),
+  ).toBeInTheDocument();
   expect(
     within(await findDatasourceField()).queryByText(VIEW_NAME),
   ).not.toBeInTheDocument();

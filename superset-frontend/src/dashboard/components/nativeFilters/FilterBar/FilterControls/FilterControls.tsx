@@ -35,7 +35,6 @@ import {
   isNativeFilterWithDataMask,
   NativeFilterTarget,
   ChartCustomization,
-  DatasourceType,
   isChartCustomizationDivider,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
@@ -77,7 +76,7 @@ import { CrossFilterIndicator } from '../../selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
-import { ChartCustomizationPlugins } from 'src/constants';
+import { isHiddenSemanticCustomization } from '../../utils';
 import FilterControl from './FilterControl';
 import FilterDivider from './FilterDivider';
 
@@ -208,11 +207,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const filteredChartCustomizationValues = useMemo(
     () =>
       chartCustomizationValues.filter(
-        item =>
-          !item.removed &&
-          (isChartCustomizationDivider(item) ||
-            item.filterType !== ChartCustomizationPlugins.DynamicGroupBy ||
-            item.targets?.[0]?.datasourceType !== DatasourceType.SemanticView),
+        item => !item.removed && !isHiddenSemanticCustomization(item),
       ),
     [chartCustomizationValues],
   );
