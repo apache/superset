@@ -112,22 +112,18 @@ const Mark = styled(Tag)`
   `}
 `;
 
-const Titled = styled.div<{ $mark?: DraftChange['kind'] }>`
-  ${({ theme, $mark }) => css`
+/**
+ * A widget's title row above its content. A content change marks it with
+ * `data-canvas-mark`, which the surface draws as the widget's frame (see
+ * `Interactive`): out in the gap, so it never sits on the content, and
+ * outside the content box, which scrolls and would clip it.
+ */
+const Titled = styled.div`
+  ${({ theme }) => css`
     height: 100%;
     display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit}px;
-    ${
-      $mark &&
-      OUTLINED.has($mark) &&
-      css`
-        /* Inset, so marking a widget moves nothing on the grid around it. */
-        box-shadow: inset 0 0 0 2px
-          ${$mark === 'new' ? theme.colorSuccess : theme.colorPrimary};
-        border-radius: ${theme.borderRadius}px;
-      `
-    }
   `}
 `;
 
@@ -362,7 +358,11 @@ export default function CanvasGrid({
     // from a server that predates it looks like. Rendering a canvas in the
     // order it was stored in is a stale preview; throwing here would be a
     // blank page.
-    (childOrder?.[nodeId] ?? children).filter(child => !removed.has(child));
+    // An id the layout knows but the definition does not yet (a widget an
+    // agent just added) is skipped until the next fetch brings its node.
+    (childOrder?.[nodeId] ?? children).filter(
+      child => !removed.has(child) && definition.nodes[child] !== undefined,
+    );
   // Props and schema version live on the placement for a structural widget,
   // and with the widget entity otherwise.
   const contentOf = (nodeId: string) => {
@@ -556,7 +556,7 @@ export default function CanvasGrid({
     // A widget with neither a name nor a change has no row to draw.
     if (!title && !mark) return widget;
     return (
-      <Titled $mark={mark}>
+      <Titled data-canvas-mark={mark && OUTLINED.has(mark) ? mark : undefined}>
         <TitleRow $align={display.titleAlign ?? 'left'} $inset={editable}>
           {title && (
             <WidgetTitle title={title} data-test="canvas-widget-title">

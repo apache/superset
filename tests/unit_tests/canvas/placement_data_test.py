@@ -147,6 +147,45 @@ def test_unknown_and_unbound_placements(
     run_binding.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "caller, status",
+    [("viewer", 200), ("stranger", 404), ("guest", 404)],
+)
+def test_data_follows_canvas_read_access(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    session: Session,
+    run_binding: MagicMock,
+    mocker: MockerFixture,
+    caller: str,
+    status: int,
+) -> None:
+    """The data endpoint walks the same access path as reading the canvas."""
+    from superset.subjects.models import Subject
+
+    viewer = Subject(id=1, label="viewer", type=1)
+    canvas.viewers = [viewer]
+    session.commit()
+    mocker.patch(
+        "superset.canvas.filters.security_manager.is_admin", return_value=False
+    )
+    mocker.patch(
+        "superset.canvas.filters.security_manager.is_guest_user",
+        return_value=caller == "guest",
+    )
+    mocker.patch("superset.subjects.filters.get_user_id", return_value=7)
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids_subquery",
+        return_value=[1] if caller in {"viewer", "guest"} else [2],
+    )
+
+    response = client.post(URL.format("chart"), json={})
+
+    assert response.status_code == status
+    assert run_binding.called is (status == 200)
+
+
 def test_without_dataset_access(
     client: Any, full_api_access: None, canvas: Any, run_binding: MagicMock
 ) -> None:

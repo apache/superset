@@ -19,14 +19,27 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
+from superset import security_manager
 from superset.commands.canvas.exceptions import (
     DefinitionConflictError,
     DefinitionInvalidError,
     DraftConflictError,
 )
+from superset.daos.exceptions import DatasourceNotFound
+from superset.errors import SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+
+logger = logging.getLogger(__name__)
+
+_ACCESS_ERRORS = {
+    SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+    SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+    SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+}
 
 # How MCP results, which are snake_case, name the keys of a REST error body.
 # The body's ``widgets`` lists changed widgets, while a draft result's
@@ -51,3 +64,39 @@ def payload_result(
 ) -> dict[str, Any]:
     """The tool result for a command error that has a REST error body."""
     return {_RESULT_KEYS.get(key, key): value for key, value in ex.to_payload().items()}
+
+
+def can_view_query() -> bool:
+    """Whether the caller may see a widget's query; classic charts gate "View
+    query" on the same permission."""
+    return security_manager.can_access("can_view_query", "Dashboard")
+
+
+def query_error(ex: Exception) -> dict[str, str]:
+    """
+    The tool result for a widget query that failed, with the details logged.
+
+    A refusal gets a fixed message: the exception's own names the datasource,
+    and a missing dataset must read the same as one the caller cannot see.
+    Driver errors tend to echo the SQL, so they are shown only to whoever may
+    see the query itself.
+    """
+    if isinstance(ex, (SupersetSecurityException, DatasourceNotFound)):
+        logger.info("Canvas widget query refused: %s", ex)
+        if isinstance(ex, DatasourceNotFound) or ex.error.error_type in _ACCESS_ERRORS:
+            return {
+                "error": "The widget's dataset does not exist, or you have no "
+                "access to it.",
+                "error_type": "DatasetNotAccessible",
+            }
+        return {
+            "error": f"The widget's query was refused ({ex.error.error_type.value}).",
+            "error_type": "QueryError",
+        }
+    logger.warning("Canvas widget query failed", exc_info=True)
+    return {
+        "error": f"The widget's query failed: {ex}"
+        if can_view_query()
+        else "The widget's query failed.",
+        "error_type": "QueryError",
+    }

@@ -603,7 +603,7 @@ test('a container is held open while a gesture inside it needs the room', () => 
     below: { col: 1, row: 5, colSpan: 24, rowSpan: 2 },
   };
 
-  const shown = withRoom(childIds, layouts, 24, { g: 9 });
+  const shown = withRoom(childIds, layouts, {}, 24, { g: 9 });
 
   expect(shown?.g).toEqual({ col: 1, row: 1, colSpan: 24, rowSpan: 9 });
   // And what sits under it is pushed clear rather than drawn over.
@@ -618,8 +618,8 @@ test('and is left alone when it already has the room', () => {
     g: { col: 1, row: 1, colSpan: 24, rowSpan: 9 },
   };
 
-  expect(withRoom(childIds, layouts, 24, { g: 9 })).toBeUndefined();
-  expect(withRoom(childIds, layouts, 24, {})).toBeUndefined();
+  expect(withRoom(childIds, layouts, {}, 24, { g: 9 })).toBeUndefined();
+  expect(withRoom(childIds, layouts, {}, 24, {})).toBeUndefined();
 });
 
 test('a container is only ever held open, never squeezed', () => {
@@ -628,5 +628,25 @@ test('a container is only ever held open, never squeezed', () => {
     g: { col: 1, row: 1, colSpan: 24, rowSpan: 9 },
   };
 
-  expect(withRoom(childIds, layouts, 24, { g: 2 })).toBeUndefined();
+  expect(withRoom(childIds, layouts, {}, 24, { g: 2 })).toBeUndefined();
+});
+
+test('a container is measured at the height it is shown, not the one stored', () => {
+  // A tab stores no layout and is sized to fit by the server, so its stored
+  // height says one row while it is shown at six.
+  const childIds = ['tab', 'other'];
+  const layouts: Record<string, GridLayout> = { tab: {}, other: {} };
+  const placements = {
+    tab: { col: 1, row: 1, colSpan: 24, rowSpan: 6 },
+    other: { col: 1, row: 7, colSpan: 24, rowSpan: 5 },
+  };
+
+  expect(
+    withRoom(childIds, layouts, placements, 24, { tab: 4 }),
+  ).toBeUndefined();
+
+  const shown = withRoom(childIds, layouts, placements, 24, { tab: 8 });
+  expect(shown?.tab).toEqual({ col: 1, row: 1, colSpan: 24, rowSpan: 8 });
+  // Its sibling keeps the height it was shown at rather than its stored one.
+  expect(shown?.other).toEqual({ col: 1, row: 9, colSpan: 24, rowSpan: 5 });
 });

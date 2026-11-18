@@ -954,3 +954,56 @@ def test_removing_a_node_drops_its_hidden_title() -> None:
 
     assert result["settings"]["display"]["hiddenTitles"] == []
     assert Touch(SETTINGS_ID, FieldGroup.DISPLAY) in applied[0].touched
+
+
+@pytest.mark.parametrize(
+    "layout",
+    [
+        {"col": 3},
+        {"row": 2},
+        {"col": "three", "row": 1},
+        {"col": 1, "row": 1, "colSpan": "wide"},
+        {"col": 0, "row": 1},
+    ],
+)
+def test_place_refuses_a_layout_that_is_not_a_grid_placement(
+    layout: dict[str, Any],
+) -> None:
+    doc = build(add("chart-1", id="b"))
+
+    with pytest.raises(OperationError, match="invalid layout for 'b'"):
+        apply(doc, {"op": "place", "id": "b", "layout": layout})
+
+
+def test_a_container_stored_at_an_older_version_takes_children() -> None:
+    """Applied as validated: both upgrade inline props before resolving."""
+    widget_types = canvas_widget_types()
+    group = widget_types["group"]
+    widget_types["group"] = type(
+        "GroupV2", (group,), {"schema_version": 2, "migrators": {1: dict}}
+    )
+    doc: dict[str, Any] = {
+        "version": 1,
+        "root": {"layout": {"columns": 24}, "children": ["box"]},
+        "nodes": {
+            "box": {
+                "widgetType": "group",
+                "schemaVersion": 1,
+                "props": {},
+                "layout": {},
+                "children": [],
+            }
+        },
+    }
+
+    result, _ = apply_operations(
+        doc,
+        ops(add("chart-1", id="inner", parent="box")),
+        widget_types=widget_types,
+        resolver=FakeResolver(),
+    )
+
+    assert result["nodes"]["box"]["children"] == ["inner"]
+    assert result["nodes"]["box"]["schemaVersion"] == 2
+    # The caller's copy is left as it was.
+    assert doc["nodes"]["box"]["schemaVersion"] == 1

@@ -447,6 +447,17 @@ const Interactive = styled.div<{
       transition: border-color ${theme.motionDurationMid};
     }
 
+    /* A draft's new or edited widget, marked by the title row inside it
+       (see Titled). Its own frame rather than an outline on the content,
+       which would sit on whatever fills the widget's edges. */
+    &:has(> .canvas-content > [data-canvas-mark='new'])::before {
+      border-color: ${theme.colorSuccess};
+    }
+
+    &:has(> .canvas-content > [data-canvas-mark='edited'])::before {
+      border-color: ${theme.colorPrimary};
+    }
+
     ${
       showBounds &&
       css`
@@ -725,7 +736,11 @@ function WidgetBody({
   const [chrome, setChrome] = useState<HTMLDivElement | null>(null);
   return (
     <>
-      <Content editable={editable} overflow={overflow}>
+      <Content
+        className="canvas-content"
+        editable={editable}
+        overflow={overflow}
+      >
         <CanvasWidgetChromeContext.Provider value={chrome}>
           {children}
         </CanvasWidgetChromeContext.Provider>
@@ -1488,6 +1503,7 @@ export default function CanvasGridSurface({
   // so its up and cancel events never fire. Without this the gesture would
   // persist, leaving the drop preview on screen and -- because only one
   // gesture may be live at a time -- blocking every later drag and resize.
+  const { setLanding, release } = drag;
   useEffect(() => {
     const { current } = live;
     if (!current) return;
@@ -1500,8 +1516,10 @@ export default function CanvasGridSurface({
       !childIds.includes(current.nodeId)
     ) {
       update(undefined);
+      setLanding(undefined);
+      release();
     }
-  }, [editable, placements, childIds, update]);
+  }, [editable, placements, childIds, update, setLanding, release]);
 
   /**
    * One cell of movement or resizing, as a key press asks for it.
@@ -1698,7 +1716,10 @@ export default function CanvasGridSurface({
     // No gesture of this grid's own -- one runs at a time, so a gesture
     // inside one of these containers is not this grid's. That container can
     // still have come to need more room than it is stored as holding.
-    return withRoom(childIds, layouts, columns, drag.extents) ?? placements;
+    return (
+      withRoom(childIds, layouts, placements, columns, drag.extents) ??
+      placements
+    );
   })();
 
   /*

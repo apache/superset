@@ -427,11 +427,13 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "viewers": ["type", "active", "secondary_label", "img"],
     }
     related_field_filters = {
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
         "viewers": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
     base_related_field_filters = {
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "editors": [
             ["type", subject_type_filter("SUBJECTS_RELATED_TYPES_CANVASES"), lambda: []]
@@ -802,7 +804,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             raise DefinitionConflictError(current, [], stale=True)
 
         changes: dict[int, list[dict[str, Any]]] = {}
-        for row in CanvasDAO.ops_since(canvas.id, since):
+        # Bounded by the revision reported, so a commit landing after it was
+        # read is not handed out as part of it.
+        for row in CanvasDAO.ops_since(canvas.id, since, until=current):
             changes.setdefault(row.revision, []).append(row.op_dict)
         return self.response(
             200,

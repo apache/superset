@@ -55,12 +55,14 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "list_widget_types": "widget_types",
     "apply_dashboard_filters": "permalink_key",
     "create_dataset": "table_name",
+    "create_dataset_column": "column",
     "create_dataset_metric": "metric",
     "create_theme": "theme_name",
     "create_virtual_dataset": "dataset_name",
     "delete_chart": "deleted_id",
     "delete_dashboard": "deleted_id",
     "delete_dataset": "deleted_id",
+    "delete_dataset_column": "affected_charts",
     "delete_dataset_metric": "affected_charts",
     "duplicate_dashboard": "duplicated_slices",
     "execute_sql": "statements",
@@ -133,6 +135,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "update_chart_preview": "previous_form_data_key",
     "update_dashboard": "changed_fields",
     "update_dataset": "updated_properties",
+    "update_dataset_column": "updated_properties",
     "update_dataset_metric": "updated_properties",
 }
 
@@ -155,6 +158,7 @@ MUTATING_TOOLS = {
     "create_canvas",
     "create_canvas_draft",
     "create_dataset",
+    "create_dataset_column",
     "create_dataset_metric",
     "create_theme",
     "create_virtual_dataset",
@@ -162,6 +166,7 @@ MUTATING_TOOLS = {
     "delete_chart",
     "delete_dashboard",
     "delete_dataset",
+    "delete_dataset_column",
     "delete_dataset_metric",
     "duplicate_dashboard",
     "execute_sql",
@@ -183,6 +188,7 @@ MUTATING_TOOLS = {
     "update_canvas",
     "update_dashboard",
     "update_dataset",
+    "update_dataset_column",
     "update_dataset_metric",
 }
 
@@ -205,6 +211,7 @@ DESTRUCTIVE_TOOLS = {
     "delete_chart",
     "delete_dashboard",
     "delete_dataset",
+    "delete_dataset_column",
     "delete_dataset_metric",
     "execute_sql",
     "manage_dashboard_markdown",
@@ -215,6 +222,7 @@ DESTRUCTIVE_TOOLS = {
     "update_chart",
     "update_dashboard",
     "update_dataset",
+    "update_dataset_column",
     "update_dataset_metric",
 }
 
@@ -303,6 +311,7 @@ OMITTED_MEANS_UNCHANGED_TOOLS = (
     "update_chart",
     "update_dashboard",
     "update_dataset",
+    "update_dataset_column",
     "update_dataset_metric",
 )
 

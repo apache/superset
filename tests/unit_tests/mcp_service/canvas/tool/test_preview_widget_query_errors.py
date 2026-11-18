@@ -122,7 +122,9 @@ def test_preview_distinguishes_query_validation_from_dataset_access(
         if case == "subquery":
             run.assert_called_once()
             assert payload["error_type"] == "QueryError"
-            assert "Custom SQL fields cannot contain sub-queries" in payload["error"]
+            assert payload["error"] == (
+                "The widget's query was refused (ADHOC_SUBQUERY_NOT_ALLOWED_ERROR)."
+            )
             error = run.spy_exception
             assert isinstance(error, SupersetSecurityException)
             assert (
@@ -132,6 +134,11 @@ def test_preview_distinguishes_query_validation_from_dataset_access(
         else:
             run.assert_not_called()
             assert payload["error_type"] == "DatasetNotAccessible"
+            # A fixed refusal: the exception's message names the datasource.
+            assert payload["error"] == (
+                "The widget's dataset does not exist, or you have no access to it."
+            )
+            assert aggregate_table.table_name not in payload["error"]
             error = validate.spy_exception
             assert isinstance(error, SupersetSecurityException)
             assert (

@@ -387,6 +387,58 @@ test('a gesture queued behind a write is not undone by that write landing', asyn
   expect(result.current.placements.kpi).toEqual(MOVED);
 });
 
+test('a swap queued behind a write holds both widgets when that write lands', async () => {
+  let releaseFollowUp: () => void = () => {};
+  const followUp = new Promise<Response>(resolve => {
+    releaseFollowUp = () =>
+      resolve(
+        new Response(
+          JSON.stringify({
+            result: {
+              revision: 5,
+              ops: [],
+              placements: { kpi: TREND, trend: MOVED },
+            },
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+  });
+  fetchMock
+    .patch(
+      endpoint,
+      {
+        result: {
+          revision: 4,
+          ops: [],
+          placements: { kpi: MOVED, trend: TREND },
+        },
+      },
+      { repeat: 1 },
+    )
+    .patch(endpoint, () => followUp);
+
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  act(() => {
+    result.current.place('kpi', MOVED);
+    // Queued behind the place: 'kpi' takes the trend's slot and 'trend'
+    // takes the one 'kpi' was dropped on.
+    result.current.swap('kpi', TREND, 'trend', MOVED);
+  });
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(2));
+
+  // The first response has 'trend' at TREND; the partner must not snap back.
+  expect(result.current.placements.kpi).toEqual(TREND);
+  expect(result.current.placements.trend).toEqual(MOVED);
+
+  releaseFollowUp();
+  await waitFor(() => expect(result.current.revision).toBe(5));
+});
+
 test('with a draft open, the write goes to the draft and not the canvas', async () => {
   const draftEndpoint = 'glob:*/api/v1/canvas/draft';
   fetchMock.patch(draftEndpoint, {
@@ -975,10 +1027,26 @@ test('a widget carried to another grid belongs to it at once', () => {
   expect(result.current.childOrder).toEqual({ root: ['trend'], g: ['kpi'] });
 });
 
-test('but a drop within one grid is left to the server to order', () => {
-  // Where a drop goes in reading order depends on where it landed relative
-  // to every sibling, which is the server's to decide and comes back within
-  // a round trip.
+test('a drop within one grid is ordered as its placements were settled', () => {
+  // The placements below are settled from a replay that reorders the drop,
+  // so the order has to follow: anything re-derived from it before the
+  // response lands would otherwise put the drop back in its old position.
+  fetchMock.patch(endpoint, {
+    result: { revision: 4, ops: [], placements: {} },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  expect(result.current.childOrder).toEqual({ root: ['trend', 'kpi'] });
+
+  // Above 'trend', so ahead of it in reading order.
+  act(() => result.current.place('kpi', MOVED));
+
+  expect(result.current.childOrder).toEqual({ root: ['kpi', 'trend'] });
+});
+
+test('a drop that reorders nothing keeps the order as it was', () => {
   fetchMock.patch(endpoint, {
     result: { revision: 4, ops: [], placements: {} },
   });
@@ -988,11 +1056,61 @@ test('but a drop within one grid is left to the server to order', () => {
 
   const before = result.current.childOrder;
 
-  act(() => result.current.place('kpi', MOVED));
+  // Below 'trend', where it already is in reading order.
+  act(() =>
+    result.current.place('kpi', { col: 1, row: 20, colSpan: 6, rowSpan: 4 }),
+  );
 
   // The very same object, not an equal one: rebuilding it on a write that
   // reorders nothing would hand every grid a fresh map to re-render for.
   expect(result.current.childOrder).toBe(before);
+});
+
+test('a failed removal puts the widget back', async () => {
+  fetchMock.patch(endpoint, 422);
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  act(() => result.current.remove('kpi'));
+  expect(result.current.removed.has('kpi')).toBe(true);
+
+  await waitFor(() => expect(result.current.error).toBeDefined());
+  expect(result.current.removed.has('kpi')).toBe(false);
+});
+
+test('a grid added after the first render is still settled locally', () => {
+  // Stable, so `write` keeps its identity across the refetch below and would
+  // read a stale definition if it closed over one.
+  const reload = jest.fn();
+  fetchMock.patch(endpoint, {
+    result: { revision: 5, ops: [], placements: {} },
+  });
+  const A: GridPlacement = { col: 1, row: 1, colSpan: 24, rowSpan: 2 };
+  const B: GridPlacement = { col: 1, row: 3, colSpan: 24, rowSpan: 2 };
+  const withGroup = {
+    ...resultAt(4),
+    placements: { kpi: KPI, trend: TREND, a: A, b: B },
+    layouts: { kpi: KPI, trend: TREND, a: A, b: B },
+    childOrder: { root: ['trend', 'kpi'], g: ['a', 'b'] },
+    gridColumns: { g: 24 },
+  } as CanvasDefinitionResult;
+  const { result, rerender } = renderHook(
+    ({ source }: { source: CanvasDefinitionResult }) =>
+      useCanvasLayout(7, source, reload),
+    { initialProps: { source: resultAt(3) } },
+  );
+
+  rerender({ source: withGroup });
+  // Dropped onto 'b', which is pushed down out of its way.
+  act(() => result.current.place('a', B));
+
+  expect(result.current.placements.b).toEqual({
+    col: 1,
+    row: 5,
+    colSpan: 24,
+    rowSpan: 2,
+  });
 });
 
 test('the widgets a drop pushes aside hold where they were pushed to', () => {

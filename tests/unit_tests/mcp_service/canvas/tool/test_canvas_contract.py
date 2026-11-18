@@ -1209,7 +1209,9 @@ async def test_preview_dataset_denial_keeps_permission_type_on_the_wire(
         )
     data = _data(result, structured=structured)
     assert data["error_type"] == "DatasetNotAccessible"
-    assert data["error"] == f"The widget's query failed: {denied}"
+    assert data["error"] == (
+        "The widget's dataset does not exist, or you have no access to it."
+    )
     assert data["url"] == f"{BASE_URL}/canvas/sales/"
     assert not {"sample_rows", "row_count", "query", "image", "option"} & data.keys()
     assert not any(isinstance(block, ImageContent) for block in result.content)

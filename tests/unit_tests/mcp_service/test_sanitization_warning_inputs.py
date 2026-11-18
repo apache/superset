@@ -45,9 +45,11 @@ from superset.mcp_service.dashboard.schemas import (
     UpdateDashboardRequest,
 )
 from superset.mcp_service.dataset.schemas import (
+    CreateDatasetColumnRequest,
     CreateDatasetMetricRequest,
     CreateDatasetRequest,
     CreateVirtualDatasetRequest,
+    UpdateDatasetColumnRequest,
     UpdateDatasetMetricRequest,
     UpdateDatasetRequest,
 )
@@ -245,6 +247,16 @@ def make_name_server() -> FastMCP:
     @server.tool
     def update_dataset_metric(request: UpdateDatasetMetricRequest) -> str:
         """Validate metric updates."""
+        return "ok"
+
+    @server.tool
+    def create_dataset_column(request: CreateDatasetColumnRequest) -> str:
+        """Validate calculated column creation."""
+        return "ok"
+
+    @server.tool
+    def update_dataset_column(request: UpdateDatasetColumnRequest) -> str:
+        """Validate column updates."""
         return "ok"
 
     @server.tool
@@ -669,6 +681,18 @@ _REQUIRED_NAME_CASES: list[tuple[str, dict[str, Any], str, list[str | None]]] = 
         "metric_name",
         ["", " \t\n", None],
     ),
+    (
+        "create_dataset_column",
+        {"dataset_id": 1, "expression": "amount * 2"},
+        "column_name",
+        ["", " \t\n"],
+    ),
+    (
+        "update_dataset_column",
+        {"dataset_id": 1, "column": 1},
+        "column_name",
+        ["", " \t\n", None],
+    ),
     ("update_dataset", {"dataset_id": 1}, "table_name", ["", " \t\n", None]),
     (
         "save_sql_query",
@@ -696,6 +720,13 @@ _BLANK_ERROR_LIMIT_CASES: list[tuple[type[BaseModel], dict[str, Any], str, int]]
         255,
     ),
     (UpdateDatasetMetricRequest, {"dataset_id": 1, "metric": 1}, "metric_name", 255),
+    (
+        CreateDatasetColumnRequest,
+        {"dataset_id": 1, "expression": "amount * 2"},
+        "column_name",
+        255,
+    ),
+    (UpdateDatasetColumnRequest, {"dataset_id": 1, "column": 1}, "column_name", 255),
     (UpdateDatasetRequest, {"dataset_id": 1}, "table_name", 250),
     (
         SaveSqlQueryRequest,
