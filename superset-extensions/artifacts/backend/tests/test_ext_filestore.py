@@ -792,6 +792,67 @@ def test_a_newer_request_replaces_the_pending_one(store: ArtifactFileStore) -> N
     assert store.confirm_publish(OWNER, artifact_id, second.request_id) == newer
 
 
+def test_a_stalled_confirmation_never_moves_published_back(
+    store: ArtifactFileStore, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    artifact_id, first = create(store)
+    stalled = store.request_publish(
+        OWNER,
+        ArtifactRequestPublishRequest(artifact_id=artifact_id, base_version=first),
+    )
+    later: list[str] = []
+    stalls: list[bool] = []
+    has_version = store.has_version
+
+    def meanwhile(*args: Any, **kwargs: Any) -> bool:
+        if not stalls:
+            stalls.append(True)
+            # While the first confirmation stalls, the agent edits and asks
+            # again, and the user confirms the newer request.
+            newer = str_replace(store, artifact_id, first, "41", "42")
+            asked = store.request_publish(
+                OWNER,
+                ArtifactRequestPublishRequest(
+                    artifact_id=artifact_id, base_version=newer
+                ),
+            )
+            later.append(store.confirm_publish(OWNER, artifact_id, asked.request_id))
+        return has_version(*args, **kwargs)
+
+    monkeypatch.setattr(store, "has_version", meanwhile)
+    with raises(ExtensionErrorCode.PUBLISH_REQUEST_NOT_FOUND):
+        store.confirm_publish(OWNER, artifact_id, stalled.request_id)
+
+    assert store.published_version(artifact_id) == later[0] != first
+
+
+def test_confirming_a_request_twice_publishes_it_once(
+    store: ArtifactFileStore, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    artifact_id, version = create(store)
+    asked = store.request_publish(
+        OWNER,
+        ArtifactRequestPublishRequest(artifact_id=artifact_id, base_version=version),
+    )
+    twice: list[str] = []
+    stalls: list[bool] = []
+    has_version = store.has_version
+
+    def meanwhile(*args: Any, **kwargs: Any) -> bool:
+        if not stalls:
+            stalls.append(True)
+            twice.append(store.confirm_publish(OWNER, artifact_id, asked.request_id))
+        return has_version(*args, **kwargs)
+
+    monkeypatch.setattr(store, "has_version", meanwhile)
+    assert store.confirm_publish(OWNER, artifact_id, asked.request_id) == version
+    assert twice == [version]
+    history = store.history(
+        ArtifactHistoryRequest(artifact_id=artifact_id, ref="published")
+    )
+    assert history.versions == (version,)
+
+
 def test_publish_requests_expire(store: ArtifactFileStore, clock: Clock) -> None:
     artifact_id, version = create(store)
     publish = store.request_publish(

@@ -833,9 +833,13 @@ class ArtifactFileStore:
         Call this only for the user's own confirmation, ``actor``'s, never for
         an agent's request. The confirmed version is the one the request
         named, even if the draft has moved on since: it is what the user saw.
+        The published ref moves only from the version it held when the request
+        was read, so a confirmation that stalls can't move it back over a
+        later one.
         """
         canonical = self.canonical_id(artifact_id)
         pointer, record = self._read_record(canonical, _PUBLISH_REF)
+        published_before = self._backend.get_ref(canonical, PUBLISHED_REF)
         publish = _publish_from_record(canonical, record) if record else None
         if (
             publish is None
@@ -857,7 +861,14 @@ class ArtifactFileStore:
             raise self._version_not_found(publish.version)
         # The policy may have tightened since the agent asked.
         self._check_policy(self._manifest_of(self._tree(publish.version)))
-        self._move_ref(canonical, PUBLISHED_REF, publish.version)
+        if not self._backend.compare_and_set_ref(
+            canonical, PUBLISHED_REF, published_before, publish.version
+        ) and (self._backend.get_ref(canonical, PUBLISHED_REF) != publish.version):
+            raise ArtifactError(
+                ExtensionErrorCode.PUBLISH_REQUEST_NOT_FOUND,
+                f"publish request {request_id!r} was overtaken: another "
+                "version was published meanwhile",
+            )
         confirmed = replace(
             publish, status="confirmed", confirmed_by=actor, confirmed_at=now
         )
@@ -1145,16 +1156,6 @@ class ArtifactFileStore:
         blob_hash = self._backend.put_blob(_canonical_json(record))
         pointer = self._backend.put_tree({_RECORD_FILE: blob_hash})
         return self._backend.compare_and_set_ref(artifact_id, ref, expected, pointer)
-
-    def _move_ref(self, artifact_id: str, ref: str, version: str) -> bool:
-        """Point ``ref`` at ``version`` from wherever it is; return whether it moved."""
-        for _attempt in range(_CAS_ATTEMPTS):
-            current = self._backend.get_ref(artifact_id, ref)
-            if current == version:
-                return False
-            if self._backend.compare_and_set_ref(artifact_id, ref, current, version):
-                return True
-        raise RuntimeError(f"{ref} of {artifact_id} kept moving")
 
     def _stale(self, current: str | None) -> ArtifactError:
         return ArtifactError(
