@@ -89,7 +89,7 @@ def test_post(
 def test_post_access_denied(test_client, login_as, dashboard_id: int):
     login_as("gamma")
     resp = test_client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_post_invalid_schema(dashboard_id: int, test_client, login_as_admin):
