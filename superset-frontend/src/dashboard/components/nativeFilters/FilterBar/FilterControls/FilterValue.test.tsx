@@ -42,6 +42,7 @@ import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWi
 const mockRequestChartData = jest.fn();
 const mockGetClientErrorObject = jest.fn();
 const mockSuperChartProps = jest.fn();
+let mockRenderSelectPlugin = false;
 jest.mock('src/components/Chart/chartAction', () => ({
   requestChartDataResolved: (...args: unknown[]) =>
     mockRequestChartData(...args),
@@ -56,6 +57,22 @@ jest.mock('@superset-ui/core', () => {
     }),
     SuperChart: (props: Record<string, unknown>) => {
       mockSuperChartProps(props);
+      if (mockRenderSelectPlugin) {
+        const SelectPlugin = jest.requireActual<
+          typeof import('src/filters/components/Select/SelectFilterPlugin')
+        >('src/filters/components/Select/SelectFilterPlugin').default;
+        const transform = jest.requireActual<
+          typeof import('src/filters/components/Select/transformProps')
+        >('src/filters/components/Select/transformProps').default;
+        return (
+          <SelectPlugin
+            {...transform(new original.ChartProps(props))}
+            showOverflow={Boolean(props.showOverflow)}
+            isRefreshing={Boolean(props.isRefreshing)}
+            appSection={original.AppSection.Dashboard}
+          />
+        );
+      }
       return (
         <div
           data-test="mock-super-chart"
@@ -145,6 +162,7 @@ function renderFilterValue(
 }
 
 beforeEach(() => {
+  mockRenderSelectPlugin = false;
   jest.clearAllMocks();
   // Exercise the real parsing so each rejection shape is handled as in
   // production.
@@ -805,7 +823,29 @@ test.each([false, true])(
       filterState: { value: ['US'] },
       extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
     };
-    const change = await emitFromPlugin(filter, mask);
+    let change: jest.Mock;
+    if (defaultToFirstItem) {
+      mockRenderSelectPlugin = true;
+      mockRequestChartData.mockResolvedValue([
+        {
+          data: [{ country: 'US' }, { country: 'CA' }],
+          colnames: ['country'],
+          coltypes: [1],
+        },
+      ]);
+      change = jest.fn();
+      renderFilterValue({ filter, onFilterSelectionChange: change });
+      await waitFor(() =>
+        expect(change).toHaveBeenCalledWith(
+          filter,
+          expect.objectContaining({
+            filterState: expect.objectContaining({ value: ['US'] }),
+          }),
+        ),
+      );
+    } else {
+      change = await emitFromPlugin(filter, mask);
+    }
     const emitted: DataMask = change.mock.lastCall[1];
     const result = getFormDataWithExtraFilters({
       chart: {
