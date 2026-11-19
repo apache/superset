@@ -267,6 +267,33 @@ from flask import current_app; print(current_app.config["SECRET_KEY"])
 
 Save your `superset_config.py` with these values and then run `superset re-encrypt-secrets`.
 
+## Revealing the ending of stored database secrets
+
+The Secure extra field of a database connection is masked once saved, so an
+editor cannot tell which token or key is stored, for example after a rotation.
+Set `ENCRYPTED_EXTRA_HINT_CHARS` to let editors reveal the last characters of
+each stored secret:
+
+```python
+ENCRYPTED_EXTRA_HINT_CHARS = 5
+```
+
+The default, `0`, turns the feature off. When it is above zero, the ending of
+each secret stored at a sensitive path of the engine can be requested from the
+endpoint below. The database edit modal then shows one field per masked secret,
+with an eye that reveals its ending on request.
+
+- At most 25% of a value is ever revealed: a value shorter than four times the
+  configured number of characters reveals nothing, and its length is not
+  reported either.
+- For a PEM private key, the ending comes from its base64 body, without the
+  fixed footer, the line breaks or the padding.
+- A stored JWT also shows when it expires, read from its `exp` claim without
+  verifying the signature; no other claim is read.
+- The endings come from
+  `GET /api/v1/database/<pk>/encrypted_extra_hints/`, which requires the same
+  permission as editing the database. Each call is recorded in the event log.
+
 ## Setting up a production metadata database
 
 Superset needs a database to store the information it manages, like the definitions of

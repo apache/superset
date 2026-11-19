@@ -82,12 +82,42 @@ a usability aid for compatible selections, not a guarantee about each filter's
 provenance. The marker is not an authorization check; access to the datasource is
 verified separately.
 
+## Time comparison
+
+Time comparison is not yet supported on semantic views. Remove the time shift
+from the chart or dashboard comparison control to run the query. This includes
+relative shifts, inherited ranges, and custom start dates, even for aggregate-only
+charts. The host refuses these queries before reading cached chart results to
+avoid showing incorrect comparison values. SQL dataset comparisons and semantic
+queries without time shifts are unaffected.
+
+## Clearing dashboard filters
+
+**Clear all** stages empty values for in-scope filters; **Apply** commits the
+clear. Cleared semantic filters remain usable without a reselection warning,
+including filters that had no selected value. Saved defaults stay cleared while
+the cleared state is carried in the session, filter-state key, or permalink; a
+fresh dashboard load without that state restores the defaults. Required filters
+still need a value before Apply is enabled. Clear all also discards stale values
+for in-scope filters and dismisses their reselection warning. The discarded
+predicates are not applied to charts; the previously applied state remains until
+Apply. To use legacy selections again, reset and explicitly reselect them.
+
 ## Native filter columns
 
 The native-filter column picker lists each semantic member name once, even when
 the provider exposes several time-grain variants of that member. This matches
 Explore's column list: choosing a filter column selects the member, not a grain
 variant. Distinct member names remain separate choices.
+
+## Dynamic group by display controls
+
+Dynamic group by display controls are available for ordinary datasets, not
+semantic views. On a dashboard with only semantic views, the control is absent
+from the add menu. On a mixed dashboard, its datasource picker lists ordinary
+datasets only. Previously saved controls targeting semantic views remain in the
+dashboard configuration, but are hidden from viewers and do not change chart
+requests. In the editor, such a control shows a notice and can only be removed.
 
 ## NULL filter values
 
