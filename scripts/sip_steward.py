@@ -365,11 +365,10 @@ def match_email(
     if len(linked) == 1:
         target = linked[0]
         conflicting = [
-            n
-            for n in by_number
-            if n != target and sims[n] >= STRONG_SIMILARITY
+            n for n in by_number if n != target and sims[n] >= STRONG_SIMILARITY
         ]
-        if conflicting:
+        target_strong = target in by_number and sims[target] >= STRONG_SIMILARITY
+        if conflicting and not target_strong:
             return via_model([target, *conflicting], "issue link and subject disagree")
         return Match(target, "issue link", [target])
     if len(linked) > 1:
@@ -546,7 +545,7 @@ class Model:
         )
         if not answer or answer.get("confidence") != "high":
             return None
-        if not evidence_ok(answer.get("evidence"), f"{email.subject}\n{email.body}"):
+        if not evidence_ok(answer.get("evidence"), email.body):
             return None
         number = answer.get("issue")
         return number if isinstance(number, int) else None
