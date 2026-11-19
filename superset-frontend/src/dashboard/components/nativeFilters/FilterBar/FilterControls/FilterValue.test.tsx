@@ -20,9 +20,11 @@ import {
   render,
   screen,
   waitFor,
+  act,
   userEvent,
 } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
+import { createStore } from 'redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import {
@@ -32,6 +34,8 @@ import {
 } from '@superset-ui/core';
 import type { DataMask, Filter } from '@superset-ui/core';
 import { mergeExtraFormData, withNativeFilterProvenance } from '../../utils';
+import { onFiltersRefresh } from 'src/dashboard/actions/dashboardState';
+import dashboardStateReducer from 'src/dashboard/reducers/dashboardState';
 import FilterValue from './FilterValue';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 
@@ -53,7 +57,11 @@ jest.mock('@superset-ui/core', () => {
     SuperChart: (props: Record<string, unknown>) => {
       mockSuperChartProps(props);
       return (
-        <div data-test="mock-super-chart" data-chart-type={props.chartType}>
+        <div
+          data-test="mock-super-chart"
+          data-chart-type={props.chartType}
+          data-queries={JSON.stringify(props.queriesData)}
+        >
           SuperChart
         </div>
       );
@@ -101,7 +109,7 @@ const getDefaultStoreState = () => ({
   dashboardState: {
     isRefreshing: false,
     isFiltersRefreshing: false,
-    directPathToChild: [],
+    directPathToChild: [] as string[],
     directPathLastUpdated: 0,
   },
   nativeFilters: {
@@ -187,6 +195,68 @@ test('renders SuperChart after data loads successfully', async () => {
   });
 
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
+test('refreshes native filter options without cached results or changing the selection', async () => {
+  const initialData = [
+    { data: [{ personne: 'paul' }, { personne: 'pierre' }] },
+  ];
+  const refreshedData = [
+    {
+      data: [...initialData[0].data, { personne: 'jacques' }],
+    },
+  ];
+  mockRequestChartData
+    .mockResolvedValueOnce(initialData)
+    .mockResolvedValueOnce(refreshedData);
+  const filter = createMockFilter({
+    targets: [{ datasetId: 1, column: { name: 'personne' } }],
+    dataMask: { filterState: { value: ['paul'] } },
+  });
+  const initialState = getDefaultStoreState();
+  const store = createStore(
+    (state: typeof initialState = initialState, action: { type: string }) => ({
+      ...state,
+      dashboardState: {
+        ...state.dashboardState,
+        ...dashboardStateReducer(state.dashboardState, action),
+      },
+    }),
+  );
+  const onFilterSelectionChange = jest.fn();
+  render(
+    <Provider store={store}>
+      <FilterValue
+        {...defaultProps}
+        filter={filter}
+        onFilterSelectionChange={onFilterSelectionChange}
+      />
+    </Provider>,
+  );
+  expect(await screen.findByTestId('mock-super-chart')).toHaveAttribute(
+    'data-queries',
+    JSON.stringify(initialData),
+  );
+  expect(mockRequestChartData).toHaveBeenLastCalledWith(
+    expect.objectContaining({ force: false }),
+  );
+
+  act(() => {
+    store.dispatch(onFiltersRefresh());
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-queries',
+      JSON.stringify(refreshedData),
+    );
+  });
+  expect(mockRequestChartData).toHaveBeenCalledTimes(2);
+  expect(mockRequestChartData).toHaveBeenLastCalledWith(
+    expect.objectContaining({ force: true }),
+  );
+  expect(onFilterSelectionChange).not.toHaveBeenCalled();
+  expect(filter.dataMask?.filterState?.value).toEqual(['paul']);
 });
 
 test('forwards the dashboard async override to the request', async () => {

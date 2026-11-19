@@ -170,11 +170,11 @@ export const useHeaderAutoRefresh = ({
         );
       } else if (updateLastRefreshTime) {
         innerPromise = Promise.resolve(
-          onRefresh(chartsToRefresh, force, 0, dashboardId, true),
+          onRefresh(chartsToRefresh, force, 0, dashboardId),
         );
       } else {
         innerPromise = Promise.resolve(
-          onRefresh(chartsToRefresh, force, interval * 0.2, dashboardId, true),
+          onRefresh(chartsToRefresh, force, interval * 0.2, dashboardId),
         );
       }
 
