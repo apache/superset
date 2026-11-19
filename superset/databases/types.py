@@ -17,6 +17,8 @@
 
 # Field has been moved outside of the schemas.py file to
 # allow for it to be imported from outside of app_context
+from typing import Any
+
 from marshmallow import fields
 
 
@@ -32,3 +34,24 @@ class EncryptedString(EncryptedField, fields.String):
 
 class EncryptedDict(EncryptedField, fields.Dict):
     pass
+
+
+def encrypted_field_properties(self, field: Any, **_) -> dict[str, Any]:  # type: ignore
+    """
+    Tag an ``EncryptedField`` parameter with ``x-encrypted-extra``.
+
+    Registered on a ``MarshmallowPlugin``'s converter when building a DB engine
+    spec's ``parameters_json_schema``. The tag is the signal the connection
+    dialog uses both to render the field and to move its value into
+    ``masked_encrypted_extra`` rather than posting it as a plain parameter.
+
+    Lives here rather than in ``schemas.py`` so that
+    ``superset.db_engine_specs.base`` can import it: ``schemas.py`` imports
+    ``get_engine_spec`` from the ``db_engine_specs`` package, which would make
+    that a circular import.
+    """
+    ret = {}
+    if isinstance(field, EncryptedField):
+        if self.openapi_version.major > 2:
+            ret["x-encrypted-extra"] = True
+    return ret

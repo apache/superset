@@ -40,6 +40,7 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
   selectClientErrorMessage,
+  SupersetClient,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -82,10 +83,6 @@ import { BasicErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Radio } from '@superset-ui/core/components/Radio';
 import Tabs from '@superset-ui/core/components/Tabs';
-import {
-  cachedSupersetGet,
-  supersetGetCache,
-} from 'src/utils/cachedSupersetGet';
 import {
   Chart,
   ChartsState,
@@ -136,11 +133,7 @@ import {
   semanticViewDimensionsToColumns,
   doesChartMatchFilterDatasource,
 } from './utils';
-import {
-  CHART_CUSTOMIZATION_SUPPORTED_TYPES,
-  FILTER_SUPPORTED_TYPES,
-  INPUT_WIDTH,
-} from './constants';
+import { FILTER_SUPPORTED_TYPES, INPUT_WIDTH } from './constants';
 import DependencyList from './DependencyList';
 import { datasetLabel } from 'src/features/semanticLayers/label';
 
@@ -152,6 +145,13 @@ const StyledSettings = styled.div`
       margin-bottom: ${theme.sizeUnit * 2}px;
     }
   `}
+`;
+const StartFieldSelectionButton = styled(Button)`
+  max-width: 100%;
+  height: auto;
+  min-height: ${({ theme }) => theme.controlHeight}px;
+  padding-block: ${({ theme }) => theme.sizeUnit}px;
+  white-space: normal;
 `;
 const StyledContainer = styled.div`
   ${({ theme }) => `
@@ -381,10 +381,19 @@ const FiltersConfigForm = (
     .filter(([, { value }]) =>
       value.behaviors?.includes(Behavior.ChartCustomization),
     )
-    .map(([key]) => key as keyof typeof CHART_CUSTOMIZATION_SUPPORTED_TYPES);
+    .map(([key]) => key as ChartCustomizationPlugins);
 
   const loadedDatasets = useSelector<RootState, DatasourcesState>(
     ({ datasources }) => datasources,
+  );
+  const loadedDatasourceValues = Object.values(loadedDatasets);
+  const ordinaryDatasets = loadedDatasourceValues.filter(
+    dataset =>
+      (dataset.datasource_type || dataset.type) !== DatasourceType.SemanticView,
+  );
+  const hasSemanticDataset = loadedDatasourceValues.some(
+    dataset =>
+      (dataset.datasource_type || dataset.type) === DatasourceType.SemanticView,
   );
 
   const charts = useSelector<RootState, ChartsState>(({ charts }) => charts);
@@ -449,12 +458,24 @@ const FiltersConfigForm = (
   // have independent id sequences, so a type taken from elsewhere would bind a
   // different object.
   const resolveBinding = (): DatasourceBinding | undefined => {
+    if (
+      isDynamicGroupBy &&
+      formSelection?.type === DatasourceType.SemanticView
+    ) {
+      return undefined;
+    }
     if (formSelection) {
       return formSelection;
     }
     const savedTarget = isChartCustomization
       ? customizationToEdit?.targets?.[0]
       : filterToEdit?.targets?.[0];
+    if (
+      isDynamicGroupBy &&
+      savedTarget?.datasourceType === DatasourceType.SemanticView
+    ) {
+      return undefined;
+    }
     // Customizations treat a legacy `0` id as unresolved; filters accept any id.
     const savedId = isChartCustomization
       ? savedTarget?.datasetId || undefined
@@ -467,7 +488,17 @@ const FiltersConfigForm = (
         type: savedTarget?.datasourceType || DatasourceType.Table,
       };
     }
-    return mostUsedDataset(loadedDatasets, charts);
+    const defaultBinding = mostUsedDataset(loadedDatasets, charts);
+    if (
+      isDynamicGroupBy &&
+      defaultBinding?.type === DatasourceType.SemanticView
+    ) {
+      const dataset = ordinaryDatasets[0];
+      return dataset
+        ? { id: dataset.id, type: DatasourceType.Table }
+        : undefined;
+    }
+    return defaultBinding;
   };
 
   const effectiveBinding = loadFailed ? undefined : resolveBinding();
@@ -956,6 +987,30 @@ const FiltersConfigForm = (
             semantic_selection_version,
           }) => {
             if (!current) return;
+            const fields: Partial<ChartCustomizationsFormItem> | undefined =
+              form.getFieldValue(['filters', filterId]);
+            // Only a new, selection-free control can adopt the loaded format.
+            // Saved controls and selections carried from another datasource
+            // still require the explicit reset/reselection path.
+            if (
+              !filterToEdit &&
+              !customizationToEdit &&
+              semantic_selection_version &&
+              !fields?.semantic_selection_version &&
+              !fields?.column &&
+              !fields?.adhoc_filters?.length &&
+              !fields?.granularity_sqla &&
+              !fields?.time_grains?.length &&
+              !fields?.sortMetric &&
+              !fields?.controlValues?.sortMetric &&
+              !fields?.dependencies?.length &&
+              fields?.defaultValue == null &&
+              !Object.keys(fields?.defaultDataMask ?? {}).length
+            ) {
+              setNativeFilterFieldValues(form, filterId, {
+                semantic_selection_version,
+              });
+            }
             const columns = semanticViewDimensionsToColumns(dimensions);
             // The /structure wire carries no metric uuid, and this state's
             // consumers key on metric_name/verbose_name without reading
@@ -1011,7 +1066,11 @@ const FiltersConfigForm = (
           'time_grain_sqla',
         ],
       })}`;
-      cachedSupersetGet({ endpoint })
+      // Not `cachedSupersetGet`: its cache never expires, and this response
+      // carries the partition mapping's verdict, which changes without the
+      // dataset changing -- a cached copy kept offering the default time range
+      // for a transform the engine had since refused.
+      SupersetClient.get({ endpoint })
         .then((response: JsonResponse) => {
           if (!current) return;
           setMetrics(response.json?.result?.metrics);
@@ -1022,12 +1081,7 @@ const FiltersConfigForm = (
           setDatasetDetails(dataset);
           keepTypeInStep();
         })
-        .catch(error => {
-          // The cache keeps rejected requests; evict so a later choice of
-          // this dataset retries instead of replaying the failure.
-          supersetGetCache.delete(endpoint);
-          return handleLoadFailure(error);
-        });
+        .catch(handleLoadFailure);
     }
     return () => {
       current = false;
@@ -1212,12 +1266,23 @@ const FiltersConfigForm = (
                   datasetDetails.semantic_selection_version && (
                   <Alert
                     type="warning"
+                    styles={{
+                      root: { flexWrap: 'wrap', rowGap: theme.sizeUnit * 2 },
+                      section: { flex: '1 1 0%', minWidth: 0 },
+                      actions: {
+                        marginInlineStart: 0,
+                        minWidth: 0,
+                        maxWidth: '100%',
+                        flexBasis: '100%',
+                        order: 1,
+                      },
+                    }}
                     message={t('Choose current semantic filter fields')}
                     description={t(
                       'Start field selection using current member IDs. This clears any existing field selections, pre-filters, sorting, defaults and dependencies. Saved display titles cannot be recovered automatically.',
                     )}
                     action={
-                      <Button
+                      <StartFieldSelectionButton
                         onClick={() => {
                           setNativeFilterFieldValues(form, filterId, {
                             semantic_selection_version:
@@ -1233,7 +1298,13 @@ const FiltersConfigForm = (
                             defaultDataMask: {},
                             dependencies: [],
                             defaultValue: undefined,
-                            controlValues: {},
+                            controlValues:
+                              itemTypeField === 'filter_select'
+                                ? {
+                                    operatorType:
+                                      SelectFilterOperatorType.Exact,
+                                  }
+                                : {},
                           });
                           setHasDefaultValue(false);
                           forceUpdate();
@@ -1241,7 +1312,7 @@ const FiltersConfigForm = (
                         }}
                       >
                         {t('Start field selection')}
-                      </Button>
+                      </StartFieldSelectionButton>
                     }
                   />
                 )}
@@ -1288,16 +1359,27 @@ const FiltersConfigForm = (
                     >
                       <Select
                         ariaLabel={t('Customization type')}
-                        options={chartCustomizationVizTypes.map(pluginKey => {
-                          const name =
-                            // @ts-expect-error
-                            nativeFilterAndCustomizationItems[pluginKey]?.value
-                              ?.name;
-                          return {
-                            value: pluginKey,
-                            label: name || pluginKey,
-                          };
-                        })}
+                        options={chartCustomizationVizTypes
+                          .filter(
+                            pluginKey =>
+                              ordinaryDatasets.length > 0 ||
+                              !hasSemanticDataset ||
+                              customizationToEdit?.filterType === pluginKey ||
+                              pluginKey !==
+                                ChartCustomizationPlugins.DynamicGroupBy,
+                          )
+                          .map(pluginKey => {
+                            const item =
+                              nativeFilterAndCustomizationItems[pluginKey];
+                            const name =
+                              item && 'value' in item
+                                ? item.value.name
+                                : undefined;
+                            return {
+                              value: pluginKey,
+                              label: name || pluginKey,
+                            };
+                          })}
                         optionRender={option => (
                           <span
                             data-test={getOptionDataTest(
@@ -1314,7 +1396,23 @@ const FiltersConfigForm = (
                             controlValues: {},
                             defaultDataMask: null,
                             column: null,
+                            ...(value ===
+                              ChartCustomizationPlugins.DynamicGroupBy &&
+                            datasourceType === DatasourceType.SemanticView
+                              ? {
+                                  dataset: undefined,
+                                  datasetInfo: undefined,
+                                  datasourceType: undefined,
+                                }
+                              : {}),
                           });
+                          if (
+                            value ===
+                              ChartCustomizationPlugins.DynamicGroupBy &&
+                            datasourceType === DatasourceType.SemanticView
+                          ) {
+                            setDatasetDetails(undefined);
+                          }
                           forceUpdate();
                           formChanged();
                         }}
@@ -1400,7 +1498,7 @@ const FiltersConfigForm = (
                   <StyledRowContainer justify="space-between">
                     {showDataset ? (
                       <StyledFormItem
-                        key={datasetSelectKey}
+                        key={`${datasetSelectKey}-${isDynamicGroupBy}`}
                         expanded={expanded}
                         name={['filters', filterId, 'dataset']}
                         label={<StyledLabel>{datasetLabel()}</StyledLabel>}
@@ -1439,6 +1537,7 @@ const FiltersConfigForm = (
                         {...getFiltersConfigModalTestId('datasource-input')}
                       >
                         <DatasetSelect
+                          excludeSemanticViews={isDynamicGroupBy}
                           onChange={(value: {
                             label: string | React.ReactNode;
                             value: number;
