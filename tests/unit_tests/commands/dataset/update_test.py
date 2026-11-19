@@ -2901,6 +2901,7 @@ def test_a_jinja_transform_is_rejected_on_an_unsupported_engine_too(
 def test_update_dataset_validates_a_new_default_time_range(
     stored: str | None, requested: str, field_names: list[str]
 ) -> None:
+    """Only a new or changed default time range is validated."""
     command = UpdateDatasetCommand(
         1, {"extra": json.dumps({"default_time_range": requested})}
     )

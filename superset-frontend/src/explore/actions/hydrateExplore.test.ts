@@ -661,6 +661,21 @@ test('a saved chart ignores the dataset default time range', () => {
   expect(query.time_range).toBe(instanceRange);
 });
 
+test.each([
+  [VizType.Table, 'ingested_at', instanceRange],
+  ['cal_heatmap', 'ingested_at', instanceRange],
+  ['cal_heatmap', 'created_at', datasetRange],
+])(
+  'a new %s chart with time column %s starts with %s',
+  (vizType, column, range) => {
+    const query = hydrateNewChartQuery({
+      vizType,
+      formData: { granularity_sqla: column },
+    });
+    expect(getTimeFilter(query)).toEqual([column, range]);
+  },
+);
+
 test('a dataset without temporal columns adds no default time filter', () => {
   const query = hydrateNewChartQuery({
     dataset: { columns: [], main_dttm_col: '' },

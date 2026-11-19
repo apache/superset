@@ -28,7 +28,7 @@ import {
   ExplorePageInitialData,
   ExplorePageState,
 } from 'src/explore/types';
-import { getChartKey } from 'src/explore/exploreUtils';
+import { getChartKey, getInitialTimeRange } from 'src/explore/exploreUtils';
 import { getControlsState, handleDeprecatedControls } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
@@ -91,7 +91,8 @@ function isNeutralNewChartEntry([key, value]: [string, unknown]): boolean {
 
 /**
  * Returns the dataset's default time range for a new chart, unless the chart
- * already has a time filter or the dataset has no temporal column.
+ * already has a time filter or its time column isn't the default datetime
+ * column.
  */
 function getNewChartTimeRange(
   dataset: Dataset,
@@ -101,25 +102,12 @@ function getNewChartTimeRange(
     filter =>
       isSimpleAdhocFilter(filter) && filter.operator === 'TEMPORAL_RANGE',
   );
-  if (hasTimeFilter || !getTemporalColumns(dataset).defaultTemporalColumn) {
+  const { defaultTemporalColumn } = getTemporalColumns(dataset);
+  const timeColumn = formData.granularity_sqla || defaultTemporalColumn;
+  if (hasTimeFilter || !timeColumn || timeColumn !== defaultTemporalColumn) {
     return undefined;
   }
   return getDatasetDefaultTimeRange(dataset);
-}
-
-/**
- * Returns the range of the time filter Explore adds while it opens a chart: a
- * new chart's initial range, or the instance default for a saved chart so that
- * opening it doesn't change its query.
- */
-export function getInitialTimeRange(
-  isNewChart: boolean,
-  formData: QueryFormData,
-  defaultTimeFilter?: string,
-): string {
-  return (
-    (isNewChart && formData.time_range) || defaultTimeFilter || NO_TIME_RANGE
-  );
 }
 
 export const hydrateExplore =

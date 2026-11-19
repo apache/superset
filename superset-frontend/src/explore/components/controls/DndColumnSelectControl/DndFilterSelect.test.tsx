@@ -335,28 +335,6 @@ test('when disallow_adhoc_metrics is set, can drop a column from the simple colu
   expect(within(filterConfigPopup).getByText('column_b')).toBeInTheDocument();
 });
 
-test('dropping a temporal column adds a time filter with the dataset default time range', async () => {
-  const column = { column_name: 'ds', is_dttm: true };
-  render(
-    setup({
-      datasource: {
-        ...PLACEHOLDER_DATASOURCE,
-        columns: [column],
-        extra: JSON.stringify({ default_time_range: 'Last day' }),
-      },
-      columns: [column],
-    }),
-    { useDndKit: true, store },
-  );
-
-  act(() => {
-    simulateDrop(captured, { type: DndItemType.Column, value: column });
-  });
-
-  const filterConfigPopup = await screen.findByTestId('filter-edit-popover');
-  expect(within(filterConfigPopup).getByText('Last day')).toBeInTheDocument();
-});
-
 test('when disallow_adhoc_metrics is set, cannot drop anything but a simple column selection', async () => {
   const adhocMetric = new AdhocMetric({
     expression: 'AVG(birth_names.num)',

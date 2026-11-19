@@ -70,6 +70,7 @@ def test_validate_python_date_format_raises(payload) -> None:
     ],
 )
 def test_get_default_time_range(extra: Any, expected: str | None) -> None:
+    """Unparseable extra, non-string and empty values count as unset."""
     assert get_default_time_range(extra) == expected
 
 
@@ -78,11 +79,13 @@ def test_get_default_time_range(extra: Any, expected: str | None) -> None:
     ["No filter", "Last week", "Current day", "2024-01-01 : now", "yesterday : today"],
 )
 def test_validate_default_time_range(time_range: str) -> None:
+    """Ranges the time range parser can evaluate are accepted."""
     validate_default_time_range(time_range)
 
 
 @pytest.mark.parametrize("time_range", ["Last dya", " ", "now : 2024-01-01"])
 def test_validate_default_time_range_raises(time_range: str) -> None:
+    """Ranges the parser rejects are reported on the extra field."""
     with pytest.raises(ValidationError) as excinfo:
         validate_default_time_range(time_range)
     assert excinfo.value.field_name == "extra"
