@@ -372,6 +372,11 @@ def match_email(
             return via_model([target, *conflicting], "issue link and subject disagree")
         return Match(target, "issue link", [target])
     if len(linked) > 1:
+        strong_linked = [
+            n for n in linked if n in by_number and sims[n] >= STRONG_SIMILARITY
+        ]
+        if len(strong_linked) == 1:
+            return Match(strong_linked[0], "issue link+number+title", strong_linked)
         return via_model(linked, "links to several SIP issues")
 
     strong = [n for n in by_number if sims[n] >= STRONG_SIMILARITY]
@@ -538,7 +543,7 @@ class Model:
             "were sometimes reused or changed, so judge by the proposal's "
             "content, not the number alone. Answer with JSON only: "
             '{"issue": <number or null>, "confidence": "high"|"medium"|"low", '
-            '"evidence": "<an exact quote from the EMAIL that identifies the '
+            '"evidence": "<an exact quote from the EMAIL BODY that identifies the '
             'proposal>"}. Use null unless one issue is clearly the same proposal.',
             f"EMAIL SUBJECT: {email.subject}\n\nEMAIL BODY:\n{email.body[:3000]}"
             f"\n\nCANDIDATE ISSUES:\n{listing}",
