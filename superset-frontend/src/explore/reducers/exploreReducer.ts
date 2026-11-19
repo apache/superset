@@ -35,7 +35,6 @@ import {
   getControlConfig,
   getControlStateFromControlConfig,
   getControlValuesCompatibleWithDatasource,
-  getDatasetDefaultTimeRange,
   StandardizedFormData,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
@@ -355,12 +354,7 @@ export default function exploreReducer(
         ...newState,
         form_data: newFormData as QueryFormData,
         controls: getControlsState(
-          // A time filter that cannot carry over is re-created with the new
-          // dataset's default time range.
-          {
-            ...newState,
-            initialTimeRange: getDatasetDefaultTimeRange(newDatasource),
-          } as Parameters<typeof getControlsState>[0],
+          newState as Parameters<typeof getControlsState>[0],
           newFormData as QueryFormData,
         ) as ControlStateMapping,
         controlsTransferred,

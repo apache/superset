@@ -19,6 +19,7 @@
 import {
   ControlStateMapping,
   Dataset,
+  getDatasetDefaultTimeRange,
   getTemporalColumns,
 } from '@superset-ui/chart-controls';
 
@@ -50,7 +51,6 @@ import {
 import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
-  getDatasetDefaultTimeRange,
 } from 'src/explore/controlUtils';
 import { getDatasourceUid } from 'src/utils/getDatasourceUid';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -275,10 +275,13 @@ export const hydrateExplore =
     // apply initial mapStateToProps for all controls, must execute AFTER
     // bootstrapState has initialized `controls`. Order of execution is not
     // guaranteed, so controls shouldn't rely on each other's mapped state.
-    // New charts seed an ad hoc time filter with the same initial range.
+    // New charts seed an ad hoc time filter with the same initial range, and
+    // opening a saved chart keeps the instance default.
     const controlPanelState = {
       ...exploreState,
-      initialTimeRange: isNewChart ? initialFormData.time_range : undefined,
+      initialTimeRange: isNewChart
+        ? initialFormData.time_range
+        : common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
     };
     Object.entries(exploreState.controls).forEach(([key, controlState]) => {
       exploreState.controls[key] = applyMapStateToPropsToControl(
@@ -286,12 +289,6 @@ export const hydrateExplore =
         controlPanelState,
       );
     });
-    // A new chart keeps its initial time filter in its form data, so that a
-    // chart type change carries it over like any other filter.
-    if (isNewChart && exploreState.controls.adhoc_filters) {
-      initialFormData.adhoc_filters = exploreState.controls.adhoc_filters
-        .value as QueryFormData['adhoc_filters'];
-    }
     const hydratedFormData = {
       ...initialFormData,
       ...getFormDataFromControls(exploreState.controls),

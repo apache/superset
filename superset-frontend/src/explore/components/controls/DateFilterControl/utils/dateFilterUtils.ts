@@ -21,9 +21,11 @@ import {
   JsonObject,
   customTimeRangeDecode,
 } from '@superset-ui/core';
-import { Dataset } from '@superset-ui/chart-controls';
+import {
+  Dataset,
+  getDatasetDefaultTimeRange,
+} from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
-import { getDatasetDefaultTimeRange } from 'src/explore/controlUtils';
 import {
   COMMON_RANGE_VALUES_SET,
   CALENDAR_RANGE_VALUES_SET,
@@ -55,9 +57,10 @@ export const guessFrame = (timeRange: string): FrameType => {
  * time range when one is given and set, otherwise the instance default.
  */
 export function useDefaultTimeFilter(dataset?: Pick<Dataset, 'extra'>) {
-  const instanceDefault =
-    useSelector(
-      (state: JsonObject) => state?.common?.conf?.DEFAULT_TIME_FILTER,
-    ) ?? NO_TIME_RANGE;
-  return getDatasetDefaultTimeRange(dataset) ?? instanceDefault;
+  const instanceDefault = useSelector(
+    (state: JsonObject) => state?.common?.conf?.DEFAULT_TIME_FILTER,
+  );
+  return (
+    getDatasetDefaultTimeRange(dataset) || instanceDefault || NO_TIME_RANGE
+  );
 }

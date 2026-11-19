@@ -52,7 +52,7 @@ import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWith
 import TableSelector from 'src/components/TableSelector';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
-import { getDatasetDefaultTimeRange } from 'src/explore/controlUtils';
+import { getDatasetDefaultTimeRange } from '@superset-ui/chart-controls';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
