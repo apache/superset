@@ -31,6 +31,7 @@ import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
 } from 'src/dashboard/util/componentTypes';
+import type { DataMaskStateWithId } from '@superset-ui/core';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { ScopingModal, ScopingModalProps } from './ScopingModal';
 
@@ -328,6 +329,8 @@ test('saving a scope that leaves a chart with no targets clears its applied cros
     reducerIndex,
   );
   render(<ScopingModal {...DEFAULT_PROPS} initialChartId={3} />, { store });
+  const getDataMask = () =>
+    (store.getState() as { dataMask: DataMaskStateWithId }).dataMask;
 
   // deselect the only two targets of chart 3's custom scope
   const tree = within(document.querySelector('.ant-tree')!);
@@ -336,15 +339,15 @@ test('saving a scope that leaves a chart with no targets clears its applied cros
   await userEvent.click(screen.getByText('Save'));
 
   await waitFor(() =>
-    expect(store.getState().dataMask[3].filterState).toEqual({
+    expect(getDataMask()[3].filterState).toEqual({
       value: null,
       selectedValues: null,
     }),
   );
-  expect(store.getState().dataMask[3].extraFormData).toEqual({ filters: [] });
-  expect(store.getState().dataMask[3].ownState).toEqual({ page: 2 });
+  expect(getDataMask()[3].extraFormData).toEqual({ filters: [] });
+  expect(getDataMask()[3].ownState).toEqual({ page: 2 });
   // chart 2 still has targets, so its cross-filter is left alone
-  expect(store.getState().dataMask[2]).toEqual(
+  expect(getDataMask()[2]).toEqual(
     expect.objectContaining(appliedCrossFilter('girl')),
   );
 });
