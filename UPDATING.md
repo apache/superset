@@ -24,6 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [#39681](https://github.com/apache/superset/issues/39681): Charts whose
+  x-axis is a temporal column take their time bounds only from a
+  `TEMPORAL_RANGE` filter on that x-axis or from the time range. A chart with
+  neither no longer borrows the range of another datetime column, so its time
+  column is no longer filtered by that range. When a chart has a time column, a
+  dashboard time range replaces only the `TEMPORAL_RANGE` filter on that column;
+  filters on other datetime columns keep their own ranges.
+
 - Semantic-view column pickers only offer saved dimensions, including for older metadata without feature declarations. `ADHOC_COLUMN_EXPRESSIONS` remains importable but is reserved and grants no capability. Providers must use recognized SDK enum members; raw-string declarations are ignored. SQL dataset expression controls are unchanged.
 
 - Semantic-layer connection updates that reuse masked credentials require a

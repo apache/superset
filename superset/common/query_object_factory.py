@@ -30,6 +30,7 @@ from superset.utils.core import (
     apply_max_row_limit,
     DatasourceDict,
     DatasourceType,
+    get_base_axis_columns,
     QueryObjectFilterClause,
 )
 
@@ -101,8 +102,19 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             preserve_null_row_limit=preserve_null_row_limit,
         )
 
+        temporal_columns: set[str] | None = None
+        if (
+            time_range is None
+            and datasource_model_instance is not None
+            and get_base_axis_columns(kwargs.get("columns"))
+        ):
+            temporal_columns = {
+                column.column_name
+                for column in datasource_model_instance.columns
+                if column.is_dttm
+            }
         processed_time_range = self._process_time_range(
-            time_range, kwargs.get("filters"), kwargs.get("columns")
+            time_range, kwargs.get("filters"), kwargs.get("columns"), temporal_columns
         )
         from_dttm, to_dttm = get_since_until_from_time_range(
             processed_time_range, time_shift, processed_extras
@@ -164,8 +176,11 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         time_range: str | None,
         filters: list[QueryObjectFilterClause] | None = None,
         columns: list[Column] | None = None,
+        temporal_columns: set[str] | None = None,
     ) -> str:
-        return get_time_range_from_filters(time_range, filters, columns)
+        return get_time_range_from_filters(
+            time_range, filters, columns, temporal_columns
+        )
 
     # light version of the view.utils.core
     # import view.utils require application context

@@ -24,6 +24,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.common.query_object_factory import QueryObjectFactory
+from superset.common.utils.time_range_utils import get_column_identifiers
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
@@ -473,9 +474,14 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             and "time_range" in extra_form_data
             and extra_form_data["time_range"] == query_object.time_range
         )
+        granularity: object = getattr(query_object, "granularity", None)
         if query_object.time_range:
             for filter_object in query_object.filter:
-                if filter_object["op"] == "TEMPORAL_RANGE":
+                # With a known time column, other datetime columns keep their range.
+                if filter_object["op"] == "TEMPORAL_RANGE" and (
+                    not isinstance(granularity, str)
+                    or granularity in get_column_identifiers(filter_object["col"])
+                ):
                     saved: object = filter_object.get("val")
                     was_unbounded: bool = saved is None or (
                         isinstance(saved, str) and is_no_time_range(saved)

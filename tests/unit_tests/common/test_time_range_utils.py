@@ -25,6 +25,7 @@ from superset.common.utils.time_range_utils import (
     get_time_range_from_filters,
 )
 from superset.constants import NO_TIME_RANGE
+from superset.superset_typing import AdhocColumn
 
 
 @pytest.mark.parametrize("invalid_value", [None, 42, True, [], ["2001 : 2002"], {}])
@@ -50,6 +51,51 @@ def test_time_range_selection_ignores_missing_value() -> None:
         )
         == NO_TIME_RANGE
     )
+
+
+def test_time_range_selection_ignores_other_columns_for_axis() -> None:
+    """A temporal x-axis without its own range does not borrow another column's."""
+    axis: AdhocColumn = {
+        "columnType": "BASE_AXIS",
+        "label": "ds",
+        "sqlExpression": "ds",
+    }
+    filters: list[dict[str, object]] = [
+        {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "2000 : 2001"},
+    ]
+    assert get_time_range_from_filters(None, filters, [axis]) == NO_TIME_RANGE
+
+
+def test_time_range_selection_matches_axis_expression() -> None:
+    """A filter on the axis expression selects it when none targets the label."""
+    axis: AdhocColumn = {
+        "columnType": "BASE_AXIS",
+        "label": "dttm2",
+        "sqlExpression": "dttm",
+    }
+    filters: list[dict[str, object]] = [
+        {"col": "other", "op": "TEMPORAL_RANGE", "val": "2000 : 2001"},
+        {"col": "dttm", "op": "TEMPORAL_RANGE", "val": "2001 : 2002"},
+    ]
+    assert get_time_range_from_filters(None, filters, [axis]) == "2001 : 2002"
+
+
+def test_time_range_selection_matches_adhoc_filter_column() -> None:
+    """An adhoc column subject is matched by its label or expression."""
+    axis: AdhocColumn = {
+        "columnType": "BASE_AXIS",
+        "label": "ds",
+        "sqlExpression": "ds",
+    }
+    filters: list[dict[str, object]] = [
+        {"col": "other", "op": "TEMPORAL_RANGE", "val": "2000 : 2001"},
+        {
+            "col": {"label": "ds", "sqlExpression": "ds"},
+            "op": "TEMPORAL_RANGE",
+            "val": "2001 : 2002",
+        },
+    ]
+    assert get_time_range_from_filters(None, filters, [axis]) == "2001 : 2002"
 
 
 def test__get_since_until_from_time_range():
