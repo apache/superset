@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-    - ".github/scripts/wiki-labels.js"
+    - ".github/scripts/**"
     - ".github/workflows/wiki-labels-lint.yml"
 
 concurrency:
@@ -28,7 +28,7 @@ jobs:
       issues: read # to tell which labels do not exist in the repository yet
     runs-on: ubuntu-slim
     steps:
-    - name: Check out the wiki page parser
+    - name: Check out the wiki label script
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
@@ -48,57 +48,21 @@ jobs:
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       with:
         script: |
-          const fs = require('fs');
           const wiki = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/wiki-labels.js`);
-          const { owner, repo } = context.repo;
+          await wiki.lintPages({ github, context, core }, `${process.env.GITHUB_WORKSPACE}/wiki`);
 
-          let existing = null;
-          try {
-            const labels = await github.paginate(github.rest.issues.listLabelsForRepo, {
-              owner,
-              repo,
-              per_page: 100,
-            });
-            existing = new Set(labels.map(label => label.name));
-          } catch (error) {
-            core.warning(`Could not list the repository's labels (${error.message}).`);
-          }
+  # Unit tests for the script, for PRs that change it.
+  test:
+    name: wiki-labels-test
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-26.04
+    steps:
+    - name: Check out the wiki label script
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+        sparse-checkout: .github/scripts
+        sparse-checkout-cone-mode: false
 
-          const summary = [];
-          let failures = 0;
-          for (const [kind, { page }] of Object.entries(wiki.PAGES)) {
-            const link = `https://github.com/${owner}/${repo}/wiki/${page}`;
-            const file = `${process.env.GITHUB_WORKSPACE}/wiki/${page}.md`;
-            if (!fs.existsSync(file)) {
-              failures += 1;
-              core.error(`${page}: the page is missing from the wiki.`);
-              summary.push(`### ${page}`, '', `The page is missing: ${link}`, '');
-              continue;
-            }
-
-            const { rules, problems } = wiki.parse(kind, fs.readFileSync(file, 'utf8'));
-            failures += problems.length;
-            for (const { line, message } of problems) {
-              core.error(`${page} line ${line}: ${message}`);
-            }
-
-            const fresh = existing ? [...rules.keys()].filter(label => !existing.has(label)) : [];
-            for (const label of fresh) {
-              core.notice(`${page}: the label "${label}" does not exist yet. It is created, plain grey, the first time it is applied.`);
-            }
-
-            summary.push(
-              `### [${page}](${link})`,
-              '',
-              `${rules.size} label(s) read.`,
-              '',
-              ...problems.map(({ line, message }) => `- Line ${line}: ${message}`),
-              ...fresh.map(label => `- Note: \`${label}\` does not exist yet and is created on first use.`),
-              '',
-            );
-          }
-
-          await core.summary.addRaw(summary.join('\n')).write();
-          if (failures) {
-            core.setFailed(`${failures} problem(s) on the wiki pages that drive labels. Fix the page; the edit history shows what changed.`);
-          }
+    - name: Run the tests
+      run: node --test .github/scripts/
