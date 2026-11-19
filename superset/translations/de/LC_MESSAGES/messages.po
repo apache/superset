@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -397,6 +397,10 @@ msgstr ""
 #, python-format
 msgid "%s %s"
 msgstr "%s %s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 #, python-format
 msgid "%s (copy from %s)"
@@ -1633,6 +1637,12 @@ msgstr "Aktionen"
 
 msgid "Active"
 msgstr "Aktiv"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "Istwerte"
@@ -4863,6 +4873,10 @@ msgid "Columns folder can only contain column items"
 msgstr "Der Ordner für Spalten darf nur Spaltenelemente enthalten"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Fehlende Spalten im Datensatz: %(invalid_columns)s"
 
@@ -5395,6 +5409,9 @@ msgstr ""
 " nicht ermittelt werden. Die Abfrage wurde nicht ausgeführt, da sie sonst"
 " unter dem falschen Benutzer verbunden worden wäre."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr ""
 "Der/Die Benutzer*in konnte in der aktuellen Sitzung nicht authentifiziert"
@@ -5808,6 +5825,10 @@ msgstr "Dashboard"
 #, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Dashboard %(dashboard_id)s nicht gefunden"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 msgid "Dashboard Filter"
 msgstr "Dashboard Filter"
@@ -7146,6 +7167,9 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Entwurf"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -9976,6 +10000,10 @@ msgstr "Ungültiger kumulativer Operator: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Ungültiger Währungscode in gespeicherten Metriken"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "Ungültiges Datums-/Zeitstempelformat"
 
@@ -10071,6 +10099,10 @@ msgstr "Ungültiger zeitlicher Filterwert für die Spalte %(column)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Ungültige Zeitbereichsgrenze für Resample: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 msgid "Inverse"
 msgstr "Invers"
@@ -10902,6 +10934,9 @@ msgstr "Hauptseite"
 msgid "Main navigation"
 msgstr "Hauptnavigation"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -10911,6 +10946,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "Die x-Achse kategorisch machen"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -12857,6 +12895,9 @@ msgstr "Seitenlänge"
 
 msgid "Page navigation"
 msgstr "Seitennavigation"
+
+msgid "Page not found"
+msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Gepaarte t-Test-Tabelle"
@@ -17494,6 +17535,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "Das Feld `%(field)s` muss eine Zeichenkette sein."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -17652,6 +17703,13 @@ msgid ""
 msgstr ""
 "Die aktuelle Version konnte nicht identifiziert werden. Die "
 "Wiederherstellung ist vorübergehend nicht verfügbar."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Dashboard wurde erfolgreich gespeichert"
@@ -19523,6 +19581,9 @@ msgstr ""
 msgid "This column must contain date/time information."
 msgstr "Diese Spalte muss Datums-/Uhrzeitinformationen enthalten."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -19578,6 +19639,27 @@ msgstr ""
 "Dieses Dashboard enthält zu viele Daten für einen direkten Download. "
 "Bitten Sie einen Administrator, Hintergrundexporte zu aktivieren, oder "
 "verringern Sie die Zeilenlimits der Diagramme."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -19940,17 +20022,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"Dieser Bericht wird als %(username)s ausgeführt, der auf dieses Objekt "
-"(%(kind)s) nicht zugreifen kann. Wählen Sie ein Objekt (%(kind)s), auf "
-"das dieser Benutzer zugreifen kann, oder einen anderen Benutzer, als der "
-"der Bericht ausgeführt wird."
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
@@ -19959,6 +20036,12 @@ msgstr ""
 "Dieser gespeicherte Filterstatus stammt aus der Zeit vor dem Member-ID-"
 "Format. Setzen Sie ihn zurück und wählen Sie seine Werte erneut explizit "
 "aus."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 msgid ""
 "This schedule will use your permissions. You need access to its content "
@@ -20060,6 +20143,9 @@ msgstr ""
 "Dieses Design verwendet den hellen Algorithmus. Es wird stattdessen mit "
 "dem dunklen Algorithmus dargestellt, daher sehen seine Farben "
 "möglicherweise nicht wie vorgesehen aus."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
@@ -22577,6 +22663,9 @@ msgid "You can also just click on the chart to apply cross-filter."
 msgstr ""
 "Sie können auch einfach auf das Diagramm klicken, um den Kreuzfilter "
 "anzuwenden."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "

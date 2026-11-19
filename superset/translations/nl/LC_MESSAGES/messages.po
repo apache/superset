@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -450,6 +450,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1825,6 +1829,12 @@ msgstr "Acties"
 
 msgid "Active"
 msgstr "Actief"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "Werkelijke waarden"
@@ -5552,6 +5562,10 @@ msgid "Columns folder can only contain column items"
 msgstr "Kolommap kan alleen kolomitems bevatten"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Kolommen ontbreken in dataset: %(invalid_columns)s"
 
@@ -6179,6 +6193,9 @@ msgstr ""
 "niet bepalen. De query is niet uitgevoerd, omdat er dan met de verkeerde "
 "gebruiker verbinding zou zijn gemaakt."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6669,6 +6686,10 @@ msgstr "Dashboard"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Dashboard %(dashboard_id)s niet gevonden"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -8205,6 +8226,9 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Concept"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -11563,6 +11587,10 @@ msgstr "Ongeldige cumulative operator: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Ongeldige valuta code in opgeslagen metriek"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "Ongeldig datum/tijdstempel opmaak"
 
@@ -11673,6 +11701,10 @@ msgstr "Ongeldige temporele filterwaarde voor kolom %(column)s"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Ongeldige tijdbereikgrens voor resample: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12664,6 +12696,9 @@ msgstr "min"
 msgid "Main navigation"
 msgstr "Animatie"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -12673,6 +12708,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "Maak de x-as categorisch"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -14938,6 +14976,9 @@ msgstr "Pagina lengte"
 #, fuzzy
 msgid "Page navigation"
 msgstr "Aggregatie"
+
+msgid "Page not found"
+msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Gekoppelde t-test Tabel"
@@ -20395,6 +20436,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "Het veld `%(field)s` moet een string zijn."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20585,6 +20636,13 @@ msgid ""
 msgstr ""
 "De huidige versie kon niet worden geïdentificeerd. Herstellen is "
 "tijdelijk niet beschikbaar."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Het dashboard is opgeslagen"
@@ -22694,6 +22752,9 @@ msgstr "Deze kolom is mogelijk niet compatibel met het huidige dataset"
 msgid "This column must contain date/time information."
 msgstr "Deze kolom moet datum/tijd informatie bevatten."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -22753,6 +22814,27 @@ msgstr ""
 "Dit dashboard bevat te veel gegevens om rechtstreeks te downloaden. Vraag"
 " een beheerder om achtergrondexports in te schakelen, of verlaag de "
 "rijlimieten van de grafieken."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr "Dit dashboard wordt extern beheerd en kan niet worden bewerkt in Superset"
@@ -23187,16 +23269,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"Dit rapport wordt uitgevoerd als %(username)s, die geen toegang heeft tot"
-" deze %(kind)s. Kies een %(kind)s waartoe die gebruiker toegang heeft, of"
-" een andere gebruiker om het rapport als uit te voeren."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23206,6 +23284,12 @@ msgid ""
 msgstr ""
 "Deze opgeslagen filterstatus dateert van vóór het member-ID-formaat. Stel"
 " hem opnieuw in en kies de waarden opnieuw expliciet."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23326,6 +23410,9 @@ msgstr ""
 "Dit thema gebruikt het lichte algoritme. Het wordt in plaats daarvan met "
 "het donkere algoritme weergegeven, dus de kleuren zien er mogelijk niet "
 "uit zoals bedoeld."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26164,6 +26251,9 @@ msgstr "Je kunt de componenten toevoegen in de bewerkingsmodus."
 
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "Je kunt ook gewoon op de grafiek klikken om cross-filter toe te passen."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "

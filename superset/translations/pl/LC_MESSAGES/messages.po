@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: pl\n"
@@ -452,6 +452,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1851,6 +1855,12 @@ msgstr "Akcje"
 
 msgid "Active"
 msgstr "Aktywny"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 #, fuzzy
 msgid "Actual Values"
@@ -5606,6 +5616,10 @@ msgstr " aby dodać metryki"
 msgid "Columns folder can only contain column items"
 msgstr "Folder kolumn może zawierać tylko elementy kolumn"
 
+#, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Brakujące kolumny w zbiorze danych: %(invalid_columns)s"
@@ -6247,6 +6261,9 @@ msgstr ""
 "z bazą danych. Zapytanie nie zostało uruchomione, ponieważ jego wykonanie"
 " nawiązałoby połączenie jako niewłaściwy użytkownik."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6756,6 +6773,10 @@ msgstr "Pulpit nawigacyjny"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Nie znaleziono dashboardu %(dashboard_id)s"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -8310,6 +8331,9 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Szkic"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -11730,6 +11754,10 @@ msgstr "Nieprawidłowy operator kumulacyjny: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Nieprawidłowy kod waluty w zapisanych metrykach"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "Nieprawidłowy format daty/znacznika czasu"
 
@@ -11840,6 +11868,10 @@ msgstr "Nieprawidłowa wartość filtra czasowego dla kolumny %(column)s"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Nieprawidłowa granica zakresu czasu dla resamplingu: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12823,6 +12855,9 @@ msgstr "Główne"
 msgid "Main navigation"
 msgstr "Animacja"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -12832,6 +12867,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "Ustaw oś X jako kategoryczną"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -15108,6 +15146,9 @@ msgstr "Długość strony"
 #, fuzzy
 msgid "Page navigation"
 msgstr "Agregacja"
+
+msgid "Page not found"
+msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Tabela testu t sparowanego"
@@ -20711,6 +20752,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "Pole `%(field)s` musi być ciągiem znaków."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20892,6 +20943,13 @@ msgid ""
 msgstr ""
 "Nie udało się zidentyfikować bieżącej wersji. Przywracanie jest chwilowo "
 "niedostępne."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Pulpit nawigacyjny został zapisany."
@@ -22959,6 +23017,9 @@ msgstr "Ta kolumna może być niezgodna z aktualnym zbiorem danych."
 msgid "This column must contain date/time information."
 msgstr "Ta kolumna musi zawierać informacje o dacie/czasie."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -23015,6 +23076,27 @@ msgstr ""
 "Ten pulpit zawiera zbyt dużo danych, aby pobrać go bezpośrednio. Poproś "
 "administratora o włączenie eksportów w tle lub zmniejsz limity wierszy "
 "jego wykresów."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -23437,17 +23519,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"Ten raport jest uruchamiany jako %(username)s, który nie ma dostępu do "
-"tego elementu (%(kind)s). Wybierz element (%(kind)s), do którego ten "
-"użytkownik ma dostęp, lub innego użytkownika, w imieniu którego raport ma"
-" być uruchamiany."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23458,6 +23535,12 @@ msgstr ""
 "Ten zapisany stan filtra pochodzi sprzed wprowadzenia formatu "
 "identyfikatorów członków. Zresetuj go i ponownie jawnie wybierz jego "
 "wartości."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23578,6 +23661,9 @@ msgstr ""
 "Ten motyw używa jasnego algorytmu. Zostanie zamiast tego wyrenderowany z "
 "użyciem ciemnego algorytmu, więc jego kolory mogą wyglądać inaczej, niż "
 "zaprojektowano."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26442,6 +26528,9 @@ msgstr "Możesz dodać komponenty w trybie edycji."
 
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "Możesz także kliknąć na wykres, aby zastosować filtr krzyżowy."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "

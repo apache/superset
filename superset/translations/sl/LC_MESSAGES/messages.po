@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -435,6 +435,10 @@ msgstr ""
 #, python-format
 msgid "%s %s"
 msgstr "%s %s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1800,6 +1804,12 @@ msgstr "Aktivnosti"
 
 msgid "Active"
 msgstr "Aktiven"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "Dejanske vrednosti"
@@ -5224,6 +5234,10 @@ msgid "Columns folder can only contain column items"
 msgstr "Mapa Stolpci lahko vsebuje samo elemente stolpcev"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "V podatkovnem viru manjkajo stolpci: %(invalid_columns)s"
 
@@ -5804,6 +5818,9 @@ msgstr ""
 " ni bilo mogoče določiti. Poizvedba ni bila izvedena, ker bi se sicer "
 "povezala kot napačen uporabnik."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Could not validate the user in the current session."
@@ -6251,6 +6268,10 @@ msgstr "Nadzorna plošča"
 #, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Nadzorna plošča %(dashboard_id)s ni bila najdena"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 msgid "Dashboard Filter"
 msgstr "Filter nadzorne plošče"
@@ -7688,6 +7709,9 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Osnutek"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -10731,6 +10755,10 @@ msgstr "Neveljaven kumulativni operand: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Neveljavna koda valute v shranjeni meri"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "Neveljaven zapis datuma/časa"
 
@@ -10836,6 +10864,10 @@ msgstr "Neveljavna vrednost časovnega filtra za stolpec %(column)s"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Neveljavna meja časovnega obsega za vzorčenje: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11755,6 +11787,9 @@ msgstr "Glavni"
 msgid "Main navigation"
 msgstr "Glavna navigacija"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -11764,6 +11799,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "Ustvarite kategorično x-os"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -13883,6 +13921,9 @@ msgstr "Dolžina strani"
 
 msgid "Page navigation"
 msgstr "Navigacija po straneh"
+
+msgid "Page not found"
+msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Tabela t-testa za odvisne vzorce"
@@ -18853,6 +18894,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "Polje `%(field)s` mora biti niz."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -19012,6 +19063,13 @@ msgid ""
 msgstr ""
 "Trenutne različice ni bilo mogoče prepoznati. Obnovitev je začasno "
 "nedostopna."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Nadzorna plošča je bila shranjena"
@@ -20916,6 +20974,9 @@ msgstr "Ta grafikon je lahko nekompatibilen s trenutnim podatkovnim setom"
 msgid "This column must contain date/time information."
 msgstr "Ta stolpec mora vsebovati informacijo o datumu/času."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -20967,6 +21028,27 @@ msgstr ""
 "Ta nadzorna plošča vsebuje preveč podatkov za neposreden prenos. Prosite "
 "skrbnika, naj omogoči izvoze v ozadju, ali zmanjšajte omejitve vrstic "
 "njenih grafikonov."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -21357,16 +21439,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"To poročilo se izvaja kot %(username)s, ki nima dostopa do tega: "
-"%(kind)s. Izberite %(kind)s, do katerega ima ta uporabnik dostop, ali "
-"drugega uporabnika, kot katerega se bo poročilo izvajalo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21376,6 +21454,12 @@ msgid ""
 msgstr ""
 "To shranjeno stanje filtra je starejše od oblike ID-jev članov. "
 "Ponastavite ga in njegove vrednosti znova izrecno izberite."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21491,6 +21575,9 @@ msgid ""
 msgstr ""
 "Ta tema uporablja svetli algoritem. Namesto tega bo prikazana s temnim "
 "algoritmom, zato njene barve morda ne bodo videti, kot je bilo zasnovano."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24132,6 +24219,9 @@ msgstr "Elemente lahko dodate v načinu urejanja."
 
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "Lahko tudi samo kliknete na grafikon za medsebojno filtriranje."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "

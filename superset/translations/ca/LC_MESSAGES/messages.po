@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -433,6 +433,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1804,6 +1808,12 @@ msgstr "Accions"
 
 msgid "Active"
 msgstr "Actiu"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "Valors Reals"
@@ -5443,6 +5453,10 @@ msgid "Columns folder can only contain column items"
 msgstr "La carpeta de columnes només pot contenir elements de columna"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Columnes que falten al conjunt de dades: %(invalid_columns)s"
 
@@ -6045,6 +6059,9 @@ msgstr ""
 "la base de dades. La consulta no s'ha executat, perquè fer-ho hauria "
 "connectat amb l'usuari equivocat."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "No s'ha pogut validar l'usuari a la sessió actual."
 
@@ -6527,6 +6544,10 @@ msgstr "Dashboard"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "No s'ha trobat el dashboard %(dashboard_id)s"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -8030,6 +8051,9 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Esborrany"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -11292,6 +11316,10 @@ msgstr "Operador acumulatiu invàlid: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Codi de moneda invàlid en mètriques desades"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "Format de data/marca de temps invàlid"
 
@@ -11399,6 +11427,10 @@ msgstr "Valor de filtre temporal invàlid per a la columna %(column)s"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Límit de l'interval de temps no vàlid per al remostreig: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12363,6 +12395,9 @@ msgstr "Principal"
 msgid "Main navigation"
 msgstr "Animació"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -12372,6 +12407,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "Fer l'eix x categòric"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -14590,6 +14628,9 @@ msgstr "Longitud de pàgina"
 #, fuzzy
 msgid "Page navigation"
 msgstr "Agregació"
+
+msgid "Page not found"
+msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Taula de Test t Aparellat"
@@ -19925,6 +19966,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "El camp `%(field)s` ha de ser una cadena de text."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20098,6 +20149,13 @@ msgid ""
 msgstr ""
 "No s'ha pogut identificar la versió actual. La restauració no està "
 "disponible temporalment."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "El dashboard s'ha desat"
@@ -22110,6 +22168,9 @@ msgstr "Aquesta columna pot ser incompatible amb el dataset actual"
 msgid "This column must contain date/time information."
 msgstr "Aquesta columna ha de contenir informació de data/hora."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -22168,6 +22229,27 @@ msgstr ""
 "Aquest tauler té massa dades per descarregar-les directament. Demaneu a "
 "un administrador que activi les exportacions en segon pla o reduïu els "
 "límits de files dels gràfics."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr "Aquest dashboard es gestiona externament, i no es pot editar a Superset"
@@ -22596,16 +22678,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"Aquest informe s'executa com a %(username)s, que no pot accedir a aquest "
-"%(kind)s. Trieu un %(kind)s al qual aquest usuari pugui accedir, o un "
-"altre usuari per executar l'informe."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22615,6 +22693,12 @@ msgid ""
 msgstr ""
 "Aquest estat de filtre desat és anterior al format d'ID de membre. "
 "Restabliu-lo i trieu-ne de nou els valors explícitament."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22735,6 +22819,9 @@ msgstr ""
 "Aquest tema utilitza l'algorisme clar. Es renderitzarà amb l'algorisme "
 "fosc, de manera que els seus colors poden no veure's com estaven "
 "dissenyats."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25507,6 +25594,9 @@ msgstr "Pots afegir els components en el mode d'edició."
 
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "També pots simplement clicar al gràfic per aplicar filtre creuat."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "

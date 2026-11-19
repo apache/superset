@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -435,6 +435,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1809,6 +1813,12 @@ msgstr "Darbības"
 
 msgid "Active"
 msgstr "Aktīvs"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "Faktiskās vērtības"
@@ -5245,6 +5255,10 @@ msgid "Columns folder can only contain column items"
 msgstr "Kolonnu mapē var būt tikai kolonnu elementi"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Datu kopā trūkst kolonnu: %(invalid_columns)s"
 
@@ -5822,6 +5836,9 @@ msgstr ""
 "Vaicājums netika izpildīts, jo tā izpilde būtu veikta ar nepareizu "
 "lietotāju."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Nevarēja validēt lietotāju pašreizējā sesijā."
 
@@ -6269,6 +6286,10 @@ msgstr "Infopanelis"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Informācijas panelis %(dashboard_id)s nav atrasts"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 msgid "Dashboard Filter"
 msgstr "Infopaneļa filtrs"
@@ -7699,6 +7720,9 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Melnraksts"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -10744,6 +10768,10 @@ msgstr "Nederīgs kumulatīvais operators: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Nederīgs valūtas kods saglabātajos rādītājos"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "Nederīgs datuma/laikspiedola formāts"
 
@@ -10849,6 +10877,10 @@ msgstr "Nederīga laika filtra vērtība kolonnai %(column)s"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Nederīga laika diapazona robeža pārsaistei (resample): %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11776,6 +11808,9 @@ msgstr "Galvenais"
 msgid "Main navigation"
 msgstr "Animācija"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -11785,6 +11820,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "Padarīt x-asi kategorisku"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -13920,6 +13958,9 @@ msgstr "Lapas garums"
 #, fuzzy
 msgid "Page navigation"
 msgstr "Apkopošana"
+
+msgid "Page not found"
+msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Pāru t-testa tabula"
@@ -18983,6 +19024,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "Laukam `%(field)s` jābūt virknei."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -19147,6 +19198,13 @@ msgid ""
 "The current version could not be identified. Restore is temporarily "
 "unavailable."
 msgstr "Pašreizējo versiju nevarēja noteikt. Atjaunošana īslaicīgi nav pieejama."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Panelis ir saglabāts"
@@ -21065,6 +21123,9 @@ msgstr "Šī kolonna var būt nesaderīga ar pašreizējo datu kopu"
 msgid "This column must contain date/time information."
 msgstr "Šai kolonnai jāsatur datuma/laika informācija."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -21121,6 +21182,27 @@ msgstr ""
 "Šajā informācijas panelī ir pārāk daudz datu, lai tos lejupielādētu "
 "tieši. Lūdziet administratoram iespējot eksportēšanu fonā vai samaziniet "
 "tā diagrammu rindu ierobežojumus."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr "Šis panelis tiek pārvaldīts ārēji un nav rediģējams Superset"
@@ -21500,16 +21582,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"Šis ziņojums tiek palaists kā %(username)s, kuram nav piekļuves šim "
-"%(kind)s. Izvēlieties %(kind)s, kuram šis lietotājs var piekļūt, vai citu"
-" lietotāju, kura vārdā palaist ziņojumu."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21519,6 +21597,12 @@ msgid ""
 msgstr ""
 "Šis saglabātais filtra stāvoklis ir vecāks par dalībnieka ID formātu. "
 "Atiestatiet to un skaidri izvēlieties tā vērtības vēlreiz."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21631,6 +21715,9 @@ msgid ""
 msgstr ""
 "Šī tēma izmanto gaišo algoritmu. Tā tiks attēlota ar tumšo algoritmu, "
 "tāpēc tās krāsas var neizskatīties tā, kā paredzēts."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24280,6 +24367,9 @@ msgid "You can also just click on the chart to apply cross-filter."
 msgstr ""
 "Jūs varat arī vienkārši noklikšķināt uz diagrammas, lai piemērotu "
 "krustenisko filtru."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "

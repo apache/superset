@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -429,6 +429,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1789,6 +1793,12 @@ msgstr "Akce"
 
 msgid "Active"
 msgstr "Aktivní"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "Skutečné hodnoty"
@@ -5261,6 +5271,10 @@ msgid "Columns folder can only contain column items"
 msgstr "Složka sloupců může obsahovat pouze položky sloupců"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Sloupce chybějící v sadě dat: %(invalid_columns)s"
 
@@ -5843,6 +5857,9 @@ msgstr ""
 "zastupovat. Dotaz nebyl spuštěn, protože by se připojil jako nesprávný "
 "uživatel."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Nepodařilo se ověřit uživatele v aktuální relaci."
 
@@ -6294,6 +6311,10 @@ msgstr "Nástěnka"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Dashboard %(dashboard_id)s nebyl nalezen"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -7764,6 +7785,9 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Koncept"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -10867,6 +10891,10 @@ msgstr "Neplatný kumulativní operátor: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Neplatný kód měny v uložených metrikách"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "Neplatný formát data/časového razítka"
 
@@ -10972,6 +11000,10 @@ msgstr "Neplatná hodnota časového filtru pro sloupec %(column)s"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Neplatná hranice časového rozsahu pro převzorkování: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11912,6 +11944,9 @@ msgstr "Hlavní"
 msgid "Main navigation"
 msgstr "Animace"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -11921,6 +11956,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "Nastavit osu X jako kategorickou"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -14081,6 +14119,9 @@ msgstr "Délka stránky"
 #, fuzzy
 msgid "Page navigation"
 msgstr "Agregace"
+
+msgid "Page not found"
+msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Tabulka párového t-testu"
@@ -19226,6 +19267,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "Pole `%(field)s` musí být řetězec."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -19390,6 +19441,13 @@ msgid ""
 "The current version could not be identified. Restore is temporarily "
 "unavailable."
 msgstr "Aktuální verzi se nepodařilo určit. Obnovení je dočasně nedostupné."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Nástěnka byla uložena"
@@ -21328,6 +21386,9 @@ msgstr "Tento sloupec může být nekompatibilní s aktuální sadou dat"
 msgid "This column must contain date/time information."
 msgstr "Tento sloupec musí obsahovat informace o datu/čase."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -21383,6 +21444,27 @@ msgid ""
 msgstr ""
 "Tento dashboard obsahuje příliš mnoho dat pro přímé stažení. Požádejte "
 "správce o povolení exportů na pozadí nebo snižte limity řádků jeho grafů."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr "Tato nástěnka je spravována externě a nelze ji upravovat v Supersetu"
@@ -21766,16 +21848,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"Tato sestava běží jako %(username)s, který nemá přístup k tomuto objektu "
-"(%(kind)s). Vyberte objekt (%(kind)s), ke kterému tento uživatel přístup "
-"má, nebo jiného uživatele, pod kterým se sestava spustí."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21785,6 +21863,12 @@ msgid ""
 msgstr ""
 "Tento uložený stav filtru pochází z doby před formátem ID členů. Obnovte "
 "jej a znovu explicitně vyberte jeho hodnoty."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21896,6 +21980,9 @@ msgid ""
 msgstr ""
 "Toto téma používá světlý algoritmus. Místo toho bude vykresleno s tmavým "
 "algoritmem, takže jeho barvy nemusí vypadat tak, jak byly navrženy."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24574,6 +24661,9 @@ msgstr "Komponenty můžete přidat v režimu úprav."
 
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "Můžete také jen kliknout na graf pro aplikaci křížového filtru."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "

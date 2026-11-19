@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -430,6 +430,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s %s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1804,6 +1808,12 @@ msgstr "செயல்கள்"
 
 msgid "Active"
 msgstr "செயலில் உள்ளது"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "உண்மையான மதிப்புகள்"
@@ -5289,6 +5299,10 @@ msgid "Columns folder can only contain column items"
 msgstr "நெடுவரிசை கோப்புறையில் நெடுவரிசை உருப்படிகள் மட்டுமே இருக்க முடியும்"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "தரவுத்தொகுப்பில் விடுபட்ட நெடுவரிசைகள்: %(invalid_columns)s"
 
@@ -5878,6 +5892,9 @@ msgstr ""
 "முடியவில்லை. வினவல் இயக்கப்படவில்லை, ஏனெனில் அதை இயக்கினால் தவறான பயனராக "
 "இணைக்கப்பட்டிருக்கும்."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "தற்போதைய அமர்வில் (session) பயனரைச் சரிபார்க்க முடியவில்லை."
 
@@ -6331,6 +6348,10 @@ msgstr "டேஷ்போர்டு"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "டாஷ்போர்டு %(dashboard_id)s கிடைக்கவில்லை"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 msgid "Dashboard Filter"
 msgstr "டேஷ்போர்டு வடிகட்டி"
@@ -7744,6 +7765,9 @@ msgstr ""
 
 msgid "Draft"
 msgstr "வரைவு (Draft)"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -10787,6 +10811,10 @@ msgstr "தவறான ஒட்டுமொத்த இயக்கி (cumul
 msgid "Invalid currency code in saved metrics"
 msgstr "சேமிக்கப்பட்ட அளவீடுகளில் தவறான நாணயக் குறியீடு உள்ளது"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "தவறான தேதி/நேர வடிவமைப்பு"
 
@@ -10892,6 +10920,10 @@ msgstr "%(column)s நெடுவரிசைக்கான செல்லா
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "மறுமாதிரிக்கான தவறான கால வரம்பு எல்லை: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11807,6 +11839,9 @@ msgstr "முக்கியமானது"
 msgid "Main navigation"
 msgstr "குறிப்பு"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -11816,6 +11851,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "x-அச்சை வகைகளாக (categorical) மாற்றவும்"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -13927,6 +13965,9 @@ msgstr "பக்க நீளம்"
 #, fuzzy
 msgid "Page navigation"
 msgstr "விலகல்"
+
+msgid "Page not found"
+msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Paired t-test அட்டவணை"
@@ -18946,6 +18987,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "`%(field)s` புலம் ஒரு சரமாக இருக்க வேண்டும்."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -19107,6 +19158,13 @@ msgid ""
 msgstr ""
 "தற்போதைய பதிப்பை அடையாளம் காண முடியவில்லை. மீட்டமைத்தல் தற்காலிகமாகக் "
 "கிடைக்கவில்லை."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "டாஷ்போர்டு சேமிக்கப்பட்டது"
@@ -20981,6 +21039,9 @@ msgstr "இந்த நெடுவரிசை தற்போதைய தர
 msgid "This column must contain date/time information."
 msgstr "இந்த நெடுவரிசையில் தேதி/நேரத் தகவல் இருக்க வேண்டும்."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -21029,6 +21090,27 @@ msgstr ""
 "இந்த டாஷ்போர்டில் நேரடியாகப் பதிவிறக்க முடியாத அளவுக்கு அதிகமான தரவு "
 "உள்ளது. பின்னணி ஏற்றுமதிகளை இயக்குமாறு நிர்வாகியிடம் கேளுங்கள், அல்லது "
 "அதன் விளக்கப்படங்களின் வரிசை வரம்புகளைக் குறைக்கவும்."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -21418,16 +21500,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"இந்த அறிக்கை %(username)s ஆக இயங்குகிறது, அவரால் இந்த %(kind)s ஐ அணுக "
-"முடியாது. அந்தப் பயனர் அணுகக்கூடிய %(kind)s ஐத் தேர்ந்தெடுக்கவும், அல்லது"
-" அறிக்கையை இயக்க வேறு பயனரைத் தேர்ந்தெடுக்கவும்."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21438,6 +21516,12 @@ msgstr ""
 "இந்தச் சேமிக்கப்பட்ட வடிகட்டி நிலை உறுப்பினர் ஐடி வடிவத்திற்கு முந்தையது."
 " அதை மீட்டமைத்து, அதன் மதிப்புகளை மீண்டும் வெளிப்படையாகத் "
 "தேர்ந்தெடுக்கவும்."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21549,6 +21633,9 @@ msgstr ""
 "இந்தத் தீம் ஒளி அல்காரிதத்தைப் பயன்படுத்துகிறது. அதற்குப் பதிலாக இருண்ட "
 "அல்காரிதத்தில் காண்பிக்கப்படும், எனவே அதன் வண்ணங்கள் வடிவமைக்கப்பட்டபடி "
 "தோன்றாமல் போகலாம்."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24175,6 +24262,9 @@ msgstr "எடிட் பயன்முறையில் நீங்கள�
 
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "குறுக்கு வடிகட்டியைப் பயன்படுத்த நீங்கள் சார்ட்டைக் கிளிக் செய்யலாம்."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "

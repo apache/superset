@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -438,6 +438,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1792,6 +1796,12 @@ msgstr "Mahinga"
 
 msgid "Active"
 msgstr "Hohe"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "Uara Tūturu"
@@ -5408,6 +5418,10 @@ msgid "Columns folder can only contain column items"
 msgstr "Ko te kōpaki tīwae ka taea anake te pupuri i ngā mea tīwae"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Tīwae e ngaro ana i te rārangi raraunga: %(invalid_columns)s"
 
@@ -6004,6 +6018,9 @@ msgstr ""
 "hononga pātengi raraunga. Kāore i whakahaerea te pātai, nā te mea tērā ka"
 " hono hei kaiwhakamahi he."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Kāore i taea te manatoko i te kaiwhakamahi i te wātaka o nāianei."
 
@@ -6479,6 +6496,10 @@ msgstr "Papatohu"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Kāore i kitea te papatohu %(dashboard_id)s"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -7959,6 +7980,9 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Tuhinga"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -11203,6 +11227,10 @@ msgstr "Kaiwhakahaere whakakōputu muhu: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Waehere moni muhu i ngā ine kua tiakina"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "Hōputu rā/waitohu muhu"
 
@@ -11310,6 +11338,10 @@ msgstr "Kore e tika ana te tau tātari wā mō te pou %(column)s"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "He rohe wā muhu mō te resample: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12273,6 +12305,9 @@ msgstr "Matua"
 msgid "Main navigation"
 msgstr "Whakahihiko"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -12282,6 +12317,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "Kia kāwai te tukutuku-x"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -14486,6 +14524,9 @@ msgstr "Ture tauira-anō Pandas"
 #, fuzzy
 msgid "Page navigation"
 msgstr "Whakaarotautanga"
+
+msgid "Page not found"
+msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Tūtohi Tukutahi"
@@ -19811,6 +19852,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "Me aho te āpure `%(field)s`."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -19979,6 +20030,13 @@ msgid ""
 msgstr ""
 "Kāore i taea te tautuhi i te putanga o nāianei. Kāore e wātea mō te wā "
 "poto te whakahoki."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Kua tiakina te papatohu"
@@ -21984,6 +22042,9 @@ msgstr "Kāhore pea e hāngai tēnei tīwae ki te rārangi raraunga o nāianei"
 msgid "This column must contain date/time information."
 msgstr "Me whai tēnei tīwae i ngā mōhiohio rā/wā."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -22039,6 +22100,27 @@ msgstr ""
 "He nui rawa ngā raraunga o tēnei papatohu hei tango ā-tuku tonu. Tonoa "
 "tētahi kaiwhakahaere kia whakahohe i ngā kaweake kei muri, kia whakahekea"
 " rānei ngā tepe rārangi o ōna tūtohi."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -22465,17 +22547,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"Ka whakahaerehia tēnei pūrongo hei %(username)s, kāore e taea e ia te "
-"whakauru ki tēnei %(kind)s. Kōwhiria he %(kind)s e taea e taua "
-"kaiwhakamahi te whakauru, he kaiwhakamahi rerekē rānei hei whakahaere i "
-"te pūrongo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22485,6 +22562,12 @@ msgid ""
 msgstr ""
 "Nō mua i te hōputu ID-mema tēnei āhua tātari kua tiakina. Tautuhia "
 "anōtia, ā, kōwhiria anō ōna uara."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22602,6 +22685,9 @@ msgid ""
 msgstr ""
 "Whakamahia e tēnei ahua te hātepe marama. Ka whakaaturia ki te hātepe "
 "pōuri hei utu, nō reira kāore pea ōna tae e rite ki te hoahoa."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25357,6 +25443,9 @@ msgid "You can also just click on the chart to apply cross-filter."
 msgstr ""
 "Ka taea hoki e koe te pāwhiri noa i te kauwhata hei whakahaeretia i te "
 "tātari-whiti."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "

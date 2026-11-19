@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -464,6 +464,10 @@ msgstr ""
 #, python-format
 msgid "%s %s"
 msgstr "%s %s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1962,6 +1966,12 @@ msgstr "Радње"
 # zh_TW]
 msgid "Active"
 msgstr "Активно"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Actual Values"
@@ -6057,6 +6067,10 @@ msgstr "Колоне и метрике треба да буду унутар ф�
 msgid "Columns folder can only contain column items"
 msgstr "Фасцикла колона може садржати само ставке колона"
 
+#, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
@@ -6729,6 +6743,9 @@ msgstr ""
 "података. Упит није извршен јер би се извршавањем повезао погрешан "
 "корисник."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "Could not validate the user in the current session."
 msgstr "Није могуће потврдити корисника у тренутној сесији."
@@ -7258,6 +7275,10 @@ msgstr "Контролна табла"
 #, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Контролна табла %(dashboard_id)s није пронађена"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 # ru, uk]
 msgid "Dashboard Filter"
@@ -8975,6 +8996,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Draft"
 msgstr "Нацрт"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -12561,6 +12585,10 @@ msgstr "Неважећи кумулативни оператор: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Неважећи код валуте у сачуваним мерама"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Invalid date/timestamp format"
 msgstr "Неважећи формат датума/временске ознаке"
@@ -12682,6 +12710,10 @@ msgstr "Неважећа вредност временског филтера з
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Неважећа граница временског опсега за поновно узорковање: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13775,6 +13807,9 @@ msgstr "Главно"
 msgid "Main navigation"
 msgstr "Главна навигација"
 
+msgid "Make draft"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
@@ -13786,6 +13821,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Make the x-axis categorical"
 msgstr "Учини x-осу категоријском"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -16253,6 +16291,9 @@ msgstr "Дужина странице"
 
 msgid "Page navigation"
 msgstr "Навигација по страницама"
+
+msgid "Page not found"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Paired t-test Table"
@@ -22156,6 +22197,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "Поље `%(field)s` мора бити стринг."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -22340,6 +22391,13 @@ msgid ""
 msgstr ""
 "Тренутна верзија није могла бити идентификована. Враћање је привремено "
 "недоступно."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The dashboard has been saved"
@@ -24451,6 +24509,9 @@ msgstr "Ова колона можда није компатибилна са т
 msgid "This column must contain date/time information."
 msgstr "Ова колона мора садржати информације о датуму/времену."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -24512,6 +24573,27 @@ msgstr ""
 "Ова контролна табла садржи превише података за директно преузимање. "
 "Затражите од администратора да омогући извоз у позадини или смањите "
 "ограничења броја редова њених графикона."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -24920,16 +25002,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"Овај извештај се покреће као %(username)s, који нема приступ за %(kind)s."
-" Изаберите %(kind)s којем тај корисник има приступ или другог корисника "
-"за покретање извештаја."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24939,6 +25017,12 @@ msgid ""
 msgstr ""
 "Ово сачувано стање филтера претходи формату ID-ја члана. Ресетујте га и "
 "поново изричито изаберите његове вредности."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25058,6 +25142,9 @@ msgid ""
 msgstr ""
 "Ова тема користи светли алгоритам. Уместо тога биће приказана тамним "
 "алгоритмом, па њене боје можда неће изгледати како је замишљено."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -28152,6 +28239,9 @@ msgstr "Компоненте можете додати у режиму уређ�
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "Такође можете само кликнути на графикон да примените укрштени филтер."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""

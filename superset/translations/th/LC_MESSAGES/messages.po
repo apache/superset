@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -487,6 +487,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -2268,6 +2272,12 @@ msgstr "การดำเนินการ"
 #, fuzzy
 msgid "Active"
 msgstr "ใช้งาน"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -7688,6 +7698,10 @@ msgstr "คอลัมน์และตัวชี้วัด"
 msgid "Columns folder can only contain column items"
 msgstr "โฟลเดอร์คอลัมน์สามารถมีได้เฉพาะรายการคอลัมน์เท่านั้น"
 
+#, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
@@ -8555,6 +8569,9 @@ msgstr ""
 "ไม่สามารถระบุผู้ใช้ที่จะสวมสิทธิ์ในการเชื่อมต่อฐานข้อมูลได้ "
 "คำสั่งค้นหาไม่ได้ถูกรัน เนื่องจากการรันจะเชื่อมต่อด้วยผู้ใช้ที่ไม่ถูกต้อง"
 
+msgid "Could not save this schedule"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 #, fuzzy
@@ -9269,6 +9286,10 @@ msgstr "แดชบอร์ด"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "ไม่พบแดชบอร์ด %(dashboard_id)s"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -11469,6 +11490,9 @@ msgstr ""
 #, fuzzy
 msgid "Draft"
 msgstr "ร่าง"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -16223,6 +16247,10 @@ msgstr "ตัวดำเนินการสะสมไม่ถูกต้
 msgid "Invalid currency code in saved metrics"
 msgstr "รหัสสกุลเงินไม่ถูกต้องในเมตริกที่บันทึกไว้"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -16375,6 +16403,10 @@ msgstr "ค่าตัวกรองเวลาไม่ถูกต้อง
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "ขอบเขตช่วงเวลาไม่ถูกต้องสำหรับการสุ่มตัวอย่างใหม่: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -17840,6 +17872,9 @@ msgstr "หลัก"
 msgid "Main navigation"
 msgstr "ภาพเคลื่อนไหว"
 
+msgid "Make draft"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -17853,6 +17888,9 @@ msgstr "ตรวจสอบให้แน่ใจว่าการควบ
 #, fuzzy
 msgid "Make the x-axis categorical"
 msgstr "ทำให้แกน x เป็นแบบหมวดหมู่"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21086,6 +21124,9 @@ msgstr "ความยาวหน้า"
 #, fuzzy
 msgid "Page navigation"
 msgstr "การรวม"
+
+msgid "Page not found"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -28925,6 +28966,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "ฟิลด์ `%(field)s` ต้องเป็นสตริง"
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -29150,6 +29201,13 @@ msgid ""
 "The current version could not be identified. Restore is temporarily "
 "unavailable."
 msgstr "ไม่สามารถระบุเวอร์ชันปัจจุบันได้ การกู้คืนไม่พร้อมใช้งานชั่วคราว"
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -31641,6 +31699,9 @@ msgstr "คอลัมน์นี้อาจไม่รองรับชุ
 msgid "This column must contain date/time information."
 msgstr "คอลัมน์นี้ต้องมีข้อมูลวันที่/เวลา"
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -31707,6 +31768,27 @@ msgstr ""
 "แดชบอร์ดนี้มีข้อมูลมากเกินไปที่จะดาวน์โหลดโดยตรง "
 "โปรดขอให้ผู้ดูแลระบบเปิดใช้งานการส่งออกในเบื้องหลัง "
 "หรือลดขีดจำกัดจำนวนแถวของแผนภูมิ"
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -32181,16 +32263,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"รายงานนี้ทำงานในฐานะ %(username)s ซึ่งไม่สามารถเข้าถึง %(kind)s นี้ได้ "
-"โปรดเลือก %(kind)s ที่ผู้ใช้รายนั้นเข้าถึงได้ "
-"หรือเลือกผู้ใช้อื่นเพื่อรันรายงาน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -32200,6 +32278,12 @@ msgid ""
 msgstr ""
 "สถานะตัวกรองที่บันทึกไว้นี้มีมาก่อนรูปแบบรหัสสมาชิก "
 "โปรดรีเซ็ตและเลือกค่าของตัวกรองใหม่อย่างชัดเจน"
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -32333,6 +32417,9 @@ msgid ""
 msgstr ""
 "ธีมนี้ใช้อัลกอริทึมแบบสว่าง แต่จะแสดงผลด้วยอัลกอริทึมแบบมืดแทน "
 "สีจึงอาจดูไม่เป็นไปตามที่ออกแบบไว้"
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -36310,6 +36397,9 @@ msgstr "คุณสามารถเพิ่มคอมโพเนนต์
 #, fuzzy
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "คุณยังสามารถคลิกที่ชาร์ตเพื่อใช้ตัวกรองข้ามได้"
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]

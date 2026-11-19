@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -464,6 +464,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s %s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -2099,6 +2103,12 @@ msgstr "주석"
 #, fuzzy
 msgid "Active"
 msgstr "활성"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 #, fuzzy
 msgid "Actual Values"
@@ -7056,6 +7066,10 @@ msgstr "메트릭"
 msgid "Columns folder can only contain column items"
 msgstr "열 폴더에는 열 항목만 포함할 수 있습니다"
 
+#, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "데이터 소스의 컬럼이 없습니다 : %(invalid_columns)s"
@@ -7864,6 +7878,9 @@ msgid ""
 "user."
 msgstr "데이터베이스 연결에서 가장할 사용자를 확인할 수 없습니다. 쿼리를 실행하면 잘못된 사용자로 연결되므로 쿼리가 실행되지 않았습니다."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -8493,6 +8510,10 @@ msgstr "대시보드"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "대시보드 %(dashboard_id)s을(를) 찾을 수 없습니다"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -10380,6 +10401,9 @@ msgstr "LIMIT 설정에 따라 %(rows)s 행을 다운로드합니다. 전체 결
 #, fuzzy
 msgid "Draft"
 msgstr "초안"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -14808,6 +14832,10 @@ msgstr "잘못된 누적 연산자: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "저장된 측정 항목의 잘못된 통화 코드"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -14966,6 +14994,10 @@ msgstr "%(column)s 컬럼의 시간 필터 값이 유효하지 않습니다"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "리샘플에 대한 잘못된 시간 범위 경계: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -16346,6 +16378,9 @@ msgstr "분"
 msgid "Main navigation"
 msgstr "주석"
 
+msgid "Make draft"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -16360,6 +16395,9 @@ msgstr "컨트롤이 올바르게 구성되어 있고 데이터 소스에 선택
 #, fuzzy
 msgid "Make the x-axis categorical"
 msgstr "X축을 범주형으로 설정"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -19375,6 +19413,9 @@ msgstr "페이지 길이"
 #, fuzzy
 msgid "Page navigation"
 msgstr "생성자"
+
+msgid "Page not found"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -26516,6 +26557,16 @@ msgstr "X축이 필터 목록에 없어 대시보드의 시간 범위 필터에�
 msgid "The `%(field)s` field must be a string."
 msgstr "`%(field)s` 필드는 문자열이어야 합니다."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -26725,6 +26776,13 @@ msgid ""
 "The current version could not be identified. Restore is temporarily "
 "unavailable."
 msgstr "현재 버전을 확인할 수 없습니다. 복원을 일시적으로 사용할 수 없습니다."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -29112,6 +29170,9 @@ msgstr "이 열은 현재 데이터셋과 호환되지 않을 수 있습니다"
 msgid "This column must contain date/time information."
 msgstr "이 열은 날짜/시간 정보를 포함해야 합니다."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -29174,6 +29235,27 @@ msgid ""
 msgstr ""
 "이 대시보드는 데이터가 너무 많아 직접 다운로드할 수 없습니다. 관리자에게 백그라운드 내보내기를 활성화하도록 요청하거나 차트의 행 "
 "제한을 낮추세요."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -29631,15 +29713,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"이 보고서는 %(username)s 사용자로 실행되며, 해당 사용자는 이 %(kind)s에 접근할 수 없습니다. 해당 사용자가 "
-"접근할 수 있는 %(kind)s을(를) 선택하거나 보고서를 실행할 다른 사용자를 선택하세요."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -29647,6 +29726,12 @@ msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
 msgstr "이 저장된 필터 상태는 멤버 ID 형식 이전의 것입니다. 초기화한 후 값을 명시적으로 다시 선택하세요."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -29769,6 +29854,9 @@ msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
 msgstr "이 테마는 라이트 알고리즘을 사용합니다. 대신 다크 알고리즘으로 렌더링되므로 색상이 의도한 대로 보이지 않을 수 있습니다."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -33582,6 +33670,9 @@ msgstr "편집 모드에서 컴포넌트를 추가할 수 있습니다."
 #, fuzzy
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "차트를 클릭하여 교차 필터를 적용할 수도 있습니다."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

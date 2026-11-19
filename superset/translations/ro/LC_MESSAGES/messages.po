@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -444,6 +444,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s %s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1877,6 +1881,12 @@ msgstr "Acțiuni"
 
 msgid "Active"
 msgstr "Activ"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "Valori Reale"
@@ -5488,6 +5498,10 @@ msgid "Columns folder can only contain column items"
 msgstr "Folderul de coloane poate conține doar elemente de coloană"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "Coloane lipsă în setul de date: %(invalid_columns)s"
 
@@ -6079,6 +6093,9 @@ msgstr ""
 "de date. Interogarea nu a fost executată, deoarece rularea ei ar fi "
 "realizat conectarea ca utilizator greșit."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Nu s-a putut valida utilizatorul în sesiunea curentă."
 
@@ -6554,6 +6571,10 @@ msgstr "Panou de control"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Tabloul de bord %(dashboard_id)s nu a fost găsit"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 msgid "Dashboard Filter"
 msgstr "Filtru Panou de Control"
@@ -8086,6 +8107,9 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Ciornă"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -11337,6 +11361,10 @@ msgstr "Operator cumulativ invalid: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Cod valutar nevalid în indicatorii salvați"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "Format dată/timestamp invalid"
 
@@ -11445,6 +11473,10 @@ msgstr "Valoare de filtru temporal invalidă pentru coloana %(column)s"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Limită de interval de timp nevalidă pentru resampling: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12417,6 +12449,9 @@ msgstr "Principal"
 msgid "Main navigation"
 msgstr "Navigare principală"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -12426,6 +12461,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "Fă axa x categorică"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -14643,6 +14681,9 @@ msgstr "Lungime pagină"
 #, fuzzy
 msgid "Page navigation"
 msgstr "Navigare în pagină"
+
+msgid "Page not found"
+msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "Tabel test t pereche"
@@ -20006,6 +20047,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "Câmpul `%(field)s` trebuie să fie un șir de caractere."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20178,6 +20229,13 @@ msgid ""
 msgstr ""
 "Versiunea curentă nu a putut fi identificată. Restaurarea este temporar "
 "indisponibilă."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "Panoul de control a fost salvat"
@@ -22183,6 +22241,9 @@ msgstr "Această coloană ar putea fi incompatibilă cu setul de date curent"
 msgid "This column must contain date/time information."
 msgstr "Această coloană trebuie să conțină informații despre dată/timp."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -22241,6 +22302,27 @@ msgstr ""
 "Acest tablou de bord conține prea multe date pentru a fi descărcat "
 "direct. Solicitați unui administrator să activeze exporturile în fundal "
 "sau reduceți limitele de rânduri ale graficelor sale."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -22660,16 +22742,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"Acest raport rulează ca %(username)s, care nu poate accesa acest "
-"%(kind)s. Alegeți un %(kind)s la care acest utilizator are acces sau alt "
-"utilizator ca care să ruleze raportul."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22679,6 +22757,12 @@ msgid ""
 msgstr ""
 "Această stare salvată a filtrului este anterioară formatului cu ID de "
 "membru. Resetați-o și alegeți din nou în mod explicit valorile ei."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22794,6 +22878,9 @@ msgstr ""
 "Această temă folosește algoritmul luminos. Va fi redată în schimb cu "
 "algoritmul întunecat, astfel că este posibil ca culorile ei să nu arate "
 "așa cum au fost concepute."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25567,6 +25654,9 @@ msgid "You can also just click on the chart to apply cross-filter."
 msgstr ""
 "De asemenea, puteți face clic pe grafic pentru a aplica filtrare "
 "încrucișată."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -431,6 +431,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -1810,6 +1814,12 @@ msgstr "عملیات"
 
 msgid "Active"
 msgstr "فعال"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 msgid "Actual Values"
 msgstr "مقادیر واقعی"
@@ -5424,6 +5434,10 @@ msgid "Columns folder can only contain column items"
 msgstr "پوشه ستون‌ها فقط می‌تواند شامل آیتم‌های ستون باشد"
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr "ستون‌های گم‌شده در مجموعه داده: %(invalid_columns)s"
 
@@ -6032,6 +6046,9 @@ msgstr ""
 "تعیین کاربری که باید در اتصال پایگاه داده جعل هویت شود ممکن نبود. پرس‌وجو"
 " اجرا نشد، زیرا اجرای آن باعث اتصال با کاربر نادرست می‌شد."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6507,6 +6524,10 @@ msgstr "داشبورد"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "داشبورد %(dashboard_id)s پیدا نشد"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -7997,6 +8018,9 @@ msgstr ""
 
 msgid "Draft"
 msgstr "پیش‌نویس"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -11281,6 +11305,10 @@ msgstr "عملگر تجمعی نامعتبر: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "کد ارز نامعتبر در معیارهای ذخیره شده"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr "فرمت تاریخ/زمان نامعتبر است"
 
@@ -11391,6 +11419,10 @@ msgstr "مقدار فیلتر زمانی نامعتبر برای ستون %(colu
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "مرز بازه زمانی نامعتبر برای نمونه‌گیری مجدد: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12373,6 +12405,9 @@ msgstr "اصلی"
 msgid "Main navigation"
 msgstr "انیمیشن"
 
+msgid "Make draft"
+msgstr ""
+
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
@@ -12382,6 +12417,9 @@ msgstr ""
 
 msgid "Make the x-axis categorical"
 msgstr "محور x را دسته‌بندی کنید."
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are "
@@ -14595,6 +14633,9 @@ msgstr "طول صفحه"
 #, fuzzy
 msgid "Page navigation"
 msgstr "تجمیع"
+
+msgid "Page not found"
+msgstr ""
 
 msgid "Paired t-test Table"
 msgstr "جدول تست t جفتی"
@@ -19914,6 +19955,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "فیلد `%(field)s` باید یک رشته باشد."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20093,6 +20144,13 @@ msgid ""
 "The current version could not be identified. Restore is temporarily "
 "unavailable."
 msgstr "نسخه فعلی شناسایی نشد. بازیابی موقتاً در دسترس نیست."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "داشبورد ذخیره شد"
@@ -22080,6 +22138,9 @@ msgstr "این ستون ممکن است با داده‌های فعلی سازگ
 msgid "This column must contain date/time information."
 msgstr "این ستون باید شامل اطلاعات تاریخ/زمان باشد."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -22136,6 +22197,27 @@ msgstr ""
 "این داشبورد داده‌های بسیار زیادی برای دانلود مستقیم دارد. از یک مدیر "
 "بخواهید برون‌بری‌های پس‌زمینه را فعال کند، یا محدودیت ردیف نمودارهای آن "
 "را کاهش دهید."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -22554,16 +22636,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"این گزارش با نام کاربری %(username)s اجرا می‌شود که به این %(kind)s "
-"دسترسی ندارد. یک %(kind)s که این کاربر به آن دسترسی دارد انتخاب کنید، یا "
-"کاربر دیگری برای اجرای گزارش انتخاب کنید."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22573,6 +22651,12 @@ msgid ""
 msgstr ""
 "این وضعیت ذخیره‌شده فیلتر مربوط به پیش از قالب شناسه عضو است. آن را "
 "بازنشانی کنید و مقادیر آن را دوباره به‌صراحت انتخاب کنید."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22688,6 +22772,9 @@ msgid ""
 msgstr ""
 "این پوسته از الگوریتم روشن استفاده می‌کند. به جای آن با الگوریتم تیره "
 "نمایش داده خواهد شد، بنابراین ممکن است رنگ‌های آن مطابق طراحی دیده نشوند."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25438,6 +25525,9 @@ msgstr "شما می‌توانید اجزاء را در حالت ویرایش ا
 
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "شما می‌توانید به سادگی بر روی نمودار کلیک کنید تا فیلتر متقاطع اعمال شود."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 msgid ""
 "You can choose to display all charts that you have access to or only the "

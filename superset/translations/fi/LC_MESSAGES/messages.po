@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:07-0500\n"
+"POT-Creation-Date: 2026-11-19 17:13-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -504,6 +504,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s %s"
 msgstr "%s%s"
+
+#, python-format
+msgid "%s (Draft)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -2339,6 +2343,12 @@ msgstr "Toiminnot"
 #, fuzzy
 msgid "Active"
 msgstr "Aktiivinen"
+
+msgid ""
+"Active alerts and reports may stop delivering if their execution account "
+"is not an Admin or dashboard editor. Check the accounts running those "
+"schedules before unpublishing."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -7844,6 +7854,10 @@ msgstr "Sarakkeet ja mittarit"
 msgid "Columns folder can only contain column items"
 msgstr "Sarakekansio voi sisältää vain sarake-elementtejä"
 
+#, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
@@ -8712,6 +8726,9 @@ msgstr ""
 "Tietokantayhteydellä esiintyvää käyttäjää ei voitu selvittää. Kyselyä ei "
 "suoritettu, koska se olisi muodostanut yhteyden väärällä käyttäjällä."
 
+msgid "Could not save this schedule"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 #, fuzzy
@@ -9439,6 +9456,10 @@ msgstr "Kojelauta"
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Kojelautaa %(dashboard_id)s ei löytynyt"
+
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -11682,6 +11703,9 @@ msgstr ""
 #, fuzzy
 msgid "Draft"
 msgstr "Luonnos"
+
+msgid "Draft dashboard access"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -16481,6 +16505,10 @@ msgstr "Virheellinen kumulatiivinen operaattori: %(operator)s"
 msgid "Invalid currency code in saved metrics"
 msgstr "Virheellinen valuuttakoodi tallennetuissa mittareissa"
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -16633,6 +16661,10 @@ msgstr "Virheellinen aikasuodattimen arvo sarakkeessa %(column)s"
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Virheellinen aikavälin raja uudelleenotannalle: %(value)s"
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -18110,6 +18142,9 @@ msgstr "Pää"
 msgid "Main navigation"
 msgstr "Animaatio"
 
+msgid "Make draft"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -18125,6 +18160,9 @@ msgstr ""
 #, fuzzy
 msgid "Make the x-axis categorical"
 msgstr "Tee x-akselista kategorinen"
+
+msgid "Make this dashboard a draft?"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21404,6 +21442,9 @@ msgstr "Sivun pituus"
 #, fuzzy
 msgid "Page navigation"
 msgstr "Aggregaatio"
+
+msgid "Page not found"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29313,6 +29354,16 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr "Kentän `%(field)s` on oltava merkkijono."
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The `%(operation)s` post-processing operation references a column or "
+"level that is not in the query result: %(name)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -29542,6 +29593,13 @@ msgid ""
 msgstr ""
 "Nykyistä versiota ei voitu tunnistaa. Palautus ei ole tilapäisesti "
 "käytettävissä."
+
+#, python-format
+msgid ""
+"The custom SQL expression %(expression)s could not be run against this "
+"dataset's database: %(error)s. Check that it only uses columns and "
+"functions this database supports."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -32104,6 +32162,9 @@ msgstr "Tämä sarake saattaa olla yhteensopimaton nykyisen tietojoukon kanssa"
 msgid "This column must contain date/time information."
 msgstr "Tämän sarakkeen täytyy sisältää päivämäärä-/aikatietoja."
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid ""
 "This connection stores embedded guest credentials, which only apply with "
 "\"Impersonate logged in user\" turned on. Clear the embedded credentials "
@@ -32171,6 +32232,27 @@ msgstr ""
 "Tässä kojelaudassa on liian paljon dataa suoraa latausta varten. Pyydä "
 "ylläpitäjää ottamaan taustaviennit käyttöön tai pienennä kaavioiden "
 "rivirajoja."
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to add the execution account as a dashboard editor. If "
+"Run as is available, select an authorized account."
+msgstr ""
+
+msgid ""
+"This dashboard is a draft. The execution account must be an Admin or "
+"dashboard editor. Publish the dashboard when it is ready to share, or ask"
+" an administrator to identify the execution account and add it as a "
+"dashboard editor."
+msgstr ""
+
+#, python-format
+msgid ""
+"This dashboard is a draft. The schedule runs as \"%s\". Publish the "
+"dashboard when it is ready to share, or add \"%s\" as a dashboard editor."
+" Draft dashboards require an Admin or dashboard editor."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -32663,16 +32745,12 @@ msgid ""
 "query again."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
-" a %(kind)s that user can access, or a different user to run the report "
-"as."
+" a %(kind)s that user can access, or ask an administrator to update the "
+"execution account's access."
 msgstr ""
-"Tämä raportti suoritetaan käyttäjänä %(username)s, jolla ei ole pääsyä "
-"tähän kohteeseen (%(kind)s). Valitse kohde (%(kind)s), johon kyseisellä "
-"käyttäjällä on pääsy, tai valitse eri käyttäjä raportin suorittajaksi."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -32682,6 +32760,12 @@ msgid ""
 msgstr ""
 "Tämä tallennettu suodattimen tila on ajalta ennen jäsentunnusmuotoa. "
 "Nollaa se ja valitse sen arvot uudelleen erikseen."
+
+msgid ""
+"This schedule runs with your permissions. You must be an Admin or an "
+"editor of this draft dashboard. Publish the dashboard when it is ready to"
+" share, or ask an administrator to give you dashboard editor access."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -32819,6 +32903,9 @@ msgstr ""
 "Tämä teema käyttää vaaleaa algoritmia. Se renderöidään sen sijaan tummaa "
 "algoritmia käyttäen, joten sen värit eivät välttämättä näytä "
 "suunnitellulta."
+
+msgid "This time range is empty. Choose an end time later than the start time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -36862,6 +36949,9 @@ msgstr "Voit lisätä komponentit muokkaustilassa."
 #, fuzzy
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "Voit myös napsauttaa kaaviota ristisuodattimen käyttämiseksi."
+
+msgid "You can also select an authorized account in Run as."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
