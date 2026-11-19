@@ -14621,6 +14621,10 @@ msgstr ""
 msgid "The current version could not be identified. Restore is temporarily unavailable."
 msgstr ""
 
+#, python-format
+msgid "The custom SQL expression %(expression)s could not be run against this dataset's database: %(error)s. Check that it only uses columns and functions this database supports."
+msgstr ""
+
 msgid "The dashboard has been saved"
 msgstr ""
 

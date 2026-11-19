@@ -4105,6 +4105,44 @@ def test_adhoc_column_type_probe_propagates_db_error(database: Database) -> None
     assert not isinstance(excinfo.value, ColumnNotFoundException)
 
 
+def test_adhoc_column_type_probe_db_error_names_the_expression(
+    database: Database,
+) -> None:
+    """
+    A database rejecting a user-authored adhoc expression (e.g. an unsupported
+    function) is reported against the expression, as a warning-level error.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.errors import ErrorLevel
+    from superset.exceptions import SupersetGenericDBErrorException
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "DATE_PARSE(a, '%Y%m%d')",
+        "label": "d",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=SupersetGenericDBErrorException("no such function: DATE_PARSE"),
+    ):
+        with pytest.raises(SupersetGenericDBErrorException) as excinfo:
+            table.adhoc_column_to_sqla(adhoc_col, force_type_check=True)
+
+    assert "DATE_PARSE(a, '%Y%m%d')" in excinfo.value.error.message
+    assert "no such function: DATE_PARSE" in excinfo.value.error.message
+    assert excinfo.value.error.level == ErrorLevel.WARNING
+
+
 def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
     database: Database,
 ) -> None:
