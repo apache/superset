@@ -16,11 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render as baseRender, screen } from 'spec/helpers/testing-library';
 import CanvasGrid, { emptyScopeValues } from './CanvasGrid';
 import { registerBuiltinRenderers } from './builtinRenderers';
 import { CanvasDefinitionResult } from './types';
 import type { CanvasLayout } from './useCanvasLayout';
+
+// A container renders the grid, which reports gestures through redux.
+const render: typeof baseRender = (ui, options) =>
+  baseRender(ui, { useRedux: true, ...options });
 
 const inline = (
   widgetType: string,

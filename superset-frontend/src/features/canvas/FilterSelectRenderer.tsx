@@ -20,10 +20,12 @@ import { useContext, useEffect, useMemo, useState } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import { SupersetClient } from '@superset-ui/core';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { Select, Typography } from '@superset-ui/core/components';
 import type { SelectFilterValue } from './echarts/chartData';
+import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
+import { useCanvasLogger } from './useCanvasLogger';
 
 const Wrapper = styled.div`
   ${({ theme }) => css`
@@ -43,9 +45,15 @@ function FilterSelect({
   props,
   refreshKey,
   setFilterValue,
+  canvasId,
+  nodeId,
 }: canvasApi.CanvasWidgetProps & { datasetId: number; column: string }) {
   const draftToken = useContext(CanvasDraftContext);
   const versionUuid = useContext(CanvasVersionContext);
+  const log = useCanvasLogger(canvasId, {
+    isDraft: Boolean(draftToken),
+    versionUuid,
+  });
   const staticOptions = strings(props?.options);
   const optionsKey = JSON.stringify([
     staticOptions,
@@ -77,8 +85,20 @@ function FilterSelect({
           });
         }
       })
-      .catch(() => {
-        if (!cancelled) setFetched({ key: optionsKey, values: [] });
+      .catch(async response => {
+        if (cancelled) return;
+        setFetched({ key: optionsKey, values: [] });
+        // Worth reporting even though nothing is thrown: the filter renders
+        // as an empty dropdown, so the failure is invisible to the user as
+        // well as to us, and shows up later as "the data looks wrong".
+        const error = await getClientErrorObject(response);
+        log(LOG_ACTIONS_CANVAS_ERROR, {
+          scope: 'filter_values',
+          placement_id: nodeId,
+          status: error.status,
+          error_type: error.errors?.[0]?.error_type,
+          has_err: true,
+        });
       });
     return () => {
       cancelled = true;

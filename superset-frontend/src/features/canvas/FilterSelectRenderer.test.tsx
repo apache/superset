@@ -28,6 +28,8 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import { defaultStore } from 'spec/helpers/testing-library';
+import { Provider } from 'react-redux';
 import FilterSelectRenderer from './FilterSelectRenderer';
 import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
 
@@ -71,14 +73,17 @@ const render = (
   options?: { wrapper: (props: { children: ReactNode }) => ReactElement },
 ) =>
   renderComponent(element, {
+    // A store as well as a theme: the filter reports a failed options fetch.
     wrapper: ({ children }) => (
-      <ThemeProvider theme={supersetTheme}>
-        {options?.wrapper ? (
-          <options.wrapper>{children}</options.wrapper>
-        ) : (
-          children
-        )}
-      </ThemeProvider>
+      <Provider store={defaultStore}>
+        <ThemeProvider theme={supersetTheme}>
+          {options?.wrapper ? (
+            <options.wrapper>{children}</options.wrapper>
+          ) : (
+            children
+          )}
+        </ThemeProvider>
+      </Provider>
     ),
   });
 

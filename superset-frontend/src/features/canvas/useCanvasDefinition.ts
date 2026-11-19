@@ -24,7 +24,13 @@ import {
   subscribeRealtimeOpen,
 } from 'src/middleware/realtime';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import {
+  Logger,
+  LOG_ACTIONS_CANVAS_ERROR,
+  LOG_ACTIONS_CANVAS_LOAD_DEFINITION,
+} from 'src/logger/LogUtils';
 import { CanvasDefinitionResult } from './types';
+import { useCanvasLogger } from './useCanvasLogger';
 
 /** Draft tokens travel in this header, never in a URL. */
 export const DRAFT_TOKEN_HEADER = 'X-Canvas-Draft';
@@ -64,12 +70,25 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
   });
   const revision = useRef<number>();
   const loadedCanvas = useRef<number>();
+  // The source a complete result was last loaded for, so a failed refresh can
+  // tell itself apart from a failed first open without reading state, and so
+  // a repeated poll of the same source is not reported twice.
+  const loaded = useRef<string>();
+  // The source whose failure has already been reported, cleared on recovery.
+  const reported = useRef<string>();
+  // A draft that has been published, discarded or has expired. Polling it
+  // again can only fail again, so the poll stops rather than asking every few
+  // seconds forever -- which also stops the request writing a row each time.
+  const [draftGone, setDraftGone] = useState(false);
   // Drops a response for a source the page has since moved off.
   const source = useRef<string>();
   source.current = `${canvasId}:${draftToken ?? ''}`;
 
+  const log = useCanvasLogger(canvasId, { isDraft: Boolean(draftToken) });
+
   const load = useCallback(async () => {
     const requested = `${canvasId}:${draftToken ?? ''}`;
+    const startedAt = Logger.getTimestamp();
     try {
       const { json } = await SupersetClient.get(
         draftToken
@@ -81,21 +100,58 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
       );
       if (source.current !== requested) return;
       revision.current = json.result.revision;
+      // Only the first load of a source is reported. This runs again on every
+      // draft poll (CANVAS_DRAFT_POLL_INTERVAL, 5s) and on every window focus,
+      // so logging each one would write a row every few seconds per open tab
+      // and say nothing new.
+      const first = loaded.current !== requested;
+      loaded.current = requested;
+      reported.current = undefined;
       setState({ status: 'complete', result: json.result, draftToken });
+      if (first) {
+        log(LOG_ACTIONS_CANVAS_LOAD_DEFINITION, {
+          revision: json.result.revision,
+          definition_version: json.result.definition?.version,
+          widget_count: Object.keys(json.result.definition?.nodes ?? {}).length,
+          duration: Logger.getTimestamp() - startedAt,
+        });
+      }
     } catch (response) {
       const error = await getClientErrorObject(response);
       if (source.current !== requested) return;
       // Keep showing the last good definition if a refresh of the same
-      // source fails; a draft that fails to open is an error.
+      // source fails; a draft that fails to open is an error. Read from a ref
+      // rather than from `state`, which would put `state` in this callback's
+      // dependencies and make every load schedule the next one.
+      const silent = loaded.current === requested;
+      if (draftToken && error.status === 404) setDraftGone(true);
       setState(previous =>
         previous.status === 'complete' && previous.draftToken === draftToken
           ? previous
           : { status: 'error', error },
       );
+      // Once per source, for the same reason as the success event: an
+      // expired draft keeps polling, and reporting each failure would write a
+      // row every few seconds for a single broken state.
+      if (reported.current === requested) return;
+      reported.current = requested;
+      // `is_silent` marks the refresh case above, which shows the user
+      // nothing at all. This event is the only signal it ever produces.
+      log(LOG_ACTIONS_CANVAS_ERROR, {
+        scope: 'definition_load',
+        status: error.status,
+        // The typed error, where the server classified one. Never
+        // `error.message`: it is server-authored prose that can quote SQL,
+        // column names or row values.
+        error_type: error.errors?.[0]?.error_type,
+        has_err: true,
+        is_silent: silent,
+      });
     }
-  }, [canvasId, draftToken]);
+  }, [canvasId, draftToken, log]);
 
   useEffect(() => {
+    setDraftGone(false);
     revision.current = undefined;
     // Entering or leaving a draft keeps the current definition on screen
     // until the other one arrives, so the page doesn't unmount and refetch.
@@ -107,7 +163,7 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
   }, [canvasId, load]);
 
   useEffect(() => {
-    if (!draftToken) return undefined;
+    if (!draftToken || draftGone) return undefined;
     const reloadIfVisible = () => {
       if (document.visibilityState === 'visible') load();
     };
@@ -119,7 +175,7 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
       if (timer !== undefined) clearInterval(timer);
       window.removeEventListener('focus', reloadIfVisible);
     };
-  }, [draftToken, load]);
+  }, [draftToken, draftGone, load]);
 
   useEffect(() => {
     if (draftToken) return undefined;

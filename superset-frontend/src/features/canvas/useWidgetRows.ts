@@ -20,12 +20,14 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject } from '@superset-ui/core';
+import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import {
   DataBinding,
   fetchPlacementData,
   PlacementData,
   runtimeFilters,
 } from './echarts/chartData';
+import { useCanvasLogger } from './useCanvasLogger';
 
 /** The draft a canvas page shows, if any; its placements read from it. */
 export const CanvasDraftContext = createContext<string | undefined>(undefined);
@@ -75,6 +77,10 @@ export function useWidgetRows(
 ): WidgetRows {
   const draftToken = useContext(CanvasDraftContext);
   const versionUuid = useContext(CanvasVersionContext);
+  const log = useCanvasLogger(canvasId, {
+    isDraft: Boolean(draftToken),
+    versionUuid,
+  });
   const binding = props?.dataBinding as DataBinding | undefined;
   const bound = Boolean(binding?.datasetId);
   const selected = runtimeFilters(filters);
@@ -122,14 +128,18 @@ export function useWidgetRows(
       .catch(async (e: unknown) => {
         if (cancelled) return;
         let message = t("The widget's query failed");
+        let status: number | undefined;
+        let errorType: string | undefined;
         try {
           // Unwrap HTTP failures without allowing arbitrary message/statusText
           // fallbacks, including the normalizer's consumed-Response fallback.
           const input =
             e && typeof e === 'object' && 'response' in e ? e.response : e;
           if (canNormalizeError(input)) {
-            const { error } = await getClientErrorObject(input);
-            if (error) message = error;
+            const clientError = await getClientErrorObject(input);
+            if (clientError.error) message = clientError.error;
+            status = clientError.status;
+            errorType = clientError.errors?.[0]?.error_type;
           }
         } catch {
           // A malformed transport error must not expose the raw exception.
@@ -139,6 +149,15 @@ export function useWidgetRows(
             key,
             value: { rows: [], loading: false, error: message },
           });
+          // The backend counts these too, but only the client knows which
+          // placement was on screen. The message is deliberately not sent.
+          log(LOG_ACTIONS_CANVAS_ERROR, {
+            scope: 'widget_data',
+            placement_id: nodeId,
+            status,
+            error_type: errorType,
+            has_err: true,
+          });
         }
       });
     return () => {
@@ -146,7 +165,7 @@ export function useWidgetRows(
     };
     // The key stands in for the binding and filters, recreated every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvasId, nodeId, key, refreshKey]);
+  }, [canvasId, log, nodeId, key, refreshKey]);
 
   const datasource = bound ? `${binding?.datasetId}__table` : undefined;
   // Stable between renders, so callers can depend on it in effects.

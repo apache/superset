@@ -19,7 +19,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getClientErrorObject } from '@superset-ui/core';
 import type { VersionMeta } from 'src/features/versionHistory/types';
+import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import type { CanvasVersionSnapshot } from '../types';
+import { useCanvasLogger } from '../useCanvasLogger';
 import {
   fetchCanvasVersion,
   fetchCanvasVersions,
@@ -56,7 +58,9 @@ const errorMessage = async (
 export function useCanvasVersionHistory(
   canvasUuid: string | undefined,
   enabled: boolean,
+  canvasId?: number,
 ): CanvasVersionHistory {
+  const log = useCanvasLogger(canvasId);
   const [versions, setVersions] = useState<VersionMeta[]>();
   const [preview, setPreview] = useState<CanvasVersionSnapshot>();
   const [loading, setLoading] = useState<string>();
@@ -70,8 +74,19 @@ export function useCanvasVersionHistory(
       setError(undefined);
     } catch (response) {
       setError(await errorMessage(response));
+      // A 403 here is not a failure: the list doubles as the permission
+      // check, so every viewer who is not an editor gets one on every page
+      // view. Reporting those would drown the ones that mean something.
+      const { status } = await getClientErrorObject(response);
+      if (status !== 403) {
+        log(LOG_ACTIONS_CANVAS_ERROR, {
+          scope: 'version_list',
+          status,
+          has_err: true,
+        });
+      }
     }
-  }, [enabled, canvasUuid]);
+  }, [enabled, canvasUuid, log]);
 
   useEffect(() => {
     setVersions(undefined);
@@ -88,11 +103,17 @@ export function useCanvasVersionHistory(
         setError(undefined);
       } catch (response) {
         setError(await errorMessage(response));
+        const { status } = await getClientErrorObject(response);
+        log(LOG_ACTIONS_CANVAS_ERROR, {
+          scope: 'version_preview',
+          status,
+          has_err: true,
+        });
       } finally {
         setLoading(undefined);
       }
     },
-    [canvasUuid],
+    [canvasUuid, log],
   );
 
   const showCurrent = useCallback(() => setPreview(undefined), []);

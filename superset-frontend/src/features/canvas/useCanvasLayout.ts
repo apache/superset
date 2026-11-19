@@ -20,7 +20,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
+import {
+  Logger,
+  LOG_ACTIONS_CANVAS_EDIT_LAYOUT,
+  LOG_ACTIONS_CANVAS_WRITE_LAYOUT,
+} from 'src/logger/LogUtils';
 import { DRAFT_TOKEN_HEADER } from './useCanvasDefinition';
+import { useCanvasLogger } from './useCanvasLogger';
 import { type PlaceOp, replayPlacements, swapPlacements } from './resolveGrid';
 import type {
   ApplyOperationsResult,
@@ -30,6 +36,14 @@ import type {
   SpanConstraints,
   DraftChange,
 } from './types';
+
+/**
+ * How a layout change was made. Carried for telemetry only, and deliberately
+ * its own vocabulary rather than the surface's `GestureKind`: that one calls a
+ * pointer drag a "move", which would collide with the `move` *operation* in
+ * the same event and make the data ambiguous to read.
+ */
+export type LayoutGesture = 'drag' | 'resize' | 'keyboard' | 'menu';
 
 /** The root grid's key in `childOrder`; see `CanvasGrid`. */
 const ROOT_NODE_ID = 'root';
@@ -375,6 +389,7 @@ export function useCanvasLayout(
   reload: () => void,
   draftToken?: string,
 ): CanvasLayout {
+  const log = useCanvasLogger(canvasId, { isDraft: Boolean(draftToken) });
   const [applied, setApplied] = useState<AppliedLayout>();
   const [error, setError] = useState<string>();
   // Mirrors `writing`/`queued` as state, since callers render against it.
@@ -494,6 +509,7 @@ export function useCanvasLayout(
       // after the response, by which time the user may have published or
       // discarded the plan, or navigated to another canvas.
       const era = generation.current;
+      const startedAt = Logger.getTimestamp();
       const base = Math.max(fetched.current, confirmed.current ?? 0);
       const placeOps = [...ops].map(([id, write]) => asOperation(id, write));
       // While a draft is open the layout belongs to the draft, not the
@@ -516,6 +532,10 @@ export function useCanvasLayout(
           // next write would be based on a revision it never had -- a draft
           // counts from zero, so that is a 409 or the wrong layout.
           if (era !== generation.current) return;
+          log(LOG_ACTIONS_CANVAS_WRITE_LAYOUT, {
+            ops: placeOps.length,
+            duration: Logger.getTimestamp() - startedAt,
+          });
           const written = json?.result as ApplyOperationsResult | undefined;
           if (!written) return;
           confirmed.current = written.revision;
@@ -561,8 +581,15 @@ export function useCanvasLayout(
         })
         .catch(async response => {
           if (era !== generation.current) return;
+          log(LOG_ACTIONS_CANVAS_WRITE_LAYOUT, {
+            ops: placeOps.length,
+            duration: Logger.getTimestamp() - startedAt,
+            has_err: true,
+            status: response?.status,
+          });
           // Every removal this write or the queue behind it carried is undone
-          // with it, so its widget has to come back on screen.
+          // with it, so its widget has to come back on screen. Read before
+          // the queue is cleared below.
           const kept = new Set(
             [...ops, ...queued.current]
               .filter(([, write]) => write.kind === 'remove')
@@ -611,12 +638,27 @@ export function useCanvasLayout(
           }
         });
     },
-    [canvasId, draftToken, reload],
+    [canvasId, draftToken, log, reload],
   );
 
   const write = useCallback(
-    (entries: [string, LayoutWrite][]) => {
+    (entries: [string, LayoutWrite][], gesture: LayoutGesture = 'drag') => {
       if (!canEdit || entries.length === 0) return;
+      // One event per completed gesture. This is the seam that makes that
+      // true: the four gesture APIs all funnel through here, the surface
+      // calls them only on release, and a gesture that changes nothing is
+      // already filtered out upstream. Logging in `send` instead would
+      // under-count, because a gesture queued behind an in-flight write is
+      // merged into the next batch and would never be counted on its own.
+      //
+      // This records intent, not outcome: the write is optimistic and can
+      // still be rolled back. `canvas_write_layout` reports what the server
+      // did with it.
+      log(LOG_ACTIONS_CANVAS_EDIT_LAYOUT, {
+        op: entries[0][1].kind,
+        gesture,
+        nodes: entries.length,
+      });
       setError(undefined);
       // Show the drop straight away, built on the newest layout so an earlier
       // gesture isn't undone -- including one from this same batch, which a
@@ -699,12 +741,15 @@ export function useCanvasLayout(
       }
       send(new Map(entries));
     },
-    [canEdit, send],
+    [canEdit, log, send],
   );
 
+  // `gesture` tells a drag apart from a resize, which `kind` alone cannot:
+  // both arrive as a `place`. It is carried for telemetry only and never
+  // reaches the wire -- `asOperation` does not read it.
   const place = useCallback(
-    (nodeId: string, placement: GridPlacement) =>
-      write([[nodeId, { kind: 'place', layout: placement }]]),
+    (nodeId: string, placement: GridPlacement, gesture?: LayoutGesture) =>
+      write([[nodeId, { kind: 'place', layout: placement }]], gesture),
     [write],
   );
 
@@ -714,29 +759,42 @@ export function useCanvasLayout(
       placement: GridPlacement,
       partnerId: string,
       partnerPlacement: GridPlacement,
+      gesture?: LayoutGesture,
     ) =>
-      write([
+      write(
         [
-          nodeId,
-          {
-            kind: 'swap',
-            partner: partnerId,
-            layout: placement,
-            partnerLayout: partnerPlacement,
-          },
+          [
+            nodeId,
+            {
+              kind: 'swap',
+              partner: partnerId,
+              layout: placement,
+              partnerLayout: partnerPlacement,
+            },
+          ],
         ],
-      ]),
+        gesture,
+      ),
     [write],
   );
 
   const move = useCallback(
-    (nodeId: string, parent: string, index: number, placement: GridPlacement) =>
-      write([[nodeId, { kind: 'move', parent, index, layout: placement }]]),
+    (
+      nodeId: string,
+      parent: string,
+      index: number,
+      placement: GridPlacement,
+      gesture?: LayoutGesture,
+    ) =>
+      write(
+        [[nodeId, { kind: 'move', parent, index, layout: placement }]],
+        gesture,
+      ),
     [write],
   );
 
   const remove = useCallback(
-    (nodeId: string) => write([[nodeId, { kind: 'remove' }]]),
+    (nodeId: string) => write([[nodeId, { kind: 'remove' }]], 'menu'),
     [write],
   );
 

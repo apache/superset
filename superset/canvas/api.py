@@ -92,10 +92,11 @@ from superset.commands.canvas.update import UpdateCanvasCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.canvas import CanvasDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import event_logger, security_manager
+from superset.extensions import event_logger, security_manager, stats_logger_manager
 from superset.models.canvas import Canvas
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
+from superset.utils.log import get_object_ids_from_view_args
 from superset.versioning.api_helpers import (
     list_versions_endpoint,
     PathEntityResponseError,
@@ -114,6 +115,85 @@ from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 logger = logging.getLogger(__name__)
 
 
+def _report_canvas_error(
+    api: CanvasRestApi,
+    ex: Exception,
+    status: int,
+    scope: str = "command",
+) -> None:
+    """Count and record a canvas failure.
+
+    A canvas route already logs the request, but ``_handle_canvas_errors`` is
+    the innermost decorator: it turns the exception into a response before the
+    route's own event logger runs, so the failure's type never reaches that
+    row. This writes a separate one.
+
+    Only the exception class name, the status, the scope and the canvas id are
+    recorded. The message is left out on purpose -- a command error can quote
+    user input -- and ``include_request_data=False`` keeps the request body,
+    which is an ops array for draft writes and filter values for placement
+    data, out of ``logs.json``.
+
+    Reporting never changes the outcome of a request, and never masks the error
+    being reported, so every failure here is swallowed.
+    """
+    try:
+        error_type = type(ex).__name__
+        canvas_id = get_object_ids_from_view_args(api, request.view_args or {}).get(
+            "canvas_id"
+        )
+        if canvas_id is None:
+            # A draft route names its canvas nowhere in the URL -- the token
+            # is a header, deliberately -- so the failure would otherwise be
+            # the one row that cannot be attributed, which is the opposite of
+            # what is wanted. Resolve it from the draft, and only on the error
+            # path, so the extra read costs nothing in the normal case. The
+            # token itself never reaches the payload.
+            # Not when the draft is the very thing reported missing: the
+            # lookup would just fail again, and a client polling an expired
+            # draft would pay for that read on every attempt.
+            token = (
+                None
+                if isinstance(ex, CanvasDraftNotFoundError)
+                else request.headers.get(DRAFT_TOKEN_HEADER)
+            )
+            if token:
+                try:
+                    canvas_id = load_draft(token).canvas_id
+                except Exception:  # pylint: disable=broad-except
+                    # The draft may be the very thing that was missing. An
+                    # unattributed report is still worth far more than none,
+                    # so this must not take the counter and the row with it.
+                    canvas_id = None
+        # The class name is a Python identifier from a closed set, so the key
+        # space stays bounded. The canvas id deliberately stays out of it:
+        # per-canvas analysis is what ``logs.canvas_id`` is for.
+        stats_logger_manager.instance.incr(f"canvas.error.{error_type}")
+        # Only unexpected failures get a log line. The counter and the row
+        # already cover the expected ones, and a draft 404 or an edit conflict
+        # is ordinary traffic -- warning on each would bury the failures worth
+        # reading among them.
+        if status >= 500:
+            logger.warning(
+                "Canvas request failed: error_type=%s status=%s scope=%s canvas_id=%s",
+                error_type,
+                status,
+                scope,
+                canvas_id,
+            )
+        event_logger.log_with_context(
+            action="canvas_error",
+            log_to_statsd=False,
+            include_request_data=False,
+            canvas_id=canvas_id,
+            error_type=error_type,
+            status=status,
+            scope=scope,
+        )
+    except Exception:  # pylint: disable=broad-except
+        logger.debug("Canvas error reporting failed", exc_info=True)
+
+
 def _handle_canvas_errors(
     f: Callable[..., Response],
 ) -> Callable[..., Response]:
@@ -125,34 +205,49 @@ def _handle_canvas_errors(
             CanvasNotFoundError,
             CanvasPlacementNotFoundError,
             CanvasVersionNotFoundError,
-        ):
+        ) as ex:
+            _report_canvas_error(self, ex, 404)
             return self.response_404()
         except CanvasDraftNotFoundError as ex:
+            _report_canvas_error(self, ex, 404)
             return self.response(404, message="Not found", error_type=ex.recovery_type)
-        except CanvasForbiddenError:
+        except CanvasForbiddenError as ex:
+            _report_canvas_error(self, ex, 403)
             return self.response_403()
         except CanvasInvalidError as ex:
+            _report_canvas_error(self, ex, 422)
             return self.response_422(message=ex.normalized_messages())
         except (
             DefinitionConflictError,
             DefinitionInvalidError,
             DraftConflictError,
         ) as ex:
+            _report_canvas_error(self, ex, ex.status)
             return self.response(ex.status, **ex.to_payload())
         except CanvasPlacementUnboundError as ex:
+            _report_canvas_error(self, ex, 422)
             return self.response_422(message=str(ex.message))
         except DefinitionVersionError as ex:
+            _report_canvas_error(self, ex, 422)
             return self.response_422(message=str(ex))
         except (
             CanvasCreateFailedError,
             CanvasUpdateFailedError,
             CanvasDeleteFailedError,
         ) as ex:
+            _report_canvas_error(self, ex, 422)
             logger.exception("Canvas write failed")
             return self.response_422(message=str(ex))
 
     return wrapped
 
+
+# Adds fields to the request's own log row. ``allow_extra_payload=True`` hands a
+# route one of these: the draft routes need it because a draft is named by a
+# header, so there is no canvas id in the URL for the event logger to resolve on
+# its own, and ``post`` needs it because the id does not exist until the command
+# has run.
+LogPayload = Callable[..., None]
 
 # Draft tokens travel in a header, never in a URL, so they stay out of logs.
 DRAFT_TOKEN_HEADER = "X-Canvas-Draft"  # noqa: S105
@@ -377,9 +472,11 @@ class CanvasRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
+        # The canvas has no id until the command runs, so the route reports it.
+        allow_extra_payload=True,
     )
     @_handle_canvas_errors
-    def post(self) -> Response:
+    def post(self, *, add_extra_log_payload: LogPayload) -> Response:
         """Create a canvas.
         ---
         post:
@@ -414,6 +511,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         canvas = CreateCanvasCommand(item).run()
+        add_extra_log_payload(canvas_id=canvas.id)
         return self.response(201, id=canvas.id, uuid=str(canvas.uuid))
 
     @expose("/<int:pk>", methods=("PUT",))
@@ -787,9 +885,10 @@ class CanvasRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_draft",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @_handle_canvas_errors
-    def get_draft(self) -> Response:
+    def get_draft(self, *, add_extra_log_payload: LogPayload) -> Response:
         """Get the draft named by the `X-Canvas-Draft` header.
         ---
         get:
@@ -801,6 +900,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         draft = load_draft(_draft_token())
+        add_extra_log_payload(canvas_id=draft.canvas_id)
         return self.response(200, result=draft_payload(draft))
 
     @expose("/draft", methods=("PATCH",))
@@ -812,9 +912,10 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             f"{self.__class__.__name__}.apply_draft_operations"
         ),
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @_handle_canvas_errors
-    def apply_draft_operations(self) -> Response:
+    def apply_draft_operations(self, *, add_extra_log_payload: LogPayload) -> Response:
         """Apply operations to the draft named by the `X-Canvas-Draft` header.
         ---
         patch:
@@ -836,10 +937,14 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         try:
             body = DraftOperationsRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
+            # A malformed ops payload is a real failure mode for an agent
+            # writing to a draft, and otherwise leaves no trace.
+            _report_canvas_error(self, ex, 400, scope="draft_ops")
             return self.response(400, message=_pydantic_errors(ex))
         draft, ops = ApplyCanvasDraftOperationsCommand(
             _draft_token(), body.revision, body.ops
         ).run()
+        add_extra_log_payload(canvas_id=draft.canvas_id)
         return self.response(200, result={**draft_payload(draft), "ops": ops})
 
     @expose("/draft/undo", methods=("POST",))
@@ -849,9 +954,10 @@ class CanvasRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.undo_draft",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @_handle_canvas_errors
-    def undo_draft(self) -> Response:
+    def undo_draft(self, *, add_extra_log_payload: LogPayload) -> Response:
         """Step the draft named by the `X-Canvas-Draft` header back one request.
         ---
         post:
@@ -883,7 +989,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             409:
               description: The draft or the canvas changed
         """
-        return self._rewind_draft(forward=False)
+        return self._rewind_draft(forward=False, report=add_extra_log_payload)
 
     @expose("/draft/redo", methods=("POST",))
     @protect()
@@ -892,9 +998,10 @@ class CanvasRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.redo_draft",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @_handle_canvas_errors
-    def redo_draft(self) -> Response:
+    def redo_draft(self, *, add_extra_log_payload: LogPayload) -> Response:
         """Put back the request the draft last stepped off.
         ---
         post:
@@ -923,9 +1030,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             409:
               description: The draft or the canvas changed
         """
-        return self._rewind_draft(forward=True)
+        return self._rewind_draft(forward=True, report=add_extra_log_payload)
 
-    def _rewind_draft(self, forward: bool) -> Response:
+    def _rewind_draft(self, forward: bool, report: LogPayload) -> Response:
         try:
             body = CommitDraftRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
@@ -933,6 +1040,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         draft = RewindCanvasDraftCommand(
             _draft_token(), body.revision, forward=forward
         ).run()
+        report(canvas_id=draft.canvas_id)
         return self.response(200, result=draft_payload(draft))
 
     @expose("/draft/commit", methods=("POST",))
@@ -942,9 +1050,10 @@ class CanvasRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.commit_draft",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @_handle_canvas_errors
-    def commit_draft(self) -> Response:
+    def commit_draft(self, *, add_extra_log_payload: LogPayload) -> Response:
         """Publish the draft named by the `X-Canvas-Draft` header.
         ---
         post:
@@ -970,6 +1079,8 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         except PydanticValidationError as ex:
             return self.response(400, message=_pydantic_errors(ex))
         draft = load_draft(_draft_token())
+        # Read before the commit, which deletes the draft.
+        add_extra_log_payload(canvas_id=draft.canvas_id)
         result = CommitCanvasDraftCommand(draft.token, body.revision).run()
         return self.response(
             200,
@@ -986,9 +1097,10 @@ class CanvasRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_draft",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @_handle_canvas_errors
-    def delete_draft(self) -> Response:
+    def delete_draft(self, *, add_extra_log_payload: LogPayload) -> Response:
         """Discard the draft named by the `X-Canvas-Draft` header.
         ---
         delete:
@@ -999,7 +1111,10 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        DeleteCanvasDraftCommand(_draft_token()).run()
+        # The command returns the draft it discarded, which is what makes a
+        # discarded draft attributable to the canvas it was abandoning.
+        draft = DeleteCanvasDraftCommand(_draft_token()).run()
+        add_extra_log_payload(canvas_id=draft.canvas_id)
         return self.response(200, message="OK")
 
     @expose("/<id_or_uuid>/placement/<placement_id>/data", methods=("POST",))
@@ -1097,24 +1212,29 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                 request.get_json(silent=True) or {}
             )
         except PydanticValidationError as ex:
+            _report_canvas_error(self, ex, 400, scope="placement_data")
             return self.response(400, message=_pydantic_errors(ex))
         token = request.headers.get(DRAFT_TOKEN_HEADER) or None
         try:
             version = UUID(request.headers[VERSION_HEADER])
         except KeyError:
             version = None
-        except ValueError:
+        except ValueError as ex:
+            _report_canvas_error(self, ex, 400, scope="placement_data")
             return self.response_400(message="Invalid version UUID")
         try:
             data = GetPlacementDataCommand(
                 id_or_uuid, placement_id, body.runtime_filters, token, version
             ).run()
         except CanvasQueryFailedError as ex:
+            # A failing widget query otherwise leaves no backend trace at all.
             error = ex.error
             if error.reason == "missing_datasource":
+                _report_canvas_error(self, ex, 404, scope="placement_data")
                 return self.response_404()
             if error.status >= 500:
                 logger.warning("Canvas placement query failed", exc_info=True)
+            _report_canvas_error(self, ex, error.status, scope="placement_data")
             return self.response(error.status, **error.rest_payload())
         dataset: dict[str, Any] = {
             "name": "main",

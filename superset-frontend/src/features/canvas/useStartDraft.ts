@@ -20,6 +20,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import {
+  LOG_ACTIONS_CANVAS_DRAFT_START,
+  LOG_ACTIONS_CANVAS_ERROR,
+} from 'src/logger/LogUtils';
+import { useCanvasLogger } from './useCanvasLogger';
 
 /**
  * Starting a draft on a canvas.
@@ -36,6 +41,8 @@ export function useStartDraft(
   const { addDangerToast } = useToasts();
   const [starting, setStarting] = useState(false);
   const current = useRef<number | undefined>(canvasId);
+
+  const log = useCanvasLogger(canvasId);
 
   useEffect(() => {
     current.current = canvasId;
@@ -54,18 +61,27 @@ export function useStartDraft(
       if (current.current !== startedFor) return;
       const token = json?.result?.token;
       if (typeof token === 'string') {
+        // Opens the draft funnel that `canvas_draft_end` closes. The token
+        // itself is never recorded.
+        log(LOG_ACTIONS_CANVAS_DRAFT_START);
         onStarted(token);
       } else {
+        log(LOG_ACTIONS_CANVAS_ERROR, { scope: 'draft_start', has_err: true });
         addDangerToast(t('That draft could not be started.'));
       }
     } catch (response) {
       if (current.current !== startedFor) return;
-      const { message, error } = await getClientErrorObject(response);
+      const { message, error, status } = await getClientErrorObject(response);
+      log(LOG_ACTIONS_CANVAS_ERROR, {
+        scope: 'draft_start',
+        status,
+        has_err: true,
+      });
       addDangerToast(message || error || t('That draft could not be started.'));
     } finally {
       setStarting(false);
     }
-  }, [canvasId, onStarted, addDangerToast]);
+  }, [canvasId, log, onStarted, addDangerToast]);
 
   return { start, starting };
 }
