@@ -36,6 +36,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import type { ControlStateMapping } from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
+import { getInitialTimeRange } from 'src/explore/actions/hydrateExplore';
 import {
   getAnnotationJsonUrl,
   buildV1ChartDataPayload,
@@ -425,6 +426,11 @@ export const dynamicPluginControlsReady =
     const exploreState = {
       ...state.explore,
       datasource: state.explore.datasource || { type: 'table' },
+      initialTimeRange: getInitialTimeRange(
+        !state.explore.slice,
+        state.explore.form_data,
+        state.common?.conf?.DEFAULT_TIME_FILTER as string | undefined,
+      ),
     };
     const controlsState = getControlsState(
       exploreState,

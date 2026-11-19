@@ -1368,6 +1368,31 @@ def test_import_dataset_schema_rejects_duplicate_column_uuids() -> None:
     assert duplicate in str(excinfo.value.messages["columns"])
 
 
+@pytest.mark.parametrize(
+    "extra", [{"default_time_range": "Last dya"}, '{"default_time_range": "foo"}']
+)
+def test_import_dataset_schema_rejects_an_invalid_default_time_range(
+    extra: Any,
+) -> None:
+    config = {**_dataset_config_with_children(metrics=[], columns=[]), "extra": extra}
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatasetSchema().load(config)
+
+    assert "extra" in excinfo.value.messages
+
+
+def test_import_dataset_schema_accepts_a_valid_default_time_range() -> None:
+    config = {
+        **_dataset_config_with_children(metrics=[], columns=[]),
+        "extra": {"default_time_range": "Last week"},
+    }
+
+    assert ImportV1DatasetSchema().load(config)["extra"] == {
+        "default_time_range": "Last week"
+    }
+
+
 def test_import_dataset_schema_allows_distinct_and_missing_child_uuids() -> None:
     """
     Distinct UUIDs — and children with no UUID at all — remain valid.

@@ -23,6 +23,8 @@ from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
 from superset.datasets.schemas import (
+    get_default_time_range,
+    validate_default_time_range,
     validate_partition_key,
     validate_python_date_format,
 )
@@ -53,6 +55,37 @@ def test_validate_python_date_format(payload) -> None:
 def test_validate_python_date_format_raises(payload) -> None:
     with pytest.raises(ValidationError):
         validate_python_date_format(payload)
+
+
+@pytest.mark.parametrize(
+    "extra, expected",
+    [
+        ('{"default_time_range": "Last week", "warning_markdown": "x"}', "Last week"),
+        ({"default_time_range": "No filter"}, "No filter"),
+        ('{"default_time_range": ""}', None),
+        ('{"default_time_range": 7}', None),
+        ("{bad", None),
+        ("[]", None),
+        (None, None),
+    ],
+)
+def test_get_default_time_range(extra: Any, expected: str | None) -> None:
+    assert get_default_time_range(extra) == expected
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    ["No filter", "Last week", "Current day", "2024-01-01 : now", "yesterday : today"],
+)
+def test_validate_default_time_range(time_range: str) -> None:
+    validate_default_time_range(time_range)
+
+
+@pytest.mark.parametrize("time_range", ["Last dya", " ", "now : 2024-01-01"])
+def test_validate_default_time_range_raises(time_range: str) -> None:
+    with pytest.raises(ValidationError) as excinfo:
+        validate_default_time_range(time_range)
+    assert excinfo.value.field_name == "extra"
 
 
 def test_drill_info_user_schema_does_not_expose_email() -> None:

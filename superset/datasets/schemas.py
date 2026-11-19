@@ -43,6 +43,7 @@ from superset.models.sql_types import parse_currency_string
 from superset.subjects.schemas import SubjectReferenceField
 from superset.utils import json
 from superset.utils.core import FilterOperator
+from superset.utils.date_parser import get_since_until
 from superset.utils.number_format import is_valid_d3_format
 from superset.utils.schema import DiscardIsManagedExternallyMixin
 
@@ -115,6 +116,36 @@ def validate_partition_key(value: str) -> None:
         raise ValidationError(
             str(_("A partition key must be a whole number within the 64-bit range."))
         )
+
+
+def get_default_time_range(extra: Any) -> str | None:
+    """
+    Return a dataset's ``extra.default_time_range`` from its ``extra``, given as
+    a JSON string or a dict. Like Explore, treat unparseable metadata,
+    non-string values and empty strings as unset.
+    """
+    if isinstance(extra, str):
+        try:
+            extra = json.loads(extra)
+        except ValueError:
+            return None
+    time_range = extra.get("default_time_range") if isinstance(extra, dict) else None
+    return time_range if isinstance(time_range, str) and time_range else None
+
+
+def validate_default_time_range(time_range: str) -> None:
+    """
+    Reject a dataset default time range that the time range parser cannot
+    evaluate, since every new chart on the dataset would fail to query.
+    """
+    try:
+        get_since_until(time_range=time_range)
+    except (ValueError, ValidationError) as ex:
+        # `str`, because marshmallow reads a lazy string as a list of messages.
+        raise ValidationError(
+            str(_("Invalid default time range: %(range)s", range=time_range)),
+            field_name="extra",
+        ) from ex
 
 
 class ResolveIsCertifiedMixin(Schema):
@@ -519,6 +550,14 @@ class ImportV1DatasetSchema(Schema):
             data["template_params"] = None
 
         return data
+
+    @validates_schema
+    def validate_extra(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """
+        Reject a default time range that new charts could not query.
+        """
+        if time_range := get_default_time_range(data.get("extra")):
+            validate_default_time_range(time_range)
 
     @validates_schema
     def validate_unique_child_uuids(self, data: dict[str, Any], **kwargs: Any) -> None:

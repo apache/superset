@@ -107,6 +107,21 @@ function getNewChartTimeRange(
   return getDatasetDefaultTimeRange(dataset);
 }
 
+/**
+ * Returns the range of the time filter Explore adds while it opens a chart: a
+ * new chart's initial range, or the instance default for a saved chart so that
+ * opening it doesn't change its query.
+ */
+export function getInitialTimeRange(
+  isNewChart: boolean,
+  formData: QueryFormData,
+  defaultTimeFilter?: string,
+): string {
+  return (
+    (isNewChart && formData.time_range) || defaultTimeFilter || NO_TIME_RANGE
+  );
+}
+
 export const hydrateExplore =
   ({
     form_data,
@@ -275,13 +290,13 @@ export const hydrateExplore =
     // apply initial mapStateToProps for all controls, must execute AFTER
     // bootstrapState has initialized `controls`. Order of execution is not
     // guaranteed, so controls shouldn't rely on each other's mapped state.
-    // New charts seed an ad hoc time filter with the same initial range, and
-    // opening a saved chart keeps the instance default.
     const controlPanelState = {
       ...exploreState,
-      initialTimeRange: isNewChart
-        ? initialFormData.time_range
-        : common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
+      initialTimeRange: getInitialTimeRange(
+        isNewChart,
+        initialFormData,
+        common?.conf?.DEFAULT_TIME_FILTER,
+      ),
     };
     Object.entries(exploreState.controls).forEach(([key, controlState]) => {
       exploreState.controls[key] = applyMapStateToPropsToControl(
