@@ -872,3 +872,23 @@ def test_expression_schema_outage_keeps_chart_keys_viewer_scoped(
     assert keys() == ["rls-predicate-parse-failed-for-user-alice"]
     viewer.name = "bob"
     assert keys() == ["rls-predicate-parse-failed-for-user-bob"]
+
+
+def test_embedded_credential_partitions_column_values_cache_key(
+    app_context: None, mocker: Any
+) -> None:
+    """A guest's filter values never share an entry with a logged-in user's."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    datasource = SqlaTable(table_name="t", database=database, columns=[])
+    logged_in = _key(datasource)
+
+    mocker.patch.object(
+        Database,
+        "get_embedded_fallback_credentials",
+        return_value={"username": "svc", "password": "pw"},
+    )
+
+    assert _key(datasource) != logged_in
