@@ -870,15 +870,21 @@ EXPAND_CHART_TABLE_CLIP_JS = f"""
     // its own until that child has grown, so it is invisible to the gate
     // below on the pass that lifts the child. A chart nested deeper than a
     // fixed pass count would keep an outer wrapper clipped and cut rows --
-    // hence a bound taken from the chain itself. This terminates: every pass
-    // either lifts at least one node or breaks out.
+    // hence a bound taken from the chain itself. A node is lifted once: one
+    // that still reports overflow afterwards (e.g. an absolutely positioned
+    // descendant hanging past its bottom, or an `!important` height) has
+    // nothing more to give, and re-checking it would keep every pass alive
+    // until the bound -- one read per chain node per pass. So each pass lifts
+    // at least one new node or breaks out.
+    const pending = new Set(chain);
     for (let pass = 0; pass <= chain.size; pass += 1) {{
         // Read every node before writing any, so each pass costs one layout.
-        const clipped = Array.from(chain).filter(
+        const clipped = Array.from(pending).filter(
             (el) => el.scrollHeight > el.clientHeight + 1
         );
         if (!clipped.length) {{ break; }}
         clipped.forEach((el) => {{
+            pending.delete(el);
             el.style.overflow = 'visible';
             el.style.height = 'auto';
             el.style.maxHeight = 'none';

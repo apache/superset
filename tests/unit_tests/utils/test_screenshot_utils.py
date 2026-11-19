@@ -2648,6 +2648,9 @@ body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
   width: 100%; }
 .nest-root { height: 568px; width: 760px; overflow: hidden; }
 .nest-fill { height: 100%; overflow: hidden; }
+.cards { height: 568px; overflow: auto; }
+.card { height: 40px; overflow: hidden; position: relative; }
+.badge { position: absolute; bottom: -20px; }
 td { height: 24px; padding: 0 4px; border: 1px solid #888; font: 12px sans-serif; }
 td.marker { background: #222; color: #fff; }
 """
@@ -2668,6 +2671,9 @@ _CHART_CAPTURE_WIDTH_PX = 800
 # cap the device-pixel budget replaced, while staying far inside that budget.
 _INLINE_OVERFLOW_PARITY_ROWS = 1000
 _REPLACED_FIXED_CAP_PX = 16384
+# Enough clipped boxes that re-reading all of them on every pass of the
+# fixed-point loop is measurably quadratic.
+_OVERFLOWING_CARD_COUNT = 200
 
 
 def _chart_capture_rows(n_rows: int) -> str:
@@ -2734,6 +2740,22 @@ def _deeply_nested_chart_body(n_rows: int) -> str:
     for _ in range(_NESTED_CLIP_DEPTH - 1):
         html = f'<div class="nest-fill">{html}</div>'
     return f'<div class="nest-root">{html}</div>'
+
+
+def _overflowing_cards_chart_body(n_cards: int) -> str:
+    """A chart made of `n_cards` fixed-height clipped boxes, each holding its
+    own small table and a badge hanging below its bottom edge.
+
+    A card still reports overflow after it has been lifted, because the badge
+    is positioned past the bottom of its box -- the shape that makes
+    re-checking already-lifted nodes on every pass expensive."""
+    cards = "".join(
+        '<div class="card"><table><tbody>'
+        f"<tr><td>row {i} a</td></tr><tr><td>row {i} b</td></tr>"
+        '</tbody></table><span class="badge">b</span></div>'
+        for i in range(n_cards)
+    )
+    return f'<div class="cards">{cards}</div>'
 
 
 def _legend_and_canvas_chart_body(_n_rows: int) -> str:
@@ -3149,6 +3171,50 @@ def test_expansion_lifts_more_wrappers_than_a_fixed_pass_count() -> None:
 
     assert table_height > _NESTED_CLIP_WRAPPER_HEIGHT_PX
     _assert_markers_painted(png, markers)
+
+
+def test_expansion_does_not_revisit_a_node_that_stays_overflowing() -> None:
+    """A node that still reports overflow after being lifted has nothing more
+    to give, and re-checking it keeps every pass of the fixed-point loop alive
+    until the bound -- one `scrollHeight` read per chain node per pass, which
+    is quadratic in the size of the chain. Each node is lifted at most once, so
+    the work stays proportional to the chain."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(
+        _overflowing_cards_chart_body(_OVERFLOWING_CARD_COUNT), "bare"
+    )
+    with _chart_capture_page(html) as page:
+        page.evaluate(
+            """() => {
+                window.__scrollHeightReads = 0;
+                const inherited = Object.getOwnPropertyDescriptor(
+                    Element.prototype, 'scrollHeight'
+                );
+                Object.defineProperty(Element.prototype, 'scrollHeight', {
+                    configurable: true,
+                    get() {
+                        window.__scrollHeightReads += 1;
+                        return inherited.get.call(this);
+                    },
+                });
+            }"""
+        )
+        # The cards really do clip before the expansion runs, so a cheap pass
+        # would not be cheap merely because it had nothing to do.
+        assert page.evaluate(
+            "document.querySelector('.card').scrollHeight > "
+            "document.querySelector('.card').clientHeight + 1"
+        )
+        WebDriverPlaywright._expand_scrollable_content(
+            page, element_name="chart-container"
+        )
+        reads = page.evaluate("window.__scrollHeightReads")
+
+    assert reads < 10 * _OVERFLOWING_CARD_COUNT, (
+        f"{reads} scrollHeight reads for {_OVERFLOWING_CARD_COUNT} clipped "
+        "boxes: the loop is re-checking nodes it has already lifted"
+    )
 
 
 # App config for the production `get_screenshot` path, with the tiling
