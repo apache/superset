@@ -19,13 +19,15 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from flask import g
 from pytest_mock import MockerFixture
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Query
 from sqlalchemy.orm.session import Session
 
 from superset.commands.importers.v1.utils import import_tag
 from superset.extensions import feature_flag_manager
-from superset.tags.models import Tag, TaggedObject
+from superset.tags.models import Tag, TaggedObject, TagType
 
 OBJECT_ID = 1
 OBJECT_TYPE = "chart"
@@ -67,7 +69,7 @@ def test_conflicting_tag_does_not_poison_the_session(
     The race is reproduced by committing the association up front and making the
     existence check miss it once, which is exactly what the losing importer sees.
     """
-    conflicting_tag = Tag(name="tag_1", description="first", type="custom")
+    conflicting_tag = Tag(name="tag_1", description="first", type=TagType.custom)
     session_with_schema.add(conflicting_tag)
     session_with_schema.flush()
     session_with_schema.add(
@@ -137,3 +139,45 @@ def test_all_tags_import_when_nothing_conflicts(
         .count()
         == 2
     )
+
+
+def test_unrelated_pending_flush_failure_propagates(
+    session_with_schema: Session,
+) -> None:
+    """
+    A flush failure in the caller's own pending state is an outer-transaction
+    error, not a tag error: it must reach the caller instead of being swallowed
+    by the per-tag handler (where begin_nested()'s pre-SAVEPOINT flush would
+    otherwise raise it).
+    """
+    tag = Tag(name="tag_1", description="first", type=TagType.custom)
+    session_with_schema.add(tag)
+    session_with_schema.flush()
+    session_with_schema.add(
+        TaggedObject(tag_id=tag.id, object_id=OBJECT_ID, object_type=OBJECT_TYPE)
+    )
+    session_with_schema.commit()
+
+    # unrelated pending state that cannot be flushed: a duplicate association
+    session_with_schema.add(
+        TaggedObject(tag_id=tag.id, object_id=OBJECT_ID, object_type=OBJECT_TYPE)
+    )
+
+    # import_tag runs inside the asset import's outer transaction, so its
+    # @transaction() wrapper is a pass-through and the caller sees the raw error
+    g.in_transaction = True
+    try:
+        with (
+            patch.object(feature_flag_manager, "is_feature_enabled", return_value=True),
+            session_with_schema.no_autoflush,
+            pytest.raises(IntegrityError),
+        ):
+            import_tag(
+                ["tag_2"],
+                CONTENTS,
+                OBJECT_ID,
+                OBJECT_TYPE,
+                session_with_schema,
+            )
+    finally:
+        g.in_transaction = False

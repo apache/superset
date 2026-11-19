@@ -501,6 +501,13 @@ def import_tag(
     # run managed to write their association
     resolved_target_tag_ids: set[int] = set()
 
+    # begin_nested() flushes pending session state before it emits the
+    # SAVEPOINT, so a failure in the caller's unrelated pending changes would
+    # otherwise surface inside the per-tag handler below and be swallowed as a
+    # tag error. Flush here, outside that handler, so such a failure propagates
+    # to the caller as the outer-transaction error it is.
+    db_session.flush()
+
     for tag_name in target_tag_names:
         tag = None
         try:
