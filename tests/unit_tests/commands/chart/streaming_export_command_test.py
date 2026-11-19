@@ -25,7 +25,7 @@ from flask.globals import _cv_request
 from flask_appbuilder.security.sqla.models import User
 from flask_login import current_user
 from pytest_mock import MockerFixture
-from sqlalchemy import inspect
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import DetachedInstanceError
 
@@ -286,6 +286,23 @@ def test_streaming_execution_options_enabled(mocker: MockerFixture) -> None:
     list(generator)
 
     mock_connection.execution_options.assert_called_once_with(stream_results=True)
+
+
+def test_literal_bind_param_token_in_sql_executes_on_real_engine(
+    mocker: MockerFixture,
+) -> None:
+    """A literal ``:name`` in the SQL must not be parsed as a bind parameter."""
+    sql = "SELECT ':email' AS literal, 'a:b' AS other"
+    _, query_context, datasource = _setup_chart_mocks(mocker, sql=sql)
+
+    engine = create_engine("sqlite://")
+    datasource.database.get_sqla_engine.return_value.__enter__.return_value = engine
+
+    command = StreamingCSVExportCommand(query_context)
+    csv_data = "".join(command.run()())
+
+    lines = [line.strip() for line in csv_data.strip().split("\n")]
+    assert lines == ["literal,other", ":email,a:b"]
 
 
 def test_empty_result_set(mocker: MockerFixture) -> None:
