@@ -36,6 +36,7 @@ import {
 } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
+  convertFilter,
   FeatureFlag,
   isFeatureEnabled,
   SupersetClient,
@@ -1579,4 +1580,44 @@ test('late suggestions cannot repopulate a different selection version', async (
   } finally {
     get.mockRestore();
   }
+});
+
+test('picking a date range on a drilled bucket filters raw dates without a grain', () => {
+  const drilled = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'order_date',
+    operator: '==',
+    operatorId: Operators.Equals,
+    comparator: Date.UTC(2004, 0, 1),
+    timeGrain: 'P1M',
+    clause: Clauses.Where,
+  });
+  const props = setup({ adhocFilter: drilled });
+  const { onDatePickerChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onDatePickerChange('order_date', '2004-01-15 : 2004-02-15');
+  const edited = props.onChange.mock.calls.at(-1)?.[0];
+  expect(edited.timeGrain).toBeUndefined();
+  expect(convertFilter(edited)).toEqual({
+    col: 'order_date',
+    op: 'TEMPORAL_RANGE',
+    val: '2004-01-15 : 2004-02-15',
+  });
+});
+
+test('changing a drilled bucket comparison operator drops its grain', () => {
+  const props = setup({
+    adhocFilter: new AdhocFilter({
+      ...simpleAdhocFilter,
+      operator: '==',
+      operatorId: Operators.Equals,
+      timeGrain: 'P1M',
+    }),
+  });
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onOperatorChange(Operators.NotEquals);
+  expect(props.onChange.mock.calls.at(-1)?.[0].timeGrain).toBeUndefined();
 });

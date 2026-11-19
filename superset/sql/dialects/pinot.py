@@ -53,7 +53,14 @@ class Pinot(MySQL):
 
     class Parser(MySQL.Parser):
         FUNCTIONS = {
-            **MySQL.Parser.FUNCTIONS,
+            **{
+                name: func
+                for name, func in MySQL.Parser.FUNCTIONS.items()
+                # MySQL's TIMESTAMPADD(unit, n, ts) is generated back as
+                # DATE_ADD(ts, INTERVAL n unit), which Pinot does not accept;
+                # leaving it anonymous keeps Pinot's own call shape.
+                if name != "TIMESTAMPADD"
+            },
             "DATE_ADD": lambda args: exp.DateAdd(
                 this=seq_get(args, 2),
                 expression=seq_get(args, 1),

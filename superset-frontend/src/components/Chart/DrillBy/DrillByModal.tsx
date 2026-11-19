@@ -17,7 +17,14 @@
  * under the License.
  */
 
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
@@ -401,22 +408,38 @@ export default function DrillByModal({
     [handleDownload],
   );
 
+  const chartDataController = useRef<AbortController>();
   const handleReload = useCallback(() => {
+    chartDataController.current?.abort();
     setChartDataResult(undefined);
     setIsChartDataLoading(true);
 
-    requestChartDataResolved({
-      formData: drilledFormData,
-      requestParams: { async_mode_override: asyncModeOverride },
-    })
+    const controller = new AbortController();
+    chartDataController.current = controller;
+    requestChartDataResolved(
+      {
+        formData: drilledFormData,
+        requestParams: {
+          async_mode_override: asyncModeOverride,
+          signal: controller.signal,
+        },
+      },
+      controller.signal,
+    )
       .then(queriesResponse => {
-        setChartDataResult(queriesResponse);
+        if (!controller.signal.aborted) {
+          setChartDataResult(queriesResponse);
+        }
       })
       .catch(() => {
-        addDangerToast(t('Failed to load chart data.'));
+        if (!controller.signal.aborted) {
+          addDangerToast(t('Failed to load chart data.'));
+        }
       })
       .finally(() => {
-        setIsChartDataLoading(false);
+        if (!controller.signal.aborted) {
+          setIsChartDataLoading(false);
+        }
       });
   }, [addDangerToast, asyncModeOverride, drilledFormData]);
 
@@ -491,24 +514,11 @@ export default function DrillByModal({
   });
 
   useEffect(() => {
-    if (drilledFormData) {
-      setIsChartDataLoading(true);
-      setChartDataResult(undefined);
-      requestChartDataResolved({
-        formData: drilledFormData,
-        requestParams: { async_mode_override: asyncModeOverride },
-      })
-        .then(queriesResponse => {
-          setChartDataResult(queriesResponse);
-        })
-        .catch(() => {
-          addDangerToast(t('Failed to load chart data.'));
-        })
-        .finally(() => {
-          setIsChartDataLoading(false);
-        });
-    }
-  }, [addDangerToast, asyncModeOverride, drilledFormData]);
+    handleReload();
+    return () => {
+      chartDataController.current?.abort();
+    };
+  }, [handleReload]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
 
   return (
