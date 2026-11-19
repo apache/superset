@@ -133,11 +133,7 @@ import {
   semanticViewDimensionsToColumns,
   doesChartMatchFilterDatasource,
 } from './utils';
-import {
-  CHART_CUSTOMIZATION_SUPPORTED_TYPES,
-  FILTER_SUPPORTED_TYPES,
-  INPUT_WIDTH,
-} from './constants';
+import { FILTER_SUPPORTED_TYPES, INPUT_WIDTH } from './constants';
 import DependencyList from './DependencyList';
 import { datasetLabel } from 'src/features/semanticLayers/label';
 
@@ -385,10 +381,19 @@ const FiltersConfigForm = (
     .filter(([, { value }]) =>
       value.behaviors?.includes(Behavior.ChartCustomization),
     )
-    .map(([key]) => key as keyof typeof CHART_CUSTOMIZATION_SUPPORTED_TYPES);
+    .map(([key]) => key as ChartCustomizationPlugins);
 
   const loadedDatasets = useSelector<RootState, DatasourcesState>(
     ({ datasources }) => datasources,
+  );
+  const loadedDatasourceValues = Object.values(loadedDatasets);
+  const ordinaryDatasets = loadedDatasourceValues.filter(
+    dataset =>
+      (dataset.datasource_type || dataset.type) !== DatasourceType.SemanticView,
+  );
+  const hasSemanticDataset = loadedDatasourceValues.some(
+    dataset =>
+      (dataset.datasource_type || dataset.type) === DatasourceType.SemanticView,
   );
 
   const charts = useSelector<RootState, ChartsState>(({ charts }) => charts);
@@ -453,12 +458,24 @@ const FiltersConfigForm = (
   // have independent id sequences, so a type taken from elsewhere would bind a
   // different object.
   const resolveBinding = (): DatasourceBinding | undefined => {
+    if (
+      isDynamicGroupBy &&
+      formSelection?.type === DatasourceType.SemanticView
+    ) {
+      return undefined;
+    }
     if (formSelection) {
       return formSelection;
     }
     const savedTarget = isChartCustomization
       ? customizationToEdit?.targets?.[0]
       : filterToEdit?.targets?.[0];
+    if (
+      isDynamicGroupBy &&
+      savedTarget?.datasourceType === DatasourceType.SemanticView
+    ) {
+      return undefined;
+    }
     // Customizations treat a legacy `0` id as unresolved; filters accept any id.
     const savedId = isChartCustomization
       ? savedTarget?.datasetId || undefined
@@ -471,7 +488,17 @@ const FiltersConfigForm = (
         type: savedTarget?.datasourceType || DatasourceType.Table,
       };
     }
-    return mostUsedDataset(loadedDatasets, charts);
+    const defaultBinding = mostUsedDataset(loadedDatasets, charts);
+    if (
+      isDynamicGroupBy &&
+      defaultBinding?.type === DatasourceType.SemanticView
+    ) {
+      const dataset = ordinaryDatasets[0];
+      return dataset
+        ? { id: dataset.id, type: DatasourceType.Table }
+        : undefined;
+    }
+    return defaultBinding;
   };
 
   const effectiveBinding = loadFailed ? undefined : resolveBinding();
@@ -1332,16 +1359,27 @@ const FiltersConfigForm = (
                     >
                       <Select
                         ariaLabel={t('Customization type')}
-                        options={chartCustomizationVizTypes.map(pluginKey => {
-                          const name =
-                            // @ts-expect-error
-                            nativeFilterAndCustomizationItems[pluginKey]?.value
-                              ?.name;
-                          return {
-                            value: pluginKey,
-                            label: name || pluginKey,
-                          };
-                        })}
+                        options={chartCustomizationVizTypes
+                          .filter(
+                            pluginKey =>
+                              ordinaryDatasets.length > 0 ||
+                              !hasSemanticDataset ||
+                              customizationToEdit?.filterType === pluginKey ||
+                              pluginKey !==
+                                ChartCustomizationPlugins.DynamicGroupBy,
+                          )
+                          .map(pluginKey => {
+                            const item =
+                              nativeFilterAndCustomizationItems[pluginKey];
+                            const name =
+                              item && 'value' in item
+                                ? item.value.name
+                                : undefined;
+                            return {
+                              value: pluginKey,
+                              label: name || pluginKey,
+                            };
+                          })}
                         optionRender={option => (
                           <span
                             data-test={getOptionDataTest(
@@ -1358,7 +1396,23 @@ const FiltersConfigForm = (
                             controlValues: {},
                             defaultDataMask: null,
                             column: null,
+                            ...(value ===
+                              ChartCustomizationPlugins.DynamicGroupBy &&
+                            datasourceType === DatasourceType.SemanticView
+                              ? {
+                                  dataset: undefined,
+                                  datasetInfo: undefined,
+                                  datasourceType: undefined,
+                                }
+                              : {}),
                           });
+                          if (
+                            value ===
+                              ChartCustomizationPlugins.DynamicGroupBy &&
+                            datasourceType === DatasourceType.SemanticView
+                          ) {
+                            setDatasetDetails(undefined);
+                          }
                           forceUpdate();
                           formChanged();
                         }}
@@ -1444,7 +1498,7 @@ const FiltersConfigForm = (
                   <StyledRowContainer justify="space-between">
                     {showDataset ? (
                       <StyledFormItem
-                        key={datasetSelectKey}
+                        key={`${datasetSelectKey}-${isDynamicGroupBy}`}
                         expanded={expanded}
                         name={['filters', filterId, 'dataset']}
                         label={<StyledLabel>{datasetLabel()}</StyledLabel>}
@@ -1483,6 +1537,7 @@ const FiltersConfigForm = (
                         {...getFiltersConfigModalTestId('datasource-input')}
                       >
                         <DatasetSelect
+                          excludeSemanticViews={isDynamicGroupBy}
                           onChange={(value: {
                             label: string | React.ReactNode;
                             value: number;

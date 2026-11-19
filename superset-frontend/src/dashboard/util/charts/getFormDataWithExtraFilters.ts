@@ -36,7 +36,10 @@ import {
   ChartQueryPayload,
   ActiveFilters,
 } from 'src/dashboard/types';
-import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
+import {
+  getExtraFormData,
+  isHiddenSemanticCustomization,
+} from 'src/dashboard/components/nativeFilters/utils';
 import { ChartCustomizationPlugins } from 'src/constants';
 import { isChartCustomization } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { isEqual } from 'lodash-es';
@@ -510,7 +513,7 @@ export default function getFormDataWithExtraFilters({
   ownColorScheme,
   colorNamespace,
   sliceId,
-  dataMask,
+  dataMask: allDataMask,
   extraControls,
   labelsColor,
   labelsColorMap,
@@ -520,6 +523,18 @@ export default function getFormDataWithExtraFilters({
   activeFilters: passedActiveFilters,
   sourceDatasources,
 }: GetFormDataWithExtraFiltersArguments) {
+  const hiddenCustomizationIds = new Set(
+    (chartCustomizationItems ?? [])
+      .filter(isHiddenSemanticCustomization)
+      .map(item => item.id),
+  );
+  const dataMask = hiddenCustomizationIds.size
+    ? (Object.fromEntries(
+        Object.entries(allDataMask).filter(
+          ([id]) => !hiddenCustomizationIds.has(id),
+        ),
+      ) as DataMaskStateWithId)
+    : allDataMask;
   const ignoredFilterIds = getIgnoredDashboardFilterIds(
     chart.form_data ?? {},
     nativeFilters,
@@ -532,6 +547,9 @@ export default function getFormDataWithExtraFilters({
     semantic_selection_version: chart.form_data?.semantic_selection_version,
     semantic_selection_sources: chart.form_data?.semantic_selection_sources,
   };
+  const isSemanticChart = String(chart.form_data?.datasource).endsWith(
+    '__semantic_view',
+  );
   const cachedFormData = cachedFormdataByChart[sliceId];
   const dataMaskEqual = areObjectsEqual(cachedFormData?.dataMask, dataMask, {
     ignoreUndefined: true,
@@ -665,7 +683,13 @@ export default function getFormDataWithExtraFilters({
         (customization.chartsInScope == null ||
           customization.chartsInScope.includes(chart.id));
 
-      if (isInScope) {
+      const isUnsupportedGroupBy =
+        customization &&
+        (isHiddenSemanticCustomization(customization) ||
+          (isSemanticChart &&
+            customization.filterType ===
+              ChartCustomizationPlugins.DynamicGroupBy));
+      if (isInScope && !isUnsupportedGroupBy) {
         customizationIds.push(key);
       }
 
@@ -681,10 +705,11 @@ export default function getFormDataWithExtraFilters({
     }
   });
 
-  const groupByCustomizations =
-    chartCustomizationItems?.filter(
-      item => item.filterType === 'chart_customization_dynamic_groupby',
-    ) || [];
+  const groupByCustomizations = isSemanticChart
+    ? []
+    : chartCustomizationItems?.filter(
+        item => item.filterType === ChartCustomizationPlugins.DynamicGroupBy,
+      ) || [];
 
   const { formData: groupByFormData, appliedIds: appliedGroupByIds } =
     processGroupByCustomizations(groupByCustomizations, chart, groupByState);

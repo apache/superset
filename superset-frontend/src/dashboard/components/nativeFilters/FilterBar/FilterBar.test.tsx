@@ -43,6 +43,7 @@ import {
 import fetchMock from 'fetch-mock';
 import type { Store } from 'redux';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
+import { ChartCustomizationPlugins } from 'src/constants';
 import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
@@ -291,6 +292,104 @@ function renderFilterBar(
     },
   );
 }
+
+function hiddenSemanticCustomization(required = false) {
+  return {
+    id: 'CHART_CUSTOMIZATION-semantic',
+    type: 'CHART_CUSTOMIZATION',
+    name: 'Hidden group by',
+    filterType: ChartCustomizationPlugins.DynamicGroupBy,
+    targets: [{ datasetId: 7, datasourceType: 'semantic_view' }],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    controlValues: { enableEmptyFilter: required },
+    defaultDataMask: {},
+  };
+}
+
+test('a hidden semantic display control does not block Apply or enable Clear all', async () => {
+  const customization = hiddenSemanticCustomization(true);
+  const filter = createFilter({
+    id: 'NATIVE_FILTER-visible',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    chartsInScope: [18],
+  });
+  const state = {
+    ...createStateWithFilter(
+      filter,
+      createDataMask(filter.id, ['East'], {
+        filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+      }),
+    ),
+    dashboardInfo: {
+      ...stateWithoutNativeFilters.dashboardInfo,
+      metadata: {
+        ...stateWithoutNativeFilters.dashboardInfo.metadata,
+        native_filter_configuration: [filter],
+        chart_customization_config: [customization],
+      },
+    },
+  };
+  renderFilterBar(createOpenedBarProps(), state);
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+  expect(screen.getByTestId(getTestId('clear-button'))).toBeEnabled();
+  await act(async () => {
+    await userEvent.click(screen.getByTestId(getTestId('clear-button')));
+  });
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
+});
+
+test('a hidden semantic display control does not populate the filter bar', async () => {
+  const customization = hiddenSemanticCustomization(true);
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      ...stateWithoutNativeFilters.dashboardInfo,
+      metadata: {
+        ...stateWithoutNativeFilters.dashboardInfo.metadata,
+        chart_customization_config: [customization],
+      },
+    },
+    dataMask: {
+      [customization.id]: createDataMask(customization.id, ['status']),
+    },
+  };
+  renderFilterBar(createOpenedBarProps(), state);
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+  expect(screen.getByTestId(getTestId('clear-button'))).toBeDisabled();
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+  expect(
+    screen.getByText('No global filters are currently added'),
+  ).toBeInTheDocument();
+});
+
+test('a hidden semantic display control leaves the horizontal bar empty', async () => {
+  const customization = hiddenSemanticCustomization();
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    initialState: {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        ...stateWithoutNativeFilters.dashboardInfo,
+        metadata: {
+          ...stateWithoutNativeFilters.dashboardInfo.metadata,
+          chart_customization_config: [customization],
+        },
+      },
+    },
+    useDnd: true,
+    useRedux: true,
+    useRouter: true,
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+  expect(
+    screen.getByText('No filters are currently added to this dashboard.'),
+  ).toBeInTheDocument();
+});
 
 test('FilterBar renders without crashing', () => {
   const props = createClosedBarProps();

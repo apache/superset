@@ -8394,6 +8394,9 @@ msgstr "اتجاهي"
 msgid "Dynamic group by"
 msgstr "لم يتم تجميعها بواسطة"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "وظيفة التجميع الديناميكي"

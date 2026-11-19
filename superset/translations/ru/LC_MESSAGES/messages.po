@@ -7637,6 +7637,9 @@ msgstr "Динамическое название раздела"
 msgid "Dynamic group by"
 msgstr "Динамическая группировка"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Динамическое описание раздела"
 

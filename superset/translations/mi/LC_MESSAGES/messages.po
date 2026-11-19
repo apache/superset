@@ -8068,6 +8068,9 @@ msgstr "Ahunga"
 msgid "Dynamic group by"
 msgstr "KĀORE I RŌPŪNGIA MĀ"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Taumahi Whakaarotau Autōkē"

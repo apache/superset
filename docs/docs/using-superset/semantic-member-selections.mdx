@@ -110,6 +110,15 @@ the provider exposes several time-grain variants of that member. This matches
 Explore's column list: choosing a filter column selects the member, not a grain
 variant. Distinct member names remain separate choices.
 
+## Dynamic group by display controls
+
+Dynamic group by display controls are available for ordinary datasets, not
+semantic views. On a dashboard with only semantic views, the control is absent
+from the add menu. On a mixed dashboard, its datasource picker lists ordinary
+datasets only. Previously saved controls targeting semantic views remain in the
+dashboard configuration, but are hidden from viewers and do not change chart
+requests. In the editor, such a control shows a notice and can only be removed.
+
 ## NULL filter values
 
 For semantic views, a selected NULL value means a missing value, rather than SQL's

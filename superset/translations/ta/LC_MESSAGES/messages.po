@@ -7846,6 +7846,9 @@ msgstr "திசைசார்ந்த (Directional)"
 msgid "Dynamic group by"
 msgstr "டைனமிக் குழுவாக்கம்"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "டைனமிக் அக்ரிகேஷன் சார்பு"
