@@ -181,10 +181,16 @@ const hasFilterValue = (value: unknown): boolean =>
 
 /**
  * Determines which filters should be applied when the Apply button is clicked.
+ *
+ * Out-of-scope filters are applied only when they hold a value, so an
+ * uninitialized control on another tab cannot wipe its applied selection.
+ * `forceApplyIds` overrides that for filters whose cleared value is
+ * intentional, such as descendants cleared by a parent filter change.
  */
 export const getFiltersToApply = (
   dataMaskSelected: DataMaskStateWithId,
   inScopeFilterIds: Set<string>,
+  forceApplyIds: ReadonlySet<string> = new Set(),
 ): string[] =>
   Object.entries(dataMaskSelected)
     .filter(([filterId, dataMask]) => {
@@ -194,7 +200,7 @@ export const getFiltersToApply = (
       const hasValue = hasFilterValue(dataMask.filterState?.value);
 
       // Apply if in-scope OR if out-of-scope with a value
-      return isInScope || hasValue;
+      return isInScope || hasValue || forceApplyIds.has(filterId);
     })
     .map(([filterId]) => filterId);
 

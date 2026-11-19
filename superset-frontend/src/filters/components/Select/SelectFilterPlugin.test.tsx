@@ -2032,6 +2032,80 @@ test('cascade clear cancels a pending LIKE debounce so stale text is not re-appl
   expect(setDataMaskMock).toHaveBeenCalledTimes(callsBeforeDebounceFlush);
 });
 
+test('cascade clear re-seeds a defaultToFirstItem filter from the re-scoped options, not the stale ones', async () => {
+  const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: { defaultToFirstItem: true, multiSelect: false },
+    filterState: { value: ['boy'] },
+    setDataMask: setDataMaskMock,
+  });
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'IN', val: ['boy'] }],
+          },
+          filterState: { value: ['boy'] },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(<SelectFilterPlugin {...props} />, reduxState);
+  setDataMaskMock.mockClear();
+
+  // The parent changed: the cascade stages an undefined value and clears this
+  // filter. The options on hand still belong to the old parent selection.
+  const clearedProps = { ...props, filterState: { value: undefined } };
+  rerender(
+    <SelectFilterPlugin
+      {...clearedProps}
+      cascadeClearTrigger={{ 'test-filter': true }}
+    />,
+  );
+  await act(async () => {});
+
+  // The filter bar consumes the trigger and starts loading the re-scoped
+  // options, handing down fresh form data alongside the stale options.
+  rerender(
+    <SelectFilterPlugin
+      {...clearedProps}
+      formData={{ ...props.formData, groupby: ['gender'] }}
+      isRefreshing
+    />,
+  );
+  await act(async () => {});
+
+  expect(setDataMaskMock).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({ value: ['boy'] }),
+    }),
+  );
+
+  // The re-scoped options arrive: the first of them is picked.
+  rerender(
+    <SelectFilterPlugin
+      {...clearedProps}
+      formData={{ ...props.formData, groupby: ['gender'] }}
+      isRefreshing={false}
+      data={[{ gender: 'girl' }, { gender: 'boy' }]}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({ value: ['girl'] }),
+      }),
+    );
+  });
+});
+
 test('cascade clear publishes an empty server search after a settled search', async () => {
   jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();

@@ -2356,6 +2356,136 @@ describe('cascading native filter clear', () => {
     expect(childCall![1]?.extraFormData).toEqual({});
   });
 
+  test('a defaultToFirstItem child applied before its options load commits the first option once they arrive', async () => {
+    const defaultFirstChildId = 'NATIVE_FILTER-cascade-default-first';
+    const defaultFirstChild = createFilter({
+      id: defaultFirstChildId,
+      name: 'Default City',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'city' } }],
+      cascadeParentIds: [parentId],
+      controlValues: { defaultToFirstItem: true },
+      chartsInScope: [18],
+    });
+
+    // City options for the UK are held back until released, so Apply can be
+    // clicked while the child is still resolving its new first option.
+    let releaseUkCities: () => void = () => {};
+    const ukCities = new Promise<void>(resolve => {
+      releaseUkCities = resolve;
+    });
+    const cityResponse = (city: string) => ({
+      result: [
+        {
+          data: [{ city }],
+          colnames: ['city'],
+          coltypes: [1],
+          applied_filters: [],
+        },
+      ],
+    });
+    fetchMock.removeRoutes();
+    fetchMock.post('glob:*/api/v1/chart/data', async ({ options }) => {
+      const body = String(options.body);
+      if (!body.includes('"city"')) {
+        return {
+          result: [
+            {
+              data: [{ country: 'USA' }, { country: 'UK' }],
+              colnames: ['country'],
+              coltypes: [1],
+              applied_filters: [],
+            },
+          ],
+        };
+      }
+      if (body.includes('"UK"')) {
+        await ukCities;
+        return cityResponse('London');
+      }
+      return cityResponse('Champaign');
+    });
+
+    const baseState = createCascadeState();
+    const state = {
+      ...baseState,
+      nativeFilters: {
+        filters: {
+          [parentId]: baseState.nativeFilters.filters[parentId],
+          [defaultFirstChildId]: defaultFirstChild,
+        },
+        filtersState: {},
+      },
+      dashboardInfo: {
+        ...baseState.dashboardInfo,
+        metadata: {
+          native_filter_configuration: [
+            baseState.dashboardInfo.metadata.native_filter_configuration[0],
+            defaultFirstChild,
+          ],
+          chart_configuration: {},
+        },
+      },
+      dataMask: {
+        [parentId]: createDataMask(parentId, ['USA'], {
+          filters: [{ col: 'country', op: 'IN', val: ['USA'] }],
+        }),
+        [defaultFirstChildId]: createDataMask(
+          defaultFirstChildId,
+          ['Champaign'],
+          { filters: [{ col: 'city', op: 'IN', val: ['Champaign'] }] },
+        ),
+      },
+    };
+    const store: Store = createStore(state, reducerIndex);
+    renderFilterBar(createOpenedBarProps(), undefined, store);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Apply while the UK city options are still loading: the child commits
+    // its cleared value, dropping the stale Champaign clause.
+    await act(async () => {
+      await userEvent.click(screen.getByTestId(getTestId('apply-button')));
+    });
+    expect(
+      (store.getState() as RootState).dataMask[defaultFirstChildId]?.filterState
+        ?.value,
+    ).toBeUndefined();
+
+    // Once the options arrive, the first one is applied without a second
+    // Apply, so the charts use the selection the control shows.
+    await act(async () => {
+      releaseUkCities();
+      jest.advanceTimersByTime(1000);
+    });
+    await waitFor(() => {
+      expect(
+        (store.getState() as RootState).dataMask[defaultFirstChildId]
+          ?.filterState?.value,
+      ).toEqual(['London']);
+    });
+    expect(
+      (store.getState() as RootState).dataMask[defaultFirstChildId]
+        ?.extraFormData?.filters,
+    ).toEqual([{ col: 'city', op: 'IN', val: ['London'] }]);
+  });
+
   test('changing a parent filter value clears a dependent Range child with [null, null]', async () => {
     const rangeChildId = 'NATIVE_FILTER-cascade-age';
     const rangeChildFilter = createFilter({
@@ -2768,7 +2898,7 @@ describe('cascading native filter clear', () => {
     updateDataMaskSpy.mockRestore();
   });
 
-  test('cascading clear only affects in-scope descendants on tabbed dashboards', async () => {
+  test('cascading clear applies the cleared mask to an out-of-scope required descendant without blocking Apply', async () => {
     const outOfScopeChildId = 'NATIVE_FILTER-cascade-neighborhood';
     const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
 
@@ -2877,9 +3007,9 @@ describe('cascading native filter clear', () => {
       jest.advanceTimersByTime(1000);
     });
 
-    // Apply must stay enabled: the out-of-scope required descendant was NOT
-    // cleared, so it stages no validateStatus 'error'. Pre-fix, the staged
-    // error on the out-of-scope required child disabled Apply globally.
+    // Apply must stay enabled: the out-of-scope required descendant is
+    // cleared without a staged validateStatus 'error', which would otherwise
+    // disable Apply from a tab where that filter cannot even be edited.
     const applyBtn = screen.getByTestId(getTestId('apply-button'));
     expect(applyBtn).not.toBeDisabled();
 
@@ -2895,15 +3025,14 @@ describe('cascading native filter clear', () => {
     expect(childCall![1]?.filterState?.value).toEqual(null);
     expect(childCall![1]?.extraFormData).toEqual({});
 
-    // The out-of-scope descendant is cascade-staged but not applied while its
-    // tab is inactive: getFiltersToApply skips out-of-scope filters without a
-    // value, so its stale applied Texas value is left in place for the other
-    // tab. The staged null (no validateStatus 'error' either) is what lets the
-    // descendant show as cleared the moment that tab becomes active.
+    // The out-of-scope descendant's cleared mask is applied too, so the other
+    // tab's charts no longer filter on a Texas value the UK parent excludes.
     const outOfScopeCall = updateDataMaskSpy.mock.calls.find(
       call => call[0] === outOfScopeChildId,
     );
-    expect(outOfScopeCall).toBeUndefined();
+    expect(outOfScopeCall).toBeDefined();
+    expect(outOfScopeCall![1]?.filterState?.value).toEqual(null);
+    expect(outOfScopeCall![1]?.extraFormData).toEqual({});
 
     updateDataMaskSpy.mockRestore();
   });
@@ -2938,7 +3067,7 @@ describe('cascading native filter clear', () => {
     updateDataMaskSpy.mockRestore();
   });
 
-  test('cascade clear stages an invalidation that applies when an out-of-scope descendant tab returns', async () => {
+  test('an out-of-scope descendant cleared by a cascade stays cleared when its tab returns', async () => {
     const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
     const outOfScopeChildId = 'NATIVE_FILTER-cascade-neighborhood';
     const dashboardLayoutWithTabs = {
@@ -3020,7 +3149,7 @@ describe('cascading native filter clear', () => {
       }),
     } as typeof state.dataMask;
 
-    const store = createStore(state, reducerIndex);
+    const store: Store = createStore(state, reducerIndex);
     const props = createOpenedBarProps();
     renderFilterBar(props, undefined, store);
 
@@ -3044,21 +3173,26 @@ describe('cascading native filter clear', () => {
       jest.advanceTimersByTime(1000);
     });
 
-    // Apply on the active tab: the out-of-scope descendant is staged, not
-    // applied (same behavior pinned by the previous test).
+    // Apply on the active tab commits the out-of-scope descendant's clear
+    // right away, not only once its tab is visited.
     const applyBtn = screen.getByTestId(getTestId('apply-button'));
     expect(applyBtn).not.toBeDisabled();
     await act(async () => {
       await userEvent.click(applyBtn);
     });
-    let outOfScopeCall = updateDataMaskSpy.mock.calls.find(
+    const outOfScopeCall = updateDataMaskSpy.mock.calls.find(
       call => call[0] === outOfScopeChildId,
     );
-    expect(outOfScopeCall).toBeUndefined();
+    expect(outOfScopeCall).toBeDefined();
+    expect(outOfScopeCall![1]?.filterState?.value).toEqual(null);
+    expect(outOfScopeCall![1]?.extraFormData).toEqual({});
+    expect(
+      (store.getState() as RootState).dataMask[outOfScopeChildId]
+        ?.extraFormData,
+    ).toEqual({});
 
-    // Switch to the tab the descendant belongs to. Its staged clear is now
-    // applied: the stale Texas selection is gone from the UI.
-    updateDataMaskSpy.mockClear();
+    // Switching to the descendant's tab shows it cleared, and there is no
+    // second staged change left to apply there.
     await act(async () => {
       store.dispatch(setActiveTabs(['TAB-inactive']));
       jest.advanceTimersByTime(1000);
@@ -3069,18 +3203,7 @@ describe('cascading native filter clear', () => {
       '.ant-form-item',
     ) as HTMLElement;
     expect(within(neighborhoodFormItem).queryByText('Texas')).toBeNull();
-
-    // And applying from the returned tab dispatches the staged clear.
-    const returnedTabApply = screen.getByTestId(getTestId('apply-button'));
-    await act(async () => {
-      await userEvent.click(returnedTabApply);
-    });
-    outOfScopeCall = updateDataMaskSpy.mock.calls.find(
-      call => call[0] === outOfScopeChildId,
-    );
-    expect(outOfScopeCall).toBeDefined();
-    expect(outOfScopeCall![1]?.filterState?.value).toEqual(null);
-    expect(outOfScopeCall![1]?.extraFormData).toEqual({});
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
     updateDataMaskSpy.mockRestore();
   });

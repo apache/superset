@@ -199,6 +199,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   // the searchAllOptions dispatch once the deferred value catches up.
   const hasSearchedRef = useRef(false);
   const userClearedRef = useRef(false);
+  // Set by a cascade clear of a defaultToFirstItem filter: the options on
+  // hand still belong to the parent's previous selection, so the first option
+  // is only picked once the re-scoped options have loaded.
+  const awaitingCascadeReseedRef = useRef(false);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
@@ -513,6 +517,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     // Skip default values when clearAllTrigger is active to prevent
     // defaults from being applied during Clear All operation
     if (!clearAllTrigger) {
+      if (awaitingCascadeReseedRef.current) {
+        // Re-seeded by the effect below once the re-scoped options load.
+        return;
+      }
       if (defaultToFirstItem && !userClearedRef.current) {
         // Set to first item if defaultToFirstItem is true
         const firstItem: SelectValue = data[0]
@@ -578,6 +586,26 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   ]);
 
   useEffect(() => {
+    if (!awaitingCascadeReseedRef.current || isRefreshing) {
+      return;
+    }
+    if (!defaultToFirstItem || filterState.value !== undefined) {
+      // Something else settled the value (a user pick, a clear-all, or a
+      // config change) before the re-scoped options arrived.
+      awaitingCascadeReseedRef.current = false;
+      return;
+    }
+    const firstItem: SelectValue = data[0]
+      ? (groupby.map(col => data[0][col]) as string[])
+      : null;
+    if (firstItem?.[0] !== undefined) {
+      awaitingCascadeReseedRef.current = false;
+      updateDataMask(firstItem);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, isRefreshing]);
+
+  useEffect(() => {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
 
@@ -600,6 +628,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         // The cascade asks this filter to resolve to the first option of its
         // new scope, so an earlier manual clear must not block the re-seed.
         userClearedRef.current = false;
+        awaitingCascadeReseedRef.current = true;
       }
       settleSearch.cancel();
       settleLikeValue.cancel();

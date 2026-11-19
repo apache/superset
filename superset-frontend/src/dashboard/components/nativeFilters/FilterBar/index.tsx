@@ -308,6 +308,16 @@ const FilterBar: FC<FiltersBarProps> = ({
   const [initializedFilters, setInitializedFilters] = useState<Set<string>>(
     new Set(),
   );
+  // Descendants whose selection a parent change has cleared since the last
+  // Apply. Apply commits their cleared mask even when they are out of scope,
+  // so a tab that is not visible never keeps a selection its parent no longer
+  // allows.
+  const cascadeClearedIdsRef = useRef<Set<string>>(new Set());
+  // defaultToFirstItem descendants whose cleared (undefined) value was
+  // applied before their re-scoped options loaded. The first option they
+  // resolve to is applied as soon as it arrives, so the control never shows a
+  // selection the charts are not using.
+  const awaitingReseedIdsRef = useRef<Set<string>>(new Set());
   const [hasClearedChartCustomizations, setHasClearedChartCustomizations] =
     useState(false);
 
@@ -322,20 +332,39 @@ const FilterBar: FC<FiltersBarProps> = ({
         const appliedDataMask = dataMaskApplied[filter.id];
         const isFirstTimeInitialization = !initializedFilters.has(filter.id);
 
+        // A cascade-cleared defaultToFirstItem filter whose cleared value was
+        // applied before its new options loaded commits the first option it
+        // resolves to, instead of waiting for a second Apply.
+        const isAwaitingReseed = awaitingReseedIdsRef.current.has(filter.id);
+        const resolvesAppliedReseed =
+          isAwaitingReseed &&
+          appliedDataMask?.filterState?.value === undefined &&
+          dataMask.filterState?.value !== undefined &&
+          !!dataMask.extraFormData &&
+          Object.keys(dataMask.extraFormData).length > 0;
+        if (
+          resolvesAppliedReseed ||
+          (isAwaitingReseed &&
+            appliedDataMask?.filterState?.value !== undefined)
+        ) {
+          awaitingReseedIdsRef.current.delete(filter.id);
+        }
+
         // Auto-apply when filter has value but empty extraFormData in applied state
         // This fixes the bug where defaultDataMask.filterState.value exists but extraFormData is empty
         // Only auto-apply if: value matches what's applied AND extraFormData is missing in applied but present in incoming
         const needsAutoApply =
-          appliedDataMask?.filterState?.value !== undefined &&
-          dataMask.filterState?.value !== undefined &&
-          isEqual(
-            appliedDataMask.filterState.value,
-            dataMask.filterState.value,
-          ) &&
-          (!appliedDataMask?.extraFormData ||
-            Object.keys(appliedDataMask.extraFormData || {}).length === 0) &&
-          dataMask.extraFormData &&
-          Object.keys(dataMask.extraFormData).length > 0;
+          resolvesAppliedReseed ||
+          (appliedDataMask?.filterState?.value !== undefined &&
+            dataMask.filterState?.value !== undefined &&
+            isEqual(
+              appliedDataMask.filterState.value,
+              dataMask.filterState.value,
+            ) &&
+            (!appliedDataMask?.extraFormData ||
+              Object.keys(appliedDataMask.extraFormData || {}).length === 0) &&
+            dataMask.extraFormData &&
+            Object.keys(dataMask.extraFormData).length > 0);
 
         // Force instant updating for requiredFirst filters or auto-apply when needed
         const shouldDispatch =
@@ -433,7 +462,12 @@ const FilterBar: FC<FiltersBarProps> = ({
             if (!childMask) return;
             const childFilter = filters[childId];
             const childInScope = inScopeFilterIds.has(childId);
-            childMask.extraFormData = {};
+            childMask.extraFormData = withNativeFilterProvenance(
+              { extraFormData: {} },
+              childFilter?.filterType ?? '',
+              childFilter?.targets?.[0],
+            ).extraFormData;
+            cascadeClearedIdsRef.current.add(childId);
             const { filterState } = childMask;
             if (filterState) {
               const childIsRequired =
@@ -447,10 +481,9 @@ const FilterBar: FC<FiltersBarProps> = ({
                 childFilter?.controlValues?.defaultToFirstItem,
               );
               // Out-of-scope descendants are staged Apply-safe: an error
-              // status would disable Apply one tab away, and getFiltersToApply
-              // skips their empty staged value until they enter scope.
-              // Staging the clear anyway means the stale applied selection is
-              // invalidated as soon as the tab comes back into view.
+              // status would disable Apply one tab away. Apply still commits
+              // their cleared mask (see cascadeClearedIdsRef), so the other
+              // tab's charts drop the selection the parent no longer allows.
               filterState.validateStatus =
                 childInScope && childIsRequired ? 'error' : undefined;
             }
@@ -593,6 +626,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     const filtersToApply = getFiltersToApply(
       visibleDataMaskSelected,
       inScopeFilterIds,
+      cascadeClearedIdsRef.current,
     );
 
     dispatch(
@@ -608,9 +642,17 @@ const FilterBar: FC<FiltersBarProps> = ({
     filtersToApply.forEach(filterId => {
       const dataMask = dataMaskSelected[filterId];
       if (dataMask) {
+        if (
+          cascadeClearedIdsRef.current.has(filterId) &&
+          dataMask.filterState?.value === undefined &&
+          filters[filterId]?.controlValues?.defaultToFirstItem
+        ) {
+          awaitingReseedIdsRef.current.add(filterId);
+        }
         dispatch(updateDataMask(filterId, dataMask));
       }
     });
+    cascadeClearedIdsRef.current = new Set();
 
     if (
       pendingCustomizationDataMasks &&

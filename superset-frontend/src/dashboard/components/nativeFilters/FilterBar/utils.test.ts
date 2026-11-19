@@ -767,6 +767,29 @@ test('CRITICAL: getFiltersToApply includes in-scope filters regardless of value'
   expect(result).toContain('in-scope-empty');
 });
 
+test('getFiltersToApply includes forced out-of-scope filters even without a value', () => {
+  const dataMaskSelected: DataMaskStateWithId = {
+    'cascade-cleared': {
+      id: 'cascade-cleared',
+      filterState: { value: null },
+      extraFormData: {},
+    },
+    'untouched-empty': {
+      id: 'untouched-empty',
+      filterState: { value: undefined },
+      extraFormData: {},
+    },
+  };
+
+  const result = getFiltersToApply(
+    dataMaskSelected,
+    new Set(),
+    new Set(['cascade-cleared']),
+  );
+
+  expect(result).toEqual(['cascade-cleared']);
+});
+
 test('CRITICAL: getFiltersToApply includes out-of-scope filters ONLY if they have a value', () => {
   const dataMaskSelected: DataMaskStateWithId = {
     'in-scope': {
