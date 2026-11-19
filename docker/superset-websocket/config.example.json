@@ -17,6 +17,5 @@
   },
   "jwtAlgorithms": ["HS256"],
   "jwtSecret": "CHANGE-ME-IN-PRODUCTION-GOTTA-BE-LONG-AND-SECRET",
-  "previousJwtSecret": "",
-  "jwtCookieName": "superset-ws-token"
+  "previousJwtSecret": ""
 }

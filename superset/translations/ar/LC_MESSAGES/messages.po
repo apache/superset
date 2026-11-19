@@ -8394,6 +8394,9 @@ msgstr "اتجاهي"
 msgid "Dynamic group by"
 msgstr "لم يتم تجميعها بواسطة"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "وظيفة التجميع الديناميكي"
@@ -10804,6 +10807,14 @@ msgstr "إخفاء الخط"
 msgid "Hide chart description"
 msgstr "إخفاء وصف المخطط"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "إخفاء الطبقة"
 
@@ -11498,6 +11509,11 @@ msgstr "حالة غير صالحة."
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "معرّفات علامات تبويب غير صالحة: %(tab_ids)s"
+
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "قيمة تصفية زمنية غير صالحة للعمود %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
