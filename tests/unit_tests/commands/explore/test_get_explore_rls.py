@@ -27,11 +27,13 @@ Two branches are exercised:
 from typing import Any
 from unittest.mock import MagicMock, patch, PropertyMock
 
+import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.explore.get import GetExploreCommand
 from superset.commands.explore.parameters import CommandParameters
 from superset.connectors.sqla.models import SqlaTable
+from superset.models.sql_lab import Query
 from superset.semantic_layers.models import SemanticView
 
 _FULL_FILTER: dict[str, Any] = {
@@ -130,10 +132,17 @@ def test_rls_empty_list_on_dao_exception(
     assert datasource_data["rls_filters"] == []
 
 
-def test_explore_rls_lookup_uses_sql_dataset_identity(mocker: MockerFixture) -> None:
-    """A semantic view cannot inherit SQL RLS metadata from a matching numeric id."""
+@pytest.mark.parametrize("non_sql_type", ["semantic_view", "query"])
+def test_explore_rls_lookup_uses_sql_dataset_identity(
+    mocker: MockerFixture, non_sql_type: str
+) -> None:
+    """Non-table datasources cannot inherit SQL RLS metadata by numeric id."""
     view: SemanticView = SemanticView(id=42, name="orders_view")
     dataset: SqlaTable = SqlaTable(id=42, table_name="orders")
+    query: Query = Query(id=42)
+    mocker.patch.object(
+        Query, "data", new_callable=PropertyMock, return_value={"name": "query"}
+    )
     mocker.patch.object(
         SemanticView,
         "data",
@@ -163,18 +172,22 @@ def test_explore_rls_lookup_uses_sql_dataset_identity(mocker: MockerFixture) -> 
     ).can_access.return_value = True
     datasource_lookup: MagicMock = mocker.patch(
         "superset.commands.explore.get.DatasourceDAO.get_datasource",
-        side_effect=lambda kind, id: view if kind == "semantic_view" else dataset,
+        side_effect=lambda kind, id: {
+            "semantic_view": view,
+            "table": dataset,
+            "query": query,
+        }[kind],
     )
     rls_lookup: MagicMock = mocker.patch(
         "superset.commands.explore.get.DatasetDAO.get_rls_filters_for_dataset",
         return_value=[_FULL_FILTER],
     )
 
-    view_result: dict[str, Any] | None = GetExploreCommand(
-        CommandParameters(None, None, 42, "semantic_view", None)
+    non_sql_result: dict[str, Any] | None = GetExploreCommand(
+        CommandParameters(None, None, 42, non_sql_type, None)
     ).run()
-    assert view_result is not None
-    assert view_result["dataset"].get("rls_filters", []) == []
+    assert non_sql_result is not None
+    assert non_sql_result["dataset"].get("rls_filters", []) == []
     rls_lookup.assert_not_called()
 
     dataset_result: dict[str, Any] | None = GetExploreCommand(
