@@ -28,11 +28,14 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { ensureIsArray } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import type GlobalModel from 'echarts/types/src/model/Global';
 import type CartesianAxisModel from 'echarts/types/src/coord/cartesian/AxisModel';
 
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
