@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { getExtensionsRegistry } from '@superset-ui/core';
+import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
@@ -108,6 +108,7 @@ import {
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 import SSHTunnelForm from './SSHTunnelForm';
 import SSHTunnelSwitch from './SSHTunnelSwitch';
+import { normalizeMetadataCacheTimeouts } from './utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -634,6 +635,7 @@ export function dbReducer(
 
         return {
           ...action.payload,
+          extra: normalizeMetadataCacheTimeouts(action.payload.extra),
           engine: action.payload.backend || trimmedState.engine,
           configuration_method: configurationMethod,
           catalog: engineRootCatalog,
@@ -651,6 +653,7 @@ export function dbReducer(
       }
       return {
         ...action.payload,
+        extra: normalizeMetadataCacheTimeouts(action.payload.extra),
         masked_encrypted_extra: action.payload.masked_encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: configurationMethod,
@@ -754,6 +757,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     db?.engine_information?.query_cost_warning_metric,
     db?.engine_information?.query_warning_supported,
   );
+  // Bumped after each successful update, so revealed secret endings reset.
+  const [secretsGeneration, setSecretsGeneration] = useState(0);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [
     validationErrors,
@@ -1093,8 +1098,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         errors === null ||
         (Array.isArray(errors) ? errors.length > 0 : !isEmpty(errors));
       if (hasReturnedErrors) {
+        // ``extra`` errors (e.g. an invalid cache timeout) are not rendered
+        // anywhere in the form, so surface the server's explanation here.
+        const extraError = isEmpty(errors)
+          ? undefined
+          : (errors as JsonObject).extra;
         addDangerToast(
-          t('Connection failed, please check your connection settings.'),
+          typeof extraError === 'string'
+            ? extraError
+            : t('Connection failed, please check your connection settings.'),
         );
         setLoading(false);
         return;
@@ -1183,6 +1195,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (result) onDatabaseAdd?.();
       if (!shouldApplyResponse()) return;
       if (result) {
+        setSecretsGeneration(generation => generation + 1);
         dbConfigExtraExtension
           ?.onSave(extraExtensionComponentState, db)
           .then(({ error }: { error: any }) => {
@@ -1193,11 +1206,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         if (dbConfigExtraExtensionOnSaveError) {
           setLoading(false);
+          // The modal stays open on what the server now holds, stored
+          // secret fields included, as the create flow does on Back.
+          fetchResource(db.id as number, getResponseGuard());
           return;
         }
         if (!editNewDb) {
           onClose();
           addSuccessToast(t('Database settings updated'));
+        } else {
+          fetchResource(db.id as number, getResponseGuard());
         }
       }
     } else if (db) {
@@ -2387,6 +2405,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <ExtraOptions
                 extraExtension={dbConfigExtraExtension}
                 db={db as DatabaseObject}
+                secretsGeneration={secretsGeneration}
                 onInputChange={(e: CheckboxChangeEvent) => {
                   const { target } = e;
                   handleChangeWithValidation(ActionType.InputChange, {

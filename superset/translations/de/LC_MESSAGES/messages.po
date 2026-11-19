@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 18:28-0500\n"
+"POT-Creation-Date: 2026-11-19 15:53-0500\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -3498,6 +3498,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "Boxplot"
 
+msgid "Break"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr "Aufschlüsselungen"
 
@@ -5360,6 +5363,10 @@ msgid ""
 msgstr ""
 "Metadaten für diese Konfiguration konnten nicht geladen werden; das "
 "Standardformular wird angezeigt. Details finden Sie in den Server-Logs."
+
+#, python-format
+msgid "Could not load the stored secrets: %s"
+msgstr ""
 
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
@@ -7351,6 +7358,11 @@ msgstr "Bezeichnung für dynamischen Abschnitt"
 msgid "Dynamic group by"
 msgstr "Dynamisch gruppieren nach"
 
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Beschreibung für dynamischen Abschnitt"
 
@@ -7742,6 +7754,10 @@ msgstr "‚Von Datum' kann nicht größer als ‚Bis Datum' sein"
 
 msgid "Ends With"
 msgstr "Endet mit"
+
+#, python-format
+msgid "Ends with %s."
+msgstr ""
 
 #, python-format
 msgid "Ends with (ILIKE %x)"
@@ -8204,6 +8220,14 @@ msgstr "Experimentell"
 msgid "Expired"
 msgstr "Abgelaufen"
 
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
+msgstr ""
+
 msgid "Expires on"
 msgstr "Läuft ab am"
 
@@ -8575,9 +8599,6 @@ msgstr "Fehler beim Abrufen des erweiterten Typs"
 
 msgid "Failed to revoke API key"
 msgstr "Fehler beim Widerrufen des API-Schlüssels"
-
-msgid "Failed to save chart customization"
-msgstr "Das Speichern der Diagrammanpassung ist fehlgeschlagen"
 
 msgid "Failed to save cross-filter scoping"
 msgstr "Cross-Filter-Scoping konnte nicht gespeichert werden"
@@ -9361,6 +9382,12 @@ msgstr "Gruppenname"
 msgid "Group remaining as \"Others\""
 msgstr "Gruppe, die als \"Sonstige\" verbleibt"
 
+msgid ""
+"Group remaining as \"Others\" cannot be calculated for this metric on a "
+"semantic view. Turn it off, or choose a sum, count, minimum, or maximum "
+"metric."
+msgstr ""
+
 msgid "Groupable columns"
 msgstr "Gruppierbare Spalten"
 
@@ -9437,6 +9464,14 @@ msgstr "Linie ausblenden"
 msgid "Hide chart description"
 msgstr "Diagrammbeschreibung ausblenden"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Ebene verstecken"
 
@@ -9499,6 +9534,12 @@ msgstr "Stunden-Versatz"
 
 msgid "How do you want to enter service account credentials?"
 msgstr "Wie möchten Sie die Anmeldeinformationen für das Dienstkonto eingeben?"
+
+msgid ""
+"How labels wider than the max width are shortened. \"Truncate\" cuts the "
+"label and adds an ellipsis. \"Break\" wraps the label onto additional "
+"lines."
+msgstr ""
 
 msgid "How many buckets should the data be grouped in."
 msgstr "Anzahl Buckets, in die Daten gruppiert werden sollen."
@@ -10022,6 +10063,11 @@ msgstr "Ungültiger Zustand."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Ungültige Tab-IDs: %(tab_ids)s"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "Ungültiger zeitlicher Filterwert für die Spalte %(column)s"
+
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr "Ungültige Zeitbereichsgrenze für Resample: %(value)s"
@@ -10209,6 +10255,12 @@ msgstr "Beschriftungsinhalt"
 
 msgid "Label Line"
 msgstr "Beschriftungslinie"
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
 
 msgid "Label Position"
 msgstr "Beschriftungsposition"
@@ -11067,6 +11119,11 @@ msgstr "Maximalwert"
 msgid "Maximum value on the gauge axis"
 msgstr "Maximalwert auf der Messgerät-Skala"
 
+msgid ""
+"Maximum width (in pixels) of each line of a slice label. Set to 0 for no "
+"limit."
+msgstr ""
+
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "Maximale Breite des Pfades, in Pixeln oder Metern."
 
@@ -11821,6 +11878,9 @@ msgstr "Keine Datenbanken stimmen mit Ihrer Suche überein"
 msgid "No description available."
 msgstr "Keine Beschreibung verfügbar."
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 msgid "No entities have this tag currently assigned"
 msgstr "Keine Entitäten haben dieses Schlagwort derzeit zugewiesen"
 
@@ -12116,6 +12176,9 @@ msgstr ""
 
 msgid "Not available"
 msgstr "Nicht verfügbar"
+
+msgid "Not available while editing. Save or discard your changes to export."
+msgstr ""
 
 msgid "Not currently mapped to the partition column."
 msgstr "Derzeit nicht der Partitionsspalte zugeordnet."
@@ -12441,6 +12504,10 @@ msgstr "Nur einzelne Abfragen werden unterstützt"
 
 msgid "Only the default catalog is supported for this connection"
 msgstr "Für diese Verbindung wird nur der Standardkatalog unterstützt"
+
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
 
 #, python-format
 msgid "Only the first %s values are listed."
@@ -13670,6 +13737,9 @@ msgstr "Felder neu auswählen"
 #, fuzzy
 msgid "Re-pick fields for this chart"
 msgstr "Felder für dieses Diagramm neu auswählen"
+
+msgid "Read from the token's exp claim."
+msgstr ""
 
 msgid "Rearranged layout"
 msgstr "Layout neu angeordnet"
@@ -16777,6 +16847,10 @@ msgstr ""
 "Der Speicherschlüssel überschreitet die maximal zulässige Länge von "
 "%(max_length)d Zeichen."
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 msgid "Stream"
 msgstr "Stream"
 
@@ -17270,12 +17344,12 @@ msgstr "In E-Mail eingebetteter Text"
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr "Das Aggregat %(aggregate)s wird von dieser Datenbank nicht unterstützt"
 
-# pt, pt_BR, sl, zh]
 #, python-format
-msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgid ""
+"The %(key)s in metadata_cache_timeout must be a non-negative integer, but"
+" received %(value)s. Enter a whole number of seconds (0 or greater) under"
+" Advanced > Performance."
 msgstr ""
-"%(key)s in metadata_cache_timeout muss eine nicht negative ganze Zahl "
-"sein."
 
 #, python-format
 msgid "The %(op)s operator is only supported for multi-value (array) columns."
@@ -17729,8 +17803,17 @@ msgstr ""
 "Die Zeitdauer in Sekunden, bevor der Cache ungültig wird. Setzen Sie "
 "diese auf -1 um den Cache zu umgehen."
 
+msgid ""
+"The embedded guest private key could not be read. Provide a PEM private "
+"key and its correct passphrase (leave the passphrase empty for an "
+"unencrypted key)."
+msgstr ""
+
 msgid "The encoding format of the lines"
 msgstr "Das Kodierungsformat der Zeilen"
+
+msgid "The ending is hidden because the secret is too short."
+msgstr ""
 
 msgid ""
 "The engine_params object gets unpacked into the sqlalchemy.create_engine "
@@ -18560,6 +18643,14 @@ msgstr ""
 
 msgid "The time unit used for the grouping of blocks"
 msgstr "Die Zeiteinheit, die für die Gruppierung von Blöcken verwendet wird"
+
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
+msgstr ""
 
 msgid ""
 "The transform answered with a value the driver and the database do not "
@@ -20142,6 +20233,11 @@ msgid "Time comparison"
 msgstr "Zeitvergleich"
 
 msgid ""
+"Time comparison is not yet supported on semantic views. Remove the time "
+"shift and try again."
+msgstr ""
+
+msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
@@ -20333,6 +20429,12 @@ msgstr ""
 "Zu viele Ansichten in einer Anfrage: %(count)s angegeben, höchstens "
 "%(limit)s erlaubt."
 
+msgid "Too short"
+msgstr ""
+
+msgid "Too short to show safely"
+msgstr ""
+
 msgid "Tool Panel"
 msgstr "Werkzeugbereich"
 
@@ -20457,6 +20559,9 @@ msgstr "Jetzt auslösen"
 
 msgid "True"
 msgstr "Wahr"
+
+msgid "Truncate"
+msgstr ""
 
 msgid "Truncate Axis"
 msgstr "Achse kürzen"
@@ -22844,6 +22949,10 @@ msgstr ""
 "aufteilen) oder erhöhen Sie die Konfigurationseinstellung "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 msgid ""
 "Your export is being generated and will download automatically when "
 "ready. We'll also email you a download link."
@@ -22867,6 +22976,10 @@ msgstr "Ihr Export von \"%(title)s\" konnte nicht abgeschlossen werden."
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "Ihr Export von \"%(title)s\" ist bereit."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 msgid "Your password could not be reset. Please try again later."
 msgstr ""
@@ -23942,6 +24055,9 @@ msgstr "Handlebars-Diagramm-Dokumentation"
 msgid "theme"
 msgstr "Design"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "Zeitstempel"
 
@@ -24023,6 +24139,9 @@ msgstr "y: Werte werden innerhalb jeder Zeile normalisiert"
 
 msgid "year"
 msgstr "Jahr"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

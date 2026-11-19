@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 18:28-0500\n"
+"POT-Creation-Date: 2026-11-19 15:53-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -5374,6 +5374,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "แผนภูมิกล่อง"
 
+msgid "Break"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -8513,6 +8516,10 @@ msgid ""
 msgstr ""
 "ไม่สามารถโหลดเมตาดาตาสำหรับการกำหนดค่านี้ได้ กำลังแสดงแบบฟอร์มเริ่มต้น "
 "โปรดดูรายละเอียดในบันทึกของเซิร์ฟเวอร์"
+
+#, python-format
+msgid "Could not load the stored secrets: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11801,6 +11808,11 @@ msgstr "แบบมีทิศทาง"
 msgid "Dynamic group by"
 msgstr "จัดกลุ่มแบบไดนามิก"
 
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -12515,6 +12527,10 @@ msgstr "วันที่สิ้นสุดต้องอยู่หลั
 #, fuzzy
 msgid "Ends With"
 msgstr "ลงท้ายด้วย"
+
+#, python-format
+msgid "Ends with %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -13256,6 +13272,14 @@ msgstr "ทดลอง"
 msgid "Expired"
 msgstr "สำรวจ"
 
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Expires on"
@@ -13869,12 +13893,6 @@ msgstr "ไม่สามารถดึงข้อมูลประเภท
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "ไม่สามารถหยุดการสืบค้นได้"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
-# uk]
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "ไม่สามารถบันทึกการปรับแต่งแผนภูมิได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -15177,6 +15195,12 @@ msgstr "ชื่อกลุ่ม"
 msgid "Group remaining as \"Others\""
 msgstr "จัดกลุ่มที่เหลือเป็น \"อื่นๆ\""
 
+msgid ""
+"Group remaining as \"Others\" cannot be calculated for this metric on a "
+"semantic view. Turn it off, or choose a sum, count, minimum, or maximum "
+"metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Groupable columns"
@@ -15319,6 +15343,14 @@ msgstr "ซ่อนเส้น"
 msgid "Hide chart description"
 msgstr "ซ่อนคำอธิบายแผนภูมิ"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -15436,6 +15468,12 @@ msgstr "ค่าชดเชยชั่วโมง"
 #, fuzzy
 msgid "How do you want to enter service account credentials?"
 msgstr "คุณต้องการป้อนข้อมูลประจำตัวบัญชีบริการอย่างไร?"
+
+msgid ""
+"How labels wider than the max width are shortened. \"Truncate\" cuts the "
+"label and adds an ellipsis. \"Break\" wraps the label onto additional "
+"lines."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -16328,6 +16366,11 @@ msgstr "สถานะไม่ถูกต้อง"
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "ID แท็บไม่ถูกต้อง: %(tab_ids)s"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "ค่าตัวกรองเวลาไม่ถูกต้องสำหรับคอลัมน์ %(column)s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -16667,6 +16710,12 @@ msgstr "เนื้อหาป้ายกำกับ"
 #, fuzzy
 msgid "Label Line"
 msgstr "เส้นป้ายกำกับ"
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es]
 #, fuzzy
@@ -18167,6 +18216,11 @@ msgstr "ค่าสูงสุด"
 msgid "Maximum value on the gauge axis"
 msgstr "ค่าสูงสุดบนแกนมาตรวัด"
 
+msgid ""
+"Maximum width (in pixels) of each line of a slice label. Set to 0 for no "
+"limit."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -19477,6 +19531,9 @@ msgstr "ไม่มีฐานข้อมูลที่ตรงกับก
 msgid "No description available."
 msgstr "ไม่มีคำอธิบาย"
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 #, fuzzy
@@ -19945,6 +20002,9 @@ msgstr "ฟิลด์ที่จำเป็นยังไม่ครบท
 #, fuzzy
 msgid "Not available"
 msgstr "ไม่พร้อมใช้งาน"
+
+msgid "Not available while editing. Save or discard your changes to export."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20487,6 +20547,10 @@ msgstr "รองรับเฉพาะคิวรีเดียวเท่
 #, fuzzy
 msgid "Only the default catalog is supported for this connection"
 msgstr "การเชื่อมต่อนี้รองรับเฉพาะแคตาล็อกเริ่มต้นเท่านั้น"
+
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -22541,6 +22605,9 @@ msgstr "เลือกฟิลด์ใหม่"
 #, fuzzy
 msgid "Re-pick fields for this chart"
 msgstr "เลือกฟิลด์ใหม่สำหรับแผนภูมินี้"
+
+msgid "Read from the token's exp claim."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -27809,6 +27876,10 @@ msgid ""
 "characters."
 msgstr "คีย์การจัดเก็บยาวเกินความยาวสูงสุดที่อนุญาตคือ %(max_length)d อักขระ"
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -28672,11 +28743,12 @@ msgstr "ข้อความที่ฝังในอีเมล"
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr "ฐานข้อมูลนี้ไม่รองรับการรวมข้อมูลแบบ %(aggregate)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
-msgstr "%(key)s ใน metadata_cache_timeout ต้องเป็นจำนวนเต็มที่ไม่ติดลบ"
+#, python-format
+msgid ""
+"The %(key)s in metadata_cache_timeout must be a non-negative integer, but"
+" received %(value)s. Enter a whole number of seconds (0 or greater) under"
+" Advanced > Performance."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -29297,11 +29369,20 @@ msgid ""
 "-1 to bypass the cache."
 msgstr "ระยะเวลาเป็นวินาทีก่อนที่แคชจะหมดอายุ ตั้งค่าเป็น -1 เพื่อข้ามแคช"
 
+msgid ""
+"The embedded guest private key could not be read. Provide a PEM private "
+"key and its correct passphrase (leave the passphrase empty for an "
+"unencrypted key)."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
 msgid "The encoding format of the lines"
 msgstr "รูปแบบการเข้ารหัสของเส้น"
+
+msgid "The ending is hidden because the secret is too short."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30392,6 +30473,14 @@ msgstr ""
 #, fuzzy
 msgid "The time unit used for the grouping of blocks"
 msgstr "หน่วยเวลาที่ใช้สำหรับการจัดกลุ่มบล็อก"
+
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -32526,6 +32615,11 @@ msgstr "คอลัมน์เวลาที่จะใช้ช่วงเ
 msgid "Time comparison"
 msgstr "การเปรียบเทียบเวลา"
 
+msgid ""
+"Time comparison is not yet supported on semantic views. Remove the time "
+"shift and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -32841,6 +32935,12 @@ msgid ""
 "allowed."
 msgstr "มีมุมมองมากเกินไปในหนึ่งคำขอ: ระบุมา %(count)s อนุญาตสูงสุด %(limit)s"
 
+msgid "Too short"
+msgstr ""
+
+msgid "Too short to show safely"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -33072,6 +33172,9 @@ msgstr "เรียกใช้ทันที"
 #, fuzzy
 msgid "True"
 msgstr "จริง"
+
+msgid "Truncate"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -36734,6 +36837,10 @@ msgstr ""
 "ลดขนาดแดชบอร์ด (เช่น แบ่งออกเป็นหลายแดชบอร์ด) หรือเพิ่มค่าการตั้งค่า "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT"
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -36767,6 +36874,10 @@ msgstr "ไม่สามารถส่งออก \"%(title)s\" ของค
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "การส่งออก \"%(title)s\" ของคุณพร้อมแล้ว"
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -38685,6 +38796,9 @@ msgstr "เอกสารประกอบแผนภูมิ Handlebars"
 msgid "theme"
 msgstr "ธีม"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -38846,6 +38960,9 @@ msgstr "y: ค่าถูกทำให้เป็นมาตรฐานภ
 #, fuzzy
 msgid "year"
 msgstr "ปี"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

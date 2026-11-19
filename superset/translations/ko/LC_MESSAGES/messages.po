@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 18:28-0500\n"
+"POT-Creation-Date: 2026-11-19 15:53-0500\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -4922,6 +4922,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "상자 그림"
 
+msgid "Break"
+msgstr ""
+
 #, fuzzy
 msgid "Breakdowns"
 msgstr "생성자"
@@ -7828,6 +7831,10 @@ msgid ""
 " See the server logs for details."
 msgstr "이 구성의 메타데이터를 로드할 수 없어 기본 양식을 표시합니다. 자세한 내용은 서버 로그를 참조하세요."
 
+#, python-format
+msgid "Could not load the stored secrets: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -10711,6 +10718,11 @@ msgstr "동적 섹션 레이블"
 msgid "Dynamic group by"
 msgstr "동적 그룹화"
 
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "설명"
@@ -11355,6 +11367,10 @@ msgstr "종료 날짜는 시작 날짜 이후여야 합니다"
 #, fuzzy
 msgid "Ends With"
 msgstr "차트 유형"
+
+#, python-format
+msgid "Ends with %s."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Ends with (ILIKE %x)"
@@ -12053,6 +12069,14 @@ msgstr "실험적"
 msgid "Expired"
 msgstr "테이블 명"
 
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Expires on"
@@ -12634,10 +12658,6 @@ msgstr "고급 유형 검색에 실패했습니다"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "테이블 선택"
-
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "필터"
 
 #, fuzzy
 msgid "Failed to save cross-filter scoping"
@@ -13845,6 +13865,12 @@ msgstr "그룹 이름"
 msgid "Group remaining as \"Others\""
 msgstr "나머지를 \"기타\"로 그룹화"
 
+msgid ""
+"Group remaining as \"Others\" cannot be calculated for this metric on a "
+"semantic view. Turn it off, or choose a sum, count, minimum, or maximum "
+"metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Groupable columns"
@@ -13973,6 +13999,14 @@ msgstr "선 숨기기"
 msgid "Hide chart description"
 msgstr "설명"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14087,6 +14121,12 @@ msgstr "시간 오프셋"
 #, fuzzy
 msgid "How do you want to enter service account credentials?"
 msgstr "서비스 계정 자격 증명을 어떻게 입력하시겠습니까?"
+
+msgid ""
+"How labels wider than the max width are shortened. \"Truncate\" cuts the "
+"label and adds an ellipsis. \"Break\" wraps the label onto additional "
+"lines."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14917,6 +14957,11 @@ msgstr "잘못된 상태입니다."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "잘못된 탭 ID: %(tab_ids)s"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "%(column)s 컬럼의 시간 필터 값이 유효하지 않습니다"
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -15242,6 +15287,12 @@ msgstr "새 차트 생성"
 #, fuzzy
 msgid "Label Line"
 msgstr "레이블 선"
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es]
 #, fuzzy
@@ -16652,6 +16703,11 @@ msgstr "테이블 명"
 msgid "Maximum value on the gauge axis"
 msgstr "게이지 축의 최대값"
 
+msgid ""
+"Maximum width (in pixels) of each line of a slice label. Set to 0 for no "
+"limit."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -17865,6 +17921,9 @@ msgstr "검색어와 일치하는 데이터베이스가 없습니다"
 msgid "No description available."
 msgstr "설명이 없습니다."
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18298,6 +18357,9 @@ msgstr "모든 필수 필드가 완성되지 않았습니다. 다음을 입력�
 #, fuzzy
 msgid "Not available"
 msgstr "사용 불가"
+
+msgid "Not available while editing. Save or discard your changes to export."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -18805,6 +18867,10 @@ msgstr "오직 하나의 쿼리만 지원됩니다"
 #, fuzzy
 msgid "Only the default catalog is supported for this connection"
 msgstr "이 연결에서는 기본 카탈로그만 지원됩니다"
+
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20758,6 +20824,9 @@ msgstr "필드 다시 선택"
 #, fuzzy
 msgid "Re-pick fields for this chart"
 msgstr "이 차트의 필드 다시 선택"
+
+msgid "Read from the token's exp claim."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25479,6 +25548,10 @@ msgid ""
 "characters."
 msgstr "저장소 키가 허용되는 최대 길이인 %(max_length)d자를 초과합니다."
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -26268,11 +26341,12 @@ msgstr "이메일에 포함된 텍스트"
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr "이 데이터베이스에서는 %(aggregate)s 집계가 지원되지 않습니다"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
-msgstr "metadata_cache_timeout의 %(key)s은(는) 음수가 아닌 정수여야 합니다."
+#, python-format
+msgid ""
+"The %(key)s in metadata_cache_timeout must be a non-negative integer, but"
+" received %(value)s. Enter a whole number of seconds (0 or greater) under"
+" Advanced > Performance."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -26860,11 +26934,20 @@ msgid ""
 "-1 to bypass the cache."
 msgstr "캐시가 무효화되기 전의 시간(초)입니다. 캐시를 우회하려면 -1로 설정하세요."
 
+msgid ""
+"The embedded guest private key could not be read. Provide a PEM private "
+"key and its correct passphrase (leave the passphrase empty for an "
+"unencrypted key)."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "The encoding format of the lines"
 msgstr "라인의 인코딩 형식"
+
+msgid "The ending is hidden because the secret is too short."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -27935,6 +28018,14 @@ msgstr ""
 #, fuzzy
 msgid "The time unit used for the grouping of blocks"
 msgstr "블록 그룹화에 사용되는 시간 단위"
+
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -29940,6 +30031,11 @@ msgstr "시간 범위를 적용할 시간 열"
 msgid "Time comparison"
 msgstr "컬럼 수정"
 
+msgid ""
+"Time comparison is not yet supported on semantic views. Remove the time "
+"shift and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -30222,6 +30318,12 @@ msgid ""
 "allowed."
 msgstr "한 번의 요청에 포함된 뷰가 너무 많습니다. %(count)s개가 제공되었으며 최대 %(limit)s개까지 허용됩니다."
 
+msgid "Too short"
+msgstr ""
+
+msgid "Too short to show safely"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -30435,6 +30537,9 @@ msgstr "지금 실행"
 #, fuzzy
 msgid "True"
 msgstr "Query 공유"
+
+msgid "Truncate"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -33990,6 +34095,10 @@ msgstr ""
 "대시보드가 너무 커서 저장할 수 없습니다. 직렬화된 레이아웃 길이는 %s이고 제한은 %s입니다. 대시보드 크기를 줄이거나(예: 여러"
 " 대시보드로 분할) SUPERSET_DASHBOARD_POSITION_DATA_LIMIT 설정 값을 높이세요."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -34021,6 +34130,10 @@ msgstr "\"%(title)s\" 내보내기를 완료할 수 없습니다."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "\"%(title)s\" 내보내기가 준비되었습니다."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -35806,6 +35919,9 @@ msgstr "Handlebars 차트 문서"
 msgid "theme"
 msgstr "Query 공유"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -35949,6 +36065,9 @@ msgstr "y: 각 행 내에서 값이 정규화됩니다"
 
 msgid "year"
 msgstr "년"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

@@ -4036,6 +4036,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine_information": {
                         "query_cost_warning_metric": "total_cost",
                         "query_warning_supported": True,
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": False,
@@ -4073,6 +4081,13 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine_information": {
                         "query_cost_warning_metric": "bytes_processed",
                         "query_warning_supported": True,
+                        "encrypted_extra_sensitive_fields": {
+                            "$.credentials_info.private_key": "Service Account Private Key",  # noqa: E501
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": True,
@@ -4140,6 +4155,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine_information": {
                         "query_cost_warning_metric": None,
                         "query_warning_supported": False,
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -4194,6 +4217,13 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine_information": {
                         "query_cost_warning_metric": None,
                         "query_warning_supported": False,
+                        "encrypted_extra_sensitive_fields": {
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+                            "$.service_account_info.private_key": "Service Account Private Key",  # noqa: E501
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": True,
@@ -4261,6 +4291,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine_information": {
                         "query_cost_warning_metric": None,
                         "query_warning_supported": False,
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -4284,6 +4322,13 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine_information": {
                         "query_cost_warning_metric": None,
                         "query_warning_supported": False,
+                        "encrypted_extra_sensitive_fields": {
+                            "$.*": "Encrypted Extra",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -4327,6 +4372,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine_information": {
                         "query_cost_warning_metric": None,
                         "query_warning_supported": False,
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -4350,6 +4403,13 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine_information": {
                         "query_cost_warning_metric": None,
                         "query_warning_supported": False,
+                        "encrypted_extra_sensitive_fields": {
+                            "$.*": "Encrypted Extra",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -4597,7 +4657,9 @@ class TestDatabaseApi(SupersetTestCase):
                 {
                     "message": (
                         "The schema_cache_timeout in metadata_cache_timeout "
-                        "must be a non-negative integer."
+                        "must be a non-negative integer, but received -1. "
+                        "Enter a whole number of seconds (0 or greater) "
+                        "under Advanced > Performance."
                     ),
                     "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",

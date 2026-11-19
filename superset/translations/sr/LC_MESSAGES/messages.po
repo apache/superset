@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 18:28-0500\n"
+"POT-Creation-Date: 2026-11-19 15:53-0500\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -4310,6 +4310,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "Box Plot"
 
+msgid "Break"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Breakdowns"
 msgstr "Расподеле"
@@ -6689,6 +6692,10 @@ msgid ""
 msgstr ""
 "Није могуће учитати метаподатке за ову конфигурацију; приказује се "
 "подразумевани образац. Погледајте логове сервера за детаље."
+
+#, python-format
+msgid "Could not load the stored secrets: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -9222,6 +9229,11 @@ msgstr "Ознака динамичке секције"
 msgid "Dynamic group by"
 msgstr "Динамичко груписање по"
 
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Опис динамичке секције"
 
@@ -9735,6 +9747,10 @@ msgstr "Датум завршетка мора бити после датума 
 # uk]
 msgid "Ends With"
 msgstr "Завршава се са"
+
+#, python-format
+msgid "Ends with %s."
+msgstr ""
 
 #, python-format
 msgid "Ends with (ILIKE %x)"
@@ -10307,6 +10323,14 @@ msgstr "Експериментално"
 msgid "Expired"
 msgstr "Истекло"
 
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Expires on"
@@ -10792,10 +10816,6 @@ msgstr "Неуспело преузимање напредне врсте"
 
 msgid "Failed to revoke API key"
 msgstr "Неуспело опозивање API кључа"
-
-# uk]
-msgid "Failed to save chart customization"
-msgstr "Неуспело чување прилагођавања графикона"
 
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Failed to save cross-filter scoping"
@@ -11775,6 +11795,12 @@ msgstr "Назив групе"
 msgid "Group remaining as \"Others\""
 msgstr "Групиши преостале као \"Остало\""
 
+msgid ""
+"Group remaining as \"Others\" cannot be calculated for this metric on a "
+"semantic view. Turn it off, or choose a sum, count, minimum, or maximum "
+"metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Groupable columns"
@@ -11876,6 +11902,14 @@ msgstr "Сакриј линију"
 msgid "Hide chart description"
 msgstr "Сакриј опис графикона"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Hide layer"
 msgstr "Сакриј слој"
@@ -11959,6 +11993,12 @@ msgstr "Помак у сатима"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "How do you want to enter service account credentials?"
 msgstr "Како желите да унесете акредитиве сервисног налога?"
+
+msgid ""
+"How labels wider than the max width are shortened. \"Truncate\" cuts the "
+"label and adds an ellipsis. \"Break\" wraps the label onto additional "
+"lines."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "How many buckets should the data be grouped in."
@@ -12633,6 +12673,11 @@ msgstr "Неважеће стање."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Неважећи ИД-ови картица: %(tab_ids)s"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "Неважећа вредност временског филтера за колону %(column)s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -12878,6 +12923,12 @@ msgstr "Садржај ознаке"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Label Line"
 msgstr "Линија ознаке"
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es]
 #, fuzzy
@@ -14001,6 +14052,11 @@ msgstr "Максимална вредност"
 msgid "Maximum value on the gauge axis"
 msgstr "Максимална вредност на оси мерача"
 
+msgid ""
+"Maximum width (in pixels) of each line of a slice label. Set to 0 for no "
+"limit."
+msgstr ""
+
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "Максимална ширина путање, у пикселима или метрима."
 
@@ -14974,6 +15030,9 @@ msgstr "Ниједна база података не одговара вашо�
 msgid "No description available."
 msgstr "Опис није доступан."
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "No entities have this tag currently assigned"
 msgstr "Тренутно ниједан ентитет нема додељену ову ознаку"
@@ -15337,6 +15396,9 @@ msgstr "Нису попуњена сва обавезна поља. Унесит
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Not available"
 msgstr "Није доступно"
+
+msgid "Not available while editing. Save or discard your changes to export."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15751,6 +15813,10 @@ msgstr "Подржани су само појединачни упити"
 # ru, uk]
 msgid "Only the default catalog is supported for this connection"
 msgstr "За ову везу је подржан само подразумевани каталог"
+
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -17299,6 +17365,9 @@ msgstr "Поново изабери поља"
 #, fuzzy
 msgid "Re-pick fields for this chart"
 msgstr "Поново изабери поља за овај графикон"
+
+msgid "Read from the token's exp claim."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21282,6 +21351,10 @@ msgstr ""
 "Кључ складиштења премашује максимално дозвољену дужину од %(max_length)d "
 "знакова."
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Stream"
 msgstr "Ток"
@@ -21922,11 +21995,12 @@ msgstr "Текст уграђен у е-пошту"
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr "Агрегат %(aggregate)s није подржан у овој бази података"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
-msgstr "Вредност %(key)s у metadata_cache_timeout мора бити nenegativan цео број."
+#, python-format
+msgid ""
+"The %(key)s in metadata_cache_timeout must be a non-negative integer, but"
+" received %(value)s. Enter a whole number of seconds (0 or greater) under"
+" Advanced > Performance."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -22442,9 +22516,18 @@ msgstr ""
 "Време у секундама пре него што кеш постане неважећи. Поставите на -1 да "
 "бисте заобишли кеш."
 
+msgid ""
+"The embedded guest private key could not be read. Provide a PEM private "
+"key and its correct passphrase (leave the passphrase empty for an "
+"unencrypted key)."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "The encoding format of the lines"
 msgstr "Формат кодирања линија"
+
+msgid "The ending is hidden because the secret is too short."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -23372,6 +23455,14 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The time unit used for the grouping of blocks"
 msgstr "Временска јединица која се користи за груписање блокова"
+
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25187,6 +25278,11 @@ msgstr "Временска колона на коју се примењује в
 msgid "Time comparison"
 msgstr "Временско поређење"
 
+msgid ""
+"Time comparison is not yet supported on semantic views. Remove the time "
+"shift and try again."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Time delta in natural language\n"
@@ -25433,6 +25529,12 @@ msgstr ""
 "Превише приказа у једном захтеву: наведено %(count)s, дозвољено највише "
 "%(limit)s."
 
+msgid "Too short"
+msgstr ""
+
+msgid "Too short to show safely"
+msgstr ""
+
 # uk]
 msgid "Tool Panel"
 msgstr "Панел алатки"
@@ -25602,6 +25704,9 @@ msgstr "Pokreni sada"
 # ru, uk]
 msgid "True"
 msgstr "Тачно"
+
+msgid "Truncate"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -28496,6 +28601,10 @@ msgstr ""
 " пример, поделите је на више контролних табли) или повећајте "
 "конфигурационо подешавање SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -28529,6 +28638,10 @@ msgstr "Ваш извоз „%(title)s“ није могао бити завр�
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "Ваш извоз „%(title)s“ је спреман."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -29907,6 +30020,9 @@ msgstr "документацију Handlebars графикона"
 msgid "theme"
 msgstr "тема"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 msgid "timestamp"
 msgstr "временска ознака"
 
@@ -30013,6 +30129,9 @@ msgstr "y: вредности су нормализоване у оквиру с
 # zh, zh_TW]
 msgid "year"
 msgstr "година"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 # sk, uk]
 #. do-not-translate

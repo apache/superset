@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 18:28-0500\n"
+"POT-Creation-Date: 2026-11-19 15:53-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -5499,6 +5499,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "Laatikkokaavio"
 
+msgid "Break"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -8670,6 +8673,10 @@ msgid ""
 msgstr ""
 "Tämän kokoonpanon metatietoja ei voitu ladata; näytetään oletuslomake. "
 "Lisätietoja on palvelimen lokeissa."
+
+#, python-format
+msgid "Could not load the stored secrets: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12022,6 +12029,11 @@ msgstr "Suunnattu"
 msgid "Dynamic group by"
 msgstr "Dynaaminen ryhmittely"
 
+msgid ""
+"Dynamic group by is not supported on semantic views. Remove this display "
+"control to stop storing it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -12740,6 +12752,10 @@ msgstr "Päättymispäivän on oltava alkamispäivän jälkeen"
 #, fuzzy
 msgid "Ends With"
 msgstr "Päättyy"
+
+#, python-format
+msgid "Ends with %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -13490,6 +13506,14 @@ msgstr "Kokeellinen"
 msgid "Expired"
 msgstr "Tutki"
 
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Expires on"
@@ -14108,12 +14132,6 @@ msgstr "Lisätyypin hakeminen epäonnistui"
 #, fuzzy
 msgid "Failed to revoke API key"
 msgstr "Kyselyn pysäyttäminen epäonnistui."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
-# uk]
-#, fuzzy
-msgid "Failed to save chart customization"
-msgstr "Kaavion mukautusten tallentaminen epäonnistui"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -15432,6 +15450,12 @@ msgstr "Ryhmän nimi"
 msgid "Group remaining as \"Others\""
 msgstr "Ryhmittele loput \"Muut\"-ryhmäksi"
 
+msgid ""
+"Group remaining as \"Others\" cannot be calculated for this metric on a "
+"semantic view. Turn it off, or choose a sum, count, minimum, or maximum "
+"metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Groupable columns"
@@ -15574,6 +15598,14 @@ msgstr "Piilota viiva"
 msgid "Hide chart description"
 msgstr "Piilota kaavion kuvaus"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -15691,6 +15723,12 @@ msgstr "Tuntien siirtymä"
 #, fuzzy
 msgid "How do you want to enter service account credentials?"
 msgstr "Miten haluat syöttää palvelutilin tunnistetiedot?"
+
+msgid ""
+"How labels wider than the max width are shortened. \"Truncate\" cuts the "
+"label and adds an ellipsis. \"Break\" wraps the label onto additional "
+"lines."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -16586,6 +16624,11 @@ msgstr "Virheellinen tila."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Virheelliset välilehtitunnukset: %(tab_ids)s"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "Virheellinen aikasuodattimen arvo sarakkeessa %(column)s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -16930,6 +16973,12 @@ msgstr "Merkinnän sisältö"
 #, fuzzy
 msgid "Label Line"
 msgstr "Merkintäviiva"
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, es]
 #, fuzzy
@@ -18443,6 +18492,11 @@ msgstr "Maksimiarvo"
 msgid "Maximum value on the gauge axis"
 msgstr "Maksimiarvo mittarin akselilla"
 
+msgid ""
+"Maximum width (in pixels) of each line of a slice label. Set to 0 for no "
+"limit."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -19759,6 +19813,9 @@ msgstr "Mikään tietokanta ei vastaa hakuasi"
 msgid "No description available."
 msgstr "Kuvausta ei ole saatavilla."
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 #, fuzzy
@@ -20234,6 +20291,9 @@ msgstr "Kaikkia pakollisia kenttiä ei ole täytetty. Anna seuraavat tiedot:"
 #, fuzzy
 msgid "Not available"
 msgstr "Ei saatavilla"
+
+msgid "Not available while editing. Save or discard your changes to export."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20791,6 +20851,10 @@ msgstr "Vain yksittäiset kyselyt ovat tuettuja"
 #, fuzzy
 msgid "Only the default catalog is supported for this connection"
 msgstr "Vain oletusluettelo on tuettu tälle yhteydelle"
+
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -22867,6 +22931,9 @@ msgstr "Valitse kentät uudelleen"
 #, fuzzy
 msgid "Re-pick fields for this chart"
 msgstr "Valitse tämän kaavion kentät uudelleen"
+
+msgid "Read from the token's exp claim."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -28189,6 +28256,10 @@ msgstr ""
 "Tallennusavain ylittää sallitun enimmäispituuden, joka on %(max_length)d "
 "merkkiä."
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -29056,13 +29127,12 @@ msgstr "Sähköpostiin upotettu teksti"
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr "Aggregaatti %(aggregate)s ei ole tuettu tässä tietokannassa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+#, python-format
+msgid ""
+"The %(key)s in metadata_cache_timeout must be a non-negative integer, but"
+" received %(value)s. Enter a whole number of seconds (0 or greater) under"
+" Advanced > Performance."
 msgstr ""
-"Arvon %(key)s metadata_cache_timeout-asetuksessa on oltava ei-"
-"negatiivinen kokonaisluku."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -29699,11 +29769,20 @@ msgstr ""
 "Aika sekunteina ennen välimuistin vanhentumista. Aseta -1 ohittaaksesi "
 "välimuistin."
 
+msgid ""
+"The embedded guest private key could not be read. Provide a PEM private "
+"key and its correct passphrase (leave the passphrase empty for an "
+"unencrypted key)."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
 msgid "The encoding format of the lines"
 msgstr "Viivojen koodausmuoto"
+
+msgid "The ending is hidden because the secret is too short."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30826,6 +30905,14 @@ msgstr ""
 #, fuzzy
 msgid "The time unit used for the grouping of blocks"
 msgstr "Lohkojen ryhmittelyssä käytetty aikayksikkö"
+
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -33018,6 +33105,11 @@ msgstr "Aikasarake, johon sovelletaan aikaväli"
 msgid "Time comparison"
 msgstr "Aikavertailu"
 
+msgid ""
+"Time comparison is not yet supported on semantic views. Remove the time "
+"shift and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -33340,6 +33432,12 @@ msgstr ""
 "Liian monta näkymää yhdessä pyynnössä: %(count)s annettu, enintään "
 "%(limit)s sallittu."
 
+msgid "Too short"
+msgstr ""
+
+msgid "Too short to show safely"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -33571,6 +33669,9 @@ msgstr "Käynnistä nyt"
 #, fuzzy
 msgid "True"
 msgstr "Tosi"
+
+msgid "Truncate"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -37296,6 +37397,10 @@ msgstr ""
 " se useisiin kojelautoihin) tai nosta "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT-asetuksen arvoa."
 
+#, python-format
+msgid "Your display control changes were not saved: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -37329,6 +37434,10 @@ msgstr "Vientiä \"%(title)s\" ei voitu suorittaa loppuun."
 #, fuzzy, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "Vienti \"%(title)s\" on valmis."
+
+#, python-format
+msgid "Your filter changes were not saved: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -39258,6 +39367,9 @@ msgstr "Handlebars-kaavion dokumentaatio"
 msgid "theme"
 msgstr "teema"
 
+msgid "this dashboard is unavailable or you no longer have access."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -39419,6 +39531,9 @@ msgstr "y: arvot normalisoidaan kussakin rivissä"
 #, fuzzy
 msgid "year"
 msgstr "vuosi"
+
+msgid "you do not have permission to edit this dashboard."
+msgstr ""
 
 #. do-not-translate
 msgid "your-project-1234-a1"

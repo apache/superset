@@ -979,6 +979,27 @@ def test_incomplete_embedded_credentials_from_the_api(mocker: MockerFixture) -> 
     assert excinfo.value.errors[0].extra["invalid"] == ["embedded_credentials"]
 
 
+def _pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    encryption = (
+        serialization.BestAvailableEncryption(passphrase.encode())
+        if passphrase
+        else serialization.NoEncryption()
+    )
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            encryption,
+        )
+        .decode()
+    )
+
+
 @pytest.mark.parametrize(
     "credentials",
     [
@@ -988,7 +1009,7 @@ def test_incomplete_embedded_credentials_from_the_api(mocker: MockerFixture) -> 
         {
             "username": "embedded_svc",
             "auth_method": "keypair",
-            "privatekey_body": "-----BEGIN PRIVATE KEY-----",
+            "privatekey_body": _pem(""),
         },
         {
             "username": "embedded_svc",
@@ -1135,6 +1156,53 @@ def test_parameter_validation_uses_the_engine_credential_validator(
     else:
         with pytest.raises(InvalidParametersError):
             command.run()
+
+
+@pytest.mark.parametrize(
+    "privatekey_body, privatekey_pass",
+    [
+        pytest.param(_pem("key passphrase"), "wrong passphrase", id="wrong-passphrase"),
+        pytest.param("-----BEGIN PRIVATE KEY-----", "", id="not-a-pem-key"),
+    ],
+)
+@pytest.mark.parametrize("as_json_string", [False, True], ids=["dict", "json-string"])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_unreadable_embedded_key_is_reported_on_its_field(
+    mocker: MockerFixture,
+    as_json_string: bool,
+    privatekey_body: str,
+    privatekey_pass: str,
+) -> None:
+    """
+    The dialog validates before saving, so an unreadable key is reported on the
+    embedded credential field there too, without quoting the key. The
+    dialog can post the credential as a dict or as a JSON string.
+    """
+    mocker.patch("superset.commands.database.validate.DatabaseDAO")
+
+    credentials = {
+        "username": "embedded_svc",
+        "auth_method": "keypair",
+        "privatekey_body": privatekey_body,
+        "privatekey_pass": privatekey_pass,
+    }
+    properties = {
+        "engine": "snowflake",
+        "parameters": {
+            "embedded_credentials": (
+                json.dumps(credentials) if as_json_string else credentials
+            )
+        },
+    }
+    with pytest.raises(InvalidParametersError) as excinfo:
+        ValidateDatabaseParametersCommand(properties).run()
+
+    error = excinfo.value.errors[0]
+    assert error.extra["invalid"] == ["embedded_credentials"]
+    assert "private key could not be read" in error.message
+    for secret in (privatekey_body, privatekey_pass):
+        if secret:
+            assert secret not in error.message
 
 
 @pytest.mark.parametrize(
