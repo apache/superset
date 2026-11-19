@@ -1599,6 +1599,7 @@ function mockTimeRangeRequests() {
   setupTimeRangeMocks();
   mockedFetchTimeRange.mockResolvedValue({
     value: '2021-04-01T00:00:00 ≤ ds < 2021-05-01T00:00:00',
+    isEmpty: false,
   });
   fetchMock.removeRoute('time-filter-chart-data');
   fetchMock.post(
