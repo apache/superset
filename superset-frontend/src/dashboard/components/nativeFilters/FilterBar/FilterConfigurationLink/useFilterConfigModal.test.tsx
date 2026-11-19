@@ -139,7 +139,7 @@ test.each([
 test.each([false, true])(
   'renders the endpoint validation dict, display controls=%s',
   async failControls => {
-    // Customizations uses response_400(error.messages); filters uses response_422.
+    // Both endpoints return 400 for schema errors and 422 for dataset validation.
     const detail = failControls
       ? 'Field may not be null.'
       : 'The native filters reference datasets that are not available: 42';
