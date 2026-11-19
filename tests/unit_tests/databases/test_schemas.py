@@ -89,3 +89,21 @@ def test_engine_information_schema_includes_identifier_quote_escape_by_doubling(
         "end": "`",
         "escape_by_doubling": False,
     }
+
+
+def test_engine_information_schema_includes_encrypted_extra_sensitive_fields() -> None:
+    """
+    The sensitive field labels must pass through so the modal can render a
+    field per stored secret.
+    """
+    from superset.databases.schemas import EngineInformationSchema
+
+    labels = {
+        "$.connect_args.jwt": "JWT Token",
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+    result = EngineInformationSchema().dump(
+        {"encrypted_extra_sensitive_fields": labels}
+    )
+
+    assert result["encrypted_extra_sensitive_fields"] == labels

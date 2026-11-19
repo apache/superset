@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
+import {
+  ChartCustomization,
+  ChartCustomizationType,
+  DatasourceType,
+  Preset,
+} from '@superset-ui/core';
+import { ChartCustomizationPlugins } from 'src/constants';
 import type { DataMaskStateWithId } from '@superset-ui/core';
 import type {
   DropdownContainerProps,
@@ -240,6 +246,35 @@ const renderHorizontal = (
 const latestProps = () =>
   dropdownContainerProps[dropdownContainerProps.length - 1];
 
+test('hidden semantic Dynamic group by leaves no horizontal divider', async () => {
+  const filter = createSelectNativeFilter('NATIVE_FILTER-1', 'Country');
+  const hiddenControl: ChartCustomization = {
+    id: 'CHART_CUSTOMIZATION-hidden',
+    name: 'Dynamic Group By',
+    type: ChartCustomizationType.ChartCustomization,
+    filterType: ChartCustomizationPlugins.DynamicGroupBy,
+    targets: [{ datasetId: 7, datasourceType: DatasourceType.SemanticView }],
+    scope: { rootPath: [], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+  };
+  render(
+    <FilterControls
+      dataMaskSelected={buildDataMaskSelected([filter])}
+      onFilterSelectionChange={jest.fn()}
+      onPendingCustomizationDataMaskChange={jest.fn()}
+      chartCustomizationValues={[hiddenControl]}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: buildHorizontalState([filter]),
+    },
+  );
+  await waitFor(() => expect(latestProps()).toBeDefined());
+  expect(latestProps().items.map(item => item.id)).toEqual([filter.id]);
+});
+
 const fireOverflow = (overflowed: string[], notOverflowed: string[]) => {
   if (!callbackRef.current) {
     throw new Error('onOverflowingStateChange callback not captured');
@@ -278,6 +313,35 @@ test('horizontal FilterControls hands every filter to DropdownContainer as an it
   ]);
   // dropdownTriggerText is the production string FilterControls passes in.
   expect(latestProps().dropdownTriggerText).toBe('More filters');
+});
+
+test('shows an unscoped filter warning next to its name in More filters', async () => {
+  const filters = [
+    createSelectNativeFilter('NATIVE_FILTER-1', 'Country'),
+    createSelectNativeFilter('NATIVE_FILTER-2', 'Region'),
+    {
+      ...createSelectNativeFilter('NATIVE_FILTER-3', 'Unscoped filter'),
+      chartsInScope: [],
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    },
+  ];
+  mockOverflowingIndex = 2;
+
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+  await waitFor(() => expect(callbackRef.current).toBeTruthy());
+  expect(latestProps().dropdownTriggerText).toBe('More filters');
+  fireOverflow(['NATIVE_FILTER-3'], ['NATIVE_FILTER-1', 'NATIVE_FILTER-2']);
+
+  const dropdownContent = await within(document.body).findByTestId(
+    'dropdown-content-mock',
+  );
+  const titleGroup = within(dropdownContent).getByTestId(
+    'filter-control-title-group',
+  );
+  expect(within(titleGroup).getByText('Unscoped filter')).toBeInTheDocument();
+  expect(
+    within(titleGroup).getByTestId('out-of-scope-filter-tooltip-icon'),
+  ).toBeInTheDocument();
 });
 
 test('with no overflow callback fired, dropdown trigger count is 0 and content is empty', async () => {
