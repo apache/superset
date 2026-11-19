@@ -19,13 +19,13 @@
 Constants for extension validation and naming.
 """
 
-# Publisher validation pattern: lowercase letters, numbers, hyphens; must start with
-# letter; no consecutive hyphens or trailing hyphens
 #: Publisher names the host reserves, because `/extensions/list/` and
 #: `/extensions/pages/<id>` are its own routes under the same prefix an
 #: extension's API is served from.
 RESERVED_PUBLISHERS = frozenset({"list", "pages"})
 
+# Publisher validation pattern: lowercase letters, numbers, hyphens; must start with
+# letter; no consecutive hyphens or trailing hyphens
 PUBLISHER_PATTERN = r"^[a-z]([a-z0-9]*(-[a-z0-9]+)*)?$"
 
 # Technical name validation pattern: lowercase letters, numbers, hyphens; must start

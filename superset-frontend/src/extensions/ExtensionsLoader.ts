@@ -75,6 +75,22 @@ export function assertPageIdIsOwned(
         `overwrite another's page.`,
     );
   }
+  // The id becomes one path segment: the host serves every page from
+  // `/extensions/pages/:pageId`, which matches a single segment. An id
+  // carrying any of these registers happily and takes a navbar entry, and
+  // then the route never matches it -- so the page renders not-found for
+  // ever, with nothing to say why. The prefix check above already throws
+  // for the other way of getting an id wrong; this is the same mistake.
+  const unusable = /[/?#%]/.exec(viewId.slice(extensionId.length + 1));
+  if (unusable) {
+    throw new Error(
+      `Extension "${extensionId}" registered a page as "${viewId}", which ` +
+        `contains "${unusable[0]}". A page id is one path segment of ` +
+        `"/extensions/pages/<id>", so it cannot contain "/", "?", "#" or ` +
+        `"%" -- the route would never match it and the page would always ` +
+        `render as not found.`,
+    );
+  }
 }
 
 function isWebpackFederationContainer(

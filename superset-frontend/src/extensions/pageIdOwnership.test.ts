@@ -73,3 +73,51 @@ test('a view at any other location is not an extension page', () => {
     assertPageIdIsOwned('acme.tools', 'anything.at.all', 'sqllab.editor'),
   ).not.toThrow();
 });
+
+describe('an id that cannot be one path segment', () => {
+  // The host serves every page from `/extensions/pages/:pageId`, which
+  // matches a single segment. These register happily, take a navbar entry,
+  // and then the route never matches — so the page renders not-found for
+  // ever with nothing to say why.
+  test.each(['/', '?', '#', '%'])('rejects %p after the prefix', char => {
+    expect(() =>
+      assertPageIdIsOwned(
+        'acme.tools',
+        `acme.tools.queue${char}x`,
+        PAGE_LOCATION,
+      ),
+    ).toThrow(/one path segment/);
+  });
+
+  test('the message names the character that is wrong', () => {
+    expect(() =>
+      assertPageIdIsOwned(
+        'acme.tools',
+        'acme.tools.review/queue',
+        PAGE_LOCATION,
+      ),
+    ).toThrow(/contains "\/"/);
+  });
+
+  test('a dotted id is still fine', () => {
+    // Dots are what page ids are made of; only the characters that break
+    // the route are refused.
+    expect(() =>
+      assertPageIdIsOwned(
+        'acme.tools',
+        'acme.tools.review.queue',
+        PAGE_LOCATION,
+      ),
+    ).not.toThrow();
+  });
+
+  test('a hyphen or underscore is still fine', () => {
+    expect(() =>
+      assertPageIdIsOwned(
+        'acme.tools',
+        'acme.tools.review-queue_v2',
+        PAGE_LOCATION,
+      ),
+    ).not.toThrow();
+  });
+});

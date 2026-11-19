@@ -238,10 +238,11 @@ Nothing is created for the page. That has two consequences worth knowing:
 
 - Set `class_permission_name` explicitly on your API class. It defaults to the
   Python class name, so renaming the class would quietly close the page.
-- Nothing is granted at install either. After installing an extension whose
-  page names a permission, run `superset init` or grant the permission in the
-  Roles screen — until then the page refuses everyone, administrators
-  included.
+- Nothing is granted to other roles at install. A permission your own `@api`
+  class defines reaches Admin when the class registers — FAB grants a newly
+  created permission to the administrator role — and a host permission is
+  already Admin's. Anyone else needs it granted to a role of your own in the
+  Roles screen; until then the page refuses them.
 
 This gates reachability and advertisement, not data. The page's own endpoints
 are the security boundary and check the same permission server-side; the shell

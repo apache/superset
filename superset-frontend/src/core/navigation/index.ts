@@ -29,7 +29,7 @@ import { useEffect, useRef } from 'react';
 import { useHistory, useLocation, matchPath } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import type { navigation as navigationApi } from '@apache-superset/core';
-import { ensureAppRoot } from '../../utils/navigationUtils';
+import { redirect } from '../../utils/navigationUtils';
 import { RoutePaths } from '../../views/routePaths';
 import { registerCommand as commandsRegisterCommand } from '../commands';
 import { Disposable } from '../models';
@@ -149,7 +149,14 @@ const navigateTo: typeof navigationApi.navigateTo = (path: string): void => {
     // Before the shell has handed its history over there is no router to
     // push onto. A full load is the honest fallback: it reaches the same
     // address, just without the transition.
-    window.location.assign(ensureAppRoot(path));
+    //
+    // Through `redirect`, which is the one sanctioned way out of this
+    // module -- it applies the application root and the scheme guard, and
+    // `navigationUtils.invariants.test.ts` rejects a direct
+    // `window.location` call from here. The raw path is passed because
+    // `redirect` roots it itself; rooting it twice would double the prefix
+    // on a subdirectory deployment.
+    redirect(path);
     return;
   }
   history.push(path);

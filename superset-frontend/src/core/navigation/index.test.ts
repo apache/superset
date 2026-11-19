@@ -237,10 +237,10 @@ test('a host screen is named for itself, whatever pages exist', async () => {
 });
 
 test('moving between two contributed pages does not change the surface', async () => {
-  // Deliberate, and the reason `pages.onDidChangeCurrentPage` exists. `Page`
-  // names the surface, and both of these are `'extension'`, so this module
-  // has nothing to report. An extension that needs to know *which* page it
-  // is on asks the registry.
+  // Deliberate. `Page` names the surface, and both of these are
+  // `'extension'`, so this module has nothing to report. An extension that
+  // needs to know *which* page it is on reads `getLocation()` or listens to
+  // `onDidChangeLocation`.
   const { navigation, notifyLocationChanged } = await importNavigation();
   const first = await registerPage('acme.tools.approvals');
   const second = await registerPage('acme.tools.review-log');
@@ -339,11 +339,15 @@ test('navigateTo still reaches the address before the shell hands over', async (
   // A command handler can fire before the app shell has given its history
   // over. A full load reaches the same place; only the transition is lost,
   // which beats silently doing nothing.
+  //
+  // Through `navigationUtils.redirect`, which applies the application root
+  // and the scheme guard. A direct `window.location` call from this module
+  // is rejected by `navigationUtils.invariants.test.ts`.
   const { navigation } = await importNavigation();
 
   navigation.navigateTo('/extensions/pages/acme.tools.queue');
 
-  expect(window.location.assign).toHaveBeenCalledWith(
-    '/extensions/pages/acme.tools.queue',
-  );
+  // `href`, not `assign`: `navigationUtils.navigateTo` only calls `assign`
+  // when asked to, and reaches a same-origin path through `location.href`.
+  expect(window.location.href).toBe('/extensions/pages/acme.tools.queue');
 });

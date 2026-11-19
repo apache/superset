@@ -47,7 +47,7 @@ assists people when migrating to a new version.
   lose it on the next `superset init`.** Re-grant it to a custom role, which
   role sync does not rebuild, or to Admin. Custom roles are unaffected.
 
-  Two limits worth knowing before you rely on this:
+  One limit worth knowing before you rely on this:
 
   - **The classification is process state, not a stored fact.** A resource is
     recorded when the extension's `@api` registers in that process, so a
