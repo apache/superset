@@ -448,6 +448,7 @@ test('pressing Enter on the header info button does not sort the column', () => 
 
   fireEvent.keyDown(screen.getByRole('button', { name: 'Show info tooltip' }), {
     key: 'Enter',
+    keyCode: 13,
   });
 
   expect(rowTexts(container)).toEqual(before);
