@@ -104,6 +104,7 @@ def test_colliding_user_and_subject_ids_resolve_by_explicit_namespace(field: str
             "superset.commands.utils.get_user_subject", return_value=intended
         ) as by_user,
         patch("superset.commands.utils.get_subject", return_value=other) as by_subject,
+        patch("superset.commands.utils.is_feature_enabled", return_value=True),
     ):
         properties = DashboardPutSchema().load({field: [{"type": "user", "id": 50}]})
         errors: list[ValidationError] = []
