@@ -110,3 +110,16 @@ dict silently in the first place).
 3. Resolve the open question above, then decide the actual migration shape for orphaned Median/StdDev/Variance/CountUnique `aggregateFunction` values — likely the "flagged for review" approach #42895's SIP proposed (exact surfacing mechanism — Tag vs. report vs. in-product banner — still Evan's call, not yet decided).
 4. Revisit apache/superset#44625 (reports/exports re-aggregation bug) once shelved time is up.
 5. Out of scope for now: Table / Table v2 parity (confirmed not affected the same way — no pivot-style global aggregate control there) and AG Grid Interactive Pivot (separate viz, tracked as sc-118999 internally).
+
+## Empty metric columns
+
+Pivot Table hides columns whose metric values are all NULL by default. This
+also applies to saved charts that do not have a `hideEmptyColumns` setting, so
+users do not need to edit their charts after an upgrade. Clear **Hide empty
+columns** to display these columns.
+
+Zero is a value and keeps a column visible. Non-empty summaries and the parent
+headers of populated columns also remain visible. The option only changes
+column visibility. It retains the records and aggregators used for database
+totals, result aggregations, and percentage denominators. A zero numerator
+keeps its column even if a zero denominator makes its percentage undefined.
