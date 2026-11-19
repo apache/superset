@@ -35,6 +35,7 @@ from superset.app import SupersetApp
 from superset.common.db_query_status import QueryStatus
 from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import OAuth2Error, SupersetErrorException
 from superset.models.core import Database
@@ -594,8 +595,30 @@ def test_execute_sql_statements_raises_when_mutator_strips_single_block(
         )
 
 
+def test_get_sql_results_unexpected_error_keeps_traceback(
+    mocker: MockerFixture, app: SupersetApp, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Only OAuth2 redirects may bypass the task's unexpected-error logging."""
+    mocker.patch(
+        "superset.sql_lab.execute_sql_statements", side_effect=RuntimeError("boom")
+    )
+    mocker.patch("superset.sql_lab.get_query", return_value=mocker.MagicMock())
+    payload = {"status": QueryStatus.FAILED, "error": "boom"}
+    mocker.patch("superset.sql_lab.handle_query_error", return_value=payload)
+
+    with app.app_context(), caplog.at_level("DEBUG", logger="superset.sql_lab"):
+        assert get_sql_results(query_id=1, rendered_query="SELECT 1") == payload
+
+    assert any(
+        r.name == "superset.sql_lab" and r.levelname == "ERROR" and r.exc_info
+        for r in caplog.records
+    )
+
+
 @freeze_time("2021-04-01T00:00:00Z")
-def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
+def test_get_sql_results_oauth2(
+    mocker: MockerFixture, app, caplog: pytest.LogCaptureFixture
+) -> None:
     """
     Test that `get_sql_results` works with OAuth2.
     """
@@ -653,7 +676,14 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         )
         mocker.patch("superset.sql_lab.get_query", return_value=query)
 
-        payload = get_sql_results(query_id=1, rendered_query="SELECT 1")
+        with caplog.at_level("DEBUG", logger="superset.sql_lab"):
+            payload = get_sql_results(query_id=1, rendered_query="SELECT 1")
+        oauth_records = [r for r in caplog.records if r.name == "superset.sql_lab"]
+        assert not any(
+            r.levelname in {"WARNING", "ERROR", "CRITICAL"} or r.exc_info
+            for r in oauth_records
+        )
+        assert any("OAuth2 authorization required" in r.message for r in oauth_records)
         assert payload["status"] == QueryStatus.FAILED
         assert payload["error"] == "You don't have permission to access the data."
         assert len(payload["errors"]) == 1
@@ -2110,6 +2140,7 @@ def test_apply_rls(mocker: MockerFixture) -> None:
                 "examples",
                 exclude_dataset_id=None,
                 include_global_guest_rls=True,
+                any_schema=False,
             ),
             mocker.call(
                 Table("t2", "public", "examples"),
@@ -2117,6 +2148,7 @@ def test_apply_rls(mocker: MockerFixture) -> None:
                 "examples",
                 exclude_dataset_id=None,
                 include_global_guest_rls=True,
+                any_schema=False,
             ),
         ]
     )
@@ -2141,6 +2173,50 @@ FROM (
 ) AS "t2"
         """.strip()
     )
+
+
+@pytest.mark.parametrize(
+    "sql,expected_tables",
+    [
+        ("SELECT * FROM SALES_DB.marts.orders", ["orders"]),
+        ("SELECT * FROM sales_db.marts.orders", ["orders"]),
+        ("SELECT * FROM Sales_Db.marts.orders", ["orders"]),
+        (
+            "SELECT * FROM SALES_DB.marts.a JOIN sales_db.marts.b ON a.id = b.id",
+            ["a", "b"],
+        ),
+        (
+            "SELECT * FROM sales_db.marts.a JOIN Sales_Db.marts.b ON a.id = b.id",
+            ["a", "b"],
+        ),
+    ],
+)
+def test_apply_rls_snowflake_catalog_case(
+    mocker: MockerFixture, sql: str, expected_tables: list[str]
+) -> None:
+    """
+    RLS applies to every table when the catalog is written in another case.
+
+    The rules are keyed by the physical (uppercase) catalog, so the statement must
+    spell the catalog the same way, or the lookup misses and the predicate is
+    silently dropped (also in a join, where ``apply_rls`` still returns True).
+    """
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = "SALES_DB"
+    database.db_engine_spec = SnowflakeEngineSpec
+
+    def predicates(table: Table, *args: Any, **kwargs: Any) -> list[str]:
+        assert table.catalog == "SALES_DB"
+        return [f"{table.table}_flag = 1"]
+
+    mocker.patch("superset.utils.rls.get_predicates_for_table", side_effect=predicates)
+
+    parsed_statement = SQLStatement(sql, "snowflake")
+    assert apply_rls(database, "SALES_DB", "marts", parsed_statement) is True
+
+    formatted = parsed_statement.format()
+    for table in expected_tables:
+        assert f"{table}_flag = 1" in formatted
 
 
 def test_get_predicates_for_table(mocker: MockerFixture) -> None:
