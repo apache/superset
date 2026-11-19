@@ -371,6 +371,14 @@ def import_database(  # noqa: C901
 
     # set SQLAlchemy URI via `set_sqlalchemy_uri` so that the password gets masked
     sqlalchemy_uri = config.pop("sqlalchemy_uri")
+    url = make_url_safe(sqlalchemy_uri)
+    if not url.password and config.get("password"):
+        # set_sqlalchemy_uri clears the stored password for passwordless URLs.
+        # Preserve a password supplied through the import form using the same
+        # sentinel as exports that already contain a masked password.
+        sqlalchemy_uri = url.set(password=PASSWORD_MASK).render_as_string(
+            hide_password=False
+        )
     # TODO (betodealmeida): we should use the `CreateDatabaseCommand` for imports
     database: Database = Database.import_from_dict(config, recursive=False)
     database.set_sqlalchemy_uri(sqlalchemy_uri)

@@ -3187,6 +3187,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 raise SupersetGenericDBErrorException(message=str(ex)) from ex
         return extra
 
+    @classmethod
+    def requires_import_password(cls, config: dict[str, Any]) -> bool:
+        """Whether an import without a URI password needs the password prompt."""
+        return False
+
     @staticmethod
     def update_params_from_encrypted_extra(  # pylint: disable=invalid-name
         database: Database, params: dict[str, Any]

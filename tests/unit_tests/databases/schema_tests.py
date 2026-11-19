@@ -2124,3 +2124,128 @@ def test_import_schema_reveals_a_stored_null_secret(mocker: MockerFixture) -> No
             }
         )
     )
+
+
+@pytest.mark.parametrize(
+    "uri,options,needs_password",
+    [
+        ("snowflake://user@account/db", {}, True),
+        ("snowflake://user:@account/db", {}, True),
+        ("snowflake://user@account/db", {"password": ""}, True),
+        ("snowflake://user@account/db", {"password": "secret"}, False),
+        ("snowflake://user:secret@account/db", {}, False),
+        ("snowflake://user:XXXXXXXXXX@account/db", {}, True),
+        ("snowflake://user@account/db?authenticator=SNOWFLAKE", {}, True),
+        ("snowflake://user@account/db?authenticator=username_password_mfa", {}, True),
+        ("snowflake://user@account/db?authenticator=externalbrowser", {}, False),
+        ("snowflake://user@account/db?authenticator=oauth&token=test", {}, False),
+        ("snowflake://user@account/db?authenticator=SNOWFLAKE_JWT", {}, False),
+        ("snowflake://user@account/db?private_key_file=/tmp/key.p8", {}, False),
+        (
+            "snowflake://user@account/db",
+            {"extra": {"engine_params": {"connect_args": {"private_key": "test-key"}}}},
+            False,
+        ),
+        (
+            "snowflake://user@account/db",
+            {"extra": {"engine_params": {"connect_args": {"password": "secret"}}}},
+            False,
+        ),
+        (
+            "snowflake://user@account/db",
+            {
+                "extra": {
+                    "engine_params": {
+                        "connect_args": {"authenticator": "oauth", "token": "test"}
+                    }
+                }
+            },
+            False,
+        ),
+        (
+            "snowflake://user@account/db",
+            {
+                "encrypted_extra": json.dumps(
+                    {
+                        "auth_method": "keypair",
+                        "auth_params": {"privatekey_body": "test-key"},
+                    }
+                )
+            },
+            False,
+        ),
+        (
+            "snowflake://user@account/db",
+            {
+                "masked_encrypted_extra": json.dumps(
+                    {"auth_method": "custom", "auth_params": {}}
+                )
+            },
+            False,
+        ),
+        (
+            "snowflake://user@account/db",
+            {
+                "impersonate_user": True,
+                "encrypted_extra": json.dumps(
+                    {"oauth2_client_info": {"id": "client", "secret": "test"}}
+                ),
+            },
+            False,
+        ),
+        ("postgresql://user@host/db", {}, False),
+        ("sqlite://", {}, False),
+    ],
+)
+def test_import_schema_missing_password(
+    mocker: MockerFixture, uri: str, options: dict[str, Any], needs_password: bool
+) -> None:
+    """Use the password prompt only when the imported connection needs one."""
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    mocker.patch(
+        "superset.databases.schemas.db.session"
+    ).query.return_value.filter_by.return_value.first.return_value = None
+    config = {
+        "database_name": "test",
+        "sqlalchemy_uri": uri,
+        "uuid": "a2dc77af-e654-49bb-b321-40f6b559a1ee",
+        "version": "1.0.0",
+        **options,
+    }
+    if needs_password:
+        with pytest.raises(ValidationError) as exc_info:
+            ImportV1DatabaseSchema().load(config)
+        assert exc_info.value.messages == {
+            "_schema": ["Must provide a password for the database"]
+        }
+    else:
+        ImportV1DatabaseSchema().load(config)
+
+
+@pytest.mark.parametrize("existing", [False, True])
+def test_import_schema_preserves_external_password_source(
+    mocker: MockerFixture, existing: bool
+) -> None:
+    """Reused connections and a custom password store do not need an import secret."""
+    from flask import current_app
+
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    query = mocker.patch("superset.databases.schemas.db.session").query
+    query.return_value.filter_by.return_value.first.return_value = (
+        mocker.Mock() if existing else None
+    )
+    if not existing:
+        mocker.patch.dict(
+            current_app.config,
+            {"SQLALCHEMY_CUSTOM_PASSWORD_STORE": lambda uri: "secret"},
+        )
+    ImportV1DatabaseSchema().load(
+        {
+            "database_name": "test",
+            "sqlalchemy_uri": "snowflake://user@account/db",
+            "uuid": "a2dc77af-e654-49bb-b321-40f6b559a1ee",
+            "version": "1.0.0",
+        }
+    )

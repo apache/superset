@@ -1430,15 +1430,20 @@ class ImportV1DatabaseSchema(Schema):
 
     @validates_schema
     def validate_password(self, data: dict[str, Any], **kwargs: Any) -> None:
-        """If sqlalchemy_uri has a masked password, password is required"""
+        """Request missing passwords before imports open database connections."""
         uuid = data["uuid"]
         existing = db.session.query(Database).filter_by(uuid=uuid).first()
         if existing:
             return
 
         uri = data["sqlalchemy_uri"]
-        password = make_url_safe(uri).password
-        if password == PASSWORD_MASK and data.get("password") is None:
+        url = make_url_safe(uri)
+        password = url.password
+        needs_password = password == PASSWORD_MASK
+        if not password:
+            engine_spec = Database.get_db_engine_spec(url)
+            needs_password = engine_spec.requires_import_password(data)
+        if needs_password and not data.get("password"):
             raise ValidationError("Must provide a password for the database")
 
     @validates_schema

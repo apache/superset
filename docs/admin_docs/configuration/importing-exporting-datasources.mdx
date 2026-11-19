@@ -229,3 +229,13 @@ databases:
           - column_name: ds
             verbose_name: datetime
 ```
+
+### Snowflake passwords during import
+
+When an export contains a new Snowflake connection that uses password
+authentication, the import asks for its password before connecting. This also
+applies when the connection URI has no password, instead of a masked password.
+Enter the password in the import dialog and retry. Do not add it to the ZIP file.
+
+Existing connections retain their credentials. Key-pair, OAuth, and other
+non-password authentication methods keep their existing import flow.
