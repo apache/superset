@@ -19,7 +19,10 @@
 
 from typing import TYPE_CHECKING
 
-from superset.exceptions import SupersetException
+from werkzeug.exceptions import BadRequest
+
+from superset.exceptions import QueryObjectValidationError, SupersetException
+from superset.semantic_layers.chart_types import validate_semantic_chart_type
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
@@ -41,10 +44,16 @@ def is_semantic_layers_enabled() -> bool:
 
 
 def is_semantic_image_unavailable(resource: "Slice | Dashboard") -> bool:
-    """Refuse an image containing semantic data under the active feature decision."""
-    if is_semantic_layers_enabled():
-        return False
+    """Refuse disabled semantic data or raise for unsupported chart images."""
     from superset.models.slice import Slice
 
     charts: list[Slice] = [resource] if isinstance(resource, Slice) else resource.slices
-    return any(chart.datasource_type == "semantic_view" for chart in charts)
+    if not is_semantic_layers_enabled():
+        return any(chart.datasource_type == "semantic_view" for chart in charts)
+    for chart in charts:
+        try:
+            validate_semantic_chart_type(chart.datasource_type, chart.viz_type)
+        except QueryObjectValidationError as error:
+            # Image APIs use FAB's safe decorator, which translates BadRequest.
+            raise BadRequest(error.message) from error
+    return False

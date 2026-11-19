@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic views reject Histogram, Calendar Heatmap, Time-series Table, Time-series
+  Period Pivot, Nightingale Rose, Horizon, and Paired t-test charts instead of
+  returning misleading or empty data. This includes saved charts and their cached
+  images. Use Line/Bar for time series or Table with an explicit time dimension;
+  use an explicit count metric in Bar/Table for frequencies. Ordinary datasets
+  are unaffected.
+
 - **Realtime websocket authentication (`WEBSOCKET_ENABLE`):** the browser
   authenticates the socket with a short-lived ticket from
   `GET /api/v1/realtime/token/` sent in-band, instead of a JWT cookie. The

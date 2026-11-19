@@ -450,8 +450,13 @@ def execute_chart_query(
     """
     from superset.charts.data.form_data import set_query_context_form_data
 
+    # Avoid app-init regression: ChartDataCommand imports QueryContext/SQLA models.
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+
     with override_user(_resolve_user(user_id, guest_token), force=False):
         query_context = load_serialized_query(serialized_query)
+        if query_context.datasource.type == "semantic_view":
+            ChartDataCommand(query_context).validate()
         # Re-establish ``g.form_data`` from the serialized payload. There is no
         # request context in the worker, and Jinja helpers (``filter_values``,
         # ``url_param``, ``get_filters``) resolve form data from ``g`` via

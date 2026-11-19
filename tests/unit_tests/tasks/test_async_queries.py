@@ -184,6 +184,7 @@ def test_failed_non_totals_sql_query_preserves_readback(
     task_context.update_task.assert_called_once_with(
         payload={"cache_key": "failed-sql-key"}, immediate=True
     )
+    query_context.raise_for_access.assert_not_called()
     assert (
         query_context.get_df_payload_result.return_value.payload["errors"][0]["message"]
         == "Friendly engine error"
@@ -683,6 +684,7 @@ def test_execute_semantic_query_refuses_disabled_worker(
     mocker.patch("superset.tasks.async_queries.override_user")
     mocker.patch("superset.tasks.async_queries.get_context")
     mocker.patch("superset.common.query_context.QueryContext.get_df_payload_result")
+    mocker.patch("superset.common.query_context.QueryContext.raise_for_access")
     lookup: mock.MagicMock = mocker.patch("superset.daos.datasource.db.session.query")
     execute: mock.MagicMock = mocker.patch(
         "superset.semantic_layers.models.SemanticView.get_query_result"

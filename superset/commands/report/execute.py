@@ -1266,6 +1266,14 @@ class BaseReportState:
 
         return pdf
 
+    def _include_semantic_chart_type(self, query_context: dict[str, Any]) -> None:
+        """Preserve the saved chart type for validation of legacy report payloads."""
+        if self._report_schedule.chart.datasource_type == "semantic_view":
+            query_context["form_data"] = dict(
+                query_context.get("form_data") or {},
+                viz_type=self._report_schedule.chart.viz_type,
+            )
+
     def _get_chart_data_request_payload(
         self,
         result_format: ChartDataResultFormat,
@@ -1295,6 +1303,8 @@ class BaseReportState:
 
         if form_data is not None:
             query_context["form_data"] = dict(form_data)
+
+        self._include_semantic_chart_type(query_context)
 
         result_type = ChartDataResultType.POST_PROCESSED.value
         force = bool(self._report_schedule.force_screenshot)
