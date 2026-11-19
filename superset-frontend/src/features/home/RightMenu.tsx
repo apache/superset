@@ -929,7 +929,7 @@ const RightMenu = ({
       )}
       {navbarRight.user_is_anonymous && (
         <StyledAnchor href={navbarRight.user_login_url}>
-          <Icons.LoginOutlined /> {t('Login')}
+          <Icons.LoginOutlined /> {t('Sign in')}
         </StyledAnchor>
       )}
       <TelemetryPixel
