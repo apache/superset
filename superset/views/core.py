@@ -620,7 +620,12 @@ class Superset(BaseSupersetView):
         except SupersetSecurityException:
             if not get_current_user():
                 return redirect_to_login()
-            return self._dashboard_error_response(403)
+            from superset.utils.filters import is_excluded_by_extra_access
+
+            # Withheld dashboards stay indistinguishable from missing ones,
+            # matching DashboardDAO.get_by_id_or_slug.
+            excluded = is_excluded_by_extra_access("dashboards", dashboard.id)
+            return self._dashboard_error_response(404 if excluded else 403)
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",

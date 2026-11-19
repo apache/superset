@@ -749,12 +749,15 @@ class DashboardDAO(BaseDAO[Dashboard]):
             )
             dashboard = query.one_or_none()
             # A dashboard hidden by access filters is denied rather than missing,
-            # unless an ``EXTRA_ACCESS_QUERY_EXCLUSIONS`` hook withholds it: those
-            # stay indistinguishable from missing, matching the uuid branch.
+            # unless an ``EXTRA_ACCESS_QUERY_EXCLUSIONS`` hook withholds it or the
+            # caller is an embedded guest: those stay indistinguishable from
+            # missing, so guest tokens cannot probe other dashboards by ID/slug.
             if dashboard is None:
                 existing = Dashboard.get(id_or_slug)
-                if existing is not None and not is_excluded_by_extra_access(
-                    "dashboards", existing.id
+                if (
+                    existing is not None
+                    and not security_manager.is_guest_user()
+                    and not is_excluded_by_extra_access("dashboards", existing.id)
                 ):
                     raise DashboardAccessDeniedError()
         if not dashboard:

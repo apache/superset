@@ -30,7 +30,7 @@ from jinja2 import FileSystemLoader
 from pytest_mock import MockerFixture
 from sqlalchemy import false
 from sqlalchemy.orm import Query, Session
-from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import Forbidden, NotFound
 
 from superset import security_manager
 from superset.commands.dashboard.exceptions import (
@@ -143,6 +143,19 @@ def test_dashboard_withheld_by_exclusion_hook_is_not_found(
         DashboardDAO.get_by_id_or_slug(identifier)
 
 
+@pytest.mark.parametrize("identifier", IDENTIFIERS[:2])
+def test_filtered_dashboard_is_not_found_for_embedded_guest(
+    dashboard: Dashboard,
+    mocker: MockerFixture,
+    denied_filter: None,
+    identifier: int | str,
+) -> None:
+    """Guest tokens cannot tell other existing dashboards from missing ones."""
+    mocker.patch.object(security_manager, "is_guest_user", return_value=True)
+    with pytest.raises(DashboardNotFoundError):
+        DashboardDAO.get_by_id_or_slug(identifier)
+
+
 @pytest.mark.parametrize("deleted", [False, True])
 @pytest.mark.parametrize("identifier", IDENTIFIERS)
 def test_missing_or_deleted_dashboard_is_not_found(
@@ -211,6 +224,24 @@ def test_legacy_dashboard_permission_failure_is_forbidden(
     item.raise_for_access.side_effect = access_error
     mocker.patch("superset.views.core.get_current_user", return_value=object())
     with app.test_request_context(), pytest.raises(Forbidden):
+        unwrap(Superset.dashboard)(Superset(), "1")
+
+
+def test_legacy_dashboard_withheld_by_exclusion_hook_is_not_found(
+    app: Flask,
+    mocker: MockerFixture,
+    access_error: SupersetSecurityException,
+) -> None:
+    """Exclusion-hook dashboards get 404 on the legacy entry, as from the API."""
+    from superset.views.core import Superset
+
+    item = mocker.patch("superset.views.core.Dashboard.get").return_value
+    item.raise_for_access.side_effect = access_error
+    mocker.patch("superset.views.core.get_current_user", return_value=object())
+    mocker.patch(
+        "superset.utils.filters.is_excluded_by_extra_access", return_value=True
+    )
+    with app.test_request_context(), pytest.raises(NotFound):
         unwrap(Superset.dashboard)(Superset(), "1")
 
 
