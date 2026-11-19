@@ -51,6 +51,7 @@ export interface TableCollectionProps<T extends object> {
   isRowHighlighted?: (record: Record<string, unknown>) => boolean;
   columnsForWrapText?: string[];
   setSortBy?: (updater: SortingRule<T>[]) => void;
+  sortBy?: SortingRule<T>[];
   bulkSelectEnabled?: boolean;
   selectedFlatRows?: Row<T>[];
   toggleRowSelected?: (rowId: string, value: boolean) => void;
@@ -168,6 +169,7 @@ function TableCollection<T extends object>({
   highlightRowId,
   isRowHighlighted,
   setSortBy,
+  sortBy,
   headerGroups,
   columnsForWrapText,
   bulkSelectEnabled = false,
@@ -186,8 +188,8 @@ function TableCollection<T extends object>({
   expandable,
 }: TableCollectionProps<T>) {
   const mappedColumns = useMemo(
-    () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
-    [columns, headerGroups, columnsForWrapText],
+    () => mapColumns<T>(columns, headerGroups, columnsForWrapText, sortBy),
+    [columns, headerGroups, columnsForWrapText, sortBy],
   );
 
   const mappedRows = useMemo(
