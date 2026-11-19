@@ -52,7 +52,9 @@ jobs:
           await wiki.labelRosterAuthor({ github, context, core });
 
     # https://github.com/apache/superset/wiki/Audit-Hold-Paths
-    # Fails if the page cannot be read: these labels gate merges.
+    # https://github.com/apache/superset/wiki/Path-Labels
+    # Fails if the holds page cannot be read, since those labels gate
+    # merges; only warns for the informational path labels.
     - name: Read the path rules from the wiki
       id: paths
       if: github.event_name == 'pull_request_target'
@@ -60,7 +62,7 @@ jobs:
       with:
         script: |
           const wiki = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/wiki-labels.js`);
-          await wiki.writePathConfig({ context, core }, { required: ['holds'] });
+          await wiki.writePathConfig({ context, core }, { required: ['holds'], optional: ['paths'] });
 
     # A label that does not exist in the repository yet is created by GitHub
     # the first time it is applied (hence `issues: write`).

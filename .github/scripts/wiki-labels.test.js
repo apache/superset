@@ -108,6 +108,13 @@ test('reserved labels', () => {
   assert.equal(wiki.isReserved('holds', 'doc'), false);
 });
 
+test('the path labels page names its own labels, minus the reserved ones', () => {
+  const page = '## doc\n- `docs/**`\n## brand-new\n- `x/**`\n## hold!\n- `y/**`\n## utsc2026\n- `z/**`\n';
+  const { rules, problems } = wiki.parse('paths', page);
+  assert.deepEqual([...rules.keys()], ['doc', 'brand-new']);
+  assert.deepEqual(problems.map(problem => problem.line), [5, 7]);
+});
+
 test('reviewersFor skips people and labels that do not apply', () => {
   const reviewers = new Map([
     ['a', ['x', 'y']],

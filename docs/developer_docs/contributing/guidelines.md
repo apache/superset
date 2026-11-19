@@ -164,6 +164,7 @@ Some labels are applied by CI rather than by hand, from rules kept on the projec
 - [Labeling Automation](https://github.com/apache/superset/wiki/Labeling-Automation) lists every wiki page that drives labels.
 - [Label Rosters](https://github.com/apache/superset/wiki/Label-Rosters) maps labels to GitHub handles, for labels that depend on who opened the PR or issue (for example `utsc2026`, for students contributing through a university course).
 - [Audit Hold Paths](https://github.com/apache/superset/wiki/Audit-Hold-Paths) maps `hold:audit-*` labels to file paths. A PR that changes one of those paths is held from merging until a reviewer has checked the risk described on that page and removed the label.
+- [Path Labels](https://github.com/apache/superset/wiki/Path-Labels) maps informational labels to file paths: `risk:*`, `dependencies:*`, `i18n:*`, `doc`, `api`, `docker` and the sub-project labels. These help with filtering and review and do not block merging.
 
 A section on any of these pages can also list reviewers. CI requests a review from them when a PR gets that section's label (once the PR is out of draft), which is how path-based review requests work without a `CODEOWNERS` entry.
 

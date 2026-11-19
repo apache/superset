@@ -52,6 +52,13 @@ const PAGES = {
     prefixes: ['hold:audit-'],
     allows: 'labels starting with `hold:audit-`',
   },
+  paths: {
+    page: 'Path-Labels',
+    entries: 'globs',
+    anyLabel: true,
+    allows:
+      'any label that does not contain "hold", is not a showtime label, and is not assigned by another page',
+  },
 };
 
 const REVIEWER_LIST_NAMES = ['reviewers', 'reviewer', 'auditors', 'auditor'];
