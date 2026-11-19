@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType } from '@superset-ui/core';
+import { DataMask, DatasourceType } from '@superset-ui/core';
 import {
   buildNativeFilterTarget,
   buildNativeFilterDefaultDataMask,
@@ -123,4 +123,21 @@ test('only an explicitly versioned semantic form certifies its new default', () 
       { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
     ],
   });
+});
+
+test('a grain-only default is not certified because it selects no member', () => {
+  const mask: DataMask = {
+    filterState: { value: ['P1Y'] },
+    extraFormData: { time_grain_sqla: 'P1Y' },
+  };
+  expect(
+    buildNativeFilterDefaultDataMask(
+      {
+        dataset: 7,
+        datasourceType: DatasourceType.SemanticView,
+        semantic_selection_version: 'cube-member-id-v1',
+      },
+      mask,
+    ),
+  ).toEqual(mask);
 });

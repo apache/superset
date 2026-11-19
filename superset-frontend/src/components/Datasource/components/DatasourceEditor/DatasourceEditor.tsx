@@ -1996,6 +1996,11 @@ function DatasourceEditor({
               opr: 'eq',
               value: datasource.id,
             },
+            {
+              col: 'datasource_type',
+              opr: 'eq',
+              value: datasource.datasource_type || datasource.type,
+            },
           ],
           order_column: sortColumn,
           order_direction: sortDirection,
@@ -2052,7 +2057,12 @@ function DatasourceEditor({
         abortControllers.current.fetchUsageData = null;
       }
     },
-    [datasource.id, addDangerToast],
+    [
+      datasource.id,
+      datasource.datasource_type,
+      datasource.type,
+      addDangerToast,
+    ],
   );
 
   const handleTabSelect = useCallback((key: string) => {

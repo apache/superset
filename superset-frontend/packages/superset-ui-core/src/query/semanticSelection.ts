@@ -19,6 +19,23 @@
 
 import { ExtraFormData, SemanticSelectionSource } from './types/QueryFormData';
 
+/**
+ * Whether the extra form data only sets a time grain. A grain is a duration,
+ * not a semantic member, so it needs no selection provenance. Any other field,
+ * including a time column choice, keeps provenance.
+ */
+export function isGrainOnlyExtraFormData(extra: ExtraFormData = {}): boolean {
+  return (
+    !!extra.time_grain_sqla &&
+    Object.entries(extra).every(
+      ([key, value]) =>
+        key === 'time_grain_sqla' ||
+        key === 'semantic_selection_sources' ||
+        value === undefined,
+    )
+  );
+}
+
 /** Preserve missing provenance as a source that cannot be certified by a later merge. */
 export function getSemanticSelectionSources(
   extra: ExtraFormData = {},

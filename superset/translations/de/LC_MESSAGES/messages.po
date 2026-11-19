@@ -7204,6 +7204,9 @@ msgstr "Bezeichnung für dynamischen Abschnitt"
 msgid "Dynamic group by"
 msgstr "Dynamisch gruppieren nach"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Beschreibung für dynamischen Abschnitt"
 
@@ -9225,6 +9228,14 @@ msgstr "Linie ausblenden"
 msgid "Hide chart description"
 msgstr "Diagrammbeschreibung ausblenden"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Ebene verstecken"
 
@@ -9815,6 +9826,11 @@ msgstr "Ungültiger Zustand."
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Ungültige Tab-IDs: %(tab_ids)s"
+
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "Ungültiger zeitlicher Filterwert für die Spalte %(column)s"
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
