@@ -1638,8 +1638,8 @@ def apply_client_processing(  # noqa: C901
 
         if len(df.index) == 0:
             # An export with headers but no rows is passed through unprocessed:
-            # post-processors assume at least one row (e.g. pivoting drops the
-            # metric columns of an empty frame and then fails to select them).
+            # the pivot post-processor assumes at least one row (pivoting drops
+            # the metric columns of an empty frame and then fails to select them).
             continue
 
         # Serialized exports already carry labels from QueryContextProcessor.get_data.

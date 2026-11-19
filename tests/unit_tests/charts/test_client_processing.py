@@ -4610,7 +4610,11 @@ def _header_only_export(result_format: ChartDataResultFormat) -> bytes:
     query matched no rows: the column headers, but no data rows.
     """
     df = pd.DataFrame(
-        {"country": pd.Series(dtype="object"), "SUM(num)": pd.Series(dtype="float")}
+        {
+            "country": pd.Series(dtype="object"),
+            "region": pd.Series(dtype="object"),
+            "SUM(num)": pd.Series(dtype="float"),
+        }
     )
     if result_format == ChartDataResultFormat.XLSX:
         return excel.df_to_excel(df, index=False)
@@ -4623,8 +4627,8 @@ def _header_only_export(result_format: ChartDataResultFormat) -> bytes:
 )
 @pytest.mark.parametrize(
     ("groupby_rows", "groupby_columns"),
-    [(["country"], []), ([], ["country"])],
-    ids=["rows", "columns"],
+    [(["country"], []), ([], ["country"]), (["country"], ["region"])],
+    ids=["rows", "columns", "rows_and_columns"],
 )
 def test_apply_client_processing_pivot_table_v2_export_without_rows(
     result_format: ChartDataResultFormat,
