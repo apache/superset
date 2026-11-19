@@ -31,7 +31,7 @@ Its `SemanticQueryErrorCode` accepts `UNSUPPORTED_QUERY`, `UNSUPPORTED_OFFSET`,
 
 Use `UNSUPPORTED_GROUP_OTHERS_METRIC` when a provider cannot combine a selected
 metric into the remaining-series bucket, such as an average or distinct count
-computed from grouped results. Its guidance identifies Group remaining as "Others"
+computed from grouped results. Its guidance names the `Group remaining as "Others"` control
 and suggests turning it off or choosing a sum, count, minimum, or maximum metric.
 It does not change which aggregations the provider supports. Providers compatible
 with older SDKs should fall back to `UNSUPPORTED_QUERY` when this enum member is
