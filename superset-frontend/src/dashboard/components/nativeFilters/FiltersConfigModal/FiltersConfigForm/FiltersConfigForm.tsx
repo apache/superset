@@ -953,6 +953,30 @@ const FiltersConfigForm = (
             semantic_selection_version,
           }) => {
             if (!current) return;
+            const fields: Partial<ChartCustomizationsFormItem> | undefined =
+              form.getFieldValue(['filters', filterId]);
+            // Only a new, selection-free control can adopt the loaded format.
+            // Saved controls and selections carried from another datasource
+            // still require the explicit reset/reselection path.
+            if (
+              !filterToEdit &&
+              !customizationToEdit &&
+              semantic_selection_version &&
+              !fields?.semantic_selection_version &&
+              !fields?.column &&
+              !fields?.adhoc_filters?.length &&
+              !fields?.granularity_sqla &&
+              !fields?.time_grains?.length &&
+              !fields?.sortMetric &&
+              !fields?.controlValues?.sortMetric &&
+              !fields?.dependencies?.length &&
+              fields?.defaultValue == null &&
+              !Object.keys(fields?.defaultDataMask ?? {}).length
+            ) {
+              setNativeFilterFieldValues(form, filterId, {
+                semantic_selection_version,
+              });
+            }
             const columns = semanticViewDimensionsToColumns(dimensions);
             // The /structure wire carries no metric uuid, and this state's
             // consumers key on metric_name/verbose_name without reading
@@ -1229,7 +1253,13 @@ const FiltersConfigForm = (
                             defaultDataMask: {},
                             dependencies: [],
                             defaultValue: undefined,
-                            controlValues: {},
+                            controlValues:
+                              itemTypeField === 'filter_select'
+                                ? {
+                                    operatorType:
+                                      SelectFilterOperatorType.Exact,
+                                  }
+                                : {},
                           });
                           setHasDefaultValue(false);
                           forceUpdate();
