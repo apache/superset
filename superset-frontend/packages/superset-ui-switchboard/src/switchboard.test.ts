@@ -95,8 +95,11 @@ class FakeMessageChannel {
     const port2 = new FakeMessagePort();
     port1.otherPort = port2;
     port2.otherPort = port1;
-    this.port1 = port1;
-    this.port2 = port2;
+    // FakeMessagePort only implements the subset of MessagePort that
+    // Switchboard exercises; cast at the boundary so the fake satisfies
+    // the consumer signature without weakening the production type.
+    this.port1 = port1 as unknown as MessagePort;
+    this.port2 = port2 as unknown as MessagePort;
   }
 }
 

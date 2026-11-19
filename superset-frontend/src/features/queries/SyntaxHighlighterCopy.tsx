@@ -34,7 +34,7 @@ const SyntaxHighlighterWrapper = styled.div`
 
   &:hover {
     .copy-button {
-      visibility: visible;
+      opacity: 1;
     }
   }
 
@@ -43,7 +43,8 @@ const SyntaxHighlighterWrapper = styled.div`
     top: 40px;
     right: 16px;
     z-index: 10;
-    visibility: hidden;
+    /* opacity rather than visibility keeps the button reachable by keyboard */
+    opacity: 0;
     margin: -4px;
     padding: 4px;
     background: ${({ theme }) => theme.colorBgContainer};
@@ -57,8 +58,8 @@ const SyntaxHighlighterWrapper = styled.div`
       color: ${({ theme }) => theme.colorIconHover};
     }
 
-    &:focus {
-      visibility: visible;
+    &:focus-visible {
+      opacity: 1;
       outline: 2px solid ${({ theme }) => theme.colorPrimary};
       outline-offset: 2px;
     }
@@ -106,13 +107,6 @@ export default function SyntaxHighlighterCopy({
     e.stopPropagation();
     e.currentTarget.blur();
     copyToClipboard(children);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      copyToClipboard(children);
-    }
   };
 
   return (

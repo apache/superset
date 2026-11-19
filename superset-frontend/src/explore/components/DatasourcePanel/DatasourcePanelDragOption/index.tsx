@@ -17,8 +17,7 @@
  * under the License.
  */
 import { RefObject, useMemo } from 'react';
-import { useDrag } from 'react-dnd';
-import { useSelector } from 'react-redux';
+import { useDraggable } from '@dnd-kit/core';
 import { Metric } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { ColumnMeta } from '@superset-ui/chart-controls';
@@ -28,12 +27,12 @@ import {
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { ExplorePageState } from 'src/explore/types';
 
+import { isCompatibleItem, useDatasourceCompatibility } from '../compatibility';
 import { DatasourcePanelDndItem } from '../types';
 
-const DatasourceItemContainer = styled.div`
-  ${({ theme }) => css`
+const DatasourceItemContainer = styled.div<{ isDragging?: boolean }>`
+  ${({ theme, isDragging }) => css`
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -41,11 +40,13 @@ const DatasourceItemContainer = styled.div`
     height: ${theme.sizeUnit * 6}px;
     padding: 0 ${theme.sizeUnit}px;
 
-    // hack to make the drag preview image corners rounded
+    /* hack to make the drag preview image corners rounded */
     transform: translate(0, 0);
     color: ${theme.colorText};
     background-color: ${theme.colorBgLayout};
     border-radius: 4px;
+    cursor: ${isDragging ? 'grabbing' : 'grab'};
+    opacity: ${isDragging ? 0.5 : 1};
 
     &:hover {
       background-color: ${theme.colorPrimaryBgHover};
@@ -73,40 +74,35 @@ export default function DatasourcePanelDragOption(
   const { labelRef, showTooltip, type, value } = props;
   const theme = useTheme();
 
-  // Read compatibility lists from Redux.
-  // `null` means no filtering is active (SQL datasets, or no selection yet).
-  const compatibleMetrics = useSelector<
-    ExplorePageState,
-    string[] | null | undefined
-  >(state => state.explore.compatibleMetrics);
-  const compatibleDimensions = useSelector<
-    ExplorePageState,
-    string[] | null | undefined
-  >(state => state.explore.compatibleDimensions);
+  const { compatibleMetrics, compatibleDimensions } =
+    useDatasourceCompatibility();
 
-  // An item is compatible when the list is null (no filter) or when its
-  // name explicitly appears in the list returned by the backend.
-  const isCompatible = useMemo(() => {
-    if (type === DndItemType.Metric) {
-      if (!compatibleMetrics) return true;
-      return compatibleMetrics.includes((value as Metric).metric_name);
-    }
+  const isCompatible = useMemo(
+    () =>
+      isCompatibleItem(type, value, compatibleMetrics, compatibleDimensions),
+    [type, value, compatibleMetrics, compatibleDimensions],
+  );
+
+  // Create a unique ID for this draggable item
+  const draggableId = useMemo(() => {
     if (type === DndItemType.Column) {
-      if (!compatibleDimensions) return true;
-      return compatibleDimensions.includes((value as ColumnMeta).column_name);
+      const col = value as ColumnMeta;
+      return `datasource-${type}-${col.column_name || col.verbose_name}`;
     }
-    return true;
-  }, [type, value, compatibleMetrics, compatibleDimensions]);
+    const metric = value as MetricOption;
+    return `datasource-${type}-${metric.metric_name || metric.label}`;
+  }, [type, value]);
 
-  const [{ isDragging }, drag] = useDrag({
-    item: {
-      value: props.value,
-      type: props.type,
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: draggableId,
+    data: {
+      type,
+      value,
     },
-    canDrag: isCompatible,
-    collect: monitor => ({
-      isDragging: monitor.isDragging(),
-    }),
+    // @dnd-kit equivalent of react-dnd's `canDrag: isCompatible`. Disabling
+    // the draggable suppresses pointer activation entirely so incompatible
+    // items can't be picked up at all (matched in the visual style below).
+    disabled: !isCompatible,
   });
 
   const optionProps = {
@@ -118,10 +114,13 @@ export default function DatasourcePanelDragOption(
   return (
     <DatasourceItemContainer
       data-test="DatasourcePanelDragOption"
-      ref={drag}
+      ref={setNodeRef}
+      isDragging={isDragging}
+      {...attributes}
+      {...listeners}
       style={{
-        opacity: isCompatible ? 1 : 0.35,
-        cursor: isCompatible ? 'grab' : 'not-allowed',
+        opacity: isCompatible ? undefined : 0.35,
+        cursor: isCompatible ? undefined : 'not-allowed',
       }}
     >
       {type === DndItemType.Column ? (

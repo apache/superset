@@ -27,6 +27,10 @@ import {
 import * as copyTextToClipboard from 'src/utils/copy';
 import fetchMock from 'fetch-mock';
 import { ComponentProps } from 'react';
+import {
+  holdFilterKeyPublish,
+  resetFilterKeyHold,
+} from 'src/dashboard/util/sharedFilterStateHold';
 import { useShareMenuItems, ShareMenuItemProps } from '.';
 
 const spy = jest.spyOn(copyTextToClipboard, 'default');
@@ -45,15 +49,23 @@ const createProps = () => ({
   submenuKey: 'share',
 });
 
-const originalLocation = window.location;
-
 const postDashboardPermalinkMockUrl = `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`;
+
+let hrefValue = '';
+let locationSpy: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  // @ts-expect-error
-  delete window.location;
-  window.location = { href: '' } as any;
+  hrefValue = '';
+  locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    get href() {
+      return hrefValue;
+    },
+    set href(v: string) {
+      hrefValue = v;
+    },
+  } as Location);
   fetchMock.clearHistory().removeRoutes();
   fetchMock.post(
     postDashboardPermalinkMockUrl,
@@ -63,7 +75,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  window.location = originalLocation;
+  resetFilterKeyHold();
+  locationSpy.mockRestore();
   window.featureFlags = {};
   fetchMock.clearHistory().removeRoutes();
 });
@@ -111,7 +124,12 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  await userEvent.click(screen.getByText('Copy dashboard URL'));
+  // forceSubMenuRender keeps the menu item in the DOM for querying even
+  // though the submenu popup is visually closed (pointer-events: none), so
+  // bypass user-event's pointer events check to click it directly.
+  await userEvent.click(screen.getByText('Copy dashboard URL'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -120,6 +138,33 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
     expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
     expect(props.addSuccessToast).toHaveBeenCalledWith('Copied to clipboard!');
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
+  });
+});
+
+test("Copy dashboard URL warns when the opened link's filters failed to load", async () => {
+  spy.mockResolvedValue(undefined);
+  holdFilterKeyPublish('original-key');
+  const props = createProps();
+  render(
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={props}
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByText('Copy dashboard URL'), {
+    pointerEventsCheck: 0,
+  });
+
+  await waitFor(() => {
+    expect(props.addSuccessToast).toHaveBeenCalledWith('Copied to clipboard!');
+    expect(props.addDangerToast).toHaveBeenCalledWith(
+      'The filters from the link you opened could not be loaded, so this link shares the default view.',
+    );
   });
 });
 
@@ -143,7 +188,12 @@ test('Click on "Copy dashboard URL" and fail', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  await userEvent.click(screen.getByText('Copy dashboard URL'));
+  // forceSubMenuRender keeps the menu item in the DOM for querying even
+  // though the submenu popup is visually closed (pointer-events: none), so
+  // bypass user-event's pointer events check to click it directly.
+  await userEvent.click(screen.getByText('Copy dashboard URL'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -175,7 +225,12 @@ test('Click on "Share dashboard by email" and succeed', async () => {
     expect(window.location.href).toBe('');
   });
 
-  await userEvent.click(screen.getByText('Share dashboard by email'));
+  // forceSubMenuRender keeps the menu item in the DOM for querying even
+  // though the submenu popup is visually closed (pointer-events: none), so
+  // bypass user-event's pointer events check to click it directly.
+  await userEvent.click(screen.getByText('Share dashboard by email'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
@@ -205,7 +260,12 @@ test('Click on "Share dashboard by email" and fail', async () => {
     expect(window.location.href).toBe('');
   });
 
-  await userEvent.click(screen.getByText('Share dashboard by email'));
+  // forceSubMenuRender keeps the menu item in the DOM for querying even
+  // though the submenu popup is visually closed (pointer-events: none), so
+  // bypass user-event's pointer events check to click it directly.
+  await userEvent.click(screen.getByText('Share dashboard by email'), {
+    pointerEventsCheck: 0,
+  });
 
   await waitFor(() => {
     expect(window.location.href).toBe('');

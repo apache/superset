@@ -30,8 +30,8 @@ async def create_chart_guided_prompt(
     Guided chart creation with step-by-step workflow.
 
     Args:
-        chart_type: Preferred chart type (auto, line, bar, table, scatter, area)
-        business_goal: Purpose (exploration, reporting, monitoring, presentation)
+        chart_type (str): Preferred chart type (auto, line, bar, table, scatter, area)
+        business_goal (str): Purpose (exploration, reporting, monitoring, presentation)
     """
 
     chart_intelligence = {
@@ -137,7 +137,19 @@ Example table config:
 - If the chart type doesn't suit the data, try a different kind
 
 ## Available Aggregations
-SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, STDDEV, VAR, MEDIAN
+SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, STDDEV_SAMP, VAR_SAMP, MEDIAN
+(support for STDDEV_SAMP/VAR_SAMP/MEDIAN depends on the connected database;
+an unsupported choice returns a clear error naming the unsupported aggregate)
+
+## Custom SQL Metrics
+For ratio metrics, weighted averages, and conditional aggregates,
+use `sql_expression` with a `label`:
+`{{"sql_expression": "SUM(revenue) / COUNT(*)", "label": "Avg Revenue"}}`
+Do NOT combine `sql_expression` with `name` or `aggregate`.
+
+## Saved Metrics
+If a metric is already defined on the dataset, use `saved_metric=True`:
+`{{"name": "avg_revenue", "saved_metric": true}}`
 
 ## Time Grain Options (for temporal x-axis)
 PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P3M (quarterly), P1Y (yearly)
@@ -147,4 +159,6 @@ PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P3M (quarterly), P1Y (y
 - filters: [{{"column": "col", "op": "=", "value": "x"}}]
 - stacked: true (for bar/area charts)
 - legend: {{"show": true, "position": "right"}}
-- x_axis/y_axis: {{"title": "Label", "format": "$,.0f"}}"""
+- x_axis/y_axis: {{"title": "Label", "format": ",.0f"}}
+- Use currency formatting only when user instructions or verified source metadata
+  establish the currency; do not infer it from metric names."""

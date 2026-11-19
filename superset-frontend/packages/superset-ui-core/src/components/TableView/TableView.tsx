@@ -17,7 +17,7 @@
  * under the License.
  */
 import { memo, useEffect, useRef, useMemo, useCallback, useState } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { styled } from '@apache-superset/core/theme';
 import { useFilters, useSortBy, useTable } from 'react-table';
 import { Empty } from '@superset-ui/core/components';
@@ -245,6 +245,21 @@ const RawTableView = ({
       });
     }
   }, [initialSortBy, onServerPagination, serverPagination, sortBy]);
+
+  // Reset to first page when current page exceeds available pages
+  // (e.g., when filtering reduces the data below the current page)
+  const pageCount = Math.ceil(data.length / effectivePageSize);
+  useEffect(() => {
+    if (
+      withPagination &&
+      !serverPagination &&
+      !loading &&
+      pageIndex > pageCount - 1 &&
+      pageCount > 0
+    ) {
+      setPageIndex(0);
+    }
+  }, [withPagination, serverPagination, loading, pageIndex, pageCount]);
 
   return (
     <TableViewStyles {...props} ref={tableRef}>

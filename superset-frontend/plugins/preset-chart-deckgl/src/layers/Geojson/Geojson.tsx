@@ -30,6 +30,7 @@ import {
   QueryFormData,
   SetDataMaskHook,
   SqlaFormData,
+  getMapProviderMapStyle,
 } from '@superset-ui/core';
 
 import {
@@ -37,7 +38,6 @@ import {
   DeckGLContainerStyledWrapper,
 } from '../../DeckGLContainer';
 import { hexToRGB } from '../../utils/colors';
-import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
@@ -46,6 +46,7 @@ import { Point } from '../../types';
 import { GetLayerType } from '../../factory';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 import { BLACK_COLOR, PRIMARY_COLOR } from '../../utilities/controls';
+import { getMapboxApiKey } from '../../utils/mapbox';
 
 type ProcessedFeature = Feature<Geometry, GeoJsonProperties> & {
   properties: JsonObject;
@@ -144,52 +145,6 @@ const getFillColor = (feature: JsonObject, filterStateValue: unknown[]) => {
 };
 const getLineColor = (feature: JsonObject) => feature?.properties?.strokeColor;
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-export const computeGeoJsonTextOptionsFromJsOutput = (
-  output: unknown,
-): Partial<GeoJsonLayerProps> => {
-  if (!isObject(output)) return {};
-
-  // Properties sourced from:
-  // https://deck.gl/docs/api-reference/layers/geojson-layer#pointtype-options-2
-  const options: (keyof GeoJsonLayerProps)[] = [
-    'getText',
-    'getTextColor',
-    'getTextAngle',
-    'getTextSize',
-    'getTextAnchor',
-    'getTextAlignmentBaseline',
-    'getTextPixelOffset',
-    'getTextBackgroundColor',
-    'getTextBorderColor',
-    'getTextBorderWidth',
-    'textSizeUnits',
-    'textSizeScale',
-    'textSizeMinPixels',
-    'textSizeMaxPixels',
-    'textCharacterSet',
-    'textFontFamily',
-    'textFontWeight',
-    'textLineHeight',
-    'textMaxWidth',
-    'textWordBreak',
-    'textBackground',
-    'textBackgroundPadding',
-    'textOutlineColor',
-    'textOutlineWidth',
-    'textBillboard',
-    'textFontSettings',
-  ];
-
-  const allEntries = Object.entries(output);
-  const validEntries = allEntries.filter(([k]) =>
-    options.includes(k as keyof GeoJsonLayerProps),
-  );
-  return Object.fromEntries(validEntries);
-};
-
 export const computeGeoJsonTextOptionsFromFormData = (
   fd: SqlaFormData,
 ): Partial<GeoJsonLayerProps> => {
@@ -201,36 +156,6 @@ export const computeGeoJsonTextOptionsFromFormData = (
     getTextSize: parseInt(fd.label_size, 10),
     textSizeUnits: fd.label_size_unit,
   };
-};
-
-export const computeGeoJsonIconOptionsFromJsOutput = (
-  output: unknown,
-): Partial<GeoJsonLayerProps> => {
-  if (!isObject(output)) return {};
-
-  // Properties sourced from:
-  // https://deck.gl/docs/api-reference/layers/geojson-layer#pointtype-options-1
-  const options: (keyof GeoJsonLayerProps)[] = [
-    'getIcon',
-    'getIconSize',
-    'getIconColor',
-    'getIconAngle',
-    'getIconPixelOffset',
-    'iconSizeUnits',
-    'iconSizeScale',
-    'iconSizeMinPixels',
-    'iconSizeMaxPixels',
-    'iconAtlas',
-    'iconMapping',
-    'iconBillboard',
-    'iconAlphaCutoff',
-  ];
-
-  const allEntries = Object.entries(output);
-  const validEntries = allEntries.filter(([k]) =>
-    options.includes(k as keyof GeoJsonLayerProps),
-  );
-  return Object.fromEntries(validEntries);
 };
 
 export const computeGeoJsonIconOptionsFromFormData = (
@@ -251,6 +176,15 @@ export const computeGeoJsonIconOptionsFromFormData = (
   getIconSize: parseInt(fd.icon_size, 10),
   iconSizeUnits: fd.icon_size_unit,
 });
+
+// Free-form SelectControls can yield string values, and legacy charts may have
+// null persisted for these fields, so coerce to a number (falling back to the
+// provided default for null/undefined/NaN input, while preserving an explicit 0)
+// before handing them to deck.gl's numeric layer props.
+const toNumber = (value: unknown, fallback: number) => {
+  const num = Number(value ?? fallback);
+  return Number.isFinite(num) ? num : fallback;
+};
 
 export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   formData,
@@ -277,13 +211,6 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   features = [];
   recurseGeoJson(payload.data, propOverrides);
 
-  let processedFeatures = features;
-  if (fd.js_data_mutator) {
-    // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    processedFeatures = jsFnMutator(features) as ProcessedFeature[];
-  }
-
   let pointType = 'circle';
   if (fd.enable_labels) {
     pointType = `${pointType}+text`;
@@ -292,33 +219,17 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
     pointType = `${pointType}+icon`;
   }
 
-  let labelOpts: Partial<GeoJsonLayerProps> = {};
-  if (fd.enable_labels) {
-    if (fd.enable_label_javascript_mode) {
-      const generator = sandboxedEval(fd.label_javascript_config_generator);
-      if (typeof generator === 'function') {
-        labelOpts = computeGeoJsonTextOptionsFromJsOutput(generator());
-      }
-    } else {
-      labelOpts = computeGeoJsonTextOptionsFromFormData(fd);
-    }
-  }
+  const labelOpts: Partial<GeoJsonLayerProps> = fd.enable_labels
+    ? computeGeoJsonTextOptionsFromFormData(fd)
+    : {};
 
-  let iconOpts: Partial<GeoJsonLayerProps> = {};
-  if (fd.enable_icons) {
-    if (fd.enable_icon_javascript_mode) {
-      const generator = sandboxedEval(fd.icon_javascript_config_generator);
-      if (typeof generator === 'function') {
-        iconOpts = computeGeoJsonIconOptionsFromJsOutput(generator());
-      }
-    } else {
-      iconOpts = computeGeoJsonIconOptionsFromFormData(fd);
-    }
-  }
+  const iconOpts: Partial<GeoJsonLayerProps> = fd.enable_icons
+    ? computeGeoJsonIconOptionsFromFormData(fd)
+    : {};
 
   return new GeoJsonLayer({
     id: `geojson-layer-${fd.slice_id}` as const,
-    data: processedFeatures,
+    data: features,
     extruded: fd.extruded,
     filled: fd.filled,
     stroked: fd.stroked,
@@ -326,7 +237,11 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
       getFillColor(feature, filterState?.value),
     getLineColor,
     getLineWidth: fd.line_width || 1,
-    pointRadiusScale: fd.point_radius_scale,
+    // Use deck.gl defaults as fallbacks for backward compatibility with existing charts.
+    // New charts will get control panel defaults (point_radius=10, units='pixels', scale=1).
+    getPointRadius: toNumber(fd.point_radius, 1),
+    pointRadiusUnits: fd.point_radius_units ?? 'meters',
+    pointRadiusScale: toNumber(fd.point_radius_scale, 1),
     lineWidthUnits: fd.line_width_unit,
     pointType,
     ...labelOpts,
@@ -357,9 +272,19 @@ export type DeckGLGeoJsonProps = {
   emitCrossFilters?: boolean;
 };
 
-export function getPoints(data: Point[]) {
+export function getPoints(data?: Point[]) {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
   return data.reduce((acc: Array<any>, feature: any) => {
-    const bounds = geojsonExtent(feature);
+    let bounds;
+    try {
+      bounds = geojsonExtent(feature);
+    } catch {
+      return acc;
+    }
+
     if (bounds) {
       return [...acc, [bounds[0], bounds[1]], [bounds[2], bounds[3]]];
     }
@@ -382,13 +307,13 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
 
   const viewport: Viewport = useMemo(() => {
     if (formData.autozoom) {
-      const points = getPoints(payload.data.features) || [];
+      const points = getPoints(payload?.data?.features);
 
       if (points.length) {
         return fitViewport(props.viewport, {
           width,
           height,
-          points: getPoints(payload.data.features) || [],
+          points,
         });
       }
     }
@@ -412,12 +337,21 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
     emitCrossFilters: props.emitCrossFilters,
   });
 
+  const selectedMap = getMapProviderMapStyle({
+    mapProvider: formData.map_renderer,
+    maplibreStyle: formData.maplibre_style,
+    mapboxStyle: formData.mapbox_style,
+    legacyMapStyle: formData.map_style,
+  });
+
   return (
     <DeckGLContainerStyledWrapper
       ref={containerRef}
       viewport={viewport}
       layers={[layer]}
-      mapStyle={formData.map_style}
+      mapProvider={selectedMap.mapProvider}
+      mapStyle={selectedMap.mapStyle}
+      mapboxApiKey={getMapboxApiKey()}
       setControlValue={setControlValue}
       height={height}
       width={width}

@@ -43,6 +43,40 @@ test('triggers onRedo', () => {
   expect(onRedo).toHaveBeenCalledTimes(1);
 });
 
+test('triggers onRedo with Ctrl+Shift+Z', () => {
+  const onUndo = jest.fn();
+  const onRedo = jest.fn();
+  render(<UndoRedoKeyListeners onUndo={onUndo} onRedo={onRedo} />);
+  fireEvent.keyDown(document.body, {
+    key: 'z',
+    keyCode: 90,
+    ctrlKey: true,
+    shiftKey: true,
+  });
+  expect(onRedo).toHaveBeenCalledTimes(1);
+  expect(onUndo).not.toHaveBeenCalled();
+});
+
+test('triggers onUndo via keyCode fallback for non-Latin layouts', () => {
+  const onUndo = jest.fn();
+  const onRedo = jest.fn();
+  render(<UndoRedoKeyListeners onUndo={onUndo} onRedo={onRedo} />);
+  // event.key is a non-'z' glyph (e.g. non-Latin layout), but code is KeyZ
+  fireEvent.keyDown(document.body, { key: 'я', code: 'KeyZ', ctrlKey: true });
+  expect(onUndo).toHaveBeenCalledTimes(1);
+  expect(onRedo).not.toHaveBeenCalled();
+});
+
+test('triggers onRedo via keyCode fallback for non-Latin layouts', () => {
+  const onUndo = jest.fn();
+  const onRedo = jest.fn();
+  render(<UndoRedoKeyListeners onUndo={onUndo} onRedo={onRedo} />);
+  // event.key is a non-'y' glyph, but code is KeyY
+  fireEvent.keyDown(document.body, { key: 'н', code: 'KeyY', ctrlKey: true });
+  expect(onRedo).toHaveBeenCalledTimes(1);
+  expect(onUndo).not.toHaveBeenCalled();
+});
+
 test('does not trigger when it is another key', () => {
   const onUndo = jest.fn();
   const onRedo = jest.fn();

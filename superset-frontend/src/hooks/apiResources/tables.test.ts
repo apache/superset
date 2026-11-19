@@ -105,10 +105,9 @@ describe('useTables hook', () => {
     expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1);
     expect(
       fetchMock.callHistory.calls(
-        `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
-          force: false,
-          schema_name: expectedSchema,
-        })}`,
+        `end:api/v1/database/${expectDbId}/tables/?q=${encodeURIComponent(
+          rison.encode({ force: false, schema_name: expectedSchema }),
+        )}`,
       ).length,
     ).toBe(1);
     act(() => {
@@ -117,10 +116,9 @@ describe('useTables hook', () => {
     await waitFor(() =>
       expect(
         fetchMock.callHistory.calls(
-          `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
-            force: true,
-            schema_name: expectedSchema,
-          })}`,
+          `end:api/v1/database/${expectDbId}/tables/?q=${encodeURIComponent(
+            rison.encode({ force: true, schema_name: expectedSchema }),
+          )}`,
         ).length,
       ).toBe(1),
     );
@@ -158,10 +156,9 @@ describe('useTables hook', () => {
     expect(result.current.data).toEqual(undefined);
     expect(
       fetchMock.callHistory.calls(
-        `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
-          force: false,
-          schema_name: unexpectedSchema,
-        })}`,
+        `end:api/v1/database/${expectDbId}/tables/?q=${encodeURIComponent(
+          rison.encode({ force: false, schema_name: unexpectedSchema }),
+        )}`,
       ).length,
     ).toBe(0);
   });
@@ -195,6 +192,66 @@ describe('useTables hook', () => {
       expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1),
     );
     expect(result.current.data).toEqual(expectedHasMoreData);
+  });
+
+  test('fetches tables separately for catalogs with the same schema', async () => {
+    const dbId = 'db1';
+    const schema = 'main';
+    const tableApiRoute = `glob:*/api/v1/database/${dbId}/tables/?q=*`;
+    const firstResult = {
+      count: 1,
+      result: [
+        {
+          value: 'demo.metrics.main.download_session',
+          label: 'demo.metrics.main.download_session',
+          type: 'table',
+        },
+      ],
+    };
+    const secondResult = {
+      count: 1,
+      result: [
+        {
+          value: 'shared.main.thumb_report',
+          label: 'shared.main.thumb_report',
+          type: 'table',
+        },
+      ],
+    };
+    fetchMock.get(tableApiRoute, ({ url }) =>
+      url.includes('shared') ? secondResult : firstResult,
+    );
+    fetchMock.get(`glob:*/api/v1/database/${dbId}/schemas/*`, {
+      result: [schema],
+    });
+
+    const { result, rerender } = renderHook(
+      ({ catalog }) => useTables({ dbId, catalog, schema }),
+      {
+        initialProps: { catalog: 'demo%2Emetrics with space:tag' },
+        wrapper: createWrapper({ useRedux: true, store }),
+      },
+    );
+    await waitFor(() =>
+      expect(result.current.data?.options).toEqual(firstResult.result),
+    );
+    expect(
+      rison.decode(
+        new URL(
+          fetchMock.callHistory.calls(tableApiRoute)[0].url,
+        ).searchParams.get('q') ?? '',
+      ),
+    ).toEqual({
+      force: false,
+      schema_name: schema,
+      catalog_name: 'demo%2Emetrics with space:tag',
+    });
+
+    rerender({ catalog: 'shared' });
+    await waitFor(() =>
+      expect(result.current.data?.options).toEqual(secondResult.result),
+    );
+    expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(2);
   });
 
   test('returns cached data without api request', async () => {
@@ -333,5 +390,66 @@ describe('useTables hook', () => {
     rerender({ schema: expectedSchema });
     await waitFor(() => expect(result.current.data).toEqual(expectedData));
     expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(4);
+  });
+
+  test('fires callbacks on invalidation refetch even after a failed force refresh (OAuth2 refresh button)', async () => {
+    // Reviewer regression: serializeQueryArgs strips forceRefresh, so the
+    // subscribed query and the lazy force-refresh trigger share one cache entry.
+    // A failed refresh-button click (forceRefresh:true) leaves the entry's
+    // originalArgs.forceRefresh sticky-true. The old `!originalArgs.forceRefresh`
+    // guard then suppressed onSuccess/onError on the later invalidation refetch,
+    // so TableSelector's banner stayed stuck. The ref-based flag must fire them.
+    const expectDbId = 'db1';
+    const expectedSchema = 'schema1';
+    const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
+    let mode: 'ok' | 'fail' = 'ok';
+    fetchMock.get(tableApiRoute, () =>
+      mode === 'fail' ? { status: 500, body: {} } : fakeApiResult,
+    );
+    fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
+      count: 0,
+      result: [],
+    });
+    fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
+      result: fakeSchemaApiResult,
+    });
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    const { result } = renderHook(
+      () =>
+        useTables({
+          dbId: expectDbId,
+          schema: expectedSchema,
+          onSuccess,
+          onError,
+        }),
+      {
+        wrapper: createWrapper({
+          useRedux: true,
+          store,
+        }),
+      },
+    );
+
+    // Initial subscribed load succeeds (not a manual refresh: isRefetched=false).
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(onSuccess).toHaveBeenLastCalledWith(expectedData, false);
+
+    // User clicks the refresh button (force refresh) and hits the OAuth2 wall.
+    // This makes the shared entry's originalArgs.forceRefresh sticky-true.
+    mode = 'fail';
+    act(() => {
+      result.current.refetch();
+    });
+    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+
+    // User authorizes: invalidateTags refetches the subscribed query, which now
+    // succeeds. onSuccess must fire (isRefetched=false: not a manual refresh).
+    mode = 'ok';
+    act(() => {
+      store.dispatch(api.util.invalidateTags(['Tables']));
+    });
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(2));
+    expect(onSuccess).toHaveBeenLastCalledWith(expectedData, false);
   });
 });

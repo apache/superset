@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { render, screen } from '@superset-ui/core/spec';
 import ValueCell from './ValueCell';
 
@@ -25,179 +26,44 @@ const mockColumn = {
   d3format: '.2f',
 };
 
-const mockEntries = [
-  { time: '2023-01-03', sales: 300, price: 30 },
-  { time: '2023-01-02', sales: 200, price: 20 },
-  { time: '2023-01-01', sales: 100, price: 10 },
-];
-
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ValueCell', () => {
-  test('should render simple value without special column type', () => {
-    render(
-      <ValueCell
-        valueField="sales"
-        column={mockColumn}
-        reversedEntries={mockEntries}
-      />,
-    );
+  test('should render a formatted value', () => {
+    render(<ValueCell value={300} column={mockColumn} />);
 
     expect(screen.getByText('300.00')).toBeInTheDocument();
   });
 
-  test('should handle time column type with diff comparison', () => {
-    const timeColumn = {
-      ...mockColumn,
-      colType: 'time',
-      comparisonType: 'diff',
-      timeLag: 1,
-    };
-
-    render(
-      <ValueCell
-        valueField="sales"
-        column={timeColumn}
-        reversedEntries={mockEntries}
-      />,
-    );
-
-    expect(screen.getByText('100.00')).toBeInTheDocument();
-  });
-
-  test('should handle time column type with percentage comparison', () => {
-    const timeColumn = {
-      ...mockColumn,
-      colType: 'time',
-      comparisonType: 'perc',
-      timeLag: 1,
-    };
-
-    render(
-      <ValueCell
-        valueField="sales"
-        column={timeColumn}
-        reversedEntries={mockEntries}
-      />,
-    );
+  test('should render decimal values', () => {
+    render(<ValueCell value={1.5} column={mockColumn} />);
 
     expect(screen.getByText('1.50')).toBeInTheDocument();
   });
 
-  test('should handle time column type with percentage change', () => {
-    const timeColumn = {
-      ...mockColumn,
-      colType: 'time',
-      comparisonType: 'perc_change',
-      timeLag: 1,
-    };
+  test('should render zero', () => {
+    render(<ValueCell value={0} column={mockColumn} />);
 
-    render(
-      <ValueCell
-        valueField="sales"
-        column={timeColumn}
-        reversedEntries={mockEntries}
-      />,
-    );
-
-    expect(screen.getByText('0.50')).toBeInTheDocument();
+    expect(screen.getByText('0.00')).toBeInTheDocument();
   });
 
-  test('should handle contrib column type', () => {
-    const contribColumn = {
-      ...mockColumn,
-      colType: 'contrib',
-    };
+  test('should render negative values', () => {
+    render(<ValueCell value={-200} column={mockColumn} />);
 
-    render(
-      <ValueCell
-        valueField="sales"
-        column={contribColumn}
-        reversedEntries={mockEntries}
-      />,
-    );
-
-    expect(screen.getByText('0.91')).toBeInTheDocument();
+    expect(screen.getByText('-200.00')).toBeInTheDocument();
   });
 
-  test('should handle avg column type', () => {
-    const avgColumn = {
-      ...mockColumn,
-      colType: 'avg',
-      timeLag: 2,
-    };
-
+  test('should render an error message instead of the value', () => {
     render(
       <ValueCell
-        valueField="sales"
-        column={avgColumn}
-        reversedEntries={mockEntries}
-      />,
-    );
-
-    expect(screen.getByText('250.00')).toBeInTheDocument();
-  });
-
-  test('should show error message for excessive time lag', () => {
-    const timeColumn = {
-      ...mockColumn,
-      colType: 'time',
-      timeLag: 10,
-    };
-
-    render(
-      <ValueCell
-        valueField="sales"
-        column={timeColumn}
-        reversedEntries={mockEntries}
+        value={null}
+        errorMsg="The time lag set at 10 is too large"
+        column={mockColumn}
       />,
     );
 
     expect(
       screen.getByText(/The time lag set at 10 is too large/),
     ).toBeInTheDocument();
-  });
-
-  test('should handle negative time lag', () => {
-    const timeColumn = {
-      ...mockColumn,
-      colType: 'time',
-      comparisonType: 'diff',
-      timeLag: -1,
-    };
-
-    render(
-      <ValueCell
-        valueField="sales"
-        column={timeColumn}
-        reversedEntries={mockEntries}
-      />,
-    );
-
-    expect(screen.getByText('200.00')).toBeInTheDocument();
-  });
-
-  test('should handle null/undefined values in avg calculation', () => {
-    const avgColumn = {
-      ...mockColumn,
-      colType: 'avg',
-      timeLag: 3,
-    };
-
-    const entriesWithNulls = [
-      { time: '2023-01-03', sales: 300 },
-      { time: '2023-01-02', sales: null },
-      { time: '2023-01-01', sales: 100 },
-    ];
-
-    render(
-      <ValueCell
-        valueField="sales"
-        column={avgColumn}
-        reversedEntries={entriesWithNulls}
-      />,
-    );
-
-    expect(screen.getByText('200.00')).toBeInTheDocument();
   });
 
   test('should apply color styling when bounds are provided', () => {
@@ -207,14 +73,11 @@ describe('ValueCell', () => {
     };
 
     const { container } = render(
-      <ValueCell
-        valueField="sales"
-        column={columnWithBounds}
-        reversedEntries={mockEntries}
-      />,
+      <ValueCell value={300} column={columnWithBounds} />,
     );
 
     const span = container.querySelector('span[data-value="300"]');
+
     expect(span).toBeInTheDocument();
   });
 });

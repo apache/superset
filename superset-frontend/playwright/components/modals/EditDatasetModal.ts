@@ -32,6 +32,10 @@ export class EditDatasetModal extends Modal {
     UNLOCK_ICON: '[data-test="unlock"]',
   };
 
+  // FAST_DEBOUNCE in @superset-ui/core is 250 ms; pad slightly so the
+  // debounced onChange has reliably flushed before we click Save.
+  private static readonly TEXT_CONTROL_DEBOUNCE_FLUSH_MS = 350;
+
   private readonly tabs: Tabs;
   private readonly specificLocator: Locator;
 
@@ -94,6 +98,7 @@ export class EditDatasetModal extends Modal {
    */
   async fillName(name: string): Promise<void> {
     await this.nameInput.fill(name);
+    await this.waitForTextControlDebounce();
   }
 
   /**
@@ -123,19 +128,18 @@ export class EditDatasetModal extends Modal {
 
   /**
    * Gets the description Ace Editor component (Settings tab).
-   * The Description button and ace-editor are in the same form item.
+   * The Description label and ace-editor are in the same form item.
    */
   private get descriptionEditor(): AceEditor {
     // Use tabpanel role with name "Settings" for more reliable lookup
     const settingsPanel = this.element.getByRole('tabpanel', {
       name: 'Settings',
     });
-    // Find the form item that contains the Description button
+    // Find the form item that contains the Description label
     const descriptionFormItem = settingsPanel
       .locator('.ant-form-item')
       .filter({
-        has: this.page.getByRole('button', {
-          name: 'Description',
+        has: this.page.getByText('Description', {
           exact: true,
         }),
       })
@@ -188,5 +192,17 @@ export class EditDatasetModal extends Modal {
     await dateFormatInput.element.waitFor({ state: 'visible' });
     await dateFormatInput.clear();
     await dateFormatInput.fill(format);
+    await this.waitForTextControlDebounce();
+  }
+
+  /**
+   * TextControl debounces its onChange by FAST_DEBOUNCE (250 ms) before
+   * propagating the value to the parent form. Wait past that window so a
+   * subsequent Save click captures the new value rather than the stale state.
+   */
+  private async waitForTextControlDebounce(): Promise<void> {
+    await this.page.waitForTimeout(
+      EditDatasetModal.TEXT_CONTROL_DEBOUNCE_FLUSH_MS,
+    );
   }
 }

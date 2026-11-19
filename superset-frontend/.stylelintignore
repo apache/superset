@@ -1,0 +1,9 @@
+# Files whose Emotion template literals nest a `css` tag inside an
+# interpolation (e.g. styled(X)`${props => css`...`}`) or otherwise use a
+# structure that postcss-styled-syntax cannot parse. Stylelint reports a
+# CssSyntaxError on these rather than a real lint finding, so they are
+# excluded until the syntax gains nested-template support.
+src/components/ListView/Filters/Base.ts
+src/features/databases/DatabaseModal/styles.ts
+src/features/databases/UploadDataModel/styles.ts
+packages/superset-ui-core/src/components/Typography/index.tsx

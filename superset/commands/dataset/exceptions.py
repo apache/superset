@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_babel import lazy_gettext as _
+from jinja2.exceptions import TemplateError
 from marshmallow.validate import ValidationError
 
 from superset.commands.exceptions import (
@@ -26,11 +27,36 @@ from superset.commands.exceptions import (
     ImportFailedError,
     UpdateFailedError,
 )
+from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
 from superset.sql.parse import Table
+
+#: Errors from rendering a virtual dataset's Jinja SQL with its template params
+#: -- the set ``get_rendered_sql`` reports as a query error at execution. A
+#: define/repoint path that renders the SQL to authorize it reports these as
+#: invalid input rather than letting them surface as a 500.
+TEMPLATE_RENDER_ERRORS: tuple[type[Exception], ...] = (
+    TemplateError,
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
+    TypeError,
+)
+
+
+def get_template_render_error_msg(ex: Exception) -> str:
+    """The message ``get_rendered_sql`` would report for a render error."""
+    if isinstance(ex, TemplateError):
+        detail = ex.message or str(ex)
+    elif isinstance(ex, SupersetSyntaxErrorException):
+        detail = str(ex.errors[0].message if ex.errors else ex)
+    else:
+        detail = str(ex)
+    return str(_("Error while rendering virtual dataset query: %(msg)s", msg=detail))
 
 
 def get_dataset_exist_error_msg(table: Table) -> str:
-    return _("Dataset %(table)s already exists", table=table)
+    """Render a readable display name, not the URL-encoded Table identity."""
+    name = ".".join(part for part in (table.catalog, table.schema, table.table) if part)
+    return str(_("Dataset %(table)s already exists", table=name))
 
 
 class MultiCatalogDisabledValidationError(ValidationError):
@@ -43,6 +69,28 @@ class MultiCatalogDisabledValidationError(ValidationError):
             [_("Only the default catalog is supported for this connection")],
             field_name="catalog",
         )
+
+
+class TemplateParamsInvalidValidationError(ValidationError):
+    """
+    Marshmallow validation error for template params that are not a JSON object
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("Template parameters must be a valid JSON object.")],
+            field_name="template_params",
+        )
+
+
+class DatasetSqlRenderValidationError(ValidationError):
+    """
+    Marshmallow validation error for SQL that cannot be rendered with its
+    template params, and so cannot be access-checked
+    """
+
+    def __init__(self, ex: Exception) -> None:
+        super().__init__([get_template_render_error_msg(ex)], field_name="sql")
 
 
 class DatabaseNotFoundValidationError(ValidationError):
@@ -141,11 +189,6 @@ class TableNotFoundValidationError(ValidationError):
         )
 
 
-class OwnersNotFoundValidationError(ValidationError):
-    def __init__(self) -> None:
-        super().__init__([_("Owners are invalid")], field_name="owners")
-
-
 class DatasetDataAccessIsNotAllowed(ValidationError):  # noqa: N818
     status = 422
 
@@ -168,6 +211,49 @@ class DatasetCreateFailedError(CreateFailedError):
 
 class DatasetUpdateFailedError(UpdateFailedError):
     message = _("Dataset could not be updated.")
+
+
+class DatasetRestoreFailedError(UpdateFailedError):
+    # Restore semantically clears ``deleted_at``; it is an UPDATE, not a new
+    # row. ``UpdateFailedError`` is the nearest typed middle-tier base in the
+    # codebase. A dedicated ``RestoreFailedError`` in
+    # ``superset/commands/exceptions.py`` would be more precise across the
+    # entity rollouts but lives in already-merged infrastructure (#39977);
+    # introducing it can be a cross-entity follow-up.
+    message = _("Dataset could not be restored.")
+
+
+class DatasetSoftDeletedTwinExistsError(CommandException):
+    """A soft-deleted dataset holds the physical table the caller targets.
+
+    Single source of the blocked-by-hidden-twin message: the create command,
+    ``get_or_create_dataset``, and any future caller raise this so the
+    wording (restore pointer, executable recoveries only) cannot drift
+    between surfaces.
+    """
+
+    status = 422
+
+    def __init__(self, dataset_uuid: str) -> None:
+        super().__init__(
+            _(
+                "A soft-deleted dataset (uuid %(uuid)s) already references "
+                "this table. Restore it via POST "
+                "/api/v1/dataset/%(uuid)s/restore before creating a new "
+                "dataset over this table, or use a different table name.",
+                uuid=dataset_uuid,
+            )
+        )
+
+
+class DatasetLogicalDuplicateError(CommandException):
+    status = 422
+    message = _(
+        "Dataset cannot be restored because another active dataset already "
+        "references the same physical table (same database, catalog, schema, "
+        "and table name). Delete the duplicate or rename the table before "
+        "restoring."
+    )
 
 
 class DatasetDeleteFailedError(DeleteFailedError):

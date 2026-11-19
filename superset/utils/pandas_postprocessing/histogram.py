@@ -17,7 +17,16 @@
 from __future__ import annotations
 
 import numpy as np
+from flask_babel import gettext as _
 from pandas import DataFrame, Series, to_numeric
+
+from superset.exceptions import InvalidPostProcessingError
+
+# Upper bound on the number of histogram bins. ``bins`` arrives through the
+# post-processing ``options`` dict, which is not schema-validated, so the cap
+# must be enforced here: numpy allocates a bin-edge array proportional to
+# ``bins`` (e.g. bins=2e9 attempts a ~16 GB allocation in a single request).
+MAX_HISTOGRAM_BINS = 1000
 
 
 # pylint: disable=too-many-arguments
@@ -45,6 +54,18 @@ def histogram(
                and each column corresponds to a histogram bin. The values are the counts in each bin.
     """  # noqa: E501
 
+    if (
+        not isinstance(bins, int)
+        or isinstance(bins, bool)
+        or not 1 <= bins <= MAX_HISTOGRAM_BINS
+    ):
+        raise InvalidPostProcessingError(
+            _(
+                "`bins` must be an integer between 1 and %(max)s",
+                max=MAX_HISTOGRAM_BINS,
+            )
+        )
+
     if groupby is None:
         groupby = []
 
@@ -70,8 +91,7 @@ def histogram(
 
     def hist_values(series: Series) -> np.ndarray:
         # we might have NaN values as the result of grouping so we need to drop them
-        result = np.histogram(series.dropna(), bins=bin_edges)[0]
-        return result if not cumulative else np.cumsum(result)
+        return np.histogram(series.dropna(), bins=bin_edges)[0]
 
     if len(groupby) == 0:
         # without grouping
@@ -86,8 +106,13 @@ def histogram(
         )
         histogram_df.columns = bin_edges_str
 
+    # normalize by the total count of data points before accumulating, so that a
+    # cumulative histogram shows the share of data points up to each bin
     if normalize:
         histogram_df = histogram_df / histogram_df.values.sum()
+
+    if cumulative:
+        histogram_df = histogram_df.cumsum(axis=1)
 
     # reorder the columns to have the groupby columns first
     histogram_df = histogram_df.reset_index().loc[:, groupby + bin_edges_str]

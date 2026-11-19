@@ -31,7 +31,7 @@ jest.mock('src/components/MessageToasts/actions', () => ({
 const mockDb = {
   id: 1,
   database_name: 'test_db',
-  owners: [1] as [number],
+  editors: [1] as [number],
 };
 
 const mockDatasets = [
@@ -347,7 +347,7 @@ test('useDatasetsList skips fetching when db.id is undefined', () => {
   // Create db object without id property
   const dbWithoutId = {
     database_name: 'test_db',
-    owners: [1] as [number],
+    editors: [1] as [number],
   } as typeof mockDb;
 
   const { result } = renderHook(() => useDatasetsList(dbWithoutId, 'public'));
@@ -362,7 +362,7 @@ test('useDatasetsList fetches datasets for schema-less databases without schema 
   const schemalessDb = {
     id: 2,
     database_name: 'ydb',
-    owners: [1] as [number],
+    editors: [1] as [number],
     supports_schemas: false,
   };
 
@@ -407,9 +407,9 @@ test('useDatasetsList skips fetching when schema-less database id is undefined',
 
   const schemalessDb = {
     database_name: 'ydb',
-    owners: [1] as [number],
+    editors: [1] as [number],
     supports_schemas: false,
-  } as typeof mockDb & { supports_schemas: boolean };
+  };
 
   const { result } = renderHook(() => useDatasetsList(schemalessDb, null));
 

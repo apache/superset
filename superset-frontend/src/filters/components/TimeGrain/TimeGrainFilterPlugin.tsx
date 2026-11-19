@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   ExtraFormData,
   TimeGranularity,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { useEffect, useMemo, useState } from 'react';
 import {
   FormItem,
@@ -93,11 +92,6 @@ export default function PluginFilterTimegrain(
     handleChange(filterState.value ?? []);
   }, [JSON.stringify(filterState.value)]);
 
-  const placeholderText =
-    (data || []).length === 0
-      ? t('No data')
-      : tn('%s option', '%s options', data.length, data.length);
-
   const formItemData: FormItemProps = {};
   if (filterState.validateMessage) {
     formItemData.extra = (
@@ -115,14 +109,19 @@ export default function PluginFilterTimegrain(
         value: duration,
       };
     })
-    // Apply allowlist filter if time_grains is configured, but keep current selection visible
+    // Apply allowlist filter if timeGrains is configured, but keep current selection visible
     .filter(option => {
-      const allowlist = formData.time_grains;
+      const allowlist = formData.timeGrains;
       if (!allowlist || allowlist.length === 0) {
         return true;
       }
       return allowlist.includes(option.value) || value.includes(option.value);
     });
+
+  const placeholderText =
+    options.length === 0
+      ? t('No data')
+      : tn('%s option', '%s options', options.length, options.length);
 
   return (
     <FilterPluginStyle height={height} width={width}>

@@ -15,26 +15,403 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import ANY, patch
+import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
+from datetime import datetime
+from typing import Any
+from unittest.mock import ANY, MagicMock, patch, PropertyMock
 
 import pytest
+from flask_appbuilder.security.sqla.models import PermissionView, Role
 from sqlalchemy.sql.elements import TextClause
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.exceptions import DatasourceTypeNotSupportedError
+from superset.extensions import cache_manager
+from superset.models.core import Database
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 
 
+@contextmanager
+def _semantic_views(*layer_names: str) -> Iterator[list[SemanticView]]:
+    """Persist one semantic view per named layer and remove them on exit.
+
+    Names are suffixed to stay unique across runs. The layer and view insert
+    hooks create the matching ``datasource_access`` permissions; the delete
+    hooks remove them again together with any role associations.
+    """
+    suffix = uuid.uuid4().hex
+    layers = [
+        SemanticLayer(
+            uuid=uuid.uuid4(),
+            name=f"{name}_{suffix}",
+            type="test",
+            configuration="{}",
+        )
+        for name in layer_names
+    ]
+    views = [
+        SemanticView(
+            uuid=uuid.uuid4(),
+            name=f"{layer.name}_view",
+            semantic_layer_uuid=layer.uuid,
+            configuration="{}",
+        )
+        for layer in layers
+    ]
+    db.session.add_all([*layers, *views])
+    db.session.commit()
+    try:
+        for obj in [*layers, *views]:
+            db.session.refresh(obj)
+        yield views
+    finally:
+        db.session.rollback()
+        for obj in [*views, *layers]:
+            db.session.delete(obj)
+        db.session.commit()
+
+
+@contextmanager
+def _gamma_granted(*pvms: tuple[str, str]) -> Iterator[None]:
+    """Grant ``(permission, view_menu)`` pairs to Gamma for the block's duration.
+
+    A permission-view that does not exist yet (``can_read SemanticView`` is only
+    registered when the semantic view API is mounted) is created and removed
+    again afterwards; one that already exists is left in place.
+    """
+    gamma = security_manager.find_role("Gamma")
+    assert gamma is not None
+    created: list[PermissionView] = []
+    granted: list[PermissionView] = []
+    for permission, view_menu in pvms:
+        pvm = security_manager.find_permission_view_menu(permission, view_menu)
+        if pvm is None:
+            pvm = security_manager.add_permission_view_menu(permission, view_menu)
+            created.append(pvm)
+        if pvm not in gamma.permissions:
+            security_manager.add_permission_role(gamma, pvm)
+            granted.append(pvm)
+    db.session.commit()
+    try:
+        yield
+    finally:
+        db.session.rollback()
+        for pvm in granted:
+            security_manager.del_permission_role(gamma, pvm)
+        for pvm in created:
+            security_manager.del_permission_view_menu(
+                pvm.permission.name, pvm.view_menu.name
+            )
+        db.session.commit()
+
+
+@contextmanager
+def _gamma_without(*pvms: tuple[str, str]) -> Iterator[None]:
+    """Temporarily remove named Gamma grants to test a missing permission."""
+    gamma: Role | None = security_manager.find_role("Gamma")
+    assert gamma is not None
+    removed: list[PermissionView] = []
+    for permission, view_menu in pvms:
+        pvm: PermissionView | None = security_manager.find_permission_view_menu(
+            permission, view_menu
+        )
+        if pvm is not None and pvm in gamma.permissions:
+            security_manager.del_permission_role(gamma, pvm)
+            removed.append(pvm)
+    db.session.commit()
+    try:
+        yield
+    finally:
+        db.session.rollback()
+        for pvm in removed:
+            security_manager.add_permission_role(gamma, pvm)
+        db.session.commit()
+
+
+@contextmanager
+def _datasets_with_schemas() -> Iterator[str]:
+    """Persist two datasets under distinct, unique schemas; clean up on exit.
+
+    Yields a unique suffix so the caller can build the exact table and schema
+    names (``main_ds_<suffix>`` in schema ``main_<suffix>`` and
+    ``other_ds_<suffix>`` in schema ``other_<suffix>``). The unique schema name
+    guarantees the filter value cannot collide with pre-existing datasets.
+    """
+    suffix = uuid.uuid4().hex
+    database = Database(database_name=f"schema_db_{suffix}", sqlalchemy_uri="sqlite://")
+    main_ds = SqlaTable(
+        table_name=f"main_ds_{suffix}", schema=f"main_{suffix}", database=database
+    )
+    other_ds = SqlaTable(
+        table_name=f"other_ds_{suffix}", schema=f"other_{suffix}", database=database
+    )
+    db.session.add_all([database, main_ds, other_ds])
+    db.session.commit()
+    try:
+        yield suffix
+    finally:
+        db.session.rollback()
+        for obj in (main_ds, other_ds, database):
+            db.session.delete(obj)
+        db.session.commit()
+
+
 class TestDatasourceApi(SupersetTestCase):
+    def setUp(self):
+        # Clear the column-values cache before every test so that
+        # ``get_column_values`` always re-runs ``values_for_column`` rather
+        # than returning a payload populated by a previous test. Prevents
+        # order-dependent flakes now that the endpoint caches its result.
+        super().setUp()
+        cache_manager.data_cache.clear()
+
     def get_virtual_dataset(self):
         return (
             db.session.query(SqlaTable)
             .filter(SqlaTable.table_name == "virtual_dataset")
             .one()
         )
+
+    def test_compatible_rejects_unknown_selection_before_cache(self) -> None:
+        """A stale member must not produce a partial compatibility answer."""
+        datasource: MagicMock = MagicMock(spec=SemanticView)
+        datasource.metrics = [MagicMock(metric_name="bookings")]
+        datasource.columns = [MagicMock(column_name="country")]
+        datasource.uid = "semantic_view__5"
+        datasource.metadata_generation = "generation-1"
+        datasource.cache_timeout = 300
+        datasource.get_compatible_metrics.return_value = ["bookings"]
+        datasource.get_compatible_dimensions.return_value = ["country"]
+        self.login(ADMIN_USERNAME)
+
+        cases: list[tuple[list[str], list[str], list[str]]] = [
+            (["missing_metric"], ["country"], ["Unknown metric: 'missing_metric'"]),
+            (
+                ["bookings"],
+                ["missing_dimension"],
+                ["Unknown dimension: 'missing_dimension'"],
+            ),
+            (["old_bookings"], ["country"], ["Unknown metric: 'old_bookings'"]),
+            (
+                ["missing_metric"],
+                ["missing_dimension"],
+                [
+                    "Unknown metric: 'missing_metric'",
+                    "Unknown dimension: 'missing_dimension'",
+                ],
+            ),
+        ]
+        for selected_metrics, selected_dimensions, unknowns in cases:
+            with (
+                self.subTest(unknowns=unknowns),
+                patch(
+                    "superset.datasource.api.DatasourceDAO.get_datasource",
+                    return_value=datasource,
+                ),
+                patch(
+                    "superset.datasource.api.cache_manager.data_cache.get",
+                    return_value=None,
+                ) as cache_get,
+                patch("superset.datasource.api.cache_manager.data_cache.set"),
+            ):
+                response = self.client.post(
+                    "api/v1/datasource/semantic_view/5/compatible",
+                    json={
+                        "selected_metrics": selected_metrics,
+                        "selected_dimensions": selected_dimensions,
+                    },
+                )
+
+                assert response.status_code == 400
+                for unknown in unknowns:
+                    assert unknown in response.json["message"]
+                cache_get.assert_not_called()
+        datasource.get_compatible_metrics.assert_not_called()
+        datasource.get_compatible_dimensions.assert_not_called()
+
+        with (
+            patch(
+                "superset.datasource.api.DatasourceDAO.get_datasource",
+                return_value=datasource,
+            ),
+            patch(
+                "superset.datasource.api.cache_manager.data_cache.get",
+                return_value=None,
+            ),
+            patch("superset.datasource.api.cache_manager.data_cache.set"),
+        ):
+            response = self.client.post(
+                "api/v1/datasource/semantic_view/5/compatible",
+                json={
+                    "selected_metrics": ["bookings"],
+                    "selected_dimensions": ["country"],
+                },
+            )
+
+        assert response.status_code == 200
+        assert response.json["result"] == {
+            "compatible_metrics": ["bookings"],
+            "compatible_dimensions": ["country"],
+        }
+        datasource.get_compatible_metrics.assert_called_once_with(
+            ["bookings"], ["country"]
+        )
+        datasource.get_compatible_dimensions.assert_called_once_with(
+            ["bookings"], ["country"]
+        )
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_compatible_rejects_unknown_sql_dataset_member(self) -> None:
+        """The shared endpoint also refuses unknown names for SQL datasets."""
+        self.login(ADMIN_USERNAME)
+        table: SqlaTable = self.get_virtual_dataset()
+
+        response = self.client.post(
+            f"api/v1/datasource/table/{table.id}/compatible",
+            json={"selected_metrics": ["missing_metric"], "selected_dimensions": []},
+        )
+
+        assert response.status_code == 400
+        assert "Unknown metric: 'missing_metric'" in response.json["message"]
+
+    def test_compatible_ignores_non_name_selections(self) -> None:
+        """Ad-hoc and malformed entries do not break compatibility discovery."""
+        self.login(ADMIN_USERNAME)
+        cases: list[tuple[str, Any, bool]] = [
+            (field, invalid, has_members)
+            for field in ("selected_metrics", "selected_dimensions")
+            for invalid in ({"expressionType": "SQL"}, None, 7)
+            for has_members in (True, False)
+        ]
+        observed: list[tuple[str, Any, bool, int]] = []
+        for field, invalid, has_members in cases:
+            with self.subTest(field=field, invalid=invalid, has_members=has_members):
+                datasource: MagicMock = MagicMock(spec=SemanticView)
+                datasource.metrics = (
+                    [MagicMock(metric_name="bookings")] if has_members else []
+                )
+                datasource.columns = (
+                    [MagicMock(column_name="country")] if has_members else []
+                )
+                datasource.uid = "semantic_view__5"
+                datasource.metadata_generation = "generation-1"
+                datasource.cache_timeout = 300
+                datasource.get_compatible_metrics.return_value = ["bookings"]
+                datasource.get_compatible_dimensions.return_value = ["country"]
+                selected: list[Any] = (
+                    (["bookings"] if field == "selected_metrics" else ["country"])
+                    if has_members
+                    else []
+                )
+                payload: dict[str, list[Any]] = {field: [*selected, invalid]}
+                with (
+                    patch(
+                        "superset.datasource.api.DatasourceDAO.get_datasource",
+                        return_value=datasource,
+                    ),
+                    patch(
+                        "superset.datasource.api.cache_manager.data_cache.get",
+                        return_value=None,
+                    ),
+                    patch("superset.datasource.api.cache_manager.data_cache.set"),
+                ):
+                    response = self.client.post(
+                        "api/v1/datasource/semantic_view/5/compatible", json=payload
+                    )
+
+                observed.append((field, invalid, has_members, response.status_code))
+                if response.status_code != 200:
+                    continue
+                expected_metrics: list[str] = (
+                    ["bookings"] if has_members and field == "selected_metrics" else []
+                )
+                expected_dimensions: list[str] = (
+                    ["country"]
+                    if has_members and field == "selected_dimensions"
+                    else []
+                )
+                datasource.get_compatible_metrics.assert_called_once_with(
+                    expected_metrics, expected_dimensions
+                )
+                datasource.get_compatible_dimensions.assert_called_once_with(
+                    expected_metrics, expected_dimensions
+                )
+
+        assert all(status == 200 for _, _, _, status in observed), observed
+
+    def test_compatible_rejects_non_list_selection_fields(self) -> None:
+        """Malformed selection fields get a 400 before cache access."""
+        datasource: MagicMock = MagicMock(spec=SemanticView)
+        self.login(ADMIN_USERNAME)
+        payloads: list[Any] = [
+            {field: value}
+            for field in ("selected_metrics", "selected_dimensions")
+            for value in (7, "bookings", {"bookings": 1}, None)
+        ]
+        observed: list[tuple[Any, int]] = []
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                with (
+                    patch(
+                        "superset.datasource.api.DatasourceDAO.get_datasource",
+                        return_value=datasource,
+                    ),
+                    patch(
+                        "superset.datasource.api.cache_manager.data_cache.get"
+                    ) as cache_get,
+                ):
+                    response = self.client.post(
+                        "api/v1/datasource/semantic_view/5/compatible", json=payload
+                    )
+                observed.append((payload, response.status_code))
+                if response.status_code == 400:
+                    cache_get.assert_not_called()
+
+        assert all(status == 400 for _, status in observed), observed
+
+    def test_compatible_empty_selection_skips_metadata_on_cache_hit(self) -> None:
+        """An empty selection needs no metric or dimension discovery."""
+        datasource: MagicMock = MagicMock(spec=SemanticView)
+        datasource.uid = "semantic_view__5"
+        datasource.metadata_generation = "generation-1"
+        self.login(ADMIN_USERNAME)
+
+        with (
+            patch(
+                "superset.datasource.api.DatasourceDAO.get_datasource",
+                return_value=datasource,
+            ),
+            patch(
+                "superset.datasource.api.cache_manager.data_cache.get",
+                return_value={"compatible_metrics": [], "compatible_dimensions": []},
+            ),
+            patch.object(
+                type(datasource), "metrics", new_callable=PropertyMock, create=True
+            ) as metrics,
+            patch.object(
+                type(datasource), "columns", new_callable=PropertyMock, create=True
+            ) as columns,
+        ):
+            response = self.client.post(
+                "api/v1/datasource/semantic_view/5/compatible", json={}
+            )
+
+        assert response.status_code == 200
+        assert response.json["result"] == {
+            "compatible_metrics": [],
+            "compatible_dimensions": [],
+        }
+        metrics.assert_not_called()
+        columns.assert_not_called()
+        datasource.get_compatible_metrics.assert_not_called()
+        datasource.get_compatible_dimensions.assert_not_called()
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_ints(self):
@@ -129,8 +506,8 @@ class TestDatasourceApi(SupersetTestCase):
         assert rv.status_code == 403
         response = json.loads(rv.data.decode("utf-8"))
         assert (
-            response["message"] == f"This endpoint requires the datasource {table.id}, "
-            "database or `all_datasource_access` permission"
+            response["message"]
+            == "You do not have permission to access this datasource"
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
@@ -144,7 +521,95 @@ class TestDatasourceApi(SupersetTestCase):
             column_name="col2",
             limit=10000,
             denormalize_column=False,
+            array_elements=False,
+            search=None,
         )
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_array_elements_param(self, values_for_column_mock):
+        # The ?array_elements=true param (Contains any/all) is threaded through
+        # so array columns can suggest individual elements.
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/"
+            "?array_elements=true"
+        )
+        assert values_for_column_mock.call_args.kwargs["array_elements"] is True
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_search_filters_server_side(self):
+        """``?q=`` narrows the values in the database rather than client-side,
+        which is what makes a value beyond the row limit reachable at all."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=b"
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == ["b"]
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_search_is_case_insensitive(self):
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=B"
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == ["b"]
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_search_escapes_wildcards(self):
+        """A literal ``%`` must not be treated as "match everything"."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=%25"
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == []
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_blank_search_is_ignored(self, values_for_column_mock):
+        """Whitespace is not a search term; it must not narrow the list."""
+        values_for_column_mock.return_value = []
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=%20%20"
+        )
+        assert values_for_column_mock.call_args.kwargs["search"] is None
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_returns_applied_limit(self):
+        """The client needs the limit to tell a short list from a truncated
+        one, so it can say the list is partial instead of implying it is whole."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["limit"] == 10000
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_isolated_per_search(self, values_for_column_mock):
+        """Search terms must partition the cache; sharing one entry would serve
+        the results of somebody else's search."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["x"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        self.client.get(url)
+        self.client.get(f"{url}?q=a")
+        self.client.get(f"{url}?q=b")
+        self.client.get(f"{url}?q=a")
+
+        assert values_for_column_mock.call_count == 3
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     @patch("superset.db_engine_specs.base.BaseEngineSpec.denormalize_name")
@@ -166,6 +631,8 @@ class TestDatasourceApi(SupersetTestCase):
             column_name="col2",
             limit=10000,
             denormalize_column=True,
+            array_elements=False,
+            search=None,
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
@@ -205,6 +672,123 @@ class TestDatasourceApi(SupersetTestCase):
             response = json.loads(rv.data.decode("utf-8"))
             assert response["result"] == []
 
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_hit_skips_query(self, values_for_column_mock):
+        """Regression test for #39342.
+
+        Two identical requests for the same column on the same datasource
+        should hit ``values_for_column`` exactly once — the second request
+        returns the cached payload.
+        """
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["a", "b", "c"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        rv1 = self.client.get(url)
+        rv2 = self.client.get(url)
+
+        assert rv1.status_code == 200
+        assert rv2.status_code == 200
+        assert json.loads(rv2.data.decode("utf-8"))["result"] == ["a", "b", "c"]
+        assert values_for_column_mock.call_count == 1
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_force_bypasses_cache(self, values_for_column_mock):
+        """``?force=true`` should bypass the cache and re-query the source."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["a", "b"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        self.client.get(url)
+        self.client.get(f"{url}?force=true")
+
+        assert values_for_column_mock.call_count == 2
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_isolated_per_column(self, values_for_column_mock):
+        """Different columns on the same datasource must not share a cache
+        entry — otherwise filter values would be silently swapped."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["x"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col1/values/")
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+
+        assert values_for_column_mock.call_count == 2
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_busts_on_changed_on(self, values_for_column_mock):
+        """Editing the underlying virtual dataset SQL bumps ``changed_on``,
+        which is part of the cache key — so the next request must miss the
+        cache and re-run the query."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["v"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        self.client.get(url)
+        # Simulate an edit to the dataset; ``changed_on`` is what the cache
+        # key reads, so any new value forces a miss.
+        table.changed_on = datetime(2030, 1, 1)
+        db.session.flush()
+        self.client.get(url)
+
+        assert values_for_column_mock.call_count == 2
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.datasource.api.security_manager.get_rls_cache_key")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_isolated_per_rls_context(
+        self, values_for_column_mock, get_rls_cache_key_mock
+    ):
+        """RLS safety for guest/embedded sessions. ``get_user_id()`` returns
+        ``None`` for guest users, so two embedded dashboards with different
+        guest-token RLS would otherwise collide on ``user=None``. Including
+        the RLS fingerprint in the cache key keeps them separate."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["v"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        get_rls_cache_key_mock.return_value = ["dept='A'"]
+        self.client.get(url)
+        get_rls_cache_key_mock.return_value = ["dept='B'"]
+        self.client.get(url)
+
+        assert values_for_column_mock.call_count == 2
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_response_advertises_cache_status(
+        self, values_for_column_mock
+    ):
+        """The ``X-Cache-Status`` response header should advertise MISS on
+        the populating request and HIT on the next identical request, so
+        operators can debug cache behavior from logs or browser devtools."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["v"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        rv_miss = self.client.get(url)
+        rv_hit = self.client.get(url)
+
+        assert rv_miss.headers.get("X-Cache-Status") == "MISS"
+        assert rv_hit.headers.get("X-Cache-Status") == "HIT"
+
     @patch("superset.datasource.api.security_manager.can_access")
     @patch("superset.datasource.api.GetCombinedDatasourceListCommand.run")
     def test_combined_list_invalid_order_column(
@@ -212,12 +796,6 @@ class TestDatasourceApi(SupersetTestCase):
         run_mock,
         can_access_mock,
     ):
-        security_manager.add_permission_view_menu("can_combined_list", "Datasource")
-        perm = security_manager.find_permission_view_menu(
-            "can_combined_list", "Datasource"
-        )
-        admin_role = security_manager.find_role("Admin")
-        security_manager.add_permission_role(admin_role, perm)
         can_access_mock.side_effect = [True, True]
         run_mock.side_effect = ValueError("Invalid order column: invalid")
         self.login(ADMIN_USERNAME)
@@ -237,12 +815,6 @@ class TestDatasourceApi(SupersetTestCase):
         run_mock,
         can_access_mock,
     ):
-        security_manager.add_permission_view_menu("can_combined_list", "Datasource")
-        perm = security_manager.find_permission_view_menu(
-            "can_combined_list", "Datasource"
-        )
-        admin_role = security_manager.find_role("Admin")
-        security_manager.add_permission_role(admin_role, perm)
         can_access_mock.return_value = True
         run_mock.return_value = {"count": 1, "result": []}
         self.login(ADMIN_USERNAME)
@@ -256,3 +828,120 @@ class TestDatasourceApi(SupersetTestCase):
         run_mock.assert_called_once()
         _, kwargs = run_mock.call_args
         assert kwargs == {}
+
+    @patch("superset.datasource.api.GetCombinedDatasourceListCommand.run")
+    def test_combined_list_gamma_uses_read_permission(self, run_mock):
+        run_mock.return_value = {"count": 0, "result": []}
+        self.login(GAMMA_USERNAME)
+
+        rv = self.client.get(
+            "api/v1/datasource/?q="
+            "(order_column:changed_on_delta_humanized,"
+            "order_direction:desc,page:0,page_size:25)"
+        )
+
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response == {"count": 0, "result": []}
+        run_mock.assert_called_once()
+
+    def _list_semantic_views_as_gamma(self) -> tuple[int, set[str]]:
+        """Fetch the semantic-view slice of the combined list as Gamma."""
+        self.login(GAMMA_USERNAME)
+        rv = self.client.get(
+            "api/v1/datasource/?q="
+            "(filters:!((col:source_type,opr:eq,value:semantic_layer)),"
+            "order_column:table_name,order_direction:asc,page:0,page_size:25)"
+        )
+        payload = json.loads(rv.data.decode("utf-8"))
+        names = {item["table_name"] for item in payload.get("result", [])}
+        return rv.status_code, names
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_gamma_sees_views_of_granted_layers(self):
+        """A layer-level grant exposes that layer's views and no others."""
+        with _semantic_views("permitted", "denied") as (permitted, denied):
+            layer_perm = permitted.semantic_layer.perm
+            assert layer_perm is not None
+            # The layer insert hook creates this permission; a regression
+            # there must fail here rather than be papered over by the grant.
+            assert (
+                security_manager.find_permission_view_menu(
+                    "datasource_access", layer_perm
+                )
+                is not None
+            )
+            with _gamma_granted(
+                ("can_read", "SemanticView"), ("datasource_access", layer_perm)
+            ):
+                status, names = self._list_semantic_views_as_gamma()
+            assert status == 200
+            assert permitted.name in names
+            assert denied.name not in names
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_gamma_sees_individually_granted_views(self):
+        """A view-level grant exposes that view without touching other layers."""
+        with _semantic_views("granted", "other") as (granted, other):
+            view_perm = granted.perm
+            assert view_perm is not None
+            assert (
+                security_manager.find_permission_view_menu(
+                    "datasource_access", view_perm
+                )
+                is not None
+            )
+            with _gamma_granted(
+                ("can_read", "SemanticView"), ("datasource_access", view_perm)
+            ):
+                status, names = self._list_semantic_views_as_gamma()
+            assert status == 200
+            assert granted.name in names
+            assert other.name not in names
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_gamma_without_semantic_view_read_gets_none(self):
+        """Without can_read on SemanticView the semantic-layer slice is empty."""
+        with (
+            _gamma_without(("can_read", "SemanticView")),
+            _semantic_views("layer") as (view,),
+        ):
+            layer_perm = view.semantic_layer.perm
+            assert layer_perm is not None
+            with _gamma_granted(("datasource_access", layer_perm)):
+                status, names = self._list_semantic_views_as_gamma()
+            assert status == 200
+            assert names == set()
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_filters_by_schema(self):
+        """The schema filter narrows the combined list to matching datasets.
+
+        The per-run schema name is unique, so exactly one dataset can match:
+        the result set must equal ``{main_ds_<suffix>}``. That single exact-set
+        assertion proves both halves independently of pagination and of whatever
+        other datasets exist in the test database:
+
+        * ``other_ds`` (a different schema) is excluded by the WHERE clause —
+          were it dropped, the result would include the full dataset list.
+        * the semantic view (which has no schema) is excluded by the source-type
+          narrowing a schema filter triggers — with SEMANTIC_LAYERS on it would
+          otherwise appear in the combined ``all`` list, so its absence is
+          load-bearing, not incidental.
+        """
+        self.login(ADMIN_USERNAME)
+        with (
+            _datasets_with_schemas() as suffix,
+            _semantic_views("schema_filter"),
+        ):
+            rv = self.client.get(
+                "api/v1/datasource/?q="
+                f"(filters:!((col:schema,opr:eq,value:main_{suffix})),"
+                "order_column:table_name,order_direction:asc,page:0,page_size:100)"
+            )
+
+            assert rv.status_code == 200
+            payload = json.loads(rv.data.decode("utf-8"))
+            names = {item["table_name"] for item in payload["result"]}
+
+            assert names == {f"main_ds_{suffix}"}

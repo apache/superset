@@ -17,7 +17,11 @@
 
 from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import CommandException, DeleteFailedError
+from superset.commands.exceptions import (
+    CommandException,
+    DeleteFailedError,
+    ForbiddenError,
+)
 
 
 class RLSRuleNotFoundError(CommandException):
@@ -25,5 +29,24 @@ class RLSRuleNotFoundError(CommandException):
     message = _("RLS Rule not found.")
 
 
+class RLSDatasourceForbiddenError(ForbiddenError):
+    message = _("You don't have access to one or more of the referenced datasources.")
+
+
 class RuleDeleteFailedError(DeleteFailedError):
     message = _("RLS rules could not be deleted.")
+
+
+class PasswordRecoveryDisabledError(CommandException):
+    status = 404
+    message = _("Not found")
+
+
+class PasswordRecoveryInvalidTokenError(CommandException):
+    status = 400
+    message = _("This password reset link is invalid or has expired.")
+
+
+class PasswordRecoveryFailedError(CommandException):
+    status = 500
+    message = _("The password could not be reset. Please try again.")

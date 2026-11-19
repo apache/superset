@@ -17,13 +17,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
+import { t } from '@apache-superset/core/translation';
+import {
+  ColDef,
+  ValueFormatterParams,
+  ValueGetterParams,
+  CellClassParams,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
-import { DataRecord, DataRecordValue } from '@superset-ui/core';
+import {
+  DataRecordValue,
+  DateWithFormatter,
+  isEmptyDateInput,
+  JsonObject,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useTheme } from '@apache-superset/core/theme';
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import {
+  ColorFormatters,
+  hasRenderableHeaderGroups,
+  nestColDefsInHeaderGroups,
+  type HeaderGroupConfig,
+  ConditionalFormattingConfig,
+} from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
+import {
+  isMainComparisonKey,
+  stripMainComparisonPrefix,
+} from './mainComparison';
 import {
   BasicColorFormatterType,
   CellRendererProps,
@@ -36,12 +57,11 @@ import htmlTextFilterValueGetter, {
   htmlTextComparator,
 } from './htmlTextFilterValueGetter';
 import dateFilterComparator from './dateFilterComparator';
-import DateWithFormatter from './DateWithFormatter';
 import { getAggFunc } from './getAggFunc';
 import { TextCellRenderer } from '../renderers/TextCellRenderer';
 import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
 import CustomHeader from '../AgGridTable/components/CustomHeader';
-import { NOOP_FILTER_COMPARATOR } from '../consts';
+import { NOOP_FILTER_COMPARATOR, ROW_NUMBER_COL_ID } from '../consts';
 import { valueFormatter, valueGetter } from './formatValue';
 import getCellStyle from './getCellStyle';
 
@@ -53,18 +73,27 @@ type UseColDefsProps = {
   columns: InputColumn[];
   data: InputData[];
   serverPagination: boolean;
+  serverPaginationData: JsonObject;
+  serverPageLength: number;
+  showNumberedColumn: boolean;
   isRawRecords: boolean;
   defaultAlignPN: boolean;
   showCellBars: boolean;
   colorPositiveNegative: boolean;
-  totals: DataRecord | undefined;
   columnColorFormatters: ColorFormatters;
   allowRearrangeColumns?: boolean;
+  allowRenderHtml?: boolean;
+  jsonInCell?: boolean;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   isUsingTimeComparison?: boolean;
   emitCrossFilters?: boolean;
   alignPositiveNegative: boolean;
   slice_id: number;
+  headerGroups?: HeaderGroupConfig[];
+  conditionalFormatting?: ConditionalFormattingConfig[];
+  comparisonColorEnabled?: boolean;
+  comparisonColorScheme?: string;
+  zebraStriping?: boolean;
 };
 
 function getValueRange(
@@ -120,7 +149,7 @@ const getFilterType = (col: InputColumn) => {
 
 /**
  * Filter value getter for temporal columns.
- * Returns null for DateWithFormatter objects with null input,
+ * Returns null for DateWithFormatter objects with null/empty input,
  * enabling AG Grid's blank filter to correctly identify null dates.
  */
 const dateFilterValueGetter = (params: {
@@ -128,8 +157,8 @@ const dateFilterValueGetter = (params: {
   colDef: { field?: string };
 }) => {
   const value = params.data?.[params.colDef.field as string];
-  // Return null for DateWithFormatter with null input so AG Grid blank filter works
-  if (value instanceof DateWithFormatter && value.input === null) {
+  // Return null for DateWithFormatter with null/empty input so AG Grid blank filter works
+  if (value instanceof DateWithFormatter && isEmptyDateInput(value.input)) {
     return null;
   }
   return value;
@@ -189,7 +218,7 @@ function getHeaderLabel(col: InputColumn) {
   let headerLabel: string | undefined;
 
   const hasOriginalLabel = !!col?.originalLabel;
-  const isMain = col?.key?.includes('Main');
+  const isMain = isMainComparisonKey(col?.key);
   const hasDisplayTypeIcon = col?.config?.displayTypeIcon !== false;
   const hasCustomColumnName = !!col?.config?.customColumnName;
 
@@ -216,20 +245,49 @@ export const useColDefs = ({
   columns,
   data,
   serverPagination,
+  serverPaginationData,
+  serverPageLength,
+  showNumberedColumn,
   isRawRecords,
   defaultAlignPN,
   showCellBars,
   colorPositiveNegative,
-  totals,
   columnColorFormatters,
   allowRearrangeColumns,
+  allowRenderHtml,
+  jsonInCell = false,
   basicColorFormatters,
   isUsingTimeComparison,
   emitCrossFilters,
   alignPositiveNegative,
   slice_id,
+  headerGroups = [],
+  conditionalFormatting,
+  comparisonColorEnabled,
+  comparisonColorScheme,
+  zebraStriping,
 }: UseColDefsProps) => {
   const theme = useTheme();
+  // transformProps.ts computes these fresh on every call (no memoization),
+  // so a reference-based dependency here would recreate getCommonColProps -
+  // and therefore colDefs - on every render regardless of whether the
+  // formatting actually changed. Compare by content instead.
+  //
+  // columnColorFormatters/basicColorFormatters can't be stringified directly:
+  // each entry's getColorFromValue closes over the rule's operator/
+  // thresholds/gradient/color, none of which are mirrored as serializable
+  // fields on the entry itself, so JSON.stringify drops them and two
+  // differently-configured rules for the same column serialize identically.
+  // Depend on the raw, fully-serializable formData that produced those
+  // formatters instead.
+  const stringifiedColumnColorFormatters = JSON.stringify(
+    conditionalFormatting,
+  );
+  const stringifiedBasicColorFormatters = JSON.stringify([
+    conditionalFormatting,
+    comparisonColorEnabled,
+    comparisonColorScheme,
+  ]);
   const getCommonColProps = useCallback(
     (
       col: InputColumn,
@@ -261,9 +319,9 @@ export const useColDefs = ({
         Array.isArray(basicColorFormatters) &&
         basicColorFormatters.length > 0;
 
-      const isMain = originalKey?.includes('Main');
+      const isMain = isMainComparisonKey(originalKey);
       const colId = isMain
-        ? originalKey.replace('Main', '').trim()
+        ? stripMainComparisonPrefix(originalKey)
         : originalKey;
       const isTextColumn =
         dataType === GenericDataType.String ||
@@ -283,11 +341,16 @@ export const useColDefs = ({
       return {
         field: colId,
         headerName: getHeaderLabel(col),
-        valueFormatter: p => valueFormatter(p, col),
-        valueGetter: p => valueGetter(p, col),
-        cellStyle: p => {
+        headerTooltip: col.description,
+        valueFormatter: (p: ValueFormatterParams) => valueFormatter(p, col),
+        valueGetter: (p: ValueGetterParams) => valueGetter(p, col),
+        cellStyle: (p: CellClassParams) => {
+          // Mirrors the oddRowBackgroundColor override AgGridTable passes to
+          // ThemedAgGridReact for this same zebraStriping flag, so the color
+          // used for text-contrast here always matches the row's actual
+          // rendered background.
           const cellSurfaceColor =
-            p.node?.rowPinned != null
+            p.node?.rowPinned != null || !zebraStriping
               ? theme.colorBgBase
               : p.rowIndex % 2 === 0
                 ? theme.colorBgBase
@@ -309,7 +372,7 @@ export const useColDefs = ({
 
           return getCellStyle(cellStyleParams);
         },
-        cellClass: p =>
+        cellClass: (p: CellClassParams) =>
           getCellClass({
             ...p,
             col,
@@ -373,7 +436,8 @@ export const useColDefs = ({
               cellRenderer: (p: CellRendererProps) =>
                 isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
               cellRendererParams: {
-                allowRenderHtml: true,
+                allowRenderHtml,
+                jsonInCell,
                 columns,
                 hasBasicColorFormatters,
                 col,
@@ -387,6 +451,12 @@ export const useColDefs = ({
           isMetric,
           isPercentMetric,
           isNumeric,
+          // colId (`field` above) has "Main " stripped for comparison
+          // columns, but row data is still keyed by the unstripped
+          // originalKey -- consumers reading row values by column (e.g. the
+          // "Export Current View" snapshot) need this to look values up
+          // correctly.
+          dataKey: originalKey,
         },
         lockPinned: !allowRearrangeColumns,
         sortable: !serverPagination || !isPercentMetric,
@@ -413,16 +483,19 @@ export const useColDefs = ({
       columns,
       data,
       defaultAlignPN,
-      columnColorFormatters,
-      basicColorFormatters,
+      stringifiedColumnColorFormatters,
+      stringifiedBasicColorFormatters,
       showCellBars,
       colorPositiveNegative,
       isUsingTimeComparison,
       isRawRecords,
       emitCrossFilters,
       allowRearrangeColumns,
+      allowRenderHtml,
+      jsonInCell,
       serverPagination,
       alignPositiveNegative,
+      zebraStriping,
       theme.colorBgBase,
       theme.colorFillSecondary,
       theme.colorFillQuaternary,
@@ -432,6 +505,12 @@ export const useColDefs = ({
   const stringifiedCols = JSON.stringify(columns);
 
   const colDefs = useMemo(() => {
+    if (hasRenderableHeaderGroups(headerGroups, columns)) {
+      return nestColDefsInHeaderGroups(columns, headerGroups, col =>
+        getCommonColProps(col),
+      ) as ColDef[];
+    }
+
     const groupIndexMap = new Map<string, number>();
 
     return columns.reduce<ColDef[]>((acc, col) => {
@@ -457,7 +536,63 @@ export const useColDefs = ({
 
       return acc;
     }, []);
-  }, [stringifiedCols, getCommonColProps]);
+  }, [stringifiedCols, getCommonColProps, headerGroups]);
 
-  return colDefs;
+  const rawPageSize = serverPaginationData?.pageSize ?? serverPageLength;
+  const pageSize = rawPageSize && rawPageSize > 0 ? rawPageSize : data.length;
+  const currentPage = serverPaginationData?.currentPage ?? 0;
+  const maxVisibleRowNumber = serverPagination
+    ? currentPage * pageSize + data.length
+    : data.length;
+  const rowIndexLength = `${Math.max(maxVisibleRowNumber, 1)}`.length;
+  const rowNumberCol = useMemo<ColDef>(
+    () => ({
+      headerName: t('№'),
+      headerClass: 'ag-header-center',
+      field: ROW_NUMBER_COL_ID,
+      valueGetter: (params: ValueGetterParams) => {
+        if (params.node?.rowPinned != null) return '';
+        if (serverPagination && serverPaginationData) {
+          return currentPage * pageSize + (params.node?.rowIndex ?? 0) + 1;
+        }
+        return (params.node?.rowIndex ?? 0) + 1;
+      },
+      headerStyle: {
+        backgroundColor: theme.colorFillTertiary,
+        fontSize: '1em',
+        color: theme.colorTextTertiary,
+      },
+      width: 30 + rowIndexLength * 6,
+      minWidth: 30 + rowIndexLength * 6,
+      sortable: false,
+      filter: false,
+      pinned: 'left' as const,
+      lockPosition: true,
+      suppressNavigable: true,
+      resizable: false,
+      suppressMovable: true,
+      suppressSizeToFit: true,
+      cellStyle: {
+        backgroundColor: theme.colorFillTertiary,
+        padding: '0',
+        textAlign: 'center',
+        fontSize: '0.9em',
+        color: theme.colorTextTertiary,
+      },
+    }),
+    [
+      currentPage,
+      pageSize,
+      rowIndexLength,
+      serverPagination,
+      serverPaginationData,
+      theme.colorFillTertiary,
+      theme.colorTextTertiary,
+    ],
+  );
+
+  return useMemo(
+    () => (showNumberedColumn ? [rowNumberCol, ...colDefs] : colDefs),
+    [showNumberedColumn, rowNumberCol, colDefs],
+  );
 };

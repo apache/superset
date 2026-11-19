@@ -233,7 +233,7 @@ class TestGenerateBugReportViaMCP:
                             "error_message": (
                                 "Failed talking to 10.0.0.7, "
                                 "token was Bearer abc.def-ghi, "
-                                "owner alice@example.com"
+                                "editor alice@example.com"
                             ),
                             "llm_used": "Claude Sonnet 4.6",
                             "steps_to_reproduce": "Ran generate_chart on dataset 5",
@@ -346,6 +346,42 @@ class TestGenerateBugReportViaMCP:
         finally:
             app.config.pop("MCP_BUG_REPORT_CONTACT", None)
 
+    @pytest.mark.asyncio
+    async def test_generate_bug_report_includes_mcp_call_id(self, mcp_server):
+        """Bug report includes mcp_call_id when provided."""
+        with patch("flask.g") as mock_g:
+            mock_g.user = None
+
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_bug_report",
+                    {
+                        "request": {
+                            "tool_name": "health_check",
+                            "mcp_call_id": "abc123def456",
+                        }
+                    },
+                )
+
+        data = json.loads(result.content[0].text)
+        assert "abc123def456" in data["report"]
+        assert "MCP Call ID" in data["report"]
+
+    @pytest.mark.asyncio
+    async def test_generate_bug_report_omits_mcp_call_id_when_absent(self, mcp_server):
+        """Bug report omits MCP Call ID line when not provided."""
+        with patch("flask.g") as mock_g:
+            mock_g.user = None
+
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_bug_report",
+                    {"request": {"tool_name": "health_check"}},
+                )
+
+        data = json.loads(result.content[0].text)
+        assert "MCP Call ID" not in data["report"]
+
 
 # ---------------------------------------------------------------------------
 # Schema-level tests: max_length caps
@@ -409,6 +445,25 @@ def test_collect_user_context_with_no_flask_g():
         ctx = gbr_module._collect_user_context()
 
     assert ctx == {"user_id": None, "roles": []}
+
+
+def test_collect_user_context_includes_roles_granted_through_groups():
+    from superset.mcp_service.system.tool.generate_bug_report import (
+        _collect_user_context,
+    )
+
+    group_role = Mock()
+    group_role.name = "editor"
+    user = Mock()
+    user.id = 7
+    user.roles = []
+    user.groups = [Mock(roles=[group_role])]
+
+    with patch("flask.g") as mock_g:
+        mock_g.user = user
+        ctx = _collect_user_context()
+
+    assert ctx == {"user_id": 7, "roles": ["editor"]}
 
 
 def test_collect_user_context_handles_role_typeerror():

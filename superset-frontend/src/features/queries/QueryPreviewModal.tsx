@@ -45,14 +45,16 @@ const QueryViewToggle = styled.div`
 `;
 
 const TabButton = styled.button`
+  appearance: none;
   border: none;
   background: none;
-  cursor: pointer;
+  font: inherit;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   padding: ${({ theme }) => theme.sizeUnit * 2}px
     ${({ theme }) => theme.sizeUnit * 4}px;
   margin-right: ${({ theme }) => theme.sizeUnit * 4}px;
   color: ${({ theme }) => theme.colorPrimaryText};
+  cursor: pointer;
 
   &.active,
   &:focus,

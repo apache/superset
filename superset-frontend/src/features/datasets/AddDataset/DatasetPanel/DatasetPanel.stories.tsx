@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { StoryFn, Meta } from '@storybook/react';
+import { StoryFn, Meta } from '@storybook/react-webpack5';
 import DatasetPanel from './DatasetPanel';
 import { exampleColumns } from './fixtures';
 
@@ -35,6 +35,5 @@ export const Basic: StoryFn<typeof DatasetPanel> = args => (
 Basic.args = {
   tableName: 'example_table',
   loading: false,
-  hasError: false,
   columnList: exampleColumns,
 };

@@ -29,6 +29,7 @@ import { waitForPost } from '../../helpers/api/intercepts';
 import { expectStatusOneOf } from '../../helpers/api/assertions';
 import { getDatabaseByName } from '../../helpers/api/database';
 import { apiExecuteSql } from '../../helpers/api/sqllab';
+import { TIMEOUT } from '../../utils/constants';
 
 interface ExamplesSetupResult {
   tableName: string;
@@ -116,7 +117,7 @@ async function dropTempTable(
 // Uses test.describe only because Playwright's serial mode API requires it -
 // (Deviation from "avoid describe" guideline is necessary for functional reasons)
 test.describe('create dataset wizard', () => {
-  test.describe.configure({ mode: 'serial' });
+  test.describe.configure({ mode: 'serial', timeout: TIMEOUT.SLOW_TEST });
 
   test('should create a dataset via wizard', async ({ page, testAssets }) => {
     const { tableName, dbId, createDatasetPage } = await setupExamplesDataset(

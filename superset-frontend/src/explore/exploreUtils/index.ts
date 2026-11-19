@@ -33,7 +33,8 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
+import { downloadBlob, getFilenameFromResponse } from 'src/utils/export';
 import { URL_PARAMS } from 'src/constants';
 import {
   DISABLE_INPUT_OPERATORS,
@@ -76,15 +77,22 @@ interface GetExploreUrlParams {
   allowDomainSharding?: boolean;
   method?: 'GET' | 'POST';
   relative?: boolean;
+  includeAppRoot?: boolean;
 }
 
 interface BuildV1ChartDataPayloadParams {
   formData: QueryFormData;
   force?: boolean;
+  // Per-query forced-refresh nonces (the async tasks' UUIDs), assigned to each
+  // built query by index for the synchronous read-back of a forced refresh.
+  queryForceNonces?: string[];
   resultFormat?: string;
   resultType?: string;
   setDataMask?: SetDataMaskHook;
   ownState?: JsonObject;
+  // Client-generated id for this query, sent as `client_id` so the backend can
+  // register the running query and cancel it if the user hits Stop.
+  clientId?: string;
 }
 
 interface ExportChartParams {
@@ -98,6 +106,7 @@ interface ExportChartParams {
         url: string | null;
         payload: QueryFormData | ReturnType<typeof buildQueryContext>;
         exportType: string;
+        exportSource: 'chart';
       }) => void)
     | null;
 }
@@ -153,19 +162,7 @@ export function getURIDirectory(
   endpointType: EndpointType | string = 'base',
   includeAppRoot = true,
 ): string {
-  // Building the directory part of the URI
-  const uri = [
-    'full',
-    'json',
-    'csv',
-    'xlsx',
-    'query',
-    'results',
-    'samples',
-  ].includes(endpointType)
-    ? '/superset/explore_json/'
-    : '/explore/';
-  return includeAppRoot ? ensureAppRoot(uri) : uri;
+  return includeAppRoot ? ensureAppRoot('/explore/') : '/explore/';
 }
 
 export function mountExploreUrl(
@@ -184,7 +181,13 @@ export function mountExploreUrl(
     if (force) {
       search.force = '1';
     }
-    search.standalone = DashboardStandaloneMode.HideNav;
+    // Callers pass the active mode through extraSearch (already merged above).
+    // Only default when absent — unconditionally writing HideNav downgrades
+    // mode 2 (hide nav, keep editor controls) to mode 1 (chart only) on every
+    // history.replace an Explore interaction triggers.
+    if (search.standalone === undefined) {
+      search.standalone = DashboardStandaloneMode.HideNav;
+    }
   }
   return uri.directory(directory).search(search).toString();
 }
@@ -223,6 +226,7 @@ export function getExploreUrl({
   allowDomainSharding = false,
   method = 'POST',
   relative = false,
+  includeAppRoot = true,
 }: GetExploreUrlParams): string | null {
   if (!formData.datasource) {
     return null;
@@ -242,7 +246,7 @@ export function getExploreUrl({
     uri = URI(URI(curUrl).search());
   }
 
-  const directory = getURIDirectory(endpointType);
+  const directory = getURIDirectory(endpointType, includeAppRoot);
 
   // Building the querystring (search) part of the URI
   const search = uri.search(true) as Record<string, string>;
@@ -263,23 +267,8 @@ export function getExploreUrl({
   if (force) {
     search.force = 'true';
   }
-  if (endpointType === 'csv') {
-    search.csv = 'true';
-  }
-  if (endpointType === 'xlsx') {
-    search.xlsx = 'true';
-  }
   if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = '1';
-  }
-  if (endpointType === 'query') {
-    search.query = 'true';
-  }
-  if (endpointType === 'results') {
-    search.results = 'true';
-  }
-  if (endpointType === 'samples') {
-    search.samples = 'true';
   }
   const paramNames = Object.keys(requestParams);
   if (paramNames.length) {
@@ -294,23 +283,22 @@ export function getExploreUrl({
 
 export const getQuerySettings = (
   formData: Partial<QueryFormData>,
-): [boolean, string] => {
+): [string] => {
   const vizMetadata = formData.viz_type
     ? getChartMetadataRegistry().get(formData.viz_type)
     : undefined;
-  return [
-    vizMetadata?.useLegacyApi ?? false,
-    vizMetadata?.parseMethod ?? 'json-bigint',
-  ];
+  return [vizMetadata?.parseMethod ?? 'json-bigint'];
 };
 
 export const buildV1ChartDataPayload = async ({
   formData,
   force,
+  queryForceNonces,
   resultFormat,
   resultType,
   setDataMask,
   ownState,
+  clientId,
 }: BuildV1ChartDataPayloadParams): Promise<
   ReturnType<typeof buildQueryContext>
 > => {
@@ -325,7 +313,7 @@ export const buildV1ChartDataPayload = async ({
     : undefined;
   const buildQuery =
     (registryResult ? await registryResult : undefined) ?? defaultBuildQuery;
-  return buildQuery(
+  const payload = await buildQuery(
     {
       ...formData,
       force,
@@ -340,16 +328,22 @@ export const buildV1ChartDataPayload = async ({
       },
     },
   );
+  // Stamp each query with its forced-refresh nonce (its async task's UUID, from
+  // the 202 `task_ids`, index-aligned to queries) for the synchronous read-back.
+  if (queryForceNonces?.length && Array.isArray(payload.queries)) {
+    payload.queries.forEach((query, index) => {
+      if (queryForceNonces[index]) {
+        // eslint-disable-next-line no-param-reassign
+        (query as { force_nonce?: string }).force_nonce =
+          queryForceNonces[index];
+      }
+    });
+  }
+  if (clientId) {
+    payload.client_id = clientId;
+  }
+  return payload;
 };
-
-export const getLegacyEndpointType = ({
-  resultType,
-  resultFormat,
-}: {
-  resultType: string;
-  resultFormat: string;
-}): string =>
-  resultFormat === 'csv' || resultFormat === 'xlsx' ? resultFormat : resultType;
 
 export const exportChart = async ({
   formData,
@@ -359,43 +353,74 @@ export const exportChart = async ({
   ownState = {},
   onStartStreamingExport = null,
 }: ExportChartParams): Promise<void> => {
-  let url: string | null;
-  let payload: QueryFormData | ReturnType<typeof buildQueryContext>;
-  const [useLegacyApi] = getQuerySettings(formData);
-  if (useLegacyApi) {
-    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-    url = getExploreUrl({
-      formData,
-      endpointType,
-      force,
-      allowDomainSharding: false,
-      relative: true,
-    });
-    payload = formData;
-  } else {
-    url = ensureAppRoot('/api/v1/chart/data');
-    payload = await buildV1ChartDataPayload({
-      formData,
-      force,
-      resultFormat,
-      resultType,
-      ownState,
-    });
-  }
+  const url = '/api/v1/chart/data';
+  const payload = await buildV1ChartDataPayload({
+    formData,
+    force,
+    resultFormat,
+    resultType,
+    ownState,
+  });
 
   // Check if streaming export handler is provided (from dashboard Chart.jsx)
   if (onStartStreamingExport) {
-    // Streaming is handled by the caller - pass URL, payload, and export type
+    // Streaming uses native fetch — apply appRoot prefix here since useStreamingExport
+    // does not go through SupersetClient (which would add it automatically).
     onStartStreamingExport({
-      url,
+      url: url ? ensureAppRoot(url) : url,
       payload,
       exportType: resultFormat,
+      exportSource: 'chart',
     });
   } else {
-    // Fallback to original behavior for non-streaming exports
-    SupersetClient.postForm(url as string, {
-      form_data: safeStringify(payload),
-    });
+    // Use AJAX blob download instead of form submission to enable error handling.
+    // SupersetClient.postBlob calls getUrl({ endpoint }) internally, which prepends
+    // appRoot — so the URL must NOT be pre-prefixed here.
+    try {
+      const response = await SupersetClient.postBlob(url as string, {
+        form_data: safeStringify(payload),
+      });
+
+      const extension = resultFormat === 'xlsx' ? 'xlsx' : resultFormat;
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .slice(0, -5);
+      const fallbackFilename = `chart_export_${timestamp}.${extension}`;
+      const filename = getFilenameFromResponse(response, fallbackFilename);
+
+      const blob = await response.blob();
+      downloadBlob(blob, filename);
+    } catch (error) {
+      if (error instanceof Response) {
+        const responseError = new Error(
+          `HTTP ${error.status} ${error.statusText}`,
+        ) as Error & {
+          status: number;
+          statusText: string;
+          response: Response;
+        };
+        responseError.status = error.status;
+        responseError.statusText = error.statusText;
+        responseError.response = error;
+        throw responseError;
+      }
+
+      const exportError = error as Error & {
+        status?: number;
+        originalError?: unknown;
+      };
+      if (!exportError.status) {
+        const enhancedError = new Error(
+          exportError.message || 'Export failed',
+        ) as Error & { status: number; originalError: unknown };
+        enhancedError.status = 500;
+        enhancedError.originalError = error;
+        throw enhancedError;
+      }
+
+      throw error;
+    }
   }
 };
 
@@ -409,9 +434,10 @@ export const exploreChart = (
     allowDomainSharding: false,
     requestParams,
   });
-  SupersetClient.postForm(url as string, {
-    form_data: safeStringify(formData),
-  });
+  SupersetClient.postForm(
+    { url: url as string },
+    { form_data: safeStringify(formData) },
+  );
 };
 
 export const useDebouncedEffect = (
@@ -433,10 +459,12 @@ export const useDebouncedEffect = (
   }, [callback, delay]);
 };
 
+/** Format a filter for display, or format literals for executable SQL. */
 export const getSimpleSQLExpression = (
   subject?: string | SubjectWithColumnName,
   operator?: string,
   comparator?: ComparatorValue | ComparatorValue[],
+  { useDisplayValues = true }: { useDisplayValues?: boolean } = {},
 ): string => {
   const multiOperatorValues = [...MULTI_OPERATORS].map(
     (op: Operators) => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
@@ -463,12 +491,34 @@ export const getSimpleSQLExpression = (
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
     if (comparatorArray.length > 0 && showComparator) {
-      const formattedComparators = comparatorArray
-        .map(val => optionLabel(val))
-        .map(
-          val =>
-            `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
-        );
+      const formattedComparators = comparatorArray.map(val => {
+        if (!useDisplayValues) {
+          if (typeof val === 'string') {
+            // Chart label maps and pivot keys stringify numeric dimensions
+            // (Python str(): '2024', '20.0', '1.50', '1e-05', big integers).
+            // Keep plain decimal literals bare for strict numeric comparisons.
+            if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(val)) {
+              return val;
+            }
+            return `'${val.replace(/'/g, "''")}'`;
+          }
+          if (val === null) {
+            return 'NULL';
+          }
+          if (typeof val === 'boolean') {
+            return val ? 'TRUE' : 'FALSE';
+          }
+          return String(val);
+        }
+        const label = optionLabel(val);
+        // Array-literal values (e.g. ['a', 'b']) are shown as-is rather than
+        // quoted/escaped as a string, so array-column filters read naturally.
+        const asString = String(label);
+        if (asString.startsWith('[') && asString.endsWith(']')) {
+          return asString;
+        }
+        return `${quote}${isString ? asString.replace(/'/g, "''") : label}${quote}`;
+      });
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;
     }
   }

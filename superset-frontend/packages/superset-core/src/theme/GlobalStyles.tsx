@@ -38,18 +38,20 @@ export const GlobalStyles = () => {
     <Global
       key={`global-${theme.colorLink}`}
       styles={css`
-        // SPA
+        /* SPA */
         html {
           color-scheme: ${isDark ? 'dark' : 'light'};
         }
 
-        html,
-        body,
-        #app {
+        html {
           height: 100%;
         }
 
+        /* Growable shell so content a host page injects above #app shrinks #app instead of #app clipping past the viewport (#44867). */
         body {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
           background-color: ${theme.colorBgBase};
           color: ${theme.colorText};
           -webkit-font-smoothing: antialiased;
@@ -93,20 +95,29 @@ export const GlobalStyles = () => {
           }
         }
 
-        // Overriding bootstrap styles
+        /* Overriding bootstrap styles */
         #app {
           flex: 1 1 auto;
           position: relative;
           display: flex;
           flex-direction: column;
-          height: 100%;
         }
         [role='button'] {
           cursor: pointer;
         }
 
-        // Override geostyler CSS that hides AntD ColorPicker alpha input
-        // See: https://github.com/apache/superset/issues/34721
+        /* antd 6 removed the Tag's default trailing margin (v5 shipped */
+        /* margin-inline-end: 8px on every tag) in favor of parents spacing */
+        /* tags via flex/Space gaps. The app's layouts predate that and rely */
+        /* on the v5 default (e.g. the dashboard header's Published tag), */
+        /* so restore it for visual parity. Remove once Tag-adjacent layouts */
+        /* declare their own gaps. */
+        .ant-tag {
+          margin-inline-end: ${theme.marginXS}px;
+        }
+
+        /* Override geostyler CSS that hides AntD ColorPicker alpha input */
+        /* See: https://github.com/apache/superset/issues/34721 */
         .ant-color-picker .ant-color-picker-alpha-input {
           display: block;
         }
@@ -114,6 +125,21 @@ export const GlobalStyles = () => {
         .ant-color-picker .ant-color-picker-slider-alpha {
           display: flex;
           margin-top: ${theme.marginXS}px;
+        }
+
+        .superset-explore-popover.ant-popover
+          .ant-popover-container:has(.ant-popover-title) {
+          padding-top: 0;
+        }
+        .superset-explore-popover.ant-popover .ant-popover-title {
+          padding-top: ${theme.paddingXS}px;
+          margin-bottom: ${theme.paddingSM}px;
+          line-height: 1;
+        }
+        .superset-explore-popover.ant-popover
+          .ant-popover-container:has(.ant-popover-title)
+          .ant-tabs-tab {
+          padding-top: 0;
         }
       `}
     />

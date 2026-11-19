@@ -53,6 +53,11 @@ interface PluginFilterGroupByCustomizeProps {
   aggregation?: string;
   enableEmptyFilter?: boolean;
   inputRef?: RefObject<HTMLInputElement>;
+  // Builder allowlist of columns viewers may group by (controlValues).
+  columnsAllowlist?: string[];
+  // Config form only: the dataset's groupable columns, so the default-value
+  // picker never offers a column viewers cannot group by.
+  groupableColumns?: string[];
 }
 
 export type PluginFilterGroupByQueryFormData = QueryFormData &
@@ -76,7 +81,6 @@ export const DEFAULT_FORM_DATA: PluginFilterGroupByCustomizeProps = {
   dataset: null,
   column: null,
   sortFilter: false,
-  sortAscending: true,
   canSelectMultiple: true,
   defaultValue: null,
 };

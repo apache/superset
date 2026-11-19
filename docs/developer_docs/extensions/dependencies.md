@@ -34,10 +34,10 @@ Extensions run in the same context as Superset during runtime. This means extens
 
 The core packages follow [semantic versioning](https://semver.org/) and provide stable, documented APIs:
 
-| Package | Language | Description |
-|---------|----------|-------------|
+| Package                 | Language              | Description                                        |
+| ----------------------- | --------------------- | -------------------------------------------------- |
 | `@apache-superset/core` | JavaScript/TypeScript | Frontend APIs, UI components, hooks, and utilities |
-| `apache-superset-core` | Python | Backend APIs, models, DAOs, and utilities |
+| `apache-superset-core`  | Python                | Backend APIs, models, DAOs, and utilities          |
 
 **Benefits of using core packages:**
 
@@ -116,12 +116,14 @@ Abstracting libraries like React or SQLAlchemy would:
 Extension developers should depend on and use core libraries directly:
 
 **Frontend (examples):**
+
 - [React](https://react.dev/) - UI framework
 - [Ant Design](https://ant.design/) - UI component library (prefer Superset components from `@apache-superset/core/components` when available to preserve visual consistency)
 - [Emotion](https://emotion.sh/) - CSS-in-JS styling
 - ...
 
 **Backend (examples):**
+
 - [SQLAlchemy](https://www.sqlalchemy.org/) - Database toolkit
 - [Flask](https://flask.palletsprojects.com/) - Web framework
 - [Flask-AppBuilder](https://flask-appbuilder.readthedocs.io/) - Application framework
@@ -161,6 +163,6 @@ Until then, monitor the Superset release notes and test your extensions with eac
 
 ## Next Steps
 
-- **[Architecture](./architecture)** - Understand the extension system design
-- **[Development](./development)** - Learn about APIs and development workflow
-- **[Quick Start](./quick-start)** - Build your first extension
+- **[Architecture](./architecture.md)** - Understand the extension system design
+- **[Development](./development.md)** - Learn about APIs and development workflow
+- **[Quick Start](./quick-start.md)** - Build your first extension

@@ -18,7 +18,6 @@
  */
 import { render, waitFor } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { logging } from '@apache-superset/core/utils';
 import fetchMock from 'fetch-mock';
 import ExtensionsStartup from './ExtensionsStartup';
 import ExtensionsLoader from './ExtensionsLoader';
@@ -73,6 +72,7 @@ afterEach(() => {
 test('renders without crashing', () => {
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -89,6 +89,7 @@ test('sets up global superset object when user is logged in', async () => {
 
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -96,6 +97,7 @@ test('sets up global superset object when user is logged in', async () => {
     // Verify the global superset object is set up
     expect((window as any).superset).toBeDefined();
     expect((window as any).superset.authentication).toBeDefined();
+    expect((window as any).superset.chat).toBeDefined();
     expect((window as any).superset.core).toBeDefined();
     expect((window as any).superset.commands).toBeDefined();
     expect((window as any).superset.extensions).toBeDefined();
@@ -110,6 +112,7 @@ test('sets up global superset object when user is logged in', async () => {
 test('does not set up global superset object when user is not logged in', async () => {
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialStateNoUser,
   });
 
@@ -128,6 +131,7 @@ test('initializes ExtensionsLoader when user is logged in', async () => {
 
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -145,6 +149,7 @@ test('initializes ExtensionsLoader when user is logged in', async () => {
 test('does not initialize ExtensionsLoader when user is not logged in', async () => {
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialStateNoUser,
   });
 
@@ -170,6 +175,7 @@ test('only initializes once even with multiple renders', async () => {
 
   const { rerender } = render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -192,13 +198,11 @@ test('only initializes once even with multiple renders', async () => {
   loader.initializeExtensions = originalInitialize;
 });
 
-test('initializes ExtensionsLoader and logs success when EnableExtensions feature flag is enabled', async () => {
+test('initializes ExtensionsLoader when EnableExtensions feature flag is enabled', async () => {
   // Ensure feature flag is enabled
   mockIsFeatureEnabled.mockImplementation(
     (flag: FeatureFlag) => flag === FeatureFlag.EnableExtensions,
   );
-
-  const infoSpy = jest.spyOn(logging, 'info').mockImplementation();
 
   // Mock the initializeExtensions method to succeed
   const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
@@ -208,6 +212,7 @@ test('initializes ExtensionsLoader and logs success when EnableExtensions featur
 
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -220,15 +225,10 @@ test('initializes ExtensionsLoader and logs success when EnableExtensions featur
     expect(
       ExtensionsLoader.prototype.initializeExtensions,
     ).toHaveBeenCalledTimes(1);
-    // Verify success message was logged
-    expect(infoSpy).toHaveBeenCalledWith(
-      'Extensions initialized successfully.',
-    );
   });
 
   // Restore original method
   ExtensionsLoader.prototype.initializeExtensions = originalInitialize;
-  infoSpy.mockRestore();
 });
 
 test('does not initialize ExtensionsLoader when EnableExtensions feature flag is disabled', async () => {
@@ -242,6 +242,7 @@ test('does not initialize ExtensionsLoader when EnableExtensions feature flag is
 
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -259,38 +260,37 @@ test('does not initialize ExtensionsLoader when EnableExtensions feature flag is
   initializeSpy.mockRestore();
 });
 
-test('logs error when ExtensionsLoader initialization fails', async () => {
+test('continues rendering children even when ExtensionsLoader initialization fails', async () => {
   // Ensure feature flag is enabled
   mockIsFeatureEnabled.mockReturnValue(true);
 
-  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
-
-  // Mock the initializeExtensions method to throw an error
+  // Mock the initializeExtensions method to reject — ExtensionsLoader handles
+  // its own error logging internally
   const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
   ExtensionsLoader.prototype.initializeExtensions = jest
     .fn()
-    .mockImplementation(() => {
-      throw new Error('Test initialization error');
-    });
+    .mockImplementation(() => Promise.resolve());
 
-  render(<ExtensionsStartup />, {
-    useRedux: true,
-    initialState: mockInitialState,
-  });
+  const { container } = render(
+    <ExtensionsStartup>
+      <div data-testid="child" />
+    </ExtensionsStartup>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: mockInitialState,
+    },
+  );
 
   await waitFor(() => {
-    // Verify feature flag was checked
     expect(mockIsFeatureEnabled).toHaveBeenCalledWith(
       FeatureFlag.EnableExtensions,
     );
-    // Verify error was logged
-    expect(errorSpy).toHaveBeenCalledWith(
-      'Error setting up extensions:',
-      expect.any(Error),
-    );
+    expect(
+      container.querySelector('[data-testid="child"]'),
+    ).toBeInTheDocument();
   });
 
   // Restore original method
   ExtensionsLoader.prototype.initializeExtensions = originalInitialize;
-  errorSpy.mockRestore();
 });

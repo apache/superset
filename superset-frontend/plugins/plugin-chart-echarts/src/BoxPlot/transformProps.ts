@@ -74,6 +74,7 @@ export default function transformProps(
     yAxisTitlePosition,
     sliceId,
     zoomable,
+    yAxisSlider,
   } = formData as BoxPlotQueryFormData;
   const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -257,6 +258,28 @@ export default function transformProps(
     convertInteger(yAxisTitleMargin),
     convertInteger(xAxisTitleMargin),
   );
+  const dataZoom = [
+    ...(zoomable
+      ? [
+          {
+            type: 'inside',
+            zoomOnMouseWheel: false,
+            moveOnMouseWheel: true,
+          },
+        ]
+      : []),
+    ...(yAxisSlider
+      ? [
+          {
+            type: 'slider',
+            show: true,
+            yAxisIndex: [0],
+            // Adjust the axis window without dropping data points outside the range.
+            filterMode: 'none',
+          },
+        ]
+      : []),
+  ];
   const echartOptions: EChartsCoreOption = {
     grid: {
       ...defaultGrid,
@@ -298,15 +321,7 @@ export default function transformProps(
         },
       },
     },
-    dataZoom: zoomable
-      ? [
-          {
-            type: 'inside',
-            zoomOnMouseWheel: false,
-            moveOnMouseWheel: true,
-          },
-        ]
-      : [],
+    dataZoom,
   };
 
   return {

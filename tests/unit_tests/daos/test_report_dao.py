@@ -16,11 +16,17 @@
 # under the License.
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 from sqlalchemy.orm.session import Session
 
 from superset.daos.report import ReportScheduleDAO
-from superset.reports.models import ReportSchedule, ReportScheduleType
+from superset.reports.models import (
+    ReportCreationMethod,
+    ReportSchedule,
+    ReportScheduleType,
+)
 from superset.utils import json
 
 
@@ -90,3 +96,89 @@ def test_find_by_extra_metadata_escapes_underscore_wildcard(
 
     assert len(results) == 1
     assert results[0].name == "with-underscore"
+
+
+def test_find_by_native_filter_id_returns_matching_reports(
+    session: Session,
+) -> None:
+    extra = json.dumps({"dashboard": {"nativeFilters": "NATIVE_FILTER-abc123"}})
+    _create_report(session, "match", extra_json=extra)
+    _create_report(session, "no-match", extra_json="{}")
+
+    results = ReportScheduleDAO.find_by_native_filter_id("NATIVE_FILTER-abc123")
+
+    assert len(results) == 1
+    assert results[0].name == "match"
+
+
+def test_find_by_native_filter_id_escapes_percent_wildcard(
+    session: Session,
+) -> None:
+    _create_report(session, "with-percent", extra_json='{"id": "FILTER-100%x"}')
+    _create_report(session, "other", extra_json='{"id": "FILTER-100yx"}')
+
+    results = ReportScheduleDAO.find_by_native_filter_id("FILTER-100%x")
+
+    assert len(results) == 1
+    assert results[0].name == "with-percent"
+
+
+def test_find_by_native_filter_id_escapes_underscore_wildcard(
+    session: Session,
+) -> None:
+    _create_report(session, "with-underscore", extra_json='{"id": "FILTER-a_b"}')
+    _create_report(session, "other", extra_json='{"id": "FILTER-axb"}')
+
+    results = ReportScheduleDAO.find_by_native_filter_id("FILTER-a_b")
+
+    assert len(results) == 1
+    assert results[0].name == "with-underscore"
+
+
+@patch("superset.daos.report.get_user_id", return_value=1)
+def test_validate_unique_creation_method_ignores_other_creation_methods(
+    mock_user_id, session: Session
+) -> None:
+    """A self-subscribed alert (creation method "alerts_reports") attached to
+    a chart doesn't compete with a "charts"-sourced report for that same
+    chart's one-report-per-creation-method slot."""
+    existing = ReportSchedule(
+        name="existing-alert",
+        type=ReportScheduleType.ALERT,
+        crontab="* * * * *",
+        chart_id=1,
+        creation_method=ReportCreationMethod.ALERTS_REPORTS,
+        created_by_fk=1,
+    )
+    session.add(existing)
+    session.flush()
+
+    assert (
+        ReportScheduleDAO.validate_unique_creation_method(
+            chart_id=1, creation_method=ReportCreationMethod.CHARTS
+        )
+        is True
+    )
+
+
+@patch("superset.daos.report.get_user_id", return_value=1)
+def test_validate_unique_creation_method_conflicts_on_same_creation_method(
+    mock_user_id, session: Session
+) -> None:
+    existing = ReportSchedule(
+        name="existing-report",
+        type=ReportScheduleType.REPORT,
+        crontab="* * * * *",
+        chart_id=1,
+        creation_method=ReportCreationMethod.CHARTS,
+        created_by_fk=1,
+    )
+    session.add(existing)
+    session.flush()
+
+    assert (
+        ReportScheduleDAO.validate_unique_creation_method(
+            chart_id=1, creation_method=ReportCreationMethod.CHARTS
+        )
+        is False
+    )

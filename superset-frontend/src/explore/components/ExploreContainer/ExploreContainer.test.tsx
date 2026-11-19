@@ -17,13 +17,37 @@
  * under the License.
  */
 import { useContext } from 'react';
-import { fireEvent, render } from 'spec/helpers/testing-library';
-import { OptionControlLabel } from 'src/explore/components/controls/OptionControls';
+import type { DragStartEvent } from '@dnd-kit/core';
+import { act, fireEvent, render } from 'spec/helpers/testing-library';
 
 import ExploreContainer, { DraggingContext, DropzoneContext } from '.';
-import OptionWrapper from '../controls/DndColumnSelectControl/OptionWrapper';
-import DatasourcePanelDragOption from '../DatasourcePanel/DatasourcePanelDragOption';
-import { DndItemType } from '../DndItemType';
+
+// @dnd-kit's PointerSensor only reacts to real pointer events, which jsdom
+// cannot dispatch. To exercise the drag-start gating we capture the
+// `onDragStart` handler the provider registers on DndContext and invoke it
+// directly with a synthetic event.
+let capturedOnDragStart: ((event: DragStartEvent) => void) | undefined;
+
+jest.mock('@dnd-kit/core', () => {
+  const actual = jest.requireActual('@dnd-kit/core');
+  return {
+    ...actual,
+    DndContext: ({
+      children,
+      onDragStart,
+    }: {
+      children: React.ReactNode;
+      onDragStart?: (event: DragStartEvent) => void;
+    }) => {
+      capturedOnDragStart = onDragStart;
+      return children;
+    },
+  };
+});
+
+beforeEach(() => {
+  capturedOnDragStart = undefined;
+});
 
 const MockChildren = () => {
   const dragging = useContext(DraggingContext);
@@ -57,57 +81,62 @@ test('should render children', () => {
     <ExploreContainer>
       <MockChildren />
     </ExploreContainer>,
-    { useRedux: true, useDnd: true },
+    { useRedux: true },
   );
   expect(getByTestId('mock-children')).toBeInTheDocument();
   expect(getByText('not dragging')).toBeInTheDocument();
 });
 
-test('should only propagate dragging state when dragging the panel option', () => {
-  const defaultProps = {
-    label: <span>Test label</span>,
-    tooltipTitle: 'This is a tooltip title',
-    onRemove: jest.fn(),
-    onMoveLabel: jest.fn(),
-    onDropLabel: jest.fn(),
-    type: 'test',
-    index: 0,
-  };
+test('should initially have dragging set to false', () => {
   const { container, getByText } = render(
     <ExploreContainer>
-      <DatasourcePanelDragOption
-        value={{ metric_name: 'panel option', uuid: '1' }}
-        type={DndItemType.Metric}
-      />
-      <OptionControlLabel
-        {...defaultProps}
-        index={1}
-        label={<span>Metric item</span>}
-      />
-      <OptionWrapper
-        {...defaultProps}
-        index={2}
-        label="Column item"
-        clickClose={() => {}}
-        onShiftOptions={() => {}}
-      />
       <MockChildren />
     </ExploreContainer>,
-    {
-      useRedux: true,
-      useDnd: true,
-    },
+    { useRedux: true },
   );
   expect(container.getElementsByClassName('dragging')).toHaveLength(0);
-  fireEvent.dragStart(getByText('panel option'));
+  expect(getByText('not dragging')).toBeInTheDocument();
+});
+
+test('propagates dragging state when dragging a panel option', () => {
+  const { container } = render(
+    <ExploreContainer>
+      <MockChildren />
+    </ExploreContainer>,
+    { useRedux: true },
+  );
+
+  expect(container.getElementsByClassName('dragging')).toHaveLength(0);
+
+  // Dragging a DatasourcePanel option (no `dragIndex`) sets the dragging state.
+  act(() => {
+    capturedOnDragStart?.({
+      active: { id: 'panel', data: { current: { type: 'metric' } } },
+    } as unknown as DragStartEvent);
+  });
   expect(container.getElementsByClassName('dragging')).toHaveLength(1);
-  fireEvent.dragEnd(getByText('panel option'));
-  fireEvent.dragStart(getByText('Metric item'));
+});
+
+test('does not propagate dragging state for an in-list reorder', () => {
+  const { container } = render(
+    <ExploreContainer>
+      <MockChildren />
+    </ExploreContainer>,
+    { useRedux: true },
+  );
+
   expect(container.getElementsByClassName('dragging')).toHaveLength(0);
-  fireEvent.dragEnd(getByText('Metric item'));
-  expect(container.getElementsByClassName('dragging')).toHaveLength(0);
-  // don't show dragging state for the sorting item
-  fireEvent.dragStart(getByText('Column item'));
+
+  // An in-list sortable reorder carries a `dragIndex` and must NOT set the
+  // dragging state (it would otherwise surface drop targets during a reorder).
+  act(() => {
+    capturedOnDragStart?.({
+      active: {
+        id: 'sortable',
+        data: { current: { type: 'metric', dragIndex: 0 } },
+      },
+    } as unknown as DragStartEvent);
+  });
   expect(container.getElementsByClassName('dragging')).toHaveLength(0);
 });
 
@@ -116,10 +145,7 @@ test('should manage the dropValidators', () => {
     <ExploreContainer>
       <MockChildren2 />
     </ExploreContainer>,
-    {
-      useRedux: true,
-      useDnd: true,
-    },
+    { useRedux: true },
   );
 
   expect(queryByText('test_item_1')).not.toBeInTheDocument();

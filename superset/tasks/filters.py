@@ -33,20 +33,51 @@ class TaskFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     owned and shared tasks. Unsubscribing removes visibility.
 
     Admins see all tasks without filtering.
+
+    This filter applies to request-scoped reads only -- the REST API and
+    the MCP task tools -- where a task's visibility to the requesting
+    principal matters. Internal task-executor and scheduler code that
+    reads back the state of a task it already owns (e.g. polling for the
+    terminal status of the task it is currently executing) calls the DAO
+    with ``skip_base_filter=True`` instead: that code isn't presenting
+    task data to a user, and the UUID it operates on is never
+    caller-supplied, so the visibility check doesn't apply.
     """
 
     def apply(self, query: Query, value: Any) -> Query:
         """Apply the filter to the query."""
-        from sqlalchemy import and_, select
+        from flask import has_request_context
+        from sqlalchemy import and_, false, select
 
         from superset import security_manager
         from superset.models.task_subscribers import TaskSubscriber
         from superset.models.tasks import Task
+        from superset.tasks.guest import get_current_guest_subscriber_key
 
-        # If user is admin or no user_id, return unfiltered query.
-        # This typically applies to background tasks and system operations
         user_id = get_user_id()
-        if not user_id or security_manager.is_admin():
+        if not user_id:
+            # Embedded guests have no ab_user id but subscribe by a token-derived
+            # key, so scope their visibility to tasks carrying that key.
+            if guest_key := get_current_guest_subscriber_key():
+                guest_subscribed = (
+                    select(TaskSubscriber.id)
+                    .where(
+                        and_(
+                            TaskSubscriber.task_id == Task.id,
+                            TaskSubscriber.guest_key == guest_key,
+                        )
+                    )
+                    .exists()
+                )
+                return query.filter(guest_subscribed)
+            # A principal without a user id or guest identity gets no tasks
+            # within a request; background jobs run outside a request and are
+            # unfiltered.
+            if has_request_context():
+                return query.filter(false())
+            return query
+
+        if security_manager.is_admin():
             return query
 
         is_subscribed = (

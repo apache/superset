@@ -20,35 +20,93 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict
 from urllib import parse
 
-from apispec import APISpec
-from apispec.ext.marshmallow import MarshmallowPlugin
+import sqlalchemy as sa
+from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from flask import current_app as app
+from flask import current_app as app, has_request_context
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
+from sqlalchemy.sql import quoted_name
+from sqlalchemy.sql.elements import ColumnElement
+from typing_extensions import NotRequired
 
+from superset import is_feature_enabled
 from superset.constants import TimeGrain
+from superset.databases.types import EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicPropertiesType,
+    build_parameters_json_schema,
     DatabaseCategory,
 )
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import OAuth2TokenRefreshError
 from superset.models.sql_lab import Query
+from superset.superset_typing import (
+    OAuth2ClientConfig,
+    OAuth2State,
+)
 from superset.utils import json
 from superset.utils.core import get_user_agent, QuerySource
+from superset.utils.oauth2 import encode_oauth2_state, generate_code_challenge
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+
+try:
+    from snowflake.connector.errors import DatabaseError
+except ImportError:
+    # Use a distinct sentinel type when snowflake is not installed to avoid
+    # matching unrelated exception types (using `Exception` would be too broad).
+    class _SnowflakeDatabaseError(Exception):
+        """Sentinel type to stand in for snowflake.connector.errors.DatabaseError."""
+
+        pass
+
+    DatabaseError = _SnowflakeDatabaseError
+
+
+class CustomSnowflakeAuthErrorMeta(type):
+    """
+    Metaclass whose ``__instancecheck__`` matches Snowflake's invalid/expired
+    OAuth access-token error, so ``CustomSnowflakeAuthError`` can be used as the
+    ``oauth2_exception`` that triggers the OAuth2 re-auth dance.
+
+    This is only honored via ``isinstance()`` (the path used by
+    ``BaseEngineSpec.needs_oauth2()``); ``except`` clauses do not call
+    ``__instancecheck__``, so it must not be relied on for exception catching.
+    """
+
+    def __instancecheck__(cls, instance: object) -> bool:
+        """
+        Match Snowflake's invalid/expired OAuth token error, whether it arrives
+        wrapped by SQLAlchemy (e.g. ``Engine``-based execution) or as the raw
+        DBAPI exception — ``BaseEngineSpec.execute()`` runs against a bare
+        cursor and never wraps it, so both shapes must be handled here.
+        """
+        orig: object = instance
+        if isinstance(instance, SqlalchemyDatabaseError):
+            orig = cast(SqlalchemyDatabaseError, instance).orig
+
+        return isinstance(orig, DatabaseError) and (
+            getattr(orig, "errno", None) == 390303
+            or "Invalid OAuth access token" in str(orig)
+        )
+
+
+class CustomSnowflakeAuthError(DatabaseError, metaclass=CustomSnowflakeAuthErrorMeta):
+    """Snowflake OAuth error type matched via the metaclass above (see note there)."""
+
 
 # Regular expressions to catch custom errors
 OBJECT_DOES_NOT_EXIST_REGEX = re.compile(
@@ -70,6 +128,29 @@ class SnowflakeParametersSchema(Schema):
     database = fields.Str(required=True)
     role = fields.Str(required=True)
     warehouse = fields.Str(required=True)
+    # Unlike GSheets, the endpoints cannot be defaulted: they live on the customer's
+    # own Snowflake account (`https://<account>.snowflakecomputing.com/oauth/...`),
+    # so there is no URI that would be right for every deployment. The scope is
+    # configured explicitly to match the integration's permitted session role.
+    oauth2_client_info = EncryptedString(
+        required=False,
+        metadata={
+            "description": "OAuth2 client information",
+        },
+        allow_none=True,
+    )
+    embedded_credentials = EncryptedString(
+        required=False,
+        metadata={
+            "description": (
+                "Password or PEM key pair used only for embedded guest requests. "
+                "Every embedded viewer of this connection queries as this one "
+                "Snowflake user; "
+                "logged-in users are unaffected and continue to use OAuth2."
+            ),
+        },
+        allow_none=True,
+    )
 
 
 class SnowflakeParametersType(TypedDict):
@@ -79,6 +160,26 @@ class SnowflakeParametersType(TypedDict):
     database: str
     role: str
     warehouse: str
+    oauth2_client_info: NotRequired[dict[str, Any] | None]
+    embedded_credentials: NotRequired[dict[str, Any] | None]
+
+
+# Snowflake driver arguments that choose who a connection signs in as. Embedded
+# guests sign in as the embedded account only, so none of the connection's own
+# may reach the driver on their login.
+_CONNECTION_IDENTITY_ARGUMENTS = (
+    "user",
+    "password",
+    "role",
+    "authenticator",
+    "token",
+    "private_key",
+    "private_key_file",
+    "private_key_file_pwd",
+    "private_key_pwd",
+    "passcode",
+    "passcode_in_password",
+)
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
@@ -87,8 +188,32 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 256
 
+    # Snowflake documents native MEDIAN/STDDEV_SAMP/VAR_SAMP aggregate functions
+    # (docs.snowflake.com/en/sql-reference/functions/{median,stddev_samp,var_samp}),
+    # confirmed against that reference, not a live Snowflake instance. STDDEV_SAMP/
+    # VAR_SAMP are plain function calls, same spelling as inherited from
+    # `PostgresBaseEngineSpec`, so those are reused directly. MEDIAN is overridden:
+    # Snowflake's own `MEDIAN(x)` is a plain function call, unlike Postgres's
+    # `percentile_cont(0.5) WITHIN GROUP (ORDER BY x)` (Postgres has no native
+    # MEDIAN), so there is no reason to compile the more complex inherited form.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": sa.func.median,
+        "STDDEV_SAMP": PostgresBaseEngineSpec._extended_aggregations["STDDEV_SAMP"],
+        "VAR_SAMP": PostgresBaseEngineSpec._extended_aggregations["VAR_SAMP"],
+    }
+
     # Snowflake doesn't support IS true/false syntax, use = true/false instead
     use_equality_for_boolean_filters = True
+
+    # Snowflake defines its own time grain templates with uppercase DATE_TRUNC
+    # units, so the lowercase normalization inherited from
+    # PostgresBaseEngineSpec does not apply.
+    preserves_custom_sql_metric_source = False
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Leave custom metric SQL unchanged; Snowflake grains are uppercase."""
+        return expression
 
     parameters_schema = SnowflakeParametersSchema()
     default_driver = "snowflake"
@@ -96,6 +221,18 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+    supports_grouping_sets = True
+
+    @classmethod
+    def prepare_identifier(
+        cls,
+        name: str,
+        normalize_columns: bool = False,
+    ) -> str:
+        """Preserve exact-case physical identifiers when columns are not normalized."""
+        if normalize_columns:
+            return name
+        return quoted_name(name, quote=True)
 
     metadata = {
         "description": "Snowflake is a cloud-native data warehouse.",
@@ -153,6 +290,12 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     encrypted_extra_sensitive_fields = {
         "$.auth_params.privatekey_body": "Private Key Body",
         "$.auth_params.privatekey_pass": "Private Key Password",
+        "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+        # The username is deliberately left visible: an admin needs to be able to see
+        # which Snowflake user embedded queries run as without having to re-enter it.
+        "$.embedded_credentials.password": "Embedded Fallback Password",
+        "$.embedded_credentials.privatekey_body": "Embedded Fallback Private Key",
+        "$.embedded_credentials.privatekey_pass": "Embedded Fallback Key Passphrase",
     }
 
     _time_grain_expressions = {
@@ -191,6 +334,206 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         ),
     }
 
+    # OAuth 2.0 support
+    supports_oauth2: bool = True
+
+    # Snowflake's `impersonate_user` below sets `authenticator=oauth` whether or not a
+    # token exists, so the fallback path in `Database._get_sqla_engine` -- which skips
+    # impersonation entirely -- is what lets a stored username/password authenticate.
+    supports_embedded_credential_fallback: bool = True
+    # `CustomSnowflakeAuthError` is only matched via `isinstance()` (see the
+    # metaclass docstring above), so it's paired with `OAuth2TokenRefreshError`
+    # (a real subclass) to keep `refresh_oauth2_token`'s `except` clause working.
+    oauth2_exception: type[Exception] | tuple[type[Exception], ...] = (
+        CustomSnowflakeAuthError,
+        OAuth2TokenRefreshError,
+    )
+
+    @classmethod
+    def is_oauth2_enabled(cls) -> bool:
+        """
+        Return whether OAuth2 authentication is enabled.
+        """
+
+        # When alerts or reports connect to the database in the background,
+        # OAuth2 authentication fails; therefore, OAuth2 authentication is disabled
+        # for background execution.
+        if not has_request_context():
+            return False
+
+        return (
+            cls.supports_oauth2
+            and cls.engine_name in app.config["DATABASE_OAUTH2_CLIENTS"]
+        )
+
+    @classmethod
+    def get_oauth2_config(cls) -> OAuth2ClientConfig | None:
+        """
+        Build the DB engine spec level OAuth2 client config.
+        """
+        if not cls.is_oauth2_enabled():
+            return None
+
+        return super().get_oauth2_config()
+
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Modify URL and/or engine kwargs to impersonate a different user.
+        """
+        connect_args: dict[str, Any] = engine_kwargs.setdefault("connect_args", {})
+
+        # When test_connection is executed (i.e., when validate_default_parameters is
+        # set to True in connect_args), authentication via OAuth is not performed.
+        #
+        # ``database.is_oauth2_enabled()`` returns True for a database-level OAuth2
+        # client (``encrypted_extra.oauth2_client_info``) regardless of request
+        # context, unlike the app-config-based check in ``is_oauth2_enabled()``
+        # above. Background executions (alerts/reports) have no per-user token, so
+        # ``has_request_context()`` must be checked explicitly here too, or OAuth
+        # gets switched on with no token to send.
+        if (
+            not connect_args.get("validate_default_parameters", False)
+            and has_request_context()
+            and database.is_oauth2_enabled()
+        ):
+            url = url.update_query_dict({"authenticator": "oauth"})
+            connect_args["authenticator"] = "oauth"
+
+            if user_token:
+                if username is not None:
+                    if is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
+                        # ``Database._get_sqla_engine()`` has already looked
+                        # up the login and substituted the email prefix into
+                        # ``username`` before calling this method when this
+                        # flag is on. Looking it up again here as if it were
+                        # still the login would fail whenever the two differ,
+                        # leaving the default/service-account username paired
+                        # with this user's OAuth token. Use it as given.
+                        url = url.set(username=username)
+                    elif email := database.get_impersonation_email(url):
+                        url = url.set(username=email)
+
+                url = url.update_query_dict({"token": user_token})
+
+        return url, engine_kwargs
+
+    @classmethod
+    def apply_embedded_credentials(
+        cls,
+        database: Database,
+        credentials: dict[str, str],
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Apply an embedded guest credential, by password or by key pair.
+
+        Called instead of :meth:`impersonate_user`, which above sets
+        ``authenticator=oauth`` whether or not a token exists -- skipping it is what
+        lets a stored credential authenticate at all, and is why this engine opts
+        into the fallback.
+
+        The base implementation puts the username and, for password authentication,
+        the password on the URL. A key pair cannot go there: the driver takes it as
+        DER bytes in ``connect_args``.
+
+        Guests run with the fallback user's default role, not the connection's
+        ``role``: the connection form always writes one into the URI, and a
+        least-privilege fallback user -- or a programmatic access token restricted
+        to its own role -- is not granted it, so Snowflake would refuse the session.
+        """
+        url, engine_kwargs = super().apply_embedded_credentials(
+            database, credentials, url, engine_kwargs
+        )
+        # Everything that signs in as the connection's own account goes: the
+        # driver merges the URI query and `connect_args` into its arguments, so a
+        # `user`/`password`, key or token left in either would win over the
+        # embedded account. `authenticator=SNOWFLAKE_JWT` would also make the
+        # driver expect a key pair from a password guest; it picks key-pair
+        # sign-in itself when the embedded credential supplies `private_key`.
+        url = url.difference_update_query(_CONNECTION_IDENTITY_ARGUMENTS)
+        connect_args = engine_kwargs.get("connect_args", {})
+        for argument in _CONNECTION_IDENTITY_ARGUMENTS:
+            connect_args.pop(argument, None)
+
+        if credentials.get("auth_method") == "keypair":
+            try:
+                private_key = cls._load_private_key(credentials)
+            except (TypeError, UnsupportedAlgorithm, ValueError) as ex:
+                # Only the class: the message is the library's, and a bad key is
+                # no place to risk echoing part of one.
+                database.refuse_embedded_guest(
+                    "its embedded guest key pair could not be loaded "
+                    f"({type(ex).__name__}). Check the private key and its "
+                    'passphrase under "Embedded guest credentials" on the connection.'
+                )
+            engine_kwargs.setdefault("connect_args", {})["private_key"] = private_key
+
+        return url, engine_kwargs
+
+    @classmethod
+    def get_embedded_credentials_error(cls, credentials: dict[str, str]) -> str | None:
+        """
+        Refuse a key pair whose key does not decode with its passphrase.
+
+        Decoding happens before any connection exists, so a bad key would otherwise
+        save cleanly and only fail once an embedded viewer opens a chart.
+        """
+        if credentials.get("auth_method") != "keypair":
+            return None
+        try:
+            cls._load_private_key(credentials)
+        except (TypeError, ValueError, UnsupportedAlgorithm):
+            # The exception text is not passed on: keep key material out of the
+            # response however the parser chooses to describe it.
+            return __(
+                "The embedded guest private key could not be read. Provide a PEM "
+                "private key and its correct passphrase (leave the passphrase "
+                "empty for an unencrypted key)."
+            )
+        return None
+
+    @classmethod
+    def get_oauth2_authorization_uri(
+        cls,
+        config: OAuth2ClientConfig,
+        state: OAuth2State,
+        code_verifier: str | None = None,  # pylint: disable=unused-argument
+    ) -> str:
+        """
+        Return URI for initial OAuth2 request.
+        """
+        uri = config["authorization_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
+        # When calling the Snowflake OAuth authorization endpoint for a custom client,
+        # specify only the query parameters documented in the URL below.
+        # Adding unsupported parameters
+        # (e.g., `prompt` as used in BaseEngineSpec.get_oauth2_authorization_uri)
+        # will cause an error.
+        # https://docs.snowflake.com/user-guide/oauth-custom#query-parameters
+        params: dict[str, str] = {
+            "scope": config["scope"],
+            "response_type": "code",
+            "state": encode_oauth2_state(state),
+            "redirect_uri": config["redirect_uri"],
+            "client_id": config["id"],
+        }
+
+        # Add PKCE parameters (RFC 7636) if code_verifier is provided
+        if code_verifier:
+            params["code_challenge"] = generate_code_challenge(code_verifier)
+            params["code_challenge_method"] = "S256"
+
+        return parse.urljoin(uri, "?" + parse.urlencode(params))
+
     @staticmethod
     def get_extra_params(
         database: Database, source: QuerySource | None = None
@@ -208,6 +551,50 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return extra
 
     @classmethod
+    def get_catalog_for_connection(
+        cls,
+        database: "Database",
+        uri: URL,
+        catalog: str | None,
+    ) -> str | None:
+        """Prefer an existing physical catalog over an old saved URI alias."""
+        uri_catalog = uri.database.split("/", 1)[0]
+        # Only ambiguous URI aliases require a listing. Listing itself opens an
+        # engine without a catalog override, so it cannot recurse here.
+        if catalog and cls._is_legacy_default_catalog(catalog, uri_catalog, set()):
+            # Classification must bypass the shared dropdown cache: a newly
+            # created physical name, or another user's visibility, can change
+            # which database this selection denotes. get_inspector opens under
+            # the connecting identity (including impersonation/guest fallback),
+            # not a separate service account. Reuse only within this app context.
+            if cls._is_legacy_default_catalog(
+                catalog, uri_catalog, cls._get_connection_catalogs(database)
+            ):
+                return None
+        return catalog
+
+    @staticmethod
+    def _get_connection_catalogs(database: "Database") -> set[str]:
+        """
+        List physical catalogs under the connecting identity, once per app context.
+
+        A chart query opens an engine to compile and another to execute; an
+        uncached listing for each costs two extra Snowflake logins apiece.
+        Flask g scopes reuse to a request or a Celery task, never a shared cache.
+        """
+        from flask import g, has_app_context
+
+        from superset.utils.core import get_username
+
+        if database.id is None or not has_app_context():
+            return database.get_all_catalog_names(cache=False)
+        listings = g.setdefault("_snowflake_connection_catalogs", {})
+        key = (database.id, get_username())
+        if key not in listings:
+            listings[key] = database.get_all_catalog_names(cache=False)
+        return listings[key]
+
+    @classmethod
     def adjust_engine_params(
         cls,
         uri: URL,
@@ -220,14 +607,31 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         else:
             current_catalog, current_schema = uri.database, None
 
+        if catalog:
+            # Catalog arguments are physical names from listings or the resolved
+            # default, not SQL identifiers. Quote them before reconnecting so a
+            # case-sensitive catalog cannot become a different uppercase one.
+            # The driver percent-decodes the database, so encode the quoted name.
+            current_catalog = parse.quote(
+                '"' + catalog.replace('"', '""') + '"',
+                safe='"',
+            )
+
         adjusted_database = "/".join(
             [
-                catalog or current_catalog,
+                current_catalog,
                 schema or current_schema or "",
             ]
         ).rstrip("/")
 
         uri = uri.set(database=adjusted_database)
+        if not (schema or current_schema) and "%" in current_catalog:
+            # snowflake-sqlalchemy only decodes the database when a schema path
+            # is present. SQLAlchemy applies connect_args after dialect URL args.
+            connect_args = {
+                **connect_args,
+                "database": parse.unquote_plus(current_catalog),
+            }
 
         return uri, connect_args
 
@@ -240,6 +644,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         """
         Return the configured schema.
         """
+        if not sqlalchemy_uri.database:
+            return None
+
         database = sqlalchemy_uri.database.strip("/")
 
         if "/" not in database:
@@ -252,7 +659,51 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         """
         Return the default catalog.
         """
-        return database.url_object.database.split("/")[0]
+        # Resolve the URI identifier before it becomes a permission name. Catalog
+        # listings already contain physical names, including case-sensitive ones.
+        return cls._resolve_catalog_identifier(
+            database.url_object.database.split("/")[0]
+        )
+
+    @staticmethod
+    def _resolve_catalog_identifier(identifier: str) -> str:
+        """
+        Resolve a URI catalog identifier to the physical database name.
+        """
+        catalog = parse.unquote(identifier)
+        if catalog.startswith('"') and catalog.endswith('"'):
+            return catalog[1:-1].replace('""', '"')
+        return catalog.upper()
+
+    @classmethod
+    def _is_legacy_default_catalog(
+        cls, catalog: str, uri_catalog: str, physical_catalogs: set[str]
+    ) -> bool:
+        """
+        Return True for a catalog stored by earlier versions as the default.
+
+        Those versions stored the URI identifier verbatim (eg, ``sales`` for the
+        ``SALES`` database), and connected using it unquoted. Keep the URI
+        identifier for them only when it is not an existing physical catalog.
+        If both exist, physical identity wins; guessing would cross catalogs.
+        """
+        return (
+            catalog
+            in {
+                uri_catalog,
+                parse.unquote(uri_catalog),
+            }
+            and catalog != cls._resolve_catalog_identifier(uri_catalog)
+            and (catalog not in physical_catalogs)
+        )
+
+    @classmethod
+    def get_catalog_reference_schema(cls, catalog: str) -> str | None:
+        """
+        A two-dot name (``db..table``) reads the ``PUBLIC`` schema of the database,
+        whatever schema the session is in.
+        """
+        return "PUBLIC"
 
     @classmethod
     def get_catalog_names(
@@ -265,12 +716,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
         In Snowflake, a catalog is called a "database".
         """
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                "SELECT DATABASE_NAME from information_schema.databases"
-            )
-        }
+        with inspector.engine.connect() as conn:
+            return {
+                catalog
+                for (catalog,) in conn.execute(
+                    text("SELECT DATABASE_NAME from information_schema.databases")
+                )
+            }
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -279,6 +731,10 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     @classmethod
     def epoch_ms_to_dttm(cls) -> str:
         return "DATEADD(MS, {col}, '1970-01-01')"
+
+    @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        return "DATEADD(US, {col}, '1970-01-01')"
 
     @classmethod
     def convert_dttm(
@@ -334,6 +790,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         :param cancel_query_id: Snowflake Session ID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Snowflake CURRENT_SESSION() returns an alphanumeric VARCHAR session ID
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^[a-zA-Z0-9]+$"):
+            return False
+
         try:
             cursor.execute(f"SELECT SYSTEM$CANCEL_ALL_QUERIES({cancel_query_id})")
         except Exception:  # pylint: disable=broad-except
@@ -349,19 +810,21 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             dict[str, Any]
         ] = None,
     ) -> str:
-        return str(
-            URL.create(
-                "snowflake",
-                username=parameters.get("username"),
-                password=parameters.get("password"),
-                host=parameters.get("account"),
-                database=parameters.get("database"),
-                query={
-                    "role": parameters.get("role"),
-                    "warehouse": parameters.get("warehouse"),
-                },
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            "snowflake",
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters.get("account"),
+            database=parameters.get("database"),
+            query={
+                "role": parameters.get("role"),
+                "warehouse": parameters.get("warehouse"),
+            },
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(
@@ -413,26 +876,39 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     def parameters_json_schema(cls) -> Any:
         """
         Return configuration parameters as OpenAPI.
+
+        Delegates rather than inheriting: this spec is not a ``BasicParametersMixin``
+        user -- its ``build_sqlalchemy_uri`` takes ``SnowflakeParametersType``, which
+        the mixin's signature does not admit -- but it needs the same schema,
+        including the ``x-encrypted-extra`` tagging and the embedded-credential
+        gating.
         """
-        if not cls.parameters_schema:
-            return None
-
-        ma_plugin = MarshmallowPlugin()
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.0",
-            plugins=[ma_plugin],
-        )
-
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
+        return build_parameters_json_schema(cls)
 
     @staticmethod
     def update_params_from_encrypted_extra(
         database: "Database",
         params: dict[str, Any],
     ) -> None:
+        # To use OAuth authentication, a database connection must first be created using
+        # another authenticator (typically key-pair authentication)
+        # with “Impersonate logged in user” enabled.
+        # Key-pair authentication is used for connection tests,
+        # while OAuth authentication is used when executing actual queries,
+        # such as in SQL Lab or dashboards.
+        # Therefore, when using OAuth authentication, the key-pair authentication
+        # settings are not loaded, and the connection is established using OAuth only.
+        connect_args: dict[str, Any] = params.get("connect_args") or {}
+        if connect_args.get("authenticator") == "oauth":
+            return
+
+        # The guest path skips impersonation, leaving `authenticator` unset, so the
+        # check above does not catch it. Its credential has already been applied by
+        # `apply_embedded_credentials`; return before the connection's own
+        # `auth_params` can be layered on top of it.
+        if database.embedded_fallback_applies():
+            return
+
         if not database.encrypted_extra:
             return
         try:
@@ -446,26 +922,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             return
         connect_args = params.setdefault("connect_args", {})
         if auth_method == "keypair":
-            privatekey_body = auth_params.get("privatekey_body", None)
-            key = None
-            if privatekey_body:
-                key = privatekey_body.encode()
-            else:
-                with open(auth_params["privatekey_path"], "rb") as key_temp:
-                    key = key_temp.read()
-            privatekey_pass = auth_params.get("privatekey_pass", None)
-            password = privatekey_pass.encode() if privatekey_pass is not None else None
-            p_key = serialization.load_pem_private_key(
-                key,
-                password=password,
-                backend=default_backend(),
+            connect_args["private_key"] = SnowflakeEngineSpec._load_private_key(
+                auth_params
             )
-            pkb = p_key.private_bytes(
-                encoding=serialization.Encoding.DER,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption(),
-            )
-            connect_args["private_key"] = pkb
         else:
             allowed_extra_auths = app.config["ALLOWED_EXTRA_AUTHENTICATIONS"].get(
                 "snowflake", {}
@@ -478,3 +937,25 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                     f"must be listed in 'ALLOWED_EXTRA_AUTHENTICATIONS' config"
                 )
             connect_args["auth"] = snowflake_auth(**auth_params)
+
+    @staticmethod
+    def _load_private_key(auth_params: dict[str, Any]) -> bytes:
+        """Convert a PEM private key into the bytes required by Snowflake."""
+        if privatekey_body := auth_params.get("privatekey_body"):
+            key = privatekey_body.encode()
+        else:
+            with open(auth_params["privatekey_path"], "rb") as key_file:
+                key = key_file.read()
+
+        privatekey_pass = auth_params.get("privatekey_pass")
+        password = privatekey_pass.encode() if privatekey_pass else None
+        private_key = serialization.load_pem_private_key(
+            key,
+            password=password,
+            backend=default_backend(),
+        )
+        return private_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )

@@ -25,6 +25,10 @@ import { TranslatorConfig, Translations, LocaleData } from './types';
 let singleton: Translator | undefined;
 let isConfigured = false;
 
+// Tracks which keys have already triggered a pre-configure warning so the
+// logs don't drown in repeated calls from large module-load fan-outs.
+const warnedPreConfigureKeys = new Set<string>();
+
 function configure(config?: TranslatorConfig) {
   singleton = new Translator(config);
   isConfigured = true;
@@ -32,10 +36,30 @@ function configure(config?: TranslatorConfig) {
   return singleton;
 }
 
-function getInstance() {
-  if (!isConfigured) {
-    console.warn('You should call configure(...) before calling other methods');
+// When webpack splits @apache-superset/core across chunks, each
+// chunk-local copy of this module has its own `singleton` and
+// `isConfigured` state. The first `t()` call in a late chunk hits a
+// fresh, unconfigured Translator and returns the English msgid. To
+// make translations survive chunk duplication, the HTML template
+// stashes the language pack on window and we self-configure from it
+// on first access. See upstream issue #35330.
+declare global {
+  interface Window {
+    __SUPERSET_LANGUAGE_PACK__?: TranslatorConfig['languagePack'];
   }
+}
+
+function autoConfigureFromWindow() {
+  if (isConfigured) return;
+  if (typeof window === 'undefined') return;
+  const pack = window.__SUPERSET_LANGUAGE_PACK__;
+  if (pack) {
+    configure({ languagePack: pack });
+  }
+}
+
+function getInstance() {
+  autoConfigureFromWindow();
 
   if (typeof singleton === 'undefined') {
     singleton = new Translator();
@@ -44,11 +68,32 @@ function getInstance() {
   return singleton;
 }
 
+function warnPreConfigure(fn: 't' | 'tn', key: string) {
+  // Only warn in non-production builds — production callers may legitimately
+  // tolerate the fallback, and the noise isn't useful at runtime.
+  if (
+    typeof process !== 'undefined' &&
+    process.env?.NODE_ENV === 'production'
+  ) {
+    return;
+  }
+  if (warnedPreConfigureKeys.has(key)) return;
+  warnedPreConfigureKeys.add(key);
+  console.warn(
+    `[i18n] ${fn}(${JSON.stringify(key)}) was called before configure() — ` +
+      `the result is the fallback language and will not update when the ` +
+      `user switches language. If this call is at module load (e.g., a ` +
+      `controlPanel \`label\`/\`description\`), wrap it in an arrow ` +
+      `function: \`() => ${fn}(${JSON.stringify(key)})\`.`,
+  );
+}
+
 function resetTranslation() {
   if (isConfigured) {
     isConfigured = false;
     singleton = undefined;
   }
+  warnedPreConfigureKeys.clear();
 }
 
 function addTranslation(key: string, translations: string[]) {
@@ -64,10 +109,17 @@ function addLocaleData(data: LocaleData) {
 }
 
 function t(input: string, ...args: unknown[]) {
+  // Self-configure from the bootstrap-injected window pack before deciding
+  // whether to warn, so a chunk-local copy that hasn't seen configure() yet
+  // doesn't warn (or fall back to English) when the pack is available.
+  autoConfigureFromWindow();
+  if (!isConfigured) warnPreConfigure('t', input);
   return getInstance().translate(input, ...args);
 }
 
 function tn(key: string, ...args: unknown[]) {
+  autoConfigureFromWindow();
+  if (!isConfigured) warnPreConfigure('tn', key);
   return getInstance().translateWithNumber(key, ...args);
 }
 

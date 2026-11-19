@@ -55,39 +55,24 @@ function getRelatedChartsForCrossFilter(
   slices: Record<string, Slice>,
   scope: number[],
 ): number[] {
-  const sourceSlice = slices[filterKey];
-
-  if (!sourceSlice) return [];
-
-  const fullScope = [
-    ...scope.filter(s => String(s) !== filterKey),
-    Number(filterKey),
-  ];
-  const scopeSet = new Set(scope);
-
-  return Object.values(slices).reduce((result: number[], slice) => {
-    if (slice.slice_id === Number(filterKey)) {
-      return result;
-    }
-    // Check if it's in the global scope
-    if (isGlobalScope(fullScope, slices)) {
-      result.push(slice.slice_id);
-      return result;
-    }
-    // Check if it's hand-picked in scope
-    if (scopeSet.has(slice.slice_id)) {
-      result.push(slice.slice_id);
-    }
-    return result;
-  }, []);
+  // `scope` here is already the fully-resolved chartsInScope from
+  // getCrossFiltersConfiguration (global scope pre-expanded to concrete
+  // chart ids there), so no further global-scope re-derivation is needed.
+  const chartsInScopeSet = new Set(scope);
+  return Object.values(slices)
+    .map(slice => slice.slice_id)
+    .filter(id => chartsInScopeSet.has(id) && id !== Number(filterKey));
 }
 
 export function getRelatedCharts(
   filterKey: string,
-  filter: AppliedNativeFilterType | AppliedCrossFilterType | Filter,
+  filter: AppliedNativeFilterType | AppliedCrossFilterType | Filter | undefined,
   slices: Record<string, Slice>,
 ) {
   let related: number[] = [];
+  if (!filter) {
+    return related;
+  }
   const isCrossFilter =
     Object.keys(slices).includes(filterKey) && isAppliedCrossFilterType(filter);
 
@@ -130,6 +115,10 @@ export function getRelatedChartsForChartCustomization(
   }
 
   const targetDatasetId = String(dataset);
+  // ``datasourceType`` disambiguates between independent ID spaces (e.g.
+  // table ``1`` vs semantic view ``1``). When absent on either side we fall
+  // back to ID-only matching so legacy customizations keep working.
+  const targetDatasourceType = targets?.[0]?.datasourceType;
 
   return Object.values(slices)
     .filter(slice => {
@@ -138,8 +127,17 @@ export function getRelatedChartsForChartCustomization(
 
       const sliceDatasetParts = String(sliceDataset).split('__');
       const sliceDatasetId = sliceDatasetParts[0];
+      const sliceDatasourceType = sliceDatasetParts[1];
 
-      return sliceDatasetId === targetDatasetId;
+      if (sliceDatasetId !== targetDatasetId) return false;
+      if (
+        targetDatasourceType &&
+        sliceDatasourceType &&
+        targetDatasourceType !== sliceDatasourceType
+      ) {
+        return false;
+      }
+      return true;
     })
     .map(slice => slice.slice_id);
 }

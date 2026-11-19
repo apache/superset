@@ -29,6 +29,9 @@ export default class RangeFilterPlugin extends ChartPlugin {
       name: t('Range filter'),
       description: t('Range filter plugin using AntD'),
       behaviors: [Behavior.InteractiveChart, Behavior.NativeFilter],
+      // Manual bounds remain usable without a query result.
+      enableNoResults: false,
+      supportsCascadeDependencies: true,
       tags: [t('Experimental')],
       thumbnail,
     });

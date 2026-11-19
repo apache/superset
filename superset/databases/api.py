@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from io import BytesIO
 from typing import Any, cast
@@ -31,9 +32,9 @@ from flask import (
     render_template,
     request,
     Response,
-    send_file,
 )
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
+from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
@@ -41,6 +42,9 @@ from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 from superset import event_logger
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
+from superset.commands.database.encrypted_extra_hints import (
+    GetEncryptedExtraHintsCommand,
+)
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseCreateFailedError,
@@ -50,12 +54,18 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
     InvalidParametersError,
+    OAuth2TokenNotFoundError,
+    OAuth2TokensDeleteFailedError,
 )
 from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.database.importers.dispatcher import ImportDatabasesCommand
-from superset.commands.database.oauth2 import OAuth2StoreTokenCommand
+from superset.commands.database.oauth2 import (
+    OAuth2DeleteTokensCommand,
+    OAuth2StoreTokenCommand,
+)
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
+    SSHTunnelHostKeyVerificationError,
     SSHTunnelingNotEnabledError,
 )
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
@@ -76,11 +86,18 @@ from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
 )
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.database import DatabaseDAO
 from superset.databases.decorators import check_table_access
-from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
+from superset.databases.filters import (
+    DatabaseFilter,
+    DatabaseOAuth2TokensUserFilter,
+    DatabaseUploadEnabledFilter,
+)
 from superset.databases.schemas import (
     CatalogsResponseSchema,
     database_catalogs_query_schema,
@@ -88,6 +105,7 @@ from superset.databases.schemas import (
     database_tables_query_schema,
     DatabaseConnectionSchema,
     DatabaseFunctionNamesResponse,
+    DatabaseOAuth2TokensDeleteSchema,
     DatabasePostSchema,
     DatabasePutSchema,
     DatabaseRelatedObjectsResponse,
@@ -95,6 +113,8 @@ from superset.databases.schemas import (
     DatabaseTablesResponse,
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
+    EncryptedExtraHintSchema,
+    EncryptedExtraHintsResponseSchema,
     get_export_ids_schema,
     OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
@@ -111,6 +131,7 @@ from superset.databases.schemas import (
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
+from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatabaseNotFoundException,
@@ -122,29 +143,33 @@ from superset.exceptions import (
     TableNotFoundException,
 )
 from superset.extensions import security_manager
-from superset.models.core import Database
-from superset.sql.parse import Table
+from superset.models.core import Database, DatabaseUserOAuth2Tokens
+from superset.sql.parse import Partition, Table
 from superset.superset_typing import FlaskResponse
-from superset.utils import json
 from superset.utils.core import (
     error_msg_from_exception,
     get_username,
     parse_js_uri_path_item,
+    send_export_zip,
+    write_zip_entry,
 )
 from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
     statsd_metrics,
 )
 from superset.views.error_handling import handle_api_exception, json_error_response
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
+
+MAX_RELATED_DATASETS = 10
 
 
 # pylint: disable=too-many-public-methods
@@ -172,6 +197,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
         "get_connection",
+        "encrypted_extra_hints",
         "upload_metadata",
         "upload",
         "oauth2",
@@ -264,7 +290,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
     allowed_rel_fields = {"changed_by", "created_by"}
 
-    list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
+    list_select_columns = list_columns + [
+        "extra",
+        "sqlalchemy_uri",
+        "password",
+        "encrypted_extra",
+    ]
     order_columns = [
         "allow_file_upload",
         "allow_dml",
@@ -297,6 +328,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         DatabaseTablesResponse,
         DatabaseTestConnectionSchema,
         DatabaseValidateParametersSchema,
+        EncryptedExtraHintSchema,
+        EncryptedExtraHintsResponseSchema,
         TableExtraMetadataResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
@@ -312,7 +345,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     """ Overrides GET methods OpenApi descriptions """
 
     related_field_filters = {
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     base_related_field_filters = {
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
@@ -354,12 +387,81 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             "id": pk,
             "result": database_connection_schema.dump(database, many=False),
         }
+        # editors get the sensitive fields stored for this database, not the
+        # engine's declared patterns
+        if database and (information := response["result"].get("engine_information")):
+            information["encrypted_extra_sensitive_fields"] = (
+                database.stored_sensitive_fields()
+            )
         try:
             if database and database.ssh_tunnel:
-                response["result"]["ssh_tunnel"] = database.ssh_tunnel.data
+                # Mask credential fields explicitly at the API boundary so read
+                # responses apply the same masking contract as the write paths
+                # (POST/PUT), rather than relying solely on SSHTunnel.data.
+                response["result"]["ssh_tunnel"] = mask_password_info(
+                    database.ssh_tunnel.data
+                )
             return self.response(200, **response)
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
+
+    @expose("/<int:pk>/encrypted_extra_hints/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.encrypted_extra_hints"
+        ),
+        log_to_statsd=False,
+        include_request_data=False,
+        allow_extra_payload=True,
+    )
+    def encrypted_extra_hints(
+        self, pk: int, add_extra_log_payload: Callable[..., None]
+    ) -> Response:
+        """Get hints for the masked fields of a database's encrypted extra.
+        ---
+        get:
+          summary: Get hints for the masked fields of a database's encrypted extra
+          description: >-
+            Returns the label and last characters of each sensitive field in
+            the database's encrypted extra, so that a stored secret can be told
+            apart from another one without revealing it. A JWT also gets the
+            expiry its unverified exp claim states. The number of
+            characters is set by `ENCRYPTED_EXTRA_HINT_CHARS`; the list is empty
+            when it is 0 or less.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            description: The database id
+            name: pk
+          responses:
+            200:
+              description: Hints for the masked fields
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/EncryptedExtraHintsResponseSchema"
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            hints = GetEncryptedExtraHintsCommand(pk).run()
+        except DatabaseNotFoundError:
+            return self.response_404()
+        # the event names the database even though it carries no request data
+        add_extra_log_payload(database_id=pk)
+        return self.response(
+            200, result=EncryptedExtraHintSchema(many=True).dump(hints)
+        )
 
     @expose("/<int:pk>", methods=("GET",))
     @protect()
@@ -396,7 +498,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             database = DatabaseDAO.find_by_id(pk)
             if database and database.ssh_tunnel:
                 payload = data.json
-                payload["result"]["ssh_tunnel"] = database.ssh_tunnel.data
+                # Mask credential fields explicitly at the API boundary so read
+                # responses apply the same masking contract as the write paths
+                # (POST/PUT), rather than relying solely on SSHTunnel.data.
+                payload["result"]["ssh_tunnel"] = mask_password_info(
+                    database.ssh_tunnel.data
+                )
                 return payload
             return data
         except SupersetException as ex:
@@ -453,6 +560,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             item["uuid"] = new_model.uuid
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
+            if "masked_encrypted_extra" in item:
+                item["masked_encrypted_extra"] = (
+                    new_model.db_engine_spec.mask_encrypted_extra(
+                        item["masked_encrypted_extra"]
+                    )
+                )
             item["expose_in_sqllab"] = new_model.expose_in_sqllab
 
             # If parameters are available return them in the payload
@@ -483,7 +596,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
+        except (
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+            SSHTunnelHostKeyVerificationError,
+        ) as ex:
             return self.response_400(message=str(ex))
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
@@ -540,7 +657,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            item = self.edit_model_schema.load(request.json)
+            item = DatabasePutSchema(database_id=pk).load(request.json)
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -548,6 +665,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatabaseCommand(pk, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
+            if "masked_encrypted_extra" in item:
+                item["masked_encrypted_extra"] = (
+                    changed_model.db_engine_spec.mask_encrypted_extra(
+                        item["masked_encrypted_extra"]
+                    )
+                )
             if changed_model.parameters:
                 item["parameters"] = changed_model.parameters
             # Return SSH Tunnel and hide passwords if any
@@ -568,7 +691,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
+        except (
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+            SSHTunnelHostKeyVerificationError,
+        ) as ex:
             return self.response_400(message=str(ex))
 
     @expose("/<int:pk>", methods=("DELETE",))
@@ -630,8 +757,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".sync-permissions",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.sync-permissions"
+        ),
         log_to_statsd=False,
     )
     def sync_permissions(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -889,8 +1017,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_metadata_deprecated",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.table_metadata_deprecated"
+        ),
         log_to_statsd=False,
     )
     def table_metadata_deprecated(
@@ -953,8 +1082,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @deprecated(deprecated_in="4.0")
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_extra_metadata_deprecated",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.table_extra_metadata_deprecated"
+        ),
         log_to_statsd=False,
     )
     def table_extra_metadata_deprecated(
@@ -1016,8 +1146,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_metadata",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.table_metadata"
+        ),
         log_to_statsd=False,
     )
     def table_metadata(self, pk: int) -> FlaskResponse:
@@ -1079,15 +1210,25 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             parameters = QualifiedTableSchema().load(request.args)
         except ValidationError as ex:
             raise InvalidPayloadSchemaError(ex) from ex
-
-        table = Table(parameters["name"], parameters["schema"], parameters["catalog"])
+        table_name = str(parameters["name"])
+        table = Table(table_name, parameters["schema"], parameters["catalog"])
         try:
             security_manager.raise_for_access(database=database, table=table)
         except SupersetSecurityException as ex:
             # instead of raising 403, raise 404 to hide table existence
             raise TableNotFoundException("No such table") from ex
-
-        payload = database.db_engine_spec.get_table_metadata(database, table)
+        # `is_odps_partitioned_table` returns (False, []) for non-ODPS backends
+        # and handles its own optional-dependency / network / auth failures
+        # internally, so any exception escaping here is an unexpected programming
+        # error that should propagate rather than be silently swallowed.
+        is_partitioned_table, partition_fields = DatabaseDAO.is_odps_partitioned_table(
+            database, table_name
+        )
+        partition = Partition(is_partitioned_table, tuple(partition_fields))
+        # Partition info is engine-agnostic at this layer: the generic dispatch
+        # passes it to the engine spec, which decides whether to use it. Non-ODPS
+        # specs ignore the parameter.
+        payload = database.db_engine_spec.get_table_metadata(database, table, partition)
 
         return self.response(200, **payload)
 
@@ -1095,8 +1236,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_extra_metadata",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.table_extra_metadata"
+        ),
         log_to_statsd=False,
     )
     def table_extra_metadata(self, pk: int) -> FlaskResponse:
@@ -1238,8 +1380,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".test_connection",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.test_connection"
+        ),
         log_to_statsd=False,
     )
     @requires_json
@@ -1280,7 +1423,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             TestConnectionDatabaseCommand(item).run()
             return self.response(200, message="OK")
-        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
+        except OAuth2RedirectError:
+            # OAuth2 connections pass, so they can be saved. A user later
+            # can then store an OAuth2 token.
+            return self.response(200, message="OK")
+        except (
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+            SSHTunnelHostKeyVerificationError,
+        ) as ex:
             return self.response_400(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=("GET",))
@@ -1288,8 +1439,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".related_objects",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.related_objects"
+        ),
         log_to_statsd=False,
     )
     def related_objects(self, pk: int) -> Response:
@@ -1327,6 +1479,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "viz_type": chart.viz_type,
             }
             for chart in data["charts"]
+            if security_manager.can_access_chart(chart)
         ]
         dashboards = [
             {
@@ -1336,11 +1489,32 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "title": dashboard.dashboard_title,
             }
             for dashboard in data["dashboards"]
+            if security_manager.can_access_dashboard(dashboard)
         ]
         sqllab_tab_states = [
             {"id": tab_state.id, "label": tab_state.label, "active": tab_state.active}
             for tab_state in data["sqllab_tab_states"]
         ]
+        # Names are access-filtered like charts and dashboards above, but the
+        # count is not. This route only requires ``can_read`` on Database, and
+        # ``DatabaseFilter`` admits a caller holding ``datasource_access`` on a
+        # single dataset in the database, so returning every name here would let
+        # them enumerate datasets they hold no permission on. The count has to
+        # stay unfiltered because it is what explains the delete being blocked --
+        # a bare number discloses far less than a name and schema.
+        datasets = []
+        for dataset in data["datasets"]:
+            if not security_manager.can_access_datasource(dataset):
+                continue
+            datasets.append(
+                {
+                    "id": dataset.id,
+                    "table_name": dataset.table_name,
+                    "schema": dataset.schema,
+                }
+            )
+            if len(datasets) == MAX_RELATED_DATASETS:
+                break
         return self.response(
             200,
             charts={"count": len(charts), "result": charts},
@@ -1349,6 +1523,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "count": len(sqllab_tab_states),
                 "result": sqllab_tab_states,
             },
+            datasets={"count": data["dataset_count"], "result": datasets},
         )
 
     @expose("/<int:pk>/validate_sql/", methods=("POST",))
@@ -1411,11 +1586,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
     @expose("/oauth2/", methods=["GET"])
-    @transaction()
+    @statsd_metrics(best_effort=True)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.oauth2",
-        log_to_statsd=True,
+        log_to_statsd=False,
+        include_request_data=False,
+        best_effort=True,
     )
+    @transaction()
     def oauth2(self) -> FlaskResponse:
         """
         ---
@@ -1516,21 +1694,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 for file_name, file_content in ExportDatabasesCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DatabaseNotFoundError:
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := request.args.get("token"):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/import/", methods=("POST",))
     @protect()
@@ -1538,6 +1709,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
+        # The form carries secrets.
+        include_request_data=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -1623,38 +1796,20 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_400()
         if not is_zipfile(upload):
             raise IncorrectFormatError("Not a ZIP file")
-        with ZipFile(upload) as bundle:
+        with open_import_bundle(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
-        )
-        encrypted_extra_secrets = (
-            json.loads(request.form["encrypted_extra_secrets"])
-            if "encrypted_extra_secrets" in request.form
-            else None
-        )
+        encrypted_extra_secrets = parse_json_form_field("encrypted_extra_secrets")
 
         command = ImportDatabasesCommand(
             contents,
@@ -1705,6 +1860,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            413:
+              description: Payload too large, file exceeds the maximum allowed size
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             500:
               $ref: '#/components/responses/500'
         """
@@ -1714,6 +1878,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             parameters = UploadFileMetadataPostSchema().load(request_form)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        UploadCommand.validate_file_size(parameters["file"])
         if parameters["type"] == UploadFileType.CSV.value:
             metadata = CSVReader(parameters).file_metadata(parameters["file"])
         elif parameters["type"] == UploadFileType.EXCEL.value:
@@ -1764,6 +1929,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            413:
+              description: Payload too large, file exceeds the maximum allowed size
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             422:
               $ref: '#/components/responses/422'
             500:
@@ -1798,8 +1972,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".function_names",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.function_names"
+        ),
         log_to_statsd=False,
     )
     def function_names(self, pk: int) -> Response:
@@ -1892,6 +2067,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                             disable_ssh_tunneling:
                               description: Whether the engine supports SSH Tunnels
                               type: boolean
+                            encrypted_extra_sensitive_fields:
+                              description: >-
+                                JSONPath of each sensitive encrypted_extra field
+                                and its label
+                              type: object
+                              additionalProperties:
+                                type: string
             400:
               $ref: '#/components/responses/400'
             500:
@@ -1900,7 +2082,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         preferred_databases: list[str] = app.config.get("PREFERRED_DATABASES", [])
         available_databases = []
         for engine_spec, drivers in get_available_engine_specs().items():
-            if not drivers:
+            if not drivers or engine_spec is DatabricksNativeEngineSpec:
                 continue
 
             payload: dict[str, Any] = {
@@ -1921,8 +2103,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 hasattr(engine_spec, "parameters_json_schema")
                 and hasattr(engine_spec, "sqlalchemy_uri_placeholder")
                 and engine_spec.default_driver in drivers
+                and (parameters := engine_spec.parameters_json_schema()) is not None
             ):
-                payload["parameters"] = engine_spec.parameters_json_schema()
+                payload["parameters"] = parameters
                 payload["sqlalchemy_uri_placeholder"] = (
                     engine_spec.sqlalchemy_uri_placeholder
                 )
@@ -1953,8 +2136,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".validate_parameters",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.validate_parameters"
+        ),
         log_to_statsd=False,
     )
     @requires_json
@@ -1992,7 +2176,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except ValidationError as ex:
             errors = [
                 SupersetError(
-                    message="\n".join(messages),
+                    message="\n".join(str(m) for m in messages),
                     error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
                     level=ErrorLevel.ERROR,
                     extra={"invalid": [attribute]},
@@ -2010,8 +2194,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".schemas_access_for_file_upload",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.schemas_access_for_file_upload"
+        ),
         log_to_statsd=False,
     )
     def schemas_access_for_file_upload(self, pk: int) -> Response:
@@ -2052,3 +2237,202 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             database, database.get_default_catalog(), schemas_allowed, True
         )
         return self.response(200, schemas=schemas_allowed_processed)
+
+
+class DatabaseOAuth2TokensRestApi(BaseSupersetModelRestApi):
+    datamodel = SQLAInterface(DatabaseUserOAuth2Tokens)
+    resource_name = "database"
+    class_permission_name = "Database"
+    method_permission_name = {
+        "get_list": "manage_oauth2_tokens",
+        "delete_oauth2_tokens": "manage_oauth2_tokens",
+        "delete_all_oauth2_tokens": "manage_oauth2_tokens",
+    }
+    include_route_methods = {
+        RouteMethod.GET_LIST,
+        "delete_oauth2_tokens",
+        "delete_all_oauth2_tokens",
+    }
+    openapi_spec_component_schemas = (DatabaseOAuth2TokensDeleteSchema,)
+    allow_browser_login = True
+    openapi_spec_tag = "Database"
+    list_columns = [
+        "id",
+        "user.username",
+        "user.first_name",
+        "user.last_name",
+        "user.email",
+        "access_token_expiration",
+    ]
+    list_select_columns = list_columns
+    order_columns = ["id", "user.username", "access_token_expiration"]
+    base_order = ("id", "asc")
+    search_columns = ["id", "database"]
+    search_filters = {"id": [DatabaseOAuth2TokensUserFilter]}
+    max_page_size = 100
+
+    @expose("/<int:pk>/oauth2_tokens/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @parse_rison(get_list_schema)
+    def get_list(  # pylint: disable=arguments-differ
+        self, pk: int, **kwargs: Any
+    ) -> FlaskResponse:
+        """List OAuth2 token metadata scoped to the accessible database.
+        ---
+        get:
+          summary: List OAuth2 credential metadata for a database
+          parameters:
+          - in: path
+            name: pk
+            required: true
+            schema:
+              type: integer
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_list_schema'
+          responses:
+            200:
+              description: Paginated OAuth2 credential metadata
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        type: array
+                        items:
+                          type: integer
+                      count:
+                        type: integer
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DatabaseOAuth2TokensRestApi.get_list'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """  # noqa: E501
+        database = DatabaseDAO.find_by_id(pk)
+        if database is None:
+            return self.response_404()
+        kwargs["rison"].setdefault("filters", []).append(
+            {"col": "database", "opr": "rel_o_m", "value": database.id}
+        )
+        return self.get_list_headless(**kwargs)
+
+    @expose("/<int:pk>/oauth2_tokens/delete/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.delete_oauth2_tokens"
+        ),
+        log_to_statsd=False,
+    )
+    @requires_json
+    def delete_oauth2_tokens(self, pk: int) -> FlaskResponse:
+        """Delete specific OAuth2 tokens for a DB connection.
+        ---
+        post:
+          summary: Delete OAuth2 access and refresh tokens for a DB connection.
+          parameters:
+          - in: path
+            name: pk
+            required: true
+            schema:
+              type: integer
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DatabaseOAuth2TokensDeleteSchema'
+          responses:
+            200:
+              description: OAuth2 credentials deleted successfully
+            400:
+              $ref: '#/components/responses/400'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        try:
+            parameters = DatabaseOAuth2TokensDeleteSchema().load(request.get_json())
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            OAuth2DeleteTokensCommand(pk, token_ids=parameters["token_ids"]).run()
+        except (DatabaseNotFoundError, OAuth2TokenNotFoundError):
+            return self.response_404()
+        except OAuth2TokensDeleteFailedError as ex:
+            logger.error(
+                "Error deleting OAuth2 tokens for database %s",
+                pk,
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+        return self.response(200, message="OK")
+
+    @expose("/<int:pk>/oauth2_tokens/all/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.delete_all_oauth2_tokens"
+        ),
+        log_to_statsd=False,
+    )
+    def delete_all_oauth2_tokens(self, pk: int) -> FlaskResponse:
+        """Delete all OAuth2 tokens for a DB connection.
+        ---
+        post:
+          summary: Delete all OAuth2 access and refresh tokens  for a DB connection.
+          parameters:
+          - in: path
+            name: pk
+            required: true
+            schema:
+              type: integer
+          responses:
+            200:
+              description: All OAuth2 credentials deleted successfully
+            400:
+              $ref: '#/components/responses/400'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        try:
+            OAuth2DeleteTokensCommand(pk, delete_all=True).run()
+        except DatabaseNotFoundError:
+            return self.response_404()
+        except OAuth2TokensDeleteFailedError as ex:
+            logger.error(
+                "Error deleting OAuth2 tokens for database %s",
+                pk,
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+        return self.response(200, message="OK")

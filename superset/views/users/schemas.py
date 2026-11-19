@@ -24,7 +24,28 @@ from marshmallow.validate import Length
 
 first_name_description = "The current user's first name"
 last_name_description = "The current user's last name"
-password_description = "The current user's password for authentication"  # noqa: S105
+# Administrators resetting another account's password use
+# ``PUT /api/v1/security/users/<id>`` (``can_put on User``) instead, which needs
+# no current password.
+password_description = "The current user's new password; requires current_password when the account already has one"  # noqa: S105, E501
+# Verified against the account's existing password whenever ``password`` is
+# included in the payload and the account has a stored password. This is the
+# self-service rule: the caller is always the account owner here, so they have
+# to prove knowledge of the existing password. An account with no stored
+# password yet (e.g. provisioned by an external auth backend) has nothing to
+# prove and may leave it out, so the field is optional at the schema level:
+# whether it is needed, and whether it matches, is decided against the user
+# record in ``CurrentUserRestApi.pre_update``, which this schema cannot see.
+current_password_description = (
+    "The current user's existing password; required when the account has one"  # noqa: S105, E501
+)
+
+
+class UserGroupSchema(Schema):
+    """A group the current user belongs to."""
+
+    id = Integer()
+    name = String()
 
 
 class UserResponseSchema(Schema):
@@ -36,6 +57,7 @@ class UserResponseSchema(Schema):
     is_active = Boolean()
     is_anonymous = Boolean()
     login_count = Integer()
+    groups = fields.List(fields.Nested(UserGroupSchema))
 
 
 class CurrentUserPutSchema(Schema):
@@ -55,4 +77,9 @@ class CurrentUserPutSchema(Schema):
         required=False,
         validate=[PasswordComplexityValidator()],
         metadata={"description": password_description},
+    )
+    current_password = fields.String(
+        required=False,
+        load_only=True,
+        metadata={"description": current_password_description},
     )

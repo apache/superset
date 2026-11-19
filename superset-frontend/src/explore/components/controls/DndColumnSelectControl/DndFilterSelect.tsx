@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { arrayMove } from '@dnd-kit/sortable';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -69,6 +70,7 @@ const isDictionaryForAdhocFilter = (value: OptionValueType) =>
 export interface DndFilterSelectProps extends ControlComponentProps<
   OptionValueType[]
 > {
+  semanticSelectionVersion?: string;
   columns: ColumnMeta[];
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];
@@ -99,6 +101,8 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     }
     return extra;
   }, [datasource?.extra]);
+
+  const { semanticSelectionVersion } = props;
 
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
@@ -253,14 +257,14 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const onShiftOptions = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      const newValues = [...values];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
+      // @dnd-kit fires the reorder once at drag-end with the final indices, so
+      // this must be a full arrayMove, not an adjacent swap. Commit through
+      // onChange so the new order persists to form_data.
+      const newValues = arrayMove(values, dragIndex, hoverIndex);
       setValues(newValues);
+      onChange(newValues);
     },
-    [values],
+    [onChange, values],
   );
 
   const getMetricExpression = useCallback(
@@ -362,6 +366,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
           adhocFilter={adhocFilter}
           options={options}
           datasource={datasource}
+          semanticSelectionVersion={semanticSelectionVersion}
           onFilterEdit={onFilterEdit}
           partitionColumn={partitionColumn}
           onClickClose={onClickClose}
@@ -375,6 +380,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       options,
       partitionColumn,
       datasource,
+      semanticSelectionVersion,
       values,
     ],
   );
@@ -454,12 +460,15 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={t('Drop columns/metrics here or click')}
         onClickGhostButton={handleClickGhostButton}
+        sortableType={DndItemType.FilterOption}
+        itemCount={values.length}
         {...props}
       />
       <AdhocFilterPopoverTrigger
         adhocFilter={adhocFilter}
         options={options}
         datasource={datasource}
+        semanticSelectionVersion={semanticSelectionVersion}
         onFilterEdit={onNewFilter}
         partitionColumn={partitionColumn}
         isControlledComponent

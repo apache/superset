@@ -18,8 +18,6 @@
  */
 import {
   NumberFormats,
-  QueryFormColumn,
-  getColumnLabel,
   getMetricLabel,
   getSequentialSchemeRegistry,
   getTimeFormatter,
@@ -32,11 +30,15 @@ import {
 import { logging } from '@apache-superset/core/utils';
 import { GenericDataType } from '@apache-superset/core/common';
 import memoizeOne from 'memoize-one';
-import { maxBy, minBy } from 'lodash';
+import { maxBy, minBy } from 'lodash-es';
 import type { ComposeOption } from 'echarts/core';
 import type { HeatmapSeriesOption } from 'echarts/charts';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
-import { HeatmapChartProps, HeatmapTransformedProps } from './types';
+import {
+  HeatmapChartProps,
+  HeatmapTransformedProps,
+  SORT_Y_AXIS_NONE,
+} from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
@@ -180,8 +182,6 @@ export default function transformProps(
     chartProps;
   const {
     bottomMargin,
-    xAxis,
-    groupby,
     linearColorScheme,
     leftMargin,
     legendType = 'continuous',
@@ -204,9 +204,6 @@ export default function transformProps(
     sortYAxis,
   } = formData;
   const metricLabel = getMetricLabel(metric);
-  const xAxisLabel = getColumnLabel(xAxis);
-  // groupby is overridden to be a single value
-  const yAxisLabel = getColumnLabel(groupby as unknown as QueryFormColumn);
   const {
     data,
     colnames,
@@ -273,10 +270,19 @@ export default function transformProps(
     metricLabel,
     xAxisColumnName,
   );
+  // Unlike the X-axis (often a temporal column that already arrives from
+  // the backend in a natural, e.g. chronological, order), the Y-axis
+  // groupby dimension has no such natural ordering to fall back on, so
+  // default it to ascending sort when the user hasn't chosen one.
+  // SORT_Y_AXIS_NONE is an explicit "keep original order" selection (distinct
+  // from null/undefined, which means the control was never touched or was
+  // cleared, and both map to the alpha_asc default).
+  const effectiveSortYAxis =
+    sortYAxis === SORT_Y_AXIS_NONE ? undefined : (sortYAxis ?? 'alpha_asc');
   const sortedYAxisValues = sortAxisValues(
     yAxisValues,
     data,
-    sortYAxis,
+    effectiveSortYAxis,
     metricLabel,
     yAxisColumnName,
   );
@@ -365,8 +371,8 @@ export default function transformProps(
       formatter: (params: CallbackDataParams) => {
         const totals = calculateTotals(
           data,
-          xAxisLabel,
-          yAxisLabel,
+          xAxisColumnName,
+          yAxisColumnName,
           metricLabel,
         );
         const paramsValue = params.value as (string | number)[];

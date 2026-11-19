@@ -16,19 +16,26 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
+from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
+from superset import db
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.dashboard.exceptions import (
     DashboardCreateFailedError,
     DashboardInvalidError,
     DashboardSlugExistsValidationError,
 )
-from superset.commands.utils import populate_roles
+from superset.commands.soft_delete_collisions import (
+    raise_for_soft_deleted_slug_collision,
+)
+from superset.commands.utils import populate_subjects
 from superset.daos.dashboard import DashboardDAO
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -41,30 +48,45 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
     @transaction(on_error=partial(on_error, reraise=DashboardCreateFailedError))
     def run(self) -> Model:
         self.validate()
-        return DashboardDAO.create(attributes=self._properties)
+        dashboard = DashboardDAO.create(attributes=self._properties)
+        # Surface the INSERT here rather than at the transaction decorator's
+        # commit, so a slug collision with a SOFT-DELETED dashboard (possible
+        # only on the full-constraint dialects; the partial-index dialects
+        # free the slot) can be translated into restore guidance. Any other
+        # integrity failure re-raises unchanged.
+        try:
+            db.session.flush()
+        except IntegrityError as ex:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            raise_for_soft_deleted_slug_collision(self._properties.get("slug"), ex)
+            raise
+        # Link charts referenced in the layout to the dashboard so that
+        # ``dashboard.slices`` is populated, mirroring the update path. Without
+        # this, charts created through the REST API render with no definition
+        # until the dashboard is edited and re-saved in the UI (see #32966).
+        if json_metadata := self._properties.get("json_metadata"):
+            DashboardDAO.set_dash_metadata(
+                dashboard,
+                data=json.loads(json_metadata),
+            )
+        if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
+            after_create(dashboard, "dashboard")
+        return dashboard
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
-        role_ids: Optional[list[int]] = self._properties.get("roles")
-        slug: str = self._properties.get("slug", "")
+        # An absent slug must stay ``None`` (not default to ``""``):
+        # ``validate_slug_uniqueness`` deliberately checks empty strings, so
+        # coercing absent → "" would run the check as ``slug == ""`` and 422
+        # every slugless create once any empty-string-slug row exists. This
+        # mirrors the update path, which also passes ``None`` through.
+        slug: str | None = self._properties.get("slug")
 
         # Validate slug uniqueness
         if not DashboardDAO.validate_slug_uniqueness(slug):
             exceptions.append(DashboardSlugExistsValidationError())
 
-        try:
-            owners = self.populate_owners(owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
-        if exceptions:
-            raise DashboardInvalidError(exceptions=exceptions)
+        populate_subjects(self._properties, exceptions)
 
-        try:
-            roles = populate_roles(role_ids)
-            self._properties["roles"] = roles
-        except ValidationError as ex:
-            exceptions.append(ex)
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)

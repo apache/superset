@@ -1,0 +1,291 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Force-password-change-on-first-use enforcement.
+
+A per-user ``password_must_change`` flag (on ``UserAttribute``) marks accounts —
+typically created by an administrator — that must set a new password before
+they can use the rest of the application. When ``ENABLE_FORCE_PASSWORD_CHANGE``
+is enabled, a ``before_request`` hook redirects such users to the SPA profile
+page (``/user_info/``, whose "Reset my password" modal calls ``PUT
+/api/v1/me/``) until they change it; the flag is cleared automatically on a
+successful *self-service* password change (see
+``CurrentUserRestApi.pre_update`` and ``SupersetSecurityManager.reset_password``).
+An admin-initiated reset deliberately preserves the flag so the target user is
+still forced to change the temporary password at next login.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any, Optional
+
+from flask import current_app, flash, g, redirect, request, url_for
+from flask_appbuilder.security.manager import AUTH_REMOTE_USER
+from flask_babel import gettext as __
+from sqlalchemy.exc import IntegrityError
+
+from superset.utils.decorators import transaction
+
+logger = logging.getLogger(__name__)
+
+# Flask endpoints take the form ``<ViewClass>.<method>`` (or a bare name for
+# function views). The following must remain reachable while a password change
+# is pending, otherwise the redirect would loop: the auth views (login/logout
+# for every auth backend), the SPA profile page, the legacy user-info-edit view,
+# static assets, and the health blueprint. We match the *view-class* component
+# (the part before the dot) exactly against the allow-list below rather than
+# doing a substring search, so unrelated endpoints that merely share a substring
+# (e.g. an "Author"-named view, or any name containing "health"/"static") are
+# not accidentally exempted from enforcement.
+_EXEMPT_VIEW_CLASSES = frozenset(
+    {
+        "AuthDBView",
+        "AuthLDAPView",
+        "AuthOAuthView",
+        "AuthOIDView",
+        "AuthRemoteUserView",
+        "UserInfoEditView",
+        "UserInfoView",
+    }
+)
+
+# The SPA profile page, where a user changes their own password.
+_PROFILE_PAGE_ENDPOINT = "UserInfoView.list"
+
+# Exact endpoint names that are always exempt: Flask's static routes, plus the
+# few API endpoints the profile page and its "Reset my password" modal call
+# (the current-user read the page renders from, the update the modal submits
+# to, and the CSRF token the client fetches before a mutating request). These
+# are listed individually rather than by view class on purpose: the same view
+# classes also serve ``guest_token``, the permissions search and the roles
+# listing, none of which a flagged user needs, and a flagged user's own
+# permissions must not unlock them before the password is changed. The
+# self-service recovery pages and endpoints are exempt as well: they work for
+# anyone holding an emailed token, signed in or not, and a completed recovery
+# satisfies the pending change.
+_EXEMPT_ENDPOINTS = frozenset(
+    {
+        "static",
+        "appbuilder.static",
+        "CurrentUserRestApi.get_me",
+        "CurrentUserRestApi.update_me",
+        "SecurityRestApi.csrf_token",
+        "SupersetAuthView.forgot_password",
+        "SupersetAuthView.reset_password",
+        "PasswordRecoveryRestApi.request_recovery",
+        "PasswordRecoveryRestApi.reset",
+    }
+)
+
+
+def _get_user_attribute(user_id: int) -> Optional[Any]:
+    # Imported lazily to avoid import cycles at app-init time.
+    from superset.extensions import db
+    from superset.models.user_attributes import UserAttribute
+
+    # ``user_attribute.user_id`` carries a unique constraint, but databases
+    # migrated from before the constraint existed could contain duplicate rows.
+    # ``.one_or_none()`` would raise ``MultipleResultsFound`` (a 500) in that
+    # case; fetch deterministically by ordering on the primary key and taking
+    # the first row instead.
+    return (
+        db.session.query(UserAttribute)
+        .filter(UserAttribute.user_id == user_id)
+        .order_by(UserAttribute.id)
+        .first()
+    )
+
+
+def password_change_required(user: Any) -> bool:
+    """Return True if ``user`` has a pending forced password change."""
+    user_id = getattr(user, "id", None)
+    if not user_id:
+        return False
+    attr = _get_user_attribute(user_id)
+    return bool(attr and attr.password_must_change)
+
+
+@transaction()
+def set_password_must_change(user_id: int, value: bool = True) -> None:
+    """Set (or clear) the forced-password-change flag for a user.
+
+    Intended to be called by administrative flows when provisioning an account
+    that should require a password change on first use.
+    """
+    from superset.extensions import db
+    from superset.models.user_attributes import UserAttribute
+
+    attr = _get_user_attribute(user_id)
+    if attr is None:
+        # ``user_attribute.user_id`` carries a unique constraint, so a
+        # concurrent call for the same user can win the insert between our
+        # read and flush. Insert in a nested transaction and, on conflict,
+        # fall through to update the row the winner created (mirroring the
+        # upsert in ``superset.security.session_invalidation``).
+        try:
+            with db.session.begin_nested():
+                db.session.add(
+                    UserAttribute(user_id=user_id, password_must_change=value)
+                )
+            return
+        except IntegrityError:
+            attr = _get_user_attribute(user_id)
+            if attr is None:  # pragma: no cover - the conflicting row vanished
+                raise
+    attr.password_must_change = value
+
+
+def clear_password_must_change(user_id: int) -> None:
+    """Clear the forced-password-change flag for a user, if set.
+
+    Writes through the current session without committing, so a caller that is
+    already inside its own unit of work (``CurrentUserRestApi.pre_update``, the
+    self-service ``PUT /api/v1/me/``) has the change ride its own commit, the
+    same way ``invalidate_sessions_for_user`` does. Callers outside one, such as
+    ``SupersetSecurityManager.reset_password``, commit afterwards themselves.
+    """
+    attr = _get_user_attribute(user_id)
+    if attr and attr.password_must_change:
+        attr.password_must_change = False
+
+
+def _is_exempt_endpoint(endpoint: Optional[str]) -> bool:
+    # A missing endpoint (e.g. an unmatched URL) is left to normal 404 handling.
+    if not endpoint:
+        return True
+    if endpoint in _EXEMPT_ENDPOINTS:
+        return True
+    # Any blueprint's static route, e.g. "<blueprint>.static".
+    if endpoint.endswith(".static"):
+        return True
+    # Match the view-class component exactly, so e.g. "AuthDBView.login" is
+    # exempt but an unrelated "AuthorView.list" is not.
+    view_class = endpoint.split(".", 1)[0]
+    return view_class in _EXEMPT_VIEW_CLASSES
+
+
+def _profile_page_reachable(security_manager: Any) -> bool:
+    """Return whether the current user can reach ``UserInfoView.list``.
+
+    It requires ``can_read`` on ``user``, which ``sync_role_definitions`` only
+    grants to the built-in Admin/Alpha/Gamma roles -- a custom role is never
+    guaranteed to hold it. A user without it who gets redirected there hits
+    FAB's own access-denied redirect (to login), which, since they're already
+    authenticated, bounces straight back to the index -- which re-runs this
+    hook and redirects to the profile page again, looping forever.
+    """
+    return security_manager is not None and bool(
+        security_manager.has_access("can_read", "user")
+    )
+
+
+def _logout_fallback_candidates(security_manager: Any) -> list[str]:
+    """Build the ordered list of logout endpoints to try as a last resort."""
+    candidates = []
+    auth_view = getattr(security_manager, "auth_view", None)
+    # Only redirect to the registered auth view's logout if that view is
+    # itself exempt from this hook; otherwise the redirect would loop.
+    if (
+        auth_view is not None
+        and getattr(auth_view, "endpoint", None) in _EXEMPT_VIEW_CLASSES
+    ):
+        candidates.append(f"{auth_view.endpoint}.logout")
+    candidates.append("AuthDBView.logout")
+    return candidates
+
+
+def _flash_no_profile_access() -> Optional[tuple[str, int]]:
+    """Explain that the user's role cannot reach the profile page.
+
+    Under ``AUTH_REMOTE_USER`` a logout redirect cannot help: the unchanged
+    REMOTE_USER header re-authenticates the user immediately and the request
+    loops. In that case return a terminal ``(body, status)`` response for the
+    caller to return; otherwise flash the message and return ``None``.
+    """
+    message = __(
+        "Your role does not have access to the profile page "
+        "needed to change your password. Contact an "
+        "administrator."
+    )
+    if current_app.config.get("AUTH_TYPE") == AUTH_REMOTE_USER:
+        return message, 403
+    flash(message, "danger")
+    return None
+
+
+def register_password_change_enforcement(app: Any) -> None:
+    """Register the before-request hook that enforces pending password changes.
+
+    No-op unless ``ENABLE_FORCE_PASSWORD_CHANGE`` is enabled, so there is zero
+    per-request overhead in the default configuration.
+    """
+
+    from superset.views.health import health_blueprint
+
+    @app.before_request
+    def _enforce_password_change() -> Any:  # pylint: disable=unused-variable
+        """Redirect flagged users to the profile page's password change.
+
+        Returns ``None`` (request proceeds) for anonymous users, exempt
+        endpoints, and users without a pending change; otherwise returns a
+        redirect to an exempt target (or an error response if none resolves).
+        """
+        if not current_app.config.get("ENABLE_FORCE_PASSWORD_CHANGE"):
+            return None
+
+        user = getattr(g, "user", None)
+        if not user or getattr(user, "is_anonymous", True):
+            return None
+
+        # The whole registered health blueprint, including version(), is exempt
+        # independently of individual route paths or view function names.
+        if (
+            _is_exempt_endpoint(request.endpoint)
+            or request.blueprint == health_blueprint.name
+        ):
+            return None
+
+        if not password_change_required(user):
+            return None
+
+        # Resolve the SPA profile page, if the user can actually reach it, with
+        # logout as the fallback -- which is always exempt from this
+        # enforcement. We must NOT fall back to "/" or any other non-exempt
+        # route: the index re-runs this same hook and would trap the user in
+        # an infinite 302 loop. If no exempt target can be resolved at all,
+        # return an error response rather than redirect, so a flagged user can
+        # never get stuck looping.
+        security_manager = getattr(getattr(current_app, "appbuilder", None), "sm", None)
+        profile_reachable = _profile_page_reachable(security_manager)
+        terminal = None if profile_reachable else _flash_no_profile_access()
+        if terminal is not None:
+            return terminal
+        if profile_reachable:
+            flash(__("You must change your password before continuing."), "warning")
+        candidates = [_PROFILE_PAGE_ENDPOINT] if profile_reachable else []
+        candidates.extend(_logout_fallback_candidates(security_manager))
+        for endpoint in candidates:
+            try:
+                return redirect(url_for(endpoint))
+            except Exception:  # noqa: BLE001, S112  # pylint: disable=broad-except
+                # Try the next exempt fallback; a failed url_for resolution here
+                # is expected/benign and not worth logging per attempt.
+                continue
+        return (
+            __("You must change your password before continuing."),
+            503,
+        )

@@ -25,8 +25,28 @@ import { AnnotationData } from './AnnotationLayer';
  */
 export type DataRecordValue = number | string | boolean | Date | null | bigint;
 
+/**
+ * Semantic containment-cache provenance of one query: HIT when every semantic
+ * query behind it (main plus time offsets) was served from containment, MISS
+ * when none was, MIXED when only some were.
+ */
+export type SemanticCacheStatus = 'HIT' | 'MISS' | 'MIXED';
+
 export interface DataRecord {
   [key: string]: DataRecordValue;
+}
+
+export interface ChartDataQueryTiming {
+  query_planning_ms: number | null;
+  cache_resolution_ms: number | null;
+  data_acquisition_ms: number | null;
+  payload_assembly_ms: number | null;
+  total_ms: number;
+}
+
+export interface ChartDataTiming {
+  version: 1;
+  query: ChartDataQueryTiming;
 }
 
 /**
@@ -60,6 +80,7 @@ export interface ChartDataResponseResult {
   coltypes: GenericDataType[];
   error: string | null;
   is_cached: boolean;
+  semantic_cache_status?: SemanticCacheStatus | null;
   query: string;
   rowcount: number;
   sql_rowcount: number;
@@ -77,12 +98,17 @@ export interface ChartDataResponseResult {
   // TODO(hainenber): define proper type for below attributes
   rejected_filters?: any[];
   applied_filters?: any[];
+  warning?: string | null;
   /**
    * Detected ISO 4217 currency code when AUTO mode is used.
    * Returns the currency code if all filtered data contains a single currency,
    * or null if multiple currencies are present.
    */
   detected_currency?: string | null;
+  /**
+   * Versioned query lifecycle timing in milliseconds.
+   */
+  timing?: ChartDataTiming;
 }
 
 export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {
@@ -96,5 +122,3 @@ export interface TimeseriesChartDataResponseResult extends ChartDataResponseResu
 export interface ChartDataResponse {
   queries: ChartDataResponseResult[];
 }
-
-export default {};

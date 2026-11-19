@@ -27,6 +27,3 @@ class RestApi(BaseApi):
     """
 
     allow_browser_login = True
-
-
-__all__ = ["RestApi"]

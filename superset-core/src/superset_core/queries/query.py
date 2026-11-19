@@ -46,6 +46,3 @@ def get_sqlglot_dialect(database: "Database") -> Dialects:
     :returns: The SQLGlot dialect enum corresponding to the database.
     """
     raise NotImplementedError("Function will be replaced during initialization")
-
-
-__all__ = ["get_sqlglot_dialect"]

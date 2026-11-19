@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
+
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 
@@ -30,7 +32,20 @@ class SybaseEngineSpec(MssqlEngineSpec):
     engine = "sybase"
     engine_name = "SAP Sybase"
     engine_aliases = {"sybase_sqlany"}  # Support SQL Anywhere dialect too
+
+    # SAP ASE's `quoted_identifier` session option defaults to OFF, in which
+    # case double-quoted strings are parsed as string literals rather than
+    # identifiers. Square brackets, inherited from MssqlEngineSpec, work
+    # regardless of that setting, so no override is needed here.
     default_driver = "pyodbc"
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Keep SAP ASE on the SQLAlchemy URI form: it connects through an ODBC
+        DSN rather than the host/port URI the dynamic form builds.
+        """
+        return None
 
     metadata = {
         "description": (
