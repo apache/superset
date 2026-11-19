@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 09:45+1100\n"
+"POT-Creation-Date: 2026-11-18 21:53-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3455,6 +3455,9 @@ msgid "Choose a chart for displaying on the map"
 msgstr ""
 
 msgid "Choose a chart or dashboard not both"
+msgstr ""
+
+msgid "Choose a data connection to browse schemas, tables, and views."
 msgstr ""
 
 msgid "Choose a database..."
@@ -9067,9 +9070,6 @@ msgstr ""
 msgid "Manage filters and customizations to set scoping, descriptions, and limitations. Create new elements for better dashboard insights."
 msgstr ""
 
-msgid "Manage your databases"
-msgstr ""
-
 msgid "Mandatory"
 msgstr ""
 
@@ -9882,12 +9882,6 @@ msgid "No data found"
 msgstr ""
 
 msgid "No data in file"
-msgstr ""
-
-msgid "No databases available"
-msgstr ""
-
-msgid "No databases match your search"
 msgstr ""
 
 msgid "No description available."
@@ -12701,6 +12695,9 @@ msgid "Select a column"
 msgstr ""
 
 msgid "Select a dashboard"
+msgstr ""
+
+msgid "Select a data connection"
 msgstr ""
 
 msgid "Select a database"

@@ -28,7 +28,7 @@ import {
   useLazyTableMetadataQuery,
   useLazyTableExtendedMetadataQuery,
 } from 'src/hooks/apiResources';
-import { addDangerToast } from 'src/SqlLab/actions/sqlLab';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import type { TreeNodeData } from './types';
 import { ClientErrorObject, SupersetError } from '@superset-ui/core';
 
@@ -118,6 +118,7 @@ function treeDataReducer(
 
 interface UseTreeDataParams {
   dbId: number | undefined;
+  supportsSchemas?: boolean;
   catalog: string | null | undefined;
   pinnedTables: Record<string, TableMetaData | undefined>;
 }
@@ -148,11 +149,12 @@ const useTreeData = ({
   dbId,
   catalog,
   pinnedTables,
+  supportsSchemas = true,
 }: UseTreeDataParams): UseTreeDataResult => {
   const reduxDispatch = useAppDispatch();
   // Schema data from API
   const {
-    currentData: schemaData,
+    currentData: schemaOptions,
     isFetching,
     refetch,
   } = useSchemas({ dbId, catalog: catalog || undefined });
@@ -405,7 +407,11 @@ const useTreeData = ({
 
   // Build tree data
   const treeData = useMemo((): TreeNodeData[] => {
-    const data = schemaData?.map(schema => {
+    const schemas =
+      !supportsSchemas && dbId
+        ? [{ value: '', label: t('Tables') }]
+        : schemaOptions;
+    const data = schemas?.map(schema => {
       const schemaKey = `${dbId}:${schema.value}`;
       const schemaId = `schema:${dbId}:${schema.value}`;
       const tablesData = tableData?.[schemaKey];
@@ -446,6 +452,7 @@ const useTreeData = ({
           return {
             id: tableId,
             name: tableName,
+            schema: schema.value,
             type: 'table' as const,
             tableType,
             children: tableChildren,
@@ -460,6 +467,7 @@ const useTreeData = ({
       return {
         id: schemaId,
         name: schema.label,
+        schema: schema.value,
         type: 'schema' as const,
         children: schemaChildren,
         disableCheckbox: !tablesData,
@@ -467,7 +475,14 @@ const useTreeData = ({
     });
 
     return data ?? [];
-  }, [dbId, schemaData, tableData, tableSchemaData, pinnedTables]);
+  }, [
+    dbId,
+    schemaOptions,
+    supportsSchemas,
+    tableData,
+    tableSchemaData,
+    pinnedTables,
+  ]);
 
   // Map of tableKey -> selectStar SQL from table metadata
   const selectStarMap = useMemo(() => {

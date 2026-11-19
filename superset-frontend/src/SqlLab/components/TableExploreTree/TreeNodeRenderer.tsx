@@ -24,7 +24,7 @@ import { Icons, Typography } from '@superset-ui/core/components';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import copyTextToClipboard from 'src/utils/copy';
-import type { TreeNodeData } from './types';
+import { type TreeNodeData, type TableReference } from './types';
 
 const StyledColumnNode = styled.div`
   & > .ant-flex {
@@ -97,6 +97,8 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
   refreshTableSchema: (id: string) => void;
   sortedTables: Record<string, boolean>;
   toggleSortColumns: (tableId: string) => void;
+  showTablePins?: boolean;
+  onPreviewTable?: (table: TableReference) => void;
 }
 
 const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
@@ -116,12 +118,16 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   refreshTableSchema,
   sortedTables,
   toggleSortColumns,
+  showTablePins = true,
+  onPreviewTable,
 }) => {
   const theme = useTheme();
   const { data } = node;
   const parts = data.id.split(':');
-  const [identifier, _dbId, schema, tableName] = parts;
-
+  const [identifier, _dbId, parsedSchema, parsedTable] = parts;
+  const schema = data.schema ?? parsedSchema;
+  const tableName = data.type === 'table' ? data.name : parsedTable;
+  const table = { schema, table_name: tableName };
   const isManuallyOpen = node.isOpen && !node.data.disableCheckbox;
   const isLoading = loadingNodes[data.id] ?? false;
 
@@ -219,6 +225,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       data-selected={node.isSelected}
       onClick={e => {
         e.stopPropagation();
+        if (data.type === 'table') onPreviewTable?.(table);
         if (node.isLeaf) {
           node.select();
         } else {
@@ -226,6 +233,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         }
       }}
       onKeyDown={handleKeyboardActivation(() => {
+        if (data.type === 'table') onPreviewTable?.(table);
         if (node.isLeaf) {
           node.select();
         } else {
@@ -384,30 +392,32 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                   icon={<Icons.SyncOutlined iconSize="m" />}
                   onClick={() => refreshTableSchema(data.id)}
                 />
-                <ActionButton
-                  label={
-                    isPinned
-                      ? `unpin-${schema}-${tableName}`
-                      : `pin-${schema}-${tableName}`
-                  }
-                  tooltip={
-                    isPinned
-                      ? t('Unpin from the result panel')
-                      : t('Pin to the result panel')
-                  }
-                  icon={
-                    isPinned ? (
-                      <Icons.PushpinFilled iconSize="m" />
-                    ) : (
-                      <Icons.PushpinOutlined iconSize="m" />
-                    )
-                  }
-                  onClick={() =>
-                    isPinned
-                      ? handleUnpinTable(tableName, schema)
-                      : handlePinTable(tableName, schema, catalog ?? null)
-                  }
-                />
+                {showTablePins && (
+                  <ActionButton
+                    label={
+                      isPinned
+                        ? `unpin-${schema}-${tableName}`
+                        : `pin-${schema}-${tableName}`
+                    }
+                    tooltip={
+                      isPinned
+                        ? t('Unpin from the result panel')
+                        : t('Pin to the result panel')
+                    }
+                    icon={
+                      isPinned ? (
+                        <Icons.PushpinFilled iconSize="m" />
+                      ) : (
+                        <Icons.PushpinOutlined iconSize="m" />
+                      )
+                    }
+                    onClick={() =>
+                      isPinned
+                        ? handleUnpinTable(tableName, schema)
+                        : handlePinTable(tableName, schema, catalog ?? null)
+                    }
+                  />
+                )}
                 <ActionButton
                   label={`toggle-${schema}-${tableName}`}
                   tooltip={isManuallyOpen ? t('Collapse') : t('Expand')}

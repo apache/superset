@@ -27,6 +27,10 @@ import {
 } from 'react';
 import { useSelector, shallowEqual } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import type { SqlLabRootState } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import { addTable, removeTables } from 'src/SqlLab/actions/sqlLab';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
@@ -39,25 +43,36 @@ import {
   Input,
   Empty,
   Button,
+  Flex,
 } from '@superset-ui/core/components';
-import type { SqlLabRootState } from 'src/SqlLab/types';
-import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { addTable, removeTables } from 'src/SqlLab/actions/sqlLab';
 import {
   getItem,
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { ViewLocations } from 'src/SqlLab/contributions';
 import TreeNodeRenderer from './TreeNodeRenderer';
 import useTreeData, { EMPTY_NODE_ID_PREFIX } from './useTreeData';
-import type { TreeNodeData } from './types';
+import { type TreeNodeData, type TableReference } from './types';
+import type { TableMetaData } from 'src/hooks/apiResources';
 import { ErrorMessageWithStackTrace } from 'src/components';
 
-type Props = {
-  queryEditorId: string;
-};
+export interface TableBrowserProps {
+  dbId?: number;
+  supportsSchemas?: boolean;
+  schema?: string;
+  catalog?: string | null;
+  pinnedTables?: Record<string, TableMetaData | undefined>;
+  pinnedTableKeys?: Set<string>;
+  onPinTable?: (table: string, schema: string, catalog: string | null) => void;
+  onUnpinTable?: (table: string, schema: string) => void;
+  toolbarViewId?: string;
+  onPreviewTable?: (table: TableReference) => void;
+}
+
+const EMPTY_PINNED_TABLES = {};
+const EMPTY_PINNED_KEYS = new Set<string>();
+const ignorePin = () => {};
 
 const StyledTreeContainer = styled.div`
   flex: 1 1 auto;
@@ -163,32 +178,20 @@ const savePinnedSchemasToStorage = (
   });
 };
 
-const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
-  const dispatch = useAppDispatch();
+export const TableBrowser = ({
+  dbId,
+  catalog,
+  supportsSchemas,
+  schema,
+  pinnedTables = EMPTY_PINNED_TABLES,
+  pinnedTableKeys = EMPTY_PINNED_KEYS,
+  onPinTable: handlePinTable = ignorePin,
+  onUnpinTable: handleUnpinTable = ignorePin,
+  toolbarViewId,
+  onPreviewTable,
+}: TableBrowserProps) => {
   const theme = useTheme();
   const treeRef = useRef<TreeApi<TreeNodeData>>(null);
-  const tables = useSelector(
-    ({ sqlLab }: SqlLabRootState) => sqlLab.tables,
-    shallowEqual,
-  );
-  const queryEditor = useQueryEditor(queryEditorId, [
-    'dbId',
-    'catalog',
-    'tabViewId',
-  ]);
-  const { dbId, catalog } = queryEditor;
-  const editorId = queryEditor.tabViewId ?? queryEditor.id;
-  const pinnedTables = useMemo(
-    () =>
-      Object.fromEntries(
-        tables.map(({ queryEditorId, dbId, schema, name, persistData }) => [
-          editorId === queryEditorId ? `${dbId}:${schema}:${name}` : '',
-          persistData,
-        ]),
-      ),
-    [tables, editorId],
-  );
-
   // Tree data hook - manages schema/table/column data fetching and tree structure
   const {
     treeData,
@@ -204,39 +207,9 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     dbId,
     catalog,
     pinnedTables,
+    supportsSchemas,
   });
 
-  const pinnedTableKeys = useMemo(
-    () =>
-      new Set(
-        tables
-          .filter(({ queryEditorId: qeId }) => editorId === qeId)
-          .map(({ dbId, schema, name }) => `${dbId}:${schema}:${name}`),
-      ),
-    [tables, editorId],
-  );
-
-  const handlePinTable = useCallback(
-    (tableName: string, schemaName: string, catalogName: string | null) =>
-      dispatch(addTable(queryEditor, tableName, catalogName, schemaName)),
-    [dispatch, queryEditor],
-  );
-
-  const handleUnpinTable = useCallback(
-    (tableName: string, schemaName: string) => {
-      const table = tables.find(
-        t =>
-          t.queryEditorId === editorId &&
-          t.dbId === dbId &&
-          t.schema === schemaName &&
-          t.name === tableName,
-      );
-      if (table) {
-        dispatch(removeTables([table]));
-      }
-    },
-    [dispatch, tables, editorId, dbId],
-  );
   const [pinnedSchemas, setPinnedSchemas] = useState<Set<string>>(() =>
     getPinnedSchemasFromStorage(dbId, catalog),
   );
@@ -341,6 +314,18 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
       .forEach(([id]) => treeRef.current?.open(id));
   }, [treeData]);
 
+  const revealedSchemaRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const schemaId = dbId && schema ? `schema:${dbId}:${schema}` : undefined;
+    if (revealedSchemaRef.current === schemaId) return;
+    revealedSchemaRef.current = schemaId;
+    setSearchTerm('');
+    if (!schemaId) return;
+    setManuallyOpenedNodes(previous => ({ ...previous, [schemaId]: true }));
+    handleToggle(schemaId, true);
+    treeRef.current?.open(schemaId);
+  }, [dbId, schema, handleToggle]);
+
   // Custom search match function for react-arborist
   const searchMatch = useCallback(
     (node: NodeApi<TreeNodeData>, term: string): boolean => {
@@ -409,6 +394,8 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         refreshTableSchema={refreshTableSchema}
         sortedTables={sortedTables}
         toggleSortColumns={toggleSortColumns}
+        showTablePins={Boolean(toolbarViewId)}
+        onPreviewTable={onPreviewTable}
       />
     ),
     [
@@ -427,9 +414,33 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
       loadingNodes,
       manuallyOpenedNodes,
       deferredSearchTerm,
+      toolbarViewId,
+      onPreviewTable,
     ],
   );
 
+  const toolbarActions = (
+    <>
+      <Button
+        color="primary"
+        variant="text"
+        icon={<Icons.MinusSquareOutlined />}
+        onClick={() => {
+          treeRef.current?.closeAll();
+          setManuallyOpenedNodes({});
+        }}
+        tooltip={t('Collapse all')}
+      />
+      <Button
+        color="primary"
+        variant="text"
+        icon={<Icons.ReloadOutlined />}
+        onClick={() => refetch()}
+        loading={isFetching}
+        tooltip={t('Force refresh schema list')}
+      />
+    </>
+  );
   return (
     <>
       {/* Negative margin to align toolbar icons with other elements on the screen */}
@@ -438,31 +449,14 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
           margin-left: -${theme.sizeUnit * 2}px;
         `}
       >
-        <PanelToolbar
-          viewId={ViewLocations.sqllab.leftSidebar}
-          defaultPrimaryActions={
-            <>
-              <Button
-                color="primary"
-                variant="text"
-                icon={<Icons.MinusSquareOutlined />}
-                onClick={() => {
-                  treeRef.current?.closeAll();
-                  setManuallyOpenedNodes({});
-                }}
-                tooltip={t('Collapse all')}
-              />
-              <Button
-                color="primary"
-                variant="text"
-                icon={<Icons.ReloadOutlined />}
-                onClick={() => refetch()}
-                loading={isFetching}
-                tooltip={t('Force refresh schema list')}
-              />
-            </>
-          }
-        />
+        {toolbarViewId ? (
+          <PanelToolbar
+            viewId={toolbarViewId}
+            defaultPrimaryActions={toolbarActions}
+          />
+        ) : (
+          <Flex>{toolbarActions}</Flex>
+        )}
       </div>
       <Input
         allowClear
@@ -557,4 +551,75 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   );
 };
 
-export default TableExploreTree;
+export default function TableExploreTree({
+  queryEditorId,
+}: {
+  queryEditorId: string;
+}) {
+  const dispatch = useAppDispatch();
+  const tables = useSelector(
+    ({ sqlLab }: SqlLabRootState) => sqlLab.tables,
+    shallowEqual,
+  );
+  const queryEditor = useQueryEditor(queryEditorId, [
+    'dbId',
+    'catalog',
+    'tabViewId',
+  ]);
+  const { dbId, catalog } = queryEditor;
+  const editorId = queryEditor.tabViewId ?? queryEditor.id;
+  const pinnedTables = useMemo(
+    () =>
+      Object.fromEntries(
+        tables.map(({ queryEditorId, dbId, schema, name, persistData }) => [
+          editorId === queryEditorId ? `${dbId}:${schema}:${name}` : '',
+          persistData,
+        ]),
+      ),
+    [tables, editorId],
+  );
+
+  const pinnedTableKeys = useMemo(
+    () =>
+      new Set(
+        tables
+          .filter(({ queryEditorId: qeId }) => editorId === qeId)
+          .map(({ dbId, schema, name }) => `${dbId}:${schema}:${name}`),
+      ),
+    [tables, editorId],
+  );
+
+  const handlePinTable = useCallback(
+    (tableName: string, schemaName: string, catalogName: string | null) =>
+      dispatch(addTable(queryEditor, tableName, catalogName, schemaName)),
+    [dispatch, queryEditor],
+  );
+
+  const handleUnpinTable = useCallback(
+    (tableName: string, schemaName: string) => {
+      const table = tables.find(
+        t =>
+          t.queryEditorId === editorId &&
+          t.dbId === dbId &&
+          t.schema === schemaName &&
+          t.name === tableName,
+      );
+      if (table) {
+        dispatch(removeTables([table]));
+      }
+    },
+    [dispatch, tables, editorId, dbId],
+  );
+
+  return (
+    <TableBrowser
+      dbId={dbId}
+      catalog={catalog}
+      pinnedTables={pinnedTables}
+      pinnedTableKeys={pinnedTableKeys}
+      onPinTable={handlePinTable}
+      onUnpinTable={handleUnpinTable}
+      toolbarViewId={ViewLocations.sqllab.leftSidebar}
+    />
+  );
+}
