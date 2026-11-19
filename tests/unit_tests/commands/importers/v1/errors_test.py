@@ -191,3 +191,71 @@ def test_import_error_retains_engine_after_config_is_consumed() -> None:
         fail_after_consuming_config()
     assert "rejected the connection credentials" in caught.value.message
     assert "hidden-user" not in caught.value.message
+
+
+@pytest.mark.parametrize(
+    "driver", ["trino", "pyhive.presto", "snowflake.connector.errors"]
+)
+@pytest.mark.parametrize("failure", ["connection", "tls", "authentication"])
+def test_http_driver_failures(driver: str, failure: str) -> None:
+    """Real optional driver wrappers retain HTTP transport recovery and redact URLs."""
+    from requests import exceptions, Response
+
+    module = pytest.importorskip(driver)
+    transport: Exception
+    if failure == "connection":
+        transport = exceptions.ConnectionError("https://secret-host/?password=secret")
+        expected = "could not reach"
+    elif failure == "tls":
+        transport = exceptions.SSLError("secret-certificate")
+        expected = "TLS connection failed"
+    else:
+        response = Response()
+        response.status_code = 401
+        transport = exceptions.HTTPError("secret-token", response=response)
+        expected = "credentials"
+    if driver == "trino":
+        cause = module.exceptions.TrinoConnectionError("failed to execute: secret")
+        uri = "trino://user@host/catalog"
+    elif driver == "pyhive.presto":
+        cause = module.DatabaseError(transport)
+        uri = "presto://user@host/catalog"
+    else:
+        cause = module.OperationalError(msg="secret-account", errno=250003)
+        uri = "snowflake://user@host/db"
+    cause.__context__ = transport
+    with pytest.raises(ImportAssetError) as caught:
+        with import_error_context("databases/example.yaml", {"sqlalchemy_uri": uri}):
+            raise cause
+    assert expected in caught.value.message
+    assert caught.value.status == 400
+    assert "secret" not in caught.value.message
+
+
+def test_snowflake_connection_failure_without_transport_cause() -> None:
+    """A connector's standalone connection error still has account-specific advice."""
+    errors = pytest.importorskip("snowflake.connector.errors")
+    cause = errors.OperationalError(
+        msg="secret-account failed to connect", errno=250001
+    )
+    with pytest.raises(ImportAssetError) as caught:
+        with import_error_context(
+            "databases/example.yaml", {"sqlalchemy_uri": "snowflake://user@host/db"}
+        ):
+            raise cause
+    assert caught.value.status == 400
+    assert "account identifier" in caught.value.message
+    assert "secret-account" not in caught.value.message
+
+
+def test_trino_auth_failure_without_transport_cause() -> None:
+    """Trino's authentication wrapper has a credential recovery step."""
+    errors = pytest.importorskip("trino.exceptions")
+    with pytest.raises(ImportAssetError) as caught:
+        with import_error_context(
+            "databases/example.yaml", {"sqlalchemy_uri": "trino://user@host/catalog"}
+        ):
+            raise errors.TrinoAuthError("secret-token")
+    assert caught.value.status == 400
+    assert "credentials" in caught.value.message
+    assert "secret-token" not in caught.value.message

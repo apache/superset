@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from flask_babel import gettext as _
 from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
 from sqlalchemy.orm import Session  # noqa: F401
@@ -147,7 +148,12 @@ class ImportModelsCommand(BaseCommand):
 
             error_summary = "; ".join(detailed_errors)
             raise CommandInvalidError(
-                f"Error importing {self.model_name}: {error_summary}",
+                _(
+                    "Error importing %(model)s: %(details)s. Re-export the assets from "
+                    "a compatible Superset version, then retry with the new file.",
+                    model=self.model_name,
+                    details=error_summary,
+                ),
                 exceptions,
             )
 

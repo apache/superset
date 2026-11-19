@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from marshmallow import Schema
+from marshmallow import Schema, ValidationError
 from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import select
 
@@ -171,6 +171,20 @@ class ImportDashboardsCommand(ImportModelsCommand):
             if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
                 database_uuids.add(config["database_uuid"])
 
+        # Missing bundled dependencies are invalid input, not server failures.
+        for prefix, required in (
+            ("charts/", chart_uuids),
+            ("datasets/", dataset_uuids),
+            ("databases/", database_uuids),
+        ):
+            supplied = {
+                str(config["uuid"])
+                for name, config in configs.items()
+                if name.startswith(prefix)
+            }
+            if required - supplied:
+                raise ValidationError("Missing bundled dependency")
+
         # assets inside dashboard databases, datasets and charts
         # should be overwritten only if both flags are set to True
         overwrite_assets = overwrite and kwargs.get("overwrite_all", False)
@@ -191,7 +205,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 # Keep engine metadata after import_database consumes the config.
                 database_config = config.copy()
                 # Dashboard bundles carry only some Secure Extra blocks.
-                with import_error_context(file_name, database_config):
+                with import_error_context(
+                    file_name, database_config, use_existing=not overwrite_assets
+                ):
                     database = import_database(
                         config, overwrite=overwrite_assets, partial_secure_extra=True
                     )

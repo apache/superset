@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+import socket
 import ssl
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -24,13 +25,16 @@ from uuid import uuid4
 
 from flask_babel import gettext as _
 from marshmallow import ValidationError
+from requests import exceptions as requests_exceptions
 from sqlalchemy.exc import (
     DBAPIError,
     IntegrityError,
     NoSuchModuleError,
     TimeoutError as SQLAlchemyTimeoutError,
 )
+from urllib3 import exceptions as urllib3_exceptions
 
+from superset import db
 from superset.commands.dataset.exceptions import MultiCatalogDisabledValidationError
 from superset.commands.exceptions import (
     CommandException,
@@ -55,6 +59,64 @@ class ImportAssetError(ImportFailedError):
     """An import failure with safe asset context and a recovery action."""
 
 
+def _exception_chain(ex: Exception) -> list[Exception]:
+    """Follow driver wrappers without assuming a particular DBAPI implementation."""
+    pending = [ex]
+    result = []
+    seen: set[int] = set()
+    while pending:
+        error = pending.pop()
+        if id(error) in seen:
+            continue
+        seen.add(id(error))
+        result.append(error)
+        for nested in (
+            error.__cause__,
+            error.__context__,
+            getattr(error, "orig", None),
+            getattr(error, "reason", None),
+            *error.args,
+        ):
+            if isinstance(nested, Exception):
+                pending.append(nested)
+    return result
+
+
+def _transport_error_type(ex: Exception) -> SupersetErrorType | None:
+    """Recognize HTTP transports used by warehouse and query-engine drivers."""
+    errors = _exception_chain(ex)
+    for error in errors:
+        if (
+            type(error).__module__ == "trino.exceptions"
+            and type(error).__name__ == "TrinoAuthError"
+        ):
+            return SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
+        if isinstance(error, requests_exceptions.HTTPError):
+            status = error.response.status_code if error.response is not None else None
+            if status in {401, 403}:
+                return SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
+        if isinstance(
+            error, (requests_exceptions.Timeout, urllib3_exceptions.TimeoutError)
+        ):
+            return SupersetErrorType.CONNECTION_DATABASE_TIMEOUT
+    for error in errors:
+        if isinstance(
+            error,
+            (
+                requests_exceptions.ConnectionError,
+                urllib3_exceptions.NewConnectionError,
+                urllib3_exceptions.MaxRetryError,
+                ConnectionError,
+                socket.gaierror,
+            ),
+        ) or (
+            type(error).__module__ == "trino.exceptions"
+            and type(error).__name__ == "TrinoConnectionError"
+        ):
+            return SupersetErrorType.CONNECTION_HOST_DOWN_ERROR
+    return None
+
+
 def _database_error_type(
     ex: Exception, config: dict[str, Any]
 ) -> SupersetErrorType | None:
@@ -63,6 +125,8 @@ def _database_error_type(
         return ex.error.error_type
     if isinstance(ex, SupersetErrorsException) and ex.errors:
         return ex.errors[0].error_type
+    if config and (transport_type := _transport_error_type(ex)):
+        return transport_type
     if not config.get("sqlalchemy_uri"):
         return None
     try:
@@ -103,10 +167,16 @@ def _recovery_message(ex: Exception, config: dict[str, Any]) -> str | None:
     if isinstance(ex, ValidationError):
         return _(
             "The asset configuration is invalid. Review this file's fields "
-            "and references against the destination Superset version, then "
-            "retry the import."
+            "and references. Re-export the assets from a compatible Superset "
+            "version, then retry with the new file."
         )
-    if isinstance(ex, ssl.SSLError):
+    if any(
+        isinstance(
+            error,
+            (ssl.SSLError, requests_exceptions.SSLError, urllib3_exceptions.SSLError),
+        )
+        for error in _exception_chain(ex)
+    ):
         return _(
             "The database TLS connection failed. Ask an administrator to "
             "check the certificate and connection security settings, then "
@@ -118,6 +188,16 @@ def _recovery_message(ex: Exception, config: dict[str, Any]) -> str | None:
             "and network access, then retry the import."
         )
 
+    if config and any(
+        type(error).__module__ == "snowflake.connector.errors"
+        and getattr(error, "errno", None) == 250001
+        for error in _exception_chain(ex)
+    ):
+        return _(
+            "The Snowflake connection could not be established. Check the account "
+            "identifier, connection address, network access, and authentication "
+            "settings, then retry the import."
+        )
     return _database_recovery_message(ex, config)
 
 
@@ -179,12 +259,28 @@ def _database_recovery_message(ex: Exception, config: dict[str, Any]) -> str | N
 
 @contextmanager
 def import_error_context(
-    asset: str, database_config: dict[str, Any] | None = None
+    asset: str,
+    database_config: dict[str, Any] | None = None,
+    *,
+    use_existing: bool = True,
 ) -> Iterator[None]:
     """Add safe context while retaining validation and credential prompt contracts."""
     # Importers consume fields such as sqlalchemy_uri from the input mapping.
     # Retain the engine identity for errors raised after that mutation.
     config = (database_config or {}).copy()
+    if config:
+        # A UUID match can reuse a connection whose name and URI differ from
+        # the source export. Resolve context before an import can mutate it.
+        existing = (
+            db.session.query(Database).filter_by(uuid=config["uuid"]).first()
+            if config.get("uuid") and use_existing
+            else None
+        )
+        name = existing.database_name if existing else config.get("database_name")
+        if name:
+            asset = _('database "%(name)s" (%(file)s)', name=name, file=asset)
+        if existing:
+            config["sqlalchemy_uri"] = existing.sqlalchemy_uri
     try:
         yield
     except CommandException as ex:

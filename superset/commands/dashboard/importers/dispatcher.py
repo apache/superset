@@ -18,6 +18,7 @@
 import logging
 from typing import Any
 
+from flask_babel import gettext as _
 from marshmallow.exceptions import ValidationError
 
 from superset.commands.base import BaseCommand
@@ -72,8 +73,11 @@ class ImportDashboardsCommand(BaseCommand):
                 raise
 
         raise CommandInvalidError(
-            "This file is not a supported dashboard export. Select a dashboard ZIP "
-            "exported by a compatible Superset version, then retry."
+            _(
+                "This file is not a supported dashboard export. "
+                "Re-export the dashboard "
+                "from a compatible Superset version, then retry with the new ZIP file."
+            )
         )
 
     def validate(self) -> None:

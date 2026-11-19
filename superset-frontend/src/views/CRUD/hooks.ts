@@ -732,7 +732,12 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  error.message || error.error,
+                  [
+                    error.message || error.error,
+                    t(
+                      'Check the import file and destination connection settings. If the problem continues, contact an administrator with the error and time of the import.',
+                    ),
+                  ].join('\n'),
                 ),
               );
               return false;
@@ -742,7 +747,16 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  error.errors.map(payload => payload.message).join('\n'),
+                  [
+                    ...error.errors.map(payload => payload.message),
+                    ...(resourceName !== 'dashboard'
+                      ? [
+                          t(
+                            'Check the import file and destination connection settings. If the problem continues, contact an administrator with the error and time of the import.',
+                          ),
+                        ]
+                      : []),
+                  ].join('\n'),
                 ),
               );
             } else {
@@ -769,7 +783,20 @@ export function useImportResource(
     [handleErrorMsg, resourceLabel, resourceName, updateState],
   );
 
-  return { state, importResource };
+  const resetImportState = useCallback(() => {
+    updateState({
+      loading: false,
+      failed: false,
+      passwordsNeeded: [],
+      alreadyExists: [],
+      sshPasswordNeeded: [],
+      sshPrivateKeyNeeded: [],
+      sshPrivateKeyPasswordNeeded: [],
+      encryptedExtraFieldsNeeded: [],
+    });
+  }, [updateState]);
+
+  return { state, importResource, resetImportState };
 }
 
 type FavoriteStatusResponse = {
