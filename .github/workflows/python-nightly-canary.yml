@@ -60,6 +60,9 @@ jobs:
       # next Python. Otherwise the same settings as Python-Unit's "Python unit
       # tests" step (superset-python-unittest.yml), which explains each flag.
       - name: Python unit tests
+        # Under the job's 45 minutes on purpose: a step timeout fails the
+        # job, so notify-on-failure fires; a job timeout only cancels it.
+        timeout-minutes: 40
         env:
           SUPERSET_TESTENV: true
           SUPERSET_SECRET_KEY: not-a-secret
