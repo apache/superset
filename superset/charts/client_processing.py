@@ -652,16 +652,18 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             for col in df.columns:
                 # we need to replace the temporary placeholder with either a string
                 # or np.nan, depending on the column type so that they can sum correctly
-                if pd.api.types.is_numeric_dtype(df[col]):
-                    df[col].replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
-                else:
-                    df[col].replace("SUPERSET_PANDAS_NAN", "nan", inplace=True)
+                # Assigning the result back is required: under copy-on-write,
+                # an inplace replace on df[col] only updates a copy.
+                missing = np.nan if pd.api.types.is_numeric_dtype(df[col]) else "nan"
+                df[col] = df[col].replace("SUPERSET_PANDAS_NAN", missing)
         else:
             # when we applied metrics on rows, we switched the columns and rows
             # so checking column type doesn't apply. Replace everything with np.nan
             df.replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
         for level in range(df.columns.nlevels):
             subgroups = {group[:level] for group in groups}
+            subtotals: dict[tuple[Any, ...], pd.Series] = {}
+            positions: list[tuple[int, tuple[Any, ...]]] = []
             for subgroup in subgroups:
                 slice_ = df.columns.get_loc(subgroup)
                 block = df.iloc[:, slice_]
@@ -684,14 +686,37 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 depth = df.columns.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal_name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
-                # insert column after subgroup
-                df.insert(int(slice_.stop), subtotal_name, subtotal)
+                subtotals[subtotal_name] = subtotal
+                positions.append((int(slice_.stop), subtotal_name))
                 inserted_columns.append(subtotal_name)
                 if mixed_metrics:
                     mixed_metric_totals.append(subtotal_name)
                 column_prefix_depth[subtotal_name] = (
                     level if combine_metrics else max(0, level - 1)
                 )
+
+            if not subtotals:
+                continue
+            # Batch each level so adding many subtotals does not fragment the
+            # frame. Deeper levels still see the preceding levels' totals.
+            # Preserve level ordering: rebuilding from tuples can make this
+            # unsorted and trigger lexsort PerformanceWarnings on prefix lookup.
+            # Place values by position: Index.insert can coerce the empty
+            # padding of a temporal label to NaT, which label lookup would miss.
+            width = df.shape[1]
+            column_order = df.columns
+            take = list(range(width))
+            for offset, (position, name) in sorted(
+                enumerate(positions), key=lambda item: item[1][0], reverse=True
+            ):
+                if name in df.columns:
+                    raise ValueError(f"cannot insert {name}, already exists")
+                column_order = column_order.insert(position, name)
+                take.insert(position, width + offset)
+            subtotal_frame = pd.DataFrame(subtotals, index=df.index)
+            df = pd.concat([df, subtotal_frame], axis=1, ignore_index=True)
+            df = df.iloc[:, take]
+            df.columns = column_order
 
     if rows and show_columns_total:
         # add subtotal for each group and overall total; we start from the
@@ -1006,9 +1031,11 @@ def format_column(
                     format_number_with_config, small_d3_format, small_currency or {}
                 )
                 df[column] = df[column].apply(
-                    lambda value: format_small(value)
-                    if is_small_number(value)
-                    else format_value(value)
+                    lambda value: (
+                        format_small(value)
+                        if is_small_number(value)
+                        else format_value(value)
+                    )
                 )
                 return
             df[column] = df[column].apply(format_value)
@@ -1633,6 +1660,12 @@ def apply_client_processing(  # noqa: C901
             df = _read_excel_for_client_processing(
                 data, form_data, datasource.data["verbose_map"] if datasource else None
             )
+
+        if len(df.index) == 0:
+            # An export with headers but no rows is passed through unprocessed:
+            # the pivot post-processor assumes at least one row (pivoting drops
+            # the metric columns of an empty frame and then fails to select them).
+            continue
 
         # Serialized exports already carry labels from QueryContextProcessor.get_data.
         # Remapping those labels can mistake them for another column's raw name.
