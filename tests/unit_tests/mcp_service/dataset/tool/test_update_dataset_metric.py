@@ -23,7 +23,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastmcp import Client, FastMCP
 from pydantic import ValidationError
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric
 from superset.mcp_service.app import mcp
@@ -34,6 +37,16 @@ from superset.utils import json
 
 def _wrapped(value: str) -> str:
     return value
+
+
+@pytest.fixture
+def session_engine() -> Engine:
+    """Let the tool worker thread use the ``session`` built by this test."""
+    # The injected Session is handed from setup to a single tool worker
+    # sequentially; concurrent ownership is covered with scoped sessions.
+    return create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
 
 
 @pytest.fixture

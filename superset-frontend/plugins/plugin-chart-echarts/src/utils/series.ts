@@ -39,7 +39,15 @@ import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
-import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
+import {
+  escape,
+  isEmpty,
+  maxBy,
+  meanBy,
+  minBy,
+  orderBy,
+  sumBy,
+} from 'lodash-es';
 import {
   NULL_STRING,
   StackControlsValue,
@@ -53,6 +61,7 @@ import {
   StackType,
 } from '../types';
 import { defaultLegendPadding } from '../defaults';
+import { coerceTemporalMs } from './formatters';
 
 function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
@@ -71,7 +80,31 @@ const LEGEND_MARGIN_GUTTER = 45;
 // ECharts does not expose pre-render measurements for plain legends, so these
 // values intentionally overestimate selector space to avoid clipping.
 const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
-const LEGEND_TEXT_WIDTH_CACHE = new Map<string, number>();
+// Keyed on every distinct legend label ever measured, so an unbounded cache
+// could grow with high-cardinality data over a long session. Cap it and evict
+// the least-recently-used entry once full.
+const TEXT_WIDTH_CACHE_MAX_SIZE = 2000;
+const TEXT_WIDTH_CACHE = new Map<string, number>();
+// Approximate glyph width as a fraction of the font size, used to estimate
+// text width when canvas measurement is unavailable (e.g. SSR).
+const APPROX_CHAR_WIDTH_RATIO = 0.62;
+
+function getTextMeasureContext(
+  theme: SupersetTheme,
+): CanvasRenderingContext2D | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const context = document.createElement('canvas').getContext('2d');
+  if (context) {
+    context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
+  }
+  return context;
+}
+
+function estimateTextWidth(text: string, theme: SupersetTheme): number {
+  return text.length * theme.fontSizeSM * APPROX_CHAR_WIDTH_RATIO;
+}
 
 type LegendDataItem =
   | string
@@ -97,26 +130,54 @@ function getLegendLabel(item: LegendDataItem): string {
   return String(item.name);
 }
 
-function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
+export function measureTextWidth(text: string, theme: SupersetTheme): number {
   const cacheKey = `${theme.fontFamily}:${theme.fontSizeSM}:${text}`;
-  const cachedWidth = LEGEND_TEXT_WIDTH_CACHE.get(cacheKey);
+  const cachedWidth = TEXT_WIDTH_CACHE.get(cacheKey);
   if (cachedWidth !== undefined) {
+    // Re-insert so the Map's iteration order (used for LRU eviction below)
+    // reflects recency, not just insertion order.
+    TEXT_WIDTH_CACHE.delete(cacheKey);
+    TEXT_WIDTH_CACHE.set(cacheKey, cachedWidth);
     return cachedWidth;
   }
 
-  let width = text.length * theme.fontSizeSM * 0.62;
+  const context = getTextMeasureContext(theme);
+  const width = context
+    ? context.measureText(text).width
+    : estimateTextWidth(text, theme);
 
-  if (typeof document !== 'undefined') {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
-      ({ width } = context.measureText(text));
+  if (TEXT_WIDTH_CACHE.size >= TEXT_WIDTH_CACHE_MAX_SIZE) {
+    const oldestKey = TEXT_WIDTH_CACHE.keys().next().value;
+    if (oldestKey !== undefined) {
+      TEXT_WIDTH_CACHE.delete(oldestKey);
     }
   }
-
-  LEGEND_TEXT_WIDTH_CACHE.set(cacheKey, width);
+  TEXT_WIDTH_CACHE.set(cacheKey, width);
   return width;
+}
+
+/**
+ * Measures the horizontal space `text` occupies when rendered at the theme's
+ * small font size, taking the larger of the advance width and the painted ink
+ * extent. Glyphs such as italics, or glyphs whose ink overhangs the pen
+ * advance, can paint past the advance width, so reserving only the advance
+ * width can clip them. Falls back to an approximate width when canvas is
+ * unavailable (e.g. SSR), or to the advance width when the browser does not
+ * report bounding-box metrics.
+ */
+export function measureTextInkWidth(
+  text: string,
+  theme: SupersetTheme,
+): number {
+  const context = getTextMeasureContext(theme);
+  if (!context) {
+    return estimateTextWidth(text, theme);
+  }
+  const metrics = context.measureText(text);
+  const inkWidth =
+    (metrics.actualBoundingBoxLeft ?? 0) +
+    (metrics.actualBoundingBoxRight ?? 0);
+  return Math.max(metrics.width, inkWidth);
 }
 
 function hasLegendLabel(item: LegendDataItem): boolean {
@@ -135,12 +196,32 @@ function getLegendLabels(items: LegendDataItem[]): string[] {
   return items.filter(hasLegendLabel).map(getLegendLabel);
 }
 
-function getLegendItemWidths(labels: string[], theme: SupersetTheme): number[] {
+/**
+ * Measures a legend label, clamped to `maxLabelWidth` when the legend
+ * truncates its text at that width, so layout estimates match what ECharts
+ * actually renders.
+ */
+function measureLegendLabelWidth(
+  label: string,
+  theme: SupersetTheme,
+  maxLabelWidth?: number,
+): number {
+  const width = measureTextWidth(label, theme);
+  return maxLabelWidth !== undefined && maxLabelWidth > 0
+    ? Math.min(width, maxLabelWidth)
+    : width;
+}
+
+function getLegendItemWidths(
+  labels: string[],
+  theme: SupersetTheme,
+  maxLabelWidth?: number,
+): number[] {
   return labels.map(
     label =>
       DEFAULT_LEGEND_ICON_WIDTH +
       LEGEND_ICON_LABEL_GAP +
-      measureLegendTextWidth(label, theme),
+      measureLegendLabelWidth(label, theme, maxLabelWidth),
   );
 }
 
@@ -149,6 +230,7 @@ function estimateHorizontalLegendRows(
   chartWidth: number,
   showSelectors: boolean,
   theme: SupersetTheme,
+  maxLabelWidth?: number,
 ): number {
   const availableWidth = Math.max(
     chartWidth - LEGEND_HORIZONTAL_SIDE_GUTTER,
@@ -158,7 +240,7 @@ function estimateHorizontalLegendRows(
     return Infinity;
   }
 
-  const legendItemWidths = getLegendItemWidths(labels, theme);
+  const legendItemWidths = getLegendItemWidths(labels, theme, maxLabelWidth);
 
   if (legendItemWidths.length === 0) {
     if (showSelectors && ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
@@ -226,10 +308,11 @@ export function getHorizontalLegendAvailableWidth({
 function getLongestLegendLabelWidth(
   labels: string[],
   theme: SupersetTheme,
+  maxLabelWidth?: number,
 ): number {
   return labels.reduce(
     (maxWidth, label) =>
-      Math.max(maxWidth, measureLegendTextWidth(label, theme)),
+      Math.max(maxWidth, measureLegendLabelWidth(label, theme, maxLabelWidth)),
     0,
   );
 }
@@ -248,6 +331,7 @@ function getHorizontalPlainLegendLayout({
   availableWidth,
   currentMargin,
   legendLabels,
+  maxLabelWidth,
   orientation,
   showSelectors,
   theme,
@@ -256,6 +340,7 @@ function getHorizontalPlainLegendLayout({
   availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
+  maxLabelWidth?: number;
   orientation: LegendOrientation.Top | LegendOrientation.Bottom;
   showSelectors: boolean;
   theme: SupersetTheme;
@@ -265,6 +350,7 @@ function getHorizontalPlainLegendLayout({
     availableWidth,
     showSelectors,
     theme,
+    maxLabelWidth,
   );
   const rowsForMargin = Number.isFinite(rowCount)
     ? rowCount
@@ -287,12 +373,14 @@ function getVerticalPlainLegendLayout({
   availableWidth,
   currentMargin,
   legendLabels,
+  maxLabelWidth,
   showSelectors,
   theme,
 }: {
   availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
+  maxLabelWidth?: number;
   showSelectors: boolean;
   theme: SupersetTheme;
 }): LegendLayoutResult {
@@ -308,7 +396,8 @@ function getVerticalPlainLegendLayout({
     : 0;
   const requiredMargin = Math.ceil(
     Math.max(
-      getLongestLegendLabelWidth(legendLabels, theme) + LEGEND_MARGIN_GUTTER,
+      getLongestLegendLabelWidth(legendLabels, theme, maxLabelWidth) +
+        LEGEND_MARGIN_GUTTER,
       requiredSelectorMargin,
     ),
   );
@@ -330,6 +419,7 @@ export function getLegendLayoutResult({
   chartWidth,
   legendItems = [],
   legendMargin,
+  maxLabelWidth,
   orientation,
   show,
   showSelectors = true,
@@ -344,6 +434,9 @@ export function getLegendLayoutResult({
   chartWidth: number;
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
+  // Width at which legend text is truncated (see `getLegendProps`'s
+  // `maxLegendTextWidth`). Labels are measured no wider than this.
+  maxLabelWidth?: number;
   orientation: LegendOrientation;
   show: boolean;
   showSelectors?: boolean;
@@ -368,6 +461,7 @@ export function getLegendLayoutResult({
       availableWidth: resolvedAvailableWidth,
       currentMargin: resolvedLegendMargin,
       legendLabels,
+      maxLabelWidth,
       orientation,
       showSelectors,
       theme,
@@ -378,6 +472,7 @@ export function getLegendLayoutResult({
     availableWidth: resolvedAvailableWidth,
     currentMargin: resolvedLegendMargin,
     legendLabels,
+    maxLabelWidth,
     showSelectors,
     theme,
   });
@@ -435,6 +530,28 @@ export function extractDataTotalValues(
   };
 }
 
+const DEFAULT_STACK_GROUP = '__default__';
+
+/**
+ * Computes, per stack group, which series index is the "topmost" (i.e. the
+ * series that should display the value label) for each data point.
+ *
+ * When a stackDimension splits bars into separate ECharts stack groups the
+ * computation must be done independently per group, otherwise only the
+ * globally-last series is flagged and all other groups miss their label.
+ *
+ * @param series      The raw series array (parallel to the rendered series).
+ * @param opts.stack           Whether stacking is active.
+ * @param opts.onlyTotal       Whether to show only the stack total.
+ * @param opts.isHorizontal    Whether the chart is horizontal.
+ * @param opts.legendState     Active legend state (hidden series are skipped).
+ * @param opts.seriesStackIds  Optional per-series stack-group key (parallel to
+ *                             `series`). Defaults to a single shared group.
+ * @param opts.seriesIndexOffset  Rendered index of `series[0]`, for charts
+ *                             that render other series before these ones.
+ * @returns A `Record<stackGroupKey, number[]>` where each inner array maps
+ *          `dataIndex → seriesIndex` of the topmost series in that group.
+ */
 export function extractShowValueIndexes(
   series: SeriesOption[],
   opts: {
@@ -442,35 +559,59 @@ export function extractShowValueIndexes(
     onlyTotal?: boolean;
     isHorizontal?: boolean;
     legendState?: LegendState;
+    seriesStackIds?: string[];
+    seriesIndexOffset?: number;
   },
-): number[] {
-  const showValueIndexes: number[] = [];
-  const { legendState, stack, isHorizontal, onlyTotal } = opts;
-  if (stack) {
-    series.forEach((entry, seriesIndex) => {
-      const { data = [] } = entry;
-      (data as [any, number][]).forEach((datum, dataIndex) => {
-        if (entry.id && legendState && !legendState[entry.id]) {
-          return;
-        }
-        if (!onlyTotal && datum[isHorizontal ? 0 : 1] !== null) {
+): Record<string, number[]> {
+  const result: Record<string, number[]> = Object.create(null);
+  const {
+    legendState,
+    stack,
+    isHorizontal,
+    onlyTotal,
+    seriesStackIds,
+    seriesIndexOffset = 0,
+  } = opts;
+  if (!stack) {
+    return result;
+  }
+
+  series.forEach((entry, seriesIndex) => {
+    const stackGroup = seriesStackIds?.[seriesIndex] ?? DEFAULT_STACK_GROUP;
+    if (!Object.prototype.hasOwnProperty.call(result, stackGroup)) {
+      result[stackGroup] = [];
+    }
+    const showValueIndexes = result[stackGroup];
+
+    const { data = [] } = entry;
+    (data as [any, number][]).forEach((datum, dataIndex) => {
+      if (entry.id && legendState && !legendState[entry.id]) {
+        return;
+      }
+      const numericValue = datum[isHorizontal ? 0 : 1];
+      if (!onlyTotal && numericValue !== null) {
+        showValueIndexes[dataIndex] = seriesIndex;
+      }
+      if (onlyTotal) {
+        if (numericValue > 0) {
           showValueIndexes[dataIndex] = seriesIndex;
         }
-        if (onlyTotal) {
-          if (datum[isHorizontal ? 0 : 1] > 0) {
-            showValueIndexes[dataIndex] = seriesIndex;
-          }
-          if (
-            !showValueIndexes[dataIndex] &&
-            datum[isHorizontal ? 0 : 1] !== null
-          ) {
-            showValueIndexes[dataIndex] = seriesIndex;
-          }
+        if (!showValueIndexes[dataIndex] && numericValue !== null) {
+          showValueIndexes[dataIndex] = seriesIndex;
         }
+      }
+    });
+  });
+
+  if (seriesIndexOffset) {
+    Object.values(result).forEach(showValueIndexes => {
+      showValueIndexes.forEach((seriesIndex, dataIndex) => {
+        showValueIndexes[dataIndex] = seriesIndex + seriesIndexOffset;
       });
     });
   }
-  return showValueIndexes;
+
+  return result;
 }
 
 export function sortAndFilterSeries(
@@ -519,13 +660,72 @@ export function sortAndFilterSeries(
   ).map(({ name }) => name);
 }
 
+/**
+ * Sum (or, for a decomposable aggregate like MIN/MAX, the matching rollup)
+ * of a specific set of columns, used to order the rows of a multi-series
+ * chart by one metric once dimensions have pivoted that metric into a
+ * column per series.
+ *
+ * `aggregation` lets the rollup match the underlying metric's own
+ * aggregate function when that recovers the correct ungrouped value: the
+ * ungrouped MIN/MAX of a column equals the MIN/MAX of its per-dimension
+ * MIN/MAX values, the same way the ungrouped SUM equals the sum of its
+ * per-dimension sums. It defaults to Sum (correct for SUM and COUNT, and
+ * the prior behavior for every other case). AVG and COUNT DISTINCT are not
+ * decomposable this way from already-aggregated values and are not
+ * special-cased here: ordering by one of those with dimensions set remains
+ * a known limitation.
+ */
+export type XAxisSortBySumOfColumns = {
+  sumOfColumns: string[];
+  aggregation?: SortSeriesType;
+};
+
+/**
+ * How the rows (one per x-axis value) of a multi-series chart are ordered:
+ * a `SortSeriesType` aggregates every numeric column in the row, while
+ * `XAxisSortBySumOfColumns` only sums the named columns.
+ */
+export type XAxisSortSeries =
+  | SortSeriesType
+  | XAxisSortBySumOfColumns
+  | XAxisSortByAxisValue;
+
+/**
+ * Orders rows by the raw x-axis value, case-sensitively, matching the
+ * backend sort used when no series are pivoted.
+ */
+export type XAxisSortByAxisValue = { axisValue: true };
+
+export function isXAxisSortByAxisValue(
+  sort: XAxisSortSeries,
+): sort is XAxisSortByAxisValue {
+  return typeof sort === 'object' && 'axisValue' in sort;
+}
+
+export function isXAxisSortBySumOfColumns(
+  sort: XAxisSortSeries,
+): sort is XAxisSortBySumOfColumns {
+  return typeof sort === 'object' && 'sumOfColumns' in sort;
+}
+
 export function sortRows(
   rows: DataRecord[],
   totalStackedValues: number[],
   xAxis: string,
-  xAxisSortSeries: SortSeriesType,
+  xAxisSortSeries: XAxisSortSeries,
   xAxisSortSeriesAscending: boolean,
 ) {
+  const sumOfColumns = isXAxisSortBySumOfColumns(xAxisSortSeries)
+    ? new Set(xAxisSortSeries.sumOfColumns)
+    : undefined;
+  const byAxisValue = isXAxisSortByAxisValue(xAxisSortSeries);
+  const aggregation: SortSeriesType = byAxisValue
+    ? SortSeriesType.Name
+    : sumOfColumns
+      ? ((xAxisSortSeries as XAxisSortBySumOfColumns).aggregation ??
+        SortSeriesType.Sum)
+      : (xAxisSortSeries as SortSeriesType);
   const sortedRows = rows.map((row, idx) => {
     let sortKey: DataRecordValue = '';
     let aggregate: number | undefined;
@@ -536,17 +736,18 @@ export function sortRows(
         sortKey = value;
       }
       if (
-        xAxisSortSeries === SortSeriesType.Name ||
-        typeof value !== 'number'
+        aggregation === SortSeriesType.Name ||
+        typeof value !== 'number' ||
+        (sumOfColumns && !sumOfColumns.has(key))
       ) {
         return;
       }
 
-      if (!(xAxisSortSeries === SortSeriesType.Avg && !isValueDefined)) {
+      if (!(aggregation === SortSeriesType.Avg && !isValueDefined)) {
         entries += 1;
       }
 
-      switch (xAxisSortSeries) {
+      switch (aggregation) {
         case SortSeriesType.Avg:
         case SortSeriesType.Sum:
           if (aggregate === undefined) {
@@ -572,7 +773,7 @@ export function sortRows(
       }
     });
     if (
-      xAxisSortSeries === SortSeriesType.Avg &&
+      aggregation === SortSeriesType.Avg &&
       entries > 0 &&
       aggregate !== undefined
     ) {
@@ -580,8 +781,8 @@ export function sortRows(
     }
 
     const value =
-      xAxisSortSeries === SortSeriesType.Name
-        ? typeof sortKey === 'string'
+      aggregation === SortSeriesType.Name
+        ? typeof sortKey === 'string' && !byAxisValue
           ? sortKey.toLowerCase()
           : sortKey
         : aggregate;
@@ -594,11 +795,23 @@ export function sortRows(
     };
   });
 
-  return orderBy(
-    sortedRows,
-    ['value'],
-    [xAxisSortSeriesAscending ? 'asc' : 'desc'],
-  ).map(({ row, totalStackedValue }) => ({ row, totalStackedValue }));
+  // Rows with no aggregate (every sorted column is NULL) stay last in both
+  // directions, matching the ungrouped sort.
+  const isMissing = (value: unknown) =>
+    aggregation === SortSeriesType.Name
+      ? byAxisValue && value === NULL_STRING
+      : value === undefined || value === null;
+  const measured = sortedRows.filter(({ value }) => !isMissing(value));
+  const missing = sortedRows.filter(({ value }) => isMissing(value));
+
+  return [
+    ...orderBy(
+      measured,
+      ['value'],
+      [xAxisSortSeriesAscending ? 'asc' : 'desc'],
+    ),
+    ...missing,
+  ].map(({ row, totalStackedValue }) => ({ row, totalStackedValue }));
 }
 
 export function extractSeries(
@@ -613,7 +826,7 @@ export function extractSeries(
     isHorizontal?: boolean;
     sortSeriesType?: SortSeriesType;
     sortSeriesAscending?: boolean;
-    xAxisSortSeries?: SortSeriesType;
+    xAxisSortSeries?: XAxisSortSeries;
     xAxisSortSeriesAscending?: boolean;
     xAxisType?: AxisType;
   } = {},
@@ -687,8 +900,12 @@ export function extractSeries(
         ) {
           minPositiveValue = currentValue;
         }
+        // Neighbors are taken from the sorted rows: once the axis is
+        // reordered, the rows next to this one on the chart are not the ones
+        // next to it in the query result.
         const isNextToDefinedValue =
-          isDefined(rows[idx - 1]?.[name]) || isDefined(rows[idx + 1]?.[name]);
+          isDefined(sortedRows[idx - 1]?.row[name]) ||
+          isDefined(sortedRows[idx + 1]?.row[name]);
         const isFillNeighborValue =
           !isDefined(currentValue) &&
           isNextToDefinedValue &&
@@ -794,16 +1011,121 @@ export function extractGroupbyLabel({
     .join(', ');
 }
 
+/**
+ * ECharts `scrollDataIndex` is the legend entry index of the first visible
+ * item. Dashboard state keeps the last scroll position across re-renders, so
+ * clamp it when the legend has fewer entries after a data refresh.
+ */
+export function getLegendScrollDataIndex(
+  legendIndex: number | undefined,
+  legendItemCount: number,
+): number {
+  if (legendItemCount <= 0) {
+    return 0;
+  }
+  return Math.min(Math.max(legendIndex ?? 0, 0), legendItemCount - 1);
+}
+
+// Rough width of a scroll legend's pager (two arrow buttons plus the
+// "n/m" page counter), intentionally overestimated to avoid clipping.
+const ESTIMATED_LEGEND_PAGER_WIDTH = 80;
+const LEGEND_TOOLTIP_OFFSET = 8;
+
+/**
+ * Returns the pixel width a single legend item's text may use before it has
+ * to be truncated, given the chart width. Reserves room for the legend icon
+ * and its gap, the side gutter, the scroll pager and the All/Inverse selector,
+ * so an item whose text fits this budget is never clipped by the legend's
+ * own viewport. The result is capped at `maxWidth`.
+ */
+export function getLegendTextWidthBudget({
+  chartWidth,
+  maxWidth,
+  showSelectors = true,
+  type,
+}: {
+  chartWidth: number;
+  maxWidth: number;
+  showSelectors?: boolean;
+  type: LegendType;
+}): number {
+  let available =
+    chartWidth -
+    LEGEND_HORIZONTAL_SIDE_GUTTER -
+    DEFAULT_LEGEND_ICON_WIDTH -
+    LEGEND_ICON_LABEL_GAP;
+  if (type === LegendType.Scroll) {
+    available -= ESTIMATED_LEGEND_PAGER_WIDTH;
+  }
+  if (showSelectors) {
+    available -= ESTIMATED_LEGEND_SELECTOR_WIDTH + LEGEND_SELECTOR_GAP;
+  }
+  return Math.floor(Math.max(0, Math.min(available, maxWidth)));
+}
+
+/**
+ * Legend tooltip that reveals the full name of an item whose text ECharts
+ * truncated at `maxTextWidth`. Items that fit get no tooltip (an empty
+ * formatter result hides it). The tooltip is placed above the hovered item,
+ * or below it when there is no room above, and long names wrap instead of
+ * running off-screen. Chart-level tooltip settings such as `appendToBody` and
+ * `confine` still apply, keeping it inside the viewport.
+ */
+export function getTruncatedLegendTooltip(
+  maxTextWidth: number,
+  theme: SupersetTheme,
+): NonNullable<LegendComponentOption['tooltip']> {
+  return {
+    show: true,
+    extraCssText: [
+      'max-width: min(400px, 90vw);',
+      'white-space: normal;',
+      'overflow-wrap: anywhere;',
+    ].join(' '),
+    position: (point, _params, _el, rect, size) => {
+      const [tooltipWidth, tooltipHeight] = size.contentSize;
+      const itemRect = rect ?? {
+        x: point[0],
+        y: point[1],
+        width: 0,
+        height: 0,
+      };
+      const x = Math.min(
+        Math.max(itemRect.x + itemRect.width / 2 - tooltipWidth / 2, 0),
+        Math.max(size.viewSize[0] - tooltipWidth, 0),
+      );
+      const above = itemRect.y - tooltipHeight - LEGEND_TOOLTIP_OFFSET;
+      const y =
+        above >= 0
+          ? above
+          : itemRect.y + itemRect.height + LEGEND_TOOLTIP_OFFSET;
+      return [x, y];
+    },
+    formatter: ({ name }: { name: string }) =>
+      measureTextWidth(name, theme) > maxTextWidth ? escape(name) : '',
+  };
+}
+
 export function getLegendProps(
   type: LegendType,
   orientation: LegendOrientation,
   show: boolean,
   theme: SupersetTheme,
+  showSelectorLegend = true,
   zoomable = false,
   legendState?: LegendState,
   padding?: LegendPaddingType,
+  /**
+   * Opt-in: truncate every legend item's text at this pixel width (any
+   * orientation) and show the full name in a tooltip when hovering an item
+   * that was actually truncated. Callers that omit it keep the default legend
+   * behavior. Use `getLegendTextWidthBudget` to derive a value that leaves
+   * room for the legend icon, gaps, pager and selector buttons.
+   */
+  maxLegendTextWidth?: number,
 ): LegendComponentOption {
-  const legend: LegendComponentOption = {
+  // `animation` is read by ECharts but missing from its legend option type
+  const legend: LegendComponentOption & { animation?: boolean } = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
       orientation,
     )
@@ -811,8 +1133,19 @@ export function getLegendProps(
       : 'vertical',
     show,
     type,
+    ...(type === LegendType.Scroll
+      ? {
+          // A scrolling legend is rebuilt from its first page on every re-render
+          // and then animated back to `scrollDataIndex`, which reads as the legend
+          // sliding away and returning. Turning the animation off makes it render
+          // on the right page to begin with.
+          animation: false,
+        }
+      : {}),
     selected: legendState ?? {},
-    selector: ['all', 'inverse'],
+    // `selector: false` omits the All/Inv group from legend layout.
+    // The shorthand lets ECharts fill button titles from the chart locale.
+    selector: showSelectorLegend ? ['all', 'inverse'] : false,
     selectorLabel: {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeSM,
@@ -825,6 +1158,20 @@ export function getLegendProps(
   const getLegendWidth = (paddingWidth: number) =>
     Math.max(paddingWidth - MARGIN_GUTTER, MIN_LEGEND_WIDTH);
 
+  // Applies the opt-in text truncation, never wider than `limit` (the space a
+  // vertical legend already has from its padding).
+  const applyTextTruncation = (limit?: number) => {
+    if (maxLegendTextWidth === undefined || maxLegendTextWidth <= 0) {
+      return;
+    }
+    const width =
+      limit === undefined
+        ? maxLegendTextWidth
+        : Math.min(maxLegendTextWidth, limit);
+    legend.textStyle = { overflow: 'truncate', width };
+    legend.tooltip = getTruncatedLegendTooltip(width, theme);
+  };
+
   switch (orientation) {
     case LegendOrientation.Left:
       legend.left = 0;
@@ -833,6 +1180,9 @@ export function getLegendProps(
           overflow: 'truncate',
           width: getLegendWidth(padding.left),
         };
+        applyTextTruncation(getLegendWidth(padding.left));
+      } else {
+        applyTextTruncation();
       }
       break;
     case LegendOrientation.Right:
@@ -843,6 +1193,9 @@ export function getLegendProps(
           overflow: 'truncate',
           width: getLegendWidth(padding.right),
         };
+        applyTextTruncation(getLegendWidth(padding.right));
+      } else {
+        applyTextTruncation();
       }
       break;
     case LegendOrientation.Bottom:
@@ -853,6 +1206,7 @@ export function getLegendProps(
       if (type === LegendType.Plain) {
         legend.right = 0;
       }
+      applyTextTruncation();
       break;
     case LegendOrientation.Top:
       legend.top = 0;
@@ -860,6 +1214,7 @@ export function getLegendProps(
       if (type === LegendType.Plain && padding?.left) {
         legend.left = padding.left;
       }
+      applyTextTruncation();
       break;
     default:
       legend.top = 0;
@@ -989,23 +1344,6 @@ export function getAxisType(
   return AxisType.Category;
 }
 
-// `new Date('2024-04-06')` parses as UTC, but ECharts' own date parser treats
-// zone-less strings as local time — mismatch would offset the pinned tick.
-const DATE_ONLY_RE = /^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/;
-
-function parseTemporalString(value: string): number {
-  const dateOnly = DATE_ONLY_RE.exec(value);
-  if (dateOnly) {
-    const [, year, month, day] = dateOnly;
-    return new Date(
-      Number(year),
-      Number(month || 1) - 1,
-      Number(day || 1),
-    ).getTime();
-  }
-  return new Date(value).getTime();
-}
-
 /**
  * Bucket timestamps a temporal axis should tick on, or undefined to let ECharts
  * choose.
@@ -1030,14 +1368,7 @@ export function getTemporalTickValues(
   }
   const values = new Set<number>();
   data.forEach(row => {
-    const value = row[xAxisLabel];
-    const timestamp =
-      // eslint-disable-next-line no-nested-ternary
-      value instanceof Date
-        ? value.getTime()
-        : typeof value === 'string'
-          ? parseTemporalString(value)
-          : Number(value ?? NaN);
+    const timestamp = coerceTemporalMs(row[xAxisLabel]);
     if (Number.isFinite(timestamp)) {
       values.add(timestamp);
     }
@@ -1091,12 +1422,22 @@ export function capTickMarks(
  * MixedTimeseries. When temporalTickValues pins the axis to weekly buckets,
  * axisTick.customValues (what splitLine/gridlines follow) is downsampled to
  * avoid combing a long weekly range. axisLabel.customValues (what hideOverlap
- * thins from) uses the same capped set on a non-zoomable axis, so a label
- * surviving hideOverlap thinning always lands on a real tick and gridline
- * rather than a capped-away bucket. On a zoomable axis the full set is used
- * instead — zooming lets the user reach any bucket, but customValues never
- * recomputes on dataZoom, so a capped set there would freeze the visible
- * labels to the pre-zoom subset.
+ * thins from) uses the same capped set on a non-zoomable, non-"All" axis, so
+ * a label surviving hideOverlap thinning always lands on a real tick and
+ * gridline rather than a capped-away bucket.
+ *
+ * On a zoomable axis, axisLabel uses the full set instead — zooming lets the
+ * user reach any bucket, but customValues never recomputes on dataZoom, so a
+ * capped set there would freeze the visible labels to the pre-zoom subset.
+ * axisTick deliberately stays capped in that case; hideOverlap keeps thinning
+ * the (uncapped) labels dynamically, so gridlines don't need to track them
+ * 1:1, and a full weekly gridline set on a long zoomable range is its own
+ * source of clutter.
+ *
+ * When the user picks "All" (interval === 0), the tradeoff is different:
+ * every label is meant to be shown, so a label landing on a capped-away tick
+ * with no matching gridline would defeat the point. axisTick uncaps to match
+ * axisLabel in that case, on both zoomable and non-zoomable axes.
  */
 export function getTemporalAxisTickConfig(
   temporalTickValues: number[] | undefined,
@@ -1114,18 +1455,33 @@ export function getTemporalAxisTickConfig(
   const cappedTickValues = temporalTickValues
     ? capTickMarks(temporalTickValues)
     : undefined;
-  const labelCustomValues = zoomable ? temporalTickValues : cappedTickValues;
+  // When the user picks "All" (interval === 0), they want every label shown.
+  // Disable hideOverlap so ECharts never drops a label, and pin customValues
+  // to the full tick set so each label lands on a real gridline.
+  const showAllLabels = xAxisLabelInterval === 0;
+  // On a zoomable axis the full set is already used; for "All" we also bypass
+  // the cap so every tick gets a label rather than the 60-mark subset.
+  const labelCustomValues =
+    zoomable || showAllLabels ? temporalTickValues : cappedTickValues;
+  const tickCustomValues = showAllLabels
+    ? temporalTickValues
+    : cappedTickValues;
+
   return {
     axisLabel: {
       // Pinned ticks label every bucket, which does crowd, so thinning
-      // always wins there.
+      // wins there unless the user asked for every label.
       hideOverlap:
-        !!temporalTickValues ||
-        (showMaxLabel
-          ? false
-          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0)),
+        !showAllLabels &&
+        (!!temporalTickValues ||
+          (showMaxLabel
+            ? false
+            : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0))),
       formatter,
       rotate: xAxisLabelRotation,
+      // ECharts only honors axisLabel.interval on category axes. A time axis
+      // ignores it, so the "All" setting relies on showAllLabels disabling
+      // hideOverlap above rather than on interval: 0 here.
       interval: xAxisLabelInterval,
       // Force the boundary labels so the first and last dates stay visible:
       // hideOverlap can hide the last label, and a min date that falls
@@ -1146,7 +1502,7 @@ export function getTemporalAxisTickConfig(
         }),
       ...(labelCustomValues && { customValues: labelCustomValues }),
     },
-    ...(cappedTickValues && { axisTick: { customValues: cappedTickValues } }),
+    ...(tickCustomValues && { axisTick: { customValues: tickCustomValues } }),
   };
 }
 

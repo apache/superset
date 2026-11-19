@@ -24,7 +24,7 @@ import secrets
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterator, TYPE_CHECKING, TypeVar
+from typing import Any, Callable, Iterator, TYPE_CHECKING, TypeGuard, TypeVar
 
 import backoff
 import jwt
@@ -56,6 +56,10 @@ _oauth2_retry_active: ContextVar[bool] = ContextVar(
 
 # PKCE code verifier length (RFC 7636 recommends 43-128 characters)
 PKCE_CODE_VERIFIER_LENGTH = 64
+
+OAUTH2_LOCK_BACKOFF_FACTOR = 0.1
+OAUTH2_LOCK_BACKOFF_BASE = 2
+OAUTH2_LOCK_BACKOFF_MAX_TRIES = 8
 
 
 def generate_code_verifier() -> str:
@@ -89,9 +93,9 @@ def generate_code_challenge(code_verifier: str) -> str:
 @backoff.on_exception(
     backoff.expo,
     AcquireDistributedLockFailedException,
-    factor=0.1,
-    base=2,
-    max_tries=8,
+    factor=OAUTH2_LOCK_BACKOFF_FACTOR,
+    base=OAUTH2_LOCK_BACKOFF_BASE,
+    max_tries=OAUTH2_LOCK_BACKOFF_MAX_TRIES,
     raise_on_giveup=False,
     giveup_log_level=logging.DEBUG,
 )
@@ -268,6 +272,107 @@ def _refresh_oauth2_token_locked(  # noqa: C901
     return token.access_token
 
 
+@backoff.on_exception(
+    backoff.expo,
+    AcquireDistributedLockFailedException,
+    factor=OAUTH2_LOCK_BACKOFF_FACTOR,
+    base=OAUTH2_LOCK_BACKOFF_BASE,
+    max_tries=OAUTH2_LOCK_BACKOFF_MAX_TRIES,
+    giveup_log_level=logging.DEBUG,
+)
+def _retry_forced_refresh_until_lock_available(
+    config: OAuth2ClientConfig,
+    database_id: int,
+    user_id: int,
+    db_engine_spec: type[BaseEngineSpec],
+    rejected_access_token: str | None,
+) -> str | None:
+    """
+    Force a refresh, retrying while another worker holds the lock.
+
+    Acquiring the distributed lock is non-blocking, so a dashboard whose charts all
+    carry the same rejected token would leave every loser with an
+    ``AcquireDistributedLockFailedException`` instead of the token the winner is
+    about to commit. Retrying gives the winner time to commit and release; the
+    loser's re-read under the lock then short circuits on the new access token
+    rather than exchanging a rotating refresh token a second time. This mirrors the
+    backoff that :func:`get_oauth2_access_token` already applies to the
+    expired-token path.
+    """
+    return refresh_oauth2_token(
+        config,
+        database_id,
+        user_id,
+        db_engine_spec,
+        force=True,
+        rejected_access_token=rejected_access_token,
+    )
+
+
+def _read_refreshed_access_token(
+    database_id: int,
+    user_id: int,
+    rejected_access_token: str | None,
+) -> str | None:
+    """
+    Return an access token another worker committed, if it replaced the rejected one.
+
+    Read through an isolated session so the commit made by the worker that won the
+    lock is visible even when the caller's session already holds a snapshot.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.models.core import DatabaseUserOAuth2Tokens
+
+    token_session = Session(bind=db.session.get_bind())
+    try:
+        token = (
+            token_session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(user_id=user_id, database_id=database_id)
+            .one_or_none()
+        )
+        if token is None or token.access_token == rejected_access_token:
+            return None
+        return token.access_token
+    finally:
+        token_session.close()
+
+
+def force_refresh_oauth2_token(
+    config: OAuth2ClientConfig,
+    database_id: int,
+    user_id: int,
+    db_engine_spec: type[BaseEngineSpec],
+    rejected_access_token: str | None = None,
+) -> str | None:
+    """
+    Exchange a rejected access token, tolerating contention on the refresh lock.
+
+    When the lock never frees within the backoff window, fall back to whatever the
+    winning worker committed, so a loser still opens its connection with a usable
+    token instead of surfacing an opaque lock error.
+    """
+    try:
+        return _retry_forced_refresh_until_lock_available(
+            config,
+            database_id,
+            user_id,
+            db_engine_spec,
+            rejected_access_token,
+        )
+    except AcquireDistributedLockFailedException:
+        app.config["STATS_LOGGER"].incr("oauth2.forced_refresh.lock_contended")
+        logger.info(
+            "OAuth2 refresh lock stayed held; reusing a concurrently refreshed "
+            "token if one was committed: database_id=%s",
+            database_id,
+        )
+        return _read_refreshed_access_token(
+            database_id,
+            user_id,
+            rejected_access_token,
+        )
+
+
 def execute_with_oauth2_retry(  # noqa: C901
     database: Database,
     operation: Callable[[], T],
@@ -296,10 +401,23 @@ def execute_with_oauth2_retry(  # noqa: C901
         finally:
             _oauth2_retry_active.reset(retry_context)
     except Exception as ex:
+        # A metadata flush failure expires ORM configuration and is not an
+        # authentication failure. Leave rollback to the execution owner.
+        if not db.session.is_active:
+            raise
+        # The guest check comes first, as in `check_for_oauth2`.
         is_oauth2_error = (
-            database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(ex)
+            not _is_guest_request()
+            and database.is_oauth2_enabled()
+            and database.db_engine_spec.needs_oauth2(ex)
         )
         if not is_oauth2_error:
+            raise
+        if isinstance(ex, OAuth2TokenRefreshError):
+            # The provider already refused the exchange. Retrying through a second
+            # session can block on the token deletion held by the caller.
+            app.config["STATS_LOGGER"].incr("oauth2.forced_refresh.exchange_rejected")
+            database.start_oauth2_dance()
             raise
         if can_retry is not None and not can_retry():
             app.config["STATS_LOGGER"].incr(
@@ -322,12 +440,11 @@ def execute_with_oauth2_retry(  # noqa: C901
             database.db_engine_spec.engine,
         )
         try:
-            access_token = refresh_oauth2_token(
+            access_token = force_refresh_oauth2_token(
                 config,
                 database.id,
                 user_id,
                 database.db_engine_spec,
-                force=True,
                 rejected_access_token=rejected_access_token,
             )
         except OAuth2TokenRefreshError:
@@ -348,11 +465,17 @@ def execute_with_oauth2_retry(  # noqa: C901
             db.session.expire(token)
 
         stats_logger.incr("oauth2.forced_refresh.exchange_success")
-        try:
-            result = operation()
-        except Exception:
-            stats_logger.incr("oauth2.forced_refresh.query_retry_failure")
-            raise
+        # Connection creation inside the retry must still defer to this operation.
+        # Restore the outer guard before handling a second rejection as sign-in.
+        with check_for_oauth2(database):
+            retry_context = _oauth2_retry_active.set(True)
+            try:
+                result = operation()
+            except Exception:
+                stats_logger.incr("oauth2.forced_refresh.query_retry_failure")
+                raise
+            finally:
+                _oauth2_retry_active.reset(retry_context)
         stats_logger.incr("oauth2.forced_refresh.query_retry_success")
         return result
 
@@ -469,6 +592,42 @@ class OAuth2ClientConfigSchema(Schema):
     )
 
 
+def oauth2_client_info_configured(client_info: Any) -> TypeGuard[dict[str, Any]]:
+    """
+    Does a stored ``oauth2_client_info`` actually configure a client?
+
+    A non-empty block is not enough: some forms save one with a blank client id
+    and secret (plus filled-in endpoints) when OAuth2 isn't used, and
+    ``OAuth2ClientConfigSchema`` accepts empty strings. Both the id and the
+    secret must be non-blank. A masked secret counts as set, since masking skips
+    empty values.
+    """
+    if not isinstance(client_info, dict):
+        return False
+    return all(
+        isinstance(client_info.get(key), str) and client_info[key].strip()
+        for key in ("id", "secret")
+    )
+
+
+def _is_guest_request() -> bool:
+    """
+    Is the current principal an embedded guest?
+
+    Guests authenticate with a guest token rather than a Superset account, so there is
+    no per-user OAuth2 token to resolve for them and no route by which they could
+    authorize one.
+    """
+    # Prevent circular import.
+    from superset import security_manager
+
+    user = getattr(g, "user", None)
+    if user is None:
+        return False
+
+    return security_manager.is_guest_user(user)
+
+
 @contextmanager
 def check_for_oauth2(database: Database) -> Iterator[None]:
     """
@@ -479,6 +638,12 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
     except Exception as ex:
         if (
             not is_oauth2_retry_active()
+            # The `OAuth2TokenRefreshError` arm below reaches the dance without
+            # consulting `needs_oauth2`, so the guest check it performs has to be
+            # repeated here or an embedded viewer takes that arm. It comes first:
+            # loading the client can itself raise, as in a worker with no redirect
+            # URI, and would replace the error the guest should see.
+            and not _is_guest_request()
             and database.is_oauth2_enabled()
             and (
                 isinstance(ex, OAuth2TokenRefreshError)

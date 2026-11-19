@@ -230,6 +230,7 @@ export interface DateFilterControlProps {
   onClosePopover?: () => void;
   overlayStyle?: 'Modal' | 'Popover';
   isOverflowingFilterBar?: boolean;
+  displayFormat?: string;
 }
 
 export interface ExploreChartHeaderProps {
@@ -243,6 +244,10 @@ export interface ExploreChartHeaderProps {
   chartUpdateStartTime: number;
   queryController: AbortController | null;
   triggerQuery: boolean;
+}
+
+export interface VersionHistoryFooterProps {
+  entityType: 'chart' | 'dashboard';
 }
 
 export type Extensions = Partial<{
@@ -281,5 +286,6 @@ export type Extensions = Partial<{
     ComponentType<SQLTablePreviewExtensionProps>,
   ][];
   'filter.dateFilterControl': ComponentType<DateFilterControlProps>;
+  'versionHistory.panel.footer': ComponentType<VersionHistoryFooterProps>;
   'explore.chart.header': ComponentType<ExploreChartHeaderProps>;
 }>;

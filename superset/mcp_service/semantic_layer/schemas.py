@@ -21,13 +21,19 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Literal
+from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.common.cache_schemas import CacheStatus
 from superset.mcp_service.common.error_schemas import MCPBaseError
 from superset.mcp_service.common.time_range_validation import validate_time_range
+from superset.mcp_service.utils.serialization import (
+    JsonSafeRows,
+    OptionalRowCount,
+    RowCount,
+)
 
 # ---------------------------------------------------------------------------
 # Shared error schema
@@ -42,6 +48,42 @@ class SemanticLayerError(MCPBaseError):
     @classmethod
     def create(cls, *, error: str, error_type: str) -> "SemanticLayerError":
         return cls(error=error, error_type=error_type)
+
+
+class ListSemanticViewsRequest(BaseModel):
+    """Search stored semantic sources without loading provider metadata."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    search: str | None = Field(default=None, max_length=200)
+    page: int = Field(default=1, ge=1, strict=True)
+    page_size: int = Field(default=25, ge=1, le=100, strict=True)
+
+
+class SemanticViewSource(BaseModel):
+    """Workspace-local semantic view identity."""
+
+    type: Literal["semantic_view"] = "semantic_view"
+    id: int
+
+
+class SemanticViewSummary(BaseModel):
+    """Stored source identity only; not a claim of query readiness."""
+
+    source: SemanticViewSource
+    uuid: UUID
+    name: str
+    provider: str
+
+
+class SemanticViewPage(BaseModel):
+    """Bounded source summaries without members, configuration or total counts."""
+
+    sources: list[SemanticViewSummary]
+    page: int
+    page_size: int
+    has_more: bool
+    next_page: int | None
 
 
 # ---------------------------------------------------------------------------
@@ -81,6 +123,7 @@ class MetricInfo(BaseModel):
     dataset_name: str | None = None
     view_id: int | None = None
     view_name: str | None = None
+    semantic_selection_version: str | None = None
     compatible_dimensions: list[DimensionInfo] = Field(default_factory=list)
 
 
@@ -89,10 +132,16 @@ class MetricInfo(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-# Measured with 40 dimensions per metric: 20x40 = 42,336 tokens;
-# 10x40 = 21,186; 8x40 = 16,956 (18,284 fallback), against the default 25,000 limit.
-# The fixed page cap is not a guarantee for every payload or operator token limit.
-EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE: int = 8
+# Measured with get_response_size_bytes on this schema, 40 dimensions per
+# metric: with short descriptive text on every metric and dimension,
+# page_size=4 serializes to ~39 KB, 5 to ~48 KB, 6 to ~58 KB and 8 to ~77 KB
+# (about ~27 / ~34 / ~41 / ~55 KB with names only), against the
+# response-size guard's default MCP_RESPONSE_SIZE_CONFIG['max_bytes'] of
+# 50,000 bytes. 4 is the largest page size with real margin in both variants;
+# 8 (the old cap) already exceeds the default even with no descriptions at
+# all. The fixed page cap is not a guarantee for every payload or
+# operator-configured limit.
+EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE: int = 4
 
 
 class ListMetricsRequest(BaseModel):
@@ -133,14 +182,22 @@ class ListMetricsRequest(BaseModel):
             raise ValueError(
                 "Embedded compatible dimensions require "
                 f"page_size <= {EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE}: each "
-                "metric's dimension list can consume roughly 1–2k tokens or more, "
+                "metric's dimension list can consume several KB or more, "
                 "and the MCP response guard uses "
-                "MCP_RESPONSE_SIZE_CONFIG['token_limit'] (~25k by default). "
+                "MCP_RESPONSE_SIZE_CONFIG['max_bytes'] (~50k by default). "
                 "This fixed page cap does not guarantee that every response fits. "
                 "Reduce page_size or use include_compatible_dimensions=false "
                 "and get_compatible_dimensions for the chosen metric."
             )
         return self
+
+
+class MetricDiscoveryRefusal(BaseModel):
+    """A discovery refusal for a semantic view the caller is allowed to see."""
+
+    view_id: int = Field(
+        description="ID of the visible semantic view that refused discovery."
+    )
 
 
 class MetricList(BaseModel):
@@ -152,6 +209,20 @@ class MetricList(BaseModel):
     page_size: int
     total_pages: int
     success: Literal[True] = True
+    incomplete: bool = Field(
+        default=False,
+        description=(
+            "Some sources could not be discovered; "
+            "counts and pages cover only usable metrics."
+        ),
+    )
+    refused_views: list[MetricDiscoveryRefusal] = Field(
+        default_factory=list,
+        description=(
+            "Visible views that refused discovery, "
+            "independent of the requested metric page."
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -177,19 +248,25 @@ class GetTableFilter(BaseModel):
 
     @model_validator(mode="after")
     def _validate_temporal_range_val(self) -> "GetTableFilter":
-        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
+        """Validate a filter comparator before it reaches the shared parser.
 
-        This operator resolves through ``get_since_until()`` exactly like the
-        dedicated ``time_range`` field does, so an unparseable value here
-        produces the same silent full-table match.
+        Unlike optional top-level defaults, blank filter values are invalid.
         """
         if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
-            self.val = validate_time_range(self.val)
+            self.val = validate_time_range(self.val, allow_empty=False)
         return self
 
 
 class GetTableRequest(BaseModel):
     """Request schema for get_table."""
+
+    semantic_selection_version: str | None = Field(
+        default=None,
+        description=(
+            "Identity version returned by list_metrics for this view. Supply only "
+            "after explicitly selecting its current member IDs; never infer legacy IDs."
+        ),
+    )
 
     dataset_id: int | None = Field(
         default=None,
@@ -296,9 +373,9 @@ class GetTableResponse(BaseModel):
     """Response schema for get_table."""
 
     columns: list[DataColumn]
-    data: list[dict[str, Any]]
-    row_count: int
-    total_rows: int | None = None
+    data: JsonSafeRows
+    row_count: RowCount
+    total_rows: OptionalRowCount = None
     from_dttm: datetime | None = Field(
         None,
         description=(

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { allEventHandlers, type Event } from '../utils/eventHandlers';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
 import { ButterflyTransformedProps } from './types';
@@ -39,12 +40,18 @@ export default function Butterfly(props: ButterflyTransformedProps) {
     selectedValues,
     refs,
     onLegendStateChanged,
+    onLegendScroll,
     formData,
   } = props;
 
   const { click, contextmenu } = allEventHandlers(props);
+  const legendEventHandlers = useLegendEventHandlers(
+    onLegendStateChanged,
+    onLegendScroll,
+  );
 
   const eventHandlers: EventHandlers = {
+    ...legendEventHandlers,
     click: (params: ButterflyChartEvent) => {
       click({ name: getCategoryKey(params) });
     },
@@ -53,15 +60,6 @@ export default function Butterfly(props: ButterflyTransformedProps) {
         ...params,
         name: getCategoryKey(params),
       });
-    },
-    legendselectchanged: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendselectall: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendinverseselect: payload => {
-      onLegendStateChanged?.(payload.selected);
     },
   };
 

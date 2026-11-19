@@ -27,6 +27,7 @@ from uuid import uuid4
 
 import pytest
 import sqlalchemy as sa
+from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.orm import sessionmaker
 
@@ -391,7 +392,9 @@ def test_stale_retry_recovers_at_max_delay(
 ) -> None:
     """Admission must not add the execution budget to the retry recovery delay."""
     now = utc_now().replace(microsecond=0)
-    with sessions() as session:
+    # Freeze the clock the claim measures staleness against, so the ages sit one
+    # second either side of the delay however long the test takes to run.
+    with freeze_time(now), sessions() as session:
         schedule = session.query(ReportSchedule).one()
         schedule.last_state = ReportState.RETRYING
         schedule.execution_owner = "owner"

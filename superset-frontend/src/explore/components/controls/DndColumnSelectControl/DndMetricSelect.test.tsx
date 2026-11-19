@@ -16,15 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import {
+  act,
   fireEvent,
   render,
   screen,
+  selectOption,
   userEvent,
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
 import { Metric } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
@@ -587,6 +591,185 @@ test('title changes on custom SQL text change', async () => {
   expect(screen.getByTestId('AdhocMetricEditTitle#trigger')).toHaveTextContent(
     'New metric',
   );
+});
+
+// Mirrors the parent control, which feeds committed values back in as `value`.
+const ControlledDndMetricSelect = ({
+  onChange,
+}: {
+  onChange: (val: unknown) => void;
+}) => {
+  const [value, setValue] = useState<unknown>(undefined);
+  return (
+    <DndMetricSelect
+      {...defaultProps}
+      value={value}
+      onChange={(val: unknown) => {
+        setValue(val);
+        onChange(val);
+      }}
+      multi
+    />
+  );
+};
+
+test('saves a new simple adhoc metric with a custom title from an empty drop zone', async () => {
+  const onChange = jest.fn();
+  render(<ControlledDndMetricSelect onChange={onChange} />, {
+    useDndKit: true,
+    useRedux: true,
+  });
+
+  await userEvent.click(screen.getByText('Drop columns/metrics here or click'));
+  await userEvent.click(await screen.findByRole('tab', { name: 'Simple' }));
+
+  await userEvent.click(screen.getByTestId('AdhocMetricEditTitle#trigger'));
+  const titleInput = await screen.findByTestId('AdhocMetricEditTitle#input');
+  await userEvent.clear(titleInput);
+  await userEvent.type(titleInput, 'Total revenue');
+  await userEvent.keyboard('{Enter}');
+
+  await selectOption('column_a', 'Select column');
+  // selectOption reads the first dropdown in the document, which stays mounted
+  // after the column pick, so the aggregate is chosen by option role instead.
+  await userEvent.click(
+    screen.getByRole('combobox', { name: 'Select aggregate options' }),
+  );
+  await userEvent.click(await screen.findByRole('option', { name: 'SUM' }));
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const [[committed]] = onChange.mock.calls;
+  expect(committed).toHaveLength(1);
+  expect(committed[0]).toEqual(
+    expect.objectContaining({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      column: expect.objectContaining({ column_name: 'column_a' }),
+      aggregate: AGGREGATES.SUM,
+      label: 'Total revenue',
+      hasCustomLabel: true,
+    }),
+  );
+  expect(await screen.findByText('Total revenue')).toBeInTheDocument();
+});
+
+const droppableColumns: ColumnMeta[] = [
+  {
+    column_name: 'revenue',
+    verbose_name: 'Revenue',
+    type_generic: GenericDataType.Numeric,
+  },
+  {
+    column_name: 'country',
+    verbose_name: 'Country',
+    type_generic: GenericDataType.String,
+  },
+];
+
+const getColumnField = async () => {
+  const columnSelect = await screen.findByRole('combobox', {
+    name: 'Select column',
+  });
+  return columnSelect.closest('.ant-select') as HTMLElement;
+};
+
+test('preselects the dropped column in the add-metric popover after the popover was opened and cancelled once', async () => {
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={droppableColumns}
+      value={[]}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  await userEvent.click(screen.getByText('Drop columns/metrics here or click'));
+  await screen.findByRole('tab', { name: 'Simple' });
+  await userEvent.keyboard('{Escape}');
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('tab', { name: 'Simple' }),
+    ).not.toBeInTheDocument(),
+  );
+
+  act(() => {
+    simulateDrop(captured, {
+      type: DndItemType.Column,
+      value: droppableColumns[0],
+    });
+  });
+
+  // A dropped column opens the popover on the Simple tab with that column
+  // selected, rather than on the Saved metrics tab with nothing selected.
+  expect(await screen.findByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(await getColumnField()).toHaveTextContent('Revenue');
+});
+
+test('shows the newly dropped column, not the previously dropped one, in the add-metric popover', async () => {
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={droppableColumns}
+      value={[]}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  act(() => {
+    simulateDrop(captured, {
+      type: DndItemType.Column,
+      value: droppableColumns[0],
+    });
+  });
+  expect(await getColumnField()).toHaveTextContent('Revenue');
+  await userEvent.keyboard('{Escape}');
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('combobox', { name: 'Select column' }),
+    ).not.toBeInTheDocument(),
+  );
+
+  act(() => {
+    simulateDrop(captured, {
+      type: DndItemType.Column,
+      value: droppableColumns[1],
+    });
+  });
+
+  expect(await getColumnField()).toHaveTextContent('Country');
+});
+
+test('removes only the clicked metric when its remove control is used', async () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      value={['metric_a', 'metric_b', adhocMetricB]}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // Remove controls render in value order: metric_a, metric_b, adhocMetricB.
+  const removeButtons = screen.getAllByTestId('remove-control-button');
+  expect(removeButtons).toHaveLength(3);
+  await userEvent.click(removeButtons[1]);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const [[committed]] = onChange.mock.calls;
+  expect(committed).toHaveLength(2);
+  expect(committed[0]).toBe('metric_a');
+  expect(committed[1]).toEqual(
+    expect.objectContaining({ optionName: adhocMetricB.optionName }),
+  );
+  expect(screen.queryByText('Metric B')).not.toBeInTheDocument();
 });
 
 // --- folder drops -----------------------------------------------------

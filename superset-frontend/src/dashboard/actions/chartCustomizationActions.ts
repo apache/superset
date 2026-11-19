@@ -21,7 +21,7 @@ import { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import { t } from '@apache-superset/core/translation';
 import {
   makeApi,
-  getClientErrorObject,
+  SupersetApiError,
   ChartCustomization,
   ChartCustomizationDivider,
   ColumnOption,
@@ -34,7 +34,7 @@ import {
   removeDataMask,
   setDataMaskForFilterChangesComplete,
 } from 'src/dataMask/actions';
-import { dashboardInfoChanged } from './dashboardInfo';
+import { dashboardInfoChanged, dashboardSaveSucceeded } from './dashboardInfo';
 import {
   SET_NATIVE_FILTERS_CONFIG_COMPLETE,
   SET_IN_SCOPE_STATUS_OF_FILTERS,
@@ -106,6 +106,8 @@ export function saveChartCustomization(
         reordered: reorderedIds,
       });
 
+      dispatch(dashboardSaveSucceeded(id));
+
       const currentMetadata = getState().dashboardInfo.metadata;
       const currentConfig =
         currentMetadata?.chart_customization_config?.filter(Boolean) || [];
@@ -175,12 +177,30 @@ export function saveChartCustomization(
       }
 
       return { result: {}, last_modified_time: Date.now() };
-    } catch (errorObject) {
-      const { error } = await getClientErrorObject(errorObject);
+    } catch (err) {
+      const apiError = err instanceof SupersetApiError ? err : undefined;
+      const status = apiError?.status;
+      const original = apiError?.originalError;
+      const message =
+        original && typeof original === 'object' && 'message' in original
+          ? original.message
+          : err instanceof Error
+            ? err.message
+            : undefined;
+      const reason =
+        status === 403
+          ? t('you do not have permission to edit this dashboard.')
+          : status === 404
+            ? t('this dashboard is unavailable or you no longer have access.')
+            : typeof message === 'string' && message.trim()
+              ? message
+              : apiError?.statusText || t('An error occurred');
       dispatch(
-        addDangerToast(error || t('Failed to save chart customization')),
+        addDangerToast(
+          t('Your display control changes were not saved: %s', reason),
+        ),
       );
-      throw errorObject;
+      throw err;
     }
   };
 }

@@ -595,7 +595,10 @@ describe('SupersetClientClass', () => {
         error = err;
       } finally {
         const redirectURL = window.location.href;
-        expect(redirectURL).toBe(`/login?next=${mockHref}`);
+        expect(redirectURL).toBe(`/login?next=${encodeURIComponent(mockHref)}`);
+        expect(
+          new URL(redirectURL, 'https://host').searchParams.get('next'),
+        ).toBe(mockHref);
         expect(error.status).toBe(401);
       }
     });
@@ -734,6 +737,33 @@ describe('SupersetClientClass', () => {
         expect(authSpy).toHaveBeenCalledTimes(1);
       },
     );
+
+    test('makes postForm request to an absolute url without adding the app root', async () => {
+      client = new SupersetClientClass({ protocol, host, appRoot: '/prefix' });
+      await client.init();
+      await client.postForm({ url: 'http://localhost/explore/' }, {});
+
+      const hiddenForm = createElement.mock.results[0].value;
+      expect(hiddenForm.action).toBe('http://localhost/explore/');
+    });
+
+    test('makes postForm request to an absolute url on the configured client host', async () => {
+      client = new SupersetClientClass({ protocol, host });
+      await client.init();
+      await client.postForm({ url: 'https://host/explore/' }, {});
+
+      const hiddenForm = createElement.mock.results[0].value;
+      expect(hiddenForm.action).toBe('https://host/explore/');
+    });
+
+    test('rejects postForm to a cross-origin url', async () => {
+      client = new SupersetClientClass({ protocol, host });
+      await client.init();
+      await expect(
+        client.postForm({ url: 'https://evil.example.com/steal' }, {}),
+      ).rejects.toThrow('same-origin');
+      expect(createElement).not.toHaveBeenCalled();
+    });
 
     test('makes postForm request with guest token', async () => {
       client = new SupersetClientClass({ protocol, host, guestToken });

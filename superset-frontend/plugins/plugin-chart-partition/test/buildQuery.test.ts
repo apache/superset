@@ -54,6 +54,19 @@ test('is a timeseries query for time-based options', () => {
   expect(query.is_timeseries).toBe(true);
 });
 
+test('keeps the semantic series limit inferred for time-based options', () => {
+  const [query] = buildQuery({
+    ...formData,
+    datasource: '5__semantic_view',
+    time_series_option: 'point_diff',
+    limit: 25,
+  }).queries;
+  expect(query.is_timeseries).toBe(true);
+  expect(query.columns).toEqual(['gender', 'state']);
+  expect(query.series_columns).toBeUndefined();
+  expect(query.series_limit).toBe(25);
+});
+
 test('appends the sort metric like the legacy engine', () => {
   const [query] = buildQuery({
     ...formData,

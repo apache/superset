@@ -141,7 +141,9 @@ class TestActivityCreationRow(SupersetTestCase):
                 for record in records
             )
             assert all(record["action_kind"] is None for record in records)
-            records, _, _ = get_activity(Slice, created.uuid, resolved_entity=created)
+            created_uuid = created.uuid
+            assert created_uuid is not None
+            records, _, _ = get_activity(Slice, created_uuid, resolved_entity=created)
             assert _creation_records(records)[0]["creation_kind"] == "created"
         finally:
             db.session.rollback()
@@ -165,8 +167,10 @@ class TestActivityCreationRow(SupersetTestCase):
                 .values(action_kind=None)
             )
             db.session.commit()
+            slc_uuid = slc.uuid
+            assert slc_uuid is not None
             records: list[dict[str, Any]]
-            records, _, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
+            records, _, _ = get_activity(Slice, slc_uuid, resolved_entity=slc)
             assert _creation_records(records)[0]["creation_kind"] == "unknown"
         finally:
             self._cleanup(slc)
@@ -189,8 +193,10 @@ class TestActivityCreationRow(SupersetTestCase):
         count: int
         truncated: bool
         try:
+            slc_uuid = slc.uuid
+            assert slc_uuid is not None
             records, count, truncated = get_activity(
-                Slice, slc.uuid, resolved_entity=slc
+                Slice, slc_uuid, resolved_entity=slc
             )
             assert not truncated
             creations: list[dict[str, Any]] = _creation_records(records)
@@ -202,7 +208,7 @@ class TestActivityCreationRow(SupersetTestCase):
             # Previewable/restorable: the version_uuid is the one the
             # /versions/ family resolves for the creation transaction.
             assert creation["version_uuid"] == str(
-                derive_version_uuid(slc.uuid, creation["transaction_id"])
+                derive_version_uuid(slc_uuid, creation["transaction_id"])
             )
             # The row is the OLDEST entry and the count includes it.
             assert records[-1] is creation
@@ -217,7 +223,9 @@ class TestActivityCreationRow(SupersetTestCase):
         records: list[dict[str, Any]]
         count: int
         try:
-            records, count, _ = get_activity(Dashboard, dash.uuid, resolved_entity=dash)
+            dash_uuid = dash.uuid
+            assert dash_uuid is not None
+            records, count, _ = get_activity(Dashboard, dash_uuid, resolved_entity=dash)
             creations: list[dict[str, Any]] = _creation_records(records)
             assert len(creations) == 1
             assert creations[0]["creation_kind"] == "created"
@@ -243,8 +251,10 @@ class TestActivityCreationRow(SupersetTestCase):
             # pylint: disable=import-outside-toplevel
             from superset.utils.core import override_user
 
+            slc_uuid = slc.uuid
+            assert slc_uuid is not None
             with override_user(_admin_user()):
-                records, _, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
+                records, _, _ = get_activity(Slice, slc_uuid, resolved_entity=slc)
             creations: list[dict[str, Any]] = _creation_records(records)
             assert len(creations) == 1
             assert creations[0]["creation_kind"] == "pre_tracking"
@@ -261,7 +271,9 @@ class TestActivityCreationRow(SupersetTestCase):
         slc: Slice = self._make_chart("sc120488_imported")
         records: list[dict[str, Any]]
         try:
-            records, _, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
+            slc_uuid = slc.uuid
+            assert slc_uuid is not None
+            records, _, _ = get_activity(Slice, slc_uuid, resolved_entity=slc)
             creations: list[dict[str, Any]] = _creation_records(records)
             assert len(creations) == 1
             assert creations[0]["creation_kind"] == "imported"
@@ -288,8 +300,10 @@ class TestActivityCreationRow(SupersetTestCase):
             # pylint: disable=import-outside-toplevel
             from superset.utils.core import override_user
 
+            slc_uuid = slc.uuid
+            assert slc_uuid is not None
             with override_user(_admin_user()):
-                records, count, _ = get_activity(Slice, slc.uuid, resolved_entity=slc)
+                records, count, _ = get_activity(Slice, slc_uuid, resolved_entity=slc)
             assert not _creation_records(records)
             assert count == len(records)
         finally:
@@ -299,8 +313,10 @@ class TestActivityCreationRow(SupersetTestCase):
         slc: Slice = self._make_chart("sc120488_related_only")
         records: list[dict[str, Any]]
         try:
+            slc_uuid = slc.uuid
+            assert slc_uuid is not None
             records, _, _ = get_activity(
-                Slice, slc.uuid, resolved_entity=slc, include="related"
+                Slice, slc_uuid, resolved_entity=slc, include="related"
             )
             assert not _creation_records(records)
         finally:

@@ -23,6 +23,7 @@ from typing import Any
 from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerForbiddenError,
@@ -38,9 +39,8 @@ from superset.commands.utils import current_user_can_modify_object
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
 from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.masking import (
-    mask_configuration,
-    MaskedListUpdateError,
-    unmask_configuration,
+    MaskedConfigurationUpdateError,
+    unmask_configuration_for_update,
 )
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
@@ -55,30 +55,19 @@ def _unmask_configuration(
     new_configuration: dict[str, Any],
     layer_type: str,
 ) -> dict[str, Any]:
-    """Replace ``PASSWORD_MASK`` sentinels in an update payload with the stored
-    value at the same path, at any depth.
-
-    The GET/list endpoints mask secret configuration values (see
-    ``superset.semantic_layers.api._mask_configuration``); a client that
-    round-trips that response back on an update (e.g. a name-only edit) would
-    otherwise overwrite the real stored values with the mask string. This
-    delegates to :func:`superset.semantic_layers.masking.unmask_configuration`,
-    which restores masked values recursively so nested/union secrets survive
-    the round-trip too, not just top-level ones."""
+    """Restore masked credentials while preserving non-secret configuration."""
     try:
         existing_configuration: dict[str, Any] = (
             json.loads(existing_raw_configuration) if existing_raw_configuration else {}
         )
     except (TypeError, ValueError):
         existing_configuration = {}
-    masked_reference: dict[str, Any] = mask_configuration(
-        layer_type, existing_configuration
-    )
+
     try:
-        return unmask_configuration(
-            existing_configuration, new_configuration, masked_reference
+        return unmask_configuration_for_update(
+            layer_type, existing_configuration, new_configuration
         )
-    except MaskedListUpdateError as ex:
+    except MaskedConfigurationUpdateError as ex:
         raise SemanticLayerInvalidError(str(ex)) from None
 
 
@@ -104,6 +93,10 @@ class UpdateSemanticViewCommand(BaseCommand):
         self._model = SemanticViewDAO.find_by_id(self._model_id)
         if not self._model:
             raise SemanticViewNotFoundError()
+        try:
+            self._model.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise SemanticViewForbiddenError() from ex
 
         if not current_user_can_modify_object(self._model):
             raise SemanticViewForbiddenError()
@@ -126,6 +119,20 @@ class UpdateSemanticViewCommand(BaseCommand):
             )
 
 
+def _load_modifiable_layer(uuid: str) -> SemanticLayer:
+    """Load a connection with the shared access and modification policy."""
+    layer: SemanticLayer | None = SemanticLayerDAO.find_by_uuid(uuid)
+    if not layer:
+        raise SemanticLayerNotFoundError()
+    try:
+        layer.raise_for_access()
+    except SupersetSecurityException as ex:
+        raise SemanticLayerForbiddenError() from ex
+    if not current_user_can_modify_object(layer):
+        raise SemanticLayerForbiddenError()
+    return layer
+
+
 class UpdateSemanticLayerCommand(BaseCommand):
     def __init__(self, uuid: str, data: dict[str, Any]):
         self._uuid = uuid
@@ -146,19 +153,24 @@ class UpdateSemanticLayerCommand(BaseCommand):
             self._properties["configuration"] = json.dumps(
                 self._properties["configuration"]
             )
+        if "configuration" in self._properties:
+            try:
+                unchanged: bool = json.dumps(
+                    json.loads(self._model.configuration), sort_keys=True
+                ) == json.dumps(
+                    json.loads(self._properties["configuration"]), sort_keys=True
+                )
+            except (TypeError, ValueError):
+                unchanged = False
+            if unchanged:
+                # Avoid overwriting a concurrent edit with this reader's old config.
+                self._properties.pop("configuration")
+            else:
+                self._model.clear_metadata_cache()
         return SemanticLayerDAO.update(self._model, attributes=self._properties)
 
     def validate(self) -> None:
-        self._model = SemanticLayerDAO.find_by_uuid(self._uuid)
-        if not self._model:
-            raise SemanticLayerNotFoundError()
-        try:
-            self._model.raise_for_access()
-        except SupersetSecurityException as ex:
-            raise SemanticLayerForbiddenError() from ex
-
-        if not current_user_can_modify_object(self._model):
-            raise SemanticLayerForbiddenError()
+        self._model = _load_modifiable_layer(self._uuid)
 
         name = self._properties.get("name")
         if name and not SemanticLayerDAO.validate_update_uniqueness(self._uuid, name):
@@ -177,3 +189,33 @@ class UpdateSemanticLayerCommand(BaseCommand):
             if sl_type not in registry:
                 raise SemanticLayerInvalidError(f"Unknown type: {sl_type}")
             validate_configuration(registry[sl_type], configuration)
+
+
+class ClearSemanticLayerCacheCommand(BaseCommand):
+    """Invalidate a saved connection's metadata without fetching its provider."""
+
+    def __init__(self, uuid: str) -> None:
+        self._uuid: str = uuid
+        self._model: SemanticLayer | None = None
+
+    def validate(self) -> None:
+        """Require connection management authority, including for direct callers."""
+        if security_manager.is_guest_user() or not security_manager.can_access(
+            "can_write", "SemanticLayer"
+        ):
+            raise SemanticLayerForbiddenError()
+        self._model = _load_modifiable_layer(self._uuid)
+
+    @transaction(
+        on_error=partial(
+            on_error,
+            catches=(SQLAlchemyError,),
+            reraise=SemanticLayerUpdateFailedError,
+        )
+    )
+    def run(self) -> Model:
+        """Return only after the cache generation has committed."""
+        self.validate()
+        assert self._model
+        self._model.clear_metadata_cache()
+        return self._model

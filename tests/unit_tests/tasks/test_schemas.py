@@ -14,11 +14,73 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 from types import SimpleNamespace
+from typing import Any
+from uuid import uuid4
 
+import pytest
+from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
+from werkzeug.test import TestResponse
 
 from superset.tasks.schemas import TaskResponseSchema
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize("task_type", ["superset.query_object_v1", "other_task"])
+def test_task_properties_sanitize_chart_errors_per_reader(
+    mocker: MockerFixture, guest: bool, task_type: str
+) -> None:
+    """List and detail serialization redact chart errors without changing storage."""
+    task: SimpleNamespace = _task_with_private()
+    task.task_type = task_type
+    mocker.patch("superset.tasks.utils.current_app").debug = False
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    schema: TaskResponseSchema = TaskResponseSchema(only=["properties"])
+    detail: dict[str, Any] = schema.dump(task)
+    listing: list[dict[str, Any]] = schema.dump([task], many=True)
+    expected: str = (
+        str(GENERIC_ERROR_MESSAGE)
+        if guest and task_type == "superset.query_object_v1"
+        else "boom"
+    )
+    assert detail["properties"]["error_message"] == expected
+    assert listing[0]["properties"]["error_message"] == expected
+    assert task.properties_dict["error_message"] == "boom"
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"GLOBAL_TASK_FRAMEWORK": True}}], indirect=True
+)
+def test_task_detail_chart_validation_message(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    guest: bool,
+) -> None:
+    """The detail endpoint uses the viewing principal for chart error redaction."""
+    # Avoid app-init regression: task models require the app fixture.
+    from superset.models.tasks import Task
+
+    task: Task = Task(
+        uuid=uuid4(),
+        task_type="superset.query_object_v1",
+        status="failure",
+        created_on=datetime(2026, 10, 20),
+        properties='{"error_message": "Error: Invalid filter on private_column"}',
+    )
+    mocker.patch("superset.daos.tasks.TaskDAO.find_one_or_none", return_value=task)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    response: TestResponse = client.get(f"/api/v1/task/{task.uuid}")
+    assert response.status_code == 200
+    assert response.json["result"]["properties"]["error_message"] == (
+        str(GENERIC_ERROR_MESSAGE)
+        if guest
+        else "Error: Invalid filter on private_column"
+    )
 
 
 def _task_with_private() -> SimpleNamespace:

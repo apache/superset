@@ -17,7 +17,7 @@
 """HTTP chart saves must preserve semantic identity and datasource access checks."""
 
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, PropertyMock
 
 from flask import Response
 from parameterized import parameterized
@@ -27,8 +27,10 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, security_manager
 from superset.models.slice import Slice
 from superset.semantic_layers.models import SemanticLayer, SemanticView
+from superset.subjects.models import Subject
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 
 
 class TestSemanticChartSave(SupersetTestCase):
@@ -37,6 +39,7 @@ class TestSemanticChartSave(SupersetTestCase):
     @parameterized.expand(
         [("create", False), ("update", False), ("create", True), ("update", True)]
     )
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_semantic_chart_save(self, operation: str, denied: bool) -> None:
         """Save-as and overwrite populate names and retain the access gate."""
         self.login("admin")
@@ -115,6 +118,129 @@ class TestSemanticChartSave(SupersetTestCase):
             assert chart.table is None
         finally:
             db.session.rollback()
+            if chart is not None:
+                db.session.delete(chart)
+            db.session.delete(view)
+            db.session.delete(layer)
+            db.session.commit()
+
+    @parameterized.expand([("create",), ("update",), ("form_data",)])
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_gamma_denial_does_not_load_provider(self, operation: str) -> None:
+        """A denied Gamma request must return 403 even when its provider is down."""
+        self.login("gamma")
+        layer: SemanticLayer = SemanticLayer(name="denied-layer", type="test")
+        view: SemanticView = SemanticView(name="denied-view", semantic_layer=layer)
+        db.session.add(view)
+        db.session.commit()
+        chart: Slice | None = None
+        provider: Mock = Mock()
+        provider.get_dimensions.side_effect = RuntimeError("provider unavailable")
+        provider.get_metrics.side_effect = RuntimeError("provider unavailable")
+        implementation: PropertyMock
+        try:
+            if operation == "update":
+                editor: Subject = (
+                    db.session.query(Subject)
+                    .filter_by(user_id=security_manager.find_user(username="gamma").id)
+                    .one()
+                )
+                chart = Slice(
+                    slice_name="gamma-owned-chart",
+                    datasource_id=view.id,
+                    datasource_type="semantic_view",
+                    viz_type="table",
+                    params="{}",
+                    editors=[editor],
+                )
+                db.session.add(chart)
+                db.session.commit()
+            payload: dict[str, Any] = {
+                "slice_name": "denied-save",
+                "datasource_id": view.id,
+                "datasource_type": "semantic_view",
+                "viz_type": "table",
+            }
+            with patch.object(
+                SemanticView,
+                "implementation",
+                new_callable=PropertyMock,
+                return_value=provider,
+            ) as implementation:
+                response: Response
+                if operation == "create":
+                    response = self.client.post("/api/v1/chart/", json=payload)
+                elif operation == "update":
+                    assert chart is not None
+                    response = self.client.put(
+                        f"/api/v1/chart/{chart.id}", json=payload
+                    )
+                else:
+                    response = self.client.post(
+                        "/api/v1/explore/form_data",
+                        json={
+                            "datasource_id": view.id,
+                            "datasource_type": "semantic_view",
+                            "form_data": json.dumps(
+                                {"datasource": f"{view.id}__semantic_view"}
+                            ),
+                        },
+                    )
+            assert response.status_code == 403
+            implementation.assert_not_called()
+            provider.get_dimensions.assert_not_called()
+            provider.get_metrics.assert_not_called()
+            assert (
+                db.session.query(Slice).filter_by(slice_name="denied-save").count() == 0
+            )
+            if chart is not None:
+                db.session.refresh(chart)
+                assert chart.slice_name == "gamma-owned-chart"
+        finally:
+            db.session.rollback()
+            if chart is not None:
+                db.session.delete(chart)
+            db.session.delete(view)
+            db.session.delete(layer)
+            db.session.commit()
+
+    @with_feature_flags(SEMANTIC_LAYERS=False)
+    def test_semantic_chart_save_refused_when_disabled(self) -> None:
+        """The disabled feature rejects semantic saves without creating a chart."""
+        self.login("admin")
+        layer: SemanticLayer = SemanticLayer(name="disabled-save-layer", type="test")
+        view: SemanticView = SemanticView(
+            name="disabled-save-view", semantic_layer=layer
+        )
+        db.session.add(view)
+        db.session.commit()
+        try:
+            response: Response = self.client.post(
+                "/api/v1/chart/",
+                json={
+                    "slice_name": "disabled-semantic-save",
+                    "datasource_id": view.id,
+                    "datasource_type": "semantic_view",
+                    "viz_type": "table",
+                },
+            )
+            assert response.status_code == 422
+            assert response.json["message"]["_schema"] == [
+                "Semantic layers are not enabled."
+            ]
+            assert (
+                db.session.query(Slice)
+                .filter_by(slice_name="disabled-semantic-save")
+                .count()
+                == 0
+            )
+        finally:
+            db.session.rollback()
+            chart: Slice | None = (
+                db.session.query(Slice)
+                .filter_by(slice_name="disabled-semantic-save")
+                .one_or_none()
+            )
             if chart is not None:
                 db.session.delete(chart)
             db.session.delete(view)

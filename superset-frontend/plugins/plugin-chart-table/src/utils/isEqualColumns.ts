@@ -30,6 +30,14 @@ export default function isEqualColumns(
     a.datasource.currencyFormats === b.datasource.currencyFormats &&
     a.datasource.currencyCodeColumn === b.datasource.currencyCodeColumn &&
     a.datasource.verboseMap === b.datasource.verboseMap &&
+    isEqualArray(
+      (a.datasource.columns ?? []).map(col => col.column_name),
+      (b.datasource.columns ?? []).map(col => col.column_name),
+    ) &&
+    isEqualArray(
+      (a.datasource.metrics ?? []).map(metric => metric.metric_name),
+      (b.datasource.metrics ?? []).map(metric => metric.metric_name),
+    ) &&
     a.formData.tableTimestampFormat === b.formData.tableTimestampFormat &&
     a.formData.timeGrainSqla === b.formData.timeGrainSqla &&
     JSON.stringify(a.formData.columnConfig || null) ===

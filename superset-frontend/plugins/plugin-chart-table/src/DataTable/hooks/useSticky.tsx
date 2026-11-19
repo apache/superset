@@ -23,6 +23,7 @@ import {
   cloneElement,
   useRef,
   useMemo,
+  useEffect,
   useLayoutEffect,
   useCallback,
   ReactNode,
@@ -169,6 +170,7 @@ function StickyWrap({
   const scrollHeaderRef = useRef<HTMLDivElement>(null); // fixed header
   const scrollFooterRef = useRef<HTMLDivElement>(null); // fixed footer
   const scrollBodyRef = useRef<HTMLDivElement>(null); // main body
+  const wrapRef = useRef<HTMLDivElement>(null); // outer container, observed for resizes
 
   const scrollBarSize = getCustomScrollBarSize();
   const { bodyHeight, columnWidths, hasVerticalScroll } = sticky;
@@ -178,8 +180,7 @@ function StickyWrap({
     sticky.height !== maxHeight ||
     sticky.setStickyState !== setStickyState;
 
-  // update scrollable area and header column sizes when mounted
-  useLayoutEffect(() => {
+  const measure = useCallback(() => {
     if (!theadRef.current) {
       return;
     }
@@ -223,6 +224,30 @@ function StickyWrap({
       columnWidths: widths,
     });
   }, [maxWidth, maxHeight, setStickyState, scrollBarSize]);
+
+  // update scrollable area and header column sizes when mounted
+  useLayoutEffect(() => {
+    measure();
+  }, [measure]);
+
+  // A `display: none` ancestor -- an inactive dashboard tab, for instance --
+  // gives the table no box, so the measurement above bails out and no sticky
+  // layout is computed, leaving the chart blank. None of that measurement's
+  // dependencies change when the table later gains a box, so watch for it
+  // directly and measure again. `measure` re-reads the DOM itself, so a
+  // still-boxless notification is a no-op, and the observer is only attached
+  // while there is no layout to show.
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (columnWidths || !wrap || typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+    const observer = new ResizeObserver(() => {
+      measure();
+    });
+    observer.observe(wrap);
+    return () => observer.disconnect();
+  }, [columnWidths, measure]);
 
   let sizerTable: ReactElement | undefined;
   let headerTable: ReactElement | undefined;
@@ -395,6 +420,7 @@ function StickyWrap({
     // positioned independently; a real <table> would break that layout, so
     // role="table" is the correct ARIA pattern here, not the suggested tag.
     <div
+      ref={wrapRef}
       style={{
         width: maxWidth,
         height: sticky.realHeight || maxHeight,

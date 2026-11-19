@@ -43,7 +43,6 @@ x-common-build: &common-build
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
-    INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
     BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
 
 services:
@@ -125,8 +124,6 @@ services:
     restart: unless-stopped
     ports:
       - ${SUPERSET_PORT:-8088}:8088
-      # When in cypress-mode ->
-      - ${CYPRESS_PORT:-8081}:8081
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
@@ -204,7 +201,6 @@ services:
       BUILD_SUPERSET_FRONTEND_IN_DOCKER: true
       NPM_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
-      DISABLE_TS_CHECKER: "${DISABLE_TS_CHECKER:-true}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset:8088"
       # Webpack dev server must bind to 0.0.0.0 to be accessible from outside the container
@@ -257,7 +253,7 @@ services:
       - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
-    # Bump memory limit if processing selenium / thumbnails on superset-worker
+    # Bump memory limit if processing screenshots / thumbnails on superset-worker
     # mem_limit: 2038m
     # mem_reservation: 128M
 

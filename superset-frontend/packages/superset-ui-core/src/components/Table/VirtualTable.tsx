@@ -23,7 +23,7 @@ import {
   TableProps as AntTableProps,
 } from 'antd/es/table';
 import classNames from 'classnames';
-import { useResizeDetector } from 'react-resize-detector';
+import { type ResizePayload, useResizeDetector } from 'react-resize-detector';
 import { useRef, useState, useCallback, type UIEvent } from 'react';
 import {
   Grid,
@@ -141,7 +141,7 @@ const VirtualTable = <RecordType extends object>(
     allowHTML = false,
   } = props;
   const [tableWidth, setTableWidth] = useState<number>(0);
-  const onResize = useCallback((width?: number) => {
+  const onResize = useCallback(({ width }: ResizePayload) => {
     setTableWidth(width ?? 0);
   }, []);
   const { ref } = useResizeDetector({ onResize });
@@ -152,11 +152,12 @@ const VirtualTable = <RecordType extends object>(
   const widthColumnCount = columns!.filter(({ width }) => !width).length;
   let staticColWidthTotal = 0;
   columns?.forEach(column => {
-    if (column.width) {
-      staticColWidthTotal += column.width as number;
+    if (typeof column.width === 'number') {
+      staticColWidthTotal += column.width;
     }
   });
 
+  // Sum of numeric widths; also sizes the antd header (scroll.x) to match the Grid.
   let totalWidth = 0;
   const defaultWidth = Math.max(
     Math.floor((tableWidth - staticColWidthTotal) / widthColumnCount),
@@ -169,7 +170,9 @@ const VirtualTable = <RecordType extends object>(
       if (!column.width) {
         modifiedColumn.width = defaultWidth;
       }
-      totalWidth += modifiedColumn.width as number;
+      if (typeof modifiedColumn.width === 'number') {
+        totalWidth += modifiedColumn.width;
+      }
       return modifiedColumn;
     }) ?? [];
 
@@ -177,10 +180,11 @@ const VirtualTable = <RecordType extends object>(
    * There are cases where a user could set the width of each column and the total width is less than width of
    * the table.  In this case we will stretch the last column to use the extra space
    */
-  if (totalWidth < tableWidth) {
-    const lastColumn = mergedColumns[mergedColumns.length - 1];
-    lastColumn.width =
-      (lastColumn.width as number) + Math.floor(tableWidth - totalWidth);
+  const lastColumn = mergedColumns[mergedColumns.length - 1];
+  if (totalWidth < tableWidth && typeof lastColumn?.width === 'number') {
+    const extra = Math.floor(tableWidth - totalWidth);
+    lastColumn.width += extra;
+    totalWidth += extra;
   }
 
   const gridRef = useRef<GridImperativeAPI>(null);
@@ -288,7 +292,7 @@ const VirtualTable = <RecordType extends object>(
           body: renderVirtualList,
         }}
         pagination={pagination ? modifiedPagination : false}
-        scroll={scroll}
+        scroll={{ ...scroll, x: totalWidth || scroll?.x }}
         columns={mergedColumns}
       />
     </div>

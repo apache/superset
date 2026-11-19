@@ -81,6 +81,25 @@ describe('SamplesPane', () => {
     },
   );
 
+  // A partitioned dataset: the backend skipped COUNT(*) and reports that rows
+  // exist past this page instead of an exact total.
+  fetchMock.post(
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=39&per_page=100&page=1',
+    {
+      result: {
+        data: [
+          { __timestamp: 1230768000000, genre: 'Action' },
+          { __timestamp: 1230768000010, genre: 'Horror' },
+        ],
+        colnames: ['__timestamp', 'genre'],
+        coltypes: [2, 1],
+        rowcount: 2,
+        total_count: 2,
+        total_count_is_lower_bound: true,
+      },
+    },
+  );
+
   const setForceQuery = jest.fn();
 
   afterAll(() => {
@@ -160,5 +179,16 @@ describe('SamplesPane', () => {
     // Falling back to 0 here would label a populated table as "0 rows".
     expect(queryByText('0 rows')).not.toBeInTheDocument();
     expect(queryByText('2 rows')).toBeVisible();
+  });
+
+  test('labels the row count as a lower bound when the total is not exact', async () => {
+    const props = createSamplesPaneProps({ datasourceId: 39 });
+    const { findByText, queryByText } = render(<SamplesPane {...props} />, {
+      useRedux: true,
+    });
+
+    expect(await findByText('Action')).toBeVisible();
+    expect(queryByText('2+ rows')).toBeVisible();
+    expect(queryByText('2 rows')).not.toBeInTheDocument();
   });
 });

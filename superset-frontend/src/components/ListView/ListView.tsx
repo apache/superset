@@ -28,7 +28,10 @@ import {
   ReactNode,
 } from 'react';
 import cx from 'classnames';
-import TableCollection from '@superset-ui/core/components/TableCollection';
+import { Row } from 'react-table';
+import TableCollection, {
+  type ListViewColumn,
+} from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
   Button,
@@ -314,11 +317,11 @@ const ViewModeToggle = ({
   </ViewModeContainer>
 );
 export interface ListViewProps<T extends object = any> {
-  columns: any[];
+  columns: ListViewColumn<T>[];
   data: T[];
   count: number;
   pageSize: number;
-  fetchData: (conf: FetchDataConfig) => any;
+  fetchData: (conf: FetchDataConfig) => void;
   refreshData: () => void;
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
@@ -329,13 +332,13 @@ export interface ListViewProps<T extends object = any> {
   bulkActions?: Array<{
     key: string;
     name: ReactNode;
-    onSelect: (rows: any[]) => any;
+    onSelect: (rows: T[]) => void;
     type?: 'primary' | 'secondary' | 'danger';
-    hidden?: (rows: any[]) => boolean;
+    hidden?: (rows: T[]) => boolean;
   }>;
   bulkSelectEnabled?: boolean;
   disableBulkSelect?: () => void;
-  renderBulkSelectCopy?: (selects: any[]) => ReactNode;
+  renderBulkSelectCopy?: (selects: Row<T>[]) => ReactNode;
   renderCard?: (row: T & { loading: boolean }) => ReactNode;
   cardSortSelectOptions?: Array<CardSortSelectOption>;
   defaultViewMode?: ViewModeType;
@@ -430,8 +433,8 @@ export function ListView<T extends object = any>({
   const allowBulkTagActions = bulkTagResourceName && enableBulkTag;
   const filterable = Boolean(filters.length);
   if (filterable) {
-    const columnAccessors = columns.reduce(
-      (acc, col) => ({ ...acc, [col.id || col.accessor]: true }),
+    const columnAccessors = columns.reduce<Record<string, boolean>>(
+      (acc, col) => ({ ...acc, [String(col.id || col.accessor)]: true }),
       {},
     );
     filters.forEach(f => {
@@ -522,6 +525,7 @@ export function ListView<T extends object = any>({
               cardSortSelectOptions &&
               !setMobileFiltersOpen && (
                 <CardSortSelect
+                  key={JSON.stringify(sortBy)}
                   initialSort={sortBy}
                   onChange={(value: SortColumn[]) => setSortBy(value)}
                   options={cardSortSelectOptions}
@@ -574,7 +578,7 @@ export function ListView<T extends object = any>({
                         .filter(
                           action =>
                             !action.hidden?.(
-                              selectedFlatRows.map((r: any) => r.original),
+                              selectedFlatRows.map(r => r.original),
                             ),
                         )
                         .map(action => (
@@ -586,7 +590,7 @@ export function ListView<T extends object = any>({
                             cta
                             onClick={() =>
                               action.onSelect(
-                                selectedFlatRows.map((r: any) => r.original),
+                                selectedFlatRows.map(r => r.original),
                               )
                             }
                           >
@@ -657,6 +661,7 @@ export function ListView<T extends object = any>({
                   prepareRow={prepareRow}
                   headerGroups={headerGroups}
                   setSortBy={setSortBy}
+                  sortBy={sortBy}
                   rows={rows}
                   columns={columns}
                   loading={loading && rows.length > 0}
@@ -667,10 +672,10 @@ export function ListView<T extends object = any>({
                   bulkSelectEnabled={bulkSelectEnabled}
                   selectedFlatRows={selectedFlatRows}
                   toggleRowSelected={(rowId, value) => {
-                    const row = rows.find((r: any) => r.id === rowId);
+                    const row = rows.find(r => r.id === rowId);
                     if (row) {
                       prepareRow(row);
-                      (row as any).toggleRowSelected(value);
+                      row.toggleRowSelected(value);
                     }
                   }}
                   toggleAllRowsSelected={toggleAllRowsSelected}
@@ -726,6 +731,7 @@ export function ListView<T extends object = any>({
             />
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
+                key={JSON.stringify(sortBy)}
                 initialSort={sortBy}
                 onChange={(value: SortColumn[]) => setSortBy(value)}
                 options={cardSortSelectOptions}

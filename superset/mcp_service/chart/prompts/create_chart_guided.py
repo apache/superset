@@ -30,8 +30,8 @@ async def create_chart_guided_prompt(
     Guided chart creation with step-by-step workflow.
 
     Args:
-        chart_type: Preferred chart type (auto, line, bar, table, scatter, area)
-        business_goal: Purpose (exploration, reporting, monitoring, presentation)
+        chart_type (str): Preferred chart type (auto, line, bar, table, scatter, area)
+        business_goal (str): Purpose (exploration, reporting, monitoring, presentation)
     """
 
     chart_intelligence = {
@@ -159,4 +159,6 @@ PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P3M (quarterly), P1Y (y
 - filters: [{{"column": "col", "op": "=", "value": "x"}}]
 - stacked: true (for bar/area charts)
 - legend: {{"show": true, "position": "right"}}
-- x_axis/y_axis: {{"title": "Label", "format": "$,.0f"}}"""
+- x_axis/y_axis: {{"title": "Label", "format": ",.0f"}}
+- Use currency formatting only when user instructions or verified source metadata
+  establish the currency; do not infer it from metric names."""

@@ -24,6 +24,7 @@ import {
   screen,
   userEvent,
 } from 'spec/helpers/testing-library';
+import { isCustomControlItem, sections } from '@superset-ui/chart-controls';
 import SelectControl, {
   innerGetOptions,
   areAllValuesNumbers,
@@ -512,4 +513,58 @@ test('selecting a string "none" option round-trips through onChange', async () =
   act(() => jest.runAllTimers());
 
   expect(onChange).toHaveBeenCalledWith('none', expect.anything());
+});
+
+// Renders the real `time_compare` control config from the Advanced Analytics
+// section, so a change to its `multi`/`freeForm` flags is caught here.
+const getTimeCompareConfig = () => {
+  const control = sections.advancedAnalyticsControls.controlSetRows
+    .flat()
+    .filter(isCustomControlItem)
+    .find(item => item.name === 'time_compare');
+  if (!control) {
+    throw new Error('time_compare control not found in advanced analytics');
+  }
+  return control.config;
+};
+
+// rc-select does not reliably pick up userEvent's `{Enter}` under jsdom, so the
+// key events are dispatched directly. rc-select locks Enter after a keydown
+// until the matching keyup, so both events are needed per press.
+const pressEnter = (element: HTMLElement) => {
+  const key = { key: 'Enter', code: 'Enter', keyCode: 13 };
+  fireEvent.keyDown(element, key);
+  fireEvent.keyUp(element, key);
+};
+
+test('time_compare accepts custom free-form time shifts and shows them as tags', async () => {
+  const onChange = jest.fn();
+  // Only the props that drive selection behavior; explore resolves the
+  // config's label/description before they reach SelectControl.
+  const { multi, freeForm, choices } = getTimeCompareConfig();
+  const props = { multi, freeForm, choices, name: 'time_compare', onChange };
+  const { unmount } = render(<SelectControl {...props} />);
+
+  const selectorInput = screen.getByRole('combobox');
+  await user.click(selectorInput);
+  await user.type(selectorInput, '28 days');
+  act(() => jest.runAllTimers());
+  pressEnter(selectorInput);
+  act(() => jest.runAllTimers());
+  await user.type(selectorInput, '1 year');
+  act(() => jest.runAllTimers());
+  pressEnter(selectorInput);
+  act(() => jest.runAllTimers());
+
+  expect(onChange).toHaveBeenLastCalledWith(
+    ['28 days', '1 year'],
+    expect.anything(),
+  );
+
+  // A fresh mount with the emitted value, free of the open dropdown's
+  // duplicate option text, shows each custom shift as a tag.
+  unmount();
+  render(<SelectControl {...props} value={['28 days', '1 year']} />);
+  expect(screen.getByText('28 days')).toBeInTheDocument();
+  expect(screen.getByText('1 year')).toBeInTheDocument();
 });

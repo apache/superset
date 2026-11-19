@@ -30,8 +30,13 @@ import {
 } from 'vitest';
 import * as http from 'http';
 import * as net from 'net';
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { ConnectionOptions, rootCertificates } from 'tls';
 import { WebSocket } from 'ws';
 import * as server from '../src/index';
+import type { RedisConfig } from '../src/config';
 import { statsd } from '../src/index';
 
 const { mockSubscribe, mockOn } = vi.hoisted(() => {
@@ -71,23 +76,17 @@ const signRealtimeToken = (
   secret = config.jwtSecret,
 ) => jwt.sign(realtimeClaims(overrides), secret);
 
-/**
- * Build an upgrade-shaped HTTP request, optionally carrying the JWT cookie and
- * an `Origin` header.
- */
+/** Build an upgrade-shaped HTTP request, optionally carrying an `Origin` header. */
 const makeRequest = ({
-  token,
   origin,
   url = 'http://localhost',
 }: {
-  token?: string;
   origin?: string;
   url?: string;
 } = {}): http.IncomingMessage => {
   const request = new http.IncomingMessage(new net.Socket());
   request.method = 'GET';
   request.url = url;
-  if (token) request.headers.cookie = `${config.jwtCookieName}=${token}`;
   if (origin) request.headers.origin = origin;
   return request;
 };
@@ -120,9 +119,27 @@ const trackSocket = (
     ...overrides,
   });
 
-/** Run the full accept path for `token`: verify at upgrade, then connect. */
-const connect = (ws: WebSocket, token: string) =>
-  server.wsConnection(ws, server.readSocketIdentity(makeRequest({ token })));
+/** Deliver a raw inbound frame to the `message` handler `wsConnection` registered. */
+const receive = (ws: WebSocket, frame: unknown) => {
+  // Automocked instances share one `on` mock, so take the latest registration.
+  const call = (ws.on as unknown as Mock).mock.calls
+    .filter(([event]) => event === 'message')
+    .at(-1);
+  expect(call).toBeDefined();
+  // Frames arrive on an open connection; an automocked socket reports no state.
+  if (ws.readyState === undefined) {
+    vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
+  }
+  (call![1] as (data: Buffer) => void)(
+    Buffer.from(typeof frame === 'string' ? frame : JSON.stringify(frame)),
+  );
+};
+
+/** Accept a connection, then authenticate it with an `auth` frame for `token`. */
+const connect = (ws: WebSocket, token: string, tabId?: string) => {
+  server.wsConnection(ws);
+  receive(ws, { type: 'auth', token, tab_id: tabId });
+};
 
 describe('server', () => {
   let statsdIncrementMock: Mock<typeof statsd.increment>;
@@ -226,31 +243,44 @@ describe('server', () => {
     });
   });
 
-  describe('redisUrlFromConfig', () => {
-    test('it builds a valid Redis URL from defaults', () => {
-      expect(
-        server.buildRedisOpts({
-          port: 6379,
-          host: '127.0.0.1',
-          username: 'test-user',
-          password: '',
-          db: 0,
-          ssl: false,
-          validateHostname: false,
-        }),
-      ).toEqual({ db: 0, host: '127.0.0.1', port: 6379 });
+  describe('buildRedisOpts', () => {
+    const redisConfig = (
+      overrides: Partial<RedisConfig> = {},
+    ): RedisConfig => ({
+      port: 6379,
+      host: '127.0.0.1',
+      username: 'cool-user',
+      password: '',
+      db: 0,
+      ssl: false,
+      validateHostname: false,
+      sslCaCerts: '',
+      sslCertfile: '',
+      sslKeyfile: '',
+      sslCertReqs: 'required',
+      sentinels: [],
+      sentinelMaster: '',
+      sentinelPassword: '',
+      ...overrides,
     });
-    test('it builds a valid Redis URL with a password', () => {
+
+    test('it builds standalone options from defaults', () => {
+      expect(server.buildRedisOpts(redisConfig())).toEqual({
+        db: 0,
+        host: '127.0.0.1',
+        port: 6379,
+      });
+    });
+    test('it builds standalone options with a password', () => {
       expect(
-        server.buildRedisOpts({
-          port: 6380,
-          host: 'redis.local',
-          username: 'cool-user',
-          password: 'foo',
-          db: 1,
-          ssl: false,
-          validateHostname: false,
-        }),
+        server.buildRedisOpts(
+          redisConfig({
+            port: 6380,
+            host: 'redis.local',
+            password: 'foo',
+            db: 1,
+          }),
+        ),
       ).toEqual({
         db: 1,
         host: 'redis.local',
@@ -259,23 +289,96 @@ describe('server', () => {
         username: 'cool-user',
       });
     });
-    test('it builds a valid Redis URL with SSL', () => {
-      expect(
-        server.buildRedisOpts({
-          port: 6379,
-          host: '127.0.0.1',
-          password: '',
-          username: 'cool-user',
-          db: 0,
-          ssl: true,
-          validateHostname: false,
-        }),
-      ).toEqual({
+    test('it relies on the default trust store for TLS', () => {
+      expect(server.buildRedisOpts(redisConfig({ ssl: true }))).toEqual({
         db: 0,
         host: '127.0.0.1',
         port: 6379,
         tls: { checkServerIdentity: expect.anything() },
       });
+    });
+    test('it disables verification only for ssl cert reqs "none"', () => {
+      const tlsFor = (sslCertReqs: RedisConfig['sslCertReqs']) =>
+        server.buildRedisOpts(redisConfig({ ssl: true, sslCertReqs })).tls;
+      expect(tlsFor('none')).toMatchObject({ rejectUnauthorized: false });
+      expect(tlsFor('required')).not.toHaveProperty('rejectUnauthorized');
+      expect(tlsFor('optional')).not.toHaveProperty('rejectUnauthorized');
+    });
+    test('it trusts a custom CA alongside the public roots, and loads client certs', () => {
+      const dir = mkdtempSync(join(tmpdir(), 'ws-redis-tls-'));
+      try {
+        const write = (name: string, body: string) => {
+          const path = join(dir, name);
+          writeFileSync(path, body);
+          return path;
+        };
+        const opts = server.buildRedisOpts(
+          redisConfig({
+            ssl: true,
+            sslCaCerts: write('ca.pem', 'CUSTOM-CA'),
+            sslCertfile: write('client.pem', 'CLIENT-CERT'),
+            sslKeyfile: write('client.key', 'CLIENT-KEY'),
+          }),
+        );
+        const tls = opts.tls as ConnectionOptions;
+        expect(tls.ca).toEqual([...rootCertificates, 'CUSTOM-CA']);
+        expect(tls.cert).toEqual('CLIENT-CERT');
+        expect(tls.key).toEqual('CLIENT-KEY');
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+    test('it fails fast when a configured cert file is missing', () => {
+      expect(() =>
+        server.buildRedisOpts(
+          redisConfig({ ssl: true, sslCaCerts: '/nonexistent/ca.pem' }),
+        ),
+      ).toThrow(/ca\.pem/);
+    });
+    test('it builds Sentinel options in place of host/port', () => {
+      expect(
+        server.buildRedisOpts(
+          redisConfig({
+            password: 'master-pwd',
+            sentinels: [
+              { host: 's1', port: 26379 },
+              { host: 's2', port: 26380 },
+            ],
+            sentinelMaster: 'mymaster',
+            sentinelPassword: 'sentinel-pwd',
+          }),
+        ),
+      ).toEqual({
+        db: 0,
+        sentinels: [
+          { host: 's1', port: 26379 },
+          { host: 's2', port: 26380 },
+        ],
+        name: 'mymaster',
+        failoverDetector: true,
+        sentinelPassword: 'sentinel-pwd',
+        username: 'cool-user',
+        password: 'master-pwd',
+      });
+    });
+    test('it enables TLS for the Sentinel-resolved master', () => {
+      const opts = server.buildRedisOpts(
+        redisConfig({
+          ssl: true,
+          sentinels: [{ host: 's1', port: 26379 }],
+          sentinelMaster: 'mymaster',
+        }),
+      );
+      expect(opts.tls).toEqual({ checkServerIdentity: expect.anything() });
+      // Without this flag ioredis connects to the master in plaintext.
+      expect(opts.enableTLSForSentinelMode).toBe(true);
+    });
+    test('it requires a master name in Sentinel mode', () => {
+      expect(() =>
+        server.buildRedisOpts(
+          redisConfig({ sentinels: [{ host: 's1', port: 26379 }] }),
+        ),
+      ).toThrow(/sentinelMaster/);
     });
   });
 
@@ -384,11 +487,11 @@ describe('server', () => {
     });
   });
 
-  describe('readSocketIdentity', () => {
+  describe('readTokenIdentity', () => {
     test('extracts the identity a valid token proves', () => {
       const token = signRealtimeToken();
 
-      expect(server.readSocketIdentity(makeRequest({ token }))).toEqual({
+      expect(server.readTokenIdentity(token)).toEqual({
         channel: channelId,
         principalType: 'user',
         subject: '5',
@@ -399,15 +502,7 @@ describe('server', () => {
     test('accepts a token signed with the previous secret', () => {
       const token = signRealtimeToken({}, config.previousJwtSecret);
 
-      expect(server.readSocketIdentity(makeRequest({ token })).channel).toEqual(
-        channelId,
-      );
-    });
-
-    test('rejects a request with no JWT cookie', () => {
-      expect(() => server.readSocketIdentity(makeRequest())).toThrow(
-        'JWT not present',
-      );
+      expect(server.readTokenIdentity(token).channel).toEqual(channelId);
     });
 
     test.each([
@@ -441,9 +536,7 @@ describe('server', () => {
       ) => {
         const token = signRealtimeToken(overrides, secret);
 
-        expect(() =>
-          server.readSocketIdentity(makeRequest({ token })),
-        ).toThrow();
+        expect(() => server.readTokenIdentity(token)).toThrow();
       },
     );
   });
@@ -508,11 +601,14 @@ describe('server', () => {
       // per-tab channel. A message targeting user:5:tabA reaches only tab A.
       const wsA = new wsMock('localhost');
       const sendA = vi.spyOn(wsA, 'send');
-      server.wsConnection(wsA, makeIdentity('user:5'), 'tabA');
+      connect(wsA, signRealtimeToken(), 'tabA');
 
       const wsB = new wsMock('localhost');
       const sendB = vi.spyOn(wsB, 'send');
-      server.wsConnection(wsB, makeIdentity('user:5'), 'tabB');
+      connect(wsB, signRealtimeToken(), 'tabB');
+      // Discard the `realtime.auth` replies; only routed messages matter here.
+      sendA.mockClear();
+      sendB.mockClear();
 
       server.routeRedisMessage('realtime', taskStatus(['user:5:tabA']));
 
@@ -575,7 +671,8 @@ describe('server', () => {
       // receive a broadcast exactly once (dedup by socket, not by channel).
       const ws = new wsMock('localhost');
       const send = vi.spyOn(ws, 'send');
-      server.wsConnection(ws, makeIdentity('user:5'), 'tabA');
+      connect(ws, signRealtimeToken(), 'tabA');
+      send.mockClear();
 
       server.routeRedisMessage(
         'realtime',
@@ -774,7 +871,7 @@ describe('server', () => {
     });
 
     test('a tab_id also binds the socket to its per-tab channel', async () => {
-      server.wsConnection(ws, makeIdentity(channelId), 'tabA');
+      connect(ws, signRealtimeToken(), 'tabA');
 
       // One socket id, indexed under both the principal and the per-tab channel.
       const principalSockets = server.channels[channelId].sockets;
@@ -784,6 +881,49 @@ describe('server', () => {
       const socketId = principalSockets[0];
       expect(Object.keys(server.sockets)).toEqual([socketId]);
       expect(server.sockets[socketId].tabChannel).toEqual(`${channelId}:tabA`);
+    });
+
+    test('a connection that never authenticates is closed after the auth window', () => {
+      vi.useFakeTimers();
+      try {
+        const closeSpy = vi.spyOn(ws, 'close');
+        server.wsConnection(ws);
+
+        vi.advanceTimersByTime(server.AUTH_TIMEOUT_MS - 1);
+        expect(closeSpy).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(1);
+
+        expect(closeSpy).toHaveBeenCalledWith(
+          server.AUTH_CLOSE_CODE,
+          'authentication timeout',
+        );
+        expect(server.sockets).toEqual({});
+
+        // The mocked peer never answers the close frame: the socket keeps its
+        // reservation until it is gone, and is terminated after the grace period.
+        const terminateSpy = vi.spyOn(ws, 'terminate');
+        expect(server.pendingConnectionCount()).toBe(1);
+        vi.advanceTimersByTime(server.CLOSE_GRACE_MS - 1);
+        expect(terminateSpy).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(1);
+        expect(terminateSpy).toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    test('an authenticated connection is not closed by the auth window', () => {
+      vi.useFakeTimers();
+      try {
+        const closeSpy = vi.spyOn(ws, 'close');
+        connect(ws, signRealtimeToken());
+
+        vi.advanceTimersByTime(server.AUTH_TIMEOUT_MS * 2);
+
+        expect(closeSpy).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     test('unsolicited pong payload cannot pollute Object.prototype', async () => {
@@ -930,11 +1070,13 @@ describe('server', () => {
   describe('httpUpgrade', () => {
     let socket: net.Socket;
     let socketDestroySpy: Mock<typeof socket.destroy>;
+    let socketWriteSpy: Mock<typeof socket.write>;
     let wssUpgradeSpy: Mock<typeof server.wss.handleUpgrade>;
 
     beforeEach(() => {
       socket = new net.Socket();
       socketDestroySpy = vi.spyOn(socket, 'destroy');
+      socketWriteSpy = vi.spyOn(socket, 'write');
       wssUpgradeSpy = vi.spyOn(server.wss, 'handleUpgrade');
     });
 
@@ -942,104 +1084,33 @@ describe('server', () => {
       wssUpgradeSpy.mockRestore();
     });
 
-    test('invalid JWT', async () => {
-      const token = signRealtimeToken({}, 'invalid secret');
-
-      server.httpUpgrade(makeRequest({ token }), socket, Buffer.alloc(5));
-
-      expect(socketDestroySpy).toHaveBeenCalled();
-      expect(wssUpgradeSpy).not.toHaveBeenCalled();
-      // rejected upgrades are counted for auditability
-      expect(statsdIncrementMock).toHaveBeenCalledWith('ws_upgrade_rejected');
-    });
-
-    test('valid JWT, no channel', async () => {
-      const token = signRealtimeToken({ channel: undefined });
-
-      server.httpUpgrade(makeRequest({ token }), socket, Buffer.alloc(5));
-
-      expect(socketDestroySpy).toHaveBeenCalled();
-      expect(wssUpgradeSpy).not.toHaveBeenCalled();
-    });
-
-    test('valid upgrade', async () => {
-      const token = signRealtimeToken();
-
-      server.httpUpgrade(makeRequest({ token }), socket, Buffer.alloc(5));
+    test('accepts the upgrade without inspecting any credential', () => {
+      server.httpUpgrade(makeRequest(), socket, Buffer.alloc(5));
 
       expect(socketDestroySpy).not.toHaveBeenCalled();
       expect(wssUpgradeSpy).toHaveBeenCalled();
     });
 
-    test('valid upgrade with previous JWT secret', async () => {
-      const token = signRealtimeToken({}, config.previousJwtSecret);
-
-      server.httpUpgrade(makeRequest({ token }), socket, Buffer.alloc(5));
-
-      expect(socketDestroySpy).not.toHaveBeenCalled();
-      expect(wssUpgradeSpy).toHaveBeenCalled();
-    });
-
-    test('an accepted upgrade tracks the socket without re-verifying the JWT', async () => {
-      const token = signRealtimeToken();
+    test('an accepted upgrade registers nothing until it authenticates', () => {
       const ws = new wsMock('localhost');
-      // Hand the upgrade callback a socket, as the real handshake would, but
-      // strip the cookie from the request first: the identity must already have
-      // been carried over from the single upgrade-time verification.
-      const request = makeRequest({ token });
-      wssUpgradeSpy.mockImplementation(
-        (_request, _socket, _head, callback: (ws: WebSocket) => void) => {
-          request.headers.cookie = '';
-          callback(ws);
-        },
-      );
-
-      server.httpUpgrade(request, socket, Buffer.alloc(5));
-
-      expect(server.channels[channelId].sockets).toHaveLength(1);
-    });
-
-    test('an accepted upgrade binds the per-tab channel from ?tab_id', async () => {
-      const token = signRealtimeToken();
-      const ws = new wsMock('localhost');
-      const request = makeRequest({
-        token,
-        url: 'http://localhost/?tab_id=tabA',
-      });
       wssUpgradeSpy.mockImplementation(
         (_request, _socket, _head, callback: (ws: WebSocket) => void) => {
           callback(ws);
         },
       );
 
-      server.httpUpgrade(request, socket, Buffer.alloc(5));
-
-      expect(server.channels[channelId].sockets).toHaveLength(1);
-      expect(server.channels[`${channelId}:tabA`].sockets).toEqual(
-        server.channels[channelId].sockets,
-      );
-    });
-
-    test('an accepted upgrade ignores an invalid ?tab_id', async () => {
-      // A tab id outside the allowed length/charset must not become a channel
-      // key; the socket falls back to principal-grain (no per-tab channel).
-      const token = signRealtimeToken();
-      const ws = new wsMock('localhost');
-      const badTabId = 'a'.repeat(65);
-      const request = makeRequest({
-        token,
-        url: `http://localhost/?tab_id=${badTabId}`,
-      });
-      wssUpgradeSpy.mockImplementation(
-        (_request, _socket, _head, callback: (ws: WebSocket) => void) => {
-          callback(ws);
-        },
+      server.httpUpgrade(
+        makeRequest({ url: 'http://localhost/?tab_id=tabA&token=ignored' }),
+        socket,
+        Buffer.alloc(5),
       );
 
-      server.httpUpgrade(request, socket, Buffer.alloc(5));
-
+      expect(server.channels).toEqual({});
+      expect(server.sockets).toEqual({});
+      receive(ws, { type: 'auth', token: signRealtimeToken() });
       expect(server.channels[channelId].sockets).toHaveLength(1);
-      expect(server.channels[`${channelId}:${badTabId}`]).toBeUndefined();
+      // The tab id is only honored from the auth frame, never the URL.
+      expect(server.channels[`${channelId}:tabA`]).toBeUndefined();
     });
 
     describe('origin validation', () => {
@@ -1049,23 +1120,22 @@ describe('server', () => {
 
       test('rejects upgrade from a disallowed origin', () => {
         server.opts.allowedOrigins = ['https://superset.example.com'];
-        const token = signRealtimeToken();
-
         server.httpUpgrade(
-          makeRequest({ token, origin: 'https://evil.example' }),
+          makeRequest({ origin: 'https://evil.example' }),
           socket,
           Buffer.alloc(5),
         );
 
+        expect(socketWriteSpy).toHaveBeenCalledWith(
+          expect.stringContaining('403 Forbidden'),
+        );
         expect(socketDestroySpy).toHaveBeenCalled();
         expect(wssUpgradeSpy).not.toHaveBeenCalled();
       });
 
       test('rejects upgrade with no origin when an allowlist is set', () => {
         server.opts.allowedOrigins = ['https://superset.example.com'];
-        const token = signRealtimeToken();
-
-        server.httpUpgrade(makeRequest({ token }), socket, Buffer.alloc(5));
+        server.httpUpgrade(makeRequest(), socket, Buffer.alloc(5));
 
         expect(socketDestroySpy).toHaveBeenCalled();
         expect(wssUpgradeSpy).not.toHaveBeenCalled();
@@ -1073,10 +1143,8 @@ describe('server', () => {
 
       test('allows upgrade from an allowed origin', () => {
         server.opts.allowedOrigins = ['https://superset.example.com'];
-        const token = signRealtimeToken();
-
         server.httpUpgrade(
-          makeRequest({ token, origin: 'https://superset.example.com' }),
+          makeRequest({ origin: 'https://superset.example.com' }),
           socket,
           Buffer.alloc(5),
         );
@@ -1119,11 +1187,7 @@ describe('server', () => {
       const writeSpy = vi.spyOn(socket, 'write');
       const upgradeSpy = vi.spyOn(server.wss, 'handleUpgrade');
 
-      server.httpUpgrade(
-        makeRequest({ token: signRealtimeToken() }),
-        socket,
-        Buffer.alloc(5),
-      );
+      server.httpUpgrade(makeRequest(), socket, Buffer.alloc(5));
 
       expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('503'));
       expect(destroySpy).toHaveBeenCalled();
@@ -1140,11 +1204,7 @@ describe('server', () => {
       const destroySpy = vi.spyOn(socket, 'destroy');
       const upgradeSpy = vi.spyOn(server.wss, 'handleUpgrade');
 
-      server.httpUpgrade(
-        makeRequest({ token: signRealtimeToken() }),
-        socket,
-        Buffer.alloc(5),
-      );
+      server.httpUpgrade(makeRequest(), socket, Buffer.alloc(5));
 
       expect(destroySpy).not.toHaveBeenCalled();
       expect(upgradeSpy).toHaveBeenCalled();
@@ -1192,11 +1252,13 @@ describe('server', () => {
     let ws: WebSocket;
     let pingSpy: Mock<typeof ws.ping>;
     let terminateSpy: Mock<typeof ws.terminate>;
+    let closeSpy: Mock<typeof ws.close>;
 
     beforeEach(() => {
       ws = new wsMock('localhost');
       pingSpy = vi.spyOn(ws, 'ping');
       terminateSpy = vi.spyOn(ws, 'terminate');
+      closeSpy = vi.spyOn(ws, 'close');
     });
 
     test('active sockets', () => {
@@ -1210,20 +1272,31 @@ describe('server', () => {
       expect(Object.keys(server.sockets).length).toBe(1);
     });
 
-    test('sockets with expired JWTs are terminated', () => {
-      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
-      trackSocket(channelId, ws, {
-        identity: makeIdentity(channelId, Date.now() - 1),
-      });
+    test('sockets with expired JWTs are closed with a reauthentication code', () => {
+      vi.useFakeTimers();
+      try {
+        vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
+        trackSocket(channelId, ws, {
+          identity: makeIdentity(channelId, Date.now() - 1),
+        });
 
-      server.checkSockets();
+        server.checkSockets();
 
-      expect(pingSpy).not.toHaveBeenCalled();
-      expect(terminateSpy).toHaveBeenCalled();
-      expect(Object.keys(server.sockets).length).toBe(0);
-      expect(statsdIncrementMock).toHaveBeenCalledWith(
-        'ws_token_expired_disconnect',
-      );
+        expect(pingSpy).not.toHaveBeenCalled();
+        expect(closeSpy).toHaveBeenCalledWith(4401, 'token expired');
+        expect(terminateSpy).not.toHaveBeenCalled();
+        expect(Object.keys(server.sockets).length).toBe(0);
+        expect(statsdIncrementMock).toHaveBeenCalledWith(
+          'ws_token_expired_disconnect',
+        );
+
+        // The mocked peer never answers the close frame: it is terminated after
+        // the grace period rather than left open outside the registry.
+        vi.advanceTimersByTime(server.CLOSE_GRACE_MS);
+        expect(terminateSpy).toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     test('stale sockets', () => {

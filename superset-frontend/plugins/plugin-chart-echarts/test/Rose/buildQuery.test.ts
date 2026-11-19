@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
+import { ComparisonType, QueryFormData } from '@superset-ui/core';
 import buildQuery from '../../src/Rose/buildQuery';
 
 const formData: QueryFormData = {
@@ -44,6 +44,18 @@ test('builds a pivot + flatten post-processing pipeline', () => {
   expect(operations).toEqual(['pivot', 'flatten']);
   expect(query.is_timeseries).toBe(true);
   expect(query.time_offsets).toEqual([]);
+});
+
+test('keeps the semantic series limit inferred from timeseries columns', () => {
+  const [query] = buildQuery({
+    ...formData,
+    datasource: '5__semantic_view',
+    limit: 25,
+  }).queries;
+  expect(query.is_timeseries).toBe(true);
+  expect(query.columns).toEqual(['gender']);
+  expect(query.series_columns).toBeUndefined();
+  expect(query.series_limit).toBe(25);
 });
 
 test('adds rolling, resample and contribution operators when configured', () => {
@@ -76,9 +88,13 @@ test('normalizes the legacy absolute comparison type to difference', () => {
   const compare = (query.post_processing || [])
     .filter(Boolean)
     .find(op => op!.operation === 'compare');
-  expect((compare?.options as { compare_type?: string })?.compare_type).toEqual(
-    'difference',
-  );
+  expect(
+    (
+      compare?.options as {
+        compare_type?: Omit<ComparisonType, ComparisonType.Values>;
+      }
+    )?.compare_type,
+  ).toEqual('difference');
 });
 
 test('requests time offsets and compares when time_compare is set', () => {
