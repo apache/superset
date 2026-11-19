@@ -25,12 +25,18 @@ import {
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { NativeFilterType, DatasourceType } from '@superset-ui/core';
-import type { Filter } from '@superset-ui/core';
+import {
+  NativeFilterType,
+  DatasourceType,
+  buildQueryObject,
+} from '@superset-ui/core';
+import type { DataMask, Filter } from '@superset-ui/core';
+import { mergeExtraFormData, withNativeFilterProvenance } from '../../utils';
 import FilterValue from './FilterValue';
 
 const mockRequestChartData = jest.fn();
 const mockGetClientErrorObject = jest.fn();
+const mockSuperChartProps = jest.fn();
 jest.mock('src/components/Chart/chartAction', () => ({
   requestChartDataResolved: (...args: unknown[]) =>
     mockRequestChartData(...args),
@@ -43,11 +49,14 @@ jest.mock('@superset-ui/core', () => {
     getChartMetadataRegistry: () => ({
       get: () => ({ enableNoResults: false }),
     }),
-    SuperChart: (props: Record<string, unknown>) => (
-      <div data-test="mock-super-chart" data-chart-type={props.chartType}>
-        SuperChart
-      </div>
-    ),
+    SuperChart: (props: Record<string, unknown>) => {
+      mockSuperChartProps(props);
+      return (
+        <div data-test="mock-super-chart" data-chart-type={props.chartType}>
+          SuperChart
+        </div>
+      );
+    },
     isFeatureEnabled: () => false,
     getClientErrorObject: (...args: unknown[]) =>
       mockGetClientErrorObject(...args),
@@ -520,3 +529,352 @@ test('semantic select still requests chart data for its options', async () => {
     expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
   );
 });
+
+const semanticGrainControl = (semantic_selection_version?: string) =>
+  createMockFilter({
+    id: 'CHART_CUSTOMIZATION-grain',
+    filterType: 'chart_customization_timegrain',
+    targets: [
+      {
+        datasetId: 3,
+        datasourceType: DatasourceType.SemanticView,
+        semantic_selection_version,
+      },
+    ],
+  });
+
+async function emitFromPlugin(
+  filter: Filter,
+  dataMask: DataMask,
+): Promise<jest.Mock> {
+  mockRequestChartData.mockResolvedValue([{ data: [] }]);
+  const onFilterSelectionChange: jest.Mock = jest.fn();
+  renderFilterValue({ filter, onFilterSelectionChange });
+  await waitFor(() =>
+    expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+  );
+  expect(mockSuperChartProps).toHaveBeenCalled();
+  const [props] = mockSuperChartProps.mock.lastCall as [
+    { hooks: { setDataMask: (mask: DataMask) => void } },
+  ];
+  props.hooks.setDataMask(dataMask);
+  return onFilterSelectionChange;
+}
+
+test.each([undefined, 'cube-member-id-v1'])(
+  'a grain-only value carries no selection provenance (target version %s)',
+  async version => {
+    const filter: Filter = semanticGrainControl(version);
+    const mask: DataMask = {
+      filterState: { value: ['P1Y'] },
+      extraFormData: { time_grain_sqla: 'P1Y' },
+    };
+    const onFilterSelectionChange: jest.Mock = await emitFromPlugin(
+      filter,
+      mask,
+    );
+    expect(onFilterSelectionChange).toHaveBeenCalledWith(filter, mask);
+  },
+);
+
+test('a semantic member selection is still stamped with its provenance', async () => {
+  const filter: Filter = createMockFilter({
+    filterType: 'filter_select',
+    targets: [
+      {
+        datasetId: 3,
+        datasourceType: DatasourceType.SemanticView,
+        column: { name: 'Orders.status' },
+      },
+    ],
+  });
+  const filters = [{ col: 'Orders.status', op: 'IN' as const, val: ['Open'] }];
+  const onFilterSelectionChange: jest.Mock = await emitFromPlugin(filter, {
+    filterState: { value: ['Open'] },
+    extraFormData: { filters },
+  });
+  expect(onFilterSelectionChange).toHaveBeenCalledWith(filter, {
+    filterState: { value: ['Open'] },
+    extraFormData: {
+      filters,
+      semantic_selection_sources: [
+        { datasource: '3__semantic_view', version: null },
+      ],
+    },
+  });
+});
+
+test('a saved grain-only value is not reported as a stale selection', async () => {
+  mockRequestChartData.mockResolvedValue([{ data: [] }]);
+  renderFilterValue({
+    filter: {
+      ...semanticGrainControl('cube-member-id-v1'),
+      // Persisted before grain-only values stopped carrying provenance.
+      dataMask: {
+        filterState: { value: ['P1Y'] },
+        extraFormData: {
+          time_grain_sqla: 'P1Y',
+          semantic_selection_sources: [
+            { datasource: '3__semantic_view', version: null },
+          ],
+        },
+      },
+    },
+  });
+  await waitFor(() =>
+    expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+  );
+  expect(
+    screen.queryByText('Reselect saved filter values'),
+  ).not.toBeInTheDocument();
+});
+
+const grainControlOfType = (
+  filterType: string,
+  semantic_selection_version?: string,
+): Filter =>
+  createMockFilter({
+    id:
+      filterType === 'filter_timegrain'
+        ? 'NATIVE_FILTER-grain'
+        : 'CHART_CUSTOMIZATION-grain',
+    filterType,
+    targets: [
+      {
+        datasetId: 3,
+        datasourceType: DatasourceType.SemanticView,
+        semantic_selection_version,
+      },
+    ],
+  });
+
+const versionAfterApplying = (emitted: DataMask): string | undefined =>
+  buildQueryObject({
+    datasource: '3__semantic_view',
+    viz_type: 'table',
+    semantic_selection_version: 'cube-member-id-v1',
+    extra_form_data: mergeExtraFormData({}, emitted.extraFormData),
+  }).extras?.semantic_selection_version;
+
+test.each(['chart_customization_timegrain', 'filter_timegrain'])(
+  'clearing a %s control restores the chart identity',
+  async filterType => {
+    const onFilterSelectionChange: jest.Mock = await emitFromPlugin(
+      grainControlOfType(filterType),
+      { extraFormData: {}, filterState: { value: null, label: undefined } },
+    );
+    const emitted: DataMask = onFilterSelectionChange.mock.lastCall![1];
+    expect(emitted.extraFormData?.semantic_selection_sources).toBeUndefined();
+    expect(versionAfterApplying(emitted)).toBe('cube-member-id-v1');
+  },
+);
+
+test.each(['chart_customization_timegrain', 'filter_timegrain'])(
+  'a %s control saved without a default is not a stale selection',
+  async filterType => {
+    mockRequestChartData.mockResolvedValue([{ data: [] }]);
+    renderFilterValue({
+      filter: {
+        ...grainControlOfType(filterType, 'cube-member-id-v1'),
+        dataMask: { filterState: { value: null }, extraFormData: {} },
+      },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByText('Reselect saved filter values'),
+    ).not.toBeInTheDocument();
+  },
+);
+
+test('clearing a semantic member filter still carries its provenance', async () => {
+  const filter: Filter = createMockFilter({
+    filterType: 'filter_select',
+    targets: [
+      {
+        datasetId: 3,
+        datasourceType: DatasourceType.SemanticView,
+        column: { name: 'Orders.status' },
+      },
+    ],
+  });
+  const onFilterSelectionChange: jest.Mock = await emitFromPlugin(filter, {
+    extraFormData: {},
+    filterState: { value: null },
+  });
+  const emitted: DataMask = onFilterSelectionChange.mock.lastCall![1];
+  expect(emitted.extraFormData?.semantic_selection_sources).toEqual([
+    { datasource: '3__semantic_view', version: null },
+  ]);
+});
+
+test.each([
+  ['never initialized', 'filter_select', undefined],
+  ['Clear all select', 'filter_select', null],
+  ['empty select', 'filter_select', []],
+  ['Clear all range', 'filter_range', [null, null]],
+])(
+  '%s empty state is not a legacy saved selection',
+  async (_label, filterType, value) => {
+    mockRequestChartData.mockResolvedValue([{ data: [] }]);
+    const filter = {
+      ...createMockFilter({
+        filterType,
+        targets: [
+          {
+            datasetId: 7,
+            datasourceType: DatasourceType.SemanticView,
+            column: { name: 'Orders.status' },
+            semantic_selection_version: 'member-id-v1',
+          },
+        ],
+      }),
+      dataMask: { filterState: { value }, extraFormData: {} },
+    };
+    renderFilterValue({ filter });
+    expect(
+      screen.queryByText('Reselect saved filter values'),
+    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+    );
+  },
+);
+
+test('nonempty unversioned saved values still require reset', () => {
+  mockRequestChartData.mockResolvedValue([{ data: [] }]);
+  const filter = {
+    ...createMockFilter({
+      targets: [
+        {
+          datasetId: 7,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'Orders.status' },
+          semantic_selection_version: 'member-id-v1',
+        },
+      ],
+    }),
+    dataMask: { filterState: { value: ['legacy'] }, extraFormData: {} },
+  };
+  renderFilterValue({ filter });
+  expect(screen.getByText('Reselect saved filter values')).toBeInTheDocument();
+});
+
+test.each([
+  { value: '' },
+  { value: [0] },
+  { value: { key: 'legacy' } },
+  { value: [null, 5], filterType: 'filter_range' },
+  { value: [5, null], filterType: 'filter_range' },
+  {
+    value: [null, null],
+    filterType: 'filter_range',
+    extraFormData: {
+      filters: [{ col: 'Orders.amount', op: '>' as const, val: 5 }],
+    },
+  },
+  { value: 0 },
+  { value: false },
+  { value: [null] },
+  { value: [null, null], filterType: 'filter_select' },
+  {
+    value: null,
+    extraFormData: {
+      filters: [{ col: 'Orders.status', op: 'IN' as const, val: ['AIR'] }],
+    },
+  },
+  {
+    value: null,
+    extraFormData: { custom_form_data: { groupby: ['Orders.status'] } },
+  },
+  {
+    value: null,
+    extraFormData: {
+      semantic_selection_sources: [
+        { datasource: '7__semantic_view', version: 'old' },
+      ],
+    },
+  },
+  {
+    value: [],
+    extraFormData: {
+      semantic_selection_sources: [
+        { datasource: '8__semantic_view', version: 'member-id-v1' },
+      ],
+    },
+  },
+])(
+  'empty-looking or genuine legacy selection still warns: %j',
+  ({ value, extraFormData = {}, filterType = 'filter_select' }) => {
+    mockRequestChartData.mockResolvedValue([{ data: [] }]);
+    renderFilterValue({
+      filter: {
+        ...createMockFilter({
+          filterType,
+          targets: [
+            {
+              datasetId: 7,
+              datasourceType: DatasourceType.SemanticView,
+              column: { name: 'Orders.status' },
+              semantic_selection_version: 'member-id-v1',
+            },
+          ],
+        }),
+        dataMask: { filterState: { value }, extraFormData },
+      },
+    });
+    expect(
+      screen.getByText('Reselect saved filter values'),
+    ).toBeInTheDocument();
+  },
+);
+
+test.each([undefined, 'member-id-v1'])(
+  'an unmounted clear has the same chart-side provenance as plugin emission (version %s)',
+  async version => {
+    const filter = createMockFilter({
+      targets: [
+        {
+          datasetId: 3,
+          datasourceType: DatasourceType.SemanticView,
+          semantic_selection_version: version,
+          column: { name: 'Orders.status' },
+        },
+      ],
+    });
+    const empty: DataMask = { filterState: { value: null }, extraFormData: {} };
+    const beforeMount = withNativeFilterProvenance(
+      empty,
+      filter.filterType,
+      filter.targets[0],
+    );
+    expect(mockSuperChartProps).not.toHaveBeenCalled();
+    const onChange = await emitFromPlugin(filter, empty);
+    const mounted: DataMask = onChange.mock.lastCall![1];
+    expect(beforeMount).toEqual(mounted);
+    expect(beforeMount.extraFormData?.semantic_selection_sources).toEqual([
+      { datasource: '3__semantic_view', version: version ?? null },
+    ]);
+    for (const [datasource, chartVersion] of [
+      ['3__semantic_view', 'member-id-v1'],
+      ['4__semantic_view', 'member-id-v1'],
+      ['3__semantic_view', 'another-version'],
+    ]) {
+      for (const mask of [beforeMount, mounted]) {
+        expect(
+          buildQueryObject({
+            datasource,
+            viz_type: 'table',
+            semantic_selection_version: chartVersion,
+            extra_form_data: mergeExtraFormData({}, mask.extraFormData),
+          }).extras?.semantic_selection_version,
+        ).toBe(
+          datasource === '3__semantic_view' && version === chartVersion
+            ? chartVersion
+            : 'unverified-external-selections',
+        );
+      }
+    }
+  },
+);

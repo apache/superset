@@ -42,6 +42,7 @@ import {
   getClientErrorObject,
   getSemanticSelectionSources,
   isChartCustomization,
+  isGrainOnlyExtraFormData,
 } from '@superset-ui/core';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
@@ -64,7 +65,11 @@ import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import isSemanticRange from 'src/filters/components/Range/isSemanticRange';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
-import { getFormData } from '../../utils';
+import {
+  getFormData,
+  isSelectionFreeGrainControlMask,
+  withNativeFilterProvenance,
+} from '../../utils';
 import { useFilterDependencies, useTransitiveParentIds } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
 
@@ -355,20 +360,11 @@ const FilterValue: FC<FilterValueProps> = ({
     (dataMask: DataMask) =>
       onFilterSelectionChange(
         filter,
-        datasourceType === DatasourceType.SemanticView
-          ? {
-              ...dataMask,
-              extraFormData: {
-                ...dataMask.extraFormData,
-                semantic_selection_sources: [
-                  {
-                    datasource: `${datasetId}__${datasourceType || DatasourceType.Table}`,
-                    version: semantic_selection_version ?? null,
-                  },
-                ],
-              },
-            }
-          : dataMask,
+        withNativeFilterProvenance(dataMask, filter.filterType, {
+          datasetId,
+          datasourceType,
+          semantic_selection_version,
+        }),
       ),
     [
       filter,
@@ -456,12 +452,31 @@ const FilterValue: FC<FilterValueProps> = ({
   const selectionSources = getSemanticSelectionSources(
     filter.dataMask?.extraFormData,
   );
+  const selectedValue = filter.dataMask?.filterState?.value;
+  const hasEmptyValue =
+    selectedValue === undefined ||
+    selectedValue === null ||
+    (Array.isArray(selectedValue) &&
+      (selectedValue.length === 0 ||
+        (filter.filterType === 'filter_range' &&
+          selectedValue.length === 2 &&
+          selectedValue.every(value => value === null))));
+  // An empty display value must not hide stale provenance or member predicates.
+  // In particular, [null] in a select is a selected NULL, not a cleared value.
   const hasSavedSelection =
-    filter.dataMask?.filterState?.value !== undefined ||
-    selectionSources.length > 0;
+    !hasEmptyValue ||
+    selectionSources.length > 0 ||
+    Object.values(filter.dataMask?.extraFormData ?? {}).some(
+      value => value !== undefined,
+    );
   const staleSelection =
     semantic_selection_version &&
     hasSavedSelection &&
+    !isGrainOnlyExtraFormData(filter.dataMask?.extraFormData) &&
+    !isSelectionFreeGrainControlMask(
+      filter.filterType,
+      filter.dataMask?.extraFormData,
+    ) &&
     (selectionSources.length === 0 ||
       selectionSources.some(
         source =>

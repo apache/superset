@@ -791,6 +791,7 @@ def test_provider_execution_error_http(
     [
         "UNSUPPORTED_QUERY",
         "UNSUPPORTED_OFFSET",
+        "UNSUPPORTED_GROUP_OTHERS_METRIC",
         "INVALID_FILTER",
         "INVALID_QUERY",
         "private-unknown-code",
@@ -863,12 +864,15 @@ def test_required_secondary_query_rejection(
         },
     )
     assert response.status_code == 400
-    assert "This semantic provider does not support this query." in response.get_data(
-        as_text=True
+    message: str = (
+        "This semantic provider does not support this query."
+        if phase == "count"
+        else "Time comparison is not yet supported on semantic views."
     )
+    assert message in response.get_data(as_text=True)
     assert "result" not in response.get_json()
     assert date_view.get_row_count.call_count == (1 if phase == "count" else 0)
-    assert date_view.get_table.call_count == (0 if phase == "count" else 2)
+    date_view.get_table.assert_not_called()
 
 
 @pytest.mark.parametrize("kind", ["oauth", "cancel", "worker_timeout", "security"])
@@ -1194,6 +1198,14 @@ def test_async_completeness_does_not_publish_success(
             ),
         ),
         (
+            "UNSUPPORTED_GROUP_OTHERS_METRIC",
+            (
+                '"Group remaining as Others" cannot be calculated for this metric '
+                "on a semantic view. Turn it off, or choose a sum, count, minimum, "
+                "or maximum metric."
+            ),
+        ),
+        (
             "INVALID_FILTER",
             (
                 "A semantic query filter is invalid. "
@@ -1237,6 +1249,42 @@ def test_provider_rejection_uses_host_guidance(
     dispatcher.assert_called_once()
 
 
+@pytest.mark.parametrize("guest", [False, True])
+def test_others_metric_guidance_in_chart_response(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    guest: bool,
+) -> None:
+    """Chart responses identify Others while preserving embedded guest sanitization."""
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    date_view.get_table.side_effect = SemanticQueryRejectedError(
+        "UNSUPPORTED_GROUP_OTHERS_METRIC"
+    )
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == 400
+    assert response.get_json()["message"] == (
+        "An error occurred while fetching the data."
+        if guest
+        else (
+            '"Group remaining as Others" cannot be calculated for this metric '
+            "on a semantic view. Turn it off, or choose a sum, count, minimum, "
+            "or maximum metric."
+        )
+    )
+    date_view.get_table.assert_called_once()
+
+
 def test_unknown_rejection_code_is_logged_before_normalizing(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -1257,6 +1305,7 @@ def test_unknown_rejection_code_is_logged_before_normalizing(
     [
         "UNSUPPORTED_QUERY",
         "UNSUPPORTED_OFFSET",
+        "UNSUPPORTED_GROUP_OTHERS_METRIC",
         "INVALID_FILTER",
         "INVALID_QUERY",
         "unknown-private-code",
@@ -1468,4 +1517,61 @@ def test_transport_failure_during_chart_preparation_returns_400(
     assert response.status_code == 400
     assert str(error) in response.get_data(as_text=True)
     assert "private-preparation" not in response.get_data(as_text=True)
+    date_view.get_table.assert_not_called()
+
+
+@pytest.mark.parametrize("force", [False, True])
+def test_async_refusal_over_http(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    force: bool,
+) -> None:
+    """Async chart requests preserve refusals instead of returning a job or 500."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    message: str = "This data source can't be queried in the current context."
+    refusal: SupersetSecurityException = SupersetSecurityException(
+        SupersetError(
+            message=message,
+            error_type=SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"reason": "method_not_supported"},
+        )
+    )
+    # Exercise both async paths: cache probe and fresh task submission.
+    mocker.patch(
+        "superset.charts.data.api.ChartDataRestApi._should_run_async", return_value=True
+    )
+    execute: MagicMock = mocker.patch(
+        "superset.charts.data.api.ChartDataCommand.execute", side_effect=refusal
+    )
+    submit: MagicMock = mocker.patch(
+        "superset.charts.data.api.submit_chart_data_query_tasks", side_effect=refusal
+    )
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "async_mode": True,
+            "force": force,
+        },
+    )
+    assert response.status_code == 403
+    assert (
+        response.json["errors"][0]["error_type"] == "SEMANTIC_EXECUTION_REFUSED_ERROR"
+    )
+    assert response.json["errors"][0]["message"] == message
+    assert "job_id" not in response.json
+    if force:
+        execute.assert_not_called()
+        submit.assert_called_once()
+    else:
+        execute.assert_called_once_with(force_cached=True)
+        submit.assert_not_called()
     date_view.get_table.assert_not_called()
