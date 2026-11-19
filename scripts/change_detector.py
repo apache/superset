@@ -248,6 +248,26 @@ def fetch_changed_files_push(
     return fetch_changed_files_compare(repo, parent_sha, sha)
 
 
+def fetch_changed_files_merge_group(repo: str, sha: str) -> List[str]:
+    """Fetches files changed in a merge-queue entry using the GitHub API.
+
+    The merge queue's synthetic commit has no `pull_request` context to read a
+    PR number from, and its parent-commit shape isn't guaranteed to match
+    `push`'s. `merge_group.base_sha` is the event's own explicit, documented
+    base pointer -- the workflow wires it through as MERGE_GROUP_BASE_SHA.
+    `sha` is GITHUB_SHA, which for a merge_group event is documented as "SHA
+    of the merge group" (the head to compare).
+    """
+    base_sha = os.environ.get("MERGE_GROUP_BASE_SHA", "")
+    if not base_sha:
+        raise RuntimeError(
+            "merge_group event missing MERGE_GROUP_BASE_SHA; the workflow "
+            "must pass github.event.merge_group.base_sha through as that "
+            "env var."
+        )
+    return fetch_changed_files_compare(repo, base_sha, sha)
+
+
 def detect_changes(files: List[str], check_patterns: List) -> bool:  # type: ignore
     """Detects if any of the specified files match the provided patterns."""
     for file in files:
@@ -307,21 +327,7 @@ def main(event_type: str, sha: str, repo: str) -> None:
             print_files(files)
 
     elif event_type == "merge_group":
-        # The merge queue's synthetic commit has no `pull_request` context to
-        # read a PR number from, and its parent-commit shape isn't guaranteed
-        # to match `push`'s. `merge_group.base_sha` is the event's own
-        # explicit, documented base pointer -- the workflow wires it through
-        # as MERGE_GROUP_BASE_SHA. `sha` here is already GITHUB_SHA, which for
-        # a merge_group event is documented as "SHA of the merge group" (the
-        # head we want).
-        base_sha = os.environ.get("MERGE_GROUP_BASE_SHA", "")
-        if not base_sha:
-            raise RuntimeError(
-                "merge_group event missing MERGE_GROUP_BASE_SHA; the workflow "
-                "must pass github.event.merge_group.base_sha through as that "
-                "env var."
-            )
-        files = fetch_changed_files_compare(repo, base_sha, sha)
+        files = fetch_changed_files_merge_group(repo, sha)
         print("Files touched in this merge group:")
         print_files(files)
 
