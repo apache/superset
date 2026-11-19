@@ -24,7 +24,7 @@ from flask import current_app, has_app_context
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     TagForbiddenError,
@@ -34,7 +34,10 @@ from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.daos.tag import TagDAO
 from superset.exceptions import SupersetSecurityException
-from superset.subjects.exceptions import SubjectsNotFoundValidationError
+from superset.subjects.exceptions import (
+    SubjectsNotFoundValidationError,
+    ViewersDisabledValidationError,
+)
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectReference
 from superset.subjects.utils import (
@@ -186,6 +189,29 @@ def compute_subject_list(
     )
 
 
+def raise_if_adding_viewers_while_disabled(
+    new_viewers: list[Subject],
+    current_viewers: list[Subject] | None = None,
+) -> None:
+    """
+    Reject viewer additions while ``ENABLE_VIEWERS`` is off.
+
+    Viewers are enforced whenever the relationship is non-empty, independent of
+    the flag, but the flag hides them from the UI. Allowing writes while it is
+    off lets an API client lock a dashboard or chart down in a way admins can
+    neither see nor undo in the UI. Removing viewers (or re-sending the current
+    list) remains allowed so stale assignments can always be cleared.
+
+    :raises ViewersDisabledValidationError: when the flag is off and
+        *new_viewers* contains a subject not already in *current_viewers*
+    """
+    if is_feature_enabled("ENABLE_VIEWERS"):
+        return
+    current_ids = {subject.id for subject in current_viewers or []}
+    if any(subject.id not in current_ids for subject in new_viewers):
+        raise ViewersDisabledValidationError()
+
+
 def populate_subjects(
     properties: dict[str, Any],
     exceptions: list[ValidationError],
@@ -213,11 +239,13 @@ def populate_subjects(
 
     if properties.get("viewers") is not None:
         try:
-            properties["viewers"] = populate_subject_list(
+            viewers = populate_subject_list(
                 properties["viewers"],
                 default_to_user=False,
                 field_name="viewers",
             )
+            raise_if_adding_viewers_while_disabled(viewers)
+            properties["viewers"] = viewers
         except ValidationError as ex:
             exceptions.append(ex)
     elif default_viewers := get_default_viewers_for_new_asset(get_user_id()):
@@ -249,11 +277,14 @@ def compute_subjects(
 
     if include_viewers and hasattr(model, "viewers"):
         try:
-            properties["viewers"] = compute_subject_list(
+            viewers = compute_subject_list(
                 model.viewers,
                 properties.get("viewers"),
                 field_name="viewers",
             )
+            if properties.get("viewers") is not None:
+                raise_if_adding_viewers_while_disabled(viewers, model.viewers)
+            properties["viewers"] = viewers
         except ValidationError as ex:
             exceptions.append(ex)
 
