@@ -1801,6 +1801,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 engine,
                 message="Unable to parse script",
             ) from ex
+        except Exception as ex:
+            # Some dialect-specific sqlglot transforms (e.g. Snowflake's
+            # DATE_TRUNC handling) raise bare exceptions like AttributeError
+            # instead of a SqlglotError subclass on malformed input, which
+            # would otherwise propagate as an unhandled 500.
+            raise SupersetParseError(
+                script,
+                engine,
+                message="Unable to parse script",
+            ) from ex
 
         return _collect_sql_statements(statements)
 
