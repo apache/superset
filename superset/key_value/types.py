@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import pickle
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -29,6 +28,7 @@ from superset.key_value.exceptions import (
     KeyValueCodecDecodeException,
     KeyValueCodecEncodeException,
 )
+from superset.utils import json
 from superset.utils.backports import StrEnum
 
 if TYPE_CHECKING:
@@ -113,16 +113,38 @@ class KeyValueCodec(ABC):
     def decode(self, value: bytes) -> Any: ...
 
 
+def _contains_bytes(value: Any) -> bool:
+    """Whether ``value`` is, or nests, a raw bytes-like object."""
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return True
+    if isinstance(value, dict):
+        return any(_contains_bytes(k) or _contains_bytes(v) for k, v in value.items())
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return any(_contains_bytes(v) for v in value)
+    return False
+
+
 class JsonKeyValueCodec(KeyValueCodec):
     def encode(self, value: dict[Any, Any]) -> bytes:
+        # JSON has no binary type; bytes, top-level or nested, must not be
+        # silently stringified
+        if _contains_bytes(value):
+            raise KeyValueCodecEncodeException("Cannot JSON-encode a bytes value")
         try:
-            return bytes(json.dumps(value), encoding="utf-8")
+            # keep NaN/Infinity round-trippable, as stdlib json did, rather than
+            # coercing them to null
+            return bytes(
+                json.dumps(value, allow_nan=True, ignore_nan=False),
+                encoding="utf-8",
+            )
         except TypeError as ex:
             raise KeyValueCodecEncodeException(str(ex)) from ex
 
     def decode(self, value: bytes) -> dict[Any, Any]:
         try:
-            return json.loads(value)
+            # allow_nan keeps entries written before the switch to
+            # superset.utils.json (stdlib json emitted NaN/Infinity) readable
+            return json.loads(value, allow_nan=True)
         except TypeError as ex:
             raise KeyValueCodecDecodeException(str(ex)) from ex
 
