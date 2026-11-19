@@ -161,7 +161,7 @@ test('datasource projection ignores chart status and results but detects repoint
   const before = selectChartDatasources({ charts: { 42: chart } });
   const rendered = { ...chart, chartStatus: 'rendered' };
   const after = selectChartDatasources({ charts: { 42: rendered } });
-  expect(shallowEqual(before, after)).toBe(true);
+  expect(after).toBe(before);
   expect(
     shallowEqual(
       before,
@@ -333,3 +333,25 @@ test.each([
     }),
   ).toEqual([]);
 });
+test.each([10, 50, 100])(
+  'projects %i chart identities once for all chart and badge subscribers',
+  count => {
+    const readDatasource = jest.fn(() => '12__table');
+    const charts = Object.fromEntries(
+      Array.from({ length: count }, (_, id) => [
+        id,
+        {
+          form_data: {
+            get datasource() {
+              return readDatasource();
+            },
+          },
+        },
+      ]),
+    );
+    for (let subscriber = 0; subscriber < count * 2; subscriber += 1) {
+      selectChartDatasources({ charts });
+    }
+    expect(readDatasource).toHaveBeenCalledTimes(count);
+  },
+);

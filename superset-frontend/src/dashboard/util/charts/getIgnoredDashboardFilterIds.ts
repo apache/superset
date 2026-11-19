@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { createSelector } from '@reduxjs/toolkit';
+import { shallowEqual } from 'react-redux';
 import { isEqual } from 'lodash-es';
 import { EMPTY_FILTER_SQL_EXPRESSION } from 'src/utils/common';
 import {
@@ -30,18 +32,26 @@ import {
 
 export type ChartDatasources = Record<string, string | undefined>;
 
-/** Select only query-source identity; callers use shallow equality for stability. */
-export const selectChartDatasources = ({
-  charts,
-}: {
+/** Share the projection across charts and preserve identity on status updates. */
+export const selectChartDatasources: (state: {
   charts: Record<string, { form_data?: { datasource?: string } }>;
-}): ChartDatasources =>
-  Object.fromEntries(
-    Object.entries(charts).map(([id, chart]) => [
-      id,
-      chart.form_data?.datasource,
-    ]),
-  );
+}) => ChartDatasources = createSelector(
+  [
+    ({
+      charts,
+    }: {
+      charts: Record<string, { form_data?: { datasource?: string } }>;
+    }) => charts,
+  ],
+  (charts): ChartDatasources =>
+    Object.fromEntries(
+      Object.entries(charts).map(([id, chart]) => [
+        id,
+        chart.form_data?.datasource,
+      ]),
+    ),
+  { memoizeOptions: { resultEqualityCheck: shallowEqual } },
+);
 
 /** Classify optional dashboard predicates; never certify semantic selections. */
 export function getIgnoredDashboardFilterIds(
