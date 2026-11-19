@@ -45,6 +45,7 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import {
   act,
   createStore,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -121,11 +122,15 @@ const forbidDatasetRequests = (id: number, body?: object) => {
   );
 };
 
-const mockSemanticViewStructure = (id: number, name = VIEW_NAME) => {
+const mockSemanticViewStructure = (
+  id: number,
+  name = VIEW_NAME,
+  version: string | null = null,
+) => {
   fetchMock.get(structureRoute(id), {
     result: {
       name,
-      semantic_selection_version: null,
+      semantic_selection_version: version,
       description: null,
       cache_timeout: null,
       dimensions: semanticViewDimensions.map(dimension => ({
@@ -327,6 +332,44 @@ const savedSemanticFilter = (
   targets: [{ datasetId, datasourceType, column: { name: column } }],
 });
 
+test('the semantic field warning wraps its action in narrow modal content', async () => {
+  forbidDatasetRequests(VIEW_ID);
+  mockSemanticViewStructure(VIEW_ID, VIEW_NAME, 'member-id-v1');
+  const legacyFilter = savedSemanticFilter(
+    'NATIVE_FILTER-semantic',
+    'Status',
+    VIEW_ID,
+    DatasourceType.SemanticView,
+    'Orders.status',
+  );
+  renderModal(
+    stateFor(
+      dashboardDatasources(semanticViewEntry(VIEW_ID)),
+      [`${VIEW_ID}__semantic_view`],
+      [legacyFilter],
+    ),
+    { ...props, createNewOnOpen: false },
+  );
+
+  const warning = await screen.findByRole('alert');
+  expect(
+    within(warning).getByText('Choose current semantic filter fields'),
+  ).toBeInTheDocument();
+  const section = warning.querySelector('.ant-alert-section') as HTMLElement;
+  const actions = warning.querySelector('.ant-alert-actions') as HTMLElement;
+  expect(warning.style.flexWrap).toBe('wrap');
+  expect(section.style.flex).toBe('1 1 0%');
+  expect(actions.style.maxWidth).toBe('100%');
+  expect(actions.style.flexBasis).toBe('100%');
+  expect(actions.style.order).toBe('1');
+  const button = within(warning).getByRole('button', {
+    name: 'Start field selection',
+  });
+  expect(actions).toContainElement(button);
+  expect(button).toHaveStyleRule('min-height', '32px');
+  expect(button).toHaveStyleRule('padding-block', '4px');
+});
+
 const saveAndCapture = async (onSave: jest.Mock, name = 'Status') => {
   const nameInput = screen.getByRole('textbox', { name: /^filter name$/i });
   await userEvent.clear(nameInput);
@@ -385,7 +428,10 @@ test('a new display control on a semantic-view dashboard binds to the semantic v
 
   renderModal(semanticOnlyState(), { ...props, createNewOnOpen: false });
   await userEvent.hover(screen.getByTestId('new-item-dropdown-button'));
-  await userEvent.click(await screen.findByText('Add display control'));
+  // userEvent.click would move the pointer into the hover dropdown and
+  // schedule a delayed re-open whose autoFocus steals focus from the next
+  // select, closing it before its option can be clicked.
+  fireEvent.click(await screen.findByText('Add display control'));
   await userEvent.click(
     await screen.findByRole('combobox', { name: 'Customization type' }),
   );
@@ -463,6 +509,120 @@ test('saving a default semantic-view filter records the semantic-view target', a
     },
   ]);
   expect(forbiddenRequests).toEqual([]);
+});
+
+test('a new versioned semantic filter saves current selections without a legacy banner', async () => {
+  mockSemanticViewStructure(VIEW_ID, VIEW_NAME, 'member-id-v1');
+  const onSave = jest.fn().mockResolvedValue(undefined);
+  const { unmount } = renderModal(semanticOnlyState(), { ...props, onSave });
+  await waitForDatasourceRequest(VIEW_ID);
+  await openColumnOptions();
+  await pickOpenOption('Orders.status');
+  expect(
+    screen.queryByText('Choose current semantic filter fields'),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText('Exact match (IN)')).toBeInTheDocument();
+  fetchMock.callHistory.clear();
+  await userEvent.click(
+    screen.getByRole('checkbox', { name: /^filter has default value/i }),
+  );
+  await waitFor(() => expect(chartDataDatasources().length).toBeGreaterThan(0));
+  fetchMock.callHistory
+    .calls('glob:*/api/v1/chart/data*')
+    .forEach(({ options }) => {
+      const query = JSON.parse(String(options.body));
+      expect(query.datasource).toEqual({
+        id: VIEW_ID,
+        type: DatasourceType.SemanticView,
+      });
+      expect(query.form_data.semantic_selection_version).toBe('member-id-v1');
+      expect(query.queries[0].extras.semantic_selection_version).toBe(
+        'member-id-v1',
+      );
+    });
+  await userEvent.click(
+    screen.getByRole('checkbox', { name: /^filter has default value/i }),
+  );
+  const { filterChanges } = await saveAndCapture(onSave);
+  expect(filterChanges.modified[0].targets[0]).toEqual({
+    datasetId: VIEW_ID,
+    datasourceType: DatasourceType.SemanticView,
+    column: { name: 'Orders.status' },
+    semantic_selection_version: 'member-id-v1',
+  });
+  unmount();
+  renderModal(
+    stateFor(
+      dashboardDatasources(semanticViewEntry(VIEW_ID)),
+      [`${VIEW_ID}__semantic_view`],
+      [filterChanges.modified[0]],
+    ),
+    { ...props, createNewOnOpen: false },
+  );
+  expect(await screen.findByText('Orders.status')).toBeInTheDocument();
+  expect(
+    screen.queryByText('Choose current semantic filter fields'),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText('Exact match (IN)')).toBeInTheDocument();
+});
+
+test('a new versioned semantic display control does not need legacy migration', async () => {
+  mockSemanticViewStructure(VIEW_ID, VIEW_NAME, 'member-id-v1');
+  const onSave = jest.fn().mockResolvedValue(undefined);
+  renderModal(semanticOnlyState(), {
+    ...props,
+    onSave,
+    createNewOnOpen: false,
+  });
+  await userEvent.hover(screen.getByTestId('new-item-dropdown-button'));
+  fireEvent.click(await screen.findByText('Add display control'));
+  await userEvent.click(
+    await screen.findByRole('combobox', { name: 'Customization type' }),
+  );
+  await userEvent.click(await screen.findByText('Dynamic group by'));
+  await waitForDatasourceRequest(VIEW_ID);
+  expect(
+    await within(await findDatasourceField()).findByText(VIEW_NAME),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText('Choose current semantic filter fields'),
+  ).not.toBeInTheDocument();
+  await userEvent.type(
+    screen.getByRole('textbox', { name: /^display control name$/i }),
+    'Group',
+  );
+  await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  expect(
+    onSave.mock.calls[0][0].customizationChanges.modified[0].targets[0],
+  ).toEqual(
+    expect.objectContaining({ semantic_selection_version: 'member-id-v1' }),
+  );
+});
+
+test('switching back to a semantic view does not certify a retained sort metric', async () => {
+  mockSemanticViewStructure(VIEW_ID, VIEW_NAME, 'member-id-v1');
+  allowDatasetRequests(7);
+  fetchMock.removeRoute('datasource-list');
+  mockCombinedDatasourceList([
+    sqlListItem(7),
+    { id: VIEW_ID, table_name: VIEW_NAME, kind: 'semantic_view' },
+  ]);
+  renderModal(semanticOnlyState());
+  await waitForDatasourceRequest(VIEW_ID);
+  await userEvent.click(
+    await screen.findByRole('checkbox', { name: 'Sort filter values' }),
+  );
+  await userEvent.click(screen.getByRole('combobox', { name: 'Sort metric' }));
+  await pickOpenOption('Orders.count');
+  await chooseDatasource('sql_orders');
+  expect(
+    await within(await findDatasourceField()).findByText('sql_orders'),
+  ).toBeInTheDocument();
+  await chooseDatasource(VIEW_NAME);
+  expect(
+    await screen.findByRole('button', { name: 'Start field selection' }),
+  ).toBeInTheDocument();
 });
 
 test('a mixed dashboard defaults to a most-used semantic view by its type', async () => {
@@ -674,7 +834,7 @@ test('a failed SQL dataset load leaves an empty, usable datasource select', asyn
 });
 
 test('switching between a same-id dataset and semantic view reloads columns by type', async () => {
-  mockSemanticViewStructure(VIEW_ID);
+  mockSemanticViewStructure(VIEW_ID, VIEW_NAME, 'member-id-v1');
   const sqlRequests = allowDatasetRequests(VIEW_ID);
   fetchMock.removeRoute('datasource-list');
   mockCombinedDatasourceList([
@@ -722,6 +882,9 @@ test('switching between a same-id dataset and semantic view reloads columns by t
   );
   expect(
     within(openDropdown()).queryByText('sql_only_column'),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Choose current semantic filter fields'),
   ).not.toBeInTheDocument();
 });
 
@@ -932,11 +1095,13 @@ test('a slow semantic view response cannot describe a datasource chosen after it
     { id: VIEW_ID, table_name: VIEW_NAME, kind: 'semantic_view' },
   ]);
 
+  const onSave = jest.fn().mockResolvedValue(undefined);
   renderModal(
     stateFor(
       dashboardDatasources(sqlDatasetEntry(7), semanticViewEntry(VIEW_ID)),
       ['7__table', '7__table', `${VIEW_ID}__semantic_view`],
     ),
+    { ...props, onSave },
   );
   expect(
     await within(await findDatasourceField()).findByText('sql_orders'),
@@ -958,6 +1123,13 @@ test('a slow semantic view response cannot describe a datasource chosen after it
   expect(
     screen.queryByText('Choose current semantic filter fields'),
   ).not.toBeInTheDocument();
+  await pickOpenOption('sql_only_column');
+  const { filterChanges } = await saveAndCapture(onSave);
+  expect(filterChanges.modified[0].targets[0]).toEqual({
+    datasetId: 7,
+    datasourceType: DatasourceType.Table,
+    column: { name: 'sql_only_column' },
+  });
 });
 
 test('an explicitly chosen datasource that fails to load is cleared and can be chosen again', async () => {
