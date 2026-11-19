@@ -675,47 +675,6 @@ class StarRocksParser(_StarRocksParser):
             )
         )
 
-    def _parse_statement(self) -> exp.Expr | None:
-        # `ADD SQLBLACKLIST|BACKEND BLACKLIST|COMPUTE NODE BLACKLIST` and the
-        # matching `DELETE ...` forms manage cluster-wide denylists. ADD and
-        # DELETE already have dedicated meanings elsewhere in the grammar
-        # (ALTER TABLE ADD ..., the DML DELETE statement), so -- unlike the
-        # keywords in _STARROCKS_COMMAND_KEYWORDS -- they can't be remapped to
-        # TokenType.COMMAND outright; this peeks for the specific StarRocks
-        # phrasing instead and only then treats it as an opaque command.
-        # https://docs.starrocks.io/docs/sql-reference/sql-statements/cluster-management/sql_blacklist/
-        # https://docs.starrocks.io/docs/administration/management/BE_blacklist/
-        if self._match_texts(("ADD", "DELETE"), advance=False):
-            index = self._index
-            start = self._curr
-            self._advance()
-            is_blacklist_command = (
-                self._match_text_seq("SQLBLACKLIST")
-                or self._match_text_seq("BACKEND", "BLACKLIST")
-                or self._match_text_seq("COMPUTE", "NODE", "BLACKLIST")
-            )
-            self._retreat(index)
-
-            if is_blacklist_command:
-                self._advance()
-                return self._parse_as_command(start)
-
-        # `TRANSLATE TRINO <select_statement>` translates a Trino SELECT into
-        # StarRocks SQL and returns it as a result set -- a read, not a
-        # mutation. Like ADD/DELETE above, this can't be remapped to
-        # TokenType.COMMAND outright: TRANSLATE is also the ordinary
-        # TRANSLATE(string, from, to) scalar function, and mapping the
-        # keyword globally would corrupt every call to it anywhere in a
-        # query, not just at statement start. Peeking for the literal
-        # two-word phrase is safe because a bare `TRANSLATE(...)` call can
-        # never be the first token of a top-level statement on its own --
-        # it only ever appears nested inside an expression.
-        # https://docs.starrocks.io/docs/sql-reference/sql-statements/TRANSLATE_TRINO/
-        if self._match_text_seq("TRANSLATE", "TRINO", advance=False):
-            return self._parse_as_command(self._curr)
-
-        return super()._parse_statement()
-
 
 class StarRocksGenerator(_StarRocksGenerator):
     # sqlglot's SQLStatement.format()/SQLScript.format() -- used both for

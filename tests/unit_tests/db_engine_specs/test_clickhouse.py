@@ -1257,3 +1257,23 @@ def test_dataset_query_finalizes_aggregate_function_columns(
 
     assert sqlaq.labels_expected == query["columns"] + (query["metrics"] or [])
     assert table.database.compile_sqla_query(sqlaq.sqla_query) == expected_sql
+
+
+def test_connect_get_table_names_excludes_views() -> None:
+    """
+    clickhouse-connect lists views in both `get_table_names` (`SHOW TABLES`) and
+    `get_view_names`; each view must be listed once, as a view.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    inspector = Mock()
+    inspector.get_table_names.return_value = ["t1", "v1", "mv1"]
+    inspector.get_view_names.return_value = ["v1"]
+    database = Mock()
+
+    assert ClickHouseConnectEngineSpec.get_table_names(
+        database, inspector, "default"
+    ) == {"t1", "mv1"}
+    assert ClickHouseConnectEngineSpec.get_view_names(
+        database, inspector, "default"
+    ) == {"v1"}
