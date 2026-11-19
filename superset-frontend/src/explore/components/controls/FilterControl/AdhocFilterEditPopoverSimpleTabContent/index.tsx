@@ -156,7 +156,7 @@ export interface AdvancedDataTypesState {
 }
 
 export const useSimpleTabFilterProps = (props: Props) => {
-  const defaultTimeFilter = useDefaultTimeFilter();
+  const defaultTimeFilter = useDefaultTimeFilter(props.datasource);
 
   const isOperatorRelevant = (operator: Operators, subject: string) => {
     const column = props.datasource.columns?.find(

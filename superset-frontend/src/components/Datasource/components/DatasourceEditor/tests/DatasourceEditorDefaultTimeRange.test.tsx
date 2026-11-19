@@ -55,7 +55,9 @@ test('resets the default time range to the instance default and keeps other meta
   await dismissDatasourceWarning();
   await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
   const settings = screen.getByTestId('default-column-settings');
-  expect(within(settings).getByText('Last day')).toBeInTheDocument();
+  expect(
+    within(settings).getByRole('button', { name: 'Default time range' }),
+  ).toHaveTextContent('Last day');
 
   await userEvent.click(
     within(settings).getByRole('button', { name: 'Use instance default' }),

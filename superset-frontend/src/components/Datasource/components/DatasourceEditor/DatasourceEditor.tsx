@@ -52,6 +52,7 @@ import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWith
 import TableSelector from 'src/components/TableSelector';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import { getDatasetDefaultTimeRange } from 'src/explore/controlUtils';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -2257,10 +2258,7 @@ function DatasourceEditor({
     // An unset default time range inherits the instance default. The field is
     // hidden while the Extra JSON is malformed.
     const extra = parseExtra(datasource.extra);
-    const defaultTimeRange =
-      typeof extra?.default_time_range === 'string' && extra.default_time_range
-        ? extra.default_time_range
-        : undefined;
+    const defaultTimeRange = getDatasetDefaultTimeRange({ extra });
     const setDefaultTimeRange = (default_time_range?: string) => {
       // Leave the Extra JSON as written when the range does not change.
       if (default_time_range === defaultTimeRange) return;
@@ -2304,7 +2302,9 @@ function DatasourceEditor({
           {isSqla && extra && (
             <Flex vertical gap={theme?.sizeUnit ?? 4} align="start">
               <FieldLabelWithTooltip>
-                <span>{t('Default time range')}</span>
+                <span id="filter-name-default_time_range">
+                  {t('Default time range')}
+                </span>
                 <InfoTooltip
                   tooltip={t(
                     'Time range of the time filters Explore adds for this dataset, such as on new charts.',

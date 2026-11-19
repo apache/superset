@@ -37,7 +37,6 @@ import {
   isDefined,
   isAdhocColumn,
   JsonValue,
-  NO_TIME_RANGE,
   usePrevious,
   isFeatureEnabled,
   FeatureFlag,
@@ -77,10 +76,7 @@ import { PluginContext } from 'src/components';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 
-import {
-  getDatasetDefaultTimeRange,
-  getSectionsToRender,
-} from 'src/explore/controlUtils';
+import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -90,6 +86,7 @@ import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
 import { CONTROL_SECTIONS_ID, Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
+import { useDefaultTimeFilter } from './controls/DateFilterControl/utils';
 import StashFormDataContainer from './StashFormDataContainer';
 
 const TABS_KEYS = {
@@ -324,12 +321,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     string[] | undefined
   >(state => state.explore.controlsTransferred);
 
-  const defaultTimeFilter = useSelector<ExplorePageState>(
-    state =>
-      getDatasetDefaultTimeRange(state.explore.datasource) ||
-      state.common?.conf?.DEFAULT_TIME_FILTER ||
-      NO_TIME_RANGE,
-  );
+  const defaultTimeFilter = useDefaultTimeFilter(props.exploreState.datasource);
 
   const { form_data, actions } = props;
   const { setControlValue } = actions;
@@ -639,8 +631,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
           const count = values.filter(isTemporalRange).length;
           if (count === 1) {
-            // if temporal filter's value is "No filter", prevent deletion
-            // otherwise reset the value to "No filter"
+            // if the temporal filter has the default time range, prevent
+            // deletion, otherwise reset it to the default time range
             if (valueToBeDeleted.comparator === defaultTimeFilter) {
               return t(
                 `You cannot delete the last temporal filter as it's used for time range filters in dashboards.`,
