@@ -19,6 +19,7 @@ import math
 from typing import Any, Optional
 
 from flask_babel import lazy_gettext as _
+from flask_babel.speaklater import LazyString
 
 from superset.commands.exceptions import (
     CommandException,
@@ -278,6 +279,40 @@ class ReportScheduleExecutorNotFoundError(CommandException):
         super().__init__(
             message,
             exception,
+        )
+
+
+def _draft_dashboard_remedy() -> str:
+    """Explain how to restore access without weakening draft visibility."""
+    return _(
+        "This dashboard is a draft. The execution account must be an Admin "
+        "or dashboard editor. Publish the dashboard when it is ready to share, "
+        "or ask an administrator to add the execution account as a dashboard editor. "
+        "If Run as is available, select an authorized account."
+    )
+
+
+class ReportScheduleExecutorAccessDeniedError(CommandException):
+    """Raised when the identity a report runs as cannot access its target."""
+
+    # 5xx for the same reason as ReportScheduleExecutorNotFoundError: the
+    # schedule cannot deliver until its executor or target is reconfigured,
+    # which task-state alerting should surface as a failure.
+    status = 500
+
+    def __init__(
+        self, kind: str, username: str, reason: str, *, draft: bool = False
+    ) -> None:
+        if draft:
+            reason = f"{reason} {_draft_dashboard_remedy()}"
+        super().__init__(
+            _(
+                "The report runs as %(username)s, who cannot access its "
+                "%(kind)s: %(reason)s",
+                username=f'"{username}"',
+                kind=kind,
+                reason=reason,
+            )
         )
 
 
@@ -598,3 +633,35 @@ class ReportScheduleCeleryNotConfiguredError(CommandException):
         "Report Schedule execution requires a Celery backend to be configured. "
         "Please configure a Celery broker (Redis or RabbitMQ) and worker processes."
     )
+
+
+class ReportScheduleExecutorTargetAccessError(ValidationError):
+    """
+    Validation error when the identity a schedule runs as cannot access the
+    chart or dashboard it delivers
+    """
+
+    def __init__(
+        self, kind: str, username: str | None = None, *, draft: bool = False
+    ) -> None:
+        message = (
+            _(
+                "This report runs as %(username)s, who cannot access this "
+                "%(kind)s. Choose a %(kind)s that user can access, or ask an "
+                "administrator to update the execution account's access.",
+                username=f'"{username}"',
+                kind=kind,
+            )
+            if username
+            else _(
+                "The user this report runs as cannot access this %(kind)s. "
+                "Choose a %(kind)s that user can access, or ask an admin to "
+                "change who the report runs as.",
+                kind=kind,
+            )
+        )
+        if draft:
+            # Keep translation lazy: Marshmallow wraps a plain string in a list,
+            # which would change the report API's existing field-string response.
+            message = LazyString("{} {}".format, message, _draft_dashboard_remedy())
+        super().__init__(message, field_name=kind)
