@@ -40,19 +40,15 @@ test('a live order-preserving mapping puts the time range on the mapped column',
   ).toBe('event_time');
 });
 
-test('a mapping nothing has probed yet still counts', () => {
-  expect(
-    partitionedTimeRangeColumn({
-      partition_filter_mapping: { ...live, evaluable: null },
-      columns: COLUMNS,
-    }),
-  ).toBe('event_time');
-});
-
 test.each([
   ['no mapping', null],
   ['an inactive mapping', { ...live, active: false }],
   ['a transform the engine refused', { ...live, evaluable: false }],
+  // SC-130302: never probed, or the verdict expired. A broken transform in
+  // this state got the default, which scanned every partition anyway and
+  // narrowed the value list to nothing.
+  ['a transform nothing has confirmed', { ...live, evaluable: null }],
+  ['a summary with no verdict', { ...live, evaluable: undefined }],
   // Without the ordering declaration a time range is not mirrored, so it
   // would hide values without saving a single partition read.
   [

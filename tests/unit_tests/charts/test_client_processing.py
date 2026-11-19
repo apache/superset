@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import warnings
 from io import BytesIO, StringIO
 from typing import Any
 from unittest.mock import MagicMock
@@ -29,6 +30,7 @@ from superset.charts.client_processing import (
     _reduce,
     apply_client_processing,
     apply_pivot_number_formats,
+    build_pivot_currency_context,
     format_column,
     pivot_df,
     pivot_table_v2,
@@ -38,6 +40,209 @@ from superset.common.chart_data import ChartDataResultFormat
 from superset.utils import excel
 from superset.utils.core import GenericDataType
 from tests.conftest import with_config
+
+
+@pytest.mark.parametrize("combine_metrics", [False, True])
+@pytest.mark.parametrize(
+    "show_values_as", [None, "percent_row", "percent_col", "percent_total"]
+)
+def test_pivot_df_many_column_subtotals_no_fragmentation(
+    combine_metrics: bool, show_values_as: str | None
+) -> None:
+    """Wide, multi-level pivots must not insert hundreds of individual blocks."""
+    df = pd.DataFrame(
+        [
+            {
+                "row": row,
+                "group": f"group_{group:03}",
+                "child": child,
+                "first": 1,
+                "second": 2,
+            }
+            for row in ["a", "b"]
+            for group in range(105)
+            for child in ["x", "y"]
+        ]
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", pd.errors.PerformanceWarning)
+        pivoted = pivot_df(
+            df,
+            rows=["row"],
+            columns=["group", "child"],
+            metrics=["first", "second"],
+            combine_metrics=combine_metrics,
+            show_rows_total=True,
+            show_columns_total=True,
+            show_values_as=show_values_as,
+        )
+
+    assert pivoted.index.tolist() == [("a",), ("b",), (total_label(),)]
+    leaf = (
+        ("group_000", "x", "first") if combine_metrics else ("first", "group_000", "x")
+    )
+    expected = {
+        None: 1,
+        "percent_row": 1 / 210,
+        "percent_col": 1 / 2,
+        "percent_total": 1 / 420,
+    }
+    assert pivoted.loc[("a",), leaf] == pytest.approx(expected[show_values_as])
+    assert pd.isna(pivoted.loc[("a",), (total_label(), "", "")])
+    if combine_metrics:
+        assert pivoted.columns[:3].tolist() == [
+            ("group_000", "x", "first"),
+            ("group_000", "x", "second"),
+            ("group_000", "x", str(_("Subtotal"))),
+        ]
+    else:
+        assert pivoted.columns[:3].tolist() == [
+            ("first", "group_000", "x"),
+            ("first", "group_000", "y"),
+            ("first", "group_000", str(_("Subtotal"))),
+        ]
+
+
+def test_pivot_df_row_totals_with_temporal_column_dimension() -> None:
+    """Totals keep their values when a column dimension is temporal."""
+    df = pd.DataFrame(
+        {
+            "region": ["east", "east", "west"],
+            "month": pd.to_datetime(["2020-01-01", "2020-02-01", "2020-01-01"]),
+            "SUM(sales)": [1, 2, 3],
+        }
+    )
+    pivoted = pivot_df(
+        df,
+        rows=["region"],
+        columns=["month"],
+        metrics=["SUM(sales)"],
+        show_rows_total=True,
+        show_columns_total=True,
+    )
+    assert pivoted.iloc[:, -1].tolist() == [3.0, 3.0, 6.0]
+
+
+@pytest.mark.parametrize(
+    "temporal_kind", ["datetime", "datetime_tz", "timedelta", "period"]
+)
+@pytest.mark.parametrize("combine_metrics", [False, True])
+@pytest.mark.parametrize("temporal_first", [False, True])
+def test_pivot_df_temporal_subtotals_keep_values_and_dtypes(
+    temporal_kind: str, combine_metrics: bool, temporal_first: bool
+) -> None:
+    """Temporal padding must not lose values or upcast dense integer columns."""
+    dates = ["2020-01-01", "2020-02-01"] * 2
+    temporal_values = {
+        "datetime": pd.to_datetime(dates),
+        "datetime_tz": pd.to_datetime(dates, utc=True),
+        "timedelta": pd.to_timedelta([1, 2, 1, 2], unit="D"),
+        "period": pd.PeriodIndex(dates, freq="M"),
+    }
+    df = pd.DataFrame(
+        {
+            "region": ["east", "east", "west", "west"],
+            "month": temporal_values[temporal_kind],
+            "segment": ["a"] * 4,
+            "sales": [1, 2, 3, 4],
+        }
+    )
+    pivoted = pivot_df(
+        df,
+        rows=["region"],
+        columns=["month", "segment"] if temporal_first else ["segment", "month"],
+        metrics=["sales"],
+        combine_metrics=combine_metrics,
+        show_rows_total=True,
+        show_columns_total=True,
+    )
+    pd.testing.assert_series_equal(
+        pivoted.iloc[:, -1].reset_index(drop=True),
+        pd.Series([3, 7, 10]),
+        check_names=False,
+    )
+    assert not pivoted.isna().to_numpy().any()
+    assert all(dtype == "int64" for dtype in pivoted.dtypes)
+
+
+def test_pivot_currency_context_keeps_temporal_totals() -> None:
+    """The currency-set pivot retains temporal totals as well as numeric ones."""
+    source = pd.DataFrame(
+        {
+            "region": ["east", "east", "west"],
+            "month": pd.to_datetime(["2020-01-01", "2020-02-01", "2020-01-01"]),
+            "sales": [1, 2, 3],
+            "currency": ["USD", "USD", "EUR"],
+        }
+    )
+    context = build_pivot_currency_context(
+        source,
+        "currency",
+        ["sales"],
+        {
+            "rows": ["region"],
+            "columns": ["month"],
+            "metrics": ["sales"],
+            "aggfunc": "Sum",
+            "show_rows_total": True,
+            "show_columns_total": True,
+        },
+    )
+    assert context.iloc[:, -1].tolist() == [("USD",), ("EUR",), ("USD", "EUR")]
+
+
+def test_pivot_df_rejects_existing_subtotal_label() -> None:
+    """Batch insertion retains DataFrame.insert's duplicate-label guard."""
+    df = pd.DataFrame({"region": ["east"], "month": [str(_("Subtotal"))], "sales": [1]})
+    with pytest.raises(ValueError, match="cannot insert .*Subtotal.*already exists"):
+        pivot_df(
+            df,
+            rows=["region"],
+            columns=["month"],
+            metrics=["sales"],
+            show_rows_total=True,
+        )
+
+
+@pytest.mark.parametrize(
+    "result_format",
+    [ChartDataResultFormat.JSON, ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV],
+)
+def test_apply_client_processing_temporal_pivot_totals(
+    result_format: ChartDataResultFormat,
+) -> None:
+    """Post-processed exports and JSON retain totals for temporal dimensions."""
+    source = pd.DataFrame(
+        {
+            "region": ["east", "east", "west"],
+            "month": pd.to_datetime(["2020-01-01", "2020-02-01", "2020-01-01"]),
+            "sales": [1, 2, 3],
+        }
+    )
+    data: list[dict[str, Any]] | bytes | str
+    if result_format == ChartDataResultFormat.JSON:
+        data = source.to_dict("records")
+    elif result_format == ChartDataResultFormat.XLSX:
+        data = excel.df_to_excel(source, index=False)
+    else:
+        data = source.to_csv(index=False)
+    result = {"queries": [{"result_format": result_format, "data": data}]}
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": ["month"],
+        "metrics": ["sales"],
+        "rowTotals": True,
+        "colTotals": True,
+    }
+    query = apply_client_processing(result, form_data)["queries"][0]
+    if result_format == ChartDataResultFormat.JSON:
+        output = pd.DataFrame(query["data"])
+    elif result_format == ChartDataResultFormat.XLSX:
+        output = pd.read_excel(BytesIO(query["data"]), index_col=0)
+    else:
+        output = pd.read_csv(StringIO(query["data"]), index_col=0)
+    assert pd.to_numeric(output.iloc[:, -1]).tolist() == [3.0, 3.0, 6.0]
 
 
 def test_pivot_df_no_cols_no_rows_single_metric():
@@ -143,6 +348,36 @@ def test_pivot_df_no_cols_no_rows_single_metric():
 | ('{_("Total")} (Sum)',) |        80679663 |           80679663 |
     """.strip()
     )
+
+
+def test_pivot_df_rows_total_keeps_nan_text_in_non_numeric_metric() -> None:
+    """
+    With row totals on, a missing cell in a non-numeric metric column holds
+    the text "nan", so a CSV export shows "nan" there rather than a blank.
+    """
+    df = pd.DataFrame(
+        {
+            "gender": ["girl", "boy"],
+            "SUM(num)": [118065, "NULL"],
+            "MAX(num)": [2588, None],
+        }
+    )
+
+    pivoted = pivot_df(
+        df,
+        rows=["gender"],
+        columns=[],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=False,
+        combine_metrics=False,
+        show_rows_total=True,
+        show_columns_total=True,
+        apply_metrics_on_rows=False,
+    )
+
+    assert pivoted.loc[("boy",), ("MAX(num)",)] == "nan"
+    assert pivoted.to_csv().splitlines()[1] == "boy,NULL,nan,"
 
 
 def test_pivot_df_no_cols_no_rows_two_metrics():
@@ -3993,6 +4228,84 @@ def test_apply_pivot_number_formats_auto_currency_without_detection() -> None:
     assert df[("sales",)].tolist() == ["1,234.50"]
 
 
+def test_apply_client_processing_formats_an_ag_grid_table() -> None:
+    """
+    An AG Grid table report is formatted, not sent out with raw numbers.
+    """
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"name": "a", "SUM(amount)": 1234567.0, "%SUM(amount)": 0.9},
+                    {"name": "b", "SUM(amount)": 42.0, "%SUM(amount)": 0.1},
+                ],
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "ag-grid-table",
+        "metrics": ["SUM(amount)"],
+        "percent_metrics": ["SUM(amount)"],
+        "column_config": {"SUM(amount)": {"d3NumberFormat": ",.2f"}},
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    assert processed["queries"][0]["data"] == {
+        "name": {0: "a", 1: "b"},
+        "SUM(amount)": {0: "1,234,567.00", 1: "42.00"},
+        "%SUM(amount)": {0: "90.000%", 1: "10.000%"},
+    }
+
+
+def test_apply_client_processing_ag_grid_table_matches_table() -> None:
+    """
+    The two table viz types agree on the number and currency formats.
+
+    The AG Grid plugin's column meta block is the Table plugin's, and its
+    ``valueFormatter`` applies the column's own formatter, so a configured
+    format, a saved format and an AUTO currency all land the same way. The
+    agreement is per format rather than wholesale: the plugins read the same
+    ``column_config`` but paint cells through different code, so a key one of
+    them acts on alone belongs in its own test rather than in a blanket
+    comparison.
+    """
+
+    def payload() -> dict[str, Any]:
+        return {
+            "queries": [
+                {
+                    "result_format": ChartDataResultFormat.JSON,
+                    "detected_currency": "USD",
+                    "data": [{"dim": "x", "amount": 1234.5, "count": 7.0}],
+                }
+            ]
+        }
+
+    def form_data(viz_type: str) -> dict[str, Any]:
+        return {
+            "viz_type": viz_type,
+            "metrics": ["amount", "count"],
+            "column_config": {
+                "amount": {
+                    "d3NumberFormat": ",.2f",
+                    "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+                }
+            },
+        }
+
+    as_table = apply_client_processing(payload(), form_data("table"))
+    as_ag_grid = apply_client_processing(payload(), form_data("ag-grid-table"))
+
+    assert as_ag_grid["queries"][0]["data"] == as_table["queries"][0]["data"]
+    assert as_ag_grid["queries"][0]["data"] == {
+        "dim": {0: "x"},
+        "amount": {0: "$ 1,234.50"},
+        "count": {0: "7"},
+    }
+
+
 def test_apply_client_processing_no_form_invalid_viz_type():
     """
     Test with invalid viz type. It should just return the result
@@ -4572,6 +4885,64 @@ def test_apply_client_processing_csv_format_no_data(data):
     assert apply_client_processing(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]
     }
+
+
+def _header_only_export(result_format: ChartDataResultFormat) -> bytes:
+    """
+    The payload ``QueryContextProcessor.get_data`` produces for a chart whose
+    query matched no rows: the column headers, but no data rows.
+    """
+    df = pd.DataFrame(
+        {
+            "country": pd.Series(dtype="object"),
+            "region": pd.Series(dtype="object"),
+            "SUM(num)": pd.Series(dtype="float"),
+        }
+    )
+    if result_format == ChartDataResultFormat.XLSX:
+        return excel.df_to_excel(df, index=False)
+    # same default encoding as the CSV_EXPORT config
+    return df.to_csv(index=False).encode("utf-8-sig")
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX]
+)
+@pytest.mark.parametrize(
+    ("groupby_rows", "groupby_columns"),
+    [(["country"], []), ([], ["country"]), (["country"], ["region"])],
+    ids=["rows", "columns", "rows_and_columns"],
+)
+def test_apply_client_processing_pivot_table_v2_export_without_rows(
+    result_format: ChartDataResultFormat,
+    groupby_rows: list[str],
+    groupby_columns: list[str],
+) -> None:
+    """
+    A scheduled CSV/Excel report must be sendable when the chart matches no rows.
+
+    The export of such a chart is not blank: it holds the column headers, which
+    parse to a zero-row dataframe. Pivoting that frame used to raise a
+    ``KeyError`` (pandas drops the metric columns when pivoting zero rows), so
+    the chart data request failed with a server error instead of exporting the
+    empty result like the Explore download does.
+    """
+    payload = _header_only_export(result_format)
+    result = {"queries": [{"result_format": result_format, "data": payload}]}
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": groupby_rows,
+        "groupbyColumns": groupby_columns,
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    assert len(processed["queries"]) == 1
+    # the export is passed through untouched, headers only
+    assert processed["queries"][0]["data"] == payload
 
 
 def test_apply_client_processing_csv_format_no_data_multiple_queries():
@@ -5209,6 +5580,104 @@ def test_table_export_preserves_selected_dimension(
     )
     pd.testing.assert_frame_equal(output_df, source_df)
     assert query["colnames"] == source_df.columns.tolist()
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+@pytest.mark.parametrize("selection", ["groupby", "all_columns"])
+def test_ag_grid_table_export_is_left_unchanged(
+    result_format: ChartDataResultFormat,
+    selection: str,
+) -> None:
+    """
+    An AG Grid report attachment comes back byte for byte as it arrived.
+
+    Registering the viz type for post-processing is what makes these formats
+    reach the parser at all; before that they hit the early return and went out
+    untouched. `table` cannot change them, since `apply_number_format` is false
+    for every format but JSON, so parsing and rewriting them buys nothing and
+    costs data.
+
+    The frame carries the two values that a round trip through the reader loses:
+    a zero-padded code, which `pd.read_csv` reads as `1234`, and an `NA` label,
+    which it reads as an empty cell under the default `REPORTS_CSV_NA_NAMES`.
+    Both selection keys are covered because the XLSX reader decides whether to
+    move the first column into the index by looking for it among them.
+    """
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"code": ["01234", "00077"], "label": ["NA", "ok"], "total_amount": [15, 20]}
+    )
+    datasource: MagicMock = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = []
+    form_data: dict[str, Any] = {
+        "viz_type": "ag-grid-table",
+        selection: ["code", "label"],
+        "metrics": ["total_amount"],
+    }
+    attachment: bytes | str = (
+        excel.df_to_excel(source_df, index=False)
+        if result_format == ChartDataResultFormat.XLSX
+        else source_df.to_csv(index=False)
+    )
+    result: dict[str, Any] = {
+        "queries": [{"result_format": result_format, "data": attachment}]
+    }
+
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+
+    assert query["data"] == attachment
+    # Read back with the coercions turned off, so the assertion is about what
+    # the attachment holds rather than about what the reader does to it.
+    output_df: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]), dtype=str, keep_default_na=False)
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]), dtype=str, keep_default_na=False)
+    )
+    assert output_df["code"].tolist() == ["01234", "00077"]
+    assert output_df["label"].tolist() == ["NA", "ok"]
+    assert list(output_df.columns) == ["code", "label", "total_amount"]
+
+
+@with_config({"CSV_EXPORT": {"quotechar": "'"}})
+def test_ag_grid_table_csv_export_survives_a_custom_quotechar() -> None:
+    """
+    An AG Grid CSV attachment is not parsed, so a custom quote character cannot
+    break the report.
+
+    ``QueryContextProcessor.get_data`` writes the attachment with every
+    ``CSV_EXPORT`` key, while the reader here is handed only ``sep`` and
+    ``decimal``. Under a configured ``quotechar`` the two disagree: the writer
+    quotes ``Doe, Jane`` with ``'`` and the reader, still on ``"``, sees three
+    fields against a two column header and raises ``ParserError``, failing the
+    whole report where the attachment itself was fine. A comma in the first data
+    row instead makes ``read_csv`` infer an index and mis-parse in silence, so
+    the raise needs a clean first row.
+    """
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"name": ["Smith", "Doe, Jane"], "total_amount": [15, 20]}
+    )
+    datasource: MagicMock = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = []
+    form_data: dict[str, Any] = {
+        "viz_type": "ag-grid-table",
+        "groupby": ["name"],
+        "metrics": ["total_amount"],
+    }
+    attachment: str = source_df.to_csv(index=False, quotechar="'")
+    result: dict[str, Any] = {
+        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": attachment}]
+    }
+
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+
+    assert query["data"] == attachment
 
 
 @pytest.mark.parametrize(

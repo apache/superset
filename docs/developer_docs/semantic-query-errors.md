@@ -26,8 +26,16 @@ under the License.
 Providers can distinguish deliberately rejected query input from operational failures
 by raising `superset_core.semantic_layers.errors.SemanticQueryRejectedError`.
 Its `SemanticQueryErrorCode` accepts `UNSUPPORTED_QUERY`, `UNSUPPORTED_OFFSET`,
-`INVALID_FILTER`, and `INVALID_QUERY`. Unknown code strings normalize to
+`UNSUPPORTED_GROUP_OTHERS_METRIC`, `INVALID_FILTER`, and `INVALID_QUERY`. Unknown code strings normalize to
 `INVALID_QUERY`. Do not pass provider diagnostics, SQL, or credentials as codes.
+
+Use `UNSUPPORTED_GROUP_OTHERS_METRIC` when a provider cannot combine a selected
+metric into the remaining-series bucket, such as an average or distinct count
+computed from grouped results. Its guidance names the `Group remaining as "Others"` control
+and suggests turning it off or choosing a sum, count, minimum, or maximum metric.
+It does not change which aggregations the provider supports. Providers compatible
+with older SDKs should fall back to `UNSUPPORTED_QUERY` when this enum member is
+absent; the specific guidance requires both the updated SDK and host.
 
 The host selects localized messages for these codes. Chart-data execution returns
 HTTP 400 for typed rejections, including row-count and required comparison queries.

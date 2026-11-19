@@ -157,6 +157,15 @@ If an issue/PR has been inactive for at least 30 days, it will be closed. If it 
 
 When creating a PR, if you're aiming to have it included in a specific release, please tag it with the version label. For example, to have a PR considered for inclusion in Superset 1.1 use the label `v1.1`.
 
+### Automatically Applied Labels
+
+Some labels are applied by CI rather than by hand. Labels that depend on who opened the PR or issue (for example `utsc2026`, for students contributing through a university course) are driven by rosters kept on the project wiki, so committers can update them without opening a PR:
+
+- [Labeling Automation](https://github.com/apache/superset/wiki/Labeling-Automation) lists every wiki page that drives labels.
+- [Label Rosters](https://github.com/apache/superset/wiki/Label-Rosters) maps labels to GitHub handles. Adding a handle there takes effect within a few minutes.
+
+The wiki is edited by committers, and each page keeps its full edit history. A label must also be on the allowlist in `.github/workflows/author-labeler.yml` before a roster can apply it, so adding a new roster label still takes a PR.
+
 ## Revert Guidelines
 
 Reverting changes that are causing issues in the master branch is a normal and expected part of the development process. In an open source community, the ramifications of a change cannot always be fully understood. With that in mind, here are some considerations to keep in mind when considering a revert:
