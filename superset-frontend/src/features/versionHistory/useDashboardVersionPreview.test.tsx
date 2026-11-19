@@ -22,6 +22,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { AnyAction, Store } from 'redux';
 import fetchMock from 'fetch-mock';
+import { FeatureFlag } from '@superset-ui/core';
 import type { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import {
   hydrateDashboard,
@@ -187,6 +188,43 @@ test('resolveSnapshotCharts swaps unreachable charts for a markdown placeholder'
     code: 'This chart no longer exists.',
   });
 });
+
+test.each([true, false])(
+  'resolveSnapshotCharts shows archived-chart guidance with soft delete %s',
+  async softDelete => {
+    const previousFeatureFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFeatureFlags,
+      [FeatureFlag.SoftDelete]: softDelete,
+    };
+    try {
+      // Explore returns 200 with no slice for an archived or purged chart.
+      fetchMock.get('glob:*/api/v1/explore/?slice_id=9', {
+        result: { slice: null, form_data: { slice_id: 9 } },
+      });
+      const layout = { ...chartSlot('CHART-a', 1), ...chartSlot('CHART-b', 9) };
+
+      const { charts, positionData } = await resolveSnapshotCharts(
+        [liveChart(1, 'Live')],
+        layout,
+      );
+
+      expect(charts.map(chart => chart.slice_id)).toEqual([1]);
+      expect((positionData as JsonObject)['CHART-a'].type).toBe(CHART_TYPE);
+      const placeholder = (positionData as JsonObject)['CHART-b'];
+      expect(placeholder.type).toBe(MARKDOWN_TYPE);
+      expect(placeholder.meta).toEqual({
+        width: 4,
+        height: 50,
+        code: softDelete
+          ? 'This chart is archived or unavailable. An editor can restore archived charts from Recently Archived.'
+          : 'This chart is archived or unavailable.',
+      });
+    } finally {
+      window.featureFlags = previousFeatureFlags;
+    }
+  },
+);
 
 const HYDRATE_TEST = 'HYDRATE_TEST_ACTION';
 

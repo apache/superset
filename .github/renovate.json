@@ -6,6 +6,7 @@
   "includePaths": ["Dockerfile"],
   "labels": ["dependencies", "docker"],
   "schedule": ["* 0-5 * * 1"],
+  "autoApprove": true,
   "packageRules": [
     {
       "description": "The python image is referenced as `FROM python:${PY_VER}`, so its tag and digest live in the PY_VER ARG; leave it to the custom manager below so the dockerfile manager can't propose a competing update.",
