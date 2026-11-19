@@ -236,6 +236,29 @@ def validate_data_uri(data_uri: str) -> None:
     raise DatasetForbiddenDataURI()
 
 
+def normalize_catalog(config: dict[str, Any]) -> None:
+    """Resolve legacy catalog aliases before matching or authorizing a dataset."""
+    catalog = config.get("catalog")
+    database_id = config.get("database_id")
+    if not catalog or database_id is None:
+        return
+
+    database = db.session.query(Database).filter_by(id=database_id).first()
+    if database is None or not database.db_engine_spec.supports_catalog:
+        return
+
+    # Use the same physical identity as execution. In Snowflake an old URI
+    # alias can denote the default, but an existing case-sensitive catalog
+    # takes precedence. The engine resolves that ambiguity with a live listing.
+    resolved = database.db_engine_spec.get_catalog_for_connection(
+        database, database.url_object, catalog
+    )
+    if resolved is None:
+        resolved = database.get_default_catalog()
+    if resolved is not None:
+        config["catalog"] = resolved
+
+
 def validate_catalog(config: dict[str, Any]) -> None:
     """
     Reject a non-default catalog when the target database has multi-catalog
@@ -558,6 +581,10 @@ def import_dataset(  # noqa: C901
     # downstream `sync` decision (below) can reflect that an
     # implicit-restore re-import is a clean replacement, not a merge.
     is_soft_deleted_match = False
+
+    if not ignore_permissions:
+        config = config.copy()
+        normalize_catalog(config)
 
     existing = find_existing_for_import(SqlaTable, config["uuid"])
     if not existing and can_write:

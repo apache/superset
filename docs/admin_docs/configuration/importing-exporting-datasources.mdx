@@ -229,3 +229,16 @@ databases:
           - column_name: ds
             verbose_name: datetime
 ```
+
+### Snowflake catalog names in older exports
+
+Older exports can store the database identifier from the connection URI as the
+dataset catalog. On import, Superset resolves these legacy aliases to physical
+Snowflake catalog names before matching datasets and checking access. For example,
+`analytics` in an unquoted URI refers to `ANALYTICS`.
+
+If Snowflake also lists a physical catalog named `analytics`, that exact name takes
+precedence. Superset does not change it to `ANALYTICS`. With multi-catalog access
+disabled, a catalog other than the connection default is still rejected.
+Resolving an ambiguous alias requires a successful catalog listing under the
+connecting identity. If the listing fails, the import stops instead of guessing.

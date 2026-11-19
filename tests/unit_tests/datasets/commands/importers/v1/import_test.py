@@ -1838,6 +1838,143 @@ def test_import_dataset_allows_default_catalog_when_multi_catalog_disabled(
     assert sqla_table.catalog == "primary"
 
 
+@pytest.mark.parametrize("allow_multi_catalog", [False, True])
+@pytest.mark.parametrize(
+    "uri_catalog,catalog,physical_catalogs,expected",
+    [
+        ("analytics", "analytics", {"ANALYTICS"}, "ANALYTICS"),
+        ("Analytics", "Analytics", {"ANALYTICS"}, "ANALYTICS"),
+        ("analytics", "ANALYTICS", {"ANALYTICS"}, "ANALYTICS"),
+        ("%22analytics%22", "analytics", {"analytics"}, "analytics"),
+        ("%22Analytics%22", "%22Analytics%22", {"Analytics"}, "Analytics"),
+    ],
+)
+def test_import_dataset_resolves_legacy_snowflake_catalog(
+    mocker: MockerFixture,
+    session: Session,
+    allow_multi_catalog: bool,
+    uri_catalog: str,
+    catalog: str,
+    physical_catalogs: set[str],
+    expected: str,
+) -> None:
+    """Legacy URI aliases use the physical name for access checks and storage."""
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    SqlaTable.metadata.create_all(db.session.get_bind())
+    database = Database(
+        database_name="snowflake",
+        sqlalchemy_uri=f"snowflake://user@account/{uri_catalog}/public",
+        extra=json.dumps({"allow_multi_catalog": allow_multi_catalog}),
+    )
+    db.session.add(database)
+    db.session.flush()
+    mocker.patch.object(
+        database, "get_all_catalog_names", return_value=physical_catalogs
+    )
+    access = mocker.patch(
+        "superset.commands.dataset.importers.v1.utils._raise_for_import_binding_access"
+    )
+    config = {
+        "table_name": "my_table",
+        "schema": "public",
+        "catalog": catalog,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(config)
+
+    assert dataset.catalog == expected
+    assert access.call_args.args[0]["catalog"] == expected
+
+
+@pytest.mark.parametrize("allow_multi_catalog", [False, True])
+def test_import_dataset_preserves_physical_snowflake_catalog(
+    mocker: MockerFixture, session: Session, allow_multi_catalog: bool
+) -> None:
+    """A real lowercase database must never be redirected to the uppercase one."""
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    SqlaTable.metadata.create_all(db.session.get_bind())
+    database = Database(
+        database_name="snowflake",
+        sqlalchemy_uri="snowflake://user@account/analytics/public",
+        extra=json.dumps({"allow_multi_catalog": allow_multi_catalog}),
+    )
+    db.session.add(database)
+    db.session.flush()
+    mocker.patch.object(
+        database, "get_all_catalog_names", return_value={"ANALYTICS", "analytics"}
+    )
+    config = {
+        "table_name": "my_table",
+        "schema": "public",
+        "catalog": "analytics",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    if allow_multi_catalog:
+        assert import_dataset(config).catalog == "analytics"
+    else:
+        with pytest.raises(MultiCatalogDisabledValidationError):
+            import_dataset(config)
+        assert db.session.query(SqlaTable).count() == 0
+
+
+@pytest.mark.parametrize("listing_fails", [False, True])
+def test_import_dataset_snowflake_catalog_identity(
+    mocker: MockerFixture, session: Session, listing_fails: bool
+) -> None:
+    """Resolve aliases before duplicate matching; never guess on listing failure."""
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    SqlaTable.metadata.create_all(db.session.get_bind())
+    database = Database(
+        database_name="snowflake",
+        sqlalchemy_uri="snowflake://user@account/analytics/public",
+    )
+    db.session.add(database)
+    db.session.flush()
+    existing = SqlaTable(
+        database=database,
+        table_name="my_table",
+        schema="public",
+        catalog="ANALYTICS",
+        uuid=uuid.uuid4(),
+    )
+    db.session.add(existing)
+    db.session.flush()
+    listing = mocker.patch.object(
+        database, "get_all_catalog_names", return_value={"ANALYTICS"}
+    )
+    if listing_fails:
+        listing.side_effect = RuntimeError("Catalog listing unavailable")
+    config = {
+        "table_name": "my_table",
+        "schema": "public",
+        "catalog": "analytics",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    if listing_fails:
+        with pytest.raises(RuntimeError, match="Catalog listing unavailable"):
+            import_dataset(config)
+    else:
+        assert import_dataset(config) is existing
+    assert existing.catalog == "ANALYTICS"
+    assert db.session.query(SqlaTable).count() == 1
+    assert config["catalog"] == "analytics"
+
+
 def test_import_dataset_duplicate_column(
     mocker: MockerFixture, session: Session
 ) -> None:
