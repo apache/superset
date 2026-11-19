@@ -78,6 +78,7 @@ import {
   getFiltersToApply,
 } from './utils';
 import { extractLabel } from '../selectors';
+import { withNativeFilterProvenance } from '../utils';
 import { FiltersBarProps } from './types';
 import {
   useAllAppliedDataMask,
@@ -567,7 +568,11 @@ const FilterBar: FC<FiltersBarProps> = ({
         // Stage the cleared value locally; do NOT dispatch to Redux here.
         // Persistence happens when the user clicks Apply.
         setDataMaskSelected(draft => {
-          draft[id].extraFormData = {};
+          draft[id].extraFormData = withNativeFilterProvenance(
+            { extraFormData: {} },
+            filterType,
+            filter.targets?.[0],
+          ).extraFormData;
           const { filterState } = draft[id];
           if (filterState) {
             filterState.value = clearedValue;

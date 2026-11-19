@@ -209,12 +209,18 @@ test('resets pageIndex to 0 when data becomes empty (pageCount === 0)', () => {
 
 test('leaves server page navigation and incoming pages under caller control', () => {
   const onServerPaginationChange = jest.fn();
-  const props = {
+  const clientPageChanges: number[] = [];
+  const props: Partial<DataTableProps<DataRow>> = {
     pageSize: 10,
     rowCount: 30,
     serverPagination: true,
     serverPaginationData: { currentPage: 1, pageSize: 10 },
     onServerPaginationChange,
+    pageResetKey: 'original query',
+    stateReducer: (state, action) => {
+      if (action.type === 'gotoPage') clientPageChanges.push(state.pageIndex);
+      return state;
+    },
   };
   const { container, rerender } = render(renderDataTable(columns, props));
   fireEvent.click(container.querySelector('button[aria-label="3"]')!);
@@ -224,6 +230,7 @@ test('leaves server page navigation and incoming pages under caller control', ()
   rerender(
     renderDataTable(columns, {
       ...props,
+      pageResetKey: 'changed query',
       serverPaginationData: { currentPage: 2, pageSize: 10 },
       data: [{ firstName: 'Page three', city: 'Paris' }],
     }),
@@ -231,4 +238,5 @@ test('leaves server page navigation and incoming pages under caller control', ()
   expect(container.querySelector('li.active button')).toHaveTextContent('3');
   expect(screen.getByText('Page three')).toBeInTheDocument();
   expect(onServerPaginationChange).toHaveBeenCalledTimes(1);
+  expect(clientPageChanges).toEqual([]);
 });

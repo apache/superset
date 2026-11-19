@@ -35,6 +35,7 @@ import {
   BinaryQueryObjectFilterClause,
   Column,
   ContextMenuFilters,
+  DataMask,
   ensureIsArray,
   FeatureFlag,
   getChartMetadataRegistry,
@@ -68,6 +69,7 @@ export enum ContextMenuItem {
 export interface ChartContextMenuProps {
   id: number;
   formData: QueryFormData;
+  setDataMask?: (dataMask: DataMask) => void;
   onSelection: (args?: any) => void;
   onClose: () => void;
   additionalConfig?: {
@@ -90,6 +92,7 @@ const ChartContextMenu = (
   {
     id,
     formData,
+    setDataMask,
     onSelection,
     onClose,
     displayedItems = ContextMenuItem.All,
@@ -372,8 +375,12 @@ const ChartContextMenu = (
         disabled: isCrossFilterDisabled,
         onClick: () => {
           if (filters?.crossFilter) {
-            releaseFilterKeyPublish();
-            dispatch(updateDataMask(id, filters.crossFilter.dataMask));
+            if (setDataMask) {
+              setDataMask(filters.crossFilter.dataMask);
+            } else {
+              releaseFilterKeyPublish();
+              dispatch(updateDataMask(id, filters.crossFilter.dataMask));
+            }
           }
         },
       },

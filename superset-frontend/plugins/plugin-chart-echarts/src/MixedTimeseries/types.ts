@@ -180,6 +180,7 @@ export type EchartsMixedTimeseriesChartTransformedProps =
       xValueFormatter: TimeFormatter | StringConstructor;
       xAxis: {
         label: string;
+        column?: string;
         type: AxisType;
       };
       onFocusedSeries: (series: string | null) => void;

@@ -263,9 +263,10 @@ export default function transformProps(
   const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
 
-  let xAxisLabel = getXAxisLabel(
+  const xAxisColumn = getXAxisLabel(
     chartProps.rawFormData as QueryFormData,
   ) as string;
+  let xAxisLabel = xAxisColumn;
   if (
     isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
     isDefined(verboseMap[xAxisLabel])
@@ -1135,6 +1136,7 @@ export default function transformProps(
     xValueFormatter: tooltipFormatter,
     xAxis: {
       label: xAxisLabel,
+      column: xAxisColumn,
       type: xAxisType,
     },
     refs,
