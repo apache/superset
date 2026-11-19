@@ -2148,6 +2148,7 @@ def test_a_self_mapping_is_still_rejected_alongside_a_column_payload(
 def test_update_dataset_validates_a_new_default_time_range(
     stored: str | None, requested: str, field_names: list[str]
 ) -> None:
+    """Only a new or changed default time range is validated."""
     command = UpdateDatasetCommand(
         1, {"extra": json.dumps({"default_time_range": requested})}
     )

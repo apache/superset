@@ -390,7 +390,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     togglePopover(true);
   }, [togglePopover]);
 
-  const defaultTimeFilter = useDefaultTimeFilter(props.datasource);
+  const defaultTimeFilter = useDefaultTimeFilter();
   const adhocFilter = useMemo(() => {
     if (isSavedMetric(droppedItem)) {
       return new AdhocFilter({

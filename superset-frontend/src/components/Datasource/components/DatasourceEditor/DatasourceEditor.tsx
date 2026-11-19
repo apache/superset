@@ -2278,7 +2278,7 @@ function DatasourceEditor({
                 </span>
                 <InfoTooltip
                   tooltip={t(
-                    'Time range of the time filters Explore adds for this dataset, such as on new charts.',
+                    'Time range of the time filter Explore adds automatically on the default datetime column, such as on new charts.',
                   )}
                 />
               </FieldLabelWithTooltip>

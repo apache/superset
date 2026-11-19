@@ -1374,6 +1374,7 @@ def test_import_dataset_schema_rejects_duplicate_column_uuids() -> None:
 def test_import_dataset_schema_rejects_an_invalid_default_time_range(
     extra: Any,
 ) -> None:
+    """An import with a default time range the parser rejects fails."""
     config = {**_dataset_config_with_children(metrics=[], columns=[]), "extra": extra}
 
     with pytest.raises(ValidationError) as excinfo:
@@ -1383,6 +1384,7 @@ def test_import_dataset_schema_rejects_an_invalid_default_time_range(
 
 
 def test_import_dataset_schema_accepts_a_valid_default_time_range() -> None:
+    """A valid default time range is imported unchanged."""
     config = {
         **_dataset_config_with_children(metrics=[], columns=[]),
         "extra": {"default_time_range": "Last week"},

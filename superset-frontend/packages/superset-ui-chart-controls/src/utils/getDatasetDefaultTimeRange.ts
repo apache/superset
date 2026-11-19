@@ -20,8 +20,8 @@ import { Dataset } from '../types';
 
 /**
  * Returns the dataset's `extra.default_time_range`, which Explore uses instead
- * of the instance default when it adds a time filter. Unparseable metadata
- * counts as unset.
+ * of the instance default when it automatically adds a time filter on the
+ * default datetime column. Unparseable metadata counts as unset.
  */
 export function getDatasetDefaultTimeRange(
   dataset?: Pick<Dataset, 'extra'> | null,

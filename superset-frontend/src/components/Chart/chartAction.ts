@@ -36,12 +36,12 @@ import {
 import { t } from '@apache-superset/core/translation';
 import type { ControlStateMapping } from '@superset-ui/chart-controls';
 import { getControlsState } from 'src/explore/store';
-import { getInitialTimeRange } from 'src/explore/actions/hydrateExplore';
 import {
   getAnnotationJsonUrl,
   buildV1ChartDataPayload,
   getQuerySettings,
   getChartDataUri,
+  getInitialTimeRange,
 } from 'src/explore/exploreUtils';
 import {
   addDangerToast,

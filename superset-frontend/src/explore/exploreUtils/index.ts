@@ -29,6 +29,7 @@ import {
   SupersetClient,
   SetDataMaskHook,
   JsonObject,
+  NO_TIME_RANGE,
 } from '@superset-ui/core';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -529,4 +530,19 @@ export function formatSelectOptions<T extends { toString(): string }>(
   options: T[],
 ): [T, string][] {
   return options.map(opt => [opt, opt.toString()]);
+}
+
+/**
+ * Returns the range of the time filter Explore adds while it opens a chart: a
+ * new chart's initial range, or the instance default for a saved chart so that
+ * opening it doesn't change its query.
+ */
+export function getInitialTimeRange(
+  isNewChart: boolean,
+  formData: QueryFormData,
+  defaultTimeFilter?: string,
+): string {
+  return (
+    (isNewChart && formData.time_range) || defaultTimeFilter || NO_TIME_RANGE
+  );
 }
