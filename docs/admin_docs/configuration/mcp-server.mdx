@@ -1449,6 +1449,27 @@ calls alike.
 custom startup paths that retains its original stripping behavior. Replace it with
 `ToolResultCompatibilityMiddleware(structured_output_enabled=False)`.
 
+### MCP Apps
+
+Clients that support [MCP Apps](https://github.com/modelcontextprotocol/ext-apps)
+render a tool's result in a View, an HTML page served as a `ui://` resource. A
+View calls tools through its client, with the viewer's credentials, so the
+server can't tell its calls from the model's. Once any registered tool links a
+View:
+
+- tools that declare no audience are listed with `_meta.ui.visibility` set to
+  `["model"]`, so compliant clients refuse a View's call to them;
+- `search_tools` and `call_tool` are model-only, and `call_tool` refuses tools
+  that the model may not see;
+- tools that link a View or declare an `"app"` audience keep `outputSchema` and
+  `structuredContent` whatever `MCP_STRUCTURED_OUTPUT_ENABLED` says, and stay in
+  `tools/list` when tool search is on.
+
+Visibility is enforced by clients, not by the server: a client that ignores it
+lets a View call any listed tool. A custom startup path that builds its own
+server applies the same listing rule by adding
+`superset.mcp_service.mcp_apps.ModelOnlyByDefaultTransform()` before tool search.
+
 ### Tool Result Value Contract
 
 When `MCP_STRUCTURED_OUTPUT_ENABLED=True`, native tools advertise a concrete

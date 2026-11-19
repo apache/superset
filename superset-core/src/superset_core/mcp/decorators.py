@@ -18,8 +18,8 @@
 """
 MCP (Model Context Protocol) tool registration for Superset MCP server.
 
-This module provides a decorator interface to register MCP tools with the
-host application.
+This module provides a decorator interface to register MCP tools, prompts and
+MCP Apps Views with the host application.
 
 Usage:
     from superset_core.mcp.decorators import tool
@@ -35,6 +35,7 @@ Usage:
         return str(value * 2)
 """
 
+import hashlib
 from typing import Any, Callable, TypeVar
 
 try:
@@ -43,6 +44,11 @@ except (
     ImportError
 ):  # MCP extras may not be installed in superset-core-only environments
     ToolAnnotations = dict
+
+try:
+    from fastmcp.apps.config import AppConfig
+except ImportError:  # same as above: FastMCP is an MCP extra
+    AppConfig = dict
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
@@ -58,6 +64,8 @@ def tool(
     class_permission_name: str | None = None,
     method_permission_name: str | None = None,
     annotations: ToolAnnotations | None = None,
+    meta: dict[str, Any] | None = None,
+    app: AppConfig | dict[str, Any] | None = None,
 ) -> Any:  # Use Any to avoid mypy issues with dependency injection
     """
     Decorator to register an MCP tool with optional authentication.
@@ -87,6 +95,18 @@ def tool(
             Defaults to "write" if tags includes "mutate", else "read".
         annotations: MCP tool annotations (title, readOnlyHint, destructiveHint, etc.)
             These hints help MCP clients understand tool behavior and safety.
+        meta: Optional ``_meta`` dict attached to the tool definition. Used by the
+            MCP Apps extension to link a tool to an interactive UI resource via
+            ``{"ui": {"resourceUri": "ui://..."}}`` so hosts render its result as
+            a widget. See https://modelcontextprotocol.io/extensions/apps/overview.
+            A ``ui`` entry is validated like ``app``.
+        app: MCP Apps settings, as FastMCP's ``AppConfig`` or its wire-format
+            dict; they become ``_meta.ui``. ``resource_uri`` links the View
+            (see :func:`resource`) and ``visibility`` names the tool's audience,
+            ``["model"]``, ``["app"]`` or both. Visibility is audience metadata
+            that hosts apply, not authorization: check a View's input on the
+            server. Once any tool declares a UI, tools that declare no audience
+            are listed as ``["model"]``.
 
     Returns:
         Decorator function that registers and wraps the tool, or the wrapped function
@@ -181,5 +201,72 @@ def prompt(
     """
     raise NotImplementedError(
         "MCP prompt decorator not initialized. "
+        "This decorator should be replaced during Superset startup."
+    )
+
+
+def content_version(content: str | bytes, prefix: str = "v1") -> str:
+    """A version segment for a View's URI, from a digest of its content.
+
+    MCP Apps hosts cache a ``ui://`` resource by URI, so a View whose content
+    changes must change its URI too: ``content_version(html)`` gives
+    ``"v1-<12 hex digits>"``, to pass as :func:`resource`'s ``version``.
+    """
+    data = content.encode("utf-8") if isinstance(content, str) else content
+    return f"{prefix}-{hashlib.sha256(data).hexdigest()[:12]}"
+
+
+def resource(
+    path: str,
+    *,
+    name: str | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    app: AppConfig | dict[str, Any] | None = None,
+    version: str | None = None,
+    protect: bool = True,
+) -> Any:  # Use Any to avoid mypy issues with dependency injection
+    """
+    Decorator to register an MCP Apps View: an HTML ``ui://`` resource.
+
+    The function returns the View's HTML. Its URI is scoped to its owner:
+    ``ui://extensions/<publisher>/<name>/<path>`` for an extension and
+    ``ui://superset/<path>`` for the host, followed by ``/<version>`` when one
+    is given. The registered function carries its full URI as ``.uri``, for a
+    tool's ``app=AppConfig(resource_uri=...)``.
+
+    Args:
+        path: The View's path under its owner's prefix, such as ``"viewer"``.
+        name: Resource name (defaults to the function name)
+        title: Resource title
+        description: Resource description (defaults to the function docstring)
+        app: MCP Apps settings for the View, as FastMCP's ``AppConfig`` or its
+            wire-format dict: ``csp``, ``permissions``, ``domain`` and
+            ``prefers_border``. They are served as ``_meta.ui`` both when the
+            resource is listed and when it is read. With no ``csp`` the host
+            applies its restrictive default.
+        version: A version segment for the URI, such as
+            ``content_version(html)``. Hosts cache Views by URI.
+        protect: Whether to require Superset authentication (defaults to True)
+
+    Returns:
+        Decorator that registers the View and returns the wrapped function.
+
+    Raises:
+        NotImplementedError: If called before host implementation is initialized
+
+    Example:
+        VIEWER_HTML = (Path(__file__).parent / "viewer.html").read_text()
+
+        @resource("viewer", version=content_version(VIEWER_HTML))
+        def viewer() -> str:
+            return VIEWER_HTML
+
+        @tool(app={"resourceUri": viewer.uri, "visibility": ["model", "app"]})
+        def show_thing(thing_id: int) -> dict:
+            ...
+    """
+    raise NotImplementedError(
+        "MCP resource decorator not initialized. "
         "This decorator should be replaced during Superset startup."
     )

@@ -152,6 +152,8 @@ def create_tool_decorator(
     class_permission_name: Optional[str] = None,
     method_permission_name: Optional[str] = None,
     annotations: ToolAnnotations | None = None,
+    meta: dict[str, Any] | None = None,
+    app: Any = None,
 ) -> Callable[..., Any]:
     """
     Create the concrete MCP tool decorator implementation.
@@ -173,12 +175,21 @@ def create_tool_decorator(
         method_permission_name: FAB action name (e.g., "read", "write").
             Defaults to "write" if tags has "mutate", else "read".
         annotations: MCP tool annotations (title, readOnlyHint, destructiveHint, etc.)
+        meta: Optional ``_meta`` dict attached to the registered tool definition.
+        app: MCP Apps settings (FastMCP's ``AppConfig`` or its dict), merged into
+            ``meta["ui"]``. Both are validated with ``AppConfig``.
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,
         or the wrapped function when used without parentheses. Protected handlers
         are async even when the original function is synchronous.
     """
+
+    # Validate MCP Apps settings when the decorator is built, so a bad
+    # declaration fails at import rather than when a host first lists tools.
+    from superset.mcp_service.mcp_apps import tool_meta
+
+    tool_meta_value = tool_meta(meta, app)
 
     def decorator(func: F) -> Callable[..., Any]:
         try:
@@ -225,6 +236,7 @@ def create_tool_decorator(
                 "description": tool_description,
                 "tags": tool_tags,
                 "annotations": annotations,
+                "meta": tool_meta_value,
             }
             # Extension tools keep FastMCP's schema behavior because their
             # serializers are extension-owned and cannot be assumed to follow
@@ -372,6 +384,101 @@ def create_prompt_decorator(
     return parameterized_decorator
 
 
+def _ui_resource_uri(path: str, version: str | None) -> tuple[str, str]:
+    """A View's ``ui://`` URI, scoped like tool names, and its context type."""
+    segments = [segment for segment in path.strip("/").split("/") if segment]
+    if not segments or any(segment in {".", ".."} for segment in segments):
+        raise ValueError(f"Invalid MCP Apps resource path: {path!r}")
+    if version is not None and (not version or "/" in version):
+        raise ValueError(f"Invalid MCP Apps resource version: {version!r}")
+    if context := get_current_extension_context():
+        prefix = (
+            f"ui://extensions/{context.extension.publisher}/{context.extension.name}"
+        )
+        context_type = "extension"
+    else:
+        prefix = "ui://superset"
+        context_type = "host"
+    uri = "/".join([prefix, *segments, *([version] if version else [])])
+    return uri, context_type
+
+
+def create_resource_decorator(
+    path: str,
+    *,
+    name: Optional[str] = None,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    app: Any = None,
+    version: Optional[str] = None,
+    protect: bool = True,
+) -> Callable[[F], F]:
+    """
+    Create the concrete MCP Apps View decorator implementation.
+
+    Registers an HTML ``ui://`` resource through FastMCP's own resource
+    decorator, which validates ``app`` with ``AppConfig`` (a View carries no
+    ``resource_uri`` or ``visibility``) and serves it as ``_meta.ui`` on the
+    listing and on every read. The URI is scoped to the extension that
+    registers it, or to the host.
+
+    Args:
+        path: The View's path under its owner's prefix
+        name: Resource name (defaults to the function name)
+        title: Resource title
+        description: Resource description (defaults to the function docstring)
+        app: MCP Apps settings for the View (``AppConfig`` or its dict)
+        version: A version segment appended to the URI
+        protect: Whether to apply Superset authentication (defaults to True)
+
+    Returns:
+        Decorator that registers the View and returns the wrapped function,
+        which carries the View's full URI as ``uri``.
+    """
+    from fastmcp.apps.config import AppConfig, UI_MIME_TYPE
+
+    uri, context_type = _ui_resource_uri(path, version)
+    app_config = (
+        app
+        if app is None or isinstance(app, AppConfig)
+        else AppConfig.model_validate(app)
+    )
+
+    def decorator(func: F) -> F:
+        try:
+            from superset.mcp_service.app import mcp
+
+            if protect:
+                from superset.mcp_service.auth import mcp_auth_hook
+
+                wrapped_func = mcp_auth_hook(func)
+            else:
+                wrapped_func = func
+
+            mcp.resource(
+                uri,
+                name=name or func.__name__,
+                title=title,
+                description=description or func.__doc__,
+                mime_type=UI_MIME_TYPE,
+                app=app_config if app_config is not None else AppConfig(),
+            )(wrapped_func)
+            wrapped_func.uri = uri  # type: ignore[attr-defined]
+            logger.info(
+                "Registered MCP Apps resource: %s (%s, %s)",
+                uri,
+                "protected" if protect else "public",
+                context_type,
+            )
+            return wrapped_func  # type: ignore[return-value]
+        except Exception as e:
+            # Fail fast, as for tools: never serve an unprotected resource.
+            logger.error("Failed to register MCP resource %s: %s", uri, e)
+            raise
+
+    return decorator
+
+
 def initialize_core_mcp_dependencies() -> None:
     """
     Initialize MCP dependency injection by replacing abstract functions
@@ -393,6 +500,7 @@ def initialize_core_mcp_dependencies() -> None:
     # Replace the abstract decorators with concrete implementations
     superset_core.mcp.decorators.tool = create_tool_decorator
     superset_core.mcp.decorators.prompt = create_prompt_decorator
+    superset_core.mcp.decorators.resource = create_resource_decorator
 
     logger.info("MCP dependency injection initialized successfully")
 

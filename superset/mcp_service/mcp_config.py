@@ -299,6 +299,11 @@ MCP_GUEST_ALLOWED_TOOLS: set[str] = {
     "get_chart_info",
     "get_chart_data",
     "get_chart_preview",
+    # MCP Apps chart widget: same data + guest scoping as get_chart_data, just
+    # rendered interactively. render_chart_requery is the widget's drill/zoom.
+    "render_chart",
+    "render_chart_requery",
+    "render_dashboard",
 }
 
 # Hook to restrict which MCP tools a principal may call, independent of RBAC.
@@ -597,6 +602,9 @@ MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
     "always_visible": [  # Tools always shown in list_tools (pinned)
         "health_check",
         "get_instance_info",
+        # Tools that feed an MCP Apps View (a ``_meta.ui`` resourceUri or an
+        # "app" visibility) are pinned automatically: hosts read them from
+        # tools/list.
     ],
     "search_tool_name": "search_tools",  # Name of the search tool
     "call_tool_name": "call_tool",  # Name of the call proxy tool

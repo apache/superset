@@ -217,6 +217,7 @@ The `@tool` decorator accepts several optional parameters:
 - **`description`**: Explains what the tool does (helps AI agents decide when to use it)
 - **`tags`**: Categories for organization and discovery
 - **`protect`**: Whether the tool requires user authentication (defaults to `True`)
+- **`app`**: [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) settings, as FastMCP's `AppConfig` or its dict, validated when the tool registers: `resource_uri` links a View (see below) and `visibility` names the audience, `["model"]`, `["app"]` or both
 
 ### Naming Your Tools
 
@@ -629,6 +630,57 @@ async def metrics_guide(ctx: Context) -> str:
     Would you like to calculate metrics for your current dataset?
     """
 ```
+
+## MCP Apps Views
+
+An MCP Apps View is an HTML page that an AI client renders for a tool's
+result. Register one with the `resource` decorator, and link it from a tool:
+
+```python
+from pathlib import Path
+
+from fastmcp.apps.config import AppConfig
+from superset_core.mcp.decorators import content_version, resource, tool
+
+VIEWER_HTML = (Path(__file__).parent / "viewer.html").read_text()
+
+
+@resource("viewer", version=content_version(VIEWER_HTML))
+def viewer() -> str:
+    """The page that shows a widget."""
+    return VIEWER_HTML
+
+
+@tool(app=AppConfig(resource_uri=viewer.uri, visibility=["model", "app"]))
+def show_widget(widget_id: int) -> dict:
+    """Show a widget in the chat."""
+    ...
+
+
+@tool(app=AppConfig(visibility=["app"]))
+def widget_rows(widget_id: int, page: int = 0) -> dict:
+    """The rows the View asks for; never offered to the model."""
+    ...
+```
+
+- **URIs are scoped and versioned:** the View above is
+  `ui://extensions/<publisher>/<name>/viewer/v1-<digest>`. Clients cache Views
+  by URI, so a version taken from the content gives every build its own URI.
+- **Settings:** `app` on a View takes `csp`, `permissions`, `domain` and
+  `prefers_border`, served as `_meta.ui` when the View is listed and when it
+  is read. With no `csp`, clients apply their most restrictive policy.
+- **Authentication:** Views require it unless `protect=False`, like tools.
+- **Visibility is not authorization:** a View's calls arrive with the viewer's
+  credentials, and the server can't tell them from the model's. Check every
+  argument on the server, as for any tool.
+- **Model-only by default:** once any tool links a View, tools that declare
+  no `visibility` are listed as `["model"]`, so compliant clients refuse a
+  View's call to them. `search_tools` and `call_tool` are model-only, and
+  `call_tool` refuses tools the model may not see.
+- **Structured results:** tools that link a View or declare `"app"` keep
+  their `structuredContent` and `outputSchema` even when
+  `MCP_STRUCTURED_OUTPUT_ENABLED` is off, and they stay in `tools/list` when
+  tool search is on.
 
 ## Built-in Dashboard Governance Tools
 

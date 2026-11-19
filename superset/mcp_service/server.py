@@ -37,6 +37,11 @@ from starlette.requests import ClientDisconnect
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
+from superset.mcp_service.mcp_apps import (
+    feeds_view,
+    MODEL_ONLY_META,
+    ModelOnlyByDefaultTransform,
+)
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
     MCP_NATIVE_TOOL_LIST_CONFIG,
@@ -682,6 +687,16 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
                     f"called via the call_tool proxy",
                     log_level=logging.WARNING,
                 )
+            # The name comes from the model, and no host mediates this second
+            # way into the server, so it reaches only what the model may
+            # discover: never an app-only tool. Middleware is skipped because
+            # call-time RBAC already guards the target.
+            catalog = await transform.get_tool_catalog(ctx, run_middleware=False)
+            if not any(candidate.name == name for candidate in catalog):
+                raise ToolError(
+                    f"Unknown tool: {name!r}",
+                    log_level=logging.WARNING,
+                )
             if arguments:
                 target_tool = await ctx.fastmcp.get_tool(name)
                 if target_tool is not None:
@@ -690,7 +705,9 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
                     )
             return await ctx.fastmcp.call_tool(name, arguments)
 
-        tool = Tool.from_function(fn=call_tool, name=transform._call_tool_name)
+        tool = Tool.from_function(
+            fn=call_tool, name=transform._call_tool_name, meta=MODEL_ONLY_META
+        )
         return _fix_call_tool_arguments(tool)
 
     transform = _create_search_transform(
@@ -706,6 +723,25 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
         kwargs["max_results"],
         kwargs["always_visible"],
     )
+
+
+def _is_pinned(transform: Any, tool: Any) -> bool:
+    """Whether a tool stays in ``tools/list`` beside the search proxies.
+
+    Configured pins, and every tool that feeds a View: a host reads a tool's
+    View from ``tools/list`` and refuses a View's call to a tool it never
+    listed, so a tool behind ``call_tool`` could neither render nor serve one.
+    """
+    return tool.name in transform._always_visible or feeds_view(tool)
+
+
+def _apply_mcp_apps_transforms(mcp_instance: Any) -> None:
+    """Install the MCP Apps listing rules, ahead of search or compaction.
+
+    Added first, so it sees the whole catalog: tools that declare no audience
+    are listed as model-only once any tool feeds a View.
+    """
+    mcp_instance.add_transform(ModelOnlyByDefaultTransform())
 
 
 def _name_words(text: str) -> list[str]:
@@ -749,7 +785,9 @@ def _create_search_transform(  # noqa: C901
                 results = await transform._search(hidden, query)
             return await transform._render_results(results)
 
-        tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
+        tool = Tool.from_function(
+            fn=search_tools, name=transform._search_tool_name, meta=MODEL_ONLY_META
+        )
         return _fix_search_tool_query(tool)
 
     def _promote_name_matches(
@@ -836,8 +874,9 @@ def _create_search_transform(  # noqa: C901
             """Regex search with fixed call_tool schema and arg normalization."""
 
             async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
-                """Return only tools visible to the current authenticated user."""
+                """Return the unpinned tools visible to the current user."""
                 tools = await super()._get_visible_tools(ctx)
+                tools = [tool for tool in tools if not _is_pinned(self, tool)]
                 return await _filter_visible_tools_fail_open(tools)
 
             async def _search(
@@ -846,6 +885,11 @@ def _create_search_transform(  # noqa: C901
                 """Promote visible exact names before applying the result limit."""
                 ranked = await super()._search(tools, query)
                 return _promote_name_matches(tools, query, ranked, self._max_results)
+
+            async def transform_tools(self, tools: Sequence[Tool]) -> Sequence[Tool]:
+                """List the pinned tools, then the search proxies."""
+                pinned = [tool for tool in tools if _is_pinned(self, tool)]
+                return [*pinned, self._make_search_tool(), self._make_call_tool()]
 
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
@@ -863,8 +907,9 @@ def _create_search_transform(  # noqa: C901
         """BM25 search with fixed call_tool schema and arg normalization."""
 
         async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
-            """Return only tools visible to the current authenticated user."""
+            """Return the unpinned tools visible to the current user."""
             tools = await super()._get_visible_tools(ctx)
+            tools = [tool for tool in tools if not _is_pinned(self, tool)]
             # Permission lookups need a metadata connection; see
             # RBACToolVisibilityMiddleware.on_list_tools.
             return await _filter_visible_tools_fail_open(tools)
@@ -875,6 +920,11 @@ def _create_search_transform(  # noqa: C901
             return _promote_name_matches(
                 tools, query, ranked, self._max_results, cover_query_words=True
             )
+
+        async def transform_tools(self, tools: Sequence[Tool]) -> Sequence[Tool]:
+            """List the pinned tools, then the search proxies."""
+            pinned = [tool for tool in tools if _is_pinned(self, tool)]
+            return [*pinned, self._make_search_tool(), self._make_call_tool()]
 
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""
@@ -1175,6 +1225,7 @@ def run_server(
         auth_provider = factory_config.get("auth")
         flask_app = None
 
+        _apply_mcp_apps_transforms(mcp_instance)
         # Apply tool search transform if configured
         tool_search_config = factory_flask_app.config.get(
             "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
@@ -1214,6 +1265,7 @@ def run_server(
             middleware=middleware_list or None,
         )
 
+        _apply_mcp_apps_transforms(mcp_instance)
         # Apply tool search transform if configured
         tool_search_config = flask_app.config.get(
             "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
