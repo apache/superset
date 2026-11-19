@@ -18,7 +18,12 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { useState } from 'react';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import {
   CUSTOM_REFRESH_FREQUENCY,
   getRefreshFrequencyOptions,
@@ -269,7 +274,9 @@ test('typing a preset-colliding value into the Custom input keeps Custom selecte
   });
 
   await userEvent.click(screen.getByRole('radio', { name: /Custom/i }));
-  await userEvent.type(screen.getByRole('spinbutton'), '{backspace}600');
+  fireEvent.change(screen.getByRole('spinbutton'), {
+    target: { value: '600' },
+  });
 
   expect(screen.getByRole('radio', { name: /Custom/i })).toBeChecked();
   expect(screen.getByRole('radio', { name: '10 minutes' })).not.toBeChecked();
