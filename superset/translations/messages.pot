@@ -15733,6 +15733,9 @@ msgstr ""
 msgid "This column must contain date/time information."
 msgstr ""
 
+msgid "This comparison time range is empty."
+msgstr ""
+
 msgid "This connection stores embedded guest credentials, which only apply with \"Impersonate logged in user\" turned on. Clear the embedded credentials before turning impersonation off."
 msgstr ""
 
@@ -15999,6 +16002,9 @@ msgid "This theme uses the dark algorithm. It will be rendered with the light al
 msgstr ""
 
 msgid "This theme uses the light algorithm. It will be rendered with the dark algorithm instead, so its colors may not look as designed."
+msgstr ""
+
+msgid "This time range is empty. Choose an end time later than the start time."
 msgstr ""
 
 msgid "This update would change the connection's effective destination (host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint URIs) while reusing the stored credential. Provide the real password (or SSH tunnel credential / OAuth2 client secret) to confirm a connection move."
