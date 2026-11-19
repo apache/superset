@@ -96,7 +96,9 @@ def _matches(expression: FilterExpression, value: str | None) -> bool:
         ("IN", [None, "a", None, "a"], [None, "a"]),
         ("NOT IN", [None, "a", None, "a"], ["b"]),
         ("IN", ["a"], ["a"]),
-        ("NOT IN", ["a"], ["b"]),
+        ("NOT IN", ["a"], [None, "b"]),
+        ("NOT IN", ["a", "b"], [None]),
+        ("NOT IN", ["<empty string>"], [None, "a", "b"]),
         ("==", "a", ["a"]),
         ("!=", "a", ["b"]),
         ("IN", [], []),
@@ -160,8 +162,12 @@ def test_provider_receives_empty_membership_beside_other_filters(
 
 
 @pytest.mark.parametrize("is_rowcount", [False, True])
+@pytest.mark.parametrize("is_extra", [False, True])
+@pytest.mark.parametrize("operator", ["IN", "NOT IN"])
 def test_provider_receives_mixed_null_membership_without_opt_in(
     is_rowcount: bool,
+    is_extra: bool,
+    operator: str,
 ) -> None:
     """Grouped predicates are mandatory for table and row-count execution."""
     datasource: MagicMock = MagicMock()
@@ -177,7 +183,14 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
     query: ValidatedQueryObject = ValidatedQueryObject(
         datasource=datasource,
         columns=["category"],
-        filters=[{"col": "category", "op": "IN", "val": ["a", None]}],
+        filters=[
+            {
+                "col": "category",
+                "op": operator,
+                "val": ["a", None] if operator == "IN" else ["a"],
+                "isExtra": is_extra,
+            }
+        ],
     )
     query.is_rowcount = is_rowcount
     get_results(query)
@@ -193,7 +206,10 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
             frozenset(
                 {
                     Filter(
-                        PredicateType.WHERE, CATEGORY, Operator.IN, frozenset({"a"})
+                        PredicateType.WHERE,
+                        CATEGORY,
+                        Operator(operator),
+                        frozenset({"a"}),
                     ),
                     Filter(PredicateType.WHERE, CATEGORY, Operator.IS_NULL, None),
                 }
@@ -215,7 +231,7 @@ def test_or_group_is_hashable_and_keeps_predicate_stage(stage: PredicateType) ->
     assert len({group, OrFilter(frozenset({null, leaf}))}) == 1
     assert {child.type for child in group.filters} == {stage}
     with pytest.raises(FrozenInstanceError):
-        group.filters = frozenset()  # type: ignore[misc]  # Exercise runtime freezing.
+        group.filters = frozenset()  # Exercise runtime freezing.
 
 
 @pytest.mark.parametrize(

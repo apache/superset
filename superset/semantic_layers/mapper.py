@@ -1078,6 +1078,16 @@ def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
     if not values:
         return {replace(filter_, value=values)}
     if None not in values:
+        # User exclusions keep unselected NULL rows, like ordinary datasets.
+        # Keep SDK NOT_IN leaf semantics intact for providers and cache reuse.
+        if filter_.operator == Operator.NOT_IN:
+            return {
+                OrFilter(
+                    frozenset(
+                        {filter_, replace(null_filter, operator=Operator.IS_NULL)}
+                    )
+                )
+            }
         return {filter_}
 
     non_null_values: frozenset[FilterValues] = values - {None}
