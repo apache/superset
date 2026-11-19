@@ -42,8 +42,19 @@ manual values when suggestions are unavailable. Discovery errors use fixed messa
 rather than displaying provider exceptions. Save displays the server's sanitized
 validation reason, such as a duplicate name or missing configuration field, with a
 generic fallback when no reason is available. Saved secrets remain masked while
-editing; configuration changes may require re-entering masked values, as explained
-by the server's validation message. Changing connection dependencies can clear
+editing. When a configuration is resent with masked values, non-secret settings
+must remain unchanged at every depth, including inside objects and lists, and
+dictionary keys cannot be added or removed. While any mask remains, every field
+declared secret must also be masked or explicitly null. Non-null explicit secrets
+are refused even if they match the saved value, including at the top level.
+To rotate a credential or change other settings, re-enter all credentials.
+An unchanged masked resend requires the provider's configuration schema to be
+available, supported, and unambiguous about which fields are secret. If schema
+alternatives disagree or use unsupported constructs (such as list-valued `type`
+or conditional schemas), even an unchanged masked resend is refused; re-enter all
+credentials explicitly.
+A name-only edit that omits configuration does not require that schema.
+Changing connection dependencies can clear
 dependent selections, so check those fields before saving.
 
 ## Dependent source selectors

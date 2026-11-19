@@ -159,12 +159,13 @@ const HorizontalFormItem = styled(FormItem)`
   .select-container {
     width: 100%;
   }
-
-  .ant-select-dropdown {
-    min-width: 200px !important;
-    max-width: 400px !important;
-  }
 `;
+
+// The popup portals to document.body (out of HorizontalFormItem's styled
+// scope), so its width constraints ride along as inline popup styles.
+const HORIZONTAL_POPUP_STYLES = {
+  popup: { root: { minWidth: 200, maxWidth: 400 } },
+};
 
 const ToolTipContainer = styled.div`
   font-size: ${({ theme }) => theme.fontSize}px;
@@ -628,7 +629,8 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
                   .includes(input.toLowerCase())
               }
               sortComparator={sortComparator}
-              getPopupContainer={triggerNode => triggerNode.parentNode}
+              getPopupContainer={() => document.body}
+              styles={HORIZONTAL_POPUP_STYLES}
               oneLine={isHorizontalLayout}
               className="select-container"
               loading={loading}
