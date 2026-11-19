@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { act, useContext, useEffect } from 'react';
 import fetchMock from 'fetch-mock';
-import { useContext, useEffect } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
-import { SupersetClient } from '@superset-ui/core';
+import { FeatureFlag, SupersetClient } from '@superset-ui/core';
 import type { CanvasDefinitionResult } from 'src/features/canvas/types';
 import {
   CanvasVersionContext,
@@ -36,9 +36,10 @@ import { canvas } from 'src/core';
 import { subscribeRealtime } from 'src/middleware/realtime';
 import CanvasPage from '.';
 
+let mockIdOrSlug = '7';
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useParams: () => ({ idOrSlug: '7' }),
+  useParams: () => ({ idOrSlug: mockIdOrSlug }),
 }));
 jest.mock('src/middleware/realtime', () => ({
   connectRealtime: jest.fn(),
@@ -103,7 +104,7 @@ test('shows the canvas title and an empty state', async () => {
   expect(screen.getByText('KPIs and trend')).toBeInTheDocument();
   expect(screen.getByText('This canvas is empty')).toBeInTheDocument();
   await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toEqual({
+    expect(canvas.getActiveCanvas()).toStrictEqual({
       id: 7,
       title: 'Exec overview',
       revision: 1,
@@ -394,3 +395,351 @@ test.each(['Save', 'Discard'])(
     post.mockRestore();
   },
 );
+
+/**
+ * What extensions are told about the draft and a version preview, end to end
+ * through the page. The draft named must be the one on screen: an extension
+ * uses it to publish what the user reviewed, so a token or revision the screen
+ * hasn't caught up with is worse than none.
+ *
+ * How each part is worked out is tested where it is worked out: request order
+ * and refresh failures in useCanvasDefinition.test.ts, preview requests in
+ * useCanvasVersionHistory.test.ts, steps in useDraftHistory.test.tsx, what the
+ * body says while a change is in flight in CanvasBody.test.tsx, and the value
+ * itself in useActiveCanvas.test.ts. These cover what only the page does: the
+ * gate on which canvas and draft are loaded, and clearing the value.
+ */
+
+const draftEndpoint = 'glob:*/api/v1/canvas/draft';
+const TITLE = 'Exec overview';
+
+/** A draft of canvas 7, as the draft route returns it. */
+const draftDefinition = (revision: number, canvasId = 7) => {
+  const body = definition([], revision, true);
+  return { result: { ...body.result, canvasId } };
+};
+
+const held = <T,>() => {
+  let release: (value: T) => void = () => {};
+  const promise = new Promise<T>(resolve => {
+    release = resolve;
+  });
+  return { promise, release };
+};
+
+/**
+ * Serves the draft route by token, a reply per request in turn; the last
+ * reply keeps answering. A reply may be a promise, to hold the response.
+ */
+const serveDrafts = (replies: Record<string, unknown[]>) => {
+  fetchMock.get(draftEndpoint, ({ options }) => {
+    const token = (options.headers as Record<string, string> | undefined)?.[
+      'x-canvas-draft'
+    ];
+    const queue = token ? replies[token] : undefined;
+    if (!queue?.length) return 404;
+    return queue.length > 1 ? queue.shift() : queue[0];
+  });
+};
+
+const published = (revision: number) => ({ id: 7, title: TITLE, revision });
+
+/**
+ * A draft's definition on screen with no draft named: leaving it, or the
+ * draft gone. The revision is the draft's own.
+ */
+const draftUnnamed = published;
+
+/** The draft settled at `revision`, which is what the user sees. */
+const inDraft = (token: string, revision: number) => ({
+  ...published(revision),
+  draft: { token, pending: false, revision },
+});
+
+/** The draft open, but not settled: no revision to publish. */
+const pendingIn = (token: string, revision: number) => ({
+  ...published(revision),
+  draft: { token, pending: true },
+});
+
+/** A saved version on screen, over the live canvas at `revision`. */
+const previewing = (revision: number, uuid = 'v-1', number = 1) => ({
+  ...published(revision),
+  previewedVersion: { uuid, number },
+});
+
+const recordActiveCanvas = () => {
+  const seen: unknown[] = [];
+  const subscription = canvas.onDidChangeActiveCanvas((value: unknown) =>
+    seen.push(value),
+  );
+  return { seen, stop: () => subscription.dispose() };
+};
+
+const renderPage = () =>
+  render(<CanvasPage />, { useRedux: true, useRouter: true });
+
+/** Lets responses already released land. */
+const settle = () =>
+  act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+const originalFlags = window.featureFlags;
+
+afterEach(() => {
+  window.location.hash = '';
+  window.featureFlags = originalFlags;
+  mockIdOrSlug = '7';
+});
+
+test('a draft opened from the page is named once loaded, and no longer once left', async () => {
+  fetchMock.get(definitionEndpoint, definition([], 1, true));
+  fetchMock.post('glob:*/api/v1/canvas/7/draft', {
+    result: { token: 'tok-a', revision: 0 },
+  });
+  const draftReply = held<unknown>();
+  serveDrafts({ 'tok-a': [draftReply.promise] });
+
+  const { unmount } = renderPage();
+  const edit = await screen.findByRole('button', { name: 'Edit canvas' });
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(published(1)),
+  );
+  const { seen, stop } = recordActiveCanvas();
+  fireEvent.click(edit);
+  await waitFor(() => expect(window.location.hash).toBe('#draft=tok-a'));
+  await settle();
+
+  // The published canvas is still what is on screen.
+  expect(canvas.getActiveCanvas()).toStrictEqual(published(1));
+
+  draftReply.release(draftDefinition(0));
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 0)),
+  );
+
+  // Leaving: the draft's definition is still on screen, but it is no longer
+  // open, so it is not named while the published canvas loads.
+  const publishedReply = held<unknown>();
+  fetchMock.removeRoutes();
+  fetchMock.get(metadataEndpoint, {
+    result: { id: 7, title: TITLE, description: 'KPIs and trend' },
+  });
+  fetchMock.get(definitionEndpoint, () => publishedReply.promise);
+  window.location.hash = '';
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(draftUnnamed(0)),
+  );
+  publishedReply.release(definition([], 2));
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(published(2)),
+  );
+  expect(seen).toStrictEqual([
+    inDraft('tok-a', 0),
+    draftUnnamed(0),
+    published(2),
+  ]);
+  stop();
+
+  // Leaving the page says no canvas is open.
+  unmount();
+
+  expect(canvas.getActiveCanvas()).toBeUndefined();
+});
+
+test.each([
+  [500, 'pending', pendingIn('tok-a', 2)],
+  [404, 'no longer named', draftUnnamed(2)],
+])(
+  'a draft whose refresh answers %i is %s, its definition still shown',
+  async (status, _, expected) => {
+    // A failure may mean what is on screen is no longer the draft's latest; a
+    // 404 or 403 means the draft was published, discarded or expired, or is
+    // out of the user's reach.
+    window.location.hash = '#draft=tok-a';
+    serveDrafts({ 'tok-a': [draftDefinition(2), status, draftDefinition(3)] });
+
+    renderPage();
+    await waitFor(() =>
+      expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
+    );
+    const { seen, stop } = recordActiveCanvas();
+
+    fireEvent.focus(window);
+
+    await waitFor(() =>
+      expect(canvas.getActiveCanvas()).toStrictEqual(expected),
+    );
+    expect(
+      screen.getByText('Draft. Only you can see these changes.'),
+    ).toBeInTheDocument();
+    expect(seen).toStrictEqual([expected]);
+    stop();
+  },
+);
+
+test('a draft that fails to open is never named', async () => {
+  window.location.hash = '#draft=tok-a';
+  serveDrafts({});
+
+  renderPage();
+
+  expect(
+    await screen.findByText('This draft is no longer available'),
+  ).toBeInTheDocument();
+  expect(canvas.getActiveCanvas()).toBeUndefined();
+});
+
+test('a canvas that fails after a draft was named says nothing', async () => {
+  // Leaving the draft for a published canvas that cannot be read: the body
+  // that named the draft is gone, so the page has to clear what it said.
+  window.location.hash = '#draft=tok-a';
+  serveDrafts({ 'tok-a': [draftDefinition(2)] });
+  fetchMock.get(definitionEndpoint, 404);
+
+  renderPage();
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
+  );
+
+  window.location.hash = '';
+
+  expect(
+    await screen.findByText(
+      'This canvas does not exist, or you do not have access to it',
+    ),
+  ).toBeInTheDocument();
+  expect(canvas.getActiveCanvas()).toBeUndefined();
+});
+
+test('a draft of another canvas says nothing', async () => {
+  // Its revision is not this canvas's, so naming even that would mislead.
+  window.location.hash = '#draft=tok-a';
+  serveDrafts({ 'tok-a': [draftDefinition(0, 8)] });
+
+  renderPage();
+
+  expect(
+    await screen.findByText('Draft. Only you can see these changes.'),
+  ).toBeInTheDocument();
+  await settle();
+  expect(canvas.getActiveCanvas()).toBeUndefined();
+});
+
+test('moving to another canvas says nothing of it until it has loaded', async () => {
+  fetchMock.get(definitionEndpoint, definition([], 3));
+  const otherMetadata = held<unknown>();
+  const otherDefinition = held<unknown>();
+  fetchMock.get('glob:*/api/v1/canvas/8', () => otherMetadata.promise);
+  fetchMock.get(
+    'glob:*/api/v1/canvas/8/definition',
+    () => otherDefinition.promise,
+  );
+
+  const { rerender } = renderPage();
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(published(3)),
+  );
+  const { seen, stop } = recordActiveCanvas();
+
+  mockIdOrSlug = '8';
+  rerender(<CanvasPage />);
+  await settle();
+
+  expect(canvas.getActiveCanvas()).toBeUndefined();
+
+  otherMetadata.release({ result: { id: 8, title: 'Sales' } });
+  otherDefinition.release(definition([], 1));
+
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual({
+      id: 8,
+      title: 'Sales',
+      revision: 1,
+    }),
+  );
+  expect(seen).toStrictEqual([
+    undefined,
+    { id: 8, title: 'Sales', revision: 1 },
+  ]);
+  stop();
+});
+
+const versionsEndpoint = 'glob:*/api/v1/canvas/c-uuid/versions/';
+
+const versionMeta = (uuid: string, number: number) => ({
+  version_uuid: uuid,
+  version_number: number,
+  transaction_id: number,
+  operation_type: number === 0 ? 'baseline' : 'update',
+  issued_at: '2026-01-01T00:00:00Z',
+  changed_by: null,
+  changes: [],
+});
+
+const snapshotOf = (uuid: string, number: number, children: string[]) => ({
+  result: {
+    title: TITLE,
+    rendered: definition(children, 1).result,
+    _version: versionMeta(uuid, number),
+  },
+});
+
+test('previewing versions names the one on screen, and none once back', async () => {
+  window.featureFlags = {
+    ...originalFlags,
+    [FeatureFlag.VersionHistory]: true,
+  };
+  fetchMock.removeRoutes();
+  fetchMock.get(metadataEndpoint, {
+    result: { id: 7, uuid: 'c-uuid', title: TITLE },
+  });
+  fetchMock.get(versionsEndpoint, {
+    result: [
+      versionMeta('v-0', 0),
+      versionMeta('v-1', 1),
+      versionMeta('v-2', 2),
+    ],
+  });
+  fetchMock.get(definitionEndpoint, definition([], 3));
+  fetchMock.get(
+    'glob:*/api/v1/canvas/c-uuid/versions/v-1/',
+    snapshotOf('v-1', 1, ['a']),
+  );
+  fetchMock.get(
+    'glob:*/api/v1/canvas/c-uuid/versions/v-0/',
+    snapshotOf('v-0', 0, ['a', 'b']),
+  );
+
+  renderPage();
+  fireEvent.click(await screen.findByTestId('canvas-version-history-button'));
+  // Newest first: the current version, then `v-1`, then `v-0`.
+  const entries = await screen.findAllByTestId('canvas-version');
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(published(3)),
+  );
+  const { seen, stop } = recordActiveCanvas();
+
+  fireEvent.click(entries[1]);
+  // The live canvas' revision, not the snapshot's: a preview is not a change.
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(previewing(3)),
+  );
+  fireEvent.click(screen.getAllByTestId('canvas-version')[2]);
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(previewing(3, 'v-0', 0)),
+  );
+  expect(screen.getAllByText('This widget is unavailable')).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Back to current' }));
+
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(published(3)),
+  );
+  expect(seen).toStrictEqual([
+    previewing(3),
+    previewing(3, 'v-0', 0),
+    published(3),
+  ]);
+  stop();
+});

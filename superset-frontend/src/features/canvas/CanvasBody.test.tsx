@@ -23,9 +23,10 @@
  * banner's Publish button, and the banner's busy state reaching `editable`.
  * Asserting those props in isolation let either side be deleted silently.
  */
+import type { ComponentProps } from 'react';
 import fetchMock from 'fetch-mock';
 
-import { canvas } from 'src/core';
+import { canvas, setActiveCanvas } from 'src/core';
 import {
   fireEvent,
   render,
@@ -114,6 +115,9 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+// The page clears the active canvas when it unmounts; the body does not.
+afterEach(() => setActiveCanvas(undefined));
+
 class TestPointerEvent extends MouseEvent {
   pointerId: number;
 
@@ -136,22 +140,26 @@ const dragFirstWidget = (dx: number) => {
   ].forEach(event => fireEvent(handle, event));
 };
 
-const renderWith = (draftToken?: string) =>
-  render(
-    <CanvasBody
-      canvasId={7}
-      result={result}
-      reload={jest.fn()}
-      values={emptyScopeValues()}
-      onValueChange={jest.fn()}
-      refreshKeys={{}}
-      draftToken={draftToken}
-      onDraftOpened={jest.fn()}
-      onDraftClosed={jest.fn()}
-      isEmpty={false}
-    />,
-    { useRedux: true },
-  );
+type BodyProps = Partial<ComponentProps<typeof CanvasBody>>;
+
+const bodyWith = (draftToken?: string, props: BodyProps = {}) => (
+  <CanvasBody
+    canvasId={7}
+    result={result}
+    reload={jest.fn()}
+    values={emptyScopeValues()}
+    onValueChange={jest.fn()}
+    refreshKeys={{}}
+    draftToken={draftToken}
+    onDraftOpened={jest.fn()}
+    onDraftClosed={jest.fn()}
+    isEmpty={false}
+    {...props}
+  />
+);
+
+const renderWith = (draftToken?: string, props: BodyProps = {}) =>
+  render(bodyWith(draftToken, props), { useRedux: true });
 
 /** In a plan, which is where editing happens. */
 const renderBody = () => renderWith('tok-123');
@@ -331,4 +339,401 @@ test('the published canvas has nothing to select', () => {
   fireEvent.click(widgetBody('kpi'));
 
   expect(widgetBody('kpi')).not.toHaveAttribute('aria-pressed');
+});
+
+const TITLE = 'Exec overview';
+const DRAFT = 'tok-123';
+
+type Active = NonNullable<BodyProps['active']>;
+
+/** What the page knows: the canvas' title, and whether the draft is loaded. */
+const active = (
+  draftLoaded: boolean,
+  revision = 0,
+  more: Partial<Active> = {},
+): Active => ({
+  title: TITLE,
+  revision,
+  draftLoaded,
+  draftRefreshFailed: false,
+  ...more,
+});
+
+/** Every value extensions are told about, in order. */
+const recordActiveCanvas = () => {
+  const seen: unknown[] = [];
+  const subscription = canvas.onDidChangeActiveCanvas((value: unknown) =>
+    seen.push(value),
+  );
+  return { seen, stop: () => subscription.dispose() };
+};
+
+/** No draft named, though the draft's definition may be on screen. */
+const noDraft = (revision = 0) => ({ id: 7, title: TITLE, revision });
+
+/** The draft settled, at the revision the user sees. */
+const shownDraft = (revision: number, draftRevision = revision) => ({
+  ...noDraft(revision),
+  draft: { token: DRAFT, pending: false, revision: draftRevision },
+});
+
+/** The draft named, but changing: no revision to publish yet. */
+const pendingDraft = (revision = 0) => ({
+  ...noDraft(revision),
+  draft: { token: DRAFT, pending: true },
+});
+
+const jsonResponse = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+test('the open draft is exposed only once its own definition is on screen', () => {
+  // Until then the page still shows what it showed before the draft opened,
+  // and a draft named next to that would be one the user never saw.
+  const { rerender } = renderWith(DRAFT, { active: active(false) });
+
+  expect(canvas.getActiveCanvas()).toStrictEqual(noDraft());
+
+  rerender(bodyWith(DRAFT, { active: active(true) }));
+
+  expect(canvas.getActiveCanvas()).toStrictEqual(shownDraft(0));
+});
+
+test('a layout write keeps the draft named but pending until the revision it reaches is known', async () => {
+  // The first write is held so a second drop queues behind it: the draft is
+  // on its way to revision 2, and naming 0 or 1 meanwhile would have a
+  // publish rejected, or publish less than the user sees.
+  let releaseFirst: () => void = () => {};
+  const held = new Promise<Response>(resolve => {
+    releaseFirst = () =>
+      resolve(
+        jsonResponse({
+          result: {
+            revision: 1,
+            ops: [],
+            placements: { kpi: KPI, trend: TREND },
+          },
+        }),
+      );
+  });
+  fetchMock
+    .patch(draftEndpoint, () => held, { repeat: 1 })
+    .patch(draftEndpoint, {
+      result: { revision: 2, ops: [], placements: { kpi: KPI, trend: TREND } },
+    });
+
+  renderWith(DRAFT, { active: active(true) });
+  const { seen, stop } = recordActiveCanvas();
+
+  dragFirstWidget(COL_PITCH * 4);
+  dragFirstWidget(COL_PITCH * 8);
+
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(pendingDraft()),
+  );
+
+  releaseFirst();
+
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(shownDraft(0, 2)),
+  );
+  // Nothing in between: not the revision the drag started from, nor the one
+  // the first write reached while the second was still queued. The token
+  // stays throughout.
+  expect(seen).toStrictEqual([pendingDraft(), shownDraft(0, 2)]);
+  stop();
+});
+
+test('the draft is pending while a commit is, and settled again if it fails', async () => {
+  let failCommit: () => void = () => {};
+  const held = new Promise<Response>(resolve => {
+    failCommit = () => resolve(jsonResponse({ message: 'Conflict' }, 409));
+  });
+  fetchMock.post(commitEndpoint, () => held);
+
+  renderWith(DRAFT, { active: active(true) });
+  const { seen, stop } = recordActiveCanvas();
+
+  fireEvent.click(publishButton());
+
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(pendingDraft()),
+  );
+
+  failCommit();
+
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(shownDraft(0)),
+  );
+  expect(seen).toStrictEqual([pendingDraft(), shownDraft(0)]);
+  stop();
+});
+
+test('a refetch that moves the draft on tells extensions once', () => {
+  const { rerender } = renderWith(DRAFT, { active: active(true) });
+  const { seen, stop } = recordActiveCanvas();
+
+  rerender(
+    bodyWith(DRAFT, {
+      result: { ...result, revision: 3 },
+      active: active(true, 3),
+    }),
+  );
+
+  expect(seen).toStrictEqual([shownDraft(3)]);
+  stop();
+});
+
+test('an undo keeps the draft pending until the canvas has caught up with it', async () => {
+  // The step moves the draft on at the server, then the canvas is refetched:
+  // until that lands, the screen still shows the revision before the step.
+  fetchMock.post('glob:*/api/v1/canvas/draft/undo', {
+    result: { revision: 1, canUndo: false, canRedo: true },
+  });
+  const reload = jest.fn();
+  const undoable = { ...result, canUndo: true };
+  const { rerender } = renderWith(DRAFT, {
+    result: undoable,
+    reload,
+    active: active(true),
+  });
+  const { seen, stop } = recordActiveCanvas();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+  // The step has answered and offers a redo, but none is offered until the
+  // refetch lands: it would name the revision the undo started from.
+  expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled();
+  expect(canvas.getActiveCanvas()).toStrictEqual(pendingDraft());
+
+  rerender(
+    bodyWith(DRAFT, {
+      result: { ...undoable, revision: 1, canUndo: false, canRedo: true },
+      reload,
+      active: active(true, 1),
+    }),
+  );
+
+  expect(canvas.getActiveCanvas()).toStrictEqual(shownDraft(1));
+  expect(screen.getByRole('button', { name: 'Redo' })).toBeEnabled();
+  expect(seen).toStrictEqual([pendingDraft(), shownDraft(1)]);
+  stop();
+});
+
+test('a step not yet on screen holds Save and the next step, but not Discard', async () => {
+  // Until the refetch lands, the revision on screen is the one the undo
+  // started from, and a publish naming it would be rejected.
+  fetchMock.post('glob:*/api/v1/canvas/draft/undo', {
+    result: { revision: 1, canUndo: true, canRedo: true },
+  });
+  fetchMock.post(commitEndpoint, { result: { revision: 1 } });
+  const reload = jest.fn();
+  const undoable = { ...result, canUndo: true };
+  const { rerender } = renderWith(DRAFT, {
+    result: undoable,
+    reload,
+    active: active(true),
+  });
+  const undoButton = () => screen.getByRole('button', { name: 'Undo' });
+  expect(publishButton()).toBeEnabled();
+
+  fireEvent.click(undoButton());
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+
+  expect(publishButton()).toBeDisabled();
+  expect(undoButton()).toBeDisabled();
+  // Discarding names no revision, so it stays a way out of the draft even
+  // if the refetch never lands.
+  expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+  fireEvent.click(publishButton());
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(pendingDraft()),
+  );
+  expect(fetchMock.callHistory.calls(commitEndpoint)).toHaveLength(0);
+
+  rerender(
+    bodyWith(DRAFT, {
+      result: { ...undoable, revision: 1, canRedo: true },
+      reload,
+      active: active(true, 1),
+    }),
+  );
+
+  expect(publishButton()).toBeEnabled();
+  expect(undoButton()).toBeEnabled();
+  expect(canvas.getActiveCanvas()).toStrictEqual(shownDraft(1));
+});
+
+test('an undo whose refetch never lands can still be discarded', async () => {
+  // Nothing retries the refetch until the window regains focus, so the step
+  // may never reach the screen.
+  fetchMock.post('glob:*/api/v1/canvas/draft/undo', {
+    result: { revision: 1, canUndo: true, canRedo: true },
+  });
+  fetchMock.delete(draftEndpoint, { result: {} });
+  const reload = jest.fn();
+  const onDraftClosed = jest.fn();
+  renderWith(DRAFT, {
+    result: { ...result, canUndo: true },
+    reload,
+    onDraftClosed,
+    active: active(true),
+  });
+
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+  fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+
+  await waitFor(() => expect(onDraftClosed).toHaveBeenCalled());
+  expect(
+    fetchMock.callHistory
+      .calls(draftEndpoint)
+      .filter(({ options }) => options.method?.toUpperCase() === 'DELETE'),
+  ).toHaveLength(1);
+});
+
+test('a version preview is exposed, and no draft beside it', () => {
+  renderWith(DRAFT, {
+    versionUuid: 'v-1',
+    active: active(true, 0, { previewedVersion: { uuid: 'v-1', number: 1 } }),
+  });
+
+  expect(canvas.getActiveCanvas()).toStrictEqual({
+    ...noDraft(),
+    previewedVersion: { uuid: 'v-1', number: 1 },
+  });
+});
+
+test('a version on screen names no draft, even with the version unnamed', () => {
+  // The body knows a version is rendered from its key alone; the draft's
+  // definition is not what the user is looking at.
+  renderWith(DRAFT, { versionUuid: 'v-1', active: active(true) });
+
+  expect(canvas.getActiveCanvas()).toStrictEqual(noDraft());
+});
+
+test('without what the page knows, the body tells extensions nothing', () => {
+  renderWith(DRAFT);
+
+  expect(canvas.getActiveCanvas()).toBeUndefined();
+});
+
+test('a rejected layout write settles the draft again at the revision it had', async () => {
+  // A 409 means the draft moved on elsewhere: the canvas is refetched, and
+  // until that lands the revision on screen is still the last one fetched.
+  fetchMock.patch(draftEndpoint, 409);
+  const reload = jest.fn();
+  renderWith(DRAFT, { reload, active: active(true) });
+  const { seen, stop } = recordActiveCanvas();
+
+  dragFirstWidget(COL_PITCH * 4);
+
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(shownDraft(0)),
+  );
+  expect(seen).toStrictEqual([pendingDraft(), shownDraft(0)]);
+  stop();
+});
+
+test('the draft is pending while an undo is in flight', async () => {
+  let answer: () => void = () => {};
+  const held = new Promise<Response>(resolve => {
+    answer = () =>
+      resolve(
+        jsonResponse({
+          result: { revision: 1, canUndo: false, canRedo: true },
+        }),
+      );
+  });
+  fetchMock.post('glob:*/api/v1/canvas/draft/undo', () => held);
+  const reload = jest.fn();
+  renderWith(DRAFT, {
+    result: { ...result, canUndo: true },
+    reload,
+    active: active(true),
+  });
+
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(pendingDraft()),
+  );
+  expect(reload).not.toHaveBeenCalled();
+
+  answer();
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+});
+
+test('the draft is pending while a discard is, and settled again if it fails', async () => {
+  let failDiscard: () => void = () => {};
+  const held = new Promise<Response>(resolve => {
+    failDiscard = () => resolve(jsonResponse({ message: 'Gone wrong' }, 500));
+  });
+  fetchMock.delete(draftEndpoint, () => held);
+
+  renderWith(DRAFT, { active: active(true) });
+  const { seen, stop } = recordActiveCanvas();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(pendingDraft()),
+  );
+
+  failDiscard();
+
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(shownDraft(0)),
+  );
+  expect(seen).toStrictEqual([pendingDraft(), shownDraft(0)]);
+  stop();
+});
+
+test('a failed refresh keeps the draft pending until one succeeds', () => {
+  // The definition on screen may no longer be the draft's latest.
+  const { rerender } = renderWith(DRAFT, { active: active(true) });
+  const { seen, stop } = recordActiveCanvas();
+
+  rerender(
+    bodyWith(DRAFT, { active: active(true, 0, { draftRefreshFailed: true }) }),
+  );
+  expect(canvas.getActiveCanvas()).toStrictEqual(pendingDraft());
+
+  rerender(bodyWith(DRAFT, { active: active(true) }));
+
+  expect(seen).toStrictEqual([pendingDraft(), shownDraft(0)]);
+  stop();
+});
+
+test('what extensions are told is frozen, the draft and version included', () => {
+  const { rerender } = renderWith(DRAFT, { active: active(true) });
+  const withDraft = canvas.getActiveCanvas();
+
+  expect(withDraft).toStrictEqual(shownDraft(0));
+  expect(Object.isFrozen(withDraft)).toBe(true);
+  expect(Object.isFrozen(withDraft?.draft)).toBe(true);
+
+  rerender(
+    bodyWith(DRAFT, { active: active(true, 0, { draftRefreshFailed: true }) }),
+  );
+  expect(canvas.getActiveCanvas()).toStrictEqual(pendingDraft());
+  expect(Object.isFrozen(canvas.getActiveCanvas()?.draft)).toBe(true);
+
+  rerender(
+    bodyWith(DRAFT, {
+      versionUuid: 'v-1',
+      active: active(true, 0, { previewedVersion: { uuid: 'v-1', number: 1 } }),
+    }),
+  );
+  const previewing = canvas.getActiveCanvas();
+  expect(previewing?.previewedVersion).toStrictEqual({
+    uuid: 'v-1',
+    number: 1,
+  });
+  expect(Object.isFrozen(previewing)).toBe(true);
+  expect(Object.isFrozen(previewing?.previewedVersion)).toBe(true);
 });

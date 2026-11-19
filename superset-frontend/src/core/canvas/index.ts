@@ -71,16 +71,25 @@ const activeCanvas = createValueEventEmitter<
   canvasApi.ActiveCanvas | undefined
 >(undefined);
 
+// Undefined while the draft is pending, so this also tells pending apart.
+const draftRevision = (draft: canvasApi.ActiveCanvasDraft | undefined) =>
+  draft?.pending === false ? draft.revision : undefined;
+
+const sameActiveCanvas = (
+  a: canvasApi.ActiveCanvas | undefined,
+  b: canvasApi.ActiveCanvas | undefined,
+): boolean =>
+  a?.id === b?.id &&
+  a?.title === b?.title &&
+  a?.revision === b?.revision &&
+  a?.draft?.token === b?.draft?.token &&
+  draftRevision(a?.draft) === draftRevision(b?.draft) &&
+  a?.previewedVersion?.uuid === b?.previewedVersion?.uuid &&
+  a?.previewedVersion?.number === b?.previewedVersion?.number;
+
 /** Called by the canvas page as the user opens, updates or leaves a canvas. */
 export const setActiveCanvas = (value: canvasApi.ActiveCanvas | undefined) => {
-  const current = activeCanvas.getCurrent();
-  if (
-    current?.id === value?.id &&
-    current?.title === value?.title &&
-    current?.revision === value?.revision
-  ) {
-    return;
-  }
+  if (sameActiveCanvas(activeCanvas.getCurrent(), value)) return;
   activeCanvas.fire(value);
 };
 
