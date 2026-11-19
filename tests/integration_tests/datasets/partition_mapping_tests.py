@@ -47,7 +47,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager
 from superset.models.core import Database
 from superset.utils import json
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import subjects_from_users
 from tests.integration_tests.conftest import with_feature_flags
@@ -214,13 +214,25 @@ def _drop_tables(database: Database, *tables: str) -> None:
     _run_statements(database, [f"DROP TABLE IF EXISTS {table}" for table in tables])
 
 
+@pytest.fixture(scope="module", autouse=True)
+def require_postgres_examples() -> None:
+    """
+    Skip the whole module unless the examples database is PostgreSQL.
+
+    Declarative partitioning and ``EXPLAIN (FORMAT JSON)`` are PostgreSQL
+    features. Autouse at module scope, so it runs before any other fixture:
+    on another backend nothing is seeded, logged in or dropped.
+    """
+    with app.app_context():
+        if backend() != "postgresql":
+            pytest.skip("Native partitioning is exercised on PostgreSQL only")
+
+
 @pytest.fixture(scope="module")
 def partitioned_tables() -> Iterator[None]:
     """Seed the shared partitioned tables once, and drop them however we exit."""
     with app.app_context():
         database = get_example_database()
-        if database.backend != "postgresql":
-            pytest.skip("Native partitioning is exercised on PostgreSQL only")
         tables = (HOURLY_TABLE, DAILY_TABLE, REGION_TABLE)
         _drop_tables(database, *tables)
         try:
@@ -711,8 +723,6 @@ def test_mirrored_text_day_key_plan_reads_one_day_and_default_partition(
 @pytest.fixture
 def renamed_key_table(app_context: AppContext) -> Iterator[str]:
     database = get_example_database()
-    if database.backend != "postgresql":
-        pytest.skip("Native partitioning is exercised on PostgreSQL only")
     _drop_tables(database, RENAMED_TABLE)
     try:
         _run_statements(database, _hourly_ddl(RENAMED_TABLE))
