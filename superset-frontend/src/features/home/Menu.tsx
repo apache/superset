@@ -370,9 +370,9 @@ export function withExtensionPages(
       label: page.name,
       // `name` is the React key for the entry, and the label is the
       // extension author's to choose -- a page labelled "Charts" would
-      // collide with the host's own entry. The path cannot collide,
-      // because the host forms it from the page id, which the loader
-      // requires to carry the registering extension's own prefix.
+      // collide with the host's own entry. The prefix keeps the key in a
+      // namespace of its own, and the page's own id is unique within it
+      // because ids are the view registry's keys.
       name: `extension:${page.id}`,
       icon: iconFor(page.icon),
       // Rooted, because every other `url` in this menu is: the backend emits

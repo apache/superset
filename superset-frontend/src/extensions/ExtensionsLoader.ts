@@ -19,7 +19,6 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
-import { registerView } from 'src/core/views';
 import { makeUrl } from 'src/utils/navigationUtils';
 import 'src/extensions/Namespaces';
 import { createExtensionContext } from './ExtensionContext';
@@ -217,18 +216,6 @@ class ExtensionsLoader {
       extensions: {
         ...window.superset.extensions,
         getContext: () => context,
-      },
-      // Bound to this extension's id, for the same reason the backend
-      // derives an extension's API namespace from an ambient context rather
-      // than an argument: an extension states which page it is contributing,
-      // never whose. A page is a view at the reserved location, so the
-      // binding sits on `registerView` and leaves every other location
-      // alone. Because module federation resolves @apache-superset/core once
-      // per container, every import inside this extension receives this
-      // bound instance.
-      views: {
-        ...window.superset.views,
-        registerView,
       },
     };
     // Reuse the version key webpack already resolved for the host's own

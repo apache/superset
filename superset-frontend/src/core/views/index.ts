@@ -86,16 +86,6 @@ const notifyUnregister = (event: ViewUnregisteredEvent) => {
 export const PAGE_LOCATION = 'global.page';
 
 /**
- * Refuses a permission that cannot do what the author means by it.
- *
- * Throwing is the unusual choice here -- registration is a module side
- * effect, so this takes the extension's whole bundle down, its other views
- * and commands with it. It is the right one anyway, because every case below
- * is the author's own typo, visible in their own source, deterministic, and
- * caught the first time the bundle loads. The alternative failure is an
- * ungated surface that looks gated, which nobody finds until it matters.
- */
-/**
  * Refuses a page id that the host's own route could never match.
  *
  * A page is served from `/extensions/pages/:pageId`, which matches a single
@@ -120,6 +110,16 @@ const assertUsableAsPathSegment = (id: string, location: string): void => {
   }
 };
 
+/**
+ * Refuses a permission that cannot do what the author means by it.
+ *
+ * Throwing is the unusual choice here -- registration is a module side
+ * effect, so this takes the extension's whole bundle down, its other views
+ * and commands with it. It is the right one anyway, because every case below
+ * is the author's own typo, visible in their own source, deterministic, and
+ * caught the first time the bundle loads. The alternative failure is an
+ * ungated surface that looks gated, which nobody finds until it matters.
+ */
 const assertUsableOptions = (
   id: string,
   location: string,
