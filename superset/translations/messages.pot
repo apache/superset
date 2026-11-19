@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 04:39+0000\n"
+"POT-Creation-Date: 2026-11-19 16:44-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -10447,6 +10447,12 @@ msgstr ""
 msgid "Only the first %s values are listed. Type to search all of them, or enter a value that is not listed."
 msgstr ""
 
+msgid "Only workspace administrators can delete semantic views."
+msgstr ""
+
+msgid "Only workspace administrators can edit semantic views."
+msgstr ""
+
 msgid "Oops! An error occurred!"
 msgstr ""
 
@@ -10683,6 +10689,9 @@ msgid "Page length"
 msgstr ""
 
 msgid "Page navigation"
+msgstr ""
+
+msgid "Page not found"
 msgstr ""
 
 msgid "Paired t-test Table"
@@ -19329,7 +19338,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-msgid "Page not found"
 msgstr ""

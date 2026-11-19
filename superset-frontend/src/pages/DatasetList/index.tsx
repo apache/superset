@@ -1131,7 +1131,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                       allowEdit
                         ? t('Delete')
                         : t(
-                            'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
+                            'Only workspace administrators can delete semantic views.',
                           )
                     }
                     placement="bottom"
@@ -1148,7 +1148,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                       allowEdit
                         ? t('Edit')
                         : t(
-                            'You must be a dataset editor in order to edit. Please reach out to a dataset editor to request modifications or edit access.',
+                            'Only workspace administrators can edit semantic views.',
                           )
                     }
                     placement="bottom"

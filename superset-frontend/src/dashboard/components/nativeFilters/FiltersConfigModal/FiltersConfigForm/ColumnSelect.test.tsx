@@ -23,8 +23,13 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { Column, JsonObject, getClientErrorObject } from '@superset-ui/core';
-import { ColumnSelect } from './ColumnSelect';
+import {
+  Column,
+  DatasourceType,
+  JsonObject,
+  getClientErrorObject,
+} from '@superset-ui/core';
+import { ColumnSelect, getColumnOptions } from './ColumnSelect';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -65,6 +70,24 @@ const createProps = (extraProps: JsonObject = {}) => ({
   value: 'column_name_01',
   onChange: jest.fn(),
   ...extraProps,
+});
+
+test('semantic column labels remain readable and distinct without changing IDs', () => {
+  const columns = [
+    { column_name: 'CUSTOMERS.SEGMENT', verbose_name: 'Segment' },
+    { column_name: 'ORDERS.SEGMENT', verbose_name: 'Segment' },
+    { column_name: 'ORDERS.STATUS', verbose_name: 'Status' },
+    { column_name: 'ORDERS.DATE' },
+  ] as Column[];
+
+  expect(
+    getColumnOptions(columns, () => true, false, DatasourceType.SemanticView),
+  ).toEqual([
+    { label: 'Segment (CUSTOMERS.SEGMENT)', value: 'CUSTOMERS.SEGMENT' },
+    { label: 'Segment (ORDERS.SEGMENT)', value: 'ORDERS.SEGMENT' },
+    { label: 'Status', value: 'ORDERS.STATUS' },
+    { label: 'ORDERS.DATE', value: 'ORDERS.DATE' },
+  ]);
 });
 
 afterAll(() => {
