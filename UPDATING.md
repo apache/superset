@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
+  the caller cannot view it, rather than treating an access-filtered dashboard
+  as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
+  dashboards withheld by an `EXTRA_ACCESS_QUERY_EXCLUSIONS` hook and dashboards
+  outside an embedded guest token's scope. The legacy dashboard HTML entry also
+  returns 403 for authenticated callers denied access. Clients should handle
+  these responses separately; list endpoints continue to omit dashboards the
+  caller cannot access.
+
 - **Realtime websocket authentication (`WEBSOCKET_ENABLE`):** the browser
   authenticates the socket with a short-lived ticket from
   `GET /api/v1/realtime/token/` sent in-band, instead of a JWT cookie. The
