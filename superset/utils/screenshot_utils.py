@@ -819,6 +819,11 @@ async (maxWaitMs) => {{
 """
 
 
+# Upper bound on how tall the un-clipped chart may grow. Without it a pivot
+# near its default cell limit becomes a PNG past Pillow's decompression-bomb
+# limit (~179M px), which the report validation rejects.
+EXPAND_CHART_TABLE_MAX_HEIGHT_PX = 16384
+
 # A table-shaped chart (e.g. a pivot table) can be clipped by containers that
 # carry their height and overflow in stylesheet classes rather than inline
 # `style`, so neither `GENERIC_SCROLLABLE_DESCENDANT_SELECTOR` nor the
@@ -839,7 +844,7 @@ async (maxWaitMs) => {{
 # pin ancestors to the viewport height (e.g. 6.1.0's `html, body, #app`) are out
 # of scope.
 EXPAND_CHART_TABLE_CLIP_JS = f"""
-() => {{
+(maxHeightPx) => {{
     const containers = document.querySelectorAll('{CHART_CONTAINER_SELECTOR}');
     if (containers.length !== 1 || containers[0].closest('.dashboard-chart')) {{
         return;
@@ -852,7 +857,14 @@ EXPAND_CHART_TABLE_CLIP_JS = f"""
             chain.add(el);
         }}
     }});
-    for (let pass = 0; pass < 5; pass += 1) {{
+    // One pass lifts one nesting level at most: an outer wrapper whose fixed
+    // height is exactly its (still-clipped) child's reports no overflow of
+    // its own until that child has grown, so it is invisible to the gate
+    // below on the pass that lifts the child. A chart nested deeper than a
+    // fixed pass count would keep an outer wrapper clipped and cut rows --
+    // hence a bound taken from the chain itself. This terminates: every pass
+    // either lifts at least one node or breaks out.
+    for (let pass = 0; pass <= chain.size; pass += 1) {{
         // Read every node before writing any, so each pass costs one layout.
         const clipped = Array.from(chain).filter(
             (el) => el.scrollHeight > el.clientHeight + 1
@@ -863,6 +875,20 @@ EXPAND_CHART_TABLE_CLIP_JS = f"""
             el.style.height = 'auto';
             el.style.maxHeight = 'none';
         }});
+    }}
+    // Cap the outermost lifted node so `.chart-container` (and its
+    // scrollHeight, which the tiling decision reads) stays bounded. That node
+    // is `.slice_container`, a centered flex column (Chart.tsx), so the cap
+    // alone would window the middle of the table and crop its headings and
+    // first rows away along with the tail; align it to the top so what is
+    // dropped is only the tail. The property is inert on a non-flex node.
+    const top = Array.from(chain).find(
+        (el) => el.parentElement === containers[0]
+    );
+    if (top && maxHeightPx > 0 && top.scrollHeight > maxHeightPx) {{
+        top.style.maxHeight = maxHeightPx + 'px';
+        top.style.overflow = 'hidden';
+        top.style.justifyContent = 'flex-start';
     }}
 }}
 """

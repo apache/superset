@@ -617,6 +617,7 @@ class TestWebDriverPlaywrightFallback:
         both expansion points, and never for a dashboard (`standalone`)."""
         from superset.utils.screenshot_utils import (
             EXPAND_CHART_TABLE_CLIP_JS,
+            EXPAND_CHART_TABLE_MAX_HEIGHT_PX,
             EXPAND_SCROLLABLE_CONTENT_JS,
         )
 
@@ -685,9 +686,10 @@ class TestWebDriverPlaywrightFallback:
         # A concrete millisecond budget is passed as the second arg (bounded
         # by the report deadline when one exists; a fixed default otherwise).
         assert all(isinstance(call.args[1], float) for call in expand_calls)
-        # The table-clip script takes no wait budget: it has nothing to poll.
+        # The table-clip script takes no wait budget -- it has nothing to poll
+        # -- only the height cap at which the lift must stop.
         assert all(
-            call.args == (EXPAND_CHART_TABLE_CLIP_JS,)
+            call.args[1:] == (EXPAND_CHART_TABLE_MAX_HEIGHT_PX,)
             for call in mock_page.evaluate.call_args_list
             if call.args[0] == EXPAND_CHART_TABLE_CLIP_JS
         )

@@ -41,6 +41,7 @@ from superset.utils.screenshot_utils import (
     DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
     DASHBOARD_LAYOUT_READY_JS,
     EXPAND_CHART_TABLE_CLIP_JS,
+    EXPAND_CHART_TABLE_MAX_HEIGHT_PX,
     EXPAND_SCROLLABLE_CONTENT_JS,
     EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS,
     FIND_ALL_CHART_HOLDER_STATES_JS,
@@ -555,7 +556,10 @@ class WebDriverPlaywright(WebDriverProxy):
 
         When the capture target is a single chart (`element_name` is
         "chart-container"), table content clipped by class-styled containers
-        is un-clipped as well; dashboard captures never run that extra step.
+        is un-clipped as well, up to `EXPAND_CHART_TABLE_MAX_HEIGHT_PX` --
+        content past that height is truncated by design, because an unbounded
+        capture is rejected outright as a decompression bomb. Dashboard
+        captures never run that extra step.
 
         The ag-Grid branch of this step polls for a stable row count, so it
         is bounded by the report's own deadline the same way every other
@@ -584,7 +588,7 @@ class WebDriverPlaywright(WebDriverProxy):
         if element_name != "chart-container":
             return
         try:
-            page.evaluate(EXPAND_CHART_TABLE_CLIP_JS)
+            page.evaluate(EXPAND_CHART_TABLE_CLIP_JS, EXPAND_CHART_TABLE_MAX_HEIGHT_PX)
         except PlaywrightError:
             logger.warning(
                 "Failed to expand clipped table content before screenshot%s",
@@ -1230,11 +1234,22 @@ class WebDriverPlaywright(WebDriverProxy):
                     # region into view and waits per tile; worst case it is a
                     # single tile. The tiled decision for thumbnails is
                     # unchanged.
-                    use_tiled = likely_large_dashboard and (
-                        height_unknown
-                        or dashboard_height > tile_height
-                        or report_execution_context is not None
-                        or require_complete_capture
+                    # The strict tiled path gates on dashboard chart holders
+                    # and the dashboard grid, which a chart-only page never
+                    # renders, so a tall single-chart capture would time out
+                    # there. The standard path has chart-container readiness.
+                    strict_chart_capture = element_name == "chart-container" and (
+                        report_execution_context is not None or require_complete_capture
+                    )
+                    use_tiled = (
+                        likely_large_dashboard
+                        and not strict_chart_capture
+                        and (
+                            height_unknown
+                            or dashboard_height > tile_height
+                            or report_execution_context is not None
+                            or require_complete_capture
+                        )
                     )
 
                     if use_tiled:

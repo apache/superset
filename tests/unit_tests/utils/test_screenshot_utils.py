@@ -40,6 +40,7 @@ from superset.utils.screenshot_utils import (
     _stable_readiness_js,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
+    EXPAND_CHART_TABLE_MAX_HEIGHT_PX,
     FIND_ALL_CHART_HOLDER_STATES_JS,
     FIND_CHART_HOLDER_STATES_JS,
     get_screenshot_blankness_metrics,
@@ -2646,11 +2647,23 @@ body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
 .ag-host { height: 100%; overflow: auto; }
 .legend-viewport { max-height: 100px; overflow-x: hidden; overflow-y: auto;
   width: 100%; }
+.nest-root { height: 568px; width: 760px; overflow: hidden; }
+.nest-fill { height: 100%; overflow: hidden; }
 td { height: 24px; padding: 0 4px; border: 1px solid #888; font: 12px sans-serif; }
 td.marker { background: #222; color: #fff; }
 """
 
 _CHART_CAPTURE_ROWS = 300
+
+# More nesting levels than the fixed-point loop used to allow passes for.
+_NESTED_CLIP_DEPTH = 8
+# `.nest-root`'s height, which the whole chain resolves against.
+_NESTED_CLIP_WRAPPER_HEIGHT_PX = 568
+# A height cap small enough that a 300-row fixture clearly overshoots it, so a
+# capped capture is distinguishable from an uncapped one.
+_CHART_CAPTURE_SMALL_CAP_PX = 2000
+# Enough rows (at 24px each) to overshoot the production cap as well.
+_ROWS_ABOVE_PRODUCTION_CAP = 1200
 
 
 def _chart_capture_rows(n_rows: int) -> str:
@@ -2706,6 +2719,17 @@ def _ag_grid_chart_body(n_rows: int) -> str:
         f'<table id="content"><tbody>{_chart_capture_rows(n_rows)}</tbody></table>'
         "</div></div>"
     )
+
+
+def _deeply_nested_chart_body(n_rows: int) -> str:
+    """`_NESTED_CLIP_DEPTH` class-styled fixed-height wrappers around a long
+    table. Every level's height is exactly its (still-clipped) child's, so a
+    level reports no overflow of its own until the level inside it has been
+    lifted -- the shape that costs the fixed-point loop one pass per level."""
+    html = f'<table id="content"><tbody>{_chart_capture_rows(n_rows)}</tbody></table>'
+    for _ in range(_NESTED_CLIP_DEPTH - 1):
+        html = f'<div class="nest-fill">{html}</div>'
+    return f'<div class="nest-root">{html}</div>'
 
 
 def _legend_and_canvas_chart_body(_n_rows: int) -> str:
@@ -2790,6 +2814,12 @@ def _assert_markers_painted(png: bytes, markers: dict[str, tuple[int, int]]) -> 
         assert image.height >= y1, (
             f"screenshot is {image.height}px tall but the {name} row ends {y1}px "
             "below the top of the chart: rows are cut off"
+        )
+        # Pillow pads a crop that falls outside the image with black, which
+        # would satisfy the dark-pixel check below, so a row cropped away
+        # (e.g. above the top of the capture) has to be rejected here.
+        assert 0 <= y0 < y1 <= image.height, (
+            f"the {name} row (y={y0}..{y1}) lies outside the {image.height}px capture"
         )
         dark = image.crop((0, y0, 200, y1)).point(lambda v: 255 if v < 80 else 0)
         painted = sum(1 for v in dark.getdata() if v) / (200 * (y1 - y0))
@@ -2985,41 +3015,165 @@ def test_table_pass_excludes_ag_grid_hosts() -> None:
     assert after == before
 
 
-def test_tiled_capture_of_tall_chart_paints_whole_content(tmp_path: Path) -> None:
-    """The production `get_screenshot` decision, with the tiling thresholds
-    lowered so a modest fixture takes the tiled branch: once the pivot is
-    un-clipped the chart is tall enough for `take_tiled_screenshot`, and the
-    combined image must still reach and paint the first, middle and last row.
+@pytest.mark.parametrize("layout", ["bare", "shell"])
+@pytest.mark.parametrize(
+    ("n_rows", "cap_px", "truncates"),
+    [
+        pytest.param(
+            _CHART_CAPTURE_ROWS,
+            _CHART_CAPTURE_SMALL_CAP_PX,
+            True,
+            id="past-a-patched-cap-is-truncated",
+        ),
+        pytest.param(
+            _ROWS_ABOVE_PRODUCTION_CAP,
+            EXPAND_CHART_TABLE_MAX_HEIGHT_PX,
+            True,
+            id="past-the-production-cap-is-truncated",
+        ),
+        pytest.param(
+            _CHART_CAPTURE_ROWS,
+            EXPAND_CHART_TABLE_MAX_HEIGHT_PX,
+            False,
+            id="within-the-cap-is-whole",
+        ),
+    ],
+)
+def test_lifted_chart_height_is_bounded_by_the_cap(
+    n_rows: int, cap_px: int, truncates: bool, layout: str
+) -> None:
+    """The lift must stop at `EXPAND_CHART_TABLE_MAX_HEIGHT_PX`.
 
-    Runs against a local HTML file in real Chromium, with the app config and
-    the browser manager standing in for the Flask app and the worker's
-    long-lived browser."""
+    A pivot near its default cell limit would otherwise grow without bound and
+    become a PNG past Pillow's decompression-bomb limit, which
+    `validate_report_screenshot` rejects -- so a huge report would be dropped
+    entirely rather than delivered with its tail truncated.
+
+    What is truncated matters as much as the bound: `.slice_container` centers
+    its content (`superset-frontend/src/components/Chart/Chart.tsx`), so a
+    capped window would show the middle of the table and crop the headings and
+    first rows away along with the tail.
+    """
+    from superset.utils import webdriver
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(_pivot_chart_body(n_rows), layout)
+    with _chart_capture_page(html) as page:
+        with patch.object(webdriver, "EXPAND_CHART_TABLE_MAX_HEIGHT_PX", cap_px):
+            WebDriverPlaywright._expand_scrollable_content(
+                page, element_name="chart-container"
+            )
+        table_height = page.evaluate("document.getElementById('content').scrollHeight")
+        markers = _measure_markers(page)
+        png = WebDriverPlaywright._get_screenshot(
+            page, page.locator(".chart-container"), "chart-container"
+        )
+
+    captured_height = Image.open(io.BytesIO(png)).height
+    if truncates:
+        assert table_height > cap_px, (
+            "the fixture is not taller than the cap, so it cannot show what "
+            "the cap does"
+        )
+        assert captured_height == cap_px
+        # The tail is truncated by design, but the head of the table has to
+        # stay inside the capture rather than being centered out of it.
+        assert markers["first"][0] >= 0, (
+            f"the first row starts {markers['first'][0]}px above the top of "
+            "the capture: the capped window is not aligned to the top of the "
+            "content"
+        )
+        _assert_markers_painted(png, {"first": markers["first"]})
+    else:
+        assert table_height <= cap_px
+        assert captured_height >= table_height
+        _assert_markers_painted(png, markers)
+
+
+def test_expansion_lifts_more_wrappers_than_a_fixed_pass_count() -> None:
+    """Each pass of the fixed-point loop can only lift one nesting level: an
+    outer fixed-height wrapper reports no overflow of its own until the level
+    inside it has grown. A chart nested more deeply than a fixed pass count
+    would therefore keep an outer wrapper clipped and cut rows, so the loop is
+    bounded by the size of the parent chain it is working on instead."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(_deeply_nested_chart_body(_CHART_CAPTURE_ROWS), "shell")
+    with _chart_capture_page(html) as page:
+        WebDriverPlaywright._expand_scrollable_content(
+            page, element_name="chart-container"
+        )
+        table_height = page.evaluate("document.getElementById('content').scrollHeight")
+        markers = _measure_markers(page)
+        png = WebDriverPlaywright._get_screenshot(
+            page, page.locator(".chart-container"), "chart-container"
+        )
+
+    assert table_height > _NESTED_CLIP_WRAPPER_HEIGHT_PX
+    _assert_markers_painted(png, markers)
+
+
+# App config for the production `get_screenshot` path, with the tiling
+# thresholds lowered so a modest fixture is measured as a tall page.
+_PRODUCTION_CAPTURE_CONFIG = {
+    "WEBDRIVER_OPTION_ARGS": [],
+    "WEBDRIVER_WINDOW": {"pixel_density": 1},
+    "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+    "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "load",
+    "SCREENSHOT_SELENIUM_HEADSTART": 0,
+    "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+    "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+    "SCREENSHOT_LOCATE_WAIT": 10,
+    "SCREENSHOT_LOAD_WAIT": 10,
+    "SCREENSHOT_TILED_ENABLED": True,
+    "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
+    "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 1000,
+    "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 1500,
+}
+
+
+def _chart_report_context() -> ReportExecutionContext:
+    """A deterministic scheduled-report context for a single-chart report, with
+    30 seconds available for readiness like `_report_context`."""
+
+    return ReportExecutionContext(
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+        report_schedule_id=11,
+        chart_id=42,
+        expected_chart_count=1,
+        deadline=ReportExecutionDeadline(
+            total_seconds=240,
+            started_at=0,
+            _clock=lambda: 0,
+        ),
+        capture_reserve_seconds=60,
+        delivery_reserve_seconds=120,
+        cleanup_reserve_seconds=30,
+    )
+
+
+def _capture_through_get_screenshot(
+    html: str,
+    page_file: Path,
+    *,
+    require_complete_capture: bool = False,
+    report_execution_context: ReportExecutionContext | None = None,
+) -> tuple[bytes | None, dict[str, tuple[int, int]], MagicMock]:
+    """Drive the production `get_screenshot` decision against a local HTML file
+    in real Chromium, with the app config and the browser manager standing in
+    for the Flask app and the worker's long-lived browser.
+
+    Returns the capture, the marker rows measured on a separately expanded copy
+    of the same page, and the patched `take_tiled_screenshot` so a test can
+    assert which capture path ran.
+    """
     pytest.importorskip("playwright.sync_api")
     from playwright.sync_api import Error as PlaywrightError, sync_playwright
 
     from superset.utils import webdriver
     from superset.utils.webdriver import WebDriverPlaywright
 
-    html = _wrap_chart_capture(_pivot_chart_body(120), "bare")
-    page_file = tmp_path / "chart.html"
     page_file.write_text(html)
-
-    config = {
-        "WEBDRIVER_OPTION_ARGS": [],
-        "WEBDRIVER_WINDOW": {"pixel_density": 1},
-        "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
-        "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "load",
-        "SCREENSHOT_SELENIUM_HEADSTART": 0,
-        "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
-        "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
-        "SCREENSHOT_LOCATE_WAIT": 10,
-        "SCREENSHOT_LOAD_WAIT": 10,
-        "SCREENSHOT_TILED_ENABLED": True,
-        "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
-        "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 1000,
-        "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 1500,
-    }
-
     with sync_playwright() as playwright:
         try:
             browser = playwright.chromium.launch()
@@ -3038,7 +3192,9 @@ def test_tiled_capture_of_tall_chart_paints_whole_content(tmp_path: Path) -> Non
             browser_manager = MagicMock()
             browser_manager.get_browser.return_value = browser
             with (
-                patch.object(webdriver, "app", MagicMock(config=config)),
+                patch.object(
+                    webdriver, "app", MagicMock(config=_PRODUCTION_CAPTURE_CONFIG)
+                ),
                 patch.object(
                     webdriver,
                     "take_tiled_screenshot",
@@ -3046,11 +3202,66 @@ def test_tiled_capture_of_tall_chart_paints_whole_content(tmp_path: Path) -> Non
                 ) as tiled,
             ):
                 png = WebDriverPlaywright(
-                    "chrome", (800, 600), browser_manager=browser_manager
-                ).get_screenshot(page_file.as_uri(), "chart-container")
+                    "chrome",
+                    (800, 600),
+                    browser_manager=browser_manager,
+                    require_complete_capture=require_complete_capture,
+                ).get_screenshot(
+                    page_file.as_uri(),
+                    "chart-container",
+                    report_execution_context=report_execution_context,
+                )
         finally:
             browser.close()
+    return png, markers, tiled
+
+
+def test_tiled_capture_of_tall_chart_paints_whole_content(tmp_path: Path) -> None:
+    """The production `get_screenshot` decision, with the tiling thresholds
+    lowered so a modest fixture takes the tiled branch: once the pivot is
+    un-clipped the chart is tall enough for `take_tiled_screenshot`, and the
+    combined image must still reach and paint the first, middle and last row.
+
+    This is the thumbnail regime -- no report context, no complete-capture
+    requirement -- whose tiling decision must stay as it is."""
+    png, markers, tiled = _capture_through_get_screenshot(
+        _wrap_chart_capture(_pivot_chart_body(120), "bare"),
+        tmp_path / "chart.html",
+    )
 
     tiled.assert_called_once()
+    assert png is not None
+    _assert_markers_painted(png, markers)
+
+
+@pytest.mark.parametrize(
+    ("require_complete_capture", "report_execution_context"),
+    [
+        pytest.param(True, None, id="api-or-ui-export"),
+        pytest.param(False, _chart_report_context(), id="scheduled-report"),
+    ],
+)
+def test_strict_tall_chart_capture_does_not_take_the_tiled_path(
+    tmp_path: Path,
+    require_complete_capture: bool,
+    report_execution_context: ReportExecutionContext | None,
+) -> None:
+    """A strict single-chart capture must stay on the standard path.
+
+    Un-clipping a long pivot makes the chart taller than the tiling threshold,
+    and a report context or a complete-capture requirement would then route it
+    to `take_tiled_screenshot`. That path's strict mode waits for dashboard
+    chart holders and the dashboard grid, neither of which a chart-only page
+    ever renders, so the capture times out and the report is never delivered.
+    The standard path has its own `.chart-container` readiness wait, and
+    re-expands the content once readiness confirms the chart rendered."""
+    png, markers, tiled = _capture_through_get_screenshot(
+        _wrap_chart_capture(_pivot_chart_body(120), "bare"),
+        tmp_path / "chart.html",
+        require_complete_capture=require_complete_capture,
+        report_execution_context=report_execution_context,
+    )
+
+    tiled.assert_not_called()
     assert png is not None
     _assert_markers_painted(png, markers)
