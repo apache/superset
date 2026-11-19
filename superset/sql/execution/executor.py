@@ -609,7 +609,7 @@ class SQLExecutor:
         opts: QueryOptionsType = options or QueryOptionsType()
         start_time = time.time()
         # Set once the run is recorded, so a failure is recorded on it too.
-        query: Query | None = None
+        query = None
         query_id = None
 
         try:
@@ -1294,7 +1294,7 @@ class SQLExecutor:
 
     def _create_error_result(
         self,
-        status: QueryStatus,
+        status: Any,
         error_message: str | None,
         start_time: float,
         partial_results: list[Any] | None = None,
@@ -1481,7 +1481,7 @@ class SQLExecutor:
         status: QueryStatus,
         *,
         commit: bool = True,
-    ) -> Query:
+    ) -> Any:
         """
         Create Query model for audit/tracking.
 
