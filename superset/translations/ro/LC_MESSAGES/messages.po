@@ -8203,6 +8203,9 @@ msgstr "Etichetă secțiune dinamică"
 msgid "Dynamic group by"
 msgstr "Grupare dinamică"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -11239,9 +11242,10 @@ msgstr "Stare invalidă."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "ID-uri de file nevalide: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Valoare de filtru temporal invalidă pentru coloana %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

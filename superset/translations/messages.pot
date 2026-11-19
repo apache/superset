@@ -146,9 +146,6 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-msgid "\"Group remaining as Others\" cannot be calculated for this metric on a semantic view. Turn it off, or choose a sum, count, minimum, or maximum metric."
-msgstr ""
-
 #, no-python-format
 msgid "% calculation"
 msgstr ""
@@ -5993,6 +5990,9 @@ msgstr ""
 msgid "Dynamic group by"
 msgstr ""
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr ""
 
@@ -6732,6 +6732,14 @@ msgid "Experimental"
 msgstr ""
 
 msgid "Expired"
+msgstr ""
+
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
 msgstr ""
 
 msgid "Expires on"
@@ -7692,6 +7700,9 @@ msgid "Group name"
 msgstr ""
 
 msgid "Group remaining as \"Others\""
+msgstr ""
+
+msgid "Group remaining as \"Others\" cannot be calculated for this metric on a semantic view. Turn it off, or choose a sum, count, minimum, or maximum metric."
 msgstr ""
 
 msgid "Groupable columns"
@@ -11402,6 +11413,9 @@ msgstr ""
 msgid "Re-pick fields for this chart"
 msgstr ""
 
+msgid "Read from the token's exp claim."
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
@@ -14686,6 +14700,9 @@ msgstr ""
 msgid "The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache."
 msgstr ""
 
+msgid "The embedded guest private key could not be read. Provide a PEM private key and its correct passphrase (leave the passphrase empty for an unencrypted key)."
+msgstr ""
+
 msgid "The encoding format of the lines"
 msgstr ""
 
@@ -15149,6 +15166,14 @@ msgid "The time unit for each block. Should be a smaller unit than domain_granul
 msgstr ""
 
 msgid "The time unit used for the grouping of blocks"
+msgstr ""
+
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
 msgstr ""
 
 msgid "The transform answered with a value the driver and the database do not agree on how to write into a query, so the mirrored predicate would ask for a partition key no row holds. A transform whose result carries neither a quote nor a backslash still mirrors."
@@ -16128,6 +16153,9 @@ msgstr ""
 msgid "Time comparison"
 msgstr ""
 
+msgid "Time comparison is not yet supported on semantic views. Remove the time shift and try again."
+msgstr ""
+
 msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
@@ -16277,6 +16305,9 @@ msgstr ""
 
 #, python-format
 msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
+msgstr ""
+
+msgid "Too short"
 msgstr ""
 
 msgid "Too short to show safely"
