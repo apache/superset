@@ -33,10 +33,12 @@ import {
 import type { DataMask, Filter } from '@superset-ui/core';
 import { mergeExtraFormData, withNativeFilterProvenance } from '../../utils';
 import FilterValue from './FilterValue';
+import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 
 const mockRequestChartData = jest.fn();
 const mockGetClientErrorObject = jest.fn();
 const mockSuperChartProps = jest.fn();
+let mockRenderSelectPlugin = false;
 jest.mock('src/components/Chart/chartAction', () => ({
   requestChartDataResolved: (...args: unknown[]) =>
     mockRequestChartData(...args),
@@ -51,6 +53,22 @@ jest.mock('@superset-ui/core', () => {
     }),
     SuperChart: (props: Record<string, unknown>) => {
       mockSuperChartProps(props);
+      if (mockRenderSelectPlugin) {
+        const SelectPlugin = jest.requireActual<
+          typeof import('src/filters/components/Select/SelectFilterPlugin')
+        >('src/filters/components/Select/SelectFilterPlugin').default;
+        const transform = jest.requireActual<
+          typeof import('src/filters/components/Select/transformProps')
+        >('src/filters/components/Select/transformProps').default;
+        return (
+          <SelectPlugin
+            {...transform(new original.ChartProps(props))}
+            showOverflow={Boolean(props.showOverflow)}
+            isRefreshing={Boolean(props.isRefreshing)}
+            appSection={original.AppSection.Dashboard}
+          />
+        );
+      }
       return (
         <div data-test="mock-super-chart" data-chart-type={props.chartType}>
           SuperChart
@@ -136,6 +154,7 @@ function renderFilterValue(
 }
 
 beforeEach(() => {
+  mockRenderSelectPlugin = false;
   jest.clearAllMocks();
   // Exercise the real parsing so each rejection shape is handled as in
   // production.
@@ -485,6 +504,23 @@ test('legacy permalink values require an explicit reset before the plugin can em
   };
   renderFilterValue({ filter, onFilterSelectionChange });
   expect(screen.getByText('Reselect saved filter values')).toBeInTheDocument();
+  const warning = screen.getByRole('alert');
+  const section = warning.querySelector('.ant-alert-section') as HTMLElement;
+  const actions = warning.querySelector('.ant-alert-actions') as HTMLElement;
+  // JSDOM does not lay out flex items; pin the wrapping and sizing mechanism.
+  expect(warning.style.flexWrap).toBe('wrap');
+  expect(section.style.flex).toBe('1 1 0%');
+  expect(actions.style.marginInlineStart).toBe('0');
+  expect(actions.style.maxWidth).toBe('100%');
+  expect(actions.style.flexBasis).toBe('100%');
+  expect(actions.style.order).toBe('1');
+  const resetButton = screen.getByRole('button', {
+    name: 'Reset and reselect values',
+  });
+  expect(actions).toContainElement(resetButton);
+  expect(resetButton).toHaveStyleRule('white-space', 'normal');
+  expect(resetButton).toHaveStyleRule('min-height', '32px');
+  expect(resetButton).toHaveStyleRule('padding-block', '4px');
   expect(screen.queryByTestId('mock-super-chart')).not.toBeInTheDocument();
   await userEvent.click(
     screen.getByRole('button', { name: 'Reset and reselect values' }),
@@ -708,6 +744,67 @@ test('clearing a semantic member filter still carries its provenance', async () 
     { datasource: '3__semantic_view', version: null },
   ]);
 });
+
+test.each([false, true])(
+  'ordinary native values remain excluded after plugin emission (select first: %s)',
+  async defaultToFirstItem => {
+    const filter = createMockFilter({ controlValues: { defaultToFirstItem } });
+    const mask: DataMask = {
+      filterState: { value: ['US'] },
+      extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
+    };
+    let change: jest.Mock;
+    if (defaultToFirstItem) {
+      mockRenderSelectPlugin = true;
+      mockRequestChartData.mockResolvedValue([
+        {
+          data: [{ country: 'US' }, { country: 'CA' }],
+          colnames: ['country'],
+          coltypes: [1],
+        },
+      ]);
+      change = jest.fn();
+      renderFilterValue({ filter, onFilterSelectionChange: change });
+      await waitFor(() =>
+        expect(change).toHaveBeenCalledWith(
+          filter,
+          expect.objectContaining({
+            filterState: expect.objectContaining({ value: ['US'] }),
+          }),
+        ),
+      );
+    } else {
+      change = await emitFromPlugin(filter, mask);
+    }
+    const emitted: DataMask = change.mock.lastCall[1];
+    const result = getFormDataWithExtraFilters({
+      chart: {
+        id: 99,
+        form_data: {
+          datasource: '3__semantic_view',
+          viz_type: 'table',
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      chartConfiguration: {},
+      filters: {},
+      sliceId: 99,
+      nativeFilters: { [filter.id]: { ...filter, chartsInScope: [99] } },
+      dataMask: { [filter.id]: { id: filter.id, ...emitted } },
+      extraControls: {},
+      allSliceIds: [99],
+    });
+    expect(result.extra_form_data?.filters ?? []).toEqual([]);
+    expect(
+      buildQueryObject({
+        extra_form_data: result.extra_form_data,
+        semantic_selection_version: result.semantic_selection_version,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+      }).extras?.semantic_selection_version,
+    ).toBe('cube-member-id-v1');
+  },
+);
 
 test.each([
   ['never initialized', 'filter_select', undefined],
