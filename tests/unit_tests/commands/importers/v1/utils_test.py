@@ -304,6 +304,43 @@ class TestLoadConfigs:
         assert "masked_encrypted_extra" in exceptions[0].messages[file_name]
         _assert_logged_as_warning(caplog, "Invalid JSON in masked_encrypted_extra")
 
+    @pytest.mark.parametrize("secrets", ["a-secret", ["a-secret"], None])
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_secrets_that_are_not_a_map_are_collected(
+        self, mock_db: object, secrets: Any
+    ) -> None:
+        """A file's ``encrypted_extra_secrets`` must map JSONPaths to values. Any
+        other shape is a ValidationError, not a raw AttributeError, and the value
+        itself stays out of the message."""
+        from superset.commands.importers.v1.utils import load_configs
+
+        mock_db.session.query.return_value.all.return_value = []  # type: ignore[attr-defined]
+
+        file_name = "databases/db.yaml"
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents={
+                file_name: (
+                    "uuid: abc-123\n"
+                    "password: secret\n"
+                    'masked_encrypted_extra: \'{"foo": "XXXXXXXXXX"}\'\n'
+                )
+            },
+            schemas={"databases/": self._trivial_schema()},
+            passwords={},
+            exceptions=exceptions,
+            ssh_tunnel_passwords={},
+            ssh_tunnel_private_keys={},
+            ssh_tunnel_priv_key_passwords={},
+            encrypted_extra_secrets={file_name: secrets},
+        )
+
+        assert file_name not in configs
+        assert len(exceptions) == 1
+        assert "encrypted_extra_secrets" in exceptions[0].messages[file_name]
+        assert "a-secret" not in str(exceptions[0].messages)
+
     @patch("superset.commands.importers.v1.utils.db")
     def test_valid_json_in_masked_encrypted_extra_still_merges(
         self, mock_db: object
