@@ -33,6 +33,8 @@ import {
   VizType,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
+import DraftDashboardNotice from 'src/features/reports/DraftDashboardNotice';
+import reportErrorMessage from 'src/features/reports/reportErrorMessage';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import {
@@ -361,6 +363,21 @@ function ReportModal({
           ]}
         />
       </div>
+      {show && creationMethod === CreationMethod.Dashboards && (
+        <DraftDashboardNotice
+          dashboardId={dashboardId}
+          usesDefaultExecutor={
+            !isFeatureEnabled(FeatureFlag.AlertReportDynamicExecutor) ||
+            (!executeAsSelf && Boolean(isEditMode) && !report.run_as_type)
+          }
+          runsAsCurrentUser={
+            isFeatureEnabled(FeatureFlag.AlertReportDynamicExecutor) &&
+            (executeAsSelf ||
+              !isEditMode ||
+              report.run_as?.id === currentUserId)
+          }
+        />
+      )}
       {formatRequiresTakeover && (
         <Alert
           type={executeAsSelf ? 'info' : 'warning'}
@@ -580,7 +597,7 @@ function ReportModal({
               ? t('Failed to update report')
               : t('Failed to create report')
           }
-          description={currentReport.error}
+          description={reportErrorMessage(currentReport.error)}
         />
       )}
     </StyledModal>
