@@ -286,6 +286,12 @@ export const hydrateExplore =
         controlPanelState,
       );
     });
+    // A new chart keeps its initial time filter in its form data, so that a
+    // chart type change carries it over like any other filter.
+    if (isNewChart && exploreState.controls.adhoc_filters) {
+      initialFormData.adhoc_filters = exploreState.controls.adhoc_filters
+        .value as QueryFormData['adhoc_filters'];
+    }
     const hydratedFormData = {
       ...initialFormData,
       ...getFormDataFromControls(exploreState.controls),

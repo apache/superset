@@ -43,6 +43,7 @@ import {
 import { exploreInitialData } from '../fixtures';
 import tableControlPanel from '../../../plugins/plugin-chart-table/src/controlPanel';
 import calendarControlPanel from '../../../plugins/plugin-chart-calendar/src/controlPanel';
+import pieControlPanel from '../../../plugins/plugin-chart-echarts/src/Pie/controlPanel';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -509,16 +510,19 @@ const datasetExtra = JSON.stringify({
   warning_markdown: 'Note',
 });
 
-// Table uses ad hoc time filters; the calendar uses a Time range control.
-// They are registered only while `run` runs so other tests keep their state.
+// Table and Pie use ad hoc time filters; the calendar uses a Time range
+// control. They are registered only while `run` runs so other tests keep their
+// state.
 function withControlPanels<T>(run: () => T): T {
   const registry = getChartControlPanelRegistry();
   registry.registerValue(VizType.Table, tableControlPanel);
+  registry.registerValue(VizType.Pie, pieControlPanel);
   registry.registerValue('cal_heatmap', calendarControlPanel);
   try {
     return run();
   } finally {
     registry.remove(VizType.Table);
+    registry.remove(VizType.Pie);
     registry.remove('cal_heatmap');
   }
 }
@@ -680,6 +684,19 @@ test.each([
     expect(timeFilter).toEqual(['event_date', range]);
   },
 );
+
+test('changing the chart type of a new chart keeps its time filter', () => {
+  const timeFilter = withControlPanels(() => {
+    const { explore } = hydrateNewChart();
+    const { controls } = exploreReducer(explore as ExploreState, {
+      type: 'SET_FIELD_VALUE',
+      controlName: 'viz_type',
+      value: VizType.Pie,
+    });
+    return getTimeFilter(getFormDataFromControls(controls));
+  });
+  expect(timeFilter).toEqual(['created_at', datasetRange]);
+});
 
 test('switching to a dataset keeps a time filter that carries over', () => {
   expect(switchNewChartDataset({ extra: datasetExtra })).toEqual([
