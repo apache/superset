@@ -5910,6 +5910,22 @@ def test_extract_tables_from_jinja_sql_fails_closed(
         )
 
 
+def test_sqlscript_unmodeled_sqlglot_exception_raises_parse_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Dialect-specific sqlglot transforms can raise bare exceptions (e.g. an
+    ``AttributeError``) instead of a ``SqlglotError``; these must surface as a
+    ``SupersetParseError`` rather than an unhandled 500.
+    """
+    mocker.patch(
+        "superset.sql.parse.sqlglot.parse",
+        side_effect=AttributeError("'NoneType' object has no attribute 'is_type'"),
+    )
+    with pytest.raises(SupersetParseError, match="Unable to parse script"):
+        SQLScript("SELECT DATE_TRUNC('day', col) FROM t", "snowflake")
+
+
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=False)
 def test_extract_tables_from_jinja_sql_disabled(mocker: MockerFixture) -> None:
     """
