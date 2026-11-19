@@ -8063,6 +8063,9 @@ msgstr "方向"
 msgid "Dynamic group by"
 msgstr "需要進行分組的一列或多列"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "動態聚合函數"

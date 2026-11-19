@@ -37,6 +37,7 @@ x-common-build: &common-build
   target: superset
   cache_from:
     - apache/superset-cache:3.11-slim-trixie
+    - apache/superset-cache:3.11-slim-trixie-arm64
 
 services:
   redis:

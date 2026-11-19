@@ -11916,6 +11916,9 @@ msgstr "Suunnattu"
 msgid "Dynamic group by"
 msgstr "Dynaaminen ryhmittely"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy

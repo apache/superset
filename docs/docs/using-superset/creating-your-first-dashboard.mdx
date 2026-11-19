@@ -407,6 +407,12 @@ You can mark a dashboard as a favorite by clicking on the star icon next to the 
 
 ### Customizing dashboard
 
+Dashboard access errors distinguish missing dashboards (**404 Not Found**) from
+existing dashboards you cannot view (**403 Forbidden**). The dashboard page shows
+a separate permission message for a 403 response. Opening a dashboard directly
+in a browser renders the dashboard error page with the corresponding HTTP status;
+API requests return JSON error responses.
+
 The following URL parameters can be used to modify how the dashboard is rendered:
 
 - `standalone`:

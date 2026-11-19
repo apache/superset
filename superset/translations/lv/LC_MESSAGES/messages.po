@@ -7796,6 +7796,9 @@ msgstr "Virziena"
 msgid "Dynamic group by"
 msgstr "Dinamisks grupējums pēc"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Dinamiskā agregācijas funkcija"

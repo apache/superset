@@ -9467,6 +9467,9 @@ msgstr "Etiqueta de seção dinâmica"
 msgid "Dynamic group by"
 msgstr "Agrupar dinâmico por"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Descrição da seção dinâmica"
 
