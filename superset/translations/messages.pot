@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 09:45+1100\n"
+"POT-Creation-Date: 2026-11-19 04:39+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3967,6 +3967,10 @@ msgid "Columns folder can only contain column items"
 msgstr ""
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr ""
 
@@ -4755,6 +4759,10 @@ msgstr ""
 
 #, python-format
 msgid "Dashboard %(dashboard_id)s not found"
+msgstr ""
+
+#, python-format
+msgid "Dashboard %(id)s not found"
 msgstr ""
 
 msgid "Dashboard Filter"
@@ -8219,6 +8227,10 @@ msgstr ""
 msgid "Invalid currency code in saved metrics"
 msgstr ""
 
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr ""
 
@@ -8308,6 +8320,10 @@ msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
+msgstr ""
+
+#, python-format
+msgid "Invalid time range for %(column)s: %(message)s"
 msgstr ""
 
 msgid "Inverse"
@@ -14522,6 +14538,14 @@ msgstr ""
 
 #, python-format
 msgid "The `%(field)s` field must be a string."
+msgstr ""
+
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid "The `%(operation)s` post-processing operation references a column or level that is not in the query result: %(name)s"
 msgstr ""
 
 msgid "The affected charts or dashboards changed. Review the updated impact and type DELETE again to continue."

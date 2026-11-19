@@ -421,26 +421,27 @@ class Superset(BaseSupersetView):
         slc.slice_name = slice_name
         slc.query_context = query_context
 
-        if action == "saveas" and slice_add_perm:
-            ChartDAO.create(slc)
-            db.session.commit()  # pylint: disable=consider-using-transaction
-        elif action == "overwrite" and slice_overwrite_perm:
-            ChartDAO.update(slc)
-            db.session.commit()  # pylint: disable=consider-using-transaction
-
-        # Adding slice to a dashboard if requested
+        # Resolve and validate the dashboard target BEFORE saving the
+        # chart: a failed dashboard check must not leave a chart behind.
         dash: Dashboard | None = None
 
         save_to_dashboard_id = request.args.get("save_to_dashboard_id")
         new_dashboard_name = request.args.get("new_dashboard_name")
         if save_to_dashboard_id:
             # Adding the chart to an existing dashboard
-            dash = cast(
-                Dashboard,
-                db.session.query(Dashboard)
-                .filter_by(id=int(save_to_dashboard_id))
-                .one(),
-            )
+            try:
+                dashboard_id = int(save_to_dashboard_id)
+            except ValueError:
+                return json_error_response(
+                    __("Invalid dashboard id: %(id)s", id=save_to_dashboard_id),
+                    status=400,
+                )
+            dash = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
+            if dash is None:
+                return json_error_response(
+                    __("Dashboard %(id)s not found", id=save_to_dashboard_id),
+                    status=404,
+                )
             # check edit dashboard permissions
             dash_overwrite_perm = security_manager.is_editor(dash)
             if not dash_overwrite_perm:
@@ -458,6 +459,15 @@ class Superset(BaseSupersetView):
                     status=403,
                 )
 
+        if action == "saveas" and slice_add_perm:
+            ChartDAO.create(slc)
+            db.session.commit()  # pylint: disable=consider-using-transaction
+        elif action == "overwrite" and slice_overwrite_perm:
+            ChartDAO.update(slc)
+            db.session.commit()  # pylint: disable=consider-using-transaction
+
+        if new_dashboard_name and dash is None:
+            # Creating the new dashboard now that the chart is saved
             from superset.subjects.utils import (
                 get_default_viewers_for_new_asset,
                 get_user_subject,
