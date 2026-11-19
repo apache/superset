@@ -23,7 +23,13 @@
  */
 
 import { ComponentType, ReactNode } from 'react';
-import { Accessor, CellValue, HeaderGroup, Row } from 'react-table';
+import {
+  Accessor,
+  CellValue,
+  HeaderGroup,
+  Row,
+  SortingRule,
+} from 'react-table';
 
 import { SortOrder } from '../Table';
 
@@ -94,6 +100,7 @@ export function mapColumns<T extends object>(
   columns: ListViewColumn<T>[],
   headerGroups: HeaderGroup<T>[],
   columnsForWrapText?: string[],
+  sortBy?: SortingRule<T>[],
 ) {
   return columns.map(column => {
     // react-table backfills `id` from a string `accessor` for its own
@@ -108,6 +115,7 @@ export function mapColumns<T extends object>(
       (typeof column.accessor === 'string' ? column.accessor : undefined) ??
       '';
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, id);
+    const sort = sortBy?.find(rule => rule.id === id);
     return {
       title: column.Header as ReactNode,
       dataIndex: id.includes('.') ? id.split('.') : id,
@@ -122,6 +130,13 @@ export function mapColumns<T extends object>(
           ? 'descend'
           : 'ascend'
         : undefined) as SortOrder | undefined,
+      ...(sortBy && {
+        sortOrder: (sort
+          ? sort.desc
+            ? 'descend'
+            : 'ascend'
+          : null) as SortOrder,
+      }),
       sorter: !column.disableSortBy,
       render: (val: CellValue<T>, record: RowWithId<T>): ReactNode => {
         const { Cell } = column;

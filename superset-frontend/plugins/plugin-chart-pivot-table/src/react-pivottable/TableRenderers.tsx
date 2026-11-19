@@ -383,6 +383,7 @@ export function TableRenderer(props: TableRendererProps) {
     namesMapping: namesMappingProp,
     onContextMenu,
     allowRenderHtml,
+    hideEmptyColumns,
   } = props;
 
   const [collapsedRows, setCollapsedRows] = useState<Record<string, boolean>>(
@@ -834,6 +835,7 @@ export function TableRenderer(props: TableRendererProps) {
     subtotalOptions,
     namesMappingProp,
     allowRenderHtml,
+    hideEmptyColumns,
   ]);
 
   // Use sorted row keys if available, otherwise use base row keys
