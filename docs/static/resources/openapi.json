@@ -7854,11 +7854,62 @@
         },
         "type": "object"
       },
+      "EncryptedExtraHintSchema": {
+        "properties": {
+          "expired": {
+            "description": "Whether the stored JWT has expired; null when expires_at is null",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expires_at": {
+            "description": "When the stored JWT expires, from its exp claim, in UTC; null when the value is not a JWT with an exp claim",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Human readable name of the masked field",
+            "type": "string"
+          },
+          "path": {
+            "description": "JSONPath of the masked field",
+            "type": "string"
+          },
+          "suffix": {
+            "description": "Last characters of the stored value (of the base64 body for a PEM key), null when the value is too short to reveal any",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "path"
+        ],
+        "type": "object"
+      },
+      "EncryptedExtraHintsResponseSchema": {
+        "properties": {
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/EncryptedExtraHintSchema"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "EngineInformation": {
         "properties": {
           "disable_ssh_tunneling": {
             "description": "SSH tunnel is not available to the database",
             "type": "boolean"
+          },
+          "encrypted_extra_sensitive_fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "JSONPath of each sensitive encrypted_extra field and its label. On the database GET and on `available`: the engine's declared patterns. On `/connection`: the fields present in the stored encrypted_extra.",
+            "type": "object"
           },
           "identifier_quote": {
             "allOf": [
@@ -22659,6 +22710,13 @@
                             "description": "Whether the engine supports SSH Tunnels",
                             "type": "boolean"
                           },
+                          "encrypted_extra_sensitive_fields": {
+                            "additionalProperties": {
+                              "type": "string"
+                            },
+                            "description": "JSONPath of each sensitive encrypted_extra field and its label",
+                            "type": "object"
+                          },
                           "supports_file_upload": {
                             "description": "Whether the engine supports file uploads",
                             "type": "boolean"
@@ -23445,6 +23503,58 @@
           }
         ],
         "summary": "Get a database connection info",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/encrypted_extra_hints/": {
+      "get": {
+        "description": "Returns the label and last characters of each sensitive field in the database's encrypted extra, so that a stored secret can be told apart from another one without revealing it. A JWT also gets the expiry its unverified exp claim states. The number of characters is set by `ENCRYPTED_EXTRA_HINT_CHARS`; the list is empty when it is 0 or less.",
+        "parameters": [
+          {
+            "description": "The database id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncryptedExtraHintsResponseSchema"
+                }
+              }
+            },
+            "description": "Hints for the masked fields"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get hints for the masked fields of a database's encrypted extra",
         "tags": [
           "Database"
         ]

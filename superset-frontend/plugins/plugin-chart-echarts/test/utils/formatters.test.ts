@@ -767,8 +767,9 @@ describe('getXAxisDomain', () => {
   test('finds the min/max when every value is a Date object', () => {
     // Regression: getXAxisDomain used to only recognize `typeof === 'number'`,
     // so a column of Date objects (as MixedTimeseries/Timeseries transformProps
-    // pass through in some data-fetch paths) found no bounds at all and the
-    // grain-aware bar-width cap silently fell back to the flat 100px default.
+    // pass through in some data-fetch paths) found no bounds at all, leaving
+    // the x-axis label spacing in createSpacedXAxisFormatter without a domain
+    // to measure against.
     expect(
       getXAxisDomain(
         [[{ [xAxisCol]: new Date(t0) }, { [xAxisCol]: new Date(t1) }]],
