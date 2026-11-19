@@ -29,6 +29,7 @@ import {
   hasChartStateConverter,
   convertChartStateToOwnState,
 } from 'src/dashboard/util/chartStateConverter';
+import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
@@ -118,6 +119,7 @@ export const getChartDataPayloads = async (
       }
 
       const formData = getFormDataWithExtraFilters({
+        sourceDatasources: selectChartDatasources(state),
         chart: { id: numericId, form_data: (chart as JsonObject).form_data },
         chartConfiguration,
         filters: getAppliedFilterValues(numericId),
