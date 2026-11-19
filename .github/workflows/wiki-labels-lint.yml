@@ -65,4 +65,4 @@ jobs:
         sparse-checkout-cone-mode: false
 
     - name: Run the tests
-      run: node --test .github/scripts/
+      run: node --test .github/scripts/wiki-labels.test.js
