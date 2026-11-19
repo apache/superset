@@ -522,6 +522,14 @@ bucket comparison has no portable raw SQL representation.
 For Custom SQL axes, invalid numeric bucket timestamps (non-finite or outside the
 supported datetime range) return a query validation error.
 
+### Categorical time-series axes
+
+For a time-series Bar, Line, or Area chart without Dimensions, clicking a category
+cross-filters on the underlying x-axis column, even when that column has a display
+label. Drill by and Drill to detail also retain the column identity. Display labels
+in axes and tooltips stay unchanged. This applies to both SQL datasets and semantic
+views; Mixed Time-series retains the column identity in Drill to detail as well.
+
 ### Semantic-view dashboard cross-filtering
 
 On semantic-view dashboard charts, **Add cross-filter** in a category's context
