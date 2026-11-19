@@ -52,6 +52,13 @@ const PAGES = {
     prefixes: ['hold:audit-'],
     allows: 'labels starting with `hold:audit-`',
   },
+  paths: {
+    page: 'Path-Labels',
+    entries: 'globs',
+    anyLabel: true,
+    allows:
+      'any label of 1 to 50 characters that does not contain "hold", is not a showtime label, and is not assigned by another page',
+  },
 };
 
 const REVIEWER_LIST_NAMES = ['reviewers', 'reviewer', 'auditors', 'auditor'];
@@ -61,6 +68,9 @@ const BOT_SUFFIX = '[bot]';
 // GitHub caps how many reviewers a PR can have, and nobody wants a wiki
 // edit to page the whole project.
 const MAX_REVIEW_REQUESTS = 15;
+
+// GitHub's limit on the length of a label name.
+const MAX_LABEL_LENGTH = 50;
 
 /**
  * Labels a page can never assign unless it is listed for that page above:
@@ -73,7 +83,8 @@ const MAX_REVIEW_REQUESTS = 15;
  */
 function isReserved(kind, label) {
   const ownedElsewhere = Object.entries(PAGES).some(
-    ([other, { labels = [] }]) => other !== kind && labels.includes(label),
+    ([other, { labels = [] }]) =>
+      other !== kind && labels.some(owned => owned.toLowerCase() === label.toLowerCase()),
   );
   return label.toLowerCase().includes('hold') || label.startsWith('🎪') || ownedElsewhere;
 }
@@ -82,7 +93,9 @@ function mayAssign(kind, label) {
   const { labels = [], prefixes = [], anyLabel = false } = PAGES[kind];
   if (labels.includes(label)) return true;
   if (prefixes.some(prefix => label.startsWith(prefix) && label.length > prefix.length)) return true;
-  return anyLabel && !isReserved(kind, label);
+  // GitHub rejects empty label names and names over 50 characters.
+  const validName = label.length > 0 && label.length <= MAX_LABEL_LENGTH;
+  return anyLabel && validName && !isReserved(kind, label);
 }
 
 /** "`text`" -> "text"; anything else comes back trimmed. */
