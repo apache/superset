@@ -209,7 +209,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
         from superset.dashboards.permalink.api import DashboardPermalinkRestApi
-        from superset.databases.api import DatabaseRestApi
+        from superset.databases.api import DatabaseOAuth2TokensRestApi, DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
@@ -304,6 +304,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
+        appbuilder.add_api(DatabaseOAuth2TokensRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
@@ -330,6 +331,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SqlLabPermalinkRestApi)
         appbuilder.add_api(SubjectRestApi)
         appbuilder.add_api(LogRestApi)
+
+        if self.config.get("WEBSOCKET_ENABLE"):
+            from superset.websocket.api import RealtimeRestApi
+
+            appbuilder.add_api(RealtimeRestApi)
 
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             from superset.extensions.api import ExtensionsRestApi
@@ -1119,7 +1125,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_stats_manager()
         self.configure_semantic_cache()
         self.configure_task_manager()
-        self.configure_websocket()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -1801,13 +1806,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             from superset.tasks.manager import TaskManager
 
             TaskManager.init_app(self.superset_app)
-
-    def configure_websocket(self) -> None:
-        """Mint the websocket channel-token cookie when the transport is enabled."""
-        if self.config.get("WEBSOCKET_ENABLE"):
-            from superset.websocket.channel import register_ws_channel_cookie
-
-            register_ws_channel_cookie(self.superset_app)
 
     def register_blueprints(self) -> None:
         # Register custom blueprints from config

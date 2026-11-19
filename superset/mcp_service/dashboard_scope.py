@@ -49,7 +49,7 @@ import base64
 import binascii
 import logging
 import zlib
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -428,6 +428,43 @@ def _check_model_temporal_filters(
             )
 
 
+SEMANTIC_SELECTION_MEMBER_KEYS: tuple[str, ...] = (
+    "filters",
+    "adhoc_filters",
+    "interactive_drilldown",
+    "interactive_groupby",
+    "interactive_highlight",
+    "granularity_sqla",
+    "granularity",
+    "time_column",
+    "custom_form_data",
+)
+
+
+def merge_semantic_selection_sources(
+    *payloads: Mapping[str, Any],
+) -> list[Any]:
+    """Preserve each input's provenance before its members lose their origin.
+
+    Without any source records, leave the payload unversioned for the query
+    guard. Once sources are present, every member-bearing input needs a record.
+    """
+    if not any(payload.get("semantic_selection_sources") for payload in payloads):
+        return []
+    sources: list[Any] = []
+    payload: Mapping[str, Any]
+    for payload in payloads:
+        provenance: Any = payload.get("semantic_selection_sources")
+        if isinstance(provenance, list) and provenance:
+            sources.extend(provenance)
+        elif provenance or any(
+            payload.get(key) for key in SEMANTIC_SELECTION_MEMBER_KEYS
+        ):
+            # A later versioned input must not certify these unproven members.
+            sources.append({"datasource": "", "version": None})
+    return sources
+
+
 def compose_extra_form_data(
     scope_efd: Mapping[str, Any] | None,
     model_efd: Mapping[str, Any] | None,
@@ -450,7 +487,12 @@ def compose_extra_form_data(
 
     composed = dict(scope_efd)
     for key, value in model_efd.items():
+        if key == "semantic_selection_sources":
+            continue
         _merge_model_value(composed, scope_efd, key, value)
+    sources: list[Any] = merge_semantic_selection_sources(scope_efd, model_efd)
+    if sources:
+        composed["semantic_selection_sources"] = sources
     return composed
 
 
@@ -796,22 +838,6 @@ def _iso(value: datetime | None) -> str:
     return value.isoformat() if value is not None else ""
 
 
-def removed_granularity_column(
-    filters: Sequence[Mapping[str, Any]], granularity: str | None
-) -> str | None:
-    """The column whose temporal-range filter Superset replaces for this query.
-
-    ``QueryContextFactory._apply_granularity`` removes temporal-range filters
-    on the granularity column (or, failing that, all filters on the first
-    temporal-range column) before re-adding a single time filter. A dashboard
-    range clause on that column would silently disappear, so callers refuse instead.
-    """
-    temporal = [f.get("col") for f in filters if f.get("op") == TEMPORAL_RANGE]
-    if not granularity or not temporal:
-        return None
-    return granularity if granularity in temporal else temporal[0]
-
-
 # ---------------------------------------------------------------------------
 # Request helpers
 # ---------------------------------------------------------------------------
@@ -983,7 +1009,6 @@ def scoped_dataset_query(
     subject: str,
     columns: set[str],
     temporal_columns: set[str],
-    main_dttm_col: str | None,
     filters: list[dict[str, Any]],
     time_range: str | None,
     time_column: str | None,
@@ -1032,22 +1057,19 @@ def scoped_dataset_query(
         time_range = intersect_time_ranges(constraints.time_range, time_range)
         time_column = scope_column
 
-    granularity = (time_column or main_dttm_col) if time_range else time_column
     final = [*filters, *scope_filters]
-    if time_range and granularity:
-        final_with_time = [
-            *final,
-            {"col": granularity, "op": TEMPORAL_RANGE, "val": time_range},
-        ]
-    else:
-        final_with_time = final
-    removed = removed_granularity_column(final_with_time, granularity)
-    if removed is not None and removed in constraints.columns:
+    temporal = {f["col"] for f in final if f.get("op") == TEMPORAL_RANGE}
+    # An explicit range appends a TEMPORAL_RANGE on the query's time column.
+    # Without it, granularity can replace a different column's temporal filter
+    # and discard both caller and dashboard predicates on that column.
+    if not time_range and temporal and time_column and time_column not in temporal:
+        dropped = sorted(temporal)[0]
         raise MCPDashboardScopeError(
-            f"the dashboard filter on {removed!r} would be dropped because that "
-            "column is also the query's time column.",
-            "Query without a time range on that column, or use the dashboard's charts.",
+            f"the filter on {dropped!r} would be dropped because "
+            f"the query's time column is {time_column!r} instead.",
+            "Pass the time range on that column, or use the dashboard's charts.",
         )
+
     return final, time_range, time_column
 
 
@@ -1117,7 +1139,6 @@ def _rewrite_dataset_request(
         subject=f"dataset {getattr(dataset, 'table_name', dataset.id)!r}",
         columns={column.column_name for column in dataset.columns},
         temporal_columns={c.column_name for c in dataset.columns if c.is_dttm},
-        main_dttm_col=getattr(dataset, "main_dttm_col", None),
         filters=[_as_clause(f) for f in request_filters],
         time_range=_field(request, "time_range"),
         time_column=_field(request, "time_column"),
@@ -1215,6 +1236,8 @@ DEFINITION_CHANGING_TOOLS = (
     "update_dashboard",
     "create_virtual_dataset",
     "update_dataset",
+    "create_dataset_column",
+    "update_dataset_column",
     "create_dataset_metric",
     "update_dataset_metric",
     "restore_chart",
@@ -1252,6 +1275,7 @@ SCOPE_NEUTRAL_TOOLS = frozenset(
         "delete_chart",
         "delete_dashboard",
         "delete_dataset",
+        "delete_dataset_column",
         "delete_dataset_metric",
         "duplicate_dashboard",
         "find_users",
@@ -1293,6 +1317,7 @@ SCOPE_NEUTRAL_TOOLS = frozenset(
         "list_rls_filters",
         "list_roles",
         "list_saved_queries",
+        "list_semantic_views",
         "list_tags",
         "list_tasks",
         "list_themes",
@@ -1310,6 +1335,72 @@ SCOPE_NEUTRAL_TOOLS = frozenset(
 )
 
 
+def _gate_dashboard_filter_values(request: Any, scope: DashboardScope) -> Any:
+    """Authorize dropdown discovery on the active dashboard, even without filters.
+
+    Dropdowns reconstruct their own saved predicates and transitive selections.
+    Aggregate chart filters cannot be used to remove self/nonparent predicates.
+    The tool separately reports unavailable choices when snapshot state is absent.
+    """
+    from superset.commands.dashboard.exceptions import (
+        DashboardAccessDeniedError,
+        DashboardNotFoundError,
+    )
+    from superset.daos.dashboard import DashboardDAO
+    from superset.mcp_service.dashboard.permalink import lookup_dashboard_reference
+    from superset.mcp_service.dashboard.schemas import GetDashboardInfoRequest
+
+    parsed = (
+        request
+        if isinstance(request, GetDashboardInfoRequest)
+        else GetDashboardInfoRequest.model_validate(request)
+    )
+
+    def lookup(identifier: int | str) -> Any:
+        """Keep lookup failures opaque while supporting permalink identifiers."""
+        try:
+            return DashboardDAO.get_by_id_or_slug(identifier)
+        except (DashboardNotFoundError, DashboardAccessDeniedError):
+            return None
+
+    resolved = lookup_dashboard_reference(
+        identifier=parsed.identifier,
+        permalink_key=parsed.permalink_key,
+        lookup=lookup,
+        is_found=lambda value: value is not None,
+    )
+    if resolved.result is None or resolved.result.id != scope.dashboard_id:
+        raise MCPDashboardScopeError(
+            "filter_selection discovery requires the same accessible active dashboard.",
+            "Use the open dashboard's numeric identifier and its filter snapshot.",
+        )
+    return request
+
+
+def _is_dropdown_discovery(
+    tool_name: str,
+    signature: inspect.Signature,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    scope: DashboardScope,
+) -> bool:
+    """Classify and authorize explicit dropdown scope before analytical dispatch."""
+    if tool_name != "get_dashboard_info":
+        return False
+    try:
+        request = signature.bind_partial(*args, **kwargs).arguments.get("request")
+        if isinstance(request, str):
+            request = json.loads(request)
+    except (TypeError, ValueError) as ex:
+        raise MCPDashboardScopeError(
+            "dashboard discovery arguments are invalid."
+        ) from ex
+    if _field(request, "include_filter_values") is not True:
+        return False
+    _gate_dashboard_filter_values(request, scope)
+    return True
+
+
 def apply_call_dashboard_scope(
     tool_name: str,
     signature: inspect.Signature,
@@ -1323,7 +1414,14 @@ def apply_call_dashboard_scope(
     untouched, so the feature costs nothing when unused.
     """
     scope = get_request_dashboard_scope()
-    if scope is None or not scope.has_constraints:
+    if scope is None:
+        return args, kwargs
+
+    # Discovery runs before metadata's neutral branch and the empty-scope shortcut.
+    if _is_dropdown_discovery(tool_name, signature, args, kwargs, scope):
+        return args, kwargs
+
+    if not scope.has_constraints:
         return args, kwargs
 
     rewriter = SCOPE_REWRITERS.get(tool_name)

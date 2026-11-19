@@ -76,6 +76,7 @@ import { CrossFilterIndicator } from '../../selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
+import { isHiddenSemanticCustomization } from '../../utils';
 import FilterControl from './FilterControl';
 import FilterDivider from './FilterDivider';
 
@@ -204,7 +205,10 @@ const FilterControls: FC<FilterControlsProps> = ({
     useSelectFiltersInScope(filtersWithValues);
 
   const filteredChartCustomizationValues = useMemo(
-    () => chartCustomizationValues.filter(item => !item.removed),
+    () =>
+      chartCustomizationValues.filter(
+        item => !item.removed && !isHiddenSemanticCustomization(item),
+      ),
     [chartCustomizationValues],
   );
 
@@ -497,7 +501,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     const dividerItems = [];
     if (
       (crossFilters.length > 0 || nativeFiltersInScope.length > 0) &&
-      chartCustomizationValues.length > 0
+      customizationsInScope.length > 0
     ) {
       dividerItems.push({
         id: 'chart-customization-divider',
@@ -574,7 +578,6 @@ const FilterControls: FC<FilterControlsProps> = ({
     theme,
     handleChartCustomizationChange,
     dataMaskSelected,
-    chartCustomizationValues.length,
   ]);
 
   const renderHorizontalContent = useCallback(

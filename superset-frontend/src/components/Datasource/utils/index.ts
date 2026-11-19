@@ -39,6 +39,13 @@ interface ColumnMetadata {
   groupby?: boolean;
   filterable?: boolean;
   expression?: string;
+  partition_value_transform?: string | null;
+  partition_transform_is_monotonic?: boolean;
+}
+
+interface PartitionMappingFields {
+  partition_column?: string | null;
+  partition_mapped_column?: string | null;
 }
 
 interface ColumnChanges {
@@ -223,6 +230,42 @@ export function updateColumns(
  * @param signal - Optional AbortSignal to cancel the request
  * @returns Promise Array of column metadata objects
  */
+/**
+ * The parts of a partition filter mapping whose columns a sync just removed.
+ *
+ * Returns the fields to patch onto the datasource, or `null` when nothing needs
+ * to change. The backend clears a dangling mapping too, on the authoritative
+ * `override_columns` path -- this keeps the editor's own state honest between
+ * a sync and the next save, so the owner isn't looking at a mapping that points
+ * at a column the table no longer has.
+ */
+export function clearDanglingPartitionMapping(
+  datasource: PartitionMappingFields,
+  finalColumns: Pick<ColumnMetadata, 'column_name'>[],
+): PartitionMappingFields | null {
+  if (!datasource.partition_column) {
+    return null;
+  }
+
+  const surviving = new Set(finalColumns.map(col => col.column_name));
+
+  if (!surviving.has(datasource.partition_column)) {
+    return { partition_column: null, partition_mapped_column: null };
+  }
+
+  if (
+    datasource.partition_mapped_column &&
+    !surviving.has(datasource.partition_mapped_column)
+  ) {
+    return {
+      partition_column: datasource.partition_column,
+      partition_mapped_column: null,
+    };
+  }
+
+  return null;
+}
+
 export async function fetchSyncedColumns(
   datasource: DatasourceForSync,
   signal?: AbortSignal,

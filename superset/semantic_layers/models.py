@@ -63,12 +63,18 @@ from superset.explorables.base import TimeGrainDict
 from superset.extensions import db, encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
+from superset.semantic_layers.capabilities import supported_view_features
 from superset.semantic_layers.dimension_resolution import (
     DimensionUsage,
     resolve_dimensions,
 )
 from superset.semantic_layers.exceptions import (
+    discover_dimensions,
+    discover_metrics,
+    DiscoveryTarget,
     execute_semantic_query,
+    normalize_provider_request_errors,
+    provider_code,
     SemanticLayerQueryRejectedError,
 )
 from superset.semantic_layers.execution import (
@@ -106,18 +112,6 @@ def get_column_type(semantic_type: pa.DataType) -> GenericDataType:
     if pa.types.is_boolean(semantic_type):
         return GenericDataType.BOOLEAN
     return GenericDataType.STRING
-
-
-def _feature_value(feature: object) -> str:
-    """Normalize a declared semantic-view feature to its stable string value.
-
-    Features are typed ``frozenset[SemanticViewFeature]``, but a third-party
-    provider may hand back a raw string (or any object) instead of the enum
-    member. Fall back to the value itself rather than 500-ing Explore for that
-    datasource, so a new provider stays safe by default.
-    """
-    value = getattr(feature, "value", feature)
-    return value if isinstance(value, str) else str(value)
 
 
 @dataclass(frozen=True)
@@ -426,7 +420,8 @@ class SemanticView(AuditMixinNullable, Model):
         configuration: dict[str, Any] = json.loads(self.configuration)
         key: tuple[str, str] = (self.name, json.dumps(configuration, sort_keys=True))
         if key not in views:
-            views[key] = layer.get_semantic_view(self.name, configuration)
+            with provider_code():
+                views[key] = layer.get_semantic_view(self.name, configuration)
         return views[key]
 
     # =========================================================================
@@ -480,6 +475,7 @@ class SemanticView(AuditMixinNullable, Model):
         """
         return False
 
+    @normalize_provider_request_errors()
     def values_for_column(
         self,
         column_name: str,
@@ -610,7 +606,18 @@ class SemanticView(AuditMixinNullable, Model):
     def type(self) -> str:
         return "semantic_view"
 
+    def _provider_metrics(self) -> set[Metric]:
+        """Read the provider's metrics, classifying faults as backend errors."""
+        return discover_metrics(lambda: self.implementation, DiscoveryTarget.of(self))
+
+    def _provider_dimensions(self) -> set[Dimension]:
+        """Read the provider's dimensions, classifying faults as backend errors."""
+        return discover_dimensions(
+            lambda: self.implementation, DiscoveryTarget.of(self)
+        )
+
     @property
+    @normalize_provider_request_errors()
     def metrics(self) -> list[MetricMetadata]:
         return [
             MetricMetadata(
@@ -620,10 +627,11 @@ class SemanticView(AuditMixinNullable, Model):
                 description=metric.description,
                 d3format=metric.d3format,
             )
-            for metric in self.implementation.get_metrics()
+            for metric in self._provider_metrics()
         ]
 
     @property
+    @normalize_provider_request_errors()
     def _unique_dimensions(self) -> list[Dimension]:
         # A semantic view may expose multiple ``Dimension`` objects sharing the
         # same ``name`` but different grains (one variant per supported time
@@ -633,7 +641,8 @@ class SemanticView(AuditMixinNullable, Model):
         # kept uses the same default/ambiguity policy as query mapping.
         return list(
             resolve_dimensions(
-                self.implementation.get_dimensions(), usage=DimensionUsage.METADATA
+                self._provider_dimensions(),
+                usage=DimensionUsage.METADATA,
             ).values()
         )
 
@@ -697,7 +706,7 @@ class SemanticView(AuditMixinNullable, Model):
     @property
     def data(self) -> ExplorableData:
         dimensions = self._unique_dimensions
-        metrics = list(self.implementation.get_metrics())
+        metrics = list(self._provider_metrics())
         verbose_map = {
             **{metric.name: metric.verbose_name or metric.name for metric in metrics},
             **{
@@ -714,12 +723,12 @@ class SemanticView(AuditMixinNullable, Model):
             "id": self.id,
             "uid": self.uid,
             "type": "semantic_view",
-            # Sorted for a deterministic payload; values are the stable
-            # SemanticViewFeature strings, never provider identity.
-            # ``_feature_value`` tolerates a provider that hands back a raw
-            # string instead of the enum member (see its docstring).
+            # Sorted supported SDK feature values, never provider identity.
             "semantic_view_features": sorted(
-                _feature_value(feature) for feature in self.implementation.features
+                feature.value
+                for feature in supported_view_features(
+                    getattr(self.implementation, "features", None)
+                )
             ),
             "semantic_selection_version": (
                 self.implementation.selection_identity_version
@@ -921,7 +930,7 @@ class SemanticView(AuditMixinNullable, Model):
         # ISO duration so the explore-time-grain dropdown shows each grain
         # once even when multiple time columns expose the same set.
         seen: dict[str, TimeGrainDict] = {}
-        for dimension in self.implementation.get_dimensions():
+        for dimension in self._provider_dimensions():
             if not dimension.grain:
                 continue
             seen.setdefault(
@@ -935,9 +944,7 @@ class SemanticView(AuditMixinNullable, Model):
         return list(seen.values())
 
     def has_drill_by_columns(self, column_names: list[str]) -> bool:
-        dimension_names = {
-            dimension.name for dimension in self.implementation.get_dimensions()
-        }
+        dimension_names = {dimension.name for dimension in self._provider_dimensions()}
         return all(column_name in dimension_names for column_name in column_names)
 
     @property
@@ -981,10 +988,10 @@ class SemanticView(AuditMixinNullable, Model):
     ) -> tuple[set[Metric], set[Dimension]]:
         """Resolve both compatibility projections through one selection policy."""
         metric_map: dict[str, Metric] = {
-            metric.name: metric for metric in self.implementation.get_metrics()
+            metric.name: metric for metric in self._provider_metrics()
         }
         dim_map: dict[str, Dimension] = resolve_dimensions(
-            self.implementation.get_dimensions(), usage=DimensionUsage.COMPATIBILITY
+            self._provider_dimensions(), usage=DimensionUsage.COMPATIBILITY
         )
         return (
             {metric_map[name] for name in selected_metrics if name in metric_map},

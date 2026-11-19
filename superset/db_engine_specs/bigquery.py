@@ -225,6 +225,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     engine = "bigquery"
     engine_name = "Google BigQuery"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     max_column_name_length = 128
     disable_ssh_tunneling = True
 
