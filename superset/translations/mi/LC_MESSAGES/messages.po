@@ -8068,6 +8068,9 @@ msgstr "Ahunga"
 msgid "Dynamic group by"
 msgstr "KĀORE I RŌPŪNGIA MĀ"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Taumahi Whakaarotau Autōkē"
@@ -10411,6 +10414,14 @@ msgstr "Huna Rārangi"
 msgid "Hide chart description"
 msgstr "Huna whakamārama kauwhata"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Huna papa"
 
@@ -11104,9 +11115,10 @@ msgstr "Tūnga muhu."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Ngā ID ripa muhu: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Kore e tika ana te tau tātari wā mō te pou %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
