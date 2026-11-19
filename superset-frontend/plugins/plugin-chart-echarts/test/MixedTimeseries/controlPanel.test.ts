@@ -112,9 +112,7 @@ test('should have correct visibility for label_positionB', () => {
 });
 
 test('hides Query B data controls while Dataset B metadata is loading', () => {
-  const metricsBCtrl = getControl(
-    'metrics_b',
-  ) as unknown as VisibilityControl;
+  const metricsBCtrl = getControl('metrics_b') as unknown as VisibilityControl;
   const loadingCtrl = getControl(
     'secondary_dataset_loading',
   ) as unknown as VisibilityControl;
@@ -132,9 +130,7 @@ test('hides Query B data controls while Dataset B metadata is loading', () => {
 });
 
 test('keeps Query B data controls visible when Dataset B is disabled', () => {
-  const metricsBCtrl = getControl(
-    'metrics_b',
-  ) as unknown as VisibilityControl;
+  const metricsBCtrl = getControl('metrics_b') as unknown as VisibilityControl;
   const props = {
     controls: {
       use_secondary_dataset: { value: false },

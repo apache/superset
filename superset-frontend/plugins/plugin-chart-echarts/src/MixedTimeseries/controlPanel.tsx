@@ -185,9 +185,7 @@ function isSecondaryDatasetReady(
 function shouldShowQueryBDataControls(
   state: Pick<ControlPanelState, 'controls' | 'form_data'> | undefined,
 ): boolean {
-  return (
-    !isSecondaryDatasetEnabled(state) || isSecondaryDatasetReady(state)
-  );
+  return !isSecondaryDatasetEnabled(state) || isSecondaryDatasetReady(state);
 }
 
 /** Returns the physical Dataset A column selected for the shared X-axis. */
@@ -203,9 +201,9 @@ function isSharedXAxisTemporal(state: ControlPanelState): boolean {
   const xAxis = getSharedXAxisName(state);
   return Boolean(
     xAxis &&
-      state.datasource?.columns?.some(
-        column => column.column_name === xAxis && column.is_dttm,
-      ),
+    state.datasource?.columns?.some(
+      column => column.column_name === xAxis && column.is_dttm,
+    ),
   );
 }
 
@@ -506,8 +504,7 @@ function createSecondaryDatasetRows(): ControlSetRow[] {
             };
           },
           visibility: (props: ControlPanelsContainerProps) =>
-            isSecondaryDatasetEnabled(props) &&
-            isSecondaryDatasetReady(props),
+            isSecondaryDatasetEnabled(props) && isSecondaryDatasetReady(props),
           disableStash: true,
         },
       },
