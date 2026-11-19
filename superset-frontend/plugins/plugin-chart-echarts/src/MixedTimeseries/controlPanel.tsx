@@ -38,6 +38,9 @@ import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
+  valueAxisLabels,
   richTooltipSection,
   truncateXAxis,
   xAxisBounds,
@@ -203,6 +206,31 @@ function createCustomizeSection(
     ],
     [
       {
+        name: `label_position${controlSuffix}`,
+        config: {
+          type: 'SelectControl',
+          freeForm: false,
+          label: t('Label Position'),
+          choices: [
+            ['auto', t('Auto')],
+            ['top', t('Top')],
+            ['inside', t('Inside')],
+            ['bottom', t('Bottom')],
+            ['left', t('Left')],
+            ['right', t('Right')],
+          ],
+          default: 'auto',
+          renderTrigger: true,
+          description: t(
+            'Position of the data label relative to the data point',
+          ),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            Boolean(controls?.[`show_value${controlSuffix}`]?.value),
+        },
+      },
+    ],
+    [
+      {
         name: `only_total${controlSuffix}`,
         config: {
           type: 'CheckboxControl',
@@ -213,8 +241,8 @@ function createCustomizeSection(
             'Only show the total value on the stacked chart, and not show on the selected category',
           ),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
-            Boolean(controls?.show_value?.value) &&
-            Boolean(controls?.stack?.value),
+            Boolean(controls?.[`show_value${controlSuffix}`]?.value) &&
+            Boolean(controls?.[`stack${controlSuffix}`]?.value),
         },
       },
     ],
@@ -366,6 +394,9 @@ const config: ControlPanelConfig = {
         ...createCustomizeSection(t('Query B'), 'B'),
         ['zoomable'],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
+        [valueAxisLabels],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ['x_axis_time_format'],

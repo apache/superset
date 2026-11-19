@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from '../../../../spec/helpers/testing-library';
 import type { EChartsCoreOption } from 'echarts/core';
-import Echart, { isReportScreenshotMode } from './Echart';
+import { render, waitFor } from '../../../../spec/helpers/testing-library';
+import Echart, {
+  ECHARTS_HOST_CLASS,
+  ECHARTS_RENDER_FINISHED_CLASS,
+  isReportScreenshotMode,
+} from './Echart';
 import type { EchartsProps } from '../types';
 
 type Handler = (params: unknown) => void;
@@ -69,6 +73,7 @@ jest.mock('echarts/core', () => ({
 jest.mock('echarts/charts', () => ({
   BarChart: 'BarChart',
   BoxplotChart: 'BoxplotChart',
+  CandlestickChart: 'CandlestickChart',
   CustomChart: 'CustomChart',
   FunnelChart: 'FunnelChart',
   GaugeChart: 'GaugeChart',
@@ -237,7 +242,8 @@ test('replaces stale query event handlers without clearing regular event handler
 });
 
 test.each([
-  // Report/thumbnail screenshots render in standalone "true" (charts) or 3 (reports)
+  // Report/thumbnail captures use standalone=3; "true" is the legacy capture
+  // value and stays supported for links created before numeric modes existed
   ['true', true],
   ['3', true],
   // Live embeds use 1/2 and must keep animation
@@ -271,4 +277,32 @@ test('keeps animation enabled when not in report screenshot mode', async () => {
 
   const lastOptions = mockChart.setOption.mock.calls.at(-1)?.[0];
   expect(lastOptions.animation).not.toBe(false);
+});
+
+test('tags the ECharts canvas host with the readiness-gate class', async () => {
+  const { container } = render(renderEchart(), {
+    initialState,
+    useRedux: true,
+  });
+  await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
+  expect(container.querySelector(`.${ECHARTS_HOST_CLASS}`)).not.toBeNull();
+});
+
+test('marks the host painted only on the ECharts `finished` event', async () => {
+  const { container } = render(renderEchart(), {
+    initialState,
+    useRedux: true,
+  });
+  await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
+
+  const host = container.querySelector(`.${ECHARTS_HOST_CLASS}`) as HTMLElement;
+  expect(host).not.toBeNull();
+
+  // `setOption` ran during mount, which clears the marker; `finished` has not
+  // fired yet, so the host must NOT be flagged as painted.
+  expect(host).not.toHaveClass(ECHARTS_RENDER_FINISHED_CLASS);
+
+  // Simulate ECharts completing its draw -> the host is flagged painted.
+  trigger('finished');
+  expect(host).toHaveClass(ECHARTS_RENDER_FINISHED_CLASS);
 });

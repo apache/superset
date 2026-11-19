@@ -19,6 +19,7 @@
 import {
   buildQueryContext,
   ensureIsArray,
+  getMetricLabel,
   getXAxisColumn,
   isXAxisSet,
   normalizeOrderBy,
@@ -64,7 +65,14 @@ export default function buildQuery(formData: QueryFormData) {
 
      */
     // only add series limit metric if it's explicitly needed e.g. for sorting
-    const extra_metrics = extractExtraMetrics(formData);
+    // and skip any already queried (e.g. as the scatter dot-size metric), as
+    // duplicate metric labels make the query invalid.
+    const queriedMetricLabels = new Set(
+      (baseQueryObject.metrics || []).map(getMetricLabel),
+    );
+    const extra_metrics = extractExtraMetrics(formData).filter(
+      metric => !queriedMetricLabels.has(getMetricLabel(metric)),
+    );
 
     const pivotOperatorInRuntime: PostProcessingPivot = isTimeComparison(
       formData,
@@ -102,15 +110,18 @@ export default function buildQuery(formData: QueryFormData) {
           1. The resample, rolling, cum, timeCompare operators should be after pivot.
           2. Resample must come before rolling so that imputed values are
              included in the rolling window calculation.
-          3. the flatOperator makes multiIndex Dataframe into flat Dataframe
+          3. Contribution must come before rename because it relies on the
+             `__<time offset>` suffix to compute each time shift separately,
+             and rename strips that suffix.
+          4. the flatOperator makes multiIndex Dataframe into flat Dataframe
         */
         post_processing: [
           pivotOperatorInRuntime,
           resampleOperator(formData, baseQueryObject),
           rollingWindowOperator(formData, baseQueryObject),
           timeCompareOperator(formData, baseQueryObject),
-          renameOperator(formData, baseQueryObject),
           contributionOperator(formData, baseQueryObject, time_offsets),
+          renameOperator(formData, baseQueryObject),
           sortOperator(formData, baseQueryObject),
           flattenOperator(formData, baseQueryObject),
           // todo: move prophet before flatten

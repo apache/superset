@@ -25,6 +25,7 @@ interface SaveModalState {
   dashboards?: unknown[];
   saveModalAlert?: string;
   data?: unknown;
+  lastSavedChart?: { id: number };
 }
 
 interface SaveModalAction {
@@ -56,11 +57,21 @@ export default function saveModalReducer(
       return { ...state, saveModalAlert: 'Failed to save slice' };
     },
     [actions.SAVE_SLICE_SUCCESS]() {
-      return { ...state, data: action.data };
+      const { data } = action;
+      const lastSavedChart =
+        typeof data === 'object' &&
+        data !== null &&
+        'id' in data &&
+        typeof data.id === 'number'
+          ? { id: data.id }
+          : state.lastSavedChart;
+      return { ...state, data, lastSavedChart };
     },
     [HYDRATE_EXPLORE]() {
       const payload = action.data as { saveModal?: SaveModalState } | undefined;
-      return { ...payload?.saveModal };
+      // Hydration can be batched with save success before subscribers render.
+      // Keep the success marker while resetting the modal's transient state.
+      return { ...payload?.saveModal, lastSavedChart: state.lastSavedChart };
     },
   };
 

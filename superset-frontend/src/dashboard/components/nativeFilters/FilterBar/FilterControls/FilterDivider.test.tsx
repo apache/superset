@@ -86,7 +86,7 @@ test('horizontal mode, title and description', async () => {
   expect(description).not.toBeInTheDocument();
   const descriptionIcon = screen.getByTestId('divider-description-icon');
   expect(descriptionIcon).toBeVisible();
-  userEvent.hover(descriptionIcon);
+  await userEvent.hover(descriptionIcon);
   const tooltip = await screen.findByRole('tooltip');
 
   expect(tooltip).toBeInTheDocument();

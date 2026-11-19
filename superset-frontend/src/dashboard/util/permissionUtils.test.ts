@@ -104,6 +104,7 @@ const dashboard: Dashboard = {
   charts: [],
   editors: [editorSubject],
   viewers: [],
+  is_managed_externally: false,
 };
 
 jest.mock('src/utils/getBootstrapData', () => ({
@@ -258,6 +259,21 @@ describe('isUserEditorOrAdmin', () => {
 
   test('returns false when editors is omitted', () => {
     expect(isUserEditorOrAdmin(outsiderUser)).toEqual(false);
+  });
+
+  test('returns true when the user is granted editorship only through extra_editors', () => {
+    expect(isUserEditorOrAdmin(editorUser, [], [10])).toEqual(true);
+  });
+
+  test('unions editors and extra_editors rather than preferring one', () => {
+    const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
+    expect(isUserEditorOrAdmin(editorUser, [nonMatchingSubject], [10])).toEqual(
+      true,
+    );
+  });
+
+  test('returns false when extra_editors names other subjects', () => {
+    expect(isUserEditorOrAdmin(editorUser, [], [999])).toEqual(false);
   });
 });
 

@@ -525,6 +525,22 @@ const RightMenu = ({
         items.push({ type: 'divider', key: 'user-divider' });
 
         const userItems: MenuItem[] = [];
+        const hasArchiveEntry = settings?.some(section =>
+          section.childs?.some(
+            child =>
+              typeof child !== 'string' && child.name === 'Recently Archived',
+          ),
+        );
+        if (navbarRight.can_access_recently_archived && !hasArchiveEntry) {
+          userItems.push({
+            key: 'recently-archived',
+            label: (
+              <Typography.Link href={ensureAppRoot('/archived/')}>
+                {t('Recently Archived')}
+              </Typography.Link>
+            ),
+          });
+        }
         if (navbarRight.user_info_url) {
           userItems.push({
             key: 'info',
@@ -845,6 +861,16 @@ const RightMenu = ({
                 gap: ${theme.sizeUnit * 2}px;
                 flex-direction: row-reverse;
                 height: 100%;
+              }
+              [data-icon='down'] {
+                color: ${theme.colorIcon};
+                /* sizeXS (an antd token, always computed) rather than
+                   fontSizeXS (a Superset custom token seeded only via
+                   THEME_DEFAULT in config.py) so this stays small in
+                   contexts that construct a theme without that seed, e.g.
+                   Storybook and Jest. Both resolve to the same 8px in the
+                   app's default theme. */
+                font-size: ${theme.sizeXS}px;
               }
               &.ant-menu-submenu::after {
                 inset-inline: ${theme.sizeUnit}px;

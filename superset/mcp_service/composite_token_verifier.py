@@ -27,7 +27,6 @@ Routes Bearer tokens to the appropriate verifier based on prefix:
   rejected at the transport layer.
 """
 
-import asyncio
 import logging
 from typing import Any
 
@@ -44,10 +43,36 @@ logger = logging.getLogger(__name__)
 # be silently misidentified as a Superset API-key request.
 API_KEY_PASSTHROUGH_CLAIM = "_superset_mcp_api_key_passthrough"
 
-# Claim that carries the FAB-validated username after transport-layer
-# API key validation. When present, ``_resolve_user_from_api_key`` skips
-# the second DB call and loads the user directly by username.
+# Compatibility claim carrying the username after transport-layer validation.
+# Resolution trusts TransportValidatedAPIKeyToken, never this claim alone.
 API_KEY_VALIDATED_USERNAME_CLAIM = "_superset_mcp_validated_username"
+
+
+class TransportValidatedAPIKeyToken(AccessToken):
+    """Carry FAB validation evidence that an external JWT cannot manufacture.
+
+    MultiAuth's model_copy preserves this type. If a transport serializes it
+    into a plain AccessToken, resolution falls back to FAB validation instead
+    of trusting the serialized claims.
+    """
+
+    validated_username: str
+
+
+def get_verifier_client_id(access_token: Any) -> str | None:
+    """Return the ``client_id`` set by the verifier that admitted the token.
+
+    FastMCP 4's ``MultiAuth`` replaces ``AccessToken.client_id`` with a
+    source-qualified JSON string and keeps the verifier's own value in
+    ``original_client_id``. Comparisons against the identifiers this module and
+    ``GuestTokenVerifier`` assign (``"api_key"``, ``"guest"``) must use the
+    verifier's value, which is ``client_id`` itself on FastMCP 3 or when no
+    ``MultiAuth`` wraps the verifier.
+    """
+    original = getattr(access_token, "original_client_id", None)
+    if isinstance(original, str):
+        return original
+    return getattr(access_token, "client_id", None)
 
 
 class CompositeTokenVerifier(TokenVerifier):
@@ -113,15 +138,19 @@ class CompositeTokenVerifier(TokenVerifier):
             )
         self._api_key_prefixes = tuple(valid)
 
-    def _validate_api_key_sync(self, token: str) -> str | None:
-        """Validate an API key against FAB and return the user's username.
+    def _validate_api_key_sync(self, token: str) -> tuple[str, list[str]] | None:
+        """Validate an API key against FAB and return (username, scopes).
 
         Runs synchronously inside a thread executor. Pushes a fresh Flask
         app context so that FAB's SecurityManager can access the database.
 
-        Returns the username on success, or ``None`` if the key is invalid,
-        FAB does not support ``validate_api_key``, or an unexpected error
-        occurs (fail closed).
+        ``scopes`` is the key's own ``ApiKey.scopes`` column, parsed from
+        FAB's comma-separated string storage format into a list (empty list
+        if the key has no scopes set, matching the "no scopes advertised"
+        convention used elsewhere in this module and in ``auth.py``).
+
+        Returns ``None`` if the key is invalid, FAB does not support
+        ``validate_api_key``, or an unexpected error occurs (fail closed).
         """
         if self._app is None:
             return None
@@ -135,12 +164,24 @@ class CompositeTokenVerifier(TokenVerifier):
                     )
                     return None
                 user = sm.validate_api_key(token)
-                username = user.username if user else None
-                # Unbind the local reference so this frame no longer points at
-                # the raw token (defense-in-depth). Python does not zero the
-                # underlying string memory on rebind.
-                token = ""  # noqa: S105
-                return username
+                if user is None:
+                    return None
+                username = user.username
+                scopes_str = (
+                    sm.get_api_key_scopes(token)
+                    if hasattr(sm, "get_api_key_scopes")
+                    else None
+                )
+                scopes = (
+                    [s.strip() for s in scopes_str.split(",") if s.strip()]
+                    if scopes_str
+                    else []
+                )
+                token = ""  # noqa: S105 -- unbind raw token, defense-in-depth
+                logger.debug(
+                    "API key validated at transport layer for user_id=%s", user.id
+                )
+                return username, scopes
         except Exception:  # noqa: BLE001 — catch-all: DB errors, FAB internals, etc.
             logger.warning(
                 "API key transport validation failed unexpectedly; rejecting token",
@@ -167,22 +208,37 @@ class CompositeTokenVerifier(TokenVerifier):
         """
         if any(token.startswith(prefix) for prefix in self._api_key_prefixes):
             if self._app is not None:
-                loop = asyncio.get_running_loop()
-                username = await loop.run_in_executor(
-                    None, self._validate_api_key_sync, token
+                from superset.mcp_service.worker import (
+                    ApiKeyLookupBusyError,
+                    run_api_key_lookup,
                 )
-                if username is None:
+
+                # Lookups get their own bounded, pool-budgeted thread so that
+                # unauthenticated requests cannot delay audit writes or RBAC
+                # filtering on the shared transport thread.
+                try:
+                    result = await run_api_key_lookup(
+                        self._app, self._validate_api_key_sync, token
+                    )
+                except ApiKeyLookupBusyError:
+                    logger.warning(
+                        "Too many API key lookups in flight; rejecting token"
+                    )
+                    return None
+                if result is None:
                     logger.debug(
                         "API key rejected at transport layer (invalid or expired)"
                     )
                     return None
-                logger.debug(
-                    "API key validated at transport layer for user=%s", username
-                )
-                return AccessToken(
+                username, key_scopes = result
+                return TransportValidatedAPIKeyToken(
                     token=token,
                     client_id="api_key",
-                    scopes=list(self.required_scopes or []),
+                    validated_username=username,
+                    # Preserve the key's own scopes exactly. An empty list
+                    # means "no scopes advertised" and therefore retains the
+                    # RBAC-only behavior for existing unscoped API keys.
+                    scopes=key_scopes,
                     claims={
                         API_KEY_PASSTHROUGH_CLAIM: True,
                         API_KEY_VALIDATED_USERNAME_CLAIM: username,
@@ -190,10 +246,11 @@ class CompositeTokenVerifier(TokenVerifier):
                 )
 
             # No app configured: fall back to prefix-only pass-through so
-            # ``_resolve_user_from_api_key`` handles DB validation.
-            # NOTE: ``MCP_REQUIRED_SCOPES`` is intentionally not enforced for
-            # API-key auth — FAB API keys do not carry scopes. Authorization is
-            # enforced downstream via ``check_tool_permission`` (RBAC).
+            # ``_resolve_user_from_api_key`` handles DB validation. Without an
+            # app there is no DB access here, so the key's own ApiKey.scopes
+            # cannot be read — the verifier-global required_scopes are used
+            # instead. Authorization is still enforced downstream via
+            # ``check_tool_permission`` (RBAC).
             logger.debug("API key token detected (prefix match), passing through")
             return AccessToken(
                 token=token,
@@ -218,16 +275,22 @@ class CompositeTokenVerifier(TokenVerifier):
             return None
 
         jwt_access_token = await self._jwt_verifier.verify_token(token)
-        # Anti-forgery: only the GuestTokenVerifier may set the guest marker.
-        # Strip it from JWT-verified tokens so a crafted IdP JWT can't pose as
-        # a verified guest.
+        # Internal identity-routing claims are not evidence of validation
+        # when supplied by an IdP. Preserve the JWT's own user identity.
         if jwt_access_token is not None:
             jwt_claims = getattr(jwt_access_token, "claims", None)
-            if isinstance(jwt_claims, dict) and GUEST_TOKEN_CLAIM in jwt_claims:
+            internal_claims = {
+                GUEST_TOKEN_CLAIM,
+                API_KEY_PASSTHROUGH_CLAIM,
+                API_KEY_VALIDATED_USERNAME_CLAIM,
+            }
+            if isinstance(jwt_claims, dict) and internal_claims.intersection(
+                jwt_claims
+            ):
                 # Rebuild, not mutate: claims may be immutable/copied,
                 # so pop() can no-op.
                 stripped = {
-                    k: v for k, v in jwt_claims.items() if k != GUEST_TOKEN_CLAIM
+                    k: v for k, v in jwt_claims.items() if k not in internal_claims
                 }
                 jwt_access_token = jwt_access_token.model_copy(
                     update={"claims": stripped}

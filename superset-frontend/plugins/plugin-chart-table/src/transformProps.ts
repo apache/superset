@@ -20,6 +20,7 @@ import memoizeOne from 'memoize-one';
 import { t } from '@apache-superset/core/translation';
 import {
   ComparisonType,
+  buildQueryObject,
   CurrencyFormatter,
   Currency,
   DataRecord,
@@ -30,12 +31,13 @@ import {
   getTimeFormatter,
   getTimeFormatterForGranularity,
   isAdhocColumn,
-  normalizeCurrency,
+  resolveDetectedCurrency,
   NumberFormats,
   QueryMode,
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -43,11 +45,13 @@ import {
   ConditionalFormattingConfig,
   getColorFormatters,
   ColorSchemeEnum,
+  normalizeColumnConfigKeys,
+  getKnownColumnConfigKeys,
+  resolveHeaderGroups,
 } from '@superset-ui/chart-controls';
 
 import { isEmpty, merge } from 'lodash-es';
 import isEqualColumns from './utils/isEqualColumns';
-import DateWithFormatter from './utils/DateWithFormatter';
 import {
   BasicColorFormatterType,
   DataColumnMeta,
@@ -129,16 +133,17 @@ const processComparisonTotals = (
   totals.map((totalRecord: DataRecord) =>
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
-        transformedTotals[`Main ${key}`] =
-          parseFloat(transformedTotals[`Main ${key}`]?.toString() || '0') +
-          parseFloat(totalRecord[key]?.toString() || '0');
+        transformedTotals[`${t('Main')} ${key}`] =
+          parseFloat(
+            transformedTotals[`${t('Main')} ${key}`]?.toString() || '0',
+          ) + parseFloat(totalRecord[key]?.toString() || '0');
         transformedTotals[`# ${key}`] =
           parseFloat(transformedTotals[`# ${key}`]?.toString() || '0') +
           parseFloat(
             totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
           );
         const { valueDifference, percentDifferenceNum } = calculateDifferences(
-          transformedTotals[`Main ${key}`] as number,
+          transformedTotals[`${t('Main')} ${key}`] as number,
           transformedTotals[`# ${key}`] as number,
         );
         transformedTotals[`△ ${key}`] = valueDifference;
@@ -176,7 +181,7 @@ const processComparisonDataRecords = memoizeOne(
               comparisonValue as number,
             );
 
-          transformedItem[`Main ${origCol.key}`] = originalValue;
+          transformedItem[`${t('Main')} ${origCol.key}`] = originalValue;
           transformedItem[`# ${origCol.key}`] = comparisonValue;
           transformedItem[`△ ${origCol.key}`] = valueDifference;
           transformedItem[`% ${origCol.key}`] = percentDifferenceNum;
@@ -235,6 +240,11 @@ const processColumns = memoizeOne(function processColumns(
   const columnsByName = new Map(
     (props.datasource.columns ?? []).map(col => [col.column_name, col]),
   );
+  const normalizedColumnConfig = normalizeColumnConfigKeys(
+    columnConfig,
+    colnames || [],
+    getKnownColumnConfigKeys(colnames || [], props.datasource),
+  );
 
   const columns: DataColumnMeta[] = (colnames || [])
     .filter(
@@ -244,7 +254,7 @@ const processColumns = memoizeOne(function processColumns(
     )
     .map((key: string, i) => {
       const dataType = coltypes[i];
-      const config = columnConfig[key] || {};
+      const config = normalizedColumnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
       const isFilterable = columnsByName.get(key)?.filterable;
@@ -299,21 +309,12 @@ const processColumns = memoizeOne(function processColumns(
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && (numberFormat || currency))) {
-        // Resolve AUTO currency when currency column isn't in query results
-        let resolvedCurrency = currency;
-        if (
-          currency?.symbol === 'AUTO' &&
-          detectedCurrency &&
-          (!currencyCodeColumn || !colnames?.includes(currencyCodeColumn))
-        ) {
-          const normalizedCurrency = normalizeCurrency(detectedCurrency);
-          if (normalizedCurrency) {
-            resolvedCurrency = {
-              ...currency,
-              symbol: normalizedCurrency,
-            };
-          }
-        }
+        const resolvedCurrency = resolveDetectedCurrency(
+          currency,
+          detectedCurrency,
+          currencyCodeColumn,
+          colnames,
+        );
         formatter = resolvedCurrency?.symbol
           ? new CurrencyFormatter({
               d3Format: numberFormat,
@@ -347,9 +348,16 @@ const getComparisonColConfig = (
   parentColKey: string,
   columnConfig: Record<string, TableColumnConfig>,
 ) => {
-  const comparisonKey = `${label} ${parentColKey}`;
-  const comparisonColConfig = columnConfig[comparisonKey] || {};
-  return comparisonColConfig;
+  const keys = [`${label} ${parentColKey}`];
+  if (label === 'Main' || label === t('Main')) {
+    keys.push(`Main ${parentColKey}`, `${t('Main')} ${parentColKey}`);
+  }
+  for (const key of keys) {
+    if (columnConfig[key]) {
+      return columnConfig[key];
+    }
+  }
+  return {};
 };
 
 const getComparisonColFormatter = (
@@ -358,6 +366,7 @@ const getComparisonColFormatter = (
   columnConfig: Record<string, TableColumnConfig>,
   savedFormat: string | undefined,
   savedCurrency: Currency | undefined,
+  resolveCurrency: (currency: Currency | undefined) => Currency | undefined,
 ) => {
   const currentColConfig = getComparisonColConfig(
     label,
@@ -372,7 +381,9 @@ const getComparisonColFormatter = (
   if (label === '%') {
     formatter = getNumberFormatter(currentColNumberFormat || PERCENT_3_POINT);
   } else if (currentColNumberFormat || hasCurrency) {
-    const currency = currentColConfig.currencyFormat || savedCurrency;
+    const currency = resolveCurrency(
+      currentColConfig.currencyFormat || savedCurrency,
+    );
     const numberFormat = currentColNumberFormat || savedFormat;
     formatter = currency
       ? new CurrencyFormatter({
@@ -391,9 +402,19 @@ const processComparisonColumns = (
 ) =>
   columns.flatMap(col => {
     const {
-      datasource: { columnFormats, currencyFormats },
+      datasource: { columnFormats, currencyFormats, currencyCodeColumn },
       rawFormData: { column_config: columnConfig = {} },
+      queriesData,
     } = props;
+    const { detected_currency: detectedCurrency, colnames } =
+      queriesData[0] || {};
+    const resolveCurrency = (currency: Currency | undefined) =>
+      resolveDetectedCurrency(
+        currency,
+        detectedCurrency,
+        currencyCodeColumn,
+        colnames,
+      );
     const savedFormat = columnFormats?.[col.key];
     const savedCurrency = currencyFormats?.[col.key];
     const originalLabel = col.label;
@@ -407,14 +428,15 @@ const processComparisonColumns = (
           ...col,
           originalLabel,
           label: t('Main'),
-          key: `Main ${col.key}`,
-          config: getComparisonColConfig('Main', col.key, columnConfig),
+          key: `${t('Main')} ${col.key}`,
+          config: getComparisonColConfig(t('Main'), col.key, columnConfig),
           formatter: getComparisonColFormatter(
-            'Main',
+            t('Main'),
             col,
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
         {
@@ -429,6 +451,7 @@ const processComparisonColumns = (
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
         {
@@ -443,6 +466,7 @@ const processComparisonColumns = (
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
         {
@@ -457,6 +481,7 @@ const processComparisonColumns = (
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
       ];
@@ -531,6 +556,7 @@ const transformProps = (
     conditional_formatting: conditionalFormatting,
     allow_rearrange_columns: allowRearrangeColumns,
     allow_render_html: allowRenderHtml,
+    header_groups: headerGroups = [],
     time_compare,
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
@@ -698,6 +724,14 @@ const transformProps = (
     : '';
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
+  const comparisonMetricKeys = columns
+    .filter(col => (col.isMetric || col.isPercentMetric) && col.isNumeric)
+    .map(col => col.key);
+  const resolvedHeaderGroups = resolveHeaderGroups(headerGroups, {
+    timeCompareEnabled: isUsingTimeComparison,
+    metricKeys: comparisonMetricKeys,
+    verboseMap: chartProps.datasource?.verboseMap,
+  });
   let comparisonColumns: DataColumnMeta[] = [];
   if (isUsingTimeComparison) {
     comparisonColumns = processComparisonColumns(
@@ -760,6 +794,8 @@ const transformProps = (
       ),
       passedData,
       theme,
+      undefined,
+      serverPagination,
     ) ?? defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(
@@ -818,6 +854,12 @@ const transformProps = (
         : serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
     filters: filterState.filters,
+    // Use query criteria, not response rows or the emitter's selection state,
+    // to distinguish a new question from an auto-refresh of the same one.
+    paginationQuery: {
+      datasource: originalFormData.datasource,
+      query: buildQueryObject(originalFormData, { percent_metrics: 'metrics' }),
+    },
     emitCrossFilters,
     onChangeFilter,
     columnColorFormatters,
@@ -826,6 +868,7 @@ const transformProps = (
     allowRenderHtml,
     onContextMenu,
     isUsingTimeComparison,
+    headerGroups: resolvedHeaderGroups,
     basicColorFormatters,
     startDateOffset,
     basicColorColumnFormatters,

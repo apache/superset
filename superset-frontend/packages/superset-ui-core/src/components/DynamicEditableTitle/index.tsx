@@ -34,6 +34,9 @@ import { Input } from '../Input';
 import type { InputRef } from '../Input';
 import type { DynamicEditableTitleProps } from './types';
 
+const measureWidth = (element: HTMLElement) =>
+  Math.ceil(element.getBoundingClientRect().width);
+
 const titleStyles = (theme: SupersetTheme) => css`
   display: flex;
   font-size: ${theme.fontSizeXL}px;
@@ -117,14 +120,14 @@ export const DynamicEditableTitle = memo(
     // a trick to make the input grow when user types text
     // we make an additional span component, place it somewhere out of view and
     // mirror the input value, then measure the span synchronously (pre-paint)
-    // to resize the input element. Reading offsetWidth in a useLayoutEffect
-    // forces a sync layout, so the input width updates in the same commit as
-    // the value change — preventing a flicker frame where the input is shown
-    // with new value but stale width.
+    // to resize the input element. Measuring in a useLayoutEffect forces a
+    // sync layout, so the input width updates in the same commit as the value
+    // change — preventing a flicker frame where the input is shown with new
+    // value but stale width.
     useLayoutEffect(() => {
       if (sizerRef.current) {
         sizerRef.current.textContent = currentTitle || placeholder;
-        setInputWidth(sizerRef.current.offsetWidth);
+        setInputWidth(measureWidth(sizerRef.current));
       }
     }, [currentTitle, placeholder]);
 
@@ -135,7 +138,7 @@ export const DynamicEditableTitle = memo(
       let cancelled = false;
       document.fonts?.ready?.then(() => {
         if (!cancelled && sizerRef.current) {
-          setInputWidth(sizerRef.current.offsetWidth);
+          setInputWidth(measureWidth(sizerRef.current));
         }
       });
       return () => {
@@ -236,6 +239,7 @@ export const DynamicEditableTitle = memo(
             onClick={handleClick}
             onPressEnter={handleKeyPress}
             placeholder={placeholder}
+            style={inputWidth > 0 ? { width: inputWidth } : undefined}
             css={css`
               ${
                 !canEdit &&
@@ -246,13 +250,6 @@ export const DynamicEditableTitle = memo(
               }
               font-size: ${theme.fontSizeXL}px;
               transition: auto;
-              ${
-                inputWidth &&
-                inputWidth > 0 &&
-                css`
-                  width: ${inputWidth}px;
-                `
-              }
             `}
             disabled={!canEdit}
           />

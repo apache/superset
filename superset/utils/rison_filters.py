@@ -27,6 +27,7 @@ from typing import Any, Optional, Union
 
 import prison
 from flask import has_request_context, request
+from prison.decoder import ParserException
 
 logger = logging.getLogger(__name__)
 
@@ -106,12 +107,13 @@ class RisonFilterParser:
 
         try:
             filters_obj = prison.loads(filter_string)
-            return self._convert_to_adhoc_filters(filters_obj)
-        except Exception:
+        except ParserException:
             logger.warning(
                 "Failed to parse Rison filters: %s", filter_string, exc_info=True
             )
             return []
+
+        return self._convert_to_adhoc_filters(filters_obj)
 
     def _convert_to_adhoc_filters(
         self, filters_obj: Union[dict[str, Any], list[Any], Any]

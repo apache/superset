@@ -115,7 +115,7 @@ describe('QueryLimitSelect', () => {
       'ant-dropdown-trigger',
     )[0];
 
-    userEvent.click(dropdown);
+    await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
 
     const expectedLabels = [10, 100, 1000, 10000, 50000].map(i =>
@@ -137,7 +137,7 @@ describe('QueryLimitSelect', () => {
       'ant-dropdown-trigger',
     )[0];
 
-    userEvent.click(dropdown);
+    await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
 
     const expectedLabels = [5].map(i => convertToNumWithSpaces(i));
@@ -157,7 +157,7 @@ describe('QueryLimitSelect', () => {
       'ant-dropdown-trigger',
     )[0];
 
-    userEvent.click(dropdown);
+    await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
 
     const expectedLabels = [10, 100, 1000, 10000].map(i =>
@@ -178,7 +178,7 @@ describe('QueryLimitSelect', () => {
       'ant-dropdown-trigger',
     )[0];
 
-    userEvent.click(dropdown);
+    await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
 
     const menu = getAllByRole('menuitem')[expectedIndex];

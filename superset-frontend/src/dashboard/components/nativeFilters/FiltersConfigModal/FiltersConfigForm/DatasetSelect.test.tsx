@@ -63,20 +63,20 @@ afterEach(() => {
 
 const getSelect = () => screen.getByRole('combobox', { name: /dataset/i });
 
-const openSelect = () => {
-  userEvent.click(getSelect());
+const openSelect = async () => {
+  await userEvent.click(getSelect());
 };
 
 const typeIntoSelect = async (text: string) => {
   const select = getSelect();
-  userEvent.clear(select);
-  return userEvent.type(select, text, { delay: 10 });
+  await userEvent.clear(select);
+  return await userEvent.type(select, text, { delay: 10 });
 };
 
 const findOption = (text: string) =>
   waitFor(() => {
     // eslint-disable-next-line testing-library/no-node-access
-    const virtualList = document.querySelector('.rc-virtual-list');
+    const virtualList = document.querySelector('.ant-select-dropdown-list');
     if (!virtualList) {
       throw new Error('Virtual list not found');
     }
@@ -100,7 +100,7 @@ test('loads and displays datasets when opened', async () => {
   });
 
   render(<DatasetSelect onChange={mockOnChange} />);
-  openSelect();
+  await openSelect();
 
   expect(await findOption('birth_names')).toBeInTheDocument();
   expect(await findOption('energy_usage')).toBeInTheDocument();
@@ -113,7 +113,7 @@ test('searches for datasets by table_name locally in loaded options', async () =
   });
 
   render(<DatasetSelect onChange={mockOnChange} />);
-  openSelect();
+  await openSelect();
 
   // Wait for all options to load
   await findOption('flights');
@@ -134,7 +134,7 @@ test('uses optionFilterProps to enable table_name filtering', async () => {
   });
 
   render(<DatasetSelect onChange={mockOnChange} />);
-  openSelect();
+  await openSelect();
 
   // Load all options
   await findOption('energy_usage');
@@ -153,7 +153,7 @@ test('filters options case-insensitively on table_name', async () => {
   });
 
   render(<DatasetSelect onChange={mockOnChange} />);
-  openSelect();
+  await openSelect();
 
   // Load options
   await findOption('birth_names');
@@ -172,10 +172,13 @@ test('calls onChange when a dataset is selected', async () => {
   });
 
   render(<DatasetSelect onChange={mockOnChange} />);
-  openSelect();
+  await openSelect();
 
   const option = await findOption('birth_names');
-  userEvent.click(option);
+  // user-event's pointer-events CSS check crashes on the virtualized
+  // antd Select dropdown's generated class list; the option is genuinely
+  // clickable, so opt out of the check rather than work around a library bug.
+  await userEvent.click(option, { pointerEventsCheck: 0 });
 
   await waitFor(() => {
     expect(mockOnChange).toHaveBeenCalled();
@@ -193,10 +196,13 @@ test('includes table_name field in option data structure', async () => {
   });
 
   render(<DatasetSelect onChange={mockOnChange} />);
-  openSelect();
+  await openSelect();
 
   const option = await findOption('birth_names');
-  userEvent.click(option);
+  // user-event's pointer-events CSS check crashes on the virtualized
+  // antd Select dropdown's generated class list; the option is genuinely
+  // clickable, so opt out of the check rather than work around a library bug.
+  await userEvent.click(option, { pointerEventsCheck: 0 });
 
   await waitFor(() => {
     expect(mockOnChange).toHaveBeenCalled();
@@ -308,6 +314,30 @@ test('does not exclude semantic views that share dataset IDs', async () => {
       kind: 'semantic_view',
       table_name: 'orders_semantic_view',
     });
+  } finally {
+    window.featureFlags = originalFeatureFlags;
+  }
+});
+
+test('Dynamic group by excludes semantic views but retains same-id datasets', async () => {
+  supersetGetCache.clear();
+  const originalFeatureFlags = window.featureFlags;
+  window.featureFlags = { ...originalFeatureFlags, SEMANTIC_LAYERS: true };
+  try {
+    fetchMock.get('glob:*/api/v1/datasource/*', {
+      result: [
+        { id: 7, table_name: 'orders_semantic_view', kind: 'semantic_view' },
+      ],
+      count: 1,
+    });
+    fetchMock.get('glob:*/api/v1/dataset/*', {
+      result: [{ id: 7, table_name: 'orders_dataset', kind: 'physical' }],
+      count: 1,
+    });
+    const result = await loadDatasetOptions('', 0, 100, [], true);
+    expect(result.data.map(item => item.value)).toEqual(['ds:7']);
+    expect(result.totalCount).toBe(1);
+    expect(fetchMock.callHistory.called('glob:*/api/v1/dataset/*')).toBe(true);
   } finally {
     window.featureFlags = originalFeatureFlags;
   }

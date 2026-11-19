@@ -31,18 +31,77 @@
 # appending PY_VER here would override supersetbot's pin and silently make
 # "py311"/"py312" build the exact same image as "lean". Every other preset
 # gets the override so its build lands on the Dockerfile's own supported
-# Python version.
+# Python version. Those presets also point buildx at a matching cache tag so
+# local and CI builds can pull cache layers for the same base image they build.
 #
-# Usage: docker-build-extra-flags.sh <build_preset> <image_tag>
+# Usage: docker-build-extra-flags.sh <build_preset> [image_tag] [release]
 
 set -euo pipefail
 
-BUILD_PRESET="${1:?usage: docker-build-extra-flags.sh <build_preset> <image_tag>}"
-IMAGE_TAG="${2:?usage: docker-build-extra-flags.sh <build_preset> <image_tag>}"
+BUILD_PRESET="${1:?usage: docker-build-extra-flags.sh <build_preset> [image_tag]}"
+IMAGE_TAG="${2:-}"
+BUILD_MODE="${3:-ci}"
+# Optional platform of a single-platform master publish. Each platform gets
+# its own registry cache ref: `--cache-to mode=max` writes one cache manifest
+# per ref, so two native per-platform builds exporting to the same ref would
+# keep overwriting each other's layers. linux/amd64 keeps the unsuffixed ref
+# that pull_request validation builds, docker-compose's cache_from entries
+# and the release build all read; linux/arm64 gets a `-arm64` suffix.
+PLATFORM="${4:-}"
+DEFAULT_PY_VER="$(sed -n 's/^ARG PY_VER=//p' Dockerfile | head -n 1)"
+# PY_VER pins a digest (tag@sha256:...); registry cache refs take the tag only
+DEFAULT_PY_TAG="${DEFAULT_PY_VER%%@*}"
+if [ -z "$DEFAULT_PY_VER" ]; then
+  echo "Could not determine the default PY_VER from Dockerfile" >&2
+  exit 1
+fi
 
-EXTRA_FLAGS="--build-arg INCLUDE_CHROMIUM=false --tag $IMAGE_TAG"
-if [ "$BUILD_PRESET" != "py311" ] && [ "$BUILD_PRESET" != "py312" ]; then
-  EXTRA_FLAGS="--build-arg PY_VER=3.11.14-slim-trixie $EXTRA_FLAGS"
+EXTRA_FLAGS=""
+if [ "$BUILD_MODE" = "ci" ]; then
+  EXTRA_FLAGS="--build-arg INCLUDE_CHROMIUM=false"
+elif [ "$BUILD_MODE" != "release" ]; then
+  echo "Unknown Docker build mode: $BUILD_MODE" >&2
+  exit 1
+fi
+if [ -n "$IMAGE_TAG" ]; then
+  EXTRA_FLAGS="${EXTRA_FLAGS:+$EXTRA_FLAGS }--tag $IMAGE_TAG"
+fi
+case "$BUILD_PRESET" in
+  py311)
+    CACHE_REF="apache/superset-cache:3.11-slim-bookworm"
+    ;;
+  py312)
+    CACHE_REF="apache/superset-cache:3.12-slim-bookworm"
+    ;;
+  *)
+    CACHE_REF="apache/superset-cache:${DEFAULT_PY_TAG}"
+    # Keep the superset cache ref for Compose consumers; isolate other
+    # matrix targets so concurrent exports cannot overwrite its layers.
+    if [ "$BUILD_PRESET" != "superset" ]; then
+      CACHE_REF="${CACHE_REF}-${BUILD_PRESET}"
+    fi
+    EXTRA_FLAGS="--build-arg PY_VER=$DEFAULT_PY_VER${EXTRA_FLAGS:+ $EXTRA_FLAGS}"
+    ;;
+esac
+
+case "$PLATFORM" in
+  ""|linux/amd64) ;;
+  linux/arm64) CACHE_REF="${CACHE_REF}-arm64" ;;
+  *)
+    echo "Unsupported platform for the docker cache ref: $PLATFORM" >&2
+    exit 1
+    ;;
+esac
+
+EXTRA_FLAGS="--cache-from=type=registry,ref=$CACHE_REF $EXTRA_FLAGS"
+# The release build compiles linux/arm64 and linux/amd64 in one job without a
+# platform, but the unsuffixed ref is now written only by the native amd64
+# publish; read the arm64 ref too so the arm64 half is not a cold build.
+if [ "$BUILD_MODE" = "release" ] && [ -z "$PLATFORM" ]; then
+  EXTRA_FLAGS="--cache-from=type=registry,ref=${CACHE_REF}-arm64 $EXTRA_FLAGS"
+fi
+if [ "${PUBLISH_DOCKER_CACHE:-}" = "true" ] && [ -n "${DOCKERHUB_TOKEN:-}" ]; then
+  EXTRA_FLAGS="--cache-to=type=registry,mode=max,ref=$CACHE_REF $EXTRA_FLAGS"
 fi
 
 echo "$EXTRA_FLAGS"

@@ -36,6 +36,27 @@ import {
 
 type SqlLabState = SqlLabRootState['sqlLab'];
 
+/**
+ * A database's `extra` column is free-form and frequently empty: it is nullable
+ * in the metadata database and the API returns it verbatim. `JSON.parse` cannot
+ * represent that, and `JSON.parse(extra || '')` is guaranteed to throw, since
+ * the empty string is never valid JSON — so a single database row with no
+ * `extra` took down the whole SET_DATABASES reducer and with it SQL Lab.
+ * Malformed JSON is treated the same way: one bad row must not cost the user
+ * every other database.
+ */
+function parseDatabaseExtra(extra: unknown): Record<string, unknown> {
+  if (typeof extra !== 'string' || extra.trim() === '') {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(extra);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function alterUnsavedQueryEditorState(
   state: SqlLabState,
   updatedState: Partial<QueryEditor>,
@@ -727,7 +748,7 @@ export default function sqlLabReducer(
       (action.databases as any[])!.forEach((db: any) => {
         databases[db.id] = {
           ...db,
-          extra_json: JSON.parse(db.extra || ''),
+          extra_json: parseDatabaseExtra(db.extra),
         };
       });
       return {

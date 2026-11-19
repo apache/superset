@@ -23,6 +23,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 import pytest
+from flask.ctx import AppContext
 from pandas import DateOffset
 
 from superset import db
@@ -31,10 +32,12 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
+from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.superset_typing import AdhocColumn
+from superset.utils import json
 from superset.utils.core import (
     AdhocMetricExpressionType,
     backend,
@@ -275,6 +278,39 @@ class TestQueryContext(SupersetTestCase):
         assert rehydrated_qc.result_type == query_context.result_type
         assert rehydrated_qc.result_format == query_context.result_format
         assert not rehydrated_qc.force
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_serialize_query_round_trip_preserves_cache_key(self):
+        from superset.common.query_serialization import (
+            load_serialized_query,
+            serialize_query,
+        )
+
+        payload = get_query_context(
+            query_name="birth_names",
+            add_postprocessing_operations=True,
+        )
+        payload["force"] = True
+        payload["custom_cache_timeout"] = 321
+
+        query_context = ChartDataQueryContextSchema().load(payload)
+        original_key = query_context.query_cache_key(query_context.queries[0])
+
+        serialized = serialize_query(query_context, 0)
+        # JSON-safe payload — no custom encoder needed.
+        assert json.loads(json.dumps(serialized)) == serialized
+
+        rebuilt = load_serialized_query(serialized)
+
+        # Reconstruction yields a single-query context whose per-query key matches
+        # the original, so it reads/writes the same DATA-cache entry.
+        assert len(rebuilt.queries) == 1
+        assert rebuilt.query_cache_key(rebuilt.queries[0]) == original_key
+        # Context-level params that would otherwise be lost per query survive.
+        assert rebuilt.force is True
+        assert rebuilt.custom_cache_timeout == 321
+        assert rebuilt.result_type == query_context.result_type
+        assert rebuilt.result_format == query_context.result_format
 
     def test_query_cache_key_changes_when_datasource_is_updated(self):
         payload = get_query_context("birth_names")
@@ -1221,6 +1257,43 @@ def test_date_adhoc_column(app_context, physical_dataset):
 
 
 @only_postgresql
+def test_date_trunc_metric_matches_quarter_grouping(
+    app_context: AppContext,
+    physical_dataset: SqlaTable,
+) -> None:
+    metric: dict[str, Any] = {
+        "expressionType": "SQL",
+        "sqlExpression": (
+            "CASE WHEN DATE_TRUNC('QUARTER', col6) = TIMESTAMP '2002-01-01' "
+            "THEN SUM(col1) ELSE 0 END"
+        ),
+        "label": "quarter_metric",
+        "hasCustomLabel": True,
+    }
+    qc: QueryContext = QueryContextFactory().create(
+        datasource={"type": physical_dataset.type, "id": physical_dataset.id},
+        queries=[
+            {
+                "columns": [],
+                "extras": {"time_grain_sqla": "P3M"},
+                "granularity": "col6",
+                "is_timeseries": True,
+                "metrics": [metric],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    payload: dict[str, Any] = qc.get_df_payload(qc.queries[0])
+    df: pd.DataFrame = payload["df"].sort_values("__timestamp").reset_index(drop=True)
+
+    assert "DATE_TRUNC('QUARTER'" not in payload["query"]
+    assert payload["query"].count("DATE_TRUNC('quarter'") >= 2
+    assert df["quarter_metric"].tolist() == [3, 0, 0, 0]
+
+
+@only_postgresql
 def test_non_date_adhoc_column(app_context, physical_dataset):
     # sql expression returns non-date type
     column_on_axis: AdhocColumn = {
@@ -1311,6 +1384,58 @@ def test_time_grain_and_time_offset_with_base_axis(app_context, physical_dataset
             }
         )
     )
+
+
+@only_sqlite
+@pytest.mark.parametrize("sql_expression", ["col6", " col6 "])
+def test_time_offset_without_grain_aligns_direct_custom_sql_temporal_axis(
+    app_context, physical_dataset, sql_expression
+):
+    """A direct Custom SQL reference uses its physical column's temporal type."""
+    column_on_axis: AdhocColumn = {
+        "label": "custom_col6",
+        "sqlExpression": sql_expression,
+        "columnType": "BASE_AXIS",
+        "isColumnReference": True,
+    }
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [column_on_axis],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["32 days ago"],
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-02-04 : 2002-04-13",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    df = qc.get_df_payload(qc.queries[0])["df"]
+
+    assert df["custom_col6"].tolist() == [
+        "2002-02-04 00:00:00",
+        "2002-03-07 00:00:00",
+        "2002-04-12 00:00:00",
+    ]
+    assert df["SUM(col1)"].tolist() == [1, 2, 3]
+    assert df["SUM(col1)__32 days ago"].tolist()[0] == 0
 
 
 @only_sqlite

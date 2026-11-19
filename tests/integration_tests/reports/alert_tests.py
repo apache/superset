@@ -25,7 +25,7 @@ from flask.ctx import AppContext
 from pytest_mock import MockerFixture
 
 from superset import db
-from superset.commands.report.exceptions import AlertQueryError
+from superset.commands.report.exceptions import ReportScheduleExecutorNotFoundError
 from superset.reports.models import ReportCreationMethod, ReportScheduleType
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
@@ -51,7 +51,11 @@ def _get_user_subjects(users):
     "editor_names,creator_name,config,expected_result",
     [
         (["gamma"], None, [FixedExecutor("admin")], "admin"),
-        (["gamma"], None, [ExecutorType.EDITOR], "gamma"),
+        # EDITOR only resolves to whoever authored the model's current state
+        # (changed_by, then created_by); a bare attached editor with no
+        # authorship on the model is not enough, so gamma must be the creator
+        # here for EDITOR to resolve to them.
+        (["gamma"], "gamma", [ExecutorType.EDITOR], "gamma"),
         (
             ["alpha", "gamma"],
             "gamma",
@@ -68,9 +72,14 @@ def _get_user_subjects(users):
             ["alpha", "gamma"],
             "admin",
             [ExecutorType.CREATOR_EDITOR],
-            AlertQueryError(),
+            ReportScheduleExecutorNotFoundError(),
         ),
-        (["gamma"], None, [ExecutorType.CURRENT_USER], AlertQueryError()),
+        (
+            ["gamma"],
+            None,
+            [ExecutorType.CURRENT_USER],
+            ReportScheduleExecutorNotFoundError(),
+        ),
     ],
 )
 def test_execute_query_as_report_executor(
@@ -85,8 +94,7 @@ def test_execute_query_as_report_executor(
     from superset.commands.report.alert import AlertCommand
     from superset.reports.models import ReportSchedule
 
-    original_config = app.config["ALERT_REPORTS_EXECUTORS"]
-    app.config["ALERT_REPORTS_EXECUTORS"] = config
+    mocker.patch.dict(app.config, {"ALERT_REPORTS_EXECUTORS": config})
     users = [get_user(name) for name in editor_names]
     editors = _get_user_subjects(users)
     report_schedule = ReportSchedule(
@@ -116,8 +124,6 @@ def test_execute_query_as_report_executor(
         command.run()
         assert override_user_mock.call_args[0][0].username == expected_result
 
-    app.config["ALERT_REPORTS_EXECUTORS"] = original_config
-
 
 def test_execute_query_mutate_query_enabled(
     mocker: MockerFixture,
@@ -127,9 +133,13 @@ def test_execute_query_mutate_query_enabled(
     from superset.commands.report.alert import AlertCommand
     from superset.reports.models import ReportSchedule
 
-    default_alert_mutate_ff = app.config["MUTATE_ALERT_QUERY"]
-
-    app.config["MUTATE_ALERT_QUERY"] = True
+    mocker.patch.dict(
+        app.config,
+        {
+            "MUTATE_ALERT_QUERY": True,
+            "ALERT_REPORTS_EXECUTORS": [FixedExecutor("admin")],
+        },
+    )
     mocker.patch("superset.commands.report.alert.override_user")
     mocker.patch("superset.commands.report.alert.security_manager.raise_for_access")
     mock_df = mocker.MagicMock(spec=pd.DataFrame)
@@ -160,8 +170,6 @@ def test_execute_query_mutate_query_enabled(
     mock_mutate_call.assert_called_once_with(mock_limited_sql.return_value)
     mock_get_df.assert_called_once_with(sql=mock_mutate_call.return_value)
 
-    app.config["MUTATE_ALERT_QUERY"] = default_alert_mutate_ff
-
 
 def test_execute_query_mutate_query_disabled(
     mocker: MockerFixture,
@@ -171,9 +179,13 @@ def test_execute_query_mutate_query_disabled(
     from superset.commands.report.alert import AlertCommand
     from superset.reports.models import ReportSchedule
 
-    default_alert_mutate_ff = app.config["MUTATE_ALERT_QUERY"]
-
-    app.config["MUTATE_ALERT_QUERY"] = False
+    mocker.patch.dict(
+        app.config,
+        {
+            "MUTATE_ALERT_QUERY": False,
+            "ALERT_REPORTS_EXECUTORS": [FixedExecutor("admin")],
+        },
+    )
     mocker.patch("superset.commands.report.alert.override_user")
     mocker.patch("superset.commands.report.alert.security_manager.raise_for_access")
     mock_database = mocker.MagicMock()
@@ -200,8 +212,6 @@ def test_execute_query_mutate_query_disabled(
     mock_database.get_df.assert_called_once_with(
         sql=mock_database.apply_limit_to_sql.return_value
     )
-
-    app.config["MUTATE_ALERT_QUERY"] = default_alert_mutate_ff
 
 
 def test_execute_query_succeeded_no_retry(

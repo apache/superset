@@ -93,7 +93,7 @@ Look through the GitHub issues. Issues tagged with
 
 Superset could always use better documentation,
 whether as part of the official Superset docs,
-in docstrings, `docs/*.rst` or even on the web as blog posts or
+in docstrings, Markdown files in `docs/`, or even on the web as blog posts or
 articles. See [Documentation](./howtos.md#contributing-to-documentation) for more details.
 
 ### Add Translations

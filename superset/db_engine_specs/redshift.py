@@ -20,14 +20,19 @@ import logging
 import re
 import warnings
 from re import Pattern
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
+import sqlalchemy as sa
 from flask_babel import gettext as __
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.types import NVARCHAR
 
 from superset.db_engine_specs.base import BasicParametersMixin, DatabaseCategory
-from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from superset.db_engine_specs.postgres import (
+    POSTGRES_TEMPORAL_LITERAL_FORMATS,
+    PostgresBaseEngineSpec,
+)
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -97,6 +102,18 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine_name = "Amazon Redshift"
     max_column_name_length = 127
     default_driver = "psycopg2"
+
+    # Unlike PostgreSQL, Redshift ignores trailing blanks when it compares
+    # character values -- for ``VARCHAR`` as well as ``CHAR`` -- so ``'US '``
+    # and ``'US'`` are equal here and the inherited ``True`` would be wrong.
+    # Partition filter mapping reads this to decide whether ``col = v`` implies
+    # ``T(col) = T(v)``; under this comparison it does not, because ``lower()``
+    # of the two differs by a space the engine was ignoring.
+    binary_string_comparison = False
+
+    # Redshift shares PostgreSQL's date/time input, so a text day key mirrors
+    # here too. Named rather than inherited: see the constant's own note.
+    temporal_literal_formats = POSTGRES_TEMPORAL_LITERAL_FORMATS
 
     sqlalchemy_uri_placeholder = (
         "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"
@@ -275,6 +292,24 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     encrypted_extra_sensitive_fields = {
         "$.aws_iam.external_id": "AWS IAM External ID",
         "$.aws_iam.role_arn": "AWS IAM Role ARN",
+    }
+
+    # Redshift inherits `PostgresBaseEngineSpec._extended_aggregations` for
+    # STDDEV_SAMP/VAR_SAMP (plain, non-sort-based aggregate calls), but
+    # overrides MEDIAN here instead of inheriting Postgres's spelling.
+    # Postgres has no native MEDIAN function and compiles it to
+    # `percentile_cont(0.5) WITHIN GROUP (ORDER BY col)`; Redshift, unlike
+    # Postgres, documents a native `MEDIAN(x)` aggregate function. Using
+    # that native spelling -- rather than the inherited WITHIN-GROUP form --
+    # also sidesteps a documented Redshift restriction rejecting more than
+    # one sort-based aggregate (MEDIAN, PERCENTILE_CONT, LISTAGG WITHIN
+    # GROUP, ...) with a different ORDER BY in the same query, e.g.
+    # `MEDIAN(sales)` alongside `MEDIAN(margin)`: a plain function call has
+    # no explicit ORDER BY clause to conflict.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": sa.func.median,
+        "STDDEV_SAMP": PostgresBaseEngineSpec._extended_aggregations["STDDEV_SAMP"],
+        "VAR_SAMP": PostgresBaseEngineSpec._extended_aggregations["VAR_SAMP"],
     }
 
     @staticmethod

@@ -66,6 +66,9 @@ export enum SupersetApiErrorType {
   TableSecurityAccessError = 'TABLE_SECURITY_ACCESS_ERROR',
   DatasourceSecurityAccessError = 'DATASOURCE_SECURITY_ACCESS_ERROR',
   MissingOwnershipError = 'MISSING_OWNERSHIP_ERROR',
+
+  // API errors,
+  CsrfError = 'CSRF_ERROR',
 }
 
 /**

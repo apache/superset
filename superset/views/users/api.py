@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from datetime import datetime
 from typing import Any, Dict
 
@@ -21,17 +22,22 @@ from flask import current_app as app, g, redirect, request, Response
 from flask_appbuilder.api import expose, permission_name, safe
 from flask_appbuilder.security.decorators import protect
 from flask_appbuilder.security.sqla.models import User
+from flask_jwt_extended.exceptions import NoAuthorizationError, UserLookupError
 from marshmallow import ValidationError
 from sqlalchemy.orm.exc import NoResultFound
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from superset import is_feature_enabled
 from superset.daos.user import UserDAO
 from superset.extensions import db, event_logger
+from superset.security.password_change import clear_password_must_change
+from superset.security.session_invalidation import invalidate_sessions_for_user
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 from superset.views.users.schemas import CurrentUserPutSchema, UserResponseSchema
 from superset.views.utils import bootstrap_user_data
+
+logger = logging.getLogger(__name__)
 
 user_response_schema = UserResponseSchema()
 
@@ -48,13 +54,49 @@ class CurrentUserRestApi(BaseSupersetApi):
 
     def pre_update(self, item: User, data: Dict[str, Any]) -> None:
         item.changed_on = datetime.now()
-        item.changed_by_fk = g.user.id
+        # Pop unconditionally: this key is only meaningful for verifying a
+        # password change below, and it isn't a real column on the user
+        # model -- it must never reach ``UserDAO.update``'s ``setattr`` loop.
+        current_password = data.pop("current_password", None)
         if "password" in data and data["password"]:
+            # An account with no password set yet (e.g. provisioned via an
+            # external auth backend) has nothing to prove knowledge of; for
+            # every other account, the caller must confirm the existing
+            # password before it can be replaced.
+            proof_ok = (
+                item.password
+                and current_password
+                and check_password_hash(item.password, current_password)
+            )
+            if item.password and not proof_ok:
+                raise ValidationError(
+                    {"current_password": ["Incorrect current password."]}
+                )
+            # Compute and assign the hash, then drop the plaintext from
+            # ``data`` -- it is passed to ``UserDAO.update`` as ``attributes``
+            # right after this, and ``BaseDAO.update`` sets every key in it
+            # via ``setattr``. Leaving the plaintext in would overwrite the
+            # hash just assigned below with the raw value.
+            new_password = data.pop("password")
             item.password = generate_password_hash(
-                password=data["password"],
+                password=new_password,
                 method=app.config.get("FAB_PASSWORD_HASH_METHOD", "scrypt"),
                 salt_length=app.config.get("FAB_PASSWORD_HASH_SALT_LENGTH", 16),
             )
+            # A changed password invalidates any other outstanding session
+            # for this account, and satisfies a pending forced password
+            # change: this is the self-service path (the caller is the
+            # account owner), so the "must change at next login" requirement
+            # an administrator set on a temporary password is fulfilled here.
+            invalidate_sessions_for_user(item.id)
+            clear_password_must_change(item.id)
+        elif "password" in data:
+            # A falsy value (e.g. an empty string, which the complexity
+            # validator lets through when password complexity is disabled)
+            # skips the block above, but the key must still never reach
+            # ``UserDAO.update``'s ``setattr`` loop -- it would blank out
+            # the account's stored hash.
+            data.pop("password")
 
     @expose("/", methods=("GET",))
     @protect()
@@ -81,7 +123,11 @@ class CurrentUserRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
-        return self.response(200, result=user_response_schema.dump(g.user))
+        try:
+            return self.response(200, result=user_response_schema.dump(g.user))
+        except (NoAuthorizationError, UserLookupError):
+            logger.warning("Api failed- no authorization", exc_info=True)
+            return self.response_401()
 
     @expose("/roles/", methods=("GET",))
     @protect()
@@ -108,8 +154,12 @@ class CurrentUserRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
-        user = bootstrap_user_data(g.user, include_perms=True)
-        return self.response(200, result=user)
+        try:
+            user = bootstrap_user_data(g.user, include_perms=True)
+            return self.response(200, result=user)
+        except (NoAuthorizationError, UserLookupError):
+            logger.warning("Api failed- no authorization", exc_info=True)
+            return self.response_401()
 
     @expose("/", methods=["PUT"])
     @protect()
@@ -160,6 +210,9 @@ class CurrentUserRestApi(BaseSupersetApi):
             return self.response(200, result=user_response_schema.dump(g.user))
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        except (NoAuthorizationError, UserLookupError):
+            logger.warning("Api failed- no authorization", exc_info=True)
+            return self.response_401()
 
 
 class UserRestApi(BaseSupersetApi):

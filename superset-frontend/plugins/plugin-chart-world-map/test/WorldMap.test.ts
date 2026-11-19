@@ -19,6 +19,7 @@
 
 import d3 from 'd3';
 import { getNumberFormatter, ValueFormatter } from '@superset-ui/core';
+import transformData from '../src/transformData';
 import WorldMap from '../src/WorldMap';
 import { ColorBy } from '../src/utils';
 
@@ -178,6 +179,33 @@ test('disables Datamaps highlightOnHover while the context menu is open', () => 
     unknown
   >;
   expect(geographyConfig?.highlightOnHover).toBe(false);
+});
+
+test('escapes markup in hover popup templates', () => {
+  // Regression test for stored XSS via the number-formatter fallback: an
+  // invalid Y Axis Format string is echoed verbatim by the formatter
+  // (createD3NumberFormatter's catch branch), so the popup templates must
+  // HTML-escape formatter output before datamaps assigns it via innerHTML.
+  const maliciousFormatter = getNumberFormatter('<img src=x onerror=alert(1)>');
+  WorldMap(container, { ...baseProps, formatter: maliciousFormatter });
+
+  const geographyConfig = lastDatamapConfig?.geographyConfig as {
+    popupTemplate: (geo: unknown, d: unknown) => string;
+  };
+  const bubblesConfig = lastDatamapConfig?.bubblesConfig as {
+    popupTemplate: (geo: unknown, d: unknown) => string;
+  };
+  const entry = { name: '<b>United States</b>', m1: 100, m2: 200 };
+
+  const geoPopup = geographyConfig.popupTemplate({}, entry);
+  const bubblePopup = bubblesConfig.popupTemplate({}, entry);
+
+  [geoPopup, bubblePopup].forEach(popup => {
+    expect(popup).not.toContain('<img');
+    expect(popup).not.toContain('<b>');
+    expect(popup).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(popup).toContain('&lt;b&gt;United States&lt;/b&gt;');
+  });
 });
 
 test('does not throw error when onContextMenu is undefined', () => {
@@ -392,4 +420,95 @@ test('popupTemplate handles null/undefined country data gracefully', () => {
   const tooltipHtml = popupTemplate(mockGeo, undefined);
 
   expect(tooltipHtml).toBeFalsy();
+});
+
+test.each([
+  ['name', 'México', 'MEX'],
+  ['name', 'MÉXICO', 'MEX'],
+  ['cca2', 'fr', 'FRA'],
+])(
+  'cross-filters and drills preserve source %s value %s',
+  (countryFieldtype, sourceValue, country) => {
+    const handlers = new Map<string, (source: { id: string }) => void>();
+    mockSvg.on.mockImplementation(
+      (event: string, handler: (source: { id: string }) => void) => {
+        handlers.set(event, handler);
+        return mockSvg;
+      },
+    );
+    const originalEvent = d3.event;
+    Object.assign(d3, {
+      event: { preventDefault: jest.fn(), clientX: 100, clientY: 200 },
+    });
+    try {
+      const data = transformData([{ country: sourceValue, sales: 10 }], {
+        entity: 'country',
+        metric: 'sales',
+        countryFieldtype,
+        strict: true,
+      }).map(row => ({
+        ...row,
+        code: row.code!,
+        latitude: row.latitude!,
+        longitude: row.longitude!,
+        name: row.name!,
+        m1: row.m1 as number,
+        m2: 0,
+      }));
+      const setDataMask = jest.fn();
+      const onContextMenu = jest.fn();
+      WorldMap(container, {
+        ...baseProps,
+        data,
+        countryFieldtype,
+        setDataMask,
+        onContextMenu,
+        emitCrossFilters: true,
+      });
+      expect(handlers.get('click')).toBeDefined();
+      handlers.get('click')!({ id: country });
+      expect(setDataMask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          extraFormData: {
+            filters: [{ col: 'country', op: 'IN', val: [sourceValue] }],
+          },
+        }),
+      );
+      handlers.get('contextmenu')!({ id: country });
+      expect(onContextMenu).toHaveBeenCalledWith(
+        100,
+        200,
+        expect.objectContaining({
+          drillToDetail: [
+            {
+              col: 'country',
+              op: '==',
+              val: sourceValue,
+              formattedVal: sourceValue,
+            },
+          ],
+          drillBy: {
+            filters: [{ col: 'country', op: '==', val: sourceValue }],
+            groupbyFieldName: 'entity',
+          },
+        }),
+      );
+    } finally {
+      Object.assign(d3, { event: originalEvent });
+    }
+  },
+);
+
+test('draws bubbles for the processed data when showBubbles is true', () => {
+  WorldMap(container, { ...baseProps, showBubbles: true });
+
+  expect(mockBubbles).toHaveBeenCalledTimes(1);
+  const bubbleData = mockBubbles.mock.calls[0][0] as { name: string }[];
+  expect(bubbleData.map(d => d.name)).toEqual(['United States', 'Canada']);
+});
+
+test('does not draw bubbles when showBubbles is false', () => {
+  WorldMap(container, { ...baseProps, showBubbles: false });
+
+  expect(mockBubbles).not.toHaveBeenCalled();
 });

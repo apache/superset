@@ -122,7 +122,7 @@ def test_raw_dbapi_cursor_error_is_outside_listener_scope(
 def test_unrelated_and_metadata_engine_errors_are_not_marked() -> None:
     assert not is_database_engine_error(ValueError("unrelated"))
 
-    metadata_engine = create_engine("sqlite://", future=True)
+    metadata_engine = create_engine("sqlite://")
     with (
         metadata_engine.connect() as connection,
         pytest.raises(OperationalError) as exc_info,
