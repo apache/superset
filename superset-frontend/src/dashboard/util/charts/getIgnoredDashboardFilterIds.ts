@@ -82,7 +82,7 @@ export function getIgnoredDashboardFilterIds(
         : 'filters';
     // Member overrides and customizations retain their identity validation.
     if (
-      !extra?.[predicateKey]?.length ||
+      !extra ||
       Object.keys(extra).some(
         key => key !== predicateKey && key !== 'semantic_selection_sources',
       ) ||
@@ -100,10 +100,14 @@ export function getIgnoredDashboardFilterIds(
       : sourceDatasources[id];
     const sources = extra.semantic_selection_sources ?? [];
     if (source?.endsWith(`__${DatasourceType.Table}`)) {
-      return sources.every(selection => selection.datasource === source);
+      return Boolean(
+        extra[predicateKey]?.length &&
+        sources.every(selection => selection.datasource === source),
+      );
     }
     const first = sources[0];
-    // Stale same-view selections still require explicit reselection.
+    // Clearing a foreign filter can leave only its source stamp. Omit it with
+    // the value; stale same-view selections still require explicit reselection.
     return Boolean(
       source?.endsWith(`__${DatasourceType.SemanticView}`) &&
       source !== receiver.datasource &&

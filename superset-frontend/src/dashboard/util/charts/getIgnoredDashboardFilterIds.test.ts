@@ -229,15 +229,17 @@ test.each<{
     sources: [{ datasource: '', version: null }],
     ignored: false,
   },
-])('foreign native predicate: $name', ({ sources, ignored }) => {
-  expect(
-    getIgnoredDashboardFilterIds(receiver, foreignNative, {
-      f: {
-        id: 'f',
-        extraFormData: { ...predicate, semantic_selection_sources: sources },
-      },
-    }),
-  ).toEqual(ignored ? ['f'] : []);
+])('foreign selected and cleared masks: $name', ({ sources, ignored }) => {
+  for (const values of [predicate, {}, { filters: [] }]) {
+    expect(
+      getIgnoredDashboardFilterIds(receiver, foreignNative, {
+        f: {
+          id: 'f',
+          extraFormData: { ...values, semantic_selection_sources: sources },
+        },
+      }),
+    ).toEqual(ignored ? ['f'] : []);
+  }
 });
 
 test.each(['filter_time', 'chart_customization_dynamic_groupby'])(

@@ -1449,14 +1449,22 @@ test('same-view cross-filter remains applied with current identity', () => {
   );
 });
 
-test.each([
-  { sourceId: 3, receiverId: 9, native: false },
-  { sourceId: 9, receiverId: 3, native: false },
-  { sourceId: 3, receiverId: 9, native: true },
-  { sourceId: 9, receiverId: 3, native: true },
-])(
-  'foreign-view predicates are skipped despite identical member IDs: %j',
-  ({ sourceId, receiverId, native }) => {
+test.each(
+  [
+    { sourceId: 3, receiverId: 9 },
+    { sourceId: 9, receiverId: 3 },
+  ].flatMap(pair =>
+    ['cross-filter', 'filter_select', 'filter_range'].flatMap(origin =>
+      ['selected', 'cleared', 'cleared-empty-filters'].map(state => ({
+        ...pair,
+        origin,
+        state,
+      })),
+    ),
+  ),
+)(
+  'foreign-view selections and clears preserve receiver identity: %j',
+  ({ sourceId, receiverId, origin, state }) => {
     const args = externalPredicateArgs();
     const version = 'snowflake-table-qualified-v1';
     args.chart = {
@@ -1468,11 +1476,11 @@ test.each([
       },
     };
     args.sourceDatasources = { 42: `${sourceId}__semantic_view` };
-    if (native)
+    if (origin !== 'cross-filter')
       args.nativeFilters = {
         42: {
           id: '42',
-          filterType: 'filter_select',
+          filterType: origin,
           targets: [
             {
               datasetId: sourceId,
@@ -1489,6 +1497,14 @@ test.each([
         { datasource: `${sourceId}__semantic_view`, version },
       ],
     };
+    if (state !== 'selected') {
+      args.dataMask[42].filterState = { value: null };
+      if (state === 'cleared-empty-filters') {
+        args.dataMask[42].extraFormData.filters = [];
+      } else {
+        delete args.dataMask[42].extraFormData.filters;
+      }
+    }
     const result = getFormDataWithExtraFilters(args);
     expect(result.extra_form_data?.filters ?? []).toEqual([]);
     expect(result.extra_form_data?.semantic_selection_sources ?? []).toEqual(
