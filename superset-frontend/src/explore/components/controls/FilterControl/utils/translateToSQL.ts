@@ -91,7 +91,12 @@ export const translateToSql = (
   {
     useSimple,
     columns,
-  }: { useSimple?: boolean; columns?: VerboseColumn[] } = {},
+    useDisplayValues = true,
+  }: {
+    useSimple?: boolean;
+    columns?: VerboseColumn[];
+    useDisplayValues?: boolean;
+  } = {},
 ) => {
   if (isSimpleAdhocFilter(adhocFilter) || useSimple) {
     const { subject, operator } = adhocFilter as SimpleAdhocFilter;
@@ -111,6 +116,7 @@ export const translateToSql = (
       getDisplaySubject(subject, columns),
       op,
       comparator,
+      { useDisplayValues },
     );
   }
   if (isFreeFormAdhocFilter(adhocFilter)) {

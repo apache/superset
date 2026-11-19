@@ -6374,6 +6374,9 @@ msgstr ""
 msgid "Dynamic group by"
 msgstr ""
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr ""
 
@@ -8212,6 +8215,14 @@ msgid "Hide Line"
 msgstr ""
 
 msgid "Hide chart description"
+msgstr ""
+
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
 msgstr ""
 
 msgid "Hide layer"

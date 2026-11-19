@@ -152,6 +152,7 @@ SQLGLOT_DIALECTS = {
     "oceanbase": Dialects.MYSQL,
     # "ocient": ???
     "odelasticsearch": OpenSearch,
+    "openobserve": Dialects.POSTGRES,
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
