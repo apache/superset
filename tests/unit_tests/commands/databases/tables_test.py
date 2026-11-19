@@ -324,7 +324,7 @@ def test_tables_without_catalog(
 
 def test_tables_sorted_case_insensitively(
     mocker: MockerFixture,
-    database_without_catalog: MockerFixture,
+    database_without_catalog: MagicMock,
 ) -> None:
     """
     Test that tables and views are sorted case-insensitively, with names that
