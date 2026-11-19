@@ -19,6 +19,7 @@
 import { getExtensionsRegistry } from '@superset-ui/core';
 import {
   accessTokenField,
+  awsSecretAccessKeyField,
   databaseField,
   defaultCatalogField,
   defaultSchemaField,
@@ -33,11 +34,13 @@ import {
   projectIdfield,
   usernameField,
 } from './CommonParameters';
+import { EmbeddedCredentialsField } from './EmbeddedCredentialsField';
 import { OAuth2ClientField } from './OAuth2ClientField';
 import { validatedInputField } from './ValidatedInputField';
 import { EncryptedField } from './EncryptedField';
 import { TableCatalog } from './TableCatalog';
 import { DRUID_ENGINE, DRUID_FORM_FIELD_MAP } from './DruidParameters';
+import { MSSQL_ENGINE, MSSQL_FORM_FIELD_MAP } from './MssqlParameters';
 import SSHTunnelSwitch from '../SSHTunnelSwitch';
 
 export const FormFieldOrder = [
@@ -61,8 +64,15 @@ export const FormFieldOrder = [
   'account',
   'warehouse',
   'role',
+  'aws_access_key_id',
+  'aws_secret_access_key',
+  'region_name',
+  's3_staging_dir',
+  'schema_name',
+  'work_group',
   'ssh',
   'oauth2_client_info',
+  'embedded_credentials',
 ];
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -81,6 +91,7 @@ export const FORM_FIELD_MAP = {
   username: usernameField,
   password: passwordField,
   oauth2_client_info: OAuth2ClientField,
+  embedded_credentials: EmbeddedCredentialsField,
   access_token: accessTokenField,
   database_name: displayField,
   query: queryField,
@@ -91,6 +102,12 @@ export const FORM_FIELD_MAP = {
   warehouse: validatedInputField,
   role: validatedInputField,
   account: validatedInputField,
+  aws_access_key_id: validatedInputField,
+  aws_secret_access_key: awsSecretAccessKeyField,
+  region_name: validatedInputField,
+  s3_staging_dir: validatedInputField,
+  schema_name: validatedInputField,
+  work_group: validatedInputField,
   ssh: SSHTunnelSwitchComponent,
   project_id: projectIdfield,
 };
@@ -105,4 +122,5 @@ export const ENGINE_FORM_FIELD_OVERRIDES: Record<
   Partial<typeof FORM_FIELD_MAP>
 > = {
   [DRUID_ENGINE]: DRUID_FORM_FIELD_MAP,
+  [MSSQL_ENGINE]: MSSQL_FORM_FIELD_MAP,
 };
