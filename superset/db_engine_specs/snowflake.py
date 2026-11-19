@@ -885,6 +885,38 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         """
         return build_parameters_json_schema(cls)
 
+    @classmethod
+    def requires_import_password(cls, config: dict[str, Any]) -> bool:
+        """Ask for a password only for Snowflake password authentication."""
+        if app.config.get("SQLALCHEMY_CUSTOM_PASSWORD_STORE"):
+            return False
+        secure_extra = json.loads(
+            config.get("masked_encrypted_extra")
+            or config.get("encrypted_extra")
+            or "{}"
+        )
+        if secure_extra.get("auth_method"):
+            # Key-pair and custom authentication have their own secret prompts.
+            return False
+        if config.get("impersonate_user") and (
+            secure_extra.get("oauth2_client_info") or cls.is_oauth2_enabled()
+        ):
+            return False
+
+        uri = make_url_safe(config["sqlalchemy_uri"])
+        engine_params = (config.get("extra") or {}).get("engine_params") or {}
+        connect_args = engine_params.get("connect_args") or {}
+        params = {**uri.query, **connect_args}
+        if any(params.get(key) for key in ("private_key", "private_key_file", "auth")):
+            return False
+        authenticator = str(params.get("authenticator") or "snowflake").lower()
+        # Other authenticators (OAuth, JWT, external browser, etc.) must not
+        # be forced into password authentication by an import.
+        uses_password = authenticator in {"snowflake", "username_password_mfa"} or (
+            authenticator.startswith("https://")
+        )
+        return uses_password and not params.get("password")
+
     @staticmethod
     def update_params_from_encrypted_extra(
         database: "Database",

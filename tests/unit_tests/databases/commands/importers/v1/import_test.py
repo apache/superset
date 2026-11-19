@@ -1534,3 +1534,33 @@ def test_import_database_keeps_readable_embedded_key(
     database = import_database(_snowflake_config(masked), overwrite=True)
 
     assert json.loads(database.encrypted_extra)["embedded_credentials"] == keypair
+
+
+@pytest.mark.parametrize(
+    "uri", ["snowflake://user@account/db", "snowflake://user:@account/db"]
+)
+def test_import_database_keeps_submitted_password_without_uri_password(
+    mocker: MockerFixture, session: Session, uri: str
+) -> None:
+    """A password supplied in the import form survives URI masking."""
+    submitted = "new-secret"
+
+    from superset import db, security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.constants import PASSWORD_MASK
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    config = copy.deepcopy(database_config)
+    config["sqlalchemy_uri"] = uri
+    config["password"] = submitted
+
+    database = import_database(config)
+
+    assert database.password == submitted
+    assert submitted not in database.sqlalchemy_uri
+    assert PASSWORD_MASK in database.sqlalchemy_uri

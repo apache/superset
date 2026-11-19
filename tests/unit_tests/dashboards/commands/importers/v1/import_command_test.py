@@ -218,3 +218,53 @@ def test_dashboard_import_new_dashboard(
 
     assert len(chart_ids) == expected_number_of_charts
     assert len(dashboard_ids) == expected_number_of_dashboards
+
+
+def test_dashboard_import_prompts_for_missing_snowflake_password(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """An omitted URI password prompts before connecting, and the retry stores it."""
+    import pytest
+    import yaml
+
+    submitted = "new-secret"
+
+    from superset import db, security_manager
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.commands.exceptions import CommandInvalidError
+    from superset.constants import PASSWORD_MASK
+    from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+    from tests.integration_tests.fixtures.importexport import dashboard_metadata_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    Dashboard.metadata.create_all(db.session.get_bind())
+    configs = {
+        **copy.deepcopy(databases_config),
+        **copy.deepcopy(datasets_config),
+        **copy.deepcopy(charts_config_1),
+        **copy.deepcopy(dashboards_config_1),
+    }
+    filename = "databases/examples.yaml"
+    configs[filename]["sqlalchemy_uri"] = "snowflake://user@account/ANALYTICS/public"
+    contents = {name: yaml.safe_dump(config) for name, config in configs.items()}
+    contents["metadata.yaml"] = yaml.safe_dump(dashboard_metadata_config)
+    sync = mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    with pytest.raises(CommandInvalidError) as exc_info:
+        ImportDashboardsCommand(contents).run()
+
+    assert exc_info.value.normalized_messages() == {
+        filename: {"_schema": ["Must provide a password for the database"]}
+    }
+    sync.assert_not_called()
+    assert db.session.query(Database).count() == 0
+
+    ImportDashboardsCommand(contents, passwords={filename: submitted}).run()
+
+    database = db.session.query(Database).one()
+    assert database.password == submitted
+    assert submitted not in database.sqlalchemy_uri
+    assert PASSWORD_MASK in database.sqlalchemy_uri
+    assert db.session.query(Dashboard).count() == 1
+    sync.assert_called_once_with(database)
