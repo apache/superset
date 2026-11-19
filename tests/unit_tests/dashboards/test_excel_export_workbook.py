@@ -31,6 +31,7 @@ from unittest import mock
 
 import pytest
 
+from superset.common.chart_data import ChartDataResultType
 from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.workbook import build_workbook
 from superset.utils import json
@@ -50,15 +51,27 @@ def _chart(chart_id: int, name: str) -> mock.MagicMock:
 @pytest.fixture
 def mocks() -> Iterator[dict[str, Any]]:
     """Patch the builder's collaborators; keep the real xlsx writer."""
-    with mock.patch.multiple(
-        MODULE,
-        get_charts_in_layout_order=mock.DEFAULT,
-        get_dashboard_filter_context=mock.DEFAULT,
-        ChartDataQueryContextSchema=mock.DEFAULT,
-        ChartDataCommand=mock.DEFAULT,
-        resolve_query_context=mock.DEFAULT,
-    ) as patched:
+    with (
+        mock.patch.multiple(
+            MODULE,
+            get_charts_in_layout_order=mock.DEFAULT,
+        ) as workbook_patched,
+        mock.patch.multiple(
+            "superset.dashboards.excel_export.chart_results",
+            get_dashboard_filter_context=mock.DEFAULT,
+            resolve_query_context=mock.DEFAULT,
+        ) as chart_results_patched,
+        mock.patch.multiple(
+            "superset.charts.data.run_query_context",
+            ChartDataQueryContextSchema=mock.DEFAULT,
+            ChartDataCommand=mock.DEFAULT,
+        ) as run_patched,
+    ):
+        patched = {**workbook_patched, **chart_results_patched, **run_patched}
         patched["get_dashboard_filter_context"].return_value.extra_form_data = {}
+        loaded = patched["ChartDataQueryContextSchema"].return_value.load.return_value
+        loaded.result_type = ChartDataResultType.FULL
+        loaded.queries = [mock.Mock(result_type=None)]
         patched["ChartDataCommand"].return_value.run.return_value = {
             "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
         }

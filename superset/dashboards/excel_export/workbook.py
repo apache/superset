@@ -18,28 +18,22 @@
 
 from __future__ import annotations
 
-import copy
 import logging
 from typing import Any
 
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app, g
+from flask import current_app
+from superset_core.exports.types import ChartQueryResult
 
-from superset.charts.data.dashboard_filter_context import (
-    apply_dashboard_filter_context,
-    get_dashboard_filter_context,
-)
-from superset.charts.schemas import ChartDataQueryContextSchema
-from superset.commands.chart.data.get_data_command import ChartDataCommand
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.common.form_data_query_context import (
-    build_query_context_from_form_data,
-    is_raw_query_mode,
-)
 from superset.dashboards.excel_export import email
+from superset.dashboards.excel_export.chart_results import (  # noqa: F401
+    chart_result,
+    MISSING,
+    REBUILD_VIZ_TYPES,
+    resolve_query_context,
+)
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
-from superset.utils import json
 from superset.utils.excel_streaming import StreamingXlsxWriter
 
 logger = logging.getLogger(__name__)
@@ -50,9 +44,6 @@ EXPORT_MODE_IMAGES = "images"
 
 # Viz types that remain tabular in image mode.
 TABLE_VIZ_TYPES = {"table", "pivot_table_v2", "pivot_table"}
-
-# Viz types that can be rebuilt as a single query without post-processing.
-REBUILD_VIZ_TYPES = {"table", "big_number_total", "big_number", "pie"}
 
 #: Resolved query contexts by chart id. ``None`` marks a skipped chart.
 ResolvedQueryContexts = dict[int, dict[str, Any] | None]
@@ -65,96 +56,6 @@ class ChartSkippedError(Exception):
 def chart_label(chart: Any) -> str:
     """Return the chart label used in the export summary."""
     return f"{chart.id} - {chart.slice_name or ''}".strip()
-
-
-def _usable_query_context(value: Any) -> dict[str, Any] | None:
-    """Return a query context with a non-empty ``queries`` list."""
-    if not isinstance(value, dict) or not isinstance(value.get("queries"), list):
-        return None
-    return value if value["queries"] else None
-
-
-def _saved_query_context(raw: Any) -> dict[str, Any] | None:
-    """Parse a saved query context, returning ``None`` if it is unusable."""
-    if not raw:
-        return None
-    try:
-        parsed = json.loads(raw)
-    except (TypeError, ValueError):
-        return None
-    return _usable_query_context(parsed)
-
-
-# Form-data features the single-query rebuild cannot reproduce.
-_UNSUPPORTED_PROCESSING_KEYS = ("time_compare", "rolling_type", "resample_rule")
-
-
-def _needs_unsupported_processing(form_data: dict[str, Any]) -> bool:
-    """Return whether the chart needs unsupported post-processing."""
-    # ``percent_metrics`` are produced by contribution post-processing.
-    if form_data.get("percent_metrics"):
-        return True
-    # Aggregate table totals require a second query.
-    if form_data.get("show_totals") and not is_raw_query_mode(form_data):
-        return True
-    for key in _UNSUPPORTED_PROCESSING_KEYS:
-        value = form_data.get(key)
-        # ``rolling_type`` may contain the string ``"None"`` when unset.
-        if value and value != "None":
-            return True
-    return form_data.get("aggregation") == "raw"
-
-
-def _export_form_data(form_data: dict[str, Any], viz_type: str) -> dict[str, Any]:
-    """Remove interactive table pagination before export planning and execution."""
-    if viz_type == "table":
-        # Direct downloads must budget the full-limit query that the workbook
-        # executes, without a pagination-only rowcount query or page offset.
-        return {**form_data, "server_pagination": False, "row_offset": 0}
-    return form_data
-
-
-def resolve_query_context(chart: Any) -> dict[str, Any] | None:
-    """Resolve a saved, custom-built, or built-in query context for a chart."""
-    if saved := _saved_query_context(chart.query_context):
-        return saved
-
-    # Builder failures fall back to the built-in query-context rebuild.
-    if builder := current_app.config.get("EXCEL_EXPORT_QUERY_CONTEXT_BUILDER"):
-        try:
-            built = builder(chart.form_data)
-        except SoftTimeLimitExceeded:
-            # A task timeout must stop the whole export.
-            raise
-        except Exception:  # pylint: disable=broad-except
-            logger.warning(
-                "EXCEL_EXPORT_QUERY_CONTEXT_BUILDER failed for chart %s; "
-                "falling back to the built-in rebuild",
-                chart.id,
-                exc_info=True,
-            )
-            built = None
-        if (from_builder := _usable_query_context(built)) is not None:
-            # Filters mutate nested queries, so do not modify a shared payload.
-            return copy.deepcopy(from_builder)
-
-    # Only the built-in rebuild is limited to simple chart types.
-    if chart.viz_type not in REBUILD_VIZ_TYPES or chart.datasource_id is None:
-        return None
-    try:
-        form_data = json.loads(chart.params) if chart.params else {}
-    except (TypeError, ValueError):
-        return None
-    if not isinstance(form_data, dict) or not form_data:
-        return None
-    if _needs_unsupported_processing(form_data):
-        return None
-
-    return build_query_context_from_form_data(
-        _export_form_data(form_data, chart.viz_type),
-        {"id": chart.datasource_id, "type": chart.datasource_type or "table"},
-        chart.viz_type,
-    )
 
 
 def _record_to_row(record: dict[str, Any], colnames: list[str]) -> list[Any]:
@@ -188,59 +89,19 @@ def _write_chart_image_sheet(
     writer.add_image_sheet(chart_label(chart), image)
 
 
-def _write_chart_sheets(
-    writer: StreamingXlsxWriter,
-    chart: Any,
-    json_body: dict[str, Any],
-    dashboard_id: int,
-    active_data_mask: dict[str, Any],
+def _write_query_sheets(
+    writer: StreamingXlsxWriter, chart: Any, queries: list[ChartQueryResult]
 ) -> None:
-    """Run a chart's queries and write each result to a worksheet."""
-    # Preserve the caller's top-level query-context values.
-    json_body = dict(json_body)
-    # Export full JSON results, regardless of saved values.
-    json_body["result_format"] = ChartDataResultFormat.JSON
-    json_body["result_type"] = ChartDataResultType.FULL
-    json_body.pop("force", None)
-
-    # Guest authorization links a chart to its dashboard through
-    # ``form_data.dashboardId`` (raise_for_access); saved contexts don't carry
-    # it, so stamp it the way the browser does on interactive requests.
-    form_data = dict(json_body.get("form_data") or {})
-    form_data["dashboardId"] = dashboard_id
-    # ``Slice.form_data`` restamps ``slice_id`` on interactive requests, but a
-    # saved context is replayed verbatim, so a chart copied with "Save as" can
-    # carry the source chart's id and fail the guest payload check.
-    form_data["slice_id"] = chart.id
-    json_body["form_data"] = form_data
-
-    filter_context = get_dashboard_filter_context(
-        dashboard_id=dashboard_id,
-        chart_id=chart.id,
-        active_data_mask=active_data_mask,
-    )
-    if filter_context.extra_form_data:
-        apply_dashboard_filter_context(json_body, filter_context.extra_form_data)
-
-    # Jinja macros read the query context from ``g.form_data``.
-    g.form_data = json_body
-
-    query_context = ChartDataQueryContextSchema().load(json_body)
-    command = ChartDataCommand(query_context)
-    command.validate()
-    result = command.run()
-
-    for index, query in enumerate(result["queries"]):
-        colnames = query.get("colnames") or []
-        data = query.get("data") or []
+    """Write each query result of a chart to its own worksheet."""
+    for index, query in enumerate(queries):
         if index == 0:
             name = f"{chart.id} - {chart.slice_name or ''}"
         else:
             name = f"{chart.id}.{index} - {chart.slice_name or ''}"
         writer.add_sheet(
             name,
-            colnames,
-            (_record_to_row(record, colnames) for record in data),
+            query.colnames,
+            (_record_to_row(record, query.colnames) for record in query.data),
         )
 
 
@@ -285,20 +146,19 @@ def build_workbook(  # pylint: disable=too-many-arguments
                         writer, chart, dashboard.id, active_data_mask, user
                     )
                 else:
-                    # Reuse a planned context or resolve one here.
-                    json_body = (
-                        resolved[chart.id]
-                        if chart.id in resolved
-                        else resolve_query_context(chart)
+                    # Reuse a planned context or resolve one in chart_result.
+                    result = chart_result(
+                        chart,
+                        dashboard.id,
+                        active_data_mask,
+                        resolved.get(chart.id, MISSING),
                     )
-                    if json_body is None:
-                        errored.setdefault(email.ERROR_NO_QUERY_CONTEXT, []).append(
+                    if result.skipped_reason is not None:
+                        errored.setdefault(result.skipped_reason.value, []).append(
                             label
                         )
                         continue
-                    _write_chart_sheets(
-                        writer, chart, json_body, dashboard.id, active_data_mask
-                    )
+                    _write_query_sheets(writer, chart, result.queries)
             except SoftTimeLimitExceeded:
                 # Let the task handler report the timeout and clean up.
                 raise

@@ -38,7 +38,8 @@ from superset.charts.data.dashboard_filter_context import (
     get_dashboard_filter_context,
 )
 from superset.charts.data.form_data import set_form_data
-from superset.charts.schemas import ChartDataQueryContextSchema, ChartDataStopSchema
+from superset.charts.data.run_query_context import can_export_data, load_query_context
+from superset.charts.schemas import ChartDataStopSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.data.streaming_export_command import (
     StreamingCSVExportCommand,
@@ -50,7 +51,6 @@ from superset.commands.chart.exceptions import (
 from superset.commands.streaming_export.base import encode_csv_stream
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import ChartDataExecutionResult
-from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT, SemanticCacheStatus
 from superset.daos.exceptions import DatasourceNotFound
@@ -890,23 +890,12 @@ class ChartDataRestApi(ChartRestApi):
         :raises ValidationError: If the request is incorrect
         """
 
-        try:
-            schema: ChartDataQueryContextSchema = ChartDataQueryContextSchema()
-            schema.query_context_factory = QueryContextFactory(
-                authorize_semantic_before_metadata=True
-            )
-            return schema.load(form_data)
-        except KeyError as ex:
-            raise ValidationError("Request is incorrect") from ex
-        except ValueError as ex:
-            raise ValidationError(str(ex)) from ex
+        return load_query_context(form_data)
 
     @staticmethod
     def _has_export_permission() -> bool:
         """Whether the current user may export chart data as a file."""
-        if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
-            return security_manager.can_access("can_export_data", "Superset")
-        return security_manager.can_access("can_csv", "Superset")
+        return can_export_data()
 
     @staticmethod
     def _should_stream_before_execution(
