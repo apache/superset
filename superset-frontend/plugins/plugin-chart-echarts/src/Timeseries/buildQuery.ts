@@ -19,6 +19,7 @@
 import {
   buildQueryContext,
   ensureIsArray,
+  getMetricLabel,
   getXAxisColumn,
   isXAxisSet,
   normalizeOrderBy,
@@ -64,7 +65,14 @@ export default function buildQuery(formData: QueryFormData) {
 
      */
     // only add series limit metric if it's explicitly needed e.g. for sorting
-    const extra_metrics = extractExtraMetrics(formData);
+    // and skip any already queried (e.g. as the scatter dot-size metric), as
+    // duplicate metric labels make the query invalid.
+    const queriedMetricLabels = new Set(
+      (baseQueryObject.metrics || []).map(getMetricLabel),
+    );
+    const extra_metrics = extractExtraMetrics(formData).filter(
+      metric => !queriedMetricLabels.has(getMetricLabel(metric)),
+    );
 
     const pivotOperatorInRuntime: PostProcessingPivot = isTimeComparison(
       formData,

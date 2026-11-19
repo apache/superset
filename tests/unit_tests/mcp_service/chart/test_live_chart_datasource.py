@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from importlib import import_module
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from fastmcp import Client
@@ -53,6 +53,7 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
 
@@ -90,7 +91,7 @@ def session_engine() -> Engine:
 @pytest.fixture(autouse=True)
 def mock_auth() -> Iterator[None]:
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
+        mock_user = regular_user()
         mock_user.id = 1
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
