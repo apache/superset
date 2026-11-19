@@ -16,14 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core/translation';
+import { useEffect, useState } from 'react';
+import { t, tn } from '@apache-superset/core/translation';
 import { Modal } from '@superset-ui/core/components';
 import type { VersionedEntityType } from './types';
 import type { VersionActionTarget } from './useVersionActions';
 import { formatVersionDateTime } from './display';
+import { fetchDashboardRestoreRemovalCount } from './api';
 
 export interface RestoreConfirmModalProps {
   entityType: VersionedEntityType;
+  entityUuid?: string;
   target: VersionActionTarget | null;
   isRestoring: boolean;
   onCancel: () => void;
@@ -32,11 +35,39 @@ export interface RestoreConfirmModalProps {
 
 export default function RestoreConfirmModal({
   entityType,
+  entityUuid,
   target,
   isRestoring,
   onCancel,
   onConfirm,
 }: RestoreConfirmModalProps) {
+  const versionUuid = target?.versionUuid;
+  const requestKey = `${entityUuid}/${versionUuid}`;
+  const [impact, setImpact] = useState<{
+    key: string;
+    count: number | null;
+  } | null>(null);
+  const needsImpact =
+    entityType === 'dashboard' && !!entityUuid && !!versionUuid;
+  const isChecking = needsImpact && impact?.key !== requestKey;
+  useEffect(() => {
+    if (!needsImpact || !entityUuid || !versionUuid) {
+      setImpact(null);
+      return undefined;
+    }
+    let active = true;
+    fetchDashboardRestoreRemovalCount(entityUuid, versionUuid).then(
+      count => {
+        if (active) setImpact({ key: requestKey, count });
+      },
+      () => {
+        if (active) setImpact({ key: requestKey, count: null });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [entityUuid, versionUuid, needsImpact, requestKey]);
   if (!target) {
     return null;
   }
@@ -50,6 +81,7 @@ export default function RestoreConfirmModal({
       responsive={false}
       primaryButtonName={t('Restore this version')}
       primaryButtonLoading={isRestoring}
+      disablePrimaryButton={isChecking}
       onHandledPrimaryAction={onConfirm}
       name="restore-version-modal"
     >
@@ -58,6 +90,27 @@ export default function RestoreConfirmModal({
           ? t('This chart will be restored to the following version:')
           : t('This dashboard will be restored to the following version:')}
       </p>
+      {isChecking && <p>{t('Checking which charts will be removed…')}</p>}
+      {needsImpact && !isChecking && impact?.count === null && (
+        <p role="alert">
+          {t(
+            'Could not check which charts will be removed. Restoring may remove charts added after this version.',
+          )}
+        </p>
+      )}
+      {needsImpact &&
+        !isChecking &&
+        impact?.count != null &&
+        impact.count > 0 && (
+          <p role="alert">
+            {tn(
+              'Restoring will remove %s chart added after this version from this dashboard. The chart itself will not be deleted.',
+              'Restoring will remove %s charts added after this version from this dashboard. The charts themselves will not be deleted.',
+              impact.count,
+              impact.count,
+            )}
+          </p>
+        )}
       <p data-test="restore-version-name">
         <strong>{target.headline}</strong>
         {dateLabel !== target.headline && <> · {dateLabel}</>}

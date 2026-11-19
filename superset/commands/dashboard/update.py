@@ -216,8 +216,9 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         self._validate_layout_chart_nodes()
 
     def _validate_layout_chart_nodes(self) -> None:
-        """Refuse a malformed layout chart node before ``run`` deactivates
-        reports and emails their owners."""
+        """Refuse a malformed layout chart node or a new native-filter target
+        the caller cannot read before ``run`` deactivates reports and emails
+        their owners."""
         assert self._model is not None
         json_metadata: str | None
         positions: object
@@ -227,6 +228,10 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 positions := metadata.get("positions"), dict
             ):
                 DashboardDAO.validate_layout_chart_nodes(positions)
+            if isinstance(metadata, dict) and "native_filter_configuration" in metadata:
+                DashboardDAO.validate_native_filter_targets(
+                    self._model, metadata["native_filter_configuration"]
+                )
 
     @staticmethod
     def _send_deactivated_report_email(
