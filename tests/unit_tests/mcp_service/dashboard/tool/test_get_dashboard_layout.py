@@ -28,6 +28,7 @@ from superset.mcp_service.dashboard.schemas import (
     _extract_layout_from_position,
 )
 from superset.utils import json
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 
 def _wrapped(value: str) -> str:
@@ -58,7 +59,7 @@ def mcp_server():
 @pytest.fixture(autouse=True)
 def mock_auth():
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
+        mock_user = regular_user()
         mock_user.id = 1
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
