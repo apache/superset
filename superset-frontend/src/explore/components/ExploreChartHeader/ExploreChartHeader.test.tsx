@@ -461,6 +461,17 @@ describe('ExploreChartHeader', () => {
     expect(await screen.findByText('2 days ago')).toBeInTheDocument();
   });
 
+  test('renders the chart name as a screen-reader page heading', async () => {
+    const props = createProps();
+    render(<ExploreHeader {...props} />, { useRedux: true });
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Age distribution of respondents',
+      }),
+    ).toBeInTheDocument();
+  });
+
   test('Changes "Added to X dashboards" to plural when more than 1 dashboard', async () => {
     const props = createProps({ showTitlePanelItems: true });
     render(

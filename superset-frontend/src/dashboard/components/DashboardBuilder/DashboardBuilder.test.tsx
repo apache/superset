@@ -1597,3 +1597,79 @@ test('restored dashboard hydration survives entering edit mode', async () => {
       ));
   }
 });
+
+const renderWithFilterBar = (orientation: FilterBarOrientation) => {
+  const nativeFiltersSpy = jest
+    .spyOn(useNativeFiltersModule, 'useNativeFilters')
+    .mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+      hasFilters: true,
+    });
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  const view = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        filterBarOrientation: orientation,
+      },
+      dashboardLayout: undoableDashboardLayout,
+    }),
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  return { ...view, restore: () => nativeFiltersSpy.mockRestore() };
+};
+
+test.each([FilterBarOrientation.Vertical, FilterBarOrientation.Horizontal])(
+  'renders a single screen-reader Filters heading for the %s filter bar',
+  orientation => {
+    const { restore } = renderWithFilterBar(orientation);
+    try {
+      expect(
+        screen.getAllByRole('heading', { level: 2, name: 'Filters' }),
+      ).toHaveLength(1);
+    } finally {
+      restore();
+    }
+  },
+);
+
+test.each([FilterBarOrientation.Vertical, FilterBarOrientation.Horizontal])(
+  'renders no Filters heading for the hidden %s filter bar in report mode',
+  orientation => {
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=3');
+    const { restore } = renderWithFilterBar(orientation);
+    try {
+      expect(
+        screen.queryByRole('heading', { level: 2, name: 'Filters' }),
+      ).not.toBeInTheDocument();
+    } finally {
+      restore();
+      window.history.replaceState({}, '', originalHref);
+    }
+  },
+);
+
+test('renders a screen-reader heading for the dashboard content', () => {
+  const { restore } = renderWithFilterBar(FilterBarOrientation.Vertical);
+  try {
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Dashboard content' }),
+    ).toBeInTheDocument();
+  } finally {
+    restore();
+  }
+});

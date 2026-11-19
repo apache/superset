@@ -348,3 +348,10 @@ test('Should not make data fetch calls if `welcome.main.replacement` is defined'
   expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(0);
   expect(fetchMock.callHistory.calls(savedQueryEndpoint)).toHaveLength(0);
 });
+
+test('renders a screen-reader page heading', async () => {
+  await renderWelcome();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Home' }),
+  ).toBeInTheDocument();
+});
