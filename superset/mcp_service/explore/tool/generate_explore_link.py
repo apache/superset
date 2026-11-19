@@ -41,6 +41,7 @@ from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.datasource_resolver import (
     ChartDatasource,
     resolve_semantic_view,
+    stamp_new_semantic_selections,
     validate_semantic_view_config,
     validate_semantic_view_form_data,
     view_not_found_error,
@@ -482,6 +483,7 @@ async def _generate_for_semantic_view(
     )
     form_data.pop("_mcp_warnings", None)
     form_data["datasource"] = target.form_data_datasource
+    stamp_new_semantic_selections(form_data, target)
     error = validate_semantic_view_form_data(form_data, target)
     if error is not None:
         return GenerateExploreLinkResponse(

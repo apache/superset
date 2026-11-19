@@ -388,6 +388,28 @@ class TestUpdateDashboard:
 
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @pytest.mark.asyncio
+    async def test_update_access_denied_returns_permission_denied(
+        self, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """A dashboard the caller cannot view is a structured permission
+        denial, so agents stop retrying instead of seeing a raw ToolError."""
+        from superset.commands.dashboard.exceptions import (
+            DashboardAccessDeniedError,
+        )
+
+        mock_get.side_effect = DashboardAccessDeniedError()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dashboard", {"request": {"identifier": 42}}
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert payload.get("permission_denied") is True
+        assert "access" in (payload.get("error") or "").lower()
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @pytest.mark.asyncio
     async def test_update_lookup_database_error_is_not_masked_as_not_found(
         self, mock_get: Mock, mcp_server: object
     ) -> None:

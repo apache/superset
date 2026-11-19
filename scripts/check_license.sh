@@ -30,9 +30,13 @@ acquire_rat_jar () {
     printf "Attempting to fetch rat\n"
     JAR_DL="${JAR}.part"
     if [ $(command -v curl) ]; then
-      curl -L --silent "${URL}" > "$JAR_DL" && mv "$JAR_DL" "$JAR"
+      curl --fail --location --silent --show-error \
+        --retry 5 --retry-all-errors --retry-delay 3 \
+        --output "$JAR_DL" "${URL}" && mv "$JAR_DL" "$JAR"
     elif [ $(command -v wget) ]; then
-      wget --quiet ${URL} -O "$JAR_DL" && mv "$JAR_DL" "$JAR"
+      wget --quiet --tries=5 --waitretry=3 --retry-connrefused \
+        --retry-on-http-error=429,500,502,503,504 \
+        "${URL}" -O "$JAR_DL" && mv "$JAR_DL" "$JAR"
     else
       printf "You do not have curl or wget installed, please install rat manually.\n"
       exit 255
@@ -42,7 +46,7 @@ acquire_rat_jar () {
   unzip -tq "$JAR" &> /dev/null
   if [ $? -ne 0 ]; then
     # We failed to download
-    rm "$JAR"
+    rm -f "$JAR" "${JAR}.part"
     printf "Our attempt to download rat locally to ${JAR} failed. Please install rat manually.\n"
     exit 255
   fi

@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import { ReactNode, useId } from 'react';
 import {
   Button,
   Dropdown,
   Icons,
+  Tooltip,
   type ButtonProps,
   type DropdownProps,
 } from '@superset-ui/core/components';
@@ -37,6 +38,7 @@ export interface KebabMenuButtonProps {
   buttonStyle?: ButtonProps['buttonStyle'];
   placement?: DropdownProps['placement'];
   overlayStyle?: DropdownProps['overlayStyle'];
+  tooltipTitle?: ReactNode;
 }
 
 export function KebabMenuButton({
@@ -50,7 +52,9 @@ export function KebabMenuButton({
   buttonStyle = 'link',
   placement,
   overlayStyle,
+  tooltipTitle,
 }: KebabMenuButtonProps) {
+  const tooltipId = useId();
   const defaultIcon =
     iconOrientation === 'vertical' ? (
       <Icons.EllipsisOutlined
@@ -62,22 +66,25 @@ export function KebabMenuButton({
     );
 
   return (
-    <Dropdown
-      menu={{ items: menuItems }}
-      trigger={['click']}
-      placement={placement}
-      overlayStyle={overlayStyle}
-    >
-      <Button
-        id={buttonId}
-        buttonSize={buttonSize}
-        buttonStyle={buttonStyle}
-        aria-label={ariaLabel}
-        aria-haspopup="true"
-        data-test={dataTest}
+    <Tooltip id={tooltipId} title={tooltipTitle} trigger={['hover', 'focus']}>
+      <Dropdown
+        menu={{ items: menuItems }}
+        trigger={['click']}
+        placement={placement}
+        overlayStyle={overlayStyle}
       >
-        {icon || defaultIcon}
-      </Button>
-    </Dropdown>
+        <Button
+          id={buttonId}
+          buttonSize={buttonSize}
+          buttonStyle={buttonStyle}
+          aria-label={ariaLabel}
+          aria-describedby={tooltipTitle ? tooltipId : undefined}
+          aria-haspopup="true"
+          data-test={dataTest}
+        >
+          {icon || defaultIcon}
+        </Button>
+      </Dropdown>
+    </Tooltip>
   );
 }
