@@ -18,6 +18,7 @@
 """Non-dimension filters fail instead of returning silently unfiltered data."""
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, PropertyMock
 
@@ -35,6 +36,7 @@ from superset_core.semantic_layers.types import (
     SemanticQuery,
     SemanticResult,
 )
+from superset_core.semantic_layers.view import SemanticViewFeature
 from werkzeug.test import TestResponse
 
 from superset.charts.data.dashboard_filter_context import apply_dashboard_filter_context
@@ -45,6 +47,7 @@ from superset.mcp_service.chart.chart_helpers import (
     merge_extra_form_data_filters_into_query,
 )
 from superset.semantic_layers.mapper import (
+    _get_group_limit_filters,
     map_query_object,
     validate_query_object,
     ValidatedQueryObject,
@@ -109,6 +112,69 @@ def _request(filters: list[QueryObjectFilterClause]) -> dict[str, Any]:
         ],
         "result_type": "full",
         "result_format": "json",
+    }
+
+
+@pytest.mark.parametrize("group_limit", [False, True])
+def test_chart_data_fetch_values_predicate_without_configured_predicate(
+    client: FlaskClient,
+    full_api_access: None,
+    metric_view: tuple[SemanticView, MagicMock],
+    group_limit: bool,
+) -> None:
+    """An absent optional predicate must not fail or discard explicit filters."""
+    payload: dict[str, Any] = _request(
+        [{"col": "category", "op": "==", "val": "Books"}]
+    )
+    payload["queries"][0]["apply_fetch_values_predicate"] = True
+    if group_limit:
+        metric_view[1].features = frozenset({SemanticViewFeature.GROUP_LIMIT})
+        payload["queries"][0].update(
+            series_limit=1,
+            series_columns=["category"],
+        )
+
+    response: TestResponse = client.post("/api/v1/chart/data", json=payload)
+
+    assert response.status_code == 200, response.json
+    assert response.json is not None
+    assert response.json["result"][0]["data"] == [
+        {"category": "Books", "total_amount": 7}
+    ]
+    query: SemanticQuery = metric_view[1].get_table.call_args.args[0]
+    expected_filters: set[Filter] = {
+        Filter(
+            type=PredicateType.WHERE,
+            column=next(iter(metric_view[1].get_dimensions())),
+            operator=Operator.EQUALS,
+            value="Books",
+        )
+    }
+    assert query.filters == expected_filters
+    if group_limit:
+        assert query.group_limit is not None
+        assert query.group_limit.filters is None  # Inherit the main query filters.
+
+
+def test_group_limit_fetch_values_predicate_without_configured_predicate(
+    metric_view: tuple[SemanticView, MagicMock],
+) -> None:
+    """Separate inner bounds also tolerate the absent optional predicate."""
+    dimension: Dimension = next(iter(metric_view[1].get_dimensions()))
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=metric_view[0],
+        apply_fetch_values_predicate=True,
+        inner_from_dttm=datetime(2025, 10, 1),
+        inner_to_dttm=datetime(2025, 10, 2),
+        filters=[{"col": "category", "op": "==", "val": "Books"}],
+    )
+    assert _get_group_limit_filters(query, {dimension.name: dimension}) == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=dimension,
+            operator=Operator.EQUALS,
+            value="Books",
+        )
     }
 
 

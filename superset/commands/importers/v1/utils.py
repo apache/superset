@@ -295,12 +295,21 @@ def load_configs(
                 if file_name in encrypted_extra_secrets and config.get(
                     "masked_encrypted_extra"
                 ):
+                    file_secrets = encrypted_extra_secrets[file_name]
+                    if not isinstance(file_secrets, dict):
+                        raise ValidationError(
+                            {
+                                "encrypted_extra_secrets": [
+                                    "Must map JSONPath expressions to their values."
+                                ]
+                            }
+                        )
                     # Normalize escape sequences (needed for PEM keys/certs)
                     normalized_secrets = {
                         path: value.replace("\\n", "\n")
                         if isinstance(value, str)
                         else value
-                        for path, value in encrypted_extra_secrets[file_name].items()
+                        for path, value in file_secrets.items()
                     }
                     temp_dict = json.loads(config["masked_encrypted_extra"])
                     temp_dict = json.set_masked_fields(temp_dict, normalized_secrets)
@@ -433,11 +442,17 @@ def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
         check_is_safe_zip(bundle)
     except SupersetException as ex:
         raise IncorrectFormatError(ex.message) from ex
-    return {
-        remove_root(file_name): bundle.read(file_name).decode()
-        for file_name in bundle.namelist()
-        if is_valid_config(file_name)
-    }
+    contents: dict[str, str] = {}
+    for file_name in bundle.namelist():
+        if not is_valid_config(file_name):
+            continue
+        try:
+            contents[remove_root(file_name)] = bundle.read(file_name).decode()
+        except UnicodeDecodeError as ex:
+            raise IncorrectFormatError(
+                f"File {remove_root(file_name)} is not valid UTF-8"
+            ) from ex
+    return contents
 
 
 # pylint: disable=consider-using-transaction

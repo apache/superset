@@ -455,6 +455,8 @@ class GetChartInfoRequest(BaseModel):
             extract_permalink_key_from_url,
         )
 
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode()
         if isinstance(value, str) and "/" in value:
             if key := extract_permalink_key_from_url(value):
                 return key
@@ -872,10 +874,14 @@ class BaseChartConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
         max_length=255,
     )
 
-    @field_validator("temporal_column")
+    @field_validator("temporal_column", mode="before")
     @classmethod
-    def sanitize_temporal_column(cls, v: str | None) -> str | None:
+    def sanitize_temporal_column(cls, v: object) -> object:
         """Sanitize temporal column names to prevent SQL injection."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str):
+            return v
         return sanitize_user_input(
             v,
             "Temporal column",
@@ -994,20 +1000,26 @@ class ColumnRef(UnknownFieldCheckMixin, OmittedMeansUnchanged):
             self.aggregate = None
         return self
 
-    @field_validator("name")
+    @field_validator("name", mode="before")
     @classmethod
-    def sanitize_name(cls, v: str | None) -> str | None:
+    def sanitize_name(cls, v: object) -> object:
         """Sanitize column name to prevent XSS and SQL injection."""
-        if v is None:
-            return None
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str):
+            return v
         return sanitize_user_input(
             v, "Column name", max_length=255, check_sql_keywords=True
         )
 
-    @field_validator("label")
+    @field_validator("label", mode="before")
     @classmethod
-    def sanitize_label(cls, v: str | None) -> str | None:
+    def sanitize_label(cls, v: object) -> object:
         """Sanitize display label to prevent XSS attacks."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str):
+            return v
         return sanitize_user_input(v, "Label", max_length=500, allow_empty=True)
 
     @field_validator("sql_expression")
@@ -1032,6 +1044,41 @@ class AxisConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
         ),
         max_length=50,
     )
+
+
+def _route_x_axis_key(data: Any, column_keys: tuple[str, ...]) -> Any:
+    """Route an ``x_axis`` payload to the column field or to axis styling.
+
+    Native ``form_data`` names the x-axis column ``x_axis``, and models that
+    accept it as a column alias also expose an ``x_axis`` styling field, so a
+    single input key would otherwise feed both. The payload's shape decides:
+    a bare string, or a non-empty mapping that names no styling field, is a
+    column reference and is moved to ``x``; anything else stays put and
+    configures the axis. Keying off the styling names rather than the column
+    names keeps a mistyped styling key ("sort_by") reported against
+    ``AxisConfig``, where the caller meant it, instead of against ``ColumnRef``.
+    """
+    if not isinstance(data, dict) or "x_axis" not in data:
+        return data
+    value = data["x_axis"]
+    is_column_ref = isinstance(value, str) or (
+        isinstance(value, dict)
+        and bool(value)
+        and not set(value) & set(AxisConfig.model_fields)
+    )
+    if not is_column_ref:
+        return data
+    data = dict(data)
+    column = data.pop("x_axis")
+    if any(data.get(key) is not None for key in column_keys):
+        raise ValueError(
+            "'x_axis' was read as the x-axis column, but "
+            f"{' / '.join(repr(key) for key in column_keys)} names it too. "
+            "Pass the column once, and use 'x_axis' only for axis styling "
+            "(title, scale, format)."
+        )
+    data["x"] = {"name": column} if isinstance(column, str) else column
+    return data
 
 
 class LegendConfig(UnknownFieldCheckMixin):
@@ -1123,15 +1170,17 @@ class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
             raise ValueError(f"Filter operator {self.op!r} requires 'value'.")
         return self
 
-    @field_validator("column")
+    @field_validator("column", mode="before")
     @classmethod
-    def sanitize_column(cls, v: str) -> str:
+    def sanitize_column(cls, v: object) -> object:
         """Sanitize filter column name to prevent injection attacks."""
-        # sanitize_user_input raises ValueError when allow_empty=False (default)
-        # so the return value is guaranteed to be a non-None str
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str):
+            return v
         return sanitize_user_input(
             v, "Filter column", max_length=255, check_sql_keywords=True
-        )  # type: ignore[return-value]
+        )
 
     @field_validator("value")
     @classmethod
@@ -1204,16 +1253,20 @@ class GanttSortByConfig(UnknownFieldCheckMixin):
         description="Sort this column ascending when true, descending when false",
     )
 
-    @field_validator("column")
+    @field_validator("column", mode="before")
     @classmethod
-    def sanitize_column(cls, value: str) -> str:
+    def sanitize_column(cls, value: object) -> object:
         """Sanitize the order column like every other dimension name."""
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode()
+        if not isinstance(value, str):
+            return value
         return sanitize_user_input(
             value,
             "Gantt order column",
             max_length=255,
             check_sql_keywords=True,
-        )  # type: ignore[return-value]
+        )
 
 
 # Actual chart types
@@ -2754,10 +2807,14 @@ class SunburstChartConfig(BaseChartConfig):
         # typos and stale type-specific payload rather than silently dropping it.
         return data
 
-    @field_validator("time_range")
+    @field_validator("time_range", mode="before")
     @classmethod
-    def sanitize_time_range(cls, value: str | None) -> str | None:
+    def sanitize_time_range(cls, value: object) -> object:
         """Sanitize a human-readable Superset time-range expression."""
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode()
+        if not isinstance(value, str):
+            return value
         return sanitize_user_input(
             value,
             "Time range",
@@ -3146,12 +3203,14 @@ class InteractivePivotChartConfig(BaseChartConfig):
             data["time_compare"] = periods[0] if periods else None
         return data
 
-    @field_validator("comparison_period")
+    @field_validator("comparison_period", mode="before")
     @classmethod
-    def sanitize_comparison_period(cls, value: str | None) -> str | None:
+    def sanitize_comparison_period(cls, value: object) -> object:
         """Sanitize the relative time-shift label."""
-        if value is None:
-            return None
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode()
+        if not isinstance(value, str):
+            return value
         return sanitize_user_input(
             value,
             "Comparison period",
@@ -3210,11 +3269,9 @@ class MixedTimeseriesChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["mixed_timeseries"] = "mixed_timeseries"
-    x: ColumnRef = Field(
-        ...,
-        description="Shared temporal X-axis column",
-        validation_alias=AliasChoices("x", "x_axis"),
-    )
+    # ``x_axis`` is also accepted for this field, but it arrives through
+    # ``disambiguate_x_axis`` rather than an alias -- see _route_x_axis_key.
+    x: ColumnRef = Field(..., description="Shared temporal X-axis column")
     time_grain: TimeGrain | None = Field(
         None,
         description="PT1H, P1D, P1W, P1M, P1Y",
@@ -3310,6 +3367,12 @@ class MixedTimeseriesChartConfig(BaseChartConfig):
     resample_rule_b: str | None = None
     resample_method_b: str | None = None
     row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def disambiguate_x_axis(cls, data: Any) -> Any:
+        """Send an ``x_axis`` payload to ``x`` or to the styling field."""
+        return _route_x_axis_key(data, ("x",))
 
     @field_validator("group_by", "group_by_secondary", mode="before")
     @classmethod
@@ -3950,6 +4013,8 @@ class XYChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["xy"] = "xy"
+    # ``x_axis`` is also accepted for this field, but it arrives through
+    # ``disambiguate_x_axis`` rather than an alias -- see _route_x_axis_key.
     x: ColumnRef | None = Field(
         None,
         description=(
@@ -4099,6 +4164,12 @@ class XYChartConfig(BaseChartConfig):
                 "Series ranking requires an aggregate, saved metric, or SQL metric"
             )
         return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def disambiguate_x_axis(cls, data: Any) -> Any:
+        """Send an ``x_axis`` payload to ``x`` or to the styling field."""
+        return _route_x_axis_key(data, ("x", "x_column"))
 
     @field_validator("group_by", mode="before")
     @classmethod
@@ -4631,9 +4702,14 @@ class BulletChartConfig(BaseChartConfig):
             result.append(sanitized or "")
         return result
 
-    @field_validator("time_range")
+    @field_validator("time_range", mode="before")
     @classmethod
-    def sanitize_time_range(cls, value: str | None) -> str | None:
+    def sanitize_time_range(cls, value: object) -> object:
+        """Sanitize the time range before enforcing its text length limit."""
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode()
+        if not isinstance(value, str):
+            return value
         return sanitize_user_input(
             value, "Time range", max_length=1000, allow_empty=True
         )
@@ -6320,24 +6396,14 @@ class ChartTargetMixin(BaseModel):
         return self
 
 
-class GenerateChartRequest(
-    ChartRequestNormalizerMixin, ChartTargetMixin, QueryCacheControl
-):
-    model_config = ConfigDict(populate_by_name=True)
+class ChartNameMixin(BaseModel):
+    """Share chart-name normalization and server-only sanitization notices."""
 
-    config: Annotated[ChartConfig, chart_config_reference_schema()] = Field(
-        ..., description=CHART_CONFIG_DESCRIPTION
-    )
     chart_name: str | None = Field(
         None,
         description="Auto-generates if omitted",
-        max_length=255,
+        max_length=250,
         validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
-    )
-    save_chart: bool = Field(default=False, description="Save permanently in Superset")
-    generate_preview: bool = True
-    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
-        default_factory=lambda: ["url"],
     )
     sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
@@ -6354,7 +6420,7 @@ class GenerateChartRequest(
     def _detect_chart_name_sanitization(cls, data: Any) -> Any:
         """Record a warning when chart_name sanitization alters user input.
 
-        Runs before the ``chart_name`` field validator strips HTML, so we
+        Sanitizes once before field constraints are applied, so we
         can compare the caller's raw input against the sanitizer output
         and tell the tool whether to notify the caller. Empty-after-
         sanitization is rejected with a ValueError so the caller gets a
@@ -6373,12 +6439,19 @@ class GenerateChartRequest(
                 break
         else:
             raw = None
-        if not isinstance(raw, str) or not raw.strip():
-            return data
         with field_validation_error("chart_name"):
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode()
+            if not isinstance(raw, str):
+                return data
+            if not raw.strip():
+                data[key] = None
+                return data
             sanitized, was_modified = sanitize_user_input_with_changes(
-                raw, "Chart name", max_length=255, allow_empty=True
+                raw, "Chart name", max_length=250, allow_empty=True
             )
+            if isinstance(sanitized, str):
+                sanitized = sanitized.strip()
             if was_modified and not sanitized:
                 raise ValueError(
                     "chart_name contained only disallowed content "
@@ -6386,6 +6459,7 @@ class GenerateChartRequest(
                     "sanitization. Provide a chart_name with plain text, or "
                     "omit it to auto-generate one."
                 )
+        data[key] = sanitized
         if was_modified:
             data["sanitization_warnings"].append(
                 "chart_name was modified during sanitization to remove "
@@ -6396,16 +6470,24 @@ class GenerateChartRequest(
 
     @field_validator("chart_name")
     @classmethod
-    def sanitize_chart_name(cls, v: str | None) -> str | None:
-        """Sanitize chart name to prevent XSS attacks."""
-        try:
-            return sanitize_user_input(
-                v, "Chart name", max_length=255, allow_empty=True
-            )
-        except ValueError as ex:
-            raise PydanticCustomError(
-                "unsafe_text", "{error}", {"error": str(ex)}
-            ) from ex
+    def normalize_blank_chart_name(cls, v: str | None) -> str | None:
+        """Keep the optional-name fallback; nonblank names are sanitized above."""
+        return v if v and v.strip() else None
+
+
+class GenerateChartRequest(
+    ChartRequestNormalizerMixin, ChartTargetMixin, QueryCacheControl, ChartNameMixin
+):
+    model_config = ConfigDict(populate_by_name=True)
+
+    config: Annotated[ChartConfig, chart_config_reference_schema()] = Field(
+        ..., description=CHART_CONFIG_DESCRIPTION
+    )
+    save_chart: bool = Field(default=False, description="Save permanently in Superset")
+    generate_preview: bool = True
+    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
+        default_factory=lambda: ["url"],
+    )
 
     @model_validator(mode="after")
     def validate_cache_timeout(self) -> "GenerateChartRequest":
@@ -6449,7 +6531,10 @@ class GenerateExploreLinkRequest(
 
 
 class UpdateChartRequest(
-    ChartRequestNormalizerMixin, OmittedMeansUnchanged, QueryCacheControl
+    ChartRequestNormalizerMixin,
+    OmittedMeansUnchanged,
+    QueryCacheControl,
+    ChartNameMixin,
 ):
     model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
@@ -6464,7 +6549,10 @@ class UpdateChartRequest(
     ] = Field(
         None,
         description=(
-            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name."
+            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name. "
+            "Outdated semantic tables require all columns reselected and explicit "
+            "filters ([] to clear). Unverified retained selections refuse with "
+            "Explore recovery guidance."
         ),
     )
     add_columns: List[ColumnRef] | None = Field(
@@ -6474,12 +6562,6 @@ class UpdateChartRequest(
             "column and metric. Use this instead of config.columns when adding "
             "columns to an existing table chart."
         ),
-    )
-    chart_name: str | None = Field(
-        None,
-        description="Auto-generates if omitted",
-        max_length=255,
-        validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     dataset_id: int | None = Field(
         None,
@@ -6539,19 +6621,6 @@ class UpdateChartRequest(
         if self.add_columns == []:
             raise ValueError("'add_columns' must contain at least one column")
         return self
-
-    @field_validator("chart_name")
-    @classmethod
-    def sanitize_chart_name(cls, v: str | None) -> str | None:
-        """Sanitize chart name to prevent XSS attacks."""
-        try:
-            return sanitize_user_input(
-                v, "Chart name", max_length=255, allow_empty=True
-            )
-        except ValueError as ex:
-            raise PydanticCustomError(
-                "unsafe_text", "{error}", {"error": str(ex)}
-            ) from ex
 
 
 class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheControl):

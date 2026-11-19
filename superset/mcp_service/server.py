@@ -456,21 +456,22 @@ def _tool_allowed_for_current_user(tool: Any) -> bool:
             _get_app_context_manager,
             get_user_from_request,
             is_tool_visible_to_current_user,
+            MCPNoAuthSourceError,
         )
 
         def _check() -> bool:
             if not getattr(g, "user", None):
                 try:
                     g.user = get_user_from_request()
-                except PermissionError:
-                    # Invalid credentials (bad API key) → deny all, matching
-                    # RBACToolVisibilityMiddleware's fail-closed behaviour.
-                    return False
-                except ValueError:
+                except MCPNoAuthSourceError:
                     # No auth source configured → only pass public tools
                     # (those with no class-level permission requirement).
                     func = getattr(tool, "fn", tool)
                     return not getattr(func, "_class_permission_name", None)
+                except (PermissionError, ValueError):
+                    # Rejected API-key, JWT, or guest credentials deny all tools,
+                    # matching RBACToolVisibilityMiddleware's fail-closed path.
+                    return False
             return is_tool_visible_to_current_user(tool)
 
         if has_app_context():

@@ -26,6 +26,10 @@ export default defineConfig({
   globalSetup: 'setup-stories.ts',
   use: { baseURL: storybookUrl },
   fullyParallel: true,
+  // Playwright defaults to half the cores. The story smoke tests are light and
+  // CPU-bound, so use every core on CI; locally keep the default so a dev
+  // machine stays responsive.
+  workers: process.env.CI ? '100%' : undefined,
   webServer: {
     command: 'npm run storybook -- --ci',
     url: `${storybookUrl}/index.json`,

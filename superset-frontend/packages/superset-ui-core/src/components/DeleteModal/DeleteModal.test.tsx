@@ -299,3 +299,29 @@ test('confirmation reset key clears and re-arms type-to-confirm', async () => {
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
   expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
 });
+
+test.each([false, true])(
+  'confirmation preservation is opt-in: %s',
+  async preserveConfirmationOnConfirm => {
+    const onConfirm = jest.fn();
+    render(
+      <DeleteModal
+        title="Delete?"
+        description="Permanent"
+        open
+        onHide={jest.fn()}
+        onConfirm={onConfirm}
+        {...(preserveConfirmationOnConfirm
+          ? { preserveConfirmationOnConfirm: true }
+          : {})}
+      />,
+    );
+    const input = screen.getByTestId('delete-modal-input');
+    await userEvent.type(input, 'DELETE');
+    await userEvent.click(screen.getByTestId('modal-confirm-button'));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(input).toHaveValue(preserveConfirmationOnConfirm ? 'DELETE' : '');
+    await userEvent.click(screen.getByTestId('close-modal-btn'));
+    expect(input).toHaveValue('');
+  },
+);

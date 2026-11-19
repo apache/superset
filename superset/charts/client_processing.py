@@ -25,7 +25,9 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
+import re
 from collections.abc import Callable
+from decimal import Decimal
 from functools import partial
 from io import BytesIO, StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
@@ -42,6 +44,7 @@ from superset.extensions import event_logger
 from superset.utils import csv, excel
 from superset.utils.core import (
     extract_dataframe_dtypes,
+    GenericDataType,
     get_column_names,
     get_metric_name,
     get_metric_names,
@@ -72,6 +75,36 @@ PERCENT_1_POINT = ",.1%"
 
 # The Excel equivalent, applied as a cell format so the value stays numeric.
 EXCEL_PERCENT_FORMAT = "0.0%"
+
+# ``VizType.TableAgGrid``. The AG Grid table plugin reuses the Table plugin's
+# column meta and formatter selection, so it shares this post-processor.
+AG_GRID_TABLE = "ag-grid-table"
+
+# ``strftime`` copies a directive it does not recognize into its output
+# verbatim, so a d3-only one would reach the report as literal text: ``%L`` and
+# ``%q`` stay ``%L`` and ``%q`` rather than becoming milliseconds and a quarter.
+# These are the directives that carry the same meaning in d3-time-format and in
+# ``strftime``. Left out are:
+#
+# * the ones that name a weekday, a month or a period (``%a``, ``%A``, ``%b``,
+#   ``%B``, ``%p``). The browser reads those names from the d3 locale
+#   definition, which ``D3_TIME_FORMAT`` overrides key by key, while
+#   ``strftime`` reads them from the worker's ``LC_TIME``. The two agree only
+#   when nothing is configured and the worker runs in English.
+# * the locale-composite ones (``%c``, ``%x``, ``%X``), whose output follows
+#   the server's locale rather than the chart's.
+# * ``%f``. d3 derives it from ``getUTCMilliseconds() * 1000``, so the browser's
+#   microseconds always end in ``000``, while a warehouse column with sub-second
+#   precision reaches ``strftime`` with the real value.
+# * the platform-dependent or d3-only ones (``%e``, ``%g``, ``%L``, ``%q``,
+#   ``%Q``, ``%s``, ``%Z``, ``%z``).
+SHARED_TIME_DIRECTIVES = frozenset("dGHIjmMSuUVwWyY%")
+
+# ``time-format/TimeFormats.ts::LOCAL_PREFIX``. The browser's registry removes
+# this marker from the format and formats in the viewer's own time zone instead
+# of UTC, which the server has no way to reproduce: its own zone is not the
+# viewer's. A format carrying it is left to the browser.
+LOCAL_TIME_PREFIX = "local!"
 
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
@@ -647,16 +680,18 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             for col in df.columns:
                 # we need to replace the temporary placeholder with either a string
                 # or np.nan, depending on the column type so that they can sum correctly
-                if pd.api.types.is_numeric_dtype(df[col]):
-                    df[col].replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
-                else:
-                    df[col].replace("SUPERSET_PANDAS_NAN", "nan", inplace=True)
+                # Assigning the result back is required: under copy-on-write,
+                # an inplace replace on df[col] only updates a copy.
+                missing = np.nan if pd.api.types.is_numeric_dtype(df[col]) else "nan"
+                df[col] = df[col].replace("SUPERSET_PANDAS_NAN", missing)
         else:
             # when we applied metrics on rows, we switched the columns and rows
             # so checking column type doesn't apply. Replace everything with np.nan
             df.replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
         for level in range(df.columns.nlevels):
             subgroups = {group[:level] for group in groups}
+            subtotals: dict[tuple[Any, ...], pd.Series] = {}
+            positions: list[tuple[int, tuple[Any, ...]]] = []
             for subgroup in subgroups:
                 slice_ = df.columns.get_loc(subgroup)
                 block = df.iloc[:, slice_]
@@ -679,14 +714,37 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 depth = df.columns.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal_name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
-                # insert column after subgroup
-                df.insert(int(slice_.stop), subtotal_name, subtotal)
+                subtotals[subtotal_name] = subtotal
+                positions.append((int(slice_.stop), subtotal_name))
                 inserted_columns.append(subtotal_name)
                 if mixed_metrics:
                     mixed_metric_totals.append(subtotal_name)
                 column_prefix_depth[subtotal_name] = (
                     level if combine_metrics else max(0, level - 1)
                 )
+
+            if not subtotals:
+                continue
+            # Batch each level so adding many subtotals does not fragment the
+            # frame. Deeper levels still see the preceding levels' totals.
+            # Preserve level ordering: rebuilding from tuples can make this
+            # unsorted and trigger lexsort PerformanceWarnings on prefix lookup.
+            # Place values by position: Index.insert can coerce the empty
+            # padding of a temporal label to NaT, which label lookup would miss.
+            width = df.shape[1]
+            column_order = df.columns
+            take = list(range(width))
+            for offset, (position, name) in sorted(
+                enumerate(positions), key=lambda item: item[1][0], reverse=True
+            ):
+                if name in df.columns:
+                    raise ValueError(f"cannot insert {name}, already exists")
+                column_order = column_order.insert(position, name)
+                take.insert(position, width + offset)
+            subtotal_frame = pd.DataFrame(subtotals, index=df.index)
+            df = pd.concat([df, subtotal_frame], axis=1, ignore_index=True)
+            df = df.iloc[:, take]
+            df.columns = column_order
 
     if rows and show_columns_total:
         # add subtotal for each group and overall total; we start from the
@@ -930,6 +988,80 @@ pivot_v2_aggfunc_map = {
 }
 
 
+def is_small_number(value: Any) -> bool:
+    """
+    Whether a cell takes the small-number format, as the browser decides it.
+
+    ``formatColumnValue`` in ``plugin-chart-table`` switches formatter when
+    ``Math.abs(value) < 1``, which only applies to numbers; booleans are not
+    numbers there.
+
+    The type check is not only about matching that: the percent metric branch
+    is the one caller that does not test ``is_numeric_dtype`` first, so a
+    percent metric column carrying a null or a text value reaches here, and
+    ``float`` would raise on both. NaN and infinity need no check of their own,
+    since ``abs`` leaves them outside the comparison just as ``Math.abs`` does.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
+        return False
+    return abs(float(value)) < 1
+
+
+def is_strftime_expressible(d3_time_format: str) -> bool:
+    """Whether ``strftime`` renders a d3 time format the way the browser does."""
+    if LOCAL_TIME_PREFIX in d3_time_format:
+        # ``TimeFormatterRegistry.get`` strips the marker before building the
+        # formatter, so leaving it in would render it as literal text.
+        return False
+    directives = re.findall(r"%(.)", d3_time_format)
+    if not directives:
+        # Nothing for ``strftime`` to substitute, so it hands the string back
+        # unchanged and every cell would read the format itself. This is also
+        # what rejects the aliases the time format controls offer, which the
+        # browser resolves to a formatter that picks a representation per value
+        # rather than to a format string: ``smart_date`` ("Adaptive
+        # formatting", ``SMART_DATE_ID`` in ``superset-ui-core/time-format``)
+        # among them.
+        return False
+    if "%" in re.sub(r"%.", "", d3_time_format):
+        # A ``%`` no directive consumed, as the trailing one in ``%Y%``. d3
+        # drops it (``2021``) and ``strftime`` copies it (``2021%``), so the
+        # two disagree even where every directive is shared. ``%%`` is not
+        # this case: both read it as one escaped ``%``.
+        return False
+    return all(directive in SHARED_TIME_DIRECTIVES for directive in directives)
+
+
+def format_time_column(df: pd.DataFrame, column: Any, d3_time_format: str) -> None:
+    """Format a temporal column in place with an explicit d3 time format.
+
+    The caller gates this on ``is_strftime_expressible``, so every directive in
+    ``d3_time_format`` means the same thing here as it does in the browser, and
+    strips the format first, because ``TimeFormatterRegistry.get`` trims before
+    it builds the formatter. ``str.strip`` is not character-for-character
+    ``String.prototype.trim``: a leading ``U+FEFF`` is trimmed in the browser
+    and kept here, and ``U+001C``-``U+001F`` and ``U+0085`` the other way
+    round. None of them is a directive, so a format carrying one renders apart
+    from the chart by that character alone.
+
+    A null is left as it is. Without the ``pd.notna`` guard it would not come
+    out as the string ``"NaT"``: ``pd.NaT.strftime`` raises ``ValueError:
+    NaTType does not support strftime``, so a single missing timestamp would
+    fail the whole report.
+
+    An aware value is read in UTC. ``createD3TimeFormatter`` builds the
+    formatter with ``utcFormat`` unless the format asks for local time, which
+    ``is_strftime_expressible`` rejects, whereas ``strftime`` would use the
+    value's own offset and put a different instant in the report.
+    """
+    values = df[column]
+    if isinstance(values.dtype, pd.DatetimeTZDtype):
+        values = values.dt.tz_convert("UTC")
+    df[column] = values.apply(
+        lambda value: value.strftime(d3_time_format) if pd.notna(value) else value
+    )
+
+
 def format_column(
     df: pd.DataFrame,
     column: Any,
@@ -938,6 +1070,8 @@ def format_column(
     detected_currency: Optional[str] = None,
     currency_context: Optional[pd.Series] = None,
     fallback_to_detected: bool = True,
+    small_d3_format: Optional[str] = None,
+    small_currency: Optional[dict[str, Any]] = None,
 ) -> None:
     """
     Format a column in place when a number or currency format is configured.
@@ -946,18 +1080,69 @@ def format_column(
     parallel ``currency_context`` series is present, AUTO uses each row/cell's
     contributing currencies first. Mixed context renders a neutral number;
     empty context optionally falls back to query-wide detection.
+
+    ``small_d3_format`` is the column's small-number format. The choice is per
+    cell rather than per column, matching ``formatColumnValue``: a value below
+    one in absolute value takes that format with the column config's own
+    currency, exactly what ``getSmallNumberFormatter`` builds, and every other
+    value keeps the column's normal format. An AUTO currency resolves against
+    the row's context on both paths, since the browser passes the row data to
+    either formatter.
+
+    ``small_currency`` is the column config's ``currencyFormat`` as it stands,
+    an absent one included, because the browser decides whether to build a
+    currency formatter on the object rather than on its symbol.
     """
-    if d3_format or currency.get("symbol"):
+    if small_d3_format and small_currency is not None:
+        # ``getSmallNumberFormatter`` builds a ``CurrencyFormatter`` from any
+        # ``currencyFormat`` object, and that constructor strips ``$`` from the
+        # format before the symbol is looked at, so a config whose currency was
+        # cleared still drops the ``$``. Stripping it away entirely leaves an
+        # empty format, which the browser's registry answers with its default
+        # key. Without a ``currencyFormat`` object at all the browser builds a
+        # plain number formatter, which honors the ``$``.
+        small_d3_format = small_d3_format.replace("$", "") or SMART_NUMBER
+
+    if d3_format or currency.get("symbol") or small_d3_format:
         if currency_context is None:
             resolved_currency = resolve_auto_currency(currency, detected_currency)
-            df[column] = df[column].apply(
-                partial(format_number_with_config, d3_format, resolved_currency)
+            format_value = partial(
+                format_number_with_config, d3_format, resolved_currency
             )
+            if small_d3_format:
+                format_small = partial(
+                    format_number_with_config, small_d3_format, small_currency or {}
+                )
+                df[column] = df[column].apply(
+                    lambda value: (
+                        format_small(value)
+                        if is_small_number(value)
+                        else format_value(value)
+                    )
+                )
+                return
+            df[column] = df[column].apply(format_value)
             return
 
         contexts = currency_context.reindex(df.index)
-        df[column] = [
-            format_number_with_config(
+
+        def format_with_context(value: Any, context: Any) -> Any:
+            if small_d3_format and is_small_number(value):
+                # ``formatValue`` hands the row's data to the small-number
+                # formatter too, so an AUTO currency there resolves against
+                # that row's contributing currencies. That formatter never
+                # sees the query-wide detection, hence no fallback to it.
+                return format_number_with_config(
+                    small_d3_format,
+                    resolve_auto_currency(
+                        small_currency or {},
+                        None,
+                        context,
+                        fallback_to_detected=False,
+                    ),
+                    value,
+                )
+            return format_number_with_config(
                 d3_format,
                 resolve_auto_currency(
                     currency,
@@ -967,6 +1152,9 @@ def format_column(
                 ),
                 value,
             )
+
+        df[column] = [
+            format_with_context(value, context)
             for value, context in zip(df[column], contexts, strict=True)
         ]
 
@@ -1339,6 +1527,12 @@ def table(
         df[currency_column].map(currency_context_value) if currency_column else None
     )
     column_config = form_data.get("column_config") or {}
+    # ``ColumnConfigControl`` offers the small-number format for both plugins,
+    # but the AG Grid table's cells are painted through ``valueFormatter``,
+    # which formats with the column's own formatter and never builds the
+    # small-number one the way ``formatColumnValue`` does. A report leaves that
+    # format alone rather than apply one the chart itself ignores.
+    applies_small_number_format = form_data.get("viz_type") != AG_GRID_TABLE
 
     def label_of(name: str) -> str:
         """Return the column label as it appears in ``df`` (verbose-renamed)."""
@@ -1372,7 +1566,36 @@ def table(
     # left untouched, matching the browser.
     for column in df.columns:
         config = config_by_label.get(column) or {}
+
+        # Mirror the Table plugin's first formatter branch
+        # (``if (isTime || config.d3TimeFormat)`` in ``transformProps.ts``):
+        # an explicit per-column ``d3TimeFormat`` formats a temporal column and
+        # takes precedence over number formatting. Scoped to a datetime column
+        # carrying a format every directive of which ``strftime`` reads the same
+        # way. A column of another dtype has no ``strftime`` to call, and the
+        # bare ``isTime`` fallback, the ``tableTimestampFormat`` default,
+        # adaptive granularity and string temporal columns are left to a
+        # follow-up: they need a full server-side d3-time-format port rather
+        # than ``strftime``.
+        # ``TimeFormatterRegistry.get`` trims the format before building the
+        # formatter while d3 itself does not, so ``utcFormat(" %Y ")`` returns
+        # ``" 2024 "`` and without the strip the report keeps padding the chart
+        # dropped. One that is only whitespace strips to empty and falls
+        # through unformatted, like one whose directives cannot be reproduced.
+        time_format = (config.get("d3TimeFormat") or "").strip()
+        if (
+            time_format
+            and is_strftime_expressible(time_format)
+            and pd.api.types.is_datetime64_any_dtype(df[column])
+        ):
+            format_time_column(df, column, time_format)
+            continue
+
         configured_currency = config.get("currencyFormat") or {}
+        # The small-number formatter is built from this object whether or not a
+        # symbol survived in it, so an absent one has to stay distinguishable
+        # from a cleared one.
+        small_currency = config.get("currencyFormat")
         number_format = config.get("d3NumberFormat") or number_format_by_label.get(
             column
         )
@@ -1381,15 +1604,45 @@ def table(
             if configured_currency.get("symbol")
             else currency_by_label.get(column) or {}
         )
+        # The small-number format has no dataset-level counterpart, and the
+        # browser pairs it with the column config's own currency rather than
+        # the resolved one, so both come straight from ``config``. A cleared
+        # Select leaves a blank string behind, which the browser treats as
+        # unset.
+        small_number_format = (
+            (config.get("d3SmallNumberFormat") or "").strip() or None
+            if applies_small_number_format
+            else None
+        )
 
         is_number = pd.api.types.is_numeric_dtype(df[column])
 
         if column in percent_metric_labels:
-            format_column(df, column, number_format or PERCENT_3_POINT, {})
+            # A percent metric's own formatter never carries a currency, but
+            # ``getSmallNumberFormatter`` still builds one from the column
+            # config, so the small-number cells need the row's context too.
+            format_column(
+                df,
+                column,
+                number_format or PERCENT_3_POINT,
+                {},
+                currency_context=row_currency_context,
+                small_d3_format=small_number_format,
+                small_currency=small_currency,
+            )
         elif (column in metric_labels and is_number) or (
-            is_number and (number_format or currency.get("symbol"))
+            is_number
+            and (number_format or currency.get("symbol") or small_number_format)
         ):
-            if not number_format and not currency.get("symbol"):
+            # Only a metric falls back to SMART_NUMBER, the way
+            # ``transformProps`` only builds a default formatter for one. A
+            # plain numeric column configured with just a small-number format
+            # keeps its other cells unformatted, as the browser does.
+            if (
+                column in metric_labels
+                and not number_format
+                and not currency.get("symbol")
+            ):
                 number_format = SMART_NUMBER
             format_column(
                 df,
@@ -1399,6 +1652,8 @@ def table(
                 detected_currency,
                 row_currency_context,
                 fallback_to_detected=False,
+                small_d3_format=small_number_format,
+                small_currency=small_currency,
             )
 
     return df
@@ -1407,6 +1662,16 @@ def table(
 post_processors = {
     "pivot_table_v2": pivot_table_v2,
     "table": table,
+    # The AG Grid table plugin picks each column's formatter with the Table
+    # plugin's ``transformProps`` logic and the same ``column_config`` keys:
+    # ``d3NumberFormat``, then the saved format, then the currency, then
+    # PERCENT_3_POINT or SMART_NUMBER. That selection is what the two plugins
+    # share, so a report on one is formatted by the same post-processor. The
+    # cells themselves are painted by the AG Grid ``valueFormatter``, which
+    # calls the column's own formatter; ``formatColumnValue`` only labels
+    # drill-to-detail. The query-building side pairs the two viz types the same
+    # way.
+    AG_GRID_TABLE: table,
 }
 
 
@@ -1448,6 +1713,44 @@ def _read_excel_for_client_processing(
     return df.set_index(first_column)
 
 
+def payload_coltypes(
+    df: pd.DataFrame,
+    datasource: Optional[Union["BaseDatasource", "Query"]],
+) -> list[GenericDataType]:
+    """The payload's column types, reporting a text-rendered column as text.
+
+    ``extract_dataframe_dtypes`` lets the dataset's ``is_dttm`` flag decide the
+    type, so a temporal column a post-processor has rendered as text is still
+    reported as ``TEMPORAL``. ``chart_data_to_dataframe`` casts every
+    ``TEMPORAL`` column back to ``datetime64[ms]`` to build the notification
+    table, which would re-parse those strings and lose the configured format,
+    and would read ``02/01/2024`` month-first while reading ``15/01/2024``
+    day-first.
+
+    Only a column whose values really are strings is reported differently. The
+    XLSX path hands these types to ``apply_column_types`` to get date cells out
+    of a frame whose dates are still dates, and that frame is untouched here.
+
+    Nulls are dropped before the values are read. ``format_time_column`` leaves
+    them in place, and ``infer_dtype`` counts a ``NaT`` as a value of its own
+    type rather than one ``skipna`` drops, so it calls a formatted column
+    holding one ``"mixed"``. A column of nothing but nulls reads as neither
+    text nor mixed and keeps whatever type the dataset gives it.
+
+    The index is positional because ``extract_dataframe_dtypes`` walks the
+    frame the same way, so the two line up even where a label repeats.
+    """
+    coltypes = extract_dataframe_dtypes(df, datasource)
+    return [
+        GenericDataType.STRING
+        if coltype == GenericDataType.TEMPORAL
+        and pd.api.types.infer_dtype(df.iloc[:, index].dropna(), skipna=False)
+        == "string"
+        else coltype
+        for index, coltype in enumerate(coltypes)
+    ]
+
+
 @event_logger.log_this
 def apply_client_processing(  # noqa: C901
     result: dict[Any, Any],
@@ -1467,6 +1770,30 @@ def apply_client_processing(  # noqa: C901
             raise Exception(  # pylint: disable=broad-exception-raised
                 f"Result format {query['result_format']} not supported"
             )
+
+        if (
+            viz_type == AG_GRID_TABLE
+            and query["result_format"] != ChartDataResultFormat.JSON
+        ):
+            # Only a JSON result is rewritten for this viz type, so for CSV and
+            # XLSX everything below is work whose output nothing reads.
+            # ``query["data"]`` goes back out as it came in, and the
+            # ``colnames``/``coltypes``/``rowcount`` the parse would set have no
+            # reader for these formats: ``apply_column_types`` is in the XLSX
+            # branch this viz type never reaches, and the notification table
+            # fetches its own JSON result rather than reading them off an
+            # attachment.
+            #
+            # Parsing anyway can only lose. ``read_csv`` below is handed ``sep``
+            # and ``decimal`` but not the ``quotechar``, ``quoting``,
+            # ``escapechar`` or ``lineterminator`` the writer took from
+            # ``CSV_EXPORT``, so under a custom quote a cell holding the
+            # separator splits: it raises ``ParserError`` and fails the report
+            # where the row is not the first, and where it is, the extra field
+            # is read as an index and the value lands in the wrong column. A
+            # large workbook also spends seconds in ``read_excel`` for a frame
+            # that is thrown away.
+            continue
 
         data = query["data"]
 
@@ -1514,6 +1841,12 @@ def apply_client_processing(  # noqa: C901
                 data, form_data, datasource.data["verbose_map"] if datasource else None
             )
 
+        if len(df.index) == 0:
+            # An export with headers but no rows is passed through unprocessed:
+            # the pivot post-processor assumes at least one row (pivoting drops
+            # the metric columns of an empty frame and then fails to select them).
+            continue
+
         # Serialized exports already carry labels from QueryContextProcessor.get_data.
         # Remapping those labels can mistake them for another column's raw name.
         if datasource and query["result_format"] == ChartDataResultFormat.JSON:
@@ -1530,7 +1863,7 @@ def apply_client_processing(  # noqa: C901
 
         query["colnames"] = list(processed_df.columns)
         query["indexnames"] = list(processed_df.index)
-        query["coltypes"] = extract_dataframe_dtypes(processed_df, datasource)
+        query["coltypes"] = payload_coltypes(processed_df, datasource)
         query["rowcount"] = len(processed_df.index)
 
         # Check if the DataFrame has a default RangeIndex, which should not be shown

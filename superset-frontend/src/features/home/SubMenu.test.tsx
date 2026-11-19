@@ -17,6 +17,7 @@
  * under the License.
  */
 import { BrowserRouter } from 'react-router-dom';
+import { Button, Dropdown } from '@superset-ui/core/components';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import SubMenu, { ButtonProps } from './SubMenu';
 
@@ -158,4 +159,83 @@ test('should render both leftIcon and rightIcon together', async () => {
   });
   expect(await screen.findByTestId('mobile-left')).toBeInTheDocument();
   expect(await screen.findByTestId('mobile-right')).toBeInTheDocument();
+});
+
+// Button spaces neighbouring buttons with the emotion rule
+// `& + .superset-button:not(.ant-btn-compact-item) { margin-left }`, which
+// applies only when the next button is the immediately following DOM sibling
+// of the previous one. Jest does not process the emotion `css` prop, so the
+// rendered gap itself cannot be measured here; these tests assert the DOM
+// condition under which that rule applies, not the resulting pixel gap.
+const BUTTON_SIBLING_SELECTOR = '.superset-button:not(.ant-btn-compact-item)';
+
+const expectButtonSiblingRuleApplies = (
+  previous: HTMLElement,
+  next: HTMLElement,
+) => {
+  expect(previous).toHaveClass('superset-button');
+  expect(next.previousElementSibling).toBe(previous);
+  expect(next.matches(BUTTON_SIBLING_SELECTOR)).toBe(true);
+};
+
+const bulkSelectButton: ButtonProps = {
+  name: 'Bulk select',
+  buttonStyle: 'secondary',
+  onClick: jest.fn(),
+};
+
+const newDropdownButton: ButtonProps = {
+  name: 'New',
+  buttonStyle: 'primary',
+  component: (
+    <Dropdown
+      menu={{ items: [{ key: 'dataset', label: 'Dataset' }] }}
+      trigger={['click']}
+    >
+      <Button data-test="btn-create-new" buttonStyle="primary">
+        New
+      </Button>
+    </Dropdown>
+  ),
+};
+
+test('plain header buttons are adjacent siblings so Button spacing applies', async () => {
+  setup({
+    buttons: [
+      bulkSelectButton,
+      { name: 'New', buttonStyle: 'primary', onClick: jest.fn() },
+    ],
+  });
+  const previous = await screen.findByRole('button', { name: 'Bulk select' });
+  const next = screen.getByRole('button', { name: 'New' });
+  expectButtonSiblingRuleApplies(previous, next);
+});
+
+test('component button stays an adjacent sibling so Button spacing applies', async () => {
+  setup({ buttons: [bulkSelectButton, newDropdownButton] });
+  const previous = await screen.findByRole('button', { name: 'Bulk select' });
+  const trigger = screen.getByTestId('btn-create-new');
+  expectButtonSiblingRuleApplies(previous, trigger);
+});
+
+test('component button stays an adjacent sibling in the collapsed layout', async () => {
+  const originalWidth = window.innerWidth;
+  window.innerWidth = 700;
+  try {
+    const { container } = setup({
+      buttons: [
+        { name: 'Import', buttonStyle: 'link', onClick: jest.fn() },
+        bulkSelectButton,
+        newDropdownButton,
+      ],
+    });
+    const previous = await screen.findByRole('button', {
+      name: 'Bulk select',
+    });
+    expect(container.querySelector('.nav-right-collapse')).toBeInTheDocument();
+    const trigger = screen.getByTestId('btn-create-new');
+    expectButtonSiblingRuleApplies(previous, trigger);
+  } finally {
+    window.innerWidth = originalWidth;
+  }
 });

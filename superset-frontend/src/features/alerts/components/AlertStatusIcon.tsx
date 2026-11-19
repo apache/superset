@@ -122,6 +122,7 @@ export default function AlertStatusIcon({
         }
       >
         <Icon
+          aria-label={lastStateConfig.label}
           iconSize="m"
           iconColor={getStatusColor(lastStateConfig.status, theme)}
         />

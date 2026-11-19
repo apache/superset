@@ -20,6 +20,7 @@ import memoizeOne from 'memoize-one';
 import { t } from '@apache-superset/core/translation';
 import {
   ComparisonType,
+  buildQueryObject,
   CurrencyFormatter,
   Currency,
   DataRecord,
@@ -44,6 +45,8 @@ import {
   ConditionalFormattingConfig,
   getColorFormatters,
   ColorSchemeEnum,
+  normalizeColumnConfigKeys,
+  getKnownColumnConfigKeys,
   resolveHeaderGroups,
 } from '@superset-ui/chart-controls';
 
@@ -237,6 +240,11 @@ const processColumns = memoizeOne(function processColumns(
   const columnsByName = new Map(
     (props.datasource.columns ?? []).map(col => [col.column_name, col]),
   );
+  const normalizedColumnConfig = normalizeColumnConfigKeys(
+    columnConfig,
+    colnames || [],
+    getKnownColumnConfigKeys(colnames || [], props.datasource),
+  );
 
   const columns: DataColumnMeta[] = (colnames || [])
     .filter(
@@ -246,7 +254,7 @@ const processColumns = memoizeOne(function processColumns(
     )
     .map((key: string, i) => {
       const dataType = coltypes[i];
-      const config = columnConfig[key] || {};
+      const config = normalizedColumnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
       const isFilterable = columnsByName.get(key)?.filterable;
@@ -846,6 +854,12 @@ const transformProps = (
         : serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
     filters: filterState.filters,
+    // Use query criteria, not response rows or the emitter's selection state,
+    // to distinguish a new question from an auto-refresh of the same one.
+    paginationQuery: {
+      datasource: originalFormData.datasource,
+      query: buildQueryObject(originalFormData, { percent_metrics: 'metrics' }),
+    },
     emitCrossFilters,
     onChangeFilter,
     columnColorFormatters,

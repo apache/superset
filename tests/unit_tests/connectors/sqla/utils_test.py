@@ -446,6 +446,30 @@ def test_get_virtual_table_metadata(mocker: MockerFixture) -> None:
     assert get_virtual_table_metadata(dataset) == [{"name": "one", "type": "INTEGER"}]
 
 
+def test_get_virtual_table_metadata_drops_reserved_template_params(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Chart execution never exposes ``removed_filters`` and the other names the
+    template processor reserves as template variables, and neither does the
+    access check. Column sync must render the same SQL, or a template that
+    branches on one of them would run a branch the check never saw.
+    """
+    mocker.patch(
+        "superset.connectors.sqla.utils.get_columns_description",
+        return_value=[{"name": "one", "type": "INTEGER"}],
+    )
+    dataset = mocker.MagicMock(sql="SELECT 1 AS one")
+    dataset.template_params_dict = {"removed_filters": [], "table": 1, "t": "x"}
+    dataset.database.db_engine_spec.engine = "postgresql"
+    process_template = dataset.get_template_processor().process_template
+    process_template.return_value = dataset.sql
+
+    get_virtual_table_metadata(dataset)
+
+    process_template.assert_called_once_with(dataset.sql, t="x")
+
+
 def test_get_virtual_table_metadata_mutating(mocker: MockerFixture) -> None:
     """
     Test the `get_virtual_table_metadata` function with mutating SQL.
@@ -538,3 +562,29 @@ def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None
     assert passed_query == rendered_sql, (
         f"get_columns_description received unrendered SQL: {passed_query!r}"
     )
+
+
+@pytest.mark.parametrize(
+    "mutated_sql",
+    ["SELECT 1; SELECT 2", "DELETE FROM t"],
+    ids=["multi_statement", "write"],
+)
+def test_get_columns_description_rejects_unsafe_sql_after_mutation(
+    mocker: MockerFixture,
+    mutated_sql: str,
+) -> None:
+    """A mutator that turns the validated single read-only probe into multiple
+    statements or a write must be rejected before execution: the caller's check
+    runs on the pre-mutation SQL, so the mutated text is re-checked."""
+    database = mocker.MagicMock()
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = "postgresql"
+
+    database.db_engine_spec = db_engine_spec
+    database.apply_limit_to_sql.return_value = "SELECT 1"
+    database.mutate_sql_based_on_config.return_value = mutated_sql
+
+    with pytest.raises(SupersetSecurityException):
+        get_columns_description(database, None, None, "SELECT 1")
+
+    db_engine_spec.execute.assert_not_called()

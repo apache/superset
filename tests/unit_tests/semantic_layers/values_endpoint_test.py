@@ -23,13 +23,18 @@ header contract.
 """
 
 from datetime import datetime
+from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pyarrow as pa
 import pytest
+from flask import Flask
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
+from sqlalchemy import create_engine, select
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session
 from superset_core.semantic_layers.types import (
     Dimension,
     SemanticRequest,
@@ -37,11 +42,16 @@ from superset_core.semantic_layers.types import (
 )
 from werkzeug.test import TestResponse
 
+from superset.key_value.models import KeyValueEntry
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 
 @pytest.fixture
-def semantic_view_datasource(mocker: MockerFixture) -> SemanticView:
+def semantic_view_datasource(app: Flask, mocker: MockerFixture) -> SemanticView:
+    """Give the transient datasource an explicit, isolated cache namespace."""
+    mocker.patch.dict(
+        app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "values-endpoint-tests"}
+    )
     implementation: MagicMock = MagicMock(selection_identity_version=None)
     implementation.uid.return_value = "semantic_view_uid_123"
     implementation.get_dimensions.return_value = [
@@ -98,6 +108,40 @@ def test_semantic_view_values_endpoint_returns_values(
     assert cached.status_code == 200
     assert cached.json["result"] == ["Books", "Clothing"]
     assert cached.headers["X-Cache-Status"] == "HIT"
+
+
+def test_values_endpoint_bootstraps_identity_without_flushing_datasource(
+    app: Flask,
+    client: FlaskClient,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    tmp_path: Path,
+) -> None:
+    """The default request path uses a migrated store, not a fixture override."""
+    mocker.patch.dict(app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": ""})
+    mocker.patch(
+        "superset.datasource.api.cache_manager"
+    ).data_cache.get.return_value = None
+    engine: Engine = create_engine(f"sqlite:///{tmp_path / 'metadata.db'}")
+    try:
+        KeyValueEntry.__table__.create(engine)
+        with Session(engine) as session:
+            session.add(semantic_view_datasource.semantic_layer)
+            response: TestResponse = _get(client, "category/values/")
+            assert response.status_code == 200
+            assert response.json is not None
+            assert response.json["result"] == ["Books", "Clothing"]
+            assert semantic_view_datasource.semantic_layer in session.new
+            identity: bytes | None = session.connection().scalar(
+                select(KeyValueEntry.value)
+            )
+            assert identity is not None
+        # Closing the caller session rolls back its pending work, not the identity.
+        with engine.connect() as connection:
+            assert connection.scalar(select(KeyValueEntry.value)) == identity
+    finally:
+        engine.dispose()
 
 
 def test_semantic_view_values_endpoint_passes_search_to_the_provider(

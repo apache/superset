@@ -80,7 +80,7 @@ def test_sqlite_downgrade_drops_index(engine: Engine) -> None:
 def test_mysql_skips_index_ddl(mocker: MockerFixture, direction: str) -> None:
     bind = MagicMock()
     bind.dialect = MySQLDialect()
-    mocker.patch.object(migration.op, "get_bind", return_value=bind)
+    mocker.patch("superset.migrations.shared.utils.op.get_bind", return_value=bind)
     create = mocker.patch.object(migration, "create_index")
     drop = mocker.patch.object(migration, "drop_index")
 

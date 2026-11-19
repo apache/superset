@@ -23,9 +23,11 @@ from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 from urllib.error import URLError
+from urllib.parse import parse_qs, urlencode
 from uuid import UUID, uuid4
 
 import pytest
+import rison
 from celery.exceptions import SoftTimeLimitExceeded
 from PIL import Image, ImageDraw
 from pytest_mock import MockerFixture
@@ -1978,6 +1980,85 @@ def test_get_dashboard_urls_flag_off_preserves_url_params(
         ["show_filters", "0"],
         ["native_filters", native_filter_rison],
     ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@pytest.mark.parametrize("tabs_enabled", [True, False])
+def test_get_dashboard_urls_native_filters_needing_quotes_round_trip(
+    mock_permalink_cls,
+    tabs_enabled: bool,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Filters whose rison needs quoting must reach the permalink state raw, so
+    the redirect's single URL-encoding is decoded exactly once by the browser."""
+    report_schedule = ReportSchedule()
+    report_schedule.chart = None
+    report_schedule.chart_id = None
+    report_schedule.dashboard_id = 123
+    report_schedule.dashboard = mocker.MagicMock(
+        uuid=UUID("12345678-1234-1234-1234-123456789abc")
+    )
+    native_filters: list[dict[str, Any]] = [
+        {
+            "nativeFilterId": "NATIVE_FILTER-text",
+            "filterType": "filter_select",
+            "columnName": "region",
+            "filterValues": ["North America", "O'Brien", "a,b"],
+        },
+        {
+            "nativeFilterId": "NATIVE_FILTER-range",
+            "filterType": "filter_range",
+            "columnName": "num",
+            "filterValues": [3000, 5000],
+        },
+        {
+            "nativeFilterId": "NATIVE_FILTER-time",
+            "filterType": "filter_time",
+            "columnName": "ds",
+            "filterValues": ["2004-01-01 : 2005-01-01"],
+        },
+    ]
+    extra: dict[str, Any] = {"dashboard": {"nativeFilters": native_filters}}
+    report_schedule.extra = extra  # type: ignore[assignment]
+    mock_permalink_cls.return_value.run.return_value = "permalink_key"
+
+    state_obj = BaseReportState(report_schedule, "January 1, 2021", "execution_id")
+    with (
+        app.test_request_context(),
+        mock.patch("superset.commands.report.execute.db"),
+        mock.patch.object(
+            BaseReportState, "_raise_for_executor_dashboard_access", return_value=None
+        ),
+    ):
+        from superset.extensions import feature_flag_manager  # noqa: PLC0415
+
+        with mock.patch.object(
+            feature_flag_manager,
+            "is_feature_enabled",
+            side_effect=lambda flag: tabs_enabled and flag == "ALERT_REPORT_TABS",
+        ):
+            urls = state_obj.get_dashboard_urls()
+
+    assert len(urls) == 1
+    assert state_obj._execution_warnings == []
+    url_params: list[list[str]] = mock_permalink_cls.call_args_list[0].kwargs["state"][
+        "urlParams"
+    ]
+    (key, value) = next(p for p in url_params if p[0] == "native_filters")
+    assert key == "native_filters"
+    assert "%27" not in value
+    query = urlencode([(key, value)])
+    decoded: dict[str, Any] = rison.loads(parse_qs(query)[key][0])
+    assert set(decoded) == {f["nativeFilterId"] for f in native_filters}
+    assert decoded["NATIVE_FILTER-text"]["filterState"]["value"] == [
+        "North America",
+        "O'Brien",
+        "a,b",
+    ]
+    assert decoded["NATIVE_FILTER-time"]["filterState"]["value"] == (
+        "2004-01-01 : 2005-01-01"
+    )
 
 
 def create_report_schedule(

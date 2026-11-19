@@ -17,6 +17,7 @@
  * under the License.
  */
 import cx from 'classnames';
+import { useAppSelector } from 'src/views/store';
 import {
   useCallback,
   useEffect,
@@ -34,7 +35,8 @@ import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { debounce } from 'lodash-es';
 import { bindActionCreators } from 'redux';
-import { useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 
 import { exportChart } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
@@ -54,6 +56,7 @@ import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import type { RootState, Datasource, Slice } from 'src/dashboard/types';
+import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
 import {
   convertChartStateToOwnState,
   hasChartStateConverter,
@@ -197,6 +200,10 @@ const Chart = (props: ChartProps) => {
   );
 
   const chart = useSelector((state: RootState) => state.charts[props.id]);
+  const sourceDatasources = useAppSelector(
+    selectChartDatasources,
+    shallowEqual,
+  );
   const queriesResponse = chart?.queriesResponse;
   const chartUpdateEndTime = chart?.chartUpdateEndTime;
   const chartStatus = chart?.chartStatus;
@@ -250,6 +257,10 @@ const Chart = (props: ChartProps) => {
       (chart?.form_data?.datasource &&
         state.datasources[chart.form_data.datasource]) ||
       PLACEHOLDER_DATASOURCE,
+  );
+  const chartDatasource = useMemo(
+    () => withChartDisplayLabels(datasource, props.id),
+    [datasource, props.id],
   );
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
   const showChartTimestamps: boolean = useSelector(
@@ -474,6 +485,7 @@ const Chart = (props: ChartProps) => {
 
   const formData = useMemo(() => {
     const filteredFormData = getFormDataWithExtraFilters({
+      sourceDatasources,
       chart: { id: chart?.id ?? props.id, form_data: chart?.form_data }, // avoid passing the whole chart object
       chartConfiguration,
       chartCustomizationItems: chartCustomizationItems as ChartCustomization[],
@@ -494,7 +506,8 @@ const Chart = (props: ChartProps) => {
       ownColorScheme,
     });
     if (
-      chart?.form_data?.viz_type !== VizType.Table ||
+      (chart?.form_data?.viz_type !== VizType.Table &&
+        chart?.form_data?.viz_type !== VizType.TableAgGrid) ||
       !chart.form_data.datasource?.endsWith(`__${DatasourceType.SemanticView}`)
     ) {
       return filteredFormData;
@@ -522,6 +535,7 @@ const Chart = (props: ChartProps) => {
       temporal_columns_lookup: temporalColumnsLookup,
     };
   }, [
+    sourceDatasources,
     chart?.id,
     chart?.form_data,
     chartConfiguration,
@@ -540,6 +554,27 @@ const Chart = (props: ChartProps) => {
     currentDashboardDatasets,
     props.dashboardId,
   ]);
+
+  // The first query must use the metadata snapshot, not consume its trigger
+  // while the lookup needed to classify a saved duration is still loading.
+  // Per-source edit-mode fetches and save refreshes have their own lifecycle;
+  // a page-level error must not bypass one of those pending requests.
+  // Settled failures remain queryable so the backend can report the error.
+  const waitingForTemporalMetadata =
+    (chart?.form_data?.viz_type === VizType.Table ||
+      chart?.form_data?.viz_type === VizType.TableAgGrid) &&
+    chart.form_data.datasource?.endsWith(`__${DatasourceType.SemanticView}`) &&
+    Boolean(
+      formData.extra_form_data?.time_grain_sqla ||
+      ('time_grain_sqla' in formData && formData.time_grain_sqla),
+    ) &&
+    ((dashboardInfo.id === props.dashboardId &&
+      Boolean(
+        dashboardInfo.semanticDatasetsRequestId ||
+        dashboardInfo.semanticDatasetRequests?.[chart.form_data.datasource],
+      )) ||
+      (datasetsStatus !== 'error' &&
+        currentDashboardDatasets?.dashboardId !== props.dashboardId));
 
   (formData as JsonObject).dashboardId = dashboardInfo.id;
 
@@ -864,7 +899,7 @@ const Chart = (props: ChartProps) => {
           chartId={props.id}
           chartStatus={chartStatus ?? undefined}
           chartStackTrace={chart.chartStackTrace ?? undefined}
-          datasource={datasource}
+          datasource={chartDatasource}
           dashboardId={props.dashboardId}
           initialValues={EMPTY_OBJECT}
           formData={
@@ -872,8 +907,9 @@ const Chart = (props: ChartProps) => {
           }
           ownState={ownState}
           queriesResponse={chart.queriesResponse ?? null}
+          latestQueryFormData={chart.latestQueryFormData}
           timeout={timeout}
-          triggerQuery={chart.triggerQuery}
+          triggerQuery={chart.triggerQuery && !waitingForTemporalMetadata}
           vizType={slice.viz_type}
           setControlValue={props.setControlValue ?? NOOP}
           datasetsStatus={

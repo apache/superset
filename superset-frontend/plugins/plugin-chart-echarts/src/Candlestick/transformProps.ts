@@ -64,6 +64,7 @@ import { convertInteger } from '../utils/convertInteger';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { TIMESERIES_CONSTANTS } from '../constants';
+import { normalizeRgbaColor } from '../utils/colors';
 import { getPadding } from '../Timeseries/transformers';
 import { LegendOrientation, LegendType, Refs } from '../types';
 import { resolveLegendLayout } from '../utils/legendLayout';
@@ -336,8 +337,8 @@ export default function transformProps(
     low,
     series: seriesControl,
     candlestickSeriesName,
-    increaseColor = DEFAULT_INCREASE_COLOR,
-    decreaseColor = DEFAULT_DECREASE_COLOR,
+    increaseColor: rawIncreaseColor,
+    decreaseColor: rawDecreaseColor,
     increaseLabel,
     decreaseLabel,
     showXAxis,
@@ -355,6 +356,7 @@ export default function transformProps(
     tooltipTimeFormat,
     tooltipValuesFormat,
     showLegend,
+    showSelectorLegend,
     legendMargin,
     legendOrientation = LegendOrientation.Top,
     legendType = LegendType.Scroll,
@@ -394,6 +396,16 @@ export default function transformProps(
       })
     : getNumberFormatter(yAxisFormat);
 
+  // `increase_color` / `decrease_color` are shared control names; tolerate the
+  // hex strings other charts save under them (e.g. after a viz type switch).
+  const increaseColor = normalizeRgbaColor(
+    rawIncreaseColor,
+    DEFAULT_INCREASE_COLOR,
+  );
+  const decreaseColor = normalizeRgbaColor(
+    rawDecreaseColor,
+    DEFAULT_DECREASE_COLOR,
+  );
   const increaseHex = rgbToHex(
     increaseColor.r,
     increaseColor.g,
@@ -596,6 +608,7 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -645,6 +658,7 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         zoomable,
         legendState,
       ),

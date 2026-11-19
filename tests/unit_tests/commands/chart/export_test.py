@@ -400,7 +400,7 @@ def test_assets_export_carries_the_soft_deleted_datasets_it_references(
     db.session.flush()
 
     restored = db.session.query(SqlaTable).filter(
-        SqlaTable.uuid.in_([dataset.uuid, filter_dataset.uuid])
+        SqlaTable.uuid.in_([dataset.uuid, filter_dataset.uuid])  # type: ignore[union-attr]
     )
     assert {str(table.uuid) for table in restored if table.deleted_at is None} == (
         trashed_uuids

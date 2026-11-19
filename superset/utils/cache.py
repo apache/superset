@@ -19,7 +19,8 @@ from __future__ import annotations
 import inspect
 import logging
 import pickle
-from datetime import datetime, timedelta, timezone
+from contextlib import nullcontext
+from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, Callable
 
@@ -33,8 +34,10 @@ from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
 from superset.utils.cache_manager import configurable_hash_method
+from superset.utils.dates import naive_utcnow
 from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
+from superset.utils.timing_metrics import timed
 
 logger = logging.getLogger(__name__)
 
@@ -121,8 +124,13 @@ def set_and_log_cache(
     cache_value: dict[str, Any],
     cache_timeout: int | None = None,
     datasource_uid: str | None = None,
+    timer_key: str | None = None,
 ) -> bool:
     """Write a value to the cache, logging outcomes.
+
+    :param timer_key: when given, the backend ``set`` call (including the
+        backend's own serialization) is emitted as this StatsD timer. Skipped
+        writes (null cache, disabled timeout, value too large) are not timed.
 
     :returns: ``True`` only when the value was actually persisted to the backend;
         ``False`` when caching was skipped (null cache, disabled timeout, value
@@ -144,9 +152,7 @@ def set_and_log_cache(
     if timeout == CACHE_DISABLED_TIMEOUT:
         return False
     try:
-        dttm: str = (
-            datetime.now(timezone.utc).replace(tzinfo=None).isoformat().split(".")[0]
-        )
+        dttm: str = naive_utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
 
         # Skip caching results that are too large to protect the cache backend
@@ -162,7 +168,9 @@ def set_and_log_cache(
         # return None (no status). Treat an explicit False as failure so callers
         # that gate on persistence (the forced-refresh marker) don't claim a write
         # that never landed; treat None as success.
-        if cache_instance.set(cache_key, value, timeout=timeout) is False:
+        with timed(timer_key) if timer_key else nullcontext():
+            persisted = cache_instance.set(cache_key, value, timeout=timeout)
+        if persisted is False:
             logger.warning("Cache backend reported a failed set for key %s", cache_key)
             return False
         stats_logger = app.config["STATS_LOGGER"]
@@ -325,9 +333,7 @@ def etag_cache(  # noqa: C901
 
             # Check if the cache is stale. Default the content_changed_time to now
             # if we don't know when it was last modified.
-            content_changed_time: datetime = datetime.now(timezone.utc).replace(
-                tzinfo=None
-            )
+            content_changed_time: datetime = naive_utcnow()
             if get_last_modified:
                 content_changed_time = get_last_modified(*args, **kwargs)
                 if (
