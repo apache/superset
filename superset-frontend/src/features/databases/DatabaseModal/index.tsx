@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { getExtensionsRegistry } from '@superset-ui/core';
+import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
@@ -52,6 +52,7 @@ import {
 } from '@superset-ui/core/components';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import isPrivateKeyField from 'src/components/ImportModal/isPrivateKeyField';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -103,6 +104,7 @@ import {
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 import SSHTunnelForm from './SSHTunnelForm';
 import SSHTunnelSwitch from './SSHTunnelSwitch';
+import { normalizeMetadataCacheTimeouts } from './utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -199,7 +201,6 @@ export type DBReducerActionType =
       type:
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
-        | ActionType.EncryptedExtraInputChange
         | ActionType.ClearEncryptedExtraKey
         | ActionType.TextChange
         | ActionType.QueryChange
@@ -208,6 +209,14 @@ export type DBReducerActionType =
         | ActionType.ParametersChange
         | ActionType.ParametersSSHTunnelChange;
       payload: DBReducerPayloadType;
+    }
+  | {
+      // Nested Secure Extra blocks (e.g. `embedded_credentials`) carry an
+      // object rather than a string.
+      type: ActionType.EncryptedExtraInputChange;
+      payload: Omit<DBReducerPayloadType, 'value'> & {
+        value?: string | Record<string, string>;
+      };
     }
   | {
       type: ActionType.Fetched;
@@ -242,6 +251,8 @@ export type DBReducerActionType =
       payload: {
         database_name?: string;
         engine?: string;
+        driver?: string;
+        sqlalchemy_uri_placeholder?: string;
         configuration_method: ConfigurationMethod;
       };
     }
@@ -553,11 +564,26 @@ export function dbReducer(
       return {
         ...trimmedState,
       };
-    case ActionType.EditorChange:
-      return {
+    case ActionType.EditorChange: {
+      const edited = {
         ...trimmedState,
         [action.payload.name]: action.payload.json,
       };
+      if (
+        action.payload.name === 'masked_encrypted_extra' &&
+        edited.parameters
+      ) {
+        // `onSave` copies these typed blocks over Secure Extra, which would undo
+        // this later edit of them.
+        const {
+          embedded_credentials: _typedCredentials,
+          oauth2_client_info: _typedClientInfo,
+          ...parameters
+        } = edited.parameters;
+        return { ...edited, parameters };
+      }
+      return edited;
+    }
     case ActionType.QueryChange:
       return {
         ...trimmedState,
@@ -605,6 +631,7 @@ export function dbReducer(
 
         return {
           ...action.payload,
+          extra: normalizeMetadataCacheTimeouts(action.payload.extra),
           engine: action.payload.backend || trimmedState.engine,
           configuration_method: configurationMethod,
           catalog: engineRootCatalog,
@@ -622,6 +649,7 @@ export function dbReducer(
       }
       return {
         ...action.payload,
+        extra: normalizeMetadataCacheTimeouts(action.payload.extra),
         masked_encrypted_extra: action.payload.masked_encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: configurationMethod,
@@ -641,10 +669,36 @@ export function dbReducer(
         extra: DEFAULT_EXTRA,
         expose_in_sqllab: true,
       };
-    case ActionType.ConfigMethodChange:
-      return {
+    case ActionType.ConfigMethodChange: {
+      // Switching connection mode keeps everything already entered so that
+      // toggling back and forth does not discard the user's input.
+      const nextState = {
+        ...trimmedState,
         ...action.payload,
+        database_name:
+          action.payload.database_name ?? trimmedState.database_name,
+        engine: action.payload.engine ?? trimmedState.engine,
       };
+      // The dynamic form has no "Secure extra" editor, so a value that is not
+      // a JSON object could no longer be corrected there while still being
+      // sent for validation, which would reject the connection.
+      if (
+        action.payload.configuration_method ===
+          ConfigurationMethod.DynamicForm &&
+        nextState.masked_encrypted_extra
+      ) {
+        try {
+          const parsed = JSON.parse(nextState.masked_encrypted_extra);
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            nextState.masked_encrypted_extra = '';
+          }
+        } catch (e) {
+          if (!(e instanceof SyntaxError)) throw e;
+          nextState.masked_encrypted_extra = '';
+        }
+      }
+      return nextState;
+    }
 
     case ActionType.Reset:
     default:
@@ -694,6 +748,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  // Bumped after each successful update, so revealed secret endings reset.
+  const [secretsGeneration, setSecretsGeneration] = useState(0);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [
     validationErrors,
@@ -782,10 +838,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const useSqlAlchemyForm =
     db?.configuration_method === ConfigurationMethod.SqlalchemyUri;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
-  const isDynamic = (engine: string | undefined) =>
-    availableDbs?.databases?.find(
+  const isDynamic = (engine: string | undefined) => {
+    // several entries can share an engine (e.g. SQL Server and Azure Synapse
+    // are both ``mssql``), so prefer the one matching the selected driver
+    const candidates = availableDbs?.databases?.filter(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
-    )?.parameters !== undefined;
+    );
+    const match =
+      candidates?.find(
+        (DB: DatabaseForm) => DB.default_driver === db?.driver,
+      ) || candidates?.[0];
+    return match?.parameters !== undefined;
+  };
   const showDBError = validationErrors || dbErrors;
   const history = useHistory();
 
@@ -1026,8 +1090,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         errors === null ||
         (Array.isArray(errors) ? errors.length > 0 : !isEmpty(errors));
       if (hasReturnedErrors) {
+        // ``extra`` errors (e.g. an invalid cache timeout) are not rendered
+        // anywhere in the form, so surface the server's explanation here.
+        const extraError = isEmpty(errors)
+          ? undefined
+          : (errors as JsonObject).extra;
         addDangerToast(
-          t('Connection failed, please check your connection settings.'),
+          typeof extraError === 'string'
+            ? extraError
+            : t('Connection failed, please check your connection settings.'),
         );
         setLoading(false);
         return;
@@ -1116,6 +1187,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (result) onDatabaseAdd?.();
       if (!shouldApplyResponse()) return;
       if (result) {
+        setSecretsGeneration(generation => generation + 1);
         dbConfigExtraExtension
           ?.onSave(extraExtensionComponentState, db)
           .then(({ error }: { error: any }) => {
@@ -1126,11 +1198,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         if (dbConfigExtraExtensionOnSaveError) {
           setLoading(false);
+          // The modal stays open on what the server now holds, stored
+          // secret fields included, as the create flow does on Back.
+          fetchResource(db.id as number, getResponseGuard());
           return;
         }
         if (!editNewDb) {
           onClose();
           addSuccessToast(t('Database settings updated'));
+        } else {
+          fetchResource(db.id as number, getResponseGuard());
         }
       }
     } else if (db) {
@@ -1287,11 +1364,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             (database: DatabaseForm, index: number) => ({
               value: database.name,
               label: database.name,
+              // lets a search for the backend name (e.g. "mssql") find it
+              engine: database.engine,
               key: `database-${index}`,
             }),
           ),
           { value: 'Other', label: t('Other'), key: 'Other' },
         ]}
+        optionFilterProps={['label', 'value', 'engine']}
         showSearch
         sortComparator={(a, b) => {
           // Always put "Other" at the end
@@ -1799,7 +1879,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             id={`encrypted_extra_${field.path}`}
             name={`encrypted_extra_${field.path}`}
             required
-            visibilityToggle
+            visibilityToggle={!isPrivateKeyField(field.path)}
+            renderAsTextArea={isPrivateKeyField(field.path)}
             value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setEncryptedExtraSecrets({
@@ -2251,6 +2332,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                                 configuration_method:
                                   ConfigurationMethod.DynamicForm,
                                 engine: db?.engine,
+                                driver: db?.driver,
+                                sqlalchemy_uri_placeholder:
+                                  db?.sqlalchemy_uri_placeholder,
                               },
                             })
                           }
@@ -2309,6 +2393,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <ExtraOptions
                 extraExtension={dbConfigExtraExtension}
                 db={db as DatabaseObject}
+                secretsGeneration={secretsGeneration}
                 onInputChange={(e: CheckboxChangeEvent) => {
                   const { target } = e;
                   handleChangeWithValidation(ActionType.InputChange, {
@@ -2453,6 +2538,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                             type: ActionType.ConfigMethodChange,
                             payload: {
                               engine: db.engine,
+                              driver: db.driver,
+                              sqlalchemy_uri_placeholder:
+                                db.sqlalchemy_uri_placeholder,
                               configuration_method:
                                 ConfigurationMethod.SqlalchemyUri,
                               database_name: db.database_name,

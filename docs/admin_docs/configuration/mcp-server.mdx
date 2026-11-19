@@ -173,6 +173,29 @@ Chart configuration examples use plain number formats. Currency formatting shoul
 come from user instructions or verified source metadata, not a field name such
 as sales, revenue or CPC.
 
+## Metric discovery refusals
+
+An unscoped `list_metrics` call returns usable metrics even when a visible semantic
+view refuses discovery. Its response includes:
+
+- `incomplete`: `true` if any source could not be fully discovered. Clients must
+  disclose partial coverage and must not infer that omitted metrics do not exist.
+- `refused_views`: structured markers such as `[{"view_id": 5}]` for visible views
+  that refused discovery. Markers contain only the safe view ID, never provider
+  details, and apply to the whole scan regardless of the requested page.
+
+A view that refuses while loading metrics, columns or compatible dimensions
+contributes no metrics, including any collected before that refusal. `total_count`
+and `total_pages` describe only the usable subset. An entirely refused catalog
+returns no metrics with `incomplete: true`; it is not evidence of an empty catalog.
+Successful discovery with no failures returns `incomplete: false` and
+`refused_views: []`.
+
+Continue discovery using the returned sources, or use `dataset_id` or `view_id`
+to scope a request to a known source. A scoped semantic-view refusal still returns
+`AccessDenied`. Unexpected provider failures retain safe warnings and partial
+results from other sources, set `incomplete: true`, and do not create refusal markers.
+
 ## Bounding dashboard dataset metadata
 
 `get_dashboard_datasets` lists a dashboard's datasets and semantic views with
@@ -204,7 +227,8 @@ server's configured byte limit.
 ## Dashboard filter notifications
 
 `apply_dashboard_filters` supports exact-match select filters without inverse
-selection, time filters, numeric range filters, and time-grain filters. Range
+selection, time filters, numeric range filters, time-grain filters, and
+time-column filters. Range
 bounds must be finite numbers representable as floats, or null; booleans are
 rejected. Range permalink labels use the dashboard's smart number formatting
 with ASCII minus signs, falling back to plain numeric representations if
@@ -1884,6 +1908,30 @@ session scope, without reloading the request user. Reporting an error therefore
 does not require metadata database access unless the hook itself uses it. Use the
 provided hook context for caller identity rather than `g.user`.
 
+## SQL execution query history
+
+`execute_sql` records executed runs in SQL Lab query history and returns their
+`query_id`, including failures and OAuth authentication errors after a run is
+created. Recorded runs include execution timestamps, the executed statement,
+status and row count. A worker deadline or client disconnect finishes the run as
+`timed_out`; a concurrent Stop keeps its `stopped` outcome. A Stop issued while
+the statement is running commits immediately: the run holds no pending metadata
+write while it waits for the warehouse. It does not cancel the warehouse query.
+
+When a worker deadline ends the tool call, the error reply names the run as
+`Query history id: <id>` if the run was recorded before the deadline. A reply
+for a call whose run was not yet recorded at that point carries no ID.
+
+Synchronous results-cache hits create a separate successful history entry marked
+as cached. Its executed statement is the cached run's last statement, including
+any SQL query mutation, matching a warehouse-executed run. If that history write
+fails, the cached data is still returned, with `query_id: null`. Dry runs and
+requests rejected before a run is created also return no query ID. Other MCP data
+tools use the chart-data path and do not create SQL Lab query-history entries.
+Async executor cache hits do not create entries. A failure to populate the results
+cache does not discard a successful warehouse result or change its history status.
+Async broker-submission failures finish the pending history entry with an end time.
+
 ## SQL execution row limits
 
 The `execute_sql` tool treats an explicit request `limit` as a safety cap on the
@@ -2385,13 +2433,33 @@ latency.
 
 ### Managing and applying dashboard native filters
 
+Time-column and time-grain filters target a dataset, not a column. When adding
+one with `manage_native_filters`, omit `column`, `default_value`, and the
+select-only flags (`multi_select`, `default_to_first_item`, `sort_ascending`,
+`search_all_options`). Both add and update reject non-null fields that do not
+apply to the filter type, including `False` and empty lists. `default_value` is
+supported only by select filters, not time-range or numerical-range filters.
+Use `default_time_range` for time-range defaults. Updating
+`dataset_id` binds the filter to that SQL dataset, removing any semantic-view
+binding. Defaults from a semantic view are cleared; SQL temporal defaults are
+retained only when the replacement dataset supports them.
+
+For `apply_dashboard_filters`, pass `time_column` as a list containing one temporal
+column name or its unique filter-bar label (verbose name). An exact column name
+wins over case-insensitive names, which win over case-insensitive labels;
+ambiguous matches are rejected. The permalink stores the underlying column name.
+Pass `[]` to clear an optional time-column filter; required filters cannot be
+cleared. Callers without metadata access do not receive underlying column names
+in the result or available-column lists in errors.
+
 `manage_native_filters` requires a numeric dataset column when adding a
 `filter_range` filter or changing its dataset/column target. Select filters
 continue to accept nonnumeric columns.
 
-Dividers are visual separators and are always in scope. When updating a
-`divider` with `manage_native_filters`, use `name` to change its title and
-`description` to change its description; `scope_chart_ids` is rejected.
+Dividers are visual separators and are always in scope. When adding or updating
+a `divider` with `manage_native_filters`, use `name` for its title and
+`description` for its description; type-specific fields and `scope_chart_ids`
+are rejected when non-null.
 `apply_dashboard_filters` excludes dividers from its available-filter error lists.
 
 For `apply_dashboard_filters`, pass `time_grain` as a list containing at most
@@ -2403,6 +2471,55 @@ allowed selection to grains that appear in both that list and the target dataset
 supported time grains; missing or empty lists use the dataset's supported grains.
 Pass `[]` to clear an optional time-grain filter; required filters cannot be
 cleared.
+
+## Reselecting fields on an existing semantic chart
+
+`update_chart` can certify complete field reselection for table and interactive
+table charts whose semantic selection marker is missing or outdated. Supply all
+columns using the target view's member IDs and explicitly supply `filters`
+(`[]` clears them). Supply sorting explicitly if the chart retains sorting.
+Certification applies only when the final merged query contains no unverified
+retained selections; sending `config` alone is not enough.
+
+Table display settings and dashboard associations may be retained. Empty
+conditional-formatting and annotation settings are supported, but unclassified
+non-empty plugin state still requires Explore recovery. An explicitly selected
+`temporal_column` is checked against the target view's temporal metadata and the
+generated query filter; a saved internal time-binding marker alone is not proof
+of a fresh selection.
+
+Explore's boolean temporal-column lookup describes datasource metadata, not
+selected fields, so old names in that lookup may be retained. Target temporal
+metadata must be available. A recognized duration grain is omitted only with a
+well-formed saved lookup, no reselected temporal member and no time axis set.
+Active grains, malformed lookup metadata, and unknown grain formats still
+require Explore recovery. An unpublished explicit `temporal_column` is refused
+rather than silently ignored.
+
+Only an explicit `filters: []` authorizes clearing saved WHERE/HAVING predicate
+aliases, including legacy and adhoc filters. A non-empty filter replacement that
+would discard those unclassified predicates is refused; reselect in Explore, or
+explicitly clear filters if removing the saved constraints is intended.
+The canonical SIMPLE/WHERE `TEMPORAL_RANGE` entry with comparator `No filter`
+is an inactive placeholder, not a saved predicate. Real ranges, SQL expressions
+and unclassified filter entries still require explicit clearing.
+
+If native controls, temporal bindings, external filters, secondary queries or
+unsupported plugin state cannot be verified, the update refuses without changing
+the saved chart. The error names the incomplete category and directs you to
+reselect it in Explore and save there. Omitted state is not silently reset.
+For example: “Cannot verify temporal selections; reselect them in Explore and
+save the chart.”
+
+Renaming a chart or using `add_columns` does not upgrade its selection marker.
+Ordinary partial updates on the same source with a current marker keep their
+existing behavior. Changing the source requires fresh target selections even if
+the two sources use the same marker string. On versioned providers, a source-only
+rebind without a complete table config is refused as “no reselection supplied”;
+retry with complete selections or reselect in Explore. A preview is a snapshot, not a lease:
+a concurrent saved-chart change can cause a direct update to refuse and require
+a reload. Providers without a selection-version contract and physical datasets
+do not receive an invented marker.
 
 ## Missing chart columns
 
@@ -2457,11 +2574,12 @@ or whitespace-only dashboard renames with "Text must not be empty"; omitting
 `dashboard_title` leaves the stored title unchanged.
 
 Blank names in `create_virtual_dataset`, `create_theme`, `create_dataset_metric`,
-`update_dataset_metric`, and `update_dataset`, and whitespace-only labels in
+`update_dataset_metric`, `create_dataset_column`, `update_dataset_column`, and
+`update_dataset`, and whitespace-only labels in
 `save_sql_query`, report "Text must not be empty" at the corresponding name field.
 Blank-name checks precede length checks, including whitespace-only inputs longer
 than the field limit.
-Explicit null metric or dataset names remain invalid; omitting them from updates
+Explicit null metric, column, or dataset names remain invalid; omitting them from updates
 leaves the stored name unchanged.
 
 ### Chart and dashboard titles
