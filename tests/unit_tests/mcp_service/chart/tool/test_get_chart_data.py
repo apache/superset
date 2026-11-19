@@ -70,6 +70,7 @@ from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
     HostileTimezone,
 )
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 
 class HostileResultEnum(Enum):
@@ -2645,7 +2646,7 @@ def mock_auth():
         patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
         patch.object(_gcd_module, "event_logger", mock_event_logger),
     ):
-        user = Mock()
+        user = regular_user()
         user.id = 1
         user.username = "admin"
         mock_get_user.return_value = user
@@ -3940,16 +3941,9 @@ class TestOAuthErrorRouting:
 
 
 def _guest_rls_refusal() -> Exception:
-    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-    from superset.exceptions import SupersetSecurityException
+    from superset.exceptions import SemanticViewGuestRLSUnsupportedError
 
-    return SupersetSecurityException(
-        SupersetError(
-            message="Semantic views cannot enforce guest row-level security rules.",
-            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-            level=ErrorLevel.WARNING,
-        )
-    )
+    return SemanticViewGuestRLSUnsupportedError()
 
 
 def _invalid_filter_rejection() -> Exception:
