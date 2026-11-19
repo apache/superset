@@ -271,7 +271,27 @@ export default function EchartsMixedTimeseries({
             xAxisFilters.push(filter);
           }
         } else if (xAxis.type === AxisType.Category && xAxisColumn) {
-          const rawValue: unknown = Array.isArray(data) ? data[0] : undefined;
+          // Line/area events carry only the series identity. Resolve their
+          // pixel position through the shared category axis, not a data index.
+          const rawValue = getTimeAxisDrillByValue(
+            data,
+            Array.isArray(echartOptions.series)
+              ? echartOptions.series[seriesIndex]
+              : echartOptions.series,
+            data === undefined
+              ? echartRef.current
+                  ?.getEchartInstance()
+                  ?.convertFromPixel({ seriesIndex }, [
+                    eventParams.event.offsetX,
+                    eventParams.event.offsetY,
+                  ])
+              : undefined,
+            0,
+            true,
+            data === undefined
+              ? getCategoryAxisValues(echartRef.current?.getEchartInstance(), 0)
+              : undefined,
+          );
           const categoryValue =
             rawValue === undefined ? eventParams.name : rawValue;
           if (

@@ -518,3 +518,54 @@ test('Mixed categorical markerless Drill by uses shared axis categories for a sp
     }
   }
 });
+
+test.each([0, 1, 2])(
+  'Mixed text-axis markerless Drill by resolves shared category %s for sparse query B',
+  async categoryIndex => {
+    const query = {
+      ...createQueryData(),
+      coltypes: [
+        GenericDataType.String,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+      data: ['ABSENT', 'CORP', 'RETAIL'].map(ds => ({
+        ds,
+        'sum__num, boy': 1,
+        'sum__num, girl': 2,
+      })),
+    };
+    const { eventHandlers, onContextMenu } = setup({}, [
+      query,
+      { ...query, data: query.data.slice(1) },
+    ]);
+    mockMixedChart.getModel.mockReturnValue({
+      getComponent: () => ({
+        getCategories: () => ['ABSENT', 'CORP', 'RETAIL'],
+      }),
+    });
+    mockMixedChart.convertFromPixel.mockReturnValue([categoryIndex, 1]);
+    await eventHandlers.contextmenu({
+      seriesName: 'sum__num, boy',
+      seriesIndex: 2,
+      event: {
+        stop: jest.fn(),
+        offsetX: 20,
+        offsetY: 30,
+        event: { clientX: 11, clientY: 22 },
+      },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual(
+      categoryIndex === 0
+        ? undefined
+        : [
+            {
+              col: 'ds',
+              op: '==',
+              val: categoryIndex === 1 ? 'CORP' : 'RETAIL',
+              formattedVal: categoryIndex === 1 ? 'CORP' : 'RETAIL',
+            },
+          ],
+    );
+  },
+);
