@@ -49,6 +49,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, feature_flag_manager
 from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.capabilities import supported_view_features
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.exceptions import (
     SemanticLayerExecutionError,
@@ -130,6 +131,10 @@ def _column_values_cache_key(
         inner_rls := datasource.get_inner_rls_cache_key()
     ):
         material["inner_rls"] = inner_rls
+    # The query runs under the caller's connection identity, which an embedded
+    # credential or per-user caching makes part of the result.
+    if isinstance(datasource, (SqlaTable, Query)):
+        add_impersonation_cache_key_if_needed(datasource.database, material)
     return "col_values:" + hash_from_dict(material)
 
 
@@ -1076,10 +1081,12 @@ class DatasourceRestApi(BaseSupersetApi):
                 if is_semantic_view
                 else {op.value for op in FilterOperator}
             )
-            features = sorted(
+            features: list[str] = sorted(
                 feature.value
-                for feature in getattr(
-                    getattr(datasource, "implementation", None), "features", set()
+                for feature in supported_view_features(
+                    getattr(
+                        getattr(datasource, "implementation", None), "features", None
+                    )
                 )
             )
             result = dict(datasource.data)
