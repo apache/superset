@@ -20,10 +20,17 @@ import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { t } from '@apache-superset/core/translation';
-import { ChartCustomization, DataMaskStateWithId } from '@superset-ui/core';
+import {
+  ChartCustomization,
+  DataMaskStateWithId,
+  DatasourceType,
+} from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
-import { getFilterValueForDisplay } from '../nativeFilters/utils';
+import {
+  getFilterValueForDisplay,
+  isHiddenSemanticCustomization,
+} from '../nativeFilters/utils';
 import { extractLabel } from '../nativeFilters/selectors';
 import { useChartCustomizationFromRedux } from '../nativeFilters/state';
 import { RootState } from '../../types';
@@ -31,12 +38,15 @@ import { isChartWithoutGroupBy } from '../../util/charts/chartTypeLimitations';
 
 const getCustomizationDataset = (
   item: ChartCustomization | any,
-): string | number | null => {
+): string | null => {
   if (item.targets?.[0]?.datasetId !== undefined) {
-    return item.targets[0].datasetId;
+    return `${item.targets[0].datasetId}__${item.targets[0].datasourceType || DatasourceType.Table}`;
   }
   if (item.customization?.dataset !== undefined) {
-    return item.customization.dataset;
+    const dataset = String(item.customization.dataset);
+    return dataset.includes('__')
+      ? dataset
+      : `${dataset}__${DatasourceType.Table}`;
   }
   return null;
 };
@@ -48,10 +58,10 @@ const makeSelectChartDataset = (chartId: number) =>
       if (!latestQueryFormData?.datasource) {
         return null;
       }
-      const chartDatasetParts = String(latestQueryFormData.datasource).split(
-        '__',
-      );
-      return chartDatasetParts[0];
+      const datasource = String(latestQueryFormData.datasource);
+      return datasource.includes('__')
+        ? datasource
+        : `${datasource}__${DatasourceType.Table}`;
     },
   );
 
@@ -195,7 +205,7 @@ export const CustomizationsBadge = ({ chartId }: CustomizationsBadgeProps) => {
     }
 
     return chartCustomizationItems.filter(item => {
-      if (item.removed) {
+      if (item.removed || isHiddenSemanticCustomization(item)) {
         return false;
       }
 
@@ -208,8 +218,7 @@ export const CustomizationsBadge = ({ chartId }: CustomizationsBadgeProps) => {
         return false;
       }
 
-      const targetDatasetId = String(targetDataset);
-      const matchesDataset = chartDataset === targetDatasetId;
+      const matchesDataset = chartDataset === targetDataset;
 
       const filterState = dataMask[item.id]?.filterState;
       const hasValue = extractLabel(filterState) !== null;
