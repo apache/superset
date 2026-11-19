@@ -22,6 +22,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from superset.charts.schemas import get_max_prophet_periods
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
 from superset.utils.pandas_postprocessing import prophet
@@ -176,6 +177,23 @@ def test_prophet_incorrect_periods():
             df=prophet_df,
             time_grain="P1M",
             periods=-1,
+            confidence_interval=0.8,
+        )
+
+
+def test_prophet_periods_exceeding_max_raises():
+    """
+    ``periods`` comes from the unvalidated post-processing options dict; the
+    schema-declared upper bound (``MAX_PROPHET_PERIODS``, configurable, default
+    10000) is documentation-only unless enforced at the point ``periods`` is
+    consumed, since every forecast period adds a future row per series.
+    """
+    assert get_max_prophet_periods() == 10000
+    with pytest.raises(InvalidPostProcessingError, match="must not exceed"):
+        prophet(
+            df=prophet_df,
+            time_grain="P1M",
+            periods=10001,
             confidence_interval=0.8,
         )
 
@@ -374,3 +392,49 @@ def test_prophet_does_not_clamp_yhat_below_zero_for_negative_actuals():
     forecast_periods = 2
     forecast_yhat = result["balance__yhat"].iloc[-forecast_periods:]
     assert (forecast_yhat < 0).any()
+
+
+def test_prophet_every_time_grain_is_mapped():
+    """No `TimeGrain` may be missing from `PROPHET_TIME_GRAIN_MAP`.
+
+    Engine specs offer these grains in the Time Grain control, and the
+    `ChartDataProphetOptionsSchema.time_grain` field advertises them in the
+    OpenAPI spec, so an unmapped grain surfaces as "Unsupported time grain"
+    on a value the UI and the API both present as valid.
+    """
+    from superset.constants import TimeGrain
+    from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
+
+    unmapped = [
+        grain.name for grain in TimeGrain if grain not in PROPHET_TIME_GRAIN_MAP
+    ]
+    assert not unmapped, f"TimeGrain values missing a pandas frequency: {unmapped}"
+
+
+@pytest.mark.parametrize(
+    "time_grain",
+    ["PT5S", "PT30S", "PT0.5H", "PT6H", "P0.25Y"],
+)
+def test_prophet_previously_unmapped_time_grains(time_grain):
+    """These five grains raised "Unsupported time grain" despite being offered
+    by engine specs such as Postgres, SQLite, Presto and Druid."""
+    df = prophet(
+        df=prophet_df, time_grain=time_grain, periods=3, confidence_interval=0.9
+    )
+    assert {"a__yhat", "a__yhat_upper", "a__yhat_lower"} <= set(df.columns)
+
+
+def test_prophet_alias_time_grains_match_their_canonical_form():
+    """`HALF_HOUR`/`QUARTER_YEAR` are alternate ISO-8601 spellings of
+    `THIRTY_MINUTES`/`QUARTER` and must resolve to the same frequency."""
+    from superset.constants import TimeGrain
+    from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
+
+    assert (
+        PROPHET_TIME_GRAIN_MAP[TimeGrain.HALF_HOUR]
+        == PROPHET_TIME_GRAIN_MAP[TimeGrain.THIRTY_MINUTES]
+    )
+    assert (
+        PROPHET_TIME_GRAIN_MAP[TimeGrain.QUARTER_YEAR]
+        == PROPHET_TIME_GRAIN_MAP[TimeGrain.QUARTER]
+    )

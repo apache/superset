@@ -16,9 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, NumberFormats } from '@superset-ui/core';
+import {
+  getNumberFormatter,
+  NumberFormats,
+  tooltipMarker,
+  TRUNCATION_MAX_CHARS,
+} from '@superset-ui/core';
 import { SeriesOption } from 'echarts';
 import {
+  collapseForecastKeys,
   extractForecastSeriesContext,
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
@@ -201,41 +207,34 @@ test('extractForecastValuesFromTooltipParams should extract the proper data from
   expect(
     extractForecastValuesFromTooltipParams([
       {
-        marker: '<img>',
         seriesId: 'abc',
         value: [new Date(0), 10],
       },
       {
-        marker: '<img>',
         seriesId: 'abc__yhat',
         value: [new Date(0), 1],
       },
       {
-        marker: '<img>',
         seriesId: 'abc__yhat_lower',
         value: [new Date(0), 5],
       },
       {
-        marker: '<img>',
         seriesId: 'abc__yhat_upper',
         value: [new Date(0), 6],
       },
       {
-        marker: '<img>',
         seriesId: 'qwerty',
         value: [new Date(0), 2],
       },
     ]),
   ).toEqual({
     abc: {
-      marker: '<img>',
       observation: 10,
       forecastTrend: 1,
       forecastLower: 5,
       forecastUpper: 6,
     },
     qwerty: {
-      marker: '<img>',
       observation: 2,
     },
   });
@@ -245,169 +244,245 @@ test('extractForecastValuesFromTooltipParams should extract valid values', () =>
   expect(
     extractForecastValuesFromTooltipParams([
       {
-        marker: '<img>',
         seriesId: 'foo',
         value: [0, 10],
       },
       {
-        marker: '<img>',
         seriesId: 'bar',
         value: [100, 0],
       },
     ]),
   ).toEqual({
     foo: {
-      marker: '<img>',
       observation: 10,
     },
     bar: {
-      marker: '<img>',
       observation: 0,
     },
   });
 });
 
 const formatter = getNumberFormatter(NumberFormats.INTEGER);
+const marker = tooltipMarker('#1f77b4');
 
 test('formatForecastTooltipSeries should apply format to value', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'abc',
-      marker: '<img>',
+      color: '#1f77b4',
       observation: 10.1,
       formatter,
     }),
-  ).toEqual(['<img>abc', '10']);
+  ).toEqual([`${marker}abc`, '10']);
 });
 
 test('formatForecastTooltipSeries should show falsy value', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'abc',
-      marker: '<img>',
+      color: '#1f77b4',
       observation: 0,
       formatter,
     }),
-  ).toEqual(['<img>abc', '0']);
+  ).toEqual([`${marker}abc`, '0']);
 });
 
 test('formatForecastTooltipSeries should format full forecast', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
-      marker: '<img>',
+      color: '#1f77b4',
       observation: 10.1,
       forecastTrend: 20.1,
       forecastLower: 5.1,
       forecastUpper: 7.1,
       formatter,
     }),
-  ).toEqual(['<img>qwerty', '10, ŷ = 20 (5, 12)']);
+  ).toEqual([`${marker}qwerty`, '10, ŷ = 20 (5, 12)']);
 });
 
 test('formatForecastTooltipSeries should format forecast without observation', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
-      marker: '<img>',
+      color: '#1f77b4',
       forecastTrend: 20,
       forecastLower: 5,
       forecastUpper: 7,
       formatter,
     }),
-  ).toEqual(['<img>qwerty', 'ŷ = 20 (5, 12)']);
+  ).toEqual([`${marker}qwerty`, 'ŷ = 20 (5, 12)']);
 });
 
 test('formatForecastTooltipSeries should format forecast without point estimate', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
-      marker: '<img>',
+      color: '#1f77b4',
       observation: 10.1,
       forecastLower: 6,
       forecastUpper: 7,
       formatter,
     }),
-  ).toEqual(['<img>qwerty', '10 (6, 13)']);
+  ).toEqual([`${marker}qwerty`, '10 (6, 13)']);
 });
 
 test('formatForecastTooltipSeries should format forecast with only confidence band', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
-      marker: '<img>',
+      color: '#1f77b4',
       forecastLower: 7,
       forecastUpper: 8,
       formatter,
     }),
-  ).toEqual(['<img>qwerty', '(7, 15)']);
+  ).toEqual([`${marker}qwerty`, '(7, 15)']);
 });
 
 test('formatForecastTooltipSeries should show forecast trend equal to zero', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
-      marker: '<img>',
+      color: '#1f77b4',
       observation: 10,
       forecastTrend: 0,
       forecastLower: 5,
       forecastUpper: 7,
       formatter,
     }),
-  ).toEqual(['<img>qwerty', '10, ŷ = 0 (5, 12)']);
+  ).toEqual([`${marker}qwerty`, '10, ŷ = 0 (5, 12)']);
 });
 
 test('formatForecastTooltipSeries should show confidence band when lower bound is zero', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
-      marker: '<img>',
+      color: '#1f77b4',
       observation: 10,
       forecastTrend: 5,
       forecastLower: 0,
       forecastUpper: 7,
       formatter,
     }),
-  ).toEqual(['<img>qwerty', '10, ŷ = 5 (0, 7)']);
+  ).toEqual([`${marker}qwerty`, '10, ŷ = 5 (0, 7)']);
 });
 
 test('formatForecastTooltipSeries should show confidence band when band height is zero', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
-      marker: '<img>',
+      color: '#1f77b4',
       observation: 10,
       forecastTrend: 5,
       forecastLower: 4,
       forecastUpper: 0,
       formatter,
     }),
-  ).toEqual(['<img>qwerty', '10, ŷ = 5 (4, 4)']);
+  ).toEqual([`${marker}qwerty`, '10, ŷ = 5 (4, 4)']);
 });
 
 test('formatForecastTooltipSeries should show forecast trend and band all at zero', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
-      marker: '<img>',
+      color: '#1f77b4',
       forecastTrend: 0,
       forecastLower: 0,
       forecastUpper: 0,
       formatter,
     }),
-  ).toEqual(['<img>qwerty', 'ŷ = 0 (0, 0)']);
+  ).toEqual([`${marker}qwerty`, 'ŷ = 0 (0, 0)']);
 });
 
 test('formatForecastTooltipSeries should skip non-finite forecast values', () => {
   expect(
     formatForecastTooltipSeries({
       seriesName: 'qwerty',
-      marker: '<img>',
+      color: '#1f77b4',
       observation: 10,
       forecastTrend: NaN,
       forecastLower: Infinity,
       forecastUpper: -Infinity,
       formatter,
     }),
-  ).toEqual(['<img>qwerty', '10']);
+  ).toEqual([`${marker}qwerty`, '10']);
+});
+
+describe('formatForecastTooltipSeries truncation', () => {
+  const longName = 'prod-us-east-1-service-checkout-latency-p99'; // 43 chars
+  const intFormatter = getNumberFormatter(NumberFormats.INTEGER);
+
+  const format = (truncation?: 'off' | 'end' | 'start' | 'middle') =>
+    formatForecastTooltipSeries({
+      seriesName: longName,
+      observation: 1,
+      color: '#1f77b4',
+      formatter: intFormatter,
+      ...(truncation ? { truncation } : {}),
+    })[0];
+
+  test('leaves the name intact by default and for off/end', () => {
+    expect(format()).toContain(longName);
+    expect(format('off')).toContain(longName);
+    expect(format('end')).toContain(longName);
+  });
+
+  test('slices the start of the name without harming the marker', () => {
+    const cell = format('start');
+    expect(cell).toContain(marker);
+    expect(cell).toContain('…-us-east-1-service-checkout-latency-p99');
+    expect(cell).not.toContain('prod-us-east');
+  });
+
+  test('slices the middle of the name without harming the marker', () => {
+    const cell = format('middle');
+    expect(cell).toContain(marker);
+    expect(cell).toContain('prod-us-east-1-servi…heckout-latency-p99');
+  });
+
+  test('measures the budget against the name, not the marker markup', () => {
+    // The marker alone is far longer than the budget. If truncation were
+    // applied to the concatenated cell, a short name would be mangled.
+    expect(marker.length).toBeGreaterThan(TRUNCATION_MAX_CHARS);
+    const [cell] = formatForecastTooltipSeries({
+      seriesName: 'cpu',
+      observation: 1,
+      color: '#1f77b4',
+      formatter: intFormatter,
+      truncation: 'start',
+    });
+    expect(cell).toBe(`${marker}cpu`);
+  });
+});
+
+describe('collapseForecastKeys', () => {
+  test('leaves plain observation series untouched and in order', () => {
+    expect(collapseForecastKeys(['foo', 'bar'])).toEqual(['foo', 'bar']);
+  });
+
+  test('folds a forecast bundle down to a single key', () => {
+    expect(
+      collapseForecastKeys([
+        'foo',
+        'foo__yhat',
+        'foo__yhat_lower',
+        'foo__yhat_upper',
+      ]),
+    ).toEqual(['foo']);
+  });
+
+  test('keeps a key for metrics whose labels are entirely forecast suffixes', () => {
+    // Charts can carry metrics literally labelled `ci__yhat*` with no plain
+    // observation series. Callers match these against forecast-stripped keys,
+    // so an uncollapsed id here would match nothing and drop every row.
+    expect(
+      collapseForecastKeys(['ci__yhat', 'ci__yhat_lower', 'ci__yhat_upper']),
+    ).toEqual(['ci']);
+  });
+
+  test('preserves the incoming order of distinct series', () => {
+    expect(
+      collapseForecastKeys(['b__yhat_lower', 'a__yhat', 'b__yhat']),
+    ).toEqual(['b', 'a']);
+  });
 });

@@ -30,8 +30,16 @@ import {
   sanitizeHtml,
 } from '@superset-ui/core';
 
+// Horizontal gap, in px, between the cursor and the tooltip.
+const TOOLTIP_OFFSET = 15;
+
 interface PartitionDataNode {
-  name: string;
+  // A plain string for the metric row and the first grouping level;
+  // an array of the full ancestor path (e.g. ["a", "a.1", "a.1.1"])
+  // for any node below that, per PartitionViz.nest_values /
+  // transformData. Consumers should read PartitionNode.name instead,
+  // which is normalized to a plain leaf string in `init`.
+  name: string | string[];
   val: number;
   children?: PartitionDataNode[];
 }
@@ -99,11 +107,21 @@ const lazyFunction = (f: () => Record<string, unknown>) =>
     return f().apply(this, args);
   };
 const leafType = PropTypes.shape({
-  name: PropTypes.string,
+  // A plain string at the first grouping level, or an array of the
+  // full ancestor path at any level below that.
+  name: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.arrayOf(PropTypes.string),
+  ]),
   val: PropTypes.number.isRequired,
 });
 const parentShape = {
-  name: PropTypes.string,
+  // A plain string at the first grouping level, or an array of the
+  // full ancestor path at any level below that.
+  name: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.arrayOf(PropTypes.string),
+  ]),
   val: PropTypes.number.isRequired,
   children: PropTypes.arrayOf(
     PropTypes.oneOfType([
@@ -228,7 +246,13 @@ function Icicle(element: HTMLElement, props: IcicleProps): void {
       n.disp = n.data.val;
       n.value = n.disp < 0 ? -n.disp : n.disp;
       n.weight = n.value;
-      n.name = n.data.name;
+      // n.data.name is an array of the full ancestor path for any node
+      // below the first grouping level; normalize to this node's own
+      // leaf value so sorting, tooltips, on-chart labels, and the
+      // categorical color key all key off a plain string.
+      n.name = Array.isArray(n.data.name)
+        ? n.data.name[n.data.name.length - 1]
+        : n.data.name;
       // If the parent is a metric and we still have
       // the time column, perform a date-time format
       if (n.parent && hasDateNode(n.parent)) {
@@ -345,10 +369,17 @@ function Icicle(element: HTMLElement, props: IcicleProps): void {
       }
       t += '</tbody></table>';
       const [tipX, tipY] = d3.mouse(element);
-      tip
-        .html(sanitizeHtml(t))
-        .style('left', `${tipX + 15}px`)
-        .style('top', `${tipY}px`);
+      // Reset left before measuring: an absolutely positioned box shrinks to
+      // the space remaining right of `left`, which would under-report its width.
+      tip.html(sanitizeHtml(t)).style('left', '0px');
+      // Flip to the left of the cursor when the tooltip would overflow the
+      // chart's right edge, where the chart container clips it.
+      const tipWidth = tip.node().offsetWidth;
+      const left =
+        tipX + TOOLTIP_OFFSET + tipWidth > width
+          ? Math.max(0, tipX - TOOLTIP_OFFSET - tipWidth)
+          : tipX + TOOLTIP_OFFSET;
+      tip.style('left', `${left}px`).style('top', `${tipY}px`);
     }
 
     const nodes = init(root);

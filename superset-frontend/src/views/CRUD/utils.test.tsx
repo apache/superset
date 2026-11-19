@@ -17,8 +17,13 @@
  * under the License.
  */
 import rison from 'rison';
+import { waitFor } from '@testing-library/react';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import { SupersetClient } from '@superset-ui/core';
+import Chart from 'src/types/Chart';
 import {
   checkUploadExtensions,
+  handleChartDelete,
   getAlreadyExists,
   getEncryptedExtraFieldsNeeded,
   getFilterValues,
@@ -28,6 +33,7 @@ import {
   getSSHPrivateKeyPasswordsNeeded,
   hasTerminalValidation,
   isAlreadyExists,
+  isNavigationHandledByLink,
   isNeedsEncryptedExtraField,
   isNeedsPassword,
   isNeedsSSHPassword,
@@ -258,6 +264,37 @@ const encryptedExtraFieldNoLabelErrors = {
     },
   ],
 };
+
+test('identifies clicks a link has already navigated', () => {
+  document.body.innerHTML = `
+    <div id="card">
+      <a id="cover" href="/explore/?slice_id=1"><img id="thumbnail" alt="" /></a>
+      <span id="title">Chart</span>
+      <a id="anchorWithoutHref"><span id="inertLabel">Label</span></a>
+    </div>
+  `;
+  const target = (id: string) => ({ target: document.getElementById(id) });
+
+  // the link itself and anything nested inside it
+  expect(isNavigationHandledByLink(target('cover'))).toBe(true);
+  expect(isNavigationHandledByLink(target('thumbnail'))).toBe(true);
+
+  // the rest of the card still navigates through its own click handler
+  expect(isNavigationHandledByLink(target('title'))).toBe(false);
+  expect(isNavigationHandledByLink(target('card'))).toBe(false);
+
+  // an anchor with no href does not navigate, so it must not suppress the card
+  expect(isNavigationHandledByLink(target('anchorWithoutHref'))).toBe(false);
+  expect(isNavigationHandledByLink(target('inertLabel'))).toBe(false);
+
+  // targets that are not elements
+  expect(isNavigationHandledByLink({ target: null })).toBe(false);
+  expect(
+    isNavigationHandledByLink({ target: document.createTextNode('text') }),
+  ).toBe(false);
+
+  document.body.innerHTML = '';
+});
 
 test('identifies error payloads indicating that password is needed', () => {
   let needsPassword;
@@ -711,3 +748,62 @@ test('getFilterValues', () => {
     );
   });
 });
+
+test('handleChartDelete surfaces the blocking alert/report names from a 422', async () => {
+  const guardMessage =
+    'There are associated alerts or reports: TC-081 rerun report';
+  const deleteSpy = jest
+    .spyOn(SupersetClient, 'delete')
+    .mockRejectedValue(
+      new Response(JSON.stringify({ message: guardMessage }), { status: 422 }),
+    );
+  const addDangerToast = jest.fn();
+  try {
+    handleChartDelete(
+      { id: 1, slice_name: 'blocked chart' } as Chart,
+      jest.fn(),
+      addDangerToast,
+      jest.fn(),
+    );
+    await waitFor(() => expect(addDangerToast).toHaveBeenCalledTimes(1));
+    expect(addDangerToast.mock.calls[0][0]).toContain('TC-081 rerun report');
+    expect(addDangerToast.mock.calls[0][0]).toContain('blocked chart');
+  } finally {
+    deleteSpy.mockRestore();
+  }
+});
+
+test.each([true, false])(
+  'chart delete remembers its type only after archive success (soft delete %s)',
+  async enabled => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = { ...previousFlags, SOFT_DELETE: enabled };
+    localStorage.removeItem(LocalStorageKeys.LastArchivedType);
+    let completeDelete: ((response: Response) => void) | undefined;
+    const deleteSpy = jest.spyOn(SupersetClient, 'delete').mockImplementation(
+      () =>
+        new Promise<Response>(resolve => {
+          completeDelete = resolve;
+        }),
+    );
+    const addSuccessToast = jest.fn();
+    try {
+      handleChartDelete(
+        { id: 1, slice_name: 'Chart' } as Chart,
+        addSuccessToast,
+        jest.fn(),
+        jest.fn(),
+      );
+      expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBeNull();
+      completeDelete?.(new Response());
+      await waitFor(() => expect(addSuccessToast).toHaveBeenCalledTimes(1));
+      expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBe(
+        enabled ? 'chart' : null,
+      );
+    } finally {
+      deleteSpy.mockRestore();
+      window.featureFlags = previousFlags;
+      localStorage.removeItem(LocalStorageKeys.LastArchivedType);
+    }
+  },
+);

@@ -29,6 +29,7 @@ from flask import (
     abort,
     current_app as app,
     g,
+    make_response,
     redirect,
     request,
     Response,
@@ -41,6 +42,7 @@ from flask_appbuilder.security.decorators import (
     has_access_api,
 )
 from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel.speaklater import LazyString
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import safe_join
 
@@ -103,13 +105,12 @@ from superset.views.utils import (
 
 logger = logging.getLogger(__name__)
 
-DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
-USER_MISSING_ERR = __("The user seems to have been deleted")
-PARAMETER_MISSING_ERR = __(
-    "Please check your template parameters for syntax errors and make sure "
-    "they match across your SQL query and Set Parameters. Then, try running "
-    "your query again."
-)
+# Lazy on purpose: a module-level constant is evaluated at import time,
+# outside any request, so eager gettext would freeze it in the default
+# locale forever. Lazy at module scope, coerced with str() at the point of
+# use inside a request — the mirror of the "eager __() in request context"
+# convention for inline error bodies.
+DATASOURCE_MISSING_ERR: LazyString = _("The data source seems to have been deleted")
 
 SqlResults = dict[str, Any]
 
@@ -201,7 +202,7 @@ class Superset(BaseSupersetView):
                         initial_form_data["url_params"] = dict(url_params)
                 else:
                     return json_error_response(
-                        _("Error: permalink state not found"), status=404
+                        __("Error: permalink state not found"), status=404
                     )
             except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
                 return json_error_response(
@@ -290,13 +291,25 @@ class Superset(BaseSupersetView):
 
         if action == "overwrite" and not slice_overwrite_perm:
             return json_error_response(
-                _("You don't have the rights to alter this chart"),
+                __("You don't have the rights to alter this chart"),
+                status=403,
+            )
+
+        # Externally managed charts refuse the legacy overwrite too: this
+        # path assigns request values (params, query_context, ...) directly
+        # to the loaded chart and persists via ChartDAO.update, bypassing
+        # UpdateChartCommand's raise_if_managed_externally gate. Same 403
+        # message as the editorship denial above, so nothing new is
+        # disclosed (see superset/commands/utils.py).
+        if action == "overwrite" and slc is not None and slc.is_managed_externally:
+            return json_error_response(
+                __("You don't have the rights to alter this chart"),
                 status=403,
             )
 
         if action == "saveas" and not slice_add_perm:
             return json_error_response(
-                _("You don't have the rights to create a chart"),
+                __("You don't have the rights to create a chart"),
                 status=403,
             )
 
@@ -432,7 +445,7 @@ class Superset(BaseSupersetView):
             dash_overwrite_perm = security_manager.is_editor(dash)
             if not dash_overwrite_perm:
                 return json_error_response(
-                    _("You don't have the rights to alter this dashboard"),
+                    __("You don't have the rights to alter this dashboard"),
                     status=403,
                 )
         elif new_dashboard_name:
@@ -441,7 +454,7 @@ class Superset(BaseSupersetView):
             dash_add_perm = security_manager.can_access("can_write", "Dashboard")
             if not dash_add_perm:
                 return json_error_response(
-                    _("You don't have the rights to create a dashboard"),
+                    __("You don't have the rights to create a dashboard"),
                     status=403,
                 )
 
@@ -525,8 +538,8 @@ class Superset(BaseSupersetView):
                 db.session.query(SqlaTable)
                 .join(Database)
                 .filter(
-                    Database.database_name == db_name
-                    or SqlaTable.table_name == table_name
+                    Database.database_name == db_name,
+                    SqlaTable.table_name == table_name,
                 )
             ).one_or_none()
             if not table:
@@ -552,13 +565,26 @@ class Superset(BaseSupersetView):
                         for key, value in ChartWarmUpCacheCommand(
                             slc, dashboard_id, extra_filters
                         )
-                        .run()
+                        .run(skip_disabled=True)
                         .items()
                     }
                     for slc in slices
                 ],
                 default=json.base_json_conv,
             ),
+        )
+
+    def _dashboard_error_response(self, status: int) -> FlaskResponse:
+        """Render the dashboard SPA for browser errors, preserving the HTTP status."""
+        if "text/html" not in request.accept_mimetypes:
+            abort(status)
+
+        return make_response(
+            self.render_app_template(
+                title=__("Forbidden") if status == 403 else __("Page not found"),
+                standalone_mode=ReservedUrlParameters.is_standalone_mode(),
+            ),
+            status,
         )
 
     @has_access
@@ -582,7 +608,7 @@ class Superset(BaseSupersetView):
         if not dashboard:
             if not get_current_user():
                 return redirect_to_login()
-            abort(404)
+            return self._dashboard_error_response(404)
 
         # Redirect anonymous users to login for unpublished dashboards,
         # in the edge case where a dataset has been shared with public
@@ -594,7 +620,12 @@ class Superset(BaseSupersetView):
         except SupersetSecurityException:
             if not get_current_user():
                 return redirect_to_login()
-            abort(404)
+            from superset.utils.filters import is_excluded_by_extra_access
+
+            # Withheld dashboards stay indistinguishable from missing ones,
+            # matching DashboardDAO.get_by_id_or_slug.
+            excluded = is_excluded_by_extra_access("dashboards", dashboard.id)
+            return self._dashboard_error_response(404 if excluded else 403)
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
@@ -633,7 +664,7 @@ class Superset(BaseSupersetView):
         except DashboardPermalinkGetFailedError as ex:
             return json_error_response(__("Error: %(msg)s", msg=ex.message), status=404)
         if not value:
-            return json_error_response(_("permalink state not found"), status=404)
+            return json_error_response(__("permalink state not found"), status=404)
 
         dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = url_for(
@@ -654,7 +685,9 @@ class Superset(BaseSupersetView):
         return redirect(url)
 
     @api
-    @has_access
+    # has_access_api answers anonymous beacons with a 401; has_access would
+    # flash and redirect to /login/, whose response rewrites the session cookie
+    @has_access_api
     @event_logger.log_this
     @expose("/log/", methods=("POST",))
     def log(self) -> FlaskResponse:
@@ -681,13 +714,12 @@ class Superset(BaseSupersetView):
         )
         # Check if datasource exists
         if not datasource:
-            return json_error_response(DATASOURCE_MISSING_ERR)
+            return json_error_response(str(DATASOURCE_MISSING_ERR))
 
         datasource.raise_for_access()
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
 
     @event_logger.log_this
-    @has_access
     @expose("/language_pack/<lang>/")
     def language_pack(self, lang: str) -> FlaskResponse:
         # Only allow expected language formats like "en", "pt_BR", etc.

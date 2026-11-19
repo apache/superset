@@ -18,13 +18,23 @@
 
 from __future__ import annotations
 
+import logging
+
+import sqlalchemy as sa
+from sqlalchemy.exc import SQLAlchemyError
+
 from superset.commands.dashboard.exceptions import (
     DashboardForbiddenError,
     DashboardNotFoundError,
     DashboardUpdateFailedError,
 )
 from superset.commands.version_restore import BaseRestoreVersionCommand
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.versioning.restore import ChartPurgedDuringRestoreError, RestoreResult
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class RestoreDashboardVersionCommand(BaseRestoreVersionCommand):
@@ -43,3 +53,35 @@ class RestoreDashboardVersionCommand(BaseRestoreVersionCommand):
     not_found_exc = DashboardNotFoundError
     forbidden_exc = DashboardForbiddenError
     failed_exc = DashboardUpdateFailedError
+
+    def run(self) -> RestoreResult:
+        """Restore, confirming a reported chart-purge race before surfacing it.
+
+        The transaction has rolled back by the time the race reaches here,
+        so a fresh read sees the purge's commit. Only when one of the charts
+        whose membership the restore was changing is really gone is the
+        retryable :class:`ChartPurgedDuringRestoreError` raised. Otherwise,
+        or when the confirming read itself fails, the restore fails the
+        ordinary way.
+        """
+        try:
+            return super().run()
+        except ChartPurgedDuringRestoreError as ex:
+            slices: sa.Table = Slice.__table__
+            try:
+                remaining: set[int] = set(
+                    db.session.execute(
+                        sa.select(slices.c.id).where(slices.c.id.in_(ex.chart_ids))
+                    ).scalars()
+                )
+            except SQLAlchemyError as read_ex:
+                raise self.failed_exc() from read_ex
+            if remaining.issuperset(ex.chart_ids):
+                raise self.failed_exc() from ex
+            logger.info(
+                "versioning: dashboard uuid=%s restore lost a race with a purge "
+                "of chart(s) %s",
+                self._uuid,
+                sorted(set(ex.chart_ids) - remaining),
+            )
+            raise

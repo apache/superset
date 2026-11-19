@@ -35,22 +35,27 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException, ForbiddenError
 from superset.extensions import event_logger
+from superset.mcp_service.dashboard.layout_placement import (
+    remove_component_and_prune,
+)
+from superset.mcp_service.dashboard.layout_validation import (
+    normalize_chart_id,
+    rebuild_parent_chains,
+)
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     RemoveChartFromDashboardRequest,
     RemoveChartFromDashboardResponse,
     serialize_chart_summary,
 )
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
+)
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-# Container types that should be deleted once they have no children left.
-# TAB/TABS/GRID/ROOT containers are intentionally kept even when empty —
-# deleting a TAB would silently change the dashboard's visible structure.
-_PRUNABLE_TYPES = ("ROW", "COLUMN")
 
 
 def _find_chart_keys(layout: Dict[str, Any], chart_id: int) -> list[str]:
@@ -59,66 +64,13 @@ def _find_chart_keys(layout: Dict[str, Any], chart_id: int) -> list[str]:
     A chart can legitimately appear more than once in a layout (e.g. under
     multiple tabs), so all occurrences are returned.
     """
-    # Accept both int and string chartId — position_json is user/frontend-authored
-    # and imported or hand-edited layouts may store chartId as a string.
     return [
         key
         for key, node in layout.items()
         if isinstance(node, dict)
         and node.get("type") == "CHART"
-        and (node.get("meta") or {}).get("chartId") in (chart_id, str(chart_id))
+        and normalize_chart_id((node.get("meta") or {}).get("chartId")) == chart_id
     ]
-
-
-def _find_parent_key(layout: Dict[str, Any], component_key: str) -> str | None:
-    """Find the component whose children list contains *component_key*.
-
-    The reverse lookup scans children lists instead of trusting the
-    ``parents`` metadata on the node, which can be stale in hand-edited or
-    programmatically generated layouts.
-    """
-    for key, node in layout.items():
-        if not isinstance(node, dict):
-            continue
-        children = node.get("children")
-        if isinstance(children, list) and component_key in children:
-            return key
-    return None
-
-
-def _remove_component_and_prune(
-    layout: Dict[str, Any], component_key: str
-) -> list[str]:
-    """Remove *component_key* from the layout and prune empty containers.
-
-    Walks up the parent chain deleting ROW/COLUMN containers that become
-    empty as a result of the removal, so no orphaned wrapper nodes are left
-    behind. Returns the list of removed layout keys.
-    """
-    removed: list[str] = []
-    parent_key = _find_parent_key(layout, component_key)
-
-    layout.pop(component_key, None)
-    removed.append(component_key)
-
-    child_key = component_key
-    while parent_key is not None:
-        parent = layout.get(parent_key)
-        if not isinstance(parent, dict):
-            break
-        children = parent.get("children")
-        if isinstance(children, list):
-            parent["children"] = [c for c in children if c != child_key]
-        if parent.get("type") in _PRUNABLE_TYPES and not parent.get("children"):
-            grandparent_key = _find_parent_key(layout, parent_key)
-            layout.pop(parent_key, None)
-            removed.append(parent_key)
-            child_key = parent_key
-            parent_key = grandparent_key
-        else:
-            break
-
-    return removed
 
 
 def _remove_chart_from_layout(layout: Dict[str, Any], chart_id: int) -> list[str]:
@@ -130,7 +82,7 @@ def _remove_chart_from_layout(layout: Dict[str, Any], chart_id: int) -> list[str
     for chart_key in _find_chart_keys(layout, chart_id):
         # The chart key may already be gone if it shared a pruned container.
         if chart_key in layout:
-            removed.extend(_remove_component_and_prune(layout, chart_key))
+            removed.extend(remove_component_and_prune(layout, chart_key))
     return removed
 
 
@@ -279,6 +231,8 @@ def _find_and_authorize_dashboard(
         title="Remove chart from dashboard",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (layout traversal + multi-step authorization), not accidental
@@ -286,6 +240,9 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
 ) -> RemoveChartFromDashboardResponse:
     """
     Remove a chart from an existing dashboard.
+
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
 
     Deletes the chart's layout component(s) from the dashboard (all
     occurrences, including under tabs), prunes rows/columns left empty by
@@ -305,6 +262,12 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
             dashboard, auth_error = _find_and_authorize_dashboard(request.dashboard_id)
             if auth_error is not None:
                 return auth_error
+
+            refusal: str | None = managed_dashboard_refusal(dashboard)
+            if refusal is not None:
+                return RemoveChartFromDashboardResponse(
+                    managed_externally=True, error=refusal
+                )
 
         # Remove the chart from the layout tree
         with event_logger.log_context(action="mcp.remove_chart_from_dashboard.layout"):
@@ -340,6 +303,14 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
                         "see which charts the dashboard contains."
                     ),
                 )
+
+            # Rebuild every remaining component's parents from the actual
+            # children edges. This is a no-op when the stored layout was
+            # already correct, and self-heals any pre-existing truncation
+            # (e.g. from a layout written before this repair existed) so
+            # filter-scope derivation sees a correct tree. See
+            # superset.dashboards.filter_scope.get_chart_ids_in_scope.
+            current_layout = rebuild_parent_chains(current_layout)
 
         # Update the dashboard
         with event_logger.log_context(

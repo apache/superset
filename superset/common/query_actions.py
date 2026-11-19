@@ -43,6 +43,7 @@ from superset.utils.currency import (
     detect_currency_from_df,
     has_auto_currency_in_column_config,
 )
+from superset.utils.timing_metrics import timed
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -78,6 +79,41 @@ def _get_timegrains(
     return {"data": grains}
 
 
+def _filter_status(
+    datasource: Explorable,
+    query_obj: QueryObject,
+    applied_filter_columns: list[Any],
+    rejected_filter_columns: list[Any],
+) -> dict[str, Any]:
+    """Describe which of the query's filters reached the generated SQL.
+
+    Used by both SQL-only and data-bearing results so the public filter status
+    and the datasource-only rejection carrier cannot diverge.
+    """
+    applied_time_columns, rejected_time_columns = get_time_filter_status(
+        datasource, query_obj.applied_time_extras
+    )
+    return {
+        "applied_filters": [
+            {"column": get_column_name(col)} for col in applied_filter_columns
+        ]
+        + applied_time_columns,
+        "rejected_filters": [
+            {
+                "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,
+                "column": get_column_name(col),
+            }
+            for col in rejected_filter_columns
+        ]
+        + rejected_time_columns,
+        # Keep the datasource rejection origin available to consumers that
+        # must distinguish it from temporal pseudo-filter status above.
+        "rejected_filter_columns": [
+            get_column_name(col) for col in rejected_filter_columns
+        ],
+    }
+
+
 def _get_query(
     query_context: QueryContext,
     query_obj: QueryObject,
@@ -86,7 +122,26 @@ def _get_query(
     datasource = _get_datasource(query_context, query_obj)
     result = {"language": datasource.query_language}
     try:
-        result["query"] = datasource.get_query_str(query_obj.to_dict())
+        # Prefer the extended form so the rejected/applied filter columns the
+        # datasource computed while building the query are not discarded: a
+        # filter silently dropped during query construction is otherwise
+        # invisible to anyone requesting only the SQL. Datasources that do not
+        # implement it (e.g. semantic layers) keep the plain string form.
+        if get_query_str_extended := getattr(
+            datasource, "get_query_str_extended", None
+        ):
+            extended = get_query_str_extended(query_obj.to_dict())
+            result["query"] = extended.full_sql
+            result.update(
+                _filter_status(
+                    datasource,
+                    query_obj,
+                    extended.applied_filter_columns,
+                    extended.rejected_filter_columns,
+                )
+            )
+        else:
+            result["query"] = datasource.get_query_str(query_obj.to_dict())
     except QueryObjectValidationError as err:
         # Validation errors (missing required fields, invalid config)
         # No SQL was generated
@@ -160,7 +215,8 @@ def _get_full_with_timing(
 ) -> tuple[dict[str, Any], QueryAcquisitionTiming, int]:
     acquired = query_context.get_df_payload_result(query_obj, force_cached=force_cached)
     payload_assembly_start_ns = time.perf_counter_ns()
-    payload = _materialize_full_payload(query_context, query_obj, acquired.payload)
+    with timed("chart_data.query.materialize"):
+        payload = _materialize_full_payload(query_context, query_obj, acquired.payload)
     payload_assembly_ns = max(0, time.perf_counter_ns() - payload_assembly_start_ns)
     return payload, acquired.timing, payload_assembly_ns
 
@@ -185,24 +241,18 @@ def _materialize_full_payload(
         )
     del payload["df"]
 
-    applied_time_columns, rejected_time_columns = get_time_filter_status(
-        datasource, query_obj.applied_time_extras
-    )
-
     applied_filter_columns = payload.get("applied_filter_columns", [])
     rejected_filter_columns = payload.get("rejected_filter_columns", [])
     del payload["applied_filter_columns"]
     del payload["rejected_filter_columns"]
-    payload["applied_filters"] = [
-        {"column": get_column_name(col)} for col in applied_filter_columns
-    ] + applied_time_columns
-    payload["rejected_filters"] = [
-        {
-            "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,
-            "column": get_column_name(col),
-        }
-        for col in rejected_filter_columns
-    ] + rejected_time_columns
+    payload.update(
+        _filter_status(
+            datasource,
+            query_obj,
+            applied_filter_columns,
+            rejected_filter_columns,
+        )
+    )
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
         return {
@@ -212,6 +262,7 @@ def _materialize_full_payload(
             "rowcount": payload.get("rowcount"),
             "sql_rowcount": payload.get("sql_rowcount"),
             "detected_currency": payload.get("detected_currency"),
+            "semantic_cache_status": payload.get("semantic_cache_status"),
         }
     return payload
 

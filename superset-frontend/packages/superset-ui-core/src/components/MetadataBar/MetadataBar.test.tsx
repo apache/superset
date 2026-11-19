@@ -17,7 +17,6 @@
  * under the License.
  */
 import { render, screen, userEvent, within } from '@superset-ui/core/spec';
-import * as resizeDetector from 'react-resize-detector';
 import { hexToRgb } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import MetadataBar, {
@@ -26,6 +25,24 @@ import MetadataBar, {
   ContentType,
   MetadataType,
 } from '.';
+import type { OnResizeCallback } from 'react-resize-detector';
+
+let mockResizeWidth = 1000;
+jest.mock('react-resize-detector', () => {
+  const { useEffect } = jest.requireActual('react');
+  return {
+    useResizeDetector: ({ onResize }: { onResize?: OnResizeCallback }) => {
+      useEffect(() => {
+        onResize?.({ width: mockResizeWidth } as any);
+      }, [onResize]);
+      return { ref: { current: undefined } };
+    },
+  };
+});
+
+afterEach(() => {
+  mockResizeWidth = 1000;
+});
 
 const DASHBOARD_TITLE = 'Added to 452 dashboards';
 const DASHBOARD_DESCRIPTION =
@@ -41,18 +58,13 @@ const TAGS = ['management', 'research', 'poc'];
 const A_WEEK_AGO = 'a week ago';
 const TWO_DAYS_AGO = '2 days ago';
 
-const runWithBarCollapsed = async (func: Function) => {
-  const spy = jest.spyOn(resizeDetector, 'useResizeDetector');
-  let width: number;
-  spy.mockImplementation(props => {
-    if (props?.onResize && !width) {
-      width = 80;
-      props.onResize(width);
-    }
-    return { ref: { current: undefined } };
-  });
-  await func();
-  spy.mockRestore();
+const runWithBarCollapsed = async (func: () => void | Promise<void>) => {
+  mockResizeWidth = 80;
+  try {
+    await func();
+  } finally {
+    mockResizeWidth = 1000;
+  }
 };
 
 const ITEMS: ContentType[] = [
@@ -159,7 +171,7 @@ test('renders underlined text and emits event when clickable', async () => {
 });
 
 test('renders clickable items with blue icons when the bar is collapsed', async () => {
-  await runWithBarCollapsed(async () => {
+  await runWithBarCollapsed(() => {
     const onClick = jest.fn();
     const items = [{ ...ITEMS[0], onClick }, ITEMS[1]];
     render(<MetadataBar items={items} />);

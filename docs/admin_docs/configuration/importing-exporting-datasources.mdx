@@ -83,6 +83,26 @@ The optional username flag **-u** sets the user used for the datasource import. 
 superset import_datasources -p <path / filename> -u 'admin'
 ```
 
+## Importing a Directory of Assets
+
+The `import_directory` command imports a directory of exported assets (databases, datasets,
+dashboards, charts) in the same layout produced by the ZIP-based export. Saved queries and tags
+included in a full export are not imported by this command:
+
+```bash
+superset import_directory <path / directory>
+```
+
+As with `import_datasources`, the optional username flag **-u** sets the user assigned as the
+owner of the imported assets. The default is 'admin'. Example:
+
+```bash
+superset import_directory <path / directory> -u 'admin'
+```
+
+If the specified user does not exist, the command fails immediately with an error rather than
+importing the assets without an owner.
+
 ## Dashboard Import Overwrite Behavior
 
 When importing a dashboard ZIP with the **overwrite** option enabled, any existing charts that are part of the dashboard are **replaced** rather than duplicated. This applies to:
@@ -91,6 +111,60 @@ When importing a dashboard ZIP with the **overwrite** option enabled, any existi
 - The full chart configuration (query, visualization type, columns, metrics) is replaced by the imported version
 
 If you import without the overwrite flag, existing charts with conflicting UUIDs are left unchanged and the import skips those objects. Use overwrite when you want to push a fully updated dashboard (including chart definitions) from a development or staging environment to production.
+
+## Charts and dashboards using semantic views
+
+Semantic charts and dashboard filter/display-control targets can be restored against
+an **existing semantic view with the same UUID**. The destination must enable
+`SEMANTIC_LAYERS`, register the view's provider, and grant the importing user access
+to the view or its parent semantic layer, in addition to the usual asset import
+permissions. Missing, inaccessible or disabled dependencies fail the import rather
+than producing a partially imported bundle.
+
+Chart bundles identify these sources with `datasource_ref: {type: semantic_view,
+uuid: <view-uuid>}`. Dashboard targets use `datasourceRef` with the same shape.
+Import resolves the UUID and rewrites local datasource IDs; it never substitutes a
+table with the same numeric ID. Ordinary table bundles retain `dataset_uuid`.
+Older Superset readers that do not support semantic references cannot import these
+semantic bundles.
+
+Older dashboard bundles whose semantic filter targets lack `datasourceRef` are
+rejected rather than binding their local IDs to unrelated tables. Re-export those
+dashboards with a version that supports typed references. If a chart or dashboard
+filter target references a deleted semantic view, export omits that reference so
+other assets in the archive can still be exported. Repair the orphaned datasource
+before exporting it for import elsewhere. Checks for inaccessible, disabled, and
+unregistered existing semantic dependencies remain enforced, including in full
+asset exports. Disabling `SEMANTIC_LAYERS` or removing a provider registration
+therefore still blocks exports containing references to existing semantic views.
+
+This is **reference restoration, not semantic-layer provisioning**. Bundles do not
+include semantic-layer/view configuration or credentials, and importing does not
+create provider connections or views, or contact providers. Provision the matching
+view and access grants separately before importing. Full cross-workspace semantic
+provisioning is outside this workflow.
+
+## Deleting semantic sources
+
+Deleting a semantic view, multiple views, or a semantic layer returns HTTP 409
+while any affected view is used by a live chart, a live dashboard containing
+that chart or targeting the view in a native filter or display control, or an
+active alert or report schedule. The response includes `total` dependent assets,
+up to 20 `dependents` the caller may list (each with `type`, `id`, and `name`), and
+`inaccessible_count` for dependent assets the caller cannot list. The `type`
+values are `chart`, `dashboard`, `alert`, and `report`. Remove or reassign the
+dependent assets before retrying the delete. The error message includes the full
+dependent count, including assets not named in the bounded list. Charts and
+dashboards take precedence over alerts and reports in that list. For a mixed
+bulk deletion, datasets and semantic views are separate requests: datasets can
+succeed while the semantic-view batch is refused. The error toast names the
+refused views and shows the reason.
+
+Archived charts and dashboards do not block deletion. Restoring one after its
+semantic view was deleted leaves it without that datasource. The dependency
+check is best-effort: a chart, native filter, or display control created or
+re-pointed between the check and deletion can still become orphaned, so
+coordinate concurrent edits when deleting a source used by active workflows.
 
 ## UUIDs in API Responses
 

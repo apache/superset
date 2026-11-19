@@ -49,7 +49,7 @@ import {
   useFilterOperations,
   useCustomizationOperations,
   useModalSaveLogic,
-  ALLOW_DEPENDENCIES,
+  filterSupportsDependencies,
 } from './hooks';
 import {
   getFilterIds,
@@ -62,7 +62,7 @@ import {
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
 
-export { ALLOW_DEPENDENCIES };
+export { filterSupportsDependencies };
 
 const StyledModalBody = styled(BaseModalBody)`
   .filters-list {
@@ -551,6 +551,7 @@ function FiltersConfigModal({
             onCancel={handleCancel}
             handleSave={modalSaveLogic.handleSave}
             canSave={modalSaveLogic.canSave}
+            isSaving={modalSaveLogic.isSaving}
             saveAlertVisible={saveAlertVisible}
             onConfirmCancel={handleConfirmCancel}
           />

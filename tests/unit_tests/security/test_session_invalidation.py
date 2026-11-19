@@ -17,6 +17,7 @@
 
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sqlalchemy.exc import IntegrityError
@@ -93,6 +94,23 @@ def test_enforce_skips_unauthenticated_user() -> None:
     ):
         assert enforce_session_validity() is None
         logout.assert_not_called()
+
+
+def test_enforce_skips_health_check_before_resolving_user(app: Any) -> None:
+    """Health probes must not resolve current_user or touch metadata."""
+    rules = [str(r) for r in app.url_map.iter_rules() if r.endpoint == "health.health"]
+    assert rules, "no health probe routes registered"
+    for rule in rules:
+        with app.test_request_context(rule):
+            with (
+                patch(f"{MODULE}.current_user") as current,
+                patch(f"{MODULE}.logger.warning") as warning,
+                patch(f"{MODULE}.logout_user") as logout,
+            ):
+                assert enforce_session_validity() is None
+                current.__bool__.assert_not_called()
+                warning.assert_not_called()
+                logout.assert_not_called()
 
 
 def test_enforce_skips_guest_user() -> None:

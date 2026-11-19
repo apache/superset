@@ -46,6 +46,7 @@ from superset.mcp_service.chart.schemas import (
     PieChartConfig,
     PivotTableChartConfig,
     TableChartConfig,
+    TreemapChartConfig,
 )
 from superset.mcp_service.chart.validation.schema_validator import SchemaValidator
 
@@ -279,7 +280,7 @@ class TestPivotTableChartConfigSchema:
         assert config.chart_type == "pivot_table"
         assert len(config.rows) == 1
         assert len(config.metrics) == 1
-        assert config.aggregate_function == "Sum"
+        assert config.aggregate_function == "Metric"
         assert config.show_row_totals is True
         assert config.show_column_totals is True
 
@@ -350,7 +351,27 @@ class TestPivotTableChartConfigSchema:
             )
 
     def test_pivot_table_valid_aggregate_functions(self) -> None:
-        for agg in ["Sum", "Average", "Median", "Count", "Minimum", "Maximum"]:
+        for agg in [
+            "Metric",
+            "Sum",
+            "Average",
+            "Median",
+            "Sample Variance",
+            "Sample Standard Deviation",
+            "Count",
+            "Count Unique Values",
+            "List Unique Values",
+            "Minimum",
+            "Maximum",
+            "First",
+            "Last",
+            "Sum as Fraction of Total",
+            "Sum as Fraction of Rows",
+            "Sum as Fraction of Columns",
+            "Count as Fraction of Total",
+            "Count as Fraction of Rows",
+            "Count as Fraction of Columns",
+        ]:
             config = PivotTableChartConfig(
                 chart_type="pivot_table",
                 rows=[ColumnRef(name="product")],
@@ -381,7 +402,7 @@ class TestMapPivotTableConfig:
         assert result["groupbyColumns"] == []
         assert len(result["metrics"]) == 1
         assert result["metrics"][0]["aggregate"] == "SUM"
-        assert result["aggregateFunction"] == "Sum"
+        assert result["aggregateFunction"] == "Metric"
         assert result["rowTotals"] is True
         assert result["colTotals"] is True
         assert result["metricsLayout"] == "COLUMNS"
@@ -646,8 +667,8 @@ class TestMapMixedTimeseriesConfig:
         )
         result = map_mixed_timeseries_config(config, dataset_id=1)
 
-        assert "groupby" not in result
-        assert "groupby_b" not in result
+        assert result["groupby"] == []
+        assert result["groupby_b"] == []
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
     def test_mixed_form_data_with_axis_config(self, mock_is_temporal) -> None:
@@ -788,7 +809,7 @@ class TestGenerateChartNameNewTypes:
             metric=ColumnRef(name="revenue", aggregate="SUM"),
         )
         result = generate_chart_name(config)
-        assert result == "product by revenue"
+        assert result == "revenue by product"
 
     def test_pie_chart_name_with_custom_label(self) -> None:
         config = PieChartConfig(
@@ -797,7 +818,7 @@ class TestGenerateChartNameNewTypes:
             metric=ColumnRef(name="revenue", aggregate="SUM", label="Total Revenue"),
         )
         result = generate_chart_name(config)
-        assert result == "product by Total Revenue"
+        assert result == "Total Revenue by product"
 
     def test_pivot_table_chart_name(self) -> None:
         config = PivotTableChartConfig(
@@ -1321,3 +1342,36 @@ class TestCurrencyFormatModel:
     def test_to_form_data_shape(self) -> None:
         cf = CurrencyFormat(symbol="EUR", symbol_position="suffix")
         assert cf.to_form_data() == {"symbol": "EUR", "symbolPosition": "suffix"}
+
+
+@pytest.mark.parametrize(
+    "metric, expected",
+    [
+        (ColumnRef(name="total_revenue", saved_metric=True), "total_revenue"),
+        (
+            ColumnRef(name="revenue", aggregate="SUM", label="Total Revenue"),
+            "Total Revenue",
+        ),
+        (
+            ColumnRef(sql_expression="SUM(revenue)", label="Revenue expression"),
+            "Revenue expression",
+        ),
+    ],
+)
+def test_pie_caption_metric_before_dimension(metric: ColumnRef, expected: str) -> None:
+    """Pie captions and default names put the metric first."""
+    config = PieChartConfig(
+        dimension=ColumnRef(name="region"),
+        metric=metric,
+        filters=[FilterConfig(column="country", op="=", value="US")],
+    )
+    assert generate_chart_name(config) == f"{expected} by region – Country US"
+
+
+def test_treemap_caption_metric_before_dimensions() -> None:
+    """The sibling treemap name uses the same metric-first convention."""
+    config = TreemapChartConfig(
+        groupby=[ColumnRef(name="region"), ColumnRef(name="product")],
+        metric=ColumnRef(name="total_revenue", saved_metric=True),
+    )
+    assert generate_chart_name(config) == "total_revenue by region, product"

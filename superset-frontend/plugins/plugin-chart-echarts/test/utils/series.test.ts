@@ -22,6 +22,7 @@ import {
   DataRecord,
   getNumberFormatter,
   getTimeFormatter,
+  TimeGranularity,
 } from '@superset-ui/core';
 import { supersetTheme as theme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -39,8 +40,15 @@ import {
   getAxisType,
   getChartPadding,
   getLegendProps,
+  getLegendScrollDataIndex,
+  getLegendTextWidthBudget,
+  getTruncatedLegendTooltip,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
+  capTickMarks,
+  getTemporalTickValues,
+  measureTextInkWidth,
+  measureTextWidth,
   sanitizeHtml,
   sortAndFilterSeries,
   sortRows,
@@ -77,6 +85,7 @@ const {
       | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
+    maxLabelWidth?: number;
     orientation: LegendOrientation;
     show: boolean;
     showSelectors?: boolean;
@@ -104,6 +113,7 @@ const {
       | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
+    maxLabelWidth?: number;
     orientation: LegendOrientation;
     show: boolean;
     showSelectors?: boolean;
@@ -128,6 +138,11 @@ const expectedThemeProps = {
     color: theme.colorText,
     borderColor: theme.colorBorder,
   },
+};
+
+const expectedScrollThemeProps = {
+  ...expectedThemeProps,
+  animation: false,
 };
 
 const sortData: DataRecord[] = [
@@ -305,7 +320,7 @@ test('sortRows by max ascending', () => {
       sortData,
       totalStackedValues,
       'my_x_axis',
-      SortSeriesType.Min,
+      SortSeriesType.Max,
       true,
     ),
   ).toEqual([
@@ -321,13 +336,78 @@ test('sortRows by max descending', () => {
       sortData,
       totalStackedValues,
       'my_x_axis',
-      SortSeriesType.Min,
+      SortSeriesType.Max,
       false,
     ),
   ).toEqual([
     { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
     { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
     { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+  ]);
+});
+
+test('sortRows by the sum of specific columns descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x', 'z'] },
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+  ]);
+});
+
+test('sortRows by the sum of specific columns ascending ignores the other columns', () => {
+  // `y` would put `foo` last; only `x` and `z` count.
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x', 'z'] },
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+  ]);
+});
+
+test('sortRows by the sum of specific columns puts rows with no value last when ascending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x'] },
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+  ]);
+});
+
+test('sortRows by the sum of specific columns puts rows with no value last when descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x'] },
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
   ]);
 });
 
@@ -501,6 +581,76 @@ test('extractDataTotalValues still respects legendState alongside extraMetricLab
     legendState: { A: true, B: false },
   });
   expect(result.totalStackedValues).toEqual([32]);
+});
+
+test("extractSeries orders rows by the sum of a metric's pivoted columns and hides those columns", () => {
+  const data = [
+    {
+      genre: 'Action',
+      PS4: 30,
+      XOne: 20,
+      'SUM(na_sales), PS4': 5,
+      'SUM(na_sales), XOne': 3,
+    },
+    {
+      genre: 'Puzzle',
+      PS4: 5,
+      XOne: 5,
+      'SUM(na_sales), PS4': 20,
+      'SUM(na_sales), XOne': 10,
+    },
+    {
+      genre: 'Sports',
+      PS4: 40,
+      XOne: 10,
+      'SUM(na_sales), PS4': 1,
+      'SUM(na_sales), XOne': 1,
+    },
+  ];
+  const [series, sortedTotals] = extractSeries(data, {
+    xAxis: 'genre',
+    extraMetricLabels: ['SUM(na_sales), PS4', 'SUM(na_sales), XOne'],
+    totalStackedValues: [50, 10, 50],
+    xAxisSortSeries: {
+      sumOfColumns: ['SUM(na_sales), PS4', 'SUM(na_sales), XOne'],
+    },
+    xAxisSortSeriesAscending: false,
+  });
+  expect(series.map(({ name }) => name).sort()).toEqual(['PS4', 'XOne']);
+  expect(series.find(({ name }) => name === 'PS4')?.data).toEqual([
+    ['Puzzle', 5],
+    ['Action', 30],
+    ['Sports', 40],
+  ]);
+  expect(sortedTotals).toEqual([10, 50, 50]);
+});
+
+test('extractSeries fills stacked null gaps from the sorted neighbors, not the query order', () => {
+  // Sorted by `sales` descending the rows come out S, P, Q, R. In query
+  // order P and R sit next to the only defined `abc` value (Q), while S does
+  // not; on the sorted axis it is the other way around for S and R.
+  const data = [
+    { genre: 'P', abc: null, sales: 10 },
+    { genre: 'Q', abc: 5, sales: 1 },
+    { genre: 'R', abc: null, sales: 0 },
+    { genre: 'S', abc: null, sales: 20 },
+  ];
+  const [series] = extractSeries(data, {
+    xAxis: 'genre',
+    extraMetricLabels: ['sales'],
+    stack: true,
+    fillNeighborValue: 0,
+    totalStackedValues: [0, 5, 0, 0],
+    xAxisSortSeries: { sumOfColumns: ['sales'] },
+    xAxisSortSeriesAscending: false,
+  });
+  expect(series).toHaveLength(1);
+  expect(series[0].data).toEqual([
+    ['S', null],
+    ['P', 0],
+    ['Q', 5],
+    ['R', 0],
+  ]);
 });
 
 describe('extractSeries', () => {
@@ -905,7 +1055,9 @@ describe('extractShowValueIndexes', () => {
         ],
         { stack: true, onlyTotal: false, isHorizontal: false },
       ),
-    ).toEqual([undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1]);
+    ).toEqual({
+      __default__: [undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1],
+    });
   });
 
   test('should handle the negative numbers for total only', () => {
@@ -963,7 +1115,119 @@ describe('extractShowValueIndexes', () => {
         ],
         { stack: true, onlyTotal: true, isHorizontal: false },
       ),
-    ).toEqual([undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1]);
+    ).toEqual({
+      __default__: [undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1],
+    });
+  });
+
+  test('should track topmost series independently per stack group (stackDimension)', () => {
+    // Simulates 2 stack groups: 'groupA' (series indices 0, 1) and 'groupB' (series index 2).
+    // With onlyTotal, each group's topmost positive series should be flagged independently.
+    expect(
+      extractShowValueIndexes(
+        [
+          {
+            id: 'A-cat1',
+            name: 'A-cat1',
+            data: [
+              ['Jan', 10],
+              ['Feb', 5],
+            ],
+          },
+          {
+            id: 'A-cat2',
+            name: 'A-cat2',
+            data: [
+              ['Jan', 20],
+              ['Feb', 15],
+            ],
+          },
+          {
+            id: 'B-cat1',
+            name: 'B-cat1',
+            data: [
+              ['Jan', 30],
+              ['Feb', 25],
+            ],
+          },
+        ],
+        {
+          stack: true,
+          onlyTotal: true,
+          isHorizontal: false,
+          seriesStackIds: ['groupA', 'groupA', 'groupB'],
+        },
+      ),
+    ).toEqual({
+      groupA: [1, 1], // series index 1 is top of groupA for both data points
+      groupB: [2, 2], // series index 2 is top of groupB for both data points
+    });
+  });
+
+  test('should shift the indexes by the series rendered before them', () => {
+    expect(
+      extractShowValueIndexes(
+        [
+          {
+            id: 'abc',
+            name: 'abc',
+            data: [
+              ['Jan', 10],
+              ['Feb', null],
+            ],
+          },
+          {
+            id: 'def',
+            name: 'def',
+            data: [
+              ['Jan', 20],
+              ['Feb', null],
+            ],
+          },
+        ],
+        { stack: true, onlyTotal: true, seriesIndexOffset: 3 },
+      ),
+    ).toEqual({ __default__: [4, undefined] });
+  });
+
+  test('should safely handle stack groups with prototype property names like __proto__ or constructor', () => {
+    const result = extractShowValueIndexes(
+      [
+        {
+          id: 'proto-series',
+          name: 'proto-series',
+          data: [
+            ['Jan', 10],
+            ['Feb', 20],
+          ],
+        },
+        {
+          id: 'ctor-series',
+          name: 'ctor-series',
+          data: [
+            ['Jan', 30],
+            ['Feb', 40],
+          ],
+        },
+      ],
+      {
+        stack: true,
+        onlyTotal: true,
+        isHorizontal: false,
+        seriesStackIds: ['__proto__', 'constructor'],
+      },
+    );
+
+    expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(
+      true,
+    );
+    expect(Object.prototype.hasOwnProperty.call(result, 'constructor')).toBe(
+      true,
+    );
+    expect(Object.getOwnPropertyDescriptor(result, '__proto__')?.value).toEqual(
+      [0, 0],
+    );
+    expect(result['constructor']).toEqual([1, 1]);
   });
 });
 
@@ -1014,6 +1278,12 @@ describe('formatSeriesName', () => {
   });
 });
 
+test('getLegendScrollDataIndex clamps saved scroll position to legend length', () => {
+  expect(getLegendScrollDataIndex(12, 5)).toBe(4);
+  expect(getLegendScrollDataIndex(undefined, 3)).toBe(0);
+  expect(getLegendScrollDataIndex(2, 0)).toBe(0);
+});
+
 describe('getLegendProps', () => {
   test('should return the correct props for scroll type with top orientation without zoom', () => {
     expect(
@@ -1022,6 +1292,7 @@ describe('getLegendProps', () => {
         LegendOrientation.Top,
         true,
         theme,
+        true,
         false,
       ),
     ).toEqual({
@@ -1030,7 +1301,7 @@ describe('getLegendProps', () => {
       right: 0,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
   });
 
@@ -1042,20 +1313,47 @@ describe('getLegendProps', () => {
         true,
         theme,
         true,
+        true,
       ),
     ).toEqual({
       show: true,
       top: 0,
-      right: 55,
+      right: 90,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
+  });
+
+  // #37286: a top-oriented legend shares the top-right corner with the
+  // zoomable toolbox, whose dataZoom icons reach ~67px in from the chart's
+  // right edge. Reserving less than that overlays the legend's All/Inv
+  // selector buttons on the zoom controls.
+  test('should reserve enough width to keep the legend selector clear of the zoomable toolbox', () => {
+    const { right } = getLegendProps(
+      LegendType.Scroll,
+      LegendOrientation.Top,
+      true,
+      theme,
+      true,
+      true,
+    );
+    const TOOLBOX_ICONS_RIGHT_FOOTPRINT = 67;
+    const SAFETY_MARGIN = 15;
+    expect(right).toBeGreaterThan(
+      TOOLBOX_ICONS_RIGHT_FOOTPRINT + SAFETY_MARGIN,
+    );
   });
 
   test('should return the correct props for plain type with left orientation', () => {
     expect(
-      getLegendProps(LegendType.Plain, LegendOrientation.Left, true, theme),
+      getLegendProps(
+        LegendType.Plain,
+        LegendOrientation.Left,
+        true,
+        theme,
+        true,
+      ),
     ).toEqual({
       show: true,
       left: 0,
@@ -1072,6 +1370,7 @@ describe('getLegendProps', () => {
         LegendOrientation.Right,
         false,
         theme,
+        true,
         false,
       ),
     ).toEqual({
@@ -1092,6 +1391,7 @@ describe('getLegendProps', () => {
         false,
         theme,
         true,
+        true,
       ),
     ).toEqual({
       show: false,
@@ -1105,7 +1405,13 @@ describe('getLegendProps', () => {
 
   test('should return the correct props for plain type with bottom orientation', () => {
     expect(
-      getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
+      getLegendProps(
+        LegendType.Plain,
+        LegendOrientation.Bottom,
+        false,
+        theme,
+        true,
+      ),
     ).toEqual({
       show: false,
       bottom: 0,
@@ -1127,6 +1433,17 @@ describe('getLegendProps', () => {
       type: 'plain',
       ...expectedThemeProps,
     });
+  });
+
+  test('omits All and Inv buttons when showSelectorLegend is false', () => {
+    const legend = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Top,
+      true,
+      theme,
+      false,
+    );
+    expect(legend.selector).toBe(false);
   });
 });
 
@@ -1706,6 +2023,148 @@ test('getAxisType does not coerce Numeric x-axis to Time regardless of values', 
   );
 });
 
+describe('getTemporalTickValues', () => {
+  const xAxisLabel = '__timestamp';
+
+  test('returns undefined for a non-time axis', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Category,
+        TimeGranularity.WEEK,
+      ),
+    ).toBeUndefined();
+  });
+
+  test('returns undefined when there is no time grain', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
+    expect(
+      getTemporalTickValues(data, xAxisLabel, AxisType.Time, undefined),
+    ).toBeUndefined();
+  });
+
+  test('returns undefined for a non-weekly time grain', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.MONTH,
+      ),
+    ).toBeUndefined();
+  });
+
+  test('returns sorted, de-duplicated bucket timestamps for numbers and Dates', () => {
+    const t0 = Date.UTC(2026, 3, 6);
+    const t1 = Date.UTC(2026, 3, 13);
+    const data: DataRecord[] = [
+      { [xAxisLabel]: t1 },
+      { [xAxisLabel]: new Date(t0) },
+      { [xAxisLabel]: t0 }, // duplicate of the Date row above
+    ];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([t0, t1]);
+  });
+
+  test('parses a zoned ISO string as the instant it names', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06T00:00:00.000Z' }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([Date.UTC(2026, 3, 6)]);
+  });
+
+  test('parses a zone-less datetime string as local time, matching ECharts', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06T00:00:00' }];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([new Date(2026, 3, 6, 0, 0, 0).getTime()]);
+  });
+
+  test('parses a bare date string as local midnight, matching ECharts rather than native Date', () => {
+    // `new Date('2026-04-06')` is UTC, but ECharts parses it as local time.
+    // jest.config.js fixes the test TZ to America/New_York, so they disagree.
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06' }];
+    const localMidnight = new Date(2026, 3, 6).getTime();
+    expect(localMidnight).not.toEqual(new Date('2026-04-06').getTime());
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toEqual([localMidnight]);
+  });
+
+  test('drops unparseable or nullish values and returns undefined when none remain', () => {
+    const data: DataRecord[] = [
+      { [xAxisLabel]: 'not-a-date' },
+      { [xAxisLabel]: null },
+    ];
+    expect(
+      getTemporalTickValues(
+        data,
+        xAxisLabel,
+        AxisType.Time,
+        TimeGranularity.WEEK,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe('capTickMarks', () => {
+  test('returns values unchanged when within the cap', () => {
+    const values = [1, 2, 3];
+    expect(capTickMarks(values, 60)).toEqual(values);
+  });
+
+  test('downsamples to every step-th value when the last value already lands on the step', () => {
+    const values = Array.from({ length: 261 }, (_, i) => i);
+    // step = ceil(261 / 60) = 5, and 260 is already a multiple of 5, so
+    // nothing needs to be appended for the last bucket.
+    expect(capTickMarks(values, 60)).toEqual(
+      Array.from({ length: 53 }, (_, i) => i * 5),
+    );
+  });
+
+  test('appends the last value when it does not land on the step', () => {
+    const values = Array.from({ length: 262 }, (_, i) => i);
+    // step = ceil(262 / 60) = 5, stepping lands on 0..260, and the true last
+    // value (261) is appended on top since it isn't a multiple of 5.
+    expect(capTickMarks(values, 60)).toEqual([
+      ...Array.from({ length: 53 }, (_, i) => i * 5),
+      261,
+    ]);
+  });
+
+  test('maxTicks is not a hard bound once the last value has to be appended', () => {
+    const values = Array.from({ length: 300 }, (_, i) => i);
+    // step = ceil(300 / 60) = 5, which already lands on 60 stepped values
+    // (0..295) plus the appended last value (299), totaling 61 — one over
+    // maxTicks. Keeping the true last bucket wins over a hard cap.
+    expect(capTickMarks(values, 60)).toHaveLength(61);
+  });
+});
+
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {
   expect(
     getMinAndMaxFromBounds(
@@ -1896,6 +2355,426 @@ test('getAreaScaledSymbolSize handles degenerate extents and bad values', () => 
   );
 });
 
+describe('measureTextWidth caching', () => {
+  // jsdom does not implement canvas measurement, so stub document.createElement
+  // to hand back a fake 2d context whose measureText call count/args we can
+  // assert on -- that's the only way to observe a cache hit vs. a recompute.
+  let measureText: jest.Mock;
+  let createElementSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    measureText = jest.fn((text: string) => ({ width: text.length * 7 }));
+    createElementSpy = jest
+      .spyOn(document, 'createElement')
+      .mockImplementation(
+        () => ({ getContext: () => ({ font: '', measureText }) }) as never,
+      );
+  });
+
+  afterEach(() => {
+    createElementSpy.mockRestore();
+  });
+
+  test('caches by [fontFamily, fontSizeSM, text] and skips remeasuring on a hit', () => {
+    expect(measureTextWidth('Category A', theme)).toBe(70);
+    expect(measureTextWidth('Category A', theme)).toBe(70);
+    expect(measureText).toHaveBeenCalledTimes(1);
+
+    // A different theme is a different cache key, so it does remeasure.
+    measureTextWidth('Category A', { ...theme, fontSizeSM: 20 });
+    expect(measureText).toHaveBeenCalledTimes(2);
+  });
+
+  test('evicts the least-recently-used entry once the cache is full', () => {
+    // Fill the cache (2000 entries) then measure one more distinct label --
+    // whichever key gets evicted must be remeasured on its next lookup.
+    for (let i = 0; i < 2000; i += 1) {
+      measureTextWidth(`label-${i}`, theme);
+    }
+    measureText.mockClear();
+
+    measureTextWidth('one-too-many', theme);
+    expect(measureText).toHaveBeenCalledTimes(1);
+
+    // The oldest entry (label-0) was evicted to make room, so it recomputes.
+    measureTextWidth('label-0', theme);
+    expect(measureText).toHaveBeenCalledTimes(2);
+
+    // A more recently used entry is still cached.
+    measureTextWidth('label-1999', theme);
+    expect(measureText).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('measureTextInkWidth', () => {
+  let getContext: jest.SpyInstance;
+
+  afterEach(() => {
+    getContext.mockRestore();
+  });
+
+  test('uses the ink extent when it exceeds the advance width', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        measureText: () => ({
+          width: 10,
+          actualBoundingBoxLeft: 5,
+          actualBoundingBoxRight: 45,
+        }),
+      } as never);
+    expect(measureTextInkWidth('label', theme)).toBe(50);
+  });
+
+  test('keeps the advance width when it exceeds the ink extent', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        measureText: () => ({
+          width: 30,
+          actualBoundingBoxLeft: 0,
+          actualBoundingBoxRight: 20,
+        }),
+      } as never);
+    expect(measureTextInkWidth('label', theme)).toBe(30);
+  });
+
+  test('falls back to the advance width when bounding-box metrics are absent', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({ measureText: () => ({ width: 42 }) } as never);
+    const width = measureTextInkWidth('label', theme);
+    expect(width).not.toBeNaN();
+    expect(width).toBe(42);
+  });
+
+  test('falls back to an approximate width when canvas is unavailable', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(null);
+    expect(measureTextInkWidth('label', theme)).toBeCloseTo(
+      'label'.length * theme.fontSizeSM * 0.62,
+    );
+  });
+
+  test('measures with the theme small font', () => {
+    let capturedFont = '';
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        set font(value: string) {
+          capturedFont = value;
+        },
+        get font() {
+          return capturedFont;
+        },
+        measureText: () => ({ width: 1 }),
+      } as never);
+    measureTextInkWidth('label', theme);
+    expect(capturedFont).toBe(`${theme.fontSizeSM}px ${theme.fontFamily}`);
+  });
+});
+
+test('sortRows by axis value is case-sensitive', () => {
+  const rows = [
+    { my_x_axis: 'a', y: 1 },
+    { my_x_axis: 'B', y: 2 },
+  ];
+  expect(
+    sortRows(rows, [1, 2], 'my_x_axis', { axisValue: true }, true).map(
+      ({ row }) => row.my_x_axis,
+    ),
+  ).toEqual(['B', 'a']);
+  expect(
+    sortRows(rows, [1, 2], 'my_x_axis', SortSeriesType.Name, true).map(
+      ({ row }) => row.my_x_axis,
+    ),
+  ).toEqual(['a', 'B']);
+});
+
+const getLegendTooltipCallbacks = (
+  tooltip: ReturnType<typeof getTruncatedLegendTooltip> | undefined,
+) => {
+  const { formatter, position } = tooltip ?? {};
+  if (typeof formatter !== 'function' || typeof position !== 'function') {
+    throw new Error('Expected legend tooltip formatter and position callbacks');
+  }
+  return {
+    format: (name: string) =>
+      formatter(
+        { componentType: 'legend', legendIndex: 0, name, $vars: ['name'] },
+        '',
+      ),
+    position: (
+      rect: { x: number; y: number; width: number; height: number } | null,
+      contentSize: [number, number],
+      viewSize: [number, number] = [800, 600],
+    ) => {
+      const result = position([5, 5], {} as never, null, rect, {
+        contentSize,
+        viewSize,
+      });
+      if (!Array.isArray(result)) {
+        throw new Error('Expected the legend tooltip position as [x, y]');
+      }
+      return result;
+    },
+  };
+};
+
+const ALL_LEGEND_ORIENTATIONS = [
+  LegendOrientation.Top,
+  LegendOrientation.Bottom,
+  LegendOrientation.Left,
+  LegendOrientation.Right,
+];
+
+test('getLegendProps leaves legend text untouched unless maxLegendTextWidth is passed', () => {
+  ALL_LEGEND_ORIENTATIONS.forEach(orientation => {
+    const legend = getLegendProps(LegendType.Scroll, orientation, true, theme);
+    expect(legend.textStyle).toBeUndefined();
+    expect(legend.tooltip).toBeUndefined();
+  });
+});
+
+test('getLegendProps keeps padding-based truncation without a tooltip when not opted in', () => {
+  const legend = getLegendProps(
+    LegendType.Plain,
+    LegendOrientation.Left,
+    true,
+    theme,
+    true,
+    false,
+    undefined,
+    { left: 150 },
+  );
+  expect(legend.textStyle).toEqual({ overflow: 'truncate', width: 105 });
+  expect(legend.tooltip).toBeUndefined();
+});
+
+test('getLegendProps truncates text and adds a tooltip in every orientation when opted in', () => {
+  ALL_LEGEND_ORIENTATIONS.forEach(orientation => {
+    const legend = getLegendProps(
+      LegendType.Scroll,
+      orientation,
+      true,
+      theme,
+      true,
+      false,
+      undefined,
+      undefined,
+      180,
+    );
+    expect(legend.textStyle).toEqual({ overflow: 'truncate', width: 180 });
+    expect(legend.tooltip).toEqual(expect.objectContaining({ show: true }));
+  });
+});
+
+test('getLegendProps caps opted-in vertical legend text at the padding width', () => {
+  const legend = getLegendProps(
+    LegendType.Plain,
+    LegendOrientation.Right,
+    true,
+    theme,
+    true,
+    false,
+    undefined,
+    { right: 150 },
+    250,
+  );
+  expect(legend.textStyle).toEqual({ overflow: 'truncate', width: 105 });
+});
+
+test('getLegendProps ignores a non-positive maxLegendTextWidth', () => {
+  const legend = getLegendProps(
+    LegendType.Plain,
+    LegendOrientation.Top,
+    true,
+    theme,
+    true,
+    false,
+    undefined,
+    undefined,
+    0,
+  );
+  expect(legend.textStyle).toBeUndefined();
+  expect(legend.tooltip).toBeUndefined();
+});
+
+test('getLegendProps passes legendState through when opting in to truncation', () => {
+  const legend = getLegendProps(
+    LegendType.Scroll,
+    LegendOrientation.Top,
+    true,
+    theme,
+    true,
+    false,
+    { 'Hidden slice': false },
+    undefined,
+    200,
+  );
+  expect(legend.selected).toEqual({ 'Hidden slice': false });
+});
+
+test('getTruncatedLegendTooltip only shows names wider than the text width', () => {
+  const fits = 'Legend fits';
+  const tooLong = 'A legend item name that is much too long to fit';
+  const { format } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(measureTextWidth(fits, theme), theme),
+  );
+  expect(format(fits)).toBe('');
+  expect(format(tooLong)).toBe(tooLong);
+});
+
+test('getTruncatedLegendTooltip HTML-escapes the full name', () => {
+  const { format } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(1, theme),
+  );
+  expect(format('<img src=x onerror=alert(1)> long name')).toBe(
+    '&lt;img src=x onerror=alert(1)&gt; long name',
+  );
+});
+
+test('getTruncatedLegendTooltip wraps long names instead of overflowing', () => {
+  expect(getTruncatedLegendTooltip(100, theme).extraCssText).toContain(
+    'max-width',
+  );
+});
+
+test('getTruncatedLegendTooltip centers the tooltip above the hovered item', () => {
+  const { position } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(100, theme),
+  );
+  // center = 100 + 80 / 2 - 60 / 2 = 110; above = 50 - 24 - 8 = 18
+  expect(position({ x: 100, y: 50, width: 80, height: 20 }, [60, 24])).toEqual([
+    110, 18,
+  ]);
+});
+
+test('getTruncatedLegendTooltip flips below a top legend item with no room above', () => {
+  const { position } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(100, theme),
+  );
+  // below = 2 + 20 + 8 = 30
+  expect(position({ x: 100, y: 2, width: 80, height: 20 }, [60, 24])).toEqual([
+    110, 30,
+  ]);
+});
+
+test('getTruncatedLegendTooltip keeps the tooltip inside the chart horizontally', () => {
+  const { position } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(100, theme),
+  );
+  expect(position({ x: 780, y: 50, width: 80, height: 20 }, [120, 24])[0]).toBe(
+    680,
+  );
+  expect(position({ x: 0, y: 50, width: 10, height: 20 }, [120, 24])[0]).toBe(
+    0,
+  );
+  // A tooltip wider than the chart is pinned to the left edge, never negative.
+  expect(position({ x: 100, y: 50, width: 80, height: 20 }, [900, 24])[0]).toBe(
+    0,
+  );
+});
+
+test('getTruncatedLegendTooltip falls back to the pointer when no item rect is given', () => {
+  const { position } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(100, theme),
+  );
+  // x: 5 - 20 / 2 clamped to 0; y: 5 - 10 - 8 < 0, so flipped to 5 + 0 + 8
+  expect(position(null, [20, 10])).toEqual([0, 13]);
+});
+
+test('getLegendTextWidthBudget reserves room for icon, pager and selectors', () => {
+  // 600 - 16 gutter - 25 icon - 5 icon gap = 554
+  expect(
+    getLegendTextWidthBudget({
+      chartWidth: 600,
+      maxWidth: 1000,
+      showSelectors: false,
+      type: LegendType.Plain,
+    }),
+  ).toBe(554);
+  // minus 80 for the scroll pager
+  expect(
+    getLegendTextWidthBudget({
+      chartWidth: 600,
+      maxWidth: 1000,
+      showSelectors: false,
+      type: LegendType.Scroll,
+    }),
+  ).toBe(474);
+  // minus 122 more for the All/Inverse selector and its gap
+  expect(
+    getLegendTextWidthBudget({
+      chartWidth: 600,
+      maxWidth: 1000,
+      showSelectors: true,
+      type: LegendType.Scroll,
+    }),
+  ).toBe(352);
+});
+
+test('getLegendTextWidthBudget is capped by maxWidth and never negative', () => {
+  expect(
+    getLegendTextWidthBudget({
+      chartWidth: 2000,
+      maxWidth: 250,
+      type: LegendType.Scroll,
+    }),
+  ).toBe(250);
+  expect(
+    getLegendTextWidthBudget({
+      chartWidth: 100,
+      maxWidth: 250,
+      type: LegendType.Scroll,
+    }),
+  ).toBe(0);
+});
+
+test('getLegendLayoutResult reserves space for capped rather than full legend names', () => {
+  const args = {
+    chartHeight: 600,
+    chartWidth: 800,
+    legendItems: Array.from(
+      { length: 10 },
+      (_, i) =>
+        `Category ${i} with an extremely long descriptive name that keeps going`,
+    ),
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  };
+  const uncapped = getLegendLayoutResult(args).effectiveMargin ?? 0;
+  const capped =
+    getLegendLayoutResult({ ...args, maxLabelWidth: 100 }).effectiveMargin ?? 0;
+  expect(capped).toBeLessThan(uncapped);
+});
+
+test('getLegendLayoutResult sizes vertical legends from capped names', () => {
+  const args = {
+    chartHeight: 600,
+    chartWidth: 2000,
+    legendItems: [
+      'A vertical legend entry whose name is far longer than the cap allows for',
+    ],
+    legendMargin: null,
+    orientation: LegendOrientation.Left,
+    show: true,
+    showSelectors: false,
+    theme,
+    type: LegendType.Plain,
+  };
+  // 100px of text plus the 45px gutter stays under the 170px default margin.
+  expect(
+    getLegendLayoutResult({ ...args, maxLabelWidth: 100 }).effectiveMargin,
+  ).toBe(defaultLegendPadding[LegendOrientation.Left]);
+  expect(getLegendLayoutResult(args).effectiveMargin).toBeGreaterThan(
+    defaultLegendPadding[LegendOrientation.Left],
+  );
+});
 test('getAxisLabelInterval normalizes the control value for ECharts (#36325)', () => {
   // 'All' is stored as a string by the SelectControl
   expect(getAxisLabelInterval('0')).toEqual({

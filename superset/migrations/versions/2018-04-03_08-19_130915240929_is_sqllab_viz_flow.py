@@ -57,7 +57,7 @@ def upgrade():
         ),
     )
 
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     # Use Slice class defined here instead of models.Slice
     for tbl in session.query(Table).all():

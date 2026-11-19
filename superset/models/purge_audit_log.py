@@ -24,7 +24,7 @@ otherwise not see the table). Completed outcomes are immutable; a current
 provisional record may be discarded when it is proven redundant.
 """
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from flask_appbuilder import Model
@@ -45,6 +45,31 @@ STATUS_BLOCKED = "blocked"
 #: the compliance record never attributes a success it did not witness.
 STATUS_TARGET_ABSENT = "target_absent"
 
+#: Every status a row may carry. Retention classification (see
+#: ``superset.commands.deletion_retention.prune_audit``) partitions this set;
+#: a status added here without a retention category is never pruned, so the
+#: partition is asserted against this constant rather than restated.
+ALL_STATUSES: frozenset[str] = frozenset(
+    {
+        STATUS_PENDING,
+        STATUS_CONFIRMED,
+        STATUS_FAILED,
+        STATUS_BLOCKED,
+        STATUS_TARGET_ABSENT,
+    }
+)
+
+PURGE_AUDIT_COORDINATION_ID: UUID = UUID("a9d42a96-60ba-4bbc-b8e3-f01066f325a1")
+
+
+class PurgeAuditCoordination(Model):
+    """Singleton row serializing audit creation and retention pruning."""
+
+    __tablename__: str = "purge_audit_coordination"
+
+    id: Column[UUID] = Column(UUIDType(binary=True), primary_key=True)
+    lock_version: Column[int] = Column(Integer, nullable=False, default=0)
+
 
 class PurgeAuditLog(Model):
     """Content-free provisional record or immutable retained purge outcome."""
@@ -54,6 +79,13 @@ class PurgeAuditLog(Model):
         # Backs reconcile_pending()'s stale-pending scan; mirrors the
         # index created by migration e7d93a524ff6.
         sa.Index("ix_purge_audit_log_status_created_on", "status", "created_on"),
+        sa.Index(
+            "ix_purge_audit_log_pruning",
+            "status",
+            "entity_type",
+            "entity_uuid",
+            "created_on",
+        ),
         sa.Index(
             "ix_purge_audit_log_retention_predecessor",
             "entity_uuid",
@@ -72,6 +104,12 @@ class PurgeAuditLog(Model):
     # Comma-joined UUIDs of charts left dangling / dashboards that lost a join
     # row (force-purge visibility). Free text, content-free.
     affected_referrers = Column(Text, nullable=True)
+    # Stable machine code identifying which rule blocked the purge (or the
+    # cascade-integrity failure class). Written at finalization for
+    # blocked outcomes only; NULL for confirmed, failed, non-blocked, and
+    # pre-feature rows. Vocabulary: REASON_* constants in
+    # superset.commands.deletion_retention.purge_policy.
+    reason: Column[str] = Column(String(64), nullable=True)
     removed_dashboard_slices = Column(Integer, nullable=False, default=0)
     created_on = Column(
         DateTime()

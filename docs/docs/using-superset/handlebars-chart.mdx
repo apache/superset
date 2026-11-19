@@ -71,17 +71,17 @@ Parses a JSON string into an object that can be used in your template.
 
 ---
 
-#### `groupBy`
+#### `group`
 
-Groups an array of objects by a key, powered by [handlebars-group-by](https://github.com/nicktindall/handlebars-group-by).
+Groups an array of objects by a key, powered by [handlebars-group-by](https://github.com/nicktindall/handlebars-group-by). The key is passed as a `by` hash argument.
 
 ```handlebars
-{{#groupBy data 'department'}}
+{{#group data by="department"}}
   <h3>{{value}}</h3>
   {{#each items}}
     <p>{{this.name}}</p>
   {{/each}}
-{{/groupBy}}
+{{/group}}
 ```
 
 ---
@@ -90,6 +90,14 @@ Groups an array of objects by a key, powered by [handlebars-group-by](https://gi
 
 Superset also registers all helpers from the [just-handlebars-helpers](https://github.com/leapfrogtechnology/just-handlebars-helpers) library. These include a wide range of comparison, math, string, and conditional helpers. Commonly used ones include:
 
+:::note
+These names are specific to `just-handlebars-helpers` and differ from other
+Handlebars helper libraries — notably `handlebars-helpers`, which spells the
+math helpers `add`, `subtract`, `multiply` and `divide`. Calling a helper that
+is not registered raises `Missing helper: "..."`, which renders the chart blank,
+so it is worth checking a name against the tables below before using it.
+:::
+
 #### Comparison
 
 | Helper | Description           | Example                        |
@@ -97,6 +105,7 @@ Superset also registers all helpers from the [just-handlebars-helpers](https://g
 | `eq`   | Strict equality       | `{{#if (eq status "active")}}` |
 | `eqw`  | Weak equality         | `{{#if (eqw count "5")}}`      |
 | `neq`  | Strict inequality     | `{{#if (neq role "admin")}}`   |
+| `neqw` | Weak inequality       | `{{#if (neqw count "5")}}`     |
 | `lt`   | Less than             | `{{#if (lt score 50)}}`        |
 | `lte`  | Less than or equal    | `{{#if (lte score 100)}}`      |
 | `gt`   | Greater than          | `{{#if (gt price 0)}}`         |
@@ -114,25 +123,52 @@ Superset also registers all helpers from the [just-handlebars-helpers](https://g
 
 #### String
 
-| Helper       | Description                         | Example                           |
-| ------------ | ----------------------------------- | --------------------------------- |
-| `capitalize` | Capitalizes first letter            | `{{capitalize name}}`             |
-| `uppercase`  | Converts to uppercase               | `{{uppercase status}}`            |
-| `lowercase`  | Converts to lowercase               | `{{lowercase email}}`             |
-| `truncate`   | Truncates a string                  | `{{truncate description 100}}`    |
-| `contains`   | Checks if string contains substring | `{{#if (contains tag "urgent")}}` |
+| Helper            | Description                                     | Example                        |
+| ----------------- | ----------------------------------------------- | ------------------------------ |
+| `capitalizeFirst` | Capitalizes the first letter                    | `{{capitalizeFirst name}}`     |
+| `capitalizeEach`  | Capitalizes the first letter of each word       | `{{capitalizeEach title}}`     |
+| `uppercase`       | Converts to uppercase                           | `{{uppercase status}}`         |
+| `lowercase`       | Converts to lowercase                           | `{{lowercase email}}`          |
+| `excerpt`         | Truncates to a length and appends an ellipsis   | `{{excerpt description 100}}`  |
+| `sprintf`         | printf-style formatting                         | `{{sprintf "%.1f" score}}`     |
+| `concat`          | Concatenates values                             | `{{concat first " " last}}`    |
+| `join`            | Joins an array with a separator                 | `{{join tags ", "}}`           |
+| `first` / `last`  | First or last element of an array               | `{{first items}}`              |
+| `newLineToBr`     | Converts newlines to `<br>` (needs `{{{ }}}`)   | `{{{newLineToBr notes}}}`      |
 
 #### Math
 
-| Helper     | Description    | Example                       |
-| ---------- | -------------- | ----------------------------- |
-| `add`      | Addition       | `{{add a b}}`                 |
-| `subtract` | Subtraction    | `{{subtract total discount}}` |
-| `multiply` | Multiplication | `{{multiply price quantity}}` |
-| `divide`   | Division       | `{{divide total count}}`      |
-| `ceil`     | Ceiling        | `{{ceil value}}`              |
-| `floor`    | Floor          | `{{floor value}}`             |
-| `round`    | Round          | `{{round value}}`             |
+| Helper           | Description             | Example                              |
+| ---------------- | ----------------------- | ------------------------------------ |
+| `sum`            | Addition                | `{{sum a b}}`                        |
+| `difference`     | Subtraction             | `{{difference total discount}}`      |
+| `multiplication` | Multiplication          | `{{multiplication price quantity}}`  |
+| `division`       | Division                | `{{division total count}}`           |
+| `remainder`      | Modulo                  | `{{remainder index 2}}`              |
+| `abs`            | Absolute value          | `{{abs delta}}`                      |
+| `ceil`           | Ceiling                 | `{{ceil value}}`                     |
+| `floor`          | Floor                   | `{{floor value}}`                    |
+
+`sum` takes exactly two arguments — it adds a pair of numbers and does not total
+an array. There is no `round` helper; use `{{sprintf "%.0f" value}}` to round to
+a given number of decimal places.
+
+#### Arrays
+
+| Helper     | Description                        | Example                           |
+| ---------- | ---------------------------------- | --------------------------------- |
+| `includes` | Whether an array contains a value  | `{{#if (includes tags "urgent")}}` |
+| `empty`    | Whether an array is empty          | `{{#if (empty rows)}}`            |
+| `count`    | Number of items in an array        | `{{count rows}}`                  |
+
+`includes` tests array membership. It returns `false` for a string, so it cannot
+be used to check for a substring.
+
+#### Formatting
+
+| Helper           | Description                  | Example                          |
+| ---------------- | ---------------------------- | -------------------------------- |
+| `formatCurrency` | Formats a number as currency | `{{formatCurrency revenue "$"}}` |
 
 For the full list of available helpers, see the [just-handlebars-helpers documentation](https://github.com/leapfrogtechnology/just-handlebars-helpers).
 
