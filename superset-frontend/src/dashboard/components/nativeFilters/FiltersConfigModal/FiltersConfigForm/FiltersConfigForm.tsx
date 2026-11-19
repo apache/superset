@@ -150,6 +150,13 @@ const StyledSettings = styled.div`
     }
   `}
 `;
+const StartFieldSelectionButton = styled(Button)`
+  max-width: 100%;
+  height: auto;
+  min-height: ${({ theme }) => theme.controlHeight}px;
+  padding-block: ${({ theme }) => theme.sizeUnit}px;
+  white-space: normal;
+`;
 const StyledContainer = styled.div`
   ${({ theme }) => `
     display: flex;
@@ -1232,12 +1239,23 @@ const FiltersConfigForm = (
                   datasetDetails.semantic_selection_version && (
                   <Alert
                     type="warning"
+                    styles={{
+                      root: { flexWrap: 'wrap', rowGap: theme.sizeUnit * 2 },
+                      section: { flex: '1 1 0%', minWidth: 0 },
+                      actions: {
+                        marginInlineStart: 0,
+                        minWidth: 0,
+                        maxWidth: '100%',
+                        flexBasis: '100%',
+                        order: 1,
+                      },
+                    }}
                     message={t('Choose current semantic filter fields')}
                     description={t(
                       'Start field selection using current member IDs. This clears any existing field selections, pre-filters, sorting, defaults and dependencies. Saved display titles cannot be recovered automatically.',
                     )}
                     action={
-                      <Button
+                      <StartFieldSelectionButton
                         onClick={() => {
                           setNativeFilterFieldValues(form, filterId, {
                             semantic_selection_version:
@@ -1267,7 +1285,7 @@ const FiltersConfigForm = (
                         }}
                       >
                         {t('Start field selection')}
-                      </Button>
+                      </StartFieldSelectionButton>
                     }
                   />
                 )}

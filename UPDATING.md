@@ -1801,6 +1801,12 @@ old dashboard permalink/filter state after reselection. Cross-view overlays are
 rejected unless their source identity matches the receiving semantic view;
 matching display titles are not proof of matching members.
 
+Time comparison is unsupported on semantic views, including relative shifts,
+inherited ranges and custom start dates. Remove the time shift from affected
+charts to query them. The host refuses these queries before reading cached
+results because comparisons could return incorrect values. Ordinary semantic
+queries and SQL-dataset time comparisons are unchanged.
+
 Dynamic group-by display controls are unsupported on versioned semantic views,
 including Cube. Remove those charts from the control's scope; resetting or
 reselecting the group-by fields cannot repair this control's missing selection

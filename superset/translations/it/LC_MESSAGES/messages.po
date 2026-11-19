@@ -12619,9 +12619,10 @@ msgstr "Stato non valido."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Id schede non validi: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Valore del filtro temporale non valido per la colonna %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

@@ -10408,9 +10408,10 @@ msgstr "无效状态。"
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "无效的标签页ID：%(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "列 %(column)s 的时间过滤值无效"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

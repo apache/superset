@@ -82,6 +82,15 @@ a usability aid for compatible selections, not a guarantee about each filter's
 provenance. The marker is not an authorization check; access to the datasource is
 verified separately.
 
+## Time comparison
+
+Time comparison is not yet supported on semantic views. Remove the time shift
+from the chart or dashboard comparison control to run the query. This includes
+relative shifts, inherited ranges, and custom start dates, even for aggregate-only
+charts. The host refuses these queries before reading cached chart results to
+avoid showing incorrect comparison values. SQL dataset comparisons and semantic
+queries without time shifts are unaffected.
+
 ## Clearing dashboard filters
 
 **Clear all** stages empty values for in-scope filters; **Apply** commits the
