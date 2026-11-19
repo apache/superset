@@ -704,7 +704,7 @@ export default function EchartsTimeseries({
             : xAxisColumn;
         const isTemporalCategory =
           xAxis.type === AxisType.Category &&
-          coltypeMapping?.[getColumnLabel(xAxis.label)] ===
+          coltypeMapping?.[getColumnLabel(xAxisColumn)] ===
             GenericDataType.Temporal;
         if ((xAxis.type === AxisType.Time || isTemporalCategory) && xAxisCol) {
           // A markerless line/area event identifies the series but no point.

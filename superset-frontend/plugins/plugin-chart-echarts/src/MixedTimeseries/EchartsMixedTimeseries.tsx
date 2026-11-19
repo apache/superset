@@ -231,7 +231,7 @@ export default function EchartsMixedTimeseries({
             : filterColumn;
         const isTemporalCategory =
           xAxis.type === AxisType.Category &&
-          coltypeMapping?.[getColumnLabel(xAxis.label)] ===
+          coltypeMapping?.[getColumnLabel(filterColumn)] ===
             GenericDataType.Temporal;
         if (
           (xAxis.type === AxisType.Time || isTemporalCategory) &&

@@ -97,6 +97,7 @@ function createQueryData(): ChartDataResponseResult {
 function setup(
   formDataOverrides: Partial<EchartsMixedTimeseriesFormData> = {},
   queriesData = [createQueryData(), createQueryData()],
+  verboseMap: Record<string, string> = {},
 ) {
   const chartProps = createEchartsTimeseriesTestChartProps<
     EchartsMixedTimeseriesFormData,
@@ -116,6 +117,7 @@ function setup(
       ...formDataOverrides,
     },
     queriesData,
+    datasource: { verboseMap },
   });
   const transformed = transformProps(chartProps);
   const setDataMask = jest.fn();
@@ -294,32 +296,39 @@ test.each([0, 2])(
   },
 );
 
-test('Mixed Timeseries forced categorical temporal Drill by keeps a readable bucket', async () => {
-  const { eventHandlers, onContextMenu } = setup({
-    timeGrainSqla: TimeGranularity.MONTH,
-    xAxisForceCategorical: true,
-  });
-  mockMixedChart.convertFromPixel.mockReturnValue([0, 1]);
-  await eventHandlers.contextmenu({
-    seriesName: 'sum__num, boy',
-    seriesIndex: 0,
-    event: {
-      stop: jest.fn(),
-      offsetX: 20,
-      offsetY: 30,
-      event: { clientX: 11, clientY: 22 },
-    },
-  });
-  expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
-    {
-      col: 'ds',
-      op: '==',
-      val: Date.UTC(2024, 0, 1),
-      grain: TimeGranularity.MONTH,
-      formattedVal: 'Jan 2024',
-    },
-  ]);
-});
+test.each(['ds', 'Order date'])(
+  'Mixed Timeseries forced categorical temporal Drill by keeps a readable bucket with axis label %s',
+  async label => {
+    const { eventHandlers, onContextMenu } = setup(
+      {
+        timeGrainSqla: TimeGranularity.MONTH,
+        xAxisForceCategorical: true,
+      },
+      undefined,
+      { ds: label },
+    );
+    mockMixedChart.convertFromPixel.mockReturnValue([0, 1]);
+    await eventHandlers.contextmenu({
+      seriesName: 'sum__num, boy',
+      seriesIndex: 0,
+      event: {
+        stop: jest.fn(),
+        offsetX: 20,
+        offsetY: 30,
+        event: { clientX: 11, clientY: 22 },
+      },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      {
+        col: 'ds',
+        op: '==',
+        val: Date.UTC(2024, 0, 1),
+        grain: TimeGranularity.MONTH,
+        formattedVal: 'Jan 2024',
+      },
+    ]);
+  },
+);
 
 test('ungrained Mixed Timeseries Drill by keeps its series-only scope', async () => {
   const { eventHandlers, onContextMenu } = setup({ timeGrainSqla: undefined });
