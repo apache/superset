@@ -151,12 +151,14 @@ export default function DraftBanner({
 }: DraftBannerProps) {
   // Held here so the count can show it is the thing that is open.
   const [listing, setListing] = useState(false);
-  // A step not yet on screen counts: a publish would name the revision it
-  // started from and be rejected.
-  const busy = actions.busy || history.busy || Boolean(history.settling);
+  const busy = actions.busy || history.busy;
+  // A step not yet on screen holds back whatever names a revision -- a
+  // publish or another step would name the one it started from and be
+  // rejected -- but not a discard, which names none.
+  const settling = Boolean(history.settling);
   // Held while a write is still going: publishing then would commit the older
   // revision and drop the change the user just made.
-  const steppable = !saving && !busy;
+  const steppable = !saving && !busy && !settling;
   // A draft that holds nothing has nothing to save, which is what undoing
   // back to the start leaves behind.
   //
@@ -253,7 +255,7 @@ export default function DraftBanner({
           <Button
             buttonStyle="primary"
             loading={actions.busy}
-            disabled={saving || busy || nothingToSave}
+            disabled={saving || busy || settling || nothingToSave}
             onClick={actions.publish}
             tooltip={
               (saving && t('Saving your changes…')) ||

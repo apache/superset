@@ -73,3 +73,33 @@ test('the version list failing for any other reason is reported', async () => {
   await waitFor(() => expect(result.current.error).toBeDefined());
   expect(canvasEvents()).toEqual(['canvas_error']);
 });
+
+test('a superseded preview that fails is still reported, but not shown', async () => {
+  fetchMock.get(VERSIONS, { result: [] });
+  let failA: (value: number) => void = () => {};
+  fetchMock.get(
+    `glob:*/api/v1/canvas/${UUID}/versions/aaa*`,
+    new Promise<number>(resolve => {
+      failA = resolve;
+    }),
+  );
+  fetchMock.get(`glob:*/api/v1/canvas/${UUID}/versions/bbb*`, {
+    result: { _version: { version_uuid: 'bbb', version_number: 2 } },
+  });
+
+  const { result } = renderHook(() => useCanvasVersionHistory(UUID, true, 7));
+  await waitFor(() => expect(result.current.versions).toEqual([]));
+
+  const first = result.current.showVersion('aaa');
+  await result.current.showVersion('bbb');
+  await waitFor(() =>
+    expect(result.current.preview?._version.version_uuid).toBe('bbb'),
+  );
+  failA(500);
+  await first;
+
+  expect(result.current.preview?._version.version_uuid).toBe('bbb');
+  expect(result.current.error).toBeUndefined();
+  expect(result.current.loading).toBeUndefined();
+  expect(canvasEvents()).toEqual(['canvas_error']);
+});

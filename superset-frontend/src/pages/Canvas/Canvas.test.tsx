@@ -790,6 +790,9 @@ test('save is held while an undo is still settling', async () => {
 
   expect(canvas.getActiveCanvas()).toStrictEqual(pendingIn('tok-a', 2));
   expect(save()).toBeDisabled();
+  // Discarding names no revision, so it stays a way out of the draft even
+  // if the refetch never lands.
+  expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
   fireEvent.click(save());
   await settle();
   expect(commits()).toHaveLength(0);
@@ -800,6 +803,122 @@ test('save is held while an undo is still settling', async () => {
     expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 3)),
   );
   expect(save()).toBeEnabled();
+});
+
+test('an undo whose refetch fails can still be discarded', async () => {
+  // Polling off (the test default): nothing retries the refetch until the
+  // window regains focus, so the step never reaches the screen.
+  window.location.hash = '#draft=tok-a';
+  const undoable = (revision: number) => ({
+    result: {
+      ...draftDefinition(revision).result,
+      canUndo: true,
+      canRedo: true,
+      empty: false,
+      changes: [],
+    },
+  });
+  serveDrafts({ 'tok-a': [undoable(2), 500] });
+  fetchMock.post('glob:*/api/v1/canvas/draft/undo', undoable(3));
+  fetchMock.delete(draftEndpoint, { result: {} });
+  fetchMock.get(definitionEndpoint, definition([], 9, true));
+
+  renderPage();
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  await waitFor(() => expect(draftGets()).toHaveLength(2));
+  await settle();
+
+  expect(canvas.getActiveCanvas()).toStrictEqual(pendingIn('tok-a', 2));
+  expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(published(9)),
+  );
+  expect(
+    fetchMock.callHistory
+      .calls(draftEndpoint)
+      .filter(({ options }) => options.method?.toUpperCase() === 'DELETE'),
+  ).toHaveLength(1);
+  expect(screen.queryByTestId('canvas-draft-banner')).not.toBeInTheDocument();
+});
+
+test('a discard made while an undo settles is not undone by the refetch landing late', async () => {
+  window.location.hash = '#draft=tok-a';
+  const undoable = (revision: number) => ({
+    result: {
+      ...draftDefinition(revision).result,
+      canUndo: true,
+      canRedo: true,
+      empty: false,
+      changes: [],
+    },
+  });
+  const refetchAfterUndo = held<unknown>();
+  serveDrafts({ 'tok-a': [undoable(2), refetchAfterUndo.promise] });
+  fetchMock.post('glob:*/api/v1/canvas/draft/undo', undoable(3));
+  fetchMock.delete(draftEndpoint, { result: {} });
+  fetchMock.get(definitionEndpoint, definition([], 9, true));
+
+  renderPage();
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  await waitFor(() => expect(draftGets()).toHaveLength(2));
+  await settle();
+  fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(published(9)),
+  );
+
+  refetchAfterUndo.release(undoable(3));
+  await settle();
+
+  expect(canvas.getActiveCanvas()).toStrictEqual(published(9));
+  expect(screen.queryByTestId('canvas-draft-banner')).not.toBeInTheDocument();
+});
+
+test('a failed step on a draft the user has left reads nothing of it', async () => {
+  window.location.hash = '#draft=tok-a';
+  const undoable = (revision: number) => ({
+    result: {
+      ...draftDefinition(revision).result,
+      canUndo: true,
+      canRedo: true,
+      empty: false,
+      changes: [],
+    },
+  });
+  serveDrafts({ 'tok-a': [undoable(2)], 'tok-b': [undoable(5)] });
+  const stepReply = held<unknown>();
+  fetchMock.post('glob:*/api/v1/canvas/draft/undo', () => stepReply.promise);
+
+  renderPage();
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/canvas/draft/undo'),
+    ).toHaveLength(1),
+  );
+  window.location.hash = '#draft=tok-b';
+  // Pending, not settled: the step on the draft left is still in flight.
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(pendingIn('tok-b', 5)),
+  );
+  const getsBefore = draftGets().length;
+  stepReply.release({ status: 409, body: { message: 'Draft A moved on' } });
+  await settle();
+
+  expect(draftGets()).toHaveLength(getsBefore);
+  expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-b', 5));
 });
 
 test('an older response that lands last does not take the draft back', async () => {

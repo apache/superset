@@ -211,6 +211,70 @@ test('a step on another draft is not waited for', async () => {
   expect(reload).not.toHaveBeenCalled();
 });
 
+test('a step failing on a draft the user has left does not refetch that draft', async () => {
+  let fail: () => void = () => {};
+  const held = new Promise<Response>(resolve => {
+    fail = () => resolve(new Response(null, { status: 409 }));
+  });
+  fetchMock.post(undoEndpoint, () => held);
+  const { rerender, reload } = renderHarness({ canUndo: true });
+
+  fireEvent.click(undo());
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+
+  rerender(
+    <Harness revision={0} fetched={{}} reload={reload} token="tok-456" />,
+  );
+  await act(async () => {
+    fail();
+    await held;
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(reload).not.toHaveBeenCalled();
+});
+
+test('a step failure whose body is still arriving when the user leaves says nothing', async () => {
+  // The step is rejected while the user is still on its draft, but its error
+  // body is read only after they have moved on.
+  let finishBody: () => void = () => {};
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      finishBody = () => {
+        controller.enqueue(
+          new TextEncoder().encode(JSON.stringify({ message: 'Moved on' })),
+        );
+        controller.close();
+      };
+    },
+  });
+  fetchMock.post(
+    undoEndpoint,
+    () =>
+      new Response(body, {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+  );
+  const { rerender, reload } = renderHarness({ canUndo: true });
+
+  fireEvent.click(undo());
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+  rerender(
+    <Harness revision={0} fetched={{}} reload={reload} token="tok-456" />,
+  );
+  await act(async () => {
+    finishBody();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(reload).not.toHaveBeenCalled();
+});
+
 test('a settled step on one draft does not hold up the next draft', async () => {
   fetchMock.post(undoEndpoint, {
     result: { revision: 4, canUndo: false, canRedo: true },

@@ -124,6 +124,10 @@ export function useDraftHistory(
         reload();
       } catch (response) {
         const { message, error } = await getClientErrorObject(response);
+        // As above: a failure answering for the draft the user left is no
+        // news about the one they are on. Asked after reading the error,
+        // which can still be arriving when they leave.
+        if (currentToken.current !== token) return;
         addDangerToast(
           message || error || t('That change could not be undone.'),
         );
