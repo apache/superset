@@ -89,10 +89,22 @@ const onDidChangePage: typeof navigationApi.onDidChangePage = (
 
 const EXTENSION_PAGES_PREFIX = '/extensions/pages/';
 
-const locationEmitter = createValueEventEmitter<Location>({
-  pathname: stripAppRoot(window.location.pathname),
-  search: window.location.search ?? '',
-});
+// Seeded on first use rather than at import: `stripAppRoot` reads the
+// application root from bootstrap data, which is not guaranteed to be
+// readable while this module is still being evaluated.
+let locationEmitterInstance: ReturnType<
+  typeof createValueEventEmitter<Location>
+> | null = null;
+
+const getLocationEmitter = () => {
+  if (!locationEmitterInstance) {
+    locationEmitterInstance = createValueEventEmitter<Location>({
+      pathname: stripAppRoot(window.location.pathname),
+      search: window.location.search ?? '',
+    });
+  }
+  return locationEmitterInstance;
+};
 
 /**
  * React Router's history, captured by `useNavigationTracker`, so
@@ -150,12 +162,12 @@ commands.registerCommand(
 );
 
 const getLocation: typeof navigationApi.getLocation = () =>
-  locationEmitter.getCurrent();
+  getLocationEmitter().getCurrent();
 
 const onDidChangeLocation: typeof navigationApi.onDidChangeLocation = (
   listener: (location: Location) => void,
   thisArgs?: unknown,
-): Disposable => locationEmitter.subscribe(listener, thisArgs);
+): Disposable => getLocationEmitter().subscribe(listener, thisArgs);
 
 /** Synchronizes the navigation module with React Router. Call once in the app shell. */
 export const useNavigationTracker = () => {
@@ -175,12 +187,12 @@ export const useNavigationTracker = () => {
       prevPathname.current = location.pathname;
       notifyLocationChanged(location.pathname);
     }
-    const current = locationEmitter.getCurrent();
+    const current = getLocationEmitter().getCurrent();
     if (
       current.pathname !== location.pathname ||
       current.search !== location.search
     ) {
-      locationEmitter.fire({
+      getLocationEmitter().fire({
         pathname: location.pathname,
         search: location.search,
       });
