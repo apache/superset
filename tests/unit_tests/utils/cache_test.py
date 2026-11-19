@@ -412,3 +412,48 @@ def test_set_and_log_cache_set_failure_logs(mocker: MockerFixture) -> None:
 
     mock_logger.warning.assert_called_once_with("Could not cache key %s", "my_key")
     mock_logger.exception.assert_called_once_with(boom)
+
+
+def test_set_and_log_cache_times_only_backend_writes(mocker: MockerFixture) -> None:
+    """``timer_key`` times the backend write and nothing for skipped writes."""
+    from flask_caching.backends import NullCache
+
+    from superset.utils.cache import set_and_log_cache
+
+    timing = mocker.patch("superset.utils.timing_metrics.emit_timing")
+
+    _patch_config(mocker)
+    set_and_log_cache(_make_cache_instance(mocker), "k", {"df": "small"})
+    timing.assert_not_called()
+
+    set_and_log_cache(
+        _make_cache_instance(mocker), "k", {"df": "small"}, timer_key="t.set"
+    )
+    assert [call.args[0] for call in timing.call_args_list] == ["t.set"]
+    timing.reset_mock()
+
+    null_instance = mocker.MagicMock()
+    null_instance.cache = NullCache()
+    set_and_log_cache(null_instance, "k", {"df": "small"}, timer_key="t.set")
+    set_and_log_cache(
+        _make_cache_instance(mocker),
+        "k",
+        {"df": "small"},
+        cache_timeout=-1,
+        timer_key="t.set",
+    )
+    _patch_config(mocker, CACHE_DEFAULT_TIMEOUT=-1)
+    set_and_log_cache(
+        _make_cache_instance(mocker), "k", {"df": "small"}, timer_key="t.set"
+    )
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10)
+    set_and_log_cache(
+        _make_cache_instance(mocker), "k", {"df": "x" * 1000}, timer_key="t.set"
+    )
+    timing.assert_not_called()
+
+    _patch_config(mocker)
+    failing = _make_cache_instance(mocker)
+    failing.set.side_effect = RuntimeError("backend down")
+    assert set_and_log_cache(failing, "k", {"df": "small"}, timer_key="t.set") is False
+    assert [call.args[0] for call in timing.call_args_list] == ["t.set"]

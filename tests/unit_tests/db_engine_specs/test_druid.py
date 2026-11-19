@@ -258,3 +258,61 @@ def test_unmask_encrypted_extra() -> None:
     assert DruidEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
         {"connect_args": {"scheme": "http", "jwt": "old-token", "password": "new"}}
     )
+
+
+def test_encrypted_extra_hints() -> None:
+    """
+    The JWT and the password get labeled hints; `scheme` is never hinted.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+    from superset.utils import json
+
+    config = json.dumps(
+        {
+            "connect_args": {
+                "scheme": "https" * 10,
+                "jwt": "j" * 20 + "ab3d",
+                "password": "p" * 20 + "9z8y",
+            },
+        }
+    )
+
+    assert DruidEngineSpec.encrypted_extra_hints(config, 4) == [
+        {
+            "path": "$.connect_args.jwt",
+            "label": "JWT Token",
+            "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
+        },
+        {
+            "path": "$.connect_args.password",
+            "label": "Password",
+            "suffix": "9z8y",
+            "expires_at": None,
+            "expired": None,
+        },
+    ]
+
+
+def test_encrypted_extra_sensitive_field_labels() -> None:
+    """
+    Druid publishes its JWT and password fields, plus the secrets every engine
+    adds.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    assert DruidEngineSpec.encrypted_extra_sensitive_field_labels() == {
+        "$.connect_args.jwt": "JWT Token",
+        "$.connect_args.password": "Password",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+    assert (
+        DruidEngineSpec.get_public_information()["encrypted_extra_sensitive_fields"]
+        == DruidEngineSpec.encrypted_extra_sensitive_field_labels()
+    )
