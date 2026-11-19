@@ -1230,7 +1230,14 @@ def test_execute_with_oauth2_retry_keeps_a_guests_error_if_the_client_cannot_loa
 def test_execute_with_oauth2_retry_preserves_failed_flush_error(
     mocker: MockerFixture,
 ) -> None:
-    """Expired metadata must not mask an operation's failed-flush exception."""
+    """Expired metadata must not mask an operation's failed-flush exception.
+
+    A deactivated session (``is_active is False``) means a prior flush failed,
+    e.g. a statement timeout while persisting a refreshed OAuth2 token. The
+    request-scoped session must be rolled back here -- nothing else in the
+    call stack does it -- so later ORM access in the same request doesn't
+    raise ``PendingRollbackError`` instead of surfacing the real error.
+    """
     error = RuntimeError("metadata flush failed")
     operation = mocker.Mock(side_effect=error)
     database = mocker.MagicMock()
@@ -1247,5 +1254,5 @@ def test_execute_with_oauth2_retry_preserves_failed_flush_error(
     operation.assert_called_once_with()
     database.is_oauth2_enabled.assert_not_called()
     refresh.assert_not_called()
-    db.session.rollback.assert_not_called()
+    db.session.rollback.assert_called_once_with()
     assert not is_oauth2_retry_active()
