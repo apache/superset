@@ -24,6 +24,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
 from superset.reports.models import ReportSchedule, ReportState
+from superset.utils.dates import naive_utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -67,9 +68,7 @@ def cancel_disabled_retry(
     matched = query.update(
         {
             ReportSchedule.last_state: ReportState.ERROR,
-            ReportSchedule.last_eval_dttm: datetime.now(timezone.utc).replace(
-                tzinfo=None
-            ),
+            ReportSchedule.last_eval_dttm: naive_utcnow(),
             ReportSchedule.retry_attempt: 0,
             ReportSchedule.retry_scheduled_dttm: None,
         },
@@ -169,7 +168,7 @@ def _claim_execution(
             touched = normalize_window(schedule.last_eval_dttm)
             if anchor == normalized or (
                 touched is not None
-                and (datetime.utcnow() - touched).total_seconds() < stale_retry_seconds
+                and (naive_utcnow() - touched).total_seconds() < stale_retry_seconds
             ):
                 return None
     matched = (
@@ -186,7 +185,7 @@ def _claim_execution(
         .update(
             {
                 ReportSchedule.last_state: ReportState.WORKING,
-                ReportSchedule.last_eval_dttm: datetime.utcnow(),
+                ReportSchedule.last_eval_dttm: naive_utcnow(),
                 ReportSchedule.execution_owner: execution_id,
                 ReportSchedule.execution_window: normalized,
             },

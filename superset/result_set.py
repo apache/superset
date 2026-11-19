@@ -49,10 +49,17 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
     """
     new_l: list[str] = []
     seen: dict[str, int] = {}
+    reserved = {item if case_sensitive else item.lower() for item in l}
+    fixed_case_suffix = suffix if case_sensitive else suffix.lower()
     for item in l:
         s_fixed_case = item if case_sensitive else item.lower()
         if s_fixed_case in seen:
             seen[s_fixed_case] += 1
+            while (
+                s_fixed_case + fixed_case_suffix + str(seen[s_fixed_case]) in reserved
+            ):
+                seen[s_fixed_case] += 1
+            reserved.add(s_fixed_case + fixed_case_suffix + str(seen[s_fixed_case]))
             item += suffix + str(seen[s_fixed_case])
         else:
             seen[s_fixed_case] = 0
@@ -281,9 +288,23 @@ class SupersetResultSet:
                                 series = pd.to_datetime(
                                     series, utc=True, errors="coerce"
                                 )
+                                # Match the just-converted series' own
+                                # resolution instead of hardcoding "ns": a
+                                # far-future timestamp valid only at a wider
+                                # resolution (e.g. "us") would otherwise raise
+                                # ArrowInvalid casting down to nanoseconds for
+                                # no reason. pandas itself already picked
+                                # whatever resolution represents this data
+                                # losslessly (narrower only when the value
+                                # actually needs it), so reusing it is always
+                                # safe -- unlike the original column's own
+                                # pre-conversion unit, which can be coarser
+                                # than this data's real precision (e.g. "us"
+                                # inferred from an empty/all-null sample) and
+                                # would lose precision being cast down to it.
                                 pa_data[i] = pa.Array.from_pandas(
                                     series,
-                                    type=pa.timestamp("ns", tz=tz),
+                                    type=pa.timestamp(series.dtype.unit, tz=tz),
                                 )
                         except Exception as ex:  # pylint: disable=broad-except
                             logger.exception(ex)
@@ -368,6 +389,11 @@ class SupersetResultSet:
             assert column in df.columns
             df[column] = values
         return df
+
+    @property
+    def nested_columns(self) -> dict[str, list[Any]]:
+        """Original nested values restored by the synchronous DataFrame path."""
+        return self._nested_columns
 
     @property
     def pa_table(self) -> pa.Table:

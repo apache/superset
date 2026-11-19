@@ -373,10 +373,12 @@ def test_list_all_datasource_access_lists_everything(
 @pytest.mark.parametrize(
     "grant", ["datasource_access", "schema_access", "catalog_access"]
 )
-def test_hard_deleted_dataset_retains_only_schema_catalog_list_access(
+def test_hard_deleted_dataset_hides_orphaned_chart_for_every_grant(
     chart_fixtures: SimpleNamespace, grant: str
 ) -> None:
-    """ORM deletion removes the dataset grant but leaves broader list grants."""
+    """sc-119912: ORM deletion removes the dataset grant, and the orphaned
+    chart's perm columns are cleared, so no grant lists it; the list stays
+    consistent with the object gate, which denies it."""
     from flask_appbuilder.security.sqla.models import PermissionView, Role, User
 
     from superset import security_manager
@@ -444,9 +446,9 @@ def test_hard_deleted_dataset_retains_only_schema_catalog_list_access(
         is not None
     )
     assert session.get(Slice, chart_id) is chart
-    assert chart.perm == dataset_perm
-    assert chart.schema_perm == schema_perm
-    assert chart.catalog_perm == catalog_perm
+    assert chart.perm is None
+    assert chart.schema_perm is None
+    assert chart.catalog_perm is None
     assert chart.resolved_datasource is None
 
     with (
@@ -471,7 +473,7 @@ def test_hard_deleted_dataset_retains_only_schema_catalog_list_access(
         schema_perms=schema_perms,
         catalog_perms=catalog_perms,
     )
-    assert ("retained chart" in names) is (grant != "datasource_access")
+    assert "retained chart" not in names
     with (
         patch.object(security_manager, "is_admin", return_value=False),
         patch.object(security_manager, "is_editor", return_value=False),

@@ -18,7 +18,8 @@
  */
 import 'src/public-path';
 
-import { lazy, Suspense, useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
+import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { createRoot, type Root } from 'react-dom/client';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { Global } from '@emotion/react';
@@ -35,6 +36,7 @@ import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import initPreamble from 'src/preamble';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import setupClient from 'src/setup/setupClient';
+import { connectRealtime } from 'src/middleware/realtime';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { store, USER_LOADED } from 'src/views/store';
 import { Loading } from '@superset-ui/core/components';
@@ -101,7 +103,7 @@ function log(...info: unknown[]) {
   if (debugMode) logging.debug(`[superset]`, ...info);
 }
 
-const LazyDashboardPage = lazy(
+const LazyDashboardPage = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "DashboardPage" */ 'src/dashboard/containers/DashboardPage'
@@ -283,6 +285,10 @@ function setupGuestClient(guestToken: string) {
     guestTokenHeaderName: bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
     unauthorizedHandler: guestUnauthorizedHandler,
   });
+  // The realtime socket first connects at module load, before a guest token
+  // exists, and its ticket request is refused. Reconnect with the guest
+  // credential; a no-op while a socket is already open.
+  connectRealtime();
 }
 
 window.addEventListener('message', function embeddedPageInitializer(event) {

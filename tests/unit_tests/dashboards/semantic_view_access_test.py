@@ -36,10 +36,13 @@ from __future__ import annotations
 import uuid as uuid_lib
 from contextlib import contextmanager, ExitStack
 from types import SimpleNamespace
-from typing import cast, Iterator, TYPE_CHECKING
+from typing import Any, cast, Iterator, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
+from sqlalchemy import event
+from sqlalchemy.engine import Connection, Engine, ExecutionContext
 from sqlalchemy.orm.session import Session
 
 if TYPE_CHECKING:
@@ -283,6 +286,190 @@ def test_resolved_datasource_query_resolves(
     resolved = slc.resolved_datasource
     assert isinstance(resolved, Query)
     assert resolved.perm
+
+
+@pytest.mark.parametrize("allow_last", [False, True])
+def test_dashboard_batches_query_datasource_resolution(
+    access_fixtures: SimpleNamespace, app_context: None, allow_last: bool
+) -> None:
+    """Distinct query references use one SELECT without changing allow/deny."""
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.models.sql_lab import Query
+
+    session: Session = access_fixtures.session
+    queries: list[Query] = [
+        Query(id=idx, client_id=f"batch{idx}", database_id=10, sql="select 1")
+        for idx in (80, 81, 82)
+    ]
+    session.add_all(queries)
+    session.flush()
+    dashboard: Dashboard = Dashboard(
+        dashboard_title="query members",
+        published=True,
+        slices=[
+            Slice(datasource_type="query", datasource_id=idx)
+            for idx in (80, 80, 81, 82)
+        ],
+    )
+    granted_perms: set[str] = {queries[-1].perm} if allow_last else set()
+    statements: list[str] = []
+    engine: Engine = session.get_bind()
+
+    def record_query_select(
+        connection: Connection,
+        cursor: object,
+        statement: str,
+        parameters: object,
+        context: ExecutionContext,
+        executemany: bool,
+    ) -> None:
+        """Count actual datasource SELECTs, not mocked DAO invocations."""
+        if "FROM query " in statement or 'FROM "query" ' in statement:
+            statements.append(statement)
+
+    sm: SupersetSecurityManager = _gate_sm()
+    event.listen(engine, "before_cursor_execute", record_query_select)
+    try:
+        with _gate_patches(sm, granted_perms=granted_perms):
+            if allow_last:
+                sm.raise_for_access(dashboard=dashboard)
+            else:
+                with pytest.raises(SupersetSecurityException):
+                    sm.raise_for_access(dashboard=dashboard)
+    finally:
+        event.remove(engine, "before_cursor_execute", record_query_select)
+    assert len(statements) == 1, statements
+
+
+@pytest.mark.parametrize(
+    ("datasource_type", "datasource_id", "expected_access"),
+    [
+        ("table", 1, True),
+        ("semantic_view", 1, True),
+        ("query", 78, True),
+        ("query", 999, False),
+        ("query", -78, False),
+        ("query", True, False),
+        ("saved_query", 77, False),
+        ("unknown", 1, False),
+        (None, 1, False),
+        ("table", None, False),
+    ],
+)
+def test_batched_dashboard_resolution_preserves_access_decisions(
+    access_fixtures: SimpleNamespace,
+    app_context: None,
+    datasource_type: str | None,
+    datasource_id: int | None,
+    expected_access: bool,
+) -> None:
+    """A typed batch preserves the single resolver's fail-closed decisions."""
+    from superset.daos.datasource import Datasource
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.models.sql_lab import Query
+
+    session: Session = access_fixtures.session
+    query: Query = session.query(Query).filter(Query.id == 78).one()
+    grants: set[str] = {TABLE_PERM, VIEW_PERM, query.perm}
+    member: Slice
+    if datasource_type == "table" and datasource_id == 1:
+        member = access_fixtures.table_slice
+    elif datasource_type == "semantic_view":
+        member = access_fixtures.semantic_slice
+    else:
+        member = Slice(datasource_type=datasource_type, datasource_id=datasource_id)
+    dashboard: Dashboard = Dashboard(
+        dashboard_title="typed resolution", published=True, slices=[member]
+    )
+    sm: SupersetSecurityManager = _gate_sm()
+    with _gate_patches(sm, granted_perms=grants):
+        original: Datasource | None = member.resolved_datasource
+        assert bool(original is not None and sm.can_access_datasource(original)) == (
+            expected_access
+        )
+        if expected_access:
+            sm.raise_for_access(dashboard=dashboard)
+        else:
+            with pytest.raises(SupersetSecurityException):
+                sm.raise_for_access(dashboard=dashboard)
+
+
+@pytest.mark.parametrize("relationship_type", ["table", "semantic_view"])
+def test_dashboard_relationship_short_circuit_skips_fallback_batch(
+    access_fixtures: SimpleNamespace, app_context: None, relationship_type: str
+) -> None:
+    """An accessible relationship-backed member avoids loading later queries."""
+    from superset.daos.datasource import DatasourceDAO
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    member: Slice = (
+        access_fixtures.table_slice
+        if relationship_type == "table"
+        else access_fixtures.semantic_slice
+    )
+    dashboard: Dashboard = Dashboard(
+        dashboard_title="relationship first",
+        published=True,
+        slices=[member, Slice(datasource_type="query", datasource_id=78)],
+    )
+    sm: SupersetSecurityManager = _gate_sm()
+    with (
+        _gate_patches(sm, granted_perms={TABLE_PERM, VIEW_PERM}),
+        patch.object(DatasourceDAO, "get_datasources_by_ids") as batch,
+    ):
+        sm.raise_for_access(dashboard=dashboard)
+        batch.assert_not_called()
+
+
+def test_batched_resolver_keeps_typed_order_and_relationship_identity(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """Batches neither reorder members nor conflate colliding table/view IDs."""
+    from superset.daos.datasource import Datasource, DatasourceDAO
+    from superset.models.slice import Slice
+    from superset.models.sql_lab import Query
+
+    session: Session = access_fixtures.session
+    query: Query = session.query(Query).filter(Query.id == 78).one()
+    members: list[Slice] = [
+        access_fixtures.semantic_slice,
+        Slice(datasource_type="query", datasource_id=78),
+        access_fixtures.table_slice,
+        Slice(datasource_type="query", datasource_id=78),
+        Slice(datasource_type="saved_query", datasource_id=77),
+        Slice(datasource_type="query", datasource_id=999),
+    ]
+    with patch.object(
+        DatasourceDAO,
+        "get_datasources_by_ids",
+        wraps=DatasourceDAO.get_datasources_by_ids,
+    ) as batch:
+        resolved: list[Datasource | None] = list(
+            Slice.iter_resolved_datasources(members)
+        )
+    assert resolved == [access_fixtures.view, query, access_fixtures.table, None, None]
+    assert batch.call_count == 2
+    batch.assert_any_call("query", {78, 999})
+    batch.assert_any_call("saved_query", {77})
+
+
+def test_batched_resolver_does_not_cache_across_calls(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """A later resolution sees deletion rather than a prior batch's Query."""
+    from superset.models.slice import Slice
+    from superset.models.sql_lab import Query
+
+    session: Session = access_fixtures.session
+    member: Slice = Slice(datasource_type="query", datasource_id=78)
+    assert next(Slice.iter_resolved_datasources([member])) is not None
+    session.query(Query).filter(Query.id == 78).delete(synchronize_session=False)
+    assert list(Slice.iter_resolved_datasources([member])) == [None]
 
 
 # ---------------------------------------------------------------------------
@@ -951,3 +1138,141 @@ def test_guest_allowlist_allows_table_member_chart(
         ),
     ):
         sm.raise_for_access(chart=access_fixtures.table_slice)
+
+
+# -- Exclusion-hook placement --
+#
+# Placement is the behaviour: the exclusion must survive the ``is_admin()``
+# short-circuit and must not reach an embedded guest. Neither is visible to a
+# test that calls ``apply_extra_access_exclusions`` directly.
+
+
+def _dashboard_exclusion_hook(excluded_id: int) -> Any:
+    from sqlalchemy import select
+
+    from superset.models.dashboard import Dashboard
+
+    return lambda _uid: select(Dashboard.id).where(Dashboard.id == excluded_id)
+
+
+def test_dashboard_list_filter_exclusion_survives_admin(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """An admin is exactly the principal the role paths stop narrowing."""
+    from flask import current_app
+
+    from superset.dashboards.filters import DashboardAccessFilter
+    from superset.extensions import db, security_manager
+    from superset.models.dashboard import Dashboard
+
+    withheld = Dashboard(dashboard_title="withheld from admin", published=True)
+    kept = Dashboard(dashboard_title="kept for admin", published=True)
+    db.session.add_all([withheld, kept])
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+    mocker.patch(
+        "superset.dashboards.filters.guest_embedded_dashboard_filter",
+        return_value=None,
+    )
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "EXTRA_ACCESS_QUERY_EXCLUSIONS": {
+                "dashboards": _dashboard_exclusion_hook(withheld.id)
+            }
+        },
+    )
+
+    flt = DashboardAccessFilter.__new__(DashboardAccessFilter)
+    titles = {
+        dash.dashboard_title for dash in flt.apply(db.session.query(Dashboard), None)
+    }
+
+    assert "withheld from admin" not in titles
+    assert "kept for admin" in titles
+
+
+def test_dashboard_list_filter_exclusion_skipped_for_embedded_guest(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """A guest token already scopes its holder to its own dashboards."""
+    from flask import current_app
+
+    from superset.dashboards.filters import DashboardAccessFilter
+    from superset.extensions import db, security_manager
+    from superset.models.dashboard import Dashboard
+
+    in_token = Dashboard(dashboard_title="in the guest token", published=True)
+    db.session.add(in_token)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.dashboards.filters.guest_embedded_dashboard_filter",
+        return_value=Dashboard.id.in_([in_token.id]),
+    )
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    # The hook would withhold the very dashboard the token grants.
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "EXTRA_ACCESS_QUERY_EXCLUSIONS": {
+                "dashboards": _dashboard_exclusion_hook(in_token.id)
+            }
+        },
+    )
+
+    flt = DashboardAccessFilter.__new__(DashboardAccessFilter)
+    titles = {
+        dash.dashboard_title for dash in flt.apply(db.session.query(Dashboard), None)
+    }
+
+    assert "in the guest token" in titles
+
+
+def test_dashboard_lookup_by_uuid_honours_the_exclusion(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Withheld means withheld whichever identifier names the dashboard.
+
+    The uuid branch of ``get_by_id_or_slug`` skips ``base_filter``, so without
+    an explicit check the same dashboard was absent by id and readable by uuid.
+    """
+    from flask import current_app
+
+    from superset.commands.dashboard.exceptions import DashboardNotFoundError
+    from superset.daos.dashboard import DashboardDAO
+    from superset.extensions import db, security_manager
+    from superset.models.dashboard import Dashboard
+
+    withheld = Dashboard(dashboard_title="withheld by uuid too", published=True)
+    db.session.add(withheld)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+    mocker.patch(
+        "superset.dashboards.filters.guest_embedded_dashboard_filter",
+        return_value=None,
+    )
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "EXTRA_ACCESS_QUERY_EXCLUSIONS": {
+                "dashboards": _dashboard_exclusion_hook(withheld.id)
+            }
+        },
+    )
+
+    # By id: withheld through the base filter.
+    with pytest.raises(DashboardNotFoundError):
+        DashboardDAO.get_by_id_or_slug(str(withheld.id))
+
+    # By uuid: the branch that skips the base filter must agree.
+    with pytest.raises(DashboardNotFoundError):
+        DashboardDAO.get_by_id_or_slug(str(withheld.uuid))

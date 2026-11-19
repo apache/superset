@@ -28,12 +28,52 @@ from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.result_set import (
+    dedup,
     stringify_extension_columns,
     stringify_values,
     SupersetResultSet,
 )
-from superset.superset_typing import DbapiResult
+from superset.superset_typing import DbapiDescription, DbapiResult
 from superset.utils import json as superset_json
+
+
+@pytest.mark.parametrize(
+    "names,case_sensitive,expected",
+    [
+        (["a", "a", "a__1"], True, ["a", "a__2", "a__1"]),
+        (["a__1", "a", "a"], True, ["a__1", "a", "a__2"]),
+        (["a", "a", "a__1", "a__2"], True, ["a", "a__3", "a__1", "a__2"]),
+        (["a", "A", "A__1"], False, ["a", "A__2", "A__1"]),
+        (["a", "A", "A__1"], True, ["a", "A", "A__1"]),
+    ],
+)
+def test_dedup_preserves_explicit_column_names(
+    names: list[str], case_sensitive: bool, expected: list[str]
+) -> None:
+    assert dedup(names, case_sensitive=case_sensitive) == expected
+
+
+def test_result_set_with_colliding_column_suffix() -> None:
+    description: DbapiDescription = [
+        (name, "INT", None, None, None, None, False) for name in ("a", "a", "a__1")
+    ]
+    result = SupersetResultSet([(1, 2, 3)], description, BaseEngineSpec)
+    assert result.to_pandas_df().to_dict("records") == [{"a": 1, "a__2": 2, "a__1": 3}]
+
+
+def test_dedup_case_insensitive_custom_suffix() -> None:
+    assert dedup(["a", "A", "ax1"], suffix="X", case_sensitive=False) == [
+        "a",
+        "AX2",
+        "ax1",
+    ]
+
+
+def test_dedup_reserves_generated_names() -> None:
+    """Names generated from different bases must not collide."""
+    result = dedup(["a"] * 14 + ["a1"] * 2, suffix="")
+    assert len(set(result)) == len(result)
+    assert result[-1] == "a15"
 
 
 def test_column_names_as_bytes() -> None:
@@ -176,9 +216,11 @@ def test_timezone_series(mocker: MockerFixture) -> None:
 
 def test_out_of_bounds_datetime_coerced_to_nat(mocker: MockerFixture) -> None:
     """
-    Dates beyond ~2262-04-11 overflow pandas' int64 nanosecond representation.
-    SupersetResultSet must coerce them to NaT rather than raising OutOfBoundsDatetime
-    and logging an ERROR (which would surface as noise in observability tooling).
+    Dates beyond ~2262-04-11 overflow pandas' int64 *nanosecond* representation,
+    but pandas 3's wider non-nanosecond datetime64 dtypes (e.g. ``datetime64[us]``)
+    represent them correctly instead. SupersetResultSet must surface such a date
+    as-is rather than raising OutOfBoundsDatetime and logging an ERROR (which
+    would surface as noise in observability tooling).
     """
     logger = mocker.patch("superset.result_set.logger")
 
@@ -190,7 +232,7 @@ def test_out_of_bounds_datetime_coerced_to_nat(mocker: MockerFixture) -> None:
         BaseEngineSpec,
     )
     df = result_set.to_pandas_df()
-    assert pd.isna(df["dt"].iloc[0])
+    assert df["dt"].iloc[0] == pd.Timestamp(3118, 1, 1, tz="UTC")
     logger.exception.assert_not_called()
 
 

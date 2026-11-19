@@ -39,6 +39,7 @@ from superset.commands.importers.v1 import ImportModelsCommand
 from superset.commands.importers.v1.utils import (
     safe_insert_dashboard_chart_relationships,
 )
+from superset.commands.utils import update_chart_config_dataset
 from superset.daos.base import BaseDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
@@ -238,8 +239,11 @@ class ImportExamplesCommand(ImportModelsCommand):
                 file_name.startswith("charts/")
                 and config["dataset_uuid"] in dataset_info
             ):
-                # update datasource id, type, and name
-                config.update(dataset_info[config["dataset_uuid"]])
+                # update datasource id, type, and name, and the references to
+                # them kept in params and query_context
+                config = update_chart_config_dataset(
+                    config, dataset_info[config["dataset_uuid"]]
+                )
                 chart = import_chart(
                     config,
                     overwrite=overwrite,

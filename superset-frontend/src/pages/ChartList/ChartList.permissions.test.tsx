@@ -144,7 +144,11 @@ const renderChartList = (
 const renderWithPermissions = async (
   permissions = PERMISSIONS.ADMIN,
   userId: number | undefined = 1,
-  featureFlags: { tagging?: boolean; cardView?: boolean } = {},
+  featureFlags: {
+    tagging?: boolean;
+    cardView?: boolean;
+    softDelete?: boolean;
+  } = {},
 ) => {
   (
     isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -152,6 +156,7 @@ const renderWithPermissions = async (
     if (feature === 'TAGGING_SYSTEM') return featureFlags.tagging === true;
     if (feature === 'LISTVIEWS_DEFAULT_CARD_VIEW')
       return featureFlags.cardView === true;
+    if (feature === 'SOFT_DELETE') return featureFlags.softDelete === true;
     return false;
   });
 
@@ -255,6 +260,26 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(editButton).toHaveAttribute('aria-disabled', 'false');
     expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
   });
+
+  test.each([
+    [true, 'archive'],
+    [false, 'delete'],
+  ])(
+    'soft delete %s uses the chart row permission hint for %s',
+    async (enabled, verb) => {
+      await renderWithPermissions(PERMISSIONS.WRITE_ONLY, 9, {
+        softDelete: enabled,
+      });
+      const row = (await screen.findByText(mockCharts[0].slice_name)).closest(
+        'tr',
+      );
+      const action = within(row!).getByTestId('chart-row-delete');
+      fireEvent.mouseOver(action);
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(
+        `You must be a chart editor in order to ${verb}.`,
+      );
+    },
+  );
 
   test('enables card actions for an admin who is not a chart editor', async () => {
     await renderWithPermissions(PERMISSIONS.ADMIN, 1, { cardView: true });

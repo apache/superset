@@ -473,6 +473,26 @@ def test_normalize_dttm_col_timezone_handles_dst() -> None:
     assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-07-01 02:00:00"
 
 
+def test_normalize_dttm_col_timezone_with_tz_aware_values() -> None:
+    """Values that already carry a timezone are converted, not re-localized."""
+    df = pd.DataFrame(
+        {
+            "date_col": pd.to_datetime(
+                ["2020-01-01 00:00:00+00:00", "2020-07-01 05:00:00+05:00"],
+                utc=True,
+            )
+        }
+    )
+    dttm_cols = (DateColumn(col_label="date_col", timezone="Europe/Berlin"),)
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["date_col"])
+    assert df["date_col"][0].tzinfo is None
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 01:00:00"
+    assert df["date_col"][1].strftime("%Y-%m-%d %H:%M:%S") == "2020-07-01 02:00:00"
+
+
 def test_normalize_dttm_col_timezone_takes_precedence_over_offset() -> None:
     """When both timezone and offset are set, the timezone conversion wins."""
     df = pd.DataFrame({"date_col": ["2020-01-01 00:00:00"]})
@@ -506,6 +526,27 @@ def test_normalize_dttm_col_invalid_timezone_falls_back_to_offset() -> None:
     normalize_dttm_col(df, dttm_cols)
 
     assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 03:00:00"
+
+
+def test_normalize_dttm_col_timezone_leaves_date_only_column() -> None:
+    """
+    A date-only column (such as ``DATE``) has no time of day, so the timezone
+    leaves it as it is, and still takes precedence over the offset.
+    """
+    df = pd.DataFrame({"date_col": ["2020-01-01"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col",
+            timestamp_format="%Y-%m-%d",
+            timezone="America/New_York",
+            offset=3,
+            date_only=True,
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 00:00:00"
 
 
 def test_normalize_dttm_col_invalid_date_coerced() -> None:

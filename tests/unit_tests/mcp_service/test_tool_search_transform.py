@@ -25,7 +25,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastmcp.server.transforms.search import BM25SearchTransform, RegexSearchTransform
-from fastmcp.tools.tool import Tool
+from fastmcp.tools import Tool
 from flask import Flask, g
 
 from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
@@ -392,12 +392,11 @@ def test_truncate_description_cuts_at_sentence():
     assert result == "First sentence. Second sentence."
 
 
-def test_truncate_description_ellipsis_fallback():
-    """When no sentence boundary, truncates with ellipsis."""
+def test_truncate_description_without_sentence_boundary() -> None:
+    """Omit prose rather than advertising a partial instruction."""
     text = "A very long single sentence without periods that goes on and on"
     result = _truncate_description(text, 30)
-    assert result.endswith("...")
-    assert len(result) <= 33  # 30 + "..."
+    assert result == ""
 
 
 def test_truncate_description_empty():
@@ -405,14 +404,85 @@ def test_truncate_description_empty():
     assert _truncate_description("", 300) == ""
 
 
-def test_truncate_description_zero_max():
-    """Zero max_length produces ellipsis; the serializer skips calling this."""
+def test_truncate_description_zero_max() -> None:
+    """A zero prose budget omits the description."""
     text = "Some text"
-    # _truncate_description(text, 0) truncates to 0 chars and appends "...".
-    # The caller (_create_search_result_serializer) skips calling it when
-    # max_desc=0 so this edge case only matters for direct callers.
     result = _truncate_description(text, 0)
-    assert result == "..."
+    assert result == ""
+
+
+@pytest.mark.parametrize("limit", [1, 2, 20, 300])
+def test_truncate_description_oversized(limit: int) -> None:
+    """Oversized prose never exceeds even a very small configured budget."""
+    assert _truncate_description("x" * 100_000, limit) == ""
+
+
+def test_truncate_description_multiline_sentence() -> None:
+    """A newline after punctuation is a sentence boundary too."""
+    assert _truncate_description(
+        "First sentence.\nA long instruction follows.", 20
+    ) == ("First sentence.")
+
+
+@pytest.mark.parametrize("marker", ["IMPORTANT:", "**IMPORTANT**:"])
+def test_truncate_description_important_block_sentence(marker: str) -> None:
+    """Do not advertise a half instruction when the cut falls in an IMPORTANT block."""
+    prefix = f"Summary.\n\n{marker} First rule."
+    text = prefix + "\n" + "An instruction too long for the remaining budget " * 100
+    assert _truncate_description(text, 100) == "Summary."
+
+
+def test_truncate_description_spends_budget_on_next_paragraph_sentences() -> None:
+    """A following prose paragraph contributes the complete sentences that fit."""
+    text = (
+        "Delete a saved chart.\n\nIdentify the chart by ID (NOT name). "
+        + "A long trailing sentence that cannot fit in the budget. " * 5
+    )
+    assert _truncate_description(text, 70) == (
+        "Delete a saved chart.\n\nIdentify the chart by ID (NOT name)."
+    )
+
+
+@pytest.mark.parametrize(
+    "following",
+    [
+        "Workflow:\n1. First step.\n2. Second step that is far too long " + "x" * 80,
+        "Steps follow.\n- First item.\n- Second item " + "x" * 80,
+        "Parameters:\n    None. Long text " + "x" * 80,
+    ],
+)
+def test_truncate_description_never_starts_structured_paragraph(
+    following: str,
+) -> None:
+    """Lists and headings after the kept paragraphs are never partly advertised."""
+    assert _truncate_description(f"Summary.\n\n{following}", 60) == "Summary."
+
+
+def test_truncate_description_drops_trailing_lead_in_sentence() -> None:
+    """A kept paragraph ending in a colon must not advertise a cut-off list."""
+    text = "Edit things. An LLM can:\n\n- first\n- second\n\n" + "x" * 300
+    assert _truncate_description(text, 30) == "Edit things."
+
+
+def test_truncate_description_keeps_lone_lead_in_sentence() -> None:
+    """With no earlier sentence, the colon-terminated text is left untouched."""
+    assert _truncate_description("An LLM can:\n\n- first\n\n" + "x" * 300, 15) == (
+        "An LLM can:"
+    )
+
+
+def test_truncate_description_long_first_paragraph_keeps_sentences() -> None:
+    """An overlong first paragraph still yields its complete leading sentences."""
+    text = "Purpose line. " + "More detail here. " * 20 + "\n\nSecond paragraph."
+    assert _truncate_description(text, 40) == "Purpose line. More detail here."
+
+
+def test_truncate_description_structured_first_paragraph_keeps_sentences() -> None:
+    """Without a kept paragraph, a structured first paragraph can be cut."""
+    text = "USAGE NOTES:\n- do a. do b. do c. do d. do e."
+    assert _truncate_description(text, 40) == (
+        "USAGE NOTES:\n- do a. do b. do c. do d."
+    )
 
 
 # -- _create_search_result_serializer tests --
@@ -1306,8 +1376,9 @@ def _exact_name_search(
     *,
     can_access: bool | Callable[[str, str], bool],
     can_view_metadata: bool,
+    query_for: Callable[[str], str] = lambda name: name,
 ) -> tuple[dict[str, list[str]], set[str]]:
-    """Search each tool's exact name through search_tools as one caller.
+    """Search each tool's name (or ``query_for(name)``) through search_tools.
 
     Returns the ranked names for every query and the caller's visible names.
     """
@@ -1335,7 +1406,8 @@ def _exact_name_search(
         search = transform._make_search_tool().fn
         results = {
             tool.name: [
-                result["name"] for result in asyncio.run(search(query=tool.name))
+                result["name"]
+                for result in asyncio.run(search(query=query_for(tool.name)))
             ]
             for tool in catalog
         }
@@ -1368,6 +1440,203 @@ def test_bm25_exact_name_finds_every_registered_tool(
     assert not_first == {}
     for name in pinned:
         assert name not in results[name]
+
+
+def _production_search(
+    transform: BM25SearchTransform, catalog: list[Tool], query: str
+) -> list[str]:
+    """Rank the unpinned registered catalog the way search_tools does."""
+    pinned: set[str] = set(MCP_TOOL_SEARCH_CONFIG["always_visible"])
+    searchable = [tool for tool in catalog if tool.name not in pinned]
+    return [tool.name for tool in asyncio.run(transform._search(searchable, query))]
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("get dataset info execute sql", ["get_dataset_info", "execute_sql"]),
+        ("get chart info and list dashboards", ["get_chart_info", "list_dashboards"]),
+        ("generate chart and list dashboards", ["generate_chart", "list_dashboards"]),
+        ("get dataset info", ["get_dataset_info"]),
+        ("execute sql", ["execute_sql"]),
+        ("list dashboards", ["list_dashboards"]),
+    ],
+)
+def test_bm25_names_spelled_out_by_query_rank_first(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+    query: str,
+    expected: list[str],
+) -> None:
+    """Tools whose full names appear in the query lead the results.
+
+    The long ``get_dataset_info`` definition sat at the edge of the result
+    limit for "get dataset info execute sql" even though its name is spelled
+    out, so small catalog changes pushed it out entirely.
+    """
+    results = _production_search(production_bm25_transform, registered_catalog, query)
+
+    assert set(results[: len(expected)]) == set(expected)
+    assert len(results) <= MCP_TOOL_SEARCH_CONFIG["max_results"]
+    assert len(set(results)) == len(results)
+
+
+def test_bm25_multi_intent_query_stays_within_result_limit(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """Name matches never exceed the limit, even when more tools qualify."""
+    query = (
+        "generate chart get chart info get dataset info get dashboard info "
+        "list dashboards execute sql"
+    )
+
+    results = _production_search(production_bm25_transform, registered_catalog, query)
+
+    assert len(results) == MCP_TOOL_SEARCH_CONFIG["max_results"]
+    assert len(set(results)) == len(results)
+
+
+@pytest.mark.parametrize("query", ["charts", "create charts", "generate", "no_match"])
+def test_bm25_name_coverage_ignores_partial_name_matches(
+    bm25_transform: BM25SearchTransform,
+    crowded_catalog: list[Tool],
+    query: str,
+) -> None:
+    """A query containing only part of a name does not promote that tool."""
+    expected = asyncio.run(
+        BM25SearchTransform(max_results=5)._search(crowded_catalog, query)
+    )
+    assert asyncio.run(bm25_transform._search(crowded_catalog, query)) == expected
+
+
+def test_bm25_name_coverage_ranks_longer_names_first(
+    bm25_transform: BM25SearchTransform,
+) -> None:
+    """Among covered names, more specific (longer) names come first."""
+    catalog = [
+        Tool.from_function(
+            lambda: None, name=name, description="Report details. " * count
+        )
+        for count, name in enumerate(
+            ["list_things", "get_thing_info_detail", "get_thing_info"], start=1
+        )
+    ] + [
+        Tool.from_function(
+            lambda: None, name=f"noise_{index}", description="get thing info " * 20
+        )
+        for index in range(8)
+    ]
+
+    results = asyncio.run(
+        bm25_transform._search(catalog, "get thing info detail list things")
+    )
+
+    assert [tool.name for tool in results[:2]] == [
+        "get_thing_info_detail",
+        "list_things",
+    ]
+    assert len(results) == 5
+
+
+@pytest.mark.parametrize("reverse_catalog", [False, True])
+def test_bm25_name_coverage_cut_follows_query_order(
+    bm25_transform: BM25SearchTransform,
+    reverse_catalog: bool,
+) -> None:
+    """Unranked covered names survive the cut by query order, not catalog order."""
+    names = [f"get_report_{index}" for index in range(10, 16)]
+    catalog = [Tool.from_function(lambda: None, name=name) for name in names]
+    if reverse_catalog:
+        catalog.reverse()
+    query = " ".join(name.replace("_", " ") for name in names)
+
+    with patch.object(BM25SearchTransform, "_search", AsyncMock(return_value=[])):
+        results = asyncio.run(bm25_transform._search(catalog, query))
+
+    assert [tool.name for tool in results] == names[:5]
+
+
+@pytest.mark.parametrize("reverse_catalog", [False, True])
+def test_bm25_multi_intent_cut_is_independent_of_catalog_order(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+    reverse_catalog: bool,
+) -> None:
+    """The registered catalog gives the same multi-intent cut in either order."""
+    catalog = (
+        list(reversed(registered_catalog)) if reverse_catalog else registered_catalog
+    )
+    query = (
+        "generate chart get chart info get dataset info get dashboard info "
+        "list dashboards execute sql"
+    )
+
+    assert _production_search(production_bm25_transform, catalog, query) == [
+        "get_chart_info",
+        "get_dataset_info",
+        "get_dashboard_info",
+        "generate_chart",
+        "list_dashboards",
+    ]
+
+
+def test_bm25_nested_name_does_not_displace_metrics(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """A metric creation intent does not also promote dataset creation."""
+    query = "create dataset metric for revenue"
+    results = _production_search(production_bm25_transform, registered_catalog, query)
+
+    assert results[0] == "create_dataset_metric"
+    assert "list_metrics" in results
+    assert "create_dataset" not in results
+
+
+def test_regex_does_not_use_name_coverage(
+    crowded_catalog: list[Tool],
+) -> None:
+    """Regex search keeps pattern semantics; only BM25 expands query words."""
+    server = MagicMock()
+    _apply_tool_search_transform(
+        server,
+        {"strategy": "regex", "max_results": 5, "always_visible": []},
+    )
+    transform = server.add_transform.call_args[0][0]
+    query = "generate.*chart"
+    expected = asyncio.run(
+        RegexSearchTransform(max_results=5)._search(crowded_catalog, query)
+    )
+    assert asyncio.run(transform._search(crowded_catalog, query)) == expected
+
+
+@pytest.mark.parametrize(
+    "query, unexpected",
+    [
+        ("create a dashboard from a dataset", "create_dataset"),
+        ("list all the charts on a dashboard", "list_charts"),
+    ],
+)
+def test_bm25_name_coverage_ignores_scattered_name_words(
+    bm25_transform: BM25SearchTransform,
+    query: str,
+    unexpected: str,
+) -> None:
+    """Name words scattered across the query do not promote that tool."""
+    catalog = [
+        Tool.from_function(lambda: None, name=name, description="Report details. ")
+        for name in [unexpected, "create_dashboard", "list_dashboards"]
+    ] + [
+        Tool.from_function(
+            lambda: None, name=f"noise_{index}", description=f"{query} " * 20
+        )
+        for index in range(8)
+    ]
+
+    results = asyncio.run(bm25_transform._search(catalog, query))
+
+    assert results[0].name != unexpected
 
 
 def _read_only_can_access(permission: str, _view: str) -> bool:
@@ -1403,6 +1672,28 @@ def test_bm25_exact_name_never_surfaces_unauthorized_registered_tools(
         if name in visible and ranked[:1] != [name]
     }
     assert not_first == {}
+
+
+def test_bm25_name_coverage_respects_visibility(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """A hidden tool's full name inside a longer query is never returned."""
+    results, visible = _exact_name_search(
+        production_bm25_transform,
+        registered_catalog,
+        can_access=_read_only_can_access,
+        can_view_metadata=False,
+        query_for=lambda name: f"please {name.replace('_', ' ')} for me",
+    )
+    denied: set[str] = {tool.name for tool in registered_catalog} - visible
+    assert "generate_chart" in denied
+
+    assert "generate_chart" not in results["generate_chart"]
+    leaked: dict[str, list[str]] = {
+        name: sorted(set(ranked) & denied) for name, ranked in results.items()
+    }
+    assert {name: hidden for name, hidden in leaked.items() if hidden} == {}
 
 
 @pytest.fixture

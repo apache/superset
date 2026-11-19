@@ -26,6 +26,7 @@ runs natively on GitHub Actions' x86_64 runners.
 """
 
 from collections.abc import Iterator
+from datetime import datetime
 
 import pytest
 from sqlalchemy import (
@@ -101,3 +102,46 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
     for col in by_name.values():
         spec = CrateEngineSpec.get_column_spec(str(col["type"]))
         assert spec is not None
+
+
+def test_fetch_data_decodes_epoch_ms_timestamps(engine: Engine) -> None:
+    """
+    Regression for apache/superset#44720: crate-python's real DBAPI cursor
+    always reports ``type_code=None`` in ``cursor.description`` (confirmed
+    by reading ``crate.client.cursor.Cursor.description`` directly -- it
+    hardcodes ``None`` for every description slot but the column name), so
+    ``CrateEngineSpec.fetch_data`` has to find TIMESTAMP columns via the
+    driver's private ``cursor._result["col_types"]`` instead. The existing
+    unit tests mock that attribute directly and would never notice if a
+    future crate-python release renamed or restructured it; only a real
+    cursor, from a real query against a real server, exercises the actual
+    attribute this code depends on.
+
+    CrateDB's wire protocol reports both ``TIMESTAMP WITHOUT TIME ZONE`` and
+    ``TIMESTAMP WITH TIME ZONE`` as epoch-millisecond integers (type codes
+    15 and 11 respectively -- see ``crate.client.converter.DataType``);
+    both must decode to the same real ``datetime``.
+    """
+    with engine.begin() as conn:
+        conn.exec_driver_sql(
+            "CREATE TABLE pilot_timestamps ("
+            "id INTEGER PRIMARY KEY, "
+            "ts_no_tz TIMESTAMP WITHOUT TIME ZONE, "
+            "ts_with_tz TIMESTAMP WITH TIME ZONE"
+            ")"
+        )
+        conn.exec_driver_sql(
+            "INSERT INTO pilot_timestamps (id, ts_no_tz, ts_with_tz) "
+            "VALUES (1, 1704067200000, 1704067200000)"
+        )
+        conn.exec_driver_sql("REFRESH TABLE pilot_timestamps")
+
+    raw_conn = engine.raw_connection()
+    try:
+        cursor = raw_conn.cursor()
+        cursor.execute("SELECT ts_no_tz, ts_with_tz FROM pilot_timestamps WHERE id = 1")
+        rows = CrateEngineSpec.fetch_data(cursor)
+    finally:
+        raw_conn.close()
+
+    assert rows == [(datetime(2024, 1, 1), datetime(2024, 1, 1))]

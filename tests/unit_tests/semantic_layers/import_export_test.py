@@ -34,6 +34,7 @@ from sqlalchemy.orm import Session
 from superset import security_manager
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.chart.importers.v1 import utils as chart_import_utils
 from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
@@ -159,7 +160,8 @@ def test_each_importer_rebinds_semantic_chart(
     writer: Mock = Mock(
         return_value=Mock(id=91, uuid=UUID(CHART_UUID), viz_type="table")
     )
-    monkeypatch.setattr(module, "import_chart", writer)
+    # every importer writes charts through ``import_charts`` in this module
+    monkeypatch.setattr(chart_import_utils, "import_chart", writer)
     monkeypatch.setattr(module, "get_default_viewers_for_current_user", lambda: [])
     configs: dict[str, Any] = {"charts/chart.yaml": chart_config()}
     importer._import(configs, overwrite=True)
@@ -202,9 +204,13 @@ def test_dependency_failure_precedes_any_bundle_write(
     module: ModuleType = importlib.import_module(module_name)
     importer: Any = getattr(module, command_name)
     writes: list[Mock] = []
-    for name in ("import_database", "import_dataset", "import_chart"):
+    for target, name in (
+        (module, "import_database"),
+        (module, "import_dataset"),
+        (chart_import_utils, "import_chart"),
+    ):
         writer: Mock = Mock(side_effect=AssertionError("write before preflight"))
-        monkeypatch.setattr(module, name, writer)
+        monkeypatch.setattr(target, name, writer)
         writes.append(writer)
     if failure == "missing":
         refs.db.session.query.return_value.filter.return_value.all.return_value = []
@@ -638,7 +644,7 @@ def test_import_transaction_rolls_back_late_failure(
         assert session.query(Slice).filter(Slice.uuid == UUID(CHART_UUID)).count() == 1
         raise ImportFailedError("injected after chart write")
 
-    monkeypatch.setattr(module, "import_chart", write_then_fail)
+    monkeypatch.setattr(chart_import_utils, "import_chart", write_then_fail)
     with pytest.raises(ImportFailedError):
         command.run()
     assert session.query(Slice).filter(Slice.uuid == UUID(CHART_UUID)).count() == 0
@@ -890,7 +896,9 @@ def test_orphaned_dashboard_target_does_not_abort_mixed_export(
         dashboard_export.DashboardDAO, "find_by_ids", lambda ids: [source, plain]
     )
     monkeypatch.setattr(
-        dashboard_export.DatasetDAO, "find_by_ids", lambda ids: [table] if ids else []
+        dashboard_export.DatasetDAO,
+        "find_by_ids",
+        lambda ids, **kwargs: [table] if ids else [],
     )
     monkeypatch.setattr(
         dashboard_export.ExportChartsCommand, "run", lambda *args, **kwargs: iter(())
@@ -910,6 +918,28 @@ def test_orphaned_dashboard_target_does_not_abort_mixed_export(
     targets: list[dict[str, Any]] = exported["metadata"][control][0]["targets"]
     assert targets[0] == {"datasourceType": "semantic_view"}
     assert targets[1]["datasetUuid"] == VIEW_UUID
-    dataset_export.assert_called_once_with([81])
+    dataset_export.assert_called_once_with([81], include_deleted=True)
     with pytest.raises(refs.SemanticReferenceError, match="requires datasourceRef"):
         refs.resolve_bundle_references({"dashboards/orphan.yaml": exported})
+
+
+def test_reference_export_follows_runtime_flip(
+    view: SemanticView,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Turning the feature off retains the established bundle rejection."""
+    expected: dict[str, str] = refs.export_view_reference(view)
+    configs: dict[str, Any] = {"charts/chart.yaml": chart_config()}
+    expected_import: dict[str, dict[str, Any]] = refs.resolve_bundle_references(configs)
+    monkeypatch.setattr(
+        refs.feature_flag_manager, "is_feature_enabled", lambda flag: False
+    )
+    with pytest.raises(refs.SemanticReferenceError, match="require SEMANTIC_LAYERS"):
+        refs.export_view_reference(view)
+    with pytest.raises(refs.SemanticReferenceError, match="require SEMANTIC_LAYERS"):
+        refs.resolve_bundle_references(configs)
+    monkeypatch.setattr(
+        refs.feature_flag_manager, "is_feature_enabled", lambda flag: True
+    )
+    assert refs.export_view_reference(view) == expected
+    assert refs.resolve_bundle_references(configs) == expected_import

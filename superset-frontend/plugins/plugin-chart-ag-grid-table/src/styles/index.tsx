@@ -319,6 +319,13 @@ export const StyledChartContainer = styled.div<{
       height: auto;
     }
 
+    .ag-cell.json-cell-expanded,
+    .dt-truncate-cell.json-cell-expanded {
+      overflow: visible;
+      white-space: normal;
+      align-items: flex-start;
+    }
+
     .ag-cell {
       color: var(--ag-cell-value-color, inherit);
     }

@@ -25,6 +25,7 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { isEqual } from 'lodash-es';
 import {
   CategoricalColorNamespace,
   Datasource,
@@ -41,6 +42,7 @@ import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import { getMapboxApiKey } from './utils/mapbox';
 import fitViewport, { Viewport } from './utils/fitViewport';
+import computeBoundsFromPoints from './utils/computeBoundsFromPoints';
 import {
   DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
@@ -79,6 +81,42 @@ export function getCategories(fd: QueryFormData, data: JsonObject[]) {
   }
 
   return categories;
+}
+
+type Categories = Record<string, { color: JsonValue; enabled: boolean }>;
+
+/**
+ * Rebuilds the legend categories for a new response while keeping the
+ * enabled state the viewer chose for categories that are still present.
+ * Returns `previous` unchanged when the set of categories is the same, so
+ * callers can skip the state update.
+ */
+export function reconcileCategories(
+  previous: Categories,
+  next: Categories,
+): Categories {
+  const previousKeys = Object.keys(previous);
+  const nextKeys = Object.keys(next);
+  if (
+    previousKeys.length === nextKeys.length &&
+    nextKeys.every(key => key in previous)
+  ) {
+    return previous;
+  }
+  const reconciled: Categories = {};
+  nextKeys.forEach(key => {
+    reconciled[key] = {
+      ...next[key],
+      enabled: previous[key]?.enabled ?? true,
+    };
+  });
+  // Same rule as toggling the legend: never leave every category hidden.
+  if (Object.values(reconciled).every(category => !category.enabled)) {
+    Object.values(reconciled).forEach(category => {
+      category.enabled = true;
+    });
+  }
+  return reconciled;
 }
 
 export type CategoricalDeckGLContainerProps = {
@@ -124,16 +162,49 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     props.payload.form_data,
   );
   const [viewport, setViewport] = useState(getAdjustedViewport());
+  const featuresRef = useRef(props.payload.data.features);
+  // The area autozoom last fitted. The transform builds a new features array
+  // on every run, including the one Explore triggers when it saves the
+  // viewer's pan, zoom or tilt, so a refit keys on these bounds by value.
+  const autozoomBoundsRef = useRef(
+    props.formData.autozoom
+      ? computeBoundsFromPoints(
+          props.getPoints(props.payload.data.features || []),
+        )
+      : undefined,
+  );
 
   useEffect(() => {
+    const features = props.payload.data.features || [];
+    const autozoomBounds = props.formData.autozoom
+      ? computeBoundsFromPoints(props.getPoints(features))
+      : undefined;
     if (props.payload.form_data !== stateFormData) {
-      const features = props.payload.data.features || [];
       const categories = getCategories(props.formData, features);
 
       setViewport(getAdjustedViewport());
       setStateFormData(props.payload.form_data);
       setCategories(categories);
+    } else if (props.payload.data.features !== featuresRef.current) {
+      // A dashboard auto-refresh keeps the chart mounted and swaps in new
+      // data without a new form_data, so new categories are merged into the
+      // legend here instead of being filtered out as unknown, and autozoom
+      // refits the map when the new rows cover another area.
+      setCategories(previous =>
+        reconcileCategories(
+          previous as Categories,
+          getCategories(props.formData, features),
+        ),
+      );
+      if (
+        autozoomBounds &&
+        !isEqual(autozoomBounds, autozoomBoundsRef.current)
+      ) {
+        setViewport(getAdjustedViewport());
+      }
     }
+    featuresRef.current = props.payload.data.features;
+    autozoomBoundsRef.current = autozoomBounds;
   }, [getAdjustedViewport, props, stateFormData]);
 
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {

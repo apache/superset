@@ -16,17 +16,20 @@
 # under the License.
 from contextlib import contextmanager
 from datetime import datetime
-from unittest.mock import call, patch
+from typing import Any
+from unittest.mock import call, patch, PropertyMock
 
 import pandas as pd
 import pytest
 from flask_appbuilder.security.sqla.models import User
 from pandas import DataFrame
+from pandas.errors import DataError
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
-from superset.exceptions import InvalidPostProcessingError
+from superset.exceptions import InvalidPostProcessingError, QueryObjectValidationError
 from superset.models.core import Database
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import Metric
 from superset.utils import pandas_postprocessing
 from superset.utils.core import override_user
@@ -64,9 +67,11 @@ def test_default_query_object_to_dict():
     query_object = QueryObject(row_limit=1)
     assert query_object.to_dict() == {
         "apply_fetch_values_predicate": False,
+        "cache_timeout": None,
         "columns": [],
         "extras": {},
         "filter": [],
+        "force_query": False,
         "from_dttm": None,
         "granularity": None,
         "group_others_when_limit_reached": False,
@@ -88,6 +93,23 @@ def test_default_query_object_to_dict():
         "time_compare_full_range": False,
         "to_dttm": None,
     }
+
+
+@pytest.mark.parametrize("clause", ["where", "having"])
+def test_semantic_view_rejects_custom_sql_extras(clause: str) -> None:
+    """Unsupported SQL clauses fail before semantic provider access."""
+    view: SemanticView = SemanticView(name="Orders")
+    provider_access: PropertyMock = PropertyMock(
+        side_effect=AssertionError("provider accessed before SQL extras validation")
+    )
+    query: QueryObject = QueryObject(datasource=view, extras={clause: "amount > 10"})
+
+    with patch.object(SemanticView, "implementation", provider_access):
+        with pytest.raises(
+            QueryObjectValidationError, match="SQL WHERE/HAVING.*semantic views"
+        ):
+            query.validate()
+    provider_access.assert_not_called()
 
 
 def test_exec_post_processing_rejects_unsupported_operation():
@@ -301,6 +323,33 @@ def test_cache_key_changes_for_new_query_object_same_params():
     cache_key1 = query_object1.cache_key()
     query_object2 = QueryObject(row_limit=1)
     assert query_object2.cache_key() == cache_key1
+
+
+def test_force_query_does_not_change_result_cache_identity() -> None:
+    regular: QueryObject = QueryObject(row_limit=1, force_query=False)
+    forced: QueryObject = QueryObject(row_limit=1, force_query=True)
+
+    assert regular.force_query is False
+    assert forced.force_query is True
+    assert forced.cache_key() == regular.cache_key()
+
+
+def test_force_identity_regression_kills_faulty_identity_policy() -> None:
+    class FaultyForceIdentityQueryObject(QueryObject):
+        def cache_key(self, **extra: object) -> str:
+            return f"{super().cache_key(**extra)}:{self.force_query}"
+
+    regular: FaultyForceIdentityQueryObject = FaultyForceIdentityQueryObject(
+        row_limit=1,
+        force_query=False,
+    )
+    forced: FaultyForceIdentityQueryObject = FaultyForceIdentityQueryObject(
+        row_limit=1,
+        force_query=True,
+    )
+
+    with pytest.raises(AssertionError):
+        assert forced.cache_key() == regular.cache_key()
 
 
 @patch("superset.utils.cache_keys.feature_flag_manager")
@@ -623,6 +672,149 @@ def test_exec_post_processing_unknown_op_raises(app_context: None) -> None:
     # The message names the offending operation. Guards the `%(operation)s`
     # placeholder against regressing to a keyword the format string ignores.
     assert "nonexistent_op" in str(excinfo.value)
+
+
+def _raise_value_error(df: DataFrame) -> DataFrame:
+    """A custom operation that fails from its own internals."""
+    raise ValueError("a fault inside the operator's own code")
+
+
+@pytest.mark.parametrize(
+    "operation,options,expected",
+    [
+        pytest.param(
+            "diff",
+            {"columns": {"y": "y"}, "periods": "not-an-int"},
+            "periods must be an integer",
+            id="diff-periods",
+        ),
+        pytest.param(
+            "rolling",
+            {"rolling_type": "sum", "columns": {"y": "y"}, "window": "not-an-int"},
+            "window must be an integer",
+            id="rolling-window",
+        ),
+    ],
+)
+def test_exec_post_processing_reports_a_malformed_option_as_a_bad_request(
+    operation: str, options: dict[str, Any], expected: str
+) -> None:
+    """
+    A malformed option is a bad request, whatever pandas raises for it.
+
+    ``ChartDataPostProcessingOperationSchema.options`` is an untyped
+    ``fields.Dict``, so no option is validated before it reaches pandas. Left
+    unwrapped these reach ``app.errorhandler(Exception)``, which answers 500.
+    """
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": operation, "options": options}],
+    )
+
+    with pytest.raises(InvalidPostProcessingError) as excinfo:
+        query_object.exec_post_processing(DataFrame({"y": [1.0, 2.0, 3.0]}))
+
+    assert expected in str(excinfo.value)
+    assert f"`{operation}`" in str(excinfo.value)
+
+
+def test_exec_post_processing_names_a_column_the_result_does_not_have() -> None:
+    """
+    A KeyError from a built-in operation names a column the options asked for.
+
+    ``str(KeyError)`` is only the repr'd key, which on its own reads as a bare
+    quoted string, so the message says what the key was.
+    """
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[
+            {"operation": "rank", "options": {"metric": "does_not_exist"}}
+        ],
+    )
+
+    with pytest.raises(InvalidPostProcessingError) as excinfo:
+        query_object.exec_post_processing(DataFrame({"y": [1.0, 2.0, 3.0]}))
+
+    assert "does_not_exist" in str(excinfo.value)
+    assert "not in the query result" in str(excinfo.value)
+    assert "`rank`" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    "raised",
+    [
+        pytest.param(
+            AttributeError("'str' object has no attribute 'items'"), id="attr"
+        ),
+        pytest.param(DataError("No numeric types to aggregate"), id="data"),
+        pytest.param(TypeError("unsupported operand type(s)"), id="type"),
+    ],
+)
+def test_exec_post_processing_wraps_the_remaining_pandas_errors(
+    raised: Exception,
+) -> None:
+    """The other types pandas raises for a bad option are bad requests too."""
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "rank", "options": {"metric": "y"}}],
+    )
+
+    with (
+        patch.object(pandas_postprocessing, "rank", side_effect=raised),
+        pytest.raises(InvalidPostProcessingError) as excinfo,
+    ):
+        query_object.exec_post_processing(DataFrame({"y": [1.0]}))
+
+    assert str(raised) in str(excinfo.value)
+
+
+def test_exec_post_processing_leaves_a_custom_operation_fault_unwrapped(
+    app_context: None,
+) -> None:
+    """
+    A failure inside a custom operation is a server fault, not a bad request.
+
+    An operation registered through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` is the
+    operator's own code, which this module cannot reason about, so its
+    exceptions are left for the error handler rather than reported as the
+    caller's mistake.
+    """
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "_raise_value_error"}],
+    )
+
+    with (
+        patch.dict(
+            "superset.common.query_object.current_app.config",
+            {"EXTRA_PANDAS_POSTPROCESSING_OPS": [_raise_value_error]},
+        ),
+        pytest.raises(ValueError, match="operator's own code") as excinfo,
+    ):
+        query_object.exec_post_processing(DataFrame({"y": [1.0]}))
+
+    assert not isinstance(excinfo.value, InvalidPostProcessingError)
+
+
+def test_exec_post_processing_leaves_a_missing_dependency_unwrapped() -> None:
+    """
+    A missing optional dependency is a deployment matter, not a bad request.
+
+    ``rolling`` with a ``win_type`` needs scipy, which is optional, so the
+    ImportError pandas raises for it is deliberately not reported as 400.
+    """
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "rank", "options": {"metric": "y"}}],
+    )
+
+    with (
+        patch.object(
+            pandas_postprocessing, "rank", side_effect=ImportError("no scipy")
+        ),
+        pytest.raises(ImportError, match="no scipy"),
+    ):
+        query_object.exec_post_processing(DataFrame({"y": [1.0]}))
 
 
 @pytest.mark.parametrize(

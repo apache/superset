@@ -92,6 +92,8 @@ def create_mock_dataset(
     dataset.database.database_name = database_name
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -238,6 +240,8 @@ async def test_list_datasets_basic(mock_list, mcp_server):
     dataset.database.database_name = "examples"
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -393,6 +397,8 @@ async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
     dataset.database.database_name = "test_db"
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -474,6 +480,8 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
     dataset.database.database_name = "examples"
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -578,6 +586,8 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
     dataset.database.database_name = "examples"
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -658,6 +668,8 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
     dataset.url = None
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -752,6 +764,8 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
     dataset.url = None
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -844,6 +858,8 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
     dataset.database.database_name = "examples"
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -942,6 +958,8 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
     dataset.database.database_name = "examples"
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -1059,6 +1077,8 @@ async def test_get_dataset_info_success(mock_info, mock_base_url, mcp_server):
     dataset.database.database_name = "examples"
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -1201,6 +1221,8 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
     dataset.url = "/explore/?datasource_type=table&datasource_id=10"
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -1311,6 +1333,8 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
     dataset.url = "/explore/?datasource_type=table&datasource_id=11"
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}
@@ -1390,6 +1414,8 @@ async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
     dataset.database.database_name = "examples"
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}

@@ -40,7 +40,9 @@ otherwise-expired history. Every other prunable transaction is dropped, and
 its ``version_changes`` rows cascade via the FK.
 
 Registered via ``CeleryConfig.beat_schedule`` in ``superset/config.py``.
-Idempotent: a second run prunes nothing.
+Safe to repeat: each capped run prunes at most the configured number of
+transactions. Successive runs converge by draining the remaining prunable
+backlog; newly eligible transactions can add to that backlog.
 """
 
 from __future__ import annotations
@@ -54,7 +56,7 @@ from typing import Any
 
 import sqlalchemy as sa
 from flask import current_app
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import DBAPIError, OperationalError
 
 from superset.config import (
     _MISSING_RETENTION,
@@ -62,6 +64,7 @@ from superset.config import (
     _version_history_retention_seed,
 )
 from superset.extensions import celery_app, db, stats_logger_manager
+from superset.tasks.retention_cap import validate_retention_cap
 from superset.utils.dates import naive_utcnow
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -351,8 +354,56 @@ _RETRY_BACKOFF_FACTOR: int = 4
 _METRIC_PREFIX: str = "superset.versioning.retention"
 
 
-def _run_prune_pass(
+def _live_bearing_tables(tables: ShadowTables) -> list[sa.Table]:
+    """Return every shadow table that can anchor a live transaction."""
+    live_bearing_tables: list[sa.Table] = [*tables.parent, *tables.child]
+    if tables.m2m is not None:
+        live_bearing_tables.append(tables.m2m)
+    return live_bearing_tables
+
+
+def _count_prunable(cutoff: datetime, tables: ShadowTables) -> int:
+    """Count the full eligible transaction backlog without writing rows."""
+    total: int = 0
+    after_id: int = 0
+    live_bearing_tables: list[sa.Table] = _live_bearing_tables(tables)
+    conn: sa.engine.Connection
+    while True:
+        with db.engine.connect() as conn:
+            window: _PruneWindow = _resolve_prune_window(
+                conn, cutoff, live_bearing_tables, after_id, _MAX_PRUNE_BATCH
+            )
+        total += len(window.prunable)
+        if window.candidate_count < _MAX_PRUNE_BATCH:
+            return total
+        after_id = window.max_candidate_id
+
+
+def _probe_prunable(
     cutoff: datetime, tables: ShadowTables, after_id: int = 0
+) -> tuple[int, bool]:
+    """Count one candidate window after the live run's scan cursor."""
+    conn: sa.engine.Connection
+    with db.engine.connect() as conn:
+        window: _PruneWindow = _resolve_prune_window(
+            conn, cutoff, _live_bearing_tables(tables), after_id, _MAX_PRUNE_BATCH
+        )
+    return len(window.prunable), window.candidate_count < _MAX_PRUNE_BATCH
+
+
+class _PruneCommitUncertainError(RuntimeError):
+    """The database did not acknowledge whether a prune pass committed."""
+
+
+class _PruneRollbackFailedError(RuntimeError):
+    """A prune transaction could not be rolled back safely."""
+
+
+def _run_prune_pass(
+    cutoff: datetime,
+    tables: ShadowTables,
+    after_id: int = 0,
+    max_prune: int | None = None,
 ) -> dict[str, Any]:
     """One SERIALIZABLE pass over a single id-ordered window of candidate
     transactions starting after ``after_id``. The caller wraps this in
@@ -364,44 +415,65 @@ def _run_prune_pass(
     # parents: children and the M2M association live on independent
     # validity lifecycles and may anchor a still-live row at an older
     # transaction than the parent's current live row.
-    live_bearing_tables: list[sa.Table] = [*tables.parent, *tables.child]
-    if tables.m2m is not None:
-        live_bearing_tables.append(tables.m2m)
+    live_bearing_tables: list[sa.Table] = _live_bearing_tables(tables)
 
     # The Celery task runs outside the request-bound DB session, so we
     # use a fresh connection rather than ``db.session`` to avoid stepping
     # on web-request state.
-    with (
-        db.engine.connect().execution_options(isolation_level="SERIALIZABLE") as conn,
-        conn.begin(),
-    ):
-        window = _resolve_prune_window(
-            conn, cutoff, live_bearing_tables, after_id, _MAX_PRUNE_BATCH
-        )
-        tx_ids = window.prunable
-
-        parent_rows = _delete_for_transactions(conn, tables.parent, tx_ids)
-        child_rows = _delete_for_transactions(conn, tables.child, tx_ids)
-        m2m_rows = (
-            _delete_for_transactions(conn, [tables.m2m], tx_ids)
-            if tables.m2m is not None
-            else 0
-        )
-
-        # Drop the version_transaction rows themselves. ON DELETE
-        # CASCADE on version_changes.transaction_id removes the
-        # associated change records automatically. Same SQLite bind-
-        # parameter chunking applies as the shadow deletes above.
-        tx_rows = 0
-        for chunk in _chunked(tx_ids, _TX_ID_CHUNK_SIZE):
-            tx_rows += (
-                conn.execute(
-                    sa.delete(tables.transaction).where(
-                        tables.transaction.c.id.in_(chunk)
-                    )
-                ).rowcount
-                or 0
+    with db.engine.connect().execution_options(isolation_level="SERIALIZABLE") as conn:
+        transaction: sa.engine.Transaction = conn.begin()
+        try:
+            window: _PruneWindow = _resolve_prune_window(
+                conn, cutoff, live_bearing_tables, after_id, _MAX_PRUNE_BATCH
             )
+            tx_ids: list[int] = window.prunable[:max_prune]
+
+            parent_rows: int = _delete_for_transactions(conn, tables.parent, tx_ids)
+            child_rows: int = _delete_for_transactions(conn, tables.child, tx_ids)
+            m2m_rows: int = (
+                _delete_for_transactions(conn, [tables.m2m], tx_ids)
+                if tables.m2m is not None
+                else 0
+            )
+
+            # Drop the version_transaction rows themselves. ON DELETE
+            # CASCADE on version_changes.transaction_id removes the
+            # associated change records automatically. Same SQLite bind-
+            # parameter chunking applies as the shadow deletes above.
+            tx_rows: int = 0
+            for chunk in _chunked(tx_ids, _TX_ID_CHUNK_SIZE):
+                tx_rows += (
+                    conn.execute(
+                        sa.delete(tables.transaction).where(
+                            tables.transaction.c.id.in_(chunk)
+                        )
+                    ).rowcount
+                    or 0
+                )
+        except Exception:
+            try:
+                transaction.rollback()  # pylint: disable=consider-using-transaction
+            except Exception as exc:
+                raise _PruneRollbackFailedError(
+                    "version prune rollback failed"
+                ) from exc
+            raise
+        try:
+            transaction.commit()  # pylint: disable=consider-using-transaction
+        except Exception as exc:
+            if isinstance(exc, DBAPIError) and not exc.connection_invalidated:
+                try:
+                    transaction.rollback()  # pylint: disable=consider-using-transaction
+                except Exception as rollback_exc:
+                    raise _PruneRollbackFailedError(
+                        "version prune rollback failed"
+                    ) from rollback_exc
+                raise
+            # A lost acknowledgement can follow a successful commit. Replaying
+            # the same cursor could prune beyond the per-run cap.
+            raise _PruneCommitUncertainError(
+                "version prune commit outcome unknown"
+            ) from exc
 
     return {
         "cutoff": cutoff.isoformat(),
@@ -415,24 +487,27 @@ def _run_prune_pass(
 
 
 def _run_pass_with_retry(
-    cutoff: datetime, tables: ShadowTables, after_id: int
+    cutoff: datetime,
+    tables: ShadowTables,
+    after_id: int,
+    max_prune: int | None = None,
 ) -> tuple[dict[str, Any], int]:
     """Run one window pass, retrying on serialization conflict. Returns
     ``(stats, retries_used)``; re-raises the ``OperationalError`` if all
     ``_MAX_RETRY_ATTEMPTS`` attempts conflict.
 
     Postgres surfaces conflicts as ``SerializationFailure`` (a subclass
-    of ``sqlalchemy.exc.OperationalError``). The catch is deliberately the
-    broader ``OperationalError`` — it also covers transient faults such as
-    SQLite's "database is locked" and dropped connections, all of which are
-    safe to retry because each pass is idempotent and runs in its own fresh
-    transaction. Without the inline retry a single conflict pushes the next
-    attempt 24h out (daily Celery beat), so under sustained write pressure
-    the prune could silently fail for days in a row.
+    of ``sqlalchemy.exc.OperationalError``). Definitive errors may retry
+    from a fresh transaction. A commit acknowledgement failure instead raises
+    ``_PruneCommitUncertainError`` and defers the rest of this invocation, because
+    replaying the same cursor could exceed the per-run cap.
     """
     for attempt in range(1, _MAX_RETRY_ATTEMPTS + 1):
         try:
-            return _run_prune_pass(cutoff, tables, after_id), attempt - 1
+            return (
+                _run_prune_pass(cutoff, tables, after_id, max_prune=max_prune),
+                attempt - 1,
+            )
         except OperationalError as exc:
             stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.retried")
             if attempt == _MAX_RETRY_ATTEMPTS:
@@ -455,7 +530,76 @@ def _run_pass_with_retry(
     raise AssertionError("unreachable")  # pragma: no cover
 
 
-def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
+def _preview_prune(
+    cutoff: datetime, tables: ShadowTables, max_per_run: int | None
+) -> dict[str, Any]:
+    """Report the full prunable backlog without deleting transactions."""
+    backlog: int = _count_prunable(cutoff, tables)
+    estimated_runs: int = (
+        (backlog + max_per_run - 1) // max_per_run
+        if max_per_run is not None
+        else int(backlog > 0)
+    )
+    stats: dict[str, Any] = {
+        "dry_run": 1,
+        "cutoff": cutoff.isoformat(),
+        "eligible_backlog": backlog,
+        "max_per_run": max_per_run,
+        "estimated_capped_runs": estimated_runs,
+    }
+    logger.info("version_history_retention: DRY RUN %s", stats)
+    return stats
+
+
+def _add_prune_cap_stats(
+    stats: dict[str, Any],
+    cutoff: datetime,
+    tables: ShadowTables,
+    max_per_run: int | None,
+    after_id: int,
+) -> None:
+    """Probe bounded live-run backlog without masking committed deletions."""
+    if max_per_run is None:
+        return
+    cap_reached: bool = stats["pruned_transactions"] >= max_per_run
+    remaining_eligible: int | None = 0
+    count_complete: bool = True
+    if cap_reached:
+        try:
+            remaining_eligible, count_complete = _probe_prunable(
+                cutoff, tables, after_id
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "version_history_retention: remainder probe failed after prune",
+                exc_info=True,
+            )
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.remainder_probe_failed"
+            )
+            remaining_eligible = None
+            count_complete = False
+    stats.update(
+        max_per_run=max_per_run,
+        cap_reached=cap_reached,
+        remaining_eligible=remaining_eligible,
+        remaining_count_complete=count_complete,
+    )
+    if remaining_eligible is not None:
+        stats_logger_manager.instance.gauge(
+            f"{_METRIC_PREFIX}.remaining_eligible_at_least", remaining_eligible
+        )
+    stats_logger_manager.instance.gauge(
+        f"{_METRIC_PREFIX}.remaining_count_complete", int(count_complete)
+    )
+    stats_logger_manager.instance.gauge(
+        f"{_METRIC_PREFIX}.cap_reached", int(cap_reached)
+    )
+
+
+def _prune_old_versions_impl(
+    retention_days: int, max_per_run: int | None = None, dry_run: bool = False
+) -> dict[str, Any]:
     """Pure-Python implementation of the prune. Split out from the
     Celery task wrapper so unit tests can call it directly without the
     Celery harness.
@@ -481,6 +625,9 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
     24 hours out (daily Celery beat), and under sustained write
     pressure the prune can silently fail for many days in a row.
     """
+    max_per_run = validate_retention_cap(
+        max_per_run, "VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN"
+    )
     if retention_days == 0 or retention_days < -1:
         logger.info(
             "version_history_retention: retention disabled or invalid; skipping",
@@ -502,6 +649,9 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
     if retention_days != -1:
         cutoff -= timedelta(days=retention_days)
 
+    if dry_run:
+        return _preview_prune(cutoff, tables, max_per_run)
+
     # Drain the backlog one bounded, id-ordered window at a time. Each
     # window is its own retried SERIALIZABLE pass, so memory and
     # lock/transaction-hold time stay bounded per pass even on the first
@@ -513,13 +663,24 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
         "pruned_child_shadows": 0,
         "pruned_m2m_shadows": 0,
     }
-    total_retried = 0
-    after_id = 0
+    total_retried: int = 0
+    after_id: int = 0
+    pass_stats: dict[str, Any]
+    retries: int
     while True:
-        pass_stats, retries = _run_pass_with_retry(cutoff, tables, after_id)
+        remaining_budget: int | None = (
+            max_per_run - totals["pruned_transactions"]
+            if max_per_run is not None
+            else None
+        )
+        pass_stats, retries = _run_pass_with_retry(
+            cutoff, tables, after_id, max_prune=remaining_budget
+        )
         total_retried += retries
         for key in totals:
             totals[key] += pass_stats.get(key, 0)
+        if max_per_run is not None and totals["pruned_transactions"] >= max_per_run:
+            break
         if pass_stats.get("candidate_count", 0) < _MAX_PRUNE_BATCH:
             break
         after_id = pass_stats.get("max_candidate_id", after_id)
@@ -527,6 +688,7 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
     stats: dict[str, Any] = {"cutoff": cutoff.isoformat(), **totals}
     if total_retried:
         stats["retried"] = total_retried
+    _add_prune_cap_stats(stats, cutoff, tables, max_per_run, after_id)
     stats_logger_manager.instance.gauge(
         f"{_METRIC_PREFIX}.pruned_transactions", stats["pruned_transactions"]
     )
@@ -556,7 +718,27 @@ def prune_old_versions() -> dict[str, Any]:
         retention_days: int = _resolve_version_history_retention_days(
             configured, legacy_configured, seed=_version_history_retention_seed
         )
-        return _prune_old_versions_impl(retention_days)
+        try:
+            max_per_run: int | None = validate_retention_cap(
+                current_app.config.get(
+                    "VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN", 1000
+                ),
+                "VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN",
+            )
+        except ValueError:
+            logger.warning("version_history_retention: invalid prune cap; skipping")
+            stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped_invalid_cap")
+            return {"skipped_invalid_cap": 1}
+        dry_run: object = current_app.config.get("VERSION_HISTORY_PRUNE_DRY_RUN", False)
+        if not isinstance(dry_run, bool):
+            logger.warning("version_history_retention: invalid prune dry-run; skipping")
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.skipped_invalid_dry_run"
+            )
+            return {"skipped_invalid_dry_run": 1}
+        return _prune_old_versions_impl(
+            retention_days, max_per_run=max_per_run, dry_run=dry_run
+        )
     except Exception:  # pylint: disable=broad-except
         logger.exception("version_history.prune_old_versions: task failed")
         # Emit a failure counter so a prune that fails every night (e.g. an

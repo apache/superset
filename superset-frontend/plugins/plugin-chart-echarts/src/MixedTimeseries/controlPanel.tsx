@@ -40,6 +40,7 @@ import {
   minorTicks,
   axisTicks,
   gridlines,
+  valueAxisLabels,
   richTooltipSection,
   truncateXAxis,
   xAxisBounds,
@@ -240,8 +241,8 @@ function createCustomizeSection(
             'Only show the total value on the stacked chart, and not show on the selected category',
           ),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
-            Boolean(controls?.show_value?.value) &&
-            Boolean(controls?.stack?.value),
+            Boolean(controls?.[`show_value${controlSuffix}`]?.value) &&
+            Boolean(controls?.[`stack${controlSuffix}`]?.value),
         },
       },
     ],
@@ -395,6 +396,7 @@ const config: ControlPanelConfig = {
         [minorTicks],
         [axisTicks],
         [gridlines],
+        [valueAxisLabels],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ['x_axis_time_format'],

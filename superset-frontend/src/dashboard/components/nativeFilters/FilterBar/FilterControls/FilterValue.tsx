@@ -28,6 +28,7 @@ import {
 
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
+import { logging } from '@apache-superset/core/utils';
 import {
   ChartDataResponseResult,
   Behavior,
@@ -41,6 +42,7 @@ import {
   getClientErrorObject,
   getSemanticSelectionSources,
   isChartCustomization,
+  isGrainOnlyExtraFormData,
 } from '@superset-ui/core';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
@@ -60,9 +62,14 @@ import {
   unsetHoveredChartCustomization,
 } from 'src/dashboard/actions/nativeFilters';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
+import isSemanticRange from 'src/filters/components/Range/isSemanticRange';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
-import { getFormData } from '../../utils';
+import {
+  getFormData,
+  isSelectionFreeGrainControlMask,
+  withNativeFilterProvenance,
+} from '../../utils';
 import { useFilterDependencies, useTransitiveParentIds } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
 
@@ -82,6 +89,14 @@ const StyledDiv = styled.div<{
     height: auto !important;
     min-height: ${HEIGHT}px;
   }
+`;
+
+const ReselectActionButton = styled(Button)`
+  max-width: 100%;
+  height: auto;
+  min-height: ${({ theme }) => theme.controlHeight}px;
+  padding-block: ${({ theme }) => theme.sizeUnit}px;
+  white-space: normal;
 `;
 
 const queriesDataPlaceholder = [{ data: [{}] }];
@@ -155,11 +170,18 @@ const FilterValue: FC<FilterValueProps> = ({
   const asyncModeOverride = useAsyncModeOverride();
 
   const [error, setError] = useState<ClientErrorObject>();
+  const [isNetworkError, setIsNetworkError] = useState(false);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
   });
   const [ownState, setOwnState] = useState<JsonObject>({});
-  const [inViewFirstTime, setInViewFirstTime] = useState(inView);
+  const isRequiredFirst =
+    'requiredFirst' in filter &&
+    filter.requiredFirst === true &&
+    filter.filterType !== 'filter_time';
+  const [inViewFirstTime, setInViewFirstTime] = useState(
+    inView || isRequiredFirst,
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets || [];
   const {
@@ -194,10 +216,10 @@ const FilterValue: FC<FilterValueProps> = ({
   }, [hasDeps]);
 
   useEffect(() => {
-    if (!inViewFirstTime && inView) {
+    if (!inViewFirstTime && (inView || isRequiredFirst)) {
       setInViewFirstTime(true);
     }
-  }, [inView, inViewFirstTime, setInViewFirstTime]);
+  }, [inView, inViewFirstTime, setInViewFirstTime, isRequiredFirst]);
 
   useEffect(() => {
     if (!inViewFirstTime) {
@@ -284,12 +306,15 @@ const FilterValue: FC<FilterValueProps> = ({
         return;
       }
       setIsRefreshing(true);
-      requestChartDataResolved({
-        formData: newFormData,
-        force: shouldRefresh,
-        ownState: filterOwnState,
-        requestParams: { async_mode_override: asyncModeOverride },
-      })
+      const query = isSemanticRange(newFormData)
+        ? Promise.resolve(queriesDataPlaceholder)
+        : requestChartDataResolved({
+            formData: newFormData,
+            force: shouldRefresh,
+            ownState: filterOwnState,
+            requestParams: { async_mode_override: asyncModeOverride },
+          });
+      query
         .then(queriesResponse => {
           setState(queriesResponse as ChartDataResponseResult[]);
           setError(undefined);
@@ -297,6 +322,15 @@ const FilterValue: FC<FilterValueProps> = ({
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {
+            // Raw error details stay in devtools; they are not rendered.
+            logging.warn('Failed to load filter values', clientErrorObject);
+            // `fetch` rejects with a TypeError (in every browser) only when no
+            // response was received; anything else was reported by the server.
+            setIsNetworkError(
+              error instanceof TypeError &&
+                !clientErrorObject.status &&
+                !clientErrorObject.errors?.length,
+            );
             setError(clientErrorObject);
             handleFilterLoadFinish();
           });
@@ -334,20 +368,11 @@ const FilterValue: FC<FilterValueProps> = ({
     (dataMask: DataMask) =>
       onFilterSelectionChange(
         filter,
-        datasourceType === DatasourceType.SemanticView
-          ? {
-              ...dataMask,
-              extraFormData: {
-                ...dataMask.extraFormData,
-                semantic_selection_sources: [
-                  {
-                    datasource: `${datasetId}__${datasourceType || DatasourceType.Table}`,
-                    version: semantic_selection_version ?? null,
-                  },
-                ],
-              },
-            }
-          : dataMask,
+        withNativeFilterProvenance(dataMask, filter.filterType, {
+          datasetId,
+          datasourceType,
+          semantic_selection_version,
+        }),
       ),
     [
       filter,
@@ -435,12 +460,31 @@ const FilterValue: FC<FilterValueProps> = ({
   const selectionSources = getSemanticSelectionSources(
     filter.dataMask?.extraFormData,
   );
+  const selectedValue = filter.dataMask?.filterState?.value;
+  const hasEmptyValue =
+    selectedValue === undefined ||
+    selectedValue === null ||
+    (Array.isArray(selectedValue) &&
+      (selectedValue.length === 0 ||
+        (filter.filterType === 'filter_range' &&
+          selectedValue.length === 2 &&
+          selectedValue.every(value => value === null))));
+  // An empty display value must not hide stale provenance or member predicates.
+  // In particular, [null] in a select is a selected NULL, not a cleared value.
   const hasSavedSelection =
-    filter.dataMask?.filterState?.value !== undefined ||
-    selectionSources.length > 0;
+    !hasEmptyValue ||
+    selectionSources.length > 0 ||
+    Object.values(filter.dataMask?.extraFormData ?? {}).some(
+      value => value !== undefined,
+    );
   const staleSelection =
     semantic_selection_version &&
     hasSavedSelection &&
+    !isGrainOnlyExtraFormData(filter.dataMask?.extraFormData) &&
+    !isSelectionFreeGrainControlMask(
+      filter.filterType,
+      filter.dataMask?.extraFormData,
+    ) &&
     (selectionSources.length === 0 ||
       selectionSources.some(
         source =>
@@ -451,32 +495,51 @@ const FilterValue: FC<FilterValueProps> = ({
     return (
       <Alert
         type="warning"
+        styles={{
+          root: { flexWrap: 'wrap', rowGap: theme.sizeUnit * 2 },
+          section: { flex: '1 1 0%', minWidth: 0 },
+          actions: {
+            marginInlineStart: 0,
+            minWidth: 0,
+            maxWidth: '100%',
+            flexBasis: '100%',
+            order: 1,
+          },
+        }}
         message={t('Reselect saved filter values')}
         description={t(
           'This saved filter state predates the member-ID format. Reset it and explicitly choose its values again.',
         )}
         action={
-          <Button
+          <ReselectActionButton
             onClick={() =>
               setDataMask({ filterState: {}, ownState: {}, extraFormData: {} })
             }
           >
             {t('Reset and reselect values')}
-          </Button>
+          </ReselectActionButton>
         }
       />
     );
   }
 
   if (error) {
+    // Errors without a registered `error_type` are rendered by the fallback.
+    // Server error text can expose database internals, so it is not shown.
     return (
       <ErrorMessageWithStackTrace
         error={error.errors?.[0]}
         compact
         fallback={
           <ErrorAlert
-            errorType={t('Network error')}
-            message={t('Network error while attempting to fetch resource')}
+            errorType={
+              isNetworkError ? t('Network error') : t('Cannot load filter')
+            }
+            message={
+              isNetworkError
+                ? t('Network error while attempting to fetch resource')
+                : t('Sorry, something went wrong. Try again later.')
+            }
             type="error"
             compact
           />

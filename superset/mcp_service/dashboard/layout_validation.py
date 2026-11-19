@@ -224,7 +224,7 @@ def _find_cycle(components: dict[str, dict[str, Any]]) -> str | None:
 
 
 def validate_dashboard_layout(  # noqa: C901
-    layout: dict[str, Any], expected_chart_ids: Collection[int]
+    layout: dict[str, Any], expected_chart_ids: Collection[int] | None
 ) -> str | None:
     """Return an error when an MCP layout replacement is unsafe to persist.
 
@@ -236,6 +236,12 @@ def validate_dashboard_layout(  # noqa: C901
     ``HEADER_ID`` is dashboard metadata rather than a rendered tree child.
     Superset also retains an empty, detached ``GRID_ID`` when top-level tabs are
     used; both are allowed as explicit reserved-node exceptions.
+
+    Pass ``expected_chart_ids=None`` to run only the structural checks. Edits
+    that never touch ``CHART`` nodes use this, because a dashboard may
+    legitimately have associated charts that are not yet in its layout (e.g.
+    after "Save & add to dashboard" from Explore; the frontend appends those
+    during hydration).
     """
     components, error = _validate_component_shapes(layout)
     if error:
@@ -302,6 +308,9 @@ def validate_dashboard_layout(  # noqa: C901
         ):
             continue
         return f"Layout component {component_id} is unreachable from ROOT_ID."
+
+    if expected_chart_ids is None:
+        return None
 
     expected = set(expected_chart_ids)
     if missing := sorted(expected - reachable_chart_ids):

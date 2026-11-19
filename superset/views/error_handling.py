@@ -40,6 +40,7 @@ from werkzeug.exceptions import HTTPException
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2RedirectError,
     SupersetErrorException,
     SupersetErrorsException,
     SupersetException,
@@ -107,6 +108,33 @@ def json_error_response(
     )
 
 
+def log_superset_error_exception(
+    ex: SupersetErrorException | SupersetErrorsException,
+    message: str | SupersetErrorsException = "SupersetErrorException",
+) -> None:
+    """
+    Log a ``SupersetErrorException`` caught by an error handler.
+
+    ``OAuth2RedirectError`` (and its ``OAuth2TokenRefreshError`` subclass) is how
+    the backend asks the frontend to open the OAuth2 consent tab. That is normal
+    control flow rather than a server-side problem, so it is logged at DEBUG
+    without a traceback instead of cluttering the logs with WARNINGs. Every other
+    ``SupersetErrorException`` keeps its WARNING with a traceback. SQL Lab
+    reconstructs serialized errors as ``SupersetErrorsException``; suppress its
+    traceback only when the nonempty error list contains nothing but redirects.
+    """
+    if isinstance(ex, OAuth2RedirectError) or (
+        isinstance(ex, SupersetErrorsException)
+        and ex.errors
+        and all(
+            error.error_type == SupersetErrorType.OAUTH2_REDIRECT for error in ex.errors
+        )
+    ):
+        logger.debug("%s: OAuth2 authorization required", type(ex).__name__)
+        return
+    logger.warning(message, exc_info=True)
+
+
 def handle_ssh_tunnel_error(ex: sshtunnel.BaseSSHTunnelForwarderError) -> FlaskResponse:
     """
     Build the structured response for an unreachable/misconfigured SSH tunnel
@@ -146,10 +174,10 @@ def handle_api_exception(  # noqa: C901
             logger.warning("SupersetSecurityException", exc_info=True)
             return json_error_response([ex.error], status=ex.status, payload=ex.payload)
         except SupersetErrorsException as ex:
-            logger.warning(ex, exc_info=True)
+            log_superset_error_exception(ex, message=ex)
             return json_error_response(ex.errors, status=ex.status)
         except SupersetErrorException as ex:
-            logger.warning("SupersetErrorException", exc_info=True)
+            log_superset_error_exception(ex)
             return json_error_response([ex.error], status=ex.status)
         except SupersetException as ex:
             logger_func, _ = get_logger_from_status(ex.status)
@@ -194,12 +222,12 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
 
     @app.errorhandler(SupersetErrorException)
     def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
-        logger.warning("SupersetErrorException", exc_info=True)
+        log_superset_error_exception(ex)
         return json_error_response([ex.error], status=ex.status)
 
     @app.errorhandler(SupersetErrorsException)
     def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
-        logger.warning("SupersetErrorsException", exc_info=True)
+        log_superset_error_exception(ex, message="SupersetErrorsException")
         return json_error_response(ex.errors, status=ex.status)
 
     @app.errorhandler(SupersetException)
@@ -248,7 +276,17 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
 
     @app.errorhandler(HTTPException)
     def show_http_exception(ex: HTTPException) -> FlaskResponse:
-        logger.warning("HTTPException", exc_info=True)
+        status = ex.code or 500
+        if status == 404 and request.url_rule is None:
+            # Only unmatched URLs (routing NotFound) are demoted; scanner
+            # traffic makes them frequent and they carry no server-side signal.
+            # A 404 raised inside a matched view is kept at WARNING because
+            # views also use abort(404) to mask authorization denials.
+            logger.debug("HTTPException: 404 %r", request.path)
+        elif status < 500:
+            logger.warning("HTTPException: %r on %r", str(ex), request.path)
+        else:
+            logger.warning("HTTPException", exc_info=True)
 
         if (
             "text/html" in request.accept_mimetypes
@@ -318,7 +356,16 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
 
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
-            return send_file(path, max_age=0), 500
+            # Try to serve HTML file; fall back to JSON if it can't be read. This
+            # is the last-resort handler, so ``500.html`` being absent (a webpack
+            # artifact missing in API-only/unbuilt deployments) or unreadable must
+            # not raise its own ``OSError`` and collapse the response to a bare
+            # 500 with no SIP-40 body. A sibling handler whose ``send_file`` raises
+            # lands here too, so it degrades to a SIP-40 500 rather than a bare one.
+            try:
+                return send_file(path, max_age=0), 500
+            except OSError:
+                pass
 
         return json_error_response(
             [

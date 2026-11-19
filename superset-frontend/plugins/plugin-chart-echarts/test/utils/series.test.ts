@@ -40,6 +40,8 @@ import {
   getChartPadding,
   getLegendProps,
   getLegendScrollDataIndex,
+  getLegendTextWidthBudget,
+  getTruncatedLegendTooltip,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
   capTickMarks,
@@ -82,6 +84,7 @@ const {
       | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
+    maxLabelWidth?: number;
     orientation: LegendOrientation;
     show: boolean;
     showSelectors?: boolean;
@@ -109,6 +112,7 @@ const {
       | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
+    maxLabelWidth?: number;
     orientation: LegendOrientation;
     show: boolean;
     showSelectors?: boolean;
@@ -341,6 +345,71 @@ test('sortRows by max descending', () => {
   ]);
 });
 
+test('sortRows by the sum of specific columns descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x', 'z'] },
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+  ]);
+});
+
+test('sortRows by the sum of specific columns ascending ignores the other columns', () => {
+  // `y` would put `foo` last; only `x` and `z` count.
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x', 'z'] },
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+  ]);
+});
+
+test('sortRows by the sum of specific columns puts rows with no value last when ascending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x'] },
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+  ]);
+});
+
+test('sortRows by the sum of specific columns puts rows with no value last when descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x'] },
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+  ]);
+});
+
 test('sortAndFilterSeries by min ascending', () => {
   expect(
     sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Min, true),
@@ -511,6 +580,76 @@ test('extractDataTotalValues still respects legendState alongside extraMetricLab
     legendState: { A: true, B: false },
   });
   expect(result.totalStackedValues).toEqual([32]);
+});
+
+test("extractSeries orders rows by the sum of a metric's pivoted columns and hides those columns", () => {
+  const data = [
+    {
+      genre: 'Action',
+      PS4: 30,
+      XOne: 20,
+      'SUM(na_sales), PS4': 5,
+      'SUM(na_sales), XOne': 3,
+    },
+    {
+      genre: 'Puzzle',
+      PS4: 5,
+      XOne: 5,
+      'SUM(na_sales), PS4': 20,
+      'SUM(na_sales), XOne': 10,
+    },
+    {
+      genre: 'Sports',
+      PS4: 40,
+      XOne: 10,
+      'SUM(na_sales), PS4': 1,
+      'SUM(na_sales), XOne': 1,
+    },
+  ];
+  const [series, sortedTotals] = extractSeries(data, {
+    xAxis: 'genre',
+    extraMetricLabels: ['SUM(na_sales), PS4', 'SUM(na_sales), XOne'],
+    totalStackedValues: [50, 10, 50],
+    xAxisSortSeries: {
+      sumOfColumns: ['SUM(na_sales), PS4', 'SUM(na_sales), XOne'],
+    },
+    xAxisSortSeriesAscending: false,
+  });
+  expect(series.map(({ name }) => name).sort()).toEqual(['PS4', 'XOne']);
+  expect(series.find(({ name }) => name === 'PS4')?.data).toEqual([
+    ['Puzzle', 5],
+    ['Action', 30],
+    ['Sports', 40],
+  ]);
+  expect(sortedTotals).toEqual([10, 50, 50]);
+});
+
+test('extractSeries fills stacked null gaps from the sorted neighbors, not the query order', () => {
+  // Sorted by `sales` descending the rows come out S, P, Q, R. In query
+  // order P and R sit next to the only defined `abc` value (Q), while S does
+  // not; on the sorted axis it is the other way around for S and R.
+  const data = [
+    { genre: 'P', abc: null, sales: 10 },
+    { genre: 'Q', abc: 5, sales: 1 },
+    { genre: 'R', abc: null, sales: 0 },
+    { genre: 'S', abc: null, sales: 20 },
+  ];
+  const [series] = extractSeries(data, {
+    xAxis: 'genre',
+    extraMetricLabels: ['sales'],
+    stack: true,
+    fillNeighborValue: 0,
+    totalStackedValues: [0, 5, 0, 0],
+    xAxisSortSeries: { sumOfColumns: ['sales'] },
+    xAxisSortSeriesAscending: false,
+  });
+  expect(series).toHaveLength(1);
+  expect(series[0].data).toEqual([
+    ['S', null],
+    ['P', 0],
+    ['Q', 5],
+    ['R', 0],
+  ]);
 });
 
 describe('extractSeries', () => {
@@ -1024,6 +1163,32 @@ describe('extractShowValueIndexes', () => {
     });
   });
 
+  test('should shift the indexes by the series rendered before them', () => {
+    expect(
+      extractShowValueIndexes(
+        [
+          {
+            id: 'abc',
+            name: 'abc',
+            data: [
+              ['Jan', 10],
+              ['Feb', null],
+            ],
+          },
+          {
+            id: 'def',
+            name: 'def',
+            data: [
+              ['Jan', 20],
+              ['Feb', null],
+            ],
+          },
+        ],
+        { stack: true, onlyTotal: true, seriesIndexOffset: 3 },
+      ),
+    ).toEqual({ __default__: [4, undefined] });
+  });
+
   test('should safely handle stack groups with prototype property names like __proto__ or constructor', () => {
     const result = extractShowValueIndexes(
       [
@@ -1126,6 +1291,7 @@ describe('getLegendProps', () => {
         LegendOrientation.Top,
         true,
         theme,
+        true,
         false,
       ),
     ).toEqual({
@@ -1145,6 +1311,7 @@ describe('getLegendProps', () => {
         LegendOrientation.Top,
         true,
         theme,
+        true,
         true,
       ),
     ).toEqual({
@@ -1168,6 +1335,7 @@ describe('getLegendProps', () => {
       true,
       theme,
       true,
+      true,
     );
     const TOOLBOX_ICONS_RIGHT_FOOTPRINT = 67;
     const SAFETY_MARGIN = 15;
@@ -1178,7 +1346,13 @@ describe('getLegendProps', () => {
 
   test('should return the correct props for plain type with left orientation', () => {
     expect(
-      getLegendProps(LegendType.Plain, LegendOrientation.Left, true, theme),
+      getLegendProps(
+        LegendType.Plain,
+        LegendOrientation.Left,
+        true,
+        theme,
+        true,
+      ),
     ).toEqual({
       show: true,
       left: 0,
@@ -1195,6 +1369,7 @@ describe('getLegendProps', () => {
         LegendOrientation.Right,
         false,
         theme,
+        true,
         false,
       ),
     ).toEqual({
@@ -1215,6 +1390,7 @@ describe('getLegendProps', () => {
         false,
         theme,
         true,
+        true,
       ),
     ).toEqual({
       show: false,
@@ -1228,7 +1404,13 @@ describe('getLegendProps', () => {
 
   test('should return the correct props for plain type with bottom orientation', () => {
     expect(
-      getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
+      getLegendProps(
+        LegendType.Plain,
+        LegendOrientation.Bottom,
+        false,
+        theme,
+        true,
+      ),
     ).toEqual({
       show: false,
       bottom: 0,
@@ -1250,6 +1432,17 @@ describe('getLegendProps', () => {
       type: 'plain',
       ...expectedThemeProps,
     });
+  });
+
+  test('omits All and Inv buttons when showSelectorLegend is false', () => {
+    const legend = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Top,
+      true,
+      theme,
+      false,
+    );
+    expect(legend.selector).toBe(false);
   });
 });
 
@@ -2279,4 +2472,305 @@ describe('measureTextInkWidth', () => {
     measureTextInkWidth('label', theme);
     expect(capturedFont).toBe(`${theme.fontSizeSM}px ${theme.fontFamily}`);
   });
+});
+
+test('sortRows by axis value is case-sensitive', () => {
+  const rows = [
+    { my_x_axis: 'a', y: 1 },
+    { my_x_axis: 'B', y: 2 },
+  ];
+  expect(
+    sortRows(rows, [1, 2], 'my_x_axis', { axisValue: true }, true).map(
+      ({ row }) => row.my_x_axis,
+    ),
+  ).toEqual(['B', 'a']);
+  expect(
+    sortRows(rows, [1, 2], 'my_x_axis', SortSeriesType.Name, true).map(
+      ({ row }) => row.my_x_axis,
+    ),
+  ).toEqual(['a', 'B']);
+});
+
+const getLegendTooltipCallbacks = (
+  tooltip: ReturnType<typeof getTruncatedLegendTooltip> | undefined,
+) => {
+  const { formatter, position } = tooltip ?? {};
+  if (typeof formatter !== 'function' || typeof position !== 'function') {
+    throw new Error('Expected legend tooltip formatter and position callbacks');
+  }
+  return {
+    format: (name: string) =>
+      formatter(
+        { componentType: 'legend', legendIndex: 0, name, $vars: ['name'] },
+        '',
+      ),
+    position: (
+      rect: { x: number; y: number; width: number; height: number } | null,
+      contentSize: [number, number],
+      viewSize: [number, number] = [800, 600],
+    ) => {
+      const result = position([5, 5], {} as never, null, rect, {
+        contentSize,
+        viewSize,
+      });
+      if (!Array.isArray(result)) {
+        throw new Error('Expected the legend tooltip position as [x, y]');
+      }
+      return result;
+    },
+  };
+};
+
+const ALL_LEGEND_ORIENTATIONS = [
+  LegendOrientation.Top,
+  LegendOrientation.Bottom,
+  LegendOrientation.Left,
+  LegendOrientation.Right,
+];
+
+test('getLegendProps leaves legend text untouched unless maxLegendTextWidth is passed', () => {
+  ALL_LEGEND_ORIENTATIONS.forEach(orientation => {
+    const legend = getLegendProps(LegendType.Scroll, orientation, true, theme);
+    expect(legend.textStyle).toBeUndefined();
+    expect(legend.tooltip).toBeUndefined();
+  });
+});
+
+test('getLegendProps keeps padding-based truncation without a tooltip when not opted in', () => {
+  const legend = getLegendProps(
+    LegendType.Plain,
+    LegendOrientation.Left,
+    true,
+    theme,
+    true,
+    false,
+    undefined,
+    { left: 150 },
+  );
+  expect(legend.textStyle).toEqual({ overflow: 'truncate', width: 105 });
+  expect(legend.tooltip).toBeUndefined();
+});
+
+test('getLegendProps truncates text and adds a tooltip in every orientation when opted in', () => {
+  ALL_LEGEND_ORIENTATIONS.forEach(orientation => {
+    const legend = getLegendProps(
+      LegendType.Scroll,
+      orientation,
+      true,
+      theme,
+      true,
+      false,
+      undefined,
+      undefined,
+      180,
+    );
+    expect(legend.textStyle).toEqual({ overflow: 'truncate', width: 180 });
+    expect(legend.tooltip).toEqual(expect.objectContaining({ show: true }));
+  });
+});
+
+test('getLegendProps caps opted-in vertical legend text at the padding width', () => {
+  const legend = getLegendProps(
+    LegendType.Plain,
+    LegendOrientation.Right,
+    true,
+    theme,
+    true,
+    false,
+    undefined,
+    { right: 150 },
+    250,
+  );
+  expect(legend.textStyle).toEqual({ overflow: 'truncate', width: 105 });
+});
+
+test('getLegendProps ignores a non-positive maxLegendTextWidth', () => {
+  const legend = getLegendProps(
+    LegendType.Plain,
+    LegendOrientation.Top,
+    true,
+    theme,
+    true,
+    false,
+    undefined,
+    undefined,
+    0,
+  );
+  expect(legend.textStyle).toBeUndefined();
+  expect(legend.tooltip).toBeUndefined();
+});
+
+test('getLegendProps passes legendState through when opting in to truncation', () => {
+  const legend = getLegendProps(
+    LegendType.Scroll,
+    LegendOrientation.Top,
+    true,
+    theme,
+    true,
+    false,
+    { 'Hidden slice': false },
+    undefined,
+    200,
+  );
+  expect(legend.selected).toEqual({ 'Hidden slice': false });
+});
+
+test('getTruncatedLegendTooltip only shows names wider than the text width', () => {
+  const fits = 'Legend fits';
+  const tooLong = 'A legend item name that is much too long to fit';
+  const { format } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(measureTextWidth(fits, theme), theme),
+  );
+  expect(format(fits)).toBe('');
+  expect(format(tooLong)).toBe(tooLong);
+});
+
+test('getTruncatedLegendTooltip HTML-escapes the full name', () => {
+  const { format } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(1, theme),
+  );
+  expect(format('<img src=x onerror=alert(1)> long name')).toBe(
+    '&lt;img src=x onerror=alert(1)&gt; long name',
+  );
+});
+
+test('getTruncatedLegendTooltip wraps long names instead of overflowing', () => {
+  expect(getTruncatedLegendTooltip(100, theme).extraCssText).toContain(
+    'max-width',
+  );
+});
+
+test('getTruncatedLegendTooltip centers the tooltip above the hovered item', () => {
+  const { position } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(100, theme),
+  );
+  // center = 100 + 80 / 2 - 60 / 2 = 110; above = 50 - 24 - 8 = 18
+  expect(position({ x: 100, y: 50, width: 80, height: 20 }, [60, 24])).toEqual([
+    110, 18,
+  ]);
+});
+
+test('getTruncatedLegendTooltip flips below a top legend item with no room above', () => {
+  const { position } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(100, theme),
+  );
+  // below = 2 + 20 + 8 = 30
+  expect(position({ x: 100, y: 2, width: 80, height: 20 }, [60, 24])).toEqual([
+    110, 30,
+  ]);
+});
+
+test('getTruncatedLegendTooltip keeps the tooltip inside the chart horizontally', () => {
+  const { position } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(100, theme),
+  );
+  expect(position({ x: 780, y: 50, width: 80, height: 20 }, [120, 24])[0]).toBe(
+    680,
+  );
+  expect(position({ x: 0, y: 50, width: 10, height: 20 }, [120, 24])[0]).toBe(
+    0,
+  );
+  // A tooltip wider than the chart is pinned to the left edge, never negative.
+  expect(position({ x: 100, y: 50, width: 80, height: 20 }, [900, 24])[0]).toBe(
+    0,
+  );
+});
+
+test('getTruncatedLegendTooltip falls back to the pointer when no item rect is given', () => {
+  const { position } = getLegendTooltipCallbacks(
+    getTruncatedLegendTooltip(100, theme),
+  );
+  // x: 5 - 20 / 2 clamped to 0; y: 5 - 10 - 8 < 0, so flipped to 5 + 0 + 8
+  expect(position(null, [20, 10])).toEqual([0, 13]);
+});
+
+test('getLegendTextWidthBudget reserves room for icon, pager and selectors', () => {
+  // 600 - 16 gutter - 25 icon - 5 icon gap = 554
+  expect(
+    getLegendTextWidthBudget({
+      chartWidth: 600,
+      maxWidth: 1000,
+      showSelectors: false,
+      type: LegendType.Plain,
+    }),
+  ).toBe(554);
+  // minus 80 for the scroll pager
+  expect(
+    getLegendTextWidthBudget({
+      chartWidth: 600,
+      maxWidth: 1000,
+      showSelectors: false,
+      type: LegendType.Scroll,
+    }),
+  ).toBe(474);
+  // minus 122 more for the All/Inverse selector and its gap
+  expect(
+    getLegendTextWidthBudget({
+      chartWidth: 600,
+      maxWidth: 1000,
+      showSelectors: true,
+      type: LegendType.Scroll,
+    }),
+  ).toBe(352);
+});
+
+test('getLegendTextWidthBudget is capped by maxWidth and never negative', () => {
+  expect(
+    getLegendTextWidthBudget({
+      chartWidth: 2000,
+      maxWidth: 250,
+      type: LegendType.Scroll,
+    }),
+  ).toBe(250);
+  expect(
+    getLegendTextWidthBudget({
+      chartWidth: 100,
+      maxWidth: 250,
+      type: LegendType.Scroll,
+    }),
+  ).toBe(0);
+});
+
+test('getLegendLayoutResult reserves space for capped rather than full legend names', () => {
+  const args = {
+    chartHeight: 600,
+    chartWidth: 800,
+    legendItems: Array.from(
+      { length: 10 },
+      (_, i) =>
+        `Category ${i} with an extremely long descriptive name that keeps going`,
+    ),
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  };
+  const uncapped = getLegendLayoutResult(args).effectiveMargin ?? 0;
+  const capped =
+    getLegendLayoutResult({ ...args, maxLabelWidth: 100 }).effectiveMargin ?? 0;
+  expect(capped).toBeLessThan(uncapped);
+});
+
+test('getLegendLayoutResult sizes vertical legends from capped names', () => {
+  const args = {
+    chartHeight: 600,
+    chartWidth: 2000,
+    legendItems: [
+      'A vertical legend entry whose name is far longer than the cap allows for',
+    ],
+    legendMargin: null,
+    orientation: LegendOrientation.Left,
+    show: true,
+    showSelectors: false,
+    theme,
+    type: LegendType.Plain,
+  };
+  // 100px of text plus the 45px gutter stays under the 170px default margin.
+  expect(
+    getLegendLayoutResult({ ...args, maxLabelWidth: 100 }).effectiveMargin,
+  ).toBe(defaultLegendPadding[LegendOrientation.Left]);
+  expect(getLegendLayoutResult(args).effectiveMargin).toBeGreaterThan(
+    defaultLegendPadding[LegendOrientation.Left],
+  );
 });
