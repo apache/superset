@@ -781,6 +781,15 @@ const Selected = styled.div<{ depth: number }>`
  * on the way to it would be too easy to hit. No confirmation, because the
  * change is only in the draft and Undo in the banner reverses it.
  */
+/** The remove button's size, and how far in from the right edge it sits. */
+const REMOVE_SIZE_UNITS = 8;
+const REMOVE_INSET_UNITS = 4;
+/**
+ * Room, in theme size units, that a strip sharing the top-right corner with
+ * the remove button leaves at its right to stay clear of it.
+ */
+export const CLEAR_OF_REMOVE_UNITS = REMOVE_INSET_UNITS + REMOVE_SIZE_UNITS;
+
 const Remove = styled.button<{ depth: number; offset: number }>`
   ${({ theme, depth, offset }) => css`
     position: absolute;
@@ -788,12 +797,12 @@ const Remove = styled.button<{ depth: number; offset: number }>`
     z-index: ${3 + depth};
     /* In the top-right corner, level with the grip on the left: the widget's
        own controls are hidden while editing, so nothing else is there. */
-    right: ${theme.sizeUnit * 4}px;
+    right: ${theme.sizeUnit * REMOVE_INSET_UNITS}px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: ${theme.sizeUnit * 8}px;
-    height: ${theme.sizeUnit * 8}px;
+    width: ${theme.sizeUnit * REMOVE_SIZE_UNITS}px;
+    height: ${theme.sizeUnit * REMOVE_SIZE_UNITS}px;
     padding: 0;
     border: none;
     background: none;

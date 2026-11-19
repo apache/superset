@@ -37,8 +37,8 @@ const text = (value: unknown): string =>
   typeof value === 'string' ? value : '';
 
 /**
- * Room at the right of a strip a container shares with its handles: the
- * remove button is 8 units wide and 4 in from the right edge.
+ * Room at the right of a strip a container shares with its handles, set from
+ * `CLEAR_OF_REMOVE_UNITS` while editing.
  */
 const CLEAR_OF_REMOVE = 'var(--canvas-controls-inset, 0px)';
 

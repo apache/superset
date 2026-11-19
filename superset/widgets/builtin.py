@@ -146,8 +146,6 @@ class Echarts(Widget):
         node.pop("additionalProperties", None)
         properties: dict[str, Any] = {}
         for key in all_keys:
-            # The color default stays empty: an unset color lets the renderer
-            # choose, so only explicitly authored colors are applied.
             style = deepcopy(style_def)
             style["title"] = key
             properties[key] = style
@@ -232,8 +230,7 @@ class Balloons(Widget):
         # Dedupe (preserving order) and cap before doing per-series work, so an
         # oversized/duplicate list can't blow up CPU, memory, or response size.
         unique_series = list(dict.fromkeys(series))[: Balloons.MAX_SERIES]
-        # Replace the open-ended map with one inlined style per series. Its
-        # color default stays empty, leaving the color to the renderer.
+        # Replace the open-ended map with one inlined style per series.
         node.pop("additionalProperties", None)
         properties: dict[str, Any] = {}
         for value in unique_series:

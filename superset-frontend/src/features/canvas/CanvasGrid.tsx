@@ -23,7 +23,7 @@ import { css, styled } from '@apache-superset/core/theme';
 import { Tag } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { useWidgetRenderers } from 'src/core';
-import CanvasGridSurface from './CanvasGridSurface';
+import CanvasGridSurface, { CLEAR_OF_REMOVE_UNITS } from './CanvasGridSurface';
 import type { CanvasLayout } from './useCanvasLayout';
 import { CanvasDefinitionResult, DraftChange } from './types';
 import { MARKS, OUTLINED } from './changeMarks';
@@ -129,7 +129,7 @@ const GridRoot = styled.div<{ $editable: boolean }>`
   ${({ theme, $editable }) =>
     $editable &&
     css`
-      --canvas-controls-inset: ${theme.sizeUnit * 12}px;
+      --canvas-controls-inset: ${theme.sizeUnit * CLEAR_OF_REMOVE_UNITS}px;
     `}
 `;
 
@@ -208,9 +208,8 @@ const TitleRow = styled.div<{
       css`
         /* Clear of the grip, wherever the surface put it. */
         padding-left: var(--canvas-title-inset, ${theme.sizeUnit * 12}px);
-        /* Clear of the remove button, 4 units in and 8 wide; the menu is
-         hidden while editing. */
-        padding-right: ${theme.sizeUnit * 12}px;
+        /* Clear of the remove button; the menu is hidden while editing. */
+        padding-right: ${theme.sizeUnit * CLEAR_OF_REMOVE_UNITS}px;
       `
     }
   `}
