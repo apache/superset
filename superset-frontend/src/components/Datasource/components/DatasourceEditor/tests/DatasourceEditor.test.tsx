@@ -1069,5 +1069,7 @@ test('the Is temporal column header explains the Datetime format requirement', a
   })) as HTMLElement;
   within(header).getByRole('button', { name: 'Show info tooltip' }).focus();
 
-  expect(await screen.findByText(/Datetime format below/i)).toBeInTheDocument();
+  expect(
+    await screen.findByText(/does not convert a string column/i),
+  ).toBeInTheDocument();
 });
