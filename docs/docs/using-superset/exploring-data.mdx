@@ -623,7 +623,7 @@ before applying time ranges; mixing separators can shift even whole-day results.
 Use consistent timezone and precision conventions for stored timestamps and bounds.
 
 
-### Ordinary dataset filters on semantic-view charts
+### Filters from other datasources on semantic-view charts
 
 On mixed dashboards, Value and Numerical range filters targeting ordinary datasets,
 and predicate-only cross-filters from ordinary dataset charts, are not applied to
@@ -633,7 +633,13 @@ to match. This applies to embedded dashboards as well. An empty required Value
 filter on an ordinary dataset is also not applied: it does not hold a semantic-view
 chart empty until a value is chosen. The indicator still marks it as incompatible.
 
-Time column overrides, Dynamic group by, selections from another semantic view,
-and selections whose source cannot be identified retain their existing validation.
+Predicates from another semantic view are also not applied when the filter's
+configured source and all stamped selection sources agree on that foreign view
+and its version. They appear as incompatible, even if both views use the same
+member identifier. Cross-view member mapping is not inferred from equal names.
+
+Same-view filters with the current version still apply. Stale same-view versions,
+missing or conflicting provenance, Time column overrides and Dynamic group by
+retain their existing validation.
 Scope these controls away from incompatible charts. Dashboard filters do not replace
 server-side row-level security or guest access restrictions.

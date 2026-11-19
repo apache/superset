@@ -36,7 +36,7 @@ import { t } from '@apache-superset/core/translation';
 import { debounce } from 'lodash-es';
 import { bindActionCreators } from 'redux';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredSqlFilterIds';
+import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 
 import { exportChart } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';

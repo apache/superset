@@ -50,9 +50,9 @@ import {
   isChartWithoutGroupBy,
 } from './chartTypeLimitations';
 import {
-  getIgnoredSqlFilterIds,
+  getIgnoredDashboardFilterIds,
   ChartDatasources,
-} from './getIgnoredSqlFilterIds';
+} from './getIgnoredDashboardFilterIds';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
@@ -535,7 +535,7 @@ export default function getFormDataWithExtraFilters({
         ),
       ) as DataMaskStateWithId)
     : allDataMask;
-  const ignoredFilterIds = getIgnoredSqlFilterIds(
+  const ignoredFilterIds = getIgnoredDashboardFilterIds(
     chart.form_data ?? {},
     nativeFilters,
     dataMask,
