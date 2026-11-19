@@ -212,3 +212,84 @@ test.each(['__time_col', '__granularity', 'Orders.status'])(
     ).toBe('unverified-external-selections');
   },
 );
+
+const versionedSemanticChart = {
+  datasource: '7__semantic_view',
+  viz_type: 'table',
+  semantic_selection_version: 'cube-member-id-v1',
+};
+const unmarkedSource = { datasource: '7__semantic_view', version: null };
+
+test('a grain-only value without a source keeps the chart identity', () => {
+  const { extras } = extractExtras({
+    ...versionedSemanticChart,
+    extra_form_data: { time_grain_sqla: 'P1Y' },
+  });
+  expect(extras.semantic_selection_version).toBe('cube-member-id-v1');
+});
+
+// Without its control type, merged extra form data cannot prove that it
+// selects no member, so explicit sources are honored. Only the dashboard's
+// type-aware boundary drops a grain control's unneeded provenance.
+test.each([
+  ['an unmarked source', [unmarkedSource]],
+  ['a stale source', [{ datasource: '7__semantic_view', version: 'old' }]],
+  [
+    'a foreign source',
+    [{ datasource: '8__semantic_view', version: 'cube-member-id-v1' }],
+  ],
+])('grain-only extra form data with %s is not self-certified', (_, sources) => {
+  const { extras } = extractExtras({
+    ...versionedSemanticChart,
+    extra_form_data: {
+      time_grain_sqla: 'P1Y',
+      semantic_selection_sources: sources,
+    },
+  });
+  expect(extras.semantic_selection_version).toBe(
+    'unverified-external-selections',
+  );
+});
+
+test.each([
+  ['a filter', { filters: [{ col: 'Orders.b', op: 'IN', val: ['x'] }] }],
+  ['a time column choice', { time_column: 'Orders.created' }],
+  ['a group-by override', { interactive_groupby: ['Orders.status'] }],
+  ['a custom member override', { custom_form_data: { groupby: ['x'] } }],
+  ['a granularity override', { granularity_sqla: 'Orders.created' }],
+])('a grain mixed with %s still refuses unmarked provenance', (_, members) => {
+  expect(
+    extractExtras({
+      ...versionedSemanticChart,
+      extra_form_data: {
+        time_grain_sqla: 'P1Y',
+        ...members,
+        semantic_selection_sources: [unmarkedSource],
+      },
+    } as Parameters<typeof extractExtras>[0]).extras.semantic_selection_version,
+  ).toBe('unverified-external-selections');
+});
+
+test('an empty grain value is not treated as selection-free', () => {
+  expect(
+    extractExtras({
+      ...versionedSemanticChart,
+      extra_form_data: {
+        time_grain_sqla: undefined,
+        semantic_selection_sources: [unmarkedSource],
+      },
+    } as Parameters<typeof extractExtras>[0]).extras.semantic_selection_version,
+  ).toBe('unverified-external-selections');
+});
+
+test('a grain-only control leaves ordinary datasets unchanged', () => {
+  const { extras } = extractExtras({
+    datasource: '3__table',
+    viz_type: 'table',
+    extra_form_data: {
+      time_grain_sqla: 'P1Y',
+      semantic_selection_sources: [unmarkedSource],
+    },
+  });
+  expect(extras.semantic_selection_version).toBeUndefined();
+});

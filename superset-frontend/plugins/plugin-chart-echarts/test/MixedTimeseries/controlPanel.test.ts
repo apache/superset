@@ -144,3 +144,32 @@ test('keeps Query B data controls visible when Dataset B is disabled', () => {
 
   expect(metricsBCtrl.config.visibility(props)).toBe(true);
 });
+
+test('should show only_totalB based on the Query B value and stack controls', () => {
+  const onlyTotalBCtrl = getControl(
+    'only_totalB',
+  ) as unknown as VisibilityControl;
+  expect(onlyTotalBCtrl).toBeDefined();
+
+  expect(
+    onlyTotalBCtrl.config.visibility({
+      controls: {
+        show_value: { value: false },
+        stack: { value: false },
+        show_valueB: { value: true },
+        stackB: { value: true },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+
+  expect(
+    onlyTotalBCtrl.config.visibility({
+      controls: {
+        show_value: { value: true },
+        stack: { value: true },
+        show_valueB: { value: false },
+        stackB: { value: false },
+      },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
+});

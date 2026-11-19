@@ -10919,6 +10919,14 @@ msgstr "Ukryj linię"
 msgid "Hide chart description"
 msgstr "Ukryj opis wykresu"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Ukryj warstwę"
 
@@ -11628,6 +11636,10 @@ msgstr "Nieprawidłowy stan."
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Nieprawidłowe identyfikatory kart: %(tab_ids)s"
+
+#, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

@@ -637,7 +637,7 @@ multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
-mysqlclient==2.3.0
+mysqlclient==2.3.2
     # via apache-superset
 nh3==0.3.7
     # via
@@ -1109,7 +1109,7 @@ sqlalchemy-utils==0.43.0
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.24.0
+sqlglot==30.31.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

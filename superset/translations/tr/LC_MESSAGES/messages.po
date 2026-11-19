@@ -10023,6 +10023,14 @@ msgstr "Hide Line"
 msgid "Hide chart description"
 msgstr "Gizle grafik açıklaması"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Gizle katmanı"
 
@@ -10675,6 +10683,10 @@ msgstr "Invalid state."
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Geçersiz sekme kimlikleri: %(tab_ids)s"
+
+#, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

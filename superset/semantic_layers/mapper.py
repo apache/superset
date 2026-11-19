@@ -57,7 +57,7 @@ from superset_core.semantic_layers.types import (
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_object import QueryObject
+from superset.common.query_object import QueryObject, selection_version_error
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
@@ -78,6 +78,7 @@ from superset.semantic_layers.cache import SemanticCacheOutcome
 from superset.semantic_layers.cache_host import build_cache_configuration
 from superset.semantic_layers.cache_policy import ContainmentCapabilities
 from superset.semantic_layers.cache_repository import ViewMeta
+from superset.semantic_layers.capabilities import supported_view_features
 from superset.semantic_layers.dimension_resolution import (
     DimensionUsage,
     resolve_dimensions,
@@ -1487,9 +1488,11 @@ def validate_query_object(
 def _validation_metadata(query_object: ValidatedQueryObject) -> _ViewMetadata:
     """Check member identity before fetching metadata for validation."""
     view: SemanticView = query_object.datasource.implementation
-    view.validate_selection_version(
-        query_object.extras.get("semantic_selection_version")
-    )
+    version: object = query_object.extras.get("semantic_selection_version")
+    try:
+        view.validate_selection_version(version)
+    except ValueError as ex:
+        raise selection_version_error(version) from ex
     return _ViewMetadata.from_view(view, DiscoveryTarget.of(query_object.datasource))
 
 
@@ -1661,7 +1664,9 @@ def _validate_group_limit(
     """
     Validate group limit related features in the query object.
     """
-    semantic_view = query_object.datasource.implementation
+    features: frozenset[SemanticViewFeature] = supported_view_features(
+        getattr(query_object.datasource.implementation, "features", None)
+    )
 
     # no limit
     if query_object.series_limit == 0:
@@ -1670,10 +1675,7 @@ def _validate_group_limit(
     if query_object.series_limit > 0 and not query_object.series_columns:
         return
 
-    if (
-        query_object.series_columns
-        and SemanticViewFeature.GROUP_LIMIT not in semantic_view.features
-    ):
+    if query_object.series_columns and SemanticViewFeature.GROUP_LIMIT not in features:
         raise SemanticQueryInputError(
             "Group limit is not supported in this Semantic View."
         )
@@ -1700,7 +1702,7 @@ def _validate_group_limit(
 
     if (
         query_object.group_others_when_limit_reached
-        and SemanticViewFeature.GROUP_OTHERS not in semantic_view.features
+        and SemanticViewFeature.GROUP_OTHERS not in features
     ):
         raise SemanticQueryInputError(
             "Grouping others when limit is reached is not supported in this Semantic "
@@ -1714,12 +1716,13 @@ def _validate_orderby(
     """
     Validate order by elements in the query object.
     """
-    semantic_view = query_object.datasource.implementation
+    features: frozenset[SemanticViewFeature] = supported_view_features(
+        getattr(query_object.datasource.implementation, "features", None)
+    )
 
     if (
         any(not isinstance(element, str) for element, _ in query_object.orderby)
-        and SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY
-        not in semantic_view.features
+        and SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY not in features
     ):
         raise SemanticQueryInputError(
             "Adhoc expressions in order by are not supported in this Semantic View."

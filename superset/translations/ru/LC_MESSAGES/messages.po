@@ -9802,6 +9802,14 @@ msgstr "Скрыть линию"
 msgid "Hide chart description"
 msgstr "Скрыть описание диаграммы"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Скрыть слой"
 
@@ -10443,6 +10451,10 @@ msgstr "Некорректное состояние"
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Некорректные ID вкладок: %(tab_ids)s"
+
+#, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
