@@ -22,6 +22,7 @@ from typing import Any
 
 from flask import current_app, g, has_request_context
 from flask_caching import Cache
+from flask_caching.backends import NullCache
 from pandas import DataFrame
 
 from superset.common.db_query_status import QueryStatus
@@ -163,6 +164,7 @@ class QueryCacheManager:
                     timeout=timeout,
                     datasource_uid=datasource_uid,
                     region=region,
+                    timer_key="chart_data.cache.set",
                 )
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
@@ -170,6 +172,18 @@ class QueryCacheManager:
                 self.error_message = str(ex)
             self.status = QueryStatus.FAILED
             self.stacktrace = get_stacktrace()
+
+    @staticmethod
+    def reads_backend(region: CacheRegion = CacheRegion.DEFAULT) -> bool:
+        """
+        Whether a lookup in the region can be served by a real cache backend.
+
+        A region backed by ``NullCache`` (the default ``DATA_CACHE_CONFIG``)
+        never stores anything, so lookups against it are cache bypasses rather
+        than misses. Used for metrics classification only; :meth:`get` keeps
+        its own early-return check so ``force_cached`` semantics are unchanged.
+        """
+        return bool(_cache[region]) and not isinstance(_cache[region].cache, NullCache)
 
     @classmethod
     def get(
@@ -257,15 +271,22 @@ class QueryCacheManager:
         timeout: int | None = None,
         datasource_uid: str | None = None,
         region: CacheRegion = CacheRegion.DEFAULT,
+        timer_key: str | None = None,
     ) -> bool:
         """
         set value to specify cache region, proxy for `set_and_log_cache`
 
+        :param timer_key: optional StatsD timer key for the backend write
         :returns: whether the value was actually persisted to the backend
         """
         if key:
             return set_and_log_cache(
-                _cache[region], key, value, timeout, datasource_uid
+                _cache[region],
+                key,
+                value,
+                timeout,
+                datasource_uid,
+                timer_key=timer_key,
             )
         return False
 

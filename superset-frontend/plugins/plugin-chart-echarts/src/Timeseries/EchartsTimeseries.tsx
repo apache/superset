@@ -150,6 +150,7 @@ export default function EchartsTimeseries({
   coltypeMapping,
   onLegendScroll,
 }: TimeseriesChartTransformedProps) {
+  const xAxisColumn = xAxis.column ?? xAxis.label;
   const { stack } = formData;
   const theme = useTheme();
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -419,7 +420,7 @@ export default function EchartsTimeseries({
                 ? []
                 : [
                     {
-                      col: xAxis.label,
+                      col: xAxisColumn,
                       op: 'IN' as const,
                       val: values,
                     },
@@ -437,13 +438,13 @@ export default function EchartsTimeseries({
         isCurrentValueSelected: selected.includes(stringValue),
       };
     },
-    [selectedValues, xAxis.label],
+    [selectedValues, xAxisColumn],
   );
 
   const getTimeAxisCrossFilterDataMask = useCallback(
     (clickedTimestamp: number) => {
       const filterColumn =
-        xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+        xAxisColumn === DTTM_ALIAS ? formData.granularitySqla : xAxisColumn;
       const grain = resolvedTimeGrain as TimeGranularity | undefined;
 
       if (!filterColumn || !grain) {
@@ -503,7 +504,7 @@ export default function EchartsTimeseries({
         isCurrentValueSelected,
       };
     },
-    [formData.granularitySqla, resolvedTimeGrain, selectedValues, xAxis.label],
+    [formData.granularitySqla, resolvedTimeGrain, selectedValues, xAxisColumn],
   );
 
   const handleChange = useCallback(
@@ -651,9 +652,9 @@ export default function EchartsTimeseries({
             drillToDetailFilters.push({
               col:
                 // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
-                xAxis.label === DTTM_ALIAS
+                xAxisColumn === DTTM_ALIAS
                   ? formData.granularitySqla
-                  : xAxis.label,
+                  : xAxisColumn,
               grain: resolvedTimeGrain,
               op: '==',
               val: timeAxisValue,
@@ -662,7 +663,7 @@ export default function EchartsTimeseries({
           }
         }
         [
-          ...(xAxis.type === AxisType.Category && data ? [xAxis.label] : []),
+          ...(xAxis.type === AxisType.Category && data ? [xAxisColumn] : []),
           ...groupBy,
         ].forEach((dimension, i) =>
           drillToDetailFilters.push({
@@ -697,13 +698,13 @@ export default function EchartsTimeseries({
         const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
         const xAxisCol =
           // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
-          xAxis.label === DTTM_ALIAS
+          xAxisColumn === DTTM_ALIAS
             ? (formData.extraFormData?.granularity_sqla ??
               formData.granularitySqla)
-            : xAxis.label;
+            : xAxisColumn;
         const isTemporalCategory =
           xAxis.type === AxisType.Category &&
-          coltypeMapping?.[getColumnLabel(xAxis.label)] ===
+          coltypeMapping?.[getColumnLabel(xAxisColumn)] ===
             GenericDataType.Temporal;
         if ((xAxis.type === AxisType.Time || isTemporalCategory) && xAxisCol) {
           // A markerless line/area event identifies the series but no point.
