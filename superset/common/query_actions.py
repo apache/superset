@@ -236,7 +236,7 @@ def _materialize_full_payload(
         payload["indexnames"] = list(df.index)
         payload["coltypes"] = extract_dataframe_dtypes(df, datasource)
         payload["collabels"] = extract_display_labels(
-            payload["label_map"], payload["colnames"], datasource
+            payload.get("label_map") or {}, payload["colnames"], datasource
         )
         payload["data"] = query_context.get_data(df, payload["coltypes"])
         payload["result_format"] = query_context.result_format
