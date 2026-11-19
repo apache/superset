@@ -536,6 +536,48 @@ def test_extra_validator_rejects_boolean_nested_cache_timeout(value: bool) -> No
     assert "non-negative integer" in str(exc_info.value)
 
 
+def test_extra_validator_cache_timeout_error_is_actionable() -> None:
+    """
+    Test that the cache timeout error names the key, echoes the offending
+    value and says where the value can be corrected.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps({"metadata_cache_timeout": {"table_cache_timeout": "abc"}}),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    assert exc_info.value.messages["extra"] == [
+        "The table_cache_timeout in metadata_cache_timeout must be a "
+        'non-negative integer, but received "abc". Enter a whole number of '
+        "seconds (0 or greater) under Advanced > Performance."
+    ]
+
+
+def test_extra_validator_cache_timeout_error_truncates_large_values() -> None:
+    """
+    Test that an oversized rejected value is truncated in the error message.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps(
+            {"metadata_cache_timeout": {"schema_cache_timeout": "x" * 10_000}}
+        ),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    message = exc_info.value.messages["extra"][0]
+    assert "x" * 10_000 not in message
+    assert "..." in message
+    assert len(message) < 500
+
+
 def test_extra_validator_rejects_negative_catalog_cache_timeout() -> None:
     """
     Test that extra_validator rejects negative catalog_cache_timeout values.

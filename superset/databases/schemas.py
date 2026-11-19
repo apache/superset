@@ -278,6 +278,23 @@ def masked_encrypted_extra_validator(value: str) -> None:
     encrypted_extra_validator(value)
 
 
+_MAX_ECHOED_VALUE_LENGTH = 50
+
+
+def _describe_invalid_value(value: Any) -> str:
+    """
+    Render a rejected value for an error message as JSON, truncated so that
+    arbitrarily large payloads are not echoed back.
+    """
+    try:
+        text = json.dumps(value)
+    except (TypeError, ValueError):
+        text = repr(value)
+    if len(text) > _MAX_ECHOED_VALUE_LENGTH:
+        text = f"{text[:_MAX_ECHOED_VALUE_LENGTH]}..."
+    return text
+
+
 def extra_validator(value: str) -> str:  # noqa: C901
     """
     Validate that extra is a valid JSON string, and that metadata_params
@@ -351,8 +368,11 @@ def extra_validator(value: str) -> str:  # noqa: C901
                         [
                             _(
                                 "The %(key)s in metadata_cache_timeout must be a "
-                                "non-negative integer.",
+                                "non-negative integer, but received %(value)s. "
+                                "Enter a whole number of seconds (0 or greater) "
+                                "under Advanced > Performance.",
                                 key=key,
+                                value=_describe_invalid_value(timeout),
                             )
                         ]
                     )
