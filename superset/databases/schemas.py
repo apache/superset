@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import inspect
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, TYPE_CHECKING, TypedDict
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
@@ -68,6 +68,9 @@ from superset.utils import json
 from superset.utils.core import markdown, parse_ssl_cert
 from superset.utils.json import get_masked_fields
 from superset.utils.oauth2 import oauth2_client_info_configured
+
+if TYPE_CHECKING:
+    from superset.db_engine_specs.base import BaseEngineSpec
 
 database_schemas_query_schema = {
     "type": "object",
@@ -400,6 +403,12 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     # A saved mask would become the credential, so saving needs a secret behind it.
     masks_need_stored_secret = True
 
+    # Whether the validated parameters that name an authentication method are kept
+    # in the loaded data, so the command can apply them to the stored
+    # ``encrypted_extra`` (updates that carry none) and check whether they reuse a
+    # stored credential.
+    carry_auth_parameters = False
+
     engine = fields.String(
         allow_none=True, metadata={"description": "SQLAlchemy engine to use"}
     )
@@ -469,8 +478,39 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             serialized_encrypted_extra = data.get("masked_encrypted_extra") or "{}"
             try:
                 encrypted_extra = json.loads(serialized_encrypted_extra)
+                well_formed = isinstance(encrypted_extra, dict)
             except json.JSONDecodeError:
                 encrypted_extra = {}
+                well_formed = False
+
+            # An update that names an authentication method but carries no
+            # ``masked_encrypted_extra`` is applied to the stored settings by the
+            # update command, which can see them.
+            carry_parameters = self.carry_auth_parameters and bool(
+                parameters.get("auth_method")
+            )
+            defer_to_stored = (
+                carry_parameters
+                and self.database_id is not None
+                and "masked_encrypted_extra" not in data
+            )
+
+            if well_formed and hasattr(
+                engine_spec, "get_encrypted_extra_from_parameters"
+            ):
+                stored = self._stored_encrypted_extra(data)
+                form_encrypted_extra = engine_spec.get_encrypted_extra_from_parameters(
+                    parameters, encrypted_extra, stored
+                )
+                # When deferred, the call above only validates, so errors look the
+                # same as for other requests.
+                if not defer_to_stored and form_encrypted_extra != encrypted_extra:
+                    self._check_form_secrets(engine_spec, form_encrypted_extra, stored)
+                    encrypted_extra = form_encrypted_extra
+                    data["masked_encrypted_extra"] = json.dumps(encrypted_extra)
+
+            if carry_parameters:
+                data["parameters"] = parameters
 
             if hasattr(engine_spec, "get_extra_from_parameters"):
                 extra = engine_spec.get_extra_from_parameters(
@@ -630,6 +670,48 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         if self.database_id is None:
             return None
         return db.session.get(Database, self.database_id)
+
+    def _stored_connection(self, data: dict[str, Any]) -> Database | None:
+        """The saved connection the request applies to, if any."""
+        return self._stored_database()
+
+    def _stored_encrypted_extra(self, data: dict[str, Any]) -> dict[str, Any] | None:
+        """The settings saved for that connection."""
+        stored = self._stored_connection(data)
+        try:
+            settings = json.loads(stored.encrypted_extra) if stored else None
+        except (TypeError, json.JSONDecodeError):
+            return None
+        return settings if isinstance(settings, dict) else None
+
+    def _check_form_secrets(
+        self,
+        engine_spec: type[BaseEngineSpec],
+        encrypted_extra: dict[str, Any],
+        stored: dict[str, Any] | None,
+    ) -> None:
+        """Reject masks standing in for secrets the connection has not stored."""
+        if not self.masks_need_stored_secret:
+            return
+        if masked_fields := json.unrevealable_masked_fields(
+            stored,
+            encrypted_extra,
+            engine_spec.encrypted_extra_sensitive_field_paths(),
+        ):
+            labels = engine_spec.encrypted_extra_sensitive_fields
+            raise ValidationError(
+                {
+                    "masked_encrypted_extra": [
+                        f"Must provide value for masked_encrypted_extra field: {field}"
+                        + (
+                            f" ({labels[field]})"
+                            if isinstance(labels, dict) and field in labels
+                            else ""
+                        )
+                        for field in masked_fields
+                    ]
+                }
+            )
 
     def _refuse_embedded_credentials_while_disabled(self, data: dict[str, Any]) -> None:
         """
@@ -952,6 +1034,8 @@ class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
+    carry_auth_parameters = True
+
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(
@@ -1011,6 +1095,13 @@ class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     # Saves nothing, and `TestConnectionDatabaseCommand` finds the connection by name
     # to unmask, which this schema has no `database_id` to do.
     masks_need_stored_secret = False
+    carry_auth_parameters = True
+
+    def _stored_connection(self, data: dict[str, Any]) -> Database | None:
+        """Tests apply to the saved connection of that name, as the command finds it."""
+        if not (database_name := data.get("database_name")):
+            return None
+        return db.session.query(Database).filter_by(database_name=database_name).first()
 
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
