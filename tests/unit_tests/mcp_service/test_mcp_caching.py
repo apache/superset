@@ -467,3 +467,62 @@ async def test_catalog_cache_exclusion_survives_revocation(
         second = await client.call_tool(proxy_name or "get_catalog", arguments)
         assert second.data == []
     assert calls == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["error_schema", "raised"])
+async def test_failed_tool_result_is_never_replayed_from_cache(failure: str) -> None:
+    """A failure must not be cached and served later as if it were the answer.
+
+    Error schemas (``DatasetError``, ``ChartError``...) are returned, not
+    raised, so a cache that stores every returned result would replay a
+    transient query failure for the whole TTL after the warehouse recovers.
+    """
+    from fastmcp import Client, FastMCP
+    from fastmcp.exceptions import ToolError
+
+    from superset.mcp_service.caching import create_response_caching_middleware
+
+    flask_app = MagicMock()
+    configs = {
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "excluded_tools": [],
+        },
+        "MCP_STORE_CONFIG": {"enabled": False},
+    }
+    flask_app.config.get.side_effect = lambda key, default=None: configs.get(
+        key, default
+    )
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app", return_value=flask_app
+    ):
+        middleware = create_response_caching_middleware()
+    assert middleware is not None
+    server = FastMCP("failure-cache-test", middleware=[middleware])
+    warehouse_up = False
+    calls = 0
+
+    @server.tool
+    def query_dataset() -> dict[str, Any]:
+        """Fail once like a warehouse timeout, then return rows."""
+        nonlocal calls
+        calls += 1
+        if warehouse_up:
+            return {"data": [{"count": 3}], "row_count": 1}
+        if failure == "raised":
+            raise ToolError("warehouse timeout")
+        return {"error": "Query execution failed", "error_type": "QueryError"}
+
+    async with Client(server) as client:
+        first = await client.call_tool("query_dataset", {}, raise_on_error=False)
+        assert first.is_error or "error_type" in first.content[0].text
+        warehouse_up = True
+        second = await client.call_tool("query_dataset", {}, raise_on_error=False)
+        third = await client.call_tool("query_dataset", {}, raise_on_error=False)
+
+    assert json.loads(second.content[0].text)["row_count"] == 1
+    # The successful result is cached as before.
+    assert json.loads(third.content[0].text)["row_count"] == 1
+    assert calls == 2

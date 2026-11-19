@@ -1806,6 +1806,36 @@ can adjust the SQL comparisons. Use the applied filters and datasource settings
 as well when explaining such queries. `query_dataset.applied_filters` retains the
 original expressions so callers can compare the requested and resolved ranges.
 
+### Verifying filters and completeness
+
+`query_dataset` reports what the query engine did, not only what was requested:
+
+- `filter_status` lists every filter in `applied_filters` (including the
+  `TEMPORAL_RANGE` filter built from `time_range`) with a `status`:
+  `applied` when the engine reported it in the generated query, `rejected` when
+  the engine dropped it (`reason` is the engine's reason, for example
+  `not_in_datasource`), and `unresolved` when the engine did not confirm it or a
+  virtual dataset's Jinja template consumed it. A template can use a filter
+  value in any way, so a template-consumed filter is never reported as applied.
+  `applied_filters` keeps listing the requested filters and is not proof that
+  they were enforced.
+- Set `strict_filters: true` for reporting: the tool then returns a
+  `FilterNotApplied` error instead of rows when any filter is not `applied`.
+  Without it, rows are returned and every such filter is also listed in
+  `warnings`. Strict mode can block a templated virtual dataset that does apply
+  the filter, because the engine does not report how a template used it.
+- `truncated` is `true` when more rows matched than `row_limit` and only the
+  first `row_limit` rows are returned, `false` when every matching row is
+  returned, and `null` when the server's `SQL_MAX_ROW` cap left no room to check.
+  The tool asks the engine for one row more than `row_limit` to tell these apart.
+  `row_limit` in the response is the limit the query ran with; it is lower than
+  the request when `SQL_MAX_ROW` capped it. `total_rows` equals `row_count` when
+  `truncated` is `false` and is `null` otherwise.
+
+Tool calls that fail return an error schema with an `error_type`. When response
+caching is enabled, these failed results are never cached, so a transient
+failure such as a warehouse timeout is not replayed after it clears.
+
 ### Overriding a saved chart's time grain
 
 Pass `extra_form_data={"time_grain_sqla": "P1M"}` to `get_chart_data` or

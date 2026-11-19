@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # namespace whenever a cached response from an older release is not valid under
 # the active contract. This keeps rolling upgrades from serving incompatible
 # entries through newly upgraded processes without trying to rewrite cached data.
-MCP_RESPONSE_CACHE_NAMESPACE = "response-contract-v3:"
+MCP_RESPONSE_CACHE_NAMESPACE = "response-contract-v4:"
 
 # Tools whose responses must never be served from the response cache,
 # regardless of MCP_CACHE_CONFIG["excluded_tools"]. The catalog is a live,
@@ -95,6 +95,64 @@ def _is_filter_value_discovery_call(
             and include.lower() in {"1", "true", "t", "yes", "y", "on"}
         )
     )
+
+
+def is_failed_tool_result(result: Any) -> bool:
+    """Return True for a tool result that reports a failure.
+
+    Tools report expected failures by returning an error schema
+    (``DatasetError``, ``ChartError``...) whose JSON carries a truthy
+    ``error_type``, not by raising. Results flagged ``is_error`` count too.
+    """
+    from superset.utils import json
+
+    if getattr(result, "is_error", False):
+        return True
+    structured = getattr(result, "structured_content", None)
+    if isinstance(structured, dict) and structured.get("error_type"):
+        return True
+    content = getattr(result, "content", None) or []
+    if len(content) != 1 or not isinstance(getattr(content[0], "text", None), str):
+        return False
+    try:
+        payload = json.loads(content[0].text)
+    except (TypeError, ValueError):
+        return False
+    return isinstance(payload, dict) and bool(payload.get("error_type"))
+
+
+class _UncacheableResult(Exception):  # noqa: N818
+    """Carries a failed result past the cache write without storing it."""
+
+    def __init__(self, result: Any) -> None:
+        super().__init__("tool result reports a failure")
+        self.result = result
+
+
+def _never_cache_failures(middleware: Any) -> Any:
+    """Make ``middleware`` return failed tool results without caching them.
+
+    FastMCP caches every returned ``ToolResult``. A returned error schema would
+    otherwise be replayed for the whole TTL as if it were the answer, after the
+    failure (for example a warehouse timeout) has cleared. Raising past the
+    cache write skips it; the original result is then returned unchanged.
+    """
+    cached_call_tool = middleware.on_call_tool
+
+    async def on_call_tool(context: Any, call_next: Any) -> Any:
+        async def call_next_failing_on_errors(inner_context: Any) -> Any:
+            result = await call_next(inner_context)
+            if is_failed_tool_result(result):
+                raise _UncacheableResult(result)
+            return result
+
+        try:
+            return await cached_call_tool(context, call_next_failing_on_errors)
+        except _UncacheableResult as uncacheable:
+            return uncacheable.result
+
+    middleware.on_call_tool = on_call_tool
+    return middleware
 
 
 def _bypass_dashboard_scoped_calls(
@@ -286,7 +344,9 @@ def create_response_caching_middleware() -> Any | None:
             **settings,
         )
         logger.info("MCP caching middleware enabled")
-        return _bypass_dashboard_scoped_calls(middleware, proxy_name)
+        return _bypass_dashboard_scoped_calls(
+            _never_cache_failures(middleware), proxy_name
+        )
 
     # Use existing app context if available, otherwise push one
     if has_app_context():
