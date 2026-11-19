@@ -440,9 +440,10 @@ jobs:
   # an amd64 runner took most of a 30+ minute build, so each platform is now
   # built natively in its own job: this one pushes the linux/arm64 image
   # under supersetbot's `-arm` suffixed tags (see getDockerTags in
-  # apache-superset/supersetbot), and docker-build below, which runs after
-  # it, pushes linux/amd64 under the unsuffixed tags and then folds both
-  # into one multi-platform manifest list per tag. Pull requests and version
+  # apache-superset/supersetbot), and docker-build below, which runs
+  # alongside it, waits for its own preset's arm64 leg before pushing
+  # linux/amd64 under the unsuffixed tags, then folds both into one
+  # multi-platform manifest list per tag. Pull requests and version
   # branches only validate a linux/amd64 build, so this job is skipped there.
   docker-build-arm64:
     name: docker-build (arm64)
@@ -562,7 +563,7 @@ jobs:
 
   docker-build:
     name: docker-build
-    needs: [setup_matrix, changes, check-freshness, docker-build-arm64]
+    needs: [setup_matrix, changes, check-freshness]
     # Only master pushes publish images (see scripts/docker-build-plan.sh).
     # Without the Docker Hub credentials (e.g. on a fork or mirror) they can
     # publish nothing, so they are skipped there. Version-branch pushes and
@@ -572,15 +573,11 @@ jobs:
     # no branch tip to race against, and staleness is instead handled by
     # cancel-in-progress on the concurrency group), and is false for push
     # triggers superseded by a newer commit on the same branch. On master
-    # this job also needs the native arm64 build to have pushed its `-arm`
-    # tags first (it merges them below); a skipped arm64 job is the
-    # pull_request / version-branch case, a failed one must not leave
-    # amd64-only images under the multi-platform tags.
+    # this job does not `needs` docker-build-arm64: that would wait on the
+    # whole arm64 matrix, so one failed leg would block every preset. The
+    # publish_guard step below waits on this preset's arm64 leg instead.
     if: >-
-      !cancelled() &&
       needs.check-freshness.outputs.is-current == 'true' &&
-      (needs.docker-build-arm64.result == 'success' ||
-       needs.docker-build-arm64.result == 'skipped') &&
       (github.event_name != 'push' ||
        github.ref != 'refs/heads/master' ||
        needs.setup_matrix.outputs.has-secrets) &&
@@ -588,9 +585,13 @@ jobs:
        needs.changes.outputs.frontend == 'true' ||
        needs.changes.outputs.docker == 'true')
     runs-on: ubuntu-26.04
-    timeout-minutes: 60
+    # Room to wait for the arm64 leg (which can queue, then run for up to 60
+    # minutes) on top of the publish and the checks that follow it.
+    timeout-minutes: 120
     permissions:
       contents: read
+      # Lets publish_guard read this run's jobs to find the arm64 leg.
+      actions: read
       # Required for the vulnerability scan below to upload its SARIF
       # results to GitHub code scanning (advanced-security is enabled by
       # default), matching the same grant in github-action-validator.yml.
@@ -652,10 +653,11 @@ jobs:
       # order the runs entering it: a run whose change detection lagged can
       # acquire the lock after a newer commit already published, and would
       # then move the mutable `master*` tags back to the older digest. Reject
-      # the stale SHA instead. Every later step is gated on the result,
-      # because a skipped build leaves no $IMAGE_TAG for them to act on.
+      # the stale SHA instead. publish_guard below folds this into the
+      # decision every later step is gated on, because a skipped build
+      # leaves no $IMAGE_TAG for them to act on.
       - name: Guard against publishing a superseded master commit
-        id: publish_guard
+        id: freshness
         shell: bash
         run: |
           set -euo pipefail
@@ -683,6 +685,107 @@ jobs:
             echo "::notice::master advanced to ${TIP_SHA} while ${GITHUB_SHA} was queued; skipping this build"
           fi
           echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+
+      # On master, build linux/amd64 without pushing while the arm64 leg is
+      # still running, so the push below is a cache hit. Best effort: if this
+      # fails, the push step builds from scratch with its own retries.
+      - name: Build Docker Image (linux/amd64, cache only)
+        if: >-
+          steps.freshness.outputs.publish == 'true' &&
+          github.event_name == 'push' && github.ref == 'refs/heads/master'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_PRESET: ${{ matrix.build_preset }}
+        run: |
+          set -euo pipefail
+          eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}" "$BUILD_PLATFORM")"
+          EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG" ci "$BUILD_PLATFORM")"
+          # Neither --push nor --load: buildx keeps the result in its cache only.
+          DOCKERHUB_TOKEN= supersetbot docker \
+            --preset "$BUILD_PRESET" \
+            --context "$BUILD_CONTEXT" \
+            --context-ref "$BUILD_CONTEXT_REF" \
+            --extra-flags "$EXTRA_FLAGS" \
+            $PLATFORM_ARG ||
+            echo "::warning::cache-only build failed; the push step will rebuild"
+
+      # On master, only publish once this preset's arm64 leg has pushed its
+      # `<sha>-arm` tag, so the unsuffixed tags never go out amd64-only. A
+      # failed or timed-out arm64 leg fails this preset; a cancelled or
+      # skipped one, or one whose own publish guard skipped the push, skips
+      # it. Other presets are unaffected.
+      - name: Wait for this preset's arm64 image
+        id: publish_guard
+        if: steps.freshness.outputs.publish == 'true'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          BUILD_PRESET: ${{ matrix.build_preset }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" != "push" ] || [ "$GITHUB_REF" != "refs/heads/master" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}" "$BUILD_PLATFORM")"
+          mapfile -t tags < <(
+            DOCKERHUB_TOKEN= supersetbot docker \
+              --preset "$BUILD_PRESET" \
+              --context "$BUILD_CONTEXT" \
+              --context-ref "$BUILD_CONTEXT_REF" \
+              --platform linux/amd64 \
+              --dry-run |
+              grep -oE -- '-t apache/superset:[^[:space:]\\]+' | cut -d' ' -f2 | sort -u
+          )
+          # The full-sha tag of this preset; docker-command-check asserts the
+          # arm64 job pushes the same tag plus `-arm`.
+          sha_tag=""
+          for tag in "${tags[@]}"; do
+            case "$tag" in "apache/superset:${GITHUB_SHA}"|"apache/superset:${GITHUB_SHA}-"*) sha_tag="$tag"; break ;; esac
+          done
+          if [ -z "$sha_tag" ]; then
+            echo "::error::no per-commit tag found among: ${tags[*]}"
+            exit 1
+          fi
+
+          export ARM_JOB="docker-build (arm64) (${BUILD_PRESET})"
+          deadline=$((SECONDS + 70 * 60))
+          while :; do
+            state="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+              --jq '.jobs[] | select(.name == env.ARM_JOB) | "\(.status) \(.conclusion)"' || true)"
+            case "$state" in
+              "completed success") break ;;
+              "completed cancelled" | "completed skipped")
+                echo "::notice::${ARM_JOB} was ${state#completed }; skipping ${BUILD_PRESET}"
+                echo "publish=false" >> "$GITHUB_OUTPUT"
+                exit 0 ;;
+              completed\ *)
+                echo "::error::${ARM_JOB} ended as '${state#completed }', so ${BUILD_PRESET} is not published for this commit"
+                exit 1 ;;
+            esac
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::timed out waiting for ${ARM_JOB} (last state: '${state:-not found}')"
+              exit 1
+            fi
+            sleep 30
+          done
+          found=""
+          for attempt in 1 2 3; do
+            if docker buildx imagetools inspect "${sha_tag}-arm" > /dev/null; then found=1; break; fi
+            sleep 10
+          done
+          if [ -z "$found" ]; then
+            echo "::notice::${ARM_JOB} pushed no ${sha_tag}-arm (its publish guard skipped it); skipping ${BUILD_PRESET}"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          {
+            echo "publish=true"
+            echo "sha_tag=$sha_tag"
+            echo "tags=${tags[*]}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build Docker Image
         if: steps.publish_guard.outputs.publish == 'true'
@@ -749,32 +852,17 @@ jobs:
           github.event_name == 'push' && github.ref == 'refs/heads/master'
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BUILD_PRESET: ${{ matrix.build_preset }}
+          SHA_TAG: ${{ steps.publish_guard.outputs.sha_tag }}
+          TAGS: ${{ steps.publish_guard.outputs.tags }}
         run: |
           set -euo pipefail
-          eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}" "$BUILD_PLATFORM")"
-          mapfile -t tags < <(
-            DOCKERHUB_TOKEN= supersetbot docker \
-              --preset "$BUILD_PRESET" \
-              --context "$BUILD_CONTEXT" \
-              --context-ref "$BUILD_CONTEXT_REF" \
-              --platform linux/amd64 \
-              --dry-run |
-              grep -oE -- '-t apache/superset:[^[:space:]\\]+' | cut -d' ' -f2 | sort -u
-          )
-          # Merge from the per-commit tags (the full-sha tag of this preset
-          # and its `-arm` twin) rather than from the mutable `master*` and
-          # `master*-arm` tags, so a newer commit's push landing mid-run
-          # cannot pair this commit's amd64 image with another commit's arm64.
-          sha_tag=""
-          for tag in "${tags[@]}"; do
-            case "$tag" in "apache/superset:${GITHUB_SHA}"|"apache/superset:${GITHUB_SHA}-"*) sha_tag="$tag"; break ;; esac
-          done
-          if [ -z "$sha_tag" ]; then
-            echo "::error::no per-commit tag found among: ${tags[*]}"
-            exit 1
-          fi
+          # publish_guard resolved this preset's tags and confirmed the
+          # `-arm` twin of the full-sha tag exists. Merge from the per-commit
+          # tags rather than from the mutable `master*` and `master*-arm`
+          # tags, so a newer commit's push landing mid-run cannot pair this
+          # commit's amd64 image with another commit's arm64.
+          read -ra tags <<< "$TAGS"
+          sha_tag="$SHA_TAG"
           merged=0
           for tag in "${tags[@]}"; do
             case "$tag" in *:GHA-*) continue ;; esac
