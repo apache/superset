@@ -197,7 +197,7 @@ page it opens; its label is that page's `name`.
 import { menus } from '@apache-superset/core';
 
 menus.registerMenuItem(
-  { page: 'acme.tools.review-queue', icon: 'AuditOutlined' },
+  { page: 'acme.tools.review-queue', icon: 'DatabaseOutlined' },
   menus.NAVBAR_LOCATION,
   'primary',
 );
@@ -295,7 +295,7 @@ deployment is mounted. Where you need the prefix, as when calling the API with
 
 ```typescript
 const root = navigation.getApplicationRoot(); // '/analytics', or '' at the domain root
-const response = await fetch(`${root}/api/v1/acme/reviews/`);
+const response = await fetch(`${root}/extensions/acme/tools/reviews/`);
 ```
 
 `onDidChangeLocation` reports every move, including between two addresses

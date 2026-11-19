@@ -35,11 +35,10 @@ assists people when migrating to a new version.
   not compile until that member is handled, and code that switches without a
   default may fall through on an extension page at runtime.
 
-- `navigation.getLocation().pathname` is relative to the application root. On
-  a deployment served under a prefix it no longer carries that prefix on the
-  first read, where it previously reported the raw browser path until the
-  first navigation. `navigation.getApplicationRoot()` reports the prefix for
-  callers that need it, such as a `fetch` built by hand.
+- `navigation.getLocation().pathname` is relative to the application root, so
+  on a deployment served under a prefix it does not carry that prefix.
+  `navigation.getApplicationRoot()` reports the prefix for callers that need
+  it, such as a `fetch` built by hand.
 
 - Permissions on a resource an extension registers with `@api` are now
   classified admin-only during role sync. `_is_gamma_pvm` is a denylist, so

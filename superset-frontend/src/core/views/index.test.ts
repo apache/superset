@@ -156,6 +156,35 @@ describe('a duplicate view id', () => {
     ]);
   });
 
+  test('the replaced entry leaves its old location index', () => {
+    // Two maps, so overwriting the registry entry without clearing the index
+    // leaves a location reporting a view that is not registered there. At
+    // `global.page` that is not merely stale: the page host resolves the id
+    // and would render the replacement, which sits elsewhere and so carries
+    // none of the page's permission options.
+    disposables.push(
+      registerView({ id: 'acme.one', name: 'Page' }, PAGE_LOCATION, component, {
+        classPermissionName: 'AcmeApi',
+        methodPermissionName: 'read',
+      }),
+    );
+    disposables.push(
+      registerView(
+        { id: 'acme.one', name: 'Panel' },
+        'sqllab.panels',
+        component,
+      ),
+    );
+
+    expect(views.getViews(PAGE_LOCATION)).toBeUndefined();
+    expect(views.getViews('sqllab.panels')).toEqual([
+      { id: 'acme.one', name: 'Panel' },
+    ]);
+    // The surviving registration named no permission, and the gate reads the
+    // registration rather than the index, so it must not inherit the page's.
+    expect(getViewOptions('acme.one')).toBeUndefined();
+  });
+
   test('disposing the replaced registration leaves the replacement alone', () => {
     // Otherwise an extension tearing down its own view would remove the one
     // that had taken its id.

@@ -17,9 +17,14 @@
  * under the License.
  */
 
-import { createElement } from 'react';
-import { MemoryRouter, Route } from 'react-router-dom';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { createElement, useEffect } from 'react';
+import { Link, MemoryRouter, Route } from 'react-router-dom';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { PAGE_LOCATION, registerView } from 'src/core/views';
 import ExtensionPage from './index';
 
@@ -177,4 +182,53 @@ test('a page registering late with a permission is checked on arrival', async ()
   await waitFor(() =>
     expect(screen.queryByText('the page')).not.toBeInTheDocument(),
   );
+});
+
+test('moving to another page remounts the view, so nothing survives the move', () => {
+  // One host route serves every page, so this component stays mounted while
+  // `:pageId` changes. Without a key that changes with the page, React sees
+  // the same element type in the same position and reuses the instance --
+  // and the error boundary inside `resolveView` keeps the error it caught,
+  // so a move from a page that threw to any other contributed page would
+  // show the first page's error until a reload.
+  //
+  // The same component is registered at both ids, because that is the case
+  // the key decides: with two different components React remounts anyway and
+  // this would pass with or without one.
+  //
+  // Navigated by clicking a `Link` inside the router rather than pushing a
+  // history of our own: `react-router-dom` here is v5 and the `history`
+  // package is v5, whose API it does not listen to, so an external push
+  // never reaches `useParams`.
+  let mounts = 0;
+  const Counting = () => {
+    useEffect(() => {
+      mounts += 1;
+    }, []);
+    return createElement('div', null, 'the page');
+  };
+  disposables.push(
+    registerView({ id: 'acme.one', name: 'One' }, PAGE_LOCATION, Counting),
+    registerView({ id: 'acme.two', name: 'Two' }, PAGE_LOCATION, Counting),
+  );
+
+  render(
+    createElement(
+      MemoryRouter,
+      { initialEntries: [at('acme.one')] },
+      createElement(Link, { to: at('acme.two') }, 'go to the other page'),
+      createElement(
+        Route,
+        { path: '/extensions/pages/:pageId' },
+        createElement(ExtensionPage),
+      ),
+    ),
+    { useRedux: true, initialState: { user: { roles: {} } } },
+  );
+  expect(mounts).toBe(1);
+
+  fireEvent.click(screen.getByText('go to the other page'));
+
+  expect(screen.getByText('the page')).toBeInTheDocument();
+  expect(mounts).toBe(2);
 });

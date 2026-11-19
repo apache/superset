@@ -170,10 +170,19 @@ export const registerView: typeof viewsApi.registerView = <Props>(
   // replaces the first. Warned and overwritten, which is the policy
   // `registerCommand` has: a view and a command behave the same way on a
   // duplicate id.
-  if (viewRegistry.has(id)) {
+  //
+  // The location index is cleared of the replaced entry as well. It is a
+  // separate map, so leaving the old id behind leaves a location reporting a
+  // view that is no longer registered there -- and at `global.page` that is
+  // not merely stale: the page host resolves the id and would render the
+  // replacement, which sits at another location and is therefore not gated
+  // by the page's permission.
+  const previous = viewRegistry.get(id);
+  if (previous) {
     logging.warn(
       `View "${id}" is already registered. Overwriting the existing view.`,
     );
+    locationIndex.get(previous.location)?.delete(id);
   }
 
   const entry = { view, location, component, options };

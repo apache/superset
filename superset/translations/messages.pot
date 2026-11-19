@@ -163,6 +163,7 @@ msgstr ""
 msgid "You do not have permission to open this page."
 msgstr ""
 
+#, python-format
 msgid "\"%s\" is now the system dark theme"
 msgstr ""
 

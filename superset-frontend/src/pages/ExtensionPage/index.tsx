@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useEffect, useState } from 'react';
+import { cloneElement, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
@@ -130,5 +130,11 @@ export default function ExtensionPage() {
     }
   }
 
-  return resolveView(pageId);
+  // Keyed on the page id. This component stays mounted while `:pageId`
+  // changes -- one route serves every page -- and the error boundary inside
+  // `resolveView` holds its caught error until it is remounted. Without a
+  // key that changes with the page, a move from a page that threw to any
+  // other contributed page keeps showing the first page's error, and only a
+  // reload clears it.
+  return cloneElement(resolveView(pageId), { key: pageId });
 }

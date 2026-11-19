@@ -380,7 +380,14 @@ describe('under a subdirectory deployment', () => {
       page({ id: 'acme.tools.review-queue', name: 'Queue' }),
     ]);
 
-    expect(entry.url).not.toBe('/analytics/analytics/review-queue');
+    // Matched against what a doubled root would actually produce. The
+    // address carries the page prefix too, so comparing with a bare
+    // `/analytics/analytics/review-queue` holds whether or not the root was
+    // applied twice.
+    expect(entry.url).not.toMatch(/^\/analytics\/analytics\//);
+    expect(entry.url).toBe(
+      '/analytics/extensions/pages/acme.tools.review-queue',
+    );
   });
 
   test('nothing is prefixed when the app serves from the domain root', () => {
