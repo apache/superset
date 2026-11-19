@@ -19,7 +19,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Iterator
 from typing import Any
 
@@ -43,8 +42,6 @@ from superset.mcp_service.canvas.tool.canvas_ops_common import (
     absolute_url,
     query_error,
 )
-
-logger = logging.getLogger(__name__)
 
 MAX_ROWS = 500
 MAX_WIDGETS = 50
@@ -113,7 +110,7 @@ def _widget_data(
     try:
         rows = run_binding(props["dataBinding"], runtime_filters).rows
     except Exception as ex:  # pylint: disable=broad-except
-        entry["error"] = query_error(ex)["error"]
+        entry.update(query_error(ex))
         return entry
     entry["row_count"] = len(rows)
     entry["columns"] = list(rows[0]) if rows else []

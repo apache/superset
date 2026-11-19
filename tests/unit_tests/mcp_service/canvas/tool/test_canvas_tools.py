@@ -352,11 +352,13 @@ def test_preview_merges_renderer_warnings_and_image() -> None:
         result, image = _preview_widget_impl(1, "chart", dark=True)
 
     assert image == "aGk="
+    assert result["rendered"] is True
     assert result["warnings"] == [
         "The widget's query returned no rows",
         "Tooltip prints [object Object]",
     ]
     assert result["image"] == "attached, 672x600 PNG"
+    assert result["option"] == {"series": []}
 
 
 def test_preview_reports_unknown_placements() -> None:
@@ -871,7 +873,7 @@ def test_preview_shows_driver_errors_only_to_who_can_view_the_query(
 
     assert result["error_type"] == "QueryError"
     assert result["error"] == (
-        f"The widget's query failed: {failure}"
+        "The widget's query failed: An error occurred while fetching the data."
         if view_query
         else "The widget's query failed."
     )

@@ -7881,6 +7881,9 @@ msgstr "Etiquette de section dynamique"
 msgid "Dynamic group by"
 msgstr "Grouper par"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Description dynamique"
 
@@ -10078,6 +10081,14 @@ msgstr "Masquer la ligne"
 msgid "Hide chart description"
 msgstr "Masquer la description du graphique"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Masquer la couche"
 
@@ -10738,9 +10749,10 @@ msgstr "État invalide."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Identifiants d'onglet non valides : %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Valeur de filtre temporel invalide pour la colonne %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20329,6 +20341,9 @@ msgstr "La façon dont les points de repères sont disposés sur l'axe X"
 msgid ""
 "The widget was changed by someone else. Reload it and apply your change "
 "to revision %(revision)s."
+msgstr ""
+
+msgid "The widget's query failed"
 msgstr ""
 
 msgid "The width of the Isoline in pixels"

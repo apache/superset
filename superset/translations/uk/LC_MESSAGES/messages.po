@@ -7906,6 +7906,9 @@ msgstr "Спрямований"
 msgid "Dynamic group by"
 msgstr "Динамічне групування"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Динамічна функція агрегації"
@@ -10104,6 +10107,14 @@ msgstr "Приховати лінію"
 msgid "Hide chart description"
 msgstr "Приховати опис діаграми"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Приховати шар"
 
@@ -10745,9 +10756,10 @@ msgstr "Неправильний стан."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Некоректні ID вкладок: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Некоректне значення часового фільтра для стовпця %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20278,6 +20290,9 @@ msgstr "Розташування поділок на осі X"
 msgid ""
 "The widget was changed by someone else. Reload it and apply your change "
 "to revision %(revision)s."
+msgstr ""
+
+msgid "The widget's query failed"
 msgstr ""
 
 msgid "The width of the Isoline in pixels"

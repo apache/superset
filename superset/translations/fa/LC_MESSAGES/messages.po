@@ -8196,6 +8196,9 @@ msgstr "جهتی"
 msgid "Dynamic group by"
 msgstr "غیر گروه‌بندی شده توسط"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "تابع تجمیع پویا"
@@ -10576,6 +10579,14 @@ msgstr "خط را پنهان کن"
 msgid "Hide chart description"
 msgstr "توضیحات نمودار را پنهان کن"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "لایه را مخفی کنید"
 
@@ -11271,9 +11282,10 @@ msgstr "وضعیت نامعتبر."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "شناسه‌های زبانه نامعتبر: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "مقدار فیلتر زمانی نامعتبر برای ستون %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21229,6 +21241,9 @@ msgstr "شیوه چیدمان تیک‌ها بر روی محور X"
 msgid ""
 "The widget was changed by someone else. Reload it and apply your change "
 "to revision %(revision)s."
+msgstr ""
+
+msgid "The widget's query failed"
 msgstr ""
 
 msgid "The width of the Isoline in pixels"

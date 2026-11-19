@@ -8145,6 +8145,9 @@ msgstr "方向"
 msgid "Dynamic group by"
 msgstr "需要進行分組的一列或多列"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "動態聚合函數"
@@ -10599,6 +10602,14 @@ msgstr "隐藏線"
 msgid "Hide chart description"
 msgstr "隐藏圖表說明"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "隐藏 Layer"
 
@@ -11309,9 +11320,10 @@ msgstr "無效狀態。"
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "無效的標籤頁 ID：%(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "欄位 %(column)s 的時間篩選值無效"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21266,6 +21278,9 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+msgid "The widget's query failed"
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "等值線的寬度（以像素為單位）"
 

@@ -61,12 +61,13 @@ const ADHOC_ORDER_DATE: QueryFormColumn = {
 
 const sunburstFormData = (
   temporalColumn: QueryFormColumn,
+  categoryColumn: QueryFormColumn = 'category',
 ): EchartsSunburstFormData => ({
   datasource: '7__table',
   viz_type: 'sunburst_v2',
   slice_id: 101,
   groupby: [],
-  columns: ['category', temporalColumn],
+  columns: [categoryColumn, temporalColumn],
   metric: 'count',
   adhoc_filters: [],
   dateFormat: 'smart_date',
@@ -75,11 +76,15 @@ const sunburstFormData = (
 });
 
 /** Right-click the Oct 2024 segment of a rendered Sunburst chart. */
-const sunburstDrillByFilters = (temporalColumn: QueryFormColumn) => {
+const sunburstDrillByFilters = (
+  temporalColumn: QueryFormColumn,
+  categoryValue = 'A',
+  categoryColumn: QueryFormColumn = 'category',
+) => {
   const onContextMenu = jest.fn();
   const props = transformProps(
     new ChartProps<EchartsSunburstFormData>({
-      formData: sunburstFormData(temporalColumn),
+      formData: sunburstFormData(temporalColumn, categoryColumn),
       width: 800,
       height: 600,
       theme: supersetTheme,
@@ -91,7 +96,13 @@ const sunburstDrillByFilters = (temporalColumn: QueryFormColumn) => {
             GenericDataType.Temporal,
             GenericDataType.Numeric,
           ],
-          data: [{ category: 'A', order_date: Date.UTC(2024, 9, 1), count: 3 }],
+          data: [
+            {
+              category: categoryValue,
+              order_date: Date.UTC(2024, 9, 1),
+              count: 3,
+            },
+          ],
         },
       ],
       hooks: { onContextMenu },
@@ -217,6 +228,7 @@ test.each(['chart', 'dashboard'])(
     expect(body.queries[0].time_range).toBe(range);
     expect(body.queries[0].filters).toEqual([
       { col: 'order_date', op: 'TEMPORAL_RANGE', val: 'No filter' },
+      { col: 'category', op: '==', val: 'A' },
       {
         col: 'order_date',
         op: '==',
@@ -307,3 +319,22 @@ test('Drill by preserves the grain of an equality filter', async () => {
     grain: 'P1M',
   });
 });
+
+test.each(['', '00123'])(
+  'Sunburst Drill by sends custom SQL ancestor string %p as a quoted literal in the modal query',
+  async value => {
+    const category: QueryFormColumn = {
+      expressionType: 'SQL',
+      sqlExpression: 'CAST(category AS TEXT)',
+      label: 'category',
+    };
+    const body = await drillByRequest(
+      sunburstFormData('order_date', category),
+      sunburstDrillByFilters('order_date', value, category),
+      'columns',
+    );
+    expect(body.queries[0].extras.where).toContain(
+      `(CAST(category AS TEXT)) = '${value}'`,
+    );
+  },
+);

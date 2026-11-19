@@ -9208,6 +9208,9 @@ msgstr "Oznaka dinamičke sekcije"
 msgid "Dynamic group by"
 msgstr "Dinamičko grupisanje po"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Opis dinamičke sekcije"
 
@@ -11810,6 +11813,14 @@ msgstr "Sakrij liniju"
 msgid "Hide chart description"
 msgstr "Sakrij opis grafikona"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Hide layer"
 msgstr "Sakrij sloj"
@@ -12576,9 +12587,10 @@ msgstr "Nevažeće stanje."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Nevažeći ID-ovi kartica: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Nevažeća vrednost vremenskog filtera za kolonu %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -23599,6 +23611,9 @@ msgid ""
 msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
+msgid "The widget's query failed"
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Širina izolinije u pikselima"
 

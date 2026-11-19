@@ -8406,6 +8406,9 @@ msgstr "Directioneel"
 msgid "Dynamic group by"
 msgstr "NOT GROUPED BY"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Dynamische Aggregatie Functie"
@@ -10844,6 +10847,14 @@ msgstr "Lijn verbergen"
 msgid "Hide chart description"
 msgstr "Grafiek beschrijving verbergen"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Laag verbergen"
 
@@ -11554,9 +11565,10 @@ msgstr "Ongeldige status."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Ongeldige tab-id's: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Ongeldige temporele filterwaarde voor kolom %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21821,6 +21833,9 @@ msgstr "De manier waarop de tikken worden uiteengezet op de X-as"
 msgid ""
 "The widget was changed by someone else. Reload it and apply your change "
 "to revision %(revision)s."
+msgstr ""
+
+msgid "The widget's query failed"
 msgstr ""
 
 msgid "The width of the Isoline in pixels"

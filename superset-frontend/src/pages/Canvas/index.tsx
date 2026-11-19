@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ComponentProps,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useParams } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
@@ -138,6 +144,29 @@ const notFound = (
   />
 );
 
+// Interaction values have the same lifetime as the body that publishes them.
+// A version preview remounts both, so its first query cannot inherit a hidden
+// selection from the previously displayed version. Drafts keep this key.
+function CanvasBodyWithValues(
+  props: Omit<ComponentProps<typeof CanvasBody>, 'values' | 'onValueChange'>,
+) {
+  const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
+  const onValueChange = useCallback(
+    (kind: canvasApi.ScopeKind, nodeId: string, value: unknown) => {
+      setValues(previous => {
+        const next = { ...previous[kind] };
+        if (value === undefined) delete next[nodeId];
+        else next[nodeId] = value;
+        return { ...previous, [kind]: next };
+      });
+    },
+    [],
+  );
+  return (
+    <CanvasBody {...props} values={values} onValueChange={onValueChange} />
+  );
+}
+
 function CanvasContent({ id }: { id: number }) {
   const metadata = useApiV1Resource<CanvasMetadata>(`/api/v1/canvas/${id}`);
   const draft = useDraftToken();
@@ -150,7 +179,6 @@ function CanvasContent({ id }: { id: number }) {
     id,
   );
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
   // The header's right-hand side, handed to the body so its toolbar lands on
   // the title row. State rather than a ref: the body renders into the node, so
   // it has to re-render once the node exists.
@@ -160,17 +188,6 @@ function CanvasContent({ id }: { id: number }) {
     state.status === 'complete' ? state.result.definition : undefined,
   );
 
-  const onValueChange = useCallback(
-    (kind: canvasApi.ScopeKind, nodeId: string, value: unknown) => {
-      setValues(previous => {
-        const next = { ...previous[kind] };
-        if (value === undefined) delete next[nodeId];
-        else next[nodeId] = value;
-        return { ...previous, [kind]: next };
-      });
-    },
-    [],
-  );
   const onPublish = useCallback(
     (kind: string, nodeId: string, value: unknown) => {
       setEvents(previous => {
@@ -300,13 +317,11 @@ function CanvasContent({ id }: { id: number }) {
             onClose={history.showCurrent}
           />
         )}
-        <CanvasBody
-          key={preview?._version.version_uuid ?? 'current'}
+        <CanvasBodyWithValues
+          key={`${id}:${preview?._version.version_uuid ?? 'current'}`}
           canvasId={id}
           result={shown}
           reload={reload}
-          values={values}
-          onValueChange={onValueChange}
           events={events}
           onPublish={onPublish}
           refreshKeys={refreshKeys}

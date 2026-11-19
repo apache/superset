@@ -31,6 +31,7 @@ from sqlalchemy.orm.session import Session
 
 from superset.canvas.data import PlacementData, query_context_payload, RuntimeFilter
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.canvas import Canvas
 from superset.models.core import Database
@@ -189,7 +190,13 @@ def test_data_follows_canvas_read_access(
 def test_without_dataset_access(
     client: Any, full_api_access: None, canvas: Any, run_binding: MagicMock
 ) -> None:
-    run_binding.side_effect = SupersetSecurityException(MagicMock())
+    run_binding.side_effect = SupersetSecurityException(
+        SupersetError(
+            message="Dataset access denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
 
     assert client.post(URL.format("chart"), json={}).status_code == 403
 
@@ -201,6 +208,31 @@ def test_rejects_malformed_filters(
         URL.format("chart"),
         json={"runtime_filters": [{"datasetId": 13, "column": "", "values": "FR"}]},
     )
+
+    assert response.status_code == 400
+    run_binding.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        pytest.param({"datasetId": 99}, id="dataset"),
+        pytest.param({"dataBinding": {"datasetId": 99}}, id="binding"),
+        pytest.param({"datasource": {"id": 99, "type": "table"}}, id="datasource"),
+        pytest.param({"user_id": 1}, id="user"),
+        pytest.param({"actor": {"id": 1}}, id="actor"),
+        pytest.param({"async": True}, id="async"),
+    ],
+)
+def test_placement_request_cannot_replace_source_or_actor(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    override: dict[str, Any],
+) -> None:
+    """Reject execution context supplied outside the stored placement binding."""
+    response = client.post(URL.format("chart"), json=override)
 
     assert response.status_code == 400
     run_binding.assert_not_called()
@@ -579,3 +611,68 @@ def test_initial_create_failure_leaves_no_persisted_objects(
     if error_path is not None:
         assert any(error["path"] == error_path for error in result["errors"])
     assert published_state(session) == before
+
+
+@pytest.mark.parametrize("family", ["canvas", "future", "query-shaped", "unexpected"])
+def test_command_does_not_classify_definition_validation_failures(
+    mocker: MockerFixture,
+    family: str,
+) -> None:
+    """Only query execution failures belong to the query transport contract."""
+    from superset.commands.canvas.exceptions import CanvasInvalidError
+    from superset.commands.canvas.placement_data import GetPlacementDataCommand
+    from superset.exceptions import QueryObjectValidationError
+
+    class FutureCanvasValidationError(CanvasInvalidError):
+        """A later Canvas validation error must not require an API allowlist."""
+
+    error = {
+        "canvas": CanvasInvalidError(),
+        "future": FutureCanvasValidationError(),
+        "query-shaped": QueryObjectValidationError("Invalid definition field"),
+        "unexpected": RuntimeError("Definition resolution failed"),
+    }[family]
+    mocker.patch.object(GetPlacementDataCommand, "validate", side_effect=error)
+    query = mocker.patch("superset.commands.canvas.placement_data.run_binding")
+
+    with pytest.raises(type(error)) as exc_info:
+        GetPlacementDataCommand("100", "chart", []).run()
+
+    assert exc_info.value is error
+    query.assert_not_called()
+
+
+def test_command_query_failure_retains_classification_and_original_traceback(
+    mocker: MockerFixture,
+) -> None:
+    """A validated binding wraps only its query error, preserving the cause."""
+    from superset.canvas.query_errors import CanvasQueryFailedError
+    from superset.commands.canvas.placement_data import GetPlacementDataCommand
+    from superset.exceptions import SupersetParseError
+
+    mocker.patch("superset.security_manager.is_guest_user", return_value=False)
+    validated = False
+
+    def validate() -> None:
+        nonlocal validated
+        validated = True
+
+    error = SupersetParseError("SELECT broken", message="Repair the saved expression")
+
+    def query(*args: Any) -> None:
+        assert validated
+        raise error
+
+    mocker.patch.object(GetPlacementDataCommand, "validate", side_effect=validate)
+    mocker.patch(
+        "superset.commands.canvas.placement_data.run_binding", side_effect=query
+    )
+    with pytest.raises(CanvasQueryFailedError) as exc_info:
+        GetPlacementDataCommand("100", "chart", []).run()
+
+    assert exc_info.value.__cause__ is error
+    assert exc_info.value.error.status == 422
+    assert exc_info.value.error.error_type == "QueryError"
+    assert (
+        exc_info.value.error.errors[0].error_type == SupersetErrorType.INVALID_SQL_ERROR
+    )

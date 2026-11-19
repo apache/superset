@@ -291,15 +291,57 @@ Published canvas links use the canonical slug (or ID). Draft links retain
 link. Creating a canvas with initial operations returns both `url` and
 `draft_url`, and previewing a draft links to that draft's authorized canvas.
 
-Returned Canvas failures include `error` and a stable `error_type`, including
-the existing validation and revision-conflict recovery categories. MCP metrics
-count these returned errors as failures. Preview warnings alone remain
-successful results, including an unavailable optional renderer; an explicit
-renderer error carries `RendererError`. Dataset access denied during preview
-returns `DatasetNotAccessible` without query results or an image. Other query
-failures, including disallowed SQL subqueries, retain `QueryError`.
-Unavailable canvases and drafts do not return identifying URLs. Canvas tools
-remain subject to the `CANVAS` feature flag and their existing permission checks.
+Returned Canvas failures retain their validation and revision-conflict recovery
+categories. REST placement queries, `preview_widget`, and `get_canvas_data` share
+query-error classification based on the outermost exception, never its nested
+cause. Datasource, table or database access denials return generic access text
+and `DatasetNotAccessible`; REST returns 403. Query validation, including a
+disallowed SQL subquery, returns `QueryError` and REST 400, even when a nested
+cause is a security exception. Other security refusals retain their status;
+cache-load failures return REST 422. Structured Superset errors preserve their
+status and sanitized details, including parse diagnostics and OAuth reconnect
+metadata. OAuth redirects retain authorization guidance in MCP responses.
+Unexpected failures remain REST 500 with a generic message and server-side
+tracebacks. `get_canvas_data` reports `error` and `error_type` on
+each failed widget without its rows, columns or row count.
+
+Query diagnostics use Superset's existing principal-sensitive sanitizers:
+source-authorized non-guests retain actionable known query diagnostics, while
+guest-sensitive paths apply the existing redaction policy. MCP diagnostic text
+also requires `can_view_query`; security refusals use fixed messages, and missing
+datasets read the same as inaccessible ones. OAuth reconnect guidance remains
+available without query-text permission. This does not grant
+guests Canvas access. Visible non-OAuth MCP query diagnostics retain the `The widget's query failed: `
+prefix so clients can recognize repairable input failures. An invalid saved
+dataset expression may require a dataset change; editing the widget does not
+repair that saved expression.
+
+MCP metrics count returned preview errors as failures. Warnings alone remain
+successful tool results, including an unavailable optional renderer. A successful
+renderer result retains its image and option alongside up to ten actionable
+warning strings, each limited to 500 characters. Warnings require review; tool
+success alone must not be presented as successful visual verification. The
+operator-configured renderer's nonempty string error is an application repair
+hint: it is limited to 500 characters and returned with `RendererError` and the
+resolved option, when that option is an object. These failed renders set
+`rendered: false` and return no image, even if the response contained one.
+Transport, HTTP and decoding failures, non-object responses, and malformed error
+payloads instead return fixed
+guidance that the chart was not visually checked, without publishing exception
+details or an option. Clients can keep these unavailable visual checks as notes
+while treating structured renderer errors as actionable chart problems.
+
+The Canvas client clears prior rows and query text when runtime filter values,
+the binding, or the Canvas, placement, draft or version context changes. A filter
+change starts a new query, so results from the previous selection are hidden while
+it is pending. Background refreshes of the same binding, filter values and context
+retain current rows and query text until a result or denial arrives. Filter
+controls discard old options when their source or context changes; a changed
+binding applies its new default, while draft transitions retain selections for
+unchanged bindings. Canvas and version changes reset parent filter state.
+Delayed responses cannot restore the previous source's state. Unavailable
+canvases and drafts do not return identifying URLs. Canvas tools remain subject
+to the `CANVAS` feature flag and their existing permission checks.
 
 ### Response Format
 
@@ -702,6 +744,34 @@ governance concern from layout/theme/metadata edits.
   to clear.
 - The response's `changed_fields` lists which fields were actually applied.
 
+## Native filter dataset updates
+
+When `manage_native_filters` changes a time-column or time-grain filter's
+`dataset_id`, it clears the saved default if the selected temporal column or
+time grain is unavailable in the replacement dataset. Compatible defaults are
+preserved. These two filter types target a dataset, not a column, so adding one
+with a `column` is rejected rather than storing a filter without it.
+
+Setting `dataset_id` on a semantic-view-bound select, numerical-range,
+time-grain, or time-column filter switches its target to a SQL dataset and
+clears its semantic default mask, including selection sources even if the
+stored value is null. Required select filters rebuild their empty-selection
+predicate for the SQL target. An explicit select default in the same update
+replaces the semantic default instead.
+
+All new-filter specs (select, time range, numerical range, time grain, time
+column, and divider) share the update path's type-specific field validation.
+Non-null inapplicable fields are rejected, including `False` and empty lists;
+null remains equivalent to omission. In particular, `default_value` and the
+select-only flags are only accepted for select filters, `default_time_range`
+is only accepted for time-range filters, and dividers reject type-specific
+fields and chart scope. The rule lives in `validate_native_filter_type_fields`
+in `superset/mcp_service/dashboard/schemas.py`.
+
+`apply_dashboard_filters` resolves a time-column or time-grain filter's dataset
+with the same dashboard-bound check the filter bar uses to list its options, so
+a dashboard viewer who can pick a value in the filter bar can apply it here.
+
 ## Native filter choice discovery
 
 `get_dashboard_info` can discover the dropdown choices a caller is authorized to
@@ -830,6 +900,15 @@ column's type, such as `"true"` for a boolean column or `"\t1\n"` for a numeric
 column, as described above. Range, time, and time-grain parents whose state
 carries predicates without a typed value return `parent_unresolved`, as select
 parents do. Analytical tools keep their existing dashboard scope.
+
+Invalid time-column selections and native-filter column targets include available
+column names in errors only for callers with data-model metadata access.
+For restricted callers, invalid time-column selections use the same neutral error
+for absent, non-temporal, and ambiguous column names, and the
+`apply_dashboard_filters` response omits the applied time column, as
+`get_dashboard_info` does.
+Unknown-value errors also omit the configured target column for restricted callers;
+filter-value suggestions retain their existing data-access checks.
 
 Virtual dataset SQL renders Jinja against the same form data as the dashboard
 dropdown, including the snapshot's `urlParams` (except `standalone` and `edit`),
