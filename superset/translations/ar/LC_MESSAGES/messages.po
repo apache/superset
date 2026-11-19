@@ -10909,6 +10909,14 @@ msgstr "إخفاء الخط"
 msgid "Hide chart description"
 msgstr "إخفاء وصف المخطط"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "إخفاء الطبقة"
 
