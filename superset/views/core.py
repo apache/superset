@@ -537,8 +537,8 @@ class Superset(BaseSupersetView):
                 db.session.query(SqlaTable)
                 .join(Database)
                 .filter(
-                    Database.database_name == db_name
-                    or SqlaTable.table_name == table_name
+                    Database.database_name == db_name,
+                    SqlaTable.table_name == table_name,
                 )
             ).one_or_none()
             if not table:
