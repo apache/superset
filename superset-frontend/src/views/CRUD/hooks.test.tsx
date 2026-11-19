@@ -737,9 +737,9 @@ test('useListViewResource: realtime reconciles displayed rows on reconnect', asy
   expect(endpoint).toContain('opr:in');
 });
 
-test('useListViewResource: realtime does NOT reconcile on a keepalive reconnect', async () => {
-  // A seamless keepalive token refresh must not trigger a full displayed-row
-  // re-fetch every cycle — only a real `reconnect` (drop recovery) reconciles.
+test('useListViewResource: realtime does NOT reconcile on the initial connect', async () => {
+  // The rows were just fetched, so the first connect must not trigger a full
+  // displayed-row re-fetch — only a real `reconnect` (drop recovery) reconciles.
   const initial = [{ id: 1, name: 'A' }];
   const getSpy = jest
     .spyOn(SupersetClient, 'get')
@@ -775,9 +775,9 @@ test('useListViewResource: realtime does NOT reconcile on a keepalive reconnect'
 
   const callsBefore = getSpy.mock.calls.length;
   act(() => {
-    emitRealtimeOpenForTests('keepalive');
+    emitRealtimeOpenForTests('initial');
   });
-  // No reconcile fetch for a keepalive reconnect.
+  // No reconcile fetch for the initial connect.
   await new Promise(resolve => {
     setTimeout(resolve, 50);
   });

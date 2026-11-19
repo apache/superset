@@ -304,3 +304,15 @@ test('getChartDataPayloads merges baseOwnState with converted chart state', asyn
     }),
   );
 });
+
+test('embedded payload assembly receives cross-filter datasource metadata', async () => {
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  await getChartDataPayloads(mockState as RootState);
+  expect(getFormDataWithExtraFilters).toHaveBeenCalledWith(
+    expect.objectContaining({
+      sourceDatasources: { 123: '1__table', 456: '2__table' },
+    }),
+  );
+});
