@@ -249,3 +249,40 @@ test('does not emit filtered rows while the column count is zero', async () => {
 
   expect(onFilteredRowsChange).not.toHaveBeenCalled();
 });
+
+// A row that carries a stable id must still change the signature when another
+// of its values changes; otherwise the edit is never reported to the caller.
+test('emits filtered rows again when a value changes on a row with a stable id', async () => {
+  type IdRow = { id: number; v: string };
+  const idColumns: Column<IdRow>[] = [
+    { Header: 'id', id: 'id', accessor: 'id' },
+    { Header: 'v', id: 'v', accessor: 'v' },
+  ];
+  const onFilteredRowsChange = jest.fn();
+  const renderIdRows = (rows: IdRow[]) => (
+    <ProviderWrapper>
+      <DataTable<IdRow>
+        columns={idColumns}
+        data={rows}
+        rowCount={rows.length}
+        serverPagination={false}
+        serverPaginationData={{}}
+        onServerPaginationChange={jest.fn()}
+        handleSortByChange={jest.fn()}
+        sortByFromParent={[]}
+        onSearchColChange={jest.fn()}
+        searchOptions={[]}
+        onFilteredRowsChange={onFilteredRowsChange}
+        sticky={false}
+      />
+    </ProviderWrapper>
+  );
+
+  const { rerender } = render(renderIdRows([{ id: 1, v: 'a' }]));
+  await flushRaf();
+  expect(onFilteredRowsChange).toHaveBeenCalledTimes(1);
+
+  rerender(renderIdRows([{ id: 1, v: 'b' }]));
+  await flushRaf();
+  expect(onFilteredRowsChange).toHaveBeenCalledTimes(2);
+});
