@@ -80,6 +80,7 @@ export function resolveLegendLayout(args: {
   chartWidth: number;
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
+  maxLabelWidth?: number;
   orientation: LegendOrientation;
   show: boolean;
   showSelectors?: boolean;
