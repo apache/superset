@@ -51,6 +51,7 @@ class SemanticQueryErrorCode(str, Enum):
 
     UNSUPPORTED_QUERY = "UNSUPPORTED_QUERY"
     UNSUPPORTED_OFFSET = "UNSUPPORTED_OFFSET"
+    UNSUPPORTED_GROUP_OTHERS_METRIC = "UNSUPPORTED_GROUP_OTHERS_METRIC"
     INVALID_FILTER = "INVALID_FILTER"
     INVALID_QUERY = "INVALID_QUERY"
 
@@ -74,3 +75,19 @@ class SemanticQueryRejectedError(Exception):
     def __str__(self) -> str:
         """Return a stable explanation without arbitrary provider text."""
         return "Semantic query rejected."
+
+
+class SemanticBackendError(Exception):
+    """Signal execution or invalid-result failure without provider diagnostics.
+
+    Use query rejection for invalid input, completeness for uncertain coverage,
+    and let ProviderRequestError retain its safe transport detail. Translate
+    backend failures with ``raise SemanticBackendError() from None``.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def __str__(self) -> str:
+        """Return fixed text independent of provider diagnostics."""
+        return "Semantic provider execution failed."

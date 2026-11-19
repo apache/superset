@@ -18,6 +18,7 @@
  */
 import { useCallback, useState, useMemo, useEffect, useRef } from 'react';
 import rison from 'rison';
+import { uniq, uniqBy } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   Column,
@@ -93,25 +94,30 @@ export function ColumnSelect({
     ]);
   }, [form, filterId, formField]);
 
-  // The names backing the rendered options: the loaded columns narrowed by
+  // The unique names backing the rendered options: the loaded columns narrowed by
   // `filterValues`, the same narrowing the option list applies, so a default
   // seeded through onColumnsLoaded matches the available options exactly.
   const filterColumnNames = useCallback(
     (cols: Column[]) =>
-      ensureIsArray(cols)
-        .filter(filterValues)
-        .map((col: Column) => col.column_name),
+      uniq(
+        ensureIsArray(cols)
+          .filter(filterValues)
+          .map((col: Column) => col.column_name),
+      ),
     [filterValues],
   );
 
   const options = useMemo(
     () =>
-      ensureIsArray(columns)
-        .filter(filterValues)
-        .map((col: Column) => ({
-          label: (showVerboseNames && col.verbose_name) || col.column_name,
-          value: col.column_name,
-        })),
+      uniqBy(
+        ensureIsArray(columns)
+          .filter(filterValues)
+          .map((col: Column) => ({
+            label: (showVerboseNames && col.verbose_name) || col.column_name,
+            value: col.column_name,
+          })),
+        'value',
+      ),
     [columns, filterValues, showVerboseNames],
   );
 
