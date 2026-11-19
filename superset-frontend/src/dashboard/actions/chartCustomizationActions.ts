@@ -22,6 +22,7 @@ import { t } from '@apache-superset/core/translation';
 import {
   makeApi,
   SupersetApiError,
+  parseErrorJson,
   ChartCustomization,
   ChartCustomizationDivider,
   ColumnOption,
@@ -183,7 +184,9 @@ export function saveChartCustomization(
       const original = apiError?.originalError;
       const message =
         original && typeof original === 'object' && 'message' in original
-          ? original.message
+          ? typeof original.message === 'object'
+            ? parseErrorJson({ message: original.message }).error
+            : original.message
           : err instanceof Error
             ? err.message
             : undefined;
