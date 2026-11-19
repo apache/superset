@@ -1685,7 +1685,33 @@ class PivotData {
 
   getColKeys(): string[][] {
     this.sortKeys();
-    return this.colKeys;
+    if (!this.props.hideEmptyColumns) return this.colKeys;
+
+    // Filter display keys only. Keep every aggregator and record available to
+    // totals, fraction denominators and drill filters. A zero is not empty.
+    const populated = new Set<string>();
+    const collect = (cells: Record<string, Aggregator>) => {
+      Object.entries(cells).forEach(([key, aggregator]) => {
+        // Test the underlying metric before percentage formatting. A zero
+        // numerator must keep its column even when its denominator is zero.
+        const metric = (aggregator as FractionDenominator).inner ?? aggregator;
+        if (metric.value() != null) populated.add(key);
+      });
+    };
+    Object.values(this.tree).forEach(collect);
+    collect(this.colTotals);
+
+    // Retain a parent header when a child has a value, even if the parent's
+    // own aggregate is null (for example an undefined ratio).
+    const visible = new Set<string>();
+    this.colKeys.forEach(key => {
+      if (populated.has(flatKey(key))) {
+        for (let depth = 1; depth <= key.length; depth += 1) {
+          visible.add(flatKey(key.slice(0, depth)));
+        }
+      }
+    });
+    return this.colKeys.filter(key => visible.has(flatKey(key)));
   }
 
   getRowKeys(): string[][] {

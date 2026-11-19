@@ -375,13 +375,15 @@ def test_unbound_charts_get_dashboard_temporal_filter(
     expected_subject: str,
 ) -> None:
     mock_find_dataset.return_value = SimpleNamespace(main_dttm_col="order_date")
-    mock_is_temporal.side_effect = lambda column, dataset_id, dataset=None: (
-        column
-        in {
-            "created_at",
-            "event_time",
-            "order_date",
-        }
+    mock_is_temporal.side_effect = (
+        lambda column, dataset_id, dataset=None, temporal_columns=None: (
+            column
+            in {
+                "created_at",
+                "event_time",
+                "order_date",
+            }
+        )
     )
 
     form_data = map_config_to_form_data(config, dataset_id=42)
