@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:13-0700\n"
+"POT-Creation-Date: 2026-11-19 09:45+1100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2785,6 +2785,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr ""
 
+msgid "Break"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr ""
 
@@ -4370,6 +4373,10 @@ msgid "Could not load database driver for: %(engine)s"
 msgstr ""
 
 msgid "Could not load metadata for this configuration; showing the default form. See the server logs for details."
+msgstr ""
+
+#, python-format
+msgid "Could not load the stored secrets: %s"
 msgstr ""
 
 msgid "Could not parse the CSS to convert @import rules. Check for syntax errors and try again."
@@ -5983,6 +5990,9 @@ msgstr ""
 msgid "Dynamic group by"
 msgstr ""
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr ""
 
@@ -6335,6 +6345,10 @@ msgid "End date must be after start date"
 msgstr ""
 
 msgid "Ends With"
+msgstr ""
+
+#, python-format
+msgid "Ends with %s."
 msgstr ""
 
 #, python-format
@@ -6718,6 +6732,14 @@ msgid "Experimental"
 msgstr ""
 
 msgid "Expired"
+msgstr ""
+
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
 msgstr ""
 
 msgid "Expires on"
@@ -7680,6 +7702,9 @@ msgstr ""
 msgid "Group remaining as \"Others\""
 msgstr ""
 
+msgid "Group remaining as \"Others\" cannot be calculated for this metric on a semantic view. Turn it off, or choose a sum, count, minimum, or maximum metric."
+msgstr ""
+
 msgid "Groupable columns"
 msgstr ""
 
@@ -7749,6 +7774,12 @@ msgstr ""
 msgid "Hide chart description"
 msgstr ""
 
+msgid "Hide columns with only null metric values. Keep columns with zeros or non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr ""
 
@@ -7810,6 +7841,9 @@ msgid "Hours offset"
 msgstr ""
 
 msgid "How do you want to enter service account credentials?"
+msgstr ""
+
+msgid "How labels wider than the max width are shortened. \"Truncate\" cuts the label and adds an ellipsis. \"Break\" wraps the label onto additional lines."
 msgstr ""
 
 msgid "How many buckets should the data be grouped in."
@@ -8424,6 +8458,12 @@ msgid "Label Contents"
 msgstr ""
 
 msgid "Label Line"
+msgstr ""
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
 msgstr ""
 
 msgid "Label Position"
@@ -9187,6 +9227,9 @@ msgstr ""
 msgid "Maximum value on the gauge axis"
 msgstr ""
 
+msgid "Maximum width (in pixels) of each line of a slice label. Set to 0 for no limit."
+msgstr ""
+
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr ""
 
@@ -9850,6 +9893,9 @@ msgstr ""
 msgid "No description available."
 msgstr ""
 
+msgid "No ending is available for this secret."
+msgstr ""
+
 msgid "No entities have this tag currently assigned"
 msgstr ""
 
@@ -10074,6 +10120,9 @@ msgid "Not all required fields are complete. Please provide the following:"
 msgstr ""
 
 msgid "Not available"
+msgstr ""
+
+msgid "Not available while editing. Save or discard your changes to export."
 msgstr ""
 
 msgid "Not currently mapped to the partition column."
@@ -10345,6 +10394,10 @@ msgid "Only single queries supported"
 msgstr ""
 
 msgid "Only the default catalog is supported for this connection"
+msgstr ""
+
+#, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
 msgstr ""
 
 #, python-format
@@ -11358,6 +11411,9 @@ msgid "Re-pick fields"
 msgstr ""
 
 msgid "Re-pick fields for this chart"
+msgstr ""
+
+msgid "Read from the token's exp claim."
 msgstr ""
 
 msgid "Rearranged layout"
@@ -13934,6 +13990,10 @@ msgstr ""
 msgid "Storage key exceeds the maximum allowed length of %(max_length)d characters."
 msgstr ""
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 msgid "Stream"
 msgstr ""
 
@@ -14369,7 +14429,7 @@ msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr ""
 
 #, python-format
-msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer, but received %(value)s. Enter a whole number of seconds (0 or greater) under Advanced > Performance."
 msgstr ""
 
 #, python-format
@@ -14640,7 +14700,13 @@ msgstr ""
 msgid "The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache."
 msgstr ""
 
+msgid "The embedded guest private key could not be read. Provide a PEM private key and its correct passphrase (leave the passphrase empty for an unencrypted key)."
+msgstr ""
+
 msgid "The encoding format of the lines"
+msgstr ""
+
+msgid "The ending is hidden because the secret is too short."
 msgstr ""
 
 msgid "The engine_params object gets unpacked into the sqlalchemy.create_engine call."
@@ -15100,6 +15166,14 @@ msgid "The time unit for each block. Should be a smaller unit than domain_granul
 msgstr ""
 
 msgid "The time unit used for the grouping of blocks"
+msgstr ""
+
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
 msgstr ""
 
 msgid "The transform answered with a value the driver and the database do not agree on how to write into a query, so the mirrored predicate would ask for a partition key no row holds. A transform whose result carries neither a quote nor a backslash still mirrors."
@@ -16079,6 +16153,9 @@ msgstr ""
 msgid "Time comparison"
 msgstr ""
 
+msgid "Time comparison is not yet supported on semantic views. Remove the time shift and try again."
+msgstr ""
+
 msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
@@ -16230,6 +16307,12 @@ msgstr ""
 msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
 msgstr ""
 
+msgid "Too short"
+msgstr ""
+
+msgid "Too short to show safely"
+msgstr ""
+
 msgid "Tool Panel"
 msgstr ""
 
@@ -16344,6 +16427,9 @@ msgid "Trigger now"
 msgstr ""
 
 msgid "True"
+msgstr ""
+
+msgid "Truncate"
 msgstr ""
 
 msgid "Truncate Axis"

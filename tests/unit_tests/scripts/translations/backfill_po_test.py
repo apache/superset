@@ -60,6 +60,12 @@ def test_is_valid_lang_code_rejects_malformed_and_traversal(lang: str) -> None:
     assert not backfill_po._is_valid_lang_code(lang)
 
 
+def test_lang_name_names_the_script_for_both_serbian_catalogs() -> None:
+    """``sr`` is Cyrillic and ``sr_Latn`` is Latin; the prompt must say which."""
+    assert "Cyrillic" in backfill_po._lang_name("sr")
+    assert "Latin" in backfill_po._lang_name("sr_Latn")
+
+
 def test_parse_response_singular_strings() -> None:
     """A flat object of int-keyed strings is returned as-is."""
     text = '{"0": "hola", "1": "mundo"}'

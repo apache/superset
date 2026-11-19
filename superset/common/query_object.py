@@ -465,6 +465,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     ) -> QueryObjectValidationError | None:
         """Validate query object"""
         try:
+            self.validate_semantic_time_offsets()
             self._validate_semantic_view_extras()
             if self.datasource and self.datasource.type == "semantic_view":
                 implementation: SemanticViewABC = cast(
@@ -510,6 +511,28 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             if raise_exceptions:
                 raise
             return ex
+
+    def validate_semantic_time_offsets(self) -> None:
+        """Refuse unsupported comparisons before provider discovery or cache reads."""
+        if (
+            self.time_offsets
+            and self.datasource
+            and self.datasource.type == "semantic_view"
+        ):
+            # Import here to avoid the semantic model/QueryObject import cycle.
+            from superset_core.semantic_layers.errors import SemanticQueryErrorCode
+
+            from superset.semantic_layers.exceptions import (
+                SemanticLayerQueryRejectedError,
+            )
+
+            raise SemanticLayerQueryRejectedError(
+                SemanticQueryErrorCode.UNSUPPORTED_QUERY,
+                message=_(
+                    "Time comparison is not yet supported on semantic views. "
+                    "Remove the time shift and try again."
+                ),
+            )
 
     def _validate_semantic_view_extras(self) -> None:
         """Reject unsupported SQL clauses before resolving a semantic provider."""

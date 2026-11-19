@@ -103,7 +103,6 @@ FRONTEND_CONF_KEYS = (
     "GLOBAL_ASYNC_QUERIES_DEFAULT",
     "WEBSOCKET_ENABLE",
     "WEBSOCKET_URL",
-    "WEBSOCKET_JWT_EXPIRATION_SECONDS",
     "SQL_VALIDATORS_BY_ENGINE",
     "SQLALCHEMY_DOCS_URL",
     "SQLALCHEMY_DISPLAY_TEXT",
@@ -696,13 +695,26 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     return bootstrap_data
 
 
-def common_bootstrap_payload() -> dict[str, Any]:
+def common_bootstrap_payload(gate_realtime: bool = True) -> dict[str, Any]:
+    """
+    Common bootstrap data for the current user and locale.
+
+    :param gate_realtime: report ``WEBSOCKET_ENABLE`` only when the current user
+        holds the realtime permission. Pages rendered before their principal is
+        known (the embedded shell, whose guest authenticates afterwards) pass
+        ``False`` to carry the configured value; the ticket endpoint then decides
+        whether that principal gets a socket.
+    """
     locale = get_locale()
     # Convert locale to string for proper cache key hashing
     locale_str = str(locale) if locale else None
     payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
     frontend_config = payload.get("conf")
-    if isinstance(frontend_config, dict) and frontend_config.get("WEBSOCKET_ENABLE"):
+    if (
+        gate_realtime
+        and isinstance(frontend_config, dict)
+        and frontend_config.get("WEBSOCKET_ENABLE")
+    ):
         payload["conf"] = {
             **frontend_config,
             "WEBSOCKET_ENABLE": can_access_realtime_notifications(),
