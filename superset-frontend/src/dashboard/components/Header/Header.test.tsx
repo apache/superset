@@ -1384,3 +1384,47 @@ test.each(headerActionsMenuVisibilityCases)(
     window.featureFlags = {};
   },
 );
+
+// The browser-side PDF / image export captures the `.dashboard` element. In
+// edit mode that element also contains the builder side pane, so the export
+// would include editing chrome. The client-side exports must therefore be
+// unavailable while editing.
+const openDownloadSubmenu = async () => {
+  await openActionsDropdown();
+  await userEvent.hover(screen.getByText('Download'));
+  await screen.findByText('Export to PDF');
+};
+
+// Without `can_csv` the export items are disabled for permission reasons,
+// which would mask the edit-mode behavior under test.
+const canExportState = {
+  user: { ...initialState.user, roles: { Admin: [['can_csv', 'Superset']] } },
+};
+
+const menuItemFor = (label: string) =>
+  screen.getByText(label).closest('[role="menuitem"]') as HTMLElement;
+
+test('client-side PDF and image exports are enabled outside edit mode', async () => {
+  window.featureFlags = {};
+  setup(canExportState);
+  await openDownloadSubmenu();
+  expect(menuItemFor('Export to PDF')).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  expect(menuItemFor('Download as Image')).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test('client-side PDF and image exports are unavailable in edit mode', async () => {
+  window.featureFlags = {};
+  setup({ ...editableState, ...canExportState });
+  await openDownloadSubmenu();
+  expect(menuItemFor('Export to PDF')).toHaveAttribute('aria-disabled', 'true');
+  expect(menuItemFor('Download as Image')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});

@@ -1240,6 +1240,45 @@ def test_native_filter_value_projection_fails_closed(
     assert result["native_filter_values_incomplete"] is True
 
 
+def test_time_column_selection_is_withheld_from_restricted_callers() -> None:
+    """A real time column mask names a column, which is data-model metadata.
+
+    Restricted callers get the display values of the other filters, but never
+    the selected column, and the response says the summary is incomplete.
+    """
+    result = redact_filter_state_data_model_metadata(
+        {
+            "dataMask": {
+                "time_column": {
+                    "id": "time_column",
+                    "filterState": {"value": ["secret_ship_date"]},
+                    "extraFormData": {"granularity_sqla": "secret_ship_date"},
+                },
+                "region": {
+                    "filterState": {"value": ["EMEA"], "label": "EMEA"},
+                    "extraFormData": {
+                        "filters": [
+                            {"col": "secret_region", "op": "IN", "val": ["EMEA"]}
+                        ]
+                    },
+                },
+            }
+        },
+        [
+            NativeFilterSummary(
+                id="time_column", name="Date column", filter_type="filter_timecolumn"
+            ),
+            NativeFilterSummary(
+                id="region", name="Region", filter_type="filter_select"
+            ),
+        ],
+    )
+
+    assert [item["id"] for item in result["native_filter_values"]] == ["region"]
+    assert result["native_filter_values_incomplete"] is True
+    assert "secret_ship_date" not in str(result)
+
+
 @pytest.mark.parametrize("mask", [None, [], "invalid", {}])
 def test_native_filter_value_projection_empty_or_malformed_mask(mask: Any) -> None:
     """Distinguish an empty mask from malformed input without raising."""
@@ -1687,3 +1726,58 @@ def test_dashboard_self_ownership_schema_describes_direct_membership() -> None:
     assert "roles or groups" in description
     assert "OR" in description
     assert ListDashboardsRequest(edited_by_me=True).edited_by_me is True
+
+
+@pytest.mark.parametrize(
+    "filter_type,target",
+    [
+        ("filter_select", {"dataset_id": 5, "column": "amount"}),
+        ("filter_range", {"dataset_id": 5, "column": "amount"}),
+        ("filter_time", {}),
+        ("filter_timegrain", {"dataset_id": 5}),
+        ("filter_timecolumn", {"dataset_id": 5}),
+        ("divider", {}),
+    ],
+)
+def test_new_native_filter_inapplicable_fields_match_updates(
+    filter_type: str, target: dict[str, Any]
+) -> None:
+    """Every new-filter sibling accepts/rejects the same fields as updates."""
+    from superset.mcp_service.dashboard.schemas import ManageNativeFiltersRequest
+    from superset.mcp_service.dashboard.tool.manage_native_filters import (
+        _FilterValidationError,
+        _validate_update_type_compat,
+    )
+
+    values: dict[str, Any] = {
+        "dataset_id": 5,
+        "column": "amount",
+        "multi_select": False,
+        "default_to_first_item": False,
+        "enable_empty_filter": False,
+        "sort_ascending": False,
+        "search_all_options": False,
+        "default_value": [],
+        "default_time_range": "Last week",
+        "scope_chart_ids": [],
+    }
+    base = {"filter_type": filter_type, "name": "Filter", **target}
+    for field, value in values.items():
+        try:
+            _validate_update_type_compat(
+                NativeFilterUpdateSpec(id="existing", **{field: value}),
+                filter_type if filter_type != "divider" else None,
+                is_divider=filter_type == "divider",
+            )
+        except _FilterValidationError:
+            with pytest.raises(ValidationError, match=field):
+                ManageNativeFiltersRequest(dashboard_id=1, add=[{**base, field: value}])
+            # Updates treat null as omitted, so adds must do the same.
+            _validate_update_type_compat(
+                NativeFilterUpdateSpec(id="existing", **{field: None}),
+                filter_type if filter_type != "divider" else None,
+                is_divider=filter_type == "divider",
+            )
+            ManageNativeFiltersRequest(dashboard_id=1, add=[{**base, field: None}])
+        else:
+            ManageNativeFiltersRequest(dashboard_id=1, add=[{**base, field: value}])
