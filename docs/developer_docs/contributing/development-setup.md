@@ -81,6 +81,12 @@ patient while the process completes, as long wait times do not indicate an issue
 If delays seem excessive, check your internet connection or system resources.
 :::
 
+The frontend memory check warns when available memory falls below its 3 GB minimum.
+On Linux, it uses the lower of host available memory and the container's remaining
+memory under a finite cgroup v1 or v2 limit. Missing or unlimited cgroup limits
+fall back to host memory. To test without Docker, run `bash docker/frontend-mem-nag-test.sh`;
+`MEMINFO_FILE` and `CGROUP_ROOT` can override the memory check's input paths.
+
 :::caution
 Since `docker compose` is primarily designed to run a set of containers on **a single host**
 and can't credibly support **high availability** as a result, we do not support nor recommend

@@ -29,16 +29,45 @@ echo_mem_warn() {
     return
   fi
 
+  # Allow memory fixtures to be used without Docker.
+  local meminfo_file="${MEMINFO_FILE:-/proc/meminfo}"
+
   # Check platform and get memory accordingly
-  if [[ -f /proc/meminfo ]]; then
+  if [[ -f "$meminfo_file" ]]; then
     # Linux
-    if grep -q MemAvailable /proc/meminfo; then
-      MEM_AVAIL_KB=$(awk '/MemAvailable/ { printf "%s \n", $2 }' /proc/meminfo)
-      MEM_AVAIL_GB=$(awk '/MemAvailable/ { printf "%s \n", $2/1024/1024 }' /proc/meminfo)
+    if grep -q MemAvailable "$meminfo_file"; then
+      MEM_AVAIL_KB=$(awk '/MemAvailable/ { printf "%s \n", $2 }' "$meminfo_file")
     else
-      MEM_AVAIL_KB=$(awk '/MemFree/ { printf "%s \n", $2 }' /proc/meminfo)
-      MEM_AVAIL_GB=$(awk '/MemFree/ { printf "%s \n", $2/1024/1024 }' /proc/meminfo)
+      MEM_AVAIL_KB=$(awk '/MemFree/ { printf "%s \n", $2 }' "$meminfo_file")
     fi
+
+    local cgroup_root="${CGROUP_ROOT:-/sys/fs/cgroup}"
+    local limit_file usage_file limit usage cgroup_v1=0
+    if [[ -f "$cgroup_root/memory.max" ]]; then
+      limit_file="$cgroup_root/memory.max"
+      usage_file="$cgroup_root/memory.current"
+    else
+      cgroup_v1=1
+      limit_file="$cgroup_root/memory/memory.limit_in_bytes"
+      usage_file="$cgroup_root/memory/memory.usage_in_bytes"
+    fi
+
+    # Missing, unreadable or unlimited cgroup values leave host memory unchanged.
+    if limit=$(cat "$limit_file" 2>/dev/null) &&
+       usage=$(cat "$usage_file" 2>/dev/null) &&
+       [[ "$limit" =~ ^[0-9]+$ && "$usage" =~ ^[0-9]+$ ]]; then
+      MEM_AVAIL_KB=$(awk -v host="$MEM_AVAIL_KB" -v limit="$limit" \
+        -v usage="$usage" -v v1="$cgroup_v1" 'BEGIN {
+          # Cgroup v1 uses a huge limit (near LONG_MAX) for unlimited memory.
+          if (!v1 || limit < 1152921504606846976) {
+            remaining = int((limit - usage) / 1024)
+            if (remaining < 0) remaining = 0
+            if (remaining < host) host = remaining
+          }
+          printf "%.0f\n", host
+        }')
+    fi
+    MEM_AVAIL_GB=$(awk -v available="$MEM_AVAIL_KB" 'BEGIN { printf "%s \n", available/1024/1024 }')
   elif [[ "$(uname)" == "Darwin" ]]; then
     # macOS - use vm_stat to get free memory
     # vm_stat reports in pages, typically 4096 bytes per page
