@@ -1287,3 +1287,37 @@ test('passes the form data of the last request to ChartContainer next to the cur
     expect.objectContaining({ groupby: ['region'] }),
   );
 });
+
+test('dashboard Chart omits SQL cross-filter using the emitter datasource in Redux', () => {
+  setup(
+    {},
+    {
+      charts: {
+        ...chartQueries,
+        999: { form_data: { datasource: '12__table' } },
+        [queryId]: {
+          ...chartQueries[queryId],
+          form_data: {
+            ...chartQueries[queryId].form_data,
+            datasource: '3__semantic_view',
+            semantic_selection_version: 'cube-member-id-v1',
+          },
+        },
+      },
+      dataMask: {
+        999: {
+          id: '999',
+          filterState: { value: ['US'] },
+          extraFormData: {
+            filters: [{ col: 'country', op: 'IN', val: ['US'] }],
+          },
+        },
+      },
+      nativeFilters: { filters: {} },
+      dashboardState: { sliceIds: [queryId, 999] },
+    },
+  );
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.extra_form_data?.filters ?? []).toEqual([]);
+  expect(formData.semantic_selection_version).toBe('cube-member-id-v1');
+});
