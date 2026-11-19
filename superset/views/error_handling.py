@@ -135,6 +135,33 @@ def log_superset_error_exception(
     logger.warning(message, exc_info=True)
 
 
+def command_exception_response(ex: CommandException) -> FlaskResponse:
+    """
+    Build the standard JSON error response for a ``CommandException``.
+
+    This is shared between the global ``CommandException`` error handler and
+    API endpoints that want to catch a ``CommandException`` locally (e.g. an
+    expected validation failure) and return the same well-formed 4xx body
+    *without* letting the exception propagate up through Flask's dispatch.
+    Letting it propagate fires the ``got_request_exception`` signal, which
+    error-tracking integrations (like Sentry) use to report unhandled
+    exceptions — so routine, client-caused validation errors end up paging
+    as if they were bugs. Catching and converting locally avoids that.
+    """
+    extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
+    return json_error_response(
+        [
+            SupersetError(
+                message=ex.message,
+                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                level=get_error_level_from_status(ex.status),
+                extra=extra,
+            ),
+        ],
+        status=ex.status,
+    )
+
+
 def handle_ssh_tunnel_error(ex: sshtunnel.BaseSSHTunnelForwarderError) -> FlaskResponse:
     """
     Build the structured response for an unreachable/misconfigured SSH tunnel
@@ -317,6 +344,16 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         Temporary handler for CommandException; if an API raises a
         CommandException it should be fixed to map it to SupersetErrorException
         or SupersetErrorsException, with a specific status code and error type
+
+        NOTE: reaching this handler means the exception propagated all the
+        way up through Flask's request dispatch, which triggers the
+        ``got_request_exception`` signal (and with it, error-tracking
+        integrations such as Sentry) *before* this handler gets a chance to
+        turn it into a well-formed 4xx response. Expected validation errors
+        (e.g. "already exists and `overwrite=true` was not passed") should
+        be caught and converted at the call site via
+        ``command_exception_response`` instead of being allowed to bubble up
+        here, so they don't get reported as unhandled errors.
         """
         logger.warning("CommandException", exc_info=True)
 
@@ -328,18 +365,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
             except FileNotFoundError:
                 pass
 
-        extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
-        return json_error_response(
-            [
-                SupersetError(
-                    message=ex.message,
-                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
-                    level=get_error_level_from_status(ex.status),
-                    extra=extra,
-                ),
-            ],
-            status=ex.status,
-        )
+        return command_exception_response(ex)
 
     @app.errorhandler(sshtunnel.BaseSSHTunnelForwarderError)
     def show_ssh_tunnel_error(
