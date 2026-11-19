@@ -250,6 +250,16 @@ test('should call setSortBy when clicking sortable column header', () => {
   ]);
 });
 
+test('controlled sort clears the header when restored to an empty sort', () => {
+  const { rerender } = render(
+    <TableCollection {...defaultProps} sortBy={[{ id: 'col1', desc: true }]} />,
+  );
+  const header = screen.getByRole('columnheader', { name: /Column 1/ });
+  expect(header).toHaveAttribute('aria-sort', 'descending');
+  rerender(<TableCollection {...defaultProps} sortBy={[]} />);
+  expect(header).not.toHaveAttribute('aria-sort');
+});
+
 test('should not apply highlight class when highlightRowId is undefined', () => {
   const propsWithoutHighlight = {
     ...defaultProps,
