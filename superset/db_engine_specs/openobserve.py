@@ -26,6 +26,12 @@ from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIDatabaseError,
+    SupersetDBAPIDataError,
+    SupersetDBAPIOperationalError,
+    SupersetDBAPIProgrammingError,
+)
 from superset.errors import SupersetErrorType
 from superset.utils.core import GenericDataType
 
@@ -61,14 +67,18 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
-def _date_bin(interval: str) -> str:
+def _date_bin(interval: str, *, whole_seconds: bool = False) -> str:
     """
     Bucket a timestamp into fixed-width intervals counted from the Unix epoch.
 
     `date_trunc` only truncates to a calendar unit, so grains such as five
     minutes need `date_bin`.
+
+    `whole_seconds` truncates to the second first: sub-minute `date_bin` on a
+    raw timestamp crashes OpenObserve v1.0.4 over days of data.
     """
-    return f"date_bin(INTERVAL '{interval}', {{col}}, TIMESTAMP '1970-01-01 00:00:00')"
+    col = "date_trunc('second', {col})" if whole_seconds else "{col}"
+    return f"date_bin(INTERVAL '{interval}', {col}, TIMESTAMP '1970-01-01 00:00:00')"
 
 
 class OpenObserveEngineSpec(BaseEngineSpec):
@@ -109,7 +119,11 @@ class OpenObserveEngineSpec(BaseEngineSpec):
             "percent-encode special characters in the password. HTTPS is used "
             "by default; add ?ssl=false for a plain HTTP server. Each log "
             "stream is a table, and its _timestamp column is set up as the "
-            "time column."
+            "time column. Queries are read-only; SHOW and SELECT 1 are not "
+            "supported by the server. Known server limits: a SELECT with "
+            "ORDER BY and LIMIT that has no aggregate can return fewer rows "
+            "than the limit, often none, and SELECT * over a CTE or "
+            "subquery returns no columns when it matches no rows."
         ),
         "homepage_url": "https://openobserve.ai/",
         "docs_url": "https://openobserve.ai/docs/",
@@ -119,8 +133,8 @@ class OpenObserveEngineSpec(BaseEngineSpec):
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "date_trunc('second', {col})",
-        TimeGrain.FIVE_SECONDS: _date_bin("5 seconds"),
-        TimeGrain.THIRTY_SECONDS: _date_bin("30 seconds"),
+        TimeGrain.FIVE_SECONDS: _date_bin("5 seconds", whole_seconds=True),
+        TimeGrain.THIRTY_SECONDS: _date_bin("30 seconds", whole_seconds=True),
         TimeGrain.MINUTE: "date_trunc('minute', {col})",
         TimeGrain.FIVE_MINUTES: _date_bin("5 minutes"),
         TimeGrain.TEN_MINUTES: _date_bin("10 minutes"),
@@ -202,6 +216,19 @@ class OpenObserveEngineSpec(BaseEngineSpec):
             {},
         ),
     }
+
+    @classmethod
+    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
+        # pylint: disable=import-outside-toplevel
+        from sqlalchemy_openobserve import dbapi
+
+        return {
+            dbapi.DatabaseError: SupersetDBAPIDatabaseError,
+            dbapi.DataError: SupersetDBAPIDataError,
+            dbapi.NotSupportedError: SupersetDBAPIDatabaseError,
+            dbapi.OperationalError: SupersetDBAPIOperationalError,
+            dbapi.ProgrammingError: SupersetDBAPIProgrammingError,
+        }
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

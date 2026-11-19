@@ -69,11 +69,13 @@ def test_file_upload_is_not_supported() -> None:
         ("PT1S", "date_trunc('second', ts)"),
         (
             "PT5S",
-            "date_bin(INTERVAL '5 seconds', ts, TIMESTAMP '1970-01-01 00:00:00')",
+            "date_bin(INTERVAL '5 seconds', date_trunc('second', ts), "
+            "TIMESTAMP '1970-01-01 00:00:00')",
         ),
         (
             "PT30S",
-            "date_bin(INTERVAL '30 seconds', ts, TIMESTAMP '1970-01-01 00:00:00')",
+            "date_bin(INTERVAL '30 seconds', date_trunc('second', ts), "
+            "TIMESTAMP '1970-01-01 00:00:00')",
         ),
         ("PT1M", "date_trunc('minute', ts)"),
         (
@@ -121,16 +123,16 @@ def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
 @pytest.mark.parametrize(
     "pdf,time_grain,expected",
     [
-        ("epoch_us", None, "to_timestamp_micros(_timestamp)"),
-        ("epoch_us", "PT1H", "date_trunc('hour', to_timestamp_micros(_timestamp))"),
+        ("epoch_us", None, "to_timestamp_micros(ts)"),
+        ("epoch_us", "PT1H", "date_trunc('hour', to_timestamp_micros(ts))"),
         (
             "epoch_us",
             "PT5M",
-            "date_bin(INTERVAL '5 minutes', to_timestamp_micros(_timestamp), "
+            "date_bin(INTERVAL '5 minutes', to_timestamp_micros(ts), "
             "TIMESTAMP '1970-01-01 00:00:00')",
         ),
-        ("epoch_ms", "P1D", "date_trunc('day', to_timestamp_millis(_timestamp))"),
-        ("epoch_s", "P1D", "date_trunc('day', to_timestamp_seconds(_timestamp))"),
+        ("epoch_ms", "P1D", "date_trunc('day', to_timestamp_millis(ts))"),
+        ("epoch_s", "P1D", "date_trunc('day', to_timestamp_seconds(ts))"),
     ],
 )
 def test_epoch_columns_are_converted_before_truncating(
@@ -143,7 +145,7 @@ def test_epoch_columns_are_converted_before_truncating(
 
     actual = str(
         OpenObserveEngineSpec.get_timestamp_expr(
-            col=column("_timestamp"), pdf=pdf, time_grain=time_grain
+            col=column("ts"), pdf=pdf, time_grain=time_grain
         )
     )
     assert actual == expected
@@ -421,3 +423,33 @@ def test_sql_is_parsed_as_postgres() -> None:
         "SELECT\n  message\nFROM (\n  SELECT\n    *\n  FROM app_logs\n) AS t\n"
         "WHERE\n  message ~ 'err'"
     )
+
+
+def test_get_dbapi_exception_mapping() -> None:
+    """
+    DB Eng Specs (openobserve): Test driver errors map to Superset DBAPI errors
+    """
+    from superset.db_engine_specs.exceptions import (
+        SupersetDBAPIDatabaseError,
+        SupersetDBAPIDataError,
+        SupersetDBAPIOperationalError,
+        SupersetDBAPIProgrammingError,
+    )
+    from superset.db_engine_specs.openobserve import OpenObserveEngineSpec
+
+    dbapi = pytest.importorskip("sqlalchemy_openobserve.dbapi")
+
+    mapping = OpenObserveEngineSpec.get_dbapi_exception_mapping()
+
+    assert mapping == {
+        dbapi.DatabaseError: SupersetDBAPIDatabaseError,
+        dbapi.DataError: SupersetDBAPIDataError,
+        dbapi.NotSupportedError: SupersetDBAPIDatabaseError,
+        dbapi.OperationalError: SupersetDBAPIOperationalError,
+        dbapi.ProgrammingError: SupersetDBAPIProgrammingError,
+    }
+    mapped = OpenObserveEngineSpec.get_dbapi_mapped_exception(
+        dbapi.ProgrammingError("Search stream not found: logs")
+    )
+    assert isinstance(mapped, SupersetDBAPIProgrammingError)
+    assert str(mapped) == "Search stream not found: logs"
