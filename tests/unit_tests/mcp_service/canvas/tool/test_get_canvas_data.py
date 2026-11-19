@@ -126,7 +126,7 @@ def test_reports_unknown_placements() -> None:
 
 @pytest.mark.parametrize("view_query", [True, False])
 def test_a_failing_query_is_reported_per_widget(view_query: bool) -> None:
-    # Driver errors can echo the SQL, so only who may see the query sees them.
+    # Unexpected driver errors stay generic even with permission to view SQL.
     with patch(
         "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
         return_value=view_query,
@@ -136,9 +136,12 @@ def test_a_failing_query_is_reported_per_widget(view_query: bool) -> None:
     assert all(
         w["error"]
         == (
-            "The widget's query failed: boom"
+            "The widget's query failed: An error occurred while fetching the data."
             if view_query
             else "The widget's query failed."
         )
         for w in result["widgets"]
     )
+
+    assert all(w["error_type"] == "QueryError" for w in result["widgets"])
+    assert all("rows" not in w for w in result["widgets"])

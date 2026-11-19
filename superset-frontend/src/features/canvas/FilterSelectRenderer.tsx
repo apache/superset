@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
 import { Select, Typography } from '@superset-ui/core/components';
 import type { SelectFilterValue } from './echarts/chartData';
+import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
 
 const Wrapper = styled.div`
   ${({ theme }) => css`
@@ -36,25 +37,33 @@ const Wrapper = styled.div`
 const strings = (value: unknown): string[] =>
   Array.isArray(value) ? value.map(String) : [];
 
-/**
- * A multi-select over one dataset column. Its value reaches the widgets in
- * its scope as `{datasetId, column, values}`, or clears when nothing is
- * selected.
- */
-export default function FilterSelectRenderer({
+function FilterSelect({
+  datasetId,
+  column,
   props,
+  refreshKey,
   setFilterValue,
-}: canvasApi.CanvasWidgetProps) {
-  const datasetId = Number(props?.datasetId);
-  const column = typeof props?.column === 'string' ? props.column : '';
+}: canvasApi.CanvasWidgetProps & { datasetId: number; column: string }) {
+  const draftToken = useContext(CanvasDraftContext);
+  const versionUuid = useContext(CanvasVersionContext);
   const staticOptions = strings(props?.options);
-  const [fetched, setFetched] = useState<string[]>([]);
-  const [selected, setSelected] = useState<string[]>(() =>
+  const optionsKey = JSON.stringify([
+    staticOptions,
+    draftToken ?? null,
+    versionUuid ?? null,
+  ]);
+  const [fetched, setFetched] = useState<{ key: string; values: string[] }>({
+    key: optionsKey,
+    values: [],
+  });
+  const [selected, setSelected] = useState(() =>
     strings(props?.defaultSelection),
   );
-  const published = useRef(false);
 
   useEffect(() => {
+    setFetched(previous =>
+      previous.key === optionsKey ? previous : { key: optionsKey, values: [] },
+    );
     if (staticOptions.length || !datasetId || !column) return undefined;
     let cancelled = false;
     SupersetClient.get({
@@ -62,18 +71,21 @@ export default function FilterSelectRenderer({
     })
       .then(({ json }) => {
         if (!cancelled) {
-          setFetched(strings(json?.result).filter(value => value !== 'null'));
+          setFetched({
+            key: optionsKey,
+            values: strings(json?.result).filter(value => value !== 'null'),
+          });
         }
       })
       .catch(() => {
-        if (!cancelled) setFetched([]);
+        if (!cancelled) setFetched({ key: optionsKey, values: [] });
       });
     return () => {
       cancelled = true;
     };
-    // staticOptions is recreated on every render; its length decides.
+    // Keep options during a refresh, but cancel any older pending request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [datasetId, column, staticOptions.length]);
+  }, [optionsKey, refreshKey]);
 
   const publish = (values: string[]) => {
     const value: SelectFilterValue | null = values.length
@@ -82,22 +94,27 @@ export default function FilterSelectRenderer({
     setFilterValue(value);
   };
 
-  // A default selection applies once, on first render.
+  // The keyed component owns one binding's selection. Always publish its
+  // initial value, including an empty default that clears a parent's old value.
+  // Draft transitions and refreshes preserve this component and its selection.
   useEffect(() => {
-    if (published.current) return;
-    published.current = true;
-    if (selected.length) publish(selected);
+    publish(selected);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selected]);
 
   const options = useMemo(
     () =>
-      (staticOptions.length ? staticOptions : fetched).map(value => ({
+      (staticOptions.length
+        ? staticOptions
+        : fetched.key === optionsKey
+          ? fetched.values
+          : []
+      ).map(value => ({
         label: value,
         value,
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fetched, staticOptions.join('\u0000')],
+    [fetched, optionsKey],
   );
 
   return (
@@ -113,9 +130,35 @@ export default function FilterSelectRenderer({
         onChange={value => {
           const values = strings(value);
           setSelected(values);
-          publish(values);
         }}
       />
     </Wrapper>
+  );
+}
+
+/**
+ * A multi-select over one dataset column. Its value reaches the widgets in
+ * its scope as `{datasetId, column, values}`, or clears when nothing is
+ * selected.
+ */
+export default function FilterSelectRenderer(
+  widget: canvasApi.CanvasWidgetProps,
+) {
+  const datasetId = Number(widget.props?.datasetId);
+  const column =
+    typeof widget.props?.column === 'string' ? widget.props.column : '';
+  const sourceKey = JSON.stringify([
+    widget.canvasId,
+    widget.nodeId,
+    datasetId,
+    column,
+  ]);
+  return (
+    <FilterSelect
+      key={sourceKey}
+      {...widget}
+      datasetId={datasetId}
+      column={column}
+    />
   );
 }

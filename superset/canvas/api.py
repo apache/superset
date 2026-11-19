@@ -53,6 +53,7 @@ from superset.canvas.filters import (
     CanvasAllTextFilter,
     CanvasEditableFilter,
 )
+from superset.canvas.query_errors import CanvasQueryFailedError
 from superset.canvas.schemas import (
     CanvasPostSchema,
     CanvasPutSchema,
@@ -88,11 +89,9 @@ from superset.commands.canvas.exceptions import (
 from superset.commands.canvas.placement_data import GetPlacementDataCommand
 from superset.commands.canvas.restore_version import RestoreCanvasVersionCommand
 from superset.commands.canvas.update import UpdateCanvasCommand
-from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.canvas import CanvasDAO
-from superset.daos.exceptions import DatasourceNotFound
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger, security_manager
 from superset.models.canvas import Canvas
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
@@ -1110,12 +1109,13 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             data = GetPlacementDataCommand(
                 id_or_uuid, placement_id, body.runtime_filters, token, version
             ).run()
-        except DatasourceNotFound:
-            return self.response_404()
-        except SupersetSecurityException:
-            return self.response_403()
-        except (QueryObjectValidationError, ChartDataQueryFailedError) as ex:
-            return self.response_400(message=str(ex.message))
+        except CanvasQueryFailedError as ex:
+            error = ex.error
+            if error.reason == "missing_datasource":
+                return self.response_404()
+            if error.status >= 500:
+                logger.warning("Canvas placement query failed", exc_info=True)
+            return self.response(error.status, **error.rest_payload())
         dataset: dict[str, Any] = {
             "name": "main",
             "row_count": len(data.rows),

@@ -18,6 +18,7 @@
  */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject } from '@superset-ui/core';
 import {
   DataBinding,
@@ -38,6 +39,24 @@ export interface WidgetRows extends PlacementData {
   error?: string;
   /** The binding's dataset as `<id>__table`, for opening it elsewhere. */
   datasource?: string;
+}
+
+/** Restrict the shared normalizer to server responses and fixed transport errors. */
+function canNormalizeError(
+  error: unknown,
+): error is Parameters<typeof getClientErrorObject>[0] {
+  if (error instanceof Response) return !error.bodyUsed;
+  return (
+    (error instanceof TypeError && error.message === 'Failed to fetch') ||
+    Boolean(
+      error &&
+      typeof error === 'object' &&
+      'statusText' in error &&
+      error.statusText === 'timeout' &&
+      'timeout' in error &&
+      typeof error.timeout === 'number',
+    )
+  );
 }
 
 /**
@@ -62,23 +81,32 @@ export function useWidgetRows(
   // The binding is in the key so an edit refetches; the server reads it from
   // the stored definition.
   const key = JSON.stringify([
+    canvasId,
+    nodeId,
     binding ?? null,
     selected,
     draftToken ?? null,
     versionUuid ?? null,
   ]);
-  const [state, setState] = useState<WidgetRows>({
-    rows: [],
-    loading: bound,
+  const [state, setState] = useState<{ key: string; value: WidgetRows }>({
+    key,
+    value: { rows: [], loading: bound },
   });
 
   useEffect(() => {
     if (!bound) {
-      setState({ rows: [], loading: false });
+      setState({ key, value: { rows: [], loading: false } });
       return undefined;
     }
     let cancelled = false;
-    setState(previous => ({ ...previous, loading: true }));
+    // Refresh the same request in place; a new binding/context starts empty.
+    setState(previous => ({
+      key,
+      value: {
+        ...(previous.key === key ? previous.value : { rows: [] }),
+        loading: true,
+      },
+    }));
     fetchPlacementData({
       canvasId,
       placementId: nodeId,
@@ -87,13 +115,30 @@ export function useWidgetRows(
       filters: selected,
     })
       .then(data => {
-        if (!cancelled) setState({ ...data, loading: false });
-      })
-      .catch(async e => {
-        if (cancelled) return;
-        const { error } = await getClientErrorObject(e);
         if (!cancelled) {
-          setState({ rows: [], loading: false, error: error ?? String(e) });
+          setState({ key, value: { ...data, loading: false } });
+        }
+      })
+      .catch(async (e: unknown) => {
+        if (cancelled) return;
+        let message = t("The widget's query failed");
+        try {
+          // Unwrap HTTP failures without allowing arbitrary message/statusText
+          // fallbacks, including the normalizer's consumed-Response fallback.
+          const input =
+            e && typeof e === 'object' && 'response' in e ? e.response : e;
+          if (canNormalizeError(input)) {
+            const { error } = await getClientErrorObject(input);
+            if (error) message = error;
+          }
+        } catch {
+          // A malformed transport error must not expose the raw exception.
+        }
+        if (!cancelled) {
+          setState({
+            key,
+            value: { rows: [], loading: false, error: message },
+          });
         }
       });
     return () => {
@@ -105,5 +150,11 @@ export function useWidgetRows(
 
   const datasource = bound ? `${binding?.datasetId}__table` : undefined;
   // Stable between renders, so callers can depend on it in effects.
-  return useMemo(() => ({ ...state, datasource }), [state, datasource]);
+  return useMemo(
+    () => ({
+      ...(state.key === key ? state.value : { rows: [], loading: bound }),
+      datasource,
+    }),
+    [state, key, bound, datasource],
+  );
 }

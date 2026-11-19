@@ -1066,11 +1066,11 @@ async def test_absolute_links_cover_the_canvas_and_draft_lifecycle(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("structured", [False, True])
 @pytest.mark.parametrize("proxy", [False, True])
-@pytest.mark.parametrize("renderer_error", [False, True])
+@pytest.mark.parametrize("renderer_outcome", ["success", "warning", "error"])
 async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
     structured: bool,
     proxy: bool,
-    renderer_error: bool,
+    renderer_outcome: str,
     app: SupersetApp,
     mocker: MockerFixture,
 ) -> None:
@@ -1086,7 +1086,7 @@ async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
         "nodes": {
             "chart": {
                 "widgetType": "echarts",
-                "props": {},
+                "props": {"chartType": "bar"},
                 "layout": {"colSpan": 12, "rowSpan": 8},
             }
         },
@@ -1095,10 +1095,12 @@ async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
         "png": "aGk=",
         "width": 100,
         "height": 100,
-        "warnings": ["Check labels"],
     }
-    if renderer_error:
-        rendered["error"] = "Invalid ECharts option"
+    if renderer_outcome == "warning":
+        rendered["warnings"] = ["Tooltip prints [object Object]"]
+    elif renderer_outcome == "error":
+        rendered["error"] = "Unknown series type: custom"
+        rendered["option"] = {"series": [{"type": "custom"}]}
     mocker.patch(f"{MODULE}.preview_widget._render", return_value=rendered)
     stats = mocker.patch("superset.mcp_service.middleware.stats_logger_manager")
     async with Client(server) as client:
@@ -1109,16 +1111,26 @@ async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
             proxy=proxy,
         )
     data = _data(result, structured=structured)
-    assert any(isinstance(block, ImageContent) for block in result.content)
+    assert any(isinstance(block, ImageContent) for block in result.content) == (
+        renderer_outcome != "error"
+    )
+    assert data["rendered"] == (renderer_outcome != "error")
+    if renderer_outcome == "warning":
+        assert data["warnings"] == ["Tooltip prints [object Object]"]
+    elif renderer_outcome == "error":
+        assert not data.get("warnings")
+        assert "image" not in data
+        assert data["error"] == "Unknown series type: custom"
+        assert data["option"] == {"series": [{"type": "custom"}]}
     assert data["url"] == f"{BASE_URL}/canvas/sales/"
-    assert data.get("error_type") == ("RendererError" if renderer_error else None)
-    outcome = "error" if renderer_error else "success"
+    assert data.get("error_type") == (
+        "RendererError" if renderer_outcome == "error" else None
+    )
+    outcome = "error" if renderer_outcome == "error" else "success"
     counters = [call.args[0] for call in stats.instance.incr.call_args_list]
     assert counters.count(f"mcp.tool.preview_widget.{outcome}") == 1
-    assert (
-        f"mcp.tool.preview_widget.{'success' if renderer_error else 'error'}"
-        not in counters
-    )
+    opposite = "success" if outcome == "error" else "error"
+    assert f"mcp.tool.preview_widget.{opposite}" not in counters
     assert not any(name.startswith("mcp.tool.call_tool.") for name in counters)
 
 

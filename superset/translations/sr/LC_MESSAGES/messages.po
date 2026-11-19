@@ -23589,6 +23589,9 @@ msgid ""
 msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
+msgid "The widget's query failed"
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Ширина изолиније у пикселима"
 

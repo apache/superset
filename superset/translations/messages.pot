@@ -15481,6 +15481,9 @@ msgstr ""
 msgid "The widget was changed by someone else. Reload it and apply your change to revision %(revision)s."
 msgstr ""
 
+msgid "The widget's query failed"
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr ""
 

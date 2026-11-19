@@ -21522,6 +21522,9 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+msgid "The widget's query failed"
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "A largura da isolinha em pixels"
 
