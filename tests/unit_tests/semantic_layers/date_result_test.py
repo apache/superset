@@ -120,7 +120,7 @@ def test_semantic_date_daily_resample_fills_gaps() -> None:
 def test_semantic_date_raw_xlsx_keeps_date_cell_format() -> None:
     """Raw spreadsheet cells retain date-only formatting."""
     query: ValidatedQueryObject = ValidatedQueryObject(
-        columns=["day"], metrics=["amount"]
+        columns=["day"], metrics=["amount"], granularity="day"
     )
     result: object = _processor(ChartDataResultFormat.XLSX).get_data(
         _date_frame(query), [GenericDataType.TEMPORAL, GenericDataType.NUMERIC]
@@ -141,7 +141,7 @@ def test_semantic_date_exports_match_unchanged_raw_or_resampled_sql(
 ) -> None:
     """Raw bytes stay identical; newly supported resampled exports match SQL output."""
     query: ValidatedQueryObject = (
-        _resample_query() if resampling else ValidatedQueryObject()
+        _resample_query() if resampling else ValidatedQueryObject(granularity="day")
     )
     # Build the independent pre-change raw frame rather than use the changed mapper.
     expected: pd.DataFrame = pd.DataFrame(
@@ -254,7 +254,7 @@ def test_non_resample_operations_do_not_change_date_representation(
 ) -> None:
     """Selecting other post-processing does not opt raw DATE output into timestamps."""
     query: ValidatedQueryObject = ValidatedQueryObject(
-        post_processing=[{"operation": operation}]
+        granularity="day", post_processing=[{"operation": operation}]
     )
     assert type(_date_frame(query)["day"].iloc[0]) is date
 
