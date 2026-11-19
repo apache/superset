@@ -716,6 +716,28 @@ class Steward:
         return False
 
     def advance_stages(self, issues: dict[int, Issue], emails: list[Email]) -> None:
+        evidence = self._collect_evidence(issues, emails)
+        for number, stages in sorted(evidence.items()):
+            issue = issues[number]
+            target = max(stages)
+            if not issue.is_open:
+                continue
+            have = current_stage(issue.labels)
+            if target < have:
+                continue
+            if target == have:
+                # An open SIP already labelled approved means an earlier run
+                # failed after labelling; retry the comment (marker-deduped)
+                # and the close.
+                if STAGES[target] != "approved":
+                    continue
+                self.move(issue, target, stages, relabel=False)
+                continue
+            self.move(issue, target, stages)
+
+    def _collect_evidence(
+        self, issues: dict[int, Issue], emails: list[Email]
+    ) -> dict[int, dict[int, tuple[Email, Optional[Email]]]]:
         ask = self.model.pick_issue if self.model else None
         # issue number -> stage index -> (email, vote email for results)
         evidence: dict[int, dict[int, tuple[Email, Optional[Email]]]] = {}
@@ -755,23 +777,7 @@ class Steward:
                 stage = STAGES.index("voting" if kind == "VOTE" else "in-discussion")
             evidence.setdefault(number, {})[stage] = (email, vote[0] if vote else None)
 
-        for number, stages in sorted(evidence.items()):
-            issue = issues[number]
-            target = max(stages)
-            if not issue.is_open:
-                continue
-            have = current_stage(issue.labels)
-            if target < have:
-                continue
-            if target == have:
-                # An open SIP already labelled approved means an earlier run
-                # failed after labelling; retry the comment (marker-deduped)
-                # and the close.
-                if STAGES[target] != "approved":
-                    continue
-                self.move(issue, target, stages, relabel=False)
-                continue
-            self.move(issue, target, stages)
+        return evidence
 
     def move(
         self,
