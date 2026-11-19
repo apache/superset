@@ -161,10 +161,13 @@ primary="$provider"
 if [ "$fallback" = true ]; then
   # Fail fast on a broken or out-of-credit Anthropic account rather than
   # discovering it one failed batch at a time.
-  if ! printf 'Reply with the single word OK.' \
+  # Keep the CLI's own message so the run log says why (bad key, no
+  # credit, outage) instead of only that the fallback happened.
+  if ! preflight_out=$(printf 'Reply with the single word OK.' \
       | claude ${model:+--model "$model"} -p --tools "" --no-session-persistence \
-      > /dev/null 2>&1; then
-    echo "Anthropic preflight request failed; using LLMAO for this run." >&2
+      2>&1); then
+    reason=$(printf '%s' "$preflight_out" | tr '\n' ' ' | cut -c1-300)
+    echo "${GITHUB_ACTIONS:+::warning::}Anthropic preflight request failed (${reason:-no output}); using LLMAO for this run." >&2
     primary="llmao"
     model=""
   fi

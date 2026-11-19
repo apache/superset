@@ -681,6 +681,7 @@ function ChartRendererComponent({
           ref={contextMenuRef}
           id={chartId}
           formData={renderedFormData as QueryFormData}
+          setDataMask={setDataMaskCallback}
           onSelection={handleContextMenuSelected}
           onClose={handleContextMenuClosed}
         />

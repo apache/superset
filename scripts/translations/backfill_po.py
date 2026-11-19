@@ -117,7 +117,7 @@ LANGUAGE_NAMES: dict[str, str] = {
     "ru": "Russian",
     "sk": "Slovak",
     "sl": "Slovenian",
-    "sr": "Serbian",
+    "sr": "Serbian (Cyrillic script)",
     "sr_Latn": "Serbian (Latin script)",
     "th": "Thai",
     "tr": "Turkish",
