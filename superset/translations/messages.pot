@@ -6759,6 +6759,14 @@ msgstr ""
 msgid "Expired"
 msgstr ""
 
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
+msgstr ""
+
 msgid "Expires on"
 msgstr ""
 
@@ -11430,6 +11438,9 @@ msgstr ""
 msgid "Re-pick fields for this chart"
 msgstr ""
 
+msgid "Read from the token's exp claim."
+msgstr ""
+
 msgid "Rearranged layout"
 msgstr ""
 
@@ -15182,6 +15193,14 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr ""
 
+#, python-format
+msgid "The token expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The token expires on %s."
+msgstr ""
+
 msgid "The transform answered with a value the driver and the database do not agree on how to write into a query, so the mirrored predicate would ask for a partition key no row holds. A transform whose result carries neither a quote nor a backslash still mirrors."
 msgstr ""
 
@@ -16311,6 +16330,9 @@ msgstr ""
 
 #, python-format
 msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
+msgstr ""
+
+msgid "Too short"
 msgstr ""
 
 msgid "Too short to show safely"

@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import base64
 from datetime import datetime
 from io import BytesIO
 from typing import Any
@@ -530,16 +531,21 @@ def test_encrypted_extra_hints(
                 "path": "$.connect_args.jwt",
                 "label": "JWT Token",
                 "suffix": "abcde",
+                "expires_at": None,
+                "expired": None,
             },
             {
                 "path": "$.connect_args.password",
                 "label": "Password",
                 "suffix": None,
+                "expires_at": None,
+                "expired": None,
             },
         ]
     }
     assert all(
-        set(hint) == {"path", "label", "suffix"} for hint in response.json["result"]
+        set(hint) == {"path", "label", "suffix", "expires_at", "expired"}
+        for hint in response.json["result"]
     )
     assert JWT_TOKEN.encode() not in response.data
     assert b"hunter2" not in response.data
@@ -549,6 +555,60 @@ def test_encrypted_extra_hints(
     assert event_log.call_args.kwargs["records"][0]["pk"] == 1
     assert JWT_TOKEN not in str(event_log.call_args)
     assert "hunter2" not in str(event_log.call_args)
+
+
+def jwt_with_claims(claims: dict[str, Any]) -> str:
+    """
+    An HS256-shaped token carrying ``claims``, with a fake but decodable signature
+    that ends in ``abcde``.
+    """
+    payload = base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=")
+    return f"eyJhbGciOiJIUzI1NiJ9.{payload.decode()}.c2lnbmF0dXJlXYZabcde"
+
+
+@freeze_time("2026-11-05T12:00:00Z")
+@pytest.mark.parametrize(
+    "expires_at,expired",
+    [("2027-01-04T12:00:00+00:00", False), ("2026-11-04T12:00:00+00:00", True)],
+)
+def test_encrypted_extra_hints_jwt_expiry(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    expires_at: str,
+    expired: bool,
+) -> None:
+    """
+    A stored JWT's hint says when its exp claim expires; no other claim is returned.
+    """
+    exp = int(datetime.fromisoformat(expires_at).timestamp())
+    token = jwt_with_claims(
+        {"sub": "service-account", "email": "owner@example.com", "exp": exp}
+    )
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": token}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json == {
+        "result": [
+            {
+                "path": "$.connect_args.jwt",
+                "label": "JWT Token",
+                "suffix": "abcde",
+                "expires_at": expires_at,
+                "expired": expired,
+            }
+        ]
+    }
+    assert token.encode() not in response.data
+    assert b"service-account" not in response.data
+    assert b"owner@example.com" not in response.data
+    assert str(exp).encode() not in response.data
 
 
 def test_encrypted_extra_hints_only_declared_keys(
@@ -576,6 +636,8 @@ def test_encrypted_extra_hints_only_declared_keys(
                 "label": "JWT Token",
                 "suffix": "abcde",
                 "length": len(JWT_TOKEN),
+                "expires_at": None,
+                "expired": None,
                 "value": JWT_TOKEN,
             }
         ],
@@ -590,6 +652,8 @@ def test_encrypted_extra_hints_only_declared_keys(
                 "path": "$.connect_args.jwt",
                 "label": "JWT Token",
                 "suffix": "abcde",
+                "expires_at": None,
+                "expired": None,
             }
         ]
     }
@@ -770,6 +834,8 @@ def test_encrypted_extra_hints_ignores_query_params(
                 "path": "$.connect_args.jwt",
                 "label": "JWT Token",
                 "suffix": "abcde",
+                "expires_at": None,
+                "expired": None,
             }
         ]
     }
