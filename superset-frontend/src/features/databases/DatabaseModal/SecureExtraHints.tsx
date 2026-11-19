@@ -21,18 +21,27 @@ import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
-import { Icons, Input, Tooltip } from '@superset-ui/core/components';
+import {
+  Flex,
+  Icons,
+  Input,
+  Tooltip,
+  Typography,
+} from '@superset-ui/core/components';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { EncryptedExtraHint, EncryptedExtraSecretField } from '../types';
+import { isExpiringSoon } from './expiry';
 import { StyledInputContainer } from './styles';
 
 const BULLETS = '•'.repeat(20);
 const MASK = 'XXXXXXXXXX';
 
-// One border only (StyledInputContainer borders the revealed text input), and
-// the bullets flush and unstyled next to the ending.
+// One border only (StyledInputContainer borders the revealed text input), the
+// bullets flush and unstyled, and the note shrinks first.
 const INPUT_STYLES = {
   input: { borderWidth: 0, padding: 0, fontVariantLigatures: 'no-contextual' },
   prefix: { marginInlineEnd: 0, fontVariantLigatures: 'no-contextual' },
+  count: { minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap' },
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -213,23 +222,64 @@ const SecureExtraHints = ({
     }
   };
 
-  // Shown on the right of a revealed field that has no ending to show.
+  // A JWT's expiry; the server decides whether it has passed.
+  const expiry = ({ expires_at: expiresAt, expired }: EncryptedExtraHint) => {
+    if (!expiresAt || !extendedDayjs(expiresAt).isValid()) {
+      return undefined;
+    }
+    const date = extendedDayjs(expiresAt).format('ll');
+    // The icon carries the severity; the text keeps a readable colour.
+    const soon = !expired && isExpiringSoon(expiresAt);
+    // The span gives the Tooltip a ref, which the Flex wrapper does not forward.
+    return (
+      <Tooltip title={t("Read from the token's exp claim.")}>
+        <span>
+          <Flex component="span" align="center" gap={theme.sizeUnit}>
+            {(expired || soon) && (
+              <Icons.ExclamationCircleFilled
+                iconSize="s"
+                iconColor={expired ? theme.colorError : theme.colorWarning}
+                aria-hidden
+              />
+            )}
+            {expired ? (
+              <Typography.Text type="danger">
+                {t('Expired %s', date)}
+              </Typography.Text>
+            ) : (
+              <Typography.Text type={soon ? undefined : 'secondary'}>
+                {t('Expires %s', date)}
+              </Typography.Text>
+            )}
+          </Flex>
+        </span>
+      </Tooltip>
+    );
+  };
+
+  // Right of a revealed field: why its ending is missing, and when it expires.
   const note = (hint: EncryptedExtraHint | undefined) => {
     if (!hint) {
       return t('Not available');
     }
-    if (hint.suffix !== null) {
-      return undefined;
-    }
-    return (
+    const when = expiry(hint);
+    // Beside an expiry the note keeps only its head, so both fit.
+    const tooShort = hint.suffix === null && (
       <Tooltip
         title={t(
           'Only the ending of secrets with at least %s characters is shown.',
           minLength,
         )}
       >
-        <span>{t('Too short to show safely')}</span>
+        <span>{when ? t('Too short') : t('Too short to show safely')}</span>
       </Tooltip>
+    );
+    if (!tooShort && !when) return undefined;
+    return (
+      <Flex component="span" align="center" gap={theme.sizeUnit}>
+        {tooShort}
+        {when}
+      </Flex>
     );
   };
 
@@ -238,9 +288,19 @@ const SecureExtraHints = ({
     if (!hint) {
       return t('No ending is available for this secret.');
     }
-    return hint.suffix === null
-      ? t('The ending is hidden because the secret is too short.')
-      : t('Ends with %s.', hint.suffix);
+    const ending =
+      hint.suffix === null
+        ? t('The ending is hidden because the secret is too short.')
+        : t('Ends with %s.', hint.suffix);
+    const { expires_at: expiresAt, expired } = hint;
+    if (!expiresAt || !extendedDayjs(expiresAt).isValid()) {
+      return ending;
+    }
+    const date = extendedDayjs(expiresAt).format('ll');
+    const when = expired
+      ? t('The token expired on %s.', date)
+      : t('The token expires on %s.', date);
+    return `${ending} ${when}`;
   };
 
   // Label, helper and bullets never change; a reveal unmasks only the ending.

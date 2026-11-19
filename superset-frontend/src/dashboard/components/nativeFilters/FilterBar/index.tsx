@@ -608,6 +608,9 @@ const FilterBar: FC<FiltersBarProps> = ({
       if (dataMaskSelected[id]) {
         // Stage the cleared value locally; do NOT dispatch to Redux here.
         // Persistence happens when the user clicks Apply.
+        // A plugin first mounted by this clear (e.g. a stale semantic filter
+        // whose warning is dismissed) must not auto-apply as requiredFirst.
+        setInitializedFilters(prev => new Set(prev).add(id));
         setDataMaskSelected(draft => {
           draft[id].extraFormData = withNativeFilterProvenance(
             { extraFormData: {} },

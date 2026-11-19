@@ -371,4 +371,25 @@ describe('useSchemas hook', () => {
     expect(result.current.data).toEqual(expectedResult3);
     expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(2);
   });
+
+  test('sorts schemas case-insensitively', async () => {
+    const schemaApiRoute = `glob:*/api/v1/database/db1/schemas/*`;
+    fetchMock.get(schemaApiRoute, {
+      result: ['RAW', 'Staging', 'analytics', 'FOO', 'foo'],
+    });
+    const { result } = renderHook(() => useSchemas({ dbId: 'db1' }), {
+      wrapper: createWrapper({
+        useRedux: true,
+        store,
+      }),
+    });
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(result.current.data?.map(({ value }) => value)).toEqual([
+      'analytics',
+      'foo',
+      'FOO',
+      'RAW',
+      'Staging',
+    ]);
+  });
 });
