@@ -4516,3 +4516,118 @@ def test_discovered_schema_preserves_inner_rls_during_outage(
         keys.append(extra_keys)
     assert keys[0] != keys[1]
     connect.assert_not_called()
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True, EMBEDDED_SUPERSET=True)
+def test_guest_chart_cache_survives_event_log_commit_and_database_outage(
+    session: Session,
+    app_context: None,
+    tmp_path: Path,
+    mocker: MockerFixture,
+) -> None:
+    """Request logging must not evict the real engine's discovered schema."""
+    from flask import current_app, g
+
+    from superset import security_manager
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+    from superset.constants import CacheRegion
+    from superset.models.core import _retire_cached_engines, Log
+    from superset.tasks.async_queries import _query_task_cache_key
+    from superset.utils.log import DBEventLogger
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    path = str(tmp_path / "analytic.db")
+    database = Database(database_name="analytic", sqlalchemy_uri=f"sqlite:///{path}")
+    virtual = SqlaTable(
+        table_name="virtual",
+        database=database,
+        schema=None,
+        sql="SELECT col1 FROM physical WHERE '{{ current_username() }}' != ''",
+        columns=[TableColumn(column_name="col1", type="INTEGER")],
+    )
+    session.add(virtual)
+    session.commit()
+    database_id = database.id
+    with database.get_sqla_engine() as engine:
+        with engine.begin() as connection:
+            connection.exec_driver_sql("CREATE TABLE physical (col1 INTEGER)")
+            connection.exec_driver_sql("INSERT INTO physical VALUES (1), (2)")
+    mocker.patch.object(security_manager, "get_rls_filters", return_value=[])
+    mocker.patch.object(
+        security_manager,
+        "get_guest_rls_filters",
+        side_effect=lambda dataset: g.user.rls,
+    )
+    mocker.patch.object(
+        security_manager, "get_current_guest_user_if_guest", side_effect=lambda: g.user
+    )
+    cache = Cache(config={"CACHE_TYPE": "SimpleCache"})
+    cache.init_app(current_app._get_current_object())
+    mocker.patch(
+        "superset.common.utils.query_cache_manager._cache", {CacheRegion.DATA: cache}
+    )
+    query = QueryObject(
+        datasource=virtual, columns=["col1"], metrics=[], is_timeseries=False
+    )
+    context = QueryContext(
+        datasource=virtual,
+        queries=[query],
+        slice_=None,
+        form_data={},
+        result_type=ChartDataResultType.FULL,
+        result_format=ChartDataResultFormat.JSON,
+        custom_cache_timeout=300,
+        cache_values={"queries": [query.to_dict()]},
+    )
+    outage = False
+    connections: list[bool] = []
+
+    def connect(dialect: Any, connection_record: Any, cargs: Any, cparams: Any) -> None:
+        """Reject even replacement engines, but leave the metastore available."""
+        if cargs[0] == path:
+            connections.append(outage)
+            if outage:
+                raise ConnectionError("database unreachable")
+
+    event.listen(Engine, "do_connect", connect)
+    try:
+        keys: list[str] = []
+        for tenant in (1, 2):
+            set_cache_test_guest(tenant)
+            # Two healthy requests, each followed by the real request-log commit.
+            for request_index in range(2):
+                warm = ChartDataCommand(context).run()["queries"][0]
+                assert warm["data"] == [{"col1": tenant}]
+                assert bool(warm["is_cached"]) == (request_index == 1)
+                DBEventLogger().log(
+                    None, "cache_outage_regression", None, 0, None, None, records=[{}]
+                )
+            keys.append(warm["cache_key"])
+            assert cache.get(warm["cache_key"]) is not None
+        assert keys[0] != keys[1]
+        assert (
+            session.query(Log).filter_by(action="cache_outage_regression").count() == 4
+        )
+        assert connections
+        outage = True
+        for tenant, key in zip((1, 2), keys, strict=True):
+            set_cache_test_guest(tenant)
+            assert context.query_cache_key(query) == key
+            assert _query_task_cache_key(context, 0) == key
+            hit = ChartDataCommand(context).run(force_cached=True)["queries"][0]
+            assert hit["is_cached"]
+            assert hit["cache_key"] == key
+            assert hit["data"] == [{"col1": tenant}]
+            DBEventLogger().log(
+                None, "cache_outage_regression", None, 0, None, None, records=[{}]
+            )
+        assert True not in connections
+        assert (
+            session.query(Log).filter_by(action="cache_outage_regression").count() == 6
+        )
+    finally:
+        event.remove(Engine, "do_connect", connect)
+        cache.clear()
+        _retire_cached_engines(database_id)
+        engine.dispose()

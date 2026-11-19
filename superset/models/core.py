@@ -82,6 +82,7 @@ from sqlalchemy.orm import (
     Session,
     SessionTransaction,
 )
+from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy.pool import NullPool, QueuePool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
@@ -1161,10 +1162,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         Builds a transient (unsaved) ``Query`` probe so the engine spec resolves
         the schema exactly as execution does -- running engine-specific per-query
-        security gates too -- then expunges it so the ``database`` backref's
-        ``cascade="all, delete-orphan"`` cannot autoflush this incomplete row
-        into the session. Centralizes the probe construction shared by the SQL
-        Lab executor, the cost-estimate command, and datasource denylist checks
+        security gates too. The database relationship is set without backref
+        events: the probe must neither enter the session nor mark the database
+        dirty and evict its cached engines on a later flush. Centralizes the
+        probe construction shared by the SQL Lab executor, the cost-estimate
+        command, and datasource denylist checks
         so the schema-resolution behavior stays in sync across these
         security-sensitive paths.
 
@@ -1177,15 +1179,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         from superset.models.sql_lab import Query
 
         probe_query = Query(
-            database=self,
             sql=sql,
             schema=schema or None,
             catalog=catalog,
             client_id=utils.shortid()[:10],
             user_id=utils.get_user_id(),
         )
-        if probe_query in db.session:
-            db.session.expunge(probe_query)
+        set_committed_value(probe_query, "database", self)
         return self.get_default_schema_for_query(probe_query, template_params)
 
     @staticmethod

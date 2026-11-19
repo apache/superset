@@ -4734,3 +4734,40 @@ def test_compile_sqla_query_offset_before_limit_for_trino(
     assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
         f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
     )
+
+
+@pytest.mark.parametrize("entry_point", ["schema", "access"])
+def test_transient_query_read_does_not_dirty_database(
+    session: Session,
+    app_context: None,
+    mocker: MockerFixture,
+    entry_point: str,
+) -> None:
+    """Read-only schema and access probes must not mutate the query backref."""
+    from sqlalchemy import inspect
+
+    from superset import security_manager
+    from superset.models.sql_lab import Query
+
+    Database.metadata.create_all(session.get_bind())
+    database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
+    session.add(database)
+    session.flush()
+    resolve = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="main"
+    )
+    mocker.patch.object(security_manager, "can_access_database", return_value=True)
+    mocker.patch.object(security_manager, "is_guest_user", return_value=False)
+
+    if entry_point == "schema":
+        assert database.resolve_query_default_schema("SELECT 1", None, None) == "main"
+        probe = resolve.call_args.args[0]
+        assert probe.database is database
+        assert inspect(probe).transient
+    else:
+        security_manager.raise_for_access(database=database, sql="SELECT 1")
+
+    assert database not in session.dirty
+    assert not inspect(database).attrs.queries.history.has_changes()
+    session.flush()
+    assert session.query(Query).count() == 0
