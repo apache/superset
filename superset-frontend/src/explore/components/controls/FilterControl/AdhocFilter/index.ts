@@ -45,6 +45,7 @@ interface AdhocFilterInput {
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
+  timeGrain?: string;
   clause?: string | null;
   sqlExpression?: string | null;
   isExtra?: boolean;
@@ -63,6 +64,8 @@ export default class AdhocFilter {
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
+  // Compares time buckets of the subject, e.g. a Drill by from a chart bar.
+  timeGrain?: string;
   clause?: string | null;
   sqlExpression?: string | null;
   isExtra: boolean;
@@ -79,6 +82,7 @@ export default class AdhocFilter {
       this.operator = adhocFilter.operator?.toUpperCase();
       this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
+      this.timeGrain = adhocFilter.timeGrain;
       if (
         adhocFilter.operatorId &&
         DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId as Operators) >=
@@ -133,6 +137,15 @@ export default class AdhocFilter {
   }
 
   duplicateWith(nextFields: Partial<AdhocFilterInput>): AdhocFilter {
+    // A changed bucket predicate becomes an ordinary filter. Metadata-only
+    // updates and unchanged duplicates retain the drill's grain.
+    const preservesBucket =
+      (!('subject' in nextFields) || nextFields.subject === this.subject) &&
+      (!('operator' in nextFields) || nextFields.operator === this.operator) &&
+      (!('comparator' in nextFields) ||
+        nextFields.comparator === this.comparator) &&
+      (!('expressionType' in nextFields) ||
+        nextFields.expressionType === this.expressionType);
     // Spread class properties as plain object for constructor input
     const currentFields: AdhocFilterInput = {
       expressionType: this.expressionType,
@@ -140,6 +153,7 @@ export default class AdhocFilter {
       operator: this.operator,
       operatorId: this.operatorId,
       comparator: this.comparator,
+      timeGrain: preservesBucket ? this.timeGrain : undefined,
       clause: this.clause,
       sqlExpression: this.sqlExpression,
       isExtra: this.isExtra,
@@ -161,7 +175,8 @@ export default class AdhocFilter {
       adhocFilter.operator === this.operator &&
       adhocFilter.operatorId === this.operatorId &&
       adhocFilter.comparator === this.comparator &&
-      adhocFilter.subject === this.subject
+      adhocFilter.subject === this.subject &&
+      adhocFilter.timeGrain === this.timeGrain
     );
   }
 
@@ -197,15 +212,29 @@ export default class AdhocFilter {
 
   getDefaultLabel(columns?: VerboseColumn[]): string {
     const label = this.translateToSql({ columns });
-    return label.length < 43 ? label : `${label.substring(0, 40)}...`;
+    const displayLabel = this.timeGrain
+      ? `[${this.timeGrain}] ${label}`
+      : label;
+    return displayLabel.length < 43
+      ? displayLabel
+      : `${displayLabel.substring(0, 40)}...`;
   }
 
   getTooltipTitle(): string {
-    return this.translateToSql();
+    const label = this.translateToSql();
+    return this.timeGrain ? `[${this.timeGrain}] ${label}` : label;
   }
 
   translateToSql(params: { columns?: VerboseColumn[] } = {}): string {
-    return translateToSql(this as unknown as CoreAdhocFilter, params);
+    const { comparator, timeGrain } = this;
+    const filter =
+      timeGrain && typeof comparator === 'number' && Number.isFinite(comparator)
+        ? {
+            ...this,
+            comparator: new Date(comparator).toISOString().slice(0, 19),
+          }
+        : this;
+    return translateToSql(filter as unknown as CoreAdhocFilter, params);
   }
 }
 

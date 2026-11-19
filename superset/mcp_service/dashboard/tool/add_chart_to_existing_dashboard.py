@@ -29,7 +29,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -47,6 +47,9 @@ from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardResponse,
     DashboardInfo,
     serialize_chart_summary,
+)
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
 )
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -172,7 +175,6 @@ def _find_and_authorize_dashboard(
     Handles both the not-found case and the editorship check so the main tool
     function doesn't need two separate branches for these pre-conditions.
     """
-    from superset import security_manager
     from superset.daos.dashboard import DashboardDAO
     from superset.exceptions import SupersetSecurityException
 
@@ -225,6 +227,8 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
     """
     Add chart to existing dashboard. Auto-positions in 2-column grid.
     Returns updated dashboard info.
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
     """
     try:
         from superset.commands.dashboard.update import UpdateDashboardCommand
@@ -234,6 +238,12 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
             dashboard, auth_error = _find_and_authorize_dashboard(request.dashboard_id)
             if auth_error is not None:
                 return auth_error
+
+            refusal: str | None = managed_dashboard_refusal(dashboard)
+            if refusal is not None:
+                return AddChartToDashboardResponse(
+                    managed_externally=True, error=refusal
+                )
 
             # Get chart object for SQLAlchemy relationships and validation
             from superset import db
@@ -251,7 +261,18 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
                     ),
                 )
 
-            # Validate dataset access for the chart.
+            if not security_manager.can_access_chart(new_chart):
+                return AddChartToDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    position=None,
+                    permission_denied=True,
+                    error=(
+                        f"You don't have permission to access chart {request.chart_id}."
+                    ),
+                )
+
+            # Validate dataset access as well as chart visibility.
             # check_chart_data_access is the centralized data-level
             # permission check that complements the class-level RBAC
             # enforced by mcp_auth_hook.

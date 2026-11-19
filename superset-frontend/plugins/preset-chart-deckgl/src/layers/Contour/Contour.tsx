@@ -91,7 +91,7 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
       strokeWidth?: number;
     }) => {
       const { lowerThreshold, upperThreshold, color, strokeWidth } = contour;
-      if (upperThreshold) {
+      if (upperThreshold || upperThreshold === 0) {
         // Isoband format
         return {
           threshold: [lowerThreshold, upperThreshold],

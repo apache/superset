@@ -58,6 +58,8 @@ export interface ReportObject {
     },
   ];
   report_format: string;
+  run_as_type?: 'fixed_user' | null;
+  run_as?: { id: number } | null;
   timezone: string;
   type: ReportScheduleType;
   validator_config_json: {} | null;

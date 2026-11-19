@@ -44,6 +44,7 @@ from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
+    format_list,
     get_column_names,
     get_metric_names,
     is_adhoc_metric,
@@ -87,6 +88,32 @@ _QUERY_OBJECT_RESOLVED_OPTIONS: dict[str, frozenset[str]] = {
 }
 
 
+def selection_version_error(version: object) -> QueryObjectValidationError:
+    """Return the user-facing refusal for a semantic selection version."""
+    if version == "unverified-external-selections":
+        return QueryObjectValidationError(
+            _(
+                "A dashboard filter or display control has "
+                "incompatible semantic selections. Dynamic group-by "
+                "is unsupported on versioned semantic views; remove "
+                "this chart from that control's scope. For other "
+                "filters or controls, reset and reselect fields or "
+                "saved values. If it targets another semantic view, "
+                "remove this chart from its scope."
+            )
+        )
+    return QueryObjectValidationError(
+        _(
+            "Saved semantic selections use an older identity format. "
+            "Reset and explicitly reselect the metrics and dimensions, "
+            "then save the chart. Display titles cannot be recovered "
+            "automatically. For API requests, select current member "
+            "IDs and supply semantic_selection_version from "
+            "datasource metadata or MCP list_metrics."
+        )
+    )
+
+
 class QueryObject:  # pylint: disable=too-many-instance-attributes
     """
     The query objects are constructed on the client.
@@ -95,10 +122,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     annotation_layers: list[dict[str, Any]]
     applied_time_extras: dict[str, str]
     apply_fetch_values_predicate: bool
+    cache_timeout: int | None
     columns: list[Column]
     datasource: BaseDatasource | None
     extras: dict[str, Any]
     filter: list[QueryObjectFilterClause]
+    force_query: bool
     from_dttm: datetime | None
     granularity: str | None
     grouping_sets: list[list[str]]
@@ -128,10 +157,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         annotation_layers: list[dict[str, Any]] | None = None,
         applied_time_extras: dict[str, str] | None = None,
         apply_fetch_values_predicate: bool = False,
+        cache_timeout: int | None = None,
         columns: list[Column] | None = None,
         datasource: BaseDatasource | None = None,
         extras: dict[str, Any] | None = None,
         filters: list[QueryObjectFilterClause] | None = None,
+        force_query: bool = False,
         granularity: str | None = None,
         is_rowcount: bool = False,
         is_timeseries: bool | None = None,
@@ -153,10 +184,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self._set_annotation_layers(annotation_layers)
         self.applied_time_extras = applied_time_extras or {}
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
+        # Resolved chart/custom/datasource cache timeout; None until the query
+        # context processor resolves it.
+        self.cache_timeout = cache_timeout
         self.columns = columns or []
         self.datasource = datasource
         self.extras = extras or {}
         self.filter = filters or []
+        self.force_query = force_query
         self.granularity = granularity
         self.is_rowcount = is_rowcount
         self._set_is_timeseries(is_timeseries)
@@ -401,6 +436,25 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         )
 
     @property
+    def is_datasource_metadata_request(self) -> bool:
+        """Whether this query asks only for datasource metadata and selects nothing.
+
+        Column and time grain options are answered from the datasource itself;
+        a query that also names members, filters or a time column is a selection.
+        The query's own result type is used: one that leaves it unset keeps the
+        selection checks even when its context asks for metadata.
+        """
+        return self.result_type in ChartDataResultType.datasource_metadata() and not (
+            self.metrics
+            or self.columns
+            or self.orderby
+            or self.filter
+            or self.granularity
+            or self.series_columns
+            or self.series_limit_metric
+        )
+
+    @property
     def column_names(self) -> list[str]:
         """Return column names (labels). Gives priority to groupbys if both groupbys
         and metrics are non-empty, otherwise returns column labels."""
@@ -411,40 +465,43 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     ) -> QueryObjectValidationError | None:
         """Validate query object"""
         try:
+            self.validate_semantic_time_offsets()
             self._validate_semantic_view_extras()
             if self.datasource and self.datasource.type == "semantic_view":
                 implementation: SemanticViewABC = cast(
                     "SemanticView", self.datasource
                 ).implementation
+                version: object = self.extras.get("semantic_selection_version")
                 try:
-                    implementation.validate_selection_version(
-                        self.extras.get("semantic_selection_version")
-                    )
+                    # Column and time grain options select no members, so there
+                    # is no saved selection identity to check.
+                    if not self.is_datasource_metadata_request:
+                        implementation.validate_selection_version(version)
                 except ValueError as ex:
-                    if self.extras.get("semantic_selection_version") == (
-                        "unverified-external-selections"
-                    ):
-                        raise QueryObjectValidationError(
-                            _(
-                                "A dashboard filter or display control has "
-                                "incompatible semantic selections. Dynamic group-by "
-                                "is unsupported on versioned semantic views; remove "
-                                "this chart from that control's scope. For other "
-                                "filters or controls, reset and reselect fields or "
-                                "saved values. If it targets another semantic view, "
-                                "remove this chart from its scope."
-                            )
-                        ) from ex
-                    raise QueryObjectValidationError(
-                        _(
-                            "Saved semantic selections use an older identity format. "
-                            "Reset and explicitly reselect the metrics and dimensions, "
-                            "then save the chart. Display titles cannot be recovered "
-                            "automatically. For API requests, select current member "
-                            "IDs and supply semantic_selection_version from "
-                            "datasource metadata or MCP list_metrics."
+                    raise selection_version_error(version) from ex
+                if self.filter:
+                    # Validate before result-cache access, including old entries
+                    # computed while non-dimension predicates were discarded.
+                    # avoid circular import: mapper imports QueryObject.
+                    from superset.semantic_layers.exceptions import (
+                        discover_dimensions,
+                        discover_metrics,
+                        DiscoveryTarget,
+                    )
+                    from superset.semantic_layers.mapper import validate_filter_columns
+
+                    target: DiscoveryTarget = DiscoveryTarget.of(self.datasource)
+                    dimension_names: set[str] = {
+                        dimension.name
+                        for dimension in discover_dimensions(
+                            lambda: implementation, target
                         )
-                    ) from ex
+                    }
+                    metric_names: set[str] = {
+                        metric.name
+                        for metric in discover_metrics(lambda: implementation, target)
+                    }
+                    validate_filter_columns(self.filter, dimension_names, metric_names)
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
             self._validate_time_offsets()
@@ -454,6 +511,28 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             if raise_exceptions:
                 raise
             return ex
+
+    def validate_semantic_time_offsets(self) -> None:
+        """Refuse unsupported comparisons before provider discovery or cache reads."""
+        if (
+            self.time_offsets
+            and self.datasource
+            and self.datasource.type == "semantic_view"
+        ):
+            # Import here to avoid the semantic model/QueryObject import cycle.
+            from superset_core.semantic_layers.errors import SemanticQueryErrorCode
+
+            from superset.semantic_layers.exceptions import (
+                SemanticLayerQueryRejectedError,
+            )
+
+            raise SemanticLayerQueryRejectedError(
+                SemanticQueryErrorCode.UNSUPPORTED_QUERY,
+                message=_(
+                    "Time comparison is not yet supported on semantic views. "
+                    "Remove the time shift and try again."
+                ),
+            )
 
     def _validate_semantic_view_extras(self) -> None:
         """Reject unsupported SQL clauses before resolving a semantic provider."""
@@ -477,7 +556,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 _(
                     "Duplicate column/metric labels: %(labels)s. Please make "
                     "sure all columns and metrics have a unique label.",
-                    labels=", ".join(f'"{x}"' for x in dup_labels),
+                    labels=format_list(dup_labels),
                 )
             )
 
@@ -560,16 +639,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 _(
                     "The following entries in `series_columns` are missing "
                     "in `columns`: %(columns)s. ",
-                    columns=", ".join(f'"{x}"' for x in missing_series),
+                    columns=format_list([str(col) for col in missing_series]),
                 )
             )
 
     def to_dict(self) -> QueryObjectDict:
         query_object_dict: QueryObjectDict = {
             "apply_fetch_values_predicate": self.apply_fetch_values_predicate,
+            "cache_timeout": self.cache_timeout,
             "columns": self.columns,
             "extras": self.extras,
             "filter": self.filter,
+            "force_query": self.force_query,
             "from_dttm": self.from_dttm,
             "granularity": self.granularity,
             "inner_from_dttm": self.inner_from_dttm,
@@ -628,6 +709,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 cache_dict["extra_cache_keys"],
                 key=lambda value: (type(value).__name__, str(value)),
             )
+
+        # Force refresh and timeout control cache reads and retention, not the
+        # logical result identity.
+        cache_dict.pop("force_query", None)
+        cache_dict.pop("cache_timeout", None)
 
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
         #  predetermined point in time when orgs are aware that the previously

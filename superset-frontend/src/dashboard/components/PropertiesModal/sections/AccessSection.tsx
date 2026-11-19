@@ -29,7 +29,7 @@ import SubjectPicker, {
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
 
-interface AccessSectionProps {
+export interface AccessSectionProps {
   isLoading: boolean;
   tags: TagType[];
   editors?: Subject[];

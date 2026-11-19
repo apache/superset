@@ -18,8 +18,10 @@
  */
 import { forwardRef, RefObject } from 'react';
 import { QueryData, VizType } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { css, SupersetTheme } from '@apache-superset/core/theme';
 import {
+  Button,
   CachedLabel,
   type LabelType,
   Timer,
@@ -66,6 +68,17 @@ export const ChartPills = forwardRef(
   ) => {
     const isLoading = chartStatus === 'loading';
     const firstQueryResponse = queriesResponse?.[0];
+    const hasSemanticHit = queriesResponse?.some(response =>
+      ['HIT', 'MIXED'].includes(response.semantic_cache_status ?? ''),
+    );
+    const hasSemanticMiss = queriesResponse?.some(
+      response => response.semantic_cache_status !== 'HIT',
+    );
+    const semanticCacheStatus = hasSemanticHit
+      ? hasSemanticMiss
+        ? 'MIXED'
+        : 'HIT'
+      : 'MISS';
 
     // For table charts with server pagination, check second query for total count
     const isTableChart =
@@ -100,11 +113,26 @@ export const ChartPills = forwardRef(
               limit={Number(rowLimit ?? 0)}
             />
           )}
-          {!isLoading && firstQueryResponse?.is_cached && (
-            <CachedLabel
+          {!isLoading &&
+            semanticCacheStatus !== 'MIXED' &&
+            (firstQueryResponse?.is_cached ||
+              semanticCacheStatus === 'HIT') && (
+              <CachedLabel
+                onClick={refreshCachedQuery}
+                cachedTimestamp={firstQueryResponse?.cached_dttm}
+                cacheSource={
+                  semanticCacheStatus === 'HIT' ? 'semantic' : 'result'
+                }
+              />
+            )}
+          {!isLoading && semanticCacheStatus === 'MIXED' && (
+            <Button
+              buttonStyle="link"
+              buttonSize="small"
               onClick={refreshCachedQuery}
-              cachedTimestamp={firstQueryResponse.cached_dttm}
-            />
+            >
+              {t('Mixed cache')}
+            </Button>
           )}
           <Timer
             startTime={chartUpdateStartTime}

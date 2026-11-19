@@ -46,6 +46,7 @@ export function DeleteModal({
   disableConfirmationInput = false,
   loading = false,
   confirmationResetKey,
+  preserveConfirmationOnConfirm = false,
 }: DeleteModalProps) {
   // Recoverable (archive) deletes drop the "type DELETE to confirm" step;
   // a permanent delete keeps it.
@@ -77,8 +78,10 @@ export function DeleteModal({
   };
 
   const confirm = () => {
-    setConfirmation('');
-    setDisableChange(true);
+    if (!preserveConfirmationOnConfirm) {
+      setConfirmation('');
+      setDisableChange(true);
+    }
     onConfirm();
   };
 

@@ -15,13 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from functools import partial
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, cast, Optional, TYPE_CHECKING
 
 from flask import g
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
+from sqlalchemy import Table
+from sqlalchemy.engine import CursorResult
+from sqlalchemy.orm import lazyload
 
 from superset import security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
@@ -35,6 +39,7 @@ from superset.commands.chart.exceptions import (
     DatasourceTypeUpdateRequiredValidationError,
 )
 from superset.commands.chart.utils import (
+    touch_dashboards,
     validate_chart_datasource_type,
     validate_query_context_datasource,
 )
@@ -53,6 +58,7 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType
+from superset.utils.core import DatasourceType
 from superset.utils.decorators import on_error, transaction
 from superset.versioning.changes.normalization import (
     register_matching_normalization_context,
@@ -70,20 +76,47 @@ def is_query_context_update(properties: dict[str, Any]) -> bool:
     )
 
 
+@dataclass(frozen=True)
+class ChartUpdateBasis:
+    """Capture the saved inputs used to prepare a certified chart update."""
+
+    params: str | None
+    datasource_id: int | None
+    datasource_type: str | None
+    viz_type: str | None
+    slice_name: str | None
+
+    @classmethod
+    def from_chart(cls, chart: Slice) -> "ChartUpdateBasis":
+        """Snapshot values rather than retaining a mutable ORM reference."""
+        return cls(
+            chart.params,
+            chart.datasource_id,
+            chart.datasource_type,
+            chart.viz_type,
+            chart.slice_name,
+        )
+
+
 class UpdateChartCommand(UpdateMixin, BaseCommand):
     def __init__(
         self,
         model_id: int,
         data: dict[str, Any],
         normalization_changes: object = None,
+        *,
+        expected_basis: ChartUpdateBasis | None = None,
     ) -> None:
         self._model_id: int = model_id
         self._properties: dict[str, Any] = data.copy()
         self._model: Optional[Slice] = None
         self._normalization_changes: object = normalization_changes
+        self._expected_basis: ChartUpdateBasis | None = expected_basis
 
     @transaction(on_error=partial(on_error, reraise=ChartUpdateFailedError))
     def run(self) -> Model:
+        if self._expected_basis is not None:
+            self._fence_expected_basis()
         self.validate()
         assert self._model
 
@@ -104,7 +137,70 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 self._properties["params"],
             )
 
+        # Touch dashboards whose links to this chart changed to bump their audit
+        # metadata (resolves #44305). Dashboards the chart was added to and
+        # removed from are both affected, so their last modified state stays
+        # accurate in either direction.
+        if "dashboards" in self._properties:
+            existing_dashboard_ids = {d.id for d in self._model.dashboards}
+            requested_dashboard_ids = {d.id for d in self._properties["dashboards"]}
+            affected_dashboards = [
+                dashboard
+                for dashboard in self._model.dashboards
+                if dashboard.id not in requested_dashboard_ids
+            ] + [
+                dashboard
+                for dashboard in self._properties["dashboards"]
+                if dashboard.id not in existing_dashboard_ids
+            ]
+            touch_dashboards(affected_dashboards)
+
         return ChartDAO.update(self._model, self._properties)
+
+    def _fence_expected_basis(self) -> None:
+        """Reject stale preparation and hold its write fence through commit."""
+        assert self._expected_basis is not None
+        table: Table = Slice.__table__
+        # Core UPDATE avoids ORM history for the guard. Pin onupdate columns to
+        # themselves so acquiring the fence does not change audit timestamps.
+        values: dict[Any, Any] = {
+            column: column for column in table.c if column.onupdate is not None
+        }
+        values[table.c.id] = table.c.id
+        with db.session.no_autoflush:
+            result: CursorResult = cast(
+                CursorResult,
+                db.session.execute(
+                    table.update()
+                    .where(
+                        table.c.id == self._model_id,
+                        *(
+                            table.c[key].is_not_distinct_from(value)
+                            for key, value in asdict(self._expected_basis).items()
+                        ),
+                    )
+                    .values(values)
+                ),
+            )
+            if result.rowcount != 1:
+                raise ChartUpdateFailedError("Chart changed; reload before retrying.")
+            # The locking read also escapes MySQL REPEATABLE READ snapshots.
+            # Keep a strong reference until the command's normal ORM mutation.
+            self._model = (
+                db.session.query(Slice)
+                # Lock only the chart: subquery eager loads can propagate FOR
+                # UPDATE into DISTINCT queries that PostgreSQL rejects.
+                .options(lazyload("*"))
+                .populate_existing()
+                .filter(Slice.id == self._model_id)
+                .with_for_update()
+                .one_or_none()
+            )
+        if (
+            self._model is None
+            or ChartUpdateBasis.from_chart(self._model) != self._expected_basis
+        ):
+            raise ChartUpdateFailedError("Chart changed; reload before retrying.")
 
     def _validate_new_dashboard_access(
         self, requested_dashboards: list[Dashboard], exceptions: list[ValidationError]
@@ -204,6 +300,15 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             # Keep the refreshed payload bound to the chart's own datasource so it
             # cannot be repointed at an unrelated one.
             self._validate_query_context_datasource(exceptions)
+
+        if (
+            not datasource_type
+            and self._model.datasource_type == DatasourceType.SEMANTIC_VIEW
+        ):
+            try:
+                validate_chart_datasource_type(self._model.datasource_type)
+            except ValidationError as ex:
+                exceptions.append(ex)
 
         # validate tags
         try:

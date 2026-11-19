@@ -26,6 +26,11 @@ type user = {
   first_name: string;
   last_name: string;
 };
+
+/** A user selectable as the executor ("Run As") of an alert/report. */
+export type RunAsUser = user & {
+  email?: string;
+};
 export type ChartObject = {
   id: number;
   slice_name: string;
@@ -150,7 +155,11 @@ export type AlertObject = {
   sql?: string;
   timezone?: string;
   recipients?: Array<Recipient>;
-  report_format?: NotificationFormats;
+  report_format?: NotificationFormats | 'NONE';
+  run_as_type?: 'fixed_user' | null;
+  run_alert_query_as_type?: 'fixed_user' | null;
+  run_as?: RunAsUser | MetaObject | null;
+  run_alert_query_as?: RunAsUser | MetaObject | null;
   type?: string;
   validator_config_json?: {
     op?: Operator;
@@ -195,6 +204,29 @@ export interface AlertsReportsConfig {
   ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT: number;
   ALERT_REPORTS_DEFAULT_RETENTION: number;
   ALERT_REPORTS_DEFAULT_CRON_VALUE: string;
+  ALERT_REPORTS_RUN_AS_TOOLTIP: string | null;
+}
+
+/**
+ * Global Alerts & Reports configuration managed by admins at runtime
+ * (GET/PUT /api/v1/report/configuration/).
+ */
+export interface ReportConfiguration {
+  alerts_attach_reports: boolean | null;
+  date_format_in_email_subject: boolean | null;
+  alert_minimum_interval: number | null;
+  report_minimum_interval: number | null;
+  limit_recipients_to_users: boolean | null;
+  allowed_email_domains: string[] | null;
+}
+
+/** A schedule conflicting with a proposed global configuration. */
+export interface ImpactedSchedule {
+  id: number;
+  name: string;
+  type: string;
+  reason: 'recipient' | 'frequency';
+  detail: string;
 }
 
 export type SectionValidationObject = {

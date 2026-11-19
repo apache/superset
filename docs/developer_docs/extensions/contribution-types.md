@@ -245,9 +245,6 @@ See [MCP Integration](./mcp.md) for implementation details.
 
 ### Semantic Layers
 
-For optional catalog acquisition and host publication, see the
-[semantic provider metadata contract](../semantic-metadata-contract.md).
-
 Extensions can register custom semantic layer implementations that allow Superset to connect to external data modeling frameworks. Each semantic layer defines how to authenticate, discover semantic views (tables/metrics/dimensions), and execute queries against the external system.
 
 ```python
@@ -265,75 +262,7 @@ from my_extension.view import MySemanticView
 )
 class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
     configuration_class = MyConfig
-
-    @classmethod
-    def from_configuration(cls, configuration: dict) -> "MySemanticLayer":
-        config = MyConfig.model_validate(configuration)
-        return cls(config)
-
-    @classmethod
-    def get_configuration_schema(cls, configuration=None) -> dict:
-        return MyConfig.model_json_schema()
-
-    @classmethod
-    def get_runtime_schema(cls, configuration=None, runtime_data=None) -> dict:
-        return {"type": "object", "properties": {}}
-
-    def get_semantic_views(self, runtime_configuration: dict) -> set[MySemanticView]:
-        # Return available views from the external platform
-        ...
-
-    def get_semantic_view(self, name: str, additional_configuration: dict) -> MySemanticView:
-        # Return a specific view by name
-        ...
+    ...
 ```
 
-**Note**: The `@semantic_layer` decorator automatically detects context and applies appropriate ID prefixing:
-
-- **Extension context**: ID prefixed as `extensions.{publisher}.{name}.{id}`
-- **Host context**: Original ID used as-is
-
-The decorator registers the class in the semantic layers registry, making it available in the UI for users to create connections. The `configuration_class` should be a Pydantic model that defines the fields needed to connect (credentials, project, database, etc.). Superset uses the model's JSON schema to render the configuration form dynamically.
-
-#### Declaring semantic view features
-
-A `SemanticView` advertises what its backend supports through the `features`
-frozenset. Declaration is opt-in: a view that declares nothing gets the most
-conservative behavior, so a new provider is safe by default.
-
-```python
-from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
-
-
-class MySemanticView(SemanticView):
-    features = frozenset(
-        {
-            # The backend accepts simple/custom-SQL column expressions built
-            # in Explore. Omit this member if it only accepts the view's own
-            # dimensions.
-            SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS,
-            SemanticViewFeature.GROUP_LIMIT,
-        }
-    )
-```
-
-The declared members are serialized to the Explore datasource payload as
-`semantic_view_features` (their stable string values). The provider's registry
-key is deliberately **not** sent: because the `@semantic_layer` decorator
-prefixes extension IDs, no stable bare key exists to publish, and behavior
-keyed off provider identity would not survive that prefixing.
-
-Explore translates `semantic_view_features` exactly once, in the
-datasource-to-picker-capabilities adapter
-(`superset-frontend/src/explore/components/controls/DndColumnSelectControl/utils/pickerCapabilities.ts`),
-into a provider-neutral `ColumnPickerCapabilities` value. That adapter is the
-anti-corruption boundary between provider metadata and generic UI: picker
-components consume capabilities and must not read `semantic_view_features`, a
-registry key, or a user-editable display name. New provider-specific behavior
-belongs in a capability, not in a comparison inside a picker component.
-
-A view that does not declare `ADHOC_COLUMN_EXPRESSIONS` gets a Saved-only
-column picker: its dimensions are listed as Saved options and the Simple and
-Custom SQL modes are visible but disabled, so users cannot build an expression
-the backend would reject. Unknown feature strings and payloads with no
-`semantic_view_features` field are ignored, preserving existing behavior.
+See [Semantic Layers Extension Point](./extension-points/semantic-layers.md) for implementation details.

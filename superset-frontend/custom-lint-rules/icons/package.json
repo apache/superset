@@ -1,0 +1,20 @@
+{
+  "name": "@superset-ui/lint-plugin-icons",
+  "version": "1.0.0",
+  "description": "Warns about direct usage of Ant Design icons",
+  "keywords": [],
+  "license": "Apache-2.0",
+  "author": "Apache",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "@oxlint/plugins": "*",
+    "@types/estree": "*",
+    "jest": "*",
+    "oxlint": "*"
+  }
+}

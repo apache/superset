@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Preset, DatasourceType, Filter } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import fetchMock from 'fetch-mock';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -24,6 +25,7 @@ import mockDatasource, { datasourceId, id } from 'spec/fixtures/mockDatasource';
 import { buildNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import {
   fireEvent,
+  act,
   render,
   screen,
   userEvent,
@@ -115,12 +117,15 @@ const datasetResult = (id: number) => ({
   },
   result: {
     metrics: [],
-    columns: [
-      {
-        column_name: 'Column A',
-        id: 1,
-      },
-    ],
+    columns: ['Column A', 'state', 'country', 'product'].map(
+      (column_name, index) => ({
+        column_name,
+        id: index + 1,
+        type_generic: GenericDataType.String,
+        filterable: true,
+      }),
+    ),
+    datasource_type: DatasourceType.Table,
     table_name: 'birth_names',
     id,
   },
@@ -128,9 +133,9 @@ const datasetResult = (id: number) => ({
 });
 
 function setupFetchMocks() {
-  fetchMock.get(`glob:*/api/v1/dataset/${id}`, datasetResult(id));
+  fetchMock.get(`path:/api/v1/dataset/${id}`, datasetResult(id));
   // Mock dataset 1 for buildNativeFilter fixtures which use datasetId: 1
-  fetchMock.get('glob:*/api/v1/dataset/1', datasetResult(1));
+  fetchMock.get('path:/api/v1/dataset/1', datasetResult(1));
   // Mock the dataset list endpoint for the dataset selector dropdown
   // Uses `id` constant (matches mockDatasource.id) for fixture data consistency
   fetchMock.get('glob:*/api/v1/dataset/?*', {
@@ -450,6 +455,48 @@ test('filters are draggable', async () => {
     do not displays cancel message when there are no pending operations
 */
 
+test('disables and spins Save during a request and enables retry after failure', async () => {
+  let finish: () => void = () => {};
+  const pending = new Promise<void>(resolve => {
+    finish = resolve;
+  });
+  const onSave = jest.fn(async () => {
+    await pending;
+    throw new Error('save failed');
+  });
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: [
+          buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+        ],
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false, onSave });
+  fireEvent.click(
+    screen
+      .getByTestId('filter-title-container')
+      .querySelector('[data-icon="delete"]')!,
+  );
+  const save = screen.getByRole('button', { name: SAVE_REGEX });
+  await userEvent.click(save);
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  expect(save).toBeDisabled();
+  expect(save.querySelector('.ant-btn-loading-icon')).toBeInTheDocument();
+  fireEvent.click(save);
+  expect(onSave).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    finish();
+  });
+  await waitFor(() => expect(save).toBeEnabled());
+  expect(save.querySelector('.ant-btn-loading-icon')).not.toBeInTheDocument();
+  await userEvent.click(save);
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+});
+
 test('deletes a filter', async () => {
   const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
@@ -652,16 +699,22 @@ test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
     firstSortable.focus();
 
     fireEvent.keyDown(firstSortable, { code: 'Space' });
-    await sleep(1);
+    await waitFor(() =>
+      expect(firstSortable).toHaveAttribute('aria-pressed', 'true'),
+    );
+    // The keyboard sensor attaches its document listener on the next timer tick.
+    await sleep(0);
     fireEvent.keyDown(document.activeElement ?? firstSortable, {
       code: 'ArrowDown',
     });
-    await sleep(1);
+    await sleep(0);
     fireEvent.keyDown(document.activeElement ?? firstSortable, {
       code: 'Space',
     });
 
-    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+    const saveButton = screen.getByRole('button', { name: SAVE_REGEX });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+    await userEvent.click(saveButton);
 
     await waitFor(
       () =>
@@ -1162,103 +1215,211 @@ test('toggles "Filter has default value" to show and hide the Default Value cont
   });
 });
 
-test('semantic filter reset requires reselection and survives save and reopen', async () => {
-  fetchMock.get('glob:*/api/v1/semantic_view/987/structure', {
+test('semantic range defaults use manual inputs without a chart-data bounds request', async () => {
+  fetchMock.clearHistory();
+  fetchMock.get('glob:*/api/v1/semantic_view/988/structure', {
     result: {
       name: 'Orders',
-      semantic_selection_version: 'cube-member-id-v1',
-      dimensions: [{ name: 'Orders.status', type: 'string' }],
+      dimensions: [{ name: 'Orders.age', type: 'number' }],
       metrics: [],
     },
   });
   const filter = {
-    ...buildNativeFilter('NATIVE_FILTER-identity', 'Legacy', []),
+    ...buildNativeFilter('NATIVE_FILTER-range', 'Age', []),
+    filterType: 'filter_range',
     targets: [
       {
-        datasetId: 987,
+        datasetId: 988,
         datasourceType: DatasourceType.SemanticView,
-        column: { name: 'Orders.status' },
+        column: { name: 'Orders.age' },
       },
     ],
-    time_range: 'Last week',
-    time_grains: ['P1D'],
-    defaultDataMask: {
-      filterState: { value: ['old default'] },
-      extraFormData: {
-        filters: [
-          { col: 'Orders.status', op: 'IN' as const, val: ['old default'] },
-        ],
-      },
-    },
+    controlValues: { enableSingleValue: undefined },
+    defaultDataMask: { filterState: { value: [18, 65] }, extraFormData: {} },
   };
   const state = {
     ...defaultState(),
     dashboardInfo: { metadata: { native_filter_configuration: [filter] } },
     dashboardLayout,
   };
-  const onSave = jest
-    .fn<
-      ReturnType<FiltersConfigModalProps['onSave']>,
-      Parameters<FiltersConfigModalProps['onSave']>
-    >()
-    .mockResolvedValue(undefined);
-  const { unmount } = defaultRender(state, {
-    ...props,
-    onSave,
-    createNewOnOpen: false,
-  });
-  await userEvent.click(
-    await screen.findByRole('button', { name: 'Start field selection' }),
-  );
-  await waitFor(() =>
-    expect(
-      screen.queryByText('Choose current semantic filter fields'),
-    ).not.toBeInTheDocument(),
-  );
-  expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
-  expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-  expect(screen.queryByText('old default')).not.toBeInTheDocument();
-  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-  expect(await screen.findByText(COLUMN_REQUIRED_REGEX)).toBeInTheDocument();
-  expect(onSave).not.toHaveBeenCalled();
-
-  // This ID also spelled the legacy title; only explicit reselection certifies it.
-  await userEvent.click(
-    screen.getByRole('combobox', { name: 'Column select' }),
-  );
-  await userEvent.click(await screen.findByText('Orders.status'));
-  // Column validation clears the previous save error asynchronously.
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeEnabled(),
-  );
-  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-  const changes = onSave.mock.calls[0][0].filterChanges;
-  expect(changes?.modified).toHaveLength(1);
-  const saved = changes?.modified[0];
-  const reopened: Filter = JSON.parse(JSON.stringify(saved));
-  expect(reopened.targets).toEqual([
-    {
-      datasetId: 987,
-      datasourceType: DatasourceType.SemanticView,
-      column: { name: 'Orders.status' },
-      semantic_selection_version: 'cube-member-id-v1',
-    },
-  ]);
-  expect(reopened.time_range).toBeUndefined();
-  expect(reopened.time_grains).toBeUndefined();
-  expect(reopened.defaultDataMask.filterState?.value).toBeUndefined();
-  expect(reopened.defaultDataMask.extraFormData?.filters).toBeUndefined();
-
-  unmount();
-  const reopenedState = {
-    ...state,
-    dashboardInfo: { metadata: { native_filter_configuration: [reopened] } },
-  };
-  defaultRender(reopenedState, { ...props, createNewOnOpen: false });
-  expect(await screen.findByText('Orders.status')).toBeInTheDocument();
+  defaultRender(state, { ...props, createNewOnOpen: false });
   expect(
-    screen.queryByRole('button', { name: 'Start field selection' }),
-  ).not.toBeInTheDocument();
-  expect(screen.queryByText('old default')).not.toBeInTheDocument();
-});
+    await screen.findByRole('spinbutton', { name: 'Minimum value' }),
+  ).toHaveValue('18');
+  expect(screen.getByRole('spinbutton', { name: 'Maximum value' })).toHaveValue(
+    '65',
+  );
+  expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls('glob:*/api/v1/chart/data')).toHaveLength(
+    0,
+  );
+}, 30000);
+
+test.each([undefined, 'old-member-format'])(
+  'semantic filter reset from %s requires reselection and survives save and reopen',
+  async version => {
+    fetchMock.get('glob:*/api/v1/semantic_view/987/structure', {
+      result: {
+        name: 'Orders',
+        semantic_selection_version: 'cube-member-id-v1',
+        dimensions: [{ name: 'Orders.status', type: 'string' }],
+        metrics: [],
+      },
+    });
+    const filter = {
+      ...buildNativeFilter('NATIVE_FILTER-identity', 'Legacy', []),
+      targets: [
+        {
+          datasetId: 987,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'Orders.status' },
+          semantic_selection_version: version,
+        },
+      ],
+      time_range: 'Last week',
+      time_grains: ['P1D'],
+      defaultDataMask: {
+        filterState: { value: ['old default'] },
+        extraFormData: {
+          filters: [
+            { col: 'Orders.status', op: 'IN' as const, val: ['old default'] },
+          ],
+        },
+      },
+    };
+    const state = {
+      ...defaultState(),
+      dashboardInfo: { metadata: { native_filter_configuration: [filter] } },
+      dashboardLayout,
+    };
+    const onSave = jest
+      .fn<
+        ReturnType<FiltersConfigModalProps['onSave']>,
+        Parameters<FiltersConfigModalProps['onSave']>
+      >()
+      .mockResolvedValue(undefined);
+    const { unmount } = defaultRender(state, {
+      ...props,
+      onSave,
+      createNewOnOpen: false,
+    });
+    expect(await screen.findByText('Exact match (IN)')).toBeInTheDocument();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Start field selection' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Choose current semantic filter fields'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
+    expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
+    expect(screen.queryByText('old default')).not.toBeInTheDocument();
+    expect(screen.getByText('Exact match (IN)')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+    expect(await screen.findByText(COLUMN_REQUIRED_REGEX)).toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
+
+    // This ID also spelled the legacy title; only explicit reselection certifies it.
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Column select' }),
+    );
+    await userEvent.click(await screen.findByText('Orders.status'));
+    // Column validation clears the previous save error asynchronously.
+    await waitFor(
+      () =>
+        expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeEnabled(),
+      { timeout: 5000 },
+    );
+    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    const changes = onSave.mock.calls[0][0].filterChanges;
+    expect(changes?.modified).toHaveLength(1);
+    const saved = changes?.modified[0];
+    const reopened: Filter = JSON.parse(JSON.stringify(saved));
+    expect(reopened.targets).toEqual([
+      {
+        datasetId: 987,
+        datasourceType: DatasourceType.SemanticView,
+        column: { name: 'Orders.status' },
+        semantic_selection_version: 'cube-member-id-v1',
+      },
+    ]);
+    expect(reopened.time_range).toBeUndefined();
+    expect(reopened.time_grains).toBeUndefined();
+    expect(reopened.defaultDataMask.filterState?.value).toBeUndefined();
+    expect(reopened.defaultDataMask.extraFormData?.filters).toBeUndefined();
+
+    unmount();
+    const reopenedState = {
+      ...state,
+      dashboardInfo: { metadata: { native_filter_configuration: [reopened] } },
+    };
+    defaultRender(reopenedState, { ...props, createNewOnOpen: false });
+    expect(await screen.findByText('Orders.status')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Start field selection' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('old default')).not.toBeInTheDocument();
+  },
+);
+
+const partitionedDatasetResult = (evaluable: boolean | null) => {
+  const response = datasetResult(id);
+  return {
+    ...response,
+    result: {
+      ...response.result,
+      columns: [
+        ...response.result.columns,
+        {
+          column_name: 'event_time',
+          id: 99,
+          type_generic: GenericDataType.Temporal,
+          filterable: true,
+          is_dttm: true,
+        },
+      ],
+      partition_filter_mapping: {
+        active: true,
+        evaluable,
+        is_monotonic: true,
+        mapped_column: 'event_time',
+      },
+    },
+  };
+};
+
+const datasetCalls = () =>
+  fetchMock.callHistory.calls(`path:/api/v1/dataset/${id}`);
+
+/** Serve the bound dataset with the given verdict; the first route wins. */
+const servePartitionedDataset = (evaluable: boolean | null) => {
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+  fetchMock.get(
+    `path:/api/v1/dataset/${id}`,
+    partitionedDatasetResult(evaluable),
+  );
+  setupFetchMocks();
+};
+
+test('a new filter on a partition-mapped dataset defaults to Last week only on a confirmed verdict', async () => {
+  // SC-130302. `evaluable: null` -- never probed, or the verdict expired -- used
+  // to get the default, and for a transform that emits no predicate the value
+  // list was then narrowed to last week while still scanning every partition.
+  servePartitionedDataset(null);
+  const { unmount } = defaultRender();
+  await waitFor(() => expect(datasetCalls().length).toBeGreaterThan(0));
+  await screen.findByText(COLUMN_REGEX);
+  expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
+  unmount();
+
+  // The verdict changes without the dataset changing. A reopened modal reads
+  // it afresh rather than replaying the response it saw last time.
+  servePartitionedDataset(true);
+  defaultRender();
+  await waitFor(() => expect(datasetCalls().length).toBeGreaterThan(0));
+  await waitFor(() => expect(getCheckbox(PRE_FILTER_REGEX)).toBeChecked());
+  expect(await screen.findByText('Last week')).toBeInTheDocument();
+}, 30000);
