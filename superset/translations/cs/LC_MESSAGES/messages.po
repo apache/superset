@@ -4038,6 +4038,10 @@ msgid "Cannot nest folders in default folders"
 msgstr "Nelze vkládat složky do výchozích složek"
 
 #, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
+#, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Nelze zpracovat časový řetězec [%(human_readable)s]"
 

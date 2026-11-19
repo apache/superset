@@ -4640,6 +4640,10 @@ msgstr "Није могуће изменити системске теме."
 msgid "Cannot nest folders in default folders"
 msgstr "Није могуће угнездити фасцикле у подразумеване фасцикле"
 
+#, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"

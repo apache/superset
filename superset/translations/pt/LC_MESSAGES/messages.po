@@ -4880,6 +4880,10 @@ msgstr "Não é possível modificar os temas do sistema."
 msgid "Cannot nest folders in default folders"
 msgstr "Não é possível aninhar pastas em pastas padrão"
 
+#, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]

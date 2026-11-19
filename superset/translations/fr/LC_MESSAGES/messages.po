@@ -4022,6 +4022,10 @@ msgid "Cannot nest folders in default folders"
 msgstr "Impossible d'imbriquer les dossiers dans les dossiers par défaut."
 
 #, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
+#, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Impossible d'analyser la chaîne de temps [%(human_readable)s]"
 

@@ -4662,6 +4662,10 @@ msgid "Cannot nest folders in default folders"
 msgstr "Impossibile annidare cartelle nelle cartelle predefinite"
 
 #, python-format
+msgid "Cannot parse time range for filter '%(col)s': %(err)s"
+msgstr ""
+
+#, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Impossibile analizzare la stringa dell'orario [%(human_readable)s]"
 
