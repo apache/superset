@@ -19,7 +19,11 @@
 import { useEffect, useState } from 'react';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { Form } from '@superset-ui/core/components';
-import { FormFieldOrder, FORM_FIELD_MAP } from './constants';
+import {
+  ENGINE_FORM_FIELD_OVERRIDES,
+  FormFieldOrder,
+  FORM_FIELD_MAP,
+} from './constants';
 import { formScrollableStyles, validatedFormStyles } from '../styles';
 import {
   DatabaseConnectionFormProps,
@@ -96,6 +100,11 @@ const DatabaseConnectionForm = ({
     // field that computeInitialIsPublic actually reads.
   }, [db?.id, db?.engine, db?.masked_encrypted_extra, db?.parameters]);
 
+  const fieldMap = {
+    ...FORM_FIELD_MAP,
+    ...ENGINE_FORM_FIELD_OVERRIDES[db?.engine ?? ''],
+  };
+
   return (
     <Form>
       <div
@@ -115,7 +124,7 @@ const DatabaseConnectionForm = ({
             // makes the field's hooks register against this parent's fiber and
             // breaks the rules of hooks once the parent owns its own state.
             // @ts-expect-error TODO: fix ComponentClass for SSHTunnelSwitchComponent not having call signature.
-            const FieldComponent = FORM_FIELD_MAP[field];
+            const FieldComponent = fieldMap[field];
             return (
               <FieldComponent
                 key={field}

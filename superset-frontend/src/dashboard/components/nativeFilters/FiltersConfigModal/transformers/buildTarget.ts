@@ -19,6 +19,7 @@
 import {
   DataMask,
   DatasourceType,
+  isGrainOnlyExtraFormData,
   NativeFilterTarget,
 } from '@superset-ui/core';
 
@@ -81,6 +82,7 @@ export function buildNativeFilterDefaultDataMask(
   if (
     target.datasourceType !== DatasourceType.SemanticView ||
     !target.semantic_selection_version ||
+    isGrainOnlyExtraFormData(mask.extraFormData) ||
     (mask.filterState?.value === undefined &&
       !Object.keys(mask.extraFormData ?? {}).length)
   )
