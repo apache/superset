@@ -9988,6 +9988,14 @@ msgstr "Masquer la ligne"
 msgid "Hide chart description"
 msgstr "Masquer la description du graphique"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Masquer la couche"
 
@@ -10648,9 +10656,10 @@ msgstr "État invalide."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Identifiants d'onglet non valides : %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Valeur de filtre temporel invalide pour la colonne %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

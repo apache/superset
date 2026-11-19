@@ -49,6 +49,10 @@ import {
   limitColumnsForChartType,
   isChartWithoutGroupBy,
 } from './chartTypeLimitations';
+import {
+  getIgnoredSqlFilterIds,
+  ChartDatasources,
+} from './getIgnoredSqlFilterIds';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
@@ -102,6 +106,7 @@ export function getCustomizationSelectionSources({
 }
 
 interface CachedFormData {
+  semantic_selection_version?: string;
   extra_form_data?: JsonObject;
   extra_filters: {
     col: string;
@@ -164,6 +169,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   allSliceIds: number[];
   chartCustomization?: JsonObject;
   activeFilters?: ActiveFilters;
+  sourceDatasources?: ChartDatasources;
 }
 
 const createFilterDataMapping = (
@@ -515,6 +521,7 @@ export default function getFormDataWithExtraFilters({
   allSliceIds,
   chartCustomization,
   activeFilters: passedActiveFilters,
+  sourceDatasources,
 }: GetFormDataWithExtraFiltersArguments) {
   const hiddenCustomizationIds = new Set(
     (chartCustomizationItems ?? [])
@@ -528,7 +535,14 @@ export default function getFormDataWithExtraFilters({
         ),
       ) as DataMaskStateWithId)
     : allDataMask;
+  const ignoredFilterIds = getIgnoredSqlFilterIds(
+    chart.form_data ?? {},
+    nativeFilters,
+    dataMask,
+    sourceDatasources,
+  );
   const chartSelectionInput = {
+    ignoredFilterIds,
     datasource: chart.form_data?.datasource,
     semantic_selection_version: chart.form_data?.semantic_selection_version,
     semantic_selection_sources: chart.form_data?.semantic_selection_sources,
@@ -588,7 +602,11 @@ export default function getFormDataWithExtraFilters({
   // Range filter's time_range) replace the cross-filter's. Merge native
   // filters first so a cross-filter selection takes precedence.
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
-    .filter(([, activeFilter]) => activeFilter?.scope?.includes(chart.id))
+    .filter(
+      ([id, activeFilter]) =>
+        activeFilter?.scope?.includes(chart.id) &&
+        !ignoredFilterIds.includes(id),
+    )
     .map(([filterId]) => filterId)
     .sort((a, b) => Number(!nativeFilters?.[a]) - Number(!nativeFilters?.[b]));
   // Control types let the merge drop provenance a cleared grain control

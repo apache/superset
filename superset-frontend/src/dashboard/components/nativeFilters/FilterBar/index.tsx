@@ -29,6 +29,8 @@ import {
 } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
+import type { AnyAction } from 'redux';
+import type { ThunkDispatch } from 'redux-thunk';
 import {
   DataMaskStateWithId,
   DataMaskWithId,
@@ -58,6 +60,7 @@ import { URL_PARAMS } from 'src/constants';
 import { applicationRoot } from 'src/utils/getBootstrapData';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
+import { useAppSelector } from 'src/views/store';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
@@ -75,7 +78,10 @@ import {
   getFiltersToApply,
 } from './utils';
 import { extractLabel } from '../selectors';
-import { isHiddenSemanticCustomization } from '../utils';
+import {
+  isHiddenSemanticCustomization,
+  withNativeFilterProvenance,
+} from '../utils';
 import { FiltersBarProps } from './types';
 import {
   useAllAppliedDataMask,
@@ -234,7 +240,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       ) as DataMaskStateWithId,
     [dataMaskApplied, hiddenCustomizationIds],
   );
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<ThunkDispatch<RootState, null, AnyAction>>();
   const [updateKey, setUpdateKey] = useState(0);
   const tabId = useTabId();
   const filters = useFilters();
@@ -253,6 +259,9 @@ const FilterBar: FC<FiltersBarProps> = ({
   const previousDashboardId = usePrevious(dashboardId);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
+  );
+  const isManagedExternally = useAppSelector(({ dashboardInfo }) =>
+    Boolean(dashboardInfo.is_managed_externally),
   );
   const user: UserWithPermissionsAndRoles = useSelector<
     RootState,
@@ -533,8 +542,9 @@ const FilterBar: FC<FiltersBarProps> = ({
         )[]
       ).filter(item => existingCustomizationIds.has(item.id));
 
-      if (pendingItems.length > 0) {
-        dispatch(saveChartCustomization(pendingItems, []));
+      if (canEdit && !isManagedExternally && pendingItems.length > 0) {
+        // The thunk reports save failures; Apply must consume its rejection.
+        dispatch(saveChartCustomization(pendingItems, [])).catch(() => {});
       }
       dispatch(clearAllPendingChartCustomizations());
       setPendingCustomizationDataMasks({});
@@ -556,7 +566,12 @@ const FilterBar: FC<FiltersBarProps> = ({
 
       dispatch(clearAllChartCustomizationsFromMetadata());
 
-      dispatch(saveChartCustomization(clearedChartCustomizations, []));
+      if (canEdit && !isManagedExternally) {
+        // The thunk reports save failures; Clear must consume its rejection.
+        dispatch(saveChartCustomization(clearedChartCustomizations, [])).catch(
+          () => {},
+        );
+      }
     }
 
     setHasClearedChartCustomizations(false);
@@ -571,6 +586,8 @@ const FilterBar: FC<FiltersBarProps> = ({
     hasClearedChartCustomizations,
     chartCustomizationValues,
     visibleChartCustomizationValues,
+    canEdit,
+    isManagedExternally,
   ]);
 
   const handleClearAll = useCallback(() => {
@@ -592,7 +609,11 @@ const FilterBar: FC<FiltersBarProps> = ({
         // Stage the cleared value locally; do NOT dispatch to Redux here.
         // Persistence happens when the user clicks Apply.
         setDataMaskSelected(draft => {
-          draft[id].extraFormData = {};
+          draft[id].extraFormData = withNativeFilterProvenance(
+            { extraFormData: {} },
+            filterType,
+            filter.targets?.[0],
+          ).extraFormData;
           const { filterState } = draft[id];
           if (filterState) {
             filterState.value = clearedValue;
