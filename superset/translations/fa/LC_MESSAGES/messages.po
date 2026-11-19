@@ -10483,6 +10483,14 @@ msgstr "خط را پنهان کن"
 msgid "Hide chart description"
 msgstr "توضیحات نمودار را پنهان کن"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "لایه را مخفی کنید"
 

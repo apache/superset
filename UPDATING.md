@@ -24,6 +24,25 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Realtime websocket authentication (`WEBSOCKET_ENABLE`):** the browser
+  authenticates the socket with a short-lived ticket from
+  `GET /api/v1/realtime/token/` sent in-band, instead of a JWT cookie. The
+  `WEBSOCKET_JWT_COOKIE_NAME`, `WEBSOCKET_JWT_COOKIE_SECURE`,
+  `WEBSOCKET_JWT_COOKIE_SAMESITE` and `WEBSOCKET_JWT_COOKIE_DOMAIN` Flask settings
+  are removed, as is the websocket server's `jwtCookieName` option
+  (`JWT_COOKIE_NAME` environment variable); delete them from `superset_config.py`,
+  the websocket `config.json`, and container environments (they are ignored
+  otherwise). Upgrade the web application and the `superset-websocket` server
+  together: the new server refuses the previous cookie-based client, and the
+  previous server refuses the new ticket-based client, so while the versions are
+  mixed realtime updates stop and async charts waiting on the socket fail with
+  "Realtime connection unavailable". Reload open browser tabs after the upgrade.
+  Unauthenticated sockets are unlimited by default; setting
+  `maxPendingConnections` (`MAX_PENDING_CONNECTIONS`) is recommended, see the
+  [websocket server README](superset-websocket/README.md).
+
+- Semantic-view column pickers only offer saved dimensions, including for older metadata without feature declarations. `ADHOC_COLUMN_EXPRESSIONS` remains importable but is reserved and grants no capability. Providers must use recognized SDK enum members; raw-string declarations are ignored. SQL dataset expression controls are unchanged.
+
 - Semantic-layer connection updates that reuse masked credentials require a
   usable provider configuration schema. Non-secret settings must stay unchanged
   at every nesting depth, including dictionary keys. While any mask is retained,
@@ -125,7 +144,8 @@ assists people when migrating to a new version.
   import (HTTP 400, naming the missing fields) rather than stored and ignored while
   both embedding flags are enabled. Import also refuses a credential on a
   connection whose file turns **Impersonate logged in user** off and, with either
-  flag off, a new or changed credential, as the API does. Validation
+  flag off, a new or changed credential, as the API does. Import also refuses a key
+  pair that doesn't decode with its passphrase, as the API does. Validation
   uses the engine's credential rules and edited credentials rather than stale stored
   values, and rejects whitespace-only usernames. An OAuth2 client with a blank client
   ID or secret counts as no client, and an update that would turn impersonation off
@@ -439,8 +459,11 @@ assists people when migrating to a new version.
   semantic view. Interactive dashboards retain unavailable semantic charts and
   continue rendering ordinary datasets. Dual-source MCP tools retain dataset
   access; unscoped metric listings omit semantic views. Legacy batch warm-up
-  reports a per-chart error for a disabled semantic chart and continues. Existing
-  permissions remain required when enabled. Run `superset init` during upgrade
+  reports a per-chart error for a disabled semantic chart and continues. Endpoint
+  permissions are checked before the flag: callers without access receive 401 or
+  403 in either state, and permitted callers receive 404 while the feature is
+  disabled. Automatic OPTIONS responses report allowed methods in either state
+  without executing a semantic handler. Run `superset init` during upgrade
   to register the existing semantic permissions even when the feature is off.
   Runtime flag hooks can enable the feature without another restart or permission
   sync; provider extensions must already be loaded. Do not target runtime
@@ -1475,7 +1498,9 @@ completion transport for async chart-data — see the note on the interval poll)
 > When it is **enabled**, completion is delivered over the socket and the
 > recurring interval poll does not run; a one-shot `status_changes` catch-up on
 > waiter registration and on socket reconnect reconciles anything missed while
-> disconnected. The socket accelerates delivery over the authoritative
+> disconnected. A principal the ticket endpoint refuses (for example an embedded
+> guest whose role lacks `can_read Realtime`) gets no socket and falls back to the
+> interval poll. The socket accelerates delivery over the authoritative
 > `status_changes` API rather than replacing it: Redis Pub/Sub is best-effort
 > (at-most-once, no replay), so a disconnect is reconciled by the catch-up on
 > reconnect/registration. In the rare case a `task.status` is missed while the
@@ -1493,14 +1518,26 @@ WEBSOCKET_JWT_SECRET = "<output of: openssl rand -base64 42>"
 The built-in Gamma role receives `can_read Realtime`; grant that permission to
 custom roles that should receive websocket notifications.
 
-Run the `superset-websocket` Node server on the **same browser-visible host**
-(so its JWT channel cookie is shared) and point its `redis` config at the same
-instance as `DISTRIBUTED_COORDINATION_CONFIG`, plus `jwtSecret` /
-`jwtCookieName` matching the Flask config (`WEBSOCKET_JWT_SECRET` /
-`WEBSOCKET_JWT_COOKIE_NAME`, default `superset-ws-token`). During websocket JWT
+Run the `superset-websocket` Node server where browsers can reach it and point
+its `redis` config at the same instance as `DISTRIBUTED_COORDINATION_CONFIG`,
+plus a `jwtSecret` matching the Flask config (`WEBSOCKET_JWT_SECRET`). The
+browser authenticates with a short-lived connection ticket fetched from
+`GET /api/v1/realtime/token/` and sent as the first frame of the socket, then
+refreshes it on the open socket before it expires, so the server no longer needs
+to share a host with the web application and no credential rides the handshake or
+the URL. Upgrade the web servers and the websocket servers together, and reload
+open browser tabs: a tab still running the previous cookie-based client is
+refused by the new server (it closes the socket after the 10 second auth
+timeout, repeatedly) until it is reloaded, and the same applies to replicas rolled
+at different times. The `WEBSOCKET_JWT_COOKIE_NAME`,
+`WEBSOCKET_JWT_COOKIE_SECURE`, `WEBSOCKET_JWT_COOKIE_SAMESITE` and
+`WEBSOCKET_JWT_COOKIE_DOMAIN` Flask settings and the websocket server's
+`jwtCookieName` / `JWT_COOKIE_NAME` option are removed. During websocket JWT
 secret rotation, set the websocket server's `previousJwtSecret` /
-`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting cookies with
-`WEBSOCKET_JWT_SECRET`. The server is bundled in the official Superset image
+`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting tickets with
+`WEBSOCKET_JWT_SECRET`. After a logout or session revocation, an open socket stays
+authenticated until its current ticket expires, because the next refresh fails.
+The server is bundled in the official Superset image
 and launched via an alternate entrypoint — no separate image is required:
 `docker run <superset-image> /app/docker/entrypoints/run-websocket.sh` (or the
 opt-in `websocket` profile in `docker compose`). It **subscribes** to a single
@@ -1763,6 +1800,12 @@ unversioned external member overrides cannot borrow a chart's version. Recreate
 old dashboard permalink/filter state after reselection. Cross-view overlays are
 rejected unless their source identity matches the receiving semantic view;
 matching display titles are not proof of matching members.
+
+Time comparison is unsupported on semantic views, including relative shifts,
+inherited ranges and custom start dates. Remove the time shift from affected
+charts to query them. The host refuses these queries before reading cached
+results because comparisons could return incorrect values. Ordinary semantic
+queries and SQL-dataset time comparisons are unchanged.
 
 Dynamic group-by display controls are unsupported on versioned semantic views,
 including Cube. Remove those charts from the control's scope; resetting or

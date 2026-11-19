@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 16:13-0700\n"
+"POT-Creation-Date: 2026-11-19 09:45+1100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -7691,6 +7691,9 @@ msgstr ""
 msgid "Group remaining as \"Others\""
 msgstr ""
 
+msgid "Group remaining as \"Others\" cannot be calculated for this metric on a semantic view. Turn it off, or choose a sum, count, minimum, or maximum metric."
+msgstr ""
+
 msgid "Groupable columns"
 msgstr ""
 
@@ -7758,6 +7761,12 @@ msgid "Hide Line"
 msgstr ""
 
 msgid "Hide chart description"
+msgstr ""
+
+msgid "Hide columns with only null metric values. Keep columns with zeros or non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
 msgstr ""
 
 msgid "Hide layer"
@@ -10100,6 +10109,9 @@ msgid "Not all required fields are complete. Please provide the following:"
 msgstr ""
 
 msgid "Not available"
+msgstr ""
+
+msgid "Not available while editing. Save or discard your changes to export."
 msgstr ""
 
 msgid "Not currently mapped to the partition column."
@@ -14403,7 +14415,7 @@ msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr ""
 
 #, python-format
-msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer, but received %(value)s. Enter a whole number of seconds (0 or greater) under Advanced > Performance."
 msgstr ""
 
 #, python-format
@@ -14672,6 +14684,9 @@ msgid "The distance between cells, in pixels"
 msgstr ""
 
 msgid "The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache."
+msgstr ""
+
+msgid "The embedded guest private key could not be read. Provide a PEM private key and its correct passphrase (leave the passphrase empty for an unencrypted key)."
 msgstr ""
 
 msgid "The encoding format of the lines"
@@ -16114,6 +16129,9 @@ msgid "Time column to apply time range to"
 msgstr ""
 
 msgid "Time comparison"
+msgstr ""
+
+msgid "Time comparison is not yet supported on semantic views. Remove the time shift and try again."
 msgstr ""
 
 msgid ""

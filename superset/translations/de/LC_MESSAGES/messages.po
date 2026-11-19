@@ -9262,6 +9262,14 @@ msgstr "Linie ausblenden"
 msgid "Hide chart description"
 msgstr "Diagrammbeschreibung ausblenden"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Ebene verstecken"
 
