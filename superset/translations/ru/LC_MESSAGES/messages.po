@@ -7723,6 +7723,9 @@ msgstr "Динамическое название раздела"
 msgid "Dynamic group by"
 msgstr "Динамическая группировка"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Динамическое описание раздела"
 
@@ -10548,9 +10551,10 @@ msgstr "Некорректное состояние"
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Некорректные ID вкладок: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Недопустимое значение временного фильтра для столбца %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

@@ -7930,6 +7930,9 @@ msgstr "திசைசார்ந்த (Directional)"
 msgid "Dynamic group by"
 msgstr "டைனமிக் குழுவாக்கம்"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "டைனமிக் அக்ரிகேஷன் சார்பு"
@@ -10783,9 +10786,10 @@ msgstr "தவறான நிலை."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "தவறான தாவல் ஐடிகள்: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "%(column)s நெடுவரிசைக்கான செல்லாத கால அடிப்படையிலான வடிகட்டி மதிப்பு"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

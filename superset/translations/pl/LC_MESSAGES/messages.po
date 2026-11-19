@@ -8519,6 +8519,9 @@ msgstr "Kierunkowy"
 msgid "Dynamic group by"
 msgstr "NIE GRUPOWANO PRZEZ"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Funkcja dynamicznej agregacji"
@@ -11730,9 +11733,10 @@ msgstr "Nieprawidłowy stan."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Nieprawidłowe identyfikatory kart: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Nieprawidłowa wartość filtra czasowego dla kolumny %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

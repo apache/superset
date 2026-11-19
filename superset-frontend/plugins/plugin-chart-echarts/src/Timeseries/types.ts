@@ -181,6 +181,7 @@ export type TimeseriesChartTransformedProps =
       xValueFormatter: TimeFormatter | StringConstructor;
       xAxis: {
         label: string;
+        column?: string;
         type: AxisType;
       };
       resolvedTimeGrain?: TimeGranularity;

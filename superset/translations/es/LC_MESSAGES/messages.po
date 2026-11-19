@@ -8077,6 +8077,9 @@ msgstr "Direccional"
 msgid "Dynamic group by"
 msgstr "Agrupación dinámica"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Función de agregación dinámica"
@@ -11069,9 +11072,10 @@ msgstr "Estado no válido."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "ID de pestaña no válidos: %(tab_ids)s"
 
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
 #, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Valor de filtro temporal no válido para la columna %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
