@@ -25,7 +25,14 @@ Two branches are exercised:
 """
 
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
+
+from pytest_mock import MockerFixture
+
+from superset.commands.explore.get import GetExploreCommand
+from superset.commands.explore.parameters import CommandParameters
+from superset.connectors.sqla.models import SqlaTable
+from superset.semantic_layers.models import SemanticView
 
 _FULL_FILTER: dict[str, Any] = {
     "id": 1,
@@ -121,3 +128,59 @@ def test_rls_empty_list_on_dao_exception(
         datasource_data["rls_filters"] = []
 
     assert datasource_data["rls_filters"] == []
+
+
+def test_explore_rls_lookup_uses_sql_dataset_identity(mocker: MockerFixture) -> None:
+    """A semantic view cannot inherit SQL RLS metadata from a matching numeric id."""
+    view: SemanticView = SemanticView(id=42, name="orders_view")
+    dataset: SqlaTable = SqlaTable(id=42, table_name="orders")
+    mocker.patch.object(
+        SemanticView,
+        "data",
+        new_callable=PropertyMock,
+        return_value={"name": "orders_view"},
+    )
+    mocker.patch.object(
+        SqlaTable, "data", new_callable=PropertyMock, return_value={"name": "orders"}
+    )
+    mocker.patch("superset.commands.explore.get.get_form_data", return_value=({}, None))
+    mocker.patch(
+        "superset.commands.explore.get.get_datasource_info",
+        side_effect=lambda id, kind, form: (id, kind),
+    )
+    mocker.patch(
+        "superset.commands.explore.get.utils.convert_legacy_filters_into_adhoc"
+    )
+    mocker.patch("superset.commands.explore.get.utils.merge_extra_filters")
+    mocker.patch("superset.commands.explore.get.utils.merge_request_params")
+    mocker.patch("superset.commands.explore.get.request", new=MagicMock())
+    mocker.patch(
+        "superset.commands.explore.get.sanitize_datasource_data",
+        side_effect=lambda data: data,
+    )
+    mocker.patch(
+        "superset.commands.explore.get.security_manager"
+    ).can_access.return_value = True
+    datasource_lookup: MagicMock = mocker.patch(
+        "superset.commands.explore.get.DatasourceDAO.get_datasource",
+        side_effect=lambda kind, id: view if kind == "semantic_view" else dataset,
+    )
+    rls_lookup: MagicMock = mocker.patch(
+        "superset.commands.explore.get.DatasetDAO.get_rls_filters_for_dataset",
+        return_value=[_FULL_FILTER],
+    )
+
+    view_result: dict[str, Any] | None = GetExploreCommand(
+        CommandParameters(None, None, 42, "semantic_view", None)
+    ).run()
+    assert view_result is not None
+    assert view_result["dataset"].get("rls_filters", []) == []
+    rls_lookup.assert_not_called()
+
+    dataset_result: dict[str, Any] | None = GetExploreCommand(
+        CommandParameters(None, None, 42, "table", None)
+    ).run()
+    assert dataset_result is not None
+    assert dataset_result["dataset"]["rls_filters"] == [_FULL_FILTER]
+    rls_lookup.assert_called_once_with(42)
+    assert datasource_lookup.call_count == 2

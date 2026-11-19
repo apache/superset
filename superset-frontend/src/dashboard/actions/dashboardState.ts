@@ -622,7 +622,9 @@ export function saveDashboardRequest(
           }
         })
         .catch((error: Error) => {
-          dispatch(replaceDashboardSemanticDatasets(id, null, requestId));
+          // A settled failure has no proven columns, but must release queries
+          // waiting for this refresh. Keep the request-id guard for late replies.
+          dispatch(replaceDashboardSemanticDatasets(id, [], requestId));
           logging.error('Error fetching dashboard datasets:', error);
         });
       // syncing with the backend transformations of the metadata

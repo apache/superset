@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 import inspect
+from collections.abc import Iterator
+from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
@@ -131,6 +133,42 @@ def test_should_run_async_requires_async_mode_flag() -> None:
     # Feature flag off → always sync.
     with patch("superset.charts.data.api.is_feature_enabled", return_value=False):
         assert api._should_run_async({"async_mode": True}, qc) is False
+
+
+@pytest.mark.parametrize(
+    ("query_result_types", "expected"),
+    [
+        ([None], True),
+        ([ChartDataResultType.FULL], True),
+        ([ChartDataResultType.TIMEGRAINS], False),
+        ([ChartDataResultType.COLUMNS], False),
+        ([ChartDataResultType.FULL, ChartDataResultType.TIMEGRAINS], False),
+    ],
+)
+def test_should_run_async_gates_on_effective_query_result_type(
+    query_result_types: list[ChartDataResultType | None], expected: bool
+) -> None:
+    """A full context carrying a metadata query is answered without a task."""
+    api: ChartDataRestApi = ChartDataRestApi()
+    qc: MagicMock = MagicMock()
+    qc.result_format = ChartDataResultFormat.JSON
+    qc.result_type = ChartDataResultType.FULL
+    qc.get_cache_timeout.return_value = 300
+    # A query without its own result type inherits the context's.
+    qc.queries = [MagicMock(result_type=rt) for rt in query_result_types]
+
+    cache_manager: MagicMock
+    with (
+        patch("superset.charts.data.api.is_feature_enabled", return_value=True),
+        patch("superset.charts.data.api.cache_manager") as cache_manager,
+        patch("superset.charts.data.api.get_user_id", return_value=1),
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ),
+    ):
+        cache_manager.data_cache.cache = MagicMock()
+        assert api._should_run_async({"async_mode": True}, qc) is expected
 
 
 def test_should_run_async_requires_subscribeable_identity() -> None:
@@ -456,6 +494,45 @@ def test_send_chart_response_excludes_timing_by_default(app: SupersetApp) -> Non
     body = json.loads(response.get_data(as_text=True))
     assert body == {"result": [{"data": [{"col1": 1}], "query": "SELECT 1"}]}
     assert "timing" not in query_payload
+
+
+def test_send_chart_response_serialize_timer_excludes_event_log_write(
+    app: SupersetApp,
+) -> None:
+    """
+    ``chart_data.response.serialize`` times json.dumps only: it is emitted
+    before the ``json_dumps`` log context exits and writes its event log.
+    """
+    result = _json_execution_result({"data": [{"col1": 1}], "query": "SELECT 1"})
+    events: list[str] = []
+
+    @contextmanager
+    def log_context(action: str) -> Iterator[None]:
+        events.append(f"log_enter:{action}")
+        yield
+        events.append(f"log_exit:{action}")
+
+    def emit_timing(key: str, value: float) -> None:
+        events.append(f"timer:{key}")
+
+    event_logger = MagicMock()
+    event_logger.log_context.side_effect = log_context
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=False,
+        ),
+        patch("superset.charts.data.api.event_logger", event_logger),
+        patch("superset.utils.timing_metrics.emit_timing", side_effect=emit_timing),
+    ):
+        ChartDataRestApi()._send_chart_response(result)
+
+    assert events == [
+        "log_enter:ChartDataRestApi.json_dumps",
+        "timer:chart_data.response.serialize",
+        "log_exit:ChartDataRestApi.json_dumps",
+    ]
 
 
 @pytest.mark.parametrize(

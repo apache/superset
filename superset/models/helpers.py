@@ -210,6 +210,7 @@ from superset.utils.rls import (
     RLSSchema,
     SearchPath,
 )
+from superset.utils.timing_metrics import timed
 
 
 class ValidationResultDict(TypedDict):
@@ -2899,7 +2900,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         datasource types (Query, SqlaTable, etc.).
         """
         qry_start_dttm = datetime.now()
-        query_str_ext = self.get_query_str_extended(query_obj)
+        with timed("datasource.query.sql_generation"):
+            query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
 
         self._raise_for_disallowed_sql(sql)
@@ -3362,22 +3364,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df = result.df
         if not df.empty:
             # Normalize datetime columns and metrics
-            df = self.normalize_df(
-                df,
-                query_object,
-                result.sql_shifted_temporal_labels,
-                keep_exact_integers=dataframe_utils.can_keep_exact_integers(
-                    query_object
-                ),
-            )
+            with timed("datasource.query.normalize"):
+                df = self.normalize_df(
+                    df,
+                    query_object,
+                    result.sql_shifted_temporal_labels,
+                    keep_exact_integers=dataframe_utils.can_keep_exact_integers(
+                        query_object
+                    ),
+                )
 
             # Process time offsets if requested
             if query_object.time_offsets:
                 # Process time offsets using the datasource's own method
                 # Note: caching is disabled here as we don't have query context
-                time_offsets = self.processing_time_offsets(
-                    df, query_object, cache_key_fn=None, cache_timeout_fn=None
-                )
+                with timed("datasource.query.time_offsets"):
+                    time_offsets = self.processing_time_offsets(
+                        df, query_object, cache_key_fn=None, cache_timeout_fn=None
+                    )
                 df = time_offsets["df"]
                 queries = time_offsets["queries"]
                 query += ";\n\n".join(queries)
@@ -3385,7 +3389,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Execute post-processing operations
             try:
-                df = query_object.exec_post_processing(df)
+                if query_object.post_processing:
+                    with timed("datasource.query.post_processing"):
+                        df = query_object.exec_post_processing(df)
+                else:
+                    df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
             except (TypeError, pd.errors.DataError) as ex:
@@ -7246,8 +7254,56 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # (inline dict or referenced by label), so it can be parenthesized
             # to guard operator precedence regardless of how it was referenced.
             is_adhoc_sqla_col = False
+            # Native type of a dataset column an adhoc filter column refers to,
+            # used to write temporal filter values as engine literals.
+            adhoc_native_type: str | None = None
+            axis_column = (
+                adhoc_columns_by_label.get(flt_col)
+                if flt_grain and isinstance(flt_col, str)
+                else None
+            )
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
+            elif (
+                axis_column
+                and axis_column.get("columnType") == "BASE_AXIS"
+                and axis_column.get("timeGrain") == flt_grain
+            ):
+                # A filter on the x-axis label with the axis grain selects a
+                # bucket of that axis. Compare against the axis column of this
+                # query, which carries any Time Column override, so the filter
+                # matches exactly the rows the axis groups into the bucket.
+                adhoc_filter_column = axis_column
+                sqla_col, adhoc_generic_type = self.adhoc_column_to_sqla(
+                    col=axis_column,
+                    template_processor=template_processor,
+                    apply_dataset_offset=op != utils.FilterOperator.TEMPORAL_RANGE,
+                )
+                if axis_tbl_column := columns_by_name.get(axis_column["sqlExpression"]):
+                    adhoc_native_type = axis_tbl_column.type
+                    if op == utils.FilterOperator.TEMPORAL_RANGE:
+                        # Range bounds need the axis's underlying column,
+                        # including any Time Column override.
+                        col_obj = axis_tbl_column
+                elif isinstance(val, (int, float)) and not isinstance(val, bool):
+                    # An expression axis has no native type to write an engine
+                    # literal for: compare the naive ISO datetime instead of
+                    # the epoch milliseconds of the bucket.
+                    try:
+                        val = (
+                            datetime.fromtimestamp(val / 1000, tz=timezone.utc)
+                            .replace(tzinfo=None)
+                            .isoformat()
+                        )
+                    except (OverflowError, OSError, ValueError) as ex:
+                        raise QueryObjectValidationError(
+                            _(
+                                "Invalid temporal filter value for column %(column)s",
+                                column=get_column_name(flt_col),
+                            )
+                        ) from ex
+                applied_adhoc_filters_columns.append(flt_col)
+                is_adhoc_sqla_col = True
             elif is_adhoc_column(flt_col):
                 adhoc_filter_column = cast(AdhocColumn, flt_col)
                 if flt_col.get("columnType") == "BASE_AXIS":
@@ -7345,7 +7401,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     and not _is_parenthesized(sqla_col)
                 ):
                     sqla_col = Grouping(sqla_col)
-                col_type = col_obj.type if col_obj else None
+                col_type = col_obj.type if col_obj else adhoc_native_type
                 col_spec = db_engine_spec.get_column_spec(native_type=col_type)
                 is_multivalue_col = bool(
                     col_spec and col_spec.generic_type == GenericDataType.MULTI_VALUE
