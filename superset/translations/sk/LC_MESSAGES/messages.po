@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 15:53-0500\n"
+"POT-Creation-Date: 2026-11-19 17:07-0500\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -25058,9 +25058,6 @@ msgstr ""
 "pretože nemôžu efektívne využívať indexy."
 
 msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
-msgstr ""
-
-msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
 msgstr ""
 
 msgid "Was unable to check your query"

@@ -386,11 +386,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             return "invalid"
         if check is None:
             return "unsupported"
-        if (
-            not is_feature_enabled("SQLLAB_QUERY_COST_WARNINGS")
-            or not rule["enabled"]
-            or not check.is_enabled(self)
-        ):
+        if not rule["enabled"] or not check.is_enabled(self):
             return "disabled"
         return "ready"
 

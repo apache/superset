@@ -471,7 +471,7 @@ native database limits still apply.
 
 To enable warnings:
 
-1. Add `"SQLLAB_QUERY_COST_WARNINGS": True` and `"ESTIMATE_QUERY_COST": True` to the
+1. Add `"ESTIMATE_QUERY_COST": True` to the
    existing `FEATURE_FLAGS` dictionary in `superset_config.py`, then restart
    Superset and refresh SQL Lab.
 2. Open **Settings > Database Connections**, edit the connection, and select
@@ -630,9 +630,9 @@ so an invalid threshold does not block those users. Invalid settings still retur
 errors for included users; malformed opt-in or audience settings also remain
 errors. Clients must not treat `invalid` as an opt-out. Engine information exposes
 `query_warning_supported` separately from the optional numeric
-`query_cost_warning_metric`. `SQLLAB_QUERY_COST_WARNINGS` gates all checks;
-`ESTIMATE_QUERY_COST` and connection cost estimation are prerequisites of the
-numeric threshold check.
+`query_cost_warning_metric`. The connection rule is the opt-in control; no
+separate warning feature flag is required. `ESTIMATE_QUERY_COST` and connection
+cost estimation are prerequisites of the numeric threshold check.
 
 ##### Execution preparation
 

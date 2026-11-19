@@ -97,7 +97,6 @@ describe('ExtraOptions Component', () => {
     jest.clearAllMocks();
     window.featureFlags = {
       [FeatureFlag.EstimateQueryCost]: true,
-      [FeatureFlag.SqlLabQueryCostWarnings]: true,
     };
   });
 
@@ -210,24 +209,8 @@ describe('ExtraOptions Component', () => {
     });
   });
 
-  test('warning settings explain when the warning flag is off', () => {
-    window.featureFlags = { [FeatureFlag.EstimateQueryCost]: true };
-    renderComponent({
-      ...defaultDb,
-      engine_information: {
-        ...defaultDb.engine_information,
-        query_cost_warning_metric: 'total_cost',
-      },
-    });
-    fireEvent.click(screen.getByText('SQL Lab'));
-    expect(screen.getByLabelText('Enable pre-run warnings')).toBeDisabled();
-    expect(
-      screen.getByText(/SQLLAB_QUERY_COST_WARNINGS is off/),
-    ).toBeInTheDocument();
-  });
-
   test('warnings cannot be enabled when the global estimate flag is off', () => {
-    window.featureFlags = { [FeatureFlag.SqlLabQueryCostWarnings]: true };
+    window.featureFlags = {};
     renderComponent({
       ...defaultDb,
       engine_information: {

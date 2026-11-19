@@ -59,8 +59,8 @@ from tests.unit_tests.conftest import with_feature_flags
 
 
 @pytest.mark.parametrize(
-    "warnings_flag,estimate_flag,connection_estimation",
-    [(True, True, True), (False, True, True), (True, False, True), (True, True, False)],
+    "estimate_flag,connection_estimation",
+    [(True, True), (False, True), (True, False)],
 )
 @pytest.mark.parametrize(
     "engine,metric", [("bigquery", "bytes_processed"), ("postgresql", "total_cost")]
@@ -69,7 +69,6 @@ from tests.unit_tests.conftest import with_feature_flags
 def test_cost_warning_rule_survives_inactive_settings(
     mocker: MockerFixture,
     request: pytest.FixtureRequest,
-    warnings_flag: bool,
     estimate_flag: bool,
     connection_estimation: bool,
     engine: str,
@@ -82,12 +81,6 @@ def test_cost_warning_rule_survives_inactive_settings(
         return_value=True,
     )
     request.addfinalizer(Database.get_db_engine_spec.cache_clear)
-    mocker.patch(
-        "superset.models.core.is_feature_enabled",
-        side_effect=lambda name: (
-            warnings_flag if name == "SQLLAB_QUERY_COST_WARNINGS" else estimate_flag
-        ),
-    )
     mocker.patch.object(
         Database,
         "allows_cost_estimate",
@@ -106,9 +99,7 @@ def test_cost_warning_rule_survives_inactive_settings(
     )
     assert database.query_cost_warning == rule
     assert database.query_warning_state == (
-        "ready"
-        if enabled and warnings_flag and estimate_flag and connection_estimation
-        else "disabled"
+        "ready" if enabled and estimate_flag and connection_estimation else "disabled"
     )
 
 
@@ -3504,7 +3495,7 @@ def test_message_check_state_does_not_require_estimation(
 
     mocker.patch(
         "superset.models.core.is_feature_enabled",
-        side_effect=lambda name: name == "SQLLAB_QUERY_COST_WARNINGS",
+        return_value=False,
     )
     mocker.patch(
         "superset.db_engine_specs.query_warning.is_feature_enabled", return_value=False

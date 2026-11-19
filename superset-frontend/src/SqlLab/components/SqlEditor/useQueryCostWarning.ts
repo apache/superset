@@ -19,12 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
-import {
-  FeatureFlag,
-  getClientErrorObject,
-  isFeatureEnabled,
-  SupersetClient,
-} from '@superset-ui/core';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import type { DatabaseObject } from 'src/features/databases/types';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
@@ -179,7 +174,6 @@ export default function useQueryCostWarning(
       if (
         ctas ||
         isAutomaticRun ||
-        !isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings) ||
         database.query_warning_state === 'disabled' ||
         database.query_warning_state === 'unsupported'
       ) {

@@ -277,8 +277,6 @@ class QueryEstimationCommand(BaseCommand):
 
     def get_enabled_check(self) -> tuple[QueryWarningCheck, dict[str, Any]] | None:
         """Resolve eligibility without rendering a query or performing estimation."""
-        if not is_feature_enabled("SQLLAB_QUERY_COST_WARNINGS"):
-            return None
         check = self._database.db_engine_spec.get_query_warning_check()
         rule = self._get_warning_rule(check)
         if (

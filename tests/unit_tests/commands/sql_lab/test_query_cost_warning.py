@@ -164,9 +164,7 @@ def test_warning_api_audience_and_permissions(
     access = mocker.spy(security_manager, "raise_for_access")
     mocker.patch(
         "superset.commands.sql_lab.estimate.is_feature_enabled",
-        side_effect=lambda name: (
-            name in {"SQLLAB_QUERY_COST_WARNINGS", "ESTIMATE_QUERY_COST"}
-        ),
+        side_effect=lambda name: name == "ESTIMATE_QUERY_COST",
     )
     mocker.patch("superset.models.core.is_feature_enabled", return_value=True)
     mocker.patch(
@@ -324,9 +322,7 @@ def _make_command(
     )
     mocker.patch(
         "superset.commands.sql_lab.estimate.is_feature_enabled",
-        side_effect=lambda name: (
-            name in {"SQLLAB_QUERY_COST_WARNINGS", "ESTIMATE_QUERY_COST"}
-        ),
+        side_effect=lambda name: name == "ESTIMATE_QUERY_COST",
     )
     mocker.patch(
         "superset.db_engine_specs.query_warning.is_feature_enabled", return_value=True
@@ -464,7 +460,7 @@ def test_warning_command_delegates_to_engine_check(
     assess = mocker.spy(check, "assess")
     mocker.patch(
         "superset.commands.sql_lab.estimate.is_feature_enabled",
-        side_effect=lambda name: name == "SQLLAB_QUERY_COST_WARNINGS",
+        return_value=False,
     )
     mocker.patch(
         "superset.db_engine_specs.query_warning.is_feature_enabled", return_value=False
@@ -592,8 +588,7 @@ def test_warning_unusable_estimate(
     ]
 
 
-@pytest.mark.parametrize("flag", ["SQLLAB_QUERY_COST_WARNINGS", "ESTIMATE_QUERY_COST"])
-def test_warning_flag_off_still_checks_access(mocker: MockerFixture, flag: str) -> None:
+def test_estimation_flag_off_still_checks_access(mocker: MockerFixture) -> None:
     """Even disabled checks first run the existing database/table authorization."""
     command = _make_command(mocker)
     command.validate()
@@ -602,11 +597,11 @@ def test_warning_flag_off_still_checks_access(mocker: MockerFixture, flag: str) 
     _set_extra(command, extra)
     flags = mocker.patch(
         "superset.commands.sql_lab.estimate.is_feature_enabled",
-        side_effect=lambda name: name != flag,
+        return_value=False,
     )
     mocker.patch(
         "superset.db_engine_specs.query_warning.is_feature_enabled",
-        side_effect=lambda name: name != flag,
+        return_value=False,
     )
     assert _run_warning(command) == {"action": "proceed"}
     _estimator(command).assert_not_called()
@@ -794,9 +789,7 @@ def test_warning_rejects_configured_sql_mutator(tmp_path: Path) -> None:
                     patch("superset.commands.sql_lab.estimate.security_manager",
                           new_callable=MagicMock),
                     patch("superset.commands.sql_lab.estimate.is_feature_enabled",
-                          side_effect=lambda name: name in {
-                              "SQLLAB_QUERY_COST_WARNINGS", "ESTIMATE_QUERY_COST",
-                          }),
+                          side_effect=lambda name: name == "ESTIMATE_QUERY_COST"),
                     patch("superset.db_engine_specs.query_warning.is_feature_enabled",
                           return_value=True),
                     patch.object(

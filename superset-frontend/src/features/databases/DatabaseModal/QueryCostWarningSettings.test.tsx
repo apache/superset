@@ -105,7 +105,6 @@ function savedExtra(): ExtraJson {
 beforeEach(() => {
   window.featureFlags = {
     [FeatureFlag.EstimateQueryCost]: true,
-    [FeatureFlag.SqlLabQueryCostWarnings]: true,
   };
 });
 
@@ -379,7 +378,6 @@ test.each([
 
 test('message-only opt-in preserves check fields and needs no estimation or threshold', async () => {
   window.featureFlags = {
-    [FeatureFlag.SqlLabQueryCostWarnings]: true,
     [FeatureFlag.EstimateQueryCost]: false,
   };
   const rule = {

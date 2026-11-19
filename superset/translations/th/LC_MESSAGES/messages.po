@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 15:53-0500\n"
+"POT-Creation-Date: 2026-11-19 17:07-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -35118,9 +35118,6 @@ msgstr ""
 "อาจช้าบนชุดข้อมูลขนาดใหญ่เนื่องจากไม่สามารถใช้ดัชนีได้อย่างมีประสิทธิภาพ"
 
 msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
-msgstr ""
-
-msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,

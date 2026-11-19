@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 15:53-0500\n"
+"POT-Creation-Date: 2026-11-19 17:07-0500\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -25361,9 +25361,6 @@ msgstr ""
 " ze geen gebruik kunnen maken van indexen."
 
 msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
-msgstr ""
-
-msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
 msgstr ""
 
 msgid "Was unable to check your query"

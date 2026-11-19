@@ -63,12 +63,8 @@ export default function QueryCostWarningSettings({
   const metricDefinition = isQueryCostWarningMetric(metric)
     ? queryCostWarningMetrics[metric]
     : undefined;
-  const warningFlagEnabled = isFeatureEnabled(
-    FeatureFlag.SqlLabQueryCostWarnings,
-  );
   const estimationFlagEnabled = isFeatureEnabled(FeatureFlag.EstimateQueryCost);
   const prerequisitesMet =
-    warningFlagEnabled &&
     supported &&
     (!metricDefinition ||
       (estimationFlagEnabled && extra.cost_estimate_enabled === true));
@@ -148,15 +144,13 @@ export default function QueryCostWarningSettings({
   };
   const inactiveReason = !supported
     ? t('This engine does not support pre-run warnings.')
-    : !warningFlagEnabled
-      ? t('Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off.')
-      : metricDefinition && !estimationFlagEnabled
-        ? t('Warnings are inactive because ESTIMATE_QUERY_COST is off.')
-        : metricDefinition && extra.cost_estimate_enabled !== true
-          ? t(
-              'Enable query cost estimation to activate pre-run warnings. Saved settings are retained.',
-            )
-          : undefined;
+    : metricDefinition && !estimationFlagEnabled
+      ? t('Warnings are inactive because ESTIMATE_QUERY_COST is off.')
+      : metricDefinition && extra.cost_estimate_enabled !== true
+        ? t(
+            'Enable query cost estimation to activate pre-run warnings. Saved settings are retained.',
+          )
+        : undefined;
 
   return (
     <StyledInputContainer css={no_margin_bottom}>

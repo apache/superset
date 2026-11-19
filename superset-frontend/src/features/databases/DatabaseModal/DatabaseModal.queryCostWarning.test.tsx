@@ -34,7 +34,6 @@ const connectionEndpoint = 'glob:*/api/v1/database/10/connection';
 beforeEach(() => {
   window.featureFlags = {
     [FeatureFlag.EstimateQueryCost]: true,
-    [FeatureFlag.SqlLabQueryCostWarnings]: true,
   };
   fetchMock.get('glob:*/api/v1/database/available*', { databases: [] });
 });

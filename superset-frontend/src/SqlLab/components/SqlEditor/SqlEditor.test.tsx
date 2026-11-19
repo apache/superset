@@ -210,11 +210,8 @@ describe('SqlEditor', () => {
   ])(
     'pre-run $action, continue $proceed executes $executions queries',
     async ({ action, proceed, executions }) => {
-      mockIsFeatureEnabled.mockImplementation(flag =>
-        [
-          FeatureFlag.EstimateQueryCost,
-          FeatureFlag.SqlLabQueryCostWarnings,
-        ].includes(flag),
+      mockIsFeatureEnabled.mockImplementation(
+        flag => flag === FeatureFlag.EstimateQueryCost,
       );
       fetchMock.post(
         'glob:*/api/v1/sqllab/warning/',
@@ -366,6 +363,7 @@ describe('SqlEditor', () => {
             allow_file_upload: false,
             allow_run_async: true,
             backend: 'postgresql',
+            query_warning_state: 'disabled',
             database_name: 'examples',
             expose_in_sqllab: true,
             force_ctas_schema: null,

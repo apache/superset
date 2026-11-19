@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-11-19 15:53-0500\n"
+"POT-Creation-Date: 2026-11-19 17:07-0500\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -24635,9 +24635,6 @@ msgid ""
 msgstr "警告：ILIKE 查詢在大型資料集上可能較慢，因為無法有效使用索引。"
 
 msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
-msgstr ""
-
-msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
 msgstr ""
 
 #, fuzzy

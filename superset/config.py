@@ -878,11 +878,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Requires `cost_estimate_enabled: true` in database `extra` attribute.
     # @lifecycle: testing
     "ESTIMATE_QUERY_COST": False,
-    # Optional advisory warnings before deliberately running SQL in SQL Lab.
-    # Requires explicit connection-level opt-in. Numeric checks also require
-    # ESTIMATE_QUERY_COST and connection cost estimation.
-    # @lifecycle: testing
-    "SQLLAB_QUERY_COST_WARNINGS": False,
     # Enable async queries for dashboards and Explore via WebSocket.
     # Requires Redis 5.0+ and Celery workers.
     # @lifecycle: testing

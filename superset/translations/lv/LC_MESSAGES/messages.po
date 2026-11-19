@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 15:53-0500\n"
+"POT-Creation-Date: 2026-11-19 17:07-0500\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -23521,9 +23521,6 @@ msgstr ""
 " efektīvi izmantot indeksus."
 
 msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
-msgstr ""
-
-msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
 msgstr ""
 
 msgid "Was unable to check your query"

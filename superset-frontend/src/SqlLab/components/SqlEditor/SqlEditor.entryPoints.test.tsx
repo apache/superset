@@ -227,12 +227,7 @@ const executions = () => fetchMock.callHistory.calls('execution');
 beforeEach(() => {
   jest
     .mocked(isFeatureEnabled)
-    .mockImplementation(flag =>
-      [
-        FeatureFlag.EstimateQueryCost,
-        FeatureFlag.SqlLabQueryCostWarnings,
-      ].includes(flag),
-    );
+    .mockImplementation(flag => flag === FeatureFlag.EstimateQueryCost);
   mockSetSelection.mockClear();
   mockMoveCursor.mockClear();
   mockScrollToLine.mockClear();
@@ -333,11 +328,7 @@ test.each([
   async ({ messageOnly, executionFails }) => {
     const store = setup('SELECT 1; SELECT 2;');
     if (messageOnly) {
-      jest
-        .mocked(isFeatureEnabled)
-        .mockImplementation(
-          flag => flag === FeatureFlag.SqlLabQueryCostWarnings,
-        );
+      jest.mocked(isFeatureEnabled).mockReturnValue(false);
       const database = {
         ...store.getState().sqlLab.databases[defaultQueryEditor.dbId!],
         id: defaultQueryEditor.dbId!,
@@ -412,8 +403,19 @@ test.each([
 );
 
 test('current-statement Run still executes directly when warnings are off without changing selection', async () => {
-  jest.mocked(isFeatureEnabled).mockReturnValue(false);
-  setup('SELECT 1; SELECT 2;');
+  const store = setup('SELECT 1; SELECT 2;');
+  act(() => {
+    store.dispatch(
+      setDatabases([
+        {
+          ...store.getState().sqlLab.databases[defaultQueryEditor.dbId!],
+          id: defaultQueryEditor.dbId!,
+          query_warning_state: 'disabled',
+          query_cost_warning: { enabled: false },
+        },
+      ]),
+    );
+  });
   mockCursor = { line: 0, column: 14 };
   fireEvent.keyDown(screen.getByRole('textbox', { name: 'SQL editor' }), {
     key: 'Enter',
@@ -589,7 +591,6 @@ test('persisted history rerun waits for its server tab ID before capturing the c
     .mockImplementation(flag =>
       [
         FeatureFlag.EstimateQueryCost,
-        FeatureFlag.SqlLabQueryCostWarnings,
         FeatureFlag.SqllabBackendPersistence,
       ].includes(flag),
     );

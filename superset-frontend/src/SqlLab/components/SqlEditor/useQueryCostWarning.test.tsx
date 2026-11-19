@@ -203,11 +203,8 @@ function setup() {
 }
 
 beforeEach(() => {
-  featureEnabled.mockImplementation(flag =>
-    [
-      FeatureFlag.EstimateQueryCost,
-      FeatureFlag.SqlLabQueryCostWarnings,
-    ].includes(flag),
+  featureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EstimateQueryCost,
   );
 });
 afterEach(() => {
@@ -790,11 +787,10 @@ test.each([
   },
 );
 
-test.each(['warning flag', 'disabled', 'unsupported', 'ctas', 'automatic'])(
+test.each(['disabled', 'unsupported', 'ctas', 'automatic'])(
   'known inactive %s keeps the existing execution path',
   async reason => {
     const h = setup();
-    if (reason === 'warning flag') featureEnabled.mockReturnValue(false);
     if (reason === 'disabled' || reason === 'unsupported') {
       h.replace(state => ({
         ...state,
@@ -831,9 +827,7 @@ test.each(['warning flag', 'disabled', 'unsupported', 'ctas', 'automatic'])(
 
 test('ready checks do not require numeric estimation prerequisites', async () => {
   const h = setup();
-  featureEnabled.mockImplementation(
-    flag => flag === FeatureFlag.SqlLabQueryCostWarnings,
-  );
+  featureEnabled.mockReturnValue(false);
   h.replace(state => ({
     ...state,
     sqlLab: {
