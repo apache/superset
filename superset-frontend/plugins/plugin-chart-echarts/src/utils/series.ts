@@ -1352,18 +1352,25 @@ export function getAxisType(
  * weekly data it steps days from the 1st of each month instead: labels drift
  * across weekdays and snap to month starts (#17226). Coarser grains already land
  * on their data and keep ECharts' calendar-nice labels.
+ *
+ * When the user asks for every label ("All"), the ticks are the data's own
+ * timestamps whatever the grain (or with no grain at all). ECharts ignores
+ * axisLabel.interval on a time axis, and pinning minInterval/maxInterval to the
+ * grain would tick every empty bucket across a gap in the data, so the actual
+ * timestamps are the only tick set that labels each point and nothing else
+ * (#36325).
  */
 export function getTemporalTickValues(
   data: DataRecord[],
   xAxisLabel: string,
   xAxisType: AxisType,
   timeGrain?: string,
+  showAllLabels: boolean = false,
 ): number[] | undefined {
-  if (
-    xAxisType !== AxisType.Time ||
-    !timeGrain ||
-    !WEEKLY_TIME_GRAINS.has(timeGrain)
-  ) {
+  if (xAxisType !== AxisType.Time) {
+    return undefined;
+  }
+  if (!showAllLabels && (!timeGrain || !WEEKLY_TIME_GRAINS.has(timeGrain))) {
     return undefined;
   }
   const values = new Set<number>();
@@ -1377,10 +1384,11 @@ export function getTemporalTickValues(
 }
 
 /**
- * Weekly grains: pin the ticks to the buckets ECharts would otherwise miss.
- * A timeseries annotation contributes its own timestamps and widens the axis
- * past the buckets, and ECharts clips pinned ticks to the extent, so that
- * span would render bare — leave those charts on ECharts' own ticks.
+ * Weekly grains, or any grain when the user asks for every label: pin the
+ * ticks to the data's buckets. A timeseries annotation contributes its own
+ * timestamps and widens the axis past the buckets, and ECharts clips pinned
+ * ticks to the extent, so that span would render bare — leave those charts on
+ * ECharts' own ticks.
  */
 export function resolveTemporalTickValues(
   data: DataRecord[],
@@ -1388,13 +1396,20 @@ export function resolveTemporalTickValues(
   xAxisType: AxisType,
   timeGrain: string | undefined,
   annotationLayers: AnnotationLayer[],
+  showAllLabels: boolean = false,
 ): number[] | undefined {
   const hasTimeseriesAnnotation = annotationLayers.some(
     layer => layer.show && isTimeseriesAnnotationLayer(layer),
   );
   return hasTimeseriesAnnotation
     ? undefined
-    : getTemporalTickValues(data, xAxisLabel, xAxisType, timeGrain);
+    : getTemporalTickValues(
+        data,
+        xAxisLabel,
+        xAxisType,
+        timeGrain,
+        showAllLabels,
+      );
 }
 
 // Unlike axisLabel, axisTick has no overlap-based thinning, so pinning it to
@@ -1644,13 +1659,22 @@ export function groupData(data: DataRecord[], by?: string | null) {
  * ECharts' `axisLabel.interval` only understands `'auto'` or a number — a
  * string is ignored, so choosing All silently changed nothing. Asking for every
  * label also has to win over `hideOverlap`, which would otherwise drop the very
- * labels the user asked to see, so the caller is told when that happened.
+ * labels the user asked to see, so the caller is told when that happened. On a
+ * time axis ECharts ignores `interval` entirely, so callers also pin the ticks
+ * to the data (see getTemporalTickValues) when `showAllLabels` is set.
  */
 export function getAxisLabelInterval(interval?: string | number | null): {
   interval: number | 'auto';
   showAllLabels: boolean;
 } {
-  if (interval === undefined || interval === null || interval === 'auto') {
+  if (
+    interval === undefined ||
+    interval === null ||
+    interval === 'auto' ||
+    // Number('') is 0, which would read as "All"; the control can't emit an
+    // empty string, but form_data from the API or an import can.
+    (typeof interval === 'string' && interval.trim() === '')
+  ) {
     return { interval: 'auto', showAllLabels: false };
   }
 

@@ -53,6 +53,7 @@ import {
   sortAndFilterSeries,
   sortRows,
   getTimeCompareStackId,
+  resolveTemporalTickValues,
 } from '../../src/utils/series';
 import {
   EchartsTimeseriesSeriesType,
@@ -2798,9 +2799,81 @@ test('getAxisLabelInterval normalizes the control value for ECharts (#36325)', (
     interval: 'auto',
     showAllLabels: false,
   });
+  // Number('') is 0; an empty string from imported form_data is not "All"
+  expect(getAxisLabelInterval('')).toEqual({
+    interval: 'auto',
+    showAllLabels: false,
+  });
+  // a numeric 0 is "All" too
+  expect(getAxisLabelInterval(0)).toEqual({
+    interval: 0,
+    showAllLabels: true,
+  });
   // an explicit "every nth" stays a number but is not "show all"
   expect(getAxisLabelInterval(2)).toEqual({
     interval: 2,
     showAllLabels: false,
   });
+});
+
+test('getTemporalTickValues pins every data timestamp for "All" on any grain (#36325)', () => {
+  const data = [
+    { ds: Date.UTC(2020, 0, 1), v: 1 },
+    { ds: Date.UTC(2010, 0, 1), v: 2 },
+    { ds: Date.UTC(2020, 0, 1), v: 3 },
+  ];
+  const expected = [Date.UTC(2010, 0, 1), Date.UTC(2020, 0, 1)];
+
+  // without "All", only weekly grains are pinned
+  expect(
+    getTemporalTickValues(data, 'ds', AxisType.Time, TimeGranularity.DAY),
+  ).toBeUndefined();
+  expect(
+    getTemporalTickValues(data, 'ds', AxisType.Time, TimeGranularity.DAY, true),
+  ).toEqual(expected);
+  expect(
+    getTemporalTickValues(
+      data,
+      'ds',
+      AxisType.Time,
+      TimeGranularity.MINUTE,
+      true,
+    ),
+  ).toEqual(expected);
+  expect(
+    getTemporalTickValues(data, 'ds', AxisType.Time, undefined, true),
+  ).toEqual(expected);
+  // a category axis already honors axisLabel.interval
+  expect(
+    getTemporalTickValues(
+      data,
+      'ds',
+      AxisType.Category,
+      TimeGranularity.DAY,
+      true,
+    ),
+  ).toBeUndefined();
+});
+
+test('resolveTemporalTickValues forwards "All" for non-weekly grains (#36325)', () => {
+  const data = [{ ds: Date.UTC(2021, 0, 1) }, { ds: Date.UTC(2021, 0, 2) }];
+  expect(
+    resolveTemporalTickValues(
+      data,
+      'ds',
+      AxisType.Time,
+      TimeGranularity.DAY,
+      [],
+      true,
+    ),
+  ).toEqual([Date.UTC(2021, 0, 1), Date.UTC(2021, 0, 2)]);
+  expect(
+    resolveTemporalTickValues(
+      data,
+      'ds',
+      AxisType.Time,
+      TimeGranularity.DAY,
+      [],
+    ),
+  ).toBeUndefined();
 });

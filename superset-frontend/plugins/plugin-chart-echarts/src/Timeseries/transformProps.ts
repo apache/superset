@@ -93,6 +93,7 @@ import {
   extractSeries,
   extractShowValueIndexes,
   extractTooltipKeys,
+  getAxisLabelInterval,
   getAreaScaledSymbolSize,
   getAxisType,
   getColtypesMapping,
@@ -1792,10 +1793,11 @@ export default function transformProps(
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
-  // "All" (interval === '0') means every label is meant to show, so the
-  // spacing check below (which blanks labels that would otherwise visually
+  // "All" (stored as the string '0') means every label is meant to show, so
+  // the spacing check below (which blanks labels that would otherwise visually
   // collide) has to be bypassed too, not just ECharts' own hideOverlap.
-  const showAllLabels = xAxisLabelInterval === '0';
+  const { interval: xAxisLabelIntervalValue, showAllLabels } =
+    getAxisLabelInterval(xAxisLabelInterval);
   const xAxisDomain = getXAxisDomain(
     [rebasedData as Record<string, unknown>[]],
     xAxisLabel,
@@ -1822,6 +1824,7 @@ export default function transformProps(
     xAxisType,
     resolvedTimeGrain,
     annotationLayers,
+    showAllLabels,
   );
 
   const temporalAxisTickConfig = getTemporalAxisTickConfig(
@@ -1829,7 +1832,7 @@ export default function transformProps(
     showMaxLabel,
     xAxisType,
     xAxisLabelRotation,
-    showAllLabels ? 0 : xAxisLabelInterval,
+    xAxisLabelIntervalValue,
     deduplicatedFormatter,
     isHorizontal,
     zoomable,
