@@ -681,3 +681,17 @@ test('result aggregation wins over the additive fast path for an additive metric
   expect(result.data).toHaveLength(1);
   expect(result.data[0].data).toEqual(additiveResultProps.queriesData[0].data);
 });
+
+test.each([undefined, true, false])(
+  'hideEmptyColumns defaults on for saved charts (%s)',
+  value => {
+    const props = new ChartProps<QueryFormData>({
+      ...chartProps,
+      formData: {
+        ...formData,
+        ...(value === undefined ? {} : { hideEmptyColumns: value }),
+      },
+    });
+    expect(transformProps(props).hideEmptyColumns).toBe(value !== false);
+  },
+);

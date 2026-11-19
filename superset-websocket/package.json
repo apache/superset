@@ -17,7 +17,6 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "cookie": "^2.0.1",
     "hot-shots": "^17.1.1",
     "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
@@ -31,8 +30,8 @@
     "@types/node": "^26.6.6",
     "@types/ws": "^8.18.2",
     "esbuild": "^0.28.2",
-    "oxfmt": "^0.77.0",
-    "oxlint": "^1.92.0",
+    "oxfmt": "^0.78.0",
+    "oxlint": "^1.93.0",
     "oxlint-tsgolint": "^7.0.2006",
     "tscw-config": "^1.1.2",
     "typescript": "^7.0.2",
