@@ -340,6 +340,23 @@ def test_selection_requests_still_require_current_version(
         query.validate()
 
 
+@pytest.mark.parametrize("result_type", [None, ChartDataResultType.FULL])
+def test_empty_non_metadata_request_still_requires_current_version(
+    result_type: ChartDataResultType | None,
+) -> None:
+    """An empty selection cannot exempt an ordinary request from identity checks."""
+    query: QueryObject = QueryObject(
+        datasource=MagicMock(type="semantic_view", implementation=IdentityView()),
+        result_type=result_type,
+        columns=[],
+        metrics=[],
+        orderby=[],
+        extras={"semantic_selection_version": "old"},
+    )
+    with pytest.raises(QueryObjectValidationError, match="explicitly reselect"):
+        query.validate()
+
+
 @pytest.mark.parametrize("datasource_type", ["semantic_view", "table"])
 def test_time_grain_options_load_through_processor(datasource_type: str) -> None:
     """The control's request validates and returns grains for both source kinds."""

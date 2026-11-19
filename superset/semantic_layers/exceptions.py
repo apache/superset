@@ -66,6 +66,12 @@ def rejection_message(code: SemanticQueryErrorCode) -> str:
             "This semantic provider does not support this query. "
             "Remove unsupported filters or grouping and try again."
         )
+    if code == SemanticQueryErrorCode.UNSUPPORTED_GROUP_OTHERS_METRIC:
+        return _(
+            '"Group remaining as Others" cannot be calculated for this metric '
+            "on a semantic view. Turn it off, or choose a sum, count, minimum, "
+            "or maximum metric."
+        )
     if code == SemanticQueryErrorCode.UNSUPPORTED_OFFSET:
         return _(
             "This semantic provider cannot apply the requested offset. "
