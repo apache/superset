@@ -401,9 +401,16 @@ def execute_with_oauth2_retry(  # noqa: C901
         finally:
             _oauth2_retry_active.reset(retry_context)
     except Exception as ex:
-        # A metadata flush failure expires ORM configuration and is not an
-        # authentication failure. Leave rollback to the execution owner.
+        # A flush failure (e.g. a statement timeout while persisting a
+        # refreshed/rotated token) deactivates the request-scoped session.
+        # It is not an authentication failure, but leaving the session
+        # un-rolled-back here means every later ORM access in the same
+        # request raises ``PendingRollbackError`` instead of the original
+        # error, surfacing as an unhandled 500 far from the real cause. Roll
+        # back immediately so the session is usable again before we
+        # propagate the original exception.
         if not db.session.is_active:
+            db.session.rollback()
             raise
         # The guest check comes first, as in `check_for_oauth2`.
         is_oauth2_error = (
