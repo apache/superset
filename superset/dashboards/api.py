@@ -56,6 +56,7 @@ from flask_appbuilder.const import (
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
+from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import ClosingIterator, FileWrapper
 
@@ -2424,8 +2425,14 @@ class DashboardRestApi(
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
-        if is_semantic_image_unavailable(dashboard):
+        if is_semantic_image_unavailable(dashboard, check_chart_types=False):
             return self.response(404, message=SemanticLayersDisabledError.message)
+
+        refresh_unsupported_images: bool = False
+        try:
+            is_semantic_image_unavailable(dashboard)
+        except BadRequest:
+            refresh_unsupported_images = True
 
         window_size = (
             kwargs["rison"].get("window_size") or DEFAULT_DASHBOARD_WINDOW_SIZE
@@ -2510,6 +2517,16 @@ class DashboardRestApi(
 
         def force_needs_new_generation(cache_payload: ScreenshotCachePayload) -> bool:
             """A forced download cannot join a generation carrying an older capture."""
+            if (
+                refresh_unsupported_images
+                and not cache_payload.has_current_chart_type_policy()
+            ):
+                try:
+                    cache_payload.get_image()
+                except ScreenshotImageNotAvailableException:
+                    pass
+                else:
+                    return True
             if not force or cache_payload.is_updated():
                 return False
             try:
@@ -2621,6 +2638,7 @@ class DashboardRestApi(
                         not force
                         and cached_payload is not None
                         and cached_payload.get_scope() == cache_scope
+                        and not refresh_unsupported_images
                         and cached_payload.get_invalid_image_reason() is None
                     ):
                         try:
@@ -2849,7 +2867,7 @@ class DashboardRestApi(
         # Making sure the dashboard still exists
         if not dashboard:
             return self.response_404()
-        if is_semantic_image_unavailable(dashboard):
+        if is_semantic_image_unavailable(dashboard, check_chart_types=False):
             return self.response(404, message=SemanticLayersDisabledError.message)
 
         download_format = request.args.get("download_format", "png")
@@ -2863,6 +2881,11 @@ class DashboardRestApi(
             # its image under a different, merely-accessible `pk`.
             if cache_payload.get_scope() != f"dashboard:{dashboard.id}":
                 return self.response_404()
+            if is_semantic_image_unavailable(
+                dashboard,
+                check_chart_types=not cache_payload.has_current_chart_type_policy(),
+            ):
+                return self.response(404, message=SemanticLayersDisabledError.message)
             try:
                 image = cache_payload.get_image()
             except ScreenshotImageNotAvailableException:
@@ -2898,6 +2921,23 @@ class DashboardRestApi(
                     direct_passthrough=True,
                 )
         return self.response_404()
+
+    @staticmethod
+    def _needs_semantic_image_refresh(
+        dashboard: Dashboard, cache_payload: ScreenshotCachePayload
+    ) -> bool:
+        """Whether existing bytes predate the policy required by this dashboard."""
+        try:
+            cache_payload.get_image()
+            is_semantic_image_unavailable(
+                dashboard,
+                check_chart_types=not cache_payload.has_current_chart_type_policy(),
+            )
+        except ScreenshotImageNotAvailableException:
+            return False
+        except BadRequest:
+            return True
+        return False
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
     @validate_feature_flags(["THUMBNAILS"])
@@ -2956,7 +2996,7 @@ class DashboardRestApi(
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
-        if is_semantic_image_unavailable(dashboard):
+        if is_semantic_image_unavailable(dashboard, check_chart_types=False):
             return self.response(404, message=SemanticLayersDisabledError.message)
 
         current_user = get_current_user()
@@ -2977,24 +3017,31 @@ class DashboardRestApi(
         cache_payload = (
             screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
         )
+        refresh_unsupported_image: bool = self._needs_semantic_image_refresh(
+            dashboard, cache_payload
+        )
+
         image_url = get_url_path(
             "DashboardRestApi.thumbnail", pk=dashboard.id, digest=cache_key
         )
 
         # No check_updated_staleness here on purpose: this high-traffic card-list
         # thumbnail path must never opt into updated-staleness recompute.
-        if cache_payload.should_trigger_task():
+        if refresh_unsupported_image or cache_payload.should_trigger_task():
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
                 "Triggering thumbnail compute (dashboard id: %s) ASYNC",
                 str(dashboard.id),
             )
-            cache_dashboard_thumbnail.delay(
-                current_user=current_user,
-                dashboard_id=dashboard.id,
-                force=False,
-                cache_key=cache_key,
-            )
+            if cache_payload.should_trigger_task(
+                force=refresh_unsupported_image and cache_payload.is_updated()
+            ):
+                cache_dashboard_thumbnail.delay(
+                    current_user=current_user,
+                    dashboard_id=dashboard.id,
+                    force=refresh_unsupported_image,
+                    cache_key=cache_key,
+                )
             return self.response(
                 202,
                 cache_key=cache_key,

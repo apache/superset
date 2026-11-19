@@ -321,3 +321,76 @@ def test_screenshot_task_renders_as_guest_only_when_token_is_forwarded(
 
     rendered_as = screenshot_cls.return_value.compute_and_cache.call_args.kwargs["user"]
     assert rendered_as is (guest_user if with_guest_token else executor_user)
+
+
+def test_fresh_dashboard_capture_with_refused_chart_is_dispatched(
+    client: Any,
+    mocker: MockerFixture,
+    dashboard: MagicMock,
+    screenshot_task: MagicMock,
+    request_key_lookup: MagicMock,
+) -> None:
+    """A refused tile must not prevent a fresh dashboard capture from starting."""
+    from superset.models.slice import Slice
+    from superset.semantic_layers.access import is_semantic_image_unavailable
+
+    dashboard.slices = [Slice(viz_type="histogram_v2", datasource_type="semantic_view")]
+    mocker.patch(
+        "superset.semantic_layers.access.is_semantic_layers_enabled", return_value=True
+    )
+    mocker.patch(
+        "superset.dashboards.api.is_semantic_image_unavailable",
+        wraps=is_semantic_image_unavailable,
+    )
+    token: bytes = _guest_token("embedded_viewer")
+    _request_key(client, request_key_lookup, token)
+    screenshot_task.delay.assert_called_once()
+
+
+def test_old_dashboard_capture_rotates_without_retaining_unsafe_bytes(
+    client: Any,
+    mocker: MockerFixture,
+    dashboard: MagicMock,
+    screenshot_task: MagicMock,
+    request_key_lookup: MagicMock,
+) -> None:
+    """Old bytes must not satisfy a fresh download or its pending generation."""
+    from superset.exceptions import ScreenshotImageNotAvailableException
+    from superset.models.slice import Slice
+    from superset.semantic_layers.access import is_semantic_image_unavailable
+    from superset.utils.screenshots import DashboardScreenshot, ScreenshotCachePayload
+
+    dashboard.slices = [Slice(viz_type="histogram_v2", datasource_type="semantic_view")]
+    mocker.patch(
+        "superset.semantic_layers.access.is_semantic_layers_enabled", return_value=True
+    )
+    mocker.patch(
+        "superset.dashboards.api.is_semantic_image_unavailable",
+        wraps=is_semantic_image_unavailable,
+    )
+    old: ScreenshotCachePayload = ScreenshotCachePayload(
+        image=b"\x89PNG\r\n\x1a\nold", scope="dashboard:7"
+    )
+    request_key_lookup.return_value = "old-key"
+    read: MagicMock = mocker.patch.object(
+        DashboardScreenshot, "get_from_cache_key", return_value=old
+    )
+    store: MagicMock = mocker.patch.object(DashboardScreenshot, "store_cache_payload")
+    token: bytes = _guest_token("embedded_viewer")
+    _request_key(client, request_key_lookup, token)
+    screenshot_task.delay.assert_called_once()
+    pending: ScreenshotCachePayload = store.call_args.args[1]
+    with pytest.raises(ScreenshotImageNotAvailableException):
+        pending.get_image()
+    # A polling request joins that image-less pending generation, without a new task.
+    read.return_value = pending
+    request_key_lookup.return_value = "next-key"
+    g.pop("_login_user", None)
+    g.pop("user", None)
+    response: Any = client.post(
+        f"/api/v1/dashboard/{DASHBOARD_ID}/cache_dashboard_screenshot/",
+        json={},
+        headers={client.application.config["GUEST_TOKEN_HEADER_NAME"]: token},
+    )
+    assert response.status_code == 200
+    screenshot_task.delay.assert_called_once()

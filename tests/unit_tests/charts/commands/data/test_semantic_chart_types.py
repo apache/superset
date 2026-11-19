@@ -159,7 +159,8 @@ def test_saved_chart_without_form_data_is_refused(full_api_access: None) -> None
     get_data.assert_not_called()
 
 
-def test_queued_chart_task_refuses_before_cache_or_execution() -> None:
+@pytest.mark.parametrize("saved", [False, True])
+def test_queued_chart_task_refuses_before_cache_or_execution(saved: bool) -> None:
     """A task queued before the policy changed must not acquire chart data."""
     from superset.common.query_serialization import SerializedQuery
     from superset.tasks.async_queries import execute_chart_query
@@ -168,6 +169,9 @@ def test_queued_chart_task_refuses_before_cache_or_execution() -> None:
     context.datasource.id = 1
     context.queries = [Mock()]
     context.get_df_payload_result.return_value.payload = {}
+    if saved:
+        context.form_data = None
+        context.slice_ = Slice(viz_type="histogram_v2")
     payload: SerializedQuery = {
         "datasource": {"id": 1, "type": "semantic_view"},
         "query": {},
@@ -190,6 +194,7 @@ def test_queued_chart_task_refuses_before_cache_or_execution() -> None:
     ):
         execute_chart_query.func(payload, user_id=7)
     context.get_df_payload_result.assert_not_called()
+    context.raise_for_access.assert_not_called()
 
 
 @pytest.mark.parametrize("viz_type", [["histogram_v2"], {"type": "histogram_v2"}, 1])
@@ -202,8 +207,10 @@ def test_malformed_semantic_chart_type_is_validation_error(viz_type: object) -> 
 
 
 @pytest.mark.parametrize("dashboard_image", [False, True])
+@pytest.mark.parametrize("fresh", [False, True])
+@pytest.mark.parametrize("computing", [False, True])
 def test_cached_image_refused_before_read(
-    dashboard_image: bool, full_api_access: None
+    dashboard_image: bool, fresh: bool, computing: bool, full_api_access: None
 ) -> None:
     """Existing image bytes must not bypass the semantic visualization policy."""
     from superset.charts.api import ChartRestApi
@@ -222,6 +229,7 @@ def test_cached_image_refused_before_read(
     api._base_filters = []
     response: Response
     screenshot: Mock
+    render: Mock
     screenshot_class: str = (
         "superset.dashboards.api.DashboardScreenshot"
         if dashboard_image
@@ -235,14 +243,27 @@ def test_cached_image_refused_before_read(
             return_value=True,
         ),
         patch(screenshot_class) as screenshot,
+        patch("superset.dashboards.api.cache_dashboard_thumbnail") as render,
     ):
         cached_image: Mock = screenshot.return_value.get_from_cache_key.return_value
-        cached_image.should_trigger_task.return_value = False
+        screenshot.return_value.get_cache_key.return_value = "key"
+        cached_image.get_timestamp.return_value = "2026-11-19"
+        cached_image.get_status.return_value = "Computing" if computing else "Updated"
+        cached_image.is_updated.return_value = not computing
+        cached_image.should_trigger_task.side_effect = lambda force=False: force
+        cached_image.has_current_chart_type_policy.return_value = fresh
         cached_image.get_image.return_value = BytesIO(b"cached-image")
         response = api.thumbnail(1, resource.digest)
-    assert response.status_code == 400
-    assert "Histogram" in response.get_data(as_text=True)
-    screenshot.assert_not_called()
+    if dashboard_image:
+        assert response.status_code == (200 if fresh else 202)
+        if fresh or computing:
+            render.delay.assert_not_called()
+        else:
+            assert render.delay.call_args.kwargs["force"] is True
+    else:
+        assert response.status_code == 400
+        assert "Histogram" in response.get_data(as_text=True)
+        screenshot.assert_not_called()
 
 
 def test_ordinary_saved_get_preserves_context(full_api_access: None) -> None:
@@ -268,3 +289,72 @@ def test_ordinary_saved_get_preserves_context(full_api_access: None) -> None:
     ):
         assert api.get_data(1).status_code == 200
     assert context.slice_ is None
+
+
+@pytest.mark.parametrize("download_format", ["png", "pdf"])
+@pytest.mark.parametrize("fresh", [False, True])
+def test_dashboard_download_allows_fresh_refusal_tile_only(
+    download_format: str, fresh: bool, full_api_access: None
+) -> None:
+    """Fresh captures remain downloadable; pre-policy images never leak through."""
+    from superset.dashboards.api import DashboardRestApi
+    from superset.models.dashboard import Dashboard
+    from superset.utils.screenshots import (
+        ScreenshotCachePayload,
+        ScreenshotCachePayloadType,
+    )
+
+    chart: Slice = Slice(id=1, viz_type="histogram_v2", datasource_type="semantic_view")
+    dashboard: Dashboard = Dashboard(id=1, slices=[chart])
+    api: DashboardRestApi = DashboardRestApi()
+    api.datamodel = Mock()
+    api.datamodel.get.return_value = dashboard
+    api._base_filters = []
+    # Browser capture is substituted; the tile's 400 message is pinned above.
+    tile: bytes = b"png-capture-with-refusal-tile"
+    payload: ScreenshotCachePayload = ScreenshotCachePayload(
+        image=tile, scope="dashboard:1"
+    )
+    if fresh:
+        payload.update(tile)
+    serialized: ScreenshotCachePayloadType = payload.to_dict()
+    if not fresh:
+        serialized.pop("chart_type_policy_version", None)
+    payload = ScreenshotCachePayload.from_dict(serialized)
+    response: Response
+    with (
+        current_app.test_request_context(
+            f"/screenshot/key/?download_format={download_format}"
+        ),
+        patch("superset.views.base_api.is_feature_enabled", return_value=True),
+        patch(
+            "superset.semantic_layers.access.is_semantic_layers_enabled",
+            return_value=True,
+        ),
+        patch(
+            "superset.dashboards.api.DashboardScreenshot.get_from_cache_key",
+            return_value=payload,
+        ),
+        patch(
+            "superset.dashboards.api.build_pdf_from_screenshots",
+            return_value=b"pdf-refusal-tile",
+        ),
+    ):
+        response = api.screenshot(1, "key")
+    assert response.status_code == (200 if fresh else 400)
+    if fresh:
+        response.direct_passthrough = False
+        assert response.get_data() == (
+            tile if download_format == "png" else b"pdf-refusal-tile"
+        )
+
+
+def test_retained_image_does_not_inherit_fresh_capture_policy() -> None:
+    """A failed refresh must not relabel older fallback bytes as safe."""
+    from superset.utils.screenshots import ScreenshotCachePayload
+
+    payload: ScreenshotCachePayload = ScreenshotCachePayload()
+    payload.update(b"fresh")
+    assert payload.has_current_chart_type_policy()
+    payload.retain_image(b"old")
+    assert not payload.has_current_chart_type_policy()

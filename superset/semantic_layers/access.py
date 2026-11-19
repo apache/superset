@@ -43,13 +43,17 @@ def is_semantic_layers_enabled() -> bool:
     return feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS")
 
 
-def is_semantic_image_unavailable(resource: "Slice | Dashboard") -> bool:
+def is_semantic_image_unavailable(
+    resource: "Slice | Dashboard", *, check_chart_types: bool = True
+) -> bool:
     """Refuse disabled semantic data or raise for unsupported chart images."""
     from superset.models.slice import Slice
 
     charts: list[Slice] = [resource] if isinstance(resource, Slice) else resource.slices
     if not is_semantic_layers_enabled():
         return any(chart.datasource_type == "semantic_view" for chart in charts)
+    if not check_chart_types:
+        return False
     for chart in charts:
         try:
             validate_semantic_chart_type(chart.datasource_type, chart.viz_type)

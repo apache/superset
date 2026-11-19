@@ -160,8 +160,10 @@ views do not supply. Running one, including a saved chart on a dashboard, return
 an explanatory message instead of chart data. Use a Line or Bar chart for time
 series, or a Table chart with an explicit time dimension. For frequency counts,
 use a Bar or Table chart with an explicit count metric defined by the semantic
-view. Cached chart images and dashboard images containing one of these charts
-are also refused. These restrictions do not apply to ordinary datasets.
+view. Cached chart images are also refused. Fresh dashboard images and PDFs can
+include the refusal message tile; dashboard images cached before this policy are
+not served and must be captured again. These restrictions do not apply to ordinary
+datasets.
 
 For a semantic view, Pivot Table hides **Series limit** because it has no series
 columns to limit. Existing Pivot Table charts with a saved Series limit still

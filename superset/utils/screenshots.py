@@ -22,7 +22,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import Any, cast, TYPE_CHECKING, TypedDict
+from typing import Any, cast, NotRequired, TYPE_CHECKING, TypedDict
 
 from flask import current_app as app
 
@@ -58,6 +58,7 @@ DEFAULT_DASHBOARD_THUMBNAIL_SIZE = 800, 600
 # a very large or infinite TTL (refresh effectively disabled) cannot overflow the
 # pointer's expiry datetime.
 MAX_API_POINTER_TTL_EXTENSION_SECONDS = 10 * 365 * 24 * 60 * 60
+CHART_TYPE_POLICY_VERSION: int = 1
 
 try:
     from PIL import Image
@@ -93,6 +94,7 @@ class ScreenshotCachePayloadType(TypedDict):
     # until the entry is recomputed. Optional at the type level via `.get()`
     # in `from_dict` for that reason.
     scope: str | None
+    chart_type_policy_version: NotRequired[int]
 
 
 class DashboardScreenshotPointerType(TypedDict):
@@ -132,6 +134,7 @@ class ScreenshotCachePayload:
         self._timestamp = timestamp or datetime.now().isoformat()
         self.status = StatusValues.UPDATED if image else status
         self._scope = scope
+        self._chart_type_policy_version: int = 0
 
     @classmethod
     def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
@@ -149,6 +152,9 @@ class ScreenshotCachePayload:
         # entry keeps its previous image, and re-inferring UPDATED here would mask it
         # as fresh and bypass the shorter ERROR/COMPUTING recovery TTLs. Restore the
         # persisted status explicitly.
+        instance._chart_type_policy_version = payload.get(
+            "chart_type_policy_version", 0
+        )
         instance.status = StatusValues(payload["status"])
         return instance
 
@@ -160,7 +166,12 @@ class ScreenshotCachePayload:
             "timestamp": self._timestamp,
             "status": self.status.value,
             "scope": self._scope,
+            "chart_type_policy_version": self._chart_type_policy_version,
         }
+
+    def has_current_chart_type_policy(self) -> bool:
+        """Whether these bytes were captured with the semantic chart refusal policy."""
+        return self._chart_type_policy_version == CHART_TYPE_POLICY_VERSION
 
     def get_scope(self) -> str | None:
         return self._scope
@@ -184,6 +195,7 @@ class ScreenshotCachePayload:
         self.update_timestamp()
         self.status = StatusValues.UPDATED
         self._image = image
+        self._chart_type_policy_version = CHART_TYPE_POLICY_VERSION
 
     def retain_image(self, image: bytes | None) -> None:
         """Attach an already-rendered image without changing status or timestamp.
@@ -198,6 +210,8 @@ class ScreenshotCachePayload:
         worker's ``should_trigger_task`` still recomputes it.
         """
         self._image = image
+        # Retained bytes have unknown policy provenance, including write fallbacks.
+        self._chart_type_policy_version = 0
 
     def error(self, *, discard_image: bool = False) -> None:
         self.update_timestamp()

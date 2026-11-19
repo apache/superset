@@ -684,7 +684,6 @@ def test_execute_semantic_query_refuses_disabled_worker(
     mocker.patch("superset.tasks.async_queries.override_user")
     mocker.patch("superset.tasks.async_queries.get_context")
     mocker.patch("superset.common.query_context.QueryContext.get_df_payload_result")
-    mocker.patch("superset.common.query_context.QueryContext.raise_for_access")
     lookup: mock.MagicMock = mocker.patch("superset.daos.datasource.db.session.query")
     execute: mock.MagicMock = mocker.patch(
         "superset.semantic_layers.models.SemanticView.get_query_result"
