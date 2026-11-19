@@ -73,6 +73,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
 from pydantic import (
+    AfterValidator,
     AliasChoices,
     BaseModel,
     BeforeValidator,
@@ -81,8 +82,15 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    StrictBool,
+    StrictFloat,
+    StrictInt,
+    StrictStr,
 )
 from pydantic.json_schema import SkipJsonSchema
+from pydantic_core import PydanticCustomError
+
+from superset.semantic_layers.access import is_semantic_layers_enabled
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -97,6 +105,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberHeadline,
     resolve_chart_datasource_id,
     resolve_chart_datasource_name,
+    UnknownFieldCheckMixin,
 )
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
@@ -133,7 +142,10 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
-from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.mcp_service.utils.schema_utils import (
+    field_validation_error,
+    OmittedMeansUnchanged,
+)
 from superset.mcp_service.utils.serialization import JsonSafeRows, OptionalRowCount
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.core import DatasourceType
@@ -173,12 +185,7 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
 
 
 class DashboardFilter(ColumnOperator):
-    """
-    Filter object for dashboard listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
+    """Filter object for dashboard listing."""
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "dashboard_title",
@@ -208,12 +215,26 @@ class DashboardFilter(ColumnOperator):
 
 
 class ListDashboardsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[DashboardFilter],
 ):
     """Request schema for list_dashboards with clear, unambiguous types."""
+
+    edited_by_me: bool = Field(
+        default=False,
+        description=(
+            "Only dashboards where the current user is a direct USER editor "
+            "(the dashboard ownership representation). Does not include access "
+            "inherited from roles or groups. Use this for dashboards I own. "
+            "Combining with created_by_me returns creator OR owner, not both."
+        ),
+    )
+
+    # Never silently discard a misspelled scope filter (e.g. owned_by_me).
+    model_config = ConfigDict(extra="forbid")
 
     order_column: Annotated[
         str | None,
@@ -248,12 +269,9 @@ class ListDashboardsRequest(
                 "just trashed dashboards, 'include' returns live and trashed "
                 "together. Omit for live dashboards only (default). Trashed "
                 "rows carry a non-null deleted_at and are limited to "
-                "dashboards the caller can edit (the same audience that can "
-                "restore them, not merely the ones they own; admins see "
-                "all). This omits EXTRA_EDITORS_RESOLVER-granted and guest "
-                "role-derived editorship, so some restorable dashboards may "
-                "be under-enumerated. Requires the SOFT_DELETE feature flag "
-                "to have produced trashed rows."
+                "dashboards the caller can edit (admins see all); some "
+                "restorable dashboards may be missing. Requires the "
+                "SOFT_DELETE feature flag to have produced trashed rows."
             ),
         ),
     ]
@@ -292,6 +310,164 @@ DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
 ]
 
 
+def _validate_filter_value_text(value: str) -> str:
+    """Reject unpaired surrogates that cannot be represented in the UTF-8 response."""
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError as ex:
+        raise ValueError("Filter discovery strings must be valid UTF-8") from ex
+    return value
+
+
+FilterValueText = Annotated[StrictStr, AfterValidator(_validate_filter_value_text)]
+
+
+def _validate_filter_value_scalar(value: object) -> object:
+    """Reject non-JSON scalars without coercing their type or content."""
+    if value is not None and type(value) not in (str, int, float, bool):
+        raise ValueError("Filter values must be JSON scalars")
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("Filter values must be finite")
+    return value
+
+
+FilterValueScalar = Annotated[
+    FilterValueText | StrictBool | StrictInt | StrictFloat | None,
+    BeforeValidator(_validate_filter_value_scalar),
+]
+
+
+def _omit_mode_default(schema: dict[str, Any]) -> None:
+    """Advertise a presence-sensitive mode without a default to materialize."""
+    schema.pop("default", None)
+
+
+def _omit_mode_default_and_null(schema: dict[str, Any]) -> None:
+    """Advertise a non-null presence-sensitive string without a default."""
+    _omit_mode_default(schema)
+    branches = [b for b in schema.pop("anyOf", []) if b.get("type") != "null"]
+    if len(branches) == 1:
+        schema.update(branches[0])
+
+
+class FilterValueRequest(BaseModel):
+    """One bounded dropdown listing, literal search, or exact typed probe."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    filter_id: FilterValueText = Field(
+        min_length=1, description="Configured native filter ID"
+    )
+    limit: StrictInt = Field(default=25, ge=1, le=100)
+    # Mode is chosen by presence, so neither field advertises a default that a
+    # client could fill in and turn a listing into a search or a null probe.
+    search: FilterValueText | None = Field(
+        default=None, max_length=200, json_schema_extra=_omit_mode_default_and_null
+    )
+    exact_value: FilterValueScalar = Field(
+        default=None, json_schema_extra=_omit_mode_default
+    )
+
+    @model_validator(mode="after")
+    def _validate_mode(self) -> "FilterValueRequest":
+        """Distinguish an explicit null probe from an absent probe."""
+        if "search" in self.model_fields_set:
+            if self.search is None:
+                raise ValueError("search must be a string")
+            if "exact_value" in self.model_fields_set:
+                raise ValueError("search and exact_value are mutually exclusive")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _preserve_mode_presence(self, serializer: Any) -> dict[str, Any]:
+        """Keep round trips from turning list requests into exact-null probes."""
+        data = serializer(self)
+        for field in ("search", "exact_value"):
+            if field not in self.model_fields_set:
+                data.pop(field, None)
+        return data
+
+
+class ProposedFilterValues(BaseModel):
+    """Read-only select-ancestor override, validated before use."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    filter_id: FilterValueText = Field(min_length=1)
+    values: list[FilterValueScalar] = Field(max_length=20)
+
+
+FilterValueReason = Literal[
+    "row_limit",
+    "query_budget",
+    "scheduling_budget",
+    "response_limit",
+    "permission_denied",
+    "state_missing",
+    "state_invalid",
+    "parent_unresolved",
+    "proposal_invalid",
+    "unsupported_filter",
+    "unsupported_target",
+    "unsupported_search",
+    "query_not_executed",
+    "query_failed",
+    "invalid_scalar",
+]
+
+
+class NativeFilterAvailableValues(BaseModel):
+    """Exact dropdown scalars and the limits of their completeness claim."""
+
+    status: Literal[
+        "complete", "truncated", "unavailable", "unsupported", "not_requested"
+    ]
+    values: list[FilterValueScalar] = Field(default_factory=list)
+    query_mode: Literal["list", "contains", "exact"] = "list"
+    search: str | None = None
+    exact_value: FilterValueScalar = None
+    reason: FilterValueReason | None = None
+    scope: Literal["filter_selection"] = "filter_selection"
+
+    @model_validator(mode="after")
+    def _validate_status(self) -> "NativeFilterAvailableValues":
+        """Prevent empty failures from masquerading as complete results."""
+        if self.status in ("complete", "not_requested"):
+            if self.reason is not None:
+                raise ValueError("Complete/not_requested results have no reason")
+        elif self.reason is None:
+            raise ValueError("Incomplete results require a reason")
+        if (
+            self.status in ("unavailable", "unsupported", "not_requested")
+            and self.values
+        ):
+            raise ValueError("Unavailable results cannot contain values")
+        if self.query_mode == "exact" and "exact_value" not in self.model_fields_set:
+            raise ValueError("Exact results must echo exact_value")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _omit_nonexact_echo(self, serializer: Any) -> dict[str, Any]:
+        """Only exact probes include an exact_value echo, including null."""
+        data = serializer(self)
+        if self.query_mode != "exact":
+            data.pop("exact_value", None)
+        return data
+
+
+class FilterValueDiscovery(BaseModel):
+    """Pagination of definitions and successful read-only parent previews."""
+
+    scope: Literal["filter_selection"] = "filter_selection"
+    total_filter_count: int = Field(ge=0)
+    offset: int | None = None
+    next_offset: int | None = None
+    validated_proposed_filter_values: list[ProposedFilterValues] = Field(
+        default_factory=list
+    )
+    query_count: int = Field(default=0, ge=0, le=20)
+
+
 class GetDashboardInfoRequest(MetadataCacheControl):
     """Request schema for dashboard identifiers and shared permalink URLs.
 
@@ -299,6 +475,24 @@ class GetDashboardInfoRequest(MetadataCacheControl):
     """
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_discovery_identifiers(cls, value: Any) -> Any:
+        """Do not hide conflicting identifier aliases on a choice request."""
+        if isinstance(value, dict) and value.get("include_filter_values") is True:
+            identifiers = [
+                value[name]
+                for name in ("identifier", "id", "dashboard_id")
+                if name in value
+            ]
+            if any(isinstance(identifier, bool) for identifier in identifiers):
+                raise ValueError(
+                    "identifier must be a dashboard ID, UUID, slug, or permalink"
+                )
+            if len({str(identifier) for identifier in identifiers}) > 1:
+                raise ValueError("Conflicting dashboard identifier aliases")
+        return value
 
     identifier: Annotated[
         int | str | None,
@@ -319,6 +513,9 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "'/superset/dashboard/p/<key>/'. Resolves the dashboard and returns "
             "the shared active-tab and filter context; no identifier is required."
         ),
+        # Discovery treats an explicit null as invalid state, so a filled-in
+        # default must not be able to supply one.
+        json_schema_extra=_omit_mode_default,
     )
     filter_state: dict[str, Any] | None = Field(
         default=None,
@@ -332,8 +529,37 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "Restricted users receive native_filter_values (names, types, values, "
             "labels, exclusion flags), not raw dataMask/column targets. "
             "native_filter_values_incomplete flags unsupported filters/chart state "
-            "that cannot be summarized safely."
+            "that cannot be summarized safely. Choice discovery requires dataMask."
         ),
+        json_schema_extra=_omit_mode_default,
+    )
+    include_filter_values: StrictBool = Field(
+        default=False,
+        description=(
+            "Discover dropdown choices for changing selections, not analytical results."
+        ),
+    )
+    # Discovery controls are presence-sensitive, so the schema advertises no
+    # defaults a client could fill in and have rejected without opt-in.
+    filter_value_requests: list[FilterValueRequest] | None = Field(
+        default=None,
+        min_length=1,
+        max_length=20,
+        description="Unique IDs; literal search or strict exact_value, including null.",
+        json_schema_extra=_omit_mode_default_and_null,
+    )
+    filter_values_offset: StrictInt = Field(
+        default=0,
+        ge=0,
+        description="Page 20 filter definitions; incompatible with explicit IDs.",
+        json_schema_extra=_omit_mode_default,
+    )
+    proposed_filter_values: list[ProposedFilterValues] | None = Field(
+        default=None,
+        min_length=1,
+        max_length=20,
+        description="Read-only select-ancestor preview; never changes live selections.",
+        json_schema_extra=_omit_mode_default_and_null,
     )
     select_columns: Annotated[
         List[str],
@@ -362,6 +588,51 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             return list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
         parsed = parse_json_or_list(value, "select_columns")
         return parsed if parsed else list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
+
+    @model_validator(mode="after")
+    def _validate_discovery_controls(self) -> "GetDashboardInfoRequest":
+        """Require opt-in and reject ambiguous pagination or duplicate IDs."""
+        controls = {
+            "filter_value_requests",
+            "filter_values_offset",
+            "proposed_filter_values",
+        }
+        supplied = self.model_fields_set & controls
+        if supplied and not self.include_filter_values:
+            raise ValueError("Discovery controls require include_filter_values=true")
+        if (
+            self.filter_value_requests is not None
+            and "filter_values_offset" in supplied
+        ):
+            raise ValueError(
+                "filter_values_offset cannot accompany filter_value_requests"
+            )
+        for field in ("filter_value_requests", "proposed_filter_values"):
+            items = getattr(self, field)
+            if field in supplied and items is None:
+                raise ValueError(f"{field} must be a nonempty list")
+            if items is not None and len({item.filter_id for item in items}) != len(
+                items
+            ):
+                raise ValueError(f"{field} contains duplicate filter IDs")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _preserve_discovery_presence(self, serializer: Any) -> dict[str, Any]:
+        """Preserve optional-control presence when clients serialize a request."""
+        data = serializer(self)
+        for field in (
+            "filter_value_requests",
+            "filter_values_offset",
+            "proposed_filter_values",
+        ):
+            if field not in self.model_fields_set:
+                data.pop(field, None)
+        if self.include_filter_values:
+            for field in ("filter_state", "permalink_key"):
+                if field not in self.model_fields_set:
+                    data.pop(field, None)
+        return data
 
     @model_validator(mode="after")
     def _require_identifier_or_permalink(self) -> "GetDashboardInfoRequest":
@@ -476,6 +747,20 @@ class NativeFilterSummary(BaseModel):
         default_factory=list,
         description="Filter targets (column name and dataset ID)",
     )
+
+
+class NativeFilterValueSummary(NativeFilterSummary):
+    """Native filter metadata with optional authorized dropdown choices."""
+
+    available_values: NativeFilterAvailableValues | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_unrequested_choices(self, serializer: Any) -> dict[str, Any]:
+        """Keep metadata-only native filter summaries backward compatible."""
+        data = serializer(self)
+        if self.available_values is None:
+            data.pop("available_values", None)
+        return data
 
 
 class DashboardChartSummary(BaseModel):
@@ -648,6 +933,25 @@ class DashboardInfo(BaseModel):
         return data
 
 
+class DashboardInfoWithFilterValues(DashboardInfo):
+    """Dashboard information and optional native filter choices."""
+
+    # These response-only summaries narrow the base model's mutable-list element type.
+    native_filters: list[NativeFilterValueSummary] = Field(  # type: ignore[assignment, unused-ignore]
+        default_factory=list,
+        description=DashboardInfo.model_fields["native_filters"].description,
+    )
+    filter_value_discovery: FilterValueDiscovery | None = None
+
+    @model_serializer(mode="wrap")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> dict[str, Any]:
+        """Keep metadata-only responses compatible while advertising opt-in fields."""
+        data = super()._filter_fields_by_context(serializer, info)
+        if self.filter_value_discovery is None:
+            data.pop("filter_value_discovery", None)
+        return data
+
+
 class DashboardList(PaginatedResponse[DashboardFilter]):
     dashboards: List[DashboardInfo]
 
@@ -682,7 +986,28 @@ class AddChartToDashboardRequest(BaseModel):
     )
 
 
-class AddChartToDashboardResponse(BaseModel):
+class DashboardMutationErrorFields(BaseModel):
+    """Shared error and permission fields for governance mutations."""
+
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the user lacks edit rights on the target dashboard. "
+            "Remediation: ask the user to grant access; do not retry as-is."
+        ),
+    )
+    managed_externally: bool = Field(
+        default=False,
+        description=(
+            "True when the mutation was refused because the dashboard is "
+            "managed externally. This is not an access denial: permissions "
+            "and retries cannot change it; its source of truth is external."
+        ),
+    )
+
+
+class AddChartToDashboardResponse(DashboardMutationErrorFields):
     """Response schema for adding chart to dashboard."""
 
     dashboard: DashboardInfo | None = Field(
@@ -694,14 +1019,14 @@ class AddChartToDashboardResponse(BaseModel):
     position: dict[str, Any] | None = Field(
         None, description="Position information for the added chart"
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
             "True when the operation failed because the current user does not "
-            "have edit rights on the target dashboard. When True, inform the "
-            "user and ask if they would like a new dashboard created instead. "
-            "Do NOT silently create a new dashboard — always confirm first."
+            "have edit rights on the target dashboard or access to the chart. "
+            "Do not retry or create another dashboard to bypass denied chart "
+            "access. For a dashboard-edit denial, ask the user before creating "
+            "a new dashboard; chart access must still be checked."
         ),
     )
 
@@ -717,7 +1042,7 @@ class RemoveChartFromDashboardRequest(BaseModel):
     )
 
 
-class RemoveChartFromDashboardResponse(BaseModel):
+class RemoveChartFromDashboardResponse(DashboardMutationErrorFields):
     """Response schema for removing a chart from a dashboard."""
 
     dashboard: DashboardInfo | None = Field(
@@ -734,7 +1059,6 @@ class RemoveChartFromDashboardResponse(BaseModel):
             "became empty as a result)."
         ),
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -759,7 +1083,8 @@ class GenerateDashboardRequest(BaseModel):
     dashboard_title: str | None = Field(
         None,
         description=(
-            "Dashboard title; if omitted, generated descriptively from chart names."
+            "Dashboard title; if omitted, empty, or whitespace-only, generated "
+            "descriptively from chart names."
         ),
         validation_alias=AliasChoices("dashboard_title", "title", "name"),
     )
@@ -846,18 +1171,27 @@ class GenerateDashboardRequest(BaseModel):
                 break
         else:
             raw = None
-        if not isinstance(raw, str) or not raw.strip():
-            return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text, "
-                "or omit it to auto-generate one from chart names."
+        with field_validation_error("dashboard_title"):
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode()
+            if not isinstance(raw, str):
+                return data
+            if not raw.strip():
+                data[key] = None
+                return data
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if isinstance(sanitized, str):
+                sanitized = sanitized.strip()
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text, "
+                    "or omit it to auto-generate one from chart names."
+                )
+        data[key] = sanitized
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -868,19 +1202,9 @@ class GenerateDashboardRequest(BaseModel):
 
     @field_validator("dashboard_title")
     @classmethod
-    def sanitize_dashboard_title(cls, v: str | None) -> str | None:
-        """Sanitize dashboard title to prevent XSS.
-
-        Preserves an explicit empty string (caller-provided ``""``) rather
-        than collapsing it to ``None``, since the tool treats ``None`` as
-        "auto-generate a title from charts" but an explicit empty string
-        as an intentional blank title.
-        """
-        if v is None or v == "":
-            return v
-        return sanitize_user_input(
-            v, "Dashboard title", max_length=500, allow_empty=True
-        )
+    def normalize_blank_dashboard_title(cls, v: str | None) -> str | None:
+        """Use the auto-title fallback for blanks; sanitize nonblank titles above."""
+        return v if v and v.strip() else None
 
 
 class UpdateDashboardRequest(OmittedMeansUnchanged):
@@ -892,7 +1216,7 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
     the REST API) without a full re-create.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
     identifier: int | str = Field(
         ...,
@@ -1010,17 +1334,27 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
                 break
         else:
             raw = None
-        if not isinstance(raw, str) or not raw.strip():
-            return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text."
+        with field_validation_error("dashboard_title"):
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode()
+            if not isinstance(raw, str):
+                return data
+            if not raw.strip():
+                raise PydanticCustomError(
+                    "empty_text", "dashboard_title cannot be empty"
+                )
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if isinstance(sanitized, str):
+                sanitized = sanitized.strip()
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text."
+                )
+        data[key] = sanitized
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -1031,17 +1365,17 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
 
     @field_validator("dashboard_title")
     @classmethod
-    def sanitize_dashboard_title(cls, v: str | None) -> str | None:
-        """Sanitize dashboard title to prevent XSS."""
-        if v is None or v == "":
+    def normalize_blank_dashboard_title(cls, v: str | None) -> str | None:
+        """Reject blank updates; nonblank titles are sanitized above."""
+        if v is None:
             return v
-        return sanitize_user_input(
-            v, "Dashboard title", max_length=500, allow_empty=True
-        )
+        if not v.strip():
+            raise PydanticCustomError("empty_text", "dashboard_title cannot be empty")
+        return v
 
-    @field_validator("slug")
+    @field_validator("slug", mode="before")
     @classmethod
-    def normalize_slug(cls, v: str | None) -> str | None:
+    def normalize_slug(cls, v: object) -> object:
         """Normalize the slug to match the REST DashboardPutSchema contract.
 
         Mirrors ``BaseDashboardSchema.post_load``: strip, replace spaces with
@@ -1052,7 +1386,9 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
         REST schema behavior. Raises ``ValueError`` when a non-whitespace input
         normalizes to empty (e.g. ``"!!!"``), preventing accidental slug clearing.
         """
-        if not v:
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str) or not v:
             return v
         stripped = v.strip()
         if not stripped:
@@ -1066,7 +1402,7 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
         return normalized
 
 
-class UpdateDashboardResponse(BaseModel):
+class UpdateDashboardResponse(DashboardMutationErrorFields):
     """Response schema for ``update_dashboard``.
 
     Distinct from ``GenerateDashboardResponse`` because the semantics
@@ -1078,7 +1414,6 @@ class UpdateDashboardResponse(BaseModel):
         None, description="The updated dashboard info, if successful"
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
-    error: str | None = Field(None, description="Error message, if update failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -1172,28 +1507,6 @@ class ManageDashboardOwnersRequest(BaseModel):
                 f"remove_owner_ids: {overlap}."
             )
         return self
-
-
-class DashboardMutationErrorFields(BaseModel):
-    """Shared error and permission fields for governance mutations."""
-
-    error: str | None = Field(None, description="Error message, if operation failed")
-    permission_denied: bool = Field(
-        default=False,
-        description=(
-            "True when the user lacks edit rights on the target dashboard. "
-            "Remediation: ask the user to grant access; do not retry as-is."
-        ),
-    )
-    managed_externally: bool = Field(
-        default=False,
-        description=(
-            "True when the mutation was refused because the dashboard is "
-            "managed externally. Structural, not an access denial: granting "
-            "permissions cannot resolve it and the call should not be "
-            "retried — the entity's source of truth lives outside Superset."
-        ),
-    )
 
 
 class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
@@ -1317,9 +1630,9 @@ class ManageDashboardRolesResponse(DashboardMutationErrorFields):
         default=False,
         description=(
             "Whether the ENABLE_VIEWERS feature flag is enabled on this "
-            "instance. When False, dashboard viewers are stored but have no "
-            "effect on access control — access still follows normal "
-            "Superset permissions/editorship."
+            "instance. Access checks restrict access to any nonempty viewers "
+            "list regardless of this flag, so role changes take effect "
+            "either way."
         ),
     )
     warnings: list[str] = Field(
@@ -1369,11 +1682,15 @@ class ManageDashboardCertificationRequest(BaseModel):
             raise ValueError("identifier must be an integer ID, UUID, or slug string")
         return value
 
-    @field_validator("certified_by")
+    @field_validator("certified_by", mode="before")
     @classmethod
-    def sanitize_certified_by(cls, v: str | None) -> str | None:
+    def sanitize_certified_by(cls, v: object) -> object:
         """Sanitize certified_by to prevent XSS; it renders as a UI badge."""
-        if v is None or v == "":
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str):
+            return v
+        if v == "":
             return v
         sanitized: str | None = sanitize_user_input(
             v, "certified_by", max_length=500, allow_empty=True
@@ -1382,28 +1699,34 @@ class ManageDashboardCertificationRequest(BaseModel):
             # Empty string means "clear the field", so an input that
             # sanitizes down to nothing (HTML-only or whitespace-only) must
             # not silently erase an existing certification.
-            raise ValueError(
+            raise PydanticCustomError(
+                "empty_certification_text",
                 "certified_by has no content left after sanitization; pass "
-                'an explicit empty string ("") to clear the field.'
+                'an explicit empty string ("") to clear the field.',
             )
         return sanitized
 
-    @field_validator("certification_details")
+    @field_validator("certification_details", mode="before")
     @classmethod
-    def sanitize_certification_details(cls, v: str | None) -> str | None:
+    def sanitize_certification_details(cls, v: object) -> object:
         """Sanitize certification_details to prevent XSS; it renders in the
         same CertifiedBadge tooltip as certified_by."""
-        if v is None or v == "":
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str):
+            return v
+        if v == "":
             return v
         sanitized: str | None = sanitize_user_input(
             v, "certification_details", max_length=5000, allow_empty=True
         )
         if not sanitized:
             # Same guard as certified_by: only an explicit "" may clear.
-            raise ValueError(
+            raise PydanticCustomError(
+                "empty_certification_text",
                 "certification_details has no content left after "
                 'sanitization; pass an explicit empty string ("") to clear '
-                "the field."
+                "the field.",
             )
         return sanitized
 
@@ -1448,7 +1771,7 @@ class GenerateDashboardResponse(BaseModel):
 class DuplicateDashboardRequest(BaseModel):
     """Request schema for duplicating an existing dashboard."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
     dashboard_id: Annotated[
         int | str,
@@ -1464,12 +1787,13 @@ class DuplicateDashboardRequest(BaseModel):
         validation_alias=AliasChoices("dashboard_title", "title", "name"),
     )
     duplicate_slices: bool = Field(
-        default=False,
+        default=True,
         description=(
-            "When true, every chart on the source dashboard is deep-copied "
+            "When true (default), every chart on the source dashboard is deep-copied "
             "into a new chart object owned by the caller. When false "
-            "(default), the new dashboard references the same charts as the "
-            "source."
+            "the new dashboard references the same charts as the "
+            "source; editing them also changes the source dashboard. "
+            "Use false only when shared charts are explicitly intended."
         ),
     )
     sanitization_warnings: SkipJsonSchema[List[str]] = Field(
@@ -1487,8 +1811,8 @@ class DuplicateDashboardRequest(BaseModel):
     def _detect_dashboard_title_sanitization(cls, data: Any) -> Any:
         """Reject empty-after-sanitization titles and warn on partial strip.
 
-        Runs before the ``dashboard_title`` field validator rewrites the
-        value. If the caller supplied a title that sanitization would strip
+        Sanitizes once before field constraints are applied.
+        If the caller supplied a title that sanitization would strip
         entirely (XSS-only content), we raise so the caller gets a clear
         error instead of a blank-titled dashboard. When the sanitizer only
         trims part of the title, we record a warning the tool can return
@@ -1507,17 +1831,27 @@ class DuplicateDashboardRequest(BaseModel):
                 break
         else:
             raw = None
-        if not isinstance(raw, str) or not raw.strip():
-            return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text."
+        with field_validation_error("dashboard_title"):
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode()
+            if not isinstance(raw, str):
+                return data
+            if not raw.strip():
+                raise PydanticCustomError(
+                    "empty_text", "dashboard_title cannot be empty"
+                )
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if isinstance(sanitized, str):
+                sanitized = sanitized.strip()
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text."
+                )
+        data[key] = sanitized
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -1528,14 +1862,11 @@ class DuplicateDashboardRequest(BaseModel):
 
     @field_validator("dashboard_title")
     @classmethod
-    def sanitize_dashboard_title(cls, v: str) -> str:
-        """Sanitize dashboard title to prevent XSS."""
-        sanitized = sanitize_user_input(
-            v, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if not sanitized:
-            raise ValueError("dashboard_title cannot be empty")
-        return sanitized
+    def reject_blank_dashboard_title(cls, v: str) -> str:
+        """Reject blank duplicates; nonblank titles are sanitized above."""
+        if not v.strip():
+            raise PydanticCustomError("empty_text", "dashboard_title cannot be empty")
+        return v
 
 
 class DuplicateDashboardResponse(BaseModel):
@@ -2273,7 +2604,7 @@ class DeleteDashboardRequest(BaseModel):
         return value
 
 
-class DeleteDashboardResponse(BaseModel):
+class DeleteDashboardResponse(DashboardMutationErrorFields):
     """Result of a delete_dashboard operation."""
 
     success: bool = Field(description="Whether the dashboard was deleted")
@@ -2288,7 +2619,6 @@ class DeleteDashboardResponse(BaseModel):
         ),
     )
     message: str | None = Field(None, description="Human-readable outcome message")
-    error: str | None = Field(None, description="Error message if the delete failed")
     error_type: str | None = Field(None, description="Type of error if failed")
     permission_denied: bool = Field(
         False,
@@ -2316,7 +2646,74 @@ def _reject_bool_dataset_id(value: object) -> object:
     return value
 
 
-class BaseNewFilterSpec(BaseModel):
+# Add/update fields valid only for specific filter types. Fields not listed in
+# any of these sets (name, description, scope_chart_ids) apply to every type.
+_TYPE_SPECIFIC_FILTER_FIELDS: dict[str, frozenset[str]] = {
+    "filter_select": frozenset(
+        {
+            "dataset_id",
+            "column",
+            "multi_select",
+            "default_to_first_item",
+            "default_value",
+            "enable_empty_filter",
+            "sort_ascending",
+            "search_all_options",
+        }
+    ),
+    "filter_range": frozenset({"dataset_id", "column", "enable_empty_filter"}),
+    "filter_time": frozenset({"default_time_range"}),
+    "filter_timegrain": frozenset({"dataset_id", "enable_empty_filter"}),
+    "filter_timecolumn": frozenset({"dataset_id", "enable_empty_filter"}),
+}
+_ALL_TYPE_SPECIFIC_FILTER_FIELDS: frozenset[str] = frozenset().union(
+    *_TYPE_SPECIFIC_FILTER_FIELDS.values()
+)
+
+
+def validate_native_filter_type_fields(
+    data: dict[str, Any], filter_type: str | None, *, is_divider: bool = False
+) -> None:
+    """Reject non-null inapplicable fields consistently on add and update."""
+    if is_divider and data.get("scope_chart_ids") is not None:
+        raise ValueError(
+            "Divider does not support scope_chart_ids; dividers are always in scope."
+        )
+    allowed = _TYPE_SPECIFIC_FILTER_FIELDS.get(filter_type or "", frozenset())
+    invalid_fields = sorted(
+        field
+        for field in _ALL_TYPE_SPECIFIC_FILTER_FIELDS
+        if data.get(field) is not None and field not in allowed
+    )
+    if invalid_fields:
+        valid_types = sorted(
+            type_name
+            for type_name, fields in _TYPE_SPECIFIC_FILTER_FIELDS.items()
+            if fields & set(invalid_fields)
+        )
+        type_label = "divider" if is_divider else filter_type
+        raise ValueError(
+            f"Filter has type '{type_label}'; fields "
+            f"{invalid_fields} only apply to {', '.join(valid_types)} filters."
+        )
+
+
+class _NativeFilterTypeFieldsSpec(BaseModel):
+    """Validate type-specific fields before Pydantic discards unknown fields."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_inapplicable_fields(cls, data: Any) -> Any:
+        """Apply the same compatibility rule used for existing filters."""
+        if isinstance(data, dict):
+            filter_type = data.get("filter_type")
+            validate_native_filter_type_fields(
+                data, filter_type, is_divider=filter_type == "divider"
+            )
+        return data
+
+
+class BaseNewFilterSpec(_NativeFilterTypeFieldsSpec):
     """Common fields shared by all new native filter specs."""
 
     name: str = Field(..., min_length=1, description="Filter display name")
@@ -2324,9 +2721,8 @@ class BaseNewFilterSpec(BaseModel):
     scope_chart_ids: List[int] | None = Field(
         None,
         description=(
-            "Chart IDs this filter should apply to. When omitted the filter "
-            "applies to all charts on the dashboard. All IDs must belong to "
-            "charts that are on the dashboard."
+            "IDs of charts on the dashboard this filter applies to. Omit to "
+            "apply it to all charts on the dashboard."
         ),
     )
 
@@ -2439,7 +2835,21 @@ class FilterTimeGrainSpec(BaseNewFilterSpec):
     )
 
 
-class DividerSpec(BaseModel):
+class FilterTimeColumnSpec(BaseNewFilterSpec):
+    """Spec for a new time column (filter_timecolumn) native filter."""
+
+    filter_type: Literal["filter_timecolumn"] = Field(
+        ..., description="Discriminator - must be 'filter_timecolumn'"
+    )
+    dataset_id: int = Field(
+        ..., description="ID of the dataset whose temporal columns it offers"
+    )
+    enable_empty_filter: bool = Field(
+        False, description="Require a value before the filter is applied"
+    )
+
+
+class DividerSpec(_NativeFilterTypeFieldsSpec):
     """Spec for a new filter-bar divider.
 
     A divider is a visual separator with a title and description used to
@@ -2459,6 +2869,7 @@ NewNativeFilterSpec = Annotated[
     | FilterTimeSpec
     | FilterRangeSpec
     | FilterTimeGrainSpec
+    | FilterTimeColumnSpec
     | DividerSpec,
     Field(discriminator="filter_type"),
 ]
@@ -2486,9 +2897,7 @@ class NativeFilterUpdateSpec(BaseModel):
     description: str | None = Field(None, description="New description")
     dataset_id: int | None = Field(
         None,
-        description=(
-            "New target dataset ID (filter_select, filter_range, filter_timegrain only)"
-        ),
+        description=("New target dataset ID (not filter_time)"),
     )
     column: str | None = Field(
         None,
@@ -2503,9 +2912,7 @@ class NativeFilterUpdateSpec(BaseModel):
     )
     enable_empty_filter: bool | None = Field(
         None,
-        description=(
-            "Require a value (filter_select, filter_range, filter_timegrain only)"
-        ),
+        description=("Require a value (not filter_time)"),
     )
     sort_ascending: bool | None = Field(
         None, description="Sort values ascending/descending (filter_select only)"
@@ -2561,10 +2968,10 @@ class ManageNativeFiltersRequest(BaseModel):
         description=(
             "New filters to create. Supported types: filter_select "
             "(dropdown), filter_time (time range), filter_range (numerical "
-            "range), filter_timegrain (time grain), and divider (a "
-            "title/description-only visual separator for grouping filters "
-            "in the filter bar; no dataset or column). filter_timecolumn "
-            "(time column) is not yet supported by this tool."
+            "range), filter_timegrain (time grain), filter_timecolumn "
+            "(time column; these two take no column), and divider (a "
+            "title/description-only separator; no dataset or column). "
+            "Non-null inapplicable fields are rejected on add and update."
         ),
     )
     update: List[NativeFilterUpdateSpec] = Field(
@@ -2605,7 +3012,7 @@ class ManageNativeFiltersRequest(BaseModel):
         return self
 
 
-class ManageNativeFiltersResponse(BaseModel):
+class ManageNativeFiltersResponse(DashboardMutationErrorFields):
     """Response schema for the manage_native_filters tool."""
 
     dashboard_id: int | None = Field(None, description="ID of the dashboard")
@@ -2628,7 +3035,6 @@ class ManageNativeFiltersResponse(BaseModel):
         default_factory=list,
         description="Final native filter configuration after the operation, in order",
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -2651,22 +3057,15 @@ class BaseNewDashboardComponentSpec(BaseModel):
     target_tab: str | None = Field(
         None,
         description=(
-            "Tab to add the component to, matched by display name or "
-            "component ID (see get_dashboard_layout for available tabs). "
-            "Omit to use the first tab, or the grid if there are no tabs; "
-            "specify a target when the component should land in a "
-            "specific one rather than the first tab."
+            "Tab to add the component to, by display name or component ID "
+            "(see get_dashboard_layout). Omit for the first tab, or the grid "
+            "if there are no tabs."
         ),
     )
 
 
 class MarkdownComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new markdown/text tile.
-
-    Placed in its own new row (a MARKDOWN component sits alongside charts,
-    not as a full-width band), so it composes with existing rows/charts on
-    the target grid or tab.
-    """
+    """Spec for a new markdown/text tile, placed in its own new row."""
 
     component_type: Literal["markdown"] = Field(
         ..., description="Discriminator - must be 'markdown'"
@@ -2718,12 +3117,7 @@ def _sanitize_header_text(value: str) -> str:
 
 
 class HeaderComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new section header band.
-
-    Placed directly on the target grid/tab (not inside a row) so it spans
-    the full dashboard width, matching how the dashboard builder places
-    dragged header components.
-    """
+    """Spec for a new full-width section header band."""
 
     component_type: Literal["header"] = Field(
         ..., description="Discriminator - must be 'header'"
@@ -2744,11 +3138,7 @@ class HeaderComponentSpec(BaseNewDashboardComponentSpec):
 
 
 class DividerComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new horizontal divider.
-
-    Placed directly on the target grid/tab (not inside a row), same as
-    ``HeaderComponentSpec``. Carries no content — only placement.
-    """
+    """Spec for a new full-width horizontal divider; it has no content."""
 
     component_type: Literal["divider"] = Field(
         ..., description="Discriminator - must be 'divider'"
@@ -2916,10 +3306,11 @@ class ApplyFilterValueSpec(BaseModel):
     """A value to apply to one existing native filter.
 
     Exactly one of ``values`` (filter_select), ``time_range``
-    (filter_time), ``range`` (filter_range), or ``time_grain``
-    (filter_timegrain) must be supplied, and it must match the target
-    filter's type. An empty ``values`` list, a ``[null, null]`` range, or an
-    empty ``time_grain`` list clears that filter's current value.
+    (filter_time), ``range`` (filter_range), ``time_grain``
+    (filter_timegrain), or ``time_column`` (filter_timecolumn) must be
+    supplied, and it must match the target filter's type. An empty
+    ``values`` list, a ``[null, null]`` range, or an empty ``time_grain`` or
+    ``time_column`` list clears that filter's current value.
     """
 
     filter_name_or_id: str = Field(
@@ -2934,8 +3325,9 @@ class ApplyFilterValueSpec(BaseModel):
     values: List[FilterSelectValue] | None = Field(
         None,
         description=(
-            "Values to select, for a filter_select filter. Pass an empty "
-            "list to clear the filter's current selection."
+            "Values to select, for a filter_select filter; each must exist "
+            "in the filter's column. Pass an empty list to clear the "
+            "filter's current selection."
         ),
     )
     time_range: str | None = Field(
@@ -2970,6 +3362,15 @@ class ApplyFilterValueSpec(BaseModel):
             "clear the filter."
         ),
     )
+    time_column: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None,
+        max_length=1,
+        description=(
+            "Temporal column to apply, for a filter_timecolumn filter, as a "
+            "list with at most one column name, e.g. ['ship_date']. Pass an "
+            "empty list to clear the filter."
+        ),
+    )
 
     @field_validator("time_range")
     @classmethod
@@ -3002,9 +3403,10 @@ class ApplyFilterValueSpec(BaseModel):
         """Require exactly one value field.
 
         Presence is tested with ``is None`` rather than truthiness so an
-        empty ``values``/``time_grain`` list, or a ``[null, null]`` range,
-        still count as a supplied value: that is how a caller clears a
-        filter_select, filter_timegrain, or filter_range selection.
+        empty ``values``/``time_grain``/``time_column`` list, or a
+        ``[null, null]`` range, still count as a supplied value: that is how
+        a caller clears a filter_select, filter_timegrain, filter_timecolumn,
+        or filter_range selection.
         """
         supplied = [
             name
@@ -3013,14 +3415,16 @@ class ApplyFilterValueSpec(BaseModel):
                 ("time_range", self.time_range),
                 ("range", self.range),
                 ("time_grain", self.time_grain),
+                ("time_column", self.time_column),
             )
             if value is not None
         ]
         if len(supplied) != 1:
             raise ValueError(
                 "Provide exactly one of values (filter_select), time_range "
-                "(filter_time), range (filter_range), or time_grain "
-                f"(filter_timegrain) for filter '{self.filter_name_or_id}'; "
+                "(filter_time), range (filter_range), time_grain "
+                "(filter_timegrain), or time_column (filter_timecolumn) for "
+                f"filter '{self.filter_name_or_id}'; "
                 f"got {supplied or 'neither'}."
             )
         return self
@@ -3061,7 +3465,7 @@ class AppliedFilterSummary(BaseModel):
         None,
         description=(
             "Filter type (filter_select, filter_time, filter_range, "
-            "or filter_timegrain)"
+            "filter_timegrain, or filter_timecolumn)"
         ),
     )
     values: List[FilterSelectValue] | None = Field(
@@ -3075,6 +3479,14 @@ class AppliedFilterSummary(BaseModel):
     )
     time_grain: List[Annotated[str, Field(min_length=1)]] | None = Field(
         None, description="Applied time grain, for a filter_timegrain filter"
+    )
+    time_column: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None,
+        description=(
+            "Applied time column, for a filter_timecolumn filter ([] when "
+            "cleared). A selected column is omitted for callers without "
+            "data-model metadata access, as on read."
+        ),
     )
 
 
@@ -3380,9 +3792,12 @@ def dashboard_datasets_serializer(
             slc
         )
 
+    semantic_layers_enabled: bool = is_semantic_layers_enabled()
     datasets: List[DashboardDatasetSummary] = []
     inaccessible_count: int = 0
     for (_, source_type), slices in slices_by_datasource.items():
+        if source_type == DatasourceType.SEMANTIC_VIEW and not semantic_layers_enabled:
+            continue
         kind: Literal["table", "semantic_view"] = (
             "semantic_view" if source_type == DatasourceType.SEMANTIC_VIEW else "table"
         )
@@ -3456,7 +3871,7 @@ class RestoreDashboardRequest(BaseModel):
         return value
 
 
-class RestoreDashboardResponse(BaseModel):
+class RestoreDashboardResponse(DashboardMutationErrorFields):
     """Result of a restore_dashboard operation."""
 
     success: bool = Field(description="Whether the dashboard was restored from trash")
@@ -3465,7 +3880,6 @@ class RestoreDashboardResponse(BaseModel):
         None, description="Title of the restored dashboard"
     )
     message: str | None = Field(None, description="Human-readable outcome message")
-    error: str | None = Field(None, description="Error message if the restore failed")
     error_type: str | None = Field(None, description="Type of error if failed")
     permission_denied: bool = Field(
         False,
@@ -3511,9 +3925,10 @@ class GetDashboardDataRequest(BaseModel):
         ge=1,
         le=1000,
         description=(
-            "Rows to query per chart. Only sample_rows of these are returned "
-            "per chart; total_rows reports the full count when the fetch was not "
-            "capped, and the per-chart truncated flag marks a capped fetch."
+            "Requested input row limit per query, subject to server caps. Only "
+            "sample_rows output rows are returned per chart. total_rows is null "
+            "when retrieval is capped or post-processing leaves input coverage "
+            "unverified; truncated is true in either case."
         ),
     )
     sample_rows: int = Field(
@@ -3556,7 +3971,10 @@ class DashboardChartQueryData(BaseModel):
         None, description="Total rows available for this query when known"
     )
     truncated: bool = Field(
-        False, description="True when this query returned fewer than the total"
+        False,
+        description=(
+            "True when query retrieval is capped or input coverage is unverified"
+        ),
     )
 
 
@@ -3574,13 +3992,30 @@ class DashboardChartData(BaseModel):
     total_rows: OptionalRowCount = Field(
         None,
         description=(
-            "Total rows available when known; null when the fetch was capped with "
-            "no authoritative total (see truncated)"
+            "Total rows available when known; null when retrieval is capped with "
+            "no authoritative total or post-processing leaves input coverage "
+            "unverified (see truncated)"
         ),
     )
     truncated: bool = Field(
         False,
-        description="True when fewer rows were returned than the total available",
+        description="True when retrieval is capped or input coverage is unverified",
+    )
+    fetch_row_limit: int | None = Field(
+        None,
+        description=(
+            "Row limit applied for this data retrieval, "
+            "not necessarily the saved chart limit"
+        ),
+    )
+    sample_rows_limit: int | None = Field(
+        None, description="Maximum example rows included in sample_data"
+    )
+    completeness_note: str | None = Field(
+        None,
+        description=(
+            "Limits on interpreting this retrieval as the full chart population"
+        ),
     )
     queries: list[DashboardChartQueryData] | None = Field(
         None,
@@ -3611,6 +4046,17 @@ class DashboardData(BaseModel):
     agent can answer analytical questions about the whole dashboard from a
     single call, instead of fetching each chart separately.
     """
+
+    completeness_note: str = Field(
+        default=(
+            "Example rows are not the full population. Query post-processing may "
+            "collapse or replace input rows capped by fetch_row_limit. For affected "
+            "queries, total_rows is unknown and truncated=true means input coverage "
+            "is unverified, not observed truncation. Verify the saved configuration "
+            "and source aggregates before making full-population claims."
+        ),
+        description="Shared guidance for interpreting per-chart retrieval coverage",
+    )
 
     dashboard_id: int = Field(..., description="Dashboard id")
     dashboard_name: str = Field(..., description="Dashboard title")

@@ -18,6 +18,7 @@
  */
 import { ReactNode, useState, useEffect, useMemo, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
   NO_TIME_RANGE,
   useCSSTextTruncation,
@@ -35,8 +36,10 @@ import {
   Divider,
   Tooltip,
   Select,
+  Flex,
 } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import PartitionPruningIndicator from 'src/explore/components/PartitionPruningIndicator';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { noOp } from 'src/utils/common';
@@ -161,6 +164,8 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [lastFetchedTimeRange, setLastFetchedTimeRange] = useState(value);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
+  // The last evaluated range whose start and end resolved to the same instant.
+  const [emptyTimeRange, setEmptyTimeRange] = useState<string | null>(null);
   const [evalResponse, setEvalResponse] = useState<string>(value);
   const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(t(value));
   const [isDescriptionHovered, setIsDescriptionHovered] = useState(false);
@@ -190,8 +195,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     latestValueRequestId.current += 1;
     const requestId = latestValueRequestId.current;
     fetchTimeRange(value, 'col', undefined, displayFormat).then(
-      ({ value: actualRange, error }) => {
+      ({ value: actualRange, error, isEmpty }) => {
         if (requestId !== latestValueRequestId.current) return;
+        setEmptyTimeRange(prev =>
+          !error && isEmpty ? value : prev === value ? null : prev,
+        );
         if (error) {
           setEvalResponse(error || '');
           setValidTimeRange(false);
@@ -244,8 +252,15 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         latestDraftRequestId.current += 1;
         const requestId = latestDraftRequestId.current;
         fetchTimeRange(timeRangeValue, 'col', undefined, displayFormat).then(
-          ({ value: actualRange, error }) => {
+          ({ value: actualRange, error, isEmpty }) => {
             if (requestId !== latestDraftRequestId.current) return;
+            setEmptyTimeRange(prev =>
+              !error && isEmpty
+                ? timeRangeValue
+                : prev === timeRangeValue
+                  ? null
+                  : prev,
+            );
             if (error) {
               setEvalResponse(error || '');
               setValidTimeRange(false);
@@ -344,6 +359,13 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
             <span className="text error">{evalResponse}</span>
           </IconWrapper>
         )}
+        {validTimeRange && emptyTimeRange === timeRangeValue && (
+          <Alert type="warning" closable={false}>
+            {t(
+              'This time range is empty. Choose an end time later than the start time.',
+            )}
+          </Alert>
+        )}
       </div>
       <Divider />
       <div className="footer">
@@ -420,7 +442,26 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         {...props}
         onDescriptionHoverChange={setIsDescriptionHovered}
       />
-      {popoverContent}
+      {/* The glyph sits outside the popover trigger so clicking it opens the
+          tooltip rather than the time-range editor. Only with a mapping: the
+          wrapper makes the trigger a flex item, so without one the markup stays
+          exactly what it was and the Time Range box keeps filling its
+          container. With one, the trigger is told to fill the row too. */}
+      {props.partitionMapping ? (
+        <Flex align="center" gap={theme.sizeUnit}>
+          <div
+            css={css`
+              flex: 1;
+              min-width: 0;
+            `}
+          >
+            {popoverContent}
+          </div>
+          <PartitionPruningIndicator mapping={props.partitionMapping} />
+        </Flex>
+      ) : (
+        popoverContent
+      )}
     </>
   );
 }

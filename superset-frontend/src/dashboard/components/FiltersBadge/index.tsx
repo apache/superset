@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useAppSelector } from 'src/views/store';
 import {
   useCallback,
   useEffect,
@@ -26,12 +27,14 @@ import {
   memo,
 } from 'react';
 
-import { useDispatch, useSelector } from 'react-redux';
-import { uniqWith } from 'lodash-es';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
+import { isEqual, uniqWith } from 'lodash-es';
 import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
 import {
   DataMaskStateWithId,
+  DatasourceType,
   Filters,
   JsonObject,
   usePrevious,
@@ -124,6 +127,10 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const chartConfiguration = useSelector<RootState, JsonObject>(
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
+  const sourceDatasources = useAppSelector(
+    selectChartDatasources,
+    shallowEqual,
+  );
   const chart = useSelector<RootState, Chart>(state => state.charts[chartId]);
   const chartLayoutItems = useChartLayoutItems();
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
@@ -213,6 +220,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevChartLayoutItems = usePrevious(chartLayoutItems);
   const prevDataMask = usePrevious(dataMask);
   const prevChartConfig = usePrevious(chartConfiguration);
+  const prevSourceDatasources = usePrevious(sourceDatasources);
 
   useEffect(() => {
     // During auto-refresh, don't clear indicators - preserve previous state
@@ -221,6 +229,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       !showIndicators && nativeIndicators.length > 0 && !isAutoRefreshing;
 
     const shouldRecalculate =
+      sourceDatasources !== prevSourceDatasources ||
       chart?.queriesResponse?.[0]?.rejected_filters !==
         prevChart?.queriesResponse?.[0]?.rejected_filters ||
       chart?.queriesResponse?.[0]?.applied_filters !==
@@ -243,6 +252,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         chart,
         chartLayoutItems,
         chartConfiguration,
+        sourceDatasources,
       );
       setNativeIndicators(newIndicators);
     }
@@ -255,6 +265,8 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     nativeFilters,
     nativeIndicators.length,
     prevChart?.queriesResponse,
+    sourceDatasources,
+    prevSourceDatasources,
     prevChartConfig,
     prevChartStatus,
     prevDataMask,
@@ -271,6 +283,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         (ind1, ind2) =>
           ind1.column === ind2.column &&
           ind1.name === ind2.name &&
+          isEqual(ind1.path, ind2.path) &&
           (ind1.status !== IndicatorStatus.Applied ||
             ind2.status !== IndicatorStatus.Applied),
       ),
@@ -293,8 +306,16 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
   const filterCount =
     appliedIndicators.length + appliedCrossFilterIndicators.length;
+  const incompatibleIndicators = chart?.form_data?.datasource?.endsWith(
+    `__${DatasourceType.SemanticView}`,
+  )
+    ? indicators.filter(
+        indicator => indicator.status === IndicatorStatus.Incompatible,
+      )
+    : [];
+  const totalFilterCount = filterCount + incompatibleIndicators.length;
 
-  if (!appliedCrossFilterIndicators.length && !appliedIndicators.length) {
+  if (!totalFilterCount) {
     return null;
   }
 
@@ -302,6 +323,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     <DetailsPanelPopover
       appliedCrossFilterIndicators={appliedCrossFilterIndicators}
       appliedIndicators={appliedIndicators}
+      incompatibleIndicators={incompatibleIndicators}
       onHighlightFilterSource={onHighlightFilterSource}
       setPopoverVisible={setPopoverVisible}
       popoverVisible={popoverVisible}
@@ -310,7 +332,11 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     >
       <StyledFilterCount
         type="button"
-        aria-label={t('Applied filters (%s)', filterCount)}
+        aria-label={
+          incompatibleIndicators.length
+            ? t('Filters (%s)', totalFilterCount)
+            : t('Applied filters (%s)', filterCount)
+        }
         aria-haspopup="true"
         ref={popoverTriggerRef}
         className={cx(
@@ -323,7 +349,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         <StyledBadge
           data-test="applied-filter-count"
           className="applied-count"
-          count={filterCount}
+          count={totalFilterCount}
           size="small"
           showZero
         />

@@ -22,9 +22,12 @@ contracts for viz_type ``histogram_v2`` and ``box_plot``), and registry
 integration.
 """
 
+from unittest.mock import patch
+
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
+from superset.mcp_service.chart import chart_helpers
 from superset.mcp_service.chart.chart_utils import (
     map_box_plot_config,
     map_histogram_config,
@@ -330,8 +333,6 @@ class TestHistogramNumericColumnValidation:
     def _validate(
         self, columns: list[dict[str, object]], column_name: str = "payment_type"
     ) -> "ChartGenerationError | None":
-        from unittest.mock import patch
-
         from superset.mcp_service.chart import registry
 
         plugin = registry.get("histogram")
@@ -491,9 +492,6 @@ def test_histogram_query_matches_frontend_build_query(
     adhoc_filters: list[dict[str, str]], expected_metrics: list[dict[str, str]]
 ) -> None:
     """Histogram queries select the binned column and apply histogramOperator."""
-    from unittest.mock import patch
-
-    from superset.mcp_service.chart import chart_helpers
 
     form_data = {
         "viz_type": "histogram_v2",

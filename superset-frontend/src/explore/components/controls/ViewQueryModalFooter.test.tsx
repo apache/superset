@@ -16,80 +16,126 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { screen, render, fireEvent } from 'spec/helpers/testing-library';
+import { ComponentProps } from 'react';
+import { useLocation } from 'react-router-dom';
 import { SupersetClient } from '@superset-ui/core';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import ViewQueryModalFooter from './ViewQueryModalFooter';
 
-const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({
-    push: mockHistoryPush,
-  }),
-}));
+type FooterDatasource = NonNullable<
+  ComponentProps<typeof ViewQueryModalFooter>['datasource']
+>;
 
-const mockDatasource = {
-  id: '1',
+const datasource: FooterDatasource = {
+  id: '7',
   type: 'table',
-  sql: 'select * from table',
+  sql: 'SELECT 1',
 };
 
-const expectedPayload = {
-  datasourceKey: '1__table',
-  sql: mockDatasource.sql,
+const setup = () => {
+  const closeModal = jest.fn();
+  const changeDatasource = jest.fn();
+  // Reads the router location (not the raw window.history entry) so the
+  // assertion does not depend on how the history library serializes state.
+  const location: { current?: ReturnType<typeof useLocation> } = {};
+  const LocationProbe = () => {
+    location.current = useLocation();
+    return null;
+  };
+  render(
+    <>
+      <ViewQueryModalFooter
+        closeModal={closeModal}
+        changeDatasource={changeDatasource}
+        datasource={datasource}
+      />
+      <LocationProbe />
+    </>,
+    { useRouter: true },
+  );
+  return { closeModal, changeDatasource, location };
 };
-
-let postFormSpy: jest.SpyInstance;
 
 beforeEach(() => {
-  postFormSpy = jest
-    .spyOn(SupersetClient, 'postForm')
-    .mockImplementation(jest.fn());
+  window.history.replaceState(null, '', '/explore/');
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
-  mockHistoryPush.mockReset();
 });
 
-const setup = () =>
-  render(<ViewQueryModalFooter datasource={mockDatasource} />, {
-    useRouter: true,
-  });
-
-test('navigates to SQL Lab in the same tab on a plain click', () => {
+test('renders the footer actions', () => {
   setup();
-
-  fireEvent.click(screen.getByText('Open in SQL Lab'));
-
-  expect(postFormSpy).not.toHaveBeenCalled();
-  expect(mockHistoryPush).toHaveBeenCalledWith({
-    pathname: '/sqllab',
-    state: {
-      requestedQuery: expectedPayload,
-    },
-  });
+  expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Save as Dataset' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Open in SQL Lab' }),
+  ).toBeInTheDocument();
 });
 
-test('opens SQL Lab in a new window on Cmd+click', () => {
-  setup();
-
-  fireEvent.click(screen.getByText('Open in SQL Lab'), { metaKey: true });
-
-  expect(postFormSpy).toHaveBeenCalledWith('/sqllab/', {
-    form_data: JSON.stringify(expectedPayload),
+test('Open in SQL Lab navigates in-app with the requested query', async () => {
+  const postForm = jest
+    .spyOn(SupersetClient, 'postForm')
+    .mockResolvedValue(undefined);
+  const { location } = setup();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Open in SQL Lab' }),
+  );
+  expect(window.location.pathname).toBe('/sqllab');
+  expect(location.current?.pathname).toBe('/sqllab');
+  expect(location.current?.state).toEqual({
+    requestedQuery: { datasourceKey: '7__table', sql: 'SELECT 1' },
   });
-  expect(mockHistoryPush).not.toHaveBeenCalled();
+  expect(postForm).not.toHaveBeenCalled();
 });
 
-test('opens SQL Lab in a new window on Ctrl+click', () => {
+test('meta-click on Open in SQL Lab posts a form to open a new tab', async () => {
+  const postForm = jest
+    .spyOn(SupersetClient, 'postForm')
+    .mockResolvedValue(undefined);
   setup();
-
-  fireEvent.click(screen.getByText('Open in SQL Lab'), { ctrlKey: true });
-
-  expect(postFormSpy).toHaveBeenCalledWith('/sqllab/', {
-    form_data: JSON.stringify(expectedPayload),
+  fireEvent.click(screen.getByRole('button', { name: 'Open in SQL Lab' }), {
+    metaKey: true,
   });
-  expect(mockHistoryPush).not.toHaveBeenCalled();
+  expect(postForm).toHaveBeenCalledWith('/sqllab/', {
+    form_data: JSON.stringify({ datasourceKey: '7__table', sql: 'SELECT 1' }),
+  });
+  expect(window.location.pathname).toBe('/explore/');
+});
+
+test('ctrl-click on Open in SQL Lab posts a form to open a new tab', async () => {
+  const postForm = jest
+    .spyOn(SupersetClient, 'postForm')
+    .mockResolvedValue(undefined);
+  setup();
+  fireEvent.click(screen.getByRole('button', { name: 'Open in SQL Lab' }), {
+    ctrlKey: true,
+  });
+  expect(postForm).toHaveBeenCalledWith('/sqllab/', {
+    form_data: JSON.stringify({ datasourceKey: '7__table', sql: 'SELECT 1' }),
+  });
+  expect(window.location.pathname).toBe('/explore/');
+});
+
+test('Close only closes the modal', async () => {
+  const { closeModal, changeDatasource } = setup();
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+  expect(closeModal).toHaveBeenCalledTimes(1);
+  expect(changeDatasource).not.toHaveBeenCalled();
+});
+
+test('Save as Dataset closes the modal and starts the dataset flow', async () => {
+  const { closeModal, changeDatasource } = setup();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Save as Dataset' }),
+  );
+  expect(closeModal).toHaveBeenCalledTimes(1);
+  expect(changeDatasource).toHaveBeenCalledTimes(1);
 });

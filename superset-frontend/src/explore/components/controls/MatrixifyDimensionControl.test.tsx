@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
@@ -686,3 +692,67 @@ test.each(['a_to_z', 'z_to_a'] as const)(
     expect(onChange).not.toHaveBeenCalled();
   },
 );
+
+test.each([undefined, 'old-title-version', 'cube-member-id-v1'])(
+  'suggestions carry only the selection provenance %s',
+  async version => {
+    (SupersetClient.get as jest.Mock).mockResolvedValue({
+      json: { result: ['US'] },
+    });
+    render(
+      <MatrixifyDimensionControl
+        {...defaultProps}
+        datasource={{
+          ...mockDatasource,
+          type: 'semantic_view',
+          semantic_selection_version: 'cube-member-id-v1',
+        }}
+        value={{ dimension: 'country', values: [] }}
+        formData={{ semantic_selection_version: version }}
+      />,
+    );
+    await waitFor(() => expect(SupersetClient.get).toHaveBeenCalled());
+    const { endpoint } = (SupersetClient.get as jest.Mock).mock.calls.at(-1)[0];
+    expect(
+      new URL(endpoint, 'http://localhost').searchParams.get(
+        'semantic_selection_version',
+      ),
+    ).toBe(version ?? null);
+  },
+);
+
+test('an aborted load does not leave the values select loading', async () => {
+  (SupersetClient.get as jest.Mock).mockReturnValue(new Promise(() => {}));
+  const value: MatrixifyDimensionControlValue = {
+    dimension: 'country',
+    values: [],
+  };
+  const { rerender } = render(
+    <MatrixifyDimensionControl
+      {...defaultProps}
+      value={value}
+      selectionMode="members"
+    />,
+  );
+  const valuesSelect = (): HTMLElement =>
+    screen
+      .getByRole('combobox', { name: 'Select dimension values' })
+      .closest('.ant-select') as HTMLElement;
+  await waitFor(() => expect(SupersetClient.get).toHaveBeenCalled());
+  expect(
+    within(valuesSelect()).queryByLabelText('down'),
+  ).not.toBeInTheDocument();
+
+  rerender(
+    <MatrixifyDimensionControl
+      {...defaultProps}
+      datasource={{ ...mockDatasource, filter_select: false }}
+      value={value}
+      selectionMode="members"
+    />,
+  );
+
+  expect(
+    await within(valuesSelect()).findByLabelText('down'),
+  ).toBeInTheDocument();
+});

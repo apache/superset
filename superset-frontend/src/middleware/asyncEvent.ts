@@ -41,8 +41,11 @@ import {
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { getTabId } from 'src/hooks/useTabId';
+import { getAsyncQueryError } from './asyncQueryError';
 import {
   connectRealtime,
+  getRealtimeState,
+  rearmRealtime,
   subscribeRealtime,
   subscribeRealtimeOpen,
   subscribeRealtimeState,
@@ -91,7 +94,7 @@ type AppConfig = {
 type Waiter = {
   taskIds: string[];
   pending: Set<string>;
-  failed: boolean;
+  failures: Map<string, string>;
   failureMessage?: string;
   settled?: boolean;
   // Re-issue the original chart-data request once every task has succeeded; the
@@ -106,8 +109,9 @@ type Waiter = {
 };
 
 let config: AppConfig;
-// Whether the realtime websocket is the transport. When true we never poll: the
-// socket is the mechanism and a reconnect catch-up reconciles any gap.
+// Whether the realtime websocket is the transport. When true the socket is the
+// mechanism and a reconnect catch-up reconciles any gap; the poll runs only while
+// the ticket endpoint refuses this session (see usesPolling).
 let wsEnabled = false;
 // Coalescing state for the WS-mode catch-up (see scheduleCatchUp): a microtask is
 // pending, a fetch is in flight, and/or a follow-up is queued.
@@ -174,6 +178,7 @@ const stopIfStale = (generation: number): boolean => {
 // is scoped server-side to this principal's (or tab's) routing key, so a message
 // that reaches this browser is always its own.
 const TASK_STATUS_TOPIC = 'task.status';
+const TASK_FAILURE_DETAIL_TIMEOUT_MS = 5000;
 
 const fetchStatusChanges = makeApi<
   { cursor?: string | null; task_type: string },
@@ -228,6 +233,15 @@ const unregister = (waiter: Waiter) => {
   });
 };
 
+class FailedQueryTasksError extends Error {
+  constructor(
+    readonly taskIds: string[],
+    readonly failureMessage?: string,
+  ) {
+    super('One or more chart-data queries failed');
+  }
+}
+
 const settle = (waiter: Waiter, error?: unknown) => {
   if (waiter.settled) return;
   waiter.settled = true;
@@ -237,10 +251,22 @@ const settle = (waiter: Waiter, error?: unknown) => {
   }
   if (error !== undefined) {
     waiter.reject(error);
-  } else if (waiter.failed) {
+  } else if (waiter.failures.size) {
+    const statuses = [...waiter.failures.values()];
+    const mixedFailure =
+      statuses.includes('failure') &&
+      statuses.some(status => status !== 'failure');
     const message =
-      waiter.failureMessage || 'One or more chart-data queries failed';
-    waiter.reject(Object.assign(new Error(message), { error: message }));
+      (!mixedFailure && waiter.failureMessage) ||
+      'One or more chart-data queries failed';
+    waiter.reject(
+      statuses.every(status => status === 'failure')
+        ? new FailedQueryTasksError(
+            [...waiter.failures.keys()],
+            waiter.failureMessage,
+          )
+        : Object.assign(new Error(message), { error: message }),
+    );
   } else {
     waiter.resolve();
   }
@@ -269,6 +295,13 @@ const abandonRealtimeWaiters = () => {
   );
 };
 
+// Whether completions are tracked by polling `status_changes`: always without the
+// websocket transport, and also while the ticket endpoint refuses this session
+// (`unauthorized`). A refused principal (e.g. an embedded guest whose role lacks
+// the realtime permission) still reads its task statuses through the REST API.
+const usesPolling = (): boolean =>
+  !wsEnabled || getRealtimeState() === 'unauthorized';
+
 const finishStatus = (taskId: string, status: string, message?: string) => {
   const waiters = waitersByTaskId.get(taskId);
   if (!waiters) return;
@@ -276,7 +309,7 @@ const finishStatus = (taskId: string, status: string, message?: string) => {
   [...waiters].forEach(waiter => {
     waiter.pending.delete(taskId);
     if (status !== STATUS_SUCCESS) {
-      waiter.failed = true;
+      waiter.failures.set(taskId, status);
       waiter.failureMessage ||= message;
     }
     if (waiter.pending.size === 0) settle(waiter);
@@ -294,7 +327,10 @@ const applyStatus = (taskId: string, status: string) => {
   const lookups = failureLookups;
   lookups.add(taskId);
   const generation = pollingGeneration;
-  SupersetClient.get({ endpoint: `/api/v1/task/${taskId}/status` })
+  SupersetClient.get({
+    endpoint: `/api/v1/task/${taskId}/status`,
+    timeout: TASK_FAILURE_DETAIL_TIMEOUT_MS,
+  })
     .then(response => {
       if (generation !== pollingGeneration) return;
       const message = response.json.error_message;
@@ -381,9 +417,11 @@ const loadStatusChanges = async (generation: number) => {
 // Start (or wake) the poll loop for a freshly registered waiter: poll eagerly
 // again, and kick the loop if it had gone idle. Idempotent — a no-op while the
 // loop is already running, when async queries are disabled, or when the websocket
-// is the transport (WS mode never polls; reconnect catch-up reconciles instead).
+// is the live transport (see usesPolling; a reconnect catch-up reconciles instead).
+// A running loop continues until its waiters drain, even if the socket opens
+// meanwhile: a status seen by both transports settles its waiter only once.
 const ensurePolling = () => {
-  if (wsEnabled) return;
+  if (!usesPolling()) return;
   currentPollDelayMs = pollingDelayMs;
   lastProgressAt = Date.now(); // a fresh request restarts the give-up clock
   if (!pollingActive && isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
@@ -471,18 +509,22 @@ const catchUpAndWait = (): Promise<void> => {
 
 subscribeRealtimeOpen(scheduleCatchUp);
 
-// The websocket is the sole completion transport when enabled, so a genuinely-down
-// server must not hang waiters until the long give-up. On each `reconnecting`
-// transition, reconcile via the socket-independent status_changes catch-up (so a
-// task that completed while disconnected is still observed); once the socket is
-// `unhealthy` (enough consecutive failed reconnects), settle the still-pending
-// waiters with a clear error instead of waiting out `pollStaleTimeoutMs`.
+// A genuinely-down websocket server must not hang waiters until the long give-up.
+// On each `reconnecting` transition, reconcile via the socket-independent
+// status_changes catch-up (so a task that completed while disconnected is still
+// observed); once the socket is `unhealthy` (enough consecutive failed
+// reconnects), settle the still-pending waiters with a clear error instead of
+// waiting out `pollStaleTimeoutMs`. When the ticket endpoint refuses the session
+// (`unauthorized`), no socket will deliver completions, so track the pending
+// waiters by polling instead.
 subscribeRealtimeState(state => {
   if (!wsEnabled || !waitersByTaskId.size) return;
   if (state === 'reconnecting') {
     scheduleCatchUp();
   } else if (state === 'unhealthy') {
     abandonRealtimeWaiters();
+  } else if (state === 'unauthorized') {
+    ensurePolling();
   }
 });
 
@@ -524,6 +566,7 @@ export const waitForAsyncData = async <T = unknown[]>(
   signal?: AbortSignal,
 ): Promise<T> => {
   const taskIds = asyncJob.task_ids ?? [];
+  const generation = pollingGeneration;
 
   // Use the tab id the backend recorded for this job (echoed in the 202), so a
   // cancel detaches exactly the subscription this request created. Falls back to
@@ -544,7 +587,7 @@ export const waitForAsyncData = async <T = unknown[]>(
     const waiter: Waiter = {
       taskIds,
       pending: new Set(taskIds),
-      failed: false,
+      failures: new Map(),
       resolve,
       reject,
       signal,
@@ -580,7 +623,21 @@ export const waitForAsyncData = async <T = unknown[]>(
       }
       waiters.add(waiter);
     });
-    if (wsEnabled) {
+    // This waiter exists because a chart-data request just succeeded, so a
+    // session the ticket endpoint refused earlier may be valid again (e.g. after
+    // logging back in): re-arm the socket, and let the reconnect catch-up (or a
+    // fresh refusal, which falls back to polling) settle the waiter.
+    if (wsEnabled && getRealtimeState() === 'unauthorized') rearmRealtime();
+    // The realtime connection state is the source of truth: a waiter registering
+    // while the socket is `unhealthy` is settled at once, not left to wait on a
+    // transition that already happened. One registering while the session is
+    // refused (`unauthorized` and not re-armed) is tracked by polling.
+    if (wsEnabled && getRealtimeState() === 'unhealthy') {
+      settle(waiter, new Error('Realtime connection unavailable'));
+      return;
+    }
+    const polling = usesPolling();
+    if (!polling) {
       // WS is the transport (no polling). Bound a genuinely-lost completion (a
       // dropped socket message with no reconnect) so a chart can't spin forever;
       // a reconnect catch-up normally settles it well before this fires. Before
@@ -614,7 +671,19 @@ export const waitForAsyncData = async <T = unknown[]>(
     // completed between the POST and the waiter existing (its socket message may
     // have arrived before this waiter, or before the socket subscribed). Coalesced
     // with sibling registrations/reconnects into one request.
-    if (wsEnabled) scheduleCatchUp();
+    if (!polling) scheduleCatchUp();
+  }).catch(async (error: unknown) => {
+    if (!(error instanceof FailedQueryTasksError)) throw error;
+    const queryError = await getAsyncQueryError(
+      error.taskIds,
+      signal,
+      error.failureMessage,
+    );
+    // A late detail response must not revive a cancelled or superseded chart.
+    if (signal?.aborted || generation !== pollingGeneration) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+    throw Object.assign(queryError, { error: queryError.message });
   });
 
   // Read the warmed results back synchronously. The per-query task ids double as

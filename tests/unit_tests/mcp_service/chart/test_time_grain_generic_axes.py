@@ -363,3 +363,174 @@ async def test_saved_chart_grain_acceptance(
                     sql_counts.append(len(rows))
                     assert sum(row.ct for row in rows) == 25
     assert sql_counts == [expected_rows] * query_count
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"ENABLE_TEMPLATE_PROCESSING": True}}], indirect=True
+)
+def test_big_number_time_grain_renders_plain_saved_metric(
+    mocker: MockerFixture,
+) -> None:
+    """MCP time grains must remain safe even when a metric contains no Jinja."""
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+    from superset.connectors.sqla.models import SqlMetric
+    from superset.mcp_service.chart.chart_utils import map_config_to_form_data
+    from superset.mcp_service.chart.schemas import BigNumberChartConfig
+
+    table = _events_dataset(mocker)
+    table.metrics = [SqlMetric(metric_name="total_value", expression="SUM(val)")]
+    config = BigNumberChartConfig.model_validate(
+        {
+            "chart_type": "big_number",
+            "metric": {"name": "total_value", "saved_metric": True},
+            "show_trendline": True,
+            "temporal_column": "ts",
+            "time_grain": "P1M",
+            "aggregation": "sum",
+        }
+    )
+    form_data = map_config_to_form_data(config)
+    query = build_query_objects_from_form_data(form_data)[0]
+    sql_query = table.get_sqla_query(
+        metrics=query["metrics"],
+        extras=query["extras"],
+        granularity=query["granularity"],
+        is_timeseries=True,
+    )
+    assert "SUM(val)" in str(sql_query.sqla_query)
+    assert type(form_data["time_grain_sqla"]) is str
+
+
+@pytest.mark.parametrize(
+    "config_data",
+    [
+        {
+            "chart_type": "xy",
+            "x": {"name": "ts"},
+            "y": [{"name": "val", "aggregate": "SUM"}],
+        },
+        {
+            "chart_type": "mixed_timeseries",
+            "x": {"name": "ts"},
+            "y": [{"name": "val", "aggregate": "SUM"}],
+            "y_secondary": [{"name": "val", "aggregate": "AVG"}],
+            "time_grain_sqla_b": "P1Y",
+        },
+        {
+            "chart_type": "sunburst",
+            "hierarchy": [{"name": "ts"}],
+            "metric": {"name": "val", "aggregate": "SUM"},
+        },
+        {
+            "chart_type": "waterfall",
+            "x_axis": {"name": "ts"},
+            "metric": {"name": "val", "aggregate": "SUM"},
+        },
+        {
+            "chart_type": "interactive_pivot",
+            "rows": [{"name": "ts"}],
+            "metrics": [{"name": "val", "aggregate": "SUM"}],
+        },
+    ],
+    ids=["xy", "mixed_timeseries", "sunburst", "waterfall", "interactive_pivot"],
+)
+def test_chart_time_grain_form_data_contains_strings(
+    mocker: MockerFixture, config_data: dict[str, Any]
+) -> None:
+    """Every typed time-grain mapper must emit primitive form-data values."""
+    from pydantic import TypeAdapter
+
+    from superset.jinja_context import validate_context_types
+    from superset.mcp_service.chart.chart_utils import (
+        map_config_to_form_data,
+        merge_form_data_for_update,
+    )
+    from superset.mcp_service.chart.schemas import ChartConfig
+
+    mocker.patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    )
+    config = TypeAdapter(ChartConfig).validate_python(
+        {**config_data, "time_grain": "P1M", "temporal_column": "ts"}
+    )
+    form_data = map_config_to_form_data(config, include_disabled=True)
+    if config.chart_type == "sunburst":
+        form_data = merge_form_data_for_update(form_data, form_data.copy(), config)
+    # Equality alone cannot distinguish a str enum from its value.
+    assert type(form_data["time_grain_sqla"]) is str
+    assert validate_context_types({"time_grain": form_data["time_grain_sqla"]}) == {
+        "time_grain": "P1M"
+    }
+    if config.chart_type == "mixed_timeseries":
+        assert type(form_data["time_grain_sqla_b"]) is str
+        assert form_data["time_grain_sqla_b"] == "P1Y"
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"ENABLE_TEMPLATE_PROCESSING": True}}], indirect=True
+)
+@pytest.mark.parametrize(
+    "config_data",
+    [
+        {
+            "chart_type": "big_number",
+            "metric": {"name": "val", "aggregate": "SUM"},
+            "show_trendline": True,
+            "temporal_column": "ts",
+            "time_grain": "P1M",
+            "aggregation": "sum",
+        },
+        {
+            "chart_type": "xy",
+            "x": {"name": "ts"},
+            "y": [{"name": "val", "aggregate": "SUM"}],
+            "kind": "line",
+            "time_grain": "P1M",
+        },
+    ],
+    ids=["big_number", "xy"],
+)
+def test_time_grain_renders_on_virtual_dataset(
+    mocker: MockerFixture, config_data: dict[str, Any]
+) -> None:
+    """A time grain must reach a virtual dataset's Jinja context as a string.
+
+    A virtual dataset (``sql`` set) renders its SQL through the template
+    processor, which rejects any context value whose type is not a plain
+    builtin. An enum-valued ``time_grain`` fails there with ``Unsafe template
+    value for key time_grain: TimeGrain``.
+    """
+    from pydantic import TypeAdapter
+
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+    from superset.mcp_service.chart.chart_utils import map_config_to_form_data
+    from superset.mcp_service.chart.schemas import ChartConfig
+
+    mocker.patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    )
+    table = _events_dataset(mocker)
+    table.table_name = "virtual_events"
+    table.sql = "SELECT ts, val FROM events"
+
+    config = TypeAdapter(ChartConfig).validate_python(config_data)
+    form_data = map_config_to_form_data(config)
+    query = build_query_objects_from_form_data(form_data)[0]
+
+    sql_query = table.get_sqla_query(
+        metrics=query["metrics"],
+        columns=query.get("columns"),
+        extras=query["extras"],
+        granularity=query.get("granularity"),
+        is_timeseries=True,
+    )
+
+    assert "SELECT ts, val FROM events" in str(sql_query.sqla_query)
+    assert type(query["extras"]["time_grain_sqla"]) is str
+    assert query["extras"]["time_grain_sqla"] == "P1M"

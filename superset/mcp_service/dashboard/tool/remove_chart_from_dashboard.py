@@ -48,6 +48,9 @@ from superset.mcp_service.dashboard.schemas import (
     RemoveChartFromDashboardResponse,
     serialize_chart_summary,
 )
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
+)
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -238,6 +241,9 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
     """
     Remove a chart from an existing dashboard.
 
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
+
     Deletes the chart's layout component(s) from the dashboard (all
     occurrences, including under tabs), prunes rows/columns left empty by
     the removal, detaches the chart from the dashboard, and cleans stale
@@ -256,6 +262,12 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
             dashboard, auth_error = _find_and_authorize_dashboard(request.dashboard_id)
             if auth_error is not None:
                 return auth_error
+
+            refusal: str | None = managed_dashboard_refusal(dashboard)
+            if refusal is not None:
+                return RemoveChartFromDashboardResponse(
+                    managed_externally=True, error=refusal
+                )
 
         # Remove the chart from the layout tree
         with event_logger.log_context(action="mcp.remove_chart_from_dashboard.layout"):

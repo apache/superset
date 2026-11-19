@@ -87,6 +87,7 @@ def test_concurrent_view_delete_cannot_leave_restored_chart_dangling(
     transaction_id: int = capture_session.scalar(
         sa.select(sa.func.max(shadow.transaction_id)).where(shadow.id == chart.id)
     )
+    assert chart.uuid is not None
     semantic_version: UUID = derive_version_uuid(chart.uuid, transaction_id)
     working: SqlaTable = SqlaTable(
         table_name="working",
@@ -97,6 +98,7 @@ def test_concurrent_view_delete_cannot_leave_restored_chart_dangling(
     chart.datasource_type = "table"
     chart.datasource_id = working.id
     capture_session.commit()
+    assert chart.uuid is not None
     chart_uuid: UUID = chart.uuid
     view_id: int = view.id
 
@@ -152,12 +154,14 @@ def test_restore_copies_permissions_of_concurrently_renamed_datasource(
     transaction_id: int = capture_session.scalar(
         sa.select(sa.func.max(shadow.transaction_id)).where(shadow.id == chart.id)
     )
+    assert chart.uuid is not None
     target_version: UUID = derive_version_uuid(chart.uuid, transaction_id)
     working: SqlaTable = SqlaTable(table_name="working", database=database)
     capture_session.add(working)
     capture_session.commit()
     chart.datasource_id = working.id
     capture_session.commit()
+    assert chart.uuid is not None
     chart_uuid: UUID = chart.uuid
     target_id: int = target.id
 
