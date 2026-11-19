@@ -86,7 +86,6 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
-from werkzeug.exceptions import BadRequest
 
 from superset.common.chart_data import ChartDataResultType
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
@@ -6827,17 +6826,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         resource," so it's rejected for anyone else rather than guessed at.
         Unrecognized scope strings are rejected outright (fail closed).
 
-        Raises ``ValueError``; ``create_api_key`` translates it into a
-        ``BadRequest`` so FAB's ``ApiKeyApi`` answers with a 400 carrying the
-        reason instead of a generic 500.
+        Raises ``ApiKeyScopeError`` (a ``ValueError`` and a ``BadRequest``), so
+        FAB's ``ApiKeyApi`` answers with a 400 carrying the reason instead of
+        a generic 500.
         """
         if not scopes:
             return
         # pylint: disable-next=import-outside-toplevel
         from superset.security.api_key_scopes import (
+            ApiKeyScopeError,
             RESOURCE_SCOPE_ACTIONS,
             RESOURCE_SCOPE_CLASS,
-            SCOPE_ACTION_METHOD_PERMISSIONS,
         )
 
         admin_role_name = get_conf()["AUTH_ROLE_ADMIN"]
@@ -6853,21 +6852,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 _, resource_slug, action = parts
                 class_permission_name = RESOURCE_SCOPE_CLASS.get(resource_slug)
                 if class_permission_name is None:
-                    raise ValueError(
+                    raise ApiKeyScopeError(
                         f"Requested scope '{scope}' names an unrecognized "
                         f"resource '{resource_slug}'"
                     )
                 if action not in RESOURCE_SCOPE_ACTIONS:
-                    raise ValueError(
+                    raise ApiKeyScopeError(
                         f"Requested scope '{scope}' names an unrecognized "
                         f"action '{action}'"
                     )
-                if any(
-                    self._has_view_access(user, f"can_{method}", class_permission_name)
-                    for method in SCOPE_ACTION_METHOD_PERMISSIONS[action]
+                if self._user_can_issue_resource_scope(
+                    lambda permission, view: self._has_view_access(
+                        user, permission, view
+                    ),
+                    class_permission_name,
+                    action,
                 ):
                     continue
-                raise ValueError(
+                raise ApiKeyScopeError(
                     f"Requested scope '{scope}' exceeds the issuing user's "
                     "own permissions"
                 )
@@ -6878,37 +6880,62 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and is_admin
             ):
                 continue
-            raise ValueError(
+            raise ApiKeyScopeError(
                 f"Requested scope '{scope}' is not a recognized "
                 "superset:<resource>:<action> scope, or requires Admin to "
                 "self-issue as a flat scope"
             )
 
+    @staticmethod
+    def _user_can_issue_resource_scope(
+        has_access: Callable[[str, str], bool],
+        class_permission_name: str,
+        action: str,
+    ) -> bool:
+        """Whether ``has_access`` grants a method behind ``<resource>:<action>``.
+
+        The single rule shared by ``_validate_requested_api_key_scopes`` and
+        ``get_allowed_api_key_scopes``, so what the UI offers and what
+        ``create_api_key`` accepts cannot drift apart. ``has_access`` takes
+        ``(permission_name, view_name)``.
+        """
+        # pylint: disable-next=import-outside-toplevel
+        from superset.security.api_key_scopes import SCOPE_ACTION_METHOD_PERMISSIONS
+
+        return any(
+            has_access(f"can_{method}", class_permission_name)
+            for method in SCOPE_ACTION_METHOD_PERMISSIONS[action]
+        )
+
     def get_allowed_api_key_scopes(self, user: Any) -> list[str]:
         """Return the per-resource API-key scopes ``user`` may self-issue.
 
         Walks the canonical ``superset:<resource>:<action>`` catalog and keeps
-        every scope that passes ``_validate_requested_api_key_scopes`` for
-        this user, so the result is exactly the set ``create_api_key`` would
-        accept. Lets the API-key UI offer only scopes the user can actually
-        obtain instead of the full catalog.
+        every scope the user's permissions cover, using the same rule as
+        ``_validate_requested_api_key_scopes``. The user's (permission, view)
+        pairs are loaded once (one query per role) and checked in memory
+        instead of one query per catalog scope. Lets the API-key UI offer
+        only scopes the user can actually obtain instead of the full catalog.
         """
         # pylint: disable-next=import-outside-toplevel
         from superset.security.api_key_scopes import (
             RESOURCE_SCOPE_ACTIONS,
-            RESOURCE_SCOPE_NAME,
+            RESOURCE_SCOPE_CLASS,
         )
 
-        allowed: list[str] = []
-        for resource in RESOURCE_SCOPE_NAME.values():
-            for action in sorted(RESOURCE_SCOPE_ACTIONS):
-                scope = f"superset:{resource}:{action}"
-                try:
-                    self._validate_requested_api_key_scopes(user, scope)
-                except ValueError:
-                    continue
-                allowed.append(scope)
-        return allowed
+        granted = self.get_user_permissions(user)
+
+        def has_access(permission: str, view: str) -> bool:
+            return (permission, view) in granted
+
+        return [
+            f"superset:{resource}:{action}"
+            for resource, class_permission_name in RESOURCE_SCOPE_CLASS.items()
+            for action in sorted(RESOURCE_SCOPE_ACTIONS)
+            if self._user_can_issue_resource_scope(
+                has_access, class_permission_name, action
+            )
+        ]
 
     def create_api_key(
         self,
@@ -6921,15 +6948,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         Thin wrapper around FAB's ``SecurityManager.create_api_key`` — see
         ``_validate_requested_api_key_scopes`` for the actual check. A
-        rejected scope is raised as ``BadRequest`` so FAB's ``ApiKeyApi``
-        (whose ``@safe`` decorator maps that exception to a 400) reports the
-        reason to the caller rather than failing with a 500. FAB's base
+        rejected scope raises ``ApiKeyScopeError``, a ``BadRequest`` that
+        FAB's ``ApiKeyApi`` (whose ``@safe`` decorator maps it to a 400)
+        reports to the caller rather than failing with a 500. FAB's base
         implementation is otherwise unchanged.
         """
-        try:
-            self._validate_requested_api_key_scopes(user, scopes)
-        except ValueError as ex:
-            raise BadRequest(str(ex)) from ex
+        self._validate_requested_api_key_scopes(user, scopes)
         return super().create_api_key(  # type: ignore[misc]
             user=user, name=name, scopes=scopes, expires_on=expires_on
         )

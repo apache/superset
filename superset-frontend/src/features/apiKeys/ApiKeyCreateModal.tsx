@@ -101,10 +101,12 @@ export function ApiKeyCreateModal({
       setCreatedKey(key);
       addSuccessToast(t('API key created successfully'));
     } catch (error) {
-      const { message } = await getClientErrorObject(error);
+      // `error` is always a string: getClientErrorObject flattens FAB's
+      // `message` (including schema-validation dicts) into it
+      const { error: reason } = await getClientErrorObject(error);
       addDangerToast(
-        message
-          ? t('Failed to create API key: %s', message)
+        reason
+          ? t('Failed to create API key: %s', reason)
           : t('Failed to create API key'),
       );
       throw error;

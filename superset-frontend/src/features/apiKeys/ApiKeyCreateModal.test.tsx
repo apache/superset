@@ -118,7 +118,7 @@ test('surfaces the server reason when key creation is rejected', async () => {
     status: 400,
     body: {
       message:
-        "400 Bad Request: Requested scope 'superset:dashboard:write' exceeds the issuing user's own permissions",
+        "Requested scope 'superset:dashboard:write' exceeds the issuing user's own permissions",
     },
   });
 
@@ -133,9 +133,7 @@ test('surfaces the server reason when key creation is rejected', async () => {
 
   await waitFor(() =>
     expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
-      expect.stringMatching(
-        /^Failed to create API key: .*exceeds the issuing user's own permissions/,
-      ),
+      "Failed to create API key: Requested scope 'superset:dashboard:write' exceeds the issuing user's own permissions",
     ),
   );
   expect(props.onSuccess).not.toHaveBeenCalled();
