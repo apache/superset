@@ -40,6 +40,7 @@ from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersType,
     convert_inspector_columns,
+    reuse_discovered_default_schema,
 )
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
@@ -2537,8 +2538,64 @@ def test_get_catalog_reference_schema() -> None:
     assert BaseEngineSpec.get_catalog_reference_schema("cat") is None
 
 
+@pytest.mark.parametrize("entry_point", ["schema", "query_schema", "search_path"])
+def test_default_schema_outside_cache_keys_uses_inspector(
+    mocker: MockerFixture, app_context: None, entry_point: str
+) -> None:
+    """Non-cache callers retain the inspector boundary without creating engines."""
+    database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    get_inspector.return_value.__enter__.return_value.default_schema_name = "selected"
+    get_engine = mocker.patch.object(
+        database, "get_sqla_engine", side_effect=AssertionError("unexpected engine")
+    )
+
+    if entry_point == "query_schema":
+        assert (
+            database.resolve_query_default_schema("SELECT 1", None, "cat") == "selected"
+        )
+    elif entry_point == "search_path":
+        assert database.get_search_path("cat") == (["selected"], {})
+    else:
+        assert database.get_default_schema("cat") == "selected"
+
+    get_inspector.assert_called_once_with(catalog="cat")
+    get_engine.assert_not_called()
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_default_schema_cache_scope_restores_inspector_policy(
+    mocker: MockerFixture, app_context: None, fail: bool
+) -> None:
+    """Nested cache collectors restore the caller's policy even after errors."""
+    database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    get_inspector.return_value.__enter__.return_value.default_schema_name = "selected"
+    engine = create_engine("sqlite://")
+    mocker.patch.object(database, "_get_sqla_engine", return_value=engine)
+    try:
+        with engine.connect():
+            pass
+        assert database.get_default_schema(None) == "selected"
+        try:
+            with reuse_discovered_default_schema():
+                assert database.get_default_schema(None) == "main"
+                with reuse_discovered_default_schema():
+                    assert database.get_default_schema(None) == "main"
+                assert database.get_default_schema(None) == "main"
+                if fail:
+                    raise ValueError("cache collection failed")
+        except ValueError:
+            assert fail
+        assert database.get_default_schema(None) == "selected"
+        assert get_inspector.call_count == 2
+    finally:
+        engine.dispose()
+
+
 @pytest.mark.parametrize("initialized", [False, True])
 @pytest.mark.parametrize("entry_point", ["schema", "query_schema", "search_path"])
+@reuse_discovered_default_schema()
 def test_default_schema_reuses_dialect_discovery(
     mocker: MockerFixture, app_context: None, initialized: bool, entry_point: str
 ) -> None:
@@ -2584,6 +2641,7 @@ def test_default_schema_reuses_dialect_discovery(
         OAuth2RedirectError("https://example.com", "tab", "https://example.com"),
     ],
 )
+@reuse_discovered_default_schema()
 def test_default_schema_cold_engine_preserves_error(
     mocker: MockerFixture, app_context: None, error: Exception
 ) -> None:

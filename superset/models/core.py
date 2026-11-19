@@ -1098,7 +1098,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         An inspector's default_schema_name is the value retained on the dialect,
         but constructing the inspector checks out a connection. Reusing that
-        value lets cache keys collect their full macro/RLS context offline.
+        value lets cache keys collect their full macro/RLS context offline. This
+        shortcut is reserved for cache-key collection; other schema lookups use
+        the engine spec's inspector policy.
         Cold-engine discovery retains the inspector's OAuth2 retry policy.
         """
 
@@ -1106,9 +1108,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         def open_schema() -> Iterator[str | None]:
             """Resolve before yielding so login failures can be retried."""
             with self.get_sqla_engine(catalog=catalog) as engine:
+                schema = engine.dialect.default_schema_name
                 yield (
-                    engine.dialect.default_schema_name
-                    or sqla.inspect(engine).default_schema_name
+                    schema
+                    if schema is not None
+                    else sqla.inspect(engine).default_schema_name
                 )
 
         with self._open_with_oauth2_retry(open_schema) as schema:

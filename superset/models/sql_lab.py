@@ -54,6 +54,7 @@ from superset_core.queries.models import (
 )
 
 from superset import security_manager
+from superset.db_engine_specs.base import reuse_discovered_default_schema
 from superset.exceptions import (
     SupersetException,
     SupersetParseError,
@@ -393,6 +394,7 @@ class Query(
     def default_endpoint(self) -> str:
         return ""
 
+    @reuse_discovered_default_schema()
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         """
         Include the RLS predicates that apply to this ad-hoc query's

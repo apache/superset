@@ -4493,6 +4493,14 @@ def test_discovered_schema_preserves_inner_rls_during_outage(
     virtual, rule = static_schema_datasource
     virtual.schema = None
     query: QueryObjectDict = {"columns": ["col1"], "metrics": []}
+    # Execution keeps its inspector policy; only key collection must work offline.
+    for tenant in (1, 2):
+        rule.clause = f"col1 = {tenant}"
+        assert f"col1 = {tenant}" in str(
+            virtual.get_sqla_query(
+                columns=["col1"], metrics=[], is_timeseries=False
+            ).sqla_query
+        )
     with virtual.database.get_sqla_engine() as engine:
         assert engine.dialect.default_schema_name == "main"
         connect = mocker.patch.object(
@@ -4505,11 +4513,6 @@ def test_discovered_schema_preserves_inner_rls_during_outage(
         rule.clause = f"col1 = {tenant}"
         extra_keys = virtual.get_extra_cache_keys(query)
         assert extra_keys == [PHYSICAL_RLS_KEYS[tenant]]
-        assert f"col1 = {tenant}" in str(
-            virtual.get_sqla_query(
-                columns=["col1"], metrics=[], is_timeseries=False
-            ).sqla_query
-        )
         keys.append(extra_keys)
     assert keys[0] != keys[1]
     connect.assert_not_called()

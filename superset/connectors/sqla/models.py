@@ -92,7 +92,11 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
 )
 from superset.constants import EPOCH_FORMATS
-from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    reuse_discovered_default_schema,
+    TimestampExpression,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     ColumnNotFoundException,
@@ -3227,6 +3231,7 @@ class SqlaTable(
                 return True
         return False
 
+    @reuse_discovered_default_schema()
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         """
         The cache key of a SqlaTable needs to consider any keys added by the parent

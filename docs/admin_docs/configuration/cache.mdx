@@ -80,11 +80,14 @@ FILTER_STATE_CACHE_CONFIG = {
 Chart cache keys can depend on template macros and row-level security. If
 collecting template macro keys fails, Superset raises the underlying error
 instead of looking up a result using an incomplete macro cache key.
-For virtual datasets without a schema, Superset reuses the default schema that
+While collecting chart cache keys for virtual datasets without a schema,
+Superset reuses the default schema that
 SQLAlchemy has already discovered on the selected engine, without opening an
 inspector connection. Cached results remain available under the same security
 and template context when that schema (or the connection configuration) is
 sufficient to build the complete key.
+Query execution and metadata inspection retain their engine-specific schema
+discovery behavior.
 
 A warm chart cache alone does not guarantee availability during a database
 outage. A cold engine, including one in a restarted worker or selected for a
