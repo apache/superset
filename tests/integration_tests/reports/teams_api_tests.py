@@ -102,7 +102,7 @@ class TestTeamsDestinationsApi(SupersetTestCase):
         assert response.status_code == 404
         discover.assert_not_called()
 
-    @with_feature_flags(ALERT_REPORTS=True, ALERT_REPORT_TEAMS=True)
+    @with_feature_flags(ALERT_REPORTS=True)
     def test_invalid_team_configuration_returns_empty_destinations(self) -> None:
         """The actual Reports endpoint handles parser failures without querying DB."""
         self.login("admin")

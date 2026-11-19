@@ -25,7 +25,7 @@ interface Destination {
   available: boolean;
 }
 
-// Requires ALERT_REPORTS, ALERT_REPORT_TEAMS and a deployment allowlist. No bot
+// Requires ALERT_REPORTS and a Teams deployment allowlist. No bot
 // installation or live credential is needed: every saved schedule stays inactive.
 test('creates and edits an inactive Teams alert and preserves unavailable destinations', async ({
   page,

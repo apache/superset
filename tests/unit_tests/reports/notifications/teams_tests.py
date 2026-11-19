@@ -25,7 +25,6 @@ from flask import Flask
 from flask_babel import Babel
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.integrations.teams import validation
 from superset.reports.models import ReportRecipients, ReportRecipientType
 from superset.reports.notifications import create_notification, teams
 from superset.reports.notifications.base import NotificationContent
@@ -57,9 +56,6 @@ def notification(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
             }
         ],
     }
-    monkeypatch.setattr(
-        validation.feature_flag_manager, "is_feature_enabled", lambda _: True
-    )
     session = MagicMock()
     monkeypatch.setattr(teams, "db", SimpleNamespace(engine=object()))
     monkeypatch.setattr(teams, "Session", session)
@@ -152,20 +148,14 @@ def test_rejects_attachments_and_editor_diagnostics(
     )
 
 
-@pytest.mark.parametrize(
-    "change", ["disabled", "unconfigured", "removed", "report", "attachment"]
-)
+@pytest.mark.parametrize("change", ["unconfigured", "removed", "report", "attachment"])
 def test_saved_recipient_is_revalidated_at_delivery(
-    notification: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, change: str
+    notification: SimpleNamespace, change: str
 ) -> None:
     """Previously saved recipients cannot bypass deployment or schedule changes."""
     saved_json = notification.recipient.recipient_config_json
     handler = teams.TeamsNotification(notification.recipient, notification.content)
-    if change == "disabled":
-        monkeypatch.setattr(
-            validation.feature_flag_manager, "is_feature_enabled", lambda _: False
-        )
-    elif change == "unconfigured":
+    if change == "unconfigured":
         notification.app.config["ALERT_REPORTS_TEAMS"] = {}
     elif change == "removed":
         notification.app.config["ALERT_REPORTS_TEAMS"]["destinations"][0]["key"] = (

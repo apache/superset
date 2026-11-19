@@ -917,7 +917,6 @@ import os
 
 FEATURE_FLAGS = {
     "ALERT_REPORTS": True,
-    "ALERT_REPORT_TEAMS": True,
 }
 ALERT_REPORTS_TEAMS = {
     "tenant_id": os.environ["TEAMS_TENANT_ID"],
@@ -952,8 +951,9 @@ The installation callback matches `team_id` exactly. A group GUID will cause
 installation events to return 403 and leave the destination without an active
 installation.
 
-Merge these feature flags into your existing flags. Restart the web server and
-workers after changing configuration or rotating a secret. Apply the migration
+Merge `ALERT_REPORTS` into your existing feature flags. Teams is enabled by valid
+`ALERT_REPORTS_TEAMS` configuration and the installed `teams` extra. Restart the web
+server and workers after changing configuration or rotating a secret. Apply the migration
 before accepting installation events. The scheduler, broker, and worker setup
 from the earlier Alerts and Reports instructions still applies; the Teams SDK
 does not run another web server. Attachment-free Teams alerts do not need a
@@ -1073,11 +1073,11 @@ without credentials or routing details.
 
 | Symptom | Check |
 | --- | --- |
-| Teams is absent from the editor | Install the extra, enable both feature flags, provide valid configuration, choose an alert, and disable attachments. |
+| Teams is absent from the editor | Install the extra, enable `ALERT_REPORTS`, provide valid Teams configuration, choose an alert, and disable attachments. |
 | Destination says “Bot installation required” | Check the bot is installed in the configured team and the callback received its installation event. Saving is allowed before installation; delivery requires an active record. |
 | Saved destination says “Unavailable” | Restore the original stable key or choose an approved replacement. Configuration changes do not rewrite saved recipients. |
-| Callback returns 404 | Check `ALERT_REPORT_TEAMS`, ingress path/prefix, and that the request reached this deployment. |
-| Callback returns 503 | Check the optional SDK is installed and the deployment configuration is nonempty and passes validation. |
+| Callback returns 404 | Check `ALERT_REPORTS_TEAMS` is configured, the ingress path/prefix, and that the request reached this deployment. |
+| Callback returns 503 | Check the optional SDK is installed and the deployment configuration passes validation. A busy callback worker returns 503 after waiting at most one second for its authentication lock. |
 | Callback returns 401 or 403 | Check connector token authentication, bot application/tenant IDs, approved team, signed service URL, and that ingress preserved Authorization. Browser cookies cannot authenticate this route. |
 | Delivery fails authorization | Check installation status, secret value/expiry, bot registration, and channel access. A second 401 after one refresh or a 403 ends delivery. |
 | Save fails after a configuration change | Restore the integration/key or explicitly remove/replace Teams recipients. Partial updates validate the merged schedule, including format and schedule type. |

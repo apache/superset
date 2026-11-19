@@ -22,7 +22,7 @@ from flask import current_app
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from superset.extensions import db, feature_flag_manager
+from superset.extensions import db
 from superset.integrations.teams.config import (
     parse_teams_config,
     TeamsConfig,
@@ -33,9 +33,7 @@ from superset.integrations.teams.models import TeamsInstallation
 
 
 def configured_teams() -> TeamsConfig | None:
-    """Resolve an enabled, configured integration with its optional SDK installed."""
-    if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_TEAMS"):
-        return None
+    """Resolve a configured integration with its optional SDK installed."""
     try:
         config = parse_teams_config(current_app.config.get("ALERT_REPORTS_TEAMS", {}))
     except TeamsConfigError:

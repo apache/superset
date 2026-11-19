@@ -35,12 +35,11 @@ import httpx
 import pytest
 import requests
 from billiard.exceptions import SoftTimeLimitExceeded
-from flask import current_app, Flask
+from flask import Flask
 from flask_babel import Babel
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from superset.integrations.teams import validation as teams_validation
 from superset.integrations.teams.config import (
     parse_teams_config,
     TeamsConfig,
@@ -107,7 +106,6 @@ def notification_context(
     Babel(app)
     app.config.update(
         ALERT_REPORTS_TEAMS=teams_config,
-        FEATURE_FLAGS={"ALERT_REPORT_TEAMS": True},
         STATS_LOGGER=MagicMock(),
     )
     engine = teams_engine
@@ -117,11 +115,6 @@ def notification_context(
         )
         session.commit()
     monkeypatch.setattr(notifications, "db", SimpleNamespace(engine=engine))
-    monkeypatch.setattr(
-        teams_validation.feature_flag_manager,
-        "is_feature_enabled",
-        lambda name: current_app.config["FEATURE_FLAGS"].get(name, False),
-    )
     send = MagicMock()
     monkeypatch.setattr(notifications, "_send_to_teams", send)
     with app.app_context():

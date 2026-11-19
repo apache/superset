@@ -27,9 +27,10 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
+from threading import Timer
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import jwt
 import pytest
@@ -141,15 +142,9 @@ def teams_client(
         TESTING=True,
         SECRET_KEY="test-callback-key",  # noqa: S106
         WTF_CSRF_ENABLED=True,
-        FEATURE_FLAGS={"ALERT_REPORT_TEAMS": True},
         ALERT_REPORTS_TEAMS=teams_config,
     )
     monkeypatch.setattr(teams_api, "db", SimpleNamespace(engine=teams_engine))
-    monkeypatch.setattr(
-        teams_api.feature_flag_manager,
-        "is_feature_enabled",
-        lambda name: current_app.config["FEATURE_FLAGS"].get(name, False),
-    )
     teams_api.csrf.init_app(app)
     teams_api.register_teams_api(app)
 
@@ -448,9 +443,7 @@ def test_csrf_exemption_is_only_for_callback(teams_client: FlaskClient) -> None:
     assert teams_client.get(PATH).status_code == 405
 
 
-@pytest.mark.parametrize(
-    "mode", ["disabled", "unconfigured", "invalid-config", "missing-sdk"]
-)
+@pytest.mark.parametrize("mode", ["unconfigured", "invalid-config", "missing-sdk"])
 def test_callback_fails_closed_without_sdk_or_configuration(
     teams_client: FlaskClient,
     installation: dict[str, Any],
@@ -458,11 +451,9 @@ def test_callback_fails_closed_without_sdk_or_configuration(
     mode: str,
 ) -> None:
     expected = 503
-    if mode == "disabled":
-        teams_client.application.config["FEATURE_FLAGS"]["ALERT_REPORT_TEAMS"] = False
-        expected = 404
-    elif mode == "unconfigured":
+    if mode == "unconfigured":
         teams_client.application.config["ALERT_REPORTS_TEAMS"] = {}
+        expected = 404
     elif mode == "invalid-config":
         teams_client.application.config["ALERT_REPORTS_TEAMS"] = {
             "credential": "deployment-secret"
@@ -942,3 +933,63 @@ def test_cached_callback_keeps_concurrent_request_state_separate(
         teams_adapter.os.getpid(), config.application_id, config.tenant_id
     )
     assert server.on_request is None
+
+
+@pytest.mark.parametrize("authenticated", [False, True])
+def test_busy_callback_returns_503_without_touching_sdk_or_installations(
+    teams_client: FlaskClient,
+    teams_config: dict[str, Any],
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    monkeypatch: pytest.MonkeyPatch,
+    authenticated: bool,
+) -> None:
+    config = parse_teams_config(teams_config)
+    assert config is not None
+    server, lock = teams_adapter._callback_server(
+        teams_adapter.os.getpid(), config.application_id, config.tenant_id
+    )
+    request_handler = AsyncMock()
+    monkeypatch.setattr(teams_adapter, "_CALLBACK_LOCK_TIMEOUT", 0.01)
+    assert lock.acquire(blocking=False)
+    release = Timer(1.0, lock.release)
+    release.start()
+    try:
+        with (
+            patch.object(server, "handle_request", request_handler),
+            patch.object(teams_api, "Session") as session,
+        ):
+            response = teams_client.post(
+                PATH, json=installation, headers=auth_headers() if authenticated else {}
+            )
+        assert response.status_code == 503
+        request_handler.assert_not_called()
+        session.assert_not_called()
+        assert server.on_request is None
+        assert lock.locked()
+    finally:
+        release.cancel()
+        if lock.locked():
+            lock.release()
+    assert (
+        teams_client.post(PATH, json=installation, headers=auth_headers()).status_code
+        == 200
+    )
+
+
+def test_callback_releases_lock_after_sdk_failure(
+    teams_config: dict[str, Any],
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+) -> None:
+    config = parse_teams_config(teams_config)
+    assert config is not None
+    server, lock = teams_adapter._callback_server(
+        teams_adapter.os.getpid(), config.application_id, config.tenant_id
+    )
+    with patch.object(server, "handle_request", AsyncMock(side_effect=RuntimeError)):
+        with pytest.raises(RuntimeError):
+            teams_adapter.process_teams_event(config, installation, auth_headers())
+    assert server.on_request is None
+    assert lock.acquire(blocking=False)
+    lock.release()

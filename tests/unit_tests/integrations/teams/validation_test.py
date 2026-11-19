@@ -26,7 +26,7 @@ from unittest.mock import call, MagicMock
 from uuid import uuid4
 
 import pytest
-from flask import current_app, Flask
+from flask import Flask
 from flask_babel import Babel
 
 from superset.commands.report import create, execute, update
@@ -48,21 +48,11 @@ APPLICATION = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 
 
 @pytest.fixture
-def configured_app(
-    teams_config: dict[str, Any], monkeypatch: pytest.MonkeyPatch
-) -> Iterator[Flask]:
+def configured_app(teams_config: dict[str, Any]) -> Iterator[Flask]:
     """Enable a single approved destination without requiring any installation."""
     app = Flask(__name__)
     Babel(app)
-    app.config.update(
-        FEATURE_FLAGS={"ALERT_REPORT_TEAMS": True},
-        ALERT_REPORTS_TEAMS=teams_config,
-    )
-    monkeypatch.setattr(
-        validation.feature_flag_manager,
-        "is_feature_enabled",
-        lambda name: current_app.config["FEATURE_FLAGS"].get(name, False),
-    )
+    app.config["ALERT_REPORTS_TEAMS"] = teams_config
     with app.app_context():
         yield app
 
@@ -99,7 +89,6 @@ def test_shared_validation_accepts_command_and_saved_recipient(
 @pytest.mark.parametrize(
     "mode,field",
     [
-        ("disabled", "recipients"),
         ("unconfigured", "recipients"),
         ("invalid-config", "recipients"),
         ("report", "type"),
@@ -117,9 +106,7 @@ def test_shared_validation_rejects_invalid_combinations(
     recipient: object = {"target": "ops"}
     schedule_type = "Alert"
     report_format = "NONE"
-    if mode == "disabled":
-        configured_app.config["FEATURE_FLAGS"]["ALERT_REPORT_TEAMS"] = False
-    elif mode == "unconfigured":
+    if mode == "unconfigured":
         configured_app.config["ALERT_REPORTS_TEAMS"] = {}
     elif mode == "invalid-config":
         configured_app.config["ALERT_REPORTS_TEAMS"] = {
@@ -358,7 +345,7 @@ def test_partial_update_checks_saved_teams_recipients(
     assert model.recipients[0].recipient_config_json == before
 
 
-@pytest.mark.parametrize("mode", ["disabled", "unconfigured", "removed-destination"])
+@pytest.mark.parametrize("mode", ["unconfigured", "removed-destination"])
 @pytest.mark.parametrize(
     "changes",
     [
@@ -414,7 +401,7 @@ def test_adding_teams_uses_saved_type_and_format(
 def test_removing_teams_allows_format_and_type_change(
     configured_app: Flask, command_dependencies: None, replacement: list[dict[str, Any]]
 ) -> None:
-    configured_app.config["FEATURE_FLAGS"]["ALERT_REPORT_TEAMS"] = False
+    configured_app.config["ALERT_REPORTS_TEAMS"] = {}
     command = validate_update(
         saved_schedule(),
         {
@@ -570,7 +557,7 @@ def test_teams_delivery_reuses_execution_deadline_and_cleanup_reserve(
     assert notification.send.call_count == 2
 
 
-@pytest.mark.parametrize("mode", ["disabled", "unconfigured", "removed-destination"])
+@pytest.mark.parametrize("mode", ["unconfigured", "removed-destination"])
 @pytest.mark.parametrize("active", [False, True])
 @pytest.mark.parametrize("pause", [False, True])
 def test_echoed_delivery_values_do_not_revalidate_unavailable_teams(
@@ -614,15 +601,13 @@ def test_echoed_delivery_values_do_not_revalidate_unavailable_teams(
 
 def make_teams_unavailable(app: Flask, mode: str) -> None:
     """Simulate deployment changes without changing the saved alert."""
-    if mode == "disabled":
-        app.config["FEATURE_FLAGS"]["ALERT_REPORT_TEAMS"] = False
-    elif mode == "unconfigured":
+    if mode == "unconfigured":
         app.config["ALERT_REPORTS_TEAMS"] = {}
     else:
         app.config["ALERT_REPORTS_TEAMS"]["destinations"][0]["key"] = "renamed"
 
 
-@pytest.mark.parametrize("mode", ["disabled", "unconfigured", "removed-destination"])
+@pytest.mark.parametrize("mode", ["unconfigured", "removed-destination"])
 @pytest.mark.parametrize(
     "changes",
     [

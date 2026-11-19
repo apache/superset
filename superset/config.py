@@ -846,9 +846,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables webhook integration for Alerts and Reports
     # @lifecycle: testing
     "ALERT_REPORT_WEBHOOK": False,
-    # Enable notification-only Microsoft Teams alerts to approved standard channels.
-    # @lifecycle: development
-    "ALERT_REPORT_TEAMS": False,
     # Allow users to export full CSV of table viz type.
     # Warning: Could cause server memory/compute issues with large datasets.
     # @lifecycle: testing

@@ -205,6 +205,9 @@ def _callback_server(
     return HttpServer(_FlaskServerAdapter(), messaging_endpoint=EVENTS_PATH), Lock()
 
 
+_CALLBACK_LOCK_TIMEOUT = 1.0
+
+
 def process_teams_event(
     config: TeamsConfig, body: dict[str, Any], headers: dict[str, str]
 ) -> TeamsEventResult:
@@ -254,8 +257,12 @@ def process_teams_event(
             server.on_request = None
             await adapter.stop()
 
-    with lock:
+    if not lock.acquire(timeout=_CALLBACK_LOCK_TIMEOUT):
+        return TeamsEventResult(503)
+    try:
         return asyncio.run(process())
+    finally:
+        lock.release()
 
 
 # Count every send, including the single 401 replay, against the same retry bound.

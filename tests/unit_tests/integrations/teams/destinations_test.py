@@ -60,9 +60,6 @@ def configured_app(
         ]
     )
     app.config["ALERT_REPORTS_TEAMS"] = teams_config
-    monkeypatch.setattr(
-        destinations.feature_flag_manager, "is_feature_enabled", lambda name: True
-    )
     monkeypatch.setattr(destinations, "is_teams_sdk_installed", lambda: True)
     engine = teams_engine
     monkeypatch.setattr(destinations, "db", MagicMock(engine=engine))
@@ -151,12 +148,10 @@ def test_unconfigured_or_invalid_integration_is_hidden(
     assert destinations.list_teams_destinations() == []
 
 
-def test_disabled_integration_does_not_query_installations(
+def test_unconfigured_integration_does_not_query_installations(
     configured_app: Flask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(
-        destinations.feature_flag_manager, "is_feature_enabled", lambda name: False
-    )
+    configured_app.config["ALERT_REPORTS_TEAMS"] = {}
     monkeypatch.setattr(
         destinations, "Session", MagicMock(side_effect=AssertionError("must not query"))
     )
@@ -204,7 +199,7 @@ def test_optional_sdk_controls_both_discovery_and_notification_methods(
         session.assert_not_called()
 
 
-def test_disabled_integration_registers_and_bootstraps_without_sdk() -> None:
+def test_unconfigured_integration_registers_and_bootstraps_without_sdk() -> None:
     """Block optional imports before loading the startup paths in a fresh process."""
     result = subprocess.run(  # noqa: S603 -- fixed interpreter and inline test script
         [
@@ -232,7 +227,7 @@ def test_disabled_integration_registers_and_bootstraps_without_sdk() -> None:
                 raise AssertionError("must not check SDK")
 
             app.config["SLACK_API_TOKEN"] = None
-            destinations.feature_flag_manager.is_feature_enabled = lambda _: False
+            app.config["ALERT_REPORTS_TEAMS"] = {}
             destinations.is_teams_sdk_installed = unexpected_lookup
             base.app = app
             with app.app_context():

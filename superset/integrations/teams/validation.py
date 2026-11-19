@@ -19,7 +19,6 @@
 from flask import current_app
 from flask_babel import gettext as _
 
-from superset.extensions import feature_flag_manager
 from superset.integrations.teams.config import (
     parse_teams_config,
     TeamsConfig,
@@ -43,14 +42,12 @@ def validate_teams_recipient(
     schedule_type: str | None,
     report_format: str | None,
 ) -> tuple[TeamsConfig, TeamsDestination]:
-    """Require an enabled, configured, attachment-free alert and an approved key.
+    """Require a configured, attachment-free alert and an approved key.
 
     Accept deserialized command input or persisted recipient JSON. Installation
     availability is deliberately checked only at delivery, so schedules may be
     saved before a bot is installed. No SDK dependency or database access is needed.
     """
-    if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_TEAMS"):
-        raise TeamsRecipientValidationError(_("Teams alert delivery is disabled"))
     try:
         config = parse_teams_config(current_app.config.get("ALERT_REPORTS_TEAMS", {}))
     except ValueError:

@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.wsgi import get_input_stream
 
-from superset.extensions import csrf, db, feature_flag_manager
+from superset.extensions import csrf, db
 from superset.integrations.teams.config import (
     parse_teams_config,
     TeamsConfig,
@@ -84,22 +84,20 @@ def _parse_event_body(body: bytes) -> object:
 @csrf.exempt
 def teams_events() -> Response:
     """Accept SDK-authenticated installation events for approved teams."""
-    if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_TEAMS"):
-        return Response(status=404)
     try:
         config = parse_teams_config(current_app.config.get("ALERT_REPORTS_TEAMS", {}))
     except TeamsConfigError:
         logger.error("Invalid Teams deployment configuration")
         return Response(status=503)
     if config is None:
-        return Response(status=503)
+        return Response(status=404)
     raw_body = _check_event_body_size()
     if not request.is_json:
         return Response(status=415)
     body = _parse_event_body(raw_body)
     if not isinstance(body, dict):
         return Response(status=400)
-    # Optional SDK imports stay behind the feature flag and deployment configuration.
+    # Optional SDK imports stay behind deployment configuration.
     try:
         from superset.integrations.teams.adapter import process_teams_event
     except ImportError:

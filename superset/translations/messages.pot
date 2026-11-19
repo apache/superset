@@ -19232,9 +19232,6 @@ msgstr ""
 msgid "Invalid Teams recipient configuration"
 msgstr ""
 
-msgid "Teams alert delivery is disabled"
-msgstr ""
-
 msgid "Teams deployment is not configured"
 msgstr ""
 
