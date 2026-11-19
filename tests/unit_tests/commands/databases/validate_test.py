@@ -979,6 +979,27 @@ def test_incomplete_embedded_credentials_from_the_api(mocker: MockerFixture) -> 
     assert excinfo.value.errors[0].extra["invalid"] == ["embedded_credentials"]
 
 
+def _pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    encryption = (
+        serialization.BestAvailableEncryption(passphrase.encode())
+        if passphrase
+        else serialization.NoEncryption()
+    )
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            encryption,
+        )
+        .decode()
+    )
+
+
 @pytest.mark.parametrize(
     "credentials",
     [
@@ -988,7 +1009,7 @@ def test_incomplete_embedded_credentials_from_the_api(mocker: MockerFixture) -> 
         {
             "username": "embedded_svc",
             "auth_method": "keypair",
-            "privatekey_body": "-----BEGIN PRIVATE KEY-----",
+            "privatekey_body": _pem(""),
         },
         {
             "username": "embedded_svc",
@@ -1135,6 +1156,53 @@ def test_parameter_validation_uses_the_engine_credential_validator(
     else:
         with pytest.raises(InvalidParametersError):
             command.run()
+
+
+@pytest.mark.parametrize(
+    "privatekey_body, privatekey_pass",
+    [
+        pytest.param(_pem("key passphrase"), "wrong passphrase", id="wrong-passphrase"),
+        pytest.param("-----BEGIN PRIVATE KEY-----", "", id="not-a-pem-key"),
+    ],
+)
+@pytest.mark.parametrize("as_json_string", [False, True], ids=["dict", "json-string"])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_unreadable_embedded_key_is_reported_on_its_field(
+    mocker: MockerFixture,
+    as_json_string: bool,
+    privatekey_body: str,
+    privatekey_pass: str,
+) -> None:
+    """
+    The dialog validates before saving, so an unreadable key is reported on the
+    embedded credential field there too, without quoting the key. The
+    dialog can post the credential as a dict or as a JSON string.
+    """
+    mocker.patch("superset.commands.database.validate.DatabaseDAO")
+
+    credentials = {
+        "username": "embedded_svc",
+        "auth_method": "keypair",
+        "privatekey_body": privatekey_body,
+        "privatekey_pass": privatekey_pass,
+    }
+    properties = {
+        "engine": "snowflake",
+        "parameters": {
+            "embedded_credentials": (
+                json.dumps(credentials) if as_json_string else credentials
+            )
+        },
+    }
+    with pytest.raises(InvalidParametersError) as excinfo:
+        ValidateDatabaseParametersCommand(properties).run()
+
+    error = excinfo.value.errors[0]
+    assert error.extra["invalid"] == ["embedded_credentials"]
+    assert "private key could not be read" in error.message
+    for secret in (privatekey_body, privatekey_pass):
+        if secret:
+            assert secret not in error.message
 
 
 @pytest.mark.parametrize(
@@ -1340,3 +1408,64 @@ def test_validate_legacy_databricks_form_keeps_masked_token(
     database.set_sqlalchemy_uri.assert_called_once_with(
         existing.sqlalchemy_uri_decrypted
     )
+
+
+@pytest.mark.parametrize(
+    "query, expected_uri",
+    [
+        # a tuning-only parameter keeps the stored password: the stored
+        # connection is tested with it
+        (
+            {"login_timeout": "30"},
+            "mssql+pymssql://sa:realpass@host1:1433/d",
+        ),
+        # a parameter that could redirect the connection does not
+        (
+            {"host": "attacker.example.com"},
+            f"mssql+pymssql://sa:{PASSWORD_MASK}@host1:1433/d?host=attacker.example.com",
+        ),
+    ],
+)
+def test_validate_mssql_edit_with_additional_parameter(
+    mocker: MockerFixture, query: dict[str, str], expected_uri: str
+) -> None:
+    """
+    Editing a form-created SQL Server connection to add an Additional Parameter
+    reuses the stored password only for parameters that can't redirect it.
+    """
+    existing = mocker.MagicMock()
+    existing.safe_sqlalchemy_uri.return_value = (
+        f"mssql+pymssql://sa:{PASSWORD_MASK}@host1:1433/d"
+    )
+    existing.sqlalchemy_uri_decrypted = "mssql+pymssql://sa:realpass@host1:1433/d"
+    existing.encrypted_extra = "{}"
+    existing.extra = "{}"
+    existing.ssh_tunnel = None
+
+    DatabaseDAO = mocker.patch(  # noqa: N806
+        "superset.commands.database.validate.DatabaseDAO"
+    )
+    DatabaseDAO.find_by_id.return_value = existing
+    DatabaseDAO.validate_update_uniqueness.return_value = True
+    database = DatabaseDAO.build_db_for_connection_test.return_value
+    with database.get_sqla_engine() as engine:
+        engine.dialect.do_ping.return_value = True
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+    mocker.patch("superset.db_engine_specs.base.is_port_open", return_value=True)
+
+    properties = {
+        "id": 1,
+        "engine": "mssql",
+        "driver": "pymssql",
+        "parameters": {
+            "host": "host1",
+            "port": 1433,
+            "username": "sa",
+            "password": PASSWORD_MASK,
+            "database": "d",
+            "query": query,
+        },
+    }
+    ValidateDatabaseParametersCommand(properties).run()
+
+    database.set_sqlalchemy_uri.assert_called_once_with(expected_uri)

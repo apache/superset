@@ -267,9 +267,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const previousDatasetsStatus = useRef<ResourceStatus | null>(null);
 
   const error = dashboardApiError || chartsApiError;
-  // Only 404 gets a graceful not-found state; a 403 (access denied) still
-  // surfaces through the error boundary.
   const isNotFoundError = (error as SupersetApiError | null)?.status === 404;
+  const isForbiddenError = (error as SupersetApiError | null)?.status === 403;
+  const isUnavailableError = isNotFoundError || isForbiddenError;
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, id = 0 } = dashboard || {};
 
@@ -640,8 +640,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   useEffect(() => {
     if (datasetsApiError) {
-      // A missing dashboard also 404s its datasets; the not-found state covers it.
-      if (!isNotFoundError) {
+      // Dashboard access failures also affect datasets; the page explains them.
+      if (!isUnavailableError) {
         addDangerToast(
           t('Error loading chart datasources. Filters may not work correctly.'),
         );
@@ -649,7 +649,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     } else {
       dispatch(setDatasources(datasets));
     }
-  }, [addDangerToast, datasets, datasetsApiError, dispatch, isNotFoundError]);
+  }, [
+    addDangerToast,
+    datasets,
+    datasetsApiError,
+    dispatch,
+    isUnavailableError,
+  ]);
 
   const relevantDataMask = useSelector(selectRelevantDatamask);
   const activeFilters = useSelector(selectActiveFilters);
@@ -685,7 +691,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     userId,
   ]);
 
-  if (error && !isNotFoundError) throw error; // caught in error boundary
+  if (error && !isUnavailableError) throw error; // caught in error boundary
 
   const globalStyles = useMemo(
     () => [
@@ -698,19 +704,25 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     [theme],
   );
 
-  if (error && !isNotFoundError) throw error; // caught in error boundary
+  if (error && !isUnavailableError) throw error; // caught in error boundary
 
   const DashboardBuilderComponent = useMemo(() => <DashboardBuilder />, []);
 
-  if (isNotFoundError) {
+  if (isUnavailableError) {
     return (
       <EmptyState
         size="large"
         image="empty-dashboard.svg"
-        title={t('This dashboard does not exist')}
-        description={t(
-          'The dashboard you are looking for may have been deleted or moved.',
-        )}
+        title={
+          isForbiddenError ? t('Forbidden') : t('This dashboard does not exist')
+        }
+        description={
+          isForbiddenError
+            ? t("You don't have access to this dashboard.")
+            : t(
+                'The dashboard you are looking for may have been deleted or moved.',
+              )
+        }
         buttonText={t('See all dashboards')}
         buttonAction={() => history.push(RoutePaths.DASHBOARD_LIST)}
       />

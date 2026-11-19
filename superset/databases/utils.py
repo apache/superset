@@ -24,6 +24,7 @@ from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.exc import NoSuchTableError
 
 from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
 from superset.sql.parse import Table
 from superset.utils import json
 
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
         TableMetadataForeignKeysIndexesResponse,
         TableMetadataResponse,
     )
+    from superset.db_engine_specs.base import BaseEngineSpec
 
 
 def get_foreign_keys_metadata(
@@ -211,6 +213,23 @@ def validated_embedded_credentials(credentials: Any) -> dict[str, str] | None:
     return {"username": username, "password": password}
 
 
+def embedded_credentials_present(value: Any) -> bool:
+    """
+    Does a stored or submitted value configure an embedded credential at all?
+
+    Absent, empty and entirely blank values mean "no credential configured";
+    ``auth_method`` alone does not count, since the dialog writes it as soon as the
+    selector renders. Anything else counts, complete or not.
+    """
+    if value is None or value == "":
+        return False
+    if isinstance(value, dict):
+        return any(
+            _is_present(field) for key, field in value.items() if key != "auth_method"
+        )
+    return True
+
+
 def embedded_credentials_incomplete(
     value: Any,
     validate_credentials: Callable[[Any], dict[str, str] | None],
@@ -253,3 +272,65 @@ def embedded_credentials_incomplete(
         return True
 
     return validate_credentials(value) is None
+
+
+def embedded_credentials_error(
+    engine_spec: type[BaseEngineSpec],
+    credentials: Any,
+    stored_encrypted_extra: str | None,
+) -> str | None:
+    """
+    Why an authored embedded credential cannot be used, or ``None``.
+
+    Complements :func:`embedded_credentials_incomplete`, which only checks that the
+    fields are filled in, by asking the engine whether their values work (see
+    ``BaseEngineSpec.get_embedded_credentials_error``). An edit sends unchanged
+    secrets masked, so they are first restored from ``stored_encrypted_extra``; a
+    secret that is still masked has nothing to restore it from and is not checked.
+    Accepts the value as a dict or as the JSON string the connection dialog posts; a
+    value that is neither is left to :func:`embedded_credentials_incomplete`.
+    """
+    if isinstance(credentials, str):
+        try:
+            credentials = json.loads(credentials)
+        except json.JSONDecodeError:
+            return None
+    if not isinstance(credentials, dict):
+        return None
+    unmasked = engine_spec.unmask_encrypted_extra(
+        stored_encrypted_extra,
+        json.dumps({EMBEDDED_CREDENTIALS_KEY: credentials}),
+    )
+    validated = engine_spec.validate_embedded_credentials(
+        json.loads(unmasked or "{}").get(EMBEDDED_CREDENTIALS_KEY)
+    )
+    if validated is None or PASSWORD_MASK in validated.values():
+        return None
+    return engine_spec.get_embedded_credentials_error(validated)
+
+
+def embedded_credentials_missing_fields(credentials: Any) -> list[str]:
+    """
+    Name the fields of the canonical credential shape that ``credentials`` lacks.
+
+    Paths are JSONPath into Secure Extra (``$.embedded_credentials.<field>``), the
+    form the import already uses to name a secret it needs. Returns an empty list
+    when nothing canonical is missing, e.g. an unknown ``auth_method`` or a shape
+    only an engine-specific validator rejects.
+    """
+    if not isinstance(credentials, dict):
+        return []
+
+    missing: list[str] = []
+    if not _is_present(credentials.get("username")):
+        missing.append("username")
+
+    auth_method = credentials.get("auth_method", "password")
+    if auth_method == "keypair":
+        if not _is_present(credentials.get("privatekey_body")):
+            missing.append("privatekey_body")
+    elif auth_method == "password":
+        if not _is_present(credentials.get("password")):
+            missing.append("password")
+
+    return [f"$.{EMBEDDED_CREDENTIALS_KEY}.{field}" for field in missing]

@@ -86,6 +86,7 @@ function UserInfoModal({
       >
         <Input
           name="first_name"
+          autoComplete="given-name"
           placeholder={t("Enter the user's first name")}
         />
       </FormItem>
@@ -94,7 +95,11 @@ function UserInfoModal({
         label={t('Last name')}
         rules={[{ required: true, message: t('Last name is required') }]}
       >
-        <Input name="last_name" placeholder={t("Enter the user's last name")} />
+        <Input
+          name="last_name"
+          autoComplete="family-name"
+          placeholder={t("Enter the user's last name")}
+        />
       </FormItem>
     </>
   );
@@ -108,6 +113,7 @@ function UserInfoModal({
       >
         <Input.Password
           name="current_password"
+          autoComplete="current-password"
           placeholder={t('Enter your current password')}
         />
       </FormItem>
@@ -118,6 +124,7 @@ function UserInfoModal({
       >
         <Input.Password
           name="password"
+          autoComplete="new-password"
           placeholder={t("Enter the user's password")}
         />
       </FormItem>
@@ -142,6 +149,7 @@ function UserInfoModal({
       >
         <Input.Password
           name="confirm_password"
+          autoComplete="new-password"
           placeholder={t("Confirm the user's password")}
         />
       </FormItem>
