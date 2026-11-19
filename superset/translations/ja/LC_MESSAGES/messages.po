@@ -8938,6 +8938,14 @@ msgstr "線を非表示"
 msgid "Hide chart description"
 msgstr "チャートの説明を非表示"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "レイヤーを非表示"
 
