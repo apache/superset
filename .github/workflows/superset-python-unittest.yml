@@ -43,20 +43,27 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-26.04
-    # The full suite takes about 42 minutes on two-worker runners. Leave
-    # headroom for setup, scoped coverage gates, uploads, and runner variance.
-    timeout-minutes: 60
+    # Leave time for setup, one shard of the suite, the scoped coverage gates
+    # (shard 1 only), and uploads.
+    timeout-minutes: 45
     permissions:
       # Declaring any permission drops the defaults, and checkout and `$/` actions
       # need read access wherever the repository is not public.
       contents: read
       id-token: write
     strategy:
+      # Let every shard finish so one failure doesn't hide the others.
+      fail-fast: false
       matrix:
         # Just "current" here, on both push and PR — the "next" Python minor is
         # exercised separately by the nightly canary (python-nightly-canary.yml)
         # so cross-version breaks don't cost a runner on every push/PR.
         python-version: ["current"]
+        # The suite is split by test file across these runners (see
+        # tests/pytest_shard.py): on a 2-core runner pytest-xdist only gets two
+        # workers, and the unsharded run had grown to ~40 minutes against this
+        # job's timeout. Keep NUM_SHARDS below in step with this list.
+        shard: [1, 2, 3]
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
@@ -72,6 +79,7 @@ jobs:
       - name: Install HiveServer2 transport test dependencies
         run: uv pip install --system -e ".[hive,impala]"
       - name: SDK unit tests
+        if: matrix.shard == 1
         env:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
           PYTHONPATH: ${{ github.workspace }}/superset-core/src
@@ -99,8 +107,10 @@ jobs:
         env:
           SUPERSET_TESTENV: true
           SUPERSET_SECRET_KEY: not-a-secret
+          NUM_SHARDS: 3
+          SHARD_ID: ${{ matrix.shard }}
         run: |
-          pytest -n auto --dist loadfile --durations=0 --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear --maxfail=50 --junit-xml=test-results/junit-unit.xml
+          pytest -p tests.pytest_shard --num-shards "$NUM_SHARDS" --shard-id "$SHARD_ID" -n auto --dist loadfile --durations=0 --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear --maxfail=50 --junit-xml=test-results/junit-unit.xml
       # COVERAGE_FILE keeps these scoped gates off the default .coverage that
       # the step above wrote. pytest-cov starts a fresh data file per run, so
       # without it the last gate replaces the full-suite data and the report
@@ -111,6 +121,7 @@ jobs:
       # runner whose other cores sit idle. pytest-cov combines the
       # per-worker data before --cov-fail-under is evaluated.
       - name: Python 100% coverage unit tests
+        if: matrix.shard == 1
         env:
           SUPERSET_TESTENV: true
           SUPERSET_SECRET_KEY: not-a-secret
@@ -134,7 +145,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: junit-results-${{ matrix.python-version }}
+          name: junit-results-${{ matrix.python-version }}-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
 
