@@ -914,15 +914,32 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
 
     def eval(self) -> datetime:
         holiday = self.value[0].eval()
-        dttm, country = [None, None]
-        if len(self.value) >= 2:
-            dttm = self.value[1].eval()
-        if len(self.value) == 3:
-            country = self.value[2]
+        dttm: datetime | None = None
+        country: str | None = None
+        # Both arguments after the holiday name are optional, so the second one
+        # is the datetime or the country depending on which were supplied. What
+        # tells them apart is the kind of argument: a datetime is always a
+        # function call (`datetime(...)`, `dateadd(...)`, ...) and a country is
+        # always quoted text.
+        for argument in self.value[1:]:
+            if isinstance(argument, EvalText):
+                country = argument.eval()
+            else:
+                dttm = argument.eval()
         holiday_year = dttm.year if dttm else parse_human_datetime("today").year
-        country = country.eval() if country else "US"
 
-        holiday_lookup = country_holidays(country, years=[holiday_year], observed=False)
+        try:
+            holiday_lookup = country_holidays(
+                country or "US", years=[holiday_year], observed=False
+            )
+        except NotImplementedError as ex:
+            # `country_holidays` has no calendar for the country, which the
+            # caller can correct: the accepted spellings are the ISO code and
+            # the registered name, so a lowercase code or a country written out
+            # in full both land here.
+            raise ValueError(
+                _("Unable to find such a country: [%(country)s]", country=country)
+            ) from ex
         searched_result = holiday_lookup.get_named(holiday, lookup="istartswith")
         if len(searched_result) > 0:
             return dttm_from_timetuple(searched_result[0].timetuple())
