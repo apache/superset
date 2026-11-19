@@ -68,10 +68,15 @@ grouping columns). Adding the temporal dimension again reuses the saved choice.
 Unknown columns or grain values are not silently normalized. Ordinary dataset
 charts and raw-record queries are unchanged.
 
-This applies to requests rebuilt by the updated frontend in Explore and
-dashboards; it does not rewrite saved charts. Direct API requests and saved
-chart-data GET paths that bypass rebuilding remain subject to strict validation,
-so old stored query contexts can still fail. Updated frontend assets are required.
+The semantic-view backend also ignores a grain on a known non-temporal field
+when that field has no advertised grain variants, including in direct API
+requests and stored query contexts. A chart-wide grain is ignored when no
+temporal field is grouped. A grain that the view does not support on a date or
+time field is still refused, and unknown fields or types retain validation.
+A legacy time column that points to a non-temporal field with no grain variants
+is still refused when a grain and time bounds would filter that field; Superset
+does not redirect those bounds to another column.
+
 Dashboards use current dataset metadata to classify selected columns. Semantic
 Table and Interactive Table charts with a saved or dashboard-supplied grain wait
 for pending metadata requests before querying, including when added in edit mode
@@ -516,6 +521,12 @@ The Custom SQL tab is unavailable while a filter carries a bucket grain, since t
 bucket comparison has no portable raw SQL representation.
 For Custom SQL axes, invalid numeric bucket timestamps (non-finite or outside the
 supported datetime range) return a query validation error.
+
+### Semantic-view dashboard cross-filtering
+
+On semantic-view dashboard charts, **Add cross-filter** in a category's context
+menu applies the same selection as clicking that category. **Remove cross-filter**
+in the context menu clears that selection.
 
 ### Sunburst cross-filtering
 

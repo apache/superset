@@ -10134,6 +10134,14 @@ msgstr "கோட்டை மறை"
 msgid "Hide chart description"
 msgstr "சார்ட் விளக்கத்தை மறை"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "அடுக்கை மறை"
 
