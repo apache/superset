@@ -41,7 +41,7 @@ from superset.utils.screenshot_utils import (
     DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
     DASHBOARD_LAYOUT_READY_JS,
     EXPAND_CHART_TABLE_CLIP_JS,
-    EXPAND_CHART_TABLE_MAX_HEIGHT_PX,
+    expand_chart_table_max_pixels,
     EXPAND_SCROLLABLE_CONTENT_JS,
     EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS,
     FIND_ALL_CHART_HOLDER_STATES_JS,
@@ -556,10 +556,10 @@ class WebDriverPlaywright(WebDriverProxy):
 
         When the capture target is a single chart (`element_name` is
         "chart-container"), table content clipped by class-styled containers
-        is un-clipped as well, up to `EXPAND_CHART_TABLE_MAX_HEIGHT_PX` --
-        content past that height is truncated by design, because an unbounded
-        capture is rejected outright as a decompression bomb. Dashboard
-        captures never run that extra step.
+        is un-clipped as well, up to `expand_chart_table_max_pixels()` device
+        pixels -- content past that height is truncated by design, because an
+        unbounded capture is rejected outright as a decompression bomb.
+        Dashboard captures never run that extra step.
 
         The ag-Grid branch of this step polls for a stable row count, so it
         is bounded by the report's own deadline the same way every other
@@ -588,7 +588,7 @@ class WebDriverPlaywright(WebDriverProxy):
         if element_name != "chart-container":
             return
         try:
-            page.evaluate(EXPAND_CHART_TABLE_CLIP_JS, EXPAND_CHART_TABLE_MAX_HEIGHT_PX)
+            page.evaluate(EXPAND_CHART_TABLE_CLIP_JS, expand_chart_table_max_pixels())
         except PlaywrightError:
             logger.warning(
                 "Failed to expand clipped table content before screenshot%s",

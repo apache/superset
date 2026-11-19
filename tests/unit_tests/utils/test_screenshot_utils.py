@@ -40,7 +40,6 @@ from superset.utils.screenshot_utils import (
     _stable_readiness_js,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
-    EXPAND_CHART_TABLE_MAX_HEIGHT_PX,
     FIND_ALL_CHART_HOLDER_STATES_JS,
     FIND_CHART_HOLDER_STATES_JS,
     get_screenshot_blankness_metrics,
@@ -2662,8 +2661,13 @@ _NESTED_CLIP_WRAPPER_HEIGHT_PX = 568
 # A height cap small enough that a 300-row fixture clearly overshoots it, so a
 # capped capture is distinguishable from an uncapped one.
 _CHART_CAPTURE_SMALL_CAP_PX = 2000
-# Enough rows (at 24px each) to overshoot the production cap as well.
-_ROWS_ABOVE_PRODUCTION_CAP = 1200
+# `.chart-container`'s width at the default chart window, which turns a
+# device-pixel budget into the height it allows.
+_CHART_CAPTURE_WIDTH_PX = 800
+# Rows enough to make an inline-overflow table taller than the fixed 16384px
+# cap the device-pixel budget replaced, while staying far inside that budget.
+_INLINE_OVERFLOW_PARITY_ROWS = 1000
+_REPLACED_FIXED_CAP_PX = 16384
 
 
 def _chart_capture_rows(n_rows: int) -> str:
@@ -3023,31 +3027,27 @@ def test_table_pass_excludes_ag_grid_hosts() -> None:
             _CHART_CAPTURE_ROWS,
             _CHART_CAPTURE_SMALL_CAP_PX,
             True,
-            id="past-a-patched-cap-is-truncated",
-        ),
-        pytest.param(
-            _ROWS_ABOVE_PRODUCTION_CAP,
-            EXPAND_CHART_TABLE_MAX_HEIGHT_PX,
-            True,
-            id="past-the-production-cap-is-truncated",
+            id="past-a-patched-budget-is-truncated",
         ),
         pytest.param(
             _CHART_CAPTURE_ROWS,
-            EXPAND_CHART_TABLE_MAX_HEIGHT_PX,
+            None,
             False,
-            id="within-the-cap-is-whole",
+            id="within-the-production-budget-is-whole",
         ),
     ],
 )
 def test_lifted_chart_height_is_bounded_by_the_cap(
-    n_rows: int, cap_px: int, truncates: bool, layout: str
+    n_rows: int, cap_px: int | None, truncates: bool, layout: str
 ) -> None:
-    """The lift must stop at `EXPAND_CHART_TABLE_MAX_HEIGHT_PX`.
+    """The lift must stop at `expand_chart_table_max_pixels()`.
 
     A pivot near its default cell limit would otherwise grow without bound and
     become a PNG past Pillow's decompression-bomb limit, which
     `validate_report_screenshot` rejects -- so a huge report would be dropped
-    entirely rather than delivered with its tail truncated.
+    entirely rather than delivered with its tail truncated. `cap_px` is the
+    height the budget has to allow at this capture's width; `None` means the
+    real budget, which a 300-row fixture is nowhere near.
 
     What is truncated matters as much as the bound: `.slice_container` centers
     its content (`superset-frontend/src/components/Chart/Chart.tsx`), so a
@@ -3057,9 +3057,16 @@ def test_lifted_chart_height_is_bounded_by_the_cap(
     from superset.utils import webdriver
     from superset.utils.webdriver import WebDriverPlaywright
 
+    budget = (
+        cap_px * _CHART_CAPTURE_WIDTH_PX
+        if cap_px is not None
+        else webdriver.expand_chart_table_max_pixels()
+    )
     html = _wrap_chart_capture(_pivot_chart_body(n_rows), layout)
     with _chart_capture_page(html) as page:
-        with patch.object(webdriver, "EXPAND_CHART_TABLE_MAX_HEIGHT_PX", cap_px):
+        with patch.object(
+            webdriver, "expand_chart_table_max_pixels", return_value=budget
+        ):
             WebDriverPlaywright._expand_scrollable_content(
                 page, element_name="chart-container"
             )
@@ -3070,12 +3077,13 @@ def test_lifted_chart_height_is_bounded_by_the_cap(
         )
 
     captured_height = Image.open(io.BytesIO(png)).height
+    allowed_height = budget // _CHART_CAPTURE_WIDTH_PX
     if truncates:
-        assert table_height > cap_px, (
-            "the fixture is not taller than the cap, so it cannot show what "
-            "the cap does"
+        assert table_height > allowed_height, (
+            "the fixture is not taller than the budget allows, so it cannot "
+            "show what the budget does"
         )
-        assert captured_height == cap_px
+        assert captured_height == allowed_height
         # The tail is truncated by design, but the head of the table has to
         # stay inside the capture rather than being centered out of it.
         assert markers["first"][0] >= 0, (
@@ -3085,9 +3093,39 @@ def test_lifted_chart_height_is_bounded_by_the_cap(
         )
         _assert_markers_painted(png, {"first": markers["first"]})
     else:
-        assert table_height <= cap_px
+        assert table_height <= allowed_height
         assert captured_height >= table_height
         _assert_markers_painted(png, markers)
+
+
+def test_tall_inline_overflow_table_is_captured_whole() -> None:
+    """A fixed height cap is a regression for a shape that was already captured
+    whole: the generic expansion pass un-clips an inline-`style` scroller (the
+    classic Table chart) on its own, and a 1,000-row table of that shape is
+    taller than 16384px while nowhere near the decompression-bomb limit. The
+    budget has to be counted in device pixels against the capture's width, so
+    this capture stays whole."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(
+        _inline_overflow_chart_body(_INLINE_OVERFLOW_PARITY_ROWS), "shell"
+    )
+    with _chart_capture_page(html) as page:
+        WebDriverPlaywright._expand_scrollable_content(
+            page, element_name="chart-container"
+        )
+        table_height = page.evaluate("document.getElementById('content').scrollHeight")
+        markers = _measure_markers(page)
+        png = WebDriverPlaywright._get_screenshot(
+            page, page.locator(".chart-container"), "chart-container"
+        )
+
+    assert table_height > _REPLACED_FIXED_CAP_PX, (
+        "the fixture no longer exceeds the height a fixed cap would impose, so "
+        "it cannot show that the capture is left whole"
+    )
+    assert Image.open(io.BytesIO(png)).height >= table_height
+    _assert_markers_painted(png, markers)
 
 
 def test_expansion_lifts_more_wrappers_than_a_fixed_pass_count() -> None:

@@ -819,10 +819,18 @@ async (maxWaitMs) => {{
 """
 
 
-# Upper bound on how tall the un-clipped chart may grow. Without it a pivot
-# near its default cell limit becomes a PNG past Pillow's decompression-bomb
-# limit (~179M px), which the report validation rejects.
-EXPAND_CHART_TABLE_MAX_HEIGHT_PX = 16384
+def expand_chart_table_max_pixels() -> int:
+    """
+    Device-pixel budget for an un-clipped single-chart capture.
+
+    Pillow's `Image.MAX_IMAGE_PIXELS` (its decompression-bomb warning
+    threshold), read at call time so an operator override applies; 0, meaning
+    no cap, when the operator has disabled the check. The script turns it into
+    a height using the capture's width and device pixel ratio, so a wide
+    window or a raised `pixel_density` cannot push the PNG past the limit.
+    """
+    return Image.MAX_IMAGE_PIXELS or 0
+
 
 # A table-shaped chart (e.g. a pivot table) can be clipped by containers that
 # carry their height and overflow in stylesheet classes rather than inline
@@ -844,7 +852,7 @@ EXPAND_CHART_TABLE_MAX_HEIGHT_PX = 16384
 # pin ancestors to the viewport height (e.g. 6.1.0's `html, body, #app`) are out
 # of scope.
 EXPAND_CHART_TABLE_CLIP_JS = f"""
-(maxHeightPx) => {{
+(maxPixels) => {{
     const containers = document.querySelectorAll('{CHART_CONTAINER_SELECTOR}');
     if (containers.length !== 1 || containers[0].closest('.dashboard-chart')) {{
         return;
@@ -877,14 +885,25 @@ EXPAND_CHART_TABLE_CLIP_JS = f"""
         }});
     }}
     // Cap the outermost lifted node so `.chart-container` (and its
-    // scrollHeight, which the tiling decision reads) stays bounded. That node
-    // is `.slice_container`, a centered flex column (Chart.tsx), so the cap
-    // alone would window the middle of the table and crop its headings and
-    // first rows away along with the tail; align it to the top so what is
-    // dropped is only the tail. The property is inert on a non-flex node.
+    // scrollHeight, which the tiling decision reads) stays bounded. The
+    // budget arrives in device pixels, so the height it allows depends on the
+    // capture's width and on how many device pixels each CSS pixel costs: a
+    // fixed CSS-pixel ceiling would both truncate captures that are nowhere
+    // near the limit and overshoot it on a wide or high-density window.
+    //
+    // That node is `.slice_container`, a centered flex column (Chart.tsx), so
+    // the cap alone would window the middle of the table and crop its
+    // headings and first rows away along with the tail; align it to the top
+    // so what is dropped is only the tail. The property is inert on a
+    // non-flex node.
     const top = Array.from(chain).find(
         (el) => el.parentElement === containers[0]
     );
+    const width = containers[0].getBoundingClientRect().width;
+    const dpr = window.devicePixelRatio || 1;
+    const maxHeightPx = maxPixels > 0 && width > 0
+        ? Math.floor(maxPixels / (width * dpr * dpr))
+        : 0;
     if (top && maxHeightPx > 0 && top.scrollHeight > maxHeightPx) {{
         top.style.maxHeight = maxHeightPx + 'px';
         top.style.overflow = 'hidden';
