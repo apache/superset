@@ -1225,7 +1225,7 @@ def test_where_in_chart_compilation(
 
     sql_dialect = dialect_factory()
     engine = mocker.MagicMock(dialect=sql_dialect)
-    database = Database(database_name="test")
+    database = Database(database_name="test", sqlalchemy_uri="sqlite://")
     mocker.patch.object(
         database, "get_sqla_engine"
     ).return_value.__enter__.return_value = engine
@@ -2305,6 +2305,61 @@ def test_metric_macro_embedded_user_skips_base_filter(mocker: MockerFixture) -> 
             ),
             ["dttm"],
             ["dttm"],
+        ),
+        (
+            "A custom SQL filter listed before the time filter is skipped",
+            ["dttm"],
+            {},
+            "postgresql://mydb",
+            [
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "expressionType": "SQL",
+                            "sqlExpression": "status = 'active'",
+                        },
+                        {
+                            "clause": "WHERE",
+                            "expressionType": "SIMPLE",
+                            "subject": "dttm",
+                            "operator": "TEMPORAL_RANGE",
+                            "comparator": "Last week",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
+                time_range="Last week",
+            ),
+            [],
+            ["dttm"],
+        ),
+        (
+            "A custom SQL filter and no time filter falls back to the default",
+            ["dttm"],
+            {"default": "Last week", "target_type": "TIMESTAMP"},
+            "postgresql://mydb",
+            [
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "expressionType": "SQL",
+                            "sqlExpression": "status = 'active'",
+                        },
+                    ],
+                }
+            ],
+            TimeFilter(
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
+                time_range="Last week",
+            ),
+            [],
+            [],
         ),
     ],
 )
