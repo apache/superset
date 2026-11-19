@@ -292,6 +292,10 @@ msgid "%s %s"
 msgstr ""
 
 #, python-format
+msgid "%s (Draft)"
+msgstr ""
+
+#, python-format
 msgid "%s (copy from %s)"
 msgstr ""
 
@@ -1240,6 +1244,9 @@ msgid "Actions"
 msgstr ""
 
 msgid "Active"
+msgstr ""
+
+msgid "Active alerts and reports may stop delivering if their execution account is not an Admin or dashboard editor. Check the accounts running those schedules before unpublishing."
 msgstr ""
 
 msgid "Actual Values"
@@ -4392,6 +4399,9 @@ msgstr ""
 msgid "Could not resolve the user to impersonate on the database connection. The query was not run, because running it would have connected as the wrong user."
 msgstr ""
 
+msgid "Could not save this schedule"
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr ""
 
@@ -5827,6 +5837,9 @@ msgid "Downloading %(rows)s rows based on the LIMIT configuration. If you want t
 msgstr ""
 
 msgid "Draft"
+msgstr ""
+
+msgid "Draft dashboard access"
 msgstr ""
 
 #, python-format
@@ -9039,10 +9052,16 @@ msgstr ""
 msgid "Main navigation"
 msgstr ""
 
+msgid "Make draft"
+msgstr ""
+
 msgid "Make sure that the controls are configured properly and the datasource contains data for the selected time range"
 msgstr ""
 
 msgid "Make the x-axis categorical"
+msgstr ""
+
+msgid "Make this dashboard a draft?"
 msgstr ""
 
 msgid "Malformed request. slice_id or table_name and db_name arguments are expected"
@@ -15780,6 +15799,16 @@ msgstr ""
 msgid "This dashboard has too much data to download directly. Ask an administrator to enable background exports, or lower the row limits of its charts."
 msgstr ""
 
+msgid "This dashboard is a draft. The execution account must be an Admin or dashboard editor. Publish the dashboard when it is ready to share, or ask an administrator to add the execution account as a dashboard editor. If Run as is available, select an authorized account."
+msgstr ""
+
+msgid "This dashboard is a draft. The execution account must be an Admin or dashboard editor. Publish the dashboard when it is ready to share, or ask an administrator to identify the execution account and add it as a dashboard editor."
+msgstr ""
+
+#, python-format
+msgid "This dashboard is a draft. The schedule runs as \"%s\". Publish the dashboard when it is ready to share, or add \"%s\" as a dashboard editor. Draft dashboards require an Admin or dashboard editor."
+msgstr ""
+
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -15970,10 +15999,13 @@ msgid "This pivot table used a legacy per-table aggregation setting that could b
 msgstr ""
 
 #, python-format
-msgid "This report runs as %(username)s, who cannot access this %(kind)s. Choose a %(kind)s that user can access, or a different user to run the report as."
+msgid "This report runs as %(username)s, who cannot access this %(kind)s. Choose a %(kind)s that user can access, or ask an administrator to update the execution account's access."
 msgstr ""
 
 msgid "This saved filter state predates the member-ID format. Reset it and explicitly choose its values again."
+msgstr ""
+
+msgid "This schedule runs with your permissions. You must be an Admin or an editor of this draft dashboard. Publish the dashboard when it is ready to share, or ask an administrator to give you dashboard editor access."
 msgstr ""
 
 msgid "This schedule will use your permissions. You need access to its content and, for alerts, its condition query. Changes take effect when you save."
@@ -17908,6 +17940,9 @@ msgid "You can add the components in the edit mode."
 msgstr ""
 
 msgid "You can also just click on the chart to apply cross-filter."
+msgstr ""
+
+msgid "You can also select an authorized account in Run as."
 msgstr ""
 
 msgid ""
