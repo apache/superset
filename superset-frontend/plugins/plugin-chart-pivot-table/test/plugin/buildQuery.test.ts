@@ -139,18 +139,19 @@ test.each([
   }
 });
 
-test('semantic pivot refuses result aggregation instead of truncating totals', () => {
-  expect(() =>
-    buildQuery({
-      ...formData,
-      datasource: '5__semantic_view',
-      aggregateFunction: 'Average',
-    }),
-  ).toThrow('Result aggregation is not supported');
-  expect(() =>
-    buildQuery({ ...formData, aggregateFunction: 'Average' }),
-  ).not.toThrow();
-});
+test.each(['Sum', 'Average'])(
+  'semantic pivot refuses %s result aggregation instead of truncating totals',
+  aggregateFunction => {
+    expect(() =>
+      buildQuery({
+        ...formData,
+        datasource: '5__semantic_view',
+        aggregateFunction,
+      }),
+    ).toThrow('Set Aggregation function to "Use metric definition".');
+    expect(() => buildQuery({ ...formData, aggregateFunction })).not.toThrow();
+  },
+);
 
 test('pivot hides the Series limit control for semantic views', () => {
   const control = controlPanel.controlPanelSections

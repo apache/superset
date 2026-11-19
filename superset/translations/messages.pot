@@ -11943,7 +11943,7 @@ msgid_plural "Restoring will remove %s charts added after this version from this
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "Result aggregation is not supported for Pivot Tables on semantic views. Use a metric from the semantic view."
+msgid "Result aggregation is not supported for Pivot Tables on semantic views. Set Aggregation function to \"Use metric definition\"."
 msgstr ""
 
 msgid "Results"

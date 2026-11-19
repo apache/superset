@@ -110,7 +110,7 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
   if (isSemanticView && resultAggregation) {
     throw new Error(
       t(
-        'Result aggregation is not supported for Pivot Tables on semantic views. Use a metric from the semantic view.',
+        'Result aggregation is not supported for Pivot Tables on semantic views. Set Aggregation function to "Use metric definition".',
       ),
     );
   }
