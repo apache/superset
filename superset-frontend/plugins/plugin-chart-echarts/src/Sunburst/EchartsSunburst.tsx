@@ -131,7 +131,11 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         eventParams.event.stop();
         const { data, treePathInfo } = eventParams;
         const { records } = data;
-        const treePath = extractTreePathInfo(eventParams.treePathInfo);
+        // Align labels with records, excluding the synthetic root but keeping
+        // empty hierarchy values in their original positions.
+        const treePath = (treePathInfo ?? [])
+          .map((pathInfo: TreePathInfo) => pathInfo?.name ?? '')
+          .slice(-records.length);
         const pointerEvent = eventParams.event.event;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
@@ -147,17 +151,15 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
                 treePath[i],
               ),
             );
-            if (i === records.length - 1) {
-              drillByFilters.push(
-                getSunburstDrillByFilter(
-                  columns[i],
-                  record,
-                  formData,
-                  coltype,
-                  treePath[i],
-                ),
-              );
-            }
+            drillByFilters.push(
+              getSunburstDrillByFilter(
+                columns[i],
+                record,
+                formData,
+                coltype,
+                treePath[i],
+              ),
+            );
           });
         }
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {

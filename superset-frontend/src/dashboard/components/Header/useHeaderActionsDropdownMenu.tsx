@@ -204,6 +204,7 @@ export const useHeaderActionsMenu = ({
     logEvent,
     userCanExport,
     canExportImage,
+    editMode,
   });
 
   const reportMenuItem = useHeaderReportMenuItems({

@@ -240,6 +240,7 @@ const reportDashboardEndpoint = 'glob:*/api/v1/report/related/dashboard?*';
 const reportChartEndpoint = 'glob:*/api/v1/report/related/chart?*';
 const tabsEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
 
+fetchMock.get('glob:*/api/v1/dashboard/1', { result: { published: false } });
 fetchMock.get(editorsEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
 // Named so tests can removeRoute() + re-register an override (an unnamed route
@@ -694,6 +695,30 @@ test('opens Contents Section on click', async () => {
   ).queryByText(/contents/i);
   expect(contentsHeader).toBeInTheDocument();
 });
+
+test.each([false, true])(
+  'explains draft dashboard access for dashboard content (report: %s)',
+  async isReport => {
+    render(
+      <AlertReportModal {...generateMockedProps(isReport, true, true)} />,
+      { useRedux: true },
+    );
+    await userEvent.click(screen.getByTestId('contents-panel'));
+    await waitFor(() =>
+      expect(screen.getByText('Draft dashboard access')).toBeVisible(),
+    );
+    expect(
+      screen.getByText(/must be an Admin or an editor of this draft dashboard/),
+    ).toBeVisible();
+    await userEvent.click(
+      screen.getByRole('combobox', { name: /select content type/i }),
+    );
+    await userEvent.click(screen.getByText('Chart', { selector: 'div' }));
+    expect(
+      screen.queryByText('Draft dashboard access'),
+    ).not.toBeInTheDocument();
+  },
+);
 
 test('renders screenshot options when dashboard is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
@@ -4661,4 +4686,78 @@ test('global attachment policy hides both the alert toggle and attachment contro
       { name: configurationEndpoint },
     );
   }
+});
+
+test('save validation errors remain readable in the form', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/report/101',
+    { result: { ...generateMockPayload(), id: 101 } },
+    { name: 'draft-save-record' },
+  );
+  fetchMock.put(
+    'glob:*/api/v1/report/101',
+    {
+      status: 422,
+      body: {
+        message: {
+          dashboard: [
+            'Publish the dashboard or add the execution account as an editor.',
+          ],
+        },
+      },
+    },
+    { name: 'draft-save-error' },
+  );
+  render(
+    <AlertReportModal
+      {...generateMockedProps(true, true)}
+      alert={{ ...validAlert, id: 101 }}
+    />,
+    {
+      useRedux: true,
+      initialState: { user: adminUser },
+    },
+  );
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(await screen.findByText('Could not save this schedule')).toBeVisible();
+  expect(
+    screen.getByText(
+      'Publish the dashboard or add the execution account as an editor.',
+    ),
+  ).toBeVisible();
+  fetchMock.removeRoute('draft-save-error');
+  fetchMock.removeRoute('draft-save-record');
+});
+
+test('dashboard picker marks drafts without marking published dashboards', async () => {
+  fetchMock.removeRoute(reportDashboardEndpoint);
+  fetchMock.get(
+    reportDashboardEndpoint,
+    {
+      count: 2,
+      result: [
+        { value: 21, text: 'Unpublished example', extra: { published: false } },
+        { value: 22, text: 'Published example', extra: { published: true } },
+      ],
+    },
+    { name: reportDashboardEndpoint },
+  );
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+    initialState: { user: adminUser },
+  });
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  await userEvent.click(
+    await screen.findByRole('combobox', { name: /dashboard/i }),
+  );
+  await waitFor(() =>
+    expect(screen.getByText('Unpublished example (Draft)')).toBeVisible(),
+  );
+  expect(screen.getByText('Published example')).toBeVisible();
+  expect(
+    screen.queryByText('Published example (Draft)'),
+  ).not.toBeInTheDocument();
 });
