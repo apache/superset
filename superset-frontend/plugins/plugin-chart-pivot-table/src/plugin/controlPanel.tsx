@@ -188,6 +188,20 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
+            name: 'hideEmptyColumns',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Hide empty columns'),
+              default: true,
+              renderTrigger: true,
+              description: t(
+                'Hide columns with only null metric values. Keep columns with zeros or non-empty summaries. This does not change totals or percentages.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'rowTotals',
             config: {
               type: 'CheckboxControl',

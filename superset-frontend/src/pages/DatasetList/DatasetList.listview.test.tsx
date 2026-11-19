@@ -178,7 +178,7 @@ test('required API endpoints are called and no unmocked calls on initial render'
   // assertOnlyExpectedCalls checks: 1) no unmatched calls, 2) each expected endpoint was called
   assertOnlyExpectedCalls([
     API_ENDPOINTS.DATASETS_INFO, // Permission check
-    API_ENDPOINTS.DATASOURCE_COMBINED, // Main dataset list data
+    API_ENDPOINTS.DATASETS, // Main dataset list data
   ]);
 });
 
@@ -299,7 +299,7 @@ test('sorting by Name column updates API call with sort parameter', async () => 
 
   // Record initial calls
   const initialCalls = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Click Name header to sort
@@ -307,14 +307,12 @@ test('sorting by Name column updates API call with sort parameter', async () => 
 
   // Wait for new API call
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
   // Verify latest call includes sort parameter
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const latestCall = calls[calls.length - 1];
   const { url } = latestCall;
 
@@ -335,19 +333,17 @@ test('sorting by Database column updates sort parameter', async () => {
   });
 
   const initialCalls = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   await userEvent.click(databaseHeader);
 
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const { url } = calls[calls.length - 1];
   expect(url).toMatch(/order_column|sort/);
 });
@@ -365,19 +361,17 @@ test('sorting by Last modified column updates sort parameter', async () => {
   });
 
   const initialCalls = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   await userEvent.click(modifiedHeader);
 
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const { url } = calls[calls.length - 1];
   expect(url).toMatch(/order_column|sort/);
 });
@@ -462,7 +456,7 @@ test('delete action successfully deletes dataset and refreshes list', async () =
 
   // Track API calls before confirm
   const callsBefore = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Click confirm - find the danger button (last delete button in modal)
@@ -488,7 +482,7 @@ test('delete action successfully deletes dataset and refreshes list', async () =
   // List refreshes
   await waitFor(() => {
     expect(
-      fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED).length,
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
     ).toBeGreaterThan(callsBefore);
   });
 });
@@ -560,7 +554,7 @@ test('duplicate action successfully duplicates virtual dataset', async () => {
 
   // Track API calls before submit
   const callsBefore = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Submit
@@ -582,7 +576,7 @@ test('duplicate action successfully duplicates virtual dataset', async () => {
   // List refreshes
   await waitFor(() => {
     expect(
-      fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED).length,
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
     ).toBeGreaterThan(callsBefore);
   });
 });
@@ -1391,7 +1385,7 @@ test('sort order persists after deleting a dataset', async () => {
 
   // Record initial API calls count
   const initialCalls = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Click Name header to sort
@@ -1399,16 +1393,12 @@ test('sort order persists after deleting a dataset', async () => {
 
   // Wait for new API call with sort parameter
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
   // Record the sort parameter from the API call after sorting
-  const callsAfterSort = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
-  );
+  const callsAfterSort = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const sortedUrl = callsAfterSort[callsAfterSort.length - 1].url;
   expect(sortedUrl).toMatch(/order_column|sort/);
 
@@ -1427,7 +1417,7 @@ test('sort order persists after deleting a dataset', async () => {
 
   // Record call count before delete to track refetch
   const callsBeforeDelete = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   const confirmButton = within(modal)
@@ -1448,7 +1438,7 @@ test('sort order persists after deleting a dataset', async () => {
   // Wait for list refetch to complete (prevents async cleanup error)
   await waitFor(() => {
     const currentCalls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
+      API_ENDPOINTS.DATASETS,
     ).length;
     expect(currentCalls).toBeGreaterThan(callsBeforeDelete);
   });
@@ -1525,7 +1515,7 @@ test('bulk selection clears when filter changes', async () => {
 
   // Record API call count before filter
   const beforeFilterCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Apply a filter using selectPillOption helper (compact pill UI)
@@ -1533,15 +1523,13 @@ test('bulk selection clears when filter changes', async () => {
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(beforeFilterCallCount);
   });
 
   // Verify filter was applied by decoding URL payload
   const urlAfterFilter = fetchMock.callHistory
-    .calls(API_ENDPOINTS.DATASOURCE_COMBINED)
+    .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.url;
   const risonAfterFilter = new URL(
     urlAfterFilter!,
@@ -1573,7 +1561,7 @@ test('type filter API call includes correct filter parameter', async () => {
 
   // Snapshot call count before filter
   const callsBeforeFilter = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Apply Type filter using compact pill UI
@@ -1581,16 +1569,12 @@ test('type filter API call includes correct filter parameter', async () => {
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(callsBeforeFilter);
   });
 
   // Verify the latest API call includes the Type filter
-  const url = fetchMock.callHistory
-    .calls(API_ENDPOINTS.DATASOURCE_COMBINED)
-    .at(-1)?.url;
+  const url = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).at(-1)?.url;
   expect(url).toContain('filters');
 
   // searchParams.get() already URL-decodes, so pass directly to rison.decode
@@ -1620,7 +1604,7 @@ test('type filter persists after duplicating a dataset', async () => {
 
   // Snapshot call count before filter
   const callsBeforeFilter = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Apply Type filter using compact pill UI
@@ -1628,15 +1612,13 @@ test('type filter persists after duplicating a dataset', async () => {
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(callsBeforeFilter);
   });
 
   // Verify filter is present by checking the latest API call
   const urlAfterFilter = fetchMock.callHistory
-    .calls(API_ENDPOINTS.DATASOURCE_COMBINED)
+    .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.url;
   const risonAfterFilter = new URL(
     urlAfterFilter!,
@@ -1656,7 +1638,7 @@ test('type filter persists after duplicating a dataset', async () => {
 
   // Capture datasets API call count BEFORE any duplicate operations
   const datasetsCallCountBeforeDuplicate = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Now duplicate the dataset
@@ -1690,14 +1672,14 @@ test('type filter persists after duplicating a dataset', async () => {
   // Wait for datasets refetch to occur (proves duplicate triggered a refresh)
   await waitFor(() => {
     const datasetsCallCount = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
+      API_ENDPOINTS.DATASETS,
     ).length;
     expect(datasetsCallCount).toBeGreaterThan(datasetsCallCountBeforeDuplicate);
   });
 
   // Verify Type filter persisted in the NEW datasets API call after duplication
   const urlAfterDuplicate = fetchMock.callHistory
-    .calls(API_ENDPOINTS.DATASOURCE_COMBINED)
+    .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.url;
   const risonAfterDuplicate = new URL(
     urlAfterDuplicate!,

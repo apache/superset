@@ -213,7 +213,7 @@ class GetExploreCommand(BaseCommand, ABC):
         except SQLAlchemyError:
             message = "SQLAlchemy error"
 
-        if self._datasource_id is not None:
+        if isinstance(datasource, SqlaTable) and self._datasource_id is not None:
             try:
                 detailed_rls = DatasetDAO.get_rls_filters_for_dataset(
                     self._datasource_id
