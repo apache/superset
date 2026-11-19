@@ -18,10 +18,14 @@
  */
 import versionHistoryReducer, {
   appendVersionSessionLog,
+  beginChartNormalizationSave,
   clearVersionPreview,
   clearVersionSessionLog,
+  completeChartNormalizationSave,
   closeVersionHistoryPanel,
   openVersionHistoryPanel,
+  hydrateChartNormalization,
+  invalidateChartNormalizationControls,
   selectIsChartVersionPreviewActive,
   selectIsDashboardVersionPreviewActive,
   selectVersionHistory,
@@ -144,4 +148,56 @@ test('per-entity preview selectors only match their own entity type', () => {
   const state: VersionHistoryRootState = { versionHistory: slice };
   expect(selectIsChartVersionPreviewActive(state)).toBe(true);
   expect(selectIsDashboardVersionPreviewActive(state)).toBe(false);
+});
+
+test('normalization tracking invalidates controls without re-adding transitions', () => {
+  let state = versionHistoryReducer(
+    initial,
+    hydrateChartNormalization({
+      chartId: 7,
+      hydrationSessionId: 'session-a',
+      transitions: {
+        row_limit: {
+          control: 'row_limit',
+          from_present: true,
+          from_value: null,
+          to_present: true,
+          to_value: 10000,
+        },
+      },
+      invalidatedControls: {},
+      saveAttemptId: null,
+    }),
+  );
+  state = versionHistoryReducer(
+    state,
+    invalidateChartNormalizationControls(['row_limit']),
+  );
+  expect(state.chartNormalization?.invalidatedControls).toEqual({
+    row_limit: true,
+  });
+  expect(state.chartNormalization?.transitions.row_limit).toBeDefined();
+});
+
+test('late save completion cannot rebase another hydration session', () => {
+  let state = versionHistoryReducer(
+    initial,
+    hydrateChartNormalization({
+      chartId: 7,
+      hydrationSessionId: 'session-b',
+      transitions: {},
+      invalidatedControls: {},
+      saveAttemptId: null,
+    }),
+  );
+  state = versionHistoryReducer(
+    state,
+    beginChartNormalizationSave(7, 'session-b', 'attempt-b'),
+  );
+  const unchanged = versionHistoryReducer(
+    state,
+    completeChartNormalizationSave(7, 'session-a', 'attempt-a', {}),
+  );
+  expect(unchanged).toBe(state);
+  expect(unchanged.chartNormalization?.saveAttemptId).toBe('attempt-b');
 });

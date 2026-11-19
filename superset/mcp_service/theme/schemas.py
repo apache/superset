@@ -31,6 +31,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
+from pydantic_core import PydanticCustomError
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.pagination_schemas import (
@@ -38,7 +39,6 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedResponse,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
-from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 
 
 class ThemeFilter(ColumnOperator):
@@ -140,7 +140,7 @@ class CreateThemeRequest(BaseModel):
 
     theme_name: Annotated[
         str,
-        Field(description="Human-readable name for the theme"),
+        Field(description="Human-readable name for the theme", max_length=250),
     ]
     json_data: Annotated[
         dict[str, Any] | str,
@@ -150,12 +150,17 @@ class CreateThemeRequest(BaseModel):
         ),
     ]
 
-    @field_validator("theme_name")
+    @field_validator("theme_name", mode="before")
     @classmethod
-    def reject_blank_theme_name(cls, value: str) -> str:
-        """Mirror the REST ThemePostSchema check: no empty/whitespace names."""
-        if not value or not value.strip():
-            raise ValueError("Theme name cannot be empty.")
+    def reject_blank_theme_name(cls, value: object) -> object:
+        """Reject blank names before the length cap without trimming valid names."""
+        if isinstance(value, (bytes, bytearray)):
+            try:
+                value = value.decode()
+            except UnicodeDecodeError:
+                return value  # Let Pydantic report its string_unicode error.
+        if isinstance(value, str) and not value.strip():
+            raise PydanticCustomError("empty_text", "Theme name cannot be empty.")
         return value
 
 
@@ -169,45 +174,20 @@ class CreateThemeResponse(BaseModel):
     error_type: str | None = Field(None, description="Type of error if creation failed")
 
 
-def _sanitize_theme_info_for_llm_context(theme_info: ThemeInfo) -> ThemeInfo:
-    """Wrap user-controlled theme fields before LLM exposure.
-
-    ``theme_name`` is user-supplied free text. ``json_data`` is structured
-    configuration, but its token values (font families, URLs, arbitrary antd
-    tokens) are equally user-controlled and pass ``is_valid_theme`` /
-    ``sanitize_theme_tokens`` untouched, so the whole JSON string is wrapped
-    as one untrusted block — the JSON stays parseable inside the delimiters,
-    and embedded delimiter tokens are escaped so a hostile value cannot close
-    the wrapper early.
-    """
-    payload = theme_info.model_dump(mode="python")
-    payload["theme_name"] = sanitize_for_llm_context(
-        payload.get("theme_name"),
-        field_path=("theme_name",),
-    )
-    payload["json_data"] = sanitize_for_llm_context(
-        payload.get("json_data"),
-        field_path=("json_data",),
-    )
-    return ThemeInfo(**payload)
-
-
 def serialize_theme_object(theme: Any) -> ThemeInfo | None:
     if not theme:
         return None
 
-    return _sanitize_theme_info_for_llm_context(
-        ThemeInfo(
-            id=getattr(theme, "id", None),
-            theme_name=getattr(theme, "theme_name", None),
-            json_data=getattr(theme, "json_data", None),
-            uuid=str(uuid) if (uuid := getattr(theme, "uuid", None)) else None,
-            is_system=getattr(theme, "is_system", None),
-            is_system_default=getattr(theme, "is_system_default", None),
-            is_system_dark=getattr(theme, "is_system_dark", None),
-            changed_on=getattr(theme, "changed_on", None),
-            changed_on_humanized=humanize_timestamp(getattr(theme, "changed_on", None)),
-            created_on=getattr(theme, "created_on", None),
-            created_on_humanized=humanize_timestamp(getattr(theme, "created_on", None)),
-        )
+    return ThemeInfo(
+        id=getattr(theme, "id", None),
+        theme_name=getattr(theme, "theme_name", None),
+        json_data=getattr(theme, "json_data", None),
+        uuid=str(uuid) if (uuid := getattr(theme, "uuid", None)) else None,
+        is_system=getattr(theme, "is_system", None),
+        is_system_default=getattr(theme, "is_system_default", None),
+        is_system_dark=getattr(theme, "is_system_dark", None),
+        changed_on=getattr(theme, "changed_on", None),
+        changed_on_humanized=humanize_timestamp(getattr(theme, "changed_on", None)),
+        created_on=getattr(theme, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(theme, "created_on", None)),
     )

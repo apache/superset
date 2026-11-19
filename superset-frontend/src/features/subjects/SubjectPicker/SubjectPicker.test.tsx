@@ -281,7 +281,7 @@ test('SubjectPicker preserves subject metadata on change', async () => {
     />,
   );
 
-  userEvent.click(screen.getByRole('button', { name: 'select subject' }));
+  await userEvent.click(screen.getByRole('button', { name: 'select subject' }));
 
   expect(onChange).toHaveBeenCalledWith([
     expect.objectContaining({

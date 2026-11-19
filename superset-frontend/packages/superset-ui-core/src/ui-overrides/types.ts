@@ -30,6 +30,7 @@ import type {
   QueryFormData,
 } from '../query';
 import type { JsonResponse } from '../connection';
+import type { MenuItem } from '../components/Menu';
 
 /**
  * A function which returns text (or marked-up text)
@@ -165,6 +166,13 @@ export interface SliceHeaderExtension {
 }
 
 /**
+ * Interface for extensions to the Slice Header more-options menu
+ */
+export interface SliceHeaderMenuExtension extends SliceHeaderExtension {
+  sliceName: string;
+}
+
+/**
  * Interface for extensions to Embed Modal
  */
 export interface DashboardEmbedModalExtensions {
@@ -222,6 +230,7 @@ export interface DateFilterControlProps {
   onClosePopover?: () => void;
   overlayStyle?: 'Modal' | 'Popover';
   isOverflowingFilterBar?: boolean;
+  displayFormat?: string;
 }
 
 export interface ExploreChartHeaderProps {
@@ -235,6 +244,10 @@ export interface ExploreChartHeaderProps {
   chartUpdateStartTime: number;
   queryController: AbortController | null;
   triggerQuery: boolean;
+}
+
+export interface VersionHistoryFooterProps {
+  entityType: 'chart' | 'dashboard';
 }
 
 export type Extensions = Partial<{
@@ -262,6 +275,9 @@ export type Extensions = Partial<{
   'sqleditor.extension.form': ComponentType<SQLFormExtensionProps>;
   'sqleditor.extension.resultTable': ComponentType<SQLResultTableExtensionProps>;
   'dashboard.slice.header': ComponentType<SliceHeaderExtension>;
+  'dashboard.slice.header.menu': (
+    context: SliceHeaderMenuExtension,
+  ) => MenuItem[];
   'sqleditor.extension.customAutocomplete': (
     args: CustomAutoCompleteArgs,
   ) => CustomAutocomplete[] | undefined;
@@ -270,5 +286,6 @@ export type Extensions = Partial<{
     ComponentType<SQLTablePreviewExtensionProps>,
   ][];
   'filter.dateFilterControl': ComponentType<DateFilterControlProps>;
+  'versionHistory.panel.footer': ComponentType<VersionHistoryFooterProps>;
   'explore.chart.header': ComponentType<ExploreChartHeaderProps>;
 }>;

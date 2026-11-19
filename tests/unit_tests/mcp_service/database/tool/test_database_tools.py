@@ -337,7 +337,7 @@ async def test_get_database_info_not_found(mock_find, mcp_server):
         result = await client.call_tool(
             "get_database_info", {"request": {"identifier": 999}}
         )
-        assert result.data["error_type"] == "not_found"
+        assert result.structured_content["error_type"] == "not_found"
 
 
 @patch("superset.daos.database.DatabaseDAO.list")

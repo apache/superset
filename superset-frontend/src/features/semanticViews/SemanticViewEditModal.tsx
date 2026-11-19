@@ -57,6 +57,10 @@ interface SemanticMetric {
 }
 
 interface SemanticViewStructure {
+  // Optional because an older backend may not emit them (deploy skew); the
+  // hydration effect only overwrites the form when they are present.
+  description?: string | null;
+  cache_timeout?: number | null;
   dimensions: SemanticDimension[];
   metrics: SemanticMetric[];
 }
@@ -115,36 +119,61 @@ export default function SemanticViewEditModal({
   );
   const [structureLoading, setStructureLoading] = useState(false);
 
+  // Seeds the form from the caller's copy — what the form falls back to if
+  // /structure fails (a spinner covers the form while that fetch is in
+  // flight). Keyed to open/identity rather than the semanticView object so a
+  // parent re-render cannot clobber in-progress edits.
   useEffect(() => {
     if (semanticView) {
       setDescription(semanticView.description || '');
       setCacheTimeout(semanticView.cache_timeout ?? null);
     }
-  }, [semanticView]);
+  }, [show, semanticView?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (show && semanticView) {
-      setStructureLoading(true);
-      SupersetClient.get({
-        endpoint: `/api/v1/semantic_view/${semanticView.id}/structure`,
-      })
-        .then(({ json }) => {
-          setStructure(json.result);
-        })
-        .catch(async error => {
-          const clientError = await getClientErrorObject(error);
-          addDangerToast?.(
-            clientError.error ||
-              t('An error occurred while fetching the semantic view structure'),
-          );
-        })
-        .finally(() => {
-          setStructureLoading(false);
-        });
-    } else {
+    if (!show || !semanticView) {
       setStructure(null);
+      setStructureLoading(false);
+      return undefined;
     }
-  }, [show, semanticView]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    let cancelled = false;
+    setStructureLoading(true);
+    SupersetClient.get({
+      endpoint: `/api/v1/semantic_view/${semanticView.id}/structure`,
+    })
+      .then(({ json }) => {
+        if (cancelled) return;
+        setStructure(json.result);
+        // The caller's copy of these fields goes stale the moment this modal
+        // saves, so re-open hydrates from the server rather than the prop.
+        // Only overwrite when the response carries the field: an older
+        // backend that omits it (deploy skew) must not blank the form — while
+        // an explicit null still means "cleared on the server".
+        if ('description' in json.result) {
+          setDescription(json.result.description || '');
+        }
+        if ('cache_timeout' in json.result) {
+          setCacheTimeout(json.result.cache_timeout ?? null);
+        }
+      })
+      .catch(async error => {
+        if (cancelled) return;
+        const clientError = await getClientErrorObject(error);
+        if (cancelled) return;
+        addDangerToast?.(
+          clientError.error ||
+            t('An error occurred while fetching the semantic view structure'),
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setStructureLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [show, semanticView?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
     if (!semanticView) return;

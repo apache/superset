@@ -60,7 +60,7 @@ def do_downgrade(session: Session) -> None:
 
 def upgrade():
     bind = op.get_bind()
-    session = Session(bind=bind, future=True)
+    session = Session(bind=bind)
 
     do_upgrade(session)
 
@@ -73,7 +73,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = Session(bind=bind, future=True)
+    session = Session(bind=bind)
 
     do_downgrade(session)
 

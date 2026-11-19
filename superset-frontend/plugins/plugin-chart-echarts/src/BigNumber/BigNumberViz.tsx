@@ -28,11 +28,17 @@ import {
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import Echart from '../components/Echart';
-import { BigNumberVizProps } from './types';
+import { BigNumberVizProps, HeaderAlignment } from './types';
 import { PROPORTION } from './constants';
 import { EventHandlers } from '../types';
 
 const defaultNumberFormatter = getNumberFormatter();
+
+const ALIGN_ITEMS: Record<HeaderAlignment, string> = {
+  left: 'flex-start',
+  center: 'center',
+  right: 'flex-end',
+};
 
 function BigNumberVis({
   className = '',
@@ -47,9 +53,11 @@ function BigNumberVis({
   subheader = '',
   subheaderFontSize = PROPORTION.SUBHEADER,
   subtitleFontSize = PROPORTION.SUBHEADER,
+  headerAlignment = 'left',
   ...props
 }: BigNumberVizProps) {
   const theme = useTheme();
+  const alignItems = ALIGN_ITEMS[headerAlignment];
 
   // Convert state to hooks
   const [elementsRendered, setElementsRendered] = useState(false);
@@ -132,6 +140,7 @@ function BigNumberVis({
         style={{
           fontSize,
           height: 'auto',
+          textAlign: headerAlignment,
         }}
       >
         {text}
@@ -170,6 +179,7 @@ function BigNumberVis({
         style={{
           fontSize,
           height: 'auto',
+          textAlign: headerAlignment,
         }}
       >
         {text}
@@ -224,6 +234,7 @@ function BigNumberVis({
     const handleContextMenu = (e: MouseEvent<HTMLDivElement>) => {
       if (onContextMenu) {
         e.preventDefault();
+        e.stopPropagation();
         onContextMenu(e.nativeEvent.clientX, e.nativeEvent.clientY);
       }
     };
@@ -235,6 +246,9 @@ function BigNumberVis({
         style={{
           display: 'flex',
           alignItems: 'center',
+          // header-line is always a flex container, so text-align has no
+          // effect on the number's position; justify-content does.
+          justifyContent: alignItems,
           fontSize,
           height: 'auto',
           color: numberColor,
@@ -274,6 +288,7 @@ function BigNumberVis({
           style={{
             fontSize,
             height: maxHeight,
+            textAlign: headerAlignment,
           }}
         >
           {text}
@@ -320,6 +335,7 @@ function BigNumberVis({
             style={{
               fontSize: `${fontSize}px`,
               height: maxHeight,
+              textAlign: headerAlignment,
             }}
           >
             {text}
@@ -424,11 +440,12 @@ function BigNumberVis({
     const overflow = shouldApplyOverflow(allTextHeight);
 
     return (
-      <div className={componentClassName}>
+      <div className={componentClassName} style={{ alignItems }}>
         <div
           className="text-container"
           style={{
             height: allTextHeight,
+            alignItems,
             ...(overflow
               ? {
                   display: 'block',
@@ -471,6 +488,7 @@ function BigNumberVis({
       className={componentClassName}
       style={{
         height,
+        alignItems,
         ...(overflow
           ? {
               display: 'block',
@@ -482,7 +500,7 @@ function BigNumberVis({
           : {}),
       }}
     >
-      <div className="text-container">
+      <div className="text-container" style={{ alignItems }}>
         {renderFallbackWarning()}
         {renderMetricName((metricNameFontSize || 0) * height)}
         {renderKicker((kickerFontSize || 0) * height)}

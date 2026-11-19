@@ -83,10 +83,16 @@ interface GetExploreUrlParams {
 interface BuildV1ChartDataPayloadParams {
   formData: QueryFormData;
   force?: boolean;
+  // Per-query forced-refresh nonces (the async tasks' UUIDs), assigned to each
+  // built query by index for the synchronous read-back of a forced refresh.
+  queryForceNonces?: string[];
   resultFormat?: string;
   resultType?: string;
   setDataMask?: SetDataMaskHook;
   ownState?: JsonObject;
+  // Client-generated id for this query, sent as `client_id` so the backend can
+  // register the running query and cancel it if the user hits Stop.
+  clientId?: string;
 }
 
 interface ExportChartParams {
@@ -175,7 +181,13 @@ export function mountExploreUrl(
     if (force) {
       search.force = '1';
     }
-    search.standalone = DashboardStandaloneMode.HideNav;
+    // Callers pass the active mode through extraSearch (already merged above).
+    // Only default when absent — unconditionally writing HideNav downgrades
+    // mode 2 (hide nav, keep editor controls) to mode 1 (chart only) on every
+    // history.replace an Explore interaction triggers.
+    if (search.standalone === undefined) {
+      search.standalone = DashboardStandaloneMode.HideNav;
+    }
   }
   return uri.directory(directory).search(search).toString();
 }
@@ -281,10 +293,12 @@ export const getQuerySettings = (
 export const buildV1ChartDataPayload = async ({
   formData,
   force,
+  queryForceNonces,
   resultFormat,
   resultType,
   setDataMask,
   ownState,
+  clientId,
 }: BuildV1ChartDataPayloadParams): Promise<
   ReturnType<typeof buildQueryContext>
 > => {
@@ -299,7 +313,7 @@ export const buildV1ChartDataPayload = async ({
     : undefined;
   const buildQuery =
     (registryResult ? await registryResult : undefined) ?? defaultBuildQuery;
-  return buildQuery(
+  const payload = await buildQuery(
     {
       ...formData,
       force,
@@ -314,6 +328,21 @@ export const buildV1ChartDataPayload = async ({
       },
     },
   );
+  // Stamp each query with its forced-refresh nonce (its async task's UUID, from
+  // the 202 `task_ids`, index-aligned to queries) for the synchronous read-back.
+  if (queryForceNonces?.length && Array.isArray(payload.queries)) {
+    payload.queries.forEach((query, index) => {
+      if (queryForceNonces[index]) {
+        // eslint-disable-next-line no-param-reassign
+        (query as { force_nonce?: string }).force_nonce =
+          queryForceNonces[index];
+      }
+    });
+  }
+  if (clientId) {
+    payload.client_id = clientId;
+  }
+  return payload;
 };
 
 export const exportChart = async ({
@@ -405,9 +434,10 @@ export const exploreChart = (
     allowDomainSharding: false,
     requestParams,
   });
-  SupersetClient.postForm(url as string, {
-    form_data: safeStringify(formData),
-  });
+  SupersetClient.postForm(
+    { url: url as string },
+    { form_data: safeStringify(formData) },
+  );
 };
 
 export const useDebouncedEffect = (
@@ -429,10 +459,12 @@ export const useDebouncedEffect = (
   }, [callback, delay]);
 };
 
+/** Format a filter for display, or format literals for executable SQL. */
 export const getSimpleSQLExpression = (
   subject?: string | SubjectWithColumnName,
   operator?: string,
   comparator?: ComparatorValue | ComparatorValue[],
+  { useDisplayValues = true }: { useDisplayValues?: boolean } = {},
 ): string => {
   const multiOperatorValues = [...MULTI_OPERATORS].map(
     (op: Operators) => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
@@ -459,12 +491,34 @@ export const getSimpleSQLExpression = (
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
     if (comparatorArray.length > 0 && showComparator) {
-      const formattedComparators = comparatorArray
-        .map(val => optionLabel(val))
-        .map(
-          val =>
-            `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
-        );
+      const formattedComparators = comparatorArray.map(val => {
+        if (!useDisplayValues) {
+          if (typeof val === 'string') {
+            // Chart label maps and pivot keys stringify numeric dimensions
+            // (Python str(): '2024', '20.0', '1.50', '1e-05', big integers).
+            // Keep plain decimal literals bare for strict numeric comparisons.
+            if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(val)) {
+              return val;
+            }
+            return `'${val.replace(/'/g, "''")}'`;
+          }
+          if (val === null) {
+            return 'NULL';
+          }
+          if (typeof val === 'boolean') {
+            return val ? 'TRUE' : 'FALSE';
+          }
+          return String(val);
+        }
+        const label = optionLabel(val);
+        // Array-literal values (e.g. ['a', 'b']) are shown as-is rather than
+        // quoted/escaped as a string, so array-column filters read naturally.
+        const asString = String(label);
+        if (asString.startsWith('[') && asString.endsWith(']')) {
+          return asString;
+        }
+        return `${quote}${isString ? asString.replace(/'/g, "''") : label}${quote}`;
+      });
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;
     }
   }

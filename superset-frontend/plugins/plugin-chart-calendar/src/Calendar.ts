@@ -22,7 +22,7 @@ import { getSequentialSchemeRegistry } from '@superset-ui/core';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import CalHeatMapImport from './vendor/cal-heatmap';
-import { convertUTCTimestampToLocal } from './utils';
+import { convertUTCTimestampToLocal, getFormattedUTCTime } from './utils';
 
 // The vendor file is @ts-nocheck, so its export lacks type info.
 // Define a minimal constructor interface for use in this file.
@@ -100,9 +100,13 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
   container.selectAll('*').remove();
   const div = container.append('div');
 
+  // Days without data carry a null value; their label stays empty.
   const subDomainTextFormat = showValues
-    ? (_date: Date, value: number) => valueFormatter(value)
+    ? (_date: Date, value: number | null) =>
+        value == null ? '' : valueFormatter(value)
     : null;
+  const dateFormatter = (date: Date, format: string) =>
+    getFormattedUTCTime(date.getTime(), format);
 
   const metricsData = data.data;
 
@@ -166,6 +170,7 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
       itemName: '',
       valueFormatter,
       timeFormatter,
+      dateFormatter,
       subDomainTextFormat,
     });
   });

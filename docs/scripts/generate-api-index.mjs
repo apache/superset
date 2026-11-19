@@ -30,6 +30,7 @@ import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
+import kebabCase from 'lodash/kebabCase.js';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -93,7 +94,6 @@ const CATEGORY_GROUPS = {
     'User',
     'Menu',
     'Available Domains',
-    'AsyncEventsRestApi',
     'OpenApi',
   ],
 };
@@ -130,12 +130,9 @@ function buildSlugMap() {
   return labelToSlug;
 }
 
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-}
+// Same algorithm docusaurus-openapi-docs uses to name the endpoint pages, so a
+// fallback slug matches the generated page (e.g. "OAuth2" -> "o-auth-2").
+const slugify = text => kebabCase(text);
 
 function main() {
   console.log(`Reading OpenAPI spec from ${SPEC_PATH}`);

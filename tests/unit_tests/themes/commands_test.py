@@ -20,6 +20,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from superset.commands.theme.exceptions import (
+    SystemThemeInUseError,
     SystemThemeProtectedError,
     ThemeNotFoundError,
 )
@@ -56,12 +57,22 @@ class TestUpdateThemeCommand:
         with pytest.raises(SystemThemeProtectedError):
             command.validate()
 
+    @patch("superset.commands.theme.update.compute_subjects")
+    @patch("superset.security_manager.raise_for_editorship")
     @patch("superset.commands.theme.update.ThemeDAO")
-    def test_validate_regular_theme_success(self, mock_theme_dao):
-        """Test validation succeeds for regular (non-system) themes"""
+    def test_validate_regular_theme_success(
+        self, mock_theme_dao, mock_raise_for_editorship, mock_compute_subjects
+    ):
+        """Test validation succeeds for regular (non-system) themes.
+
+        An editor (or admin) passes the editorship gate, so
+        ``raise_for_editorship`` is a no-op here.
+        """
         # Arrange
         mock_theme = Mock(spec=Theme)
         mock_theme.is_system = False
+        mock_theme.is_system_default = False
+        mock_theme.is_system_dark = False
         mock_theme_dao.find_by_id.return_value = mock_theme
         command = UpdateThemeCommand(123, {"theme_name": "test"})
 
@@ -70,13 +81,20 @@ class TestUpdateThemeCommand:
 
         # Assert
         assert command._model == mock_theme
+        mock_raise_for_editorship.assert_called_once_with(mock_theme)
 
+    @patch("superset.commands.theme.update.compute_subjects")
+    @patch("superset.security_manager.raise_for_editorship")
     @patch("superset.commands.theme.update.ThemeDAO")
-    def test_run_success(self, mock_theme_dao):
+    def test_run_success(
+        self, mock_theme_dao, mock_raise_for_editorship, mock_compute_subjects
+    ):
         """Test successful theme update"""
         # Arrange
         mock_theme = Mock(spec=Theme)
         mock_theme.is_system = False
+        mock_theme.is_system_default = False
+        mock_theme.is_system_dark = False
         mock_updated_theme = Mock(spec=Theme)
         mock_theme_dao.find_by_id.return_value = mock_theme
         mock_theme_dao.update.return_value = mock_updated_theme
@@ -91,6 +109,53 @@ class TestUpdateThemeCommand:
         mock_theme_dao.update.assert_called_once_with(
             mock_theme, {"theme_name": "updated_name"}
         )
+
+    @patch("superset.commands.theme.update.security_manager")
+    @patch("superset.commands.theme.update.ThemeDAO")
+    def test_validate_system_default_theme_blocks_non_admin(
+        self, mock_theme_dao, mock_security_manager
+    ):
+        """Non-admins cannot update the active system-default/dark theme slot."""
+        mock_theme = Mock(spec=Theme)
+        mock_theme.is_system = False
+        mock_theme.is_system_default = True
+        mock_theme.is_system_dark = False
+        mock_theme_dao.find_by_id.return_value = mock_theme
+        # Use a regular Mock for is_admin to avoid AsyncMock auto-detection
+        mock_security_manager.is_admin = Mock(return_value=False)
+
+        command = UpdateThemeCommand(123, {"json_data": "{}"})
+
+        with pytest.raises(SystemThemeInUseError):
+            command.validate()
+
+    @patch("superset.commands.theme.update.compute_subjects")
+    @patch("superset.commands.theme.update.security_manager")
+    @patch("superset.commands.theme.update.ThemeDAO")
+    def test_validate_system_default_theme_allows_admin(
+        self, mock_theme_dao, mock_security_manager, mock_compute_subjects
+    ):
+        """Admins can still update the active system-default/dark theme slot."""
+        mock_theme = Mock(spec=Theme)
+        mock_theme.is_system = False
+        mock_theme.is_system_default = True
+        mock_theme.is_system_dark = False
+        mock_theme_dao.find_by_id.return_value = mock_theme
+        # Use a regular Mock for is_admin to avoid AsyncMock auto-detection
+        mock_security_manager.is_admin = Mock(return_value=True)
+
+        command = UpdateThemeCommand(123, {"json_data": "{}"})
+
+        command.validate()  # Should not raise any exception
+
+        assert command._model == mock_theme
+
+
+def test_theme_is_gamma_read_only():
+    """Theme writes must require at least Alpha; Gamma only gets read access."""
+    from superset import security_manager
+
+    assert "Theme" in security_manager.GAMMA_READ_ONLY_MODEL_VIEWS
 
 
 class TestSeedSystemThemesCommand:

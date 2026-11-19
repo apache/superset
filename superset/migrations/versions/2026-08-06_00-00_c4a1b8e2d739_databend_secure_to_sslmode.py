@@ -142,7 +142,7 @@ def _migrate(
     default: tuple[str, str] | None = None,
 ) -> None:
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     query = session.query(Database).filter(Database.sqlalchemy_uri.like("databend%"))
     for database in paginated_update(query):

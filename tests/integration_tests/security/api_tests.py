@@ -17,12 +17,17 @@
 # isort:skip_file
 """Tests for security api methods"""
 
+from unittest.mock import patch
+
 import jwt
 import pytest
 
 from flask.ctx import AppContext
 from flask_wtf.csrf import generate_csrf
 from superset import db, security_manager
+from superset.commands.dashboard.embedded.exceptions import (
+    EmbeddedDashboardAccessDeniedError,
+)
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host
@@ -363,6 +368,22 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         assert "attributes" not in decoded_token["user"]
         assert resource == decoded_token["resources"][0]
 
+    @with_config({"GUEST_TOKEN_IDENTITY_ENFORCE": True})
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_guest_token_invalid_identity(self) -> None:
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        user = {"username": "bob\nalice", "first_name": "Bob", "last_name": "Bob"}
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        params = {"user": user, "resources": [resource], "rls": []}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert400(response)
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_guest_token_bad_resources(self):
         self.login(ADMIN_USERNAME)
@@ -376,6 +397,29 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         )
 
         self.assert400(response)
+
+    def test_post_guest_token_dashboard_access_denied(self):
+        """
+        A minting principal that is not entitled to the scoped dashboard gets
+        a 403, not a 500: validate_guest_token_resources raises
+        EmbeddedDashboardAccessDeniedError and the endpoint must translate
+        it, since @safe would otherwise report it as a server error.
+        """
+        self.login(ADMIN_USERNAME)
+        user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
+        resource = {"type": "dashboard", "id": "any-id"}
+        params = {"user": user, "resources": [resource], "rls": []}
+
+        with patch.object(
+            security_manager,
+            "validate_guest_token_resources",
+            side_effect=EmbeddedDashboardAccessDeniedError(),
+        ):
+            response = self.client.post(
+                self.uri, data=json.dumps(params), content_type="application/json"
+            )
+
+        self.assert403(response)
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", scope="class")
@@ -409,6 +453,21 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
         rls_rule = {"dataset": 1, "clause": "tenant_id=123"}
         self.assert200(self._get_guest_token_with_rls(rls_rule))
 
+    @with_config(
+        {
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                x["user"].update(username="bob\nalice") is None
+            )
+        }
+    )
+    @with_config({"GUEST_TOKEN_IDENTITY_ENFORCE": True})
+    def test_guest_token_invalid_identity_after_hook(self):
+        """
+        Security API: an identity made invalid by the validator hook is a 400
+        """
+        rls_rule = {"dataset": 1, "clause": "tenant_id=123"}
+        self.assert400(self._get_guest_token_with_rls(rls_rule))
+
     @with_config({"GUEST_TOKEN_VALIDATOR_HOOK": 123})
     def test_guest_validator_hook_not_callable(self):
         """
@@ -428,8 +487,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_positive(self):
@@ -444,8 +504,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_negative(self):

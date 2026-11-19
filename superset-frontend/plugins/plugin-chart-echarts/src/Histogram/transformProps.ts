@@ -23,17 +23,30 @@ import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { isEmpty } from 'lodash-es';
 import {
   CategoricalColorNamespace,
+  DataRecordValue,
   NumberFormats,
   getColumnLabel,
   getValueFormatter,
   tooltipHtml,
+  tooltipMarker,
 } from '@superset-ui/core';
 import { HistogramChartProps, HistogramTransformedProps } from './types';
 import { LegendOrientation, LegendType, Refs } from '../types';
 import { defaultGrid, defaultYAxis } from '../defaults';
-import { getLegendProps } from '../utils/series';
+import { OpacityEnum } from '../constants';
+import {
+  getColtypesMapping,
+  getLegendProps,
+  getLegendScrollDataIndex,
+} from '../utils/series';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPercentFormatter } from '../utils/formatters';
+import {
+  HistogramBin,
+  getHistogramCrossFilterKey,
+  getSelectedHistogramKeys,
+  parseBinKey,
+} from './crossFilter';
 
 export default function transformProps(
   chartProps: HistogramChartProps,
@@ -42,21 +55,30 @@ export default function transformProps(
   let focusedSeries: number | undefined;
   const {
     datasource: { currencyFormats = {}, columnFormats = {} },
+    emitCrossFilters,
+    filterState,
     formData,
     height,
     hooks,
     legendState = {},
+    legendIndex,
     queriesData,
     theme,
     width,
   } = chartProps;
-  const { onLegendStateChanged } = hooks;
+  const {
+    onContextMenu,
+    onLegendScroll,
+    onLegendStateChanged,
+    setDataMask = () => {},
+  } = hooks;
   const {
     colorScheme,
     column,
     groupby = [],
     normalize,
     showLegend,
+    showSelectorLegend,
     showValue,
     sliceId,
     xAxisFormat,
@@ -64,7 +86,10 @@ export default function transformProps(
     yAxisTitle,
     yAxisFormat,
   } = formData;
-  const { data } = queriesData[0];
+  const queryData = queriesData[0] ?? { data: [] };
+  const data = queryData.data ?? [];
+  const coltypeMapping = getColtypesMapping(queryData);
+  const selectedKeys = getSelectedHistogramKeys(filterState?.selectedValues);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   const formatter = (format: string) =>
@@ -79,24 +104,61 @@ export default function transformProps(
   const yAxisFormatter = formatter(yAxisFormat);
 
   const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
-  const groupbySet = new Set(groupby);
-  const xAxisData: string[] = Object.keys(data[0])
-    .filter(key => !groupbySet.has(key))
-    .map(key => {
-      const array = key.split(' - ').map(value => parseFloat(value));
-      return `${xAxisFormatter(array[0])} - ${xAxisFormatter(array[1])}`;
-    });
-  const barSeries: BarSeriesOption[] = data.map(datum => {
+  const groupbySet = new Set(groupby.map(getColumnLabel));
+  const firstRow = data[0];
+  const binKeys = firstRow
+    ? Object.keys(firstRow).filter(
+        key => !groupbySet.has(key) && parseBinKey(key) !== undefined,
+      )
+    : [];
+  const bins: HistogramBin[] = binKeys.map((key, index) => {
+    const edges = parseBinKey(key);
+    const start = edges?.start ?? Number.NaN;
+    const end = edges?.end ?? Number.NaN;
+    const startLabel = xAxisFormatter(start);
+    const endLabel = xAxisFormatter(end);
+    return {
+      start,
+      end,
+      isLast: index === binKeys.length - 1,
+      label: `${startLabel} - ${endLabel}`,
+      endLabel,
+    };
+  });
+  const xAxisData = bins.map(bin => bin.label);
+  const seriesGroupby: DataRecordValue[][] = [];
+  const rows = data.map(datum => ({
+    datum,
+    groupbyValues: groupby.map(
+      key => datum[getColumnLabel(key)] as DataRecordValue,
+    ),
+  }));
+  // Bin edges come from the current result. A key from older edges matches
+  // no bar, so dimming every bar would hide that the selection is stale.
+  const hasMatchingSelection =
+    selectedKeys.length > 0 &&
+    rows.some(({ groupbyValues }) =>
+      bins.some(bin =>
+        selectedKeys.includes(getHistogramCrossFilterKey(bin, groupbyValues)),
+      ),
+    );
+  const barSeries: BarSeriesOption[] = rows.map(({ datum, groupbyValues }) => {
+    seriesGroupby.push(groupbyValues);
     const seriesName =
-      groupby.length > 0
-        ? groupby.map(key => datum[getColumnLabel(key)]).join(', ')
-        : getColumnLabel(column);
-    const seriesData = Object.keys(datum)
-      .filter(key => groupbySet.has(key) === false)
-      .map(key => datum[key] as number);
+      groupby.length > 0 ? groupbyValues.join(', ') : getColumnLabel(column);
+    const seriesData = bins.map((bin, index) => {
+      const filterKey = getHistogramCrossFilterKey(bin, groupbyValues);
+      const isDimmed =
+        hasMatchingSelection && !selectedKeys.includes(filterKey);
+      const value = datum[binKeys[index]] as number;
+      return isDimmed
+        ? { value, itemStyle: { opacity: OpacityEnum.SemiTransparent } }
+        : { value };
+    });
     return {
       name: seriesName,
       type: 'bar',
+      cursor: emitCrossFilters ? 'pointer' : 'default',
       data: seriesData,
       itemStyle: {
         color: colorFn(seriesName, sliceId),
@@ -122,8 +184,11 @@ export default function transformProps(
   const tooltipFormatter = (params: CallbackDataParams[]) => {
     const title = params[0].name;
     const rows = params.map(param => {
-      const { marker, seriesName, value } = param;
-      return [`${marker}${seriesName}`, yAxisFormatter.format(value as number)];
+      const { color, seriesName, value } = param;
+      return [
+        `${tooltipMarker(color)}${seriesName}`,
+        yAxisFormatter.format(value as number),
+      ];
     });
     if (groupby.length > 0) {
       const total = params.reduce(
@@ -184,8 +249,13 @@ export default function transformProps(
         LegendOrientation.Top,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
+      ),
+      scrollDataIndex: getLegendScrollDataIndex(
+        legendIndex,
+        legendOptions.length,
       ),
       data: legendOptions,
     },
@@ -204,5 +274,13 @@ export default function transformProps(
     echartOptions,
     onFocusedSeries,
     onLegendStateChanged,
+    onLegendScroll,
+    onContextMenu,
+    setDataMask,
+    emitCrossFilters,
+    filterState,
+    coltypeMapping,
+    bins,
+    seriesGroupby,
   };
 }

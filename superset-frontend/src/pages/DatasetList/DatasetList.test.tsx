@@ -19,7 +19,9 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import rison from 'rison';
+import { FeatureFlag } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
+import { useLocation } from 'react-router-dom';
 import {
   setupMocks,
   renderDatasetList,
@@ -30,9 +32,15 @@ import {
   mockDatasets,
   mockApiError403,
   mockDatasetListEndpoints,
+  setupApiPermissions,
   API_ENDPOINTS,
   RisonFilter,
 } from './DatasetList.testHelpers';
+
+function LocationSearch() {
+  const { search } = useLocation();
+  return <output data-test="location-search">{search}</output>;
+}
 
 // Increase default timeout for tests that involve multiple async operations
 jest.setTimeout(15000);
@@ -598,3 +606,109 @@ test('does not show RLS badge when dataset has no rls_filters', async () => {
     screen.queryByRole('img', { name: /row-level security/i }),
   ).not.toBeInTheDocument();
 });
+
+test.each([false, true])(
+  'renders dataset type badges with semantic layers enabled=%s',
+  async enabled => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFlags,
+      [FeatureFlag.SemanticLayers]: enabled,
+    };
+    try {
+      const physical = { ...mockDatasets[0], kind: 'physical' };
+      const virtual = { ...mockDatasets[1], kind: 'virtual' };
+      const semantic = {
+        ...mockDatasets[0],
+        id: 900,
+        table_name: 'Semantic Orders',
+        kind: 'semantic_view',
+      };
+      const result = enabled
+        ? [physical, virtual, semantic]
+        : [physical, virtual];
+      mockDatasetListEndpoints({ result, count: result.length });
+      renderDatasetList(mockAdminUser);
+      const table = await screen.findByRole('table');
+      await waitFor(() =>
+        expect(within(table).getAllByTestId('dataset-type-label')).toHaveLength(
+          result.length,
+        ),
+      );
+      expect(within(table).getByText('Physical')).toBeInTheDocument();
+      expect(within(table).getByText('Virtual')).toBeInTheDocument();
+      if (enabled) {
+        const badge = within(table)
+          .getByText('Semantic View')
+          .closest('[data-test="dataset-type-label"]');
+        expect(badge).toBeInTheDocument();
+        expect(
+          within(badge as HTMLElement).getByRole('img', { name: 'apartment' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Datasources')).toBeInTheDocument();
+      } else {
+        expect(
+          within(table).queryByText('Semantic View'),
+        ).not.toBeInTheDocument();
+        expect(screen.getByText('Datasets')).toBeInTheDocument();
+      }
+    } finally {
+      window.featureFlags = previousFlags;
+    }
+  },
+);
+
+test('semantic-view creation link opens the semantic-view modal', async () => {
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.SemanticLayers]: true,
+  };
+  try {
+    fetchMock.get(API_ENDPOINTS.SEMANTIC_LAYERS, { result: [], count: 0 });
+    renderDatasetList(
+      mockAdminUser,
+      {},
+      {},
+      '/tablemodelview/list/?create=semantic_view',
+      <LocationSearch />,
+    );
+    expect(await screen.findByText('Add Semantic View')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        new URLSearchParams(
+          screen.getByTestId('location-search').textContent ?? '',
+        ).has('create'),
+      ).toBe(false),
+    );
+  } finally {
+    window.featureFlags = previousFlags;
+  }
+});
+
+test.each([
+  ['Semantic Layers disabled', false, ['can_read', 'can_write']],
+  ['dataset write denied', true, ['can_read']],
+])(
+  'semantic-view creation link stays closed when %s',
+  async (_, enabled, permissions) => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFlags,
+      [FeatureFlag.SemanticLayers]: enabled,
+    };
+    try {
+      setupApiPermissions(permissions);
+      renderDatasetList(
+        mockAdminUser,
+        {},
+        {},
+        '/tablemodelview/list/?create=semantic_view',
+      );
+      await screen.findByRole('table');
+      expect(screen.queryByText('Add Semantic View')).not.toBeInTheDocument();
+    } finally {
+      window.featureFlags = previousFlags;
+    }
+  },
+);

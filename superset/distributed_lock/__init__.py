@@ -57,8 +57,11 @@ def DistributedLock(  # noqa: N802
 
     key = get_key(namespace, **kwargs)
 
-    AcquireDistributedLock(namespace, kwargs, ttl_seconds).run()
+    acquire = AcquireDistributedLock(namespace, kwargs, ttl_seconds)
+    acquire.run()
     try:
         yield key
     finally:
-        ReleaseDistributedLock(namespace, kwargs).run()
+        # Pass the acquisition token so release only removes the lock if this
+        # acquisition still owns it (see ReleaseDistributedLock).
+        ReleaseDistributedLock(namespace, kwargs, token=acquire.token).run()
