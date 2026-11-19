@@ -1742,3 +1742,56 @@ test('TableRenderer keeps each metric aggregation on its own formatter', () => {
   expect(grandTotalCells.length).toBe(1);
   expect(grandTotalCells[0]).toHaveTextContent('3.000 r');
 });
+
+test.each([
+  { hideEmptyColumns: false, sortColumn: 'B' },
+  { hideEmptyColumns: false, sortColumn: 'C' },
+  { hideEmptyColumns: true, sortColumn: 'C' },
+])(
+  'reset sorting when empty-column visibility changes ($hideEmptyColumns, $sortColumn)',
+  ({ hideEmptyColumns, sortColumn }) => {
+    const props = buildDefaultProps({
+      rows: ['row'],
+      cols: ['column'],
+      vals: ['value'],
+      aggregateFunction: 'Sum',
+      data: ['first', 'second'].flatMap(row => [
+        { row, column: 'A', value: 1 },
+        { row, column: 'B', value: null },
+        { row, column: 'C', value: row === 'first' ? 20 : 10 },
+      ]),
+    });
+    const { container, rerender } = renderWithTheme(
+      <TableRenderer {...props} hideEmptyColumns={hideEmptyColumns} />,
+    );
+    const sort = (column: string) => {
+      const header = Array.from(
+        container.querySelectorAll('th.pvtColLabel'),
+      ).find(node => node.textContent === column)!;
+      fireEvent.click(header.querySelector('.anticon')!);
+    };
+    const rowLabels = () =>
+      Array.from(container.querySelectorAll('th.pvtRowLabel')).map(
+        node => node.textContent,
+      );
+    sort(sortColumn);
+    expect(
+      screen.getByRole('button', { name: `Sorted by ${sortColumn} ascending` }),
+    ).toBeInTheDocument();
+    if (sortColumn === 'C') expect(rowLabels()).toEqual(['second', 'first']);
+    rerender(
+      <ThemeProvider theme={supersetTheme}>
+        <TableRenderer {...props} hideEmptyColumns={!hideEmptyColumns} />
+      </ThemeProvider>,
+    );
+    expect(
+      screen.queryByRole('button', { name: /Sorted by/ }),
+    ).not.toBeInTheDocument();
+    expect(rowLabels()).toEqual(['first', 'second']);
+    sort('C');
+    expect(
+      screen.getByRole('button', { name: 'Sorted by C ascending' }),
+    ).toBeInTheDocument();
+    expect(rowLabels()).toEqual(['second', 'first']);
+  },
+);

@@ -73,6 +73,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
 from pydantic import (
+    AfterValidator,
     AliasChoices,
     BaseModel,
     BeforeValidator,
@@ -81,6 +82,10 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    StrictBool,
+    StrictFloat,
+    StrictInt,
+    StrictStr,
 )
 from pydantic.json_schema import SkipJsonSchema
 from pydantic_core import PydanticCustomError
@@ -305,6 +310,164 @@ DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
 ]
 
 
+def _validate_filter_value_text(value: str) -> str:
+    """Reject unpaired surrogates that cannot be represented in the UTF-8 response."""
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError as ex:
+        raise ValueError("Filter discovery strings must be valid UTF-8") from ex
+    return value
+
+
+FilterValueText = Annotated[StrictStr, AfterValidator(_validate_filter_value_text)]
+
+
+def _validate_filter_value_scalar(value: object) -> object:
+    """Reject non-JSON scalars without coercing their type or content."""
+    if value is not None and type(value) not in (str, int, float, bool):
+        raise ValueError("Filter values must be JSON scalars")
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("Filter values must be finite")
+    return value
+
+
+FilterValueScalar = Annotated[
+    FilterValueText | StrictBool | StrictInt | StrictFloat | None,
+    BeforeValidator(_validate_filter_value_scalar),
+]
+
+
+def _omit_mode_default(schema: dict[str, Any]) -> None:
+    """Advertise a presence-sensitive mode without a default to materialize."""
+    schema.pop("default", None)
+
+
+def _omit_mode_default_and_null(schema: dict[str, Any]) -> None:
+    """Advertise a non-null presence-sensitive string without a default."""
+    _omit_mode_default(schema)
+    branches = [b for b in schema.pop("anyOf", []) if b.get("type") != "null"]
+    if len(branches) == 1:
+        schema.update(branches[0])
+
+
+class FilterValueRequest(BaseModel):
+    """One bounded dropdown listing, literal search, or exact typed probe."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    filter_id: FilterValueText = Field(
+        min_length=1, description="Configured native filter ID"
+    )
+    limit: StrictInt = Field(default=25, ge=1, le=100)
+    # Mode is chosen by presence, so neither field advertises a default that a
+    # client could fill in and turn a listing into a search or a null probe.
+    search: FilterValueText | None = Field(
+        default=None, max_length=200, json_schema_extra=_omit_mode_default_and_null
+    )
+    exact_value: FilterValueScalar = Field(
+        default=None, json_schema_extra=_omit_mode_default
+    )
+
+    @model_validator(mode="after")
+    def _validate_mode(self) -> "FilterValueRequest":
+        """Distinguish an explicit null probe from an absent probe."""
+        if "search" in self.model_fields_set:
+            if self.search is None:
+                raise ValueError("search must be a string")
+            if "exact_value" in self.model_fields_set:
+                raise ValueError("search and exact_value are mutually exclusive")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _preserve_mode_presence(self, serializer: Any) -> dict[str, Any]:
+        """Keep round trips from turning list requests into exact-null probes."""
+        data = serializer(self)
+        for field in ("search", "exact_value"):
+            if field not in self.model_fields_set:
+                data.pop(field, None)
+        return data
+
+
+class ProposedFilterValues(BaseModel):
+    """Read-only select-ancestor override, validated before use."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    filter_id: FilterValueText = Field(min_length=1)
+    values: list[FilterValueScalar] = Field(max_length=20)
+
+
+FilterValueReason = Literal[
+    "row_limit",
+    "query_budget",
+    "scheduling_budget",
+    "response_limit",
+    "permission_denied",
+    "state_missing",
+    "state_invalid",
+    "parent_unresolved",
+    "proposal_invalid",
+    "unsupported_filter",
+    "unsupported_target",
+    "unsupported_search",
+    "query_not_executed",
+    "query_failed",
+    "invalid_scalar",
+]
+
+
+class NativeFilterAvailableValues(BaseModel):
+    """Exact dropdown scalars and the limits of their completeness claim."""
+
+    status: Literal[
+        "complete", "truncated", "unavailable", "unsupported", "not_requested"
+    ]
+    values: list[FilterValueScalar] = Field(default_factory=list)
+    query_mode: Literal["list", "contains", "exact"] = "list"
+    search: str | None = None
+    exact_value: FilterValueScalar = None
+    reason: FilterValueReason | None = None
+    scope: Literal["filter_selection"] = "filter_selection"
+
+    @model_validator(mode="after")
+    def _validate_status(self) -> "NativeFilterAvailableValues":
+        """Prevent empty failures from masquerading as complete results."""
+        if self.status in ("complete", "not_requested"):
+            if self.reason is not None:
+                raise ValueError("Complete/not_requested results have no reason")
+        elif self.reason is None:
+            raise ValueError("Incomplete results require a reason")
+        if (
+            self.status in ("unavailable", "unsupported", "not_requested")
+            and self.values
+        ):
+            raise ValueError("Unavailable results cannot contain values")
+        if self.query_mode == "exact" and "exact_value" not in self.model_fields_set:
+            raise ValueError("Exact results must echo exact_value")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _omit_nonexact_echo(self, serializer: Any) -> dict[str, Any]:
+        """Only exact probes include an exact_value echo, including null."""
+        data = serializer(self)
+        if self.query_mode != "exact":
+            data.pop("exact_value", None)
+        return data
+
+
+class FilterValueDiscovery(BaseModel):
+    """Pagination of definitions and successful read-only parent previews."""
+
+    scope: Literal["filter_selection"] = "filter_selection"
+    total_filter_count: int = Field(ge=0)
+    offset: int | None = None
+    next_offset: int | None = None
+    validated_proposed_filter_values: list[ProposedFilterValues] = Field(
+        default_factory=list
+    )
+    query_count: int = Field(default=0, ge=0, le=20)
+
+
 class GetDashboardInfoRequest(MetadataCacheControl):
     """Request schema for dashboard identifiers and shared permalink URLs.
 
@@ -312,6 +475,24 @@ class GetDashboardInfoRequest(MetadataCacheControl):
     """
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_discovery_identifiers(cls, value: Any) -> Any:
+        """Do not hide conflicting identifier aliases on a choice request."""
+        if isinstance(value, dict) and value.get("include_filter_values") is True:
+            identifiers = [
+                value[name]
+                for name in ("identifier", "id", "dashboard_id")
+                if name in value
+            ]
+            if any(isinstance(identifier, bool) for identifier in identifiers):
+                raise ValueError(
+                    "identifier must be a dashboard ID, UUID, slug, or permalink"
+                )
+            if len({str(identifier) for identifier in identifiers}) > 1:
+                raise ValueError("Conflicting dashboard identifier aliases")
+        return value
 
     identifier: Annotated[
         int | str | None,
@@ -332,6 +513,9 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "'/superset/dashboard/p/<key>/'. Resolves the dashboard and returns "
             "the shared active-tab and filter context; no identifier is required."
         ),
+        # Discovery treats an explicit null as invalid state, so a filled-in
+        # default must not be able to supply one.
+        json_schema_extra=_omit_mode_default,
     )
     filter_state: dict[str, Any] | None = Field(
         default=None,
@@ -345,8 +529,37 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "Restricted users receive native_filter_values (names, types, values, "
             "labels, exclusion flags), not raw dataMask/column targets. "
             "native_filter_values_incomplete flags unsupported filters/chart state "
-            "that cannot be summarized safely."
+            "that cannot be summarized safely. Choice discovery requires dataMask."
         ),
+        json_schema_extra=_omit_mode_default,
+    )
+    include_filter_values: StrictBool = Field(
+        default=False,
+        description=(
+            "Discover dropdown choices for changing selections, not analytical results."
+        ),
+    )
+    # Discovery controls are presence-sensitive, so the schema advertises no
+    # defaults a client could fill in and have rejected without opt-in.
+    filter_value_requests: list[FilterValueRequest] | None = Field(
+        default=None,
+        min_length=1,
+        max_length=20,
+        description="Unique IDs; literal search or strict exact_value, including null.",
+        json_schema_extra=_omit_mode_default_and_null,
+    )
+    filter_values_offset: StrictInt = Field(
+        default=0,
+        ge=0,
+        description="Page 20 filter definitions; incompatible with explicit IDs.",
+        json_schema_extra=_omit_mode_default,
+    )
+    proposed_filter_values: list[ProposedFilterValues] | None = Field(
+        default=None,
+        min_length=1,
+        max_length=20,
+        description="Read-only select-ancestor preview; never changes live selections.",
+        json_schema_extra=_omit_mode_default_and_null,
     )
     select_columns: Annotated[
         List[str],
@@ -375,6 +588,51 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             return list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
         parsed = parse_json_or_list(value, "select_columns")
         return parsed if parsed else list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
+
+    @model_validator(mode="after")
+    def _validate_discovery_controls(self) -> "GetDashboardInfoRequest":
+        """Require opt-in and reject ambiguous pagination or duplicate IDs."""
+        controls = {
+            "filter_value_requests",
+            "filter_values_offset",
+            "proposed_filter_values",
+        }
+        supplied = self.model_fields_set & controls
+        if supplied and not self.include_filter_values:
+            raise ValueError("Discovery controls require include_filter_values=true")
+        if (
+            self.filter_value_requests is not None
+            and "filter_values_offset" in supplied
+        ):
+            raise ValueError(
+                "filter_values_offset cannot accompany filter_value_requests"
+            )
+        for field in ("filter_value_requests", "proposed_filter_values"):
+            items = getattr(self, field)
+            if field in supplied and items is None:
+                raise ValueError(f"{field} must be a nonempty list")
+            if items is not None and len({item.filter_id for item in items}) != len(
+                items
+            ):
+                raise ValueError(f"{field} contains duplicate filter IDs")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _preserve_discovery_presence(self, serializer: Any) -> dict[str, Any]:
+        """Preserve optional-control presence when clients serialize a request."""
+        data = serializer(self)
+        for field in (
+            "filter_value_requests",
+            "filter_values_offset",
+            "proposed_filter_values",
+        ):
+            if field not in self.model_fields_set:
+                data.pop(field, None)
+        if self.include_filter_values:
+            for field in ("filter_state", "permalink_key"):
+                if field not in self.model_fields_set:
+                    data.pop(field, None)
+        return data
 
     @model_validator(mode="after")
     def _require_identifier_or_permalink(self) -> "GetDashboardInfoRequest":
@@ -489,6 +747,20 @@ class NativeFilterSummary(BaseModel):
         default_factory=list,
         description="Filter targets (column name and dataset ID)",
     )
+
+
+class NativeFilterValueSummary(NativeFilterSummary):
+    """Native filter metadata with optional authorized dropdown choices."""
+
+    available_values: NativeFilterAvailableValues | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_unrequested_choices(self, serializer: Any) -> dict[str, Any]:
+        """Keep metadata-only native filter summaries backward compatible."""
+        data = serializer(self)
+        if self.available_values is None:
+            data.pop("available_values", None)
+        return data
 
 
 class DashboardChartSummary(BaseModel):
@@ -658,6 +930,25 @@ class DashboardInfo(BaseModel):
                 # Filter to only requested fields
                 return {k: v for k, v in data.items() if k in select_columns}
 
+        return data
+
+
+class DashboardInfoWithFilterValues(DashboardInfo):
+    """Dashboard information and optional native filter choices."""
+
+    # These response-only summaries narrow the base model's mutable-list element type.
+    native_filters: list[NativeFilterValueSummary] = Field(  # type: ignore[assignment, unused-ignore]
+        default_factory=list,
+        description=DashboardInfo.model_fields["native_filters"].description,
+    )
+    filter_value_discovery: FilterValueDiscovery | None = None
+
+    @model_serializer(mode="wrap")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> dict[str, Any]:
+        """Keep metadata-only responses compatible while advertising opt-in fields."""
+        data = super()._filter_fields_by_context(serializer, info)
+        if self.filter_value_discovery is None:
+            data.pop("filter_value_discovery", None)
         return data
 
 
@@ -2355,7 +2646,74 @@ def _reject_bool_dataset_id(value: object) -> object:
     return value
 
 
-class BaseNewFilterSpec(BaseModel):
+# Add/update fields valid only for specific filter types. Fields not listed in
+# any of these sets (name, description, scope_chart_ids) apply to every type.
+_TYPE_SPECIFIC_FILTER_FIELDS: dict[str, frozenset[str]] = {
+    "filter_select": frozenset(
+        {
+            "dataset_id",
+            "column",
+            "multi_select",
+            "default_to_first_item",
+            "default_value",
+            "enable_empty_filter",
+            "sort_ascending",
+            "search_all_options",
+        }
+    ),
+    "filter_range": frozenset({"dataset_id", "column", "enable_empty_filter"}),
+    "filter_time": frozenset({"default_time_range"}),
+    "filter_timegrain": frozenset({"dataset_id", "enable_empty_filter"}),
+    "filter_timecolumn": frozenset({"dataset_id", "enable_empty_filter"}),
+}
+_ALL_TYPE_SPECIFIC_FILTER_FIELDS: frozenset[str] = frozenset().union(
+    *_TYPE_SPECIFIC_FILTER_FIELDS.values()
+)
+
+
+def validate_native_filter_type_fields(
+    data: dict[str, Any], filter_type: str | None, *, is_divider: bool = False
+) -> None:
+    """Reject non-null inapplicable fields consistently on add and update."""
+    if is_divider and data.get("scope_chart_ids") is not None:
+        raise ValueError(
+            "Divider does not support scope_chart_ids; dividers are always in scope."
+        )
+    allowed = _TYPE_SPECIFIC_FILTER_FIELDS.get(filter_type or "", frozenset())
+    invalid_fields = sorted(
+        field
+        for field in _ALL_TYPE_SPECIFIC_FILTER_FIELDS
+        if data.get(field) is not None and field not in allowed
+    )
+    if invalid_fields:
+        valid_types = sorted(
+            type_name
+            for type_name, fields in _TYPE_SPECIFIC_FILTER_FIELDS.items()
+            if fields & set(invalid_fields)
+        )
+        type_label = "divider" if is_divider else filter_type
+        raise ValueError(
+            f"Filter has type '{type_label}'; fields "
+            f"{invalid_fields} only apply to {', '.join(valid_types)} filters."
+        )
+
+
+class _NativeFilterTypeFieldsSpec(BaseModel):
+    """Validate type-specific fields before Pydantic discards unknown fields."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_inapplicable_fields(cls, data: Any) -> Any:
+        """Apply the same compatibility rule used for existing filters."""
+        if isinstance(data, dict):
+            filter_type = data.get("filter_type")
+            validate_native_filter_type_fields(
+                data, filter_type, is_divider=filter_type == "divider"
+            )
+        return data
+
+
+class BaseNewFilterSpec(_NativeFilterTypeFieldsSpec):
     """Common fields shared by all new native filter specs."""
 
     name: str = Field(..., min_length=1, description="Filter display name")
@@ -2477,7 +2835,21 @@ class FilterTimeGrainSpec(BaseNewFilterSpec):
     )
 
 
-class DividerSpec(BaseModel):
+class FilterTimeColumnSpec(BaseNewFilterSpec):
+    """Spec for a new time column (filter_timecolumn) native filter."""
+
+    filter_type: Literal["filter_timecolumn"] = Field(
+        ..., description="Discriminator - must be 'filter_timecolumn'"
+    )
+    dataset_id: int = Field(
+        ..., description="ID of the dataset whose temporal columns it offers"
+    )
+    enable_empty_filter: bool = Field(
+        False, description="Require a value before the filter is applied"
+    )
+
+
+class DividerSpec(_NativeFilterTypeFieldsSpec):
     """Spec for a new filter-bar divider.
 
     A divider is a visual separator with a title and description used to
@@ -2497,6 +2869,7 @@ NewNativeFilterSpec = Annotated[
     | FilterTimeSpec
     | FilterRangeSpec
     | FilterTimeGrainSpec
+    | FilterTimeColumnSpec
     | DividerSpec,
     Field(discriminator="filter_type"),
 ]
@@ -2524,9 +2897,7 @@ class NativeFilterUpdateSpec(BaseModel):
     description: str | None = Field(None, description="New description")
     dataset_id: int | None = Field(
         None,
-        description=(
-            "New target dataset ID (filter_select, filter_range, filter_timegrain only)"
-        ),
+        description=("New target dataset ID (not filter_time)"),
     )
     column: str | None = Field(
         None,
@@ -2541,9 +2912,7 @@ class NativeFilterUpdateSpec(BaseModel):
     )
     enable_empty_filter: bool | None = Field(
         None,
-        description=(
-            "Require a value (filter_select, filter_range, filter_timegrain only)"
-        ),
+        description=("Require a value (not filter_time)"),
     )
     sort_ascending: bool | None = Field(
         None, description="Sort values ascending/descending (filter_select only)"
@@ -2599,10 +2968,10 @@ class ManageNativeFiltersRequest(BaseModel):
         description=(
             "New filters to create. Supported types: filter_select "
             "(dropdown), filter_time (time range), filter_range (numerical "
-            "range), filter_timegrain (time grain), and divider (a "
-            "title/description-only visual separator for grouping filters "
-            "in the filter bar; no dataset or column). filter_timecolumn "
-            "(time column) is not yet supported by this tool."
+            "range), filter_timegrain (time grain), filter_timecolumn "
+            "(time column; these two take no column), and divider (a "
+            "title/description-only separator; no dataset or column). "
+            "Non-null inapplicable fields are rejected on add and update."
         ),
     )
     update: List[NativeFilterUpdateSpec] = Field(
@@ -2937,10 +3306,11 @@ class ApplyFilterValueSpec(BaseModel):
     """A value to apply to one existing native filter.
 
     Exactly one of ``values`` (filter_select), ``time_range``
-    (filter_time), ``range`` (filter_range), or ``time_grain``
-    (filter_timegrain) must be supplied, and it must match the target
-    filter's type. An empty ``values`` list, a ``[null, null]`` range, or an
-    empty ``time_grain`` list clears that filter's current value.
+    (filter_time), ``range`` (filter_range), ``time_grain``
+    (filter_timegrain), or ``time_column`` (filter_timecolumn) must be
+    supplied, and it must match the target filter's type. An empty
+    ``values`` list, a ``[null, null]`` range, or an empty ``time_grain`` or
+    ``time_column`` list clears that filter's current value.
     """
 
     filter_name_or_id: str = Field(
@@ -2992,6 +3362,15 @@ class ApplyFilterValueSpec(BaseModel):
             "clear the filter."
         ),
     )
+    time_column: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None,
+        max_length=1,
+        description=(
+            "Temporal column to apply, for a filter_timecolumn filter, as a "
+            "list with at most one column name, e.g. ['ship_date']. Pass an "
+            "empty list to clear the filter."
+        ),
+    )
 
     @field_validator("time_range")
     @classmethod
@@ -3024,9 +3403,10 @@ class ApplyFilterValueSpec(BaseModel):
         """Require exactly one value field.
 
         Presence is tested with ``is None`` rather than truthiness so an
-        empty ``values``/``time_grain`` list, or a ``[null, null]`` range,
-        still count as a supplied value: that is how a caller clears a
-        filter_select, filter_timegrain, or filter_range selection.
+        empty ``values``/``time_grain``/``time_column`` list, or a
+        ``[null, null]`` range, still count as a supplied value: that is how
+        a caller clears a filter_select, filter_timegrain, filter_timecolumn,
+        or filter_range selection.
         """
         supplied = [
             name
@@ -3035,14 +3415,16 @@ class ApplyFilterValueSpec(BaseModel):
                 ("time_range", self.time_range),
                 ("range", self.range),
                 ("time_grain", self.time_grain),
+                ("time_column", self.time_column),
             )
             if value is not None
         ]
         if len(supplied) != 1:
             raise ValueError(
                 "Provide exactly one of values (filter_select), time_range "
-                "(filter_time), range (filter_range), or time_grain "
-                f"(filter_timegrain) for filter '{self.filter_name_or_id}'; "
+                "(filter_time), range (filter_range), time_grain "
+                "(filter_timegrain), or time_column (filter_timecolumn) for "
+                f"filter '{self.filter_name_or_id}'; "
                 f"got {supplied or 'neither'}."
             )
         return self
@@ -3083,7 +3465,7 @@ class AppliedFilterSummary(BaseModel):
         None,
         description=(
             "Filter type (filter_select, filter_time, filter_range, "
-            "or filter_timegrain)"
+            "filter_timegrain, or filter_timecolumn)"
         ),
     )
     values: List[FilterSelectValue] | None = Field(
@@ -3097,6 +3479,14 @@ class AppliedFilterSummary(BaseModel):
     )
     time_grain: List[Annotated[str, Field(min_length=1)]] | None = Field(
         None, description="Applied time grain, for a filter_timegrain filter"
+    )
+    time_column: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None,
+        description=(
+            "Applied time column, for a filter_timecolumn filter ([] when "
+            "cleared). A selected column is omitted for callers without "
+            "data-model metadata access, as on read."
+        ),
     )
 
 
