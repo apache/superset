@@ -132,6 +132,13 @@ function ChartTable({
 
   const getData = (tab: TableTab) => fetchData(getChartFetchDataConfig(tab));
 
+  // handleChartDelete refreshes non-Mine tabs through getData rather than
+  // refreshData, so the activity feed needs notifying on that path too.
+  const handleGetData = (tab: TableTab) => {
+    getData(tab);
+    onActivityRefresh?.();
+  };
+
   useEffect(() => {
     if (loaded || activeTab === TableTab.Favorite) {
       getData(activeTab);
@@ -241,7 +248,7 @@ function ChartTable({
               refreshData={handleRefreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
-              getData={getData}
+              getData={handleGetData}
               favoriteStatus={favoriteStatus[e.id]}
               saveFavoriteStatus={saveFavoriteStatus}
               handleBulkChartExport={handleBulkChartExport}
