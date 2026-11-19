@@ -91,6 +91,7 @@ const combinedDatasourceFixtures = [
 ];
 
 beforeEach(() => {
+  window.history.replaceState({}, '', '/chart/add');
   mockIsFeatureEnabled.mockReturnValue(false);
   fetchMock.clearHistory().removeRoutes();
   fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
@@ -206,6 +207,9 @@ test('renders an enabled button if datasource and viz type are selected', async 
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
   await userEvent.click(datasourceSelect);
+  expect(
+    await screen.findByRole('option', { name: 'table' }),
+  ).toBeInTheDocument();
   await userEvent.click(await screen.findByText(/test_db/i));
 
   await userEvent.click(
@@ -475,6 +479,12 @@ test('lists a same-named dataset and semantic view as distinct, typed options', 
   await userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
 
   expect(await screen.findAllByText('shared_source')).toHaveLength(2);
+  expect(
+    screen.getByRole('option', { name: 'shared_source Dataset' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('option', { name: 'shared_source Semantic View' }),
+  ).toBeInTheDocument();
   // The type label is plain text inside each option rather than colour or an
   // icon, so it is read out along with the name.
   const optionTexts = Array.from(
@@ -568,7 +578,8 @@ test('searches semantic views through the combined datasource endpoint', async (
   );
 });
 
-test('navigates to Explore with the semantic view composite identity', async () => {
+test('dashboard chart creation preserves semantic identity with a named option', async () => {
+  window.history.replaceState({}, '', '/chart/add?dashboard_id=17');
   enableSemanticLayers();
   fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
     body: { result: [combinedDatasourceFixtures[1]], count: 1 },
@@ -577,12 +588,15 @@ test('navigates to Explore with the semantic view composite identity', async () 
 
   await renderComponent();
   await userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
+  expect(
+    await screen.findByRole('option', { name: 'shared_source Semantic View' }),
+  ).toBeInTheDocument();
   await userEvent.click(await screen.findByText('shared_source'));
   await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
   await userEvent.dblClick(await screen.findByText('Table'));
 
   expect(mockHistoryPush).toHaveBeenCalledWith(
-    '/explore/?viz_type=table&datasource=42__semantic_view',
+    '/explore/?viz_type=table&datasource=42__semantic_view&dashboard_id=17',
   );
 });
 

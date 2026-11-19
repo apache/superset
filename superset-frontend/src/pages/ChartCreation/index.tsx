@@ -64,6 +64,7 @@ export interface ChartCreationProps {
 
 type DatasourceOption = {
   id: number;
+  'aria-label': string;
   label: ReactNode;
   value: string;
   table_name: string;
@@ -219,14 +220,18 @@ const createDatasourceOption = (
 ): DatasourceOption => {
   const isSemanticView = item.kind === 'semantic_view';
   const datasourceLabel = DatasetSelectLabel(item);
+  const typeLabel = isSemanticView ? t('Semantic View') : t('Dataset');
   return {
     id: item.id,
+    'aria-label': withTypeTag
+      ? `${item.table_name} ${typeLabel}`
+      : item.table_name,
     value: `${item.id}__${isSemanticView ? 'semantic_view' : 'table'}`,
     table_name: item.table_name,
     label: withTypeTag ? (
       <StyledDatasourceOption>
         {datasourceLabel}
-        <Tag>{isSemanticView ? t('Semantic View') : t('Dataset')}</Tag>
+        <Tag>{typeLabel}</Tag>
       </StyledDatasourceOption>
     ) : (
       datasourceLabel
