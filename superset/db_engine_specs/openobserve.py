@@ -21,7 +21,7 @@ from datetime import datetime
 from re import Pattern
 from typing import Any, TYPE_CHECKING
 
-from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
@@ -167,27 +167,27 @@ class OpenObserveEngineSpec(BaseEngineSpec):
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
-            __("Unexpected HTTP 401 response. Check your credentials."),
+            _("Unexpected HTTP 401 response. Check your credentials."),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
             {"invalid": ["username", "password"]},
         ),
         CONNECTION_UNKNOWN_DATABASE_REGEX: (
-            __('Unable to connect to database "%(database)s".'),
+            _('Unable to connect to database "%(database)s".'),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
             {"invalid": ["database"]},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
-            __('The hostname "%(hostname)s" cannot be resolved.'),
+            _('The hostname "%(hostname)s" cannot be resolved.'),
             SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
             {"invalid": ["host"]},
         ),
         CONNECTION_PORT_CLOSED_REGEX: (
-            __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
+            _('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
             SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
             {"invalid": ["host", "port"]},
         ),
         CONNECTION_HOST_DOWN_REGEX: (
-            __(
+            _(
                 'The host "%(hostname)s" might be down, and can\'t be '
                 "reached on port %(port)s."
             ),
@@ -195,7 +195,7 @@ class OpenObserveEngineSpec(BaseEngineSpec):
             {"invalid": ["host", "port"]},
         ),
         TABLE_DOES_NOT_EXIST_REGEX: (
-            __(
+            _(
                 'The table "%(table_name)s" does not exist. '
                 "A valid table must be used to run this query.",
             ),
@@ -203,12 +203,12 @@ class OpenObserveEngineSpec(BaseEngineSpec):
             {},
         ),
         COLUMN_DOES_NOT_EXIST_REGEX: (
-            __('We can\'t seem to resolve the column "%(column_name)s"'),
+            _('We can\'t seem to resolve the column "%(column_name)s"'),
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
             {},
         ),
         SYNTAX_ERROR_REGEX: (
-            __(
+            _(
                 "Please check your query for syntax errors at or "
                 'near "%(syntax_error)s". Then, try running your query again.'
             ),
