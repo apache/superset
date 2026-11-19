@@ -461,6 +461,7 @@ interface DashboardSaveData extends JsonObject {
   css?: string;
   dashboard_title?: string;
   editors?: { id: number }[] | number[];
+  viewers?: { id: number }[] | number[];
   slug?: string | null;
   tags?: JsonObject[];
   metadata?: JsonObject;
@@ -498,7 +499,6 @@ export function saveDashboardRequest(
       certification_details,
       css,
       dashboard_title,
-      editors,
       slug,
       description,
       tags,
@@ -524,9 +524,6 @@ export function saveDashboardRequest(
       }),
       css: css || '',
       dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
-      editors: ensureIsArray(editors as JsonObject[]).map((o: JsonObject) =>
-        hasId(o) ? o.id : o,
-      ),
       slug: slug || null,
       description: description || null,
       tags: !isFeatureEnabled(FeatureFlag.TaggingSystem)
@@ -557,6 +554,11 @@ export function saveDashboardRequest(
         ),
       },
     };
+    for (let prop of ['editors', 'viewers']) {
+      cleanedData[prop] = ensureIsArray(data[prop] as JsonObject[]).map((o: JsonObject) =>
+          hasId(o) ? o.id : o,
+      );
+    }
 
     const handleChartConfiguration = () => {
       const {
@@ -688,6 +690,7 @@ export function saveDashboardRequest(
               slug: cleanedData.slug,
               description: cleanedData.description,
               editors: cleanedData.editors,
+              viewers: cleanedData.viewers,
               tags: cleanedData.tags || [],
               theme_id: cleanedData.theme_id,
               json_metadata: safeStringify({

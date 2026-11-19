@@ -112,6 +112,7 @@ type DashboardPropertiesUpdate = {
   certifiedBy?: string;
   certificationDetails?: string;
   editors?: Subject[];
+  viewers?: Subject[];
   tags?: TagType[];
   theme?: { id: number; theme_name: string; json_data: string } | null;
   css?: string;
@@ -452,6 +453,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       dashboard_title: dashboardTitle,
       last_modified_time: actualLastModifiedTime,
       editors: dashboardInfo.editors,
+      viewers: dashboardInfo.viewers,
       slug,
       description: dashboardInfo.description,
       tags: (dashboardInfo.tags || []).filter(
@@ -503,6 +505,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     dashboardInfo.id,
     dashboardInfo.metadata,
     dashboardInfo.editors,
+    dashboardInfo.viewers,
     dashboardInfo.tags,
     dashboardTitle,
     layout,
@@ -585,6 +588,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
         editors: updates.editors,
+        viewers: updates.viewers,
         tags: updates.tags,
         // Conditional spread: omit `theme` key entirely when undefined
         // to prevent the reducer from overwriting the existing theme.
