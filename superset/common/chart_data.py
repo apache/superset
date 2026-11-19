@@ -45,3 +45,8 @@ class ChartDataResultType(StrEnum):
     TIMEGRAINS = "timegrains"
     POST_PROCESSED = "post_processed"
     DRILL_DETAIL = "drill_detail"
+
+    @classmethod
+    def datasource_metadata(cls) -> set["ChartDataResultType"]:
+        """Result types answered from datasource metadata, without selections."""
+        return {cls.COLUMNS, cls.TIMEGRAINS}
