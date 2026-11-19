@@ -318,6 +318,65 @@ def _create_dataset(name: str) -> Any:
     return dataset
 
 
+@pytest.mark.parametrize("sql", [None, "SELECT 1"])
+def test_post_dataset_with_archived_duplicate_returns_actionable_422(
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    sql: str | None,
+) -> None:
+    """An archived duplicate must be named with guidance for recovering from it."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+    from superset.models.helpers import skip_visibility_filter
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="archive_db", sqlalchemy_uri="sqlite://")
+    session.add(database)
+    session.commit()
+    payload = {
+        "database": database.id,
+        "schema": "main",
+        "table_name": "Vehicle Sales",
+        "sql": sql,
+    }
+
+    with (
+        patch(
+            "superset.daos.dataset.DatasetDAO.validate_table_exists", return_value=True
+        ),
+        patch.object(SqlaTable, "fetch_metadata"),
+    ):
+        created = client.post("/api/v1/dataset/", json=payload)
+        assert created.status_code == 201
+        assert created.json is not None
+
+        duplicate = client.post("/api/v1/dataset/", json=payload)
+        assert duplicate.status_code == 422
+        assert duplicate.json is not None
+        assert duplicate.json["message"] == {
+            "table": ["Dataset main.Vehicle Sales already exists"]
+        }
+
+        dataset = session.get(SqlaTable, created.json["id"])
+        assert dataset is not None
+        dataset.soft_delete()
+        session.commit()
+        assert session.query(SqlaTable).count() == 0
+
+        response = client.post("/api/v1/dataset/", json=payload)
+
+    assert response.status_code == 422
+    assert response.json is not None
+    assert response.json["message"] == (
+        'Dataset "Vehicle Sales" already exists in Recently Archived. '
+        "Restore it to use the existing dataset, or delete it permanently "
+        "before creating a new dataset with the same name."
+    )
+    with skip_visibility_filter(session, SqlaTable):
+        assert session.query(SqlaTable).one().is_deleted
+
+
 def test_post_dataset_with_invalid_sql_returns_actionable_422(
     session: Session,
     client: Any,
