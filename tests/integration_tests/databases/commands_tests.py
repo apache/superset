@@ -959,11 +959,8 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseTestConnectionUnexpectedError) as excinfo:  # noqa: PT012
+        with pytest.raises(DatabaseTestConnectionUnexpectedError):
             command_without_db_name.run()
-            assert str(excinfo.value) == (
-                "Unexpected error occurred, please check your logs for details"
-            )
         mock_event_logger.assert_called()
 
     @patch("superset.models.core.Database._get_sqla_engine")
@@ -1032,9 +1029,8 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseSecurityUnsafeError) as excinfo:  # noqa: PT012
+        with pytest.raises(DatabaseSecurityUnsafeError):
             command_without_db_name.run()
-            assert str(excinfo.value) == ("Stopped an unsafe database connection")
 
         mock_event_logger.assert_called()
 
@@ -1054,11 +1050,8 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(SupersetErrorsException) as excinfo:  # noqa: PT012
+        with pytest.raises(SupersetErrorsException):
             command_without_db_name.run()
-            assert str(excinfo.value) == (
-                "Connection failed, please check your connection settings"
-            )
 
         mock_event_logger.assert_called()
 
@@ -1197,9 +1190,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_find_by_id.return_value = None
         command = TablesDatabaseCommand(1, None, "test", False)
 
-        with pytest.raises(DatabaseNotFoundError) as excinfo:  # noqa: PT012
+        with pytest.raises(DatabaseNotFoundError) as excinfo:
             command.run()
-            assert str(excinfo.value) == ("Database not found.")
+        assert str(excinfo.value) == ("Database not found.")
 
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
@@ -1219,9 +1212,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         if schema_name is None:
             self.skipTest(f"No default schema mapped for {database.backend}")
         command = TablesDatabaseCommand(database.id, None, schema_name, False)
-        with pytest.raises(SupersetException) as excinfo:  # noqa: PT012
+        with pytest.raises(SupersetException) as excinfo:
             command.run()
-            assert str(excinfo.value) == "Test Error"
+        assert str(excinfo.value) == "Test Error"
 
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
@@ -1238,12 +1231,8 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         if schema_name is None:
             self.skipTest(f"No default schema mapped for {database.backend}")
         command = TablesDatabaseCommand(database.id, None, schema_name, False)
-        with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:  # noqa: PT012
+        with pytest.raises(DatabaseTablesUnexpectedError):
             command.run()
-            assert (
-                str(excinfo.value)
-                == "Unexpected error occurred, please check your logs for details"
-            )
 
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")

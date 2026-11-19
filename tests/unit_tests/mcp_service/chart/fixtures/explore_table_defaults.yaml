@@ -1,0 +1,98 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+# Captured at 5690a1a01d through Table controlPanel registration,
+# getControlsState (with initialized controls), and getFormDataFromControls.
+# Input: shipped featured_charts/charts/Table.yaml params, semantic datasource
+# with order_date (temporal) and product_line columns; null sort metric,
+# empty column_config and conditional_formatting. No output keys removed.
+# Grain corrected to P1D, matching the shipped chart and initialized grain choices;
+# the original capture omitted datasource grain choices and produced null.
+{
+  "datasource": "7__semantic_view",
+  "viz_type": "table",
+  "matrixify_enable": false,
+  "matrixify_mode_columns": "disabled",
+  "matrixify_dimension_selection_mode_columns": "members",
+  "matrixify_dimension_columns": {
+    "dimension": "",
+    "values": []
+  },
+  "matrixify_topn_value_columns": 10,
+  "matrixify_all_sort_by_columns": "a_to_z",
+  "matrixify_topn_order_columns": true,
+  "matrixify_show_column_headers": true,
+  "matrixify_fit_columns_dynamically": true,
+  "matrixify_mode_rows": "disabled",
+  "matrixify_dimension_selection_mode_rows": "members",
+  "matrixify_dimension_rows": {
+    "dimension": "",
+    "values": []
+  },
+  "matrixify_topn_value_rows": 10,
+  "matrixify_all_sort_by_rows": "a_to_z",
+  "matrixify_topn_order_rows": true,
+  "matrixify_show_row_labels": true,
+  "matrixify_row_height": 300,
+  "matrixify_charts_per_row": 3,
+  "matrixify_cell_title_template": "",
+  "query_mode": "raw",
+  "groupby": [],
+  "time_grain_sqla": "P1D",
+  "temporal_columns_lookup": {
+    "order_date": true,
+    "product_line": false
+  },
+  "all_columns": [
+    "order_date",
+    "product_line",
+    "status",
+    "price_each",
+    "sales"
+  ],
+  "percent_metrics": [],
+  "adhoc_filters": [
+    {
+      "clause": "WHERE",
+      "comparator": "No filter",
+      "expressionType": "SIMPLE",
+      "operator": "TEMPORAL_RANGE",
+      "subject": "order_date"
+    }
+  ],
+  "timeseries_limit_metric": null,
+  "order_by_cols": [],
+  "order_desc": true,
+  "server_pagination": false,
+  "server_page_length": 10,
+  "row_limit": 1000,
+  "percent_metric_calculation": "row_limit",
+  "show_totals": false,
+  "totals_aggregate": "ORIGINAL",
+  "table_timestamp_format": "smart_date",
+  "include_search": false,
+  "allow_rearrange_columns": false,
+  "allow_render_html": true,
+  "header_groups": [],
+  "column_config": {},
+  "show_cell_bars": true,
+  "align_pn": false,
+  "color_pn": true,
+  "comparison_color_enabled": false,
+  "comparison_color_scheme": "Green",
+  "conditional_formatting": [],
+  "comparison_type": "values"
+}
