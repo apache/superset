@@ -17,8 +17,13 @@
  * under the License.
  */
 import { JsonObject } from '@superset-ui/core';
+import { URL_PARAMS } from 'src/constants';
 
-const reservedQueryParams = new Set(['standalone', 'edit']);
+const reservedQueryParams = new Set([
+  'standalone',
+  'edit',
+  URL_PARAMS.activeTabs.name,
+]);
 
 export type UrlParamType = 'reserved' | 'regular' | 'all';
 

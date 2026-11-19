@@ -17,7 +17,14 @@
  * under the License.
  */
 import { StrictMode, useState } from 'react';
-import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
+import type { LayoutItem } from 'src/dashboard/types';
 import fetchMock from 'fetch-mock';
 import { storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
@@ -135,6 +142,78 @@ function setup(overrideState = {}) {
     store: storeWithState(initialState),
   });
 }
+
+test.each([
+  {
+    directPathToChild: [],
+    activeTabs: ['TAB-second', 'TAB-nested-second'],
+    expectedTab: 'TAB-second',
+  },
+  {
+    directPathToChild: ['ROOT_ID', 'TABS-root', 'TAB-first'],
+    activeTabs: ['TAB-second'],
+    expectedTab: 'TAB-first',
+  },
+  {
+    directPathToChild: [],
+    activeTabs: ['TAB-deleted'],
+    expectedTab: 'TAB-first',
+  },
+])(
+  'renders $expectedTab with active tabs $activeTabs and path $directPathToChild',
+  ({ directPathToChild, activeTabs, expectedTab }) => {
+    jest
+      .mocked(DashboardGrid)
+      .mockImplementation(({ gridComponent }) => (
+        <div data-test="mock-dashboard-grid">{gridComponent?.id}</div>
+      ));
+    const topLevelTabs: LayoutItem = {
+      id: 'TABS-root',
+      type: 'TABS',
+      parents: ['ROOT_ID'],
+      children: ['TAB-first', 'TAB-second'],
+      meta: {},
+    };
+    const initialState = createTestState({
+      dashboardState: {
+        ...mockState.dashboardState,
+        directPathToChild,
+        activeTabs,
+      },
+      dashboardLayout: {
+        ...mockState.dashboardLayout,
+        present: {
+          ROOT_ID: {
+            id: 'ROOT_ID',
+            type: 'ROOT',
+            children: [topLevelTabs.id],
+          },
+          [topLevelTabs.id]: topLevelTabs,
+          ...Object.fromEntries(
+            topLevelTabs.children.map(id => [
+              id,
+              {
+                id,
+                type: 'TAB',
+                children: [],
+                parents: ['ROOT_ID', topLevelTabs.id],
+                meta: {},
+              },
+            ]),
+          ),
+        },
+      },
+    });
+
+    render(<DashboardContainer topLevelTabs={topLevelTabs} />, {
+      store: storeWithState(initialState),
+    });
+
+    expect(
+      within(screen.getByRole('tabpanel')).getByText(expectedTab),
+    ).toBeInTheDocument();
+  },
+);
 
 function setupWithStore(overrideState = {}) {
   const initialState = createTestState(overrideState);
