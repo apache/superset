@@ -32,6 +32,7 @@ from superset.db_engine_specs.duckdb import DuckDBEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.result_set import SupersetResultSet
 from superset.superset_typing import DbapiDescription
+from superset.utils import json
 
 _BIG = 2**64 - 1
 
@@ -258,6 +259,27 @@ def test_json_extension_is_lazy() -> None:
     result_set = SupersetResultSet.from_arrow(table, BaseEngineSpec)
     assert result_set.pa_table.column("j").to_pylist() == ['{"a": 1}', None, "5"]
     assert result_set.to_pandas_df()["j"].tolist() == [{"a": 1}, None, 5]
+
+
+@pytest.mark.parametrize(
+    "values",
+    [[5, 7, None], ["a", "b"], [5, "a", True], [1.5, 2.25]],
+)
+def test_scalar_json_matches_the_row_path(values: list[Any]) -> None:
+    rows = SupersetResultSet(
+        [(value,) for value in values],
+        _desc(("j", "json")),
+        BaseEngineSpec,
+    )
+    storage = pa.array(
+        [None if value is None else json.dumps(value) for value in values]
+    )
+    table = pa.table({"j": pa.ExtensionArray.from_storage(pa.json_(), storage)})
+    arrow = SupersetResultSet.from_arrow(table, BaseEngineSpec)
+    expected = rows.to_pandas_df()["j"].tolist()
+    assert arrow.to_pandas_df()["j"].tolist() == expected
+    assert arrow.pa_table.column("j").type == rows.pa_table.column("j").type
+    assert arrow.nested_columns == {}
 
 
 def test_uuid_extension_is_stringified() -> None:

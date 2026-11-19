@@ -547,6 +547,16 @@ class SupersetResultSet:
             # Same rule as the row path: only containers count as nested.
             if any(isinstance(value, (list, dict)) for value in parsed):
                 self._nested_columns[column] = parsed
+                continue
+            try:
+                scalars = pa.array(parsed)
+            except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
+                scalars = pa.array(
+                    [None if value is None else str(value) for value in parsed],
+                    type=pa.string(),
+                )
+            index = self.table.schema.get_field_index(column)
+            self.table = self.table.set_column(index, column, scalars)
         self._lazy_json_columns = {}
 
     @staticmethod
