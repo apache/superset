@@ -75,6 +75,7 @@ beforeEach(() => {
   // comparison range.
   mockedFetchTimeRange.mockImplementation(async (_range, _col, shifts) => ({
     value: shifts?.length ? COMPARISON_LABEL : CURRENT_RANGE_LABEL,
+    isEmpty: false,
   }));
 });
 
@@ -126,6 +127,28 @@ test.each([
     );
   },
 );
+
+test('warns when the comparison range is empty', async () => {
+  mockedFetchTimeRange.mockResolvedValue({
+    value: [COMPARISON_LABEL],
+    isEmpty: true,
+  });
+  renderLabel({ time_compare: ['1 month ago'] });
+
+  expect(await screen.findByText(COMPARISON_LABEL)).toBeInTheDocument();
+  expect(
+    screen.getByText('This comparison time range is empty.'),
+  ).toBeInTheDocument();
+});
+
+test('does not warn when the comparison range is not empty', async () => {
+  renderLabel({ time_compare: ['1 month ago'] });
+
+  expect(await screen.findByText(COMPARISON_LABEL)).toBeInTheDocument();
+  expect(
+    screen.queryByText('This comparison time range is empty.'),
+  ).not.toBeInTheDocument();
+});
 
 test('ignores an unknown legacy time_comparison shorthand', async () => {
   const { container } = renderLabel({ time_comparison: 'zzz' });
@@ -267,9 +290,13 @@ test('renders every entry, with no duplicate-key warning, when distinct shifts r
     .spyOn(console, 'error')
     .mockImplementation(() => {});
   mockedFetchTimeRange
-    .mockImplementationOnce(async () => ({ value: CURRENT_RANGE_LABEL }))
+    .mockImplementationOnce(async () => ({
+      value: CURRENT_RANGE_LABEL,
+      isEmpty: false,
+    }))
     .mockImplementationOnce(async () => ({
       value: [COMPARISON_LABEL, COMPARISON_LABEL],
+      isEmpty: false,
     }));
 
   renderLabel({ time_compare: ['inherit', '30 days ago'] });

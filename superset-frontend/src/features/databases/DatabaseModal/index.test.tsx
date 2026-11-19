@@ -29,8 +29,10 @@ import {
   waitFor,
   fireEvent,
   act,
+  createStore,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import * as hooks from 'src/views/CRUD/hooks';
 import { DatabaseObject, ConfigurationMethod } from '../types';
@@ -319,6 +321,46 @@ describe('DatabaseModal', () => {
           sqlalchemy_uri_placeholder:
             'databricks+connector://token:{access_token}@{host}:{port}/{database_name}',
         },
+        // both entries share the ``mssql`` engine; Azure Synapse sorts first
+        // and keeps the SQLAlchemy URI form
+        {
+          available_drivers: ['pymssql', 'pyodbc'],
+          default_driver: 'pyodbc',
+          engine: 'mssql',
+          name: 'Azure Synapse',
+          preferred: false,
+          sqlalchemy_uri_placeholder:
+            'mssql+pyodbc://user:password@host:port/dbname[?key=value&key=value...]',
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+          },
+        },
+        {
+          available_drivers: ['pymssql', 'pyodbc'],
+          default_driver: 'pymssql',
+          engine: 'mssql',
+          name: 'Microsoft SQL Server',
+          parameters: {
+            properties: {
+              database: { type: 'string' },
+              host: { type: 'string' },
+              password: { type: 'string', nullable: true },
+              port: { type: 'integer', format: 'int32' },
+              query: { type: 'object' },
+              username: { type: 'string', nullable: true },
+            },
+            required: ['database', 'host', 'port', 'username'],
+            type: 'object',
+          },
+          preferred: false,
+          sqlalchemy_uri_placeholder:
+            'mssql+pymssql://user:password@host:port/dbname[?key=value&key=value...]',
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+          },
+        },
         {
           available_drivers: ['snowflake'],
           default_driver: 'snowflake',
@@ -582,6 +624,150 @@ describe('DatabaseModal', () => {
 
   test('late edit fetch after X then creating uses POST without the old id', async () => {
     await expectFreshCreateAfterEdit('Late X');
+  });
+
+  test('edit submits string cache timeouts as integers', async () => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    fetchMock.get('glob:*/api/v1/database/10/connection', {
+      result: {
+        id: 10,
+        database_name: 'Existing connection',
+        backend: 'sqlite',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+        sqlalchemy_uri: 'sqlite:///existing.db',
+        extra: JSON.stringify({
+          metadata_params: {},
+          engine_params: {},
+          metadata_cache_timeout: { table_cache_timeout: '1800' },
+          schemas_allowed_for_file_upload: [],
+        }),
+      },
+    });
+    fetchMock.put(DATABASE_FETCH_ENDPOINT, {
+      id: 10,
+      result: { database_name: 'Existing connection' },
+    });
+    fetchMock.post('glob:*/api/v1/database/test_connection/', {
+      message: 'OK',
+    });
+    const expectedTimeouts = { table_cache_timeout: 1800 };
+    try {
+      render(<DatabaseModal {...dbProps} databaseId={10} />, {
+        useRedux: true,
+      });
+      expect(
+        await screen.findByDisplayValue(
+          'Existing connection',
+          {},
+          { timeout: 5000 },
+        ),
+      ).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('button', { name: /test connection/i }),
+      );
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls(
+            'glob:*/api/v1/database/test_connection/',
+          ),
+        ).toHaveLength(1),
+      );
+      const validationBody = JSON.parse(
+        fetchMock.callHistory.lastCall(
+          'glob:*/api/v1/database/test_connection/',
+        )!.options.body as string,
+      );
+      expect(JSON.parse(validationBody.extra).metadata_cache_timeout).toEqual(
+        expectedTimeouts,
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+      await waitFor(() =>
+        expect(
+          fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, {
+            method: 'PUT',
+          }),
+        ).toHaveLength(1),
+      );
+      const putBody = JSON.parse(
+        fetchMock.callHistory.lastCall(DATABASE_FETCH_ENDPOINT, {
+          method: 'PUT',
+        })!.options.body as string,
+      );
+      expect(JSON.parse(putBody.extra).metadata_cache_timeout).toEqual(
+        expectedTimeouts,
+      );
+    } finally {
+      resourceHook.mockImplementation(previousImplementation);
+    }
+  });
+
+  test('edit shows the server explanation when validation rejects extra', async () => {
+    const resourceHook = jest.spyOn(hooks, 'useSingleViewResource');
+    const previousImplementation = resourceHook.getMockImplementation()!;
+    resourceHook.mockImplementation(realUseSingleViewResource);
+    const extraMessage =
+      'The table_cache_timeout in metadata_cache_timeout must be a ' +
+      'non-negative integer, but received "abc". Enter a whole number of ' +
+      'seconds (0 or greater) under Advanced > Performance.';
+    fetchMock.get('glob:*/api/v1/database/10/connection', {
+      result: {
+        id: 10,
+        database_name: 'Existing connection',
+        backend: 'postgresql',
+        configuration_method: ConfigurationMethod.DynamicForm,
+        parameters: {
+          host: 'localhost',
+          port: 5432,
+          database: 'postgres',
+          username: 'testdb',
+        },
+        parameters_schema: {
+          properties: { host: { type: 'string' } },
+        },
+        extra: '{"metadata_cache_timeout":{"table_cache_timeout":"abc"}}',
+      },
+    });
+    fetchMock.modifyRoute('validate-params', {
+      response: {
+        status: 422,
+        body: {
+          errors: [
+            {
+              message: extraMessage,
+              error_type: 'INVALID_PAYLOAD_SCHEMA_ERROR',
+              level: 'error',
+              extra: { invalid: ['extra'] },
+            },
+          ],
+        },
+      },
+    });
+    const store = createStore({}, reducerIndex);
+    try {
+      render(<DatabaseModal {...dbProps} databaseId={10} />, { store });
+      expect(
+        await screen.findByDisplayValue('Existing connection'),
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+      await waitFor(() =>
+        expect(
+          (
+            store.getState() as unknown as {
+              messageToasts: { text: string }[];
+            }
+          ).messageToasts.map(toast => toast.text),
+        ).toContain(extraMessage),
+      );
+      expect(
+        fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, {
+          method: 'PUT',
+        }),
+      ).toHaveLength(0);
+    } finally {
+      resourceHook.mockImplementation(previousImplementation);
+    }
   });
 
   /** Fill a new dynamic-form connection without relying on saved state. */
@@ -996,6 +1182,23 @@ describe('DatabaseModal', () => {
           clipboardData: { getData: () => 'post' },
         }),
       ).not.toThrow();
+    });
+
+    test('finds a database by its engine name in the select', async () => {
+      setup();
+
+      await userEvent.type(await screen.findByRole('combobox'), 'mssql');
+
+      // neither name contains "mssql"; both match through their engine
+      expect(
+        await screen.findByRole('option', { name: 'Microsoft SQL Server' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', { name: 'Azure Synapse' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', { name: 'PostgreSQL' }),
+      ).not.toBeInTheDocument();
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
@@ -2620,6 +2823,37 @@ describe('DatabaseModal', () => {
     expect(screen.getByTestId('sqlalchemy-uri-input')).toBeInTheDocument();
   });
 
+  test('SQL Server keeps its URI placeholder and a way back to the form', async () => {
+    setup({ dbEngine: 'Microsoft SQL Server' });
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+
+    // the SQL Server entry, not Azure Synapse (which shares the ``mssql``
+    // engine), drives the URI form after switching
+    expect(await screen.findByTestId('sqlalchemy-uri-input')).toHaveAttribute(
+      'placeholder',
+      'mssql+pymssql://user:password@host:port/dbname[?key=value&key=value...]',
+    );
+    expect(
+      screen.getByText('Connect this database using the dynamic form instead'),
+    ).toBeInTheDocument();
+  });
+
+  test('Azure Synapse opens on the SQLAlchemy URI form', async () => {
+    setup({ dbEngine: 'Azure Synapse' });
+
+    expect(await screen.findByTestId('sqlalchemy-uri-input')).toHaveAttribute(
+      'placeholder',
+      'mssql+pyodbc://user:password@host:port/dbname[?key=value&key=value...]',
+    );
+    expect(
+      screen.queryByText(
+        'Connect this database using the dynamic form instead',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   test('keeps what was typed when the configuration method round-trips', async () => {
     // Switching to the SQLAlchemy URI form and back used to replace the whole
     // reducer state with {engine, configuration_method, database_name}, so
@@ -4070,3 +4304,228 @@ test.each(['postgresql', 'mysql', 'databricks', 'gsheets'])(
     ).toBe(ConfigurationMethod.SqlalchemyUri);
   },
 );
+
+// The plain GET carries the engine's patterns; only /connection lists the stored fields.
+test('editing reads the secret fields from the connection payload, not the plain GET', async () => {
+  const mask = 'XXXXXXXXXX';
+  const saved = {
+    id: 10,
+    database_name: 'Keyed connection',
+    backend: 'sqlite',
+    configuration_method: ConfigurationMethod.SqlalchemyUri,
+    sqlalchemy_uri: 'sqlite:///keyed.db',
+    masked_encrypted_extra: JSON.stringify({
+      api_key: mask,
+      connect_args: mask,
+    }),
+  };
+  fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
+  fetchMock.get(DATABASE_FETCH_ENDPOINT, {
+    result: {
+      ...saved,
+      engine_information: {
+        encrypted_extra_sensitive_fields: { '$.*': 'Encrypted Extra' },
+      },
+    },
+  });
+  fetchMock.get('glob:*/api/v1/database/10/connection', {
+    result: {
+      ...saved,
+      engine_information: {
+        encrypted_extra_sensitive_fields: { '$.api_key': 'api_key' },
+      },
+    },
+  });
+  const resourceHook = jest
+    .spyOn(hooks, 'useSingleViewResource')
+    .mockImplementation(realUseSingleViewResource);
+  try {
+    render(<DatabaseModal {...dbProps} databaseId={10} />, {
+      useRedux: true,
+      initialState: { common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: 5 } } },
+    });
+    expect(
+      await screen.findByDisplayValue('Keyed connection'),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+    await userEvent.click(screen.getByTestId('security-label-test'));
+
+    const fields = await screen.findAllByTestId('secure-extra-hint');
+    expect(fields).toHaveLength(1);
+    expect(fields[0]).toHaveTextContent('api_key');
+    expect(fields[0]).toHaveTextContent('Stored at api_key.');
+    expect(screen.queryByText('Encrypted Extra')).not.toBeInTheDocument();
+    expect(fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT)).toHaveLength(
+      0,
+    );
+  } finally {
+    resourceHook.mockRestore();
+    fetchMock.clearHistory().removeRoutes();
+  }
+});
+
+test('a save that keeps the modal open drops revealed endings, so they are fetched again', async () => {
+  // An extension whose save fails keeps the modal open after the update.
+  const extensionsRegistry = getExtensionsRegistry();
+  const previous = extensionsRegistry.get('databaseconnection.extraOption');
+  extensionsRegistry.set('databaseconnection.extraOption', {
+    title: 'Extra',
+    description: () => null,
+    component: () => null,
+    enabled: () => true,
+    onSave: () => Promise.resolve({ error: 'Extension save failed' }),
+  });
+  const saved = {
+    id: 10,
+    database_name: 'Token connection',
+    backend: 'druid',
+    configuration_method: ConfigurationMethod.SqlalchemyUri,
+    sqlalchemy_uri: 'druid://druid:8888/druid/v2/sql/',
+    masked_encrypted_extra: JSON.stringify({
+      connect_args: { jwt: 'XXXXXXXXXX' },
+    }),
+  };
+  const hintsEndpoint = 'glob:*/api/v1/database/10/encrypted_extra_hints/';
+  fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
+  fetchMock.get('glob:*/api/v1/database/10/connection', {
+    result: {
+      ...saved,
+      engine_information: {
+        encrypted_extra_sensitive_fields: { '$.connect_args.jwt': 'JWT Token' },
+      },
+    },
+  });
+  fetchMock.get(hintsEndpoint, {
+    result: [
+      { path: '$.connect_args.jwt', label: 'JWT Token', suffix: 'Ab3dE' },
+    ],
+  });
+  fetchMock.put(DATABASE_FETCH_ENDPOINT, { id: 10, result: saved });
+  const resourceHook = jest
+    .spyOn(hooks, 'useSingleViewResource')
+    .mockImplementation(realUseSingleViewResource);
+  try {
+    render(<DatabaseModal {...dbProps} databaseId={10} />, {
+      useRedux: true,
+      initialState: { common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: 5 } } },
+    });
+    expect(
+      await screen.findByDisplayValue('Token connection'),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+    await userEvent.click(screen.getByTestId('security-label-test'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Show' }));
+    expect(await screen.findByDisplayValue(/Ab3dE$/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /finish/i }));
+
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, { method: 'PUT' }),
+      ).toHaveLength(1),
+    );
+    await waitFor(() =>
+      expect(screen.queryByDisplayValue(/Ab3dE$/)).not.toBeInTheDocument(),
+    );
+    expect(screen.getByDisplayValue('Token connection')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Show' }));
+    expect(await screen.findByDisplayValue(/Ab3dE$/)).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls(hintsEndpoint)).toHaveLength(2);
+  } finally {
+    extensionsRegistry.set('databaseconnection.extraOption', previous);
+    resourceHook.mockRestore();
+    fetchMock.clearHistory().removeRoutes();
+  }
+});
+
+test('a save that keeps the modal open reloads the stored secret fields', async () => {
+  const extensionsRegistry = getExtensionsRegistry();
+  const previous = extensionsRegistry.get('databaseconnection.extraOption');
+  extensionsRegistry.set('databaseconnection.extraOption', {
+    title: 'Extra',
+    description: () => null,
+    component: () => null,
+    enabled: () => true,
+    onSave: () => Promise.resolve({ error: 'Extension save failed' }),
+  });
+  const saved = {
+    id: 10,
+    database_name: 'Token connection',
+    backend: 'druid',
+    configuration_method: ConfigurationMethod.SqlalchemyUri,
+    sqlalchemy_uri: 'druid://druid:8888/druid/v2/sql/',
+    masked_encrypted_extra: JSON.stringify({
+      connect_args: { jwt: 'XXXXXXXXXX' },
+    }),
+  };
+  // The save added a password next to the token; the server re-masks both
+  // and lists both as stored fields from then on.
+  const afterSave = {
+    ...saved,
+    masked_encrypted_extra: JSON.stringify({
+      connect_args: { jwt: 'XXXXXXXXXX', password: 'XXXXXXXXXX' },
+    }),
+  };
+  const connectionEndpoint = 'glob:*/api/v1/database/10/connection';
+  let connectionCalls = 0;
+  fetchMock.get(AVAILABLE_DB_ENDPOINT, { databases: [] });
+  fetchMock.get(connectionEndpoint, () => {
+    connectionCalls += 1;
+    return connectionCalls === 1
+      ? {
+          result: {
+            ...saved,
+            engine_information: {
+              encrypted_extra_sensitive_fields: {
+                '$.connect_args.jwt': 'JWT Token',
+              },
+            },
+          },
+        }
+      : {
+          result: {
+            ...afterSave,
+            engine_information: {
+              encrypted_extra_sensitive_fields: {
+                '$.connect_args.jwt': 'JWT Token',
+                '$.connect_args.password': 'Password',
+              },
+            },
+          },
+        };
+  });
+  fetchMock.put(DATABASE_FETCH_ENDPOINT, { id: 10, result: afterSave });
+  const resourceHook = jest
+    .spyOn(hooks, 'useSingleViewResource')
+    .mockImplementation(realUseSingleViewResource);
+  try {
+    render(<DatabaseModal {...dbProps} databaseId={10} />, {
+      useRedux: true,
+      initialState: { common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: 5 } } },
+    });
+    expect(
+      await screen.findByDisplayValue('Token connection'),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+    await userEvent.click(screen.getByTestId('security-label-test'));
+    expect(await screen.findAllByTestId('secure-extra-hint')).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole('button', { name: /finish/i }));
+
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(DATABASE_FETCH_ENDPOINT, { method: 'PUT' }),
+      ).toHaveLength(1),
+    );
+    expect(screen.getByDisplayValue('Token connection')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getAllByTestId('secure-extra-hint')).toHaveLength(2),
+    );
+    expect(screen.getByText('Password')).toBeInTheDocument();
+    expect(connectionCalls).toBe(2);
+  } finally {
+    extensionsRegistry.set('databaseconnection.extraOption', previous);
+    resourceHook.mockRestore();
+    fetchMock.clearHistory().removeRoutes();
+  }
+});
