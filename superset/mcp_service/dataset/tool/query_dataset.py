@@ -24,7 +24,7 @@ dimensions without requiring a saved chart.
 
 import logging
 import time
-from typing import Any
+from typing import Any, cast, Literal
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -161,7 +161,10 @@ def _filter_status(
             status, reason = FILTER_UNRESOLVED, _NOT_REPORTED_REASON
         statuses.append(
             QueryDatasetFilterStatus(
-                col=filter_.col, op=filter_.op, status=status, reason=reason
+                col=filter_.col,
+                op=filter_.op,
+                status=cast(Literal["applied", "rejected", "unresolved"], status),
+                reason=reason,
             )
         )
     return statuses
@@ -431,6 +434,25 @@ async def _query_dataset(  # noqa: C901
                 "Time filter: column=%s, range=%s" % (temporal_col, request.time_range)
             )
 
+        # QueryContext extracts only one TEMPORAL_RANGE per column. Multiple
+        # ranges would silently discard predicates while the column-level
+        # engine report could claim all of them were applied. Refuse ambiguity
+        # before executing, including in non-strict mode.
+        temporal_columns_seen: set[str] = set()
+        for filter_ in effective_filters:
+            if filter_.op != "TEMPORAL_RANGE":
+                continue
+            if filter_.col in temporal_columns_seen:
+                return DatasetError.create(
+                    error=(
+                        f"Multiple temporal ranges for column '{filter_.col}' "
+                        "are not supported. Supply one TEMPORAL_RANGE filter "
+                        "or time_range for that column, not both."
+                    ),
+                    error_type="ValidationError",
+                )
+            temporal_columns_seen.add(filter_.col)
+
         # ------------------------------------------------------------------
         # Step 4: Build query dict
         # ------------------------------------------------------------------
@@ -548,6 +570,7 @@ async def _query_dataset(  # noqa: C901
                 truncated=False,
                 summary=f"Query on '{dataset_name}' returned no data.",
                 performance=PerformanceMetadata(
+                    estimated_cost=None,
                     query_duration_ms=query_duration_ms,
                     cache_status="no_data",
                 ),
@@ -590,6 +613,7 @@ async def _query_dataset(  # noqa: C901
             truncated=truncated,
             summary=summary,
             performance=PerformanceMetadata(
+                estimated_cost=None,
                 query_duration_ms=query_duration_ms,
                 cache_status=cache_label,
             ),

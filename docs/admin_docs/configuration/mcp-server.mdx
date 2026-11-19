@@ -1808,6 +1808,11 @@ original expressions so callers can compare the requested and resolved ranges.
 
 ### Verifying filters and completeness
 
+`query_dataset` accepts at most one `TEMPORAL_RANGE` per column. Supplying
+multiple ranges for the same column, including a filter together with
+`time_range`, returns `ValidationError` before executing the query in both
+strict and non-strict modes. Combine the intended bounds into one range.
+
 `query_dataset` reports what the query engine did, not only what was requested:
 
 - `filter_status` lists every filter in `applied_filters` (including the

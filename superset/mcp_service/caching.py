@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # namespace whenever a cached response from an older release is not valid under
 # the active contract. This keeps rolling upgrades from serving incompatible
 # entries through newly upgraded processes without trying to rewrite cached data.
-MCP_RESPONSE_CACHE_NAMESPACE = "response-contract-v4:"
+MCP_RESPONSE_CACHE_NAMESPACE = "response-contract-v5:"
 
 # Tools whose responses must never be served from the response cache,
 # regardless of MCP_CACHE_CONFIG["excluded_tools"]. The catalog is a live,
@@ -102,14 +102,25 @@ def is_failed_tool_result(result: Any) -> bool:
 
     Tools report expected failures by returning an error schema
     (``DatasetError``, ``ChartError``...) whose JSON carries a truthy
-    ``error_type``, not by raising. Results flagged ``is_error`` count too.
+    ``error_type`` or ``error``, not by raising. An explicit ``success=False``
+    also reports failure, including schemas with a null ``error_type``.
+    Results flagged ``is_error`` count too.
     """
     from superset.utils import json
 
     if getattr(result, "is_error", False):
         return True
+
+    def failed_payload(payload: Any) -> bool:
+        """Recognize failure contracts without treating warnings as errors."""
+        return isinstance(payload, dict) and (
+            bool(payload.get("error_type"))
+            or bool(payload.get("error"))
+            or payload.get("success") is False
+        )
+
     structured = getattr(result, "structured_content", None)
-    if isinstance(structured, dict) and structured.get("error_type"):
+    if failed_payload(structured):
         return True
     content = getattr(result, "content", None) or []
     if len(content) != 1 or not isinstance(getattr(content[0], "text", None), str):
@@ -118,7 +129,7 @@ def is_failed_tool_result(result: Any) -> bool:
         payload = json.loads(content[0].text)
     except (TypeError, ValueError):
         return False
-    return isinstance(payload, dict) and bool(payload.get("error_type"))
+    return failed_payload(payload)
 
 
 class _UncacheableResult(Exception):  # noqa: N818

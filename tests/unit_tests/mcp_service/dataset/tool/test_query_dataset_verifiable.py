@@ -46,7 +46,7 @@ query_dataset_module = importlib.import_module(
 
 
 @pytest.fixture(autouse=True)
-def mock_auth() -> Generator[None, None, None]:
+def _mock_auth() -> Generator[None, None, None]:
     with (
         patch("superset.mcp_service.auth.get_user_from_request") as get_user,
         patch.object(
@@ -444,7 +444,9 @@ async def test_rows_dropped_by_the_response_size_guard_are_reported_truncated() 
     )
 
     server = FastMCP("size-guard")
-    server.add_tool(await mcp.get_tool("query_dataset"))
+    tool = await mcp.get_tool("query_dataset")
+    assert tool is not None
+    server.add_tool(tool)
     server.add_middleware(ResponseSizeGuardMiddleware(max_bytes=4_000))
     # The guard returns text only, as in the default server stack.
     server.add_middleware(
@@ -469,3 +471,32 @@ async def test_rows_dropped_by_the_response_size_guard_are_reported_truncated() 
     assert payload["_response_truncated"] is True
     assert payload["row_count"] == len(payload["data"]) < 200
     assert payload["truncated"] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("with_time_range", [False, True])
+async def test_multiple_temporal_ranges_on_same_column_are_rejected(
+    strict: bool, with_time_range: bool
+) -> None:
+    december = {
+        "col": "order_date",
+        "op": "TEMPORAL_RANGE",
+        "val": "2025-12-01 : 2026-01-01",
+    }
+    january = {
+        "col": "order_date",
+        "op": "TEMPORAL_RANGE",
+        "val": "2026-01-01 : 2026-02-01",
+    }
+    request: dict[str, Any] = {"strict_filters": strict, "filters": [december]}
+    if with_time_range:
+        request["time_range"] = january["val"]
+    else:
+        request["filters"].append(january)
+    with _engine(_engine_result(ROWS, bounds=JANUARY)) as queries:
+        payload, _ = await _call(request)
+    assert payload.get("error_type") == "ValidationError"
+    assert "multiple temporal ranges" in payload["error"].lower()
+    assert "data" not in payload
+    assert queries == []

@@ -526,3 +526,72 @@ async def test_failed_tool_result_is_never_replayed_from_cache(failure: str) -> 
     # The successful result is cached as before.
     assert json.loads(third.content[0].text)["row_count"] == 1
     assert calls == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("structured", [False, True])
+@pytest.mark.parametrize(
+    "failure",
+    [
+        {"error": "operation failed"},
+        {"success": False, "error_type": None},
+        {"error": "operation failed", "dataset_id": None, "warnings": []},
+    ],
+)
+async def test_error_only_and_unsuccessful_results_are_not_cached(
+    failure: dict[str, Any], structured: bool
+) -> None:
+    import mcp.types as mt
+    from fastmcp import Client, FastMCP
+    from fastmcp.tools import ToolResult
+
+    from superset.mcp_service.caching import create_response_caching_middleware
+
+    flask_app = MagicMock()
+    configs = {
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "excluded_tools": [],
+        },
+        "MCP_STORE_CONFIG": {"enabled": False},
+    }
+    flask_app.config.get.side_effect = lambda key, default=None: configs.get(
+        key, default
+    )
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app", return_value=flask_app
+    ):
+        middleware = create_response_caching_middleware()
+    assert middleware is not None
+    server = FastMCP("failure-shape-cache-test", middleware=[middleware])
+    calls = 0
+
+    @server.tool
+    def query_dataset() -> ToolResult:
+        """Recover on the second execution, then cache the successful result."""
+        nonlocal calls
+        calls += 1
+        payload = failure if calls == 1 else {"data": [{"count": 3}], "row_count": 1}
+        return ToolResult(
+            content=[
+                mt.TextContent(
+                    type="text",
+                    text="structured result" if structured else json.dumps(payload),
+                )
+            ],
+            structured_content=payload if structured else None,
+        )
+
+    async with Client(server) as client:
+        await client.call_tool("query_dataset", {}, raise_on_error=False)
+        second = await client.call_tool("query_dataset", {}, raise_on_error=False)
+        third = await client.call_tool("query_dataset", {}, raise_on_error=False)
+    assert calls == 2
+    for result in (second, third):
+        payload = (
+            result.structured_content
+            if structured
+            else json.loads(result.content[0].text)
+        )
+        assert payload["row_count"] == 1
