@@ -139,6 +139,9 @@ class TestEventLogger(unittest.TestCase):
         assert logger.records == [
             {
                 "records": [{"path": "/", "engine": "bar"}],
+                # ``to_int`` turns a missing id into 0, as it does for
+                # ``dashboard_id``; the DB logger stores that as NULL.
+                "canvas_id": 0,
                 "database_id": None,
                 "user_id": 2,
                 "duration": 15000,
@@ -189,6 +192,9 @@ class TestEventLogger(unittest.TestCase):
                         "payload_override": {"engine": "sqlite"},
                     }
                 ],
+                # ``to_int`` turns a missing id into 0, as it does for
+                # ``dashboard_id``; the DB logger stores that as NULL.
+                "canvas_id": 0,
                 "database_id": None,
                 "user_id": 2,
                 "duration": 5558756000,

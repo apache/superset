@@ -56,6 +56,11 @@ from superset.mcp_service.auth import (
     MCPNoAuthSourceError,
     MCPPermissionDeniedError,
 )
+from superset.mcp_service.canvas.telemetry import (
+    canvas_id_from_params,
+    canvas_id_from_result,
+    is_canvas_tool,
+)
 from superset.mcp_service.constants import (
     CONNECTION_ERROR_TYPES,
     DEFAULT_MAX_LIST_ITEMS,
@@ -704,28 +709,50 @@ class LoggingMiddleware(Middleware):
             return params["name"]
         return None
 
+    def _extract_output_canvas_id(
+        self, tool_name: str | None, result: ToolResult
+    ) -> int | None:
+        """The canvas id in a canvas tool's response, if it carries one."""
+        from superset.utils.json import loads as json_loads
+
+        if not is_canvas_tool(tool_name):
+            return None
+        try:
+            data = json_loads(result.content[0].text)
+        except (AttributeError, IndexError, ValueError, TypeError):
+            return None
+        return canvas_id_from_result(data)
+
     def _backfill_output_ids(
         self,
         success: bool,
         result: Any,
         dashboard_id: int | None,
         slice_id: int | None,
-    ) -> tuple[int | None, int | None]:
+        canvas_id: int | None = None,
+        tool_name: str | None = None,
+    ) -> tuple[int | None, int | None, int | None]:
         """Fill in missing ids from a create tool's response on success.
 
         Create-style tools (generate_chart, generate_dashboard) don't take
         the new object's ID as input, so it's missing from params. On a
         successful call, pull it from the response instead so retried
         creates are distinguishable.
+
+        For canvases this is load-bearing rather than a refinement: the draft
+        tools take an opaque token and nothing else, so the response is the
+        only place their canvas is named.
         """
         if not success or not isinstance(result, ToolResult):
-            return dashboard_id, slice_id
+            return dashboard_id, slice_id, canvas_id
         output_dashboard_id, output_slice_id = self._extract_output_ids(result)
         if dashboard_id is None:
             dashboard_id = output_dashboard_id
         if slice_id is None:
             slice_id = output_slice_id
-        return dashboard_id, slice_id
+        if canvas_id is None:
+            canvas_id = self._extract_output_canvas_id(tool_name, result)
+        return dashboard_id, slice_id, canvas_id
 
     @staticmethod
     def _build_call_tool_payload(
@@ -738,6 +765,7 @@ class LoggingMiddleware(Middleware):
         dashboard_id: int | None,
         slice_id: int | None,
         dataset_id: int | None,
+        canvas_id: int | None,
         success: bool,
         mcp_tool: str | None,
         error_type: str | None,
@@ -751,6 +779,7 @@ class LoggingMiddleware(Middleware):
             "dashboard_id": dashboard_id,
             "slice_id": slice_id,
             "dataset_id": dataset_id,
+            "canvas_id": canvas_id,
             "success": success,
         }
         if mcp_tool is not None:
@@ -771,6 +800,7 @@ class LoggingMiddleware(Middleware):
         dashboard_id: int | None,
         slice_id: int | None,
         dataset_id: int | None,
+        canvas_id: int | None,
         params: Any,
         success: bool,
         error_type: str | None,
@@ -778,8 +808,13 @@ class LoggingMiddleware(Middleware):
         start_time: float,
     ) -> None:
         duration_ms = int((time.time() - start_time) * 1000)
-        dashboard_id, slice_id = self._backfill_output_ids(
-            success, result, dashboard_id, slice_id
+        dashboard_id, slice_id, canvas_id = self._backfill_output_ids(
+            success,
+            result,
+            dashboard_id,
+            slice_id,
+            canvas_id,
+            mcp_tool or tool_name,
         )
         payload = self._build_call_tool_payload(
             mcp_call_id=mcp_call_id,
@@ -790,6 +825,7 @@ class LoggingMiddleware(Middleware):
             dashboard_id=dashboard_id,
             slice_id=slice_id,
             dataset_id=dataset_id,
+            canvas_id=canvas_id,
             success=success,
             mcp_tool=mcp_tool,
             error_type=error_type,
@@ -802,6 +838,7 @@ class LoggingMiddleware(Middleware):
                     dashboard_id=dashboard_id,
                     duration_ms=duration_ms,
                     slice_id=slice_id,
+                    canvas_id=canvas_id,
                     referrer=None,
                     curated_payload=payload,
                 )
@@ -921,6 +958,10 @@ class LoggingMiddleware(Middleware):
         )
         tool_name = getattr(context.message, "name", None)
         mcp_tool = self._resolve_tool_name(tool_name, params)
+        # Only the tools that take a canvas id as an argument are covered here;
+        # the draft tools are named by a token alone and are resolved from the
+        # response instead (see _backfill_output_ids).
+        canvas_id = canvas_id_from_params(params)
 
         mcp_call_id = secrets.token_hex(16)
         _mcp_call_id_var.set(mcp_call_id)
@@ -994,6 +1035,7 @@ class LoggingMiddleware(Middleware):
                     dashboard_id=dashboard_id,
                     slice_id=slice_id,
                     dataset_id=dataset_id,
+                    canvas_id=canvas_id,
                     params=params,
                     success=success,
                     error_type=error_type,
@@ -1385,7 +1427,13 @@ class GlobalErrorHandlerMiddleware(Middleware):
             exc_info=not is_user,
         )
 
-        # Log to Superset's event system
+        # Log to Superset's event system. ``mcp_call_id`` is what ties this row
+        # to the ``mcp_tool_call`` row for the same call; without it a failure
+        # cannot be joined back to the call that produced it.
+        failed_call_id = _mcp_call_id_var.get(None)
+        failed_canvas_id = canvas_id_from_params(
+            getattr(context.message, "arguments", None)
+        )
         try:
             await run_in_metadata_thread(
                 event_logger.log,
@@ -1394,9 +1442,12 @@ class GlobalErrorHandlerMiddleware(Middleware):
                 dashboard_id=None,
                 duration_ms=duration_ms,
                 slice_id=None,
+                canvas_id=failed_canvas_id,
                 referrer=None,
                 curated_payload={
+                    "mcp_call_id": failed_call_id,
                     "tool": tool_name,
+                    "canvas_id": failed_canvas_id,
                     "error_type": type(error).__name__,
                     "error_message": sanitized_error,
                     "method": context.method,
@@ -1422,6 +1473,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
                     "tool_name": tool_name,
                     "mcp_call_id": mcp_call_id,
                     "user_id": user_id,
+                    "canvas_id": failed_canvas_id,
                     "error_type": type(error).__name__,
                     "sanitized_message": sanitized_error,
                     "duration_ms": duration_ms,

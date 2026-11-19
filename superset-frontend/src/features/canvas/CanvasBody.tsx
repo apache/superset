@@ -112,6 +112,7 @@ export default function CanvasBody({
     layout.revision,
     onDraftClosed,
     setCommitting,
+    canvasId,
   );
   const history = useDraftHistory(draftToken, layout.revision, result, reload);
   const { start, starting } = useStartDraft(canvasId, onDraftOpened);

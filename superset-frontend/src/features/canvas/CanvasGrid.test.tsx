@@ -17,7 +17,11 @@
  * under the License.
  */
 import type { canvas as canvasApi } from '@apache-superset/core';
-import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render as baseRender,
+  screen,
+} from 'spec/helpers/testing-library';
 import { canvas } from 'src/core';
 import CanvasGrid, {
   emptyScopeValues,
@@ -26,6 +30,10 @@ import CanvasGrid, {
 } from './CanvasGrid';
 import { CanvasDefinitionResult, CanvasSettings, DraftChange } from './types';
 import type { CanvasLayout } from './useCanvasLayout';
+
+// The layout hook reports gestures through redux.
+const render: typeof baseRender = (ui, options) =>
+  baseRender(ui, { useRedux: true, ...options });
 
 const settings: CanvasSettings = {
   refresh: { interval: 0, stagger: 0, exempt: [] },
@@ -334,12 +342,16 @@ test('a nested grid resizes against its own column count, not the root', () => {
   const group = screen.getByRole('region', { name: 'group' });
   dragRight(group.querySelector('[data-corner="se"]') as HTMLElement, 2000);
 
-  expect(place).toHaveBeenCalledWith('c1', {
-    col: 1,
-    row: 1,
-    colSpan: 12,
-    rowSpan: 1,
-  });
+  expect(place).toHaveBeenCalledWith(
+    'c1',
+    {
+      col: 1,
+      row: 1,
+      colSpan: 12,
+      rowSpan: 1,
+    },
+    'resize',
+  );
 });
 
 test("a nested resize honours the widget's declared minimum span", () => {
@@ -354,12 +366,16 @@ test("a nested resize honours the widget's declared minimum span", () => {
   // stays put, so it is the minimum that stops it.
   dragRight(group.querySelector('[data-corner="se"]') as HTMLElement, -2000);
 
-  expect(place).toHaveBeenCalledWith('c1', {
-    col: 1,
-    row: 1,
-    colSpan: 2,
-    rowSpan: 1,
-  });
+  expect(place).toHaveBeenCalledWith(
+    'c1',
+    {
+      col: 1,
+      row: 1,
+      colSpan: 2,
+      rowSpan: 1,
+    },
+    'resize',
+  );
 });
 
 test('a press inside a group drags the widget, not the group', () => {
@@ -461,12 +477,16 @@ test('the acknowledged span limits are what a resize clamps to', () => {
   const group = screen.getByRole('region', { name: 'group' });
   dragRight(group.querySelector('[data-corner="se"]') as HTMLElement, -2000);
 
-  expect(place).toHaveBeenCalledWith('c1', {
-    col: 1,
-    row: 1,
-    colSpan: 5,
-    rowSpan: 1,
-  });
+  expect(place).toHaveBeenCalledWith(
+    'c1',
+    {
+      col: 1,
+      row: 1,
+      colSpan: 5,
+      rowSpan: 1,
+    },
+    'resize',
+  );
 });
 
 test('a widget dragged out of a group moves into the grid it was dropped on', () => {
@@ -552,6 +572,7 @@ test('a widget dragged out of a group moves into the grid it was dropped on', ()
     // half of the root's twenty-four. Keeping the number would halve it on
     // screen; keeping the proportion is what the drop promised.
     { col: 1, row: 12, colSpan: 12, rowSpan: 1 },
+    'drag',
   );
 });
 

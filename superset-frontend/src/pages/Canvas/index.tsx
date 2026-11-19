@@ -50,6 +50,12 @@ import { useCanvasDefinition } from 'src/features/canvas/useCanvasDefinition';
 import { useDraftToken } from 'src/features/canvas/useDraftToken';
 import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
+import { useCanvasLogger } from 'src/features/canvas/useCanvasLogger';
+import {
+  Logger,
+  LOG_ACTIONS_CANVAS_CHAT_PANEL,
+  LOG_ACTIONS_CANVAS_MOUNT,
+} from 'src/logger/LogUtils';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
 import CanvasBody from 'src/features/canvas/CanvasBody';
 import CanvasVersionHistory from 'src/features/canvas/versionHistory/CanvasVersionHistory';
@@ -115,15 +121,20 @@ const Description = styled.p`
  * Opens the registered chat as a side panel once, when a canvas is shown and a
  * chat is available. Canvas is AI-first: changes come from the chat.
  */
-function useOpenChatPanel() {
+function useOpenChatPanel(canvasId: number) {
   const { chat: registeredChat } = useChat();
   const opened = useRef(false);
+  const log = useCanvasLogger(canvasId);
   useEffect(() => {
     if (!registeredChat || opened.current) return;
     opened.current = true;
     chat.setDisplayMode('panel');
     chat.open();
-  }, [registeredChat]);
+    // Panel open/close is the host's, so it is the one part of the assistant
+    // story this repo can observe. What is said in it belongs to the
+    // extension.
+    log(LOG_ACTIONS_CANVAS_CHAT_PANEL, { open: true, trigger: 'auto' });
+  }, [log, registeredChat]);
 }
 
 const notFound = (
@@ -165,6 +176,7 @@ function CanvasContent({ id }: { id: number }) {
   const history = useCanvasVersionHistory(
     metadata.result?.uuid,
     !draft.token && isFeatureEnabled(FeatureFlag.VersionHistory),
+    id,
   );
   const [historyOpen, setHistoryOpen] = useState(false);
   // The header's right-hand side, handed to the body so its toolbar lands on
@@ -188,7 +200,7 @@ function CanvasContent({ id }: { id: number }) {
     [],
   );
 
-  useOpenChatPanel();
+  useOpenChatPanel(id);
 
   const customCss = metadata.result?.css;
   useEffect(
@@ -205,6 +217,29 @@ function CanvasContent({ id }: { id: number }) {
     }
   }, [id, title, revision]);
   useEffect(() => () => setActiveCanvas(undefined), [id]);
+
+  // Raised once the canvas is actually on screen -- both the metadata and the
+  // definition have arrived -- rather than when the component first renders,
+  // so `mount_duration` measures what the user waited for.
+  const log = useCanvasLogger(id, { isDraft: Boolean(draft.token) });
+  const mounted = useRef(false);
+  const nodeCount =
+    state.status === 'complete'
+      ? Object.keys(state.result.definition.nodes).length
+      : undefined;
+  useEffect(() => {
+    if (mounted.current || nodeCount === undefined || revision === undefined) {
+      return;
+    }
+    mounted.current = true;
+    log(LOG_ACTIONS_CANVAS_MOUNT, {
+      revision,
+      widget_count: nodeCount,
+      is_empty: nodeCount === 0,
+      is_version_preview: Boolean(history.preview),
+      mount_duration: Logger.getTimestamp(),
+    });
+  }, [log, nodeCount, revision, history.preview]);
 
   if (draft.token && state.status === 'error') {
     return (
@@ -312,5 +347,9 @@ export default function CanvasPage() {
   const canvasId = useCanvasId(idOrSlug);
   if (canvasId.status === 'error') return notFound;
   if (canvasId.status === 'loading') return <Loading />;
-  return <CanvasContent id={canvasId.id} />;
+  // Keyed: another canvas is another thing. Without this the SPA reuses the
+  // instance, so per-canvas state and refs -- filter values, the chosen
+  // version, whether the mount event has fired -- survive the move and the
+  // first render of the new canvas sees the old one's definition.
+  return <CanvasContent key={canvasId.id} id={canvasId.id} />;
 }

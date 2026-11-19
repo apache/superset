@@ -29,6 +29,8 @@ import { CanvasDefinitionResult, DraftChange } from './types';
 import { MARKS, OUTLINED } from './changeMarks';
 import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
 import { CanvasDragProvider } from './useCanvasDrag';
+import { useCanvasLogger } from './useCanvasLogger';
+import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
 import { fitPlacements } from './resolveGrid';
 
 /** Current values set by nodes, per scope kind, by node id. */
@@ -266,6 +268,10 @@ export default function CanvasGrid({
   versionUuid,
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
+  const log = useCanvasLogger(canvasId, {
+    isDraft: Boolean(draftToken),
+    versionUuid,
+  });
   const {
     definition,
     widgetTypes,
@@ -481,7 +487,21 @@ export default function CanvasGrid({
     const childGridColumns = gridColumns[nodeId];
     const title = titles[nodeId];
     const widget = (
-      <ErrorBoundary>
+      // A widget that throws during render is otherwise reported nowhere:
+      // `ErrorBoundary` renders an alert and tells no one. Only the error's
+      // name and the widget's identity are recorded -- a component stack from
+      // a data-bound widget routinely embeds the values it was rendering.
+      <ErrorBoundary
+        onError={(error: Error) =>
+          log(LOG_ACTIONS_CANVAS_ERROR, {
+            scope: 'widget_render',
+            error_type: error.name,
+            widget_type: widgetType,
+            placement_id: nodeId,
+            has_err: true,
+          })
+        }
+      >
         <Renderer
           canvasId={canvasId}
           nodeId={nodeId}

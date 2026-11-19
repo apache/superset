@@ -16,10 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, renderHook, waitFor } from '@testing-library/react';
+import {
+  act,
+  renderHook as baseRenderHook,
+  waitFor,
+} from '@testing-library/react';
+import { createWrapper } from 'spec/helpers/testing-library';
+
 import fetchMock from 'fetch-mock';
 import { useCanvasLayout } from './useCanvasLayout';
 import type { CanvasDefinitionResult, GridPlacement } from './types';
+
+// The hook reports each gesture through redux, so every case needs a store.
+// Shadowing `renderHook` keeps that out of the ~30 call sites below.
+const wrapper = createWrapper({ useRedux: true });
+const renderHook: typeof baseRenderHook = (callback, options) =>
+  baseRenderHook(callback, { wrapper, ...options });
 
 const endpoint = 'glob:*/api/v1/canvas/7/definition';
 

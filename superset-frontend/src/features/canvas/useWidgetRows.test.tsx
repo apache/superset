@@ -17,7 +17,13 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { act, renderHook, waitFor } from '@testing-library/react';
+import {
+  act,
+  renderHook as baseRenderHook,
+  waitFor,
+} from '@testing-library/react';
+import { defaultStore } from 'spec/helpers/testing-library';
+import { Provider } from 'react-redux';
 import { getClientErrorObject } from '@superset-ui/core';
 import {
   CanvasDraftContext,
@@ -25,6 +31,22 @@ import {
   useWidgetRows,
 } from './useWidgetRows';
 import { fetchPlacementData, PlacementData } from './echarts/chartData';
+
+// The hook reports a failed data fetch through redux. Composed rather than
+// passed as `wrapper`, so a test supplying its own context wrapper still
+// gets a store instead of silently replacing it.
+const renderHook: typeof baseRenderHook = (callback, options) =>
+  baseRenderHook(callback, {
+    ...options,
+    wrapper: ({ children }) => {
+      const Inner = options?.wrapper;
+      return (
+        <Provider store={defaultStore}>
+          {Inner ? <Inner>{children}</Inner> : children}
+        </Provider>
+      );
+    },
+  });
 
 jest.mock('./echarts/chartData', () => ({
   ...jest.requireActual('./echarts/chartData'),
