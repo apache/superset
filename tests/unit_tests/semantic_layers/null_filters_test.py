@@ -100,7 +100,7 @@ def _matches(expression: FilterExpression, value: str | None) -> bool:
         ("NOT IN", ["a", "b"], [None]),
         ("NOT IN", ["<empty string>"], [None, "a", "b"]),
         ("==", "a", ["a"]),
-        ("!=", "a", ["b"]),
+        ("!=", "a", [None, "b"]),
         ("IN", [], []),
         ("NOT IN", [], [None, "a", "b"]),
     ],
@@ -157,19 +157,38 @@ def test_provider_receives_empty_membership_beside_other_filters(
     mapped: SemanticQuery = datasource.implementation.get_table.call_args.args[0]
     assert mapped.filters == {
         Filter(PredicateType.WHERE, CATEGORY, Operator(operator), frozenset()),
-        Filter(PredicateType.WHERE, CATEGORY, Operator.NOT_EQUALS, "b"),
+        OrFilter(
+            frozenset(
+                {
+                    Filter(PredicateType.WHERE, CATEGORY, Operator.NOT_EQUALS, "b"),
+                    Filter(PredicateType.WHERE, CATEGORY, Operator.IS_NULL, None),
+                }
+            )
+        ),
     }
 
 
 @pytest.mark.parametrize("is_rowcount", [False, True])
 @pytest.mark.parametrize("is_extra", [False, True])
-@pytest.mark.parametrize("operator", ["IN", "NOT IN"])
+@pytest.mark.parametrize(
+    "operator,value",
+    [
+        ("IN", ["a", None]),
+        ("NOT IN", ["a"]),
+        ("!=", "a"),
+        ("NOT LIKE", "a%"),
+        ("NOT ILIKE", "A%"),
+        ("NOT LIKE", ""),
+        ("NOT ILIKE", ""),
+    ],
+)
 def test_provider_receives_mixed_null_membership_without_opt_in(
     is_rowcount: bool,
     is_extra: bool,
     operator: str,
+    value: FilterValues,
 ) -> None:
-    """Grouped predicates are mandatory for table and row-count execution."""
+    """User exclusions reach table and row-count providers as flat NULL groups."""
     datasource: MagicMock = MagicMock()
     datasource.implementation.features = frozenset()
     datasource.implementation.get_dimensions.return_value = {CATEGORY}
@@ -187,7 +206,7 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
             {
                 "col": "category",
                 "op": operator,
-                "val": ["a", None] if operator == "IN" else ["a"],
+                "val": value,
                 "isExtra": is_extra,
             }
         ],
@@ -209,7 +228,7 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
                         PredicateType.WHERE,
                         CATEGORY,
                         Operator(operator),
-                        frozenset({"a"}),
+                        frozenset({"a"}) if operator in {"IN", "NOT IN"} else value,
                     ),
                     Filter(PredicateType.WHERE, CATEGORY, Operator.IS_NULL, None),
                 }

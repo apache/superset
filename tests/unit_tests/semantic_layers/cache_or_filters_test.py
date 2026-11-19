@@ -40,7 +40,10 @@ from superset.semantic_layers.cache import (
     SemanticCacheState,
 )
 from superset.semantic_layers.cache_identity import SemanticCacheIdentityFactory
-from superset.semantic_layers.cache_policy import ContainmentCapabilities
+from superset.semantic_layers.cache_policy import (
+    ContainmentCapabilities,
+    PatternSemantics,
+)
 from superset.semantic_layers.cache_repository import SemanticCacheRepository
 from superset.semantic_layers.mapper import _convert_query_object_filter
 from tests.unit_tests.semantic_layers.cache_repository_test import (
@@ -89,15 +92,31 @@ def test_group_identity_is_order_independent_and_not_flattened() -> None:
     assert ":v5:" in identity
 
 
-def test_user_exclusion_cannot_reuse_old_null_dropping_results() -> None:
-    """Normalized user exclusion is distinct from the old SDK NOT_IN leaf."""
+@pytest.mark.parametrize(
+    "operator,value",
+    [
+        ("NOT IN", frozenset({"GB"})),
+        ("!=", "GB"),
+        ("NOT LIKE", "G%"),
+        ("NOT ILIKE", "g%"),
+    ],
+)
+def test_user_exclusion_cannot_reuse_old_null_dropping_results(
+    operator: str,
+    value: FilterValues | frozenset[FilterValues],
+) -> None:
+    """Normalized user exclusion is distinct from its NULL-dropping SDK leaf."""
     query: SemanticQuery = build_semantic_query()
     leaf: Filter = Filter(
-        PredicateType.WHERE, query.dimensions[0], Operator.NOT_IN, frozenset({"GB"})
+        PredicateType.WHERE, query.dimensions[0], Operator(operator), value
     )
     old: SemanticQuery = replace(query, filters={leaf})
     normalized: set[FilterExpression] | None = _convert_query_object_filter(
-        {"col": query.dimensions[0].name, "op": "NOT IN", "val": ["GB"]},
+        {
+            "col": query.dimensions[0].name,
+            "op": operator,
+            "val": list(value) if isinstance(value, frozenset) else value,
+        },
         {query.dimensions[0].name: query.dimensions[0]},
     )
     requested: SemanticQuery = replace(query, filters=normalized)
@@ -119,6 +138,46 @@ def test_user_exclusion_cannot_reuse_old_null_dropping_results() -> None:
             lookup,
             ContainmentCapabilities(comparisons=True, membership=True, nulls=True),
         ).candidates
+
+
+@pytest.mark.parametrize("operator", ["NOT LIKE", "NOT ILIKE", "!="])
+def test_negated_group_reuse_requires_exact_pattern(operator: str) -> None:
+    """A broader pattern must not become a cache containment or leftover filter."""
+    query: SemanticQuery = build_semantic_query()
+    dimension_name: str = query.dimensions[0].name
+    queries: list[SemanticQuery] = [
+        replace(
+            query,
+            filters=_convert_query_object_filter(
+                {"col": dimension_name, "op": operator, "val": pattern},
+                {dimension_name: query.dimensions[0]},
+            ),
+        )
+        for pattern in ("G%", "GB%")
+    ]
+    result: SemanticResult = SemanticResult(
+        requests=[], results=pa.table({"Country": [None, "US"], "Revenue": [7.0, 42.0]})
+    )
+    stored: SemanticQuery
+    lookup: SemanticQuery
+    for stored, lookup in (queries, list(reversed(queries))):
+        repository: SemanticCacheRepository = SemanticCacheRepository(
+            _Backend(), _Coordinator()
+        )
+        assert repository.store(build_view_meta(), stored, result)
+        capabilities: ContainmentCapabilities = ContainmentCapabilities(
+            comparisons=True,
+            membership=True,
+            nulls=True,
+            pattern_semantics=PatternSemantics.sql_like(escape="\\"),
+        )
+        assert repository.lookup(build_view_meta(), stored, capabilities).candidates
+        assert (
+            not repository.lookup(build_view_meta(), stored, capabilities)
+            .candidates[0]
+            .decision.leftover_filters
+        )
+        assert not repository.lookup(build_view_meta(), lookup, capabilities).candidates
 
 
 @pytest.mark.parametrize("location", ["query", "group_limit", "both"])

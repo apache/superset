@@ -1043,7 +1043,7 @@ def _convert_query_object_filter(
                 "Must specify a value for this comparison."
             )
 
-    return _normalize_membership_filter(
+    return _normalize_user_filter(
         Filter(
             type=PredicateType.WHERE,
             column=dimension,
@@ -1053,8 +1053,8 @@ def _convert_query_object_filter(
     )
 
 
-def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
-    """Normalize NULL equality/membership; empty membership stays a SQL constant.
+def _normalize_user_filter(filter_: Filter) -> set[FilterExpression]:
+    """Normalize user NULL selections and preserve NULL rows in exclusions.
 
     An empty ``IN`` is FALSE and an empty ``NOT IN`` is TRUE, NULL rows included,
     at the filter's position in the query. Providers render the constant.
@@ -1065,6 +1065,16 @@ def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
         operator=Operator.IS_NOT_NULL if negated else Operator.IS_NULL,
         value=None,
     )
+    if filter_.value is not None and filter_.operator in {
+        Operator.NOT_EQUALS,
+        Operator.NOT_LIKE,
+        Operator.NOT_ILIKE,
+    }:
+        return {
+            OrFilter(
+                frozenset({filter_, replace(null_filter, operator=Operator.IS_NULL)})
+            )
+        }
     if filter_.operator in {Operator.EQUALS, Operator.NOT_EQUALS}:
         return {null_filter} if filter_.value is None else {filter_}
     if filter_.operator not in {Operator.IN, Operator.NOT_IN}:

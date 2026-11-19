@@ -42,6 +42,7 @@ from superset_core.semantic_layers.types import (
     Metric,
     Operator,
     OrderDirection,
+    OrFilter,
     PredicateType,
     SemanticQuery,
     SemanticRequest,
@@ -443,6 +444,9 @@ def test_get_filters_from_extras_rejects_sql(extras: dict[str, str]) -> None:
     [
         {"where": "customer_id > 100"},
         {"having": "SUM(sales) > 1000"},
+        {"having": "SUM(sales) != 1000"},
+        {"having": "MAX(category) NOT LIKE 'a%'"},
+        {"having": "MAX(category) NOT ILIKE 'A%'"},
         {"where": "region = 'US'", "having": "COUNT(*) > 10"},
     ],
 )
@@ -620,6 +624,20 @@ def test_convert_query_object_filter_ilike(
         assert result is not None
         assert len(result) == 1
         converted: FilterExpression = next(iter(result))
+        if expected == Operator.NOT_ILIKE:
+            assert isinstance(converted, OrFilter)
+            assert (
+                Filter(
+                    PredicateType.WHERE,
+                    all_dimensions["category"],
+                    Operator.IS_NULL,
+                    None,
+                )
+                in converted.filters
+            )
+            converted = next(
+                leaf for leaf in converted.filters if leaf.operator == expected
+            )
         assert isinstance(converted, Filter)
         assert converted.operator == expected
         assert converted.column == all_dimensions["category"]
@@ -1996,14 +2014,31 @@ def test_convert_query_object_filter(
 
     result = _convert_query_object_filter(filter_, all_dimensions)
 
-    assert result == {
-        Filter(
-            type=PredicateType.WHERE,
-            column=all_dimensions["category"],
-            operator=expected_operator,
-            value="Electronics",
-        )
-    }
+    expected: Filter = Filter(
+        type=PredicateType.WHERE,
+        column=all_dimensions["category"],
+        operator=expected_operator,
+        value="Electronics",
+    )
+    assert result == (
+        {
+            OrFilter(
+                frozenset(
+                    {
+                        expected,
+                        Filter(
+                            PredicateType.WHERE,
+                            all_dimensions["category"],
+                            Operator.IS_NULL,
+                            None,
+                        ),
+                    }
+                )
+            )
+        }
+        if filter_op == "!="
+        else {expected}
+    )
 
 
 def test_convert_query_object_filter_like() -> None:
