@@ -9985,6 +9985,14 @@ msgstr "Masquer la ligne"
 msgid "Hide chart description"
 msgstr "Masquer la description du graphique"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Masquer la couche"
 

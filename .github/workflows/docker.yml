@@ -126,6 +126,38 @@ jobs:
           # so a regression in supersetbot itself (dropping the py311/py312
           # PY_VER pin, or reordering args so our override no longer lands
           # last) is caught here too, instead of only surfacing on master.
+          #
+          # Every `supersetbot docker` invocation, --dry-run included, lists
+          # all of the repo's tags through the GitHub API (to find the latest
+          # release; ~6 pages, so ~186 GETs across this step) and has no
+          # octokit retry plugin, so a single transient 5xx or dropped
+          # connection (which octokit reports as status 500) fails the step.
+          # Retry an invocation only when it died on such a GitHub API error.
+          # Any other failure is returned as-is, and the assertions below run
+          # on the command a successful invocation printed, so they are never
+          # retried.
+          supersetbot_dry_run() {
+            local attempt out err
+            out="$(mktemp)"
+            err="$(mktemp)"
+            for attempt in 1 2 3; do
+              if supersetbot docker "$@" --dry-run >"$out" 2>"$err"; then
+                cat "$err" >&2
+                cat "$out"
+                rm -f "$out" "$err"
+                return 0
+              fi
+              cat "$err" >&2
+              if [ "$attempt" -eq 3 ] ||
+                ! grep -q 'RequestError \[HttpError\]' "$err" ||
+                ! grep -Eq '^[[:space:]]*status: 5[0-9]{2},' "$err"; then
+                rm -f "$out" "$err"
+                return 1
+              fi
+              echo "::warning::supersetbot hit a transient GitHub API error (attempt $attempt of 3); retrying in $((attempt * 10))s: $(grep -m1 'RequestError \[HttpError\]' "$err")" >&2
+              sleep "$((attempt * 10))"
+            done
+          }
           docker_command() {
             local preset="$1" extra_flags="$2"
             shift 2
@@ -134,22 +166,20 @@ jobs:
             # controlled only by docker-build-extra-flags.sh, mirroring the
             # docker-build job. assert_supersetbot_exports_cache_with_token
             # below covers the unhidden case.
-            DOCKERHUB_TOKEN= supersetbot docker \
+            DOCKERHUB_TOKEN= supersetbot_dry_run \
               --preset "$preset" \
               --platform linux/amd64 \
               "$@" \
-              --extra-flags "$extra_flags" \
-              --dry-run
+              --extra-flags "$extra_flags"
           }
           docker_command_with_token() {
             local preset="$1" extra_flags="$2"
             shift 2
-            DOCKERHUB_TOKEN=dummy supersetbot docker \
+            DOCKERHUB_TOKEN=dummy supersetbot_dry_run \
               --preset "$preset" \
               --platform linux/amd64 \
               "$@" \
-              --extra-flags "$extra_flags" \
-              --dry-run
+              --extra-flags "$extra_flags"
           }
           load_build_plan() {
             local event_name="$1" ref="$2" ref_name="$3"
