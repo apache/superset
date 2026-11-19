@@ -3469,6 +3469,7 @@ def test_raise_for_access_catalog(
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
+    database.db_engine_spec.case_insensitive_catalogs = False
     database.get_default_catalog.return_value = "db1"
     database.get_default_schema_for_query.return_value = "public"
     query = mocker.MagicMock()
@@ -4070,6 +4071,7 @@ def test_raise_for_access_catalog_supporting_engine_still_requires_catalog(
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
+    database.db_engine_spec.case_insensitive_catalogs = False
     database.database_name = "examples"
     database.db_engine_spec.supports_catalog = True
     database.get_default_catalog.return_value = "examples"
@@ -4239,8 +4241,9 @@ def test_raise_for_access_allow_editorship_false_keeps_catalog_access(
     mocker.patch.object(
         sm,
         "can_access",
-        side_effect=lambda perm, vm: perm == "catalog_access"
-        and vm == f"[{MSSQL_CONN_NAME}].[other]",
+        side_effect=lambda perm, vm: (
+            perm == "catalog_access" and vm == f"[{MSSQL_CONN_NAME}].[other]"
+        ),
     )
 
     sm.raise_for_access(query=query, allow_editorship=False)
@@ -4275,8 +4278,10 @@ def test_raise_for_access_allow_editorship_false_keeps_datasource_access(
     mocker.patch.object(
         sm,
         "can_access",
-        side_effect=lambda perm, vm: perm == "datasource_access"
-        and vm == f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)",
+        side_effect=lambda perm, vm: (
+            perm == "datasource_access"
+            and vm == f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)"
+        ),
     )
 
     sm.raise_for_access(query=query, allow_editorship=False)
@@ -4317,6 +4322,7 @@ def test_get_datasources_accessible_by_user_schema_access(
     mocker.patch.object(sm, "can_access_database", return_value=False)
 
     database = mocker.MagicMock()
+    database.db_engine_spec.case_insensitive_catalogs = False
     database.database_name = "db1"
     database.get_default_catalog.return_value = "catalog2"
 

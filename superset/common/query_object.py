@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from pprint import pformat
 from typing import Any, cast, NamedTuple, TYPE_CHECKING
@@ -27,6 +28,7 @@ from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
+from pandas.errors import DataError
 from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset import feature_flag_manager
@@ -86,6 +88,32 @@ DEPRECATED_EXTRAS_FIELDS = (
 _QUERY_OBJECT_RESOLVED_OPTIONS: dict[str, frozenset[str]] = {
     "resample": frozenset({"fill_time_range"}),
 }
+
+
+def selection_version_error(version: object) -> QueryObjectValidationError:
+    """Return the user-facing refusal for a semantic selection version."""
+    if version == "unverified-external-selections":
+        return QueryObjectValidationError(
+            _(
+                "A dashboard filter or display control has "
+                "incompatible semantic selections. Dynamic group-by "
+                "is unsupported on versioned semantic views; remove "
+                "this chart from that control's scope. For other "
+                "filters or controls, reset and reselect fields or "
+                "saved values. If it targets another semantic view, "
+                "remove this chart from its scope."
+            )
+        )
+    return QueryObjectValidationError(
+        _(
+            "Saved semantic selections use an older identity format. "
+            "Reset and explicitly reselect the metrics and dimensions, "
+            "then save the chart. Display titles cannot be recovered "
+            "automatically. For API requests, select current member "
+            "IDs and supply semantic_selection_version from "
+            "datasource metadata or MCP list_metrics."
+        )
+    )
 
 
 class QueryObject:  # pylint: disable=too-many-instance-attributes
@@ -410,6 +438,25 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         )
 
     @property
+    def is_datasource_metadata_request(self) -> bool:
+        """Whether this query asks only for datasource metadata and selects nothing.
+
+        Column and time grain options are answered from the datasource itself;
+        a query that also names members, filters or a time column is a selection.
+        The query's own result type is used: one that leaves it unset keeps the
+        selection checks even when its context asks for metadata.
+        """
+        return self.result_type in ChartDataResultType.datasource_metadata() and not (
+            self.metrics
+            or self.columns
+            or self.orderby
+            or self.filter
+            or self.granularity
+            or self.series_columns
+            or self.series_limit_metric
+        )
+
+    @property
     def column_names(self) -> list[str]:
         """Return column names (labels). Gives priority to groupbys if both groupbys
         and metrics are non-empty, otherwise returns column labels."""
@@ -420,40 +467,20 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     ) -> QueryObjectValidationError | None:
         """Validate query object"""
         try:
+            self.validate_semantic_time_offsets()
             self._validate_semantic_view_extras()
             if self.datasource and self.datasource.type == "semantic_view":
                 implementation: SemanticViewABC = cast(
                     "SemanticView", self.datasource
                 ).implementation
+                version: object = self.extras.get("semantic_selection_version")
                 try:
-                    implementation.validate_selection_version(
-                        self.extras.get("semantic_selection_version")
-                    )
+                    # Column and time grain options select no members, so there
+                    # is no saved selection identity to check.
+                    if not self.is_datasource_metadata_request:
+                        implementation.validate_selection_version(version)
                 except ValueError as ex:
-                    if self.extras.get("semantic_selection_version") == (
-                        "unverified-external-selections"
-                    ):
-                        raise QueryObjectValidationError(
-                            _(
-                                "A dashboard filter or display control has "
-                                "incompatible semantic selections. Dynamic group-by "
-                                "is unsupported on versioned semantic views; remove "
-                                "this chart from that control's scope. For other "
-                                "filters or controls, reset and reselect fields or "
-                                "saved values. If it targets another semantic view, "
-                                "remove this chart from its scope."
-                            )
-                        ) from ex
-                    raise QueryObjectValidationError(
-                        _(
-                            "Saved semantic selections use an older identity format. "
-                            "Reset and explicitly reselect the metrics and dimensions, "
-                            "then save the chart. Display titles cannot be recovered "
-                            "automatically. For API requests, select current member "
-                            "IDs and supply semantic_selection_version from "
-                            "datasource metadata or MCP list_metrics."
-                        )
-                    ) from ex
+                    raise selection_version_error(version) from ex
                 if self.filter:
                     # Validate before result-cache access, including old entries
                     # computed while non-dimension predicates were discarded.
@@ -486,6 +513,28 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             if raise_exceptions:
                 raise
             return ex
+
+    def validate_semantic_time_offsets(self) -> None:
+        """Refuse unsupported comparisons before provider discovery or cache reads."""
+        if (
+            self.time_offsets
+            and self.datasource
+            and self.datasource.type == "semantic_view"
+        ):
+            # Import here to avoid the semantic model/QueryObject import cycle.
+            from superset_core.semantic_layers.errors import SemanticQueryErrorCode
+
+            from superset.semantic_layers.exceptions import (
+                SemanticLayerQueryRejectedError,
+            )
+
+            raise SemanticLayerQueryRejectedError(
+                SemanticQueryErrorCode.UNSUPPORTED_QUERY,
+                message=_(
+                    "Time comparison is not yet supported on semantic views. "
+                    "Remove the time shift and try again."
+                ),
+            )
 
     def _validate_semantic_view_extras(self) -> None:
         """Reject unsupported SQL clauses before resolving a semantic provider."""
@@ -752,7 +801,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         :param df: DataFrame returned from database model.
         :return: new DataFrame to which all post processing operations have been
                  applied
-        :raises QueryObjectValidationError: If the post processing operation
+        :raises InvalidPostProcessingError: If the post processing operation
                  is incorrect
         """
         logger.debug("post_processing: \n %s", pformat(self.post_processing))
@@ -766,7 +815,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 # ``OPERATIONS`` is the authoritative list of built-in operations;
                 # excludes escape_separator/unescape_separator (str -> str helpers
                 # used by flatten, not DataFrame post-processing operations).
-                if operation in pandas_postprocessing.OPERATIONS:
+                is_builtin = operation in pandas_postprocessing.OPERATIONS
+                if is_builtin:
                     func = getattr(pandas_postprocessing, operation)
                 else:
                     extra_ops = pandas_postprocessing.build_extra_ops_map(
@@ -783,8 +833,80 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 options = post_process.get("options", {})
                 if operation == "resample":
                     options = self._resolve_resample_options(options)
-                df = func(df, **options)
+                df = self._exec_operation(func, operation, is_builtin, df, options)
             return df
+
+    @staticmethod
+    def _exec_operation(
+        func: Callable[..., DataFrame],
+        operation: str,
+        is_builtin: bool,
+        df: DataFrame,
+        options: dict[str, Any],
+    ) -> DataFrame:
+        """
+        Run one post-processing operation, reporting a bad request as one.
+
+        An operation is driven entirely by the request's ``options`` dict, which
+        ``ChartDataPostProcessingOperationSchema`` accepts as an untyped
+        ``fields.Dict``. Nothing validates an option before it reaches pandas,
+        so a malformed one surfaces as whatever pandas raises. Those are
+        bad-request failures, and left unwrapped they reach
+        ``app.errorhandler(Exception)``, which answers 500.
+
+        ``ImportError`` is deliberately not among them: a missing optional
+        dependency, such as scipy for a ``rolling`` ``win_type``, is a
+        deployment matter rather than a bad request.
+
+        :param func: The operation to run.
+        :param operation: Its name, for the message and to tell the two kinds
+                          of operation apart.
+        :param is_builtin: Whether ``func`` is a built-in operation rather than
+                           one registered through
+                           ``EXTRA_PANDAS_POSTPROCESSING_OPS``.
+        :param df: DataFrame to run the operation on.
+        :param options: Options for the operation, straight from the request.
+        :return: DataFrame with the operation applied
+        :raises InvalidPostProcessingError: If the options are unusable
+        """
+        try:
+            return func(df, **options)
+        except (AttributeError, DataError, KeyError, TypeError, ValueError) as ex:
+            if not is_builtin:
+                # The operation came from ``EXTRA_PANDAS_POSTPROCESSING_OPS``,
+                # which the operator owns and this code cannot reason about. A
+                # failure inside it is a fault in that operation rather than a
+                # malformed request, so leave it to the error handler.
+                raise
+            # The caller turns this into a message on the response without
+            # logging it, and these types are broad enough to also cover a
+            # genuine fault in a built-in operation, so keep the traceback.
+            logger.warning(
+                "Post-processing operation %s failed and was reported as a bad request",
+                operation,
+                exc_info=True,
+            )
+            if isinstance(ex, KeyError):
+                # Every KeyError a built-in operation raises names a column or
+                # MultiIndex level the options asked for and the result does
+                # not have. `str(KeyError)` is only the repr'd key, which alone
+                # reads as a bare quoted string.
+                raise InvalidPostProcessingError(
+                    _(
+                        "The `%(operation)s` post-processing operation "
+                        "references a column or level that is not in the query "
+                        "result: %(name)s",
+                        operation=operation,
+                        name=ex.args[0] if ex.args else ex,
+                    )
+                ) from ex
+            raise InvalidPostProcessingError(
+                _(
+                    "The `%(operation)s` post-processing operation failed: %(message)s",
+                    operation=operation,
+                    message=str(ex),
+                )
+            ) from ex
 
     def _resolve_resample_options(self, options: dict[str, Any]) -> dict[str, Any]:
         """
