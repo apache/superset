@@ -133,3 +133,26 @@ def test_put_configuration_returns_impacted_schedules_on_conflict(
     assert rv.status_code == 422
     assert rv.json["impacted_schedules"] == impacted
     assert "conflict" in rv.json["message"]
+
+
+@with_feature_flags(ALERT_REPORTS=True)
+def test_configuration_only_names_fixed_executor_for_admins(
+    mocker: MockerFixture, client: Any, full_api_access: None, app: Any
+) -> None:
+    from superset.tasks.types import FixedExecutor
+
+    mocker.patch(
+        "superset.reports.api.ReportConfigDAO.get_effective_config", return_value=CONFIG
+    )
+    mocker.patch.dict(
+        app.config, {"ALERT_REPORTS_EXECUTORS": [FixedExecutor("report_bot")]}
+    )
+    is_admin = mocker.patch(
+        "superset.reports.api.security_manager.is_admin", return_value=True
+    )
+    assert (
+        client.get("/api/v1/report/configuration/").json["default_executor"]
+        == "report_bot"
+    )
+    is_admin.return_value = False
+    assert client.get("/api/v1/report/configuration/").json["default_executor"] is None
