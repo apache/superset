@@ -59,6 +59,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
 from sqlalchemy.sql.expression import (
     BinaryExpression,
+    ClauseElement,
     ColumnClause,
     ColumnElement,
     Select,
@@ -108,7 +109,11 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.core import ColumnSpec, GenericDataType, QuerySource
 from superset.utils.hashing import hash_from_str
-from superset.utils.json import redact_sensitive, reveal_sensitive
+from superset.utils.json import (
+    get_sensitive_field_hints,
+    redact_sensitive,
+    reveal_sensitive,
+)
 from superset.utils.network import (
     get_ssrf_safe_requester,
     is_hostname_valid,
@@ -167,7 +172,11 @@ TIME_LIMIT_EXCEPTIONS = (
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
     result_set_columns: list[ResultSetColumnType] = []
     for col in cols:
-        result_set_columns.append({"column_name": col.get("name"), **col})  # type: ignore
+        values = {
+            key: str(value) if isinstance(value, ClauseElement) else value
+            for key, value in col.items()
+        }
+        result_set_columns.append({"column_name": col.get("name"), **values})  # type: ignore
     return result_set_columns
 
 
@@ -2817,6 +2826,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return validated_embedded_credentials(credentials)
 
     @classmethod
+    def get_embedded_credentials_error(
+        cls,
+        credentials: dict[str, str],  # pylint: disable=unused-argument
+    ) -> str | None:
+        """
+        Explain why a complete embedded fallback credential cannot be used, or
+        return ``None``.
+
+        ``validate_embedded_credentials`` only checks that the fields are filled in;
+        this checks that what they hold is usable, e.g. that a private key decodes
+        with its passphrase. Called when a credential is saved, never at query time,
+        and with unmasked secrets. The message is shown to the administrator saving
+        the connection, so it must never quote the credential's values.
+        """
+        return None
+
+    @classmethod
     def apply_embedded_credentials(
         cls,
         database: Database,  # pylint: disable=unused-argument
@@ -3496,6 +3522,68 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return json.dumps(new_config)
 
     @classmethod
+    def encrypted_extra_sensitive_field_labels(cls) -> dict[str, str]:
+        """
+        Map each sensitive `encrypted_extra` JSONPath to its human label, sorted
+        by path. Paths without a declared label use their last segment, except
+        the secrets every engine adds (the OAuth2 client secret and the embedded
+        guest credential), which get readable defaults.
+        """
+        declared = {
+            "$.oauth2_client_info.secret": "OAuth2 client secret",
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.password": "Embedded guest password",
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.privatekey_body": (
+                "Embedded guest private key (PEM)"
+            ),
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.privatekey_pass": (
+                "Embedded guest private key passphrase"
+            ),
+            **(
+                cls.encrypted_extra_sensitive_fields
+                if isinstance(cls.encrypted_extra_sensitive_fields, dict)
+                else {}
+            ),
+        }
+        return {
+            path: declared.get(path, path.rsplit(".", 1)[-1])
+            for path in sorted(cls.encrypted_extra_sensitive_field_paths())
+        }
+
+    @classmethod
+    def encrypted_extra_hints(
+        cls, encrypted_extra: str | None, length: int
+    ) -> list[dict[str, Any]]:
+        """
+        Hints for the sensitive fields of `encrypted_extra`.
+
+        Each hint has the field `path`, a human `label` and the last `length`
+        characters of the stored value as `suffix` (``None`` when the value is too
+        short to reveal any). A JWT also gets `expires_at` and `expired` from its
+        `exp` claim, ``None`` otherwise. Returns an empty list when `encrypted_extra`
+        is missing or malformed, or when `length` is not positive.
+        """
+        if encrypted_extra is None or length <= 0:
+            return []
+
+        try:
+            config = json.loads(encrypted_extra)
+        except (TypeError, json.JSONDecodeError):
+            return []
+
+        if not isinstance(config, dict):
+            return []
+
+        labels = cls.encrypted_extra_sensitive_field_labels()
+        return [
+            {**hint, "label": labels.get(hint["path"], hint["path"].rsplit(".", 1)[-1])}
+            for hint in get_sensitive_field_hints(
+                config,
+                cls.encrypted_extra_sensitive_field_paths(),
+                length,
+            )
+        ]
+
+    @classmethod
     def get_connection_identity(cls, uri: URL, connect_args: dict[str, Any]) -> URL:
         """
         Return the destination a stored credential is sent to, for checks that
@@ -3536,6 +3624,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
             "supports_offset": cls.supports_offset,
+            "encrypted_extra_sensitive_fields": (
+                cls.encrypted_extra_sensitive_field_labels()
+            ),
             "identifier_quote": {
                 "start": cls.identifier_quote_start,
                 "end": cls.identifier_quote_end,

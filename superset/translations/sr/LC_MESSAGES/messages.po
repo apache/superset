@@ -9112,6 +9112,9 @@ msgstr "Ознака динамичке секције"
 msgid "Dynamic group by"
 msgstr "Динамичко груписање по"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Опис динамичке секције"
 
@@ -11702,6 +11705,14 @@ msgstr "Сакриј линију"
 msgid "Hide chart description"
 msgstr "Сакриј опис графикона"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Hide layer"
 msgstr "Сакриј слој"
@@ -12468,6 +12479,11 @@ msgstr "Неважеће стање."
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Неважећи ИД-ови картица: %(tab_ids)s"
+
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "Неважећа вредност временског филтера за колону %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
