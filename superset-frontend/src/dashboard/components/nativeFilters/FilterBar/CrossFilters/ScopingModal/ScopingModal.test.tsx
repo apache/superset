@@ -330,7 +330,8 @@ test('saving a scope that leaves a chart with no targets clears its applied cros
   );
   render(<ScopingModal {...DEFAULT_PROPS} initialChartId={3} />, { store });
   const getDataMask = () =>
-    (store.getState() as { dataMask: DataMaskStateWithId }).dataMask;
+    (store.getState() as unknown as { dataMask: DataMaskStateWithId })
+      .dataMask;
 
   // deselect the only two targets of chart 3's custom scope
   const tree = within(document.querySelector('.ant-tree')!);
