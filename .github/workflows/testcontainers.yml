@@ -165,6 +165,26 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfbclient2
+      - name: Pre-pull Db2 image
+        # testcontainers pulls the fixture's image only when it is missing
+        # locally, in a single attempt (neither it nor docker-py retries a
+        # pull), and one transient dial timeout to icr.io failed ~1.6% of
+        # db2 runs before any test ran. Pull it here instead, retrying only
+        # the pull; each ~30s dial timeout plus the 30s/60s wait spans
+        # icr.io's 60s DNS TTL, so a retry can reach a different address
+        # (it serves one rotating A record). The image name comes from
+        # Db2Container itself so it cannot drift from the fixture's.
+        if: matrix.dialect == 'db2'
+        run: |
+          image="$(python -c 'from testcontainers.community.db2 import Db2Container; print(Db2Container().image)')"
+          for delay in 30 60; do
+            docker pull "$image" && exit 0
+            echo "::warning::docker pull $image failed; retrying in ${delay}s"
+            sleep "$delay"
+          done
+          docker pull "$image" && exit 0
+          echo "::error::docker pull $image failed after 3 attempts"
+          exit 1
       - name: Run testcontainers db_engine_specs tests (${{ matrix.dialect }})
         # nightly_only dialects are already excluded from the matrix itself
         # on pull_request runs (see the compute-matrix job above), so this
@@ -188,4 +208,4 @@ jobs:
     permissions:
       actions: read
     steps:
-      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+      - uses: Kesin11/actions-timeline@460b1f8a750077029ad3589824d371b200e91dcf # v3.2.1
