@@ -42,9 +42,31 @@ import warnings
 # triggers the authlib.jose import. Placed in __init__.py so both the
 # production server path and test imports get it without duplicating the
 # filterwarnings call in every affected module.
+#
+# authlib.deprecate registers ``simplefilter("always", AuthlibDeprecationWarning)``
+# at import time, which lands in front of any filter registered earlier and
+# would override the ignore rule below. Import it first so its filter is
+# already installed and ours is inserted in front of it.
+try:
+    import authlib.deprecate  # noqa: F401
+except ImportError:  # authlib arrives transitively via fastmcp
+    pass
+
 warnings.filterwarnings(
     "ignore",
     message=r"authlib\.jose module is deprecated",
+)
+
+# sqlalchemy-redshift's own __init__ still imports pkg_resources (see the
+# equivalent filter and rationale in superset/db_engine_specs/redshift.py).
+# MCP tools that touch a Redshift-backed database trigger this import via a
+# separate process from the main web/worker app, so it needs its own filter
+# here rather than relying on db_engine_specs/redshift.py having been loaded.
+warnings.filterwarnings(
+    "ignore",
+    message=r"pkg_resources is deprecated as an API",
+    category=UserWarning,
+    module=r"sqlalchemy_redshift(?:\..*)?",
 )
 
 __version__ = "1.0.0"

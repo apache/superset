@@ -55,5 +55,6 @@ Extension developers have access to pre-built UI components via `@apache-superse
 - **[Deployment](./deployment.md)** - Packaging and deploying extensions
 - **[MCP Integration](./mcp.md)** - Adding AI agent capabilities using extensions
 - **[Security](./security.md)** - Security considerations and best practices
+- **[Storage](./storage.md)** - Managed storage API for persisting extension data
 - **[Tasks](./tasks.md)** - Framework for creating and managing long running tasks
 - **[Community Extensions](./registry.md)** - Browse extensions shared by the community

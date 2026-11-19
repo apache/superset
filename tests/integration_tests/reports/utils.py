@@ -85,6 +85,11 @@ def insert_report_schedule(
     logs: Optional[list[ReportExecutionLog]] = None,
     extra: Optional[dict[Any, Any]] = None,
     force_screenshot: bool = False,
+    retry_on_failure: bool = False,
+    retry_max_attempts: int = 3,
+    send_failed_reports: bool = False,
+    retry_notify_owners: bool = True,
+    retry_notify_recipients: bool = False,
 ) -> ReportSchedule:
     editors = editors or []
     editor_users = [s.user for s in editors if s.type == SubjectType.USER and s.user]
@@ -92,6 +97,13 @@ def insert_report_schedule(
     logs = logs or []
     last_state = last_state or ReportState.NOOP
 
+    # created_by/changed_by are populated by AuditMixin's column defaults, which
+    # are only evaluated when the row is actually flushed. The override_user
+    # context therefore has to remain active through add()/commit() (not just
+    # construction) so the flush sees the intended editor as the ambient user --
+    # otherwise the row ends up authored by whoever (if anyone) is ambiently
+    # logged in, and EDITOR executor resolution -- which now only trusts
+    # changed_by/created_by -- can't resolve it back to an attached editor.
     with override_user(editor_users[0] if editor_users else None):
         report_schedule = ReportSchedule(
             type=type,
@@ -114,9 +126,14 @@ def insert_report_schedule(
             report_format=report_format,
             extra=extra,
             force_screenshot=force_screenshot,
+            retry_on_failure=retry_on_failure,
+            retry_max_attempts=retry_max_attempts,
+            send_failed_reports=send_failed_reports,
+            retry_notify_owners=retry_notify_owners,
+            retry_notify_recipients=retry_notify_recipients,
         )
-    db.session.add(report_schedule)
-    db.session.commit()
+        db.session.add(report_schedule)
+        db.session.commit()
     return report_schedule
 
 
@@ -139,6 +156,11 @@ def create_report_notification(
     ccTarget: Optional[str] = None,  # noqa: N803
     bccTarget: Optional[str] = None,  # noqa: N803
     use_slack_v2: bool = False,
+    retry_on_failure: bool = False,
+    retry_max_attempts: int = 3,
+    send_failed_reports: bool = False,
+    retry_notify_owners: bool = True,
+    retry_notify_recipients: bool = False,
 ) -> ReportSchedule:
     if not editors:
         default_owner = (
@@ -188,6 +210,11 @@ def create_report_notification(
         report_format=report_format or ReportDataFormat.PNG,
         extra=extra,
         force_screenshot=force_screenshot,
+        retry_on_failure=retry_on_failure,
+        retry_max_attempts=retry_max_attempts,
+        send_failed_reports=send_failed_reports,
+        retry_notify_owners=retry_notify_owners,
+        retry_notify_recipients=retry_notify_recipients,
     )
     return report_schedule
 

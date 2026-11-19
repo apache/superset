@@ -17,11 +17,16 @@
  * under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
+import { FeatureFlag } from '../../../utils/featureFlags';
 import MatrixifyGridCell from './MatrixifyGridCell';
 import { MatrixifyGridCell as MatrixifyGridCellType } from '../../types/matrixify';
+import {
+  FORCE_IN_VIEW_EVENT,
+  RESTORE_VIRTUALIZATION_EVENT,
+} from './virtualizationEvents';
 
 // Mock StatefulChart component
 jest.mock('../StatefulChart', () => {
@@ -42,6 +47,74 @@ jest.mock('../StatefulChart', () => {
         'SuperChart Mock',
       ),
   };
+});
+
+// Controllable IntersectionObserver mock so lazy-loading can be driven in tests
+type IntersectionCallback = (
+  entries: Array<{ isIntersecting: boolean }>,
+) => void;
+let intersectionCallbacks: IntersectionCallback[] = [];
+let disconnectCount = 0;
+
+class MockIntersectionObserver {
+  constructor(callback: IntersectionCallback) {
+    intersectionCallbacks.push(callback);
+  }
+
+  observe = () => {};
+
+  unobserve = () => {};
+
+  disconnect = () => {
+    disconnectCount += 1;
+  };
+
+  takeRecords = () => [];
+}
+
+const triggerIntersection = (isIntersecting: boolean) => {
+  act(() => {
+    intersectionCallbacks.forEach(cb => cb([{ isIntersecting }]));
+  });
+};
+
+const enableVirtualization = () => {
+  window.featureFlags = { [FeatureFlag.DashboardVirtualization]: true };
+};
+
+const setHeadlessCapture = (value: boolean) => {
+  Object.defineProperty(window.navigator, 'webdriver', {
+    value,
+    configurable: true,
+  });
+};
+
+// Dispatches FORCE_IN_VIEW_EVENT, optionally scoped to a batch of dashboard
+// row ids the way src/utils/downloadUtils.ts does for large dashboards.
+const dispatchForceInView = (rowIds?: string[]) => {
+  act(() => {
+    window.dispatchEvent(
+      rowIds
+        ? new CustomEvent(FORCE_IN_VIEW_EVENT, { detail: { rowIds } })
+        : new Event(FORCE_IN_VIEW_EVENT),
+    );
+  });
+};
+
+beforeEach(() => {
+  intersectionCallbacks = [];
+  disconnectCount = 0;
+  (window as any).IntersectionObserver = MockIntersectionObserver;
+});
+
+afterEach(() => {
+  window.featureFlags = {};
+  setHeadlessCapture(false);
+  // Reset the module-level force-in-view state so it doesn't leak between
+  // tests (it is intentionally shared module state, mirroring production).
+  act(() => {
+    window.dispatchEvent(new Event(RESTORE_VIRTUALIZATION_EVENT));
+  });
 });
 
 const mockDatasource = {
@@ -78,6 +151,23 @@ const defaultProps = {
 
 const renderWithTheme = (component: React.ReactElement) =>
   render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
+
+// Renders the cell inside a stand-in for dashboard Row.tsx's DOM node, which
+// carries a `data-row-id` attribute that MatrixifyGridCell walks up to via
+// `closest()` to scope itself to the right FORCE_IN_VIEW_EVENT batch. A null
+// rowId renders with no such ancestor, matching a Matrixify chart previewed
+// in Explore (no dashboard rows at all).
+const renderCellInRow = (
+  rowId: string | null,
+  component: React.ReactElement,
+) => {
+  const themed = (
+    <ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>
+  );
+  return rowId === null
+    ? render(themed)
+    : render(<div data-row-id={rowId}>{themed}</div>);
+};
 
 test('should render the cell with title', () => {
   renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
@@ -208,5 +298,186 @@ test('should handle empty cell data gracefully', () => {
   renderWithTheme(<MatrixifyGridCell {...defaultProps} cell={emptyCell} />);
 
   // Should still render but with empty title
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+});
+
+test('renders chart eagerly when virtualization is disabled', () => {
+  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('matrixify-cell-placeholder'),
+  ).not.toBeInTheDocument();
+});
+
+test('defers chart mount until the cell scrolls into view when virtualization is enabled', () => {
+  enableVirtualization();
+
+  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+
+  // Before intersecting, only a placeholder is rendered - no query fires
+  expect(screen.queryByText('SuperChart Mock')).not.toBeInTheDocument();
+  expect(screen.getByTestId('matrixify-cell-placeholder')).toBeInTheDocument();
+
+  // Once the cell enters the viewport the chart mounts
+  triggerIntersection(true);
+
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('matrixify-cell-placeholder'),
+  ).not.toBeInTheDocument();
+});
+
+test('keeps the chart mounted after it has entered view (latch)', () => {
+  enableVirtualization();
+
+  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+
+  triggerIntersection(true);
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+  // Observer is disconnected after the first intersection
+  expect(disconnectCount).toBeGreaterThan(0);
+
+  // Scrolling back out of view must not unmount / refetch the chart
+  triggerIntersection(false);
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+});
+
+test('renders eagerly when the browser has no IntersectionObserver support', () => {
+  enableVirtualization();
+  delete (window as any).IntersectionObserver;
+
+  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+
+  // No way to detect visibility - fall back to rendering immediately rather
+  // than leaving the cell stuck on its placeholder forever.
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('matrixify-cell-placeholder'),
+  ).not.toBeInTheDocument();
+});
+
+test('renders every cell eagerly during headless capture even with virtualization on', () => {
+  enableVirtualization();
+  setHeadlessCapture(true);
+
+  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+
+  // Screenshot/PDF/report workers must capture all cells regardless of scroll
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('matrixify-cell-placeholder'),
+  ).not.toBeInTheDocument();
+});
+
+test('mounts an off-screen cell when an unscoped FORCE_IN_VIEW_EVENT fires (client-side download as image/PDF)', () => {
+  enableVirtualization();
+
+  // No ancestor row - e.g. a small dashboard, where downloadUtils.ts has
+  // nothing to batch and dispatches a single unscoped event instead.
+  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+
+  expect(screen.queryByText('SuperChart Mock')).not.toBeInTheDocument();
+  expect(screen.getByTestId('matrixify-cell-placeholder')).toBeInTheDocument();
+
+  dispatchForceInView();
+
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('matrixify-cell-placeholder'),
+  ).not.toBeInTheDocument();
+});
+
+test('mounts when FORCE_IN_VIEW_EVENT is scoped to its own dashboard row', () => {
+  enableVirtualization();
+
+  renderCellInRow('row-1', <MatrixifyGridCell {...defaultProps} />);
+
+  expect(screen.getByTestId('matrixify-cell-placeholder')).toBeInTheDocument();
+
+  // downloadUtils.ts batches large dashboards by row and scopes each
+  // dispatch's detail.rowIds to just that batch.
+  dispatchForceInView(['row-1', 'row-2']);
+
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+});
+
+test('does not mount when FORCE_IN_VIEW_EVENT is scoped to a different dashboard row', () => {
+  enableVirtualization();
+
+  renderCellInRow('row-3', <MatrixifyGridCell {...defaultProps} />);
+
+  // A batch targeting other rows must not force this cell's queries to fire;
+  // otherwise a Matrixify chart would defeat downloadUtils.ts's row batching
+  // by dumping every deferred cell's query into whichever batch fires first.
+  dispatchForceInView(['row-1', 'row-2']);
+
+  expect(screen.queryByText('SuperChart Mock')).not.toBeInTheDocument();
+  expect(screen.getByTestId('matrixify-cell-placeholder')).toBeInTheDocument();
+
+  // It still mounts once its own row's batch is dispatched.
+  dispatchForceInView(['row-3']);
+
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+});
+
+test('renders immediately when first mounted while its own row is already forced into view', () => {
+  // Simulates a matrix whose parent dashboard Row is below the fold: with
+  // DASHBOARD_VIRTUALIZATION on, the Row (and everything inside it,
+  // including this cell) is unmounted until FORCE_IN_VIEW_EVENT causes the
+  // Row to mount it - which happens *after* that batch's event has already
+  // been dispatched, so the cell only exists once it mounts.
+  enableVirtualization();
+
+  dispatchForceInView(['row-1', 'row-2']);
+
+  renderCellInRow('row-1', <MatrixifyGridCell {...defaultProps} />);
+
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('matrixify-cell-placeholder'),
+  ).not.toBeInTheDocument();
+});
+
+test('does not render immediately when first mounted while a different row is being forced into view', () => {
+  enableVirtualization();
+
+  dispatchForceInView(['row-1', 'row-2']);
+
+  // This cell's own row (row-3) was not part of that batch, so it must stay
+  // lazy until its own batch is dispatched (or it scrolls into view).
+  renderCellInRow('row-3', <MatrixifyGridCell {...defaultProps} />);
+
+  expect(screen.queryByText('SuperChart Mock')).not.toBeInTheDocument();
+  expect(screen.getByTestId('matrixify-cell-placeholder')).toBeInTheDocument();
+});
+
+test('re-arms lazy loading for newly-mounted cells after RESTORE_VIRTUALIZATION_EVENT', () => {
+  enableVirtualization();
+
+  dispatchForceInView();
+  act(() => {
+    window.dispatchEvent(new Event(RESTORE_VIRTUALIZATION_EVENT));
+  });
+
+  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+
+  // A cell mounting after virtualization has been restored should go back
+  // to lazy-loading behavior rather than staying permanently forced on.
+  expect(screen.queryByText('SuperChart Mock')).not.toBeInTheDocument();
+  expect(screen.getByTestId('matrixify-cell-placeholder')).toBeInTheDocument();
+});
+
+test('does not unmount after RESTORE_VIRTUALIZATION_EVENT once forced into view (latch)', () => {
+  enableVirtualization();
+
+  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+
+  dispatchForceInView();
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+
+  act(() => {
+    window.dispatchEvent(new Event(RESTORE_VIRTUALIZATION_EVENT));
+  });
   expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
 });

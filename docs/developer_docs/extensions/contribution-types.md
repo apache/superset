@@ -169,6 +169,7 @@ from .api import MyExtensionAPI
 - **Host context**: `/api/v1/` with original ID
 
 For an extension with publisher `my-org` and name `dataset-tools`, the endpoint above would be accessible at:
+
 ```
 /extensions/my-org/dataset-tools/hello
 ```
@@ -261,32 +262,7 @@ from my_extension.view import MySemanticView
 )
 class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
     configuration_class = MyConfig
-
-    @classmethod
-    def from_configuration(cls, configuration: dict) -> "MySemanticLayer":
-        config = MyConfig.model_validate(configuration)
-        return cls(config)
-
-    @classmethod
-    def get_configuration_schema(cls, configuration=None) -> dict:
-        return MyConfig.model_json_schema()
-
-    @classmethod
-    def get_runtime_schema(cls, configuration=None, runtime_data=None) -> dict:
-        return {"type": "object", "properties": {}}
-
-    def get_semantic_views(self, runtime_configuration: dict) -> set[MySemanticView]:
-        # Return available views from the external platform
-        ...
-
-    def get_semantic_view(self, name: str, additional_configuration: dict) -> MySemanticView:
-        # Return a specific view by name
-        ...
+    ...
 ```
 
-**Note**: The `@semantic_layer` decorator automatically detects context and applies appropriate ID prefixing:
-
-- **Extension context**: ID prefixed as `extensions.{publisher}.{name}.{id}`
-- **Host context**: Original ID used as-is
-
-The decorator registers the class in the semantic layers registry, making it available in the UI for users to create connections. The `configuration_class` should be a Pydantic model that defines the fields needed to connect (credentials, project, database, etc.). Superset uses the model's JSON schema to render the configuration form dynamically.
+See [Semantic Layers Extension Point](./extension-points/semantic-layers.md) for implementation details.

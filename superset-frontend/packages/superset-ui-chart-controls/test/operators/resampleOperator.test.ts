@@ -114,3 +114,46 @@ test('should do zerofill resample', () => {
     },
   });
 });
+
+test('should request filling the entire time range', () => {
+  expect(
+    resampleOperator(
+      {
+        ...formData,
+        resample_method: 'zerofill',
+        resample_rule: '1D',
+        resample_fill_time_range: true,
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'resample',
+    options: {
+      method: 'asfreq',
+      rule: '1D',
+      fill_value: 0,
+      fill_time_range: true,
+    },
+  });
+});
+
+test('should omit fill_time_range when the control is off', () => {
+  expect(
+    resampleOperator(
+      {
+        ...formData,
+        resample_method: 'zerofill',
+        resample_rule: '1D',
+        resample_fill_time_range: false,
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'resample',
+    options: {
+      method: 'asfreq',
+      rule: '1D',
+      fill_value: 0,
+    },
+  });
+});

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetTheme, css, styled } from '@apache-superset/core/theme';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -25,9 +25,8 @@ import {
   JsonResponse,
   SupersetClient,
   isMatrixifyEnabled,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash-es';
 import { useSelector } from 'react-redux';
@@ -47,8 +46,19 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import {
+  archiveConfirmContent,
+  archiveToastContent,
+  rememberArchivedType,
+  ToastContent,
+  archiveTitle,
+  deleteActionLabel,
+} from 'src/utils/softDeleteCopy';
+import {
+  ActionButton,
   ConfirmStatusChange,
   CertifiedBadge,
+  DeleteModal,
+  List,
   Tooltip,
   FaveStar,
   InfoTooltip,
@@ -65,6 +75,7 @@ import {
   ListViewFilterOperator as FilterOperator,
   DashboardCrossLinks,
   type ListViewProps,
+  type ListViewFetchDataConfig,
   type ListViewFilters,
   type ListViewFilter,
 } from 'src/components';
@@ -81,12 +92,15 @@ import { loadTags } from 'src/components/Tag/utils';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
-import { QueryObjectColumns } from 'src/views/CRUD/types';
+import {
+  QueryObjectColumns,
+  FileEncryptedExtraFields,
+} from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
+import { fetchDatasourceList } from 'src/features/datasets/fetchDatasourceList';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
-import IconButton from 'src/dashboard/components/IconButton';
 import type { CellProps } from 'react-table';
 
 const FlexRowContainer = styled.div`
@@ -108,12 +122,83 @@ const FlexRowContainer = styled.div`
 `;
 
 const PAGE_SIZE = 25;
+// How many blocking alerts/reports the archive modal previews before the
+// "... and N more" overflow line (dataset-modal parity).
+const BLOCKING_REPORTS_PREVIEW_SIZE = 10;
+
+interface BlockingReport {
+  id: number;
+  name: string;
+  type: 'Alert' | 'Report';
+}
+
+interface ChartDeleteState {
+  chart: Chart;
+  blockingReports: BlockingReport[];
+  blockingReportsCount: number;
+}
+
+function ChartArchiveDescription({
+  chart,
+  blockingReports,
+  blockingReportsCount,
+  softDelete,
+}: ChartDeleteState & { softDelete: boolean }) {
+  const overflowCount = blockingReportsCount - blockingReports.length;
+  return (
+    <>
+      {softDelete ? (
+        <p>{archiveConfirmContent('chart', t('chart'))}</p>
+      ) : (
+        <p>
+          {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>?
+        </p>
+      )}
+      {blockingReports.length > 0 && (
+        <>
+          <h4>{t('Associated alerts and reports')}</h4>
+          <p>
+            {t(
+              'Archiving or deleting this chart will be blocked while the following alerts or reports use it. Detach or delete them first.',
+            )}
+          </p>
+          <List
+            split={false}
+            size="small"
+            dataSource={blockingReports}
+            renderItem={(report: BlockingReport) => (
+              <List.Item key={report.id} compact>
+                <List.Item.Meta
+                  avatar={<span aria-hidden="true">•</span>}
+                  title={report.name}
+                  description={
+                    report.type === 'Alert' ? t('Alert') : t('Report')
+                  }
+                />
+              </List.Item>
+            )}
+          />
+          {overflowCount > 0 && (
+            <p>
+              {tn(
+                '... and %s more',
+                '... and %s more',
+                overflowCount,
+                overflowCount,
+              )}
+            </p>
+          )}
+        </>
+      )}
+    </>
+  );
+}
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
     'import them together with the charts. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
+    '"Certificate" section of the database configuration is not ' +
+    'present in export files, and should be added manually after the ' +
+    'import if it is needed.',
 );
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more charts that already exist. ' +
@@ -122,12 +207,31 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 );
 
 const registry = getChartMetadataRegistry();
+const MAX_VIZ_TYPE_ORDER_LENGTH = 256;
 
 const createFetchDatasets = async (
   filterValue = '',
   page: number,
   pageSize: number,
 ) => {
+  if (isFeatureEnabled(FeatureFlag.SemanticLayers)) {
+    const { result, count } = await fetchDatasourceList(
+      filterValue,
+      page,
+      pageSize,
+    );
+    return {
+      data: result.map(({ id, kind, table_name: tableName }) => {
+        const semanticView = kind === 'semantic_view';
+        return {
+          label: `${tableName} (${semanticView ? t('Semantic View') : t('Dataset')})`,
+          value: `${id}__${semanticView ? 'semantic_view' : 'table'}`,
+        };
+      }),
+      totalCount: count,
+    };
+  }
+
   // add filters if filterValue
   const filters = filterValue
     ? { filters: [{ col: 'table_name', opr: 'sw', value: filterValue }] }
@@ -161,7 +265,7 @@ const createFetchDatasets = async (
 
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -184,10 +288,34 @@ function ChartList(props: ChartListProps) {
     },
     setResourceCollection: setCharts,
     hasPerm,
-    fetchData,
+    fetchData: fetchChartData,
     toggleBulkSelect,
     refreshData,
   } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
+
+  const fetchData = useCallback(
+    (config: ListViewFetchDataConfig) =>
+      fetchChartData({
+        ...config,
+        ...(config.sortBy[0]?.id === 'viz_type'
+          ? {
+              extraQueryParams: {
+                ...config.extraQueryParams,
+                viz_type_order: registry
+                  .keys()
+                  .sort((left, right) => {
+                    const nameComparison = (
+                      registry.get(left)?.name || left
+                    ).localeCompare(registry.get(right)?.name || right);
+                    return nameComparison || left.localeCompare(right);
+                  })
+                  .slice(0, MAX_VIZ_TYPE_ORDER_LENGTH),
+              },
+            }
+          : {}),
+      }),
+    [fetchChartData],
+  );
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
@@ -208,6 +336,11 @@ function ChartList(props: ChartListProps) {
   } = useChartEditModal(setCharts, charts);
 
   const [importingChart, showImportModal] = useState<boolean>(false);
+  const [chartCurrentlyDeleting, setChartCurrentlyDeleting] =
+    useState<ChartDeleteState | null>(null);
+  // Monotonic token: a late pre-flight response for an earlier click must not
+  // swap the modal to a different chart (last-response-wins race).
+  const deleteModalRequestRef = useRef(0);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<
@@ -220,6 +353,9 @@ function ChartList(props: ChartListProps) {
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
 
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = useMemo(
@@ -249,6 +385,9 @@ function ChartList(props: ChartListProps) {
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  // When soft-delete is on, deleting archives the chart (recoverable), so the
+  // confirmation drops the type-DELETE friction and explains the archive.
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const canExport = hasPerm('can_export');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -268,6 +407,51 @@ function ChartList(props: ChartListProps) {
     [addDangerToast],
   );
 
+  const openChartDeleteModal = useCallback((chart: Chart) => {
+    deleteModalRequestRef.current += 1;
+    const requestToken = deleteModalRequestRef.current;
+    if (!isFeatureEnabled(FeatureFlag.AlertReports)) {
+      // The whole report API 404s when ALERT_REPORTS is off, while the delete
+      // guard still fires server-side. Skip the doomed request and open the
+      // unchanged modal immediately.
+      setChartCurrentlyDeleting({
+        chart,
+        blockingReports: [],
+        blockingReportsCount: 0,
+      });
+      return;
+    }
+    const queryParams = rison.encode({
+      filters: [{ col: 'chart_id', opr: 'eq', value: chart.id }],
+      columns: ['id', 'name', 'type'],
+      order_column: 'name',
+      order_direction: 'asc',
+      page_size: BLOCKING_REPORTS_PREVIEW_SIZE,
+    });
+    SupersetClient.get({ endpoint: `/api/v1/report/?q=${queryParams}` })
+      .then(({ json = {} }) => {
+        if (requestToken !== deleteModalRequestRef.current) return;
+        const blockingReports: BlockingReport[] = json.result ?? [];
+        setChartCurrentlyDeleting({
+          chart,
+          blockingReports,
+          blockingReportsCount: json.count ?? blockingReports.length,
+        });
+      })
+      .catch(() => {
+        if (requestToken !== deleteModalRequestRef.current) return;
+        // The report API can be visibility-filtered below what the delete
+        // guard sees, or fail outright. The list is advisory only, so every
+        // failure opens the unchanged modal rather than blocking the action;
+        // the confirm-time guard stays authoritative.
+        setChartCurrentlyDeleting({
+          chart,
+          blockingReports: [],
+          blockingReportsCount: 0,
+        });
+      });
+  }, []);
+
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
       endpoint: `/api/v1/chart/?q=${rison.encode(
@@ -276,11 +460,20 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(json.message);
+        rememberArchivedType('chart');
+        const toast: ToastContent = softDelete
+          ? archiveToastContent(
+              t('Archived %s item(s)', chartsToDelete.length),
+              'chart',
+            )
+          : { text: json.message };
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting the selected charts: %s', errMsg),
+          softDelete
+            ? t('There was an issue archiving the selected charts: %s', errMsg)
+            : t('There was an issue deleting the selected charts: %s', errMsg),
         ),
       ),
     );
@@ -351,7 +544,7 @@ function ChartList(props: ChartListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'xs',
+        size: 'sm',
         hidden: !userId,
       },
       {
@@ -367,7 +560,11 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <FlexRowContainer>
-            <Link to={url} data-test={`${sliceName}-list-chart-title`}>
+            <Link
+              to={url}
+              title={sliceName}
+              data-test={`${sliceName}-list-chart-title`}
+            >
               {certifiedBy && (
                 <>
                   <CertifiedBadge
@@ -383,6 +580,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
+        size: 'xxxl',
         id: 'slice_name',
       },
       {
@@ -515,14 +713,11 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({ row: { original } }: CellProps<Chart>) => {
-          const allowEdit = isUserEditorOrAdmin(user, original.editors);
-          const handleDelete = () =>
-            handleChartDelete(
-              original,
-              addSuccessToast,
-              addDangerToast,
-              refreshData,
-            );
+          const allowEdit = isUserEditorOrAdmin(
+            user,
+            original.editors,
+            original.extra_editors,
+          );
           const openEditModal = () => openChartEditModal(original);
           const handleExport = () => handleBulkChartExport([original]);
           if (!canEdit && !canDelete && !canExport) {
@@ -532,9 +727,9 @@ function ChartList(props: ChartListProps) {
           return (
             <Actions className="actions">
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={
                     allowEdit
                       ? t('Edit')
                       : t(
@@ -542,65 +737,44 @@ function ChartList(props: ChartListProps) {
                         )
                   }
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="chart-row-edit"
-                    disabled={!allowEdit}
-                    onClick={openEditModal}
-                    onKeyDown={handleKeyboardActivation(openEditModal)}
-                    icon={
-                      <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                    }
-                  />
-                </Tooltip>
+                  icon={
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  }
+                  dataTest="chart-row-edit"
+                  disabled={!allowEdit}
+                  onClick={openEditModal}
+                />
               )}
               {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
+                <ActionButton
+                  label={t('Export')}
+                  tooltip={t('Export')}
                   placement="bottom"
-                >
-                  <IconButton
-                    data-test="chart-row-export"
-                    onClick={handleExport}
-                    onKeyDown={handleKeyboardActivation(handleExport)}
-                    icon={<Icons.UploadOutlined iconSize="l" />}
-                  />
-                </Tooltip>
+                  icon={<Icons.UploadOutlined iconSize="l" />}
+                  dataTest="chart-row-export"
+                  onClick={handleExport}
+                />
               )}
               {canDelete && (
-                <ConfirmStatusChange
-                  title={t('Please confirm')}
-                  description={
-                    <>
-                      {t('Are you sure you want to delete')}{' '}
-                      <b>{original.slice_name}</b>?
-                    </>
+                <ActionButton
+                  label={deleteActionLabel()}
+                  tooltip={
+                    allowEdit
+                      ? deleteActionLabel()
+                      : softDelete
+                        ? t(
+                            'You must be a chart editor in order to archive. Please reach out to a chart editor to request modifications or edit access.',
+                          )
+                        : t(
+                            'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
+                          )
                   }
-                  onConfirm={handleDelete}
-                >
-                  {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={
-                        allowEdit
-                          ? t('Delete')
-                          : t(
-                              'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
-                            )
-                      }
-                      placement="bottom"
-                    >
-                      <IconButton
-                        data-test="chart-row-delete"
-                        disabled={!allowEdit}
-                        onClick={confirmDelete}
-                        onKeyDown={handleKeyboardActivation(confirmDelete)}
-                        icon={<Icons.DeleteOutlined iconSize="l" />}
-                      />
-                    </Tooltip>
-                  )}
-                </ConfirmStatusChange>
+                  placement="bottom"
+                  icon={<Icons.DeleteOutlined iconSize="l" />}
+                  dataTest="chart-row-delete"
+                  disabled={!allowEdit}
+                  onClick={() => openChartDeleteModal(original)}
+                />
               )}
             </Actions>
           );
@@ -625,11 +799,9 @@ function ChartList(props: ChartListProps) {
       canExport,
       saveFavoriteStatus,
       favoriteStatus,
-      refreshData,
-      addSuccessToast,
-      addDangerToast,
       handleBulkChartExport,
       openChartEditModal,
+      openChartDeleteModal,
     ],
   );
 
@@ -690,7 +862,9 @@ function ChartList(props: ChartListProps) {
         key: 'dataset',
         id: 'datasource_id',
         input: 'select',
-        operator: FilterOperator.Equals,
+        operator: isFeatureEnabled(FeatureFlag.SemanticLayers)
+          ? FilterOperator.ChartDatasource
+          : FilterOperator.Equals,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchDatasets,
         paginate: true,
@@ -924,9 +1098,42 @@ function ChartList(props: ChartListProps) {
           slice={sliceCurrentlyEditing}
         />
       )}
+      {chartCurrentlyDeleting && (
+        <DeleteModal
+          recoverable={softDelete}
+          title={
+            softDelete
+              ? archiveTitle(chartCurrentlyDeleting.chart.slice_name)
+              : t('Please confirm')
+          }
+          name={chartCurrentlyDeleting.chart.slice_name}
+          open
+          description={
+            <ChartArchiveDescription
+              {...chartCurrentlyDeleting}
+              softDelete={softDelete}
+            />
+          }
+          onConfirm={() => {
+            handleChartDelete(
+              chartCurrentlyDeleting.chart,
+              addSuccessToast,
+              addDangerToast,
+              refreshData,
+            );
+            setChartCurrentlyDeleting(null);
+          }}
+          onHide={() => setChartCurrentlyDeleting(null)}
+        />
+      )}
       <ConfirmStatusChange
-        title={t('Please confirm')}
-        description={t('Are you sure you want to delete the selected charts?')}
+        recoverable={softDelete}
+        title={softDelete ? t('Archive selected charts?') : t('Please confirm')}
+        description={
+          softDelete
+            ? archiveConfirmContent('chart', t('charts'), true)
+            : t('Are you sure you want to delete the selected charts?')
+        }
         onConfirm={handleBulkChartDelete}
       >
         {confirmDelete => {
@@ -935,7 +1142,7 @@ function ChartList(props: ChartListProps) {
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: t('Delete'),
+              name: deleteActionLabel(),
               type: 'danger',
               onSelect: confirmDelete,
             });
@@ -1004,6 +1211,8 @@ function ChartList(props: ChartListProps) {
         setSSHTunnelPrivateKeyPasswordFields={
           setSSHTunnelPrivateKeyPasswordFields
         }
+        encryptedExtraFields={encryptedExtraFields}
+        setEncryptedExtraFields={setEncryptedExtraFields}
       />
       {preparingExport && <Loading />}
     </>

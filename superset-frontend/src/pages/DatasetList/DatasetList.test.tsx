@@ -19,7 +19,10 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import rison from 'rison';
+import { FeatureFlag } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
+import { selectPillOption } from 'spec/helpers/testing-library';
+import { useLocation } from 'react-router-dom';
 import {
   setupMocks,
   renderDatasetList,
@@ -30,9 +33,15 @@ import {
   mockDatasets,
   mockApiError403,
   mockDatasetListEndpoints,
+  setupApiPermissions,
   API_ENDPOINTS,
   RisonFilter,
 } from './DatasetList.testHelpers';
+
+function LocationSearch() {
+  const { search } = useLocation();
+  return <output data-test="location-search">{search}</output>;
+}
 
 // Increase default timeout for tests that involve multiple async operations
 jest.setTimeout(15000);
@@ -74,13 +83,10 @@ test('shows loading state during initial data fetch', () => {
     setTimeout(() => resolve({ result: [], count: 0 }), 10000),
   );
   fetchMock.removeRoutes({
-    names: [
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    ],
+    names: [API_ENDPOINTS.DATASETS, API_ENDPOINTS.DATASETS],
   });
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
 
   renderDatasetList(mockAdminUser);
 
@@ -97,13 +103,10 @@ test('maintains component structure during loading', () => {
     setTimeout(() => resolve({ result: [], count: 0 }), 10000),
   );
   fetchMock.removeRoutes({
-    names: [
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    ],
+    names: [API_ENDPOINTS.DATASETS, API_ENDPOINTS.DATASETS],
   });
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
 
   renderDatasetList(mockAdminUser);
 
@@ -261,9 +264,7 @@ test('makes correct initial API call on load', async () => {
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(0);
   });
 });
@@ -272,9 +273,7 @@ test('API call includes correct page size', async () => {
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(0);
     const { url } = calls[0];
     expect(url).toContain('page_size');
@@ -289,7 +288,7 @@ test('typing in name filter updates input value and triggers API with decoded se
 
   // Record initial API calls
   const initialCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Type in search box and press Enter to trigger search
@@ -303,9 +302,7 @@ test('typing in name filter updates input value and triggers API with decoded se
   // Wait for API call after Enter key press
   await waitFor(
     () => {
-      const calls = fetchMock.callHistory.calls(
-        API_ENDPOINTS.DATASOURCE_COMBINED,
-      );
+      const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
       expect(calls.length).toBeGreaterThan(initialCallCount);
 
       // Get latest API call
@@ -425,9 +422,7 @@ test('component requires explicit mocks for all API endpoints', async () => {
   await waitForDatasetsPageReady();
 
   // Verify that critical endpoints were called and had mocks available
-  const newDatasetsCalls = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
-  );
+  const newDatasetsCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const newInfoCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS_INFO);
 
   // These should have been called during render
@@ -564,3 +559,330 @@ test('dataset name links to Explore with correct explore_url', async () => {
   expect(exploreLink).toBeInTheDocument();
   expect(exploreLink).toHaveAttribute('href', dataset.explore_url);
 });
+
+test('shows RLS badge when dataset has rls_filters', async () => {
+  // mockDatasets[5] is 'Restricted Sales' with one rls_filter
+  const dataset = mockDatasets[5];
+
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  // RlsBadge renders a lock icon with accessible name when filters are present
+  expect(
+    screen.getByRole('img', { name: /row-level security/i }),
+  ).toBeInTheDocument();
+});
+
+test('does not show RLS badge when dataset has no rls_filters', async () => {
+  // mockDatasets[0] has no rls_filters field
+  const dataset = mockDatasets[0];
+
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  // No RLS badge when rls_filters is absent
+  expect(
+    screen.queryByRole('img', { name: /row-level security/i }),
+  ).not.toBeInTheDocument();
+});
+
+test.each([false, true])(
+  'renders dataset type badges with semantic layers enabled=%s',
+  async enabled => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFlags,
+      [FeatureFlag.SemanticLayers]: enabled,
+    };
+    try {
+      const physical = { ...mockDatasets[0], kind: 'physical' };
+      const virtual = { ...mockDatasets[1], kind: 'virtual' };
+      const semantic = {
+        ...mockDatasets[0],
+        id: 900,
+        table_name: 'Semantic Orders',
+        kind: 'semantic_view',
+      };
+      const result = enabled
+        ? [physical, virtual, semantic]
+        : [physical, virtual];
+      mockDatasetListEndpoints({ result, count: result.length });
+      renderDatasetList(mockAdminUser);
+      const table = await screen.findByRole('table');
+      await waitFor(() =>
+        expect(within(table).getAllByTestId('dataset-type-label')).toHaveLength(
+          result.length,
+        ),
+      );
+      expect(within(table).getByText('Physical')).toBeInTheDocument();
+      expect(within(table).getByText('Virtual')).toBeInTheDocument();
+      if (enabled) {
+        const badge = within(table)
+          .getByText('Semantic View')
+          .closest('[data-test="dataset-type-label"]');
+        expect(badge).toBeInTheDocument();
+        expect(
+          within(badge as HTMLElement).getByRole('img', { name: 'apartment' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Datasources')).toBeInTheDocument();
+      } else {
+        expect(
+          within(table).queryByText('Semantic View'),
+        ).not.toBeInTheDocument();
+        expect(screen.getByText('Datasets')).toBeInTheDocument();
+      }
+    } finally {
+      window.featureFlags = previousFlags;
+    }
+  },
+);
+
+const listRequestUrls = (pattern: RegExp) =>
+  fetchMock.callHistory
+    .calls()
+    .map(call => call.url)
+    .filter(url => pattern.test(url));
+
+test('lists datasets through the dataset API when semantic layers are off', async () => {
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
+      0,
+    );
+  });
+  expect(listRequestUrls(/\/api\/v1\/datasource\/\?q=/)).toHaveLength(0);
+});
+
+test('lists datasets through the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    await waitFor(() => {
+      expect(
+        listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+      ).toBeGreaterThan(0);
+    });
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});
+
+const lastRequestQuery = (pattern: RegExp) => {
+  const urls = listRequestUrls(pattern);
+  const url = urls[urls.length - 1];
+  const query = new URL(url, 'http://localhost').searchParams.get('q');
+  return rison.decode(query!) as {
+    filters?: RisonFilter[];
+    order_column?: string;
+    order_direction?: string;
+  };
+};
+
+test('name filter reaches the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    const searchContainer = await screen.findByTestId(
+      'search-filter-container',
+    );
+    const searchInput = within(searchContainer).getByRole('textbox');
+    await userEvent.type(searchInput, 'sales{enter}');
+
+    await waitFor(
+      () => {
+        const { filters = [] } = lastRequestQuery(
+          /\/api\/v1\/datasource\/\?q=/,
+        );
+        expect(
+          filters.some(
+            filter =>
+              filter.col === 'table_name' &&
+              filter.opr === 'ct' &&
+              filter.value === 'sales',
+          ),
+        ).toBe(true);
+      },
+      { timeout: 5000 },
+    );
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});
+
+test('sorting reaches the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    const table = await screen.findByTestId('listview-table');
+    const nameHeader = within(table).getByRole('columnheader', {
+      name: /Name/i,
+    });
+    await waitFor(() => {
+      expect(
+        listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+      ).toBeGreaterThan(0);
+    });
+    const callsBeforeSort = listRequestUrls(
+      /\/api\/v1\/datasource\/\?q=/,
+    ).length;
+
+    await userEvent.click(nameHeader);
+
+    await waitFor(
+      () => {
+        expect(
+          listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+        ).toBeGreaterThan(callsBeforeSort);
+        expect(
+          lastRequestQuery(/\/api\/v1\/datasource\/\?q=/).order_column,
+        ).toBe('table_name');
+      },
+      { timeout: 5000 },
+    );
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});
+
+test('a saved Source = Semantic layer is not sent to the dataset API when semantic layers are off', async () => {
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {},
+    "/?filters=(source_type:(label:'Semantic layer',value:semantic_layer))",
+  );
+
+  await waitFor(() => {
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
+      0,
+    );
+  });
+  const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+  // /api/v1/dataset/ rejects source_type, so a leftover value would leave the
+  // list in an error state with no Source control to clear it.
+  expect(filters.map(filter => filter.col)).not.toContain('source_type');
+  expect(listRequestUrls(/source_type/)).toHaveLength(0);
+
+  // The saved Source must not leak into the Database control either: with it
+  // read as "semantic_layer" the connection dropdown would list no databases.
+  await selectPillOption('PostgreSQL', 'Database');
+  await waitFor(() => {
+    const { filters: applied = [] } = lastRequestQuery(
+      /\/api\/v1\/dataset\/\?q=/,
+    );
+    expect(applied.map(filter => filter.col)).toContain('database');
+  });
+});
+
+test('a saved semantic-layer connection is dropped when semantic layers are off', async () => {
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {},
+    "/?filters=(database:(label:'Warehouse layer',value:'sl:layer-uuid-1'))",
+  );
+
+  await waitFor(() => {
+    const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+    expect(filters.map(filter => filter.col)).not.toContain(
+      'semantic_layer_uuid',
+    );
+  });
+  // The stale connection is cleared from the filter state too, so it neither
+  // lingers in the filter bar nor is re-sent by the next refetch.
+  await waitFor(() => {
+    const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+    expect(filters.map(filter => filter.col)).not.toContain('database');
+  });
+  expect(listRequestUrls(/semantic_layer_uuid/)).toHaveLength(0);
+});
+
+test('a saved Type = Semantic View is dropped when semantic layers are off', async () => {
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {},
+    "/?filters=(sql:(label:'Semantic View',value:semantic_view))",
+  );
+
+  await waitFor(() => {
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
+      0,
+    );
+  });
+  // The dataset API reads the truthy string as "physical", so the list would
+  // show physical datasets under a Type pill with no matching option.
+  const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+  expect(filters.map(filter => filter.col)).not.toContain('sql');
+  expect(listRequestUrls(/semantic_view/)).toHaveLength(0);
+});
+
+test('semantic-view creation link opens the semantic-view modal', async () => {
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.SemanticLayers]: true,
+  };
+  try {
+    fetchMock.get(API_ENDPOINTS.SEMANTIC_LAYERS, { result: [], count: 0 });
+    renderDatasetList(
+      mockAdminUser,
+      {},
+      {},
+      '/tablemodelview/list/?create=semantic_view',
+      <LocationSearch />,
+    );
+    expect(await screen.findByText('Add Semantic View')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        new URLSearchParams(
+          screen.getByTestId('location-search').textContent ?? '',
+        ).has('create'),
+      ).toBe(false),
+    );
+  } finally {
+    window.featureFlags = previousFlags;
+  }
+});
+
+test.each([
+  ['Semantic Layers disabled', false, ['can_read', 'can_write']],
+  ['dataset write denied', true, ['can_read']],
+])(
+  'semantic-view creation link stays closed when %s',
+  async (_, enabled, permissions) => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFlags,
+      [FeatureFlag.SemanticLayers]: enabled,
+    };
+    try {
+      setupApiPermissions(permissions);
+      renderDatasetList(
+        mockAdminUser,
+        {},
+        {},
+        '/tablemodelview/list/?create=semantic_view',
+      );
+      await screen.findByRole('table');
+      expect(screen.queryByText('Add Semantic View')).not.toBeInTheDocument();
+    } finally {
+      window.featureFlags = previousFlags;
+    }
+  },
+);

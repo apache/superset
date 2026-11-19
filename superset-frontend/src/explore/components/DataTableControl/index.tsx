@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useEffect, useRef, RefObject } from 'react';
+import { useMemo, useState, useEffect, useRef, RefObject } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 
@@ -65,11 +65,20 @@ export const CopyToClipboardButton = ({
       disabled={disabled}
       wrapped={false}
       copyNode={
-        <span
-          role="button"
+        <button
+          type="button"
           aria-label={t('Copy')}
           aria-disabled={disabled}
           tabIndex={disabled ? -1 : 0}
+          css={css`
+            appearance: none;
+            border: none;
+            background: none;
+            padding: 0;
+            font: inherit;
+            display: inline-flex;
+            align-items: center;
+          `}
         >
           <Icons.CopyOutlined
             iconColor={theme.colorIcon}
@@ -82,7 +91,7 @@ export const CopyToClipboardButton = ({
               }
             `}
           />
-        </span>
+        </button>
       }
     />
   );
@@ -91,11 +100,24 @@ export const CopyToClipboardButton = ({
 export const FilterInput = ({
   onChangeHandler,
   shouldFocus = false,
+  value: externalValue = '',
 }: {
   onChangeHandler(filterText: string): void;
   shouldFocus?: boolean;
+  value?: string;
 }) => {
   const inputRef: RefObject<any> = useRef(null);
+  const [internalValue, setInternalValue] = useState(externalValue);
+  const lastEmittedValue = useRef(externalValue);
+  const onChangeRef = useRef(onChangeHandler);
+  onChangeRef.current = onChangeHandler;
+
+  useEffect(() => {
+    if (externalValue !== lastEmittedValue.current) {
+      setInternalValue(externalValue);
+    }
+    lastEmittedValue.current = externalValue;
+  }, [externalValue]);
 
   useEffect(() => {
     if (inputRef.current && shouldFocus) {
@@ -116,16 +138,28 @@ export const FilterInput = ({
   }, []);
 
   const theme = useTheme();
-  const debouncedChangeHandler = debounce(
-    onChangeHandler,
-    Constants.SLOW_DEBOUNCE,
+  const debouncedChangeHandler = useMemo(
+    () =>
+      debounce((value: string) => {
+        lastEmittedValue.current = value;
+        onChangeRef.current(value);
+      }, Constants.SLOW_DEBOUNCE),
+    [],
   );
+
+  useEffect(
+    () => () => debouncedChangeHandler.flush(),
+    [debouncedChangeHandler],
+  );
+
   return (
     <Input
       prefix={<Icons.SearchOutlined iconSize="l" />}
       placeholder={t('Search')}
+      value={internalValue}
       onChange={(event: any) => {
         const filterText = event.target.value;
+        setInternalValue(filterText);
         debouncedChangeHandler(filterText);
       }}
       css={css`

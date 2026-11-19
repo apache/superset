@@ -57,6 +57,9 @@ categories:
     - name: Ontruck
       url: https://www.ontruck.com/
 
+    - name: Rentapa
+      url: https://rentapa.pt/
+
   Financial Services:
     - name: Aadhar Housing Finance Limited
       url: https://www.aadharhousing.com
@@ -167,6 +170,11 @@ categories:
     - name: Now
       url: https://www.now.vn/
       contributors: ["@davidkohcw"]
+
+    - name: Pattern
+      url: https://www.pattern.com
+      contributors: ["@alephys26", "@hladush", "@sanketjadhavSF"]
+      logo: pattern_logo.png
 
     - name: Qunar
       url: https://www.qunar.com/
@@ -381,6 +389,11 @@ categories:
       url: https://riadvice.tn
       contributors: ["@riadvice"]
 
+    - name: Savantly
+      url: https://savantly.net/
+      logo: savantly.png
+      contributors: ["@jdbranham", "@Aleem89", "@savantwayne"]
+
     - name: ScopeAI
       url: https://www.getscopeai.com
       contributors: ["@iloveluce"]
@@ -391,6 +404,10 @@ categories:
     - name: Showmax
       url: https://showmax.com
       contributors: ["@bobek"]
+
+    - name: SkanAI
+      url: https://skan.ai
+      contributors: ["@bhardwajambuj"]
 
     - name: SingleStore
       url: https://www.singlestore.com/
@@ -436,6 +453,11 @@ categories:
       url: https://bestpair.info/
       contributors: ["@stevensuting"]
 
+    - name: Veremes
+      url: https://www.veremes.com/
+      logo: veremes.svg
+      contributors: ["@verdier"]
+
     - name: Virtuoso QA
       url: https://www.virtuosoqa.com
 
@@ -449,6 +471,10 @@ categories:
     - name: WinWin Network马上赢
       url: https://brandct.cn/
       contributors: ["@wenbinye"]
+
+    - name: Wordfully
+      url: https://wordfully.ai
+      contributors: ["@vlbaluk"]
 
     - name: XNET
       url: https://xnetmobile.com/
@@ -556,7 +582,8 @@ categories:
 
     - name: DouroECI
       url: https://www.douroeci.com/
-      contributors: ["@nunohelibeires"]
+      logo: douroeci.png
+      contributors: ["@nunohelibeires", "@J0s3-H3nr1qu3"]
 
     - name: Rogow
       url: https://rogow.com.br/
@@ -597,6 +624,11 @@ categories:
     - name: Medic
       url: https://medic.org
       contributors: ["@1yuv"]
+
+    - name: Plum
+      url: https://www.plumhq.com/
+      logo: plum.svg
+      contributors: ["@shubhpy", "@ankush-plum", "@PranavParimi"]
 
     - name: REDCap Cloud
       url: https://www.redcapcloud.com/

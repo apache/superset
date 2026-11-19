@@ -26,10 +26,27 @@ import {
   type QueryFormColumn,
 } from '@superset-ui/core';
 import PivotTableChart from '../src/PivotTableChart';
-import { MetricsLayoutEnum, type PivotTableProps } from '../src/types';
+import buildGroupbyCombinations from '../src/plugin/utilities';
+import {
+  MetricsLayoutEnum,
+  type PivotTableProps,
+  type PivotTableQueryFormData,
+  type QueryData,
+  ShowValuesAsEnum,
+} from '../src/types';
 
 function renderWithTheme(ui: ReactElement) {
   return render(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);
+}
+
+// Wrap a flat array of raw rows as the single full-detail rollup level
+// (`data` is now one QueryData entry per rollup level; these tests only ever
+// exercise the leaf level, so `groupby` mirrors `groupbyRows`/`groupbyColumns`).
+function toQueryData(
+  rows: Record<string, unknown>[],
+  groupby: QueryData['groupby'],
+): QueryData[] {
+  return [{ data: rows as QueryData['data'], groupby }];
 }
 
 function createProps(
@@ -46,7 +63,6 @@ function createProps(
     tableRenderer: 'Table',
     colOrder: 'key_a_to_z',
     rowOrder: 'key_a_to_z',
-    aggregateFunction: 'Count',
     transposePivot: false,
     combineMetric: false,
     rowSubtotalPosition: false,
@@ -78,7 +94,10 @@ test('emits numeric temporal values for drill-to-detail filters on formatted row
   const onContextMenu = jest.fn();
   const timestamp = 1778630400000;
   const props: PivotTableProps = {
-    data: [{ install_date: String(timestamp), value: 1 }],
+    data: toQueryData([{ install_date: String(timestamp), value: 1 }], {
+      rows: ['install_date'],
+      columns: [],
+    }),
     height: 400,
     width: 600,
     margin: 0,
@@ -88,7 +107,6 @@ test('emits numeric temporal values for drill-to-detail filters on formatted row
     tableRenderer: 'Table',
     colOrder: 'key_a_to_z',
     rowOrder: 'key_a_to_z',
-    aggregateFunction: 'Count',
     transposePivot: false,
     combineMetric: false,
     rowSubtotalPosition: false,
@@ -141,7 +159,10 @@ test('keeps non-numeric temporal values for drill-to-detail formatted labels', (
   const onContextMenu = jest.fn();
   const dateValue = '2024-01-01';
   const props: PivotTableProps = {
-    data: [{ install_date: dateValue, value: 1 }],
+    data: toQueryData([{ install_date: dateValue, value: 1 }], {
+      rows: ['install_date'],
+      columns: [],
+    }),
     height: 400,
     width: 600,
     margin: 0,
@@ -151,7 +172,6 @@ test('keeps non-numeric temporal values for drill-to-detail formatted labels', (
     tableRenderer: 'Table',
     colOrder: 'key_a_to_z',
     rowOrder: 'key_a_to_z',
-    aggregateFunction: 'Count',
     transposePivot: false,
     combineMetric: false,
     rowSubtotalPosition: false,
@@ -202,7 +222,10 @@ test('keeps non-numeric temporal values for drill-to-detail formatted labels', (
 test('keeps non-formatted drill-to-detail values as strings', () => {
   const onContextMenu = jest.fn();
   const props = createProps({
-    data: [{ country: 'US', value: 1 }],
+    data: toQueryData([{ country: 'US', value: 1 }], {
+      rows: ['country'],
+      columns: [],
+    }),
     groupbyRows: ['country'],
     onContextMenu,
   });
@@ -230,7 +253,10 @@ test('emits numeric temporal values for cross-filters on formatted row headers',
   const setDataMask = jest.fn();
   const timestamp = 1777248000000;
   const props: PivotTableProps = {
-    data: [{ install_date: String(timestamp), value: 1 }],
+    data: toQueryData([{ install_date: String(timestamp), value: 1 }], {
+      rows: ['install_date'],
+      columns: [],
+    }),
     height: 400,
     width: 600,
     margin: 0,
@@ -240,7 +266,6 @@ test('emits numeric temporal values for cross-filters on formatted row headers',
     tableRenderer: 'Table',
     colOrder: 'key_a_to_z',
     rowOrder: 'key_a_to_z',
-    aggregateFunction: 'Count',
     transposePivot: false,
     combineMetric: false,
     rowSubtotalPosition: false,
@@ -294,7 +319,10 @@ test('keeps non-numeric temporal values for cross-filters on formatted row heade
   const setDataMask = jest.fn();
   const dateValue = '2024-01-01';
   const props = createProps({
-    data: [{ install_date: dateValue, value: 1 }],
+    data: toQueryData([{ install_date: dateValue, value: 1 }], {
+      rows: ['install_date'],
+      columns: [],
+    }),
     groupbyRows: ['install_date'],
     setDataMask,
     dateFormatters: {
@@ -332,7 +360,10 @@ test('emits drill filters from formatted column headers', () => {
     expressionType: 'SQL',
   };
   const props = createProps({
-    data: [{ 'Install date expression': String(timestamp), value: 1 }],
+    data: toQueryData(
+      [{ 'Install date expression': String(timestamp), value: 1 }],
+      { rows: [], columns: [adhocColumn] },
+    ),
     groupbyColumns: [adhocColumn],
     dateFormatters: {
       'Install date expression': (value: DataRecordValue) =>
@@ -367,4 +398,165 @@ test('emits drill filters from formatted column headers', () => {
       },
     ],
   });
+});
+
+test('forwards the result aggregation so a Median grand total is computed from the store values', () => {
+  const props = createProps({
+    data: toQueryData(
+      [
+        { store: 'A', value: 10 },
+        { store: 'B', value: 30 },
+      ],
+      { rows: ['store'], columns: [] },
+    ),
+    groupbyRows: ['store'],
+    aggregateFunction: 'Median',
+    rowTotals: true,
+    colTotals: true,
+  });
+
+  const { container } = renderWithTheme(<PivotTableChart {...props} />);
+
+  const grandTotal = container.querySelector('.pvtGrandTotal');
+  expect(grandTotal).not.toBeNull();
+  expect(grandTotal?.textContent).toMatch(/^\$\s?20(\.0+)?$/);
+});
+
+// Fill every rollup level the generator requests with a value per dimension
+// member, as the query would, so the renderer sees exactly those levels.
+function toLevelData(
+  levels: QueryData['groupby'][],
+  metrics: string[],
+): QueryData[] {
+  return levels.map(groupby => {
+    const dims = [...groupby.rows, ...groupby.columns] as string[];
+    let records: Record<string, unknown>[] = [{}];
+    dims.forEach(dim => {
+      records = records.flatMap(record =>
+        ['a', 'b'].map(member => ({ ...record, [dim]: member })),
+      );
+    });
+    return {
+      groupby,
+      data: records.map((record, i) => ({
+        ...record,
+        ...Object.fromEntries(metrics.map(metric => [metric, i + 1])),
+      })) as QueryData['data'],
+    };
+  });
+}
+
+test.each([
+  [
+    MetricsLayoutEnum.ROWS,
+    ShowValuesAsEnum.PERCENT_OF_ROW,
+    'rowSubTotals',
+    false,
+  ],
+  [
+    MetricsLayoutEnum.ROWS,
+    ShowValuesAsEnum.PERCENT_OF_ROW,
+    'rowSubTotals',
+    true,
+  ],
+  [
+    MetricsLayoutEnum.COLUMNS,
+    ShowValuesAsEnum.PERCENT_OF_COLUMN,
+    'colSubTotals',
+    false,
+  ],
+  [
+    MetricsLayoutEnum.COLUMNS,
+    ShowValuesAsEnum.PERCENT_OF_COLUMN,
+    'colSubTotals',
+    true,
+  ],
+])(
+  'renders combined metrics (%s, %s) with only %s (transposed: %s) without throwing',
+  (metricsLayout, showValuesAs, subtotalToggle, transposePivot) => {
+    const metrics = ['m1', 'm2'];
+    const options = {
+      groupbyRows: ['r1'],
+      groupbyColumns: ['c1'],
+      metrics,
+      metricsLayout,
+      showValuesAs,
+      transposePivot,
+      combineMetric: true,
+      [subtotalToggle]: true,
+    };
+    const levels = buildGroupbyCombinations(
+      options as unknown as PivotTableQueryFormData,
+    );
+
+    expect(() =>
+      renderWithTheme(
+        <PivotTableChart
+          {...createProps({
+            ...options,
+            data: toLevelData(levels, metrics),
+          })}
+        />,
+      ),
+    ).not.toThrow();
+    expect(screen.getAllByText('m1').length).toBeGreaterThan(0);
+  },
+);
+
+test.each(
+  [undefined, true, false].flatMap(hideEmptyColumns =>
+    [false, true].map(combineMetric => ({ hideEmptyColumns, combineMetric })),
+  ),
+)(
+  'all-null metric columns use the compatibility default ($hideEmptyColumns, combine=$combineMetric)',
+  ({ hideEmptyColumns, combineMetric }) => {
+    const props = createProps({
+      groupbyRows: ['year'],
+      groupbyColumns: ['product'],
+      metrics: ['limited', 'all'],
+      aggregateFunction: 'Sum',
+      combineMetric,
+      ...(hideEmptyColumns === undefined ? {} : { hideEmptyColumns }),
+      data: toQueryData(
+        [
+          { year: '2024', product: 'A', limited: 10, all: 20 },
+          { year: '2024', product: 'B', limited: null, all: 30 },
+          { year: '2025', product: 'A', limited: 15, all: 25 },
+          { year: '2025', product: 'B', limited: null, all: 35 },
+        ],
+        { rows: ['year'], columns: ['product'] },
+      ),
+    });
+    const { container } = renderWithTheme(<PivotTableChart {...props} />);
+    const productHeaders = Array.from(
+      container.querySelectorAll('th.pvtColLabel'),
+    ).map(node => node.textContent);
+    expect(productHeaders.filter(label => label === 'A')).toHaveLength(
+      combineMetric ? 1 : 2,
+    );
+    expect(productHeaders.filter(label => label === 'B')).toHaveLength(
+      combineMetric || hideEmptyColumns !== false ? 1 : 2,
+    );
+    expect(container.querySelectorAll('td.pvtVal')).toHaveLength(
+      hideEmptyColumns === false ? 8 : 6,
+    );
+  },
+);
+
+test('zero-valued metric columns remain visible with the compatibility default', () => {
+  const props = createProps({
+    groupbyRows: ['year'],
+    groupbyColumns: ['product'],
+    metrics: ['limited', 'all'],
+    data: toQueryData([{ year: '2024', product: 'B', limited: 0, all: 30 }], {
+      rows: ['year'],
+      columns: ['product'],
+    }),
+  });
+  const { container } = renderWithTheme(<PivotTableChart {...props} />);
+  const labels = Array.from(container.querySelectorAll('th.pvtColLabel')).map(
+    node => node.textContent,
+  );
+  expect(labels.filter(label => label === 'B')).toHaveLength(2);
+  expect(screen.getByText('$ 0')).toBeInTheDocument();
 });

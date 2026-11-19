@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for GTF timeout handling."""
 
+import threading
 import time
 from unittest.mock import MagicMock, patch
 from uuid import UUID
@@ -87,11 +88,11 @@ def task_context_for_timeout(mock_flask_app, mock_task_abortable):
     with (
         patch("superset.tasks.context.current_app") as mock_current_app,
         patch("superset.daos.tasks.TaskDAO") as mock_dao,
-        patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+        patch(
+            "superset.coordination.base.CoordinationService.get_backend",
+            return_value=None,
+        ),
     ):
-        # Disable Redis by making distributed_coordination return None
-        mock_cache_manager.distributed_coordination = None
-
         # Configure current_app mock
         mock_current_app.config = mock_flask_app.config
         mock_current_app._get_current_object.return_value = mock_flask_app
@@ -275,11 +276,11 @@ class TestTimeoutTrigger:
             patch(
                 "superset.commands.tasks.update.UpdateTaskCommand"
             ) as mock_update_cmd,
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -313,19 +314,78 @@ class TestTimeoutTrigger:
             if ctx._abort_listener:
                 ctx.stop_abort_polling()
 
+    def test_timeout_triggers_abort_after_runtime_set_abortable(
+        self, mock_flask_app, mock_task_not_abortable
+    ):
+        """Regression: the task entity is NOT abortable at construction, but an
+        abort handler registered during execution flips the in-memory cache. The
+        timeout must gate on that authoritative cache, not the stale entity
+        snapshot — otherwise it would skip the abort and let the query run to
+        completion (and strand the task IN_PROGRESS)."""
+        abort_called = False
+
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.internal_update.InternalUpdateTaskCommand"),
+            patch(
+                "superset.commands.tasks.update.UpdateTaskCommand"
+            ) as mock_update_cmd,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_not_abortable
+
+            ctx = TaskContext(mock_task_not_abortable)
+            ctx._app = mock_flask_app
+            # Entity reports not-abortable; the cache is empty at construction.
+            assert ctx._task.properties_dict.get("is_abortable") is None
+
+            @ctx.on_abort
+            def handle_abort():
+                nonlocal abort_called
+                abort_called = True
+
+            # on_abort → _set_abortable set the in-memory cache (not the entity).
+            assert ctx._properties_cache.get("is_abortable") is True
+
+            ctx.start_timeout_timer(1)
+            time.sleep(1.5)
+
+            assert abort_called
+            assert ctx._timeout_triggered
+            mock_update_cmd.assert_called()
+            assert mock_update_cmd.call_args[1].get("status") == "aborting"
+
+            ctx.stop_timeout_timer()
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
     def test_timeout_logs_warning_when_not_abortable(
         self, mock_flask_app, mock_task_not_abortable
     ):
-        """Test that timeout logs warning when task has no abort handler."""
+        """A non-abortable task's timeout is a no-op: it logs a warning and does
+        NOT set _timeout_triggered.
+
+        Setting the flag would block the executor's IN_PROGRESS→SUCCESS transition
+        (which is gated on no abort being in flight), while the finalize only moves
+        TIMED_OUT from ABORTING — a transition that never happens for a task with no
+        abort handlers — stranding it IN_PROGRESS. So the task must run to natural
+        completion instead.
+        """
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.tasks.context.logger") as mock_logger,
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_not_abortable
@@ -341,11 +401,12 @@ class TestTimeoutTrigger:
             # Wait for timeout to fire
             time.sleep(1.5)
 
-            # Should have logged warning
+            # Should have logged a warning that the task can't be cancelled…
             mock_logger.warning.assert_called()
             warning_call = mock_logger.warning.call_args
-            assert "no abort handler" in warning_call[0][0].lower()
-            assert ctx._timeout_triggered
+            assert "cannot be cancelled" in warning_call[0][0].lower()
+            # …and crucially left the task un-triggered so SUCCESS can still commit.
+            assert ctx._timeout_triggered is False
             assert not ctx._abort_detected  # No abort since no handler
 
             # Cleanup
@@ -361,11 +422,11 @@ class TestTimeoutTrigger:
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -467,11 +528,11 @@ class TestTimeoutTerminalState:
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -508,11 +569,11 @@ class TestTimeoutTerminalState:
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -545,11 +606,11 @@ class TestTimeoutTerminalState:
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -582,11 +643,11 @@ class TestTimeoutTerminalState:
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -610,3 +671,205 @@ class TestTimeoutTerminalState:
             # Cleanup
             if ctx._abort_listener:
                 ctx.stop_abort_polling()
+
+
+# =============================================================================
+# Self-fence Tests (worker lost contact with the metastore)
+# =============================================================================
+
+
+class TestSelfFence:
+    """Test TaskContext.trigger_self_fence — worker fails the task from inside."""
+
+    def test_concurrent_abort_election_runs_handlers_once(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """The listener/timeout/fence threads race to abort; the lock elects one
+        winner so abort handlers run exactly once."""
+        with patch("superset.tasks.context.current_app") as mock_current_app:
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+
+            ctx = TaskContext(mock_task_abortable)
+            ctx._app = mock_flask_app
+
+            calls: list[int] = []
+            # Register the handler directly to bypass on_abort's DB write; we are
+            # exercising the _on_abort_detected election, not listener setup.
+            ctx._abort_handlers.append(lambda: calls.append(1))
+
+            barrier = threading.Barrier(8)
+
+            def race() -> None:
+                barrier.wait()  # maximize contention on the election
+                ctx._on_abort_detected()
+
+            threads = [threading.Thread(target=race) for _ in range(8)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+            assert calls == [1]  # handler ran exactly once despite 8 racers
+            assert ctx._abort_detected is True
+
+    def test_self_fence_sets_flag_and_runs_abort_handlers(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """A fence marks fence_triggered and runs abort handlers (query cancel)."""
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand") as update_cmd,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(mock_task_abortable)
+            ctx._app = mock_flask_app
+
+            ran = MagicMock()
+            ctx.on_abort(ran)
+
+            assert ctx.fence_triggered is False
+            ctx.trigger_self_fence("lost contact")
+
+            assert ctx.fence_triggered is True
+            ran.assert_called_once()  # abort handler ran (would cancel the query)
+            # Best-effort transition to ABORTING was attempted.
+            update_cmd.assert_called_once()
+
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
+    def test_self_fence_is_noop_when_already_aborting(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """A fence after an abort is already in flight must not re-run handlers."""
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand"),
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(mock_task_abortable)
+            ctx._app = mock_flask_app
+            ctx._abort_detected = True  # an abort already ran
+
+            ran = MagicMock()
+            ctx.on_abort(ran)
+            ctx.trigger_self_fence("lost contact")
+
+            assert ctx.fence_triggered is False
+            ran.assert_not_called()
+
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
+    def test_self_fence_still_cancels_when_aborting_write_fails(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """Partition case: the ABORTING write raises, but handlers still run."""
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch(
+                "superset.commands.tasks.update.UpdateTaskCommand",
+                side_effect=RuntimeError("metastore unreachable"),
+            ),
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(mock_task_abortable)
+            ctx._app = mock_flask_app
+
+            ran = MagicMock()
+            ctx.on_abort(ran)
+
+            # Must not raise even though the best-effort ABORTING write throws.
+            ctx.trigger_self_fence("lost contact")
+
+            # The whole point: the query-cancel handler still runs, and the task
+            # stays marked for FAILURE.
+            ran.assert_called_once()
+            assert ctx.fence_triggered is True
+
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
+    def test_self_fence_is_noop_after_execution_completed(
+        self, mock_flask_app, mock_task_abortable
+    ):
+        """A fence racing in after the body finished must not clobber the result."""
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand") as update_cmd,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_abortable
+
+            ctx = TaskContext(mock_task_abortable)
+            ctx._app = mock_flask_app
+            ctx.mark_execution_completed()  # task body already finished
+
+            ran = MagicMock()
+            ctx.on_abort(ran)
+            ctx.trigger_self_fence("lost contact")
+
+            # No fence flag, no handlers, no ABORTING write => SUCCESS stands.
+            assert ctx.fence_triggered is False
+            ran.assert_not_called()
+            update_cmd.assert_not_called()
+
+            if ctx._abort_listener:
+                ctx.stop_abort_polling()
+
+    def test_self_fence_without_abort_handler_does_not_raise(
+        self, mock_flask_app, mock_task_not_abortable
+    ):
+        """A non-abortable task fences (flag set) but has no handler to run."""
+        with (
+            patch("superset.tasks.context.current_app") as mock_current_app,
+            patch("superset.daos.tasks.TaskDAO") as mock_dao,
+            patch("superset.commands.tasks.update.UpdateTaskCommand") as update_cmd,
+            patch(
+                "superset.coordination.base.CoordinationService.get_backend",
+                return_value=None,
+            ),
+        ):
+            mock_current_app.config = mock_flask_app.config
+            mock_current_app._get_current_object.return_value = mock_flask_app
+            mock_dao.find_one_or_none.return_value = mock_task_not_abortable
+
+            ctx = TaskContext(mock_task_not_abortable)
+            ctx._app = mock_flask_app
+
+            ctx.trigger_self_fence("lost contact")
+
+            assert ctx.fence_triggered is True
+            # No abort handler => no ABORTING write, nothing to interrupt.
+            update_cmd.assert_not_called()

@@ -37,6 +37,7 @@ import {
   Loading,
   Modal,
   TableView,
+  type InputRef,
 } from '@superset-ui/core/components';
 import {
   ServerPagination,
@@ -51,7 +52,6 @@ import {
   SORT_BY as DATASET_SORT_BY,
 } from 'src/features/datasets/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { InputRef } from 'antd';
 import type { Datasource, ChangeDatasourceModalProps } from '../types';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
@@ -84,7 +84,12 @@ const ConfirmModalStyled = styled.div`
   }
 `;
 
-const StyledSpan = styled.span`
+const StyledSpan = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
   cursor: pointer;
   color: ${({ theme }) => theme.colorPrimaryText};
   &: hover {
@@ -202,8 +207,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     {
       Cell: ({ row: { original } }: any) => (
         <StyledSpan
-          role="button"
-          tabIndex={0}
+          type="button"
           data-test="datasource-link"
           onClick={() => selectDatasource({ type: 'table', ...original })}
         >

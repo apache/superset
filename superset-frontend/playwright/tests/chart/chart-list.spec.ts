@@ -76,11 +76,9 @@ test('should delete a chart with confirmation', async ({
   const deleteModal = new DeleteConfirmationModal(page);
   await deleteModal.waitForVisible();
 
-  // Type "DELETE" to confirm
-  await deleteModal.fillConfirmationInput('DELETE');
-
-  // Click the Delete button
-  await deleteModal.clickDelete();
+  // Confirm: types "DELETE" while the modal is destructive, and goes straight
+  // through once SOFT_DELETE makes it a recoverable archive instead.
+  await deleteModal.confirmDeletion();
 
   // Modal should close
   await deleteModal.waitForHidden();
@@ -187,7 +185,7 @@ test('should export a chart as a zip file', async ({
 
   // Wait for export API response and validate zip contents
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'charts',
     expectedNames: [chartName],
   });
@@ -237,11 +235,9 @@ test('should bulk delete multiple charts', async ({
   const deleteModal = new DeleteConfirmationModal(page);
   await deleteModal.waitForVisible();
 
-  // Type "DELETE" to confirm
-  await deleteModal.fillConfirmationInput('DELETE');
-
-  // Click the Delete button
-  await deleteModal.clickDelete();
+  // Confirm: types "DELETE" while the modal is destructive, and goes straight
+  // through once SOFT_DELETE makes it a recoverable archive instead.
+  await deleteModal.confirmDeletion();
 
   // Modal should close
   await deleteModal.waitForHidden();
@@ -380,7 +376,7 @@ test('should bulk export multiple charts', async ({
 
   // Wait for export API response and validate zip contains both charts
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'charts',
     minCount: 2,
     expectedNames: [chart1.name, chart2.name],

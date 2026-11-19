@@ -17,7 +17,6 @@
  * under the License.
  */
 import { DataRecord, DataRecordValue } from '@superset-ui/core';
-import { groupBy as _groupBy, transform } from 'lodash-es';
 
 export type TreeNode = {
   name: DataRecordValue;
@@ -31,6 +30,47 @@ function getMetricValue(datum: DataRecord, metric: string) {
   return typeof datum[metric] === 'number' ? (datum[metric] as number) : 0;
 }
 
+// Groups records by the raw value of `groupByKey`, keyed with a Map instead
+// of a plain object. A plain-object accumulator (e.g. lodash's `groupBy`)
+// has to coerce every key to a string to use it as a property name, so a SQL
+// NULL and the literal string "null" both collapse to the same "null" key
+// and get merged into a single group. A Map keeps them as distinct keys, so
+// null filtering stays deterministic regardless of what else is in the
+// column.
+//
+// `Date` values need special handling: a `Map` compares object keys by
+// identity, not value, so two separately-parsed `Date` instances for the
+// same timestamp would otherwise land in different groups. Canonicalizing
+// by epoch time keeps identical timestamps together while still keeping
+// `null` and `'null'` distinct.
+function groupByValue(
+  data: DataRecord[],
+  groupByKey: string,
+): Map<DataRecordValue, DataRecord[]> {
+  const groups = new Map<DataRecordValue, DataRecord[]>();
+  const keysByCanonicalTime = new Map<number, DataRecordValue>();
+  data.forEach(datum => {
+    const rawKey = datum[groupByKey];
+    let key = rawKey;
+    if (rawKey instanceof Date) {
+      const time = rawKey.getTime();
+      const existingKey = keysByCanonicalTime.get(time);
+      if (existingKey !== undefined) {
+        key = existingKey;
+      } else {
+        keysByCanonicalTime.set(time, rawKey);
+      }
+    }
+    const group = groups.get(key);
+    if (group) {
+      group.push(datum);
+    } else {
+      groups.set(key, [datum]);
+    }
+  });
+  return groups;
+}
+
 export function treeBuilder(
   data: DataRecord[],
   groupBy: string[],
@@ -39,57 +79,52 @@ export function treeBuilder(
   filterNullNames?: boolean,
 ): TreeNode[] {
   const [curGroupBy, ...restGroupby] = groupBy;
-  const curData = _groupBy(data, curGroupBy);
-  const nodes = transform(
-    curData,
-    (result, value, key) => {
-      const name = curData[key][0][curGroupBy]!;
-      if (!restGroupby.length) {
-        (value ?? []).forEach(datum => {
-          const metricValue = getMetricValue(datum, metric);
-          const secondaryValue = secondaryMetric
-            ? getMetricValue(datum, secondaryMetric)
-            : metricValue;
-          const item = {
-            name,
-            value: metricValue,
-            secondaryValue,
-            groupBy: curGroupBy,
-          };
-          result.push(item);
-        });
-      } else {
-        // Children are already null-filtered by the recursive call, so the
-        // parent's value/secondaryValue exclude hidden nulls. This keeps the
-        // parent arc sized to its visible children (no empty gap).
-        const children = treeBuilder(
-          value,
-          restGroupby,
-          metric,
-          secondaryMetric,
-          filterNullNames,
-        );
-        const metricValue = children.reduce(
-          (prev, cur) => prev + (cur.value as number),
-          0,
-        );
+  const curData = groupByValue(data, curGroupBy);
+  const nodes: TreeNode[] = [];
+  curData.forEach((value, name) => {
+    if (!restGroupby.length) {
+      value.forEach(datum => {
+        const metricValue = getMetricValue(datum, metric);
         const secondaryValue = secondaryMetric
-          ? children.reduce(
-              (prev, cur) => prev + (cur.secondaryValue as number),
-              0,
-            )
+          ? getMetricValue(datum, secondaryMetric)
           : metricValue;
-        result.push({
+        nodes.push({
           name,
-          children,
           value: metricValue,
           secondaryValue,
           groupBy: curGroupBy,
         });
-      }
-    },
-    [] as TreeNode[],
-  );
+      });
+    } else {
+      // Children are already null-filtered by the recursive call, so the
+      // parent's value/secondaryValue exclude hidden nulls. This keeps the
+      // parent arc sized to its visible children (no empty gap).
+      const children = treeBuilder(
+        value,
+        restGroupby,
+        metric,
+        secondaryMetric,
+        filterNullNames,
+      );
+      const metricValue = children.reduce(
+        (prev, cur) => prev + (cur.value as number),
+        0,
+      );
+      const secondaryValue = secondaryMetric
+        ? children.reduce(
+            (prev, cur) => prev + (cur.secondaryValue as number),
+            0,
+          )
+        : metricValue;
+      nodes.push({
+        name,
+        children,
+        value: metricValue,
+        secondaryValue,
+        groupBy: curGroupBy,
+      });
+    }
+  });
   // Filter at every level so single-level charts and root nodes are covered,
   // not just nested children. A parent whose children were all null-filtered
   // is dropped too: keeping it would leave a zero-value arc that yields a NaN

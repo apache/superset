@@ -17,13 +17,15 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import rison from 'rison';
 import {
   screen,
   waitFor,
   fireEvent,
+  userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import { isFeatureEnabled } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   API_ENDPOINTS,
   mockCharts,
@@ -95,7 +97,7 @@ describe('ChartList', () => {
     await screen.findByTestId('chart-list-view');
 
     // Verify New Chart button exists
-    const newChartButton = screen.getByRole('button', { name: /chart/i });
+    const newChartButton = screen.getByRole('button', { name: /chart$/i });
     expect(newChartButton).toBeInTheDocument();
     expect(screen.getByTestId('plus')).toBeInTheDocument();
 
@@ -239,6 +241,40 @@ describe('ChartList', () => {
       screen.getByRole('button', { name: 'Bulk select' }),
     ).toBeInTheDocument();
   });
+
+  test('archive (soft-delete) confirmation reflects recoverable semantics, not delete', async () => {
+    // With SOFT_DELETE on, the same delete affordance becomes reversible: the
+    // dialog reads "Archive", not "Delete", and drops the "type DELETE to
+    // confirm" gate -- that friction is reserved for the permanent purge in
+    // the Recently Archived view, not this one.
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockImplementation((feature: string) => feature === 'SOFT_DELETE');
+
+    // isUserEditorOrAdmin requires `username` + `permissions` to recognize an
+    // Admin role (see src/types/bootstrapTypes.ts's isUserWithPermissionsAndRoles);
+    // mockUser lacks both, so row actions would otherwise render disabled.
+    const adminUser = { ...mockUser, username: 'admin', permissions: {} };
+    renderChartList(adminUser);
+    await screen.findByTestId('chart-list-view');
+
+    const deleteButtons = await screen.findAllByTestId('chart-row-delete');
+    fireEvent.click(deleteButtons[0]);
+
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(mockCharts[0].slice_name, { selector: 'bdi' }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('button', { name: 'Archive' }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/moved to Recently Archived/i),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/recover it there/i)).toBeInTheDocument();
+
+    expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+  });
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -282,6 +318,89 @@ describe('ChartList - Global Filter Interactions', () => {
       expect(filter).toBeVisible();
       expect(filter).toBeEnabled();
     });
+  });
+
+  test('Datasource filter offers semantic views and sends their typed identity', async () => {
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockImplementation(flag => flag === FeatureFlag.SemanticLayers);
+    fetchMock.removeRoutes({ names: [API_ENDPOINTS.CATCH_ALL] });
+    fetchMock.get('glob:*/api/v1/datasource/?q=*', {
+      result: [
+        { id: 7, table_name: 'orders', kind: 'physical' },
+        { id: 7, table_name: 'orders', kind: 'semantic_view' },
+      ],
+      count: 2,
+    });
+
+    renderChartList(mockUser);
+    await screen.findByTestId('listview-table');
+    await userEvent.click(findFilterByLabel('Datasource')!);
+    await userEvent.type(screen.getByPlaceholderText('Search'), 'orders');
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls().some(call => {
+          if (!call.url.includes('/api/v1/datasource/?q=')) return false;
+          const query = rison.decode(
+            decodeURIComponent(call.url.split('?q=')[1]),
+          ) as { filters: Array<{ col: string; opr: string; value: string }> };
+          return query.filters.some(
+            filter =>
+              filter.col === 'table_name' &&
+              filter.opr === 'ct' &&
+              filter.value === 'orders',
+          );
+        }),
+      ).toBe(true),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryAllByRole('option').map(option => option.textContent),
+      ).toContain('orders (Semantic View)'),
+    );
+    const semanticOption = await screen.findByRole('option', {
+      name: 'orders (Semantic View)',
+    });
+    expect(
+      screen.getByRole('option', { name: 'orders (Dataset)' }),
+    ).toBeInTheDocument();
+    await userEvent.click(semanticOption);
+
+    await waitFor(() => {
+      const chartCalls = fetchMock.callHistory
+        .calls()
+        .filter(call => call.url.includes('/api/v1/chart/?'));
+      const query = rison.decode(
+        decodeURIComponent(chartCalls.at(-1)!.url.split('?q=')[1]),
+      ) as { filters: Array<{ col: string; opr: string; value: string }> };
+      expect(query.filters).toContainEqual({
+        col: 'datasource_id',
+        opr: 'chart_datasource',
+        value: '7__semantic_view',
+      });
+    });
+  });
+
+  test('Dataset filter keeps the dataset-only endpoint when semantic layers are off', async () => {
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReturnValue(false);
+    renderChartList(mockUser);
+    await screen.findByTestId('listview-table');
+    await userEvent.click(findFilterByLabel('Dataset')!);
+
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory
+          .calls()
+          .some(call => call.url.includes('/api/v1/dataset/?q=')),
+      ).toBe(true),
+    );
+    expect(
+      fetchMock.callHistory
+        .calls()
+        .some(call => call.url.includes('/api/v1/datasource/?q=')),
+    ).toBe(false);
   });
 
   test('renders Tags filter when TAGGING_SYSTEM is enabled', async () => {
@@ -348,4 +467,224 @@ describe('ChartList - Global Filter Interactions', () => {
     // Verify filter UI is reset
     expect((searchInput as HTMLInputElement).value).toBe('');
   });
+});
+
+// The blocking-alerts/reports pre-flight in the Archive modal (sc-117151).
+// Each test registers its report-API route BEFORE setupMocks so it takes
+// precedence over the catch-all route.
+const adminChartUser = { ...mockUser, username: 'admin', permissions: {} };
+
+const openFirstDeleteModal = async () => {
+  // ALERT_REPORTS must be on for the pre-flight to fire at all — with it off
+  // the modal opens synchronously with no dependency fetch (see the flag-off
+  // test below).
+  (
+    isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+  ).mockImplementation(
+    (feature: string) =>
+      feature === 'SOFT_DELETE' || feature === 'ALERT_REPORTS',
+  );
+  renderChartList(adminChartUser);
+  await screen.findByTestId('chart-list-view');
+  const deleteButtons = await screen.findAllByTestId('chart-row-delete');
+  fireEvent.click(deleteButtons[0]);
+  return screen.findByRole('dialog');
+};
+
+test('archive modal lists the blocking alerts and reports with their types', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/report/*', {
+    count: 2,
+    result: [
+      { id: 1, name: 'TC-081 rerun report', type: 'Report' },
+      { id: 2, name: 'Threshold alert', type: 'Alert' },
+    ],
+  });
+  setupMocks();
+  try {
+    const dialog = await openFirstDeleteModal();
+    expect(
+      within(dialog).getByText('Associated alerts and reports'),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText('TC-081 rerun report')).toBeInTheDocument();
+    expect(within(dialog).getByText('Threshold alert')).toBeInTheDocument();
+    expect(within(dialog).getByText('Report')).toBeInTheDocument();
+    expect(within(dialog).getByText('Alert')).toBeInTheDocument();
+    // Advisory only: the Archive button stays enabled.
+    expect(
+      within(dialog).getByRole('button', { name: 'Archive' }),
+    ).toBeEnabled();
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('archive modal is unchanged when the chart has no alerts or reports', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/report/*', { count: 0, result: [] });
+  setupMocks();
+  try {
+    const dialog = await openFirstDeleteModal();
+    expect(
+      within(dialog).getByText(/moved to Recently Archived/i),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByText('Associated alerts and reports'),
+    ).not.toBeInTheDocument();
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('archive modal opens unchanged and confirm still deletes when the report API 404s', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/report/*', 404);
+  fetchMock.delete(`glob:*/api/v1/chart/${mockCharts[0].id}`, {});
+  setupMocks();
+  try {
+    const dialog = await openFirstDeleteModal();
+    expect(
+      within(dialog).queryByText('Associated alerts and reports'),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Archive' }));
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(`glob:*/api/v1/chart/${mockCharts[0].id}`),
+      ).toHaveLength(1),
+    );
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('archive modal caps the list at ten and reports the overflow count', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/report/*', {
+    count: 12,
+    result: Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      name: `Blocking report ${i + 1}`,
+      type: 'Report',
+    })),
+  });
+  setupMocks();
+  try {
+    const dialog = await openFirstDeleteModal();
+    expect(within(dialog).getByText('Blocking report 10')).toBeInTheDocument();
+    expect(within(dialog).getByText('... and 2 more')).toBeInTheDocument();
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('archive modal refetches on every open so the list stays fresh', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get(
+    'glob:*/api/v1/report/*',
+    {
+      count: 1,
+      result: [{ id: 1, name: 'Detach me first', type: 'Report' }],
+    },
+    { name: 'blocking-reports' },
+  );
+  setupMocks();
+  try {
+    const dialog = await openFirstDeleteModal();
+    expect(within(dialog).getByText('Detach me first')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+
+    // The user detaches the report; the next open must show the new truth.
+    fetchMock.removeRoute('blocking-reports');
+    fetchMock.get(
+      'glob:*/api/v1/report/*',
+      { count: 0, result: [] },
+      { name: 'blocking-reports-empty' },
+    );
+    const deleteButtons = await screen.findAllByTestId('chart-row-delete');
+    fireEvent.click(deleteButtons[0]);
+    const reopened = await screen.findByRole('dialog');
+    expect(
+      within(reopened).queryByText('Detach me first'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(reopened).queryByText('Associated alerts and reports'),
+    ).not.toBeInTheDocument();
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('archive modal opens without any report fetch when ALERT_REPORTS is off', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get(
+    'glob:*/api/v1/report/*',
+    {
+      count: 1,
+      result: [{ id: 1, name: 'Should not appear', type: 'Report' }],
+    },
+    { name: 'reports-should-not-be-called' },
+  );
+  setupMocks();
+  (
+    isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+  ).mockImplementation((feature: string) => feature === 'SOFT_DELETE');
+  try {
+    renderChartList(adminChartUser);
+    await screen.findByTestId('chart-list-view');
+    const deleteButtons = await screen.findAllByTestId('chart-row-delete');
+    fireEvent.click(deleteButtons[0]);
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).queryByText('Associated alerts and reports'),
+    ).not.toBeInTheDocument();
+    expect(
+      fetchMock.callHistory.calls('reports-should-not-be-called'),
+    ).toHaveLength(0);
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
+});
+
+test('delete confirmation keeps the type-DELETE gate when SOFT_DELETE is off', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/report/*', { count: 0, result: [] });
+  setupMocks();
+  (
+    isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+  ).mockImplementation((feature: string) => feature === 'ALERT_REPORTS');
+  try {
+    renderChartList(adminChartUser);
+    await screen.findByTestId('chart-list-view');
+    const deleteButtons = await screen.findAllByTestId('chart-row-delete');
+    fireEvent.click(deleteButtons[0]);
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Please confirm')).toBeInTheDocument();
+    expect(screen.getByTestId('delete-modal-input')).toBeInTheDocument();
+  } finally {
+    fetchMock.clearHistory();
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReset();
+  }
 });

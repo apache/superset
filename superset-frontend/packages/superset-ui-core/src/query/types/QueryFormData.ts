@@ -51,7 +51,8 @@ export type QueryFormColumn = PhysicalColumn | AdhocColumn;
  * Format: [metric/column, is_ascending].
  */
 export type QueryFormOrderBy =
-  [QueryFormColumn | QueryFormMetric | {}, boolean] | [];
+  | [QueryFormColumn | QueryFormMetric | {}, boolean]
+  | [];
 
 export interface FormDataResidual {
   [key: string]: any;
@@ -139,12 +140,22 @@ export type ExtraFormDataOverrideRegular = Partial<
 export type ExtraFormDataOverride = ExtraFormDataOverrideRegular &
   ExtraFormDataOverrideExtras;
 
-export type ExtraFormData = ExtraFormDataAppend & ExtraFormDataOverride;
+export type SemanticSelectionSource = {
+  datasource: string;
+  version: string | null;
+};
+
+export type ExtraFormData = ExtraFormDataAppend &
+  ExtraFormDataOverride & {
+    semantic_selection_sources?: SemanticSelectionSource[];
+  };
 
 // Type signature for formData shared by all viz types
 // It will be gradually filled out as we build out the query object
 
 export interface BaseFormData extends TimeRange, FormDataResidual {
+  semantic_selection_version?: string;
+  semantic_selection_sources?: SemanticSelectionSource[];
   /** datasource identifier ${id}_${type} */
   datasource: string;
   /**
@@ -180,6 +191,8 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   timeseries_limit_metric?: QueryFormMetric;
   /** Force refresh */
   force?: boolean;
+  /** Idempotency token for a forced refresh (see requestChartDataResolved) */
+  force_nonce?: string;
   result_format?: string;
   result_type?: string;
   annotation_layers?: AnnotationLayer[];
@@ -211,5 +224,3 @@ export type LatestQueryFormData = Partial<QueryFormData>;
 //---------------------------------------------------
 // Type guards
 //---------------------------------------------------
-
-export default {};

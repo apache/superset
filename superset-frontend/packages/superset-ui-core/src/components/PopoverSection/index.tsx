@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { handleKeyboardActivation } from '../../utils';
-import { ReactNode, SyntheticEvent } from 'react';
+import { MouseEventHandler, ReactNode } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '../Tooltip';
@@ -25,10 +24,7 @@ import { Tooltip } from '../Tooltip';
 export interface PopoverSectionProps {
   title: string;
   isSelected?: boolean;
-  // `SyntheticEvent` (rather than `MouseEventHandler`) so the same callback
-  // can be reused as the keyboard-activation handler via
-  // `handleKeyboardActivation`, which invokes it with a `KeyboardEvent`.
-  onSelect?: (event: SyntheticEvent) => void;
+  onSelect?: MouseEventHandler<HTMLButtonElement>;
   info?: string;
   children?: ReactNode;
 }
@@ -48,12 +44,17 @@ export default function PopoverSection({
         opacity: isSelected ? 1 : 0.6,
       }}
     >
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         onClick={onSelect}
-        onKeyDown={onSelect ? handleKeyboardActivation(onSelect) : undefined}
         css={css`
+          appearance: none;
+          border: none;
+          background: none;
+          padding: 0;
+          font: inherit;
+          text-align: left;
+          width: 100%;
           display: flex;
           align-items: center;
           cursor: ${onSelect ? 'pointer' : 'default'};
@@ -68,8 +69,9 @@ export default function PopoverSection({
               margin-right: ${theme.sizeUnit}px;
             `}
           >
+            {/* role is auto-computed by BaseIconComponent as "img" since
+                there's no onClick, so no explicit role needed here. */}
             <Icons.InfoCircleOutlined
-              role="img"
               iconSize="s"
               iconColor={theme.colorIcon}
             />
@@ -77,10 +79,9 @@ export default function PopoverSection({
         )}
         <Icons.CheckOutlined
           iconSize="s"
-          role="img"
           iconColor={isSelected ? theme.colorPrimary : theme.colorIcon}
         />
-      </div>
+      </button>
       <div
         css={css`
           margin-left: ${theme.sizeUnit}px;

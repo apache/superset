@@ -19,8 +19,7 @@
  * under the License.
  */
 
-import { handleKeyboardActivation } from '@superset-ui/core';
-import { useRef, useState, useEffect, SyntheticEvent } from 'react';
+import { useRef, useState, useEffect, MouseEvent } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { Column } from '@superset-ui/core/components/ThemedAgGridReact';
@@ -35,6 +34,7 @@ import {
   AGGridFilterInstance,
 } from '../../types';
 import CustomPopover from './CustomPopover';
+import { stripMainComparisonPrefix } from '../../utils/mainComparison';
 import {
   Container,
   FilterIconWrapper,
@@ -128,7 +128,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const currentSort = initialSortState?.[0];
   const isMain = userColDef?.isMain;
   const isTimeComparison = !isMain && userColDef?.timeComparisonKey;
-  const sortKey = isMain ? colId.replace('Main', '').trim() : colId;
+  const sortKey = isMain ? stripMainComparisonPrefix(colId) : colId;
 
   const clearSort = () => {
     onColumnHeaderClicked({ column: { colId: sortKey, sort: null } });
@@ -187,10 +187,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     return undefined;
   }, [lastFilteredColumn, colId, lastFilteredInputPosition]);
 
-  // `SyntheticEvent` (rather than `MouseEvent`) so this callback can also be
-  // used as the keyboard-activation handler via `handleKeyboardActivation`,
-  // which invokes it with a `KeyboardEvent`.
-  const handleMenuClick = (e: SyntheticEvent) => {
+  const handleMenuClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     setMenuVisible(!isMenuVisible);
   };
@@ -205,37 +202,27 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const menuContent = (
     <MenuContainer>
       {shouldShowAsc && (
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           onClick={() => applySort('asc')}
-          onKeyDown={handleKeyboardActivation(() => applySort('asc'))}
           className="menu-item"
         >
           <ArrowUpOutlined /> {t('Sort Ascending')}
-        </div>
+        </button>
       )}
       {shouldShowDesc && (
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           onClick={() => applySort('desc')}
-          onKeyDown={handleKeyboardActivation(() => applySort('desc'))}
           className="menu-item"
         >
           <ArrowDownOutlined /> {t('Sort Descending')}
-        </div>
+        </button>
       )}
       {currentSort && currentSort?.colId === colId && (
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={clearSort}
-          onKeyDown={handleKeyboardActivation(clearSort)}
-          className="menu-item"
-        >
+        <button type="button" onClick={clearSort} className="menu-item">
           <span style={{ fontSize: 16 }}>↻</span> {t('Clear Sort')}
-        </div>
+        </button>
       )}
     </MenuContainer>
   );
@@ -269,15 +256,13 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
           isOpen={isMenuVisible}
           onClose={() => setMenuVisible(false)}
         >
-          <div
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
             className="three-dots-menu"
             onClick={handleMenuClick}
-            onKeyDown={handleKeyboardActivation(handleMenuClick)}
           >
             <KebabMenu />
-          </div>
+          </button>
         </CustomPopover>
       )}
     </Container>

@@ -54,7 +54,12 @@ class LRUCache<T> {
     if (typeof key !== 'string') {
       throw new TypeError('The LRUCache key must be string.');
     }
-    if (this.cache.size >= this.capacity) {
+    if (this.cache.has(key)) {
+      // Overwriting an existing key must not evict anything: the entry count is
+      // unchanged. Deleting first also refreshes the key's recency, since
+      // Map#set keeps the original insertion position for existing keys.
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.capacity) {
       // Forward-compat: TS 6.0 types IteratorResult.value as `string | undefined`
       // when not explicitly checked; guard before passing to Map#delete.
       const oldestKey = this.cache.keys().next().value;

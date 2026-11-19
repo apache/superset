@@ -58,7 +58,6 @@ export const StyledSelect = styled(Select, {
       left: 0px;
     }
 
-    && .ant-select-content,
     && .ant-select-selection-item,
     && .ant-select-placeholder {
       max-height: ${theme.sizeXL}px;
@@ -156,5 +155,20 @@ export const StyledBulkActionsContainer = styled(Flex)`
     & .superset-button:last-of-type {
       padding-left: 0 !important;
     }
+  `}
+`;
+
+export const StyledNewOptionBadge = styled.span`
+  ${({ theme }) => `
+    display: inline-block;
+    padding: 0 ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeSM - 2}px;
+    line-height: ${theme.sizeUnit * 4}px;
+    color: ${theme.colorTextSecondary};
+    background-color: ${theme.colorFillTertiary};
+    border-radius: ${theme.borderRadiusSM}px;
+    margin-left: ${theme.sizeUnit}px;
+    vertical-align: middle;
+    text-transform: lowercase;
   `}
 `;

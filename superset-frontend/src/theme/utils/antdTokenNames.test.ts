@@ -22,6 +22,15 @@ import {
   getAllValidTokenNames,
 } from './antdTokenNames';
 
+// Simulate a deployment that registered a custom token via EXTRA_THEME_TOKENS
+// (shipped in the common bootstrap payload).
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: () => ({
+    common: { extra_theme_tokens: ['customDeploymentToken'] },
+  }),
+}));
+
 test('isValidTokenName recognizes standard Ant Design tokens', () => {
   expect(isValidTokenName('colorPrimary')).toBe(true);
   expect(isValidTokenName('fontSize')).toBe(true);
@@ -139,6 +148,20 @@ test('dashboard tile tokens are recognized as valid Superset custom tokens', () 
     expect(isValidTokenName(token)).toBe(true);
     expect(isSupersetCustomToken(token)).toBe(true);
   });
+});
+
+test('isValidTokenName recognizes deployment-registered EXTRA_THEME_TOKENS', () => {
+  expect(isValidTokenName('customDeploymentToken')).toBe(true);
+});
+
+test('isSupersetCustomToken treats EXTRA_THEME_TOKENS as custom, not Ant Design', () => {
+  expect(isSupersetCustomToken('customDeploymentToken')).toBe(true);
+});
+
+test('getAllValidTokenNames lists EXTRA_THEME_TOKENS under supersetTokens', () => {
+  const result = getAllValidTokenNames();
+  expect(result.supersetTokens).toContain('customDeploymentToken');
+  expect(result.antdTokens).not.toContain('customDeploymentToken');
 });
 
 test('label variant tokens are recognized as valid Superset custom tokens', () => {

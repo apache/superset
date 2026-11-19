@@ -30,7 +30,7 @@ import {
   sharedControls,
   DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA, EchartsPieLabelOverflow } from './types';
 import { legendSection } from '../controls';
 
 const {
@@ -39,6 +39,8 @@ const {
   labelsOutside,
   labelType,
   labelLine,
+  labelMaxWidth,
+  labelOverflow,
   outerRadius,
   numberFormat,
   showLabels,
@@ -238,6 +240,49 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'label_max_width',
+            config: {
+              type: 'NumberControl',
+              label: t('Label Max Width'),
+              renderTrigger: true,
+              min: 0,
+              step: 10,
+              default: labelMaxWidth,
+              description: t(
+                'Maximum width (in pixels) of each line of a slice label. ' +
+                  'Set to 0 for no limit.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_labels?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_overflow',
+            config: {
+              type: 'SelectControl',
+              label: t('Label Overflow'),
+              renderTrigger: true,
+              default: labelOverflow,
+              clearable: false,
+              choices: [
+                [EchartsPieLabelOverflow.Truncate, t('Truncate')],
+                [EchartsPieLabelOverflow.Break, t('Break')],
+              ],
+              description: t(
+                'How labels wider than the max width are shortened. ' +
+                  '"Truncate" cuts the label and adds an ellipsis. ' +
+                  '"Break" wraps the label onto additional lines.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_labels?.value) &&
+                Number(controls?.label_max_width?.value) > 0,
+            },
+          },
+        ],
+        [
+          {
             name: 'show_total',
             config: {
               type: 'CheckboxControl',
@@ -325,9 +370,8 @@ const config: ControlPanelConfig = {
               description: t(
                 'Total angle covered by the chart, in degrees. ' +
                   '360° draws a full circle and 180° draws a half donut. ' +
-                  'When the sweep is 180° or less and the start angle is a ' +
-                  'multiple of 90°, the chart is automatically re-centered ' +
-                  'to make use of the empty space.',
+                  'Partial arcs are automatically re-centered and scaled ' +
+                  'to make use of the available space.',
               ),
               renderTrigger: true,
               default: DEFAULT_FORM_DATA.sweptAngle,

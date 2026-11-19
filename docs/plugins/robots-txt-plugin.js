@@ -47,14 +47,18 @@ module.exports = function robotsTxtPlugin(context, options = {}) {
         lines.push(`User-agent: ${policy.userAgent}`);
 
         if (policy.allow) {
-          const allows = Array.isArray(policy.allow) ? policy.allow : [policy.allow];
+          const allows = Array.isArray(policy.allow)
+            ? policy.allow
+            : [policy.allow];
           for (const allow of allows) {
             lines.push(`Allow: ${allow}`);
           }
         }
 
         if (policy.disallow) {
-          const disallows = Array.isArray(policy.disallow) ? policy.disallow : [policy.disallow];
+          const disallows = Array.isArray(policy.disallow)
+            ? policy.disallow
+            : [policy.disallow];
           for (const disallow of disallows) {
             lines.push(`Disallow: ${disallow}`);
           }

@@ -41,6 +41,7 @@ import { DatasetObject } from '../types';
 interface FooterProps {
   url: string;
   addDangerToast: () => void;
+  addSuccessToast: (msg: string) => void;
   datasetObject?: Partial<DatasetObject> | null;
   onDatasetAdd?: (dataset: DatasetObject) => void;
   hasColumns?: boolean;
@@ -58,6 +59,7 @@ const LOG_ACTIONS = [
 function Footer({
   datasetObject,
   addDangerToast,
+  addSuccessToast,
   hasColumns = false,
   datasets,
 }: FooterProps) {
@@ -108,7 +110,8 @@ function Footer({
           logEvent(LOG_ACTIONS_DATASET_CREATION_SUCCESS, datasetObject);
           // When a dataset is created the response we get is its ID number
           if (createChart) {
-            history.push(`/chart/add/?dataset=${datasetObject.table_name}`);
+            addSuccessToast(t('The dataset has been saved'));
+            history.push(`/chart/add/?dataset_id=${response}`);
           } else {
             history.push('/tablemodelview/list/');
           }

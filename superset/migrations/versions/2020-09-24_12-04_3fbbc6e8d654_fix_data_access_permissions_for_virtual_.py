@@ -168,7 +168,7 @@ def upgrade():  # noqa: C901
         match_ds_id = re.match(r"\[None\]\.\[.*\]\(id:(\d+)\)", faulty_view_menu.name)
         if match_ds_id:
             dataset_id = int(match_ds_id.group(1))
-            dataset = session.query(SqlaTable).get(dataset_id)
+            dataset = session.get(SqlaTable, dataset_id)
             if dataset:
                 try:
                     new_view_menu = dataset.get_perm()

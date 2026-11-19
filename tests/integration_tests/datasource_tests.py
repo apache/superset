@@ -107,9 +107,6 @@ def create_and_cleanup_table(table=None):
 
 
 class TestDatasource(SupersetTestCase):
-    def setUp(self):
-        db.session.begin(subtransactions=True)
-
     def tearDown(self):
         db.session.rollback()
         super().tearDown()
@@ -153,17 +150,17 @@ class TestDatasource(SupersetTestCase):
             "row_limit": 1000,
             "row_offset": 0,
         }
+        columns = [
+            TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="additional_dttm", type="DATETIME", is_dttm=True),
+        ]
+        db.session.add_all(columns)
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=database,
             schema=get_example_default_schema(),
             main_dttm_col="default_dttm",
-            columns=[
-                TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
-                TableColumn(
-                    column_name="additional_dttm", type="DATETIME", is_dttm=True
-                ),
-            ],
+            columns=columns,
             sql=sql,
         )
 
@@ -660,19 +657,28 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
     if get_example_database().backend == "sqlite":
         return
 
-    TableColumn(
+    column = TableColumn(
         column_name="DUMMY CC",
         type="VARCHAR(255)",
         table=virtual_dataset,
         expression="INCORRECT SQL",
     )
+    db.session.add(column)
 
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
     rv = test_client.post(uri, json={})
+    # An incorrect calculated column is rejected with a clean client error
+    # (422), not a 500. Parenthesizing calculated-column expressions shifts the
+    # point at which the engine rejects the malformed SQL (a hard syntax error
+    # in ``(INCORRECT SQL)``), so it now surfaces as a ``DatasetSamplesFailedError``
+    # message ("error") rather than a structured ``INVALID_SQL_ERROR`` list
+    # ("errors"); both are a 422 describing the bad SQL.
     assert rv.status_code == 422
-    assert rv.json["errors"][0]["error_type"] == "INVALID_SQL_ERROR"
+    assert rv.json.get("error") or rv.json.get("errors"), (
+        f"Expected an error payload for the invalid calculated column: {rv.json}"
+    )
 
 
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)

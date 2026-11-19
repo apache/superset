@@ -24,6 +24,7 @@ from superset import db
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.utils import json
+from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 
@@ -140,3 +141,24 @@ class TestSubjectApi(SupersetTestCase):
         assert self.client.post("api/v1/security/subject/", json={}).status_code == 405
         assert self.client.put("api/v1/security/subject/1", json={}).status_code == 405
         assert self.client.delete("api/v1/security/subject/1").status_code == 405
+
+    @pytest.mark.usefixtures("create_subjects")
+    @with_config({"EXCLUDE_USERS_FROM_LISTS": ["admin"]})
+    def test_get_list_subject_excludes_configured_users(self) -> None:
+        """Subject API: excluded users are absent from the list"""
+        self.login(ADMIN_USERNAME)
+
+        rv = self.get_assert_metric("api/v1/security/subject/", "get_list")
+
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        excluded = (
+            db.session.query(Subject)
+            .filter(Subject.type == SubjectType.USER)
+            .join(Subject.user)
+            .filter_by(username="admin")
+            .one_or_none()
+        )
+        assert excluded is not None, "expected an admin USER subject to exist"
+        assert excluded.id not in {row["id"] for row in data["result"]}
+        assert data["count"] == db.session.query(Subject).count() - 1

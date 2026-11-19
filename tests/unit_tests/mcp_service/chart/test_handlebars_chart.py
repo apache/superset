@@ -183,7 +183,9 @@ class TestMapHandlebarsConfig:
         result = map_handlebars_config(config)
 
         assert result["viz_type"] == "handlebars"
-        assert result["handlebars_template"] == "<p>{{data}}</p>"
+        # Persisted under the camelCase key the renderer reads, not snake_case.
+        assert result["handlebarsTemplate"] == "<p>{{data}}</p>"
+        assert "handlebars_template" not in result
         assert result["query_mode"] == "aggregate"
         assert result["row_limit"] == 1000
         assert result["order_desc"] is True

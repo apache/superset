@@ -16,12 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { handleKeyboardActivation } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Button } from '@superset-ui/core/components';
 import { Tag } from 'src/components';
 import { FC } from 'react';
+import { css } from '@apache-superset/core/theme';
 import { LayerTreeItemProps } from './types';
+
+const layerTreeItemLabelCss = css`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+`;
 
 export const LayerTreeItem: FC<LayerTreeItemProps> = ({
   layerConf,
@@ -45,24 +54,22 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
         onClick={onCloseTag}
         size="small"
       />
-      <span
+      <button
+        type="button"
         className="layer-tree-item-type"
+        css={layerTreeItemLabelCss}
         onClick={onEditTag}
-        onKeyDown={handleKeyboardActivation(onEditTag)}
-        role="button"
-        tabIndex={0}
       >
         {layerConf.type}
-      </span>
-      <span
+      </button>
+      <button
+        type="button"
         className="layer-tree-item-title"
+        css={layerTreeItemLabelCss}
         onClick={onEditTag}
-        onKeyDown={handleKeyboardActivation(onEditTag)}
-        role="button"
-        tabIndex={0}
       >
         {layerConf.title}
-      </span>
+      </button>
       <Button
         className="layer-tree-item-edit"
         icon={<Icons.RightOutlined />}

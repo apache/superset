@@ -57,6 +57,7 @@ interface AdhocFilterEditPopoverProps {
   onClose: () => void;
   onResize: () => void;
   options: FilterOption[];
+  semanticSelectionVersion?: string;
   datasource?: Record<string, unknown>;
   partitionColumn?: string;
   theme?: SupersetTheme;
@@ -97,6 +98,7 @@ function AdhocFilterEditPopover({
   onResize,
   options,
   datasource,
+  semanticSelectionVersion,
   partitionColumn,
   operators,
   requireSave,
@@ -229,7 +231,8 @@ function AdhocFilterEditPopover({
       loadLayerOptions(0, 100).then(result => {
         setLayerOptions(result.data);
         const layerFilterScope = propsAdhocFilter?.layerFilterScope as
-          number[] | undefined;
+          | number[]
+          | undefined;
         if (layerFilterScope) {
           const layers = layerFilterScope
             .map(item => result.data.find(option => option.value === item))
@@ -358,6 +361,7 @@ function AdhocFilterEditPopover({
                   onChange={onAdhocFilterChange}
                   options={options as ColumnType[]}
                   datasource={datasource as unknown as Dataset}
+                  semanticSelectionVersion={semanticSelectionVersion}
                   onHeightChange={adjustHeight}
                   partitionColumn={partitionColumn}
                   popoverRef={popoverContentRef.current}
@@ -366,8 +370,22 @@ function AdhocFilterEditPopover({
               </ErrorBoundary>
             ),
           },
-          ...(datasource?.type === 'semantic_view'
-            ? []
+          ...(datasource?.type === 'semantic_view' ||
+          adhocFilter.timeGrain ||
+          [
+            Operators.ContainsAny,
+            Operators.ContainsAll,
+            Operators.IsEmpty,
+            Operators.IsNotEmpty,
+            Operators.LengthEquals,
+            Operators.LengthGreaterThan,
+            Operators.LengthLessThan,
+            Operators.LengthGreaterThanOrEqual,
+            Operators.LengthLessThanOrEqual,
+          ].includes(adhocFilter.operatorId as Operators)
+            ? // Time buckets and element-level array operators have no portable
+              // raw SQL representation; conversion would change their meaning.
+              []
             : [
                 {
                   key: ExpressionTypes.Sql,
@@ -418,6 +436,11 @@ function AdhocFilterEditPopover({
           {t('Save')}
         </Button>
         <Icons.ArrowsAltOutlined
+          // Drag-to-resize handle activated via mousedown, not click; there's
+          // no keyboard equivalent, so role="button" (which implies a
+          // click/Enter/Space-activatable control) isn't quite right, but no
+          // native tag fits a drag handle either.
+          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
           role="button"
           aria-label={t('Resize')}
           tabIndex={0}

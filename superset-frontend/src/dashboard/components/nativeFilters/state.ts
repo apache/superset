@@ -41,6 +41,14 @@ const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
 const EMPTY_ACTIVE_TABS: ActiveTabs = [];
 const defaultFilterConfiguration: (Filter | Divider)[] = [];
 
+export function isFilterWithoutScope(filter: FilterElement | Divider) {
+  return (
+    filter.type === NativeFilterType.NativeFilter &&
+    Array.isArray(filter.chartsInScope) &&
+    filter.chartsInScope.length === 0
+  );
+}
+
 export const selectFilterConfiguration: (
   state: RootState,
 ) => (Filter | Divider)[] = createSelector(
@@ -53,7 +61,10 @@ export const selectFilterConfiguration: (
     return nativeFilterConfig.filter(
       (
         filter:
-          Filter | Divider | ChartCustomization | ChartCustomizationDivider,
+          | Filter
+          | Divider
+          | ChartCustomization
+          | ChartCustomizationDivider,
       ) =>
         filter.type !== 'CHART_CUSTOMIZATION' &&
         filter.type !== 'CHART_CUSTOMIZATION_DIVIDER',
@@ -330,10 +341,12 @@ export function useSelectCustomizationsInScope(
 
   return useMemo(() => {
     let customizationsInScope: (
-      ChartCustomization | ChartCustomizationDivider
+      | ChartCustomization
+      | ChartCustomizationDivider
     )[] = [];
     const customizationsOutOfScope: (
-      ChartCustomization | ChartCustomizationDivider
+      | ChartCustomization
+      | ChartCustomizationDivider
     )[] = [];
 
     // we check customization scopes only on dashboards with tabs

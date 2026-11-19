@@ -23,23 +23,48 @@ from typing import Any, Dict, List
 import dateutil.parser
 from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import joinedload, Query
 
 from superset.connectors.sqla.models import (
+    RLSFilterTables,
+    RowLevelSecurityFilter,
     SqlaTable,
     SqlMetric,
     TableColumn,
 )
+from superset.connectors.sqla.partition_mapping import (
+    drop_unmapped_value_transforms,
+    FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
+)
+from superset.constants import EPOCH_FORMATS
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
-from superset.extensions import db
+from superset.dashboards.dataset_references import (
+    dashboard_dataset_ids,
+    parse_dashboard_metadata,
+)
+from superset.extensions import db, feature_flag_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql.parse import Table
+from superset.sql.parse import SQLScript, Table
 from superset.utils.core import DatasourceType
 from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
+
+#: Attributes whose presence in an update can change which column the partition
+#: mapping mirrors -- and therefore which column is allowed to hold a transform.
+#: A request touching none of these cannot invalidate the one-transform
+#: invariant, so there is nothing for `clear_unmapped_partition_transforms` to
+#: enforce and clearing would be pure loss.
+PARTITION_MAPPING_ATTRIBUTES = frozenset(
+    {
+        "columns",
+        "main_dttm_col",
+        "partition_column",
+        "partition_mapped_column",
+    }
+)
 
 # Custom filterable fields for datasets (not direct model columns)
 DATASET_CUSTOM_FIELDS: dict[str, list[str]] = {
@@ -140,15 +165,21 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             return None
 
     @staticmethod
-    def get_related_objects(database_id: int) -> dict[str, Any]:
-        charts = (
-            db.session.query(Slice)
-            .filter(
-                Slice.datasource_id == database_id,
-                Slice.datasource_type == DatasourceType.TABLE,
-            )
-            .all()
-        )
+    def get_related_objects(dataset_id: int) -> dict[str, Any]:
+        return DatasetDAO.get_related_objects_for_datasets([dataset_id])
+
+    @staticmethod
+    def get_related_objects_for_datasets(dataset_ids: list[int]) -> dict[str, Any]:
+        """
+        Return the charts built on any of the datasets and the dashboards that
+        depend on them, either through those charts or through a native filter
+        or display control targeting one of the datasets. Each chart and
+        dashboard is listed once even if it depends on several of the datasets
+        or in several ways.
+        """
+        if not dataset_ids:
+            return {"charts": [], "dashboards": []}
+        charts = DatasetDAO.get_charts_for_datasets(dataset_ids)
         chart_ids = [chart.id for chart in charts]
 
         dashboards = (
@@ -160,7 +191,69 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             .distinct()
             .all()
         )
+        seen_ids = {dashboard.id for dashboard in dashboards}
+        extra_ids = [
+            dashboard_id
+            for dashboard_id in DatasetDAO._dashboard_ids_targeting_datasets(
+                dataset_ids
+            )
+            if dashboard_id not in seen_ids
+        ]
+        if extra_ids:
+            dashboards.extend(
+                db.session.query(Dashboard).filter(Dashboard.id.in_(extra_ids)).all()
+            )
         return {"charts": charts, "dashboards": dashboards}
+
+    @staticmethod
+    def get_charts_for_datasets(dataset_ids: list[int]) -> list[Slice]:
+        """
+        Return the charts built on any of the datasets. Callers that only need
+        charts should use this rather than ``get_related_objects``, which also
+        scans dashboard metadata.
+        """
+        if not dataset_ids:
+            return []
+        return (
+            db.session.query(Slice)
+            .filter(
+                Slice.datasource_id.in_(dataset_ids),
+                Slice.datasource_type == DatasourceType.TABLE,
+            )
+            .all()
+        )
+
+    @staticmethod
+    def _dashboard_ids_targeting_datasets(dataset_ids: list[int]) -> list[int]:
+        """
+        Ids of the dashboards whose native filters or display controls target
+        any of the datasets.
+
+        Targets live in ``json_metadata`` text, so a cheap ``LIKE`` prefilter
+        narrows the rows, which are streamed in batches, and the parsed metadata
+        is then checked exactly. Dashboards with missing or malformed metadata
+        never match.
+
+        This is a Core select, so the ORM soft-delete listener does not apply
+        and soft-deleted dashboards are excluded explicitly.
+        """
+        wanted = set(dataset_ids)
+        dashboards = Dashboard.__table__
+        candidates = (
+            select(dashboards.c.id, dashboards.c.json_metadata)
+            .where(
+                dashboards.c.json_metadata.like('%"datasetId"%'),
+                dashboards.c.deleted_at.is_(None),
+            )
+            .order_by(dashboards.c.id)
+        )
+        return [
+            dashboard_id
+            for dashboard_id, json_metadata in db.session.execute(
+                candidates.execution_options(yield_per=1000)
+            )
+            if wanted & dashboard_dataset_ids(parse_dashboard_metadata(json_metadata))
+        ]
 
     @staticmethod
     def validate_table_exists(
@@ -396,7 +489,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
     @staticmethod
     def validate_python_date_format(dt_format: str) -> bool:
-        if dt_format in ("epoch_s", "epoch_ms"):
+        if dt_format in EPOCH_FORMATS:
             return True
         try:
             dt_str = datetime.now().strftime(dt_format)
@@ -410,29 +503,166 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         cls,
         item: SqlaTable | None = None,
         attributes: dict[str, Any] | None = None,
+        *,
+        preserve_existing_metrics: bool = False,
+        delete_metric_ids: set[int] | None = None,
     ) -> SqlaTable:
         """
-        Updates a Dataset model on the metadata DB
+        Updates a Dataset model on the metadata DB.
+
+        delete_metric_ids removes only explicitly selected metrics, without
+        replacing or replaying the remaining metrics.
         """
+        # Snapshot the keys: the column and metric branches below `pop` theirs
+        # out of `attributes`, so by the time the partition-mapping cleanup runs
+        # the dict no longer says what the request contained.
+        attribute_names = set(attributes or {})
+        touches_mapping = not PARTITION_MAPPING_ATTRIBUTES.isdisjoint(attribute_names)
 
-        if item and attributes:
-            force_update: bool = False
-            if "columns" in attributes:
-                cls.update_columns(
-                    item,
-                    attributes.pop("columns"),
-                    override_columns=bool(attributes.get("override_columns")),
+        # Once before the update and once after, because one pass can only ever
+        # see one of the two resolutions and the bug lives between them.
+        #
+        # The cleanup skips whichever column the mapping currently mirrors. Run
+        # only afterwards, it therefore skips the column this very request has
+        # just *made* the mapped one -- and a transform parked there, invisible
+        # because no row but the mapped one renders one, goes live. That turns
+        # removing a mapping into adding a different one, exactly what
+        # `clear_unmapped_partition_transforms` exists to prevent.
+        #
+        # This pass clears what is unmapped under the *old* resolution, which
+        # includes the column about to become mapped. The pass after clears
+        # what the *new* resolution strands. A transform the request itself
+        # supplies lands between the two, via `update_columns`, and survives --
+        # correctly, since the owner typed it.
+        if item is not None and touches_mapping:
+            cls.clear_unmapped_partition_transforms(item)
+            # The same invariant against what the request *carries*, which the
+            # pair of model-level passes cannot answer for: they are gated on
+            # the feature flag, correctly -- they discard stored configuration
+            # -- so with the flag off a payload could put a transform on a
+            # non-mapped column and have `update_columns` write it. Nothing
+            # reads it while the flag is off, and then the flag goes on and the
+            # mapping resolves onto it. See `drop_unmapped_value_transforms`.
+            #
+            # Harmless with the flag on, where the pass above has already
+            # cleared the same columns on the model and the pass below answers
+            # for the resolution this request leaves behind.
+            #
+            # Each name falls back to the model, because the mapping is
+            # `partition_mapped_column or main_dttm_col` and a request may
+            # change one of the three without mentioning the others.
+            requested = attributes or {}
+            if cleared := drop_unmapped_value_transforms(
+                requested.get("columns"),
+                partition_column=requested.get(
+                    "partition_column", item.partition_column
+                ),
+                partition_mapped_column=requested.get(
+                    "partition_mapped_column", item.partition_mapped_column
+                ),
+                main_dttm_col=requested.get("main_dttm_col", item.main_dttm_col),
+                # `_upsert_columns` identifies an existing column by its
+                # primary key and lets `column_name` be omitted, which is what
+                # the dataset editor's own PUT sends.
+                names_by_id={column.id: column.column_name for column in item.columns},
+                # So an unchanged echo of stored configuration is left alone;
+                # only a value this request introduces is dropped.
+                stored_by_name={
+                    column.column_name: (
+                        column.partition_value_transform,
+                        bool(column.partition_transform_is_monotonic),
+                    )
+                    for column in item.columns
+                },
+            ):
+                logger.info(
+                    "Dataset %s: dropped an incoming partition value transform "
+                    "from %s, which the mapping does not mirror",
+                    item.id,
+                    ", ".join(cleared),
                 )
-                force_update = True
 
-            if "metrics" in attributes:
-                cls.update_metrics(item, attributes.pop("metrics"))
-                force_update = True
+        if item and delete_metric_ids:
+            for metric in item.metrics:
+                if metric.id in delete_metric_ids:
+                    db.session.delete(metric)
+            attributes = {**(attributes or {}), "changed_on": datetime.now()}
 
-            if force_update:
-                attributes["changed_on"] = datetime.now()
+        surviving_column_names: set[str] | None = None
+        if item and attributes:
+            surviving_column_names = cls._update_children(
+                item, attributes, preserve_existing_metrics
+            )
 
-        return super().update(item, attributes)
+        updated = super().update(item, attributes)
+
+        # After the scalars land, not before. This reads `partition_column` and
+        # `partition_mapped_column` off the model, so run from inside
+        # `update_columns` it read the *persisted* names: a request that renamed
+        # the partition column and said so saw the old name, failed to find it
+        # among the surviving columns, and nulled the whole mapping.
+        # `BaseDAO.update` then restored only the keys the request carried, so
+        # `partition_mapped_column` stayed lost unless the payload happened to
+        # mention it -- and the pass below then re-pointed the mapping at the
+        # default datetime column and deleted the real mapped column's
+        # transform.
+        if surviving_column_names is not None:
+            cls.clear_dangling_partition_mapping(updated, surviving_column_names)
+        # The second half of the pair above: after the dataset-level attributes
+        # land, because the mapped column is `partition_mapped_column or
+        # main_dttm_col` and either can be part of this very request.
+        #
+        # Only when the request touches the mapping, though. This discards
+        # stored configuration, so running it unconditionally meant a
+        # description-only PUT -- or a client that GETs the dataset and PUTs it
+        # back -- silently dropped a transform parked on a non-mapped column.
+        # Nothing about such a request changes which column is mirrored, so
+        # there is nothing for it to enforce.
+        if touches_mapping:
+            cls.clear_unmapped_partition_transforms(updated)
+        return updated
+
+    @classmethod
+    def _update_children(
+        cls,
+        item: SqlaTable,
+        attributes: dict[str, Any],
+        preserve_existing_metrics: bool,
+    ) -> set[str] | None:
+        """
+        Apply the `columns` and `metrics` members of an update, if present.
+
+        Both are popped rather than handed to `BaseDAO.update`, which only
+        knows how to set scalar attributes. Editing either is a change to the
+        dataset even when no scalar moved, so `changed_on` is bumped here
+        rather than left to the generic path that will not see it.
+
+        Returns the surviving column names when the request carried `columns`,
+        and `None` when it did not -- the two are different answers, and an
+        empty set is a third.
+        """
+        force_update = False
+        surviving_column_names: set[str] | None = None
+        if "columns" in attributes:
+            surviving_column_names = cls.update_columns(
+                item,
+                attributes.pop("columns"),
+                override_columns=bool(attributes.get("override_columns")),
+            )
+            force_update = True
+
+        if "metrics" in attributes:
+            metrics = attributes.pop("metrics")
+            if preserve_existing_metrics:
+                cls.update_metrics(item, metrics, preserve_existing=True)
+            else:
+                cls.update_metrics(item, metrics)
+            force_update = True
+
+        if force_update:
+            attributes["changed_on"] = datetime.now()
+
+        return surviving_column_names
 
     @classmethod
     def _validate_column_date_formats(
@@ -446,10 +676,104 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                     "python_date_format is an invalid date/timestamp format."
                 )
 
+    @staticmethod
+    def clear_unmapped_partition_transforms(model: SqlaTable) -> None:
+        """
+        Drop the value transform from every column the mapping does not mirror.
+
+        A mapping has exactly one mirrored column, so at most one column may
+        carry a transform. A transform parked on any other column is invisible
+        -- no row but the mapped one renders one -- yet it is still stored, and
+        it goes live the moment the mapped column resolves back to it. Clearing
+        an override is enough to do that: a null `partition_mapped_column` means
+        "follow `main_dttm_col`", so dropping a mapping would otherwise activate
+        whatever the default datetime column happened to be holding, turning a
+        request to remove a mapping into a request to add a different one.
+
+        Enforced here rather than in the editor alone because the editor is only
+        one writer: a PUT, an `override_columns=true` metadata sync and an
+        import all reach the columns directly. The same argument
+        `clear_dangling_partition_mapping` makes about dangling columns.
+
+        `DatasetDAO.update` calls this twice, before and after it applies the
+        request, and the reason is here rather than only at the call site: this
+        reads the mapping as it stands, so a single call can only enforce the
+        invariant against one of the two resolutions a mapping change has.
+
+        Gated on the feature flag, unlike its sibling, because this discards
+        stored configuration rather than repairing a broken reference. With the
+        flag off nothing mirrors, so there is no armed mapping to disarm and
+        clearing would be pure loss.
+        """
+        if not feature_flag_manager.is_feature_enabled(PARTITION_FILTER_MAPPING_FLAG):
+            return
+
+        mapped_column = (
+            (model.partition_mapped_column or model.main_dttm_col)
+            if model.partition_column
+            else None
+        )
+        # `_upsert_columns` and `_override_columns` insert a new column with
+        # `db.session.add(TableColumn(..., table_id=model.id))` rather than
+        # appending to this relationship, and `BaseDAO.update` does not flush --
+        # so a column created *and* given a transform in the same request was
+        # invisible here and kept it. That is exactly the stray transform this
+        # method exists to clear, waiting for the mapping to resolve back to it.
+        db.session.flush()
+        db.session.expire(model, ["columns"])
+        for column in model.columns:
+            if column.column_name == mapped_column:
+                continue
+            if (
+                column.partition_value_transform
+                or column.partition_transform_is_monotonic
+            ):
+                column.partition_value_transform = None
+                column.partition_transform_is_monotonic = False
+
+    @staticmethod
+    def clear_dangling_partition_mapping(
+        model: SqlaTable, surviving_column_names: set[str]
+    ) -> None:
+        """
+        Drop parts of the partition filter mapping whose columns no longer exist.
+
+        A metadata sync can remove the partition column at the source, which
+        would otherwise leave the dataset pointing at a column that isn't there.
+        The query layer bails out defensively on a dangling mapping, so this is
+        about the dataset's stored state being honest rather than about
+        correctness of the SQL.
+
+        Called from `DatasetDAO.update` for both write paths: the editor clears
+        the mapping client-side too, but `override_columns=true` (an API-driven
+        metadata sync) bypasses the editor entirely, and the upsert path drops
+        every column the payload omits, so either one can take the mapped
+        column out from under the mapping.
+
+        Called *after* the dataset-level attributes land, because the names it
+        reads off the model can be part of the same request. Run before them it
+        compares the surviving columns against the mapping being replaced, so a
+        request that renames the partition column and updates
+        ``partition_column`` to match looks exactly like one that deleted it.
+        """
+        if (
+            model.partition_column
+            and model.partition_column not in surviving_column_names
+        ):
+            model.partition_column = None
+            model.partition_mapped_column = None
+            return
+
+        if (
+            model.partition_mapped_column
+            and model.partition_mapped_column not in surviving_column_names
+        ):
+            model.partition_mapped_column = None
+
     @classmethod
     def _override_columns(
         cls, model: SqlaTable, property_columns: list[dict[str, Any]]
-    ) -> None:
+    ) -> set[str]:
         """Replace columns by natural key (``column_name``) — update in place
         rather than delete-and-reinsert.
 
@@ -471,6 +795,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         columns are preserved. Charts that reference columns by their
         ``id`` continue to work across a metadata refresh — previously
         such references would be invalidated.
+
+        Returns the names of the columns that survive the write.
         """
         existing_by_name = {c.column_name: c for c in model.columns}
         incoming_by_name = {p["column_name"]: p for p in property_columns}
@@ -516,10 +842,17 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 }
                 db.session.add(TableColumn(**{**cleaned, "table_id": model.id}))
 
+        return set(incoming_by_name)
+
     @classmethod
     def _upsert_columns(
         cls, model: SqlaTable, property_columns: list[dict[str, Any]]
-    ) -> None:
+    ) -> set[str]:
+        """
+        Create/update the columns in the payload and delete the rest.
+
+        Returns the names of the columns that survive the write.
+        """
         columns_by_id = {column.id: column for column in model.columns}
         property_columns_by_id = {
             properties["id"]: properties
@@ -527,19 +860,27 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             if "id" in properties
         }
 
+        surviving_column_names: set[str] = set()
+
         for properties in property_columns:
             if "id" not in properties:
                 db.session.add(TableColumn(**{**properties, "table_id": model.id}))
+                surviving_column_names.add(properties["column_name"])
 
         for properties in property_columns_by_id.values():
             col = columns_by_id[properties["id"]]
             for key, value in properties.items():
                 setattr(col, key, value)
+            # A partial update may omit ``column_name``, in which case the
+            # column keeps the name it already had.
+            surviving_column_names.add(col.column_name)
 
         ids_to_keep = property_columns_by_id.keys()
         for col in model.columns:
             if col.id not in ids_to_keep:
                 db.session.delete(col)
+
+        return surviving_column_names
 
     @classmethod
     def update_columns(
@@ -547,7 +888,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         model: SqlaTable,
         property_columns: list[dict[str, Any]],
         override_columns: bool = False,
-    ) -> None:
+    ) -> set[str]:
         """
         Creates/updates and/or deletes a list of columns, based on a
         list of Dict.
@@ -559,18 +900,24 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
         Uses individual ORM operations (not bulk) so that SQLAlchemy-Continuum
         can capture each row change in the version history.
+
+        Returns the names of the columns that survive the write, so the caller
+        can repair a dangling mapping *after* the dataset-level attributes land.
+        Doing it here would read the persisted `partition_column`, which a
+        request renaming that column has already replaced.
         """
         cls._validate_column_date_formats(property_columns)
         if override_columns:
-            cls._override_columns(model, property_columns)
-        else:
-            cls._upsert_columns(model, property_columns)
+            return cls._override_columns(model, property_columns)
+        return cls._upsert_columns(model, property_columns)
 
     @classmethod
     def update_metrics(
         cls,
         model: SqlaTable,
         property_metrics: list[dict[str, Any]],
+        *,
+        preserve_existing: bool = False,
     ) -> None:
         """
         Creates/updates and/or deletes a list of metrics, based on a
@@ -579,7 +926,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         - If a metric Dict has an `id` property then we update.
         - If a metric Dict does not have an `id` then we create a new metric.
         - If there are extra metrics on the metadata db that are not defined on the List
-        then we delete.
+        then we delete, unless preserve_existing is set.
 
         Uses individual ORM operations (not bulk) so that SQLAlchemy-Continuum
         can capture each row change in the version history.
@@ -603,6 +950,10 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             metric = metrics_by_id[properties["id"]]
             for key, value in properties.items():
                 setattr(metric, key, value)
+
+        # Additive mutations must not delete metrics absent from their payload.
+        if preserve_existing:
+            return
 
         # Delete removed metrics
         ids_to_keep = property_metrics_by_id.keys()
@@ -628,7 +979,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         dataset = DatasetDAO.find_by_id(dataset_id)
         if not dataset:
             return None
-        return db.session.query(SqlMetric).get(metric_id)
+        return db.session.get(SqlMetric, metric_id)
 
     @staticmethod
     def get_table_by_name(database_id: int, table_name: str) -> SqlaTable | None:
@@ -665,6 +1016,358 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # Add custom fields
         filterable.update(DATASET_CUSTOM_FIELDS)
         return filterable
+
+    @staticmethod
+    def get_rls_filters_for_datasets(
+        dataset_ids: list[int],
+    ) -> dict[int, list[dict[str, Any]]]:
+        """
+        Return a mapping of dataset_id -> list of RLS filter summaries
+        for the given dataset IDs. Only returns datasets that have at least
+        one RLS filter attached. For virtual datasets, also includes RLS
+        filters from physical tables referenced in the dataset's SQL.
+        """
+
+        if not dataset_ids:
+            return {}
+
+        # Get direct RLS filters for all requested datasets
+        rows = (
+            db.session.query(
+                RLSFilterTables.c.table_id,
+                RowLevelSecurityFilter.id,
+                RowLevelSecurityFilter.name,
+                RowLevelSecurityFilter.filter_type,
+                RowLevelSecurityFilter.group_key,
+            )
+            .join(
+                RowLevelSecurityFilter,
+                RLSFilterTables.c.rls_filter_id == RowLevelSecurityFilter.id,
+            )
+            .filter(RLSFilterTables.c.table_id.in_(dataset_ids))
+            .all()
+        )
+
+        result: dict[int, list[dict[str, Any]]] = {}
+        for table_id, rls_id, name, filter_type, group_key in rows:
+            result.setdefault(table_id, []).append(
+                {
+                    "id": rls_id,
+                    "name": name,
+                    "filter_type": filter_type,
+                    "group_key": group_key,
+                }
+            )
+
+        # For virtual datasets, also check underlying physical tables
+        virtual_datasets = (
+            db.session.query(
+                SqlaTable.id, SqlaTable.sql, SqlaTable.schema, SqlaTable.database_id
+            )
+            .filter(SqlaTable.id.in_(dataset_ids), SqlaTable.sql.isnot(None))  # type: ignore[attr-defined,unused-ignore]
+            .all()
+        )
+
+        if virtual_datasets:
+            inherited = DatasetDAO._get_inherited_rls_for_virtual_datasets(
+                virtual_datasets
+            )
+            for ds_id, filters in inherited.items():
+                existing_ids = {f["id"] for f in result.get(ds_id, [])}
+                for f in filters:
+                    if f["id"] not in existing_ids:
+                        existing_ids.add(f["id"])
+                        result.setdefault(ds_id, []).append(f)
+
+        return result
+
+    @staticmethod
+    def _parse_tables_from_virtual_datasets(
+        virtual_datasets: list[tuple[int, str, str | None, int]],
+        db_engines: dict[int, str] | None = None,
+    ) -> tuple[dict[int, set[Table]], dict[int, int]]:
+        """
+        Parse SQL from virtual datasets and return:
+        - ds_to_tables: mapping of dataset_id -> set of referenced Table objects
+          (with schema/catalog preserved from the SQL, unqualified refs resolved
+          to the virtual dataset's own schema)
+        - ds_db_map: mapping of dataset_id -> database_id
+        """
+        if db_engines is None:
+            db_engines = {}
+        ds_to_tables: dict[int, set[Table]] = {}
+        ds_db_map: dict[int, int] = {}
+        for ds_id, sql, default_schema, database_id in virtual_datasets:
+            ds_db_map[ds_id] = database_id
+            engine = db_engines.get(database_id, "")
+            try:
+                parsed = SQLScript(sql, engine=engine)
+                table_refs: set[Table] = set()
+                for statement in parsed.statements:
+                    for table_ref in statement.tables:
+                        # Qualify unqualified references with the virtual dataset's
+                        # own schema so we match the correct physical dataset.
+                        table_refs.add(table_ref.qualify(schema=default_schema))
+                if table_refs:
+                    ds_to_tables[ds_id] = table_refs
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Failed to parse SQL for virtual dataset %d", ds_id, exc_info=True
+                )
+        return ds_to_tables, ds_db_map
+
+    @staticmethod
+    def _fetch_physical_rls_map(
+        all_tables: set[Table],
+        db_ids: set[int],
+    ) -> tuple[dict[tuple[str, str | None, int], int], dict[int, list[dict[str, Any]]]]:
+        """
+        Look up physical datasets matching the given Table objects and database IDs,
+        then fetch their RLS filters.
+
+        Returns:
+        - physical_map: (table_name, schema, database_id) -> physical dataset id
+        - phys_rls: physical dataset id -> list of RLS filter summaries
+        """
+
+        all_table_names = {t.table for t in all_tables}
+        physical_tables = (
+            db.session.query(
+                SqlaTable.id,
+                SqlaTable.table_name,
+                SqlaTable.schema,
+                SqlaTable.database_id,
+            )
+            .filter(
+                SqlaTable.table_name.in_(all_table_names),
+                SqlaTable.database_id.in_(db_ids),
+                SqlaTable.sql.is_(None),
+            )
+            .all()
+        )
+
+        physical_map: dict[tuple[str, str | None, int], int] = {}
+        physical_ids: set[int] = set()
+        for phys_id, table_name, schema, db_id in physical_tables:
+            physical_map[(table_name, schema, db_id)] = phys_id
+            physical_ids.add(phys_id)
+
+        if not physical_ids:
+            return physical_map, {}
+
+        rls_rows = (
+            db.session.query(
+                RLSFilterTables.c.table_id,
+                RowLevelSecurityFilter.id,
+                RowLevelSecurityFilter.name,
+                RowLevelSecurityFilter.filter_type,
+                RowLevelSecurityFilter.group_key,
+            )
+            .join(
+                RowLevelSecurityFilter,
+                RLSFilterTables.c.rls_filter_id == RowLevelSecurityFilter.id,
+            )
+            .filter(RLSFilterTables.c.table_id.in_(physical_ids))
+            .all()
+        )
+
+        phys_rls: dict[int, list[dict[str, Any]]] = {}
+        for table_id, rls_id, name, filter_type, group_key in rls_rows:
+            phys_rls.setdefault(table_id, []).append(
+                {
+                    "id": rls_id,
+                    "name": name,
+                    "filter_type": filter_type,
+                    "group_key": group_key,
+                }
+            )
+        return physical_map, phys_rls
+
+    @staticmethod
+    def _fetch_db_engines(
+        db_ids: set[int],
+    ) -> dict[int, str]:
+        """Return a mapping of database_id -> backend engine string."""
+        if not db_ids:
+            return {}
+        db_objs = (
+            db.session.query(Database)
+            .filter(Database.id.in_(db_ids))  # type: ignore[attr-defined,unused-ignore]
+            .all()
+        )
+        engines: dict[int, str] = {}
+        for database_obj in db_objs:
+            try:
+                engines[database_obj.id] = database_obj.backend
+            except Exception:  # noqa: BLE001
+                engines[database_obj.id] = ""
+        return engines
+
+    @staticmethod
+    def _get_inherited_rls_for_virtual_datasets(
+        virtual_datasets: list[tuple[int, str, str | None, int]],
+    ) -> dict[int, list[dict[str, Any]]]:
+        """
+        For virtual datasets, parse their SQL to find referenced physical
+        tables and return any RLS filters attached to those tables.
+
+        Each tuple is (dataset_id, sql, schema, database_id).
+        """
+        unique_db_ids = {row[3] for row in virtual_datasets}
+        db_engines = DatasetDAO._fetch_db_engines(unique_db_ids)
+
+        ds_to_tables, ds_db_map = DatasetDAO._parse_tables_from_virtual_datasets(
+            virtual_datasets, db_engines=db_engines
+        )
+
+        if not ds_to_tables:
+            return {}
+
+        all_table_refs: set[Table] = set()
+        db_ids: set[int] = set()
+        for ds_id, table_refs in ds_to_tables.items():
+            all_table_refs.update(table_refs)
+            db_ids.add(ds_db_map[ds_id])
+
+        physical_map, phys_rls = DatasetDAO._fetch_physical_rls_map(
+            all_table_refs, db_ids
+        )
+
+        result: dict[int, list[dict[str, Any]]] = {}
+        for ds_id, table_refs in ds_to_tables.items():
+            database_id = ds_db_map[ds_id]
+            seen_filter_ids: set[int] = set()
+            for table_ref in table_refs:
+                phys_id = physical_map.get(
+                    (table_ref.table, table_ref.schema, database_id)
+                )
+                if phys_id and phys_id in phys_rls:
+                    for f in phys_rls[phys_id]:
+                        if f["id"] not in seen_filter_ids:
+                            seen_filter_ids.add(f["id"])
+                            result.setdefault(ds_id, []).append(f)
+
+        return result
+
+    @staticmethod
+    def get_rls_filters_for_dataset(dataset_id: int) -> list[dict[str, Any]]:
+        """
+        Return full RLS filter details (including roles) for a single dataset.
+        For virtual datasets, also includes RLS filters from physical tables
+        referenced in the dataset's SQL.
+        """
+
+        # Direct RLS filters on this dataset — eager-load subjects to avoid N+1
+        filters = (
+            db.session.query(RowLevelSecurityFilter)
+            .options(joinedload(RowLevelSecurityFilter.subjects))
+            .join(
+                RLSFilterTables,
+                RLSFilterTables.c.rls_filter_id == RowLevelSecurityFilter.id,
+            )
+            .filter(RLSFilterTables.c.table_id == dataset_id)
+            .all()
+        )
+
+        result = [
+            {
+                "id": f.id,
+                "name": f.name,
+                "filter_type": f.filter_type,
+                "group_key": f.group_key,
+                "clause": f.clause,
+                "roles": [{"id": s.id, "name": s.label} for s in f.subjects],
+            }
+            for f in filters
+        ]
+
+        # For virtual datasets, also check underlying physical tables
+        dataset = (
+            db.session.query(SqlaTable.sql, SqlaTable.schema, SqlaTable.database_id)
+            .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+        )
+        if dataset and dataset.sql:
+            try:
+                engine = ""
+                database_obj = (
+                    db.session.query(Database)
+                    .filter(Database.id == dataset.database_id)
+                    .one_or_none()
+                )
+                if database_obj:
+                    engine = database_obj.backend
+                parsed = SQLScript(dataset.sql, engine=engine)
+                table_refs: set[Table] = set()
+                for statement in parsed.statements:
+                    for table_ref in statement.tables:
+                        table_refs.add(table_ref.qualify(schema=dataset.schema))
+
+                if table_refs:
+                    # Build filter conditions that respect schema
+                    all_table_names = {t.table for t in table_refs}
+                    physical_tables = (
+                        db.session.query(
+                            SqlaTable.id,
+                            SqlaTable.table_name,
+                            SqlaTable.schema,
+                        )
+                        .filter(
+                            SqlaTable.table_name.in_(all_table_names),
+                            SqlaTable.database_id == dataset.database_id,
+                            SqlaTable.sql.is_(None),
+                        )
+                        .all()
+                    )
+                    # Only select physical tables whose schema matches
+                    physical_ids = [
+                        row.id
+                        for row in physical_tables
+                        if any(
+                            t.table == row.table_name and t.schema == row.schema
+                            for t in table_refs
+                        )
+                    ]
+
+                    if physical_ids:
+                        inherited_filters = (
+                            db.session.query(RowLevelSecurityFilter)
+                            .options(joinedload(RowLevelSecurityFilter.subjects))
+                            .join(
+                                RLSFilterTables,
+                                RLSFilterTables.c.rls_filter_id
+                                == RowLevelSecurityFilter.id,
+                            )
+                            .filter(RLSFilterTables.c.table_id.in_(physical_ids))
+                            .all()
+                        )
+
+                        existing_ids = {f["id"] for f in result}
+                        for f in inherited_filters:
+                            if f.id not in existing_ids:
+                                existing_ids.add(f.id)
+                                result.append(
+                                    {
+                                        "id": f.id,
+                                        "name": f.name,
+                                        "filter_type": f.filter_type,
+                                        "group_key": f.group_key,
+                                        "clause": f.clause,
+                                        "roles": [
+                                            {"id": s.id, "name": s.label}
+                                            for s in f.subjects
+                                        ],
+                                        "inherited": True,
+                                    }
+                                )
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Failed to resolve inherited RLS for virtual dataset %d",
+                    dataset_id,
+                    exc_info=True,
+                )
+
+        return result
 
 
 class DatasetColumnDAO(BaseDAO[TableColumn]):

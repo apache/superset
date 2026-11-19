@@ -17,9 +17,13 @@
  * under the License.
  */
 import { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
-import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
-import { isDefined, JsonResponse, SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  getClientErrorObject,
+  isDefined,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
@@ -29,12 +33,14 @@ import {
   Button,
   Loading,
   Steps,
+  Tag,
 } from '@superset-ui/core/components';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -42,6 +48,10 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
+import {
+  fetchDatasetById,
+  fetchDatasourceList,
+} from 'src/features/datasets/fetchDatasourceList';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   datasetLabel,
@@ -50,8 +60,20 @@ import {
 
 export interface ChartCreationProps {
   user: UserWithPermissionsAndRoles;
-  addSuccessToast: (arg: string) => void;
 }
+
+type DatasourceOption = {
+  id: number;
+  label: ReactNode;
+  value: string;
+  table_name: string;
+};
+
+/**
+ * AsyncSelect reports the chosen option as a LabeledValue, so only the
+ * fields it carries can be relied on after selection.
+ */
+type SelectedDatasource = Pick<DatasourceOption, 'label' | 'value'>;
 
 const ESTIMATED_NAV_HEIGHT = 56;
 const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
@@ -126,6 +148,13 @@ const StyledContainer = styled.div`
       display: none;
     }
 
+    /* antd 6 added its own icon->content gap on this flex wrapper
+       (column-gap), on top of the .ant-steps-item-icon margin-right below,
+       doubling the gap. Zero it out so the icon's margin is the only gap. */
+    &&&& .ant-steps-item-wrapper {
+      column-gap: 0;
+    }
+
     &&&& .ant-steps-item-icon {
       margin-right: ${theme.marginXS}px;
       width: ${theme.sizeUnit * 5}px;
@@ -139,11 +168,10 @@ const StyledContainer = styled.div`
 
     &&&& .ant-steps-item-content {
       overflow: unset;
-
-      .ant-steps-item-description {
-        margin-top: ${theme.sizeUnit}px;
-        padding-bottom: ${theme.sizeUnit}px;
-      }
+      /* antd 6 removed .ant-steps-item-description; the description text is now
+         rendered directly in .ant-steps-item-content. */
+      margin-top: ${theme.sizeUnit}px;
+      padding-bottom: ${theme.sizeUnit}px;
     }
 
     &&&& .ant-tooltip-open {
@@ -167,28 +195,66 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
-export const ChartCreation = ({
-  user,
-  addSuccessToast,
-}: ChartCreationProps) => {
+// The first column shrinks to zero so the name ellipsizes and the tag stays
+// visible. AsyncSelect renders option labels inside a nowrap container, which
+// is what makes that ellipsis take effect.
+const StyledDatasourceOption = styled.div`
+  ${({ theme }) => `
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: ${theme.sizeXS}px;
+    align-items: center;
+    width: 100%;
+  `}
+`;
+
+/**
+ * Builds a picker option whose value carries the Explore datasource identity
+ * (`<id>__table` or `<id>__semantic_view`). Datasets and semantic views are
+ * numbered independently, so the type suffix is what keeps them apart.
+ */
+const createDatasourceOption = (
+  item: Dataset,
+  withTypeTag: boolean,
+): DatasourceOption => {
+  const isSemanticView = item.kind === 'semantic_view';
+  const datasourceLabel = DatasetSelectLabel(item);
+  return {
+    id: item.id,
+    value: `${item.id}__${isSemanticView ? 'semantic_view' : 'table'}`,
+    table_name: item.table_name,
+    label: withTypeTag ? (
+      <StyledDatasourceOption>
+        {datasourceLabel}
+        <Tag>{isSemanticView ? t('Semantic View') : t('Dataset')}</Tag>
+      </StyledDatasourceOption>
+    ) : (
+      datasourceLabel
+    ),
+  };
+};
+
+export const ChartCreation = ({ user }: ChartCreationProps) => {
   const theme = useTheme();
   const history = useHistory();
+  const semanticLayersEnabled = isFeatureEnabled(FeatureFlag.SemanticLayers);
 
   const canCreateDataset = useMemo(
     () => findPermission('can_write', 'Dataset', user.roles),
     [user.roles],
   );
 
-  const hasDatasetParam = useMemo(
-    () => new URLSearchParams(window.location.search).has('dataset'),
+  const hasDatasetId = useMemo(
+    () => !!new URLSearchParams(window.location.search).get('dataset_id'),
     [],
   );
 
   const [datasource, setDatasource] = useState<
-    { label: string | ReactNode; value: string } | undefined
-  >(undefined);
+    SelectedDatasource | undefined
+  >();
   const [vizType, setVizType] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(hasDatasetParam);
+  const [loading, setLoading] = useState<boolean>(hasDatasetId);
+  const { addDangerToast } = useToasts();
 
   const exploreUrl = useCallback(() => {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
@@ -203,10 +269,10 @@ export const ChartCreation = ({
     history.push(exploreUrl());
   }, [history, exploreUrl]);
 
+  // AsyncSelect's onChange is typed for every select value shape; narrow it
+  // to the labelled option this picker produces.
   const changeDatasource = useCallback(
-    (newDatasource: { label: string | ReactNode; value: string }) => {
-      setDatasource(newDatasource);
-    },
+    (selected: SelectedDatasource) => setDatasource(selected),
     [],
   );
 
@@ -225,70 +291,77 @@ export const ChartCreation = ({
     }
   }, [isBtnDisabled, gotoSlice]);
 
+  // Type tags only make sense once the list can mix datasets and semantic
+  // views, so they follow the feature flag rather than the endpoint used.
+  const toDatasourceOption = useCallback(
+    (item: Dataset) => createDatasourceOption(item, semanticLayersEnabled),
+    [semanticLayersEnabled],
+  );
+
   const loadDatasources = useCallback(
-    (search: string, page: number, pageSize: number, exactMatch = false) => {
-      const query = rison.encode({
-        columns: [
-          'id',
-          'table_name',
-          'datasource_type',
-          'database.database_name',
-          'schema',
-        ],
-        filters: [
-          { col: 'table_name', opr: exactMatch ? 'eq' : 'ct', value: search },
-        ],
-        page,
-        page_size: pageSize,
-        order_column: 'table_name',
-        order_direction: 'asc',
-      });
-      return SupersetClient.get({
-        endpoint: `/api/v1/dataset/?q=${query}`,
-      }).then((response: JsonResponse) => {
-        const list: {
-          id: number;
-          label: string | ReactNode;
-          value: string;
-          table_name: string;
-        }[] = response.json.result.map((item: Dataset) => ({
-          id: item.id,
-          value: `${item.id}__${item.datasource_type}`,
-          label: DatasetSelectLabel(item),
-          table_name: item.table_name,
-        }));
-        return {
-          data: list,
-          totalCount: response.json.count,
-        };
-      });
-    },
-    [],
+    (search: string, page: number, pageSize: number) =>
+      fetchDatasourceList(search, page, pageSize).then(({ result, count }) => ({
+        data: result.map(toDatasourceOption),
+        totalCount: count,
+      })),
+    [toDatasourceOption],
   );
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search).get('dataset');
-    if (params) {
-      loadDatasources(params, 0, 1, true)
-        .then(r => {
-          const newDatasource = r.data[0];
-          setDatasource(newDatasource);
-          setLoading(false);
-        })
-        .catch(() => {
-          setLoading(false);
-        });
-      addSuccessToast(t('The dataset has been saved'));
+    const datasetId = new URLSearchParams(window.location.search).get(
+      'dataset_id',
+    );
+    if (!datasetId) {
+      return;
     }
-  }, [loadDatasources, addSuccessToast]);
+    // Resolve against datasets only: an ID is unambiguous, whereas a semantic
+    // view can share the same numeric ID. A missing or inaccessible dataset
+    // (404) silently leaves the picker empty; any other failure is surfaced.
+    fetchDatasetById(datasetId)
+      .then(dataset => {
+        setDatasource(toDatasourceOption(dataset));
+        setLoading(false);
+      })
+      .catch(async error => {
+        // Clear loading before parsing: getClientErrorObject may never settle
+        // for errors that carry no response.
+        setLoading(false);
+        const clientError = await getClientErrorObject(error);
+        if (clientError.status === 404) {
+          return;
+        }
+        addDangerToast(
+          clientError.error || clientError.message
+            ? t(
+                'An error occurred while loading the dataset: %s',
+                clientError.error || clientError.message,
+              )
+            : t('Unable to load the selected dataset'),
+        );
+      });
+  }, [toDatasourceOption, addDangerToast]);
 
   const isButtonDisabled = isBtnDisabled();
   const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
   const datasetHelpText = canCreateDataset ? (
     <span data-test="dataset-write">
-      <Link to="/dataset/add/" data-test="add-chart-new-dataset">
-        {t('Add a dataset')}
+      <Link
+        to={semanticLayersEnabled ? '/tablemodelview/list/' : '/dataset/add/'}
+        data-test="add-chart-new-dataset"
+      >
+        {semanticLayersEnabled ? t('Add a datasource') : t('Add a dataset')}
       </Link>{' '}
+      {semanticLayersEnabled && (
+        <>
+          {t('or')}{' '}
+          <Link
+            to="/tablemodelview/list/?create=semantic_view"
+            data-test="add-chart-new-semantic-view"
+          >
+            {t('create a semantic view')}
+          </Link>{' '}
+        </>
+      )}
       {t('or')}{' '}
       <a
         href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
@@ -344,6 +417,7 @@ export const ChartCreation = ({
                   optionFilterProps={['id', 'table_name']}
                   placeholder={t('Choose a %s', datasetLabelLower())}
                   showSearch
+                  sortComparator={propertyComparator('table_name')}
                   value={datasource}
                 />
                 {datasetHelpText}
@@ -388,4 +462,4 @@ export const ChartCreation = ({
   );
 };
 
-export default withToasts(ChartCreation);
+export default ChartCreation;

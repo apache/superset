@@ -20,18 +20,12 @@ import { ControlPanelConfig } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import {
   legacyValidateInteger,
-  isFeatureEnabled,
-  FeatureFlag,
   validateNumber,
   validateInteger,
 } from '@superset-ui/core';
 import { formatSelectOptions } from '../../utilities/utils';
 import {
   filterNulls,
-  jsColumns,
-  jsDataMutator,
-  jsTooltip,
-  jsOnclickHref,
   fillColorPicker,
   strokeColorPicker,
   filled,
@@ -45,28 +39,10 @@ import {
   lineWidth,
   tooltipContents,
   tooltipTemplate,
-  jsFunctionControl,
   crossFilterColumn,
 } from '../../utilities/Shared_DeckGL';
 import { dndGeojsonColumn } from '../../utilities/sharedDndControls';
 import { BLACK_COLOR } from '../../utilities/controls';
-
-const defaultLabelConfigGenerator = `() => ({
-  // Check the documentation at:
-  // https://deck.gl/docs/api-reference/layers/geojson-layer#pointtype-options-2
-  getText: f => f.properties.name,
-  getTextColor: [0, 0, 0, 255],
-  getTextSize: 24,
-  textSizeUnits: 'pixels',
-})`;
-
-const defaultIconConfigGenerator = `() => ({
-  // Check the documentation at:
-  // https://deck.gl/docs/api-reference/layers/geojson-layer#pointtype-options-1
-  getIcon: () => ({ url: '', height: 128, width: 128 }),
-  getIconSize: 32,
-  iconSizeUnits: 'pixels',
-})`;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -112,33 +88,12 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'enable_label_javascript_mode',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Enable label JavaScript mode'),
-              description: t(
-                'Enables custom label configuration via JavaScript',
-              ),
-              visibility: ({ form_data }) =>
-                !!form_data.enable_labels &&
-                isFeatureEnabled(FeatureFlag.EnableJavascriptControls),
-              default: false,
-              renderTrigger: true,
-              resetOnHide: false,
-            },
-          },
-        ],
-        [
-          {
             name: 'label_property_name',
             config: {
               type: 'TextControl',
               label: t('Label property name'),
               description: t('The feature property to use for point labels'),
-              visibility: ({ form_data }) =>
-                !!form_data.enable_labels &&
-                (!form_data.enable_label_javascript_mode ||
-                  !isFeatureEnabled(FeatureFlag.EnableJavascriptControls)),
+              visibility: ({ form_data }) => !!form_data.enable_labels,
               default: 'name',
               renderTrigger: true,
               resetOnHide: false,
@@ -152,10 +107,7 @@ const config: ControlPanelConfig = {
               type: 'ColorPickerControl',
               label: t('Label color'),
               description: t('The color of the point labels'),
-              visibility: ({ form_data }) =>
-                !!form_data.enable_labels &&
-                (!form_data.enable_label_javascript_mode ||
-                  !isFeatureEnabled(FeatureFlag.EnableJavascriptControls)),
+              visibility: ({ form_data }) => !!form_data.enable_labels,
               default: BLACK_COLOR,
               renderTrigger: true,
               resetOnHide: false,
@@ -170,10 +122,7 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Label size'),
               description: t('The font size of the point labels'),
-              visibility: ({ form_data }) =>
-                !!form_data.enable_labels &&
-                (!form_data.enable_label_javascript_mode ||
-                  !isFeatureEnabled(FeatureFlag.EnableJavascriptControls)),
+              visibility: ({ form_data }) => !!form_data.enable_labels,
               validators: [legacyValidateInteger],
               choices: formatSelectOptions([8, 16, 24, 32, 64, 128]),
               default: 24,
@@ -189,37 +138,13 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Label size unit'),
               description: t('The unit for label size'),
-              visibility: ({ form_data }) =>
-                !!form_data.enable_labels &&
-                (!form_data.enable_label_javascript_mode ||
-                  !isFeatureEnabled(FeatureFlag.EnableJavascriptControls)),
+              visibility: ({ form_data }) => !!form_data.enable_labels,
               choices: [
                 ['meters', t('Meters')],
                 ['pixels', t('Pixels')],
               ],
               default: 'pixels',
               renderTrigger: true,
-              resetOnHide: false,
-            },
-          },
-        ],
-        [
-          {
-            name: 'label_javascript_config_generator',
-            config: {
-              ...jsFunctionControl(
-                t('Label JavaScript config generator'),
-                t(
-                  'A JavaScript function that generates a label configuration object',
-                ),
-                undefined,
-                undefined,
-                defaultLabelConfigGenerator,
-              ),
-              visibility: ({ form_data }) =>
-                !!form_data.enable_labels &&
-                !!form_data.enable_label_javascript_mode &&
-                isFeatureEnabled(FeatureFlag.EnableJavascriptControls),
               resetOnHide: false,
             },
           },
@@ -238,24 +163,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'enable_icon_javascript_mode',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Enable icon JavaScript mode'),
-              description: t(
-                'Enables custom icon configuration via JavaScript',
-              ),
-              visibility: ({ form_data }) =>
-                !!form_data.enable_icons &&
-                isFeatureEnabled(FeatureFlag.EnableJavascriptControls),
-              default: false,
-              renderTrigger: true,
-              resetOnHide: false,
-            },
-          },
-        ],
-        [
-          {
             name: 'icon_url',
             config: {
               type: 'TextControl',
@@ -265,10 +172,7 @@ const config: ControlPanelConfig = {
                   'Note that the image URL must conform to the content ' +
                   'security policy (CSP) in order to load correctly.',
               ),
-              visibility: ({ form_data }) =>
-                !!form_data.enable_icons &&
-                (!form_data.enable_icon_javascript_mode ||
-                  !isFeatureEnabled(FeatureFlag.EnableJavascriptControls)),
+              visibility: ({ form_data }) => !!form_data.enable_icons,
               default: '',
               renderTrigger: true,
               resetOnHide: false,
@@ -283,10 +187,7 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Icon size'),
               description: t('The size of the point icons'),
-              visibility: ({ form_data }) =>
-                !!form_data.enable_icons &&
-                (!form_data.enable_icon_javascript_mode ||
-                  !isFeatureEnabled(FeatureFlag.EnableJavascriptControls)),
+              visibility: ({ form_data }) => !!form_data.enable_icons,
               validators: [legacyValidateInteger],
               choices: formatSelectOptions([16, 24, 32, 64, 128]),
               default: 32,
@@ -302,37 +203,13 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Icon size unit'),
               description: t('The unit for icon size'),
-              visibility: ({ form_data }) =>
-                !!form_data.enable_icons &&
-                (!form_data.enable_icon_javascript_mode ||
-                  !isFeatureEnabled(FeatureFlag.EnableJavascriptControls)),
+              visibility: ({ form_data }) => !!form_data.enable_icons,
               choices: [
                 ['meters', t('Meters')],
                 ['pixels', t('Pixels')],
               ],
               default: 'pixels',
               renderTrigger: true,
-              resetOnHide: false,
-            },
-          },
-        ],
-        [
-          {
-            name: 'icon_javascript_config_generator',
-            config: {
-              ...jsFunctionControl(
-                t('Icon JavaScript config generator'),
-                t(
-                  'A JavaScript function that generates an icon configuration object',
-                ),
-                undefined,
-                undefined,
-                defaultIconConfigGenerator,
-              ),
-              visibility: ({ form_data }) =>
-                !!form_data.enable_icons &&
-                !!form_data.enable_icon_javascript_mode &&
-                isFeatureEnabled(FeatureFlag.EnableJavascriptControls),
               resetOnHide: false,
             },
           },
@@ -411,13 +288,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Advanced'),
-      controlSetRows: [
-        [crossFilterColumn],
-        [jsColumns],
-        [jsDataMutator],
-        [jsTooltip],
-        [jsOnclickHref],
-      ],
+      controlSetRows: [[crossFilterColumn]],
     },
   ],
 };

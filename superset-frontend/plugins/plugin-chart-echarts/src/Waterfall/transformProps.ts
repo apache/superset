@@ -41,6 +41,7 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
 import { getColtypesMapping } from '../utils/series';
+import { normalizeRgbaColor } from '../utils/colors';
 import { Refs } from '../types';
 import { NULL_STRING } from '../constants';
 
@@ -177,14 +178,16 @@ export default function transformProps(
     currencyFormat,
     granularitySqla = '',
     groupby,
-    increaseColor = { r: 90, g: 193, b: 137 },
-    decreaseColor = { r: 224, g: 67, b: 85 },
-    totalColor = { r: 102, g: 102, b: 102 },
+    increaseColor: rawIncreaseColor,
+    decreaseColor: rawDecreaseColor,
+    totalColor: rawTotalColor,
     metric = '',
     xAxis,
     xTicksLayout,
     xAxisTimeFormat,
     showLegend,
+    showXAxis = true,
+    showYAxis = true,
     yAxisLabel,
     xAxisLabel,
     yAxisFormat,
@@ -194,6 +197,26 @@ export default function transformProps(
     increaseLabel,
     decreaseLabel,
   } = formData;
+  // `increase_color` / `decrease_color` are shared control names; tolerate the
+  // hex strings other charts save under them (e.g. after a viz type switch).
+  const increaseColor = normalizeRgbaColor(rawIncreaseColor, {
+    r: 90,
+    g: 193,
+    b: 137,
+    a: 1,
+  });
+  const decreaseColor = normalizeRgbaColor(rawDecreaseColor, {
+    r: 224,
+    g: 67,
+    b: 85,
+    a: 1,
+  });
+  const totalColor = normalizeRgbaColor(rawTotalColor, {
+    r: 102,
+    g: 102,
+    b: 102,
+    a: 1,
+  });
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
     : getNumberFormatter(yAxisFormat);
@@ -433,8 +456,10 @@ export default function transformProps(
     grid: {
       ...defaultGrid,
       top: theme.sizeUnit * 7,
-      bottom: theme.sizeUnit * 7,
-      left: theme.sizeUnit * 5,
+      // Reclaim the axis-oriented padding when an axis is hidden so an
+      // axis-free chart gets a clean, tight layout instead of empty margins.
+      bottom: theme.sizeUnit * (showXAxis ? 7 : 3),
+      left: theme.sizeUnit * (showYAxis ? 5 : 2),
       right: theme.sizeUnit * 7,
     },
     legend: {
@@ -443,6 +468,7 @@ export default function transformProps(
       data: [legendNames.INCREASE, legendNames.DECREASE, legendNames.TOTAL],
     },
     xAxis: {
+      show: showXAxis,
       data: xAxisData,
       type: 'category',
       name: xAxisLabel,
@@ -454,6 +480,7 @@ export default function transformProps(
     },
     yAxis: {
       ...defaultYAxis,
+      show: showYAxis,
       type: 'value',
       nameTextStyle: {
         padding: [0, 0, theme.sizeUnit * 5, 0],

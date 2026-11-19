@@ -16,7 +16,9 @@
 # under the License.
 import warnings
 
+import numpy as np
 import pytest
+from pandas import DataFrame
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
@@ -66,6 +68,28 @@ def test_boxplot_mean_median_no_future_warning():
     df = df.set_index("region")
     assert series_to_list(df["cars__mean"]) == series_to_list(expected["mean"])
     assert series_to_list(df["cars__median"]) == series_to_list(expected["median"])
+
+
+def test_boxplot_minmax_no_future_warning():
+    """Under MINMAX, whisker_high/whisker_low are plain np.max/np.min, which
+    must be passed as strings (not the callables) to GroupBy.agg, else pandas
+    raises a FutureWarning. Also verify the values match a plain pandas
+    groupby, since the string and callable forms could silently diverge on a
+    future pandas version."""
+    expected = names_df.groupby("region")["cars"].agg(["max", "min"])
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        df = boxplot(
+            df=names_df,
+            groupby=["region"],
+            whisker_type=PostProcessingBoxplotWhiskerType.MINMAX,
+            metrics=["cars"],
+        )
+
+    df = df.set_index("region")
+    assert series_to_list(df["cars__max"]) == series_to_list(expected["max"])
+    assert series_to_list(df["cars__min"]) == series_to_list(expected["min"])
 
 
 def test_boxplot_min_max():
@@ -173,3 +197,27 @@ def test_boxplot_type_coercion():
         "region",
     }
     assert len(df) == 4
+
+
+@pytest.mark.parametrize("whisker_type", list(PostProcessingBoxplotWhiskerType))
+def test_boxplot_count_excludes_null_metric_values(
+    whisker_type: PostProcessingBoxplotWhiskerType,
+) -> None:
+    """`__count` is the number of observations, so rows whose metric is NULL
+    are left out of it, and a group with no values at all counts zero."""
+    df = DataFrame(
+        {
+            "region": ["a", "a", "a", "b", "b"],
+            "cars": [1.0, np.nan, 3.0, np.nan, np.nan],
+        }
+    )
+    result = boxplot(
+        df=df,
+        groupby=["region"],
+        whisker_type=whisker_type,
+        metrics=["cars"],
+        percentiles=[10, 90],
+    )
+
+    counts = dict(zip(result["region"], result["cars__count"], strict=True))
+    assert counts == {"a": 2, "b": 0}

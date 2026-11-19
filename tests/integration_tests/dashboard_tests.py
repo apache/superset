@@ -19,10 +19,12 @@
 
 import re
 from random import random
+from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
 import pytest
-from flask import Response, escape, url_for
+from flask import Response, url_for
+from markupsafe import escape
 from sqlalchemy import func
 
 from superset import db, security_manager
@@ -129,6 +131,27 @@ class TestDashboard(SupersetTestCase):
         created_dashboard = db.session.query(Dashboard).get(created_dashboard_id)
         db.session.delete(created_dashboard)
         db.session.commit()
+
+    def test_new_dashboard_calls_after_asset_create_hook(self):
+        self.login(ADMIN_USERNAME)
+        mock_hook = MagicMock()
+        app = self.app
+        app.config["AFTER_ASSET_CREATE"] = mock_hook
+        try:
+            url = "/dashboard/new/"
+            self.client.get(url, follow_redirects=False)
+
+            mock_hook.assert_called_once()
+            call_args = mock_hook.call_args
+            assert isinstance(call_args[0][0], Dashboard)
+            assert call_args[0][1] == "dashboard"
+
+            # Cleanup
+            created_dashboard = call_args[0][0]
+            db.session.delete(created_dashboard)
+            db.session.commit()
+        finally:
+            del app.config["AFTER_ASSET_CREATE"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("public_role_like_gamma")
@@ -241,7 +264,7 @@ class TestDashboard(SupersetTestCase):
         "load_energy_table_with_slice",
         "load_dashboard",
     )
-    def test_authenticated_user_without_access_gets_404(self):
+    def test_authenticated_user_without_access_gets_403(self):
         self.login(GAMMA_USERNAME)
         target_path = f"/dashboard/{pytest.hidden_dash_slug}/"
 
@@ -250,7 +273,7 @@ class TestDashboard(SupersetTestCase):
             follow_redirects=False,
             headers={"Accept": "text/html"},
         )
-        assert response.status_code == 404
+        assert response.status_code == 403
 
     @pytest.mark.usefixtures(
         "public_role_like_gamma",

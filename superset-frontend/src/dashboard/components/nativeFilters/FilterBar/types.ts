@@ -53,6 +53,11 @@ interface VerticalBarConfig {
   offset: number;
   toggleFiltersBar: any;
   width: number;
+  /**
+   * Renders the bar for a mobile drawer: full-width, in normal document
+   * flow, without the header or the collapsed-bar affordance.
+   */
+  mobileMode?: boolean;
 }
 
 export interface FiltersBarProps {

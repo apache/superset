@@ -41,6 +41,8 @@ export type EchartsPieFormData = QueryFormData &
     labelLine: boolean;
     labelType: EchartsPieLabelType;
     labelTemplate: string | null;
+    labelMaxWidth: number;
+    labelOverflow: EchartsPieLabelOverflow;
     labelsOutside: boolean;
     metric?: string;
     outerRadius: number;
@@ -63,6 +65,16 @@ export enum EchartsPieLabelType {
   Template = 'template',
 }
 
+/**
+ * How a pie slice label longer than `labelMaxWidth` is shortened.
+ */
+export enum EchartsPieLabelOverflow {
+  /** Cut the label and append an ellipsis. */
+  Truncate = 'truncate',
+  /** Wrap the label onto additional lines. */
+  Break = 'break',
+}
+
 export interface EchartsPieChartProps extends BaseChartProps<EchartsPieFormData> {
   formData: EchartsPieFormData;
 }
@@ -75,6 +87,8 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   innerRadius: 30,
   labelLine: false,
   labelType: EchartsPieLabelType.Key,
+  labelMaxWidth: 0,
+  labelOverflow: EchartsPieLabelOverflow.Truncate,
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
   numberFormat: 'SMART_NUMBER',
@@ -103,36 +117,3 @@ export interface PieChartDataItem {
   };
   isOther?: boolean;
 }
-
-interface ChartPadding {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
-
-export interface TotalValuePaddingProps {
-  chartPadding: ChartPadding;
-  donut: boolean;
-  width: number;
-  height: number;
-  sweptAngle: number;
-  startAngle: number;
-}
-
-export interface PaddingResult {
-  top?: string;
-  left?: string;
-}
-
-/**
- * Semicircular chart layout type.
- *
- * - `'top'`    — arc at the top, center shifted downwards.
- * - `'bottom'` — arc at the bottom, center shifted upwards.
- * - `'left'`   — arc on the left, center shifted to the right.
- * - `'right'`  — arc on the right, center shifted to the left.
- * - `'none'`   — full circle (no recentering).
- * @see getHalfDonut
- */
-export type HalfDonut = 'top' | 'bottom' | 'left' | 'right' | 'none';

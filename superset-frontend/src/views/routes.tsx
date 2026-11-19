@@ -18,12 +18,8 @@
  */
 
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import {
-  lazy,
-  ComponentType,
-  ComponentProps,
-  LazyExoticComponent,
-} from 'react';
+import { ComponentType, ComponentProps, LazyExoticComponent } from 'react';
+import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { stripAppRoot } from 'src/utils/navigationUtils';
@@ -32,157 +28,174 @@ import { RoutePaths } from './routePaths';
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
 
-const ChartCreation = lazy(
+const ChartCreation = lazyWithRetry(
   () =>
     import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
 );
 
-const AnnotationLayerList = lazy(
+const AnnotationLayerList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "AnnotationLayerList" */ 'src/pages/AnnotationLayerList'
     ),
 );
 
-const AlertReportList = lazy(
+const AlertReportList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "AlertReportList" */ 'src/pages/AlertReportList'
     ),
 );
 
-const AnnotationList = lazy(
+const AnnotationList = lazyWithRetry(
   () =>
     import(/* webpackChunkName: "AnnotationList" */ 'src/pages/AnnotationList'),
 );
 
-const ChartList = lazy(
+const ChartList = lazyWithRetry(
   () => import(/* webpackChunkName: "ChartList" */ 'src/pages/ChartList'),
 );
 
-const CssTemplateList = lazy(
+const ArchivedList = lazyWithRetry(
+  () => import(/* webpackChunkName: "ArchivedList" */ 'src/pages/ArchivedList'),
+);
+
+const CssTemplateList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "CssTemplateList" */ 'src/pages/CssTemplateList'
     ),
 );
 
-const ThemeList = lazy(
+const ThemeList = lazyWithRetry(
   () => import(/* webpackChunkName: "ThemeList" */ 'src/pages/ThemeList'),
 );
 
-const DashboardList = lazy(
+const DashboardList = lazyWithRetry(
   () =>
     import(/* webpackChunkName: "DashboardList" */ 'src/pages/DashboardList'),
 );
 
-const Dashboard = lazy(
+const Dashboard = lazyWithRetry(
   () => import(/* webpackChunkName: "Dashboard" */ 'src/pages/Dashboard'),
 );
 
-const DatabaseList = lazy(
+const DatabaseList = lazyWithRetry(
   () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DatabaseList'),
 );
 
-const DatasetList = lazy(
+const DatasetList = lazyWithRetry(
   () => import(/* webpackChunkName: "DatasetList" */ 'src/pages/DatasetList'),
 );
 
-const DatasetCreation = lazy(
+const DatasetCreation = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "DatasetCreation" */ 'src/pages/DatasetCreation'
     ),
 );
 
-const ExecutionLogList = lazy(
+const ExecutionLogList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "ExecutionLogList" */ 'src/pages/ExecutionLogList'
     ),
 );
 
-const Chart = lazy(
+const Chart = lazyWithRetry(
   () => import(/* webpackChunkName: "Chart" */ 'src/pages/Chart'),
 );
 
-const QueryHistoryList = lazy(
+const QueryHistoryList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "QueryHistoryList" */ 'src/pages/QueryHistoryList'
     ),
 );
 
-const SavedQueryList = lazy(
+const SavedQueryList = lazyWithRetry(
   () =>
     import(/* webpackChunkName: "SavedQueryList" */ 'src/pages/SavedQueryList'),
 );
 
-const SqlLab = lazy(
+const SqlLab = lazyWithRetry(
   () => import(/* webpackChunkName: "SqlLab" */ 'src/pages/SqlLab'),
 );
 
-const AllEntities = lazy(
+const AllEntities = lazyWithRetry(
   () => import(/* webpackChunkName: "AllEntities" */ 'src/pages/AllEntities'),
 );
 
-const Tags = lazy(
+const Tags = lazyWithRetry(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
 );
 
-const Extensions = lazy(
-  () => import(/* webpackChunkName: "Tags" */ 'src/extensions/ExtensionsList'),
+const Extensions = lazyWithRetry(
+  () =>
+    import(
+      /* webpackChunkName: "Extensions" */ 'src/extensions/ExtensionsList'
+    ),
 );
 
-const RowLevelSecurityList = lazy(
+const RowLevelSecurityList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
     ),
 );
 
-const TaskList = lazy(
+const TaskList = lazyWithRetry(
   () => import(/* webpackChunkName: "TaskList" */ 'src/pages/TaskList'),
 );
 
-const RolesList = lazy(
+const RolesList = lazyWithRetry(
   () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
 );
 
-const UsersList: LazyExoticComponent<any> = lazy(
+const UsersList: LazyExoticComponent<any> = lazyWithRetry(
   () => import(/* webpackChunkName: "UsersList" */ 'src/pages/UsersList'),
 );
 
-const UserInfo = lazy(
+const UserInfo = lazyWithRetry(
   () => import(/* webpackChunkName: "UserInfo" */ 'src/pages/UserInfo'),
 );
-const ActionLogList: LazyExoticComponent<any> = lazy(
+const ActionLogList: LazyExoticComponent<any> = lazyWithRetry(
   () => import(/* webpackChunkName: "ActionLogList" */ 'src/pages/ActionLog'),
 );
 
-const Login = lazy(
+const Login = lazyWithRetry(
   () => import(/* webpackChunkName: "Login" */ 'src/pages/Login'),
 );
 
-const Register = lazy(
+const Register = lazyWithRetry(
   () => import(/* webpackChunkName: "Register" */ 'src/pages/Register'),
 );
 
-const GroupsList: LazyExoticComponent<any> = lazy(
+const ForgotPassword = lazyWithRetry(
+  () =>
+    import(/* webpackChunkName: "ForgotPassword" */ 'src/pages/ForgotPassword'),
+);
+
+const ResetPassword = lazyWithRetry(
+  () =>
+    import(/* webpackChunkName: "ResetPassword" */ 'src/pages/ResetPassword'),
+);
+
+const GroupsList: LazyExoticComponent<any> = lazyWithRetry(
   () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
 );
-const UserRegistrations = lazy(
+const UserRegistrations = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "UserRegistrations" */ 'src/pages/UserRegistrations'
     ),
 );
 
-const FileHandler = lazy(
+const FileHandler = lazyWithRetry(
   () => import(/* webpackChunkName: "FileHandler" */ 'src/pages/FileHandler'),
 );
 
-const RedirectWarning = lazy(
+const RedirectWarning = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "RedirectWarning" */ 'src/pages/RedirectWarning'
@@ -191,21 +204,50 @@ const RedirectWarning = lazy(
 
 type Routes = {
   path: string;
-  Component: ComponentType<any>;
-  Fallback?: ComponentType<any>;
+  Component: ComponentType;
+  Fallback?: ComponentType;
   props?: ComponentProps<any>;
+  /**
+   * Marks a route as usable in the mobile consumption-only experience.
+   * Routes without this flag show the MobileUnsupported screen on small
+   * screens when MOBILE_CONSUMPTION_MODE is enabled.
+   */
+  mobileSupported?: boolean;
 }[];
 
 export const routes: Routes = [
-  { path: RoutePaths.REDIRECT, Component: RedirectWarning },
-  { path: RoutePaths.LOGIN, Component: Login },
-  { path: RoutePaths.REGISTER_ACTIVATION, Component: Register },
-  { path: RoutePaths.REGISTER, Component: Register },
-  { path: RoutePaths.LOGOUT, Component: Login },
-  { path: RoutePaths.HOME, Component: Home },
+  {
+    path: RoutePaths.REDIRECT,
+    Component: RedirectWarning,
+    mobileSupported: true,
+  },
+  // The route switch matches by prefix, so these must precede LOGIN.
+  {
+    path: RoutePaths.FORGOT_PASSWORD,
+    Component: ForgotPassword,
+    mobileSupported: true,
+  },
+  {
+    path: RoutePaths.RESET_PASSWORD,
+    Component: ResetPassword,
+    mobileSupported: true,
+  },
+  { path: RoutePaths.LOGIN, Component: Login, mobileSupported: true },
+  {
+    path: RoutePaths.REGISTER_ACTIVATION,
+    Component: Register,
+    mobileSupported: true,
+  },
+  { path: RoutePaths.REGISTER, Component: Register, mobileSupported: true },
+  { path: RoutePaths.LOGOUT, Component: Login, mobileSupported: true },
+  { path: RoutePaths.HOME, Component: Home, mobileSupported: true },
   { path: RoutePaths.FILE_HANDLER, Component: FileHandler },
-  { path: RoutePaths.DASHBOARD_LIST, Component: DashboardList },
-  { path: RoutePaths.DASHBOARD, Component: Dashboard },
+  {
+    path: RoutePaths.DASHBOARD_LIST,
+    Component: DashboardList,
+    mobileSupported: true,
+  },
+  { path: RoutePaths.DASHBOARD, Component: Dashboard, mobileSupported: true },
   { path: RoutePaths.CHART_ADD, Component: ChartCreation },
   { path: RoutePaths.CHART_LIST, Component: ChartList },
   { path: RoutePaths.DATASET_LIST, Component: DatasetList },
@@ -235,14 +277,21 @@ export const routes: Routes = [
   { path: RoutePaths.ROW_LEVEL_SECURITY, Component: RowLevelSecurityList },
   { path: RoutePaths.TASKS, Component: TaskList },
   { path: RoutePaths.SQLLAB, Component: SqlLab },
-  { path: RoutePaths.USER_INFO, Component: UserInfo },
+  { path: RoutePaths.USER_INFO, Component: UserInfo, mobileSupported: true },
   { path: RoutePaths.ACTION_LOG, Component: ActionLogList },
-  { path: RoutePaths.REGISTRATIONS, Component: UserRegistrations },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({ path: RoutePaths.ALL_ENTITIES, Component: AllEntities });
   routes.push({ path: RoutePaths.TAGS, Component: Tags });
+}
+
+// Recently-Archived view — gated by the soft-delete feature (T007).
+if (isFeatureEnabled(FeatureFlag.SoftDelete)) {
+  routes.push({
+    path: '/archived/',
+    Component: ArchivedList,
+  });
 }
 
 const user = getBootstrapData()?.user;

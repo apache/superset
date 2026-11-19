@@ -18,20 +18,19 @@
 import logging
 import re
 from re import Pattern
-from typing import Any
+from typing import Any, Callable
 from urllib import parse
 
 from flask_babel import gettext as __
 from sqlalchemy import Float, Integer, Numeric, text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.type_api import TypeEngine
 
-from superset import is_feature_enabled
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
-from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.utils.core import GenericDataType
 
@@ -102,6 +101,12 @@ class StarRocksEngineSpec(MySQLEngineSpec):
     sqlalchemy_uri_placeholder = "starrocks://user:password@host:port[/catalog.db]"
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+
+    # `MySQLEngineSpec._extended_aggregations` (STDDEV_SAMP/VAR_SAMP) is verified
+    # against real MySQL behavior, not StarRocks's OLAP query engine; disable it
+    # here until someone confirms the same expressions against a live StarRocks
+    # instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
 
     metadata = {
         "description": (
@@ -238,6 +243,11 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         (re.compile(r"^array.*", re.IGNORECASE), ARRAY(), GenericDataType.STRING),
         (re.compile(r"^map.*", re.IGNORECASE), MAP(), GenericDataType.STRING),
         (re.compile(r"^struct.*", re.IGNORECASE), STRUCT(), GenericDataType.STRING),
+        (
+            re.compile(r"^var_string", re.IGNORECASE),
+            types.VARCHAR(),
+            GenericDataType.STRING,
+        ),
     )
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
@@ -414,15 +424,9 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         For StarRocks with user impersonation enabled, returns an EXECUTE AS statement.
         """
         if database.impersonate_user:
-            username = database.get_effective_user(database.url_object)
+            effective_username = database.get_impersonation_username()
 
-            if username:
-                effective_username = username
-                if is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
-                    user = security_manager.find_user(username=username)
-                    if user and user.email:
-                        effective_username = user.email.split("@", 1)[0]
-
+            if effective_username:
                 escaped = effective_username.replace('"', '""')
                 return [f'EXECUTE AS "{escaped}" WITH NO REVERT;']
 

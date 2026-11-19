@@ -194,6 +194,7 @@ def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
     column = TableColumn(table_id=dataset.id, column_name="name")
     dataset.columns = [column]
     db.session.add(dataset)
+    db.session.add(column)
     db.session.commit()
     yield dataset
 
