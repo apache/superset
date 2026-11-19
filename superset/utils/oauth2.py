@@ -24,7 +24,7 @@ import secrets
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterator, TYPE_CHECKING, TypeVar
+from typing import Any, Callable, Iterator, TYPE_CHECKING, TypeGuard, TypeVar
 
 import backoff
 import jwt
@@ -401,8 +401,15 @@ def execute_with_oauth2_retry(  # noqa: C901
         finally:
             _oauth2_retry_active.reset(retry_context)
     except Exception as ex:
+        # A metadata flush failure expires ORM configuration and is not an
+        # authentication failure. Leave rollback to the execution owner.
+        if not db.session.is_active:
+            raise
+        # The guest check comes first, as in `check_for_oauth2`.
         is_oauth2_error = (
-            database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(ex)
+            not _is_guest_request()
+            and database.is_oauth2_enabled()
+            and database.db_engine_spec.needs_oauth2(ex)
         )
         if not is_oauth2_error:
             raise
@@ -585,6 +592,42 @@ class OAuth2ClientConfigSchema(Schema):
     )
 
 
+def oauth2_client_info_configured(client_info: Any) -> TypeGuard[dict[str, Any]]:
+    """
+    Does a stored ``oauth2_client_info`` actually configure a client?
+
+    A non-empty block is not enough: some forms save one with a blank client id
+    and secret (plus filled-in endpoints) when OAuth2 isn't used, and
+    ``OAuth2ClientConfigSchema`` accepts empty strings. Both the id and the
+    secret must be non-blank. A masked secret counts as set, since masking skips
+    empty values.
+    """
+    if not isinstance(client_info, dict):
+        return False
+    return all(
+        isinstance(client_info.get(key), str) and client_info[key].strip()
+        for key in ("id", "secret")
+    )
+
+
+def _is_guest_request() -> bool:
+    """
+    Is the current principal an embedded guest?
+
+    Guests authenticate with a guest token rather than a Superset account, so there is
+    no per-user OAuth2 token to resolve for them and no route by which they could
+    authorize one.
+    """
+    # Prevent circular import.
+    from superset import security_manager
+
+    user = getattr(g, "user", None)
+    if user is None:
+        return False
+
+    return security_manager.is_guest_user(user)
+
+
 @contextmanager
 def check_for_oauth2(database: Database) -> Iterator[None]:
     """
@@ -595,6 +638,12 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
     except Exception as ex:
         if (
             not is_oauth2_retry_active()
+            # The `OAuth2TokenRefreshError` arm below reaches the dance without
+            # consulting `needs_oauth2`, so the guest check it performs has to be
+            # repeated here or an embedded viewer takes that arm. It comes first:
+            # loading the client can itself raise, as in a worker with no redirect
+            # URI, and would replace the error the guest should see.
+            and not _is_guest_request()
             and database.is_oauth2_enabled()
             and (
                 isinstance(ex, OAuth2TokenRefreshError)

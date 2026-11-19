@@ -139,6 +139,14 @@ export interface PartitionFilterMapping {
    */
   literal_resolution?: 'full' | 'second' | 'day';
   /**
+   * Whether the engine compares the mapped column as a date or timestamp.
+   * There a value the server cannot read as an instant is declined at every
+   * resolution -- see `hasMirrorableValue`. A `TIMESTAMP` and a text column
+   * both report `full` resolution, so `literal_resolution` cannot tell them
+   * apart.
+   */
+  mapped_column_is_temporal?: boolean;
+  /**
    * Characters this database's driver and engine do not spell the same way in
    * a string literal, so a filter value carrying one is declined server-side
    * -- see `hasMirrorableValue`. Computed server-side because it is a property
