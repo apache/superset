@@ -10098,6 +10098,14 @@ msgstr "Skrýt čáru"
 msgid "Hide chart description"
 msgstr "Skrýt popis grafu"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Skrýt vrstvu"
 
@@ -10756,6 +10764,10 @@ msgstr "Neplatný stav."
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Neplatná ID karet: %(tab_ids)s"
+
+#, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

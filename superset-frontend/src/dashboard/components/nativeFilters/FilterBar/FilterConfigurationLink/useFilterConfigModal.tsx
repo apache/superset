@@ -56,26 +56,27 @@ export const useFilterConfigModal = ({
 
   const handleSave = useCallback(
     async (changes: SaveChangesType) => {
-      try {
-        if (changes.filterChanges) {
-          dispatch(setFilterConfiguration(changes.filterChanges));
-        }
-        if (changes.customizationChanges) {
-          // Await so the delete commits before the modal closes, otherwise a
-          // quick "Apply filters" can re-persist the still-present control.
-          await dispatch(
-            saveChartCustomization(
-              changes.customizationChanges.modified,
-              changes.customizationChanges.deleted,
-              changes.customizationChanges.reordered,
-              true,
-            ),
-          );
-        }
-        closeFilterConfigModal();
-      } catch (error) {
-        // Error toast already shown in action, prevent modal close
+      if (changes.filterChanges) {
+        // Both saves rewrite the same dashboard json_metadata, each from the
+        // copy it read when its request started, so they have to run one
+        // after the other: overlapping them drops one of the two changes.
+        await dispatch(setFilterConfiguration(changes.filterChanges));
       }
+      if (changes.customizationChanges) {
+        // Await so the delete commits before the modal closes, otherwise a
+        // quick "Apply filters" can re-persist the still-present control.
+        await dispatch(
+          saveChartCustomization(
+            changes.customizationChanges.modified,
+            changes.customizationChanges.deleted,
+            changes.customizationChanges.reordered,
+            true,
+          ),
+        );
+      }
+      closeFilterConfigModal();
+      // A failure propagates to the caller, which keeps the modal open and
+      // the unsaved items on screen. Both actions report the error themselves.
     },
     [dispatch, closeFilterConfigModal],
   );

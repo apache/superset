@@ -9262,6 +9262,14 @@ msgstr "Linie ausblenden"
 msgid "Hide chart description"
 msgstr "Diagrammbeschreibung ausblenden"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Ebene verstecken"
 
@@ -9855,6 +9863,10 @@ msgstr "Ungültiger Zustand."
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Ungültige Tab-IDs: %(tab_ids)s"
+
+#, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
