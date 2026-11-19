@@ -49,6 +49,7 @@ function Harness({
   return (
     <>
       <output aria-label="Settling">{String(history.settling)}</output>
+      <output aria-label="Busy">{String(history.busy)}</output>
       <button type="button" onClick={history.undo} disabled={!history.canUndo}>
         Undo
       </button>
@@ -218,9 +219,11 @@ test('a step failing on a draft the user has left does not refetch that draft', 
   });
   fetchMock.post(undoEndpoint, () => held);
   const { rerender, reload } = renderHarness({ canUndo: true });
+  const busy = () => screen.getByRole('status', { name: 'Busy' });
 
   fireEvent.click(undo());
   await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  expect(busy()).toHaveTextContent('true');
 
   rerender(
     <Harness revision={0} fetched={{}} reload={reload} token="tok-456" />,
@@ -232,6 +235,8 @@ test('a step failing on a draft the user has left does not refetch that draft', 
   });
 
   expect(reload).not.toHaveBeenCalled();
+  // Nor is the draft the user moved to left waiting on it.
+  expect(busy()).toHaveTextContent('false');
 });
 
 test('a step failure whose body is still arriving when the user leaves says nothing', async () => {

@@ -97,9 +97,12 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
   const loaded = useRef<string>();
   // The source whose failure has already been reported, cleared on recovery.
   const reported = useRef<string>();
-  // A draft that has been published, discarded or has expired. Polling it
-  // again can only fail again, so the poll stops rather than asking every few
-  // seconds forever -- which also stops the request writing a row each time.
+  // A draft that has been published, discarded or has expired, or that the
+  // user can no longer reach. Polling it again can only fail again, so the
+  // poll and the focus refetch stop rather than asking every few seconds
+  // forever -- which also stops the request writing a row each time. A read
+  // that succeeds after all, such as a resync the page asks for, starts them
+  // again.
   const [draftGone, setDraftGone] = useState(false);
   // Drops a response for a source the page has since moved off, or one sent
   // before the page last moved onto it: leaving a draft and reopening it
@@ -134,12 +137,25 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
       );
       if (stale(requested, order)) return;
       answered.current = order;
+      // Any read that succeeds is a recovery, whatever it answered: the
+      // source is there and reachable, so a later failure is news again and
+      // a draft found gone is refreshed again.
+      reported.current = undefined;
+      setDraftGone(false);
       // An older revision than the one on screen: sent later is not read
-      // later, should the read lag behind one already answered.
+      // later, should the read lag behind one already answered. What is on
+      // screen stays, but no longer as the last thing a refresh failed on.
       if (
         revision.current !== undefined &&
         json.result.revision < revision.current
       ) {
+        setState(previous =>
+          previous.status === 'complete' &&
+          previous.draftToken === draftToken &&
+          previous.refreshFailed !== undefined
+            ? { ...previous, refreshFailed: undefined }
+            : previous,
+        );
         return;
       }
       revision.current = json.result.revision;
@@ -149,7 +165,6 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
       // and say nothing new.
       const first = loaded.current !== requested;
       loaded.current = requested;
-      reported.current = undefined;
       setState({
         status: 'complete',
         result: json.result,
@@ -173,11 +188,10 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
       // rather than from `state`, which would put `state` in this callback's
       // dependencies and make every load schedule the next one.
       const silent = loaded.current === requested;
-      if (draftToken && error.status === 404) setDraftGone(true);
-      const refreshFailed =
-        error.status !== undefined && GONE_STATUSES.includes(error.status)
-          ? 'gone'
-          : 'failed';
+      const gone =
+        error.status !== undefined && GONE_STATUSES.includes(error.status);
+      if (draftToken && gone) setDraftGone(true);
+      const refreshFailed = gone ? 'gone' : 'failed';
       setState(previous =>
         previous.status === 'complete' && previous.draftToken === draftToken
           ? {
@@ -189,9 +203,10 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
             }
           : { status: 'error', error },
       );
-      // Once per source, for the same reason as the success event: an
-      // expired draft keeps polling, and reporting each failure would write a
-      // row every few seconds for a single broken state.
+      // Once per source, for the same reason as the success event: a draft
+      // that keeps failing short of gone keeps polling, and reporting each
+      // failure would write a row every few seconds for a single broken
+      // state.
       if (reported.current === requested) return;
       reported.current = requested;
       // `is_silent` marks the refresh case above, which shows the user

@@ -523,6 +523,78 @@ test('an undo keeps the draft pending until the canvas has caught up with it', a
   stop();
 });
 
+test('a step not yet on screen holds Save and the next step, but not Discard', async () => {
+  // Until the refetch lands, the revision on screen is the one the undo
+  // started from, and a publish naming it would be rejected.
+  fetchMock.post('glob:*/api/v1/canvas/draft/undo', {
+    result: { revision: 1, canUndo: true, canRedo: true },
+  });
+  fetchMock.post(commitEndpoint, { result: { revision: 1 } });
+  const reload = jest.fn();
+  const undoable = { ...result, canUndo: true };
+  const { rerender } = renderWith(DRAFT, {
+    result: undoable,
+    reload,
+    active: active(true),
+  });
+  const undoButton = () => screen.getByRole('button', { name: 'Undo' });
+  expect(publishButton()).toBeEnabled();
+
+  fireEvent.click(undoButton());
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+
+  expect(publishButton()).toBeDisabled();
+  expect(undoButton()).toBeDisabled();
+  // Discarding names no revision, so it stays a way out of the draft even
+  // if the refetch never lands.
+  expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+  fireEvent.click(publishButton());
+  await waitFor(() =>
+    expect(canvas.getActiveCanvas()).toStrictEqual(pendingDraft()),
+  );
+  expect(fetchMock.callHistory.calls(commitEndpoint)).toHaveLength(0);
+
+  rerender(
+    bodyWith(DRAFT, {
+      result: { ...undoable, revision: 1, canRedo: true },
+      reload,
+      active: active(true, 1),
+    }),
+  );
+
+  expect(publishButton()).toBeEnabled();
+  expect(undoButton()).toBeEnabled();
+  expect(canvas.getActiveCanvas()).toStrictEqual(shownDraft(1));
+});
+
+test('an undo whose refetch never lands can still be discarded', async () => {
+  // Nothing retries the refetch until the window regains focus, so the step
+  // may never reach the screen.
+  fetchMock.post('glob:*/api/v1/canvas/draft/undo', {
+    result: { revision: 1, canUndo: true, canRedo: true },
+  });
+  fetchMock.delete(draftEndpoint, { result: {} });
+  const reload = jest.fn();
+  const onDraftClosed = jest.fn();
+  renderWith(DRAFT, {
+    result: { ...result, canUndo: true },
+    reload,
+    onDraftClosed,
+    active: active(true),
+  });
+
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+  fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+
+  await waitFor(() => expect(onDraftClosed).toHaveBeenCalled());
+  expect(
+    fetchMock.callHistory
+      .calls(draftEndpoint)
+      .filter(({ options }) => options.method?.toUpperCase() === 'DELETE'),
+  ).toHaveLength(1);
+});
+
 test('a version preview is exposed, and no draft beside it', () => {
   renderWith(DRAFT, {
     versionUuid: 'v-1',
@@ -533,6 +605,14 @@ test('a version preview is exposed, and no draft beside it', () => {
     ...noDraft(),
     previewedVersion: { uuid: 'v-1', number: 1 },
   });
+});
+
+test('a version on screen names no draft, even with the version unnamed', () => {
+  // The body knows a version is rendered from its key alone; the draft's
+  // definition is not what the user is looking at.
+  renderWith(DRAFT, { versionUuid: 'v-1', active: active(true) });
+
+  expect(canvas.getActiveCanvas()).toStrictEqual(noDraft());
 });
 
 test('without what the page knows, the body tells extensions nothing', () => {

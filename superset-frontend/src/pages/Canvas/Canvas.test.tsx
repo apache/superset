@@ -397,10 +397,17 @@ test.each(['Save', 'Discard'])(
 );
 
 /**
- * What extensions are told about the draft and a version preview. The draft
- * named must be the one on screen: an extension uses it to publish what the
- * user reviewed, so a token or revision the screen hasn't caught up with is
- * worse than none.
+ * What extensions are told about the draft and a version preview, end to end
+ * through the page. The draft named must be the one on screen: an extension
+ * uses it to publish what the user reviewed, so a token or revision the screen
+ * hasn't caught up with is worse than none.
+ *
+ * How each part is worked out is tested where it is worked out: request order
+ * and refresh failures in useCanvasDefinition.test.ts, preview requests in
+ * useCanvasVersionHistory.test.ts, steps in useDraftHistory.test.tsx, what the
+ * body says while a change is in flight in CanvasBody.test.tsx, and the value
+ * itself in useActiveCanvas.test.ts. These cover what only the page does: the
+ * gate on which canvas and draft are loaded, and clearing the value.
  */
 
 const draftEndpoint = 'glob:*/api/v1/canvas/draft';
@@ -420,13 +427,11 @@ const held = <T,>() => {
   return { promise, release };
 };
 
-type Reply = unknown;
-
 /**
  * Serves the draft route by token, a reply per request in turn; the last
  * reply keeps answering. A reply may be a promise, to hold the response.
  */
-const serveDrafts = (replies: Record<string, Reply[]>) => {
+const serveDrafts = (replies: Record<string, unknown[]>) => {
   fetchMock.get(draftEndpoint, ({ options }) => {
     const token = (options.headers as Record<string, string> | undefined)?.[
       'x-canvas-draft'
@@ -437,17 +442,11 @@ const serveDrafts = (replies: Record<string, Reply[]>) => {
   });
 };
 
-/** The draft route's reads so far. */
-const draftGets = () =>
-  fetchMock.callHistory
-    .calls(draftEndpoint)
-    .filter(({ options }) => options.method?.toUpperCase() === 'GET');
-
 const published = (revision: number) => ({ id: 7, title: TITLE, revision });
 
 /**
- * A draft's definition on screen with no draft named: leaving it, another
- * one loading, or the draft gone. The revision is the draft's own.
+ * A draft's definition on screen with no draft named: leaving it, or the
+ * draft gone. The revision is the draft's own.
  */
 const draftUnnamed = published;
 
@@ -486,8 +485,6 @@ const settle = () =>
     await new Promise(resolve => setTimeout(resolve, 0));
   });
 
-const focusWindow = () => fireEvent.focus(window);
-
 const originalFlags = window.featureFlags;
 
 afterEach(() => {
@@ -496,25 +493,7 @@ afterEach(() => {
   mockIdOrSlug = '7';
 });
 
-test('nothing is said about a canvas still loading', async () => {
-  const definitionReply = held<unknown>();
-  fetchMock.get(definitionEndpoint, () => definitionReply.promise);
-
-  renderPage();
-  await waitFor(() =>
-    expect(fetchMock.callHistory.calls(definitionEndpoint)).toHaveLength(1),
-  );
-
-  expect(canvas.getActiveCanvas()).toBeUndefined();
-
-  definitionReply.release(definition([]));
-
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(published(1)),
-  );
-});
-
-test('a draft opened from the page is named once its definition has loaded', async () => {
+test('a draft opened from the page is named once loaded, and no longer once left', async () => {
   fetchMock.get(definitionEndpoint, definition([], 1, true));
   fetchMock.post('glob:*/api/v1/canvas/7/draft', {
     result: { token: 'tok-a', revision: 0 },
@@ -522,7 +501,7 @@ test('a draft opened from the page is named once its definition has loaded', asy
   const draftReply = held<unknown>();
   serveDrafts({ 'tok-a': [draftReply.promise] });
 
-  renderPage();
+  const { unmount } = renderPage();
   const edit = await screen.findByRole('button', { name: 'Edit canvas' });
   await waitFor(() =>
     expect(canvas.getActiveCanvas()).toStrictEqual(published(1)),
@@ -536,98 +515,69 @@ test('a draft opened from the page is named once its definition has loaded', asy
   expect(canvas.getActiveCanvas()).toStrictEqual(published(1));
 
   draftReply.release(draftDefinition(0));
-
   await waitFor(() =>
     expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 0)),
   );
-  expect(seen).toStrictEqual([inDraft('tok-a', 0)]);
-  stop();
-});
 
-test('a refetch that moves the draft on names the new revision', async () => {
-  window.location.hash = '#draft=tok-a';
-  serveDrafts({ 'tok-a': [draftDefinition(3), draftDefinition(4)] });
-
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 3)),
-  );
-
-  focusWindow();
-
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 4)),
-  );
-});
-
-test('leaving a draft stops naming it straight away', async () => {
-  window.location.hash = '#draft=tok-a';
-  serveDrafts({ 'tok-a': [draftDefinition(2)] });
+  // Leaving: the draft's definition is still on screen, but it is no longer
+  // open, so it is not named while the published canvas loads.
   const publishedReply = held<unknown>();
-  fetchMock.get(definitionEndpoint, () => publishedReply.promise);
-
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
-  );
-  const { seen, stop } = recordActiveCanvas();
-
-  window.location.hash = '';
-  await waitFor(() => expect(seen).toHaveLength(1));
-  // The draft's definition is still on screen, but it is no longer open.
-  expect(seen[0]).toStrictEqual(draftUnnamed(2));
-
-  publishedReply.release(definition([]));
-
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(published(1)),
-  );
-  expect(seen).toStrictEqual([draftUnnamed(2), published(1)]);
-  stop();
-});
-
-test('switching drafts names neither until the new one has loaded', async () => {
-  window.location.hash = '#draft=tok-a';
-  const lateA = held<unknown>();
-  const replyB = held<unknown>();
-  serveDrafts({
-    'tok-a': [draftDefinition(2), lateA.promise],
-    'tok-b': [replyB.promise],
+  fetchMock.removeRoutes();
+  fetchMock.get(metadataEndpoint, {
+    result: { id: 7, title: TITLE, description: 'KPIs and trend' },
   });
-
-  renderPage();
+  fetchMock.get(definitionEndpoint, () => publishedReply.promise);
+  window.location.hash = '';
   await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
+    expect(canvas.getActiveCanvas()).toStrictEqual(draftUnnamed(0)),
   );
-  // A refetch of the first draft is still in flight when the user moves on.
-  focusWindow();
+  publishedReply.release(definition([], 2));
   await waitFor(() =>
-    expect(
-      fetchMock.callHistory
-        .calls(draftEndpoint)
-        .filter(({ options }) => options.method?.toUpperCase() === 'GET'),
-    ).toHaveLength(2),
+    expect(canvas.getActiveCanvas()).toStrictEqual(published(2)),
   );
-  const { seen, stop } = recordActiveCanvas();
-
-  window.location.hash = '#draft=tok-b';
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(draftUnnamed(2)),
-  );
-
-  lateA.release(draftDefinition(3));
-  await settle();
-
-  expect(canvas.getActiveCanvas()).toStrictEqual(draftUnnamed(2));
-
-  replyB.release(draftDefinition(0));
-
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-b', 0)),
-  );
-  expect(seen).toStrictEqual([draftUnnamed(2), inDraft('tok-b', 0)]);
+  expect(seen).toStrictEqual([
+    inDraft('tok-a', 0),
+    draftUnnamed(0),
+    published(2),
+  ]);
   stop();
+
+  // Leaving the page says no canvas is open.
+  unmount();
+
+  expect(canvas.getActiveCanvas()).toBeUndefined();
 });
+
+test.each([
+  [500, 'pending', pendingIn('tok-a', 2)],
+  [404, 'no longer named', draftUnnamed(2)],
+])(
+  'a draft whose refresh answers %i is %s, its definition still shown',
+  async (status, _, expected) => {
+    // A failure may mean what is on screen is no longer the draft's latest; a
+    // 404 or 403 means the draft was published, discarded or expired, or is
+    // out of the user's reach.
+    window.location.hash = '#draft=tok-a';
+    serveDrafts({ 'tok-a': [draftDefinition(2), status, draftDefinition(3)] });
+
+    renderPage();
+    await waitFor(() =>
+      expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
+    );
+    const { seen, stop } = recordActiveCanvas();
+
+    fireEvent.focus(window);
+
+    await waitFor(() =>
+      expect(canvas.getActiveCanvas()).toStrictEqual(expected),
+    );
+    expect(
+      screen.getByText('Draft. Only you can see these changes.'),
+    ).toBeInTheDocument();
+    expect(seen).toStrictEqual([expected]);
+    stop();
+  },
+);
 
 test('a draft that fails to open is never named', async () => {
   window.location.hash = '#draft=tok-a';
@@ -641,308 +591,26 @@ test('a draft that fails to open is never named', async () => {
   expect(canvas.getActiveCanvas()).toBeUndefined();
 });
 
-test('a draft whose refresh fails is pending until one succeeds', async () => {
-  // The last good definition stays on screen, but it may no longer be the
-  // draft's latest, so there is no revision to publish.
+test('a canvas that fails after a draft was named says nothing', async () => {
+  // Leaving the draft for a published canvas that cannot be read: the body
+  // that named the draft is gone, so the page has to clear what it said.
   window.location.hash = '#draft=tok-a';
-  serveDrafts({ 'tok-a': [draftDefinition(2), 500, draftDefinition(3)] });
+  serveDrafts({ 'tok-a': [draftDefinition(2)] });
+  fetchMock.get(definitionEndpoint, 404);
 
   renderPage();
   await waitFor(() =>
     expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
   );
-  const { seen, stop } = recordActiveCanvas();
 
-  focusWindow();
+  window.location.hash = '';
 
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(pendingIn('tok-a', 2)),
-  );
   expect(
-    screen.getByText('Draft. Only you can see these changes.'),
+    await screen.findByText(
+      'This canvas does not exist, or you do not have access to it',
+    ),
   ).toBeInTheDocument();
-
-  focusWindow();
-
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 3)),
-  );
-  expect(seen).toStrictEqual([pendingIn('tok-a', 2), inDraft('tok-a', 3)]);
-  stop();
-});
-
-test.each([404, 403])(
-  'a draft whose refresh answers %i is no longer named',
-  async status => {
-    // Published, discarded or expired elsewhere, or out of the user's reach:
-    // the draft is gone, not pending.
-    window.location.hash = '#draft=tok-a';
-    serveDrafts({ 'tok-a': [draftDefinition(2), status] });
-
-    renderPage();
-    await waitFor(() =>
-      expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
-    );
-    const { seen, stop } = recordActiveCanvas();
-
-    focusWindow();
-
-    await waitFor(() =>
-      expect(canvas.getActiveCanvas()).toStrictEqual(draftUnnamed(2)),
-    );
-    // What was on screen stays there.
-    expect(
-      screen.getByText('Draft. Only you can see these changes.'),
-    ).toBeInTheDocument();
-    expect(seen).toStrictEqual([draftUnnamed(2)]);
-    stop();
-  },
-);
-
-test('a draft found gone stays unnamed when a later refresh fails otherwise', async () => {
-  // Going offline after the draft was taken out of the user's reach must not
-  // bring it back as pending, which it would then stay. A 403 rather than a
-  // 404: a 404 also stops the refreshes, so none would follow it.
-  window.location.hash = '#draft=tok-a';
-  serveDrafts({
-    'tok-a': [draftDefinition(2), 403, 500, draftDefinition(3)],
-  });
-
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
-  );
-  const { seen, stop } = recordActiveCanvas();
-
-  focusWindow();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(draftUnnamed(2)),
-  );
-  focusWindow();
-  await waitFor(() => expect(draftGets()).toHaveLength(3));
-  await settle();
-
-  expect(canvas.getActiveCanvas()).toStrictEqual(draftUnnamed(2));
-
-  // Only a refresh that succeeds names it again.
-  focusWindow();
-
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 3)),
-  );
-  expect(seen).toStrictEqual([draftUnnamed(2), inDraft('tok-a', 3)]);
-  stop();
-});
-
-test('a later refresh answering an older revision does not take the draft back', async () => {
-  // Requests are answered in order, but a read can still lag behind one
-  // answered before it.
-  window.location.hash = '#draft=tok-a';
-  serveDrafts({
-    'tok-a': [draftDefinition(4), draftDefinition(6), draftDefinition(5)],
-  });
-
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 4)),
-  );
-
-  focusWindow();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 6)),
-  );
-  focusWindow();
-  await waitFor(() => expect(draftGets()).toHaveLength(3));
-  await settle();
-
-  expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 6));
-});
-
-test('save is held while an undo is still settling', async () => {
-  // Until the refetch lands, the revision on screen is the one the undo
-  // started from, and a publish naming it would be rejected.
-  window.location.hash = '#draft=tok-a';
-  const undoable = (revision: number) => ({
-    result: {
-      ...draftDefinition(revision).result,
-      canUndo: true,
-      canRedo: true,
-      empty: false,
-      changes: [],
-    },
-  });
-  const refetchAfterUndo = held<unknown>();
-  serveDrafts({ 'tok-a': [undoable(2), refetchAfterUndo.promise] });
-  fetchMock.post('glob:*/api/v1/canvas/draft/undo', undoable(3));
-  const commits = () =>
-    fetchMock.callHistory.calls('glob:*/api/v1/canvas/draft/commit');
-
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
-  );
-  const save = () => screen.getByRole('button', { name: 'Save' });
-  expect(save()).toBeEnabled();
-
-  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-  await waitFor(() => expect(draftGets()).toHaveLength(2));
-  await settle();
-
-  expect(canvas.getActiveCanvas()).toStrictEqual(pendingIn('tok-a', 2));
-  expect(save()).toBeDisabled();
-  // Discarding names no revision, so it stays a way out of the draft even
-  // if the refetch never lands.
-  expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
-  fireEvent.click(save());
-  await settle();
-  expect(commits()).toHaveLength(0);
-
-  refetchAfterUndo.release(undoable(3));
-
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 3)),
-  );
-  expect(save()).toBeEnabled();
-});
-
-test('an undo whose refetch fails can still be discarded', async () => {
-  // Polling off (the test default): nothing retries the refetch until the
-  // window regains focus, so the step never reaches the screen.
-  window.location.hash = '#draft=tok-a';
-  const undoable = (revision: number) => ({
-    result: {
-      ...draftDefinition(revision).result,
-      canUndo: true,
-      canRedo: true,
-      empty: false,
-      changes: [],
-    },
-  });
-  serveDrafts({ 'tok-a': [undoable(2), 500] });
-  fetchMock.post('glob:*/api/v1/canvas/draft/undo', undoable(3));
-  fetchMock.delete(draftEndpoint, { result: {} });
-  fetchMock.get(definitionEndpoint, definition([], 9, true));
-
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
-  );
-  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-  await waitFor(() => expect(draftGets()).toHaveLength(2));
-  await settle();
-
-  expect(canvas.getActiveCanvas()).toStrictEqual(pendingIn('tok-a', 2));
-  expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
-  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-  fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
-
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(published(9)),
-  );
-  expect(
-    fetchMock.callHistory
-      .calls(draftEndpoint)
-      .filter(({ options }) => options.method?.toUpperCase() === 'DELETE'),
-  ).toHaveLength(1);
-  expect(screen.queryByTestId('canvas-draft-banner')).not.toBeInTheDocument();
-});
-
-test('a discard made while an undo settles is not undone by the refetch landing late', async () => {
-  window.location.hash = '#draft=tok-a';
-  const undoable = (revision: number) => ({
-    result: {
-      ...draftDefinition(revision).result,
-      canUndo: true,
-      canRedo: true,
-      empty: false,
-      changes: [],
-    },
-  });
-  const refetchAfterUndo = held<unknown>();
-  serveDrafts({ 'tok-a': [undoable(2), refetchAfterUndo.promise] });
-  fetchMock.post('glob:*/api/v1/canvas/draft/undo', undoable(3));
-  fetchMock.delete(draftEndpoint, { result: {} });
-  fetchMock.get(definitionEndpoint, definition([], 9, true));
-
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
-  );
-  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-  await waitFor(() => expect(draftGets()).toHaveLength(2));
-  await settle();
-  fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(published(9)),
-  );
-
-  refetchAfterUndo.release(undoable(3));
-  await settle();
-
-  expect(canvas.getActiveCanvas()).toStrictEqual(published(9));
-  expect(screen.queryByTestId('canvas-draft-banner')).not.toBeInTheDocument();
-});
-
-test('a failed step on a draft the user has left reads nothing of it', async () => {
-  window.location.hash = '#draft=tok-a';
-  const undoable = (revision: number) => ({
-    result: {
-      ...draftDefinition(revision).result,
-      canUndo: true,
-      canRedo: true,
-      empty: false,
-      changes: [],
-    },
-  });
-  serveDrafts({ 'tok-a': [undoable(2)], 'tok-b': [undoable(5)] });
-  const stepReply = held<unknown>();
-  fetchMock.post('glob:*/api/v1/canvas/draft/undo', () => stepReply.promise);
-
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
-  );
-  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-  await waitFor(() =>
-    expect(
-      fetchMock.callHistory.calls('glob:*/api/v1/canvas/draft/undo'),
-    ).toHaveLength(1),
-  );
-  window.location.hash = '#draft=tok-b';
-  // Pending, not settled: the step on the draft left is still in flight.
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(pendingIn('tok-b', 5)),
-  );
-  const getsBefore = draftGets().length;
-  stepReply.release({ status: 409, body: { message: 'Draft A moved on' } });
-  await settle();
-
-  expect(draftGets()).toHaveLength(getsBefore);
-  expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-b', 5));
-});
-
-test('an older response that lands last does not take the draft back', async () => {
-  window.location.hash = '#draft=tok-a';
-  const slow = held<unknown>();
-  serveDrafts({
-    'tok-a': [draftDefinition(4), slow.promise, draftDefinition(6)],
-  });
-
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 4)),
-  );
-
-  focusWindow();
-  focusWindow();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 6)),
-  );
-
-  slow.release(draftDefinition(5));
-  await settle();
-
-  expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 6));
+  expect(canvas.getActiveCanvas()).toBeUndefined();
 });
 
 test('a draft of another canvas says nothing', async () => {
@@ -959,228 +627,7 @@ test('a draft of another canvas says nothing', async () => {
   expect(canvas.getActiveCanvas()).toBeUndefined();
 });
 
-const versionsEndpoint = 'glob:*/api/v1/canvas/c-uuid/versions/';
-const olderVersionEndpoint = 'glob:*/api/v1/canvas/c-uuid/versions/v-1/';
-
-const versionMeta = (uuid: string, number: number) => ({
-  version_uuid: uuid,
-  version_number: number,
-  transaction_id: number,
-  operation_type: number === 0 ? 'baseline' : 'update',
-  issued_at: '2026-01-01T00:00:00Z',
-  changed_by: null,
-  changes: [],
-});
-
-const withVersionHistory = () => {
-  window.featureFlags = {
-    ...originalFlags,
-    [FeatureFlag.VersionHistory]: true,
-  };
-  fetchMock.removeRoutes();
-  fetchMock.get(metadataEndpoint, {
-    result: { id: 7, uuid: 'c-uuid', title: TITLE },
-  });
-  fetchMock.get(versionsEndpoint, {
-    result: [
-      versionMeta('v-0', 0),
-      versionMeta('v-1', 1),
-      versionMeta('v-2', 2),
-    ],
-  });
-};
-
-const snapshotOf = (uuid: string, number: number, children: string[]) => ({
-  result: {
-    title: TITLE,
-    rendered: definition(children, 1).result,
-    _version: versionMeta(uuid, number),
-  },
-});
-
-const snapshot = snapshotOf('v-1', 1, ['a']);
-
-/** Newest first: the current version, then `v-1`, then `v-0`. */
-const versionEntries = async () => {
-  fireEvent.click(await screen.findByTestId('canvas-version-history-button'));
-  return screen.findAllByTestId('canvas-version');
-};
-
-const openOlderVersion = async () => {
-  fireEvent.click((await versionEntries())[1]);
-};
-
-test('a version preview is said while it is on screen', async () => {
-  withVersionHistory();
-  fetchMock.get(definitionEndpoint, definition([], 3));
-  fetchMock.get(olderVersionEndpoint, snapshot);
-
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(published(3)),
-  );
-
-  await openOlderVersion();
-
-  // The live canvas' revision, not the snapshot's: a preview is not a change.
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(previewing(3)),
-  );
-
-  fireEvent.click(screen.getByRole('button', { name: 'Back to current' }));
-
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(published(3)),
-  );
-});
-
-test('a preview that loads after a draft opened is not shown', async () => {
-  withVersionHistory();
-  fetchMock.get(definitionEndpoint, definition([], 3, true));
-  const lateSnapshot = held<unknown>();
-  fetchMock.get(olderVersionEndpoint, () => lateSnapshot.promise);
-  fetchMock.post('glob:*/api/v1/canvas/7/draft', {
-    result: { token: 'tok-a', revision: 0 },
-  });
-  serveDrafts({ 'tok-a': [draftDefinition(0)] });
-
-  renderPage();
-  await openOlderVersion();
-  fireEvent.click(await screen.findByRole('button', { name: 'Edit canvas' }));
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 0)),
-  );
-
-  lateSnapshot.release(snapshot);
-  await settle();
-
-  expect(
-    document.querySelector('[data-test="canvas-version-preview"]'),
-  ).not.toBeInTheDocument();
-  expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 0));
-});
-
-test('leaving the page says no canvas is open', async () => {
-  fetchMock.get(definitionEndpoint, definition([]));
-
-  const { unmount } = renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(published(1)),
-  );
-
-  unmount();
-
-  expect(canvas.getActiveCanvas()).toBeUndefined();
-});
-
-test('of two versions clicked in turn, the second is the one previewed', async () => {
-  withVersionHistory();
-  fetchMock.get(definitionEndpoint, definition([], 3));
-  const first = held<unknown>();
-  fetchMock.get(olderVersionEndpoint, () => first.promise);
-  fetchMock.get(
-    'glob:*/api/v1/canvas/c-uuid/versions/v-0/',
-    snapshotOf('v-0', 0, ['a', 'b']),
-  );
-
-  renderPage();
-  const entries = await versionEntries();
-  fireEvent.click(entries[1]);
-  fireEvent.click(entries[2]);
-
-  await waitFor(() =>
-    expect(screen.getAllByText('This widget is unavailable')).toHaveLength(2),
-  );
-
-  first.release(snapshot);
-  await settle();
-
-  // Still the second: the first answered last, but was asked first.
-  expect(screen.getAllByText('This widget is unavailable')).toHaveLength(2);
-  expect(canvas.getActiveCanvas()).toStrictEqual(previewing(3, 'v-0', 0));
-});
-
-test('restoring a version ends the preview', async () => {
-  withVersionHistory();
-  fetchMock.get(definitionEndpoint, definition([], 3), {
-    name: definitionEndpoint,
-  });
-  fetchMock.get(olderVersionEndpoint, snapshot);
-  fetchMock.post('glob:*/api/v1/canvas/c-uuid/versions/v-1/restore', {
-    result: { revision: 4, skippedPlacements: [] },
-  });
-
-  renderPage();
-  await openOlderVersion();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(previewing(3)),
-  );
-  const { seen, stop } = recordActiveCanvas();
-  fetchMock.removeRoute(definitionEndpoint);
-  fetchMock.get(definitionEndpoint, definition([], 4));
-
-  const restoreButtons = () =>
-    screen.getAllByRole('button', { name: 'Restore this version' });
-  fireEvent.click(restoreButtons()[0]);
-  // The banner's button, then the confirmation's.
-  await waitFor(() => expect(restoreButtons()).toHaveLength(2));
-  fireEvent.click(restoreButtons()[1]);
-
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(published(4)),
-  );
-  // Whether the restored revision lands with the preview's end or after it
-  // is down to timing; the preview is over either way.
-  expect(seen.length).toBeGreaterThan(0);
-  seen.forEach(value => expect(value).not.toHaveProperty('previewedVersion'));
-  stop();
-});
-
-test('a version still loading when another is restored is not shown after it', async () => {
-  withVersionHistory();
-  fetchMock.get(definitionEndpoint, definition([], 3), {
-    name: definitionEndpoint,
-  });
-  fetchMock.get(olderVersionEndpoint, snapshot);
-  const oldest = held<unknown>();
-  fetchMock.get(
-    'glob:*/api/v1/canvas/c-uuid/versions/v-0/',
-    () => oldest.promise,
-  );
-  fetchMock.post('glob:*/api/v1/canvas/c-uuid/versions/v-1/restore', {
-    result: { revision: 4, skippedPlacements: [] },
-  });
-
-  renderPage();
-  fireEvent.click((await versionEntries())[1]);
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(previewing(3)),
-  );
-  // Another version is asked for, then the one on screen is restored.
-  fireEvent.click(screen.getAllByTestId('canvas-version')[2]);
-  fetchMock.removeRoute(definitionEndpoint);
-  fetchMock.get(definitionEndpoint, definition([], 4));
-  const restoreButtons = () =>
-    screen.getAllByRole('button', { name: 'Restore this version' });
-  fireEvent.click(restoreButtons()[0]);
-  await waitFor(() => expect(restoreButtons()).toHaveLength(2));
-  fireEvent.click(restoreButtons()[1]);
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(published(4)),
-  );
-
-  oldest.release(snapshotOf('v-0', 0, ['a', 'b']));
-  await settle();
-
-  expect(
-    document.querySelector('[data-test="canvas-version-preview"]'),
-  ).not.toBeInTheDocument();
-  expect(canvas.getActiveCanvas()).toStrictEqual(published(4));
-});
-
 test('moving to another canvas says nothing of it until it has loaded', async () => {
-  // The page stays mounted when only the id changes, and for a render still
-  // holds the previous canvas's title and definition.
   fetchMock.get(definitionEndpoint, definition([], 3));
   const otherMetadata = held<unknown>();
   const otherDefinition = held<unknown>();
@@ -1219,150 +666,63 @@ test('moving to another canvas says nothing of it until it has loaded', async ()
   stop();
 });
 
-test('a canvas that fails after a draft was named says nothing', async () => {
-  // Leaving the draft for a published canvas that cannot be read.
-  window.location.hash = '#draft=tok-a';
-  serveDrafts({ 'tok-a': [draftDefinition(2)] });
-  fetchMock.get(definitionEndpoint, 404);
+const versionsEndpoint = 'glob:*/api/v1/canvas/c-uuid/versions/';
 
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
-  );
-
-  window.location.hash = '';
-
-  expect(
-    await screen.findByText(
-      'This canvas does not exist, or you do not have access to it',
-    ),
-  ).toBeInTheDocument();
-  expect(canvas.getActiveCanvas()).toBeUndefined();
+const versionMeta = (uuid: string, number: number) => ({
+  version_uuid: uuid,
+  version_number: number,
+  transaction_id: number,
+  operation_type: number === 0 ? 'baseline' : 'update',
+  issued_at: '2026-01-01T00:00:00Z',
+  changed_by: null,
+  changes: [],
 });
 
-test('an older refresh failing after a newer one succeeded leaves the draft settled', async () => {
-  window.location.hash = '#draft=tok-a';
-  const slowFailure = held<unknown>();
-  serveDrafts({
-    'tok-a': [draftDefinition(2), slowFailure.promise, draftDefinition(3)],
+const snapshotOf = (uuid: string, number: number, children: string[]) => ({
+  result: {
+    title: TITLE,
+    rendered: definition(children, 1).result,
+    _version: versionMeta(uuid, number),
+  },
+});
+
+test('previewing versions names the one on screen, and none once back', async () => {
+  window.featureFlags = {
+    ...originalFlags,
+    [FeatureFlag.VersionHistory]: true,
+  };
+  fetchMock.removeRoutes();
+  fetchMock.get(metadataEndpoint, {
+    result: { id: 7, uuid: 'c-uuid', title: TITLE },
   });
-
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
-  );
-
-  focusWindow();
-  focusWindow();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 3)),
-  );
-
-  slowFailure.release(500);
-  await settle();
-
-  expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 3));
-});
-
-test('going back to the current canvas drops a preview still loading', async () => {
-  withVersionHistory();
-  fetchMock.get(definitionEndpoint, definition([], 3));
-  fetchMock.get(olderVersionEndpoint, snapshot);
-  const second = held<unknown>();
-  fetchMock.get(
-    'glob:*/api/v1/canvas/c-uuid/versions/v-0/',
-    () => second.promise,
-  );
-
-  renderPage();
-  const entries = await versionEntries();
-  fireEvent.click(entries[1]);
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(previewing(3)),
-  );
-  fireEvent.click(entries[2]);
-  fireEvent.click(screen.getByRole('button', { name: 'Back to current' }));
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(published(3)),
-  );
-
-  second.release(snapshotOf('v-0', 0, ['a', 'b']));
-  await settle();
-
-  expect(
-    document.querySelector('[data-test="canvas-version-preview"]'),
-  ).not.toBeInTheDocument();
-  expect(canvas.getActiveCanvas()).toStrictEqual(published(3));
-});
-
-test('reopening a draft does not bring back what was asked before leaving it', async () => {
-  // A refresh of the draft is still in flight when the user leaves and comes
-  // back before the published canvas answers; that refresh then answers
-  // before the request sent on coming back.
-  window.location.hash = '#draft=tok-a';
-  const beforeLeaving = held<unknown>();
-  const afterReturning = held<unknown>();
-  serveDrafts({
-    'tok-a': [
-      draftDefinition(2),
-      beforeLeaving.promise,
-      afterReturning.promise,
+  fetchMock.get(versionsEndpoint, {
+    result: [
+      versionMeta('v-0', 0),
+      versionMeta('v-1', 1),
+      versionMeta('v-2', 2),
     ],
   });
-  const publishedReply = held<unknown>();
-  fetchMock.get(definitionEndpoint, () => publishedReply.promise);
-  renderPage();
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2)),
-  );
-  focusWindow();
-  await waitFor(() => expect(draftGets()).toHaveLength(2));
-  const { seen, stop } = recordActiveCanvas();
-
-  window.location.hash = '';
-  await waitFor(() =>
-    expect(fetchMock.callHistory.calls(definitionEndpoint)).toHaveLength(1),
-  );
-  window.location.hash = '#draft=tok-a';
-  await waitFor(() => expect(draftGets()).toHaveLength(3));
-
-  beforeLeaving.release(draftDefinition(3));
-  await settle();
-
-  expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 2));
-
-  afterReturning.release(draftDefinition(4));
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(inDraft('tok-a', 4)),
-  );
-  publishedReply.release(definition([]));
-  await settle();
-
-  expect(seen).toStrictEqual([
-    draftUnnamed(2),
-    inDraft('tok-a', 2),
-    inDraft('tok-a', 4),
-  ]);
-  stop();
-});
-
-test('previewing another version names the one on screen', async () => {
-  withVersionHistory();
   fetchMock.get(definitionEndpoint, definition([], 3));
-  fetchMock.get(olderVersionEndpoint, snapshot);
+  fetchMock.get(
+    'glob:*/api/v1/canvas/c-uuid/versions/v-1/',
+    snapshotOf('v-1', 1, ['a']),
+  );
   fetchMock.get(
     'glob:*/api/v1/canvas/c-uuid/versions/v-0/',
     snapshotOf('v-0', 0, ['a', 'b']),
   );
 
   renderPage();
-  const entries = await versionEntries();
+  fireEvent.click(await screen.findByTestId('canvas-version-history-button'));
+  // Newest first: the current version, then `v-1`, then `v-0`.
+  const entries = await screen.findAllByTestId('canvas-version');
   await waitFor(() =>
     expect(canvas.getActiveCanvas()).toStrictEqual(published(3)),
   );
   const { seen, stop } = recordActiveCanvas();
 
   fireEvent.click(entries[1]);
+  // The live canvas' revision, not the snapshot's: a preview is not a change.
   await waitFor(() =>
     expect(canvas.getActiveCanvas()).toStrictEqual(previewing(3)),
   );
@@ -1370,6 +730,7 @@ test('previewing another version names the one on screen', async () => {
   await waitFor(() =>
     expect(canvas.getActiveCanvas()).toStrictEqual(previewing(3, 'v-0', 0)),
   );
+  expect(screen.getAllByText('This widget is unavailable')).toHaveLength(2);
   fireEvent.click(screen.getByRole('button', { name: 'Back to current' }));
 
   await waitFor(() =>
@@ -1381,32 +742,4 @@ test('previewing another version names the one on screen', async () => {
     published(3),
   ]);
   stop();
-});
-
-test('an older preview failing after a newer one loaded shows no error', async () => {
-  withVersionHistory();
-  fetchMock.get(definitionEndpoint, definition([], 3));
-  const first = held<unknown>();
-  fetchMock.get(olderVersionEndpoint, () => first.promise);
-  fetchMock.get(
-    'glob:*/api/v1/canvas/c-uuid/versions/v-0/',
-    snapshotOf('v-0', 0, ['a', 'b']),
-  );
-
-  renderPage();
-  const entries = await versionEntries();
-  fireEvent.click(entries[1]);
-  fireEvent.click(entries[2]);
-  await waitFor(() =>
-    expect(canvas.getActiveCanvas()).toStrictEqual(previewing(3, 'v-0', 0)),
-  );
-
-  first.release(500);
-  await settle();
-
-  // The preview's own banner is the only alert: no error beside it.
-  expect(screen.getAllByRole('alert')).toEqual([
-    screen.getByTestId('canvas-version-preview'),
-  ]);
-  expect(canvas.getActiveCanvas()).toStrictEqual(previewing(3, 'v-0', 0));
 });
