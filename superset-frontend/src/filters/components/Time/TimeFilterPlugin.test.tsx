@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
 import { NO_TIME_RANGE } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { act, render } from 'spec/helpers/testing-library';
 import TimeFilterPlugin from './TimeFilterPlugin';
 import { PluginFilterTimeProps } from './types';
@@ -130,4 +132,14 @@ test('clearing the time range emits an empty value through setDataMask', () => {
     extraFormData: {},
     filterState: { value: undefined },
   });
+});
+
+test('focus ring uses the full-strength primary color for 3:1 contrast', () => {
+  const { container } = render(<TimeFilterPlugin {...defaultProps} />);
+  const controlContainer = container.querySelector('[tabindex="-1"]');
+  expect(controlContainer).toHaveStyleRule(
+    'box-shadow',
+    `0 0 0 2px ${supersetTheme.colorPrimary}`,
+    { target: ':focus>div' },
+  );
 });

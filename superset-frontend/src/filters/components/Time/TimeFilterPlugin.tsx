@@ -62,7 +62,10 @@ const ControlContainer = styled.div<{
 
   &:focus > div {
     border-color: ${({ theme }) => theme.colorPrimary};
-    box-shadow: ${({ theme }) => `0 0 0 2px ${theme.controlOutline}`};
+    /* WCAG 1.4.11: the focus ring needs 3:1 contrast against the background.
+       controlOutline is a low-alpha tint of colorPrimary that falls below
+       that, so the ring uses the full-strength colorPrimary. */
+    box-shadow: ${({ theme }) => `0 0 0 2px ${theme.colorPrimary}`};
     outline: 0;
   }
 `;
