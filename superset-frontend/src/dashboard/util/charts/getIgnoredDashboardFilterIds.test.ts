@@ -357,3 +357,17 @@ test.each([10, 50, 100])(
     expect(readDatasource).toHaveBeenCalledTimes(count);
   },
 );
+
+test.each([
+  {},
+  { semantic_selection_sources: [{ datasource: '12__table', version: null }] },
+])(
+  'an ordinary-dataset target with no predicate is not ignored: %j',
+  extraFormData => {
+    expect(
+      getIgnoredDashboardFilterIds(receiver, sql, {
+        f: { id: 'f', extraFormData },
+      }),
+    ).toEqual([]);
+  },
+);

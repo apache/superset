@@ -337,6 +337,7 @@ test.each([
   { semanticSelected: false, requiredEmpty: false, foreign: false },
   { semanticSelected: true, requiredEmpty: false, foreign: false },
   { semanticSelected: false, requiredEmpty: true, foreign: false },
+  { semanticSelected: false, requiredEmpty: true, foreign: true },
   { semanticSelected: false, requiredEmpty: false, foreign: true },
 ])(
   'same-named incompatible filter remains visible: %j',

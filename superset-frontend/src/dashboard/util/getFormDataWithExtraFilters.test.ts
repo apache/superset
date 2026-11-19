@@ -1565,3 +1565,26 @@ test('foreign provenance reclassification invalidates request cache and clear re
     'cube-member-id-v1',
   );
 });
+
+test.each(['cube-member-id-v1', 'old'])(
+  'same-view cleared stamp with version %s reaches query validation unchanged',
+  version => {
+    const args = externalPredicateArgs();
+    args.sourceDatasources = { 42: '3__semantic_view' };
+    const extraFormData = {
+      semantic_selection_sources: [{ datasource: '3__semantic_view', version }],
+    };
+    args.dataMask[42] = {
+      id: '42',
+      filterState: { value: null },
+      extraFormData,
+    };
+    const result = getFormDataWithExtraFilters(args);
+    expect(result.extra_form_data?.semantic_selection_sources).toEqual(
+      extraFormData.semantic_selection_sources,
+    );
+    expect(chartExtras(result)?.semantic_selection_version).toBe(
+      version === 'old' ? 'unverified-external-selections' : version,
+    );
+  },
+);
