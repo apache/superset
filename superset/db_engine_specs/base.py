@@ -1839,10 +1839,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return None
             if reader_method is not None:
                 return cls._table_from_arrow_reader(reader_method(), limit)
-            table = table_method()
+            # A table-only fetch materializes the whole result, so a limited
+            # read falls back to ``fetch_data`` and its ``fetchmany``.
             if limit is not None:
-                return table.slice(0, limit)
-            return table
+                return None
+            return table_method()
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 

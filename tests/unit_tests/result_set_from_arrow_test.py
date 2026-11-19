@@ -361,9 +361,25 @@ def test_fetch_arrow_accepts_table_without_record_batches() -> None:
         def to_arrow_table(self) -> pa.Table:
             return pa.table({"a": pa.array([1, 2, 3, 4, 5])})
 
-    table = DuckDBEngineSpec.fetch_arrow(_Cursor(), limit=2)
+    table = DuckDBEngineSpec.fetch_arrow(_Cursor())
     assert table is not None
-    assert table.column("a").to_pylist() == [1, 2]
+    assert table.column("a").to_pylist() == [1, 2, 3, 4, 5]
+
+
+def test_fetch_arrow_limit_without_reader_falls_back_to_rows() -> None:
+    """A table-only fetch would materialize every row, so ``limit`` skips it."""
+
+    class _Cursor:
+        description = [("a", pa.int64())]
+        arrow_reads = 0
+
+        def to_arrow_table(self) -> pa.Table:
+            self.arrow_reads += 1
+            return pa.table({"a": pa.array([1, 2, 3, 4, 5])})
+
+    cursor = _Cursor()
+    assert DuckDBEngineSpec.fetch_arrow(cursor, limit=2) is None
+    assert cursor.arrow_reads == 0
 
 
 def test_fetch_arrow_limit_on_record_batches() -> None:
@@ -452,7 +468,7 @@ class _Query:
 
 
 class _ArrowCursor:
-    """Cursor with both an Arrow table and a consuming row fetch."""
+    """Cursor with both an Arrow reader and a consuming row fetch."""
 
     def __init__(self, values: list[int]) -> None:
         self.description = _desc(("a", "int"))
@@ -460,7 +476,7 @@ class _ArrowCursor:
         self.arrow_reads = 0
         self._rows: list[tuple[int, ...]] = [(value,) for value in values]
 
-    def to_arrow_table(self) -> pa.Table:
+    def to_arrow_reader(self) -> pa.Table:
         self.arrow_reads += 1
         return pa.table({"a": pa.array(self.values, type=pa.int64())})
 
