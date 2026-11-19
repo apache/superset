@@ -2229,12 +2229,13 @@ function DatasourceEditor({
     // hidden while the Extra JSON is malformed.
     const extra = parseExtra(datasource.extra);
     const defaultTimeRange = getDatasetDefaultTimeRange({ extra });
-    const setDefaultTimeRange = (default_time_range?: string) => {
-      // Leave the Extra JSON as written when the range does not change.
+    const setDefaultTimeRange = (range?: string) => {
+      // An empty range is unset. Leave the Extra JSON as written when the
+      // range does not change.
+      const default_time_range = range || undefined;
       if (default_time_range === defaultTimeRange) return;
       onDatasourceChange({
         ...datasource,
-        // JSON.stringify omits the key when the value is undefined.
         extra: JSON.stringify({ ...extra, default_time_range }),
       });
     };

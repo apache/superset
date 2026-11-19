@@ -52,10 +52,6 @@ export const guessFrame = (timeRange: string): FrameType => {
   return 'Advanced';
 };
 
-/**
- * Returns the default time range of new time filters: the dataset's default
- * time range when one is given and set, otherwise the instance default.
- */
 export function useDefaultTimeFilter(dataset?: Pick<Dataset, 'extra'>) {
   const instanceDefault = useSelector(
     (state: JsonObject) => state?.common?.conf?.DEFAULT_TIME_FILTER,

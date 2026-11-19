@@ -41,6 +41,10 @@ import {
   HYDRATE_EXPLORE,
 } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
+import {
+  dynamicPluginControlsReady,
+  RootState,
+} from 'src/components/Chart/chartAction';
 import tableControlPanel from '../../../plugins/plugin-chart-table/src/controlPanel';
 import calendarControlPanel from '../../../plugins/plugin-chart-calendar/src/controlPanel';
 import pieControlPanel from '../../../plugins/plugin-chart-echarts/src/Pie/controlPanel';
@@ -515,15 +519,23 @@ const datasetExtra = JSON.stringify({
 // state.
 function withControlPanels<T>(run: () => T): T {
   const registry = getChartControlPanelRegistry();
-  registry.registerValue(VizType.Table, tableControlPanel);
-  registry.registerValue(VizType.Pie, pieControlPanel);
-  registry.registerValue('cal_heatmap', calendarControlPanel);
+  const panels = {
+    [VizType.Table]: tableControlPanel,
+    [VizType.Pie]: pieControlPanel,
+    cal_heatmap: calendarControlPanel,
+  };
+  const previous = Object.keys(panels).map(
+    key => [key, registry.get(key)] as const,
+  );
+  Object.entries(panels).forEach(([key, panel]) =>
+    registry.registerValue(key, panel),
+  );
   try {
     return run();
   } finally {
-    registry.remove(VizType.Table);
-    registry.remove(VizType.Pie);
-    registry.remove('cal_heatmap');
+    previous.forEach(([key, panel]) =>
+      panel ? registry.registerValue(key, panel) : registry.remove(key),
+    );
   }
 }
 
@@ -584,12 +596,17 @@ function hydrateNewChartQuery(options?: NewChartOptions): QueryFormData {
   return Object.values(charts)[0].latestQueryFormData as QueryFormData;
 }
 
-// Returns [column, range] from either an ad hoc filter or the Time range control.
+// Returns [column, range] from either an ad hoc filter or the Time range
+// control. A query must not send both, since the backend then replaces the
+// range of every ad hoc time filter with the Time range.
 function getTimeFilter(formData: QueryFormData) {
   const filter = ensureIsArray(formData.adhoc_filters)
     .filter(isSimpleAdhocFilter)
     .filter(isBinaryAdhocFilter)
     .find(adhocFilter => adhocFilter.operator === 'TEMPORAL_RANGE');
+  if (filter && formData.time_range) {
+    throw new Error('The query sends both a Time range and a time filter');
+  }
   return filter
     ? [filter.subject, filter.comparator]
     : [formData.granularity_sqla, formData.time_range];
@@ -650,6 +667,32 @@ test('a dataset without temporal columns adds no default time filter', () => {
   });
   expect(query.adhoc_filters).toEqual([]);
 });
+
+test.each([
+  ['a new chart', null, datasetRange],
+  ['a saved chart', exploreInitialData.slice, instanceRange],
+])(
+  'controls rebuilt for a late-loading plugin keep the time range %s opens with',
+  (_, slice, range) => {
+    const timeFilter = withControlPanels(() => {
+      const { explore } = hydrateNewChart({ slice });
+      const dispatch = jest.fn();
+      dynamicPluginControlsReady()(
+        dispatch,
+        () =>
+          ({
+            explore,
+            common: { conf: { DEFAULT_TIME_FILTER: instanceRange } },
+          }) as unknown as RootState,
+        undefined,
+      );
+      return getTimeFilter(
+        getFormDataFromControls(dispatch.mock.calls[0][0].controlsState),
+      );
+    });
+    expect(timeFilter).toEqual(['created_at', range]);
+  },
+);
 
 // Switches a new table chart, which starts with the instance range on
 // `created_at`, to another dataset. Call it inside `withControlPanels`.
