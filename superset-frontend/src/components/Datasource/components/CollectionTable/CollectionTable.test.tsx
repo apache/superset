@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import Fieldset from '../Fieldset';
@@ -427,7 +427,8 @@ const rowTexts = (container: HTMLElement) =>
 test('shows the header tooltip when the info button is focused', async () => {
   renderWithHeaderTooltip();
 
-  screen.getByRole('button', { name: 'Show info tooltip' }).focus();
+  const infoButton = screen.getByRole('button', { name: 'Show info tooltip' });
+  act(() => infoButton.focus());
 
   expect(await screen.findByText('Help')).toBeInTheDocument();
 });

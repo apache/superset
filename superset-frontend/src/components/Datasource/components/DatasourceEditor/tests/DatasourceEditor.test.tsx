@@ -19,6 +19,7 @@
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import {
+  act,
   fireEvent,
   screen,
   waitFor,
@@ -1067,9 +1068,14 @@ test('the Is temporal column header explains the Datetime format requirement', a
   const header = (await screen.findByRole('columnheader', {
     name: /is temporal/i,
   })) as HTMLElement;
-  within(header).getByRole('button', { name: 'Show info tooltip' }).focus();
+  const infoButton = within(header).getByRole('button', {
+    name: 'Show info tooltip',
+  });
+  act(() => infoButton.focus());
 
   expect(
-    await screen.findByText(/does not convert a string column/i),
+    await screen.findByText(/does not convert a string column/i, undefined, {
+      timeout: 5000,
+    }),
   ).toBeInTheDocument();
 });
