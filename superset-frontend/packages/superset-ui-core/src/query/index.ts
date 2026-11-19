@@ -47,4 +47,7 @@ export { default as makeApi } from './api/v1/makeApi';
 // API Callers
 export { ApiLegacy, ApiV1 };
 
-export { getSemanticSelectionSources } from './semanticSelection';
+export {
+  getSemanticSelectionSources,
+  isGrainOnlyExtraFormData,
+} from './semanticSelection';

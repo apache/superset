@@ -728,6 +728,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @classmethod
     def get_by_id_or_slug(cls, id_or_slug: int | str) -> Dashboard:
+        """Return an accessible dashboard, distinguishing missing from denied access."""
         if is_uuid(id_or_slug):
             # just get dashboard if it's uuid
             dashboard = Dashboard.get(id_or_slug)
@@ -748,6 +749,18 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 query, None
             )
             dashboard = query.one_or_none()
+            # A dashboard hidden by access filters is denied rather than missing,
+            # unless an ``EXTRA_ACCESS_QUERY_EXCLUSIONS`` hook withholds it or the
+            # caller is an embedded guest: those stay indistinguishable from
+            # missing, so guest tokens cannot probe other dashboards by ID/slug.
+            if dashboard is None:
+                existing = Dashboard.get(id_or_slug)
+                if (
+                    existing is not None
+                    and not security_manager.is_guest_user()
+                    and not is_excluded_by_extra_access("dashboards", existing.id)
+                ):
+                    raise DashboardAccessDeniedError()
         if not dashboard:
             raise DashboardNotFoundError()
 

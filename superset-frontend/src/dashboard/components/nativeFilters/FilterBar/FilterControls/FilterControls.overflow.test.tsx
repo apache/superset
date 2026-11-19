@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
+import {
+  ChartCustomization,
+  ChartCustomizationType,
+  DatasourceType,
+  Preset,
+} from '@superset-ui/core';
+import { ChartCustomizationPlugins } from 'src/constants';
 import type { DataMaskStateWithId } from '@superset-ui/core';
 import type {
   DropdownContainerProps,
@@ -239,6 +245,35 @@ const renderHorizontal = (
 
 const latestProps = () =>
   dropdownContainerProps[dropdownContainerProps.length - 1];
+
+test('hidden semantic Dynamic group by leaves no horizontal divider', async () => {
+  const filter = createSelectNativeFilter('NATIVE_FILTER-1', 'Country');
+  const hiddenControl: ChartCustomization = {
+    id: 'CHART_CUSTOMIZATION-hidden',
+    name: 'Dynamic Group By',
+    type: ChartCustomizationType.ChartCustomization,
+    filterType: ChartCustomizationPlugins.DynamicGroupBy,
+    targets: [{ datasetId: 7, datasourceType: DatasourceType.SemanticView }],
+    scope: { rootPath: [], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+  };
+  render(
+    <FilterControls
+      dataMaskSelected={buildDataMaskSelected([filter])}
+      onFilterSelectionChange={jest.fn()}
+      onPendingCustomizationDataMaskChange={jest.fn()}
+      chartCustomizationValues={[hiddenControl]}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: buildHorizontalState([filter]),
+    },
+  );
+  await waitFor(() => expect(latestProps()).toBeDefined());
+  expect(latestProps().items.map(item => item.id)).toEqual([filter.id]);
+});
 
 const fireOverflow = (overflowed: string[], notOverflowed: string[]) => {
   if (!callbackRef.current) {
