@@ -25,25 +25,31 @@ provider SDK itself does not require pytest.
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from typing import NoReturn, TypeVar
+from unittest.mock import create_autospec, MagicMock
 
 import pyarrow as pa
 import pytest
 from pydantic import BaseModel
 
 from superset_core.semantic_layers import decorators
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
     SemanticResultCompletenessError,
 )
 from superset_core.semantic_layers.layer import SemanticLayer
+from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
     AdhocExpression,
+    AggregationType,
     Dimension,
     Filter,
+    FilterExpression,
     Metric,
     Operator,
     OrFilter,
+    PredicateType,
     SemanticQuery,
     SemanticResult,
 )
@@ -81,6 +87,26 @@ def semantic_layer_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(decorators, "semantic_layer", _registration)
 
 
+_GRAIN_FINENESS: dict[str, int] = {
+    representation: index
+    for index, representation in enumerate(
+        ("PT1S", "PT1M", "PT1H", "P1D", "P1W", "P1M", "P3M", "P1Y")
+    )
+}
+
+
+def _metadata_preference(dimension: Dimension) -> tuple[int, int, str]:
+    """Apply the SDK Grains contract without depending on the host package."""
+    if dimension.grain is None:
+        return (0, 0, "")
+    representation: str = dimension.grain.representation
+    return (
+        1,
+        _GRAIN_FINENESS.get(representation, len(_GRAIN_FINENESS)),
+        representation,
+    )
+
+
 # Keep test data and provider construction in the provider's own fixtures. This
 # suite consumes the real SDK types rather than a copy of a factory signature.
 class SemanticProviderConformance:
@@ -88,6 +114,7 @@ class SemanticProviderConformance:
 
     Query fixtures seed discriminating data and provide independent expected
     Arrow tables for identity, grain, NULL, grouped OR, and order-before-limit.
+    Empty IN/NOT IN cases are derived from the identity fixture.
     Error fixtures call real provider methods against controlled backend outcomes.
     See the provider author guide for every fixture and the limits of this suite.
     """
@@ -99,6 +126,37 @@ class SemanticProviderConformance:
         assert semantic_view.uid()
         assert semantic_view.uid() == semantic_reloaded_view.uid()
         assert _catalog(semantic_view) == _catalog(semantic_reloaded_view)
+        view: SemanticView
+        for view in (semantic_view, semantic_reloaded_view):
+            preferred: str | None = view.preferred_temporal_dimension
+            if preferred is not None:
+                assert isinstance(preferred, str), (
+                    "preferred_temporal_dimension must be a string or None"
+                )
+                selected: Dimension | None = min(
+                    (
+                        dimension
+                        for dimension in view.get_dimensions()
+                        if dimension.name == preferred
+                    ),
+                    key=_metadata_preference,
+                    default=None,
+                )
+                assert selected is not None, (
+                    "preferred_temporal_dimension must name an exposed dimension"
+                )
+                assert (
+                    pa.types.is_date(selected.type)
+                    or pa.types.is_timestamp(selected.type)
+                    or pa.types.is_time(selected.type)
+                ), (
+                    "preferred_temporal_dimension must name "
+                    "an exposed temporal dimension selected by the host"
+                )
+        assert (
+            semantic_view.preferred_temporal_dimension
+            == semantic_reloaded_view.preferred_temporal_dimension
+        ), "preferred_temporal_dimension must remain stable on equivalent reload"
 
     @pytest.mark.parametrize(
         "case", ["identity", "grain", "null", "not_null", "or", "order_limit"]
@@ -151,8 +209,102 @@ class SemanticProviderConformance:
         result: SemanticResult = semantic_view.get_table(query)
         _assert_result_equal(result.results, expected)
         assert set(result.results.column_names) == {
-            member.name for member in [*query.dimensions, *query.metrics]
-        }
+            d.name for d in query.dimensions
+        } | {m.name for m in query.metrics}
+
+    @pytest.mark.parametrize("operator", [Operator.IN, Operator.NOT_IN])
+    def test_empty_membership(
+        self,
+        operator: Operator,
+        semantic_view: SemanticView,
+        semantic_query_cases: Mapping[str, tuple[SemanticQuery, pa.Table]],
+    ) -> None:
+        """Empty IN is FALSE and empty NOT IN is TRUE where the filter sits.
+
+        Derived from the ``identity`` case. The filtered member is the one with a
+        NULL group, so an empty NOT IN that drops NULL rows fails.
+        """
+        query: SemanticQuery
+        expected: pa.Table
+        query, expected = semantic_query_cases["identity"]
+        dimension: Dimension | None = next(
+            (d for d in query.dimensions if expected.column(d.name).null_count),
+            None,
+        )
+        assert dimension is not None, (
+            "identity fixture requires a NULL group to witness empty NOT IN"
+        )
+        empty: Filter = Filter(PredicateType.WHERE, dimension, operator, frozenset())
+        filters: set[FilterExpression] = set(query.filters or set())
+        grouped: SemanticResult = semantic_view.get_table(
+            replace(query, filters={*filters, empty})
+        )
+        _assert_result_equal(
+            grouped.results,
+            expected if operator == Operator.NOT_IN else expected.slice(0, 0),
+        )
+        if not query.metrics:
+            return
+        # Without grouping, SQL still aggregates zero input rows into one row.
+        # Keep the fixture's other fields, such as its selection identity version.
+        ungrouped: SemanticQuery = replace(
+            query,
+            dimensions=[],
+            filters={*filters, empty},
+            order=None,
+            limit=None,
+            offset=None,
+            group_limit=None,
+        )
+        actual: pa.Table = semantic_view.get_table(ungrouped).results
+        if operator == Operator.NOT_IN:
+            unfiltered: SemanticQuery = replace(ungrouped, filters=filters or None)
+            _assert_result_equal(actual, semantic_view.get_table(unfiltered).results)
+            return
+        assert actual.num_rows == 1, (
+            "an ungrouped aggregate over an empty IN returns one row"
+        )
+        metric: Metric
+        for metric in query.metrics:
+            value: object = actual.column(metric.name)[0].as_py()
+            if metric.aggregation in _COUNTS:
+                assert value == 0, f"{metric.name}: a count of no rows is 0"
+            elif metric.aggregation in _NULL_WHEN_EMPTY:
+                assert value is None, f"{metric.name}: aggregate of no rows is NULL"
+
+    @pytest.mark.parametrize("operator", [Operator.IN, Operator.NOT_IN])
+    def test_empty_membership_in_or_group(
+        self,
+        operator: Operator,
+        semantic_view: SemanticView,
+        semantic_query_cases: Mapping[str, tuple[SemanticQuery, pa.Table]],
+    ) -> None:
+        """Inside an OR group, empty IN is a FALSE leaf and empty NOT IN a TRUE one.
+
+        Derived from the ``or`` case: a FALSE leaf leaves the group unchanged, and
+        a TRUE leaf makes the group match every row, as if it were removed.
+        """
+        query: SemanticQuery
+        expected: pa.Table
+        query, expected = semantic_query_cases["or"]
+        _assert_normalized_or_witness(query)
+        group: OrFilter = next(
+            item for item in query.filters or set() if isinstance(item, OrFilter)
+        )
+        leaf: Filter = next(iter(group.filters))
+        empty: Filter = replace(leaf, operator=operator, value=frozenset())
+        others: set[FilterExpression] = set(query.filters or set()) - {group}
+        widened: SemanticQuery = replace(
+            query, filters={*others, OrFilter(group.filters | {empty})}
+        )
+        actual: pa.Table = semantic_view.get_table(widened).results
+        if operator == Operator.IN:
+            _assert_result_equal(actual, expected)
+            return
+        without_group: pa.Table = semantic_view.get_table(
+            replace(query, filters=others or None)
+        ).results
+        _assert_result_equal(actual, without_group)
 
     @pytest.mark.parametrize("method", ["get_table", "get_values", "get_row_count"])
     @pytest.mark.parametrize("kind", ["refusal", "fault", "incomplete", "unverified"])
@@ -272,6 +424,19 @@ class SemanticProviderConformance:
         assert completed.returncode == 0, completed.stdout + completed.stderr
 
 
+_COUNTS: frozenset[AggregationType] = frozenset(
+    {AggregationType.COUNT, AggregationType.COUNT_DISTINCT}
+)
+_NULL_WHEN_EMPTY: frozenset[AggregationType] = frozenset(
+    {
+        AggregationType.SUM,
+        AggregationType.MIN,
+        AggregationType.MAX,
+        AggregationType.AVG,
+    }
+)
+
+
 def _assert_normalized_or_witness(query: SemanticQuery) -> None:
     """Require the host's mixed-IN/NULL group and an outer comparison."""
     groups: list[OrFilter] = [
@@ -374,6 +539,8 @@ def _check_isolation(module_name: str, class_name: str) -> None:
         attempted.append("schema I/O")
         raise AssertionError("Configuration schema attempted I/O")
 
+    transport: MagicMock = create_autospec(ProviderTransport, instance=True)
+    transport.request.side_effect = no_io
     patch: pytest.MonkeyPatch
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(sys, "meta_path", [NoHost(), *sys.meta_path])
@@ -390,6 +557,19 @@ def _check_isolation(module_name: str, class_name: str) -> None:
         patch.setattr(socket, "getaddrinfo", no_io)
         patch.setattr(socket.socket, "connect", no_io)
         patch.setattr(socket.socket, "connect_ex", no_io)
-        assert isinstance(provider.get_configuration_schema(), dict)
-        assert isinstance(provider.get_configuration_schema(None), dict)
+        assert isinstance(
+            provider.get_configuration_schema(
+                transport=transport,
+                readiness=SemanticCredentialReadiness.UNRESOLVED,
+            ),
+            dict,
+        )
+        assert isinstance(
+            provider.get_configuration_schema(
+                None,
+                transport=transport,
+                readiness=SemanticCredentialReadiness.UNRESOLVED,
+            ),
+            dict,
+        )
     assert not attempted, attempted

@@ -31,6 +31,7 @@ from superset.commands.chart.exceptions import (
     TimeRangeParseFailError,
 )
 from superset.daos.chart import ChartDAO
+from superset.exceptions import QueryObjectValidationError
 from superset.legacy import update_time_range
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -69,9 +70,15 @@ class Api(BaseSupersetView):
 
         raises SupersetSecurityException: If the user cannot access the resource
         """
-        query_context = self.get_query_context_factory().create(
-            **json.loads(request.form["query_context"])
-        )
+        try:
+            query_context_params = json.loads(request.form["query_context"])
+        except ValueError as ex:
+            raise QueryObjectValidationError(
+                _("query_context must be valid JSON")
+            ) from ex
+        if not isinstance(query_context_params, dict):
+            raise QueryObjectValidationError(_("query_context must be a JSON object"))
+        query_context = self.get_query_context_factory().create(**query_context_params)
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
