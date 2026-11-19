@@ -270,6 +270,22 @@ export default function EchartsMixedTimeseries({
           if (filter?.grain) {
             xAxisFilters.push(filter);
           }
+        } else if (xAxis.type === AxisType.Category && xAxisColumn) {
+          const rawValue: unknown = Array.isArray(data) ? data[0] : undefined;
+          const categoryValue =
+            rawValue === undefined ? eventParams.name : rawValue;
+          if (
+            categoryValue === null ||
+            typeof categoryValue === 'string' ||
+            typeof categoryValue === 'number'
+          ) {
+            xAxisFilters.push({
+              col: xAxisColumn,
+              op: '==',
+              val: categoryValue,
+              formattedVal: String(categoryValue),
+            });
+          }
         }
         const hasCrossFilter =
           (isFirst && groupby.length > 0) || (!isFirst && groupbyB.length > 0);
