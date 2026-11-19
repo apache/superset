@@ -5674,9 +5674,15 @@ def test_dormant_grain_keeps_temporal_validation(
         ("date.day", Grains.DAY) if grain == "P1D" else ("date.month", Grains.MONTH),
         ("segment.id", None),
     ]
-    assert len(mapped.filters) == 2
-    assert {condition.column.id for condition in mapped.filters} == {"date.raw"}
-    assert {condition.value for condition in mapped.filters} == {
+    assert mapped.filters is not None
+    conditions: list[Filter] = [
+        condition for condition in mapped.filters if isinstance(condition, Filter)
+    ]
+    assert len(conditions) == len(mapped.filters) == 2
+    assert {
+        condition.column.id if condition.column else None for condition in conditions
+    } == {"date.raw"}
+    assert {condition.value for condition in conditions} == {
         datetime(2026, 1, 1),
         datetime(2026, 2, 1),
     }
@@ -5820,8 +5826,14 @@ def test_dormant_grain_ignores_filter_only_temporal_axis(
     mapped: SemanticQuery = map_query_object(query)[0]
     assert [dimension.name for dimension in mapped.dimensions] == columns
     assert all(dimension.grain is None for dimension in mapped.dimensions)
-    assert len(mapped.filters) == 2
-    assert {condition.column.id for condition in mapped.filters} == {"date.raw"}
+    assert mapped.filters is not None
+    conditions: list[Filter] = [
+        condition for condition in mapped.filters if isinstance(condition, Filter)
+    ]
+    assert len(conditions) == len(mapped.filters) == 2
+    assert {
+        condition.column.id if condition.column else None for condition in conditions
+    } == {"date.raw"}
 
 
 @pytest.mark.parametrize("dtype", [pa.string(), pa.int64()])
@@ -5971,9 +5983,15 @@ def test_dormant_grain_launch_shapes_keep_dashboard_time_range(
     assert [(dimension.id, dimension.grain) for dimension in mapped.dimensions] == [
         ("segment.id", None),
     ]
-    assert len(mapped.filters) == 2
-    assert {condition.column.id for condition in mapped.filters} == {"date.raw"}
-    assert {condition.value for condition in mapped.filters} == {
+    assert mapped.filters is not None
+    conditions: list[Filter] = [
+        condition for condition in mapped.filters if isinstance(condition, Filter)
+    ]
+    assert len(conditions) == len(mapped.filters) == 2
+    assert {
+        condition.column.id if condition.column else None for condition in conditions
+    } == {"date.raw"}
+    assert {condition.value for condition in conditions} == {
         datetime(2026, 1, 1),
         datetime(2026, 2, 1),
     }
