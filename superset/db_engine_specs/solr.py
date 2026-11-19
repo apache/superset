@@ -51,7 +51,7 @@ class SolrEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
                     "activity beyond dependabot bumps since 2024."
                 ),
                 "tracking_url": "https://github.com/aadel/sqlalchemy-solr",
-                "since": "2026-07-28",
+                "since": "2026-10-27",
             }
         ],
     }

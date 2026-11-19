@@ -290,13 +290,30 @@ def normalize_sunburst_query_result(result: Any, form_data: Mapping[str, Any]) -
     return {**result, "queries": [{**queries[0], "data": rows}, *queries[1:]]}
 
 
+def _explore_temporal_level(form_data: Mapping[str, Any]) -> str | None:
+    """Return the first hierarchy level Explore's lookup marks temporal."""
+    lookup = form_data.get("temporal_columns_lookup")
+    if not isinstance(lookup, Mapping):
+        return None
+    return next(
+        (
+            column
+            for column in form_data.get("columns") or []
+            if isinstance(column, str) and lookup.get(column)
+        ),
+        None,
+    )
+
+
 def validate_sunburst_temporal_state(  # noqa: C901
     form_data: Mapping[str, Any], dataset_context: DatasetContext | None = None
 ) -> ChartGenerationError | None:
     """Validate the final native temporal column/grain pair for Sunburst.
 
-    A grain always requires an explicit temporal subject. With a dataset
-    context, the subject must also resolve to one temporal dataset column.
+    A grain always requires an explicit temporal subject: ``granularity_sqla``
+    or, for a chart saved from Explore, a hierarchy level that the
+    ``temporal_columns_lookup`` control marks temporal. With a dataset context,
+    the subject must also resolve to one temporal dataset column.
     """
     from superset.mcp_service.chart.validation.dataset_validator import (
         metadata_entry_name,
@@ -305,6 +322,8 @@ def validate_sunburst_temporal_state(  # noqa: C901
 
     grain = form_data.get("time_grain_sqla")
     temporal_column = form_data.get("granularity_sqla")
+    if grain is not None and not temporal_column:
+        temporal_column = _explore_temporal_level(form_data)
     if grain is not None and not temporal_column:
         return ChartGenerationError(
             error_type="invalid_temporal_state",

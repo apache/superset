@@ -23,6 +23,7 @@ It is used by SQLExecutor.execute_async() to run queries in the background.
 
 from __future__ import annotations
 
+import base64
 import dataclasses
 import logging
 import traceback
@@ -47,7 +48,11 @@ from superset.constants import (
     QUERY_EARLY_CANCEL_KEY,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException
+from superset.exceptions import (
+    OAuth2RedirectError,
+    QueryStoppedException,
+    SupersetErrorException,
+)
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
@@ -55,6 +60,7 @@ from superset.sql.execution.executor import (
     build_statement_blocks,
     execute_sql_with_cursor,
 )
+from superset.sql.execution.serialization import serialize_nested_columns
 from superset.sql.execution.utils import (
     _discard_stored_results,
     _discard_unreferenced_results,
@@ -133,7 +139,8 @@ def _handle_query_error(
             payload["link"] = troubleshooting_link
         # The commit is the last step that can fail: when this function raises,
         # the failed row was not committed and does not reference the results.
-        if not _commit_query_unless_stopped(query):
+        # A success commit can apply and still raise; that outcome is kept.
+        if not _commit_query_unless_stopped(query, keep_success=True):
             _discard_unreferenced_results(query.id, stored_key, results_backend)
             return _stopped_query_payload(query)
         return payload
@@ -174,6 +181,8 @@ def _finalize_successful_query(
     total_execution_time_ms: float,
 ) -> None:
     """Update query metadata and payload after successful execution."""
+    from superset import results_backend_use_msgpack
+
     # Calculate total rows across all statements
     total_rows = 0
     statements_data: list[dict[str, Any]] = []
@@ -207,6 +216,20 @@ def _finalize_successful_query(
                     "execution_time_ms": exec_time,
                 }
             )
+            if result_set.nested_columns:
+                # Keep supported nested values out of the outer JSON/MessagePack
+                # serializer, which coerces types or rejects oversized integers.
+                statements_data[-1]["nested_columns_arrow_nbytes"] = {
+                    name: result_set.pa_table.column(name).nbytes
+                    for name in result_set.nested_columns
+                }
+                statements_data[-1]["nested_columns_msgpack"] = (
+                    serialize_nested_columns(
+                        result_set.nested_columns,
+                        use_msgpack=results_backend_use_msgpack,
+                    )
+                )
+
         else:
             # DML statement - no data, just row count
             statements_data.append(
@@ -240,6 +263,31 @@ def _finalize_successful_query(
         payload["query"]["state"] = QueryStatus.SUCCESS.value
 
 
+def _get_payload_size(payload: dict[str, Any], serialized_payload: bytes) -> int:
+    """Count raw Arrow and metadata, excluding duplicate nested sidecar values."""
+
+    def raw_size(value: bytes | str) -> int:
+        """Return decoded Base64 length without allocating a decoded copy."""
+        if isinstance(value, bytes):
+            return len(value)
+        return len(value) // 4 * 3 - value.endswith("=") - value.endswith("==")
+
+    size = len(serialized_payload)
+    for statement in payload.get("statements", []):
+        data = statement.get("data")
+        if isinstance(data, str):
+            size -= len(data) - raw_size(data)
+        if sidecars := statement.get("nested_columns_msgpack"):
+            # Arrow keeps nested columns as text for older readers and unknown
+            # tags. Count each nested column once, at the larger of its Arrow
+            # column and its raw typed copy.
+            column_sizes = statement.get("nested_columns_arrow_nbytes", {})
+            for name, value in sidecars.items():
+                duplicate = min(raw_size(value), column_sizes.get(name, 0))
+                size -= len(value) - raw_size(value) + duplicate
+    return size
+
+
 def _store_results_in_backend(
     query: Query,
     payload: dict[str, Any],
@@ -271,7 +319,9 @@ def _store_results_in_backend(
 
                 # Check payload size limit
                 if sql_lab_payload_max_mb := app.config.get("SQLLAB_PAYLOAD_MAX_MB"):
-                    serialized_payload_size = len(serialized_payload)
+                    serialized_payload_size = _get_payload_size(
+                        payload, serialized_payload
+                    )
                     max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
 
                     if serialized_payload_size > max_bytes:
@@ -338,33 +388,31 @@ def _store_results_in_backend(
 
 def _serialize_result_set(
     result_set: SupersetResultSet,
-) -> tuple[bytes | list[Any], list[Any]]:
+) -> tuple[bytes | str, list[Any]]:
     """
     Serialize result set based on RESULTS_BACKEND_USE_MSGPACK config.
 
-    When msgpack is enabled, uses Apache Arrow IPC format for efficiency.
-    Otherwise, falls back to JSON-serializable records.
+    Both transports use Apache Arrow IPC to retain the result types. JSON
+    wraps the IPC bytes in Base64; MessagePack carries them directly.
 
     :param result_set: Query result set to serialize
     :returns: Tuple of (serialized_data, columns)
     """
     from superset import results_backend_use_msgpack
-    from superset.dataframe import df_to_records
 
-    if results_backend_use_msgpack:
-        if has_app_context():
-            stats_logger = app.config["STATS_LOGGER"]
-            with stats_timing(
-                "sqllab.query.results_backend_pa_serialization", stats_logger
-            ):
-                data: bytes | list[Any] = write_ipc_buffer(
-                    result_set.pa_table
-                ).to_pybytes()
-        else:
-            data = write_ipc_buffer(result_set.pa_table).to_pybytes()
+    if has_app_context():
+        stats_logger = app.config["STATS_LOGGER"]
+        with stats_timing(
+            "sqllab.query.results_backend_pa_serialization", stats_logger
+        ):
+            arrow_data = write_ipc_buffer(result_set.pa_table).to_pybytes()
     else:
-        df = result_set.to_pandas_df()
-        data = df_to_records(df, convert_decimals=True) or []
+        arrow_data = write_ipc_buffer(result_set.pa_table).to_pybytes()
+    data = (
+        arrow_data
+        if results_backend_use_msgpack
+        else base64.b64encode(arrow_data).decode("ascii")
+    )
 
     return (data, result_set.columns)
 
@@ -416,7 +464,10 @@ def execute_sql_task(
                     can_retry=lambda: not query.progress,
                 )
             except Exception as ex:
-                logger.exception("Query %d: %s", query_id, ex)
+                if isinstance(ex, OAuth2RedirectError):
+                    logger.debug("Query %d: OAuth2 authorization required", query_id)
+                else:
+                    logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 try:
@@ -508,7 +559,8 @@ def _make_execute_fn(query: Query, db_engine_spec: Any) -> Any:
     """Create an execute function with stats timing."""
 
     def execute_with_stats(cursor: Any, sql: str) -> None:
-        query.executed_sql = sql
+        # `execute_sql_with_cursor` has already published `executed_sql`;
+        # assigning it again would stage a write held across the engine call.
         stats_logger = app.config["STATS_LOGGER"]
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
             db_engine_spec.execute_with_cursor(cursor, sql, query)
@@ -618,6 +670,15 @@ def _execute_sql_statements(
                     level=ErrorLevel.ERROR,
                 )
             ) from ex
+        except QueryStoppedException:
+            # An engine that ends a stopped query while its results are read,
+            # such as Impala, raises this; report the stop, not an error. Any
+            # other failure keeps the error path and its diagnostics, even if a
+            # stop raced it. Read only the status, so a failure keeps its
+            # pending metadata, such as the statement it was executing.
+            if not _make_check_stopped_fn(query, preserve_pending=True)():
+                raise
+            execution_results = []
 
         # Re-read stop intent even on autocommit connections: completed engine
         # effects cannot be undone, but an accepted Stop still discards results.

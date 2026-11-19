@@ -19,7 +19,7 @@
 
 import hashlib
 import logging
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from datetime import datetime
 from typing import cast, Protocol
 
@@ -45,6 +45,7 @@ from superset.semantic_layers.cache_policy import (
     PatternSemantics,
 )
 from superset.semantic_layers.cache_repository import ViewMeta
+from superset.semantic_layers.execution import effective_role_ids
 from superset.utils import json
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -74,18 +75,7 @@ def _execution_context(
     principal: object = getattr(user, "id", None) or getattr(user, "username", None)
     if principal is None:
         return None
-    roles_value: object = getattr(user, "roles", ())
-    roles: Iterable[object] = (
-        roles_value
-        if isinstance(roles_value, Iterable) and not isinstance(roles_value, str)
-        else ()
-    )
-    role_ids: tuple[str, ...] = tuple(
-        sorted(
-            str(getattr(role, "id", None) or getattr(role, "name", ""))
-            for role in roles
-        )
-    )
+    role_ids: tuple[str, ...] = effective_role_ids(user)
     guest_token: object = getattr(user, "guest_token", None)
     rls_cache_key: list[str] = security_manager.get_rls_cache_key(datasource)
     identity_payload: str = json.dumps(
@@ -94,6 +84,9 @@ def _execution_context(
             "principal": str(principal),
             "rls": rls_cache_key,
             "roles": role_ids,
+            # Separate effective-role identities from pre-upgrade direct-only
+            # identities, including after the user's last group grant is revoked.
+            "role_source": "effective-v1",
         },
         default=str,
         separators=(",", ":"),

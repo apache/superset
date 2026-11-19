@@ -170,7 +170,7 @@ def test_get_tag_returns_existing_tag() -> None:
 
 
 def test_get_tag_creates_new_tag() -> None:
-    """Test that get_tag() creates and commits a new tag when it doesn't exist."""
+    """Test that a new tag is flushed without committing the caller's work."""
     mock_session = MagicMock(spec=Session)
     mock_query = MagicMock()
     mock_session.query.return_value = mock_query
@@ -184,7 +184,9 @@ def test_get_tag_creates_new_tag() -> None:
 
     # Verify
     mock_session.add.assert_called_once()
-    mock_session.commit.assert_called_once()
+    mock_session.begin_nested.assert_called_once()
+    mock_session.flush.assert_called_once()
+    mock_session.commit.assert_not_called()
 
     # Check the tag object that was added
     added_tag = mock_session.add.call_args[0][0]

@@ -40,6 +40,7 @@ from typing import Any, Dict, List, Literal
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
+from superset.errors import SupersetErrorType
 from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_helpers import canonicalize_operation_form_data
 from superset.mcp_service.chart.query_result import (
@@ -216,10 +217,12 @@ def _compile_chart(  # noqa: C901
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
-        if (
-            datasource_type == DatasourceType.TABLE.value
-            and _classify_as_database_error(exc, dataset_id)
-        ):
+        database_failure = (
+            _classify_as_database_error(exc, form_data, dataset_id)
+            if datasource_type == DatasourceType.TABLE.value
+            else None
+        )
+        if database_failure is not None:
             logger.warning(
                 "Database connection error during chart compile check: %s: %s",
                 type(exc).__name__,
@@ -230,7 +233,9 @@ def _compile_chart(  # noqa: C901
                 error=f"Database connection error: {exc}",
                 error_code="CHART_COMPILE_FAILED",
                 tier="compile",
-                error_obj=_build_database_error(str(exc)),
+                error_obj=_build_database_error(
+                    str(exc), annotation=database_failure == "annotation"
+                ),
             )
         return CompileResult(
             success=False,
@@ -288,9 +293,12 @@ def _adhoc_filter_column_valid(
 
 
 def _validate_adhoc_filter_columns(  # noqa: C901
-    form_data: Dict[str, Any], dataset_context: DatasetContext
+    form_data: Dict[str, Any],
+    dataset_context: DatasetContext,
+    *,
+    temporal_form_data: Dict[str, Any] | None = None,
 ) -> ChartGenerationError | None:
-    """Tier-1 check for adhoc-filter column references stored in ``form_data``.
+    """Tier-1 check for SIMPLE filter columns and values stored in ``form_data``.
 
     ``DatasetValidator._extract_column_references`` walks the typed
     ``ChartConfig`` and only sees ``config.filters``. Tools like
@@ -298,17 +306,25 @@ def _validate_adhoc_filter_columns(  # noqa: C901
     *previously cached* ``adhoc_filters`` into ``form_data`` that aren't
     represented on the new config. Secondary-query filters receive the same
     check — otherwise these filters would bypass validation
-    and surface only when Explore tries to run the query.
+    and surface only when Explore tries to run the query. ``temporal_form_data``
+    restricts value checks to authored predicates without narrowing column checks.
     """
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
     adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
+    temporal_source = form_data if temporal_form_data is None else temporal_form_data
+    temporal_filters = _structured_filter_sources(temporal_source)
     plugin = plugin_for_viz_type(form_data.get("viz_type"))
     secondary = plugin.secondary_query_form_data(form_data) if plugin else None
     if secondary is not None:
         adhoc_filters.extend(
             _active_adhoc_filters(secondary.get("adhoc_filters") or [])
         )
+    temporal_secondary = (
+        plugin.secondary_query_form_data(temporal_source) if plugin else None
+    )
+    if temporal_secondary is not None:
+        temporal_filters.extend(_structured_filter_sources(temporal_secondary))
     # Keep the clause for reference validation; SIMPLE HAVING is unsupported,
     # so saved metrics must not be offered as corrective suggestions.
     invalid: list[tuple[str, str]] = []
@@ -353,6 +369,31 @@ def _validate_adhoc_filter_columns(  # noqa: C901
                 suggestions=["Use a supported WHERE filter"],
                 error_code="UNSUPPORTED_FILTER_CLAUSE",
             )
+        # Legacy/native containers participate in temporal value validation,
+        # not the adhoc-filter reference or clause checks above.
+        for f in temporal_filters:
+            if (
+                f.get("expressionType") and f.get("expressionType") != "SIMPLE"
+            ) or f.get("clause", "WHERE") != "WHERE":
+                continue
+            column = f.get("subject") or f.get("col")
+            if not isinstance(column, str) or not column:
+                continue
+            try:
+                metadata = resolve_dataset_column(column, dataset_context)
+            except AmbiguousDatasetReferenceError:
+                # Adhoc references were checked above; an unresolved legacy
+                # reference has no authoritative temporal metadata.
+                continue
+            if metadata is not None and (
+                error := DatasetValidator.validate_temporal_filter(
+                    metadata,
+                    column,
+                    str(f.get("operator", f.get("op")) or ""),
+                    f.get("comparator", f.get("val")),
+                )
+            ):
+                return error
         return None
 
     suggestions: List[str] = []
@@ -404,43 +445,189 @@ def _active_adhoc_filters(filters: list[Any]) -> list[dict[str, Any]]:
     ]
 
 
-def _classify_as_database_error(exc: BaseException, dataset_id: int) -> bool:
-    """Use the dataset's DB engine spec to classify the error.
+def _structured_filter_sources(form_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Collect all structured predicates merged by prepare_form_data_for_query.
 
-    Walks the ``__cause__`` chain for direct ``SQLAlchemyError`` instances,
-    then falls back to the engine spec's ``extract_errors`` regex patterns —
-    the same classification the Superset UI uses.
+    Legacy time-control pseudo-columns override time settings rather than
+    constructing point comparisons. SQL WHERE/HAVING remains free-form SQL.
     """
-    # Direct SQLAlchemy errors (unwrapped or in cause chain)
+    filters = [
+        *_active_adhoc_filters(form_data.get("adhoc_filters") or []),
+        *_active_adhoc_filters(form_data.get("filters") or []),
+        *(
+            filter_
+            for filter_ in _active_adhoc_filters(form_data.get("extra_filters") or [])
+            if filter_.get("col") not in ("__time_range", "__time_col", "__time_grain")
+            and filter_.get("val")
+        ),
+    ]
+    extra = form_data.get("extra_form_data")
+    if isinstance(extra, dict):
+        filters.extend(_active_adhoc_filters(extra.get("filters") or []))
+        filters.extend(_active_adhoc_filters(extra.get("adhoc_filters") or []))
+    return filters
+
+
+@dataclass(frozen=True)
+class _DatabaseFailure:
+    """A database failure found in an exception's ``__cause__`` chain."""
+
+    error: BaseException
+    # SQLAlchemy errors are database failures without engine pattern matching.
+    typed: bool
+    # Found beneath a validation wrapper, as annotation query failures are.
+    wrapped: bool
+
+
+def _find_database_failure(exc: BaseException) -> _DatabaseFailure | None:
+    """Find the deepest database failure in *exc*'s ``__cause__`` chain.
+
+    Validation wrappers can carry an annotation chart's database failure, so
+    they are walked through but never classified themselves.
+    """
+    from superset.commands.chart.exceptions import (
+        ChartDataQueryFailedError,
+        ChartDataQueryValidationError,
+    )
+    from superset.db_engine_specs.exceptions import SupersetDBAPIError
+
+    # A non-validation outer error (e.g. a cache load failure) keeps the engine
+    # pattern fallback even when no typed database error is in its chain.
+    failure = (
+        None
+        if isinstance(exc, (ChartDataQueryValidationError, QueryObjectValidationError))
+        else _DatabaseFailure(exc, typed=False, wrapped=False)
+    )
+    wrapped = False
+    seen: set[int] = set()
     current: BaseException | None = exc
-    while current is not None:
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
         if isinstance(current, SQLAlchemyError):
-            return True
+            return _DatabaseFailure(current, typed=True, wrapped=wrapped)
+        if isinstance(
+            current, (ChartDataQueryValidationError, QueryObjectValidationError)
+        ):
+            wrapped = True
+        elif isinstance(current, (ChartDataQueryFailedError, SupersetDBAPIError)):
+            failure = _DatabaseFailure(current, typed=False, wrapped=wrapped)
         current = current.__cause__
+    return failure
 
-    # Use the dataset's engine spec to classify (same as the UI)
+
+def _chart_annotation_layers(form_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Collect chart-backed annotation layers from both Mixed Timeseries queries."""
+    from superset.utils.core import ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+
+    return [
+        layer
+        for key in ("annotation_layers", "annotation_layers_b")
+        if isinstance(layers := form_data.get(key), list)
+        for layer in layers
+        if isinstance(layer, dict)
+        and layer.get("sourceType") in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+    ]
+
+
+def _annotation_engine_specs(form_data: dict[str, Any]) -> tuple[list[Any], bool]:
+    """Return the engine specs of the charts the annotation layers query.
+
+    The flag is True when the failing layer's engine is certain: every chart
+    layer resolved to the same engine. The exception does not name the layer
+    that raised it, so with several engines (or an unresolved chart) any of
+    them could be the failing one.
+    """
+    from superset.daos.chart import ChartDAO
+
+    specs: list[Any] = []
+    unresolved = False
+    for layer in _chart_annotation_layers(form_data):
+        if not isinstance(chart_id := layer.get("value"), (int, str)):
+            continue
+        chart = ChartDAO.find_by_id(chart_id)
+        database = getattr(getattr(chart, "datasource", None), "database", None)
+        spec = getattr(database, "db_engine_spec", None)
+        if spec is None:
+            unresolved = True
+        elif spec not in specs:
+            specs.append(spec)
+    return specs, len(specs) == 1 and not unresolved
+
+
+def _has_chart_annotation_layers(form_data: dict[str, Any]) -> bool:
+    """Whether the chart runs annotation queries against other charts."""
+    return bool(_chart_annotation_layers(form_data))
+
+
+def _classify_as_database_error(
+    exc: BaseException, form_data: dict[str, Any], dataset_id: int
+) -> Literal["dataset", "annotation"] | None:
+    """Classify *exc* as a database connection failure, or return None.
+
+    Returns whether the failure came from the chart's own dataset or from an
+    annotation layer's chart. Walks the ``__cause__`` chain for typed database
+    errors, then falls back to the engine spec's ``extract_errors`` regex
+    patterns, the same classification the Superset UI uses. An annotation
+    failure is matched against the annotation charts' engines. Unless a single
+    engine is certain to be the failing one, only specific connection patterns
+    count: an engine's generic fallback would turn any error into a connection
+    failure.
+    """
+    failure = _find_database_failure(exc)
+    if failure is None:
+        return None
+    source: Literal["dataset", "annotation"] = (
+        "annotation"
+        if failure.wrapped and _has_chart_annotation_layers(form_data)
+        else "dataset"
+    )
+    if failure.typed:
+        return source
+    if not isinstance(failure.error, Exception):
+        return None
+
     try:
-        from superset.daos.dataset import DatasetDAO
+        specs: list[Any] = []
+        exact = source != "annotation"
+        if source == "annotation":
+            specs, exact = _annotation_engine_specs(form_data)
+        if not specs:
+            from superset.daos.dataset import DatasetDAO
 
-        dataset = DatasetDAO.find_by_id(dataset_id)
-        if dataset and dataset.database and isinstance(exc, Exception):
-            errors = dataset.database.db_engine_spec.extract_errors(exc)
-            return any(e.error_type in CONNECTION_ERROR_TYPES for e in errors)
+            dataset = DatasetDAO.find_by_id(dataset_id)
+            if dataset and dataset.database:
+                specs = [dataset.database.db_engine_spec]
+        for spec in specs:
+            errors = spec.extract_errors(failure.error)
+            if any(
+                e.error_type in CONNECTION_ERROR_TYPES
+                and (exact or e.error_type != SupersetErrorType.GENERIC_DB_ENGINE_ERROR)
+                for e in errors
+            ):
+                return source
     except Exception:  # pylint: disable=broad-except
         logger.debug(
-            "Failed to classify error via engine spec for dataset %s: %s",
+            "Failed to classify %s error via candidate engine specs "
+            "(main dataset %s): %s",
+            source,
             dataset_id,
             exc,
         )
 
-    return False
+    return None
 
 
-def _build_database_error(message: str) -> ChartGenerationError:
+def _build_database_error(
+    message: str, *, annotation: bool = False
+) -> ChartGenerationError:
     """Wrap a database connection failure in the structured response envelope."""
     return ChartGenerationError(
         error_type="database_connection_error",
-        message="Unable to connect to the database.",
+        message=(
+            "Unable to connect to the database of an annotation layer's chart."
+            if annotation
+            else "Unable to connect to the database."
+        ),
         details=message or "",
         suggestions=[
             "Check that the database is online and reachable",
@@ -752,6 +939,7 @@ def validate_and_compile(  # noqa: C901
     dataset: Any,
     *,
     run_compile_check: bool = True,
+    temporal_form_data: Dict[str, Any] | None = None,
 ) -> CompileResult:
     """Run schema validation (Tier 1) and optionally a compile check (Tier 2).
 
@@ -761,6 +949,9 @@ def validate_and_compile(  # noqa: C901
     ``run_compile_check`` lets fast-path tools (``generate_explore_link``,
     ``update_chart_preview``) skip the live DB query while still rejecting
     obviously bad column references with fuzzy-match suggestions.
+
+    ``temporal_form_data`` limits comparator validation to newly authored filters
+    during updates; reference and compile checks still use the complete state.
 
     Returns a :class:`CompileResult`. On failure, ``error_obj`` carries the
     structured :class:`ChartGenerationError` (with ``suggestions``) that the
@@ -778,7 +969,10 @@ def validate_and_compile(  # noqa: C901
     dataset_context = build_dataset_context_from_orm(dataset)
 
     is_valid, error = DatasetValidator.validate_against_dataset(
-        config, dataset.id, dataset_context=dataset_context
+        config,
+        dataset.id,
+        dataset_context=dataset_context,
+        validate_temporal_values=temporal_form_data is None,
     )
     if not is_valid:
         details = ""
@@ -798,7 +992,9 @@ def validate_and_compile(  # noqa: C901
     # preserved from a previously cached preview). The typed config-level
     # validator above doesn't see those.
     if dataset_context is not None:
-        filter_error = _validate_adhoc_filter_columns(form_data, dataset_context)
+        filter_error = _validate_adhoc_filter_columns(
+            form_data, dataset_context, temporal_form_data=temporal_form_data
+        )
         if filter_error is not None:
             return CompileResult(
                 success=False,

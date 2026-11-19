@@ -37,6 +37,7 @@ export type TableControlsProps = {
   filters: BinaryQueryObjectFilterClause[];
   setFilters: (filters: BinaryQueryObjectFilterClause[]) => void;
   totalCount?: number;
+  totalCountIsLowerBound?: boolean;
   loading: boolean;
   onReload: () => void;
   canDownload: boolean;
@@ -50,6 +51,7 @@ export default function TableControls({
   filters,
   setFilters,
   totalCount,
+  totalCountIsLowerBound,
   loading,
   onReload,
   canDownload,
@@ -137,7 +139,11 @@ export default function TableControls({
           gap: ${theme.sizeUnit * 3}px;
         `}
       >
-        <RowCountLabel loading={loading && !totalCount} rowcount={totalCount} />
+        <RowCountLabel
+          loading={loading && !totalCount}
+          rowcount={totalCount}
+          isLowerBound={totalCountIsLowerBound}
+        />
         {canDownload && (
           <DownloadDropdown
             onDownloadCSV={onDownloadCSV}

@@ -17,14 +17,17 @@
 
 """Tests for celery_task.py - async SQL execution via Celery."""
 
-from collections.abc import Callable
+import base64
+import logging
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, PropertyMock
 
 import msgpack
-import pandas as pd
+import pyarrow as pa
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
@@ -32,7 +35,13 @@ from pytest_mock import MockerFixture
 
 from superset.common.db_query_status import QueryStatus as QueryStatusEnum
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetErrorsException
+from superset.exceptions import (
+    OAuth2RedirectError,
+    OAuth2TokenRefreshError,
+    QueryStoppedException,
+    SupersetErrorException,
+    SupersetErrorsException,
+)
 from superset.utils import json as superset_json
 
 # Note: mock_query, mock_database, mock_result_set, and mock_db_session
@@ -772,6 +781,96 @@ def test_store_results_in_backend_payload_too_large(
     assert exc_info.value.error.error_type == SupersetErrorType.RESULT_TOO_LARGE_ERROR
 
 
+@pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize("nested_column_present", [True, False])
+@pytest.mark.parametrize("nested_value", [{"value": "x"}, [b"\xff" * 17]])
+@pytest.mark.parametrize("text_length", [1, 9, 17])
+@pytest.mark.parametrize("bytes_over_limit", [0, 1])
+def test_store_results_in_backend_raw_arrow_size_boundary(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    mock_result_set: MagicMock,
+    use_msgpack: bool,
+    text_length: int,
+    nested_column_present: bool,
+    nested_value: Any,
+    bytes_over_limit: int,
+) -> None:
+    """Count raw IPC plus all metadata, with exact limits and Base64 padding."""
+    from superset.sql.execution.celery_task import (
+        _serialize_payload,
+        _serialize_result_set,
+        _store_results_in_backend,
+        BYTES_IN_MB,
+    )
+    from superset.sql.execution.serialization import serialize_nested_columns
+    from superset.utils.core import zlib_decompress
+
+    backend = mocker.patch("superset.sql.execution.celery_task.results_backend")
+    backend.set.return_value = True
+    mocker.patch("superset.results_backend_use_msgpack", use_msgpack)
+    mocker.patch("superset.sql.execution.celery_task.uuid.uuid4", return_value="key")
+    table_data = {"text": ["x" * text_length]}
+    if nested_column_present:
+        table_data["nested"] = [
+            superset_json.dumps(nested_value, default=superset_json.json_iso_dttm_ser)
+        ]
+    mock_result_set.pa_table = pa.table(table_data)
+    data, columns = _serialize_result_set(mock_result_set)
+    payload: dict[str, Any] = {
+        "query": {"resultsKey": "key"},
+        "statements": [
+            {"data": None, "columns": []},
+            {
+                "data": data,
+                "columns": columns,
+                "nested_columns_arrow_nbytes": (
+                    {"nested": mock_result_set.pa_table.column("nested").nbytes}
+                    if nested_column_present
+                    else {}
+                ),
+                "nested_columns_msgpack": serialize_nested_columns(
+                    {"nested": [nested_value]}, use_msgpack=use_msgpack
+                ),
+            },
+            {"data": data, "columns": columns},
+        ],
+        "metadata": "x" * 1000,
+    }
+    serialized = _serialize_payload(payload)
+    sidecar = payload["statements"][1]["nested_columns_msgpack"]["nested"]
+    raw_sidecar_size = len(sidecar if use_msgpack else base64.b64decode(sidecar))
+    expected_size = len(serialized) - (len(sidecar) - raw_sidecar_size)
+    if nested_column_present:
+        expected_size -= min(
+            raw_sidecar_size, mock_result_set.pa_table.column("nested").nbytes
+        )
+    if isinstance(data, str):
+        expected_size -= 2 * (len(data) - len(base64.b64decode(data)))
+    mocker.patch.dict(
+        current_app.config,
+        {"SQLLAB_PAYLOAD_MAX_MB": (expected_size - bytes_over_limit) / BYTES_IN_MB},
+    )
+
+    if bytes_over_limit:
+        with pytest.raises(SupersetErrorException) as exc_info:
+            _store_results_in_backend(mock_query, payload, mock_database)
+        assert (
+            exc_info.value.error.error_type == SupersetErrorType.RESULT_TOO_LARGE_ERROR
+        )
+        backend.set.assert_not_called()
+        assert mock_query.results_key is None
+    else:
+        _store_results_in_backend(mock_query, payload, mock_database)
+        backend.set.assert_called_once()
+        assert (
+            zlib_decompress(backend.set.call_args.args[1], decode=False) == serialized
+        )
+        assert mock_query.results_key == "key"
+
+
 def test_store_results_in_backend_default_cache_timeout(
     mocker: MockerFixture,
     app_context: None,
@@ -861,14 +960,11 @@ def test_serialize_result_set_json(
     from superset.sql.execution.celery_task import _serialize_result_set
 
     mocker.patch("superset.results_backend_use_msgpack", False)
-    mocker.patch(
-        "superset.dataframe.df_to_records",
-        return_value=[{"id": 1, "name": "Alice"}],
-    )
-
     data, columns = _serialize_result_set(mock_result_set)
 
-    assert data == [{"id": 1, "name": "Alice"}]
+    assert isinstance(data, str)
+    table = pa.ipc.open_stream(base64.b64decode(data)).read_all()
+    assert table.equals(mock_result_set.pa_table)
     assert columns == mock_result_set.columns
 
 
@@ -883,30 +979,19 @@ def test_serialize_result_set_json_normalizes_decimal_nonfinite(
 
     finite = Decimal("0.10000000000000000001")
     mocker.patch("superset.results_backend_use_msgpack", False)
-    mock_result_set.to_pandas_df.return_value = pd.DataFrame(
-        {
-            "value": pd.Series(
-                [
-                    Decimal("NaN"),
-                    Decimal("sNaN"),
-                    Decimal("Infinity"),
-                    Decimal("-Infinity"),
-                    finite,
-                ],
-                dtype=object,
-            )
-        }
+    # SupersetResultSet normalizes non-finite decimals before exposing its table.
+    mock_result_set.pa_table = pa.table(
+        {"value": [None, None, None, None, str(finite)]}
     )
-
     data, _ = _serialize_result_set(mock_result_set)
-    assert isinstance(data, list)
-    assert [row["value"] for row in data] == [None, None, None, None, str(finite)]
+    assert isinstance(data, str)
+    table = pa.ipc.open_stream(base64.b64decode(data)).read_all()
+    assert table.to_pydict()["value"] == [None, None, None, None, str(finite)]
 
-    payload = _serialize_payload({"data": data})
-    payload_text = payload.decode() if isinstance(payload, bytes) else payload
+    payload_text = _serialize_payload({"data": data}).decode()
     assert "NaN" not in payload_text
     assert "Infinity" not in payload_text
-    assert superset_json.loads(payload_text)["data"][:4] == [{"value": None}] * 4
+    assert superset_json.loads(payload_text)["data"] == data
 
 
 # =============================================================================
@@ -955,7 +1040,9 @@ def test_make_execute_fn(
     execute_fn = _make_execute_fn(mock_query, mock_database.db_engine_spec)
     execute_fn(mock_cursor, "SELECT * FROM users")
 
-    assert mock_query.executed_sql == "SELECT * FROM users"
+    mock_database.db_engine_spec.execute_with_cursor.assert_called_once_with(
+        mock_cursor, "SELECT * FROM users", mock_query
+    )
 
 
 @pytest.mark.parametrize(
@@ -1145,6 +1232,190 @@ def test_execute_sql_task_stopped(
     assert result["status"] == QueryStatusEnum.STOPPED
 
 
+def test_failed_statement_keeps_its_executed_sql(
+    mocker: MockerFixture, app: Any, session: Any
+) -> None:
+    """A statement that fails with no stop involved keeps the SQL it executed."""
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    Query.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    # As SQLExecutor._create_query_record leaves it: no executed_sql yet.
+    query = Query(
+        client_id="failing",
+        database=database,
+        sql="SELECT 1",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatusEnum.PENDING,
+    )
+    session.add_all([database, query])
+    session.commit()
+    query_id = query.id
+
+    cursor = MagicMock()
+    cursor.execute.side_effect = RuntimeError("syntax error at or near FROM")
+    connection = MagicMock()
+    connection.cursor.return_value = cursor
+
+    @contextmanager
+    def get_raw_connection(*args: Any, **kwargs: Any) -> Iterator[Any]:
+        yield connection
+
+    mocker.patch.object(Database, "get_raw_connection", get_raw_connection)
+
+    execute_sql_task(query_id, "SELECT 1")
+
+    session.rollback()
+    session.expire_all()
+    failed = session.query(Query).filter_by(id=query_id).one()
+    assert failed.status == QueryStatusEnum.FAILED
+    assert "syntax error" in failed.error_message
+    assert failed.executed_sql == "SELECT\n  1"
+
+
+@pytest.mark.parametrize(
+    ("stopped", "status", "logged", "executed_sql"),
+    [
+        # A stop discards results, but the dispatched statement stays recorded.
+        (True, QueryStatusEnum.STOPPED, False, "SELECT\n  1"),
+        (False, QueryStatusEnum.FAILED, True, "SELECT\n  1"),
+    ],
+)
+def test_impala_fetch_stop_retains_dispatched_sql(
+    mocker: MockerFixture,
+    app: Any,
+    session: Any,
+    stopped: bool,
+    status: QueryStatusEnum,
+    logged: bool,
+    executed_sql: str | None,
+) -> None:
+    """
+    Impala's stop signal, raised while the result rows are read, ends a stopped
+    query quietly. Both outcomes retain the statement published before dispatch;
+    a query nobody stopped is a failure with diagnostics.
+    """
+    import sqlalchemy as sa
+
+    from superset.db_engine_specs.impala import ImpalaFetchStoppedError
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    Query.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    query = Query(
+        client_id="fetch-stop",
+        database=database,
+        sql="SELECT 1",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatusEnum.PENDING,
+    )
+    session.add_all([database, query])
+    session.commit()
+    query_id = query.id
+
+    def fetch(size: int) -> list[tuple[int]]:
+        """Another request commits the stop while the rows are read."""
+        if stopped:
+            session.connection().execute(
+                sa.update(Query)
+                .where(Query.id == query_id)
+                .values(status=QueryStatusEnum.STOPPED)
+            )
+        raise ImpalaFetchStoppedError(
+            f"Query {query_id} was stopped while fetching results"
+        )
+
+    cursor = MagicMock()
+    cursor.fetchmany.side_effect = fetch
+    connection = MagicMock()
+    connection.cursor.return_value = cursor
+
+    @contextmanager
+    def get_raw_connection(*args: Any, **kwargs: Any) -> Iterator[Any]:
+        yield connection
+
+    mocker.patch.object(Database, "get_raw_connection", get_raw_connection)
+    logger = mocker.patch("superset.sql.execution.celery_task.logger")
+
+    result = execute_sql_task(query_id, "SELECT 1")
+
+    session.rollback()
+    session.expire_all()
+    recorded = session.query(Query).filter_by(id=query_id).one()
+    assert result["status"] == status
+    assert recorded.status == status
+    assert recorded.executed_sql == executed_sql
+    assert logger.exception.called is logged
+
+
+@pytest.mark.parametrize(
+    ("error", "stopped", "status", "logged"),
+    [
+        # An engine's explicit stop signal is reported as the stop, quietly.
+        (
+            QueryStoppedException("stopped while fetching"),
+            True,
+            QueryStatusEnum.STOPPED,
+            False,
+        ),
+        # A stop signal for a query that was not stopped is a failure.
+        (
+            QueryStoppedException("stopped while fetching"),
+            False,
+            QueryStatusEnum.FAILED,
+            True,
+        ),
+        # Any other failure keeps its diagnostics, even when a stop raced it.
+        (MemoryError("out of memory"), True, QueryStatusEnum.STOPPED, True),
+        (RuntimeError("syntax error"), False, QueryStatusEnum.FAILED, True),
+    ],
+)
+def test_only_an_engine_stop_signal_is_reported_quietly(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    error: Exception,
+    stopped: bool,
+    status: QueryStatusEnum,
+    logged: bool,
+) -> None:
+    """A fetch ended by a stop is not an unhandled error; other failures are."""
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    mock_query.database = mock_database
+    mocker.patch(
+        "superset.sql.execution.celery_task._get_query", return_value=mock_query
+    )
+    mocker.patch(
+        "superset.sql.execution.celery_task.execute_sql_with_cursor",
+        side_effect=error,
+    )
+    mocker.patch(
+        "superset.sql.execution.celery_task._make_check_stopped_fn",
+        return_value=lambda: stopped,
+    )
+    mocker.patch("superset.sql.execution.celery_task.db.session")
+    mocker.patch("superset.sql.execution.celery_task.security_manager")
+    logger = mocker.patch("superset.sql.execution.celery_task.logger")
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
+
+    from .conftest import setup_mock_raw_connection
+
+    setup_mock_raw_connection(mock_database)
+
+    result = execute_sql_task(123, "SELECT * FROM users")
+
+    assert result["status"] == status
+    assert logger.exception.called is logged
+
+
 @pytest.mark.parametrize("stop_intent", ["executor", "early", "status"])
 def test_cancelled_impala_cursor_is_not_finalized_as_success(
     mocker: MockerFixture,
@@ -1197,7 +1468,9 @@ def test_cancelled_impala_cursor_is_not_finalized_as_success(
     finalize = mocker.spy(celery_task, "_finalize_successful_query")
     store = mocker.patch("superset.sql.execution.celery_task._store_results_in_backend")
     mocker.patch("superset.sql.execution.celery_task.results_backend", MagicMock())
-    post = mocker.patch("superset.db_engine_specs.impala.requests.post")
+    post = mocker.patch(
+        "superset.db_engine_specs.impala.get_ssrf_safe_requester"
+    ).return_value.post
 
     payload = celery_task._execute_sql_statements(123, "SELECT 1", None)
 
@@ -1417,6 +1690,53 @@ def test_execute_sql_task_unhandled_exception(
     result = execute_sql_task(123, "SELECT * FROM users")
 
     assert result["status"] == QueryStatusEnum.FAILED
+
+
+def test_execute_sql_task_preserves_stopped_status_despite_dispatch_exception(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+) -> None:
+    """
+    Regression guard, not a characterization of a gap: an exception that
+    reaches `execute_sql_task`'s outer handler while `query.status` is
+    already STOPPED must not get overwritten to FAILED -- regardless of
+    engine, and regardless of why the exception was raised (a real
+    cancel-induced driver error for any engine whose cancellation mechanism
+    can make a subsequent/concurrent `cursor.execute()` fail, not something
+    specific to ClickHouse).
+
+    This used to be a real, disclosed gap in `_handle_query_error`, which
+    only special-cased TIMED_OUT and had no equivalent STOPPED check. It is
+    now fixed upstream on master (independently of this PR, picked up via
+    merge): `_handle_query_error` checks
+    `_make_check_stopped_fn(query, preserve_pending=True)()` first and
+    returns the recorded STOPPED outcome via `_stopped_query_payload()`
+    instead of overwriting it. Kept as a regression guard for this
+    property, since it's exactly the invariant this PR's own
+    `ClickHouseQueryStoppedBeforeDispatchError` (see
+    `db_engine_specs/clickhouse.py::execute_with_cursor`) relies on holding
+    on the Celery path too.
+    """
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    mock_query.status = QueryStatusEnum.STOPPED
+
+    mocker.patch(
+        "superset.sql.execution.celery_task._get_query", return_value=mock_query
+    )
+    mocker.patch(
+        "superset.sql.execution.celery_task._execute_sql_statements",
+        side_effect=Exception("driver raised during dispatch"),
+    )
+    mocker.patch("superset.sql.execution.celery_task.db.session")
+    mocker.patch("superset.sql.execution.celery_task.security_manager")
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
+
+    result = execute_sql_task(123, "SELECT * FROM users")
+
+    assert result["status"] == QueryStatusEnum.STOPPED
+    assert mock_query.status == QueryStatusEnum.STOPPED
 
 
 def test_execute_sql_task_success_final_commit(
@@ -2309,6 +2629,102 @@ def test_commit_that_applies_and_raises_keeps_referenced_results(
             assert persisted is not None
             assert persisted.status == target
             assert persisted.results_key == key
+        backend.delete.assert_not_called()
+        assert key in stored
+    engine.dispose()
+
+
+def test_lost_acknowledgement_of_success_commit_keeps_success(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """
+    Test that a success commit which reaches the database and then raises is not
+    rewritten as failed by the error handler, and that its results are kept.
+    """
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'lost-acknowledgement.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = lambda key: stored.pop(key, None) is not None
+    mocker.patch.object(celery_task, "results_backend", backend)
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT 1", None, 1.0, 0)],
+    )
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
+
+    flushed = False
+    lost = False
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="lost-acknowledgement",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        @event.listens_for(session, "after_flush")
+        def flushed_success(flushing_session: Any, context: Any) -> None:
+            nonlocal flushed
+            flushed = (
+                query.status == QueryStatusEnum.SUCCESS
+                and query.results_key is not None
+            )
+
+        do_commit = engine.dialect.do_commit
+
+        def lose_acknowledgement(dbapi_connection: Any) -> None:
+            """Raise after the database committed the success row."""
+            nonlocal lost
+            do_commit(dbapi_connection)
+            if flushed and not lost:
+                lost = True
+                raise RuntimeError("Commit acknowledgement lost")
+
+        mocker.patch.object(
+            engine.dialect, "do_commit", side_effect=lose_acknowledgement
+        )
+
+        payload = celery_task.execute_sql_task(123, query.sql)
+
+        assert lost
+        key = backend.set.call_args.args[0]
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            assert persisted.status == QueryStatusEnum.SUCCESS
+            assert persisted.error_message is None
+            assert persisted.results_key == key
+        assert payload is not None
+        assert payload["status"] == QueryStatusEnum.SUCCESS
         backend.delete.assert_not_called()
         assert key in stored
     engine.dispose()
@@ -3588,3 +4004,57 @@ def test_celery_records_dispatch_before_execution_without_cancel_handle(
 
     mocker.patch.object(celery_task, "execute_sql_with_cursor", side_effect=execute)
     celery_task._execute_sql_statements(123, "SELECT 1", None)
+
+
+@pytest.mark.parametrize("refresh_marker", [False, True])
+def test_execute_sql_task_oauth2_connection_prompt(
+    mocker: MockerFixture,
+    app: Any,
+    session: Any,
+    caplog: pytest.LogCaptureFixture,
+    refresh_marker: bool,
+) -> None:
+    """Connection-time OAuth prompts traverse the real worker and error serializer."""
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    Query.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="oauth-db", sqlalchemy_uri="sqlite://")
+    query = Query(
+        client_id="oauth-prompt",
+        database=database,
+        sql="SELECT 1",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatusEnum.PENDING,
+    )
+    session.add_all([database, query])
+    session.commit()
+    error = (
+        OAuth2TokenRefreshError()
+        if refresh_marker
+        else OAuth2RedirectError(
+            "https://example.com/authorize", "tab-id", "https://example.com/callback"
+        )
+    )
+    connection = mocker.patch.object(Database, "get_raw_connection", side_effect=error)
+
+    with caplog.at_level(logging.DEBUG, logger="superset.sql.execution.celery_task"):
+        result = execute_sql_task(query.id, "SELECT 1")
+
+    connection.assert_called_once()
+    assert result is not None
+    assert result["status"] == QueryStatusEnum.FAILED
+    assert result["errors"][0]["error_type"] == SupersetErrorType.OAUTH2_REDIRECT
+    assert result["errors"][0]["extra"] == error.error.extra
+    session.expire_all()
+    assert session.get(Query, query.id).status == QueryStatusEnum.FAILED
+    records = [
+        r for r in caplog.records if r.name == "superset.sql.execution.celery_task"
+    ]
+    assert any(
+        r.levelno == logging.DEBUG and "OAuth2 authorization required" in r.getMessage()
+        for r in records
+    )
+    assert not any(r.levelno >= logging.WARNING or r.exc_info for r in records)

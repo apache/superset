@@ -36,6 +36,7 @@ import {
   getLegendProps,
   getLegendScrollDataIndex,
   getMinAndMaxFromBounds,
+  sanitizeHtml,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { Refs } from '../types';
@@ -104,7 +105,8 @@ export function formatTooltip(
       [yAxisLabel, yAxisFormatter(params.data[1])],
       [sizeLabel, tooltipSizeFormatter(params.data[2])],
     ],
-    title,
+    // Escape labels such as <NULL> so the sanitizer keeps them as text.
+    sanitizeHtml(title),
   );
 }
 
@@ -153,6 +155,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     tooltipSizeFormat,
     opacity,
     showLegend,
+    showSelectorLegend,
     legendOrientation,
     legendMargin,
     legendType,
@@ -224,6 +227,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -291,6 +295,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
       ),

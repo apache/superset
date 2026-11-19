@@ -21,23 +21,27 @@ from __future__ import annotations
 
 import os
 import uuid
-from collections.abc import Hashable
+from collections.abc import Hashable, Iterator
 from datetime import date, datetime, timezone
+from itertools import permutations
 from pathlib import Path
 from typing import Any, cast
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import ANY, MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
+from flask import Flask
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from sqlalchemy import inspect, select
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import Session
+from superset_core.semantic_layers.context import ExecutionMethod
 from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
+    Grain,
     Grains,
     Metric,
     Operator,
@@ -65,6 +69,70 @@ from superset.utils.core import GenericDataType
 # =============================================================================
 # get_column_type tests
 # =============================================================================
+
+
+@pytest.fixture
+def explicit_model_namespace(app: Flask, mocker: MockerFixture) -> Iterator[None]:
+    """Give transient model tests an identity without a metadata-store fixture."""
+    mocker.patch.dict(
+        app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "model-unit-tests"}
+    )
+    durable_lookup: MagicMock = mocker.patch(
+        "superset.semantic_layers.models.metadata_namespace"
+    )
+    yield
+    durable_lookup.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "grains, expected",
+    [
+        ((None, Grains.DAY, Grains.HOUR), None),
+        ((Grains.DAY, Grains.HOUR, Grains.MONTH), Grains.HOUR),
+        ((Grain("Custom B", "P5D"), Grain("Custom A", "P2D")), Grain("A", "P2D")),
+    ],
+)
+def test_column_metadata_default_is_order_independent(
+    grains: tuple[Grain | None, ...], expected: Grain | None
+) -> None:
+    """Metadata keeps the same raw/finest/custom choice across extraction."""
+    dimensions: tuple[Dimension, ...] = tuple(
+        Dimension(str(index), "event_time", pa.timestamp("us"), grain=grain)
+        for index, grain in enumerate(grains)
+    )
+    implementation: MagicMock = MagicMock()
+    view: SemanticView = SemanticView()
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=implementation,
+    ):
+        for ordering in permutations(dimensions):
+            implementation.get_dimensions.return_value = ordering
+            assert len(view._unique_dimensions) == 1
+            assert view._unique_dimensions[0].grain == expected
+
+
+def test_column_metadata_rejects_ambiguous_grain_ids() -> None:
+    """Metadata must not hide an ambiguity that prevents query mapping."""
+    implementation: MagicMock = MagicMock()
+    implementation.get_dimensions.return_value = {
+        Dimension("a", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension("b", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension("raw", "event_time", pa.timestamp("us")),
+    }
+    view: SemanticView = SemanticView()
+    with (
+        patch.object(
+            SemanticView,
+            "implementation",
+            new_callable=PropertyMock,
+            return_value=implementation,
+        ),
+        pytest.raises(QueryObjectValidationError, match="ambiguous"),
+    ):
+        _columns: list[ColumnMetadata] = view.columns
 
 
 def test_get_column_type_temporal_date() -> None:
@@ -247,37 +315,91 @@ def test_semantic_layer_repr_without_name() -> None:
     assert repr(layer) == str(test_uuid)
 
 
-def test_semantic_layer_implementation_not_implemented() -> None:
+def test_semantic_layer_implementation_not_implemented(mocker: MockerFixture) -> None:
     """Test that implementation raises KeyError for unregistered type."""
-    layer = SemanticLayer()
+    mocker.patch(
+        "superset.semantic_layers.execution.semantic_namespace", return_value="test"
+    )
+    layer: SemanticLayer = SemanticLayer()
     with pytest.raises(KeyError):
         _ = layer.implementation
 
 
-def test_semantic_layer_implementation() -> None:
-    """Test that implementation returns a configured semantic layer."""
-    layer = SemanticLayer()
-    layer.type = "test_type"
-    layer.configuration = '{"key": "value"}'
+def test_semantic_layer_implementation_is_scoped_to_owning_session(
+    session: Session, mocker: MockerFixture
+) -> None:
+    """The same identity reuses bindings within, but never across, ORM sessions."""
+    from flask import current_app
+    from flask_appbuilder.security.sqla.models import User
 
-    mock_class = MagicMock()
-    mock_impl = MagicMock()
-    mock_class.from_configuration_with_cache_token.return_value = mock_impl
+    from superset.utils.core import override_user
+    from tests.unit_tests.semantic_layers.conftest import LegacyLayer
 
-    with patch.dict(
-        "superset.semantic_layers.models.registry",
-        {"test_type": mock_class},
-    ):
-        # Clear cached property if it exists
-        if "implementation" in layer.__dict__:
-            del layer.__dict__["implementation"]
-
-        result = layer.implementation
-
-    mock_class.from_configuration_with_cache_token.assert_called_once_with(
-        {"key": "value"}, cache_token=layer.metadata_generation
+    engine: Engine = cast(Engine, session.get_bind())
+    SemanticLayer.metadata.create_all(engine)
+    layer_id: uuid.UUID = uuid.uuid4()
+    session.add(
+        SemanticLayer(
+            uuid=layer_id, name="Session scoped", type="test", configuration="{}"
+        )
     )
-    assert result == mock_impl
+    session.commit()
+    mocker.patch.dict(
+        current_app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "session-test"}
+    )
+    mocker.patch.dict("superset.semantic_layers.models.registry", {"test": LegacyLayer})
+    factory: MagicMock = mocker.spy(LegacyLayer, "from_configuration")
+    first_session: Session
+    second_session: Session
+    with (
+        override_user(User(id=7)),
+        Session(engine) as first_session,
+        Session(engine) as second_session,
+    ):
+        first_layer: SemanticLayer | None = first_session.get(SemanticLayer, layer_id)
+        second_layer: SemanticLayer | None = second_session.get(SemanticLayer, layer_id)
+        assert first_layer is not None
+        assert second_layer is not None
+        assert first_layer is not second_layer
+        first: LegacyLayer = cast(LegacyLayer, first_layer.implementation)
+        assert first_layer.implementation is first
+        second: LegacyLayer = cast(LegacyLayer, second_layer.implementation)
+        assert second_layer.implementation is second
+        assert first_layer.implementation is first
+        assert first.context == second.context
+        assert first.context.principal_id == "7"
+        assert first is not second
+        assert factory.call_count == 2
+
+
+def test_semantic_layer_implementation(
+    mocker: MockerFixture, explicit_model_namespace: None
+) -> None:
+    """Test that implementation returns a configured semantic layer."""
+    from superset.semantic_layers.execution import current_host_execution_context
+
+    mocker.patch(
+        "superset.semantic_layers.execution.semantic_namespace", return_value="test"
+    )
+    layer: SemanticLayer = SemanticLayer(
+        type="test_type", configuration='{"key": "value"}'
+    )
+    mock_class: MagicMock = MagicMock(
+        supported_execution_methods={ExecutionMethod.CONNECTION}
+    )
+    mock_impl: MagicMock = mock_class.from_configuration.return_value
+    with patch.dict(
+        "superset.semantic_layers.models.registry", {"test_type": mock_class}
+    ):
+        assert layer.implementation is mock_impl
+        assert layer.implementation is mock_impl
+    mock_class.from_configuration.assert_called_once_with(
+        {"key": "value"},
+        cache_token=layer.metadata_generation,
+        context=current_host_execution_context(),
+        credentials=None,
+        transport=ANY,
+    )
 
 
 # =============================================================================
@@ -351,7 +473,9 @@ def mock_implementation(
 
 
 @pytest.fixture
-def semantic_view(mock_implementation: MagicMock) -> SemanticView:
+def semantic_view(
+    mock_implementation: MagicMock, mocker: MockerFixture
+) -> SemanticView:
     """Create a SemanticView with mocked implementation."""
     layer = SemanticLayer()
     layer.name = "Test Layer"
@@ -369,8 +493,12 @@ def semantic_view(mock_implementation: MagicMock) -> SemanticView:
     view.configuration = "{}"
     view.perm = "[Test Layer].[Orders View](id:1)"
 
-    # Persist mocked implementation on this instance
-    view.__dict__["implementation"] = mock_implementation
+    mocker.patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=mock_implementation,
+    )
 
     return view
 
@@ -496,7 +624,9 @@ def test_semantic_view_query_endpoint_returns_error(
 
 
 @pytest.mark.parametrize("version", [None, "producer-v1", "producer-v2"])
-def test_semantic_view_get_extra_cache_keys(version: str | None) -> None:
+def test_semantic_view_get_extra_cache_keys(
+    version: str | None, explicit_model_namespace: None
+) -> None:
     """Keep NULL normalization and producer guarantees in the result identity."""
     from superset.common.query_object import QueryObject
 
@@ -839,13 +969,15 @@ def test_semantic_view_abc_preferred_temporal_dimension_is_optional() -> None:
         ("metric_time", "metric_time"),
         (None, None),
         ("missing_time", None),
+        ("", None),
+        (42, None),
         ("entity_name", None),
     ],
 )
 def test_semantic_view_data_honors_exposed_temporal_preference(
     mock_implementation: MagicMock,
     semantic_view: SemanticView,
-    preferred: str | None,
+    preferred: object,
     expected: str | None,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -915,7 +1047,7 @@ def test_semantic_view_data_features_empty(
     """A view with no declared features serializes an empty feature list."""
     mock_implementation.features = frozenset()
 
-    data = semantic_view.data
+    data: ExplorableData = semantic_view.data
 
     assert data["semantic_view_features"] == []
 
@@ -932,10 +1064,9 @@ def test_semantic_view_data_features_declared(
         }
     )
 
-    data = semantic_view.data
+    data: ExplorableData = semantic_view.data
 
     assert data["semantic_view_features"] == [
-        "ADHOC_COLUMN_EXPRESSIONS",
         "GROUP_LIMIT",
     ]
     # Declaring features must not change the expression-less dimension
@@ -947,34 +1078,28 @@ def test_semantic_view_data_features_tolerates_raw_string(
     mock_implementation: MagicMock,
     semantic_view: SemanticView,
 ) -> None:
-    """A provider may hand back a raw string instead of a SemanticViewFeature
-    member; the payload degrades to the string value rather than 500-ing
-    Explore for that datasource (new providers stay safe by default)."""
+    """Raw strings are ignored, while valid enum grants survive."""
     mock_implementation.features = frozenset(
         {SemanticViewFeature.GROUP_LIMIT, "CUSTOM_PROVIDER_FEATURE"}
     )
 
-    data = semantic_view.data
+    data: ExplorableData = semantic_view.data
 
     assert data["semantic_view_features"] == [
-        "CUSTOM_PROVIDER_FEATURE",
         "GROUP_LIMIT",
     ]
 
 
-def test_semantic_view_data_features_coerces_non_string_member(
+def test_semantic_view_data_features_ignores_non_string_member(
     mock_implementation: MagicMock,
     semantic_view: SemanticView,
 ) -> None:
-    """A feature that is neither a SemanticViewFeature nor a string is coerced
-    to its string form (the ``str(value)`` fallback in ``_feature_value``),
-    keeping ``sorted`` from raising on a mixed-type comparison rather than
-    500-ing Explore."""
+    """Non-enum values are ignored instead of serialized into capabilities."""
     mock_implementation.features = frozenset({SemanticViewFeature.GROUP_LIMIT, 7})
 
-    data = semantic_view.data
+    data: ExplorableData = semantic_view.data
 
-    assert data["semantic_view_features"] == ["7", "GROUP_LIMIT"]
+    assert data["semantic_view_features"] == ["GROUP_LIMIT"]
 
 
 @pytest.fixture
@@ -1244,6 +1369,50 @@ def test_semantic_view_get_query_result_wraps_post_processing_type_error(
         view.get_query_result(query_object)
 
 
+def test_semantic_view_get_query_result_leaves_a_custom_operation_fault_unwrapped(
+    mock_implementation: MagicMock,
+) -> None:
+    """
+    A fault inside a custom operation must not be reported as a bad request.
+
+    An operation registered through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` is the
+    operator's own code. ``exec_post_processing`` leaves its exceptions alone,
+    and this path must not convert them either, or a bug in that operation
+    answers 400 and tells the caller their request was malformed.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import QueryObjectValidationError
+
+    def _raise_type_error(df: pd.DataFrame, **options: Any) -> pd.DataFrame:
+        raise TypeError("a fault inside the operator's own code")
+
+    view = SemanticView()
+    mock_result = MagicMock()
+    mock_result.df = pd.DataFrame({"metric": [1.0, 2.0]})
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "_raise_type_error"}],
+    )
+
+    with (
+        patch(
+            "superset.semantic_layers.models.get_results",
+            return_value=mock_result,
+        ),
+        patch.dict(
+            "superset.common.query_object.current_app.config",
+            {"EXTRA_PANDAS_POSTPROCESSING_OPS": [_raise_type_error]},
+        ),
+        pytest.raises(TypeError, match="operator's own code") as excinfo,
+    ):
+        view.get_query_result(query_object)
+
+    assert not isinstance(excinfo.value, QueryObjectValidationError)
+
+
 def test_semantic_view_get_query_result_skips_post_processing_on_empty_df(
     mock_implementation: MagicMock,
 ) -> None:
@@ -1335,30 +1504,45 @@ def test_semantic_view_explore_url() -> None:
     )
 
 
-def test_semantic_view_implementation() -> None:
-    """Test SemanticView implementation property."""
-    view = SemanticView()
-    view.name = "Test View"
-    view.configuration = '{"key": "value"}'
+def test_semantic_view_implementation(
+    mocker: MockerFixture, explicit_model_namespace: None
+) -> None:
+    """Views share the layer binding and canonicalize equivalent configuration."""
+    from superset.semantic_layers.execution import SemanticBindingMemo
 
-    mock_semantic_layer = MagicMock()
-    mock_semantic_view_impl = MagicMock()
-    mock_semantic_layer.implementation.get_semantic_view.return_value = (
-        mock_semantic_view_impl
+    view: SemanticView = SemanticView(
+        name="Test View", configuration='{"tenant": "A", "key": "value"}'
     )
-    view.semantic_layer = mock_semantic_layer
-
-    # Clear cached property if it exists
-    if "implementation" in view.__dict__:
-        del view.__dict__["implementation"]
-
-    result = view.implementation
-
-    mock_semantic_layer.implementation.get_semantic_view.assert_called_once_with(
-        "Test View",
-        {"key": "value"},
+    view.semantic_layer = SemanticLayer()
+    equivalent: SemanticView = SemanticView(
+        name="Test View",
+        configuration='{"key": "value", "tenant": "A"}',
+        semantic_layer=view.semantic_layer,
     )
-    assert result == mock_semantic_view_impl
+    different: SemanticView = SemanticView(
+        name="Test View",
+        configuration='{"tenant": "B", "key": "value"}',
+        semantic_layer=view.semantic_layer,
+    )
+    provider: MagicMock = MagicMock()
+    first: MagicMock = MagicMock()
+    second: MagicMock = MagicMock()
+    provider.get_semantic_view.side_effect = [first, second]
+    memo: SemanticBindingMemo = SemanticBindingMemo()
+    mocker.patch.object(SemanticBindingMemo, "for_layer", return_value=memo)
+    mocker.patch.object(memo, "bind", return_value=(provider, {}))
+    assert view.implementation is first
+    assert view.implementation is first
+    assert equivalent.implementation is first
+    provider.get_semantic_view.assert_called_once_with(
+        "Test View", {"tenant": "A", "key": "value"}
+    )
+    assert different.implementation is second
+    assert different.implementation is not first
+    assert provider.get_semantic_view.call_count == 2
+    provider.get_semantic_view.assert_called_with(
+        "Test View", {"tenant": "B", "key": "value"}
+    )
 
 
 def test_semantic_view_get_compatible_metrics(
@@ -2145,6 +2329,56 @@ def test_semantic_layer_rename_cascades_to_slice_perms(app: Any) -> None:
         db.session.rollback()
 
 
+def test_semantic_layer_rename_then_chart_write_keeps_slice_perm(app: Any) -> None:
+    """A chart written after a layer rename gets the view's new perm.
+
+    The rename rewrites the view and chart perms through the connection. The
+    chart's update hook then copies the perm from the view instance loaded
+    before the rename, so that instance must hold the new perm.
+    """
+    from superset.extensions import db
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    layer = SemanticLayer()
+    layer.name = "Old Write Layer"
+    layer.uuid = uuid.UUID("eeee1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Write View"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On write view",
+        datasource_type=DatasourceType.SEMANTIC_VIEW,
+        datasource_id=view.id,
+        datasource_name="Write View",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        layer.name = "New Write Layer"
+        db.session.flush()
+
+        # The chart loads after the rename; the view stays loaded from before.
+        db.session.expire(chart)
+        chart.slice_name = "On write view (edited)"
+        db.session.flush()
+
+        db.session.refresh(chart)
+        assert chart.perm == f"[New Write Layer].[Write View](id:{view.id})"
+    finally:
+        db.session.rollback()
+
+
 # =============================================================================
 # build_semantic_view_query dual perm tests
 # =============================================================================
@@ -2673,6 +2907,44 @@ def test_values_search_failure_never_retries_without_filter(
     assert mock_implementation.get_values.call_args.args[1] is not None
 
 
+@pytest.mark.parametrize(
+    "method", ["get_compatible_metrics", "get_compatible_dimensions"]
+)
+@pytest.mark.parametrize("ambiguous", [False, True])
+def test_compatibility_resolves_grain_variants(method: str, ambiguous: bool) -> None:
+    """Both compatibility projections use default identities and reject collisions."""
+    raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
+    month: Dimension = Dimension(
+        "month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+    )
+    duplicate: Dimension = Dimension(
+        "other-month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+    )
+    catalog: tuple[Dimension, ...] = (
+        (raw, month, duplicate) if ambiguous else (raw, month)
+    )
+    implementation: MagicMock = MagicMock()
+    implementation.get_metrics.return_value = set()
+    provider_method: MagicMock = getattr(implementation, method)
+    provider_method.return_value = set()
+    view: SemanticView = SemanticView()
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=implementation,
+    ):
+        for ordering in permutations(catalog):
+            implementation.get_dimensions.return_value = ordering
+            if ambiguous:
+                with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+                    getattr(view, method)([], ["event_time"])
+                provider_method.assert_not_called()
+            else:
+                assert getattr(view, method)([], ["event_time"]) == []
+                assert provider_method.call_args.args[1] == {raw}
+
+
 def test_semantic_view_data_row_offset_capability(
     mock_implementation: MagicMock,
     semantic_view: SemanticView,
@@ -2722,6 +2994,7 @@ def test_values_search_translates_provider_completeness_error(
 @pytest.mark.parametrize("version", [None, "metricflow-completeness-v1"])
 def test_result_generation_reads_class_without_provider_construction(
     version: str | None,
+    explicit_model_namespace: None,
 ) -> None:
     provider: MagicMock = MagicMock()
     provider.result_cache_version = version
@@ -3169,3 +3442,81 @@ def test_values_rejection_logs_view_and_dimension(
     assert "INVALID_FILTER" in caplog.text
     assert "private-search" not in caplog.text
     mock_implementation.get_values.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "declarations", [None, 7, "GROUP_LIMIT", {"GROUP_LIMIT": True}]
+)
+def test_semantic_view_data_ignores_malformed_features(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+    declarations: object,
+) -> None:
+    """Invalid feature containers grant nothing and cannot break metadata."""
+    mock_implementation.features = declarations
+    data: ExplorableData = semantic_view.data
+    assert data["semantic_view_features"] == []
+
+
+@pytest.mark.parametrize(
+    "declarations",
+    [
+        None,
+        [
+            "GROUP_LIMIT",
+            7,
+            SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS,
+            SemanticViewFeature.GROUP_LIMIT,
+        ],
+    ],
+)
+def test_semantic_view_api_and_model_feature_parity(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+    declarations: object,
+) -> None:
+    """Datasource info advertises exactly the model's supported grants."""
+    from inspect import unwrap
+
+    from superset.datasource.api import DatasourceRestApi
+
+    mock_implementation.features = declarations
+    api: DatasourceRestApi = DatasourceRestApi()
+    resolved: MagicMock = MagicMock(explorable=semantic_view)
+    with (
+        patch.object(api, "_resolve_for_query", return_value=resolved),
+        patch.object(api, "response") as response,
+    ):
+        unwrap(DatasourceRestApi.datasource_info)(api, "semantic_view", 1)
+    assert response.call_args.args == (200,)
+    payload: dict[str, Any] = response.call_args.kwargs["result"]
+    assert payload["capabilities"]["features"] == payload["semantic_view_features"]
+    assert payload["semantic_view_features"] == (
+        [] if declarations is None else ["GROUP_LIMIT"]
+    )
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_temporal_preference_survives_grain_variant_order(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+    reverse: bool,
+) -> None:
+    """The exposed default and choices do not depend on catalog variant order."""
+    dimensions: list[Dimension] = [
+        Dimension(id="week", name="order_date", type=pa.date32(), grain=Grains.WEEK),
+        Dimension(id="ship", name="ship_date", type=pa.date32()),
+        Dimension(id="order", name="order_date", type=pa.date32()),
+    ]
+    mock_implementation.get_dimensions.return_value = (
+        list(reversed(dimensions)) if reverse else dimensions
+    )
+    mock_implementation.preferred_temporal_dimension = "order_date"
+
+    data: ExplorableData = semantic_view.data
+
+    assert data["main_dttm_col"] == "order_date"
+    assert sorted(data["granularity_sqla"]) == [
+        ("order_date", "order_date"),
+        ("ship_date", "ship_date"),
+    ]

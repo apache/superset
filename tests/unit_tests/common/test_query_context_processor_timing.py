@@ -14,14 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+from flask import current_app
+from flask_caching import Cache
+from flask_caching.backends import NullCache, SimpleCache
 
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.utils.query_cache_manager import QueryCacheManager
+from superset.constants import CacheRegion
+from superset.exceptions import CacheLoadError
 
 
 def _query_timing() -> QueryTiming:
@@ -338,3 +345,265 @@ def test_dataframe_payload_result_resolves_force_and_timeout_onto_query_object(
     assert query_obj.cache_timeout == -1
     cache_manager.get.assert_called_once()
     assert cache_manager.get.call_args.kwargs["force_query"] is True
+
+
+def _cache(is_loaded: bool) -> MagicMock:
+    cache: MagicMock = MagicMock()
+    cache.is_loaded = is_loaded
+    cache.is_cached = is_loaded
+    cache.df = pd.DataFrame({"col1": [1]})
+    cache.cache_dttm = "2026-01-01T00:00:00" if is_loaded else None
+    cache.queried_dttm = "2026-01-01T00:00:00"
+    cache.applied_template_filters = []
+    cache.applied_filter_columns = []
+    cache.rejected_filter_columns = []
+    cache.annotation_data = {}
+    cache.error_message = None
+    cache.query = "SELECT 1"
+    cache.status = QueryStatus.SUCCESS
+    cache.stacktrace = None
+    cache.sql_rowcount = 1
+    cache.bq_memory_limited = False
+    cache.bq_memory_limited_row_count = 0
+    return cache
+
+
+def _emitted(stats_logger: MagicMock) -> tuple[set[str], set[str]]:
+    timers = {call.args[0] for call in stats_logger.timing.call_args_list}
+    counters = {call.args[0] for call in stats_logger.incr.call_args_list}
+    return timers, counters
+
+
+@pytest.mark.parametrize(
+    ("is_loaded", "timeout", "expected_counter"),
+    [
+        (True, 300, "chart_data.cache.hit"),
+        (False, 300, "chart_data.cache.miss"),
+        (False, -1, "chart_data.cache.bypass"),
+    ],
+)
+@patch("superset.utils.timing_metrics.stats_logger_manager")
+@patch("superset.common.query_context_processor.QueryCacheManager")
+def test_dataframe_payload_result_emits_cache_outcome(
+    cache_manager: MagicMock,
+    stats_logger_manager: MagicMock,
+    is_loaded: bool,
+    timeout: int,
+    expected_counter: str,
+) -> None:
+    cache_manager.get.return_value = _cache(is_loaded)
+    processor: QueryContextProcessor = _processor()
+    with (
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=timeout),
+        patch.object(processor, "get_query_result", return_value=MagicMock()),
+        patch.object(processor, "get_annotation_data", return_value={}),
+    ):
+        processor.get_df_payload_result(_query_obj())
+
+    timers, counters = _emitted(stats_logger_manager.instance)
+    assert counters == {expected_counter}
+    # A bypass never reads the cache backend, so it has no read timing.
+    assert ("chart_data.cache.get" in timers) is (
+        expected_counter != "chart_data.cache.bypass"
+    )
+    assert {
+        "chart_data.cache.key",
+        "chart_data.query.planning",
+        "chart_data.query.payload_assembly",
+        "chart_data.query.total",
+    } <= timers
+    # Datasource time is only measured when the datasource was queried.
+    assert ("chart_data.query.data_acquisition" in timers) is (not is_loaded)
+    assert ("chart_data.query.annotations" in timers) is (not is_loaded)
+
+
+@pytest.mark.parametrize(
+    ("status", "timeout", "backend", "config", "expect_write"),
+    [
+        (QueryStatus.SUCCESS, 60, "simple", {}, True),
+        (QueryStatus.FAILED, 60, "simple", {}, False),
+        (QueryStatus.SUCCESS, 60, "null", {}, False),
+        (QueryStatus.SUCCESS, -1, "simple", {}, False),
+        # A ``None`` timeout resolving to a disabled default skips the write.
+        (QueryStatus.SUCCESS, None, "simple", {"CACHE_DEFAULT_TIMEOUT": -1}, False),
+        (QueryStatus.SUCCESS, 60, "simple", {"DATA_CACHE_MAX_VALUE_SIZE": 1}, False),
+    ],
+)
+@patch("superset.utils.timing_metrics.stats_logger_manager")
+def test_cache_set_timed_only_for_cache_writes(
+    stats_logger_manager: MagicMock,
+    status: QueryStatus,
+    timeout: int | None,
+    backend: str,
+    config: dict[str, Any],
+    expect_write: bool,
+    app_context: None,
+) -> None:
+    """Only writes that reach the cache backend are timed."""
+    query_result: MagicMock = MagicMock()
+    query_result.status = status
+    query_result.df = pd.DataFrame({"col1": [1]})
+    region_cache: MagicMock = MagicMock()
+    region_cache.cache = NullCache() if backend == "null" else SimpleCache()
+
+    with (
+        patch.dict(
+            "superset.common.utils.query_cache_manager._cache",
+            {CacheRegion.DEFAULT: region_cache},
+        ),
+        patch.dict(
+            current_app.config,
+            {"STORE_CACHE_KEYS_IN_METADATA_DB": False, **config},
+        ),
+    ):
+        QueryCacheManager().set_query_result(
+            key="key", query_result=query_result, timeout=timeout
+        )
+
+    timers, _ = _emitted(stats_logger_manager.instance)
+    assert region_cache.set.called is expect_write
+    assert ("chart_data.cache.set" in timers) is expect_write
+
+
+@patch("superset.utils.timing_metrics.stats_logger_manager")
+def test_cache_set_timed_when_backend_write_raises(
+    stats_logger_manager: MagicMock, app_context: None
+) -> None:
+    """A failing backend write is still part of the write distribution."""
+    query_result: MagicMock = MagicMock()
+    query_result.status = QueryStatus.SUCCESS
+    query_result.df = pd.DataFrame({"col1": [1]})
+    region_cache: MagicMock = MagicMock()
+    region_cache.cache = SimpleCache()
+    region_cache.set.side_effect = RuntimeError("backend down")
+
+    with patch.dict(
+        "superset.common.utils.query_cache_manager._cache",
+        {CacheRegion.DEFAULT: region_cache},
+    ):
+        manager = QueryCacheManager()
+        manager.set_query_result(key="key", query_result=query_result, timeout=60)
+
+    timers, _ = _emitted(stats_logger_manager.instance)
+    assert "chart_data.cache.set" in timers
+    assert manager.result_persisted is False
+
+
+def _null_cache() -> Cache:
+    cache = Cache()
+    cache.init_app(current_app, config={"CACHE_TYPE": "NullCache"})
+    return cache
+
+
+@patch("superset.utils.timing_metrics.stats_logger_manager")
+def test_cache_outcome_is_bypass_with_null_cache_backend(
+    stats_logger_manager: MagicMock, app_context: None
+) -> None:
+    """The default NullCache data cache is a bypass, not a miss."""
+    processor: QueryContextProcessor = _processor()
+    with (
+        patch.dict(
+            "superset.common.utils.query_cache_manager._cache",
+            {CacheRegion.DATA: _null_cache()},
+        ),
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch.object(processor, "get_query_result", return_value=MagicMock()),
+        patch.object(processor, "get_annotation_data", return_value={}),
+        patch.object(QueryCacheManager, "set_query_result"),
+    ):
+        processor.get_df_payload_result(_query_obj())
+
+    timers, counters = _emitted(stats_logger_manager.instance)
+    assert counters == {"chart_data.cache.bypass"}
+    assert "chart_data.cache.get" not in timers
+
+
+def test_reads_backend_is_false_for_null_cache(app_context: None) -> None:
+    with patch.dict(
+        "superset.common.utils.query_cache_manager._cache",
+        {CacheRegion.DATA: _null_cache()},
+    ):
+        assert QueryCacheManager.reads_backend(CacheRegion.DATA) is False
+    simple: MagicMock = MagicMock()
+    simple.cache = SimpleCache()
+    with patch.dict(
+        "superset.common.utils.query_cache_manager._cache",
+        {CacheRegion.DATA: simple},
+    ):
+        assert QueryCacheManager.reads_backend(CacheRegion.DATA) is True
+
+
+def test_force_cached_on_null_cache_raises_cache_load_error(
+    app_context: None,
+) -> None:
+    """A forced-cache read against NullCache still fails instead of loading."""
+    with (
+        patch.dict(
+            "superset.common.utils.query_cache_manager._cache",
+            {CacheRegion.DATA: _null_cache()},
+        ),
+        pytest.raises(CacheLoadError),
+    ):
+        QueryCacheManager.get(key="key", region=CacheRegion.DATA, force_cached=True)
+
+
+@pytest.mark.parametrize(
+    ("backend", "expected_counter"),
+    [("simple", "chart_data.cache.miss"), ("null", "chart_data.cache.bypass")],
+)
+@patch("superset.utils.timing_metrics.stats_logger_manager")
+def test_forced_cache_miss_emits_cache_outcome(
+    stats_logger_manager: MagicMock,
+    backend: str,
+    expected_counter: str,
+    app_context: None,
+) -> None:
+    """A force_cached probe that finds nothing still counts its outcome."""
+    region_cache: Cache | MagicMock
+    if backend == "null":
+        region_cache = _null_cache()
+    else:
+        region_cache = MagicMock()
+        region_cache.cache = SimpleCache()
+        region_cache.get.return_value = None
+    processor: QueryContextProcessor = _processor()
+    with (
+        patch.dict(
+            "superset.common.utils.query_cache_manager._cache",
+            {CacheRegion.DATA: region_cache},
+        ),
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        pytest.raises(CacheLoadError),
+    ):
+        processor.get_df_payload_result(_query_obj(), force_cached=True)
+
+    timers, counters = _emitted(stats_logger_manager.instance)
+    assert expected_counter in counters
+    assert ("chart_data.cache.get" in timers) is (backend == "simple")
+
+
+@patch("superset.utils.timing_metrics.stats_logger_manager")
+@patch("superset.common.query_context_processor.QueryCacheManager")
+def test_query_timers_emitted_when_acquisition_raises(
+    cache_manager: MagicMock, stats_logger_manager: MagicMock
+) -> None:
+    cache_manager.get.return_value = _cache(False)
+    processor: QueryContextProcessor = _processor()
+    with (
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch.object(processor, "get_query_result", side_effect=RuntimeError("boom")),
+        pytest.raises(RuntimeError),
+    ):
+        processor.get_df_payload_result(_query_obj())
+
+    timers, _ = _emitted(stats_logger_manager.instance)
+    assert {
+        "chart_data.query.planning",
+        "chart_data.query.data_acquisition",
+        "chart_data.query.total",
+    } <= timers
+    assert "chart_data.query.payload_assembly" not in timers

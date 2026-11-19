@@ -131,7 +131,11 @@ export interface NativeFilterConfig {
   name: string;
   filterType: string;
   type: string;
-  targets: Array<{ datasetId: number; column: { name: string } }>;
+  targets: Array<{
+    datasetId: number;
+    datasourceType?: 'semantic_view';
+    column: { name: string };
+  }>;
   controlValues: Record<string, boolean>;
   defaultDataMask: DataMask;
   cascadeParentIds: string[];
@@ -142,6 +146,11 @@ export interface NativeFilterConfig {
 interface SelectFilterOptions {
   /** Dataset backing the filtered column. */
   datasetId: number;
+  /**
+   * Set for a semantic view, whose id shares a number space with datasets;
+   * the UI saves this on semantic-view targets. Omit for a SQL dataset.
+   */
+  datasourceType?: 'semantic_view';
   /** Column the filter targets. */
   column: string;
   /** Charts the filter applies to. */
@@ -176,6 +185,7 @@ export function buildSelectFilter(
 ): NativeFilterConfig {
   const {
     datasetId,
+    datasourceType,
     column,
     chartsInScope,
     name,
@@ -188,7 +198,13 @@ export function buildSelectFilter(
     name: name ?? column,
     filterType: 'filter_select',
     type: 'NATIVE_FILTER',
-    targets: [{ datasetId, column: { name: column } }],
+    targets: [
+      {
+        datasetId,
+        ...(datasourceType && { datasourceType }),
+        column: { name: column },
+      },
+    ],
     controlValues: {
       multiSelect: false,
       enableEmptyFilter: false,

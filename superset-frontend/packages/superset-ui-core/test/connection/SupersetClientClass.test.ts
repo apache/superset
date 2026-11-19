@@ -595,7 +595,10 @@ describe('SupersetClientClass', () => {
         error = err;
       } finally {
         const redirectURL = window.location.href;
-        expect(redirectURL).toBe(`/login?next=${mockHref}`);
+        expect(redirectURL).toBe(`/login?next=${encodeURIComponent(mockHref)}`);
+        expect(
+          new URL(redirectURL, 'https://host').searchParams.get('next'),
+        ).toBe(mockHref);
         expect(error.status).toBe(401);
       }
     });

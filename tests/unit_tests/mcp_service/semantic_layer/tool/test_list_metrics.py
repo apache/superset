@@ -22,19 +22,20 @@ from __future__ import annotations
 import contextlib
 import importlib
 from collections.abc import Generator
-from types import MethodType, ModuleType
+from types import ModuleType
 from typing import Any
-from unittest.mock import call, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, call, MagicMock, Mock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
-from fastmcp import Client, FastMCP
+from fastmcp import Client, Context, FastMCP
+from fastmcp.client.client import CallToolResult
 from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 from superset_core.semantic_layers.types import Dimension, Grains
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.mcp_service.app import mcp
 from superset.mcp_service.constants import DEFAULT_MAX_RESPONSE_BYTES
 from superset.mcp_service.middleware import (
@@ -43,6 +44,7 @@ from superset.mcp_service.middleware import (
 )
 from superset.mcp_service.semantic_layer.schemas import ListMetricsRequest
 from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
@@ -145,14 +147,27 @@ def large_metric_catalog() -> Generator[MagicMock, None, None]:
     view.implementation.get_dimensions.return_value = dimensions
     view.implementation.get_metrics.return_value = []
     view.implementation.get_compatible_dimensions.return_value = dimensions
-    view.get_compatible_dimensions.side_effect = MethodType(
-        SemanticView.get_compatible_dimensions, view
-    )
+    semantic_view: SemanticView = SemanticView()
     dataset: MagicMock = _make_dataset(1)
     dataset.metrics = [_make_metric(f"builtin_{i}") for i in range(20)]
     dataset.columns = [_make_column(f"column_{i}") for i in range(30)]
     view_dao: MagicMock
-    with _patched_dataset_search([dataset]) as (_, view_dao, _):
+    # `implementation` is a plain (non-settable) property resolved through
+    # `SemanticBindingMemo`; patch it directly rather than assigning to it, and
+    # keep the patch alive across the yield since `get_compatible_dimensions`
+    # reads `self.implementation` again when the test later invokes it.
+    with (
+        patch.object(
+            SemanticView,
+            "implementation",
+            new_callable=PropertyMock,
+            return_value=view.implementation,
+        ),
+        _patched_dataset_search([dataset]) as (_, view_dao, _),
+    ):
+        view.get_compatible_dimensions.side_effect = (
+            semantic_view.get_compatible_dimensions
+        )
         view_dao.find_accessible.return_value = [view]
         view_dao.find_by_id.return_value = view
         yield view
@@ -763,3 +778,218 @@ async def test_list_metrics_page_beyond_last_page_returns_empty(
     assert data["total_count"] == 2
     assert data["page"] == 9999
     assert data["total_pages"] == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error_class", [RuntimeError, QueryObjectValidationError])
+async def test_list_metrics_unexpected_error_is_sanitized(
+    mcp_server: FastMCP,
+    error_class: type[Exception],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Outer failures retain diagnostics only in server logs, not MCP messages."""
+    error: Exception = error_class("provider-private-detail")
+    message: str = "Unable to retrieve metrics."
+    notify: AsyncMock
+    client: Client
+    with (
+        patch.object(list_metrics_module.DatasetDAO, "find_by_id", side_effect=error),
+        patch.object(Context, "error", new_callable=AsyncMock) as notify,
+    ):
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "list_metrics", {"request": {"dataset_id": 42}}
+            )
+        data: dict[str, object] = json.loads(result.content[0].text)
+
+    assert data["success"] is False
+    assert data["error_type"] == "InternalError"
+    assert data["error"] == message
+    assert data["message"] == message
+    assert "provider-private-detail" not in str(result)
+    notify.assert_awaited_once_with(message)
+    assert f"{error_class.__name__}: provider-private-detail" in caplog.text
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error_class", [RuntimeError, QueryObjectValidationError, AmbiguousDimensionError]
+)
+@pytest.mark.parametrize("failure_site", ["columns", "compatibility"])
+async def test_list_metrics_partial_failure_keeps_only_safe_warning(
+    mcp_server: FastMCP,
+    error_class: type[Exception],
+    failure_site: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """One broken view does not hide healthy metrics or expose provider details."""
+    safe: bool = error_class is AmbiguousDimensionError
+    detail: str = (
+        "Semantic dimension 'x' has ambiguous variants for grain 'day'."
+        if safe
+        else "provider-private-detail"
+    )
+    error: Exception = error_class(detail)
+    view: MagicMock = _make_view(5)
+    healthy_view: MagicMock = _make_view(6)
+    if failure_site == "compatibility":
+        view.get_compatible_dimensions.side_effect = error
+    warning: AsyncMock
+    notify: AsyncMock
+    daos: tuple[MagicMock, MagicMock, MagicMock]
+    client: Client
+    with (
+        _patched_dataset_search([]) as daos,
+        patch.object(
+            type(view),
+            "columns",
+            new_callable=PropertyMock,
+            create=True,
+            return_value=view.columns,
+            side_effect=error if failure_site == "columns" else None,
+        ),
+        patch.object(Context, "warning", new_callable=AsyncMock) as warning,
+        patch.object(Context, "error", new_callable=AsyncMock) as notify,
+    ):
+        daos[1].find_accessible.return_value = [view, healthy_view]
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "list_metrics",
+                {"request": {"include_compatible_dimensions": True, "page_size": 4}},
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["total_count"] == 2
+    assert data["incomplete"] is True
+    assert data["refused_views"] == []
+    assert {metric["view_id"] for metric in data["metrics"]} == {6}
+    assert {metric["name"] for metric in data["metrics"]} == {"bookings", "revenue"}
+    notify.assert_not_awaited()
+    if safe:
+        warning.assert_awaited_once_with(
+            f"Could not load metrics for view id=5: {detail}"
+        )
+    else:
+        warning.assert_awaited_once_with(
+            "Unable to retrieve metrics for semantic view id=5."
+        )
+        assert "provider-private-detail" not in str(result)
+        assert f"{error_class.__name__}: provider-private-detail" in caplog.text
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scoped", [False, True])
+@pytest.mark.parametrize("failure_site", ["metrics", "columns", "compatibility"])
+async def test_list_metrics_refusal_over_http(
+    mcp_server: FastMCP, scoped: bool, failure_site: str
+) -> None:
+    """Unscoped discovery marks refusals; scoped requests still fail closed."""
+    from tests.unit_tests.mcp_service.test_mcp_e2e_smoke import _asgi_client
+
+    message: str = "This data source can't be queried in the current context."
+    refusal: SupersetSecurityException = SupersetSecurityException(
+        SupersetError(
+            message=message,
+            error_type=SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"reason": "method_not_supported"},
+        )
+    )
+    view: MagicMock = _make_view(5)
+    if failure_site == "compatibility":
+        view.get_compatible_dimensions.side_effect = [["channel"], refusal]
+    else:
+        setattr(type(view), failure_site, PropertyMock(side_effect=refusal))
+    request: dict[str, object] = {"include_compatible_dimensions": True, "page_size": 4}
+    if scoped:
+        request["view_id"] = 5
+    daos: tuple[MagicMock, MagicMock, MagicMock]
+    client: Client
+    with _patched_dataset_search([_make_dataset()]) as daos:
+        daos[1].find_accessible.return_value = [_make_view(6), view]
+        daos[1].find_by_id.return_value = view
+        async with _asgi_client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "list_metrics", {"request": request}
+            )
+    data: dict[str, Any] = json.loads(result.content[0].text)
+    if scoped:
+        assert data["success"] is False
+        assert data["error_type"] == "AccessDenied"
+        assert data["error"] == message
+        assert "metrics" not in data
+        assert "refused_views" not in data
+        view.raise_for_access.assert_called_once()
+    else:
+        assert data["success"] is True
+        assert data["incomplete"] is True
+        assert data["refused_views"] == [{"view_id": 5}]
+        assert data["total_count"] == 4
+        assert len(data["metrics"]) == 4
+        assert {metric["source"] for metric in data["metrics"]} == {
+            "builtin",
+            "external",
+        }
+        assert {
+            metric["view_id"]
+            for metric in data["metrics"]
+            if metric["source"] == "external"
+        } == {6}
+        assert "method_not_supported" not in str(result)
+        assert "view_5" not in str(result)
+        view.raise_for_access.assert_not_called()
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("page", [1, 2, 3])
+@pytest.mark.parametrize("has_usable_metrics", [True, False])
+async def test_partial_catalog_paginates_only_usable_metrics(
+    mcp_server: FastMCP, page: int, has_usable_metrics: bool
+) -> None:
+    """Refusal markers survive pagination, including an entirely refused catalog."""
+    view: MagicMock = _make_view(5)
+    type(view).metrics = PropertyMock(
+        side_effect=_access_denied_exc("private-provider-detail")
+    )
+    daos: tuple[MagicMock, MagicMock, MagicMock]
+    client: Client
+    with _patched_dataset_search(
+        [_make_dataset()] if has_usable_metrics else []
+    ) as daos:
+        daos[1].find_accessible.return_value = (
+            [view, _make_view(6)] if has_usable_metrics else [view]
+        )
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "list_metrics", {"request": {"page": page, "page_size": 2}}
+            )
+    data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is True
+    assert data["incomplete"] is True
+    assert data["refused_views"] == [{"view_id": 5}]
+    assert data["total_count"] == (4 if has_usable_metrics else 0)
+    assert data["total_pages"] == (2 if has_usable_metrics else 1)
+    assert len(data["metrics"]) == (2 if has_usable_metrics and page < 3 else 0)
+    assert "private-provider-detail" not in str(result)
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+async def test_complete_catalog_has_no_refusals(mcp_server: FastMCP) -> None:
+    """Healthy discovery explicitly distinguishes a complete catalog."""
+    client: Client
+    daos: tuple[MagicMock, MagicMock, MagicMock]
+    with _patched_dataset_search([_make_dataset()]) as daos:
+        daos[1].find_accessible.return_value = [_make_view(6)]
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "list_metrics", {"request": {}}
+            )
+    data: dict[str, Any] = json.loads(result.content[0].text)
+    assert {metric["source"] for metric in data["metrics"]} == {"builtin", "external"}
+    assert data["incomplete"] is False
+    assert data["refused_views"] == []

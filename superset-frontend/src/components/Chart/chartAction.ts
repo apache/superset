@@ -17,7 +17,9 @@
  * under the License.
  */
 /* eslint no-param-reassign: ["error", { "props": false }] */
+import { nanoid } from 'nanoid';
 import {
+  ErrorTypeEnum,
   FeatureFlag,
   isDefined,
   SupersetClient,
@@ -48,6 +50,7 @@ import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
+import { releaseFilterKeyPublish } from 'src/dashboard/util/sharedFilterStateHold';
 import { AsyncJob, waitForAsyncData } from 'src/middleware/asyncEvent';
 import { getTabId } from 'src/hooks/useTabId';
 import {
@@ -128,6 +131,9 @@ export interface ChartUpdateStartedAction {
   queryController: AbortController;
   latestQueryFormData: QueryFormData | LatestQueryFormData;
   key: string | number;
+  // Client-generated id sent with the chart-data request, so the query can be
+  // cancelled server-side (not just aborted client-side) while it is running.
+  latestQueryId?: string;
 }
 
 export interface ChartUpdateSucceededAction {
@@ -295,6 +301,9 @@ export interface GetChartDataRequestParams {
   queryForceNonces?: string[];
   requestParams?: RequestParams;
   ownState?: JsonObject;
+  // Client-generated id for this query, echoed into the chart-data payload as
+  // `client_id` so the backend can register the query and later cancel it.
+  clientId?: string;
   // Opt into asynchronous execution. Only set by callers that handle an HTTP 202
   // task response (via requestChartDataResolved / handleChartDataResponse);
   // direct consumers that read `response.json.result` must leave this false so
@@ -334,12 +343,14 @@ export function chartUpdateStarted(
   queryController: AbortController,
   latestQueryFormData: QueryFormData | LatestQueryFormData,
   key: string | number,
+  latestQueryId?: string,
 ): ChartUpdateStartedAction {
   return {
     type: CHART_UPDATE_STARTED,
     queryController,
     latestQueryFormData,
     key,
+    latestQueryId,
   };
 }
 
@@ -438,6 +449,7 @@ const v1ChartDataRequest = async (
   parseMethod: string | undefined,
   asyncMode: boolean,
   queryForceNonces?: string[],
+  clientId?: string,
 ): Promise<ChartDataRequestResponse> => {
   const payload = await buildV1ChartDataPayload({
     formData: formData as QueryFormData,
@@ -447,6 +459,7 @@ const v1ChartDataRequest = async (
     queryForceNonces,
     setDataMask,
     ownState,
+    clientId,
   });
 
   // The dashboard id is added to query params for tracking purposes
@@ -498,6 +511,7 @@ export async function getChartDataRequest({
   queryForceNonces,
   requestParams = {},
   ownState = {},
+  clientId,
   enableAsyncMode = false,
 }: GetChartDataRequestParams): Promise<ChartDataRequestResponse> {
   // Keep the async-mode inputs out of the request options: they resolve the
@@ -536,6 +550,7 @@ export async function getChartDataRequest({
     parseMethod,
     asyncMode,
     queryForceNonces,
+    clientId,
   );
 }
 
@@ -783,6 +798,39 @@ export function exploreJSON(
     dispatch: ChartThunkDispatch,
     getState: () => RootState,
   ): Promise<unknown[]> => {
+    // A saved chart with no datasource has no definition to query. This is how
+    // a chart the viewer may not read reaches the dashboard: the API withholds
+    // its form_data, leaving only the chart id. Fail it with an access error
+    // rather than let query building throw after the chart is marked as
+    // loading, which would leave it spinning forever.
+    if (isDefined(formData.slice_id) && !formData.datasource) {
+      // Cancel a query already running for this chart, so its late response
+      // cannot replace the error below with stale data.
+      if (key != null) {
+        getState().charts?.[key]?.queryController?.abort();
+      }
+      const message = t("You don't have access to this chart.");
+      dispatch(
+        chartUpdateFailed(
+          [
+            {
+              error: message,
+              errors: [
+                {
+                  error_type: ErrorTypeEnum.CHART_SECURITY_ACCESS_ERROR,
+                  message,
+                  level: 'warning',
+                  extra: {},
+                },
+              ],
+            },
+          ],
+          key as string | number,
+        ),
+      );
+      return [];
+    }
+
     const state = getState();
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
@@ -801,9 +849,30 @@ export function exploreJSON(
       requestParams.async_mode_override = asyncModeOverride;
 
     const setDataMask = (dataMask: DataMask): void => {
+      // A cross-filter is a filter change by the viewer; own-state updates
+      // such as table pagination are not.
+      if (
+        dataMask.filterState !== undefined ||
+        dataMask.extraFormData !== undefined
+      ) {
+        releaseFilterKeyPublish();
+      }
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
-    dispatch(chartUpdateStarted(controller, formData, key as string | number));
+    // Identifies this run to the backend so Stop can cancel the database query
+    // itself, not just abort the in-flight HTTP request. Matches SQL Lab's
+    // client id shape (see `postStopQuery`) and the `query.client_id` column.
+    // Only Explore offers Stop; dashboard charts carry a dashboard id, so they
+    // skip the id and the backend's per-query cancel bookkeeping.
+    const clientId = dashboardId ? undefined : nanoid(11);
+    dispatch(
+      chartUpdateStarted(
+        controller,
+        formData,
+        key as string | number,
+        clientId,
+      ),
+    );
     /**
      * Abort in-flight requests after the new controller has been stored in
      * state. Delaying ensures we do not mutate the Redux state between
@@ -822,6 +891,7 @@ export function exploreJSON(
         force,
         requestParams,
         ownState,
+        clientId,
       },
       controller.signal,
     )

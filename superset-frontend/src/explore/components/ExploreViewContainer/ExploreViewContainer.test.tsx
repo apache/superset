@@ -44,6 +44,8 @@ import { Store } from '@reduxjs/toolkit';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as chartActions from 'src/components/Chart/chartAction';
+import * as datasourceActions from 'src/dashboard/actions/datasources';
+import type { ExplorePageState } from 'src/explore/types';
 import ExploreViewContainer from '.';
 
 jest.doMock('@superset-ui/core', () => ({
@@ -163,16 +165,29 @@ jest.mock('../ControlPanelsContainer', () => ({
     errorMessage?: ReactNode;
     chartIsStale?: boolean;
   }) => {
+    const { RunQueryButton } = jest.requireActual('../RunQueryButton');
     const message = buttonErrorMessage ?? errorMessage;
 
     return (
       <div
         data-test="control-panels-container"
         data-stale={String(!!chartIsStale)}
+        data-has-button-error={String(!!buttonErrorMessage)}
+        data-has-data-tab-error={String(!!errorMessage)}
       >
-        <button type="button" onClick={onQuery}>
-          Update chart
-        </button>
+        {/* The real button, wired like ControlPanelsContainer wires it. It is
+            never in the loading state here: mounting queues a query and no
+            chart panel exists to resolve it, so the store stays 'loading'.
+            The stop path is therefore unreachable and its props are inert. */}
+        <RunQueryButton
+          onQuery={onQuery}
+          onStop={() => undefined}
+          errorMessage={buttonErrorMessage || errorMessage}
+          loading={false}
+          isNewChart={false}
+          canStopQuery={false}
+          chartIsStale={!!chartIsStale}
+        />
         {message && (
           <>
             <button type="button" data-test="query-error-tooltip-trigger">
@@ -1281,20 +1296,16 @@ test('automatic axis title margin adjustment changes X axis margin when title is
       exploreActions.setControlValue('x_axis_title', 'X Axis Label'),
     );
 
-    // Wait a bit to ensure useEffect has run
+    // Should call setControlValue since margin is less than 30, once the
+    // debounced margin effect settles
     await waitFor(() => {
-      expect(
-        screen.queryByTestId('query-error-tooltip-trigger'),
-      ).not.toBeInTheDocument();
+      expect(setControlValueSpy).toHaveBeenCalledWith(
+        'x_axis_title_margin',
+        30,
+        undefined,
+        { programmatic: true },
+      );
     });
-
-    // Should call setControlValue since margin is less than 30
-    expect(setControlValueSpy).toHaveBeenCalledWith(
-      'x_axis_title_margin',
-      30,
-      undefined,
-      { programmatic: true },
-    );
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
@@ -1385,20 +1396,16 @@ test('automatic axis title margin adjustment changes Y axis margin when title is
       exploreActions.setControlValue('y_axis_title', 'Y Axis Label'),
     );
 
-    // Wait a bit to ensure useEffect has run
+    // Should call setControlValue since margin is less than 30, once the
+    // debounced margin effect settles
     await waitFor(() => {
-      expect(
-        screen.queryByTestId('query-error-tooltip-trigger'),
-      ).not.toBeInTheDocument();
+      expect(setControlValueSpy).toHaveBeenCalledWith(
+        'y_axis_title_margin',
+        30,
+        undefined,
+        { programmatic: true },
+      );
     });
-
-    // Should call setControlValue since margin is less than 30
-    expect(setControlValueSpy).toHaveBeenCalledWith(
-      'y_axis_title_margin',
-      30,
-      undefined,
-      { programmatic: true },
-    );
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
@@ -1460,5 +1467,563 @@ test('automatic axis title margin adjustment handles both X and Y axis titles be
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
+  }
+});
+
+const getChart = (store: Store) =>
+  (
+    store.getState() as {
+      charts: Record<number, { triggerQuery?: boolean }>;
+    }
+  ).charts[1];
+
+// Renders the explore view, finishes the chart load that mounting starts and
+// clears the query it queues, so a test can tell whether its own interaction
+// queues one again.
+const renderWithClearedQuery = async () => {
+  const store = createStore(reduxState, reducerIndex);
+  renderWithRouter({ initialState: reduxState, store: store as Store });
+  await screen.findByTestId('control-panels-container');
+  act(() => {
+    store.dispatch(chartActions.chartUpdateSucceeded([], 1));
+    store.dispatch(chartActions.triggerQuery(false, 1));
+  });
+  return store as Store;
+};
+
+test.each([
+  ['Enter without a modifier', '{Enter}'],
+  ['Ctrl with another key', '{Control>}a{/Control}'],
+])('%s does not queue the chart query', async (_, keys) => {
+  setupTableChartControlPanel();
+  try {
+    const store = await renderWithClearedQuery();
+
+    await userEvent.keyboard(keys);
+
+    expect(getChart(store).triggerQuery).toBe(false);
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+const stateWithControls = (controls: object) => ({
+  ...reduxState,
+  explore: {
+    ...reduxState.explore,
+    controls: { ...reduxState.explore.controls, ...controls },
+  },
+});
+
+test('keeps the Run button enabled when no control has validation errors', async () => {
+  setupTableChartControlPanel();
+  try {
+    renderWithRouter({
+      initialState: stateWithControls({
+        metric: { value: 'count', label: 'Metric' },
+      }),
+    });
+
+    const panel = await screen.findByTestId('control-panels-container');
+    expect(panel).toHaveAttribute('data-has-button-error', 'false');
+    expect(screen.getByRole('button', { name: 'Update chart' })).toBeEnabled();
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('disables the Run button and reports the error when a control fails validation', async () => {
+  setupTableChartControlPanel();
+  try {
+    renderWithRouter({
+      initialState: stateWithControls({
+        metric: {
+          value: '',
+          label: 'Metric',
+          validationErrors: ['Metric is required'],
+        },
+      }),
+    });
+
+    const panel = await screen.findByTestId('control-panels-container');
+    expect(panel).toHaveAttribute('data-has-button-error', 'true');
+    expect(panel).toHaveAttribute('data-has-data-tab-error', 'true');
+    expect(screen.getByRole('button', { name: 'Update chart' })).toBeDisabled();
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'Control labeled Metric: Metric is required',
+    );
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('disables the Run button for a matrixify control error without flagging the Data tab', async () => {
+  setupTableChartControlPanel();
+  try {
+    renderWithRouter({
+      initialState: stateWithControls({
+        matrixify_rows: {
+          value: '',
+          label: 'Rows',
+          tabOverride: 'matrixify',
+          validationErrors: ['Rows are required'],
+        },
+      }),
+    });
+
+    const panel = await screen.findByTestId('control-panels-container');
+    expect(panel).toHaveAttribute('data-has-button-error', 'true');
+    expect(panel).toHaveAttribute('data-has-data-tab-error', 'false');
+    expect(screen.getByRole('button', { name: 'Update chart' })).toBeDisabled();
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+const tooltipState = (vizType: string, template = '') => ({
+  ...reduxState,
+  charts: {
+    1: {
+      ...reduxState.charts[1],
+      latestQueryFormData: {
+        ...reduxState.charts[1].latestQueryFormData,
+        viz_type: vizType,
+      },
+    },
+  },
+  explore: {
+    ...reduxState.explore,
+    form_data: { datasource: '1__table', viz_type: vizType, metrics: [] },
+    controls: {
+      ...reduxState.explore.controls,
+      viz_type: { value: vizType },
+      tooltip_contents: { value: [] },
+      tooltip_template: { value: template },
+    },
+  },
+});
+
+// Renders the container and returns a function that selects tooltip contents
+// the way the control would and reports the template the container wrote back.
+const renderTooltipChart = (vizType: string, template = '') => {
+  getChartControlPanelRegistry().registerValue(vizType, {
+    controlPanelSections: [],
+  });
+  const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+  const initialState = tooltipState(vizType, template);
+  const store = createStore(initialState, reducerIndex);
+  renderWithRouter({ initialState, store: store as Store });
+  setControlValueSpy.mockClear();
+  return {
+    selectTooltipContents: (contents: unknown[]) => {
+      act(() => {
+        store.dispatch(
+          exploreActions.setControlValue('tooltip_contents', contents),
+        );
+      });
+    },
+    templateWrites: () =>
+      setControlValueSpy.mock.calls
+        .filter(([controlName]) => controlName === 'tooltip_template')
+        .map(([, value]) => value),
+    storedTemplate: () =>
+      ((store as Store).getState() as ExplorePageState).explore.controls
+        .tooltip_template?.value,
+    cleanup: () => getChartControlPanelRegistry().remove(vizType),
+  };
+};
+
+test('appends a {{ field }} variable to the tooltip template for a selected column', () => {
+  const chart = renderTooltipChart('deck_scatter');
+  try {
+    chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
+
+    expect(chart.templateWrites()).toEqual(['{{ name }}']);
+    expect(chart.storedTemplate()).toBe('{{ name }}');
+  } finally {
+    chart.cleanup();
+  }
+});
+
+test('appends after the existing tooltip template text', () => {
+  const chart = renderTooltipChart('deck_scatter', 'Details:');
+  try {
+    chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
+
+    expect(chart.templateWrites()).toEqual(['Details: {{ name }}']);
+    expect(chart.storedTemplate()).toBe('Details: {{ name }}');
+  } finally {
+    chart.cleanup();
+  }
+});
+
+test('appends a limited variable for a column on an aggregated chart', () => {
+  const chart = renderTooltipChart('heatmap');
+  try {
+    chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
+
+    expect(chart.templateWrites()).toEqual(['{{ limit name 10 }}']);
+    expect(chart.storedTemplate()).toBe('{{ limit name 10 }}');
+  } finally {
+    chart.cleanup();
+  }
+});
+
+test('appends a plain variable for a metric even on an aggregated chart', () => {
+  const chart = renderTooltipChart('heatmap');
+  try {
+    chart.selectTooltipContents([
+      { item_type: 'metric', metric_name: 'count' },
+    ]);
+
+    expect(chart.templateWrites()).toEqual(['{{ count }}']);
+    expect(chart.storedTemplate()).toBe('{{ count }}');
+  } finally {
+    chart.cleanup();
+  }
+});
+
+test('leaves the tooltip template alone when it already references the field', () => {
+  const chart = renderTooltipChart('deck_scatter', 'Name: {{ name }}');
+  try {
+    chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
+
+    expect(chart.templateWrites()).toEqual([]);
+    expect(chart.storedTemplate()).toBe('Name: {{ name }}');
+  } finally {
+    chart.cleanup();
+  }
+});
+
+const datasourceState = {
+  ...reduxState,
+  explore: {
+    ...reduxState.explore,
+    form_data: { datasource: '1__table', viz_type: VizType.Table, metrics: [] },
+    controls: { ...reduxState.explore.controls, row_limit: { value: 100 } },
+  },
+};
+
+test('does not request datasource metadata when an unrelated control changes', () => {
+  setupTableChartControlPanel();
+  try {
+    const fetchMetadataSpy = jest.spyOn(
+      datasourceActions,
+      'fetchDatasourceMetadata',
+    );
+    const store = createStore(datasourceState, reducerIndex);
+    renderWithRouter({ initialState: datasourceState, store: store as Store });
+    fetchMetadataSpy.mockClear();
+
+    act(() => {
+      store.dispatch(exploreActions.setControlValue('row_limit', 200));
+    });
+
+    expect(fetchMetadataSpy).not.toHaveBeenCalled();
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+type Axis = 'x' | 'y';
+
+// Explore state for a Table chart whose `<axis>_axis_title` and
+// `<axis>_axis_title_margin` controls start at the given values.
+const axisTitleState = (axis: Axis, title: string, margin: number) => ({
+  ...reduxState,
+  explore: {
+    ...reduxState.explore,
+    form_data: {
+      datasource: '1__table',
+      viz_type: VizType.Table,
+      metrics: [],
+    },
+    controls: {
+      ...reduxState.explore.controls,
+      [`${axis}_axis_title`]: { value: title },
+      [`${axis}_axis_title_margin`]: { value: margin },
+    },
+  },
+});
+
+// The arguments of a programmatic margin write made by the container itself,
+// as opposed to the dispatches the tests make.
+const programmaticMarginWrite = (axis: Axis) => [
+  `${axis}_axis_title_margin`,
+  expect.anything(),
+  undefined,
+  { programmatic: true },
+];
+
+const controlValue = (store: Store, name: string) =>
+  (
+    store.getState() as unknown as {
+      explore: { controls: Record<string, { value: unknown }> };
+    }
+  ).explore.controls[name].value;
+
+const marginIn = (store: Store, axis: Axis) =>
+  controlValue(store, `${axis}_axis_title_margin`);
+
+test.each<Axis>(['x', 'y'])(
+  'automatic %s axis title margin adjustment ignores a transient empty value from a quick clear-and-retype',
+  async axis => {
+    setupTableChartControlPanel();
+    try {
+      const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+
+      // a custom margin above the default 30
+      const initialState = axisTitleState(axis, 'Axis Label', 75);
+      const store = createStore(initialState, reducerIndex);
+      renderWithRouter({ initialState, store: store as Store });
+
+      // Clear any calls from initial render
+      setControlValueSpy.mockClear();
+
+      // A transient axis title -- e.g. one cleared and then replaced, or one
+      // flushed on blur mid-edit -- can briefly pass an empty value through
+      // here before the retyped value settles. The margin effect must react
+      // to the settled value only, not this transient one, or it would zero
+      // out a custom margin and then bump it back to 30, losing the original
+      // 75.
+      // Commit the clear on its own so the margin effect actually sees the
+      // empty value, then retype inside the debounce window.
+      act(() => {
+        store.dispatch(
+          exploreActions.setControlValue(`${axis}_axis_title`, ''),
+        );
+      });
+      act(() => {
+        store.dispatch(
+          exploreActions.setControlValue(
+            `${axis}_axis_title`,
+            'Axis Label Redone',
+          ),
+        );
+      });
+
+      // Give the debounced margin effect more than its window to settle.
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      expect(setControlValueSpy).not.toHaveBeenCalledWith(
+        ...programmaticMarginWrite(axis),
+      );
+      expect(marginIn(store, axis)).toBe(75);
+    } finally {
+      getChartControlPanelRegistry().remove('table');
+      jest.restoreAllMocks();
+    }
+  },
+);
+
+test.each<Axis>(['x', 'y'])(
+  'automatic %s axis title margin adjustment yields to a margin picked inside the debounce window',
+  async axis => {
+    setupTableChartControlPanel();
+    try {
+      const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+
+      const initialState = axisTitleState(axis, '', 0);
+      const store = createStore(initialState, reducerIndex);
+      renderWithRouter({ initialState, store: store as Store });
+      setControlValueSpy.mockClear();
+
+      act(() => {
+        store.dispatch(
+          exploreActions.setControlValue(`${axis}_axis_title`, 'Axis Label'),
+        );
+      });
+      // the user picks a margin before the adjustment timer fires
+      act(() => {
+        store.dispatch(
+          exploreActions.setControlValue(`${axis}_axis_title_margin`, 15),
+        );
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      expect(setControlValueSpy).not.toHaveBeenCalledWith(
+        ...programmaticMarginWrite(axis),
+      );
+      expect(marginIn(store, axis)).toBe(15);
+    } finally {
+      getChartControlPanelRegistry().remove('table');
+      jest.restoreAllMocks();
+    }
+  },
+);
+
+test.each<Axis>(['x', 'y'])(
+  'automatic %s axis title margin adjustment is dropped when the viz type changes inside the debounce window',
+  async axis => {
+    setupTableChartControlPanel();
+    // A second viz with the same axis title and margin controls, so the
+    // title carries over and the margin stays 0 across the switch. Only the
+    // viz type snapshot then tells the pending adjustment it no longer
+    // applies; a viz whose margin differs is already caught by the margin
+    // snapshot.
+    getChartControlPanelRegistry().registerValue('fake_viz', {
+      controlPanelSections: [
+        {
+          label: 'Chart Options',
+          expanded: true,
+          controlSetRows: [
+            [
+              {
+                name: `${axis}_axis_title`,
+                config: { type: 'TextControl', label: 'Title', default: '' },
+              },
+            ],
+            [
+              {
+                name: `${axis}_axis_title_margin`,
+                config: {
+                  type: 'TextControl',
+                  label: 'Margin',
+                  isInt: true,
+                  default: 0,
+                  renderTrigger: true,
+                },
+              },
+            ],
+          ],
+        },
+      ],
+    });
+    try {
+      const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+
+      const initialState = axisTitleState(axis, '', 0);
+      const store = createStore(initialState, reducerIndex);
+      renderWithRouter({ initialState, store: store as Store });
+      setControlValueSpy.mockClear();
+
+      act(() => {
+        store.dispatch(
+          exploreActions.setControlValue(`${axis}_axis_title`, 'Axis Label'),
+        );
+      });
+      // switch viz before the adjustment timer fires
+      act(() => {
+        store.dispatch(exploreActions.setControlValue('viz_type', 'fake_viz'));
+      });
+      expect(controlValue(store, `${axis}_axis_title`)).toBe('Axis Label');
+      expect(marginIn(store, axis)).toBe(0);
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // the adjustment was scheduled against the Table chart, not this one
+      expect(setControlValueSpy).not.toHaveBeenCalledWith(
+        ...programmaticMarginWrite(axis),
+      );
+      expect(marginIn(store, axis)).toBe(0);
+    } finally {
+      getChartControlPanelRegistry().remove('table');
+      getChartControlPanelRegistry().remove('fake_viz');
+      jest.restoreAllMocks();
+    }
+  },
+);
+
+test.each<Axis>(['x', 'y'])(
+  'automatic %s axis title margin adjustment restarts its window on every title edit',
+  async axis => {
+    setupTableChartControlPanel();
+    jest.useFakeTimers();
+    try {
+      const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+
+      const initialState = axisTitleState(axis, 'Axis Label', 75);
+      const store = createStore(initialState, reducerIndex);
+      renderWithRouter({ initialState, store: store as Store });
+      setControlValueSpy.mockClear();
+
+      const setTitle = (title: string) =>
+        act(() => {
+          store.dispatch(
+            exploreActions.setControlValue(`${axis}_axis_title`, title),
+          );
+        });
+
+      // Each edit must restart the window. If it did not, the timer from
+      // the first edit would fire at 250ms, see the transient empty title
+      // from the clear at 200ms, and zero the custom margin.
+      setTitle('Axis Label Edited');
+      act(() => jest.advanceTimersByTime(200));
+      setTitle('');
+      act(() => jest.advanceTimersByTime(100));
+      setTitle('Axis Label Redone');
+      // past the first timer's deadline and past the restarted window
+      act(() => jest.advanceTimersByTime(600));
+
+      expect(setControlValueSpy).not.toHaveBeenCalledWith(
+        ...programmaticMarginWrite(axis),
+      );
+      expect(marginIn(store, axis)).toBe(75);
+    } finally {
+      jest.useRealTimers();
+      getChartControlPanelRegistry().remove('table');
+      jest.restoreAllMocks();
+    }
+  },
+);
+
+test.each<Axis>(['x', 'y'])(
+  'automatic %s axis title margin adjustment is cancelled when the container unmounts inside the debounce window',
+  async axis => {
+    setupTableChartControlPanel();
+    jest.useFakeTimers();
+    try {
+      const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+
+      const initialState = axisTitleState(axis, '', 0);
+      const store = createStore(initialState, reducerIndex);
+      const { unmount } = renderWithRouter({
+        initialState,
+        store: store as Store,
+      });
+      setControlValueSpy.mockClear();
+
+      act(() => {
+        store.dispatch(
+          exploreActions.setControlValue(`${axis}_axis_title`, 'Axis Label'),
+        );
+      });
+      // navigate away before the adjustment timer fires
+      unmount();
+      act(() => jest.advanceTimersByTime(600));
+
+      expect(setControlValueSpy).not.toHaveBeenCalledWith(
+        ...programmaticMarginWrite(axis),
+      );
+      expect(marginIn(store, axis)).toBe(0);
+    } finally {
+      jest.useRealTimers();
+      getChartControlPanelRegistry().remove('table');
+      jest.restoreAllMocks();
+    }
+  },
+);
+test('document.title falls back to the app name on unmount, not the title present at mount', async () => {
+  // A direct page load of an explore URL arrives with the chart name already
+  // in <title>, so restoring the title seen at mount leaves the stale name in
+  // the tab after navigating away.
+  const titleBeforeTest = document.title;
+  document.title = 'Test Chart';
+  try {
+    const { unmount } = renderWithRouter({
+      initialState: {
+        ...reduxState,
+        explore: { ...reduxState.explore, sliceName: 'Test Chart' },
+      },
+    });
+
+    await waitFor(() => expect(document.title).toBe('Test Chart'));
+
+    unmount();
+
+    expect(document.title).toBe('Superset');
+  } finally {
+    document.title = titleBeforeTest;
   }
 });

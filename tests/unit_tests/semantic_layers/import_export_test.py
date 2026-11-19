@@ -896,7 +896,9 @@ def test_orphaned_dashboard_target_does_not_abort_mixed_export(
         dashboard_export.DashboardDAO, "find_by_ids", lambda ids: [source, plain]
     )
     monkeypatch.setattr(
-        dashboard_export.DatasetDAO, "find_by_ids", lambda ids: [table] if ids else []
+        dashboard_export.DatasetDAO,
+        "find_by_ids",
+        lambda ids, **kwargs: [table] if ids else [],
     )
     monkeypatch.setattr(
         dashboard_export.ExportChartsCommand, "run", lambda *args, **kwargs: iter(())
@@ -916,7 +918,7 @@ def test_orphaned_dashboard_target_does_not_abort_mixed_export(
     targets: list[dict[str, Any]] = exported["metadata"][control][0]["targets"]
     assert targets[0] == {"datasourceType": "semantic_view"}
     assert targets[1]["datasetUuid"] == VIEW_UUID
-    dataset_export.assert_called_once_with([81])
+    dataset_export.assert_called_once_with([81], include_deleted=True)
     with pytest.raises(refs.SemanticReferenceError, match="requires datasourceRef"):
         refs.resolve_bundle_references({"dashboards/orphan.yaml": exported})
 
