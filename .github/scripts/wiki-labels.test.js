@@ -115,6 +115,14 @@ test('the path labels page names its own labels, minus the reserved ones', () =>
   assert.deepEqual(problems.map(problem => problem.line), [5, 7]);
 });
 
+test('the path labels page rejects names GitHub would refuse and matches reserved names regardless of case', () => {
+  const long = 'x'.repeat(51);
+  const page = `## ${long}\n- \`a/**\`\n## ${'y'.repeat(50)}\n- \`b/**\`\n## UTSC2026\n- \`c/**\`\n## \`\`\n- \`d/**\`\n`;
+  const { rules, problems } = wiki.parse('paths', page);
+  assert.deepEqual([...rules.keys()], ['y'.repeat(50)]);
+  assert.deepEqual(problems.map(problem => problem.line), [1, 5, 7]);
+});
+
 test('reviewersFor skips people and labels that do not apply', () => {
   const reviewers = new Map([
     ['a', ['x', 'y']],
