@@ -33,6 +33,7 @@ import {
   JsonObject,
   LatestQueryFormData,
   QueryFormData,
+  DatasourceType,
   Behavior,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
@@ -1175,7 +1176,10 @@ export const useExploreAdditionalActionsMenu = (
     });
 
     // Run in SQL Lab
-    if (datasource) {
+    if (
+      datasource &&
+      !datasource.endsWith(`__${DatasourceType.SemanticView}`)
+    ) {
       menuItems.push({
         key: MENU_KEYS.RUN_IN_SQL_LAB,
         label: t('Run in SQL Lab'),
