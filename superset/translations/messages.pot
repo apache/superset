@@ -146,9 +146,6 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-msgid "\"Group remaining as Others\" cannot be calculated for this metric on a semantic view. Turn it off, or choose a sum, count, minimum, or maximum metric."
-msgstr ""
-
 #, no-python-format
 msgid "% calculation"
 msgstr ""
@@ -7692,6 +7689,9 @@ msgid "Group name"
 msgstr ""
 
 msgid "Group remaining as \"Others\""
+msgstr ""
+
+msgid "Group remaining as \"Others\" cannot be calculated for this metric on a semantic view. Turn it off, or choose a sum, count, minimum, or maximum metric."
 msgstr ""
 
 msgid "Groupable columns"
@@ -16129,6 +16129,9 @@ msgid "Time column to apply time range to"
 msgstr ""
 
 msgid "Time comparison"
+msgstr ""
+
+msgid "Time comparison is not yet supported on semantic views. Remove the time shift and try again."
 msgstr ""
 
 msgid ""
