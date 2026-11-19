@@ -90,6 +90,32 @@ _QUERY_OBJECT_RESOLVED_OPTIONS: dict[str, frozenset[str]] = {
 }
 
 
+def selection_version_error(version: object) -> QueryObjectValidationError:
+    """Return the user-facing refusal for a semantic selection version."""
+    if version == "unverified-external-selections":
+        return QueryObjectValidationError(
+            _(
+                "A dashboard filter or display control has "
+                "incompatible semantic selections. Dynamic group-by "
+                "is unsupported on versioned semantic views; remove "
+                "this chart from that control's scope. For other "
+                "filters or controls, reset and reselect fields or "
+                "saved values. If it targets another semantic view, "
+                "remove this chart from its scope."
+            )
+        )
+    return QueryObjectValidationError(
+        _(
+            "Saved semantic selections use an older identity format. "
+            "Reset and explicitly reselect the metrics and dimensions, "
+            "then save the chart. Display titles cannot be recovered "
+            "automatically. For API requests, select current member "
+            "IDs and supply semantic_selection_version from "
+            "datasource metadata or MCP list_metrics."
+        )
+    )
+
+
 class QueryObject:  # pylint: disable=too-many-instance-attributes
     """
     The query objects are constructed on the client.
@@ -412,6 +438,25 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         )
 
     @property
+    def is_datasource_metadata_request(self) -> bool:
+        """Whether this query asks only for datasource metadata and selects nothing.
+
+        Column and time grain options are answered from the datasource itself;
+        a query that also names members, filters or a time column is a selection.
+        The query's own result type is used: one that leaves it unset keeps the
+        selection checks even when its context asks for metadata.
+        """
+        return self.result_type in ChartDataResultType.datasource_metadata() and not (
+            self.metrics
+            or self.columns
+            or self.orderby
+            or self.filter
+            or self.granularity
+            or self.series_columns
+            or self.series_limit_metric
+        )
+
+    @property
     def column_names(self) -> list[str]:
         """Return column names (labels). Gives priority to groupbys if both groupbys
         and metrics are non-empty, otherwise returns column labels."""
@@ -422,40 +467,20 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     ) -> QueryObjectValidationError | None:
         """Validate query object"""
         try:
+            self.validate_semantic_time_offsets()
             self._validate_semantic_view_extras()
             if self.datasource and self.datasource.type == "semantic_view":
                 implementation: SemanticViewABC = cast(
                     "SemanticView", self.datasource
                 ).implementation
+                version: object = self.extras.get("semantic_selection_version")
                 try:
-                    implementation.validate_selection_version(
-                        self.extras.get("semantic_selection_version")
-                    )
+                    # Column and time grain options select no members, so there
+                    # is no saved selection identity to check.
+                    if not self.is_datasource_metadata_request:
+                        implementation.validate_selection_version(version)
                 except ValueError as ex:
-                    if self.extras.get("semantic_selection_version") == (
-                        "unverified-external-selections"
-                    ):
-                        raise QueryObjectValidationError(
-                            _(
-                                "A dashboard filter or display control has "
-                                "incompatible semantic selections. Dynamic group-by "
-                                "is unsupported on versioned semantic views; remove "
-                                "this chart from that control's scope. For other "
-                                "filters or controls, reset and reselect fields or "
-                                "saved values. If it targets another semantic view, "
-                                "remove this chart from its scope."
-                            )
-                        ) from ex
-                    raise QueryObjectValidationError(
-                        _(
-                            "Saved semantic selections use an older identity format. "
-                            "Reset and explicitly reselect the metrics and dimensions, "
-                            "then save the chart. Display titles cannot be recovered "
-                            "automatically. For API requests, select current member "
-                            "IDs and supply semantic_selection_version from "
-                            "datasource metadata or MCP list_metrics."
-                        )
-                    ) from ex
+                    raise selection_version_error(version) from ex
                 if self.filter:
                     # Validate before result-cache access, including old entries
                     # computed while non-dimension predicates were discarded.
@@ -488,6 +513,28 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             if raise_exceptions:
                 raise
             return ex
+
+    def validate_semantic_time_offsets(self) -> None:
+        """Refuse unsupported comparisons before provider discovery or cache reads."""
+        if (
+            self.time_offsets
+            and self.datasource
+            and self.datasource.type == "semantic_view"
+        ):
+            # Import here to avoid the semantic model/QueryObject import cycle.
+            from superset_core.semantic_layers.errors import SemanticQueryErrorCode
+
+            from superset.semantic_layers.exceptions import (
+                SemanticLayerQueryRejectedError,
+            )
+
+            raise SemanticLayerQueryRejectedError(
+                SemanticQueryErrorCode.UNSUPPORTED_QUERY,
+                message=_(
+                    "Time comparison is not yet supported on semantic views. "
+                    "Remove the time shift and try again."
+                ),
+            )
 
     def _validate_semantic_view_extras(self) -> None:
         """Reject unsupported SQL clauses before resolving a semantic provider."""

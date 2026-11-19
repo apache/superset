@@ -105,6 +105,7 @@ interface PivotTableCustomizeProps {
    * Viewers can still expand each group with its arrow.
    */
   collapseRows?: boolean;
+  hideEmptyColumns?: boolean;
   valueFormat: string;
   currencyFormat: Currency;
   currencyCodeColumn?: string;
