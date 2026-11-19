@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Dataset } from '@superset-ui/chart-controls';
+import { Dataset } from '../types';
 
 /**
  * Returns the dataset's `extra.default_time_range`, which Explore uses instead
@@ -24,7 +24,7 @@ import { Dataset } from '@superset-ui/chart-controls';
  * counts as unset.
  */
 export function getDatasetDefaultTimeRange(
-  dataset?: Pick<Dataset, 'extra'>,
+  dataset?: Pick<Dataset, 'extra'> | null,
 ): string | undefined {
   let range: unknown;
   try {

@@ -652,23 +652,35 @@ test('a dataset without temporal columns adds no default time filter', () => {
 });
 
 // Switches a new table chart, which starts with the instance range on
-// `created_at`, to another dataset and returns the chart's time filter.
+// `created_at`, to another dataset. Call it inside `withControlPanels`.
 function switchNewChartDataset(dataset: Partial<Dataset>) {
-  return withControlPanels(() => {
-    const { explore } = hydrateNewChart({ extra: '{}' });
-    const { controls } = exploreReducer(explore as ExploreState, {
-      type: 'UPDATE_FORM_DATA_BY_DATASOURCE',
-      prevDatasource: explore.datasource,
-      newDatasource: {
-        ...explore.datasource,
-        id: 9,
-        uid: '9__table',
-        ...dataset,
-      },
-    });
-    return getTimeFilter(getFormDataFromControls(controls));
+  const { explore } = hydrateNewChart({ extra: '{}' });
+  return exploreReducer(explore as ExploreState, {
+    type: 'UPDATE_FORM_DATA_BY_DATASOURCE',
+    prevDatasource: explore.datasource,
+    newDatasource: {
+      ...explore.datasource,
+      id: 9,
+      uid: '9__table',
+      ...dataset,
+    },
   });
 }
+
+// Changes the chart type and returns the form data of the new chart.
+function changeChartType(explore: ExploreState, vizType: string) {
+  const { controls } = exploreReducer(explore, {
+    type: 'SET_FIELD_VALUE',
+    controlName: 'viz_type',
+    value: vizType,
+  });
+  return getFormDataFromControls(controls);
+}
+
+const otherTimeColumn = {
+  columns: [{ column_name: 'event_date', is_dttm: true }],
+  main_dttm_col: 'event_date',
+};
 
 test.each([
   [datasetExtra, datasetRange],
@@ -676,33 +688,50 @@ test.each([
 ])(
   'switching to a dataset with extra %s re-creates a dropped time filter with %s',
   (extra, range) => {
-    const timeFilter = switchNewChartDataset({
-      columns: [{ column_name: 'event_date', is_dttm: true }],
-      main_dttm_col: 'event_date',
-      extra,
-    });
-    expect(timeFilter).toEqual(['event_date', range]);
+    const { controls } = withControlPanels(() =>
+      switchNewChartDataset({ ...otherTimeColumn, extra }),
+    );
+    expect(getTimeFilter(getFormDataFromControls(controls))).toEqual([
+      'event_date',
+      range,
+    ]);
   },
 );
 
-test('changing the chart type of a new chart keeps its time filter', () => {
-  const timeFilter = withControlPanels(() => {
-    const { explore } = hydrateNewChart();
-    const { controls } = exploreReducer(explore as ExploreState, {
-      type: 'SET_FIELD_VALUE',
-      controlName: 'viz_type',
-      value: VizType.Pie,
-    });
-    return getTimeFilter(getFormDataFromControls(controls));
-  });
-  expect(timeFilter).toEqual(['created_at', datasetRange]);
-});
-
 test('switching to a dataset keeps a time filter that carries over', () => {
-  expect(switchNewChartDataset({ extra: datasetExtra })).toEqual([
+  const { controls } = withControlPanels(() =>
+    switchNewChartDataset({ extra: datasetExtra }),
+  );
+  expect(getTimeFilter(getFormDataFromControls(controls))).toEqual([
     'created_at',
     instanceRange,
   ]);
+});
+
+test.each([
+  [VizType.Table, VizType.Pie],
+  ['cal_heatmap', VizType.Table],
+])(
+  'changing a new %s chart to %s keeps the dataset default time range',
+  (from, to) => {
+    const formData = withControlPanels(() =>
+      changeChartType(
+        hydrateNewChart({ vizType: from }).explore as ExploreState,
+        to,
+      ),
+    );
+    expect(getTimeFilter(formData)).toEqual(['created_at', datasetRange]);
+  },
+);
+
+test('changing the chart type after a dataset switch keeps that dataset default', () => {
+  const formData = withControlPanels(() =>
+    changeChartType(
+      switchNewChartDataset({ ...otherTimeColumn, extra: datasetExtra }),
+      VizType.Pie,
+    ),
+  );
+  expect(getTimeFilter(formData)).toEqual(['event_date', datasetRange]);
 });
 
 test('extracts currency formats from metrics in dataset', () => {
