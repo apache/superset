@@ -738,6 +738,8 @@ class BaseReportScheduleCommand(BaseCommand):
             )
             exceptions.append(
                 ReportScheduleExecutorTargetAccessError(
-                    kind, executor.username if reveal_executor else None
+                    kind,
+                    executor.username if reveal_executor else None,
+                    draft=kind == "dashboard" and target.published is False,
                 )
             )

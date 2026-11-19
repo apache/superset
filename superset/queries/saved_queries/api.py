@@ -24,6 +24,7 @@ from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
+from sqlalchemy import inspect
 
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
@@ -36,13 +37,15 @@ from superset.commands.importers.v1.utils import (
 from superset.commands.query.delete import DeleteSavedQueryCommand
 from superset.commands.query.exceptions import (
     SavedQueryDeleteFailedError,
+    SavedQueryLabelDuplicateError,
     SavedQueryNotFoundError,
 )
 from superset.commands.query.export import ExportSavedQueriesCommand
 from superset.commands.query.importers.dispatcher import ImportSavedQueriesCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.query import SavedQueryDAO
 from superset.databases.filters import DatabaseFilter
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
@@ -203,6 +206,31 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         item.user = g.user
         if item.label:
             item.label = item.label.strip()
+        self._validate_label_uniqueness(item)
+
+    def _validate_label_uniqueness(self, item: SavedQuery) -> None:
+        """
+        Reject a label already used by another saved query of the same owner on
+        the same database. Updates that leave the label and database untouched
+        are not checked, so pre-existing duplicates remain editable.
+        """
+        if not item.label:
+            return
+        attrs = inspect(item).attrs
+        if item.id is not None and not (
+            attrs.label.history.has_changes() or attrs.db_id.history.has_changes()
+        ):
+            return
+        with db.session.no_autoflush:
+            is_unique = SavedQueryDAO.validate_label_uniqueness(
+                item.label, g.user.id, item.db_id, item.id
+            )
+        if not is_unique:
+            # The loaded item already carries the rejected values; discard them so
+            # a later commit on this session (e.g. event logging) cannot persist
+            # the rename.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            raise SavedQueryLabelDuplicateError()
 
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)
@@ -319,6 +347,8 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
+        # The form carries secrets.
+        include_request_data=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -372,6 +402,13 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of sensitive values for masked_encrypted_extra fields
+                        of featured databases. Keys are file paths (e.g.,
+                        "databases/db.yaml") and values are JSON objects mapping
+                        JSONPath expressions to secrets.
+                      type: string
           responses:
             200:
               description: Saved Query import result
@@ -409,6 +446,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         ssh_tunnel_priv_key_passwords = parse_json_form_field(
             "ssh_tunnel_private_key_passwords"
         )
+        encrypted_extra_secrets = parse_json_form_field("encrypted_extra_secrets")
 
         command = ImportSavedQueriesCommand(
             contents,
@@ -417,6 +455,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")
