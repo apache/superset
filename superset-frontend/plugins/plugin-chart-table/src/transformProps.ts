@@ -20,6 +20,7 @@ import memoizeOne from 'memoize-one';
 import { t } from '@apache-superset/core/translation';
 import {
   ComparisonType,
+  buildQueryObject,
   CurrencyFormatter,
   Currency,
   DataRecord,
@@ -853,6 +854,12 @@ const transformProps = (
         : serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
     filters: filterState.filters,
+    // Use query criteria, not response rows or the emitter's selection state,
+    // to distinguish a new question from an auto-refresh of the same one.
+    paginationQuery: {
+      datasource: originalFormData.datasource,
+      query: buildQueryObject(originalFormData, { percent_metrics: 'metrics' }),
+    },
     emitCrossFilters,
     onChangeFilter,
     columnColorFormatters,
