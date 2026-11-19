@@ -758,7 +758,18 @@ class Steward:
         for number, stages in sorted(evidence.items()):
             issue = issues[number]
             target = max(stages)
-            if not issue.is_open or target <= current_stage(issue.labels):
+            if not issue.is_open:
+                continue
+            have = current_stage(issue.labels)
+            if target < have:
+                continue
+            if target == have:
+                # An open SIP already labelled approved means an earlier run
+                # failed after labelling; retry the comment (marker-deduped)
+                # and the close.
+                if STAGES[target] != "approved":
+                    continue
+                self.move(issue, target, stages, relabel=False)
                 continue
             self.move(issue, target, stages)
 
@@ -767,24 +778,26 @@ class Steward:
         issue: Issue,
         target: int,
         stages: dict[int, tuple[Email, Optional[Email]]],
+        relabel: bool = True,
     ) -> None:
         stage = STAGES[target]
         email, vote = stages[target]
         discuss = stages.get(0, (None, None))[0]
         vote_email = vote or stages.get(1, (None, None))[0]
         label = STAGE_LABELS[stage]
-        self.report.actions.append(f"#{issue.number}: label `{label}`")
-        for other in STAGE_LABELS.values():
-            if other != label and other in issue.labels:
-                self.report.actions.append(f"#{issue.number}: remove `{other}`")
-                self._write(
-                    "DELETE",
-                    f"/issues/{issue.number}/labels/{urllib.parse.quote(other)}",
-                )
-        self._write("POST", f"/issues/{issue.number}/labels", {"labels": [label]})
-        self.report.board_moves.append(
-            f"#{issue.number}: move to **{BOARD_COLUMNS[stage]}**"
-        )
+        if relabel:
+            self.report.actions.append(f"#{issue.number}: label `{label}`")
+            for other in STAGE_LABELS.values():
+                if other != label and other in issue.labels:
+                    self.report.actions.append(f"#{issue.number}: remove `{other}`")
+                    self._write(
+                        "DELETE",
+                        f"/issues/{issue.number}/labels/{urllib.parse.quote(other)}",
+                    )
+            self._write("POST", f"/issues/{issue.number}/labels", {"labels": [label]})
+            self.report.board_moves.append(
+                f"#{issue.number}: move to **{BOARD_COLUMNS[stage]}**"
+            )
         values = {
             "number": parse_title(issue.title)[1],
             "title": strip_title(issue.title),
