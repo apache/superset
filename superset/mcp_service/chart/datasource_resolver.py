@@ -143,7 +143,10 @@ def view_not_found_error(view_id: int | str | UUID) -> ChartGenerationError:
 
 
 def validate_semantic_view_config(
-    config: ChartConfig, target: ChartDatasource
+    config: ChartConfig,
+    target: ChartDatasource,
+    *,
+    validate_temporal_values: bool = True,
 ) -> tuple[bool, ChartGenerationError | None, DatasetContext]:
     """Reject ad-hoc expressions and validate saved names against the view."""
     context: DatasetContext = build_context_from_explorable(target)
@@ -179,7 +182,10 @@ def validate_semantic_view_config(
     valid: bool
     error: ChartGenerationError | None
     valid, error = DatasetValidator.validate_against_dataset(
-        config, target.id, dataset_context=context
+        config,
+        target.id,
+        dataset_context=context,
+        validate_temporal_values=validate_temporal_values,
     )
     return valid, error, context
 
@@ -229,7 +235,10 @@ def _gantt_column_shape_error(form_data: dict[str, Any]) -> ChartGenerationError
 
 
 def validate_semantic_view_form_data(
-    form_data: dict[str, Any], target: ChartDatasource
+    form_data: dict[str, Any],
+    target: ChartDatasource,
+    *,
+    temporal_form_data: dict[str, Any] | None = None,
 ) -> ChartGenerationError | None:
     """Validate retained query roles before a semantic rebind or preview."""
     # Avoid plugin-loading cycles: plugins import schemas and their validators.
@@ -349,14 +358,18 @@ def validate_semantic_view_form_data(
     # avoid circular import: compile imports schemas, whose plugins load validators.
     from superset.mcp_service.chart.compile import _validate_adhoc_filter_columns
 
+    # Retained B filters must remain valid even on single-query chart types.
+    # Preserve the other containers for the shared final-form validation.
     return _validate_adhoc_filter_columns(
         {
+            **form_data,
             "adhoc_filters": [
                 *(form_data.get("adhoc_filters") or []),
                 *(form_data.get("adhoc_filters_b") or []),
-            ]
+            ],
         },
         context,
+        temporal_form_data=temporal_form_data,
     )
 
 
