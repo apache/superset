@@ -29,7 +29,7 @@ import {
   hasChartStateConverter,
   convertChartStateToOwnState,
 } from 'src/dashboard/util/chartStateConverter';
-import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredSqlFilterIds';
+import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';

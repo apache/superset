@@ -28,7 +28,7 @@ import {
 } from 'react';
 
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredSqlFilterIds';
+import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 import { isEqual, uniqWith } from 'lodash-es';
 import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';

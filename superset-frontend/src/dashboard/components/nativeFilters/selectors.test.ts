@@ -806,3 +806,85 @@ test('skipped SQL filters are incompatible by source id, not by column name', ()
   );
   expect(unknown[0].status).toBe(IndicatorStatus.CrossFilterApplied);
 });
+
+test.each(['filter_select', 'filter_range', 'cross-filter'])(
+  'foreign %s badge becomes unset on clear and stays unset before selection',
+  origin => {
+    type Args = Parameters<typeof selectNativeIndicatorsForChart>;
+    const native: Args[0] =
+      origin === 'cross-filter'
+        ? {}
+        : {
+            42: {
+              id: '42',
+              name: 'Foreign filter',
+              type: NativeFilterType.NativeFilter,
+              cascadeParentIds: [],
+              defaultDataMask: {},
+              scope: { rootPath: [], excluded: [] },
+              controlValues: {},
+              description: '',
+              filterType: origin,
+              targets: [
+                {
+                  datasetId: 9,
+                  datasourceType: DatasourceType.SemanticView,
+                  column: { name: 'country' },
+                },
+              ],
+              chartsInScope: [9002],
+            },
+          };
+    const chart = {
+      form_data: {
+        datasource: '3__semantic_view',
+        semantic_selection_version: 'cube-member-id-v1',
+      },
+    };
+    const config: Args[5] =
+      origin === 'cross-filter'
+        ? {
+            42: {
+              id: 42,
+              crossFilters: { scope: 'global', chartsInScope: [9002] },
+            },
+          }
+        : {};
+    for (const state of ['selected', 'cleared', 'never-set', 'reselected']) {
+      const selected = state === 'selected' || state === 'reselected';
+      const mask: Args[1] = {
+        42: {
+          id: '42',
+          filterState:
+            state === 'never-set' ? {} : { value: selected ? ['US'] : null },
+          extraFormData: {
+            ...(selected
+              ? {
+                  filters: [{ col: 'country', op: 'IN' as const, val: ['US'] }],
+                }
+              : {}),
+            semantic_selection_sources: [
+              { datasource: '9__semantic_view', version: 'cube-member-id-v1' },
+            ],
+          },
+        },
+      };
+      const indicators = selectNativeIndicatorsForChart(
+        native,
+        mask,
+        9002,
+        chart,
+        [],
+        config,
+        { 42: '9__semantic_view' },
+      );
+      expect(indicators.map(({ status }) => status)).toEqual(
+        selected
+          ? [IndicatorStatus.Incompatible]
+          : origin === 'cross-filter'
+            ? []
+            : [IndicatorStatus.Unset],
+      );
+    }
+  },
+);

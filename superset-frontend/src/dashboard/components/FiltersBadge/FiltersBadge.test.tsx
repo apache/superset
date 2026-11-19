@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { updateDataMask } from 'src/dataMask/actions';
 import { getSelectExtraFormData } from 'src/filters/utils';
 import { ReactNode } from 'react';
 import { Store } from 'redux';
 import { DatasourceType, Filters, NativeFilterType } from '@superset-ui/core';
-import { render } from 'spec/helpers/testing-library';
+import { act, render } from 'spec/helpers/testing-library';
 import {
   CHART_RENDERING_SUCCEEDED,
   CHART_UPDATE_SUCCEEDED,
@@ -333,12 +334,14 @@ test('shows skipped ordinary filters even when the server reports none rejected'
 });
 
 test.each([
-  { semanticSelected: false, requiredEmpty: false },
-  { semanticSelected: true, requiredEmpty: false },
-  { semanticSelected: false, requiredEmpty: true },
+  { semanticSelected: false, requiredEmpty: false, foreign: false },
+  { semanticSelected: true, requiredEmpty: false, foreign: false },
+  { semanticSelected: false, requiredEmpty: true, foreign: false },
+  { semanticSelected: false, requiredEmpty: true, foreign: true },
+  { semanticSelected: false, requiredEmpty: false, foreign: true },
 ])(
-  'same-named SQL filter remains visible: %j',
-  ({ semanticSelected, requiredEmpty }) => {
+  'same-named incompatible filter remains visible: %j',
+  ({ semanticSelected, requiredEmpty, foreign }) => {
     const initial = getMockStoreWithNativeFilters().getState();
     const nativeFilters: Filters = Object.fromEntries(
       ['sql', 'semantic'].map(id => [
@@ -350,9 +353,9 @@ test.each([
           filterType: 'filter_select',
           targets: [
             {
-              datasetId: id === 'sql' ? 12 : 3,
+              datasetId: id === 'sql' ? (foreign ? 9 : 12) : 3,
               datasourceType:
-                id === 'sql'
+                id === 'sql' && !foreign
                   ? DatasourceType.Table
                   : DatasourceType.SemanticView,
               column: { name: 'country' },
@@ -374,11 +377,21 @@ test.each([
         sql: {
           id: 'sql',
           filterState: { value: requiredEmpty ? null : ['US'] },
-          extraFormData: getSelectExtraFormData(
-            'country',
-            requiredEmpty ? [] : ['US'],
-            requiredEmpty,
-          ),
+          extraFormData: {
+            ...getSelectExtraFormData(
+              'country',
+              requiredEmpty ? [] : ['US'],
+              requiredEmpty,
+            ),
+            ...(foreign && {
+              semantic_selection_sources: [
+                {
+                  datasource: '9__semantic_view',
+                  version: 'cube-member-id-v1',
+                },
+              ],
+            }),
+          },
         },
         semantic: {
           id: 'semantic',
@@ -416,50 +429,76 @@ test.each([
   },
 );
 
-test('cross-filter badge resolves the ordinary emitter datasource from Redux', () => {
-  const initial = getMockStoreWithNativeFilters().getState();
-  const store = storeWithState({
-    ...initial,
-    nativeFilters: { ...initial.nativeFilters, filters: {} },
-    dashboardInfo: {
-      ...initial.dashboardInfo,
-      metadata: {
-        ...initial.dashboardInfo.metadata,
-        chart_configuration: {
-          999: {
-            id: 999,
-            crossFilters: { scope: 'global', chartsInScope: [sliceId] },
+test.each(['12__table', '9__semantic_view'])(
+  'cross-filter badge resolves the incompatible emitter %s from Redux',
+  source => {
+    const initial = getMockStoreWithNativeFilters().getState();
+    const store = storeWithState({
+      ...initial,
+      nativeFilters: { ...initial.nativeFilters, filters: {} },
+      dashboardInfo: {
+        ...initial.dashboardInfo,
+        metadata: {
+          ...initial.dashboardInfo.metadata,
+          chart_configuration: {
+            999: {
+              id: 999,
+              crossFilters: { scope: 'global', chartsInScope: [sliceId] },
+            },
           },
         },
       },
-    },
-    dataMask: {
-      999: {
-        id: '999',
-        filterState: { value: ['US'] },
-        extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
-      },
-    },
-    charts: {
-      ...initial.charts,
-      999: { form_data: { datasource: '12__table' } },
-      [sliceId]: {
-        ...initial.charts[sliceId],
-        form_data: {
-          ...initial.charts[sliceId].form_data,
-          datasource: '3__semantic_view',
-          semantic_selection_version: 'cube-member-id-v1',
+      dataMask: {
+        999: {
+          id: '999',
+          filterState: { value: ['US'] },
+          extraFormData: {
+            filters: [{ col: 'country', op: 'IN', val: ['US'] }],
+            ...(source.endsWith('__semantic_view') && {
+              semantic_selection_sources: [
+                { datasource: source, version: 'cube-member-id-v1' },
+              ],
+            }),
+          },
         },
       },
-    },
-  });
-  store.dispatch({
-    type: CHART_UPDATE_SUCCEEDED,
-    key: sliceId,
-    queriesResponse: [
-      { status: 'success', applied_filters: [], rejected_filters: [] },
-    ],
-  });
-  const { getByRole } = setup(store);
-  expect(getByRole('button', { name: 'Filters (1)' })).toBeInTheDocument();
-});
+      charts: {
+        ...initial.charts,
+        999: { form_data: { datasource: source } },
+        [sliceId]: {
+          ...initial.charts[sliceId],
+          form_data: {
+            ...initial.charts[sliceId].form_data,
+            datasource: '3__semantic_view',
+            semantic_selection_version: 'cube-member-id-v1',
+          },
+        },
+      },
+    });
+    store.dispatch({
+      type: CHART_UPDATE_SUCCEEDED,
+      key: sliceId,
+      queriesResponse: [
+        { status: 'success', applied_filters: [], rejected_filters: [] },
+      ],
+    });
+    const { getByRole, queryByRole } = setup(store);
+    expect(getByRole('button', { name: 'Filters (1)' })).toBeInTheDocument();
+    const selectedMask = store.getState().dataMask[999];
+    act(() => {
+      store.dispatch(
+        updateDataMask(999, {
+          extraFormData: {},
+          filterState: { value: null },
+        }),
+      );
+    });
+    expect(
+      queryByRole('button', { name: 'Filters (1)' }),
+    ).not.toBeInTheDocument();
+    act(() => {
+      store.dispatch(updateDataMask(999, selectedMask));
+    });
+    expect(getByRole('button', { name: 'Filters (1)' })).toBeInTheDocument();
+  },
+);

@@ -29,9 +29,9 @@ import {
   QueryFormColumn,
 } from '@superset-ui/core';
 import {
-  getIgnoredSqlFilterIds,
+  getIgnoredDashboardFilterIds,
   ChartDatasources,
-} from 'src/dashboard/util/charts/getIgnoredSqlFilterIds';
+} from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import { ChartConfiguration, LayoutItem } from 'src/dashboard/types';
@@ -374,17 +374,19 @@ export const selectChartCrossFilters = (
         dataMask[chartConfig.id],
         chartLayoutItems,
       );
-      const filterStatus = ignoredFilterIds.includes(String(chartConfig.id))
-        ? IndicatorStatus.Incompatible
-        : getStatus({
-            label: filterIndicator.value,
-            column: filterIndicator.column
-              ? getColumnLabel(filterIndicator.column)
-              : undefined,
-            type: DataMaskType.CrossFilters,
-            rejectedColumns,
-            appliedColumns,
-          });
+      const filterStatus =
+        filterIndicator.value !== null &&
+        ignoredFilterIds.includes(String(chartConfig.id))
+          ? IndicatorStatus.Incompatible
+          : getStatus({
+              label: filterIndicator.value,
+              column: filterIndicator.column
+                ? getColumnLabel(filterIndicator.column)
+                : undefined,
+              type: DataMaskType.CrossFilters,
+              rejectedColumns,
+              appliedColumns,
+            });
 
       return { ...filterIndicator, status: filterStatus };
     })
@@ -420,7 +422,7 @@ export const selectNativeIndicatorsForChart = (
   chartConfiguration: ChartConfiguration = defaultChartConfig,
   sourceDatasources?: ChartDatasources,
 ): Indicator[] => {
-  const ignoredFilterIds = getIgnoredSqlFilterIds(
+  const ignoredFilterIds = getIgnoredDashboardFilterIds(
     chart?.form_data ?? {},
     nativeFilters,
     dataMask,
@@ -459,18 +461,25 @@ export const selectNativeIndicatorsForChart = (
         const column = nativeFilter.targets?.[0]?.column?.name;
         const filterState = dataMask[nativeFilter.id]?.filterState;
         const label = extractLabel(filterState);
+        // An ignored required-empty Value filter still carries a match-nothing
+        // predicate. Unlike a cleared mask, it has an effect to report.
+        const hasRequiredEmptyPredicate = Boolean(
+          dataMask[nativeFilter.id]?.extraFormData?.adhoc_filters?.length,
+        );
         return {
           column,
           name: nativeFilter.name,
           path: [nativeFilter.id],
-          status: ignoredFilterIds.includes(nativeFilter.id)
-            ? IndicatorStatus.Incompatible
-            : getStatus({
-                label,
-                column,
-                rejectedColumns,
-                appliedColumns,
-              }),
+          status:
+            (label !== null || hasRequiredEmptyPredicate) &&
+            ignoredFilterIds.includes(nativeFilter.id)
+              ? IndicatorStatus.Incompatible
+              : getStatus({
+                  label,
+                  column,
+                  rejectedColumns,
+                  appliedColumns,
+                }),
           value: label,
         };
       });
