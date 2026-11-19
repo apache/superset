@@ -1811,7 +1811,10 @@ original expressions so callers can compare the requested and resolved ranges.
 `query_dataset` accepts at most one `TEMPORAL_RANGE` per column. Supplying
 multiple ranges for the same column, including a filter together with
 `time_range`, returns `ValidationError` before executing the query in both
-strict and non-strict modes. Combine the intended bounds into one range.
+strict and non-strict modes. When `time_range` is set, an additional
+`TEMPORAL_RANGE` filter on any other column is also refused: the query engine
+can substitute that range for the primary bounds. Use one temporal range and
+explicit comparison filters for additional column constraints.
 
 `query_dataset` reports what the query engine did, not only what was requested:
 
@@ -1839,7 +1842,8 @@ strict and non-strict modes. Combine the intended bounds into one range.
 
 Tool calls that fail return an error schema with an `error_type`. When response
 caching is enabled, these failed results are never cached, so a transient
-failure such as a warehouse timeout is not replayed after it clears.
+failure such as a warehouse timeout is not replayed after it clears. Dashboard
+results where every chart reports an error are also excluded from caching.
 
 ### Overriding a saved chart's time grain
 

@@ -595,3 +595,96 @@ async def test_error_only_and_unsuccessful_results_are_not_cached(
             else json.loads(result.content[0].text)
         )
         assert payload["row_count"] == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("structured", [False, True])
+@pytest.mark.parametrize("search", [False, True], ids=["direct", "call-tool"])
+async def test_all_errored_dashboard_is_not_cached(
+    structured: bool, search: bool
+) -> None:
+    """Retry the warehouse after every chart failed, on either catalog path."""
+    import mcp.types as mt
+    from fastmcp import Client, FastMCP
+    from fastmcp.tools import ToolResult
+
+    from superset.mcp_service.caching import create_response_caching_middleware
+
+    flask_app = MagicMock()
+    configs = {
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "excluded_tools": [],
+        },
+        "MCP_STORE_CONFIG": {"enabled": False},
+    }
+    flask_app.config.get.side_effect = lambda key, default=None: configs.get(
+        key, default
+    )
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app", return_value=flask_app
+    ):
+        middleware = create_response_caching_middleware()
+    assert middleware is not None
+    server = FastMCP("dashboard-failure-cache", middleware=[middleware])
+    calls = 0
+
+    @server.tool
+    def get_dashboard_data() -> ToolResult:
+        """Recover on the second execution, then cache the healthy result."""
+        nonlocal calls
+        calls += 1
+        payload = {
+            "charts": [
+                {
+                    "chart_id": index,
+                    "error": "warehouse timeout" if calls == 1 else None,
+                }
+                for index in (1, 2)
+            ]
+        }
+        return ToolResult(
+            content=[
+                mt.TextContent(
+                    type="text",
+                    text="structured result" if structured else json.dumps(payload),
+                )
+            ],
+            structured_content=payload if structured else None,
+        )
+
+    if search:
+        from superset.mcp_service.server import _apply_tool_search_transform
+
+        _apply_tool_search_transform(server, {"strategy": "regex"})
+    tool = "call_tool" if search else "get_dashboard_data"
+    arguments = {"name": "get_dashboard_data", "arguments": {}} if search else {}
+    async with Client(server) as client:
+        await client.call_tool(tool, arguments)
+        second = await client.call_tool(tool, arguments)
+        third = await client.call_tool(tool, arguments)
+    assert calls == 2
+    for result in (second, third):
+        payload = (
+            result.structured_content
+            if structured
+            else json.loads(result.content[0].text)
+        )
+        assert all(chart["error"] is None for chart in payload["charts"])
+
+
+@pytest.mark.parametrize(
+    "charts", [[], [{"error": None}], [{"error": "timeout"}, {"error": None}]]
+)
+def test_dashboard_without_total_failure_remains_cacheable(
+    charts: list[dict[str, Any]],
+) -> None:
+    """Do not mistake an empty or partially available dashboard for total failure."""
+    from fastmcp.tools import ToolResult
+
+    from superset.mcp_service.caching import is_failed_tool_result
+
+    assert not is_failed_tool_result(
+        ToolResult(content=[], structured_content={"charts": charts})
+    )

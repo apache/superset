@@ -500,3 +500,37 @@ async def test_multiple_temporal_ranges_on_same_column_are_rejected(
     assert "multiple temporal ranges" in payload["error"].lower()
     assert "data" not in payload
     assert queries == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("explicit_time_column", [False, True])
+async def test_time_range_with_other_temporal_column_is_rejected_before_query(
+    strict: bool, explicit_time_column: bool
+) -> None:
+    """A second column's range must not replace the primary time bounds."""
+    request: dict[str, Any] = {
+        "strict_filters": strict,
+        "time_range": "2026-01-01 : 2026-02-01",
+        "filters": [
+            {
+                "col": "ship_date",
+                "op": "TEMPORAL_RANGE",
+                "val": "2025-12-01 : 2026-01-01",
+            }
+        ],
+    }
+    if explicit_time_column:
+        request["time_column"] = "order_date"
+    dataset = _dataset()
+    dataset.columns.append(_column("ship_date", is_dttm=True))
+    with _engine(_engine_result(ROWS, bounds=JANUARY)) as queries:
+        with patch.object(
+            query_dataset_module, "resolve_dataset", return_value=dataset
+        ):
+            payload, _ = await _call(request)
+    assert payload.get("error_type") == "ValidationError"
+    assert "time_range" in payload["error"]
+    assert "TEMPORAL_RANGE" in payload["error"]
+    assert "data" not in payload
+    assert queries == []

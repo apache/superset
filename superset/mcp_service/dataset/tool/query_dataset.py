@@ -453,6 +453,19 @@ async def _query_dataset(  # noqa: C901
                 )
             temporal_columns_seen.add(filter_.col)
 
+        # QueryContext can promote another column's TEMPORAL_RANGE to the
+        # primary bounds, replacing time_range on granularity. Its filter
+        # report is column-level, so it cannot verify both requested ranges.
+        # Refuse the combination before querying, even in non-strict mode.
+        if request.time_range and len(temporal_columns_seen) > 1:
+            return DatasetError.create(
+                error=(
+                    "time_range cannot be combined with a TEMPORAL_RANGE "
+                    "filter on another column. Supply only one temporal range."
+                ),
+                error_type="ValidationError",
+            )
+
         # ------------------------------------------------------------------
         # Step 4: Build query dict
         # ------------------------------------------------------------------

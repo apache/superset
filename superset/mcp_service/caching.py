@@ -113,10 +113,19 @@ def is_failed_tool_result(result: Any) -> bool:
 
     def failed_payload(payload: Any) -> bool:
         """Recognize failure contracts without treating warnings as errors."""
-        return isinstance(payload, dict) and (
+        if not isinstance(payload, dict):
+            return False
+        charts = payload.get("charts")
+        all_charts_failed = (
+            isinstance(charts, list)
+            and bool(charts)
+            and all(isinstance(chart, dict) and chart.get("error") for chart in charts)
+        )
+        return (
             bool(payload.get("error_type"))
             or bool(payload.get("error"))
             or payload.get("success") is False
+            or all_charts_failed
         )
 
     structured = getattr(result, "structured_content", None)
