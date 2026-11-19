@@ -16,15 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  memo,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useReducer,
-  useRef,
-  useState,
-} from 'react';
+import { memo, ReactNode, useCallback, useReducer, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Metric } from '@superset-ui/core';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
@@ -62,7 +54,8 @@ interface TitleState {
 }
 
 interface ComponentState {
-  adhocMetric: AdhocMetric;
+  // optionName of the metric the title/label state was last reset for.
+  prevOptionName: string | undefined;
   popoverVisible: boolean;
   title: TitleState;
   currentLabel: string;
@@ -72,7 +65,6 @@ interface ComponentState {
 }
 
 type Action =
-  | { type: 'SET_ADHOC_METRIC'; payload: AdhocMetric }
   | { type: 'SET_POPOVER_VISIBLE'; payload: boolean }
   | { type: 'SET_TITLE'; payload: TitleState }
   | { type: 'SET_CURRENT_LABEL'; payload: string }
@@ -81,9 +73,8 @@ type Action =
   | { type: 'SET_SHOW_SAVE_DATASET_MODAL'; payload: boolean }
   | {
       type: 'RESET_ON_OPTION_CHANGE';
-      payload: { adhocMetric: AdhocMetric; title: TitleState };
+      payload: { optionName: string | undefined; title: TitleState };
     }
-  | { type: 'UPDATE_ADHOC_METRIC'; payload: AdhocMetric }
   | { type: 'CLOSE_POPOVER' }
   | {
       type: 'ON_LABEL_CHANGE';
@@ -100,8 +91,6 @@ type Action =
 
 function reducer(state: ComponentState, action: Action): ComponentState {
   switch (action.type) {
-    case 'SET_ADHOC_METRIC':
-      return { ...state, adhocMetric: action.payload };
     case 'SET_POPOVER_VISIBLE':
       return { ...state, popoverVisible: action.payload };
     case 'SET_TITLE':
@@ -117,13 +106,11 @@ function reducer(state: ComponentState, action: Action): ComponentState {
     case 'RESET_ON_OPTION_CHANGE':
       return {
         ...state,
-        adhocMetric: action.payload.adhocMetric,
+        prevOptionName: action.payload.optionName,
         title: action.payload.title,
         currentLabel: '',
         labelModified: false,
       };
-    case 'UPDATE_ADHOC_METRIC':
-      return { ...state, adhocMetric: action.payload };
     case 'CLOSE_POPOVER':
       return { ...state, popoverVisible: false, labelModified: false };
     case 'ON_LABEL_CHANGE': {
@@ -172,7 +159,7 @@ function AdhocMetricPopoverTrigger({
   isNew,
 }: AdhocMetricPopoverTriggerProps) {
   const initialState: ComponentState = {
-    adhocMetric: propsAdhocMetric,
+    prevOptionName: propsAdhocMetric.optionName,
     popoverVisible: false,
     title: {
       label: propsAdhocMetric.label,
@@ -186,27 +173,22 @@ function AdhocMetricPopoverTrigger({
 
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // Track previous optionName to detect when the metric changes externally
-  const prevOptionNameRef = useRef(propsAdhocMetric.optionName);
-
-  // Handle getDerivedStateFromProps logic
-  useEffect(() => {
-    if (prevOptionNameRef.current !== propsAdhocMetric.optionName) {
-      dispatch({
-        type: 'RESET_ON_OPTION_CHANGE',
-        payload: {
-          adhocMetric: propsAdhocMetric,
-          title: {
-            label: propsAdhocMetric.label,
-            hasCustomLabel: propsAdhocMetric.hasCustomLabel,
-          },
+  // A new optionName means a new edit/drop identity, so the title and label
+  // state restart from the new metric. Adjusting state during render (rather
+  // than in an effect) means the popover content never renders against the
+  // previous metric. A same-optionName update keeps the user's title edits.
+  if (state.prevOptionName !== propsAdhocMetric.optionName) {
+    dispatch({
+      type: 'RESET_ON_OPTION_CHANGE',
+      payload: {
+        optionName: propsAdhocMetric.optionName,
+        title: {
+          label: propsAdhocMetric.label,
+          hasCustomLabel: propsAdhocMetric.hasCustomLabel,
         },
-      });
-    } else {
-      dispatch({ type: 'UPDATE_ADHOC_METRIC', payload: propsAdhocMetric });
-    }
-    prevOptionNameRef.current = propsAdhocMetric.optionName;
-  }, [propsAdhocMetric]);
+      },
+    });
+  }
 
   const [, forceUpdate] = useState({});
 
@@ -279,10 +261,10 @@ function AdhocMetricPopoverTrigger({
   );
 
   const { verbose_name, metric_name } = savedMetric;
-  const { hasCustomLabel, label } = state.adhocMetric;
+  const { hasCustomLabel, label } = propsAdhocMetric;
   const adhocMetricLabel = hasCustomLabel
     ? label
-    : state.adhocMetric.getDefaultLabel();
+    : propsAdhocMetric.getDefaultLabel();
   const title = state.labelModified
     ? state.title
     : {
@@ -309,7 +291,7 @@ function AdhocMetricPopoverTrigger({
   const overlayContent = (
     <ExplorePopoverContent>
       <AdhocMetricEditPopover
-        adhocMetric={state.adhocMetric}
+        adhocMetric={propsAdhocMetric}
         columns={columns}
         savedMetricsOptions={savedMetricsOptions}
         savedMetric={savedMetric as savedMetricType}
