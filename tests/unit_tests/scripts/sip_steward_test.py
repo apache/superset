@@ -198,6 +198,21 @@ def test_link_that_disagrees_with_a_strong_subject_match_is_not_trusted() -> Non
     assert {45717, 45265} <= set(match.candidates)
 
 
+def test_link_to_one_of_two_strong_same_number_issues_is_trusted() -> None:
+    issues = {
+        35820: make_issue(35820, "[SIP-189] Dashboard native filter presets"),
+        35822: make_issue(35822, "[SIP-189] Native filter presets for dashboards"),
+    }
+    email = Email(
+        "f" * 32,
+        "[DISCUSS] SIP-189: Dashboard native filter presets",
+        0,
+        "See https://github.com/apache/superset/issues/35820",
+    )
+    match = sip_steward.match_email(email, issues, None)
+    assert (match.issue, match.how) == (35820, "issue link")
+
+
 def test_several_links_with_one_strong_subject_match_is_trusted() -> None:
     issues = {
         10: make_issue(10, "[SIP-116] Old proposal about chart caching"),
