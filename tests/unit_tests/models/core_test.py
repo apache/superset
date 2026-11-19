@@ -4737,11 +4737,13 @@ def test_compile_sqla_query_offset_before_limit_for_trino(
 
 
 @pytest.mark.parametrize("entry_point", ["schema", "access"])
+@pytest.mark.parametrize("database_state", ["transient", "persistent", "detached"])
 def test_transient_query_read_does_not_dirty_database(
     session: Session,
     app_context: None,
     mocker: MockerFixture,
     entry_point: str,
+    database_state: str,
 ) -> None:
     """Read-only schema and access probes must not mutate the query backref."""
     from sqlalchemy import inspect
@@ -4751,8 +4753,12 @@ def test_transient_query_read_does_not_dirty_database(
 
     Database.metadata.create_all(session.get_bind())
     database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    if database_state != "transient":
+        session.add(database)
+        session.flush()
+    if database_state == "detached":
+        session.expunge(database)
+    assert getattr(inspect(database), database_state)
     resolve = mocker.patch.object(
         database, "get_default_schema_for_query", return_value="main"
     )
