@@ -186,6 +186,22 @@ def test_match_by_issue_link() -> None:
     assert (match.issue, match.how) == (34384, "issue link")
 
 
+def test_link_that_disagrees_with_a_strong_subject_match_is_not_trusted() -> None:
+    email = Email(
+        "d" * 32,
+        "[VOTE] SIP-236: Spreadsheet chart on Univer",
+        0,
+        "See https://github.com/apache/superset/issues/34384",
+    )
+    match = sip_steward.match_email(email, ISSUES, None)
+    assert match.issue is None
+    assert {34384, 45265} <= set(match.candidates)
+
+
+def test_numbered_title_is_capped_at_githubs_limit() -> None:
+    assert len(sip_steward.numbered_title("x" * 256, 123)) == 256
+
+
 def test_match_by_number_and_title() -> None:
     email = Email("b" * 32, "[VOTE] SIP-236: Spreadsheet chart on Univer", 0, "")
     assert sip_steward.match_email(email, ISSUES, None).issue == 45265

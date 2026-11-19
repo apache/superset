@@ -222,7 +222,7 @@ def is_placeholder_title(title: str) -> bool:
 
 
 def numbered_title(title: str, number: int) -> str:
-    return f"[SIP-{number}] {TITLE_RE.sub('', title).strip()}"
+    return f"[SIP-{number}] {TITLE_RE.sub('', title).strip()}"[:256]
 
 
 def max_sip_number(titles: Iterable[str]) -> int:
@@ -367,7 +367,7 @@ def match_email(
         conflicting = [
             n
             for n in by_number
-            if n != target and sims[n] >= STRONG_SIMILARITY and sims[target] < 0.3
+            if n != target and sims[n] >= STRONG_SIMILARITY
         ]
         if conflicting:
             return via_model([target, *conflicting], "issue link and subject disagree")
@@ -606,7 +606,11 @@ class Steward:
         comments = self.gh.paginate(
             f"/repos/{self.gh.repo}/issues/{issue.number}/comments?per_page=100"
         )
-        return any(marker in (c.get("body") or "") for c in comments)
+        return any(
+            marker in (c.get("body") or "")
+            and (c.get("user") or {}).get("login") == "github-actions[bot]"
+            for c in comments
+        )
 
     def comment(
         self, issue: Issue, stage: str, values: dict[str, Optional[str]]
