@@ -1108,6 +1108,8 @@ This way, when a user edits an existing BigQuery connection, the `private_key` i
 
 Note that while this is a basic feature that should be implemented for security reasons, it only makes sense in DB engine specs that use `encrypted_extra` to store connection information.
 
+Masked fields can also come with a hint that helps tell stored secrets apart, for example after a token rotation. When `ENCRYPTED_EXTRA_HINT_CHARS` is greater than zero, `encrypted_extra_hints` returns, for each string found at a path from `encrypted_extra_sensitive_field_paths`, its label, path and last characters, plus, for a JWT, when its `exp` claim says it expires and whether it has (`expires_at` and `expired`, `None` for other values; the signature is not verified). The suffix is `None` when the value is shorter than four times the configured length, so at most 25% of a value is ever revealed, and the length of the value is never returned. Declare `encrypted_extra_sensitive_fields` as a dict of paths to labels to control the labels; engines that use a set get the last segment of the path.
+
 ## Nice to have features
 
 The next set of features are nice to have. They don't apply to all databases, and are not strictly needed for security or usability.

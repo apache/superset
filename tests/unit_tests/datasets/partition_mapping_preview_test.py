@@ -127,6 +127,7 @@ def test_preview_returns_the_emitted_predicate(
 
     assert response.status_code == 200
     assert response.json["result"] == {
+        "data_validation": {"status": "not_checked"},
         "valid": True,
         "sample_input": "event_time == '2026-01-15 00:00:00'",
         "emitted_predicate": "dt_epoch = 1768435200 OR dt_epoch IS NULL",
@@ -152,6 +153,7 @@ def test_preview_mirrors_a_range_when_the_transform_is_monotonic(
         )
 
     assert response.json["result"] == {
+        "data_validation": {"status": "not_checked"},
         "valid": True,
         "sample_input": "event_time >= '2026-01-15 00:00:00'",
         "emitted_predicate": "dt_epoch >= 1768435200 OR dt_epoch IS NULL",
@@ -183,6 +185,7 @@ def test_preview_shows_a_strict_bound_mirroring_non_strictly(
         )
 
     assert response.json["result"] == {
+        "data_validation": {"status": "not_checked"},
         "valid": True,
         "sample_input": "event_time < '2026-01-15 00:00:00'",
         "emitted_predicate": "dt_epoch <= 1768435200 OR dt_epoch IS NULL",
@@ -265,6 +268,7 @@ def test_preview_mirrors_in_element_wise(
         )
 
     assert response.json["result"] == {
+        "data_validation": {"status": "not_checked"},
         "valid": True,
         "sample_input": "country IN ('US', 'CA')",
         "emitted_predicate": "region_key IN ('us', 'ca') OR region_key IS NULL",
@@ -1404,6 +1408,35 @@ def test_preview_declines_a_temporal_answer_the_engine_would_floor(
     assert "emitted_predicate" not in result
 
 
+def test_preview_declines_the_earliest_instant_rather_than_failing(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    psycopg2 reads ``'-infinity'`` as `datetime.min`, which has no earlier
+    instant for the precision check to compare against. The `OverflowError`
+    that raised was reported as an engine failure, as if the transform were
+    broken; it is a type decline like any other.
+    """
+    with patch(PROBE, return_value=[datetime.min]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "dt_epoch",
+                "partition_column": "part_ts",
+                "value_transform": "from_unixtime(:value)",
+                "is_monotonic": True,
+                "operator": ">=",
+                "sample_values": ["1767225600"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "type"
+    assert "emitted_predicate" not in result
+
+
 def _probe_by_shape(text_answer: Any, typed_answer: Any) -> Any:
     """
     A `get_df` that answers each probed column by how it wrote ``:value``: as
@@ -1483,6 +1516,7 @@ def test_preview_accepts_a_transform_that_reads_both_shapes_alike(
         )
 
     assert response.json["result"] == {
+        "data_validation": {"status": "not_checked"},
         "valid": True,
         "sample_input": "event_time >= '2026-01-15 10:47:23'",
         "emitted_predicate": "dt_epoch >= 1768474043 OR dt_epoch IS NULL",

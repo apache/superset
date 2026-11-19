@@ -25,7 +25,11 @@ import {
   getXAxisLabel,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { getMetricOffsetsMap, isTimeComparison } from './utils';
+import {
+  extractExtraMetrics,
+  getMetricOffsetsMap,
+  isTimeComparison,
+} from './utils';
 import { TIME_COMPARISON_SEPARATOR } from './utils/constants';
 
 export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
@@ -33,6 +37,18 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   queryObject,
 ) => {
   const metrics = ensureIsArray(queryObject.metrics);
+  // `queryObject` here is the base query object, before the "Sort By" extra
+  // metric (see extractExtraMetrics) is appended for the final request. That
+  // metric is still pivoted and offset-mapped like any other (see
+  // timeComparePivotOperator), so it has to count here too: otherwise a
+  // single-value-metric query with the sort metric labeled like a time
+  // offset (e.g. "1 year ago") gets its `metricWithOffset` column renamed to
+  // the bare offset label, colliding with that metric's own unrenamed base
+  // column of the same name.
+  const extraMetricLabels = extractExtraMetrics(formData)
+    .map(getMetricLabel)
+    .filter(label => !metrics.some(metric => getMetricLabel(metric) === label));
+  const metricCountWithExtras = metrics.length + extraMetricLabels.length;
   const columns = ensureIsArray(
     queryObject.series_columns || queryObject.columns,
   );
@@ -64,18 +80,33 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
     ) {
       const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
       const timeOffsets = ensureIsArray(formData.time_compare);
+      // Every metric (displayed or sort-only) keeps its own label at the top
+      // level of the pivot, so a rename target equal to one of them would make
+      // the backend `rename` fail with "Label already exists". Such a column
+      // keeps its unrenamed label instead.
+      const topLevelMetricLabels = new Set([
+        ...metrics.map(getMetricLabel),
+        ...extraMetricLabels,
+      ]);
       [...metricOffsetMap.entries()].forEach(
         ([metricWithOffset, metricOnly]) => {
           const offsetLabel = timeOffsets.find(offset =>
             metricWithOffset.endsWith(`${TIME_COMPARISON_SEPARATOR}${offset}`),
           );
+          const target =
+            metricCountWithExtras > 1
+              ? `${metricOnly}, ${offsetLabel}`
+              : offsetLabel;
+          if (target !== undefined && topLevelMetricLabels.has(target)) {
+            return;
+          }
           renamePairs.push([
             formData.comparison_type === ComparisonType.Values
               ? metricWithOffset
               : [formData.comparison_type, metricOnly, metricWithOffset].join(
                   TIME_COMPARISON_SEPARATOR,
                 ),
-            metrics.length > 1 ? `${metricOnly}, ${offsetLabel}` : offsetLabel,
+            target,
           ]);
         },
       );
@@ -87,7 +118,12 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
         ComparisonType.Percentage,
         ComparisonType.Ratio,
       ].includes(formData.comparison_type) &&
+      // the sort-only extra metric is hidden from rendering, so the displayed
+      // metric count decides whether the metric prefix is dropped here
       metrics.length === 1 &&
+      // a comparison whose renames were all skipped for colliding with a
+      // metric label must not fall through to dropping the metric prefix
+      !isTimeComparisonValue &&
       renamePairs.length === 0
     ) {
       renamePairs.push([getMetricLabel(metrics[0]), null]);
