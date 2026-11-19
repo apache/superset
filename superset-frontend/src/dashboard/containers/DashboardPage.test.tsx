@@ -19,6 +19,7 @@
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 import {
+  act,
   createStore,
   render,
   screen,
@@ -46,6 +47,20 @@ import {
 } from 'src/dashboard/actions/dashboardLayout';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import {
+  fetchFilterValue,
+  fetchPermalinkValue,
+} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import {
+  SHARED_STATE_ATTEMPT_TIMEOUT_MS,
+  SHARED_STATE_MAX_ATTEMPTS,
+  SHARED_STATE_RETRY_DELAY_MS,
+} from 'src/dashboard/util/loadSharedFilterState';
+import {
+  isFilterKeyPublishHeld,
+  releaseFilterKeyPublish,
+  resetFilterKeyHold,
+} from 'src/dashboard/util/sharedFilterStateHold';
 import DashboardPage from './DashboardPage';
 
 const mockTheme = {
@@ -146,8 +161,8 @@ jest.mock('src/utils/urlUtils', () => ({
 const mockGetUrlParam = getUrlParam as jest.Mock;
 
 jest.mock('src/dashboard/components/nativeFilters/FilterBar/keyValue', () => ({
-  getFilterValue: jest.fn(),
-  getPermalinkValue: jest.fn(),
+  fetchFilterValue: jest.fn(),
+  fetchPermalinkValue: jest.fn(),
 }));
 
 jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
@@ -817,3 +832,393 @@ test('document.title falls back to the app name on unmount, not the title presen
     document.title = titleBeforeTest;
   }
 });
+
+const mockFetchFilterValue = fetchFilterValue as jest.Mock;
+const mockFetchPermalinkValue = fetchPermalinkValue as jest.Mock;
+
+const FAILED_BANNER = /couldn.t load the filters from this link/;
+const EXPIRED_BANNER = /filters from this link have expired/;
+const STALL_TOTAL_MS =
+  SHARED_STATE_MAX_ATTEMPTS * SHARED_STATE_ATTEMPT_TIMEOUT_MS +
+  (SHARED_STATE_MAX_ATTEMPTS - 1) * SHARED_STATE_RETRY_DELAY_MS;
+
+const renderWithUrlParam = (
+  paramName: string,
+  value = 'abc123',
+  dashboardInfo: object = { id: 1, metadata: {} },
+) => {
+  mockGetUrlParam.mockImplementation((param: { name: string }) =>
+    param.name === paramName ? value : null,
+  );
+  return render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo,
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+};
+const renderWithFilterKey = () => renderWithUrlParam('native_filters_key');
+const renderWithPermalink = () => renderWithUrlParam('permalink_key', 'perma');
+
+const neverResolves = () => new Promise(() => {});
+
+afterEach(() => {
+  resetFilterKeyHold();
+});
+
+test('shows the shared-view loading message while the saved filters load', async () => {
+  mockFetchFilterValue.mockReturnValue(neverResolves());
+  // Dashboard info is empty until the first hydrate, so the loading branch shows.
+  renderWithUrlParam('native_filters_key', 'abc123', {});
+
+  const message = await screen.findByText('Loading the view shared with you…');
+  expect(message).toBeInTheDocument();
+  // <output> carries the implicit status role for screen readers.
+  expect(message.tagName).toBe('OUTPUT');
+});
+
+test('applies the saved filter state when the request resolves', async () => {
+  const savedMask = {
+    'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1', filterState: { value: ['a'] } },
+  };
+  mockFetchFilterValue.mockResolvedValue(savedMask);
+  renderWithFilterKey();
+
+  await waitFor(() => {
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({ dataMask: savedMask }),
+    );
+  });
+  expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  expect(isFilterKeyPublishHeld()).toBe(false);
+});
+
+test('retries quietly after a failed attempt and applies the state', async () => {
+  const savedMask = { 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } };
+  mockFetchFilterValue
+    .mockRejectedValueOnce(new Error('network'))
+    .mockResolvedValueOnce(savedMask);
+  renderWithFilterKey();
+
+  await waitFor(() => {
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({ dataMask: savedMask }),
+    );
+  });
+  expect(mockFetchFilterValue).toHaveBeenCalledTimes(2);
+  expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+});
+
+test('shows a banner with Try again and hydrates with defaults when every attempt stalls', async () => {
+  jest.useFakeTimers();
+  try {
+    mockFetchFilterValue.mockReturnValue(neverResolves());
+    renderWithFilterKey();
+    // The lazy-loaded dashboard body must resolve before the page effect (and
+    // its timeout) starts, so wait for the fetch before advancing the clock.
+    await waitFor(() => expect(mockFetchFilterValue).toHaveBeenCalled());
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(STALL_TOTAL_MS - 1000);
+    });
+    expect(hydrateDashboard).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(1000);
+    });
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({ dataMask: {} }),
+    );
+    expect(mockFetchFilterValue).toHaveBeenCalledTimes(
+      SHARED_STATE_MAX_ATTEMPTS,
+    );
+    expect(await screen.findByText(FAILED_BANNER)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Try again' }),
+    ).toBeInTheDocument();
+    expect(isFilterKeyPublishHeld()).toBe(true);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('shows an expired banner without Try again when the key is gone', async () => {
+  mockFetchFilterValue.mockRejectedValue({ status: 404 });
+  renderWithFilterKey();
+
+  expect(await screen.findByText(EXPIRED_BANNER)).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Try again' }),
+  ).not.toBeInTheDocument();
+  expect(mockFetchFilterValue).toHaveBeenCalledTimes(1);
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({ dataMask: {} }),
+  );
+});
+
+test('the banner can be dismissed', async () => {
+  mockFetchFilterValue.mockRejectedValue({ status: 404 });
+  renderWithFilterKey();
+
+  await screen.findByText(EXPIRED_BANNER);
+  await userEvent.click(screen.getByRole('button', { name: /close/i }));
+
+  await waitFor(() => {
+    expect(screen.queryByText(EXPIRED_BANNER)).not.toBeInTheDocument();
+  });
+});
+
+test('Try again reloads with the original key and clears the banner', async () => {
+  mockFetchFilterValue
+    .mockRejectedValueOnce(new Error('network'))
+    .mockRejectedValueOnce(new Error('network'))
+    .mockResolvedValue({ 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } });
+  renderWithFilterKey();
+
+  await screen.findByText(FAILED_BANNER);
+  expect(isFilterKeyPublishHeld()).toBe(true);
+  await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+  await waitFor(() => {
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  });
+  expect(mockFetchFilterValue).toHaveBeenLastCalledWith(
+    1,
+    'abc123',
+    expect.any(AbortSignal),
+  );
+  expect(isFilterKeyPublishHeld()).toBe(false);
+});
+
+test('applies a permalink state when the request resolves', async () => {
+  mockFetchPermalinkValue.mockResolvedValue({
+    state: { dataMask: { 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } } },
+  });
+  renderWithPermalink();
+
+  await waitFor(() => {
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dataMask: { 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } },
+      }),
+    );
+  });
+});
+
+test('shows the banner and hydrates with defaults when a permalink request fails', async () => {
+  mockFetchPermalinkValue.mockRejectedValue(new Error('network'));
+  renderWithPermalink();
+
+  expect(await screen.findByText(FAILED_BANNER)).toBeInTheDocument();
+  expect(mockFetchPermalinkValue).toHaveBeenCalledTimes(
+    SHARED_STATE_MAX_ATTEMPTS,
+  );
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({ dataMask: {} }),
+  );
+});
+
+test('does not hydrate when unmounted while the saved filter state is loading', async () => {
+  let resolveValue: (value: unknown) => void = () => {};
+  mockFetchFilterValue.mockReturnValue(
+    new Promise(resolve => {
+      resolveValue = resolve;
+    }),
+  );
+  const { unmount } = renderWithFilterKey();
+  await waitFor(() => expect(mockFetchFilterValue).toHaveBeenCalled());
+
+  unmount();
+  const signal = mockFetchFilterValue.mock.calls[0][2];
+  expect(signal.aborted).toBe(true);
+  await act(async () => {
+    resolveValue({ 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } });
+  });
+
+  expect(hydrateDashboard).not.toHaveBeenCalled();
+  expect(mockFetchFilterValue).toHaveBeenCalledTimes(1);
+});
+
+test('does not hydrate when unmounted while the permalink is loading', async () => {
+  let resolveValue: (value: unknown) => void = () => {};
+  mockFetchPermalinkValue.mockReturnValue(
+    new Promise(resolve => {
+      resolveValue = resolve;
+    }),
+  );
+  const { unmount } = renderWithPermalink();
+  await waitFor(() => expect(mockFetchPermalinkValue).toHaveBeenCalled());
+
+  unmount();
+  await act(async () => {
+    resolveValue({ state: { dataMask: {} } });
+  });
+
+  expect(hydrateDashboard).not.toHaveBeenCalled();
+});
+
+test('does not hydrate a previous dashboard when the dashboard changes mid-fetch', async () => {
+  let resolveValue: (value: unknown) => void = () => {};
+  mockFetchFilterValue.mockReturnValueOnce(
+    new Promise(resolve => {
+      resolveValue = resolve;
+    }),
+  );
+  const { rerender } = renderWithFilterKey();
+  await waitFor(() => expect(mockFetchFilterValue).toHaveBeenCalledTimes(1));
+
+  mockFetchFilterValue.mockResolvedValue({
+    'NATIVE_FILTER-B': { id: 'NATIVE_FILTER-B' },
+  });
+  mockUseDashboard.mockReturnValue({
+    result: { ...mockDashboard, id: 2 },
+    error: null,
+  });
+  rerender(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="2" />
+    </Suspense>,
+  );
+  const firstSignal = mockFetchFilterValue.mock.calls[0][2];
+  await waitFor(() => expect(firstSignal.aborted).toBe(true));
+
+  await act(async () => {
+    resolveValue({ 'NATIVE_FILTER-A': { id: 'NATIVE_FILTER-A' } });
+  });
+  await waitFor(() => expect(hydrateDashboard).toHaveBeenCalled());
+
+  const hydrated = (hydrateDashboard as jest.Mock).mock.calls.map(
+    ([arg]) => arg,
+  );
+  expect(hydrated.every(arg => arg.dashboard.id === 2)).toBe(true);
+  expect(hydrated.some(arg => 'NATIVE_FILTER-A' in (arg.dataMask ?? {}))).toBe(
+    false,
+  );
+});
+
+test('Try again on a permalink restores tabs, chart states and anchor like the first load', async () => {
+  const state = {
+    dataMask: { 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } },
+    activeTabs: ['TAB-1'],
+    chartStates: { 5: { state: 'x' } },
+    anchor: 'CHART-5',
+  };
+  mockFetchPermalinkValue
+    .mockRejectedValueOnce(new Error('network'))
+    .mockRejectedValueOnce(new Error('network'))
+    .mockResolvedValue({ state });
+  renderWithPermalink();
+
+  await screen.findByText(FAILED_BANNER);
+  (hydrateDashboard as jest.Mock).mockClear();
+  await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+  await waitFor(() => {
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dataMask: state.dataMask,
+        activeTabs: state.activeTabs,
+        chartStates: state.chartStates,
+      }),
+    );
+  });
+  await waitFor(() => {
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  });
+});
+
+test('the banner goes away once the viewer changes a filter', async () => {
+  mockFetchFilterValue.mockRejectedValue(new Error('network'));
+  renderWithFilterKey();
+
+  await screen.findByText(FAILED_BANNER);
+  expect(isFilterKeyPublishHeld()).toBe(true);
+  act(() => {
+    releaseFilterKeyPublish();
+  });
+
+  await waitFor(() => {
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  });
+});
+
+test('switching dashboards mid-retry does not leave Try again stuck loading', async () => {
+  mockFetchFilterValue.mockRejectedValue(new Error('network'));
+  const { rerender } = renderWithFilterKey();
+  await screen.findByText(FAILED_BANNER);
+
+  // Try again stalls; then the page moves on to another dashboard that also
+  // falls back. Its Try again button must not be stuck in the loading state.
+  mockFetchFilterValue.mockReturnValueOnce(neverResolves());
+  await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /Try again/ })).toHaveClass(
+      'ant-btn-loading',
+    ),
+  );
+
+  mockFetchFilterValue.mockRejectedValue(new Error('network'));
+  mockUseDashboard.mockReturnValue({
+    result: { ...mockDashboard, id: 2 },
+    error: null,
+  });
+  rerender(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="2" />
+    </Suspense>,
+  );
+
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /Try again/ })).not.toHaveClass(
+      'ant-btn-loading',
+    ),
+  );
+});
+
+test.each(['filter key', 'permalink'])(
+  'a viewer filter change cancels an in-flight %s retry and ignores its late response',
+  async kind => {
+    const fetchValue =
+      kind === 'filter key' ? mockFetchFilterValue : mockFetchPermalinkValue;
+    fetchValue.mockRejectedValue(new Error('network'));
+    if (kind === 'filter key') renderWithFilterKey();
+    else renderWithPermalink();
+    await screen.findByText(FAILED_BANNER);
+
+    let resolveRetry: (value: unknown) => void = () => {};
+    fetchValue.mockReturnValueOnce(
+      new Promise(resolve => {
+        resolveRetry = resolve;
+      }),
+    );
+    (hydrateDashboard as jest.Mock).mockClear();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(fetchValue).toHaveBeenCalledTimes(3));
+    const retryCall = fetchValue.mock.calls[2];
+    const signal = retryCall[kind === 'filter key' ? 2 : 1] as AbortSignal;
+
+    act(() => releaseFilterKeyPublish());
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+    // Resolve even after cancellation to model a transport ignoring abort.
+    const savedMask = { 'NATIVE_FILTER-saved': { id: 'NATIVE_FILTER-saved' } };
+    await act(async () => {
+      resolveRetry(
+        kind === 'filter key' ? savedMask : { state: { dataMask: savedMask } },
+      );
+    });
+    expect(hydrateDashboard).not.toHaveBeenCalled();
+    expect(signal.aborted).toBe(true);
+    expect(fetchValue).toHaveBeenCalledTimes(3);
+    expect(isFilterKeyPublishHeld()).toBe(false);
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  },
+);

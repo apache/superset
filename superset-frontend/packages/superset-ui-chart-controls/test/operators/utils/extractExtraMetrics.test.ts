@@ -82,13 +82,24 @@ test('handles adhoc metrics correctly', () => {
   ).toEqual([]);
 });
 
-test('returns empty array if groupby populated', () => {
+test('returns the limit metric when groupby is populated so the chart can sort by its pivoted columns', () => {
   expect(
     extractExtraMetrics({
       ...baseFormData,
       groupby: ['bar'],
       timeseries_limit_metric: 'foo',
       x_axis_sort: 'foo',
+    }),
+  ).toEqual(['foo']);
+});
+
+test('returns empty array with groupby when the axis is sorted by a series aggregate', () => {
+  expect(
+    extractExtraMetrics({
+      ...baseFormData,
+      groupby: ['bar'],
+      timeseries_limit_metric: 'foo',
+      x_axis_sort: 'sum',
     }),
   ).toEqual([]);
 });
@@ -131,6 +142,40 @@ test('returns empty array if timeseries_limit_metric is an empty array', () => {
       ...baseFormData,
       // @ts-expect-error
       timeseries_limit_metric: [],
+    }),
+  ).toEqual([]);
+});
+
+test('does not query a limit metric whose label collides with an aggregate sort when several series exist', () => {
+  expect(
+    extractExtraMetrics({
+      ...baseFormData,
+      groupby: ['dim'],
+      timeseries_limit_metric: 'sum',
+      x_axis_sort: 'sum',
+    }),
+  ).toEqual([]);
+});
+
+test('still queries a limit metric labeled like an aggregate for a single series', () => {
+  expect(
+    extractExtraMetrics({
+      ...baseFormData,
+      metrics: ['a'],
+      timeseries_limit_metric: 'sum',
+      x_axis_sort: 'sum',
+    }),
+  ).toEqual(['sum']);
+});
+
+test('does not query a limit metric whose label matches the x-axis column being sorted by', () => {
+  expect(
+    extractExtraMetrics({
+      ...baseFormData,
+      x_axis: 'genre',
+      groupby: ['platform'],
+      timeseries_limit_metric: 'genre',
+      x_axis_sort: 'genre',
     }),
   ).toEqual([]);
 });

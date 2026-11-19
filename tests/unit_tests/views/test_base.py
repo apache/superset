@@ -100,9 +100,12 @@ def test_common_bootstrap_payload_masks_websocket_without_realtime_permission(
         patch("superset.views.base.get_locale", return_value=None),
     ):
         result = common_bootstrap_payload()
+        ungated = common_bootstrap_payload(gate_realtime=False)
 
     assert result["conf"]["WEBSOCKET_ENABLE"] is False
     assert cached["conf"]["WEBSOCKET_ENABLE"] is True
+    # A page rendered before its principal is known carries the configured value.
+    assert ungated["conf"]["WEBSOCKET_ENABLE"] is True
 
 
 def test_common_bootstrap_payload_exposes_websocket_with_realtime_permission(
