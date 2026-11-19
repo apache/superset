@@ -2674,6 +2674,11 @@ _REPLACED_FIXED_CAP_PX = 16384
 # Enough clipped boxes that re-reading all of them on every pass of the
 # fixed-point loop is measurably quadratic.
 _OVERFLOWING_CARD_COUNT = 200
+# A budget that divides exactly at the default width and a scale factor of 2:
+# 6,400,000 / (800 * 2 * 2) = 2000 CSS px, i.e. a 1600x4000 image.
+_HIGH_DPI_BUDGET_PX = 6_400_000
+_HIGH_DPI_SCALE_FACTOR = 2
+_HIGH_DPI_ALLOWED_CSS_PX = 2000
 
 
 def _chart_capture_rows(n_rows: int) -> str:
@@ -2792,8 +2797,12 @@ def _wrap_chart_capture(body: str, layout: str) -> str:
 
 
 @contextmanager
-def _chart_capture_page(html: str) -> Iterator["Page"]:
+def _chart_capture_page(html: str, device_scale_factor: int = 1) -> Iterator["Page"]:
     """A page at the default chart window size holding `html`.
+
+    `device_scale_factor` is what `get_screenshot` passes as the browser
+    context's scale factor (the `pixel_density` config), so it decides how many
+    image pixels each CSS pixel of the capture costs.
 
     Skips (does not fail) when Playwright's Python package or its Chromium
     binary is unavailable, like the other real-browser test in this module;
@@ -2811,7 +2820,10 @@ def _chart_capture_page(html: str) -> Iterator["Page"]:
             raise
         try:
             # DEFAULT_CHART_WINDOW_SIZE
-            page = browser.new_page(viewport={"width": 800, "height": 600})
+            page = browser.new_page(
+                viewport={"width": _CHART_CAPTURE_WIDTH_PX, "height": 600},
+                device_scale_factor=device_scale_factor,
+            )
             page.set_content(html)
             yield page
         finally:
@@ -3118,6 +3130,66 @@ def test_lifted_chart_height_is_bounded_by_the_cap(
         assert table_height <= allowed_height
         assert captured_height >= table_height
         _assert_markers_painted(png, markers)
+
+
+def test_pixel_budget_is_counted_in_device_pixels() -> None:
+    """The budget bounds the image, and an image is measured in device pixels.
+
+    A capture at `pixel_density` 2 costs four device pixels per CSS pixel, so
+    the budget has to be divided by the width *and* the scale factor twice.
+    Dropping one factor of the ratio would allow twice the pixel area the
+    limit permits at density 2, and dropping both -- dividing by the CSS width
+    alone -- four times. Either mistake is indistinguishable from the correct
+    arithmetic at density 1, which every other test here runs at.
+    """
+    from superset.utils import webdriver
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(_pivot_chart_body(_CHART_CAPTURE_ROWS), "shell")
+    with _chart_capture_page(html, _HIGH_DPI_SCALE_FACTOR) as page:
+        assert page.evaluate("window.devicePixelRatio") == _HIGH_DPI_SCALE_FACTOR
+        with patch.object(
+            webdriver,
+            "expand_chart_table_max_pixels",
+            return_value=_HIGH_DPI_BUDGET_PX,
+        ):
+            WebDriverPlaywright._expand_scrollable_content(
+                page, element_name="chart-container"
+            )
+        container_height = page.evaluate(
+            "document.querySelector('.chart-container').getBoundingClientRect().height"
+        )
+        markers = _measure_markers(page)
+        png = WebDriverPlaywright._get_screenshot(
+            page, page.locator(".chart-container"), "chart-container"
+        )
+
+    # 6,400,000 device px / (800 CSS px wide * 2 * 2) = 2000 CSS px tall, which
+    # the capture renders at the scale factor in both dimensions: 1600x4000,
+    # exactly the budget. Dividing by `width * dpr` -- one factor of the ratio
+    # -- would allow 4000 CSS px here and a 1600x8000 image, twice the pixels
+    # the budget permits; dividing by the CSS width alone would allow 8000 CSS
+    # px and a 1600x16000 image, four times. The container height catches
+    # either.
+    assert container_height == _HIGH_DPI_ALLOWED_CSS_PX
+    image = Image.open(io.BytesIO(png))
+    assert (image.width, image.height) == (
+        _CHART_CAPTURE_WIDTH_PX * _HIGH_DPI_SCALE_FACTOR,
+        _HIGH_DPI_ALLOWED_CSS_PX * _HIGH_DPI_SCALE_FACTOR,
+    )
+    assert image.width * image.height == _HIGH_DPI_BUDGET_PX
+    # `_measure_markers` reports CSS pixels relative to the container, while
+    # the capture is cropped in image pixels.
+    first_y0, first_y1 = markers["first"]
+    _assert_markers_painted(
+        png,
+        {
+            "first": (
+                first_y0 * _HIGH_DPI_SCALE_FACTOR,
+                first_y1 * _HIGH_DPI_SCALE_FACTOR,
+            )
+        },
+    )
 
 
 def test_tall_inline_overflow_table_is_captured_whole() -> None:
