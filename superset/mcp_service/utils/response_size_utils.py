@@ -653,12 +653,14 @@ COMMITTED_WRITE_SPECS: Dict[str, CommittedWriteSpec] = {
     "add_chart_to_existing_dashboard": _spec("dashboard", "dashboard"),
     "apply_dashboard_filters": _spec("dashboard"),
     "create_dataset": _spec("dataset"),
+    "create_dataset_column": _spec("dataset", "column"),
     "create_dataset_metric": _spec("dataset", "metric"),
     "create_theme": _spec("theme", reports_success=True),
     "create_virtual_dataset": _spec("dataset"),
     "delete_chart": _spec("chart", reports_success=True),
     "delete_dashboard": _spec("dashboard", reports_success=True),
     "delete_dataset": _spec("dataset", reports_success=True),
+    "delete_dataset_column": _spec("dataset", "column"),
     "delete_dataset_metric": _spec("dataset", "metric"),
     "duplicate_dashboard": _spec("dashboard", "dashboard"),
     "generate_chart": _spec("chart", "chart", reports_success=True),
@@ -676,6 +678,7 @@ COMMITTED_WRITE_SPECS: Dict[str, CommittedWriteSpec] = {
     "update_chart": _spec("chart", "chart", reports_success=True),
     "update_dashboard": _spec("dashboard", "dashboard"),
     "update_dataset": _spec("dataset", "updated_properties"),
+    "update_dataset_column": _spec("dataset", "column"),
     "update_dataset_metric": _spec("dataset", "metric"),
 }
 

@@ -23,6 +23,7 @@ import {
   WaterfallChartTransformedProps,
 } from '../../src/Waterfall/types';
 import transformProps from '../../src/Waterfall/transformProps';
+import { LEGEND } from '../../src/Waterfall/constants';
 
 const extractSeries = (props: WaterfallChartTransformedProps) => {
   const { echartOptions } = props;
@@ -102,6 +103,37 @@ test('should tranform chart props for viz when breakdown exist', () => {
     ['-', '-', '-', 10, '-', '-'],
     ['-', '-', 13, '-', '-', 8],
   ]);
+});
+
+test('resolves a hex increase/decrease/total color carried over from another chart type', () => {
+  // `normalizeRgbaColor` tolerates a hex string left over from switching
+  // viz types (e.g. Big Number with Time Period Comparison, which stores
+  // these controls as hex rather than {r,g,b,a}) -- this exercises that
+  // through the actual Waterfall transform, not `normalizeRgbaColor` alone.
+  const chartProps = new ChartProps({
+    formData: {
+      ...formData,
+      increaseColor: '#336699',
+      decreaseColor: '#996633',
+      totalColor: '#669933',
+    },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+  });
+  const transformedProps = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  const { series } = transformedProps.echartOptions as unknown as {
+    series: { name: string; itemStyle?: { color: string } }[];
+  };
+  const colorByName = Object.fromEntries(
+    series.map(item => [item.name, item.itemStyle?.color]),
+  );
+  expect(colorByName[LEGEND.INCREASE]).toBe('#336699');
+  expect(colorByName[LEGEND.DECREASE]).toBe('#996633');
+  expect(colorByName[LEGEND.TOTAL]).toBe('#669933');
 });
 
 test('renaming series names, checking legend and X axis labels', () => {
