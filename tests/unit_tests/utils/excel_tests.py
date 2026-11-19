@@ -41,7 +41,7 @@ def test_timezone_conversion() -> None:
     apply_column_types(df, [GenericDataType.TEMPORAL])
     assert df["dt"].tolist() == [datetime(2023, 1, 1, 0, 0)]
     contents = df_to_excel(df)
-    exported = pd.read_excel(contents)["dt"][0]
+    exported = pd.read_excel(io.BytesIO(contents))["dt"][0]
     assert pd.Timestamp(exported) == pd.Timestamp("2023-01-01 00:00:00")
 
 
@@ -65,7 +65,7 @@ def test_timezone_aware_index_exports() -> None:
     )
     df = pd.DataFrame({"value": [1.5]}, index=index)
     contents = df_to_excel(df)
-    result = pd.read_excel(contents, index_col=0)
+    result = pd.read_excel(io.BytesIO(contents), index_col=0)
     assert pd.Timestamp(result.index[0]) == pd.Timestamp("2024-06-01 12:00:00")
 
 
@@ -75,11 +75,55 @@ def test_quote_formulas() -> None:
     """
     df = pd.DataFrame({"formula": ["=SUM(A1:A2)", "normal", "@SUM(A1:A2)"]})
     contents = df_to_excel(df)
-    assert pd.read_excel(contents)["formula"].tolist() == [
+    assert pd.read_excel(io.BytesIO(contents))["formula"].tolist() == [
         "'=SUM(A1:A2)",
         "normal",
         "'@SUM(A1:A2)",
     ]
+
+
+def test_quote_formulas_with_leading_whitespace() -> None:
+    """
+    Formulas are quoted even when a space, tab, or newline comes first.
+
+    Whitespace in front of the prefix stops XlsxWriter recognising a formula at
+    all, so a value with whitespace in front of it is written as a plain string
+    cell whether or not it is quoted. This is an export-consistency check
+    rather than a guard against the workbook evaluating anything: the streaming
+    writer (``excel_streaming``) and the CSV writer both strip before reading
+    the prefix, so without this the same cell goes out quoted from two of the
+    three paths and bare from this one.
+    """
+    df = pd.DataFrame(
+        {"formula": [" =1+1", "\t=1+1", "\n=1+1", "  @SUM(A1)", "normal"]}
+    )
+    contents = df_to_excel(df)
+    assert pd.read_excel(io.BytesIO(contents))["formula"].tolist() == [
+        "' =1+1",
+        "'\t=1+1",
+        "'\n=1+1",
+        "'  @SUM(A1)",
+        "normal",
+    ]
+
+
+def test_quote_formulas_leaves_blank_and_whitespace_only_cells_alone() -> None:
+    """
+    A cell that is empty or holds only whitespace comes back unchanged.
+
+    ``lstrip`` leaves nothing to inspect in either, so testing the stripped
+    value before reading its first character is what keeps a whitespace-only
+    cell from raising ``IndexError``. The plain ``len(value)`` guard this
+    replaced only covered the empty string, because it read the first
+    character of the original value rather than of the stripped one.
+
+    The assertion is made on ``quote_formulas`` directly rather than through a
+    round-trip, since a blank cell reads back out of a sheet as a missing value
+    and would hide the result.
+    """
+    df = pd.DataFrame({"cell": ["", " \t\n", "   "]})
+
+    assert quote_formulas(df)["cell"].tolist() == ["", " \t\n", "   "]
 
 
 def test_quote_formulas_in_headers_and_index() -> None:
@@ -94,7 +138,7 @@ def test_quote_formulas_in_headers_and_index() -> None:
         index=pd.Index(['=cmd|" /C calc"!A0'], name="label"),
     )
     contents = df_to_excel(df)
-    result = pd.read_excel(contents, index_col=0)
+    result = pd.read_excel(io.BytesIO(contents), index_col=0)
     assert result.columns.tolist() == ["'=SUM(A1:A2)"]
     assert result.index.tolist() == ['\'=cmd|" /C calc"!A0']
 
@@ -246,7 +290,7 @@ def test_apply_column_types_with_duplicate_column_labels() -> None:
     assert is_numeric_dtype(df.iloc[:, 2])
 
     contents = df_to_excel(df, index=False)
-    assert pd.read_excel(contents).shape == (2, 3)
+    assert pd.read_excel(io.BytesIO(contents)).shape == (2, 3)
 
 
 def test_quote_formulas_with_duplicate_column_labels() -> None:
