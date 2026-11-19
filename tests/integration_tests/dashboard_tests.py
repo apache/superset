@@ -264,7 +264,7 @@ class TestDashboard(SupersetTestCase):
         "load_energy_table_with_slice",
         "load_dashboard",
     )
-    def test_authenticated_user_without_access_gets_404(self):
+    def test_authenticated_user_without_access_gets_403(self):
         self.login(GAMMA_USERNAME)
         target_path = f"/dashboard/{pytest.hidden_dash_slug}/"
 
@@ -273,7 +273,7 @@ class TestDashboard(SupersetTestCase):
             follow_redirects=False,
             headers={"Accept": "text/html"},
         )
-        assert response.status_code == 404
+        assert response.status_code == 403
 
     @pytest.mark.usefixtures(
         "public_role_like_gamma",

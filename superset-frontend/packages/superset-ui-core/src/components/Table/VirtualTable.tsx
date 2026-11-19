@@ -242,7 +242,7 @@ const VirtualTable = <RecordType extends object>(
 
   const renderVirtualList = (
     rawData: readonly object[],
-    { ref, onScroll }: any,
+    { scrollbarSize = 0, ref, onScroll }: any,
   ) => {
     // eslint-disable-next-line no-param-reassign
     ref.current = connectObject;
@@ -254,7 +254,12 @@ const VirtualTable = <RecordType extends object>(
         columnCount={mergedColumns.length}
         columnWidth={(index: number) => {
           const { width = DEFAULT_COL_WIDTH } = mergedColumns[index];
-          return width as number;
+          // rc-table takes the vertical scrollbar's width off the header's last
+          // column and adds a gutter column in its place; do the same here so
+          // the header and body columns line up.
+          return index === mergedColumns.length - 1
+            ? Math.max((width as number) - scrollbarSize, 0)
+            : (width as number);
         }}
         rowCount={rawData.length}
         rowHeight={() => cellSize}
