@@ -33,6 +33,45 @@ const basicFormData: TableChartFormData = {
   metrics: ['count'],
 };
 
+test.each([
+  ['json', 2],
+  ['csv', 1],
+  ['xlsx', 1],
+])(
+  'show_totals with result_format %s builds %i query(ies)',
+  (resultFormat, expectedQueries) => {
+    const { queries } = buildQueryUncached({
+      ...basicFormData,
+      show_totals: true,
+      result_format: resultFormat,
+    } as TableChartFormData);
+
+    expect(queries).toHaveLength(expectedQueries);
+  },
+);
+
+test.each([
+  ['json', 2],
+  ['csv', 1],
+  ['xlsx', 1],
+])(
+  'raw summary with result_format %s builds %i query(ies)',
+  (resultFormat, expectedQueries) => {
+    const { queries } = buildQueryUncached(
+      {
+        ...basicFormData,
+        query_mode: QueryMode.Raw,
+        all_columns: ['state', 'population'],
+        show_totals: true,
+        result_format: resultFormat,
+      } as TableChartFormData,
+      { ownState: { rawSummaryColumns: ['population'] } },
+    );
+
+    expect(queries).toHaveLength(expectedQueries);
+  },
+);
+
 test('preserves saved semantic pagination offsets and ordering', () => {
   const saved: TableChartFormData = Object.freeze({
     ...basicFormData,
@@ -890,7 +929,9 @@ describe('plugin-chart-ag-grid-table', () => {
             ...basicFormData,
             show_totals: true,
             query_mode: QueryMode.Aggregate,
-            result_format: 'csv',
+            result_format: 'json',
+            result_type: 'results',
+            server_pagination: true,
           },
           {
             ownState: {
@@ -906,7 +947,6 @@ describe('plugin-chart-ag-grid-table', () => {
         );
 
         const mainQuery = queries[0];
-        // Downloads never get a rowcount query, so totals is queries[1].
         const totalsQuery = queries[1];
 
         expect(mainQuery.extras?.having).toBe('count > 10');
@@ -1028,7 +1068,9 @@ describe('plugin-chart-ag-grid-table', () => {
             ...basicFormData,
             show_totals: true,
             query_mode: QueryMode.Aggregate,
-            result_format: 'csv',
+            result_format: 'json',
+            result_type: 'results',
+            server_pagination: true,
           },
           {
             ownState: {
@@ -1040,7 +1082,6 @@ describe('plugin-chart-ag-grid-table', () => {
         );
 
         const mainQuery = queries[0];
-        // Downloads never get a rowcount query, so totals is queries[1].
         const totalsQuery = queries[1];
         const stateFilter = { col: 'state', op: '==', val: 'CA' };
 
@@ -2227,7 +2268,7 @@ test.each(['json', 'csv'])(
     };
     const original = structuredClone(form);
     const { queries } = buildQueryUncached(form);
-    expect(queries.length).toBeGreaterThan(1);
+    expect(queries).toHaveLength(result_format === 'csv' ? 1 : 3);
     queries.forEach(query => {
       expect(query.extras).not.toHaveProperty('time_grain_sqla');
     });
