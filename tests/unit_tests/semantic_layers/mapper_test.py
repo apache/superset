@@ -5875,7 +5875,7 @@ def test_dormant_grain_preserves_advertised_variants(
 def test_categorical_legacy_grain_refuses_time_bounds(
     mocker: MockerFixture, columns: list[str | AdhocColumn], bounds: str
 ) -> None:
-    """Never send date bounds to the categorical axis or retarget its grain."""
+    """Refuse bounded categorical axes with a grain; grainless bounds are separate."""
     datasource: MagicMock = _dormant_grain_datasource(mocker, pa.string())
     query: ValidatedQueryObject = ValidatedQueryObject(
         datasource=datasource,
@@ -5898,6 +5898,27 @@ def test_categorical_legacy_grain_refuses_time_bounds(
     assert [dimension.name for dimension in mapped.dimensions] == columns
     assert all(dimension.grain is None for dimension in mapped.dimensions)
     assert not mapped.filters
+
+
+def test_query_grain_on_text_variants_requires_temporal_axis(
+    mocker: MockerFixture,
+) -> None:
+    """Advertised text variants do not infer an axis for a query-level grain."""
+    datasource: MagicMock = _dormant_grain_datasource(mocker, pa.string())
+    datasource.implementation._dimensions.add(
+        Dimension("segment.month", "segment", pa.string(), grain=Grains.MONTH)
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["segment"],
+        metrics=["revenue"],
+        extras={"time_grain_sqla": "P1M"},
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match="A time column must be specified when a time grain is provided",
+    ):
+        validate_query_object(query)
 
 
 def test_categorical_legacy_attached_grain_refuses_time_bounds(

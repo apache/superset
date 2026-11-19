@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import PublishedStatus from '.';
 
 const defaultProps = {
@@ -78,5 +83,28 @@ test('renders with published status and write permissions', async () => {
   expect(await screen.findByText(tooltip)).toBeInTheDocument();
   expect(savePublished).not.toHaveBeenCalled();
   await userEvent.click(screen.getByText('Published'));
-  expect(savePublished).toHaveBeenCalledTimes(1);
+  expect(savePublished).not.toHaveBeenCalled();
+  await waitFor(() =>
+    expect(
+      screen.getByText(/Active alerts and reports may stop delivering/),
+    ).toBeVisible(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Make draft' }));
+  expect(savePublished).toHaveBeenCalledWith(1, false);
+});
+
+test('cancelling unpublish preserves the published dashboard', async () => {
+  const savePublished = jest.fn();
+  render(
+    <PublishedStatus
+      {...defaultProps}
+      isPublished
+      userCanEdit
+      userCanSave
+      savePublished={savePublished}
+    />,
+  );
+  await userEvent.click(screen.getByText('Published'));
+  await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+  expect(savePublished).not.toHaveBeenCalled();
 });
