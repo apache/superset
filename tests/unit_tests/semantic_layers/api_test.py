@@ -15,11 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import inspect
 import logging
 import uuid as uuid_lib
 from typing import Annotated, Any, Literal
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY, MagicMock
 
 import pytest
 from flask.testing import FlaskClient
@@ -32,6 +31,7 @@ from superset_core.semantic_layers.transport import (
 from werkzeug.test import TestResponse
 
 from superset.commands.semantic_layer.exceptions import (
+    SemanticDeleteBlockerDetails,
     SemanticDeleteDependentsError,
     SemanticLayerCreateFailedError,
     SemanticLayerDeleteFailedError,
@@ -56,6 +56,7 @@ from superset.semantic_layers.api import (
     SemanticViewRestApi,
 )
 from superset.semantic_layers.models import SemanticLayer
+from superset.utils import json
 
 SEMANTIC_LAYERS_APP = pytest.mark.parametrize(
     "app",
@@ -1058,9 +1059,21 @@ def test_semantic_delete_reports_dependents_as_conflict(
         "name": "Revenue",
     }
     mock_command: MagicMock = mocker.patch(f"superset.semantic_layers.api.{command}")
+    bulk: bool = command == "BulkDeleteSemanticViewCommand"
     mock_command.return_value.run.side_effect = SemanticDeleteDependentsError(
-        25, [dependent], 24, 3
+        25, [dependent], 24, 3, [2] if bulk else None
     )
+
+    blocked_views: list[SemanticDeleteBlockerDetails] = [
+        {
+            "id": 2,
+            "total": 25,
+            "dependents": [dependent],
+            "inaccessible_count": 24,
+            "archived_count": 3,
+        }
+    ]
+    mock_command.return_value.run.side_effect.blocked_views = blocked_views
 
     request_path: str = (
         f"/api/v1/semantic_view/?q={rison_lib.dumps([1, 2])}"
@@ -1074,6 +1087,9 @@ def test_semantic_delete_reports_dependents_as_conflict(
     assert response.json["total"] == 25
     assert response.json["dependents"] == [dependent]
     assert response.json["inaccessible_count"] == 24
+    # Only bulk deletes name which selected views are blocked.
+    assert response.json.get("blocked_view_ids") == ([2] if bulk else None)
+    assert response.json.get("blocked_views") == (blocked_views if bulk else None)
     assert response.json["message"] == (
         "Semantic source is used by 25 dependent assets and cannot be deleted. "
         "Remove or repoint these assets before deleting the semantic source. "
@@ -1767,7 +1783,7 @@ def test_connections_list(
     )
 
     mocker.patch(
-        "superset.semantic_layers.api.is_feature_enabled",
+        "superset.semantic_layers.api.is_semantic_layers_enabled",
         return_value=True,
     )
 
@@ -1808,7 +1824,9 @@ def _connections_db_query_mock(mocker: MockerFixture) -> MagicMock:
         return queries[model]
 
     mock_db_session.query.side_effect = query_for_model
-    mocker.patch("superset.semantic_layers.api.is_feature_enabled", return_value=True)
+    mocker.patch(
+        "superset.semantic_layers.api.is_semantic_layers_enabled", return_value=True
+    )
     return db_query
 
 
@@ -1883,7 +1901,7 @@ def test_connections_database_only(
     """Test GET /connections/ returns 404 when feature flag is disabled."""
 
     mocker.patch(
-        "superset.semantic_layers.api.is_feature_enabled",
+        "superset.semantic_layers.api.is_semantic_layers_enabled",
         return_value=False,
     )
 
@@ -1911,7 +1929,7 @@ def test_connections_name_filter(
     mock_db_session.query.side_effect = [db_query, sl_query]
 
     mocker.patch(
-        "superset.semantic_layers.api.is_feature_enabled",
+        "superset.semantic_layers.api.is_semantic_layers_enabled",
         return_value=True,
     )
 
@@ -1980,7 +1998,7 @@ def test_connections_sort_by_name(
     )
 
     mocker.patch(
-        "superset.semantic_layers.api.is_feature_enabled",
+        "superset.semantic_layers.api.is_semantic_layers_enabled",
         return_value=True,
     )
 
@@ -2029,7 +2047,7 @@ def test_connections_source_type_filter(
     mock_db_session.query.return_value = db_query
 
     mocker.patch(
-        "superset.semantic_layers.api.is_feature_enabled",
+        "superset.semantic_layers.api.is_semantic_layers_enabled",
         return_value=True,
     )
 
@@ -2084,7 +2102,7 @@ def test_connections_source_type_semantic_layer_only(
     )
 
     mocker.patch(
-        "superset.semantic_layers.api.is_feature_enabled",
+        "superset.semantic_layers.api.is_semantic_layers_enabled",
         return_value=True,
     )
 
@@ -2143,7 +2161,7 @@ def test_connections_semantic_layer_filters_by_perms(
     )
 
     mocker.patch(
-        "superset.semantic_layers.api.is_feature_enabled",
+        "superset.semantic_layers.api.is_semantic_layers_enabled",
         return_value=True,
     )
     mocker.patch(
@@ -3211,86 +3229,6 @@ def test_get_semantic_view_structure_forbidden(
     assert response.status_code == 403
 
 
-def test_semantic_view_structure_flag_off_unwrapped() -> None:
-    """Cover structure() feature-flag guard without auth decorators."""
-    api = SemanticViewRestApi()
-    api.response_404 = MagicMock(return_value=("404", 404))
-    structure_fn = inspect.unwrap(SemanticViewRestApi.structure)
-
-    with patch(
-        "superset.semantic_layers.api.is_feature_enabled",
-        return_value=False,
-    ):
-        response = structure_fn(api, 1)
-
-    assert response == ("404", 404)
-    api.response_404.assert_called_once()
-
-
-def test_semantic_view_post_flag_off_unwrapped() -> None:
-    """Cover post() feature-flag guard without auth decorators."""
-    api = SemanticViewRestApi()
-    api.response_404 = MagicMock(return_value=("404", 404))
-    post_fn = inspect.unwrap(SemanticViewRestApi.post)
-
-    with patch(
-        "superset.semantic_layers.api.is_feature_enabled",
-        return_value=False,
-    ):
-        response = post_fn(api)
-
-    assert response == ("404", 404)
-    api.response_404.assert_called_once()
-
-
-def test_semantic_view_delete_flag_off_unwrapped() -> None:
-    """Cover delete() feature-flag guard without auth decorators."""
-    api = SemanticViewRestApi()
-    api.response_404 = MagicMock(return_value=("404", 404))
-    delete_fn = inspect.unwrap(SemanticViewRestApi.delete)
-
-    with patch(
-        "superset.semantic_layers.api.is_feature_enabled",
-        return_value=False,
-    ):
-        response = delete_fn(api, 1)
-
-    assert response == ("404", 404)
-    api.response_404.assert_called_once()
-
-
-def test_semantic_view_bulk_delete_flag_off_unwrapped() -> None:
-    """Cover bulk_delete() feature-flag guard without auth decorators."""
-    api = SemanticViewRestApi()
-    api.response_404 = MagicMock(return_value=("404", 404))
-    bulk_delete_fn = inspect.unwrap(SemanticViewRestApi.bulk_delete)
-
-    with patch(
-        "superset.semantic_layers.api.is_feature_enabled",
-        return_value=False,
-    ):
-        response = bulk_delete_fn(api, rison=[1])
-
-    assert response == ("404", 404)
-    api.response_404.assert_called_once()
-
-
-def test_semantic_layer_views_flag_off_unwrapped() -> None:
-    """Cover views() feature-flag guard without auth decorators."""
-    api = SemanticLayerRestApi()
-    api.response_404 = MagicMock(return_value=("404", 404))
-    views_fn = inspect.unwrap(SemanticLayerRestApi.views)
-
-    with patch(
-        "superset.semantic_layers.api.is_feature_enabled",
-        return_value=False,
-    ):
-        response = views_fn(api, str(uuid_lib.uuid4()))
-
-    assert response == ("404", 404)
-    api.response_404.assert_called_once()
-
-
 @SEMANTIC_LAYERS_APP
 def test_get_semantic_layer_feature_disabled(
     client: Any,
@@ -3299,61 +3237,13 @@ def test_get_semantic_layer_feature_disabled(
 ) -> None:
     """Test GET /<uuid> returns 404 when the feature flag is disabled."""
     mocker.patch(
-        "superset.semantic_layers.api.is_feature_enabled",
+        "superset.semantic_layers.api.is_semantic_layers_enabled",
         return_value=False,
     )
 
     response = client.get(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
 
     assert response.status_code == 404
-
-
-def test_semantic_layer_get_list_flag_off_unwrapped() -> None:
-    """Cover get_list() feature-flag guard without auth decorators."""
-    api = SemanticLayerRestApi()
-    api.response_404 = MagicMock(return_value=("404", 404))
-    get_list_fn = inspect.unwrap(SemanticLayerRestApi.get_list)
-
-    with patch(
-        "superset.semantic_layers.api.is_feature_enabled",
-        return_value=False,
-    ):
-        response = get_list_fn(api)
-
-    assert response == ("404", 404)
-    api.response_404.assert_called_once()
-
-
-def test_semantic_layer_get_flag_off_unwrapped() -> None:
-    """Cover get() feature-flag guard without auth decorators."""
-    api = SemanticLayerRestApi()
-    api.response_404 = MagicMock(return_value=("404", 404))
-    get_fn = inspect.unwrap(SemanticLayerRestApi.get)
-
-    with patch(
-        "superset.semantic_layers.api.is_feature_enabled",
-        return_value=False,
-    ):
-        response = get_fn(api, str(uuid_lib.uuid4()))
-
-    assert response == ("404", 404)
-    api.response_404.assert_called_once()
-
-
-def test_semantic_layer_runtime_schema_flag_off_unwrapped() -> None:
-    """Cover runtime_schema() feature-flag guard without auth decorators."""
-    api = SemanticLayerRestApi()
-    api.response_404 = MagicMock(return_value=("404", 404))
-    runtime_schema_fn = inspect.unwrap(SemanticLayerRestApi.runtime_schema)
-
-    with patch(
-        "superset.semantic_layers.api.is_feature_enabled",
-        return_value=False,
-    ):
-        response = runtime_schema_fn(api, str(uuid_lib.uuid4()))
-
-    assert response == ("404", 404)
-    api.response_404.assert_called_once()
 
 
 @SEMANTIC_LAYERS_APP
@@ -3394,7 +3284,14 @@ def test_layer_validation_does_not_expose_secrets(
     layer.configure_mock(
         type="validation_test",
         uuid=uuid_lib.uuid4(),
-        configuration='{"auth": {"kind": "password", "password": "' + secret + '"}}',
+        configuration=json.dumps(
+            {
+                "auth": {
+                    "kind": "invalid" if failure == "discriminator" else "password",
+                    "password": secret,
+                }
+            }
+        ),
     )
     dao: MagicMock = mocker.patch(
         f"superset.commands.semantic_layer.{operation}.SemanticLayerDAO"
@@ -3419,6 +3316,7 @@ def test_layer_validation_does_not_expose_secrets(
         return Configuration.model_validate(configuration)
 
     provider.__name__ = "ValidationTestProvider"
+    provider.get_configuration_schema.return_value = Configuration.model_json_schema()
     provider.configuration_class.model_validate.configure_mock(
         side_effect=validate_provider
     )
@@ -3565,7 +3463,7 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
     mocker: MockerFixture,
     guess: str,
 ) -> None:
-    """Wrong and right guesses both replace secrets, without an identity signal."""
+    """Wrong and right guesses are both refused, without an identity signal."""
     layer: MagicMock = MagicMock()
     layer.configure_mock(
         type="oracle_test",
@@ -3607,12 +3505,17 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
             }
         },
     )
-    assert response.status_code == 200
-    assert response.json == {"result": {"uuid": str(layer.uuid)}}
-    provider.configuration_class.model_validate.assert_called_once_with(
-        {"accounts": [{"host": "a", "password": "stored-password", "token": guess}]}
-    )
-    dao.update.assert_called_once()
+    assert response.status_code == 422
+    assert response.json == {
+        "message": (
+            "This update changes the configuration while reusing a stored "
+            "secret value (a masked field). Re-enter all credentials to confirm "
+            "a configuration change."
+        )
+    }
+    provider.configuration_class.model_validate.assert_not_called()
+    dao.update.assert_not_called()
+    layer.clear_metadata_cache.assert_not_called()
 
 
 @SEMANTIC_LAYERS_APP

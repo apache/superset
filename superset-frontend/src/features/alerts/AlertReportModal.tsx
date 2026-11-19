@@ -48,6 +48,8 @@ import {
 } from '@apache-superset/core/theme';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
+import DraftDashboardNotice from 'src/features/reports/DraftDashboardNotice';
+import reportErrorMessage from 'src/features/reports/reportErrorMessage';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import SubjectPicker, {
@@ -1245,23 +1247,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         delete data.last_value;
         delete data.last_value_row_json;
 
-        updateResource(update_id, data).then(response => {
-          if (!response) {
-            return;
-          }
+        updateResource(update_id, data, true, true, () => true, true)
+          .then(response => {
+            if (!response) {
+              return;
+            }
 
-          addSuccessToast(t('%s updated', data.type));
+            addSuccessToast(t('%s updated', data.type));
 
-          if (onAdd) {
-            onAdd();
-          }
+            if (onAdd) {
+              onAdd();
+            }
 
-          hide();
-        });
+            hide();
+          })
+          .catch(() => {
+            // The resource hook keeps the validation error in the form.
+          });
       }
     } else if (currentAlert) {
       // Create
-      createResource(data).then(response => {
+      createResource(data, true).then(response => {
         if (!response) {
           return;
         }
@@ -1477,9 +1483,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           endpoint: `/api/v1/report/related/dashboard?q=${query}`,
         }).then(response => {
           const list = response.json.result.map(
-            (item: { value: number; text: string }) => ({
+            (item: {
+              value: number;
+              text: string;
+              extra?: { published?: boolean };
+            }) => ({
               value: item.value,
-              label: item.text,
+              label:
+                item.extra?.published === false
+                  ? t('%s (Draft)', item.text)
+                  : item.text,
             }),
           );
           setDashboardOptions(list);
@@ -2431,6 +2444,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       wrapProps={{ 'data-test': 'alert-report-modal' }}
     >
       <div css={AdditionalStyles(theme)}>
+        {fetchError && (
+          <Alert
+            type="error"
+            showIcon
+            message={t('Could not save this schedule')}
+            description={reportErrorMessage(fetchError)}
+          />
+        )}
         <Collapse
           expandIconPosition="end"
           activeKey={activeCollapsePanel}
@@ -2950,9 +2971,32 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                 </Tooltip>
                               </div>
                             </div>
+                            <DraftDashboardNotice
+                              dashboardId={currentAlert?.dashboard?.value}
+                              usesDefaultExecutor={
+                                !dynamicExecutorEnabled ||
+                                (isAdmin && !currentAlert?.run_as_type)
+                              }
+                              runsAsCurrentUser={
+                                dynamicExecutorEnabled &&
+                                ((!isAdmin && (!isEditMode || runAsSelf)) ||
+                                  currentAlert?.run_as?.value ===
+                                    currentUser.userId)
+                              }
+                              executorName={
+                                dynamicExecutorEnabled &&
+                                typeof currentAlert?.run_as?.label === 'string'
+                                  ? currentAlert.run_as.label
+                                  : undefined
+                              }
+                              canChooseExecutor={
+                                dynamicExecutorEnabled && isAdmin
+                              }
+                            />
                           </>
                         )}
                       </StyledInputContainer>
+
                       <StyledInputContainer
                         css={
                           ['PDF', 'TEXT', 'CSV', 'XLSX', 'NONE'].includes(

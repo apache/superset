@@ -18,6 +18,7 @@
 """Tests for celery_task.py - async SQL execution via Celery."""
 
 import base64
+import logging
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from decimal import Decimal
@@ -35,6 +36,8 @@ from pytest_mock import MockerFixture
 from superset.common.db_query_status import QueryStatus as QueryStatusEnum
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2RedirectError,
+    OAuth2TokenRefreshError,
     QueryStoppedException,
     SupersetErrorException,
     SupersetErrorsException,
@@ -1037,7 +1040,9 @@ def test_make_execute_fn(
     execute_fn = _make_execute_fn(mock_query, mock_database.db_engine_spec)
     execute_fn(mock_cursor, "SELECT * FROM users")
 
-    assert mock_query.executed_sql == "SELECT * FROM users"
+    mock_database.db_engine_spec.execute_with_cursor.assert_called_once_with(
+        mock_cursor, "SELECT * FROM users", mock_query
+    )
 
 
 @pytest.mark.parametrize(
@@ -1274,12 +1279,12 @@ def test_failed_statement_keeps_its_executed_sql(
 @pytest.mark.parametrize(
     ("stopped", "status", "logged", "executed_sql"),
     [
-        # A stop wins: the pending statement is discarded with the results.
-        (True, QueryStatusEnum.STOPPED, False, None),
+        # A stop discards results, but the dispatched statement stays recorded.
+        (True, QueryStatusEnum.STOPPED, False, "SELECT\n  1"),
         (False, QueryStatusEnum.FAILED, True, "SELECT\n  1"),
     ],
 )
-def test_impala_fetch_stop_reaches_the_executor(
+def test_impala_fetch_stop_retains_dispatched_sql(
     mocker: MockerFixture,
     app: Any,
     session: Any,
@@ -1290,8 +1295,8 @@ def test_impala_fetch_stop_reaches_the_executor(
 ) -> None:
     """
     Impala's stop signal, raised while the result rows are read, ends a stopped
-    query quietly. For a query nobody stopped it is a failure that keeps the
-    statement it was executing.
+    query quietly. Both outcomes retain the statement published before dispatch;
+    a query nobody stopped is a failure with diagnostics.
     """
     import sqlalchemy as sa
 
@@ -2629,6 +2634,102 @@ def test_commit_that_applies_and_raises_keeps_referenced_results(
     engine.dispose()
 
 
+def test_lost_acknowledgement_of_success_commit_keeps_success(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """
+    Test that a success commit which reaches the database and then raises is not
+    rewritten as failed by the error handler, and that its results are kept.
+    """
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'lost-acknowledgement.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = lambda key: stored.pop(key, None) is not None
+    mocker.patch.object(celery_task, "results_backend", backend)
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT 1", None, 1.0, 0)],
+    )
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
+
+    flushed = False
+    lost = False
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="lost-acknowledgement",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        @event.listens_for(session, "after_flush")
+        def flushed_success(flushing_session: Any, context: Any) -> None:
+            nonlocal flushed
+            flushed = (
+                query.status == QueryStatusEnum.SUCCESS
+                and query.results_key is not None
+            )
+
+        do_commit = engine.dialect.do_commit
+
+        def lose_acknowledgement(dbapi_connection: Any) -> None:
+            """Raise after the database committed the success row."""
+            nonlocal lost
+            do_commit(dbapi_connection)
+            if flushed and not lost:
+                lost = True
+                raise RuntimeError("Commit acknowledgement lost")
+
+        mocker.patch.object(
+            engine.dialect, "do_commit", side_effect=lose_acknowledgement
+        )
+
+        payload = celery_task.execute_sql_task(123, query.sql)
+
+        assert lost
+        key = backend.set.call_args.args[0]
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            assert persisted.status == QueryStatusEnum.SUCCESS
+            assert persisted.error_message is None
+            assert persisted.results_key == key
+        assert payload is not None
+        assert payload["status"] == QueryStatusEnum.SUCCESS
+        backend.delete.assert_not_called()
+        assert key in stored
+    engine.dispose()
+
+
 @pytest.mark.parametrize("stop_at", ["before_stop_check", "before_failed_commit"])
 def test_stop_after_an_applied_publish_keeps_referenced_results(
     mocker: MockerFixture,
@@ -3903,3 +4004,57 @@ def test_celery_records_dispatch_before_execution_without_cancel_handle(
 
     mocker.patch.object(celery_task, "execute_sql_with_cursor", side_effect=execute)
     celery_task._execute_sql_statements(123, "SELECT 1", None)
+
+
+@pytest.mark.parametrize("refresh_marker", [False, True])
+def test_execute_sql_task_oauth2_connection_prompt(
+    mocker: MockerFixture,
+    app: Any,
+    session: Any,
+    caplog: pytest.LogCaptureFixture,
+    refresh_marker: bool,
+) -> None:
+    """Connection-time OAuth prompts traverse the real worker and error serializer."""
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    Query.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="oauth-db", sqlalchemy_uri="sqlite://")
+    query = Query(
+        client_id="oauth-prompt",
+        database=database,
+        sql="SELECT 1",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatusEnum.PENDING,
+    )
+    session.add_all([database, query])
+    session.commit()
+    error = (
+        OAuth2TokenRefreshError()
+        if refresh_marker
+        else OAuth2RedirectError(
+            "https://example.com/authorize", "tab-id", "https://example.com/callback"
+        )
+    )
+    connection = mocker.patch.object(Database, "get_raw_connection", side_effect=error)
+
+    with caplog.at_level(logging.DEBUG, logger="superset.sql.execution.celery_task"):
+        result = execute_sql_task(query.id, "SELECT 1")
+
+    connection.assert_called_once()
+    assert result is not None
+    assert result["status"] == QueryStatusEnum.FAILED
+    assert result["errors"][0]["error_type"] == SupersetErrorType.OAUTH2_REDIRECT
+    assert result["errors"][0]["extra"] == error.error.extra
+    session.expire_all()
+    assert session.get(Query, query.id).status == QueryStatusEnum.FAILED
+    records = [
+        r for r in caplog.records if r.name == "superset.sql.execution.celery_task"
+    ]
+    assert any(
+        r.levelno == logging.DEBUG and "OAuth2 authorization required" in r.getMessage()
+        for r in records
+    )
+    assert not any(r.levelno >= logging.WARNING or r.exc_info for r in records)
