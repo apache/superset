@@ -131,11 +131,13 @@ form, `NOT IN ('a', NULL)`, means `NOT IN ('a') AND IS NOT NULL`; it excludes bo
 NOT IN selection matches every row, including missing values, as in SQL. A total
 without grouping still returns one row, for example a count of 0.
 
-Chart and dashboard exclude filters that do not select NULL keep rows with missing
+Chart and dashboard exclude (`NOT IN`) filters that do not select NULL keep rows with missing
 values, matching ordinary datasets: `NOT IN ('a')` becomes
 `NOT IN ('a') OR IS NULL`. Select NULL explicitly to exclude those rows too.
 This user-filter normalization does not change the SDK's plain `NOT_IN` leaf or
-literal SQL semantics. Other comparisons retain their existing semantics.
+literal SQL semantics. `!=`, `NOT LIKE` and `NOT ILIKE` retain their existing
+semantic-view behavior: they drop NULL rows, unlike ordinary dataset filters.
+Cached chart results for semantic views are rebuilt once after deployment.
 
 Host filter-value types accept missing values (`None`) inside list selections
 and variable-length tuples, so multi-value selections can preserve NULL members.

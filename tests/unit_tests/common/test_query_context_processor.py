@@ -3096,7 +3096,7 @@ def test_semantic_annotation_generation_versions_sql_parent(
     assert old == {
         "user_id": 42,
         "source_rls": {"7": ["scope"]},
-        "semantic_filter_protocol": "semantic-null-filters-v1",
+        "semantic_filter_protocol": "semantic-null-filters-v2",
         "source_versions": {"7": view.metadata_generation},
     }
     assert new != old
@@ -3305,7 +3305,7 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
     assert current_key != legacy_key
     assert context == {
         **legacy_context,
-        "semantic_filter_protocol": "semantic-null-filters-v1",
+        "semantic_filter_protocol": "semantic-null-filters-v2",
         "source_versions": {"7": view.metadata_generation},
     }
 
