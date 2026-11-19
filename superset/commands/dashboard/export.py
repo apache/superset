@@ -34,6 +34,10 @@ from superset.commands.export.models import (
 )
 from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.daos.dataset import DatasetDAO
+from superset.dashboards.dataset_references import (
+    coerce_dataset_id as _coerce_dataset_id,
+    dashboard_dataset_ids,
+)
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.semantic_layers.import_export import export_dashboard_references
@@ -50,42 +54,6 @@ logger = logging.getLogger(__name__)
 JSON_KEYS = {"position_json": "position", "json_metadata": "metadata"}
 DEFAULT_CHART_HEIGHT = 50
 DEFAULT_CHART_WIDTH = 4
-
-
-def _coerce_dataset_id(raw_dataset_id: Any) -> Optional[int]:
-    if isinstance(raw_dataset_id, bool):
-        return None
-    if isinstance(raw_dataset_id, int):
-        return raw_dataset_id
-    if isinstance(raw_dataset_id, str) and raw_dataset_id.isdigit():
-        try:
-            return int(raw_dataset_id)
-        except ValueError:
-            return None
-    return None
-
-
-def dashboard_dataset_ids(metadata: dict[str, Any]) -> set[int]:
-    """Dataset ids a dashboard's native filters and display controls target.
-
-    A semantic-view target's ``datasetId`` names a view, not a table, so it is
-    left out here, as ``export_dashboard_references`` leaves it out for tables.
-    """
-    targets = [
-        target
-        for native_filter in metadata.get("native_filter_configuration", [])
-        for target in native_filter.get("targets", [])
-    ] + [
-        target
-        for customization in metadata.get("chart_customization_config") or []
-        for target in customization.get("targets") or []
-    ]
-    return {
-        dataset_id
-        for target in targets
-        if target.get("datasourceType") in (None, "table")
-        and (dataset_id := _coerce_dataset_id(target.get("datasetId"))) is not None
-    }
 
 
 def get_default_position(title: str) -> dict[str, Any]:

@@ -35,6 +35,7 @@ import {
   BinaryQueryObjectFilterClause,
   Column,
   ContextMenuFilters,
+  DataMask,
   ensureIsArray,
   FeatureFlag,
   getChartMetadataRegistry,
@@ -47,6 +48,7 @@ import { MenuItem } from '@superset-ui/core/components/Menu';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { Dropdown } from '@superset-ui/core/components';
 import { updateDataMask } from 'src/dataMask/actions';
+import { releaseFilterKeyPublish } from 'src/dashboard/util/sharedFilterStateHold';
 import DrillByModal from 'src/components/Chart/DrillBy/DrillByModal';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -66,6 +68,7 @@ export enum ContextMenuItem {
 export interface ChartContextMenuProps {
   id: number;
   formData: QueryFormData;
+  setDataMask?: (dataMask: DataMask) => void;
   onSelection: (args?: any) => void;
   onClose: () => void;
   additionalConfig?: {
@@ -88,6 +91,7 @@ const ChartContextMenu = (
   {
     id,
     formData,
+    setDataMask,
     onSelection,
     onClose,
     displayedItems = ContextMenuItem.All,
@@ -355,7 +359,12 @@ const ChartContextMenu = (
         disabled: isCrossFilterDisabled,
         onClick: () => {
           if (filters?.crossFilter) {
-            dispatch(updateDataMask(id, filters.crossFilter.dataMask));
+            if (setDataMask) {
+              setDataMask(filters.crossFilter.dataMask);
+            } else {
+              releaseFilterKeyPublish();
+              dispatch(updateDataMask(id, filters.crossFilter.dataMask));
+            }
           }
         },
       },
