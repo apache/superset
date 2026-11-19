@@ -3048,10 +3048,12 @@ def test_get_views_flag_off_returns_404(
 
 
 @SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("verbose_name", ["Order date", None])
 def test_get_semantic_view_structure(
     client: Any,
     full_api_access: None,
     mocker: MockerFixture,
+    verbose_name: str | None,
 ) -> None:
     """Test GET /<pk>/structure returns dimensions and metrics."""
     mock_dim = MagicMock()
@@ -3061,6 +3063,7 @@ def test_get_semantic_view_structure(
     mock_dim.description = "Order date"
     mock_dim.grain = MagicMock()
     mock_dim.grain.name = "Day"
+    mock_dim.verbose_name = verbose_name
 
     mock_metric = MagicMock()
     mock_metric.name = "orders"
@@ -3098,6 +3101,7 @@ def test_get_semantic_view_structure(
     assert result["dimensions"][0]["definition"] == "ordered_at"
     assert result["dimensions"][0]["description"] == "Order date"
     assert result["dimensions"][0]["grain"] == "Day"
+    assert result["dimensions"][0]["verbose_name"] == verbose_name
     assert len(result["metrics"]) == 1
     assert result["metrics"][0]["name"] == "orders"
     assert result["metrics"][0]["type"] == "double"
@@ -3178,6 +3182,7 @@ def test_get_semantic_view_structure_no_grain(
     mock_dim.definition = None
     mock_dim.description = None
     mock_dim.grain = None
+    mock_dim.verbose_name = None
 
     mock_view: MagicMock = MagicMock(
         implementation=MagicMock(selection_identity_version=None)
@@ -3198,6 +3203,7 @@ def test_get_semantic_view_structure_no_grain(
     assert response.status_code == 200
     result = response.json["result"]
     assert result["dimensions"][0]["grain"] is None
+    assert result["dimensions"][0]["verbose_name"] is None
     assert result["metrics"] == []
     assert result["semantic_selection_version"] is None
     # An unset description must come back as null, not be omitted: the modal
