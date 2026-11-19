@@ -271,6 +271,14 @@ class GaugeChartPlugin(BaseChartPlugin):
             merged = {**merged, "groupby": existing_form_data["groupby"]}
         if (
             isinstance(config, GaugeChartConfig)
+            and "interval_color_indices" in config.model_fields_set
+            and "interval_colors" in merged
+        ):
+            # Explicit palette indices supersede saved literal interval colors
+            # on the same-dataset overlay path, as they do on the rebind merge.
+            merged = {k: v for k, v in merged.items() if k != "interval_colors"}
+        if (
+            isinstance(config, GaugeChartConfig)
             and "filters" not in config.model_fields_set
             and "temporal_column" in config.model_fields_set
             and existing_form_data.get("viz_type") == new_form_data.get("viz_type")

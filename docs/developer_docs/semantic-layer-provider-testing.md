@@ -78,10 +78,22 @@ Seed more result rows than the limit, in an order that differs from the requeste
 sort. The suite compares exact Arrow column names, types, values and row order,
 without prescribing column order or field nullability.
 Expected tables must be nonempty so a provider returning no data cannot pass.
+The empty-membership cases need no fixture entry; they are derived from
+`identity` and `or`. The `identity` result must include a NULL group: an empty
+`IN` on that member must return no grouped rows, and an empty `NOT IN` must return
+the identity result unchanged, NULL group included. Without grouping, an empty
+`IN` still returns one aggregate row: `COUNT` and `COUNT_DISTINCT` metrics are 0;
+`SUM`, `MIN`, `MAX` and `AVG` are NULL; other aggregations are not checked. Added
+to the `or` group, an empty `IN` leaf leaves the result unchanged and an empty
+`NOT IN` leaf makes the group match every row.
+Render the empty selection as a constant or an equivalent native predicate, never
+as an empty SQL list; SQLite accepts `IN ()`, so the example cannot catch a
+dialect that rejects it, and provider renderer tests should pin that instead.
 Multi-row query and capability cases must supply explicit order keys that totally
-order the expected rows, without ties. Do not rely on where NULLs sort unless the
-provider defines that behavior; the example orders nullable groups by their
-non-null, distinct metric values.
+order the expected rows, without ties. NULL placement and the order of rows tied
+on every key are provider-defined; the SDK imposes no NULLS FIRST/LAST rule.
+The example orders nullable groups by their non-null, distinct metric values.
+For host cache reuse policy, see [semantic-layer containment](extensions/extension-points/semantic-layers.md#semantic-result-containment-caching).
 
 The catalog check detects duplicate metric names, duplicate dimension name/grain
 pairs, metric/dimension name collisions, and unstable selection names across
@@ -115,8 +127,9 @@ and offset, including the ordered grain case.
 The import/schema check starts a fresh Python interpreter with the test import
 path. It rejects imports of `superset`, `flask` and `flask_appbuilder`, including
 transitive imports through SDK modules that depend on those frameworks, and calls
-both no-configuration schema forms with common file-opening, DNS and socket
-connection operations blocked. Caught attempts fail too. This is a regression
+both no-configuration schema forms with `readiness=UNRESOLVED` and an inert
+`ProviderTransport`. Transport requests and common file-opening, DNS and socket
+connection operations are blocked. Caught attempts fail too. This is a regression
 tripwire, not a sandbox or proof against every possible I/O mechanism (for example,
 a native driver). Provider lanes must also replace their own transport/credential
 entry points with failures to prove schema generation cannot call them.

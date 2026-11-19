@@ -53,7 +53,53 @@ def _version_cache_prefix(
     return f"{prefix}{MCP_RESPONSE_CACHE_NAMESPACE}"
 
 
-def _bypass_dashboard_scoped_calls(middleware: Any) -> Any:
+def _is_filter_value_discovery_call(
+    tool_name: str, arguments: Any, proxy_name: str = "call_tool"
+) -> bool:
+    """Recognize opt-in discovery before any argument-keyed cache lookup.
+
+    Identifier aliases do not affect classification. Decode the same object
+    and JSON request forms accepted by direct calls and the tool-search proxy.
+    Invalid inputs still reach validation instead of an old cached response.
+    """
+    from pydantic import BaseModel
+
+    from superset.utils import json
+
+    def as_mapping(value: Any) -> dict[str, Any]:
+        """Decode a request container without interpreting its predicates."""
+        if isinstance(value, BaseModel):
+            value = value.model_dump()
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except (TypeError, ValueError):
+                return {}
+        return value if isinstance(value, dict) else {}
+
+    parameters = as_mapping(arguments)
+    if tool_name in {"call_tool", proxy_name}:
+        tool_name = parameters.get("name", "")
+        parameters = as_mapping(parameters.get("arguments"))
+    if tool_name != "get_dashboard_info":
+        return False
+    request = as_mapping(parameters.get("request", parameters))
+    include = request.get("include_filter_values")
+    # Include Pydantic's accepted boolean spellings, even when the schema
+    # rejects them under strict validation: bypassing is safe in either case.
+    return (
+        include is True
+        or include == 1
+        or (
+            isinstance(include, str)
+            and include.lower() in {"1", "true", "t", "yes", "y", "on"}
+        )
+    )
+
+
+def _bypass_dashboard_scoped_calls(
+    middleware: Any, proxy_name: str = "call_tool"
+) -> Any:
     """Make ``middleware`` skip tool calls that carry a dashboard filter scope.
 
     FastMCP keys cached tool results on the tool name and arguments only. A
@@ -75,6 +121,15 @@ def _bypass_dashboard_scoped_calls(middleware: Any) -> Any:
     cached_call_tool = middleware.on_call_tool
 
     async def on_call_tool(context: Any, call_next: Any) -> Any:
+        if _is_filter_value_discovery_call(
+            getattr(context.message, "name", ""),
+            getattr(context.message, "arguments", None),
+            proxy_name,
+        ):
+            # Discovery must reauthorize every request, including requests
+            # without a dashboard scope or with an empty filter map. Skipping
+            # the cache middleware bypasses both its read and write paths.
+            return await call_next(context)
         try:
             scope = get_request_dashboard_scope()
         except MCPDashboardScopeError:
@@ -231,7 +286,7 @@ def create_response_caching_middleware() -> Any | None:
             **settings,
         )
         logger.info("MCP caching middleware enabled")
-        return _bypass_dashboard_scoped_calls(middleware)
+        return _bypass_dashboard_scoped_calls(middleware, proxy_name)
 
     # Use existing app context if available, otherwise push one
     if has_app_context():

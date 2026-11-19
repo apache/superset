@@ -60,12 +60,21 @@ export const LOCALE_MAPPING = {
 };
 /* eslint-enable no-restricted-imports */
 
-// Maps Superset/Flask-Babel locale codes (underscore, mixed-case) to dayjs locale names (lowercase, hyphen)
-export const DAYJS_LOCALE_MAPPING: Record<string, string> = {
+// Babel's generic 'zh' code is treated as Simplified Chinese for date
+// formatting: dayjs also ships a bare 'zh' locale, but this project
+// imports 'zh-cn' specifically, so 'zh' needs an explicit override here.
+const DAYJS_LOCALE_OVERRIDES: Record<string, string> = {
   zh: 'zh-cn',
-  zh_TW: 'zh-tw',
-  pt_BR: 'pt-br',
 };
+
+// Flask-Babel locale codes use underscores and mixed case (zh_TW, pt_BR);
+// dayjs locale names are lowercase and hyphenated (zh-tw, pt-br). Most
+// codes convert with a straight case/separator normalization; only codes
+// where dayjs's name isn't just a reformatting of Babel's need an entry
+// in DAYJS_LOCALE_OVERRIDES above.
+export const toDayjsLocale = (localeCode: string): string =>
+  DAYJS_LOCALE_OVERRIDES[localeCode] ??
+  localeCode.toLowerCase().replace(/_/g, '-');
 
 export const useLocale = (): Locale | undefined | null => {
   const [datePickerLocale, setDatePickerLocale] = useState<
@@ -86,9 +95,7 @@ export const useLocale = (): Locale | undefined | null => {
         LOCALE_MAPPING[localFromFlaskBabel as keyof typeof LOCALE_MAPPING]()
           .then((locale: { default: Locale }) => {
             setDatePickerLocale(locale.default);
-            dayjs.locale(
-              DAYJS_LOCALE_MAPPING[localFromFlaskBabel] ?? localFromFlaskBabel,
-            );
+            dayjs.locale(toDayjsLocale(localFromFlaskBabel));
           })
           .catch(() => setDatePickerLocale(undefined));
       } else {
