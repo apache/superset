@@ -1,0 +1,6 @@
+# Build cache (downloaded NE shapefiles)
+.cache/
+
+# Stale local output dir from earlier iterations (outputs now ship to
+# superset/static/assets/country-maps/ at the repo root)
+output/

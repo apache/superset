@@ -1,0 +1,98 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Pull features from sibling Admin 0 records and add them to a country's
+# Admin 1 view, optionally with a renamed iso_3166_2 code and translated
+# names.
+#
+# Use when NE classifies a territory as a separate Admin 0 record but,
+# for the purposes of a particular country's Admin 1 chart, it should
+# appear inside that country. Common cases:
+# - China + Taiwan/HK/Macau (NE has each as separate Admin 0)
+# - Finland + Åland (NE has Åland separate; missing from FIN admin 1)
+#
+# This is NOT a tool for "moving" disputed territories between countries
+# — for that, use NE worldview selection (e.g., the _ukr worldview moves
+# Crimea from RUS to UKR for free, no config needed).
+#
+# Schema:
+#   countries:
+#     <ISO3 destination country>:
+#       additions:
+#         - description: human-readable why
+#           from:
+#             adm0_a3: <ISO3 source country>
+#             match:
+#               name_en: <feature name>           # or other matchers
+#           set:
+#             iso_3166_2: <new code>              # set when added
+#             name: <override display name>       # optional
+#             name_<lang>: <translation>          # optional, per language
+#             [...]
+#
+# Match semantics: same as other configs.
+
+countries:
+
+  # -------------------------------------------------------------------
+  # China — add Special Administrative Regions
+  # NE keeps Taiwan (TWN), Hong Kong (HKG), and Macau (MAC) as separate
+  # Admin 0 records. For the China subdivision view we re-attach them
+  # using the official ISO 3166-2 codes (CN-71/91/92), with Chinese
+  # names from the official translations.
+  # -------------------------------------------------------------------
+  CHN:
+    additions:
+      - description: Add Taiwan as China subdivision CN-71
+        from:
+          adm0_a3: TWN
+          match: { name_en: Taiwan }
+        set:
+          iso_3166_2: CN-71
+          name_zh: 中国台湾
+
+      - description: Add Hong Kong SAR as CN-91
+        from:
+          adm0_a3: HKG
+          match: { name_en: Hong Kong }
+        set:
+          iso_3166_2: CN-91
+          name_zh: 香港特别行政区
+
+      - description: Add Macau SAR as CN-92
+        from:
+          adm0_a3: MAC
+          match: { name_en: Macau }
+        set:
+          iso_3166_2: CN-92
+          name_zh: 澳门特别行政区
+
+  # -------------------------------------------------------------------
+  # Finland — add Åland
+  # NE has Åland as a separate Admin 0 record (note: NE uses ALD, not
+  # the ISO 3166-1 ALA) and it is missing from the FIN admin1 dataset.
+  # Re-attach it as FI-01 with the Finnish name "Ahvenanmaan maakunta".
+  # -------------------------------------------------------------------
+  FIN:
+    additions:
+      - description: Add Åland as Finland subdivision FI-01
+        from:
+          adm0_a3: ALD       # NE-specific code; ISO equivalent is ALA
+          match: { name_en: Åland }
+        set:
+          iso_3166_2: FI-01
+          name_fi: Ahvenanmaan maakunta

@@ -1560,6 +1560,9 @@ msgstr ""
 msgid "Adjust performance settings of this database."
 msgstr ""
 
+msgid "Administrative regions"
+msgstr ""
+
 msgid "Advanced"
 msgstr ""
 
@@ -1618,6 +1621,12 @@ msgid "Aggregate Sum"
 msgstr ""
 
 msgid "Aggregate function applied to the list of points in each cluster to produce the cluster label."
+msgstr ""
+
+msgid "Aggregated region set"
+msgstr ""
+
+msgid "Aggregated regions"
 msgstr ""
 
 msgid "Aggregates data within the boundary of grid cells and maps the aggregated values to a dynamic color scale"
@@ -2365,6 +2374,9 @@ msgstr ""
 msgid "April"
 msgstr ""
 
+msgid "Arabic (ar)"
+msgstr ""
+
 msgid "Arc"
 msgstr ""
 
@@ -2498,6 +2510,9 @@ msgid "Area chart opacity"
 msgstr ""
 
 msgid "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other."
+msgstr ""
+
+msgid "Argentina"
 msgstr ""
 
 msgid "Arrow"
@@ -2656,6 +2671,9 @@ msgstr ""
 msgid "Bad formula."
 msgstr ""
 
+msgid "Bangladesh"
+msgstr ""
+
 msgid "Bar"
 msgstr ""
 
@@ -2802,6 +2820,9 @@ msgid ""
 msgstr ""
 
 msgid "Box Plot"
+msgstr ""
+
+msgid "Brazil"
 msgstr ""
 
 msgid "Break"
@@ -3065,6 +3086,9 @@ msgid "Captcha"
 msgstr ""
 
 msgid "Cartodiagram"
+msgstr ""
+
+msgid "Cartographic perspective for disputed regions. Defaults to Ukraine worldview (Crimea shown as Ukrainian); override per-deployment in superset_config.COUNTRY_MAP.default_worldview."
 msgstr ""
 
 msgid "Catalog"
@@ -3477,6 +3501,12 @@ msgid "Checks up to 50 rows per selected partition. Sampling cannot verify every
 msgstr ""
 
 msgid "Child label position"
+msgstr ""
+
+msgid "China"
+msgstr ""
+
+msgid "Chinese (zh)"
 msgstr ""
 
 #, python-format
@@ -3916,6 +3946,9 @@ msgstr ""
 msgid "Column containing ISO 3166-2 codes of region/province/department in your table."
 msgstr ""
 
+msgid "Column containing ISO codes of region/province/department in your dataset."
+msgstr ""
+
 msgid "Column containing latitude data"
 msgstr ""
 
@@ -3929,6 +3962,9 @@ msgid "Column groups"
 msgstr ""
 
 msgid "Column header tooltip"
+msgstr ""
+
+msgid "Column in your dataset containing ISO codes that match features in the chosen map (iso_3166_2 for subdivisions, adm0_a3 for countries)."
 msgstr ""
 
 msgid "Column is required"
@@ -4035,6 +4071,12 @@ msgstr ""
 msgid "Combine metrics"
 msgstr ""
 
+msgid "Comma-separated ISO codes (iso_3166_2 or adm0_a3). When set, only these features are rendered. Projection auto-fits to the included set."
+msgstr ""
+
+msgid "Comma-separated ISO codes to drop from the rendered map."
+msgstr ""
+
 msgid "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and 4-5. Last number should match the value provided for MAX."
 msgstr ""
 
@@ -4090,6 +4132,9 @@ msgid "Comparison suffix"
 msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
+msgstr ""
+
+msgid "Composite map"
 msgstr ""
 
 msgid "Compute the contribution to the total"
@@ -4476,6 +4521,9 @@ msgid "Country Field Type"
 msgstr ""
 
 msgid "Country Map"
+msgstr ""
+
+msgid "Country Map (Experimental)"
 msgstr ""
 
 msgid "Create"
@@ -6031,6 +6079,9 @@ msgstr ""
 msgid "Duration in seconds"
 msgstr ""
 
+msgid "Dutch (nl)"
+msgstr ""
+
 msgid "Dynamic"
 msgstr ""
 
@@ -6214,6 +6265,9 @@ msgid "Editors is a list of subjects who can alter the dashboard."
 msgstr ""
 
 msgid "Editors is a list of subjects who can alter the dashboard. Searchable by name."
+msgstr ""
+
+msgid "Egypt"
 msgstr ""
 
 msgid "Either the database is spelled incorrectly or does not exist."
@@ -6418,6 +6472,9 @@ msgstr ""
 msgid "Engine spec \"InvalidEngine\" does not support being configured via individual parameters."
 msgstr ""
 
+msgid "English (en)"
+msgstr ""
+
 msgid "Enter CA_BUNDLE"
 msgstr ""
 
@@ -6599,6 +6656,9 @@ msgstr ""
 msgid "Error loading chart datasources. Filters may not work correctly."
 msgstr ""
 
+msgid "Error loading map:"
+msgstr ""
+
 msgid "Error message"
 msgstr ""
 
@@ -6702,6 +6762,9 @@ msgid "Excel file format cannot be determined"
 msgstr ""
 
 msgid "Excel upload"
+msgstr ""
+
+msgid "Exclude regions"
 msgstr ""
 
 msgid "Exclude selected values"
@@ -7591,6 +7654,15 @@ msgstr ""
 msgid "Fraction digits"
 msgstr ""
 
+msgid "France"
+msgstr ""
+
+msgid "France (with overseas territories)"
+msgstr ""
+
+msgid "French (fr)"
+msgstr ""
+
 msgid "Frequency"
 msgstr ""
 
@@ -7671,6 +7743,12 @@ msgstr ""
 msgid "Geometry Column"
 msgstr ""
 
+msgid "German (de)"
+msgstr ""
+
+msgid "Germany"
+msgstr ""
+
 msgid "Get the last date by the date unit."
 msgstr ""
 
@@ -7723,6 +7801,12 @@ msgid "Greater or equal (>=)"
 msgstr ""
 
 msgid "Greater than (>)"
+msgstr ""
+
+msgid "Greece"
+msgstr ""
+
+msgid "Greek (el)"
 msgstr ""
 
 msgid "Grid"
@@ -7820,6 +7904,9 @@ msgstr ""
 msgid "Heatmap"
 msgstr ""
 
+msgid "Hebrew (he)"
+msgstr ""
+
 msgid "Height"
 msgstr ""
 
@@ -7866,6 +7953,9 @@ msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
+msgstr ""
+
+msgid "Hindi (hi)"
 msgstr ""
 
 msgid "Histogram"
@@ -7937,10 +8027,19 @@ msgstr ""
 msgid "Huge"
 msgstr ""
 
+msgid "ISO 3166 (UN-style)"
+msgstr ""
+
 msgid "ISO 3166-2"
 msgstr ""
 
 msgid "ISO 3166-2 Codes"
+msgstr ""
+
+msgid "ISO 8601"
+msgstr ""
+
+msgid "ISO code column"
 msgstr ""
 
 msgid "ISO suffix / abbreviation"
@@ -8101,6 +8200,9 @@ msgstr ""
 msgid "Include matching BEGIN and END private key lines."
 msgstr ""
 
+msgid "Include only regions"
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr ""
 
@@ -8131,6 +8233,12 @@ msgstr ""
 
 #, python-format
 msgid "Indexes (%s)"
+msgstr ""
+
+msgid "India"
+msgstr ""
+
+msgid "Indonesia"
 msgstr ""
 
 msgid "Info"
@@ -8441,6 +8549,9 @@ msgstr ""
 msgid "Isoline"
 msgstr ""
 
+msgid "Israel"
+msgstr ""
+
 msgid "Issue 1000 - The dataset is too large to query."
 msgstr ""
 
@@ -8448,6 +8559,12 @@ msgid "Issue 1001 - The database is under an unusual load."
 msgstr ""
 
 msgid "It won't be removed even if empty. It won't be shown in chart editing view if empty."
+msgstr ""
+
+msgid "Italian (it)"
+msgstr ""
+
+msgid "Italy"
 msgstr ""
 
 #, python-format
@@ -8493,6 +8610,12 @@ msgstr ""
 msgid "January"
 msgstr ""
 
+msgid "Japan"
+msgstr ""
+
+msgid "Japanese (ja)"
+msgstr ""
+
 msgid "Jinja templating"
 msgstr ""
 
@@ -8530,6 +8653,9 @@ msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
 
 msgid "Kilometers"
+msgstr ""
+
+msgid "Korean (ko)"
 msgstr ""
 
 msgid "Label"
@@ -8993,6 +9119,9 @@ msgstr ""
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading map…"
+msgstr ""
+
 msgid "Loading semantic layer types…"
 msgstr ""
 
@@ -9185,6 +9314,9 @@ msgid "Map a different column instead →"
 msgstr ""
 
 msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
+
+msgid "Map view"
 msgstr ""
 
 msgid "MapLibre (open-source)"
@@ -9667,6 +9799,9 @@ msgstr ""
 msgid "More filters"
 msgstr ""
 
+msgid "Morocco"
+msgstr ""
+
 msgid "MotherDuck token"
 msgstr ""
 
@@ -9709,6 +9844,9 @@ msgid "Multi-Levels"
 msgstr ""
 
 msgid "Multi-Variables"
+msgstr ""
+
+msgid "Multi-country composite (e.g. France with overseas territories). Only offered when the selected country has a composite definition; overrides admin level + country when set."
 msgstr ""
 
 msgid "Multi-level header"
@@ -9771,10 +9909,16 @@ msgstr ""
 msgid "NUMERIC"
 msgstr ""
 
+msgid "NUTS-1 statistical regions"
+msgstr ""
+
 msgid "Name"
 msgstr ""
 
 msgid "Name is required"
+msgstr ""
+
+msgid "Name language"
 msgstr ""
 
 msgid "Name must be unique"
@@ -9819,10 +9963,19 @@ msgstr ""
 msgid "Native filter values has no values"
 msgstr ""
 
+msgid "Natural Earth Default"
+msgstr ""
+
 msgid "Need help? Learn how to connect your database"
 msgstr ""
 
 msgid "Need help? Learn more about"
+msgstr ""
+
+msgid "Nepal"
+msgstr ""
+
+msgid "Netherlands"
 msgstr ""
 
 msgid "Network Error"
@@ -10767,6 +10920,12 @@ msgstr ""
 msgid "Paired t-test is not yet supported on semantic views. Use a Table chart to inspect the metric by time."
 msgstr ""
 
+msgid "Pakistan"
+msgstr ""
+
+msgid "Palestine"
+msgstr ""
+
 msgid "Pandas resample method"
 msgstr ""
 
@@ -10945,6 +11104,9 @@ msgstr ""
 
 #, python-format
 msgid "Permissions successfully synced for %s"
+msgstr ""
+
+msgid "Persian (fa)"
 msgstr ""
 
 msgid "Person or group that has certified this chart."
@@ -11193,6 +11355,12 @@ msgstr ""
 msgid "Points and clusters will update as the viewport is being changed"
 msgstr ""
 
+msgid "Poland"
+msgstr ""
+
+msgid "Polish (pl)"
+msgstr ""
+
 msgid "Polygon Column"
 msgstr ""
 
@@ -11216,6 +11384,12 @@ msgid "Port %(port)s on hostname \"%(hostname)s\" refused the connection."
 msgstr ""
 
 msgid "Port out of range 0-65535"
+msgstr ""
+
+msgid "Portugal"
+msgstr ""
+
+msgid "Portuguese (pt)"
 msgstr ""
 
 msgid "Position"
@@ -12328,6 +12502,12 @@ msgstr ""
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr ""
 
+msgid "Russia"
+msgstr ""
+
+msgid "Russian (ru)"
+msgstr ""
+
 msgid "S3 location where Athena query results are stored, e.g. s3://my-bucket/athena-results/. Can be left empty when the work group defines a query result location or uses managed query results."
 msgstr ""
 
@@ -12462,6 +12642,9 @@ msgid "Satellite Streets"
 msgstr ""
 
 msgid "Saturday"
+msgstr ""
+
+msgid "Saudi Arabia"
 msgstr ""
 
 msgid "Save"
@@ -13546,6 +13729,9 @@ msgstr ""
 msgid "Show fewer"
 msgstr ""
 
+msgid "Show flying islands"
+msgstr ""
+
 msgid "Show full range for time shift"
 msgstr ""
 
@@ -13960,6 +14146,15 @@ msgstr ""
 msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
 msgstr ""
 
+msgid "South Korea"
+msgstr ""
+
+msgid "Spain"
+msgstr ""
+
+msgid "Spanish (es)"
+msgstr ""
+
 msgid "Sparkline"
 msgstr ""
 
@@ -14289,6 +14484,12 @@ msgstr ""
 msgid "Swap rows and columns"
 msgstr ""
 
+msgid "Sweden"
+msgstr ""
+
+msgid "Swedish (sv)"
+msgstr ""
+
 msgid "Sweep angle"
 msgstr ""
 
@@ -14468,6 +14669,9 @@ msgid "Tagged Object could not be deleted."
 msgstr ""
 
 msgid "Tags"
+msgstr ""
+
+msgid "Taiwan"
 msgstr ""
 
 msgid "Target"
@@ -16729,6 +16933,9 @@ msgstr ""
 msgid "Tukey"
 msgstr ""
 
+msgid "Turkish (tr)"
+msgstr ""
+
 msgid "Turn off server pagination"
 msgstr ""
 
@@ -16775,6 +16982,9 @@ msgstr ""
 msgid "Type to search all of them."
 msgstr ""
 
+msgid "Türkiye"
+msgstr ""
+
 msgid "UI Configuration"
 msgstr ""
 
@@ -16797,6 +17007,9 @@ msgid "URL parameters"
 msgstr ""
 
 msgid "UUID to track the execution status"
+msgstr ""
+
+msgid "Ukraine (Superset default — Crimea as Ukrainian)"
 msgstr ""
 
 #, python-format
@@ -16955,6 +17168,12 @@ msgid "Ungroup By"
 msgstr ""
 
 msgid "Unhide"
+msgstr ""
+
+msgid "United Kingdom"
+msgstr ""
+
+msgid "United States"
 msgstr ""
 
 msgid "Unknown"
@@ -17428,6 +17647,12 @@ msgstr ""
 msgid "Vertical (Left)"
 msgstr ""
 
+msgid "Vietnam"
+msgstr ""
+
+msgid "Vietnamese (vi)"
+msgstr ""
+
 msgid "View"
 msgstr ""
 
@@ -17531,6 +17756,9 @@ msgid "Visualize multiple levels of hierarchy using a familiar tree-like structu
 msgstr ""
 
 msgid "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line)."
+msgstr ""
+
+msgid "Visualizes a metric across a country's principal subdivisions (states, provinces, departments, etc.) on a choropleth map. Supports configurable worldview for disputed regions, multi-country composites (e.g. France with overseas territories), and aggregated regional layers."
 msgstr ""
 
 msgid "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color."
@@ -17725,6 +17953,9 @@ msgstr ""
 msgid "When enabled, users are able to visualize SQL Lab results in Explore."
 msgstr ""
 
+msgid "When on (default), territories that the build pipeline repositioned into insets near the mainland (e.g. Hawaii/Alaska for US, French DROMs for France) are visible. Turn off to drop those features entirely; the projection auto-refits to the remaining mainland."
+msgstr ""
+
 msgid "When only a primary metric is provided, a categorical color scale is used."
 msgstr ""
 
@@ -17908,7 +18139,16 @@ msgstr ""
 msgid "Whether to truncate metrics"
 msgstr ""
 
+msgid "Which administrative region layer to dissolve into. Available sets depend on the selected country."
+msgstr ""
+
+msgid "Which country to plot subdivisions for."
+msgstr ""
+
 msgid "Which country to plot the map for?"
+msgstr ""
+
+msgid "Which language to use for displayed region names. Falls back to English when the requested language isn't available for a feature."
 msgstr ""
 
 msgid "Which relatives to highlight on hover"
@@ -17957,7 +18197,16 @@ msgstr ""
 msgid "Working timeout"
 msgstr ""
 
+msgid "World"
+msgstr ""
+
 msgid "World Map"
+msgstr ""
+
+msgid "World shows all countries; Country shows subdivisions of one country (states/provinces/departments); Aggregated regions dissolves a country's subdivisions into coarser administrative regions (e.g. French regions, Turkish NUTS-1 regions). Stored as admin_level (0 / 1 / aggregated)."
+msgstr ""
+
+msgid "Worldview"
 msgstr ""
 
 msgid "Write a description for your query"
