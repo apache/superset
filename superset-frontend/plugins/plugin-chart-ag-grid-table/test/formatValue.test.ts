@@ -124,6 +124,16 @@ test('valueGetter returns the main column value when colDef.isMain is set', () =
   expect(valueGetter(params, baseCol)).toBe(42);
 });
 
+test('valueGetter returns undefined for the main column when the row has no data', () => {
+  const params = {
+    colDef: { isMain: true },
+    column: { getColId: () => 'metric' },
+    data: undefined,
+  } as unknown as Parameters<typeof valueGetter>[0];
+
+  expect(valueGetter(params, baseCol)).toBeUndefined();
+});
+
 test('valueGetter returns undefined for missing numeric column values', () => {
   const params = {
     column: { getColId: () => 'sum__num' },
