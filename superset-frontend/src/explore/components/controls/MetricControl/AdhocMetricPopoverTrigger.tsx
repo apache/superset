@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent, ReactNode } from 'react';
+import { memo, ReactNode, useCallback, useReducer, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Metric } from '@superset-ui/core';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
@@ -48,239 +48,316 @@ export type AdhocMetricPopoverTriggerProps = {
   isNew?: boolean;
 };
 
-export type AdhocMetricPopoverTriggerState = {
-  adhocMetric: AdhocMetric;
+interface TitleState {
+  label: string;
+  hasCustomLabel: boolean;
+}
+
+interface ComponentState {
+  // optionName of the metric the title/label state was last reset for.
+  prevOptionName: string | undefined;
   popoverVisible: boolean;
-  title: { label: string; hasCustomLabel: boolean };
+  title: TitleState;
   currentLabel: string;
   labelModified: boolean;
   isTitleEditDisabled: boolean;
   showSaveDatasetModal: boolean;
-};
+}
 
-class AdhocMetricPopoverTrigger extends PureComponent<
-  AdhocMetricPopoverTriggerProps,
-  AdhocMetricPopoverTriggerState
-> {
-  constructor(props: AdhocMetricPopoverTriggerProps) {
-    super(props);
-    this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.onLabelChange = this.onLabelChange.bind(this);
-    this.closePopover = this.closePopover.bind(this);
-    this.togglePopover = this.togglePopover.bind(this);
-    this.getCurrentTab = this.getCurrentTab.bind(this);
-    this.getCurrentLabel = this.getCurrentLabel.bind(this);
-    this.onChange = this.onChange.bind(this);
-    this.handleDatasetModal = this.handleDatasetModal.bind(this);
-
-    this.state = {
-      adhocMetric: props.adhocMetric,
-      popoverVisible: false,
-      title: {
-        label: props.adhocMetric.label,
-        hasCustomLabel: props.adhocMetric.hasCustomLabel,
-      },
-      currentLabel: '',
-      labelModified: false,
-      isTitleEditDisabled: false,
-      showSaveDatasetModal: false,
+type Action =
+  | { type: 'SET_POPOVER_VISIBLE'; payload: boolean }
+  | { type: 'SET_TITLE'; payload: TitleState }
+  | { type: 'SET_CURRENT_LABEL'; payload: string }
+  | { type: 'SET_LABEL_MODIFIED'; payload: boolean }
+  | { type: 'SET_TITLE_EDIT_DISABLED'; payload: boolean }
+  | { type: 'SET_SHOW_SAVE_DATASET_MODAL'; payload: boolean }
+  | {
+      type: 'RESET_ON_OPTION_CHANGE';
+      payload: { optionName: string | undefined; title: TitleState };
+    }
+  | { type: 'CLOSE_POPOVER' }
+  | {
+      type: 'ON_LABEL_CHANGE';
+      payload: { label: string; currentLabel: string; fallbackLabel: string };
+    }
+  | {
+      type: 'GET_CURRENT_LABEL';
+      payload: {
+        currentLabel: string;
+        savedMetricLabel: string;
+        hasCustomLabel: boolean;
+      };
     };
-  }
 
-  static getDerivedStateFromProps(
-    nextProps: AdhocMetricPopoverTriggerProps,
-    prevState: AdhocMetricPopoverTriggerState,
-  ) {
-    if (prevState.adhocMetric.optionName !== nextProps.adhocMetric.optionName) {
+function reducer(state: ComponentState, action: Action): ComponentState {
+  switch (action.type) {
+    case 'SET_POPOVER_VISIBLE':
+      return { ...state, popoverVisible: action.payload };
+    case 'SET_TITLE':
+      return { ...state, title: action.payload };
+    case 'SET_CURRENT_LABEL':
+      return { ...state, currentLabel: action.payload };
+    case 'SET_LABEL_MODIFIED':
+      return { ...state, labelModified: action.payload };
+    case 'SET_TITLE_EDIT_DISABLED':
+      return { ...state, isTitleEditDisabled: action.payload };
+    case 'SET_SHOW_SAVE_DATASET_MODAL':
+      return { ...state, showSaveDatasetModal: action.payload };
+    case 'RESET_ON_OPTION_CHANGE':
       return {
-        adhocMetric: nextProps.adhocMetric,
-        title: {
-          label: nextProps.adhocMetric.label,
-          hasCustomLabel: nextProps.adhocMetric.hasCustomLabel,
-        },
+        ...state,
+        prevOptionName: action.payload.optionName,
+        title: action.payload.title,
         currentLabel: '',
         labelModified: false,
       };
-    }
-    return {
-      adhocMetric: nextProps.adhocMetric,
-    };
-  }
-
-  onLabelChange(e: any) {
-    const { verbose_name, metric_name } = this.props.savedMetric;
-    const defaultMetricLabel = this.props.adhocMetric?.getDefaultLabel();
-    const label = e.target.value;
-    this.setState(state => ({
-      title: {
-        label:
-          label ||
-          state.currentLabel ||
-          verbose_name ||
-          metric_name ||
-          defaultMetricLabel,
-        hasCustomLabel: !!label,
-      },
-      labelModified: true,
-    }));
-  }
-
-  onPopoverResize() {
-    this.forceUpdate();
-  }
-
-  handleDatasetModal(showModal: boolean) {
-    this.setState({ showSaveDatasetModal: showModal });
-  }
-
-  closePopover() {
-    this.togglePopover(false);
-    this.setState({
-      labelModified: false,
-    });
-  }
-
-  togglePopover(visible: boolean) {
-    this.setState({
-      popoverVisible: visible,
-    });
-  }
-
-  getCurrentTab(tab: string) {
-    this.setState({
-      isTitleEditDisabled: tab === SAVED_TAB_KEY,
-    });
-  }
-
-  getCurrentLabel({
-    savedMetricLabel,
-    adhocMetricLabel,
-  }: {
-    savedMetricLabel: string;
-    adhocMetricLabel: string;
-  }) {
-    const currentLabel = savedMetricLabel || adhocMetricLabel;
-    this.setState({
-      currentLabel,
-      labelModified: true,
-    });
-    if (savedMetricLabel || !this.state.title.hasCustomLabel) {
-      this.setState({
+    case 'CLOSE_POPOVER':
+      return { ...state, popoverVisible: false, labelModified: false };
+    case 'ON_LABEL_CHANGE': {
+      const { label, currentLabel, fallbackLabel } = action.payload;
+      return {
+        ...state,
         title: {
+          label: label || currentLabel || fallbackLabel,
+          hasCustomLabel: !!label,
+        },
+        labelModified: true,
+      };
+    }
+    case 'GET_CURRENT_LABEL': {
+      const { currentLabel, savedMetricLabel, hasCustomLabel } = action.payload;
+      const newState: ComponentState = {
+        ...state,
+        currentLabel,
+        labelModified: true,
+      };
+      if (savedMetricLabel || !hasCustomLabel) {
+        newState.title = {
           label: currentLabel,
           hasCustomLabel: false,
-        },
-      });
+        };
+      }
+      return newState;
     }
-  }
-
-  onChange(newMetric: Metric, oldMetric: Metric) {
-    this.props.onMetricEdit({ ...newMetric, ...this.state.title }, oldMetric);
-  }
-
-  render() {
-    const {
-      adhocMetric,
-      savedMetric,
-      columns,
-      savedMetricsOptions,
-      datasource,
-      isControlledComponent,
-    } = this.props;
-    const { verbose_name, metric_name } = savedMetric;
-    const { hasCustomLabel, label } = adhocMetric;
-    const adhocMetricLabel = hasCustomLabel
-      ? label
-      : adhocMetric.getDefaultLabel();
-    const title = this.state.labelModified
-      ? this.state.title
-      : {
-          label: verbose_name || metric_name || adhocMetricLabel,
-          hasCustomLabel,
-        };
-
-    const { visible, togglePopover, closePopover } = isControlledComponent
-      ? {
-          visible: this.props.visible,
-          togglePopover: this.props.togglePopover ?? this.togglePopover,
-          closePopover: this.props.closePopover ?? this.closePopover,
-        }
-      : {
-          visible: this.state.popoverVisible,
-          togglePopover: this.togglePopover,
-          closePopover: this.closePopover,
-        };
-
-    const overlayContent = (
-      <ExplorePopoverContent>
-        <AdhocMetricEditPopover
-          adhocMetric={adhocMetric}
-          columns={columns}
-          savedMetricsOptions={savedMetricsOptions}
-          savedMetric={savedMetric as savedMetricType}
-          datasource={
-            datasource as unknown as {
-              type?: string;
-              id?: number | string;
-              extra?: string;
-            }
-          }
-          handleDatasetModal={this.handleDatasetModal}
-          onResize={this.onPopoverResize}
-          onClose={closePopover}
-          onChange={
-            this.onChange as (newMetric: unknown, oldMetric?: unknown) => void
-          }
-          getCurrentTab={this.getCurrentTab}
-          getCurrentLabel={this.getCurrentLabel}
-          isNewMetric={this.props.isNew}
-          isLabelModified={
-            this.state.labelModified &&
-            adhocMetricLabel !== this.state.title.label
-          }
-        />
-      </ExplorePopoverContent>
-    );
-
-    const popoverTitle = (
-      <AdhocMetricEditPopoverTitle
-        title={title}
-        onChange={this.onLabelChange}
-        isEditDisabled={this.state.isTitleEditDisabled}
-      />
-    );
-
-    return (
-      <>
-        {this.state.showSaveDatasetModal && (
-          <SaveDatasetModal
-            visible={this.state.showSaveDatasetModal}
-            onHide={() => this.handleDatasetModal(false)}
-            buttonTextOnSave={t('Save')}
-            buttonTextOnOverwrite={t('Overwrite')}
-            modalDescription={t(
-              'Save this query as a virtual dataset to continue exploring',
-            )}
-            datasource={datasource}
-          />
-        )}
-        <ControlPopover
-          placement="right"
-          trigger="click"
-          content={overlayContent}
-          defaultOpen={visible}
-          open={visible}
-          onOpenChange={togglePopover}
-          title={popoverTitle}
-          destroyOnHidden
-        >
-          {/* Wrap in span so the Popover can attach a ref without relying
-              on findDOMNode (deprecated in React 18+). */}
-          <span>{this.props.children}</span>
-        </ControlPopover>
-      </>
-    );
+    default:
+      return state;
   }
 }
 
-export default AdhocMetricPopoverTrigger;
+function AdhocMetricPopoverTrigger({
+  adhocMetric: propsAdhocMetric,
+  onMetricEdit,
+  columns,
+  savedMetricsOptions,
+  savedMetric,
+  datasource,
+  children,
+  isControlledComponent,
+  visible: propsVisible,
+  togglePopover: propsTogglePopover,
+  closePopover: propsClosePopover,
+  isNew,
+}: AdhocMetricPopoverTriggerProps) {
+  const initialState: ComponentState = {
+    prevOptionName: propsAdhocMetric.optionName,
+    popoverVisible: false,
+    title: {
+      label: propsAdhocMetric.label,
+      hasCustomLabel: propsAdhocMetric.hasCustomLabel,
+    },
+    currentLabel: '',
+    labelModified: false,
+    isTitleEditDisabled: false,
+    showSaveDatasetModal: false,
+  };
+
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  // A new optionName means a new edit/drop identity, so the title and label
+  // state restart from the new metric. Adjusting state during render (rather
+  // than in an effect) means the popover content never renders against the
+  // previous metric. A same-optionName update keeps the user's title edits.
+  if (state.prevOptionName !== propsAdhocMetric.optionName) {
+    dispatch({
+      type: 'RESET_ON_OPTION_CHANGE',
+      payload: {
+        optionName: propsAdhocMetric.optionName,
+        title: {
+          label: propsAdhocMetric.label,
+          hasCustomLabel: propsAdhocMetric.hasCustomLabel,
+        },
+      },
+    });
+  }
+
+  const [, forceUpdate] = useState({});
+
+  const onPopoverResize = useCallback(() => {
+    forceUpdate({});
+  }, []);
+
+  const onLabelChange = useCallback(
+    (e: { target: { value: string } }) => {
+      const { verbose_name, metric_name } = savedMetric;
+      const defaultMetricLabel = propsAdhocMetric?.getDefaultLabel();
+      const label = e.target.value;
+      dispatch({
+        type: 'ON_LABEL_CHANGE',
+        payload: {
+          label,
+          currentLabel: state.currentLabel,
+          fallbackLabel: verbose_name || metric_name || defaultMetricLabel,
+        },
+      });
+    },
+    [savedMetric, propsAdhocMetric, state.currentLabel],
+  );
+
+  const handleDatasetModal = useCallback((showModal: boolean) => {
+    dispatch({ type: 'SET_SHOW_SAVE_DATASET_MODAL', payload: showModal });
+  }, []);
+
+  const closePopover = useCallback(() => {
+    dispatch({ type: 'CLOSE_POPOVER' });
+  }, []);
+
+  const togglePopover = useCallback((visible: boolean) => {
+    dispatch({ type: 'SET_POPOVER_VISIBLE', payload: visible });
+  }, []);
+
+  const getCurrentTab = useCallback((tab: string) => {
+    dispatch({
+      type: 'SET_TITLE_EDIT_DISABLED',
+      payload: tab === SAVED_TAB_KEY,
+    });
+  }, []);
+
+  const getCurrentLabel = useCallback(
+    ({
+      savedMetricLabel,
+      adhocMetricLabel,
+    }: {
+      savedMetricLabel: string;
+      adhocMetricLabel: string;
+    }) => {
+      const currentLabel = savedMetricLabel || adhocMetricLabel;
+      dispatch({
+        type: 'GET_CURRENT_LABEL',
+        payload: {
+          currentLabel,
+          savedMetricLabel,
+          hasCustomLabel: state.title.hasCustomLabel,
+        },
+      });
+    },
+    [state.title.hasCustomLabel],
+  );
+
+  const onChange = useCallback(
+    (newMetric: Metric, oldMetric: Metric) => {
+      onMetricEdit({ ...newMetric, ...state.title }, oldMetric);
+    },
+    [onMetricEdit, state.title],
+  );
+
+  const { verbose_name, metric_name } = savedMetric;
+  const { hasCustomLabel, label } = propsAdhocMetric;
+  const adhocMetricLabel = hasCustomLabel
+    ? label
+    : propsAdhocMetric.getDefaultLabel();
+  const title = state.labelModified
+    ? state.title
+    : {
+        label: verbose_name || metric_name || adhocMetricLabel,
+        hasCustomLabel,
+      };
+
+  const {
+    visible,
+    togglePopover: toggle,
+    closePopover: close,
+  } = isControlledComponent
+    ? {
+        visible: propsVisible,
+        togglePopover: propsTogglePopover ?? togglePopover,
+        closePopover: propsClosePopover ?? closePopover,
+      }
+    : {
+        visible: state.popoverVisible,
+        togglePopover,
+        closePopover,
+      };
+
+  const overlayContent = (
+    <ExplorePopoverContent>
+      <AdhocMetricEditPopover
+        adhocMetric={propsAdhocMetric}
+        columns={columns}
+        savedMetricsOptions={savedMetricsOptions}
+        savedMetric={savedMetric as savedMetricType}
+        datasource={
+          datasource as unknown as {
+            type?: string;
+            id?: number | string;
+            extra?: string;
+          }
+        }
+        handleDatasetModal={handleDatasetModal}
+        onResize={onPopoverResize}
+        onClose={close}
+        onChange={onChange as (newMetric: unknown, oldMetric?: unknown) => void}
+        getCurrentTab={getCurrentTab}
+        getCurrentLabel={getCurrentLabel}
+        isNewMetric={isNew}
+        isLabelModified={
+          state.labelModified && adhocMetricLabel !== state.title.label
+        }
+      />
+    </ExplorePopoverContent>
+  );
+
+  const popoverTitle = (
+    <AdhocMetricEditPopoverTitle
+      title={title}
+      onChange={onLabelChange}
+      isEditDisabled={state.isTitleEditDisabled}
+    />
+  );
+
+  return (
+    <>
+      {state.showSaveDatasetModal && (
+        <SaveDatasetModal
+          visible={state.showSaveDatasetModal}
+          onHide={() => handleDatasetModal(false)}
+          buttonTextOnSave={t('Save')}
+          buttonTextOnOverwrite={t('Overwrite')}
+          modalDescription={t(
+            'Save this query as a virtual dataset to continue exploring',
+          )}
+          datasource={datasource}
+        />
+      )}
+      <ControlPopover
+        placement="right"
+        trigger="click"
+        content={overlayContent}
+        defaultOpen={visible}
+        open={visible}
+        onOpenChange={toggle}
+        title={popoverTitle}
+        destroyOnHidden
+      >
+        {/* Wrap in a span so the Popover can attach a ref without relying
+            on findDOMNode (deprecated in React 18+). It must be block-level:
+            a zero-height placeholder can collapse an inline wrapper to a point.
+            Block layout preserves the control width used by right placement,
+            without adding height. Nonempty block children need not collapse
+            (sc-120502). */}
+        <span style={{ display: 'block' }}>{children}</span>
+      </ControlPopover>
+    </>
+  );
+}
+
+export default memo(AdhocMetricPopoverTrigger);

@@ -63,6 +63,7 @@ _DEFAULT_LIST_TAGS_REQUEST = ListTagsRequest()
         title="List tags",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_tags(
@@ -73,8 +74,10 @@ async def list_tags(
 
     Returns tag metadata including name, type, and description.
 
-    Tag types: custom (user-created), type (implicit by object type),
-    owner (implicit by ownership), favorited_by (implicit by favorites).
+    Tag types: custom (user-created), plus legacy implicit types no longer
+    generated for new objects -- type (by object type), editor (by
+    editorship), favorited_by (by favorites) -- kept for tags created before
+    Superset stopped auto-generating them.
 
     Sortable columns for order_column: id, name, changed_on, created_on
     """

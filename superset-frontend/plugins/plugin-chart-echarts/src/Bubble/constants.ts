@@ -22,8 +22,7 @@ import { EchartsBubbleFormData } from './types';
 
 export const DEFAULT_FORM_DATA: Partial<EchartsBubbleFormData> = {
   ...DEFAULT_LEGEND_FORM_DATA,
-  emitFilter: false,
-  logXAis: false,
+  logXAxis: false,
   logYAxis: false,
   xAxisTitleMargin: 40,
   yAxisTitleMargin: 50,

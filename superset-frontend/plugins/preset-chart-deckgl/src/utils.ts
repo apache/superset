@@ -25,12 +25,20 @@ import {
   QueryFormData,
   SequentialScheme,
 } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import { Color } from '@deck.gl/core';
 import { hexToRGB } from './utils/colors';
 import { ColorBreakpointType } from './types';
 
 export const TRANSPARENT_COLOR_ARRAY = [0, 0, 0, 0] as Color;
 export const HIGHLIGHT_COLOR_ARRAY = [255, 0, 0, 255] as Color;
+// Stands in for a null dimension value so those rows still get a category, a
+// color and a legend entry. Kept distinct from NULL_DISPLAY so the key stays
+// stable across locales.
+export const NULL_CATEGORY_KEY = '<NULL>';
+
+export const formatNullCategory = (value: string) =>
+  value === NULL_CATEGORY_KEY ? Constants.NULL_DISPLAY : value;
 
 const DEFAULT_NUM_BUCKETS = 10;
 
@@ -200,8 +208,15 @@ export function getBuckets(
     string,
     { color: Color | undefined; enabled: boolean }
   > = {};
+  const lastBucketIndex = breakPoints.length - 2;
   breakPoints.slice(1).forEach((_, i) => {
-    const range = `${breakPoints[i]} - ${breakPoints[i + 1]}`;
+    // Use half-open interval notation so adjacent buckets don't share an
+    // ambiguous endpoint. This mirrors the d3 `scaleThreshold` binning used
+    // for coloring, where each breakpoint is a half-open cut point. The final
+    // bucket is closed on the right so the maximum value is included.
+    const isLastBucket = i === lastBucketIndex;
+    const closingBracket = isLastBucket ? ']' : ')';
+    const range = `[${breakPoints[i]}, ${breakPoints[i + 1]}${closingBracket}`;
     const mid =
       0.5 * (parseFloat(breakPoints[i]) + parseFloat(breakPoints[i + 1]));
     // fix polygon doesn't show

@@ -36,7 +36,31 @@ function configure(config?: TranslatorConfig) {
   return singleton;
 }
 
+// When webpack splits @apache-superset/core across chunks, each
+// chunk-local copy of this module has its own `singleton` and
+// `isConfigured` state. The first `t()` call in a late chunk hits a
+// fresh, unconfigured Translator and returns the English msgid. To
+// make translations survive chunk duplication, the HTML template
+// stashes the language pack on window and we self-configure from it
+// on first access. See upstream issue #35330.
+declare global {
+  interface Window {
+    __SUPERSET_LANGUAGE_PACK__?: TranslatorConfig['languagePack'];
+  }
+}
+
+function autoConfigureFromWindow() {
+  if (isConfigured) return;
+  if (typeof window === 'undefined') return;
+  const pack = window.__SUPERSET_LANGUAGE_PACK__;
+  if (pack) {
+    configure({ languagePack: pack });
+  }
+}
+
 function getInstance() {
+  autoConfigureFromWindow();
+
   if (typeof singleton === 'undefined') {
     singleton = new Translator();
   }
@@ -85,11 +109,16 @@ function addLocaleData(data: LocaleData) {
 }
 
 function t(input: string, ...args: unknown[]) {
+  // Self-configure from the bootstrap-injected window pack before deciding
+  // whether to warn, so a chunk-local copy that hasn't seen configure() yet
+  // doesn't warn (or fall back to English) when the pack is available.
+  autoConfigureFromWindow();
   if (!isConfigured) warnPreConfigure('t', input);
   return getInstance().translate(input, ...args);
 }
 
 function tn(key: string, ...args: unknown[]) {
+  autoConfigureFromWindow();
   if (!isConfigured) warnPreConfigure('tn', key);
   return getInstance().translateWithNumber(key, ...args);
 }

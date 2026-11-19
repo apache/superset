@@ -61,10 +61,10 @@ export default function webpackExtendPlugin(): Plugin<void> {
         );
       });
 
-      // Add YAML loader rule directly to existing rules
+      // Load YAML file as raw text string
       config.module?.rules?.push({
         test: /\.ya?ml$/,
-        use: 'js-yaml-loader',
+        type: 'asset/source',
       });
 
       // Add swc-loader rule for superset-frontend files
@@ -167,60 +167,6 @@ export default function webpackExtendPlugin(): Plugin<void> {
             '@apache-superset/core': path.resolve(
               __dirname,
               '../../superset-frontend/packages/superset-core/src',
-            ),
-            // Add proper Storybook aliases
-            '@storybook/blocks': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/blocks',
-            ),
-            '@storybook/components': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/components',
-            ),
-            '@storybook/theming': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/theming',
-            ),
-            '@storybook/client-logger': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/client-logger',
-            ),
-            '@storybook/core-events': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/core-events',
-            ),
-            // Add internal Storybook aliases
-            'storybook/internal/components': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/components',
-            ),
-            'storybook/internal/theming': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/theming',
-            ),
-            'storybook/internal/client-logger': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/client-logger',
-            ),
-            'storybook/internal/csf': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/csf',
-            ),
-            'storybook/internal/preview-api': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/preview-api',
-            ),
-            'storybook/internal/docs-tools': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/docs-tools',
-            ),
-            'storybook/internal/core-events': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/core-events',
-            ),
-            'storybook/internal/channels': path.resolve(
-              __dirname,
-              '../node_modules/@storybook/channels',
             ),
           },
         },

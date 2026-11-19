@@ -27,6 +27,7 @@ export type ErrorMessageComponentProps<ExtraType = Record<string, any> | null> =
     subtitle?: ReactNode;
     compact?: boolean;
     closable?: boolean;
+    errorMitigationFunction?: () => void;
   };
 
 export type ErrorMessageComponent = ComponentType<ErrorMessageComponentProps>;

@@ -18,8 +18,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { debounce } from 'lodash';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { debounce } from 'lodash-es';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import {
   DndContext,
   DragOverlay,
@@ -636,11 +636,11 @@ export default function FoldersEditor({
             items={sortableItemIds}
             strategy={verticalListSortingStrategy}
           >
-            <AutoSizer>
-              {({ height, width }) => (
+            <AutoSizer
+              renderProp={({ height, width }) => (
                 <VirtualizedTreeList
-                  width={width}
-                  height={height}
+                  width={width ?? 0}
+                  height={height ?? 0}
                   flattenedItems={flattenedItems}
                   itemHeights={itemHeights}
                   heightCache={heightCache}
@@ -664,7 +664,7 @@ export default function FoldersEditor({
                   onFinishEdit={handleFinishEdit}
                 />
               )}
-            </AutoSizer>
+            />
           </SortableContext>
 
           <DragOverlay modifiers={dragOverlayModifiers}>

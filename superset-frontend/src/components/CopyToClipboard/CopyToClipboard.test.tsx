@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -37,6 +38,47 @@ test('renders with custom copy node', () => {
   expect(screen.getByRole('link')).toBeInTheDocument();
 });
 
+// Regression guard: passing a non-element copyNode (string or number) used to
+// crash because cloneElement only accepts React elements. The render path now
+// gates the cloneElement call behind isValidElement and falls back to a span
+// wrapper, so plain primitives should render without throwing.
+test('renders with string copyNode without crashing', () => {
+  render(<CopyToClipboard copyNode="just text" />, { useRedux: true });
+  expect(screen.getByRole('button')).toHaveTextContent('just text');
+});
+
+test('renders with number copyNode without crashing', () => {
+  render(<CopyToClipboard copyNode={42} />, { useRedux: true });
+  expect(screen.getByRole('button')).toHaveTextContent('42');
+});
+
+test('non-element copyNode wrapper is keyboard-activatable', async () => {
+  const onCopyEnd = jest.fn();
+  render(<CopyToClipboard copyNode="copy me" onCopyEnd={onCopyEnd} />, {
+    useRedux: true,
+  });
+  const button = screen.getByRole('button');
+  expect(button).toHaveAttribute('tabIndex', '0');
+  button.focus();
+  // user-event v12 (pinned in this repo) doesn't expose .keyboard(); use
+  // fireEvent to dispatch the Enter keydown directly to the focused button.
+  fireEvent.keyDown(button, { key: 'Enter' });
+  await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
+});
+
+test('custom copyNode is keyboard-activatable and focusable by default', async () => {
+  const onCopyEnd = jest.fn();
+  const copyNode = <span aria-label="Copy to clipboard">Custom node</span>;
+  render(<CopyToClipboard copyNode={copyNode} onCopyEnd={onCopyEnd} />, {
+    useRedux: true,
+  });
+  const button = screen.getByText('Custom node');
+  expect(button).toHaveAttribute('tabIndex', '0');
+  button.focus();
+  fireEvent.keyDown(button, { key: 'Enter' });
+  await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
+});
+
 test('renders without text showing', () => {
   const text = 'Text';
   render(<CopyToClipboard text={text} shouldShowText={false} />, {
@@ -48,14 +90,14 @@ test('renders without text showing', () => {
 test('getText on copy', async () => {
   const getText = jest.fn(() => 'Text');
   render(<CopyToClipboard getText={getText} />, { useRedux: true });
-  userEvent.click(screen.getByText('Copy'));
+  await userEvent.click(screen.getByText('Copy'));
   await waitFor(() => expect(getText).toHaveBeenCalled());
 });
 
 test('renders tooltip on hover', async () => {
   const tooltipText = 'Tooltip';
   render(<CopyToClipboard tooltipText={tooltipText} />, { useRedux: true });
-  userEvent.hover(screen.getByText('Copy'));
+  await userEvent.hover(screen.getByText('Copy'));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(tooltip).toHaveTextContent(tooltipText);
@@ -66,7 +108,7 @@ test('not renders tooltip on hover with hideTooltip props', async () => {
   render(<CopyToClipboard tooltipText={tooltipText} hideTooltip />, {
     useRedux: true,
   });
-  userEvent.hover(screen.getByText('Copy'));
+  await userEvent.hover(screen.getByText('Copy'));
   const tooltip = screen.queryByRole('tooltip');
   expect(tooltip).not.toBeInTheDocument();
 });
@@ -76,7 +118,7 @@ test('triggers onCopyEnd', async () => {
   render(<CopyToClipboard onCopyEnd={onCopyEnd} />, {
     useRedux: true,
   });
-  userEvent.click(screen.getByText('Copy'));
+  await userEvent.click(screen.getByText('Copy'));
   await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
 });
 
@@ -93,7 +135,7 @@ test('does not copy when disabled', async () => {
   const copyButton = screen.getByText('Copy');
   expect(copyButton).toHaveAttribute('aria-disabled', 'true');
 
-  userEvent.click(copyButton);
+  await userEvent.click(copyButton);
 
   await waitFor(() => {
     expect(callback).not.toHaveBeenCalled();

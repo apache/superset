@@ -23,12 +23,13 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import { isEmpty, isEqual } from 'lodash';
+import { isEmpty, isEqual } from 'lodash-es';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import {
   hasChartStateConverter,
   convertChartStateToOwnState,
 } from 'src/dashboard/util/chartStateConverter';
+import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
@@ -118,6 +119,7 @@ export const getChartDataPayloads = async (
       }
 
       const formData = getFormDataWithExtraFilters({
+        sourceDatasources: selectChartDatasources(state),
         chart: { id: numericId, form_data: (chart as JsonObject).form_data },
         chartConfiguration,
         filters: getAppliedFilterValues(numericId),

@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useResizeDetector } from 'react-resize-detector';
-import { uniqWith } from 'lodash';
+import { type ResizePayload, useResizeDetector } from 'react-resize-detector';
+import { uniqWith } from 'lodash-es';
 import { styled } from '@apache-superset/core/theme';
 import { Tooltip } from '../Tooltip';
 import { TooltipPlacement } from '../Tooltip/types';
@@ -89,6 +89,7 @@ const StyledItem = styled.div<{
     & .metadata-text {
       color: ${theme.colorTextSecondary};
       min-width: ${TEXT_MIN_WIDTH}px;
+      max-width: ${TEXT_MAX_WIDTH}px;
       overflow: hidden;
       text-overflow: ${collapsed ? 'unset' : 'ellipsis'};
       white-space: nowrap;
@@ -194,14 +195,14 @@ const MetadataBar = ({ items, tooltipPlacement = 'top' }: MetadataBarProps) => {
   }
 
   const onResize = useCallback(
-    (width: number | undefined) => {
+    ({ width }: ResizePayload) => {
       // Calculates the breakpoint width to collapse the bar.
       // The last item does not have a space, so we subtract SPACE_BETWEEN_ITEMS from the total.
       const breakpoint =
         (ICON_WIDTH + ICON_PADDING + TEXT_MIN_WIDTH + SPACE_BETWEEN_ITEMS) *
           count -
         SPACE_BETWEEN_ITEMS;
-      setWidth(width);
+      setWidth(width ?? undefined);
       setCollapsed(Boolean(width && width < breakpoint));
     },
     [count],

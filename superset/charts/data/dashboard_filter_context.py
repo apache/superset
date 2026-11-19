@@ -24,6 +24,7 @@ from typing import Any
 from flask_babel import gettext as _
 
 from superset import db, security_manager
+from superset.common.utils.time_grain_utils import apply_time_grain_to_base_axis
 from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
@@ -31,6 +32,8 @@ from superset.constants import (
 )
 from superset.models.dashboard import Dashboard
 from superset.utils import json
+from superset.utils.core import QueryObjectFilterClause
+from superset.utils.date_parser import is_no_time_range
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +202,31 @@ def _extract_filter_extra_form_data(
     return None, DashboardFilterStatus.NOT_APPLIED
 
 
+def _resolve_filter_extra_form_data(
+    filter_config: dict[str, Any],
+    active_data_mask: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, DashboardFilterStatus]:
+    """
+    Resolve a filter's extra_form_data and status, preferring an active value
+    from ``active_data_mask`` over the filter's saved default.
+
+    When ``active_data_mask`` provides an entry for this filter, its
+    ``extraFormData`` is authoritative: a non-empty value is APPLIED, while an
+    empty value means the user explicitly cleared the filter (NOT_APPLIED, with
+    no fallback to the saved default). When no active entry exists, fall back to
+    the saved-default behavior in ``_extract_filter_extra_form_data``.
+
+    Returns (extra_form_data, status).
+    """
+    flt_id = filter_config.get("id", "")
+    if active_data_mask is not None and flt_id in active_data_mask:
+        active_efd = (active_data_mask[flt_id] or {}).get("extraFormData") or {}
+        if active_efd:
+            return active_efd, DashboardFilterStatus.APPLIED
+        return None, DashboardFilterStatus.NOT_APPLIED
+    return _extract_filter_extra_form_data(filter_config)
+
+
 def _get_filter_target_column(filter_config: dict[str, Any]) -> str | None:
     """Extract the target column name from a native filter configuration."""
     if targets := filter_config.get("targets", []):
@@ -234,7 +262,7 @@ def _check_dashboard_access(dashboard: Dashboard) -> None:
     """
     Check that the user has access to the dashboard.
     Uses the security manager's raise_for_access which handles
-    guest users, admins, owners, and DASHBOARD_RBAC.
+    guest users, admins, editors, and viewer access.
 
     :raises SupersetSecurityException: if the user cannot access the dashboard
     """
@@ -244,16 +272,26 @@ def _check_dashboard_access(dashboard: Dashboard) -> None:
 def get_dashboard_filter_context(
     dashboard_id: int,
     chart_id: int,
+    *,
+    active_data_mask: dict[str, Any] | None = None,
 ) -> DashboardFilterContext:
     """
     Build a DashboardFilterContext for a chart on a dashboard.
 
     Loads the dashboard's native filter configuration, determines which
-    filters are in scope for the given chart, extracts default filter values,
+    filters are in scope for the given chart, resolves each filter's value,
     and returns the merged extra_form_data along with metadata about each filter.
+
+    When ``active_data_mask`` is provided (e.g. the live filter state from a
+    dashboard view), each in-scope filter present in the mask uses its active
+    ``extraFormData`` instead of the saved default; an empty active value means
+    the filter was cleared. Filters absent from the mask fall back to their
+    saved defaults, so omitting ``active_data_mask`` reproduces the dashboard's
+    initial-load behavior.
 
     :param dashboard_id: The ID of the dashboard
     :param chart_id: The ID of the chart
+    :param active_data_mask: Optional live filter state keyed by native filter id
     :returns: DashboardFilterContext with merged extra_form_data and filter metadata
     :raises ValueError: if dashboard not found or chart not on dashboard
     :raises SupersetSecurityException: if the user cannot access the dashboard
@@ -287,7 +325,7 @@ def get_dashboard_filter_context(
         flt_id = flt.get("id", "")
         flt_name = flt.get("name", "")
         target_column = _get_filter_target_column(flt)
-        extra_form_data, status = _extract_filter_extra_form_data(flt)
+        extra_form_data, status = _resolve_filter_extra_form_data(flt, active_data_mask)
 
         if extra_form_data and status == DashboardFilterStatus.APPLIED:
             context.extra_form_data = _merge_extra_form_data(
@@ -304,6 +342,24 @@ def get_dashboard_filter_context(
         )
 
     return context
+
+
+def mark_dashboard_time_range_filters(
+    filters: list[QueryObjectFilterClause],
+) -> None:
+    """Give a dashboard time range provenance over saved unbounded predicates.
+
+    The query factory rewrites temporal predicates with the dashboard range; a
+    saved range with bounds stays the chart's own.
+    """
+    for filter_ in filters:
+        if not isinstance(filter_, dict):
+            continue  # Malformed saved filters are left to schema validation.
+        saved: object = filter_.get("val")
+        if filter_.get("op") == "TEMPORAL_RANGE" and (
+            saved is None or (isinstance(saved, str) and is_no_time_range(saved))
+        ):
+            filter_["isExtra"] = True
 
 
 def apply_dashboard_filter_context(  # noqa: C901
@@ -338,10 +394,7 @@ def apply_dashboard_filter_context(  # noqa: C901
         # top-level key, but query_context objects expect it as an extra key.
         if custom_time_grain := extra_form_data.get("time_grain_sqla"):
             extras["time_grain_sqla"] = custom_time_grain
-            # get_time_grain() resolves grain from the first adhoc column (columns[0])
-            columns = query.get("columns") or []
-            if columns and isinstance(columns[0], dict):
-                columns[0]["timeGrain"] = custom_time_grain
+            apply_time_grain_to_base_axis(query, custom_time_grain)
 
         if extras:
             query["extras"] = extras
@@ -349,5 +402,7 @@ def apply_dashboard_filter_context(  # noqa: C901
         for src_key, target_key in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
             if src_key in extra_form_data:
                 query[target_key] = extra_form_data[src_key]
+                if src_key == "time_range" and extra_form_data[src_key]:
+                    mark_dashboard_time_range_filters(query.get("filters") or [])
 
         query["extra_form_data"] = extra_form_data

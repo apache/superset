@@ -57,24 +57,27 @@ import {
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
 import { commonMenuData } from 'src/features/home/commonMenuData';
-import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
+import {
+  QueryObjectColumns,
+  SavedQueryObject,
+  FileEncryptedExtraFields,
+} from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
-import copyTextToClipboard from 'src/utils/copy';
-import type Owner from 'src/types/Owner';
+import type User from 'src/types/User';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
-import { makeUrl } from 'src/utils/pathUtils';
+import { openInNewTab } from 'src/utils/navigationUtils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
     'import them together with the saved queries. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
+    '"Certificate" section of the database configuration is not ' +
+    'present in export files, and should be added manually after the ' +
+    'import if it is needed.',
 );
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more saved queries that already exist. ' +
@@ -95,8 +98,8 @@ interface SavedQueryListProps {
 type SavedQueryCellProps = {
   row: {
     original: SavedQueryObject & {
-      changed_by?: Owner | null;
-      created_by?: Owner | null;
+      changed_by?: User | null;
+      created_by?: User | null;
     };
   };
 };
@@ -156,6 +159,9 @@ function SavedQueryList({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
   const history = useHistory();
 
   const openSavedQueryImportModal = () => {
@@ -232,6 +238,7 @@ function SavedQueryList({
     icon: <Icons.PlusOutlined iconSize="m" />,
     name: t('Query'),
     buttonStyle: 'primary',
+    'data-test': 'add-saved-query-button',
     onClick: () => {
       // React Router's basename already includes the application root; passing
       // a relative path ensures correct navigation under subdirectory deployments.
@@ -243,28 +250,19 @@ function SavedQueryList({
 
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
-    copyTextToClipboard(() =>
-      Promise.resolve(
-        `${window.location.origin}${makeUrl(`/sqllab?savedQueryId=${id}`)}`,
-      ),
-    )
-      .then(() => {
-        addSuccessToast(t('Link Copied!'));
-      })
-      .catch(() => {
-        addDangerToast(t('Sorry, your browser does not support copying.'));
-      });
+    const path = `/sqllab?savedQueryId=${id}`;
     if (openInNewWindow) {
-      window.open(makeUrl(`/sqllab?savedQueryId=${id}`));
+      openInNewTab(path);
     } else {
       // React Router's basename already includes the application root; passing
       // a relative path ensures correct navigation under subdirectory deployments.
-      history.push(`/sqllab?savedQueryId=${id}`);
+      history.push(path);
     }
   };
 
   const copyQueryLink = useCallback(
     async (savedQuery: SavedQueryObject) => {
+      let permalink: string;
       try {
         const payload = {
           dbId: savedQuery.db_id,
@@ -282,12 +280,19 @@ function SavedQueryList({
           body: JSON.stringify(payload),
         });
 
-        const { url: permalink } = response.json;
+        ({ url: permalink } = response.json);
+      } catch (error) {
+        addDangerToast(t('There was an error generating the permalink.'));
+        return;
+      }
 
+      try {
         await navigator.clipboard.writeText(permalink);
         addSuccessToast(t('Link Copied!'));
       } catch (error) {
-        addDangerToast(t('There was an error generating the permalink.'));
+        addDangerToast(
+          t('The link was generated but could not be copied: %s', permalink),
+        );
       }
     },
     [addDangerToast, addSuccessToast],
@@ -543,8 +548,9 @@ function SavedQueryList({
         key: 'search',
         input: 'search',
         operator: FilterOperator.AllText,
-        toolTipDescription:
+        toolTipDescription: t(
           'Searches all text fields: Name, Description, Database & Schema',
+        ),
       },
       {
         Header: t('Database'),
@@ -740,6 +746,8 @@ function SavedQueryList({
         setSSHTunnelPrivateKeyPasswordFields={
           setSSHTunnelPrivateKeyPasswordFields
         }
+        encryptedExtraFields={encryptedExtraFields}
+        setEncryptedExtraFields={setEncryptedExtraFields}
       />
       {preparingExport && <Loading />}
     </>

@@ -18,7 +18,13 @@
  */
 import { Dispatch } from 'redux';
 import { SupersetClient } from '@superset-ui/core';
+import { nanoid } from 'nanoid';
+import { logging } from '@apache-superset/core/utils';
 import { Datasource, RootState } from 'src/dashboard/types';
+import {
+  provenSemanticDataset,
+  updateDashboardSemanticDataset,
+} from './dashboardInfo';
 
 // update datasources index for Dashboard
 export enum DatasourcesAction {
@@ -54,33 +60,68 @@ export function setDatasource(datasource: Datasource, key: string) {
 
 const inFlightDatasourceRequests = new Map<string, Promise<unknown>>();
 
-export function fetchDatasourceMetadata(key: string) {
+export function fetchDatasourceMetadata(key: string, dashboardId?: number) {
   return (dispatch: Dispatch, getState: () => RootState) => {
     const { datasources } = getState();
-    const datasource = datasources[key];
+    const datasource = datasources?.[key];
+    const requestId = dashboardId === undefined ? undefined : nanoid();
 
-    if (datasource) {
+    if (dashboardId !== undefined) {
+      dispatch(
+        updateDashboardSemanticDataset(dashboardId, key, null, requestId, true),
+      );
+    }
+
+    if (datasource && dashboardId === undefined) {
       return dispatch(setDatasource(datasource, key));
     }
 
-    // Share a single in-flight promise per key across concurrent callers, so
-    // request deduplication preserves the thunk contract: every awaiter (e.g.
-    // a Promise.all over multiple dispatches) observes the same completion or
-    // rejection instead of resolving early on an undefined return.
-    const inFlight = inFlightDatasourceRequests.get(key);
-    if (inFlight) {
-      return inFlight;
+    // Plain metadata loads share a single in-flight promise per key across
+    // concurrent callers, so request deduplication preserves the thunk
+    // contract: every awaiter (e.g. a Promise.all over multiple dispatches)
+    // observes the same completion or rejection. Semantic refreshes
+    // (dashboardId set) track their own request ids and are not shared.
+    if (dashboardId === undefined) {
+      const inFlight = inFlightDatasourceRequests.get(key);
+      if (inFlight) {
+        return inFlight;
+      }
     }
 
     const request = SupersetClient.get({
-      endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${key}`,
+      endpoint: `/fetch_datasource_metadata?datasourceKey=${key}`,
     })
-      .then(({ json }) => dispatch(setDatasource(json as Datasource, key)))
-      .finally(() => {
-        inFlightDatasourceRequests.delete(key);
+      .then(({ json }) => {
+        if (dashboardId !== undefined) {
+          const proven = provenSemanticDataset(json, key);
+          dispatch(
+            updateDashboardSemanticDataset(dashboardId, key, proven, requestId),
+          );
+          if (!proven) {
+            logging.error('Semantic datasource metadata did not match', key);
+            return undefined;
+          }
+        }
+        return dispatch(setDatasource(json as Datasource, key));
+      })
+      .catch(error => {
+        // The metadata is already invalidated; chart validation remains server-side.
+        if (dashboardId === undefined) throw error;
+        dispatch(
+          updateDashboardSemanticDataset(dashboardId, key, null, requestId),
+        );
+        logging.error('Error fetching semantic datasource metadata:', error);
+        return undefined;
       });
 
-    inFlightDatasourceRequests.set(key, request);
-    return request;
+    if (dashboardId !== undefined) {
+      return request;
+    }
+
+    const sharedRequest = request.finally(() => {
+      inFlightDatasourceRequests.delete(key);
+    });
+    inFlightDatasourceRequests.set(key, sharedRequest);
+    return sharedRequest;
   };
 }

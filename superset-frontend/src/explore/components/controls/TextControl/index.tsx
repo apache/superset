@@ -16,10 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component, ChangeEvent } from 'react';
+import {
+  useState,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useRef,
+  ChangeEvent,
+} from 'react';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
-import { debounce } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { debounce } from 'lodash-es';
 import { Constants, Input } from '@superset-ui/core/components';
 
 type InputValueType = string | number;
@@ -27,12 +34,13 @@ type InputValueType = string | number;
 export interface TextControlProps<T extends InputValueType = InputValueType> {
   name?: string;
   label?: string;
+  ariaLabel?: string;
   description?: string;
   disabled?: boolean;
   isFloat?: boolean;
   isInt?: boolean;
-  onChange?: (value: T, errors: any) => void;
-  onFocus?: () => {};
+  onChange?: (value: T, errors: string[]) => void;
+  onFocus?: () => void;
   placeholder?: string;
   value?: T | null;
   controlId?: string;
@@ -42,82 +50,171 @@ export interface TextControlProps<T extends InputValueType = InputValueType> {
   showHeader?: boolean;
 }
 
-export interface TextControlState {
-  value: string;
-}
-
 const safeStringify = (value?: InputValueType | null) =>
   value == null ? '' : String(value);
 
-export default class TextControl<
-  T extends InputValueType = InputValueType,
-> extends Component<TextControlProps<T>, TextControlState> {
-  initialValue?: TextControlProps['value'];
+function TextControl<T extends InputValueType = InputValueType>({
+  name,
+  label,
+  ariaLabel,
+  description,
+  disabled,
+  isFloat,
+  isInt,
+  onChange,
+  onFocus,
+  placeholder,
+  value,
+  renderTrigger,
+  validationErrors,
+  hovered,
+}: TextControlProps<T>) {
+  const [localValue, setLocalValue] = useState<string>(safeStringify(value));
+  const [prevValue, setPrevValue] = useState<T | null | undefined>(value);
+  // null until the user types; distinguishes a real edit from the prop-sync
+  // branch below, which also writes `localValue` but must never trigger
+  // `onChange`.
+  const [pendingValue, setPendingValue] = useState<string | null>(null);
+  const deferredPendingValue = useDeferredValue(pendingValue);
 
-  constructor(props: TextControlProps<T>) {
-    super(props);
-    this.initialValue = props.value;
-    this.state = {
-      value: safeStringify(this.initialValue),
-    };
-  }
+  const handleChange = useCallback(
+    (inputValue: string) => {
+      let parsedValue: InputValueType = inputValue;
+      const errors: string[] = [];
 
-  onChange = (inputValue: string) => {
-    let parsedValue: InputValueType = inputValue;
-    // Validation & casting
-    const errors = [];
-    if (inputValue !== '' && this.props.isFloat) {
-      const error = legacyValidateNumber(inputValue);
-      if (error) {
-        errors.push(error);
-      } else {
-        parsedValue = inputValue.match(/.*([.0])$/g)
-          ? inputValue
-          : parseFloat(inputValue);
+      if (inputValue !== '' && isFloat) {
+        const error = legacyValidateNumber(inputValue);
+        if (error) {
+          errors.push(error);
+        } else {
+          parsedValue = inputValue.match(/.*([.0])$/g)
+            ? inputValue
+            : parseFloat(inputValue);
+        }
       }
-    }
-    if (inputValue !== '' && this.props.isInt) {
-      const error = legacyValidateInteger(inputValue);
-      if (error) {
-        errors.push(error);
-      } else {
-        parsedValue = parseInt(inputValue, 10);
+
+      if (inputValue !== '' && isInt) {
+        const error = legacyValidateInteger(inputValue);
+        if (error) {
+          errors.push(error);
+        } else {
+          parsedValue = parseInt(inputValue, 10);
+        }
       }
+
+      onChange?.(parsedValue as T, errors);
+    },
+    [isFloat, isInt, onChange],
+  );
+
+  // Read through a ref so a parent re-render that hands down a new `onChange`
+  // identity doesn't re-fire this effect on its own -- only an actual
+  // keystroke (a change to `deferredPendingValue`) should.
+  const handleChangeRef = useRef(handleChange);
+  handleChangeRef.current = handleChange;
+
+  // Outbound onChange keeps a trailing coalescing window so consumers
+  // (renderTrigger re-renders, filtered collection tables) only see the
+  // settled value rather than every intermediate keystroke the deferred value
+  // happens to commit.
+  // Newest raw keystroke, not yet emitted. Blur emits this rather than the
+  // (possibly lagging) deferred value so the last character is never lost.
+  const latestTypedRef = useRef<string | null>(null);
+  const debouncedEmitRef = useRef(
+    debounce((inputValue: string) => {
+      // A newer keystroke has superseded this value; emitting it would echo
+      // back through the prop-sync branch and wipe the newer text. Re-queue
+      // the newest one, since the deferred value may never move again (e.g.
+      // Backspace back to a value the deferred state already holds). An
+      // external reset clears the ref, so there is nothing to emit then.
+      if (latestTypedRef.current !== inputValue) {
+        if (latestTypedRef.current !== null) {
+          debouncedEmitRef.current(latestTypedRef.current);
+        }
+        return;
+      }
+      latestTypedRef.current = null;
+      handleChangeRef.current(inputValue);
+    }, Constants.FAST_DEBOUNCE),
+  );
+
+  // Fires once the deferred value catches up with the latest keystroke.
+  // The deferred value keeps the input responsive during a burst of typing;
+  // the debounce then coalesces what reaches `onChange`.
+  useEffect(() => {
+    if (deferredPendingValue !== null) {
+      debouncedEmitRef.current(deferredPendingValue);
+    } else {
+      debouncedEmitRef.current.cancel();
     }
-    this.props.onChange?.(parsedValue as T, errors);
-  };
+  }, [deferredPendingValue]);
 
-  debouncedOnChange = debounce((inputValue: string) => {
-    this.onChange(inputValue);
-  }, Constants.FAST_DEBOUNCE);
+  useEffect(
+    () => () => {
+      debouncedEmitRef.current.cancel();
+    },
+    [],
+  );
 
-  onChangeWrapper = (event: ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target;
-    this.setState({ value }, () => {
-      this.debouncedOnChange(value);
-    });
-  };
-
-  render() {
-    let { value } = this.state;
-    if (this.initialValue !== this.props.value) {
-      this.initialValue = this.props.value;
-      value = safeStringify(this.props.value);
+  const onBlurFlush = useCallback(() => {
+    // An external reset clears latestTypedRef; drop a stale queued emit
+    // rather than flushing it over the reset value.
+    if (latestTypedRef.current === null) {
+      debouncedEmitRef.current.cancel();
+      return;
     }
-    return (
-      <div>
-        <ControlHeader {...this.props} />
-        <Input
-          type="text"
-          data-test="inline-name"
-          placeholder={this.props.placeholder}
-          onChange={this.onChangeWrapper}
-          onFocus={this.props.onFocus}
-          value={value}
-          disabled={this.props.disabled}
-          aria-label={this.props.label}
-        />
-      </div>
-    );
+    debouncedEmitRef.current(latestTypedRef.current);
+    debouncedEmitRef.current.flush();
+  }, []);
+
+  const onChangeWrapper = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const { value: newValue } = event.target;
+      latestTypedRef.current = newValue;
+      setLocalValue(newValue);
+      setPendingValue(newValue);
+    },
+    [],
+  );
+
+  // Sync local value when prop value changes externally. Adjusting state during
+  // render is React's documented pattern for this; deriving a display value
+  // without writing it back left `localValue` holding the superseded text, so
+  // the very next render -- one that only changes an unrelated prop, and so
+  // does not re-enter this branch -- put the stale value back in the input.
+  if (safeStringify(prevValue) !== safeStringify(value)) {
+    setPrevValue(value);
+    setLocalValue(safeStringify(value));
+    // An external reset supersedes any in-flight edit; clearing it lets an
+    // identical edit afterwards register as a fresh change.
+    setPendingValue(null);
+    latestTypedRef.current = null;
   }
+  const displayValue = localValue;
+
+  return (
+    <div>
+      <ControlHeader
+        name={name}
+        label={label}
+        description={description}
+        renderTrigger={renderTrigger}
+        validationErrors={validationErrors}
+        hovered={hovered}
+      />
+      <Input
+        type="text"
+        data-test="inline-name"
+        placeholder={placeholder}
+        onChange={onChangeWrapper}
+        onFocus={onFocus}
+        onBlur={onBlurFlush}
+        value={displayValue}
+        disabled={disabled}
+        aria-label={ariaLabel ?? label}
+      />
+    </div>
+  );
 }
+
+export default TextControl;

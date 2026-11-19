@@ -32,13 +32,42 @@ import {
   RequestConfig,
   ParseMethod,
 } from './types';
-import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_APP_ROOT } from './constants';
+import {
+  CSRF_ERROR_TYPE,
+  DEFAULT_APP_ROOT,
+  DEFAULT_FETCH_RETRY_OPTIONS,
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_UNAUTHORIZED,
+} from './constants';
 
 const defaultUnauthorizedHandlerForPrefix = (appRoot: string) => () => {
   if (!window.location.pathname.startsWith(`${appRoot}/login`)) {
-    window.location.href = `${appRoot}/login?next=${window.location.href}`;
+    window.location.href = `${appRoot}/login?next=${encodeURIComponent(
+      window.location.href,
+    )}`;
   }
 };
+
+async function isCsrfError(rejection: unknown): Promise<boolean> {
+  const response = rejection as Response | undefined;
+  if (
+    response?.status !== HTTP_STATUS_BAD_REQUEST ||
+    typeof response.clone !== 'function'
+  ) {
+    return false;
+  }
+  try {
+    const body = await response.clone().json();
+    return (
+      body?.errors?.some(
+        (error: { error_type?: string }) =>
+          error?.error_type === CSRF_ERROR_TYPE,
+      ) === true
+    );
+  } catch {
+    return false;
+  }
+}
 
 export default class SupersetClientClass {
   credentials: Credentials;
@@ -46,6 +75,8 @@ export default class SupersetClientClass {
   csrfToken?: CsrfToken;
 
   csrfPromise?: CsrfPromise;
+
+  csrfRefreshPromise?: Promise<void>;
 
   guestToken?: string;
 
@@ -82,7 +113,11 @@ export default class SupersetClientClass {
     unauthorizedHandler = undefined,
   }: ClientConfig = {}) {
     const url = new URL(`${protocol || 'https:'}//${host || 'localhost'}`);
-    this.appRoot = appRoot;
+    // Strip a trailing slash so the getUrl dedupe comparisons and the final
+    // `${this.appRoot}/${...}` build stay correct regardless of how the root
+    // was supplied. Mirrors normalizeBackendUrlString / AppRootMiddleware /
+    // LegacyPrefixRedirectMiddleware, which all rstrip the root.
+    this.appRoot = appRoot.replace(/\/$/, '');
     this.host = url.host;
     this.protocol = url.protocol as Protocol;
     this.headers = { Accept: 'application/json', ...headers }; // defaulting accept to json
@@ -116,15 +151,40 @@ export default class SupersetClientClass {
     return this.fetchCSRFToken();
   }
 
+  /**
+   * Submit a hidden form via POST.
+   * @param endpointOrConfig - an endpoint (resolved against the app root), or
+   * an object with either an `endpoint` or an already absolute `url`, which
+   * is used as is.
+   * @param payload - form fields
+   * @param target - form target, defaults to a new tab
+   */
   async postForm(
-    endpoint: string,
+    endpointOrConfig: string | { endpoint?: string; url?: string },
     payload: Record<string, any>,
     target = '_blank',
   ) {
-    if (endpoint) {
+    const { endpoint, url } =
+      typeof endpointOrConfig === 'string'
+        ? { endpoint: endpointOrConfig, url: undefined }
+        : endpointOrConfig;
+    if (endpoint || url) {
+      const actionUrl = sanitizeUrl(this.getUrl({ endpoint, url }));
+      if (url) {
+        // The form carries the CSRF and guest tokens, so never post them to
+        // another origin.
+        const target = new URL(actionUrl, window.location.origin);
+        const allowedOrigins = [
+          window.location.origin,
+          `${this.protocol}//${this.host}`,
+        ];
+        if (!allowedOrigins.includes(target.origin)) {
+          throw new Error('postForm url must be same-origin');
+        }
+      }
       await this.ensureAuth();
       const hiddenForm = document.createElement('form');
-      hiddenForm.action = sanitizeUrl(this.getUrl({ endpoint }));
+      hiddenForm.action = actionUrl;
       hiddenForm.method = 'POST';
       hiddenForm.target = target;
       const payloadWithToken: Record<string, any> = {
@@ -220,20 +280,52 @@ export default class SupersetClientClass {
     ...rest
   }: RequestConfig & { parseMethod?: T }) {
     await this.ensureAuth();
-    return callApiAndParseWithTimeout({
-      ...rest,
-      credentials: credentials ?? this.credentials,
-      mode: mode ?? this.mode,
-      url: this.getUrl({ endpoint, host, url }),
-      headers: { ...this.headers, ...headers },
-      timeout: timeout ?? this.timeout,
-      fetchRetryOptions: fetchRetryOptions ?? this.fetchRetryOptions,
-    }).catch(res => {
-      if (res?.status === 401 && !ignoreUnauthorized) {
+
+    const call = () =>
+      callApiAndParseWithTimeout({
+        ...rest,
+        credentials: credentials ?? this.credentials,
+        mode: mode ?? this.mode,
+        url: this.getUrl({ endpoint, host, url }),
+        headers: { ...this.headers, ...headers },
+        timeout: timeout ?? this.timeout,
+        fetchRetryOptions: fetchRetryOptions ?? this.fetchRetryOptions,
+      });
+
+    const handleUnauthorized = (res: { status?: number }) => {
+      if (res?.status === HTTP_STATUS_UNAUTHORIZED && !ignoreUnauthorized) {
         this.handleUnauthorized();
       }
       return Promise.reject(res);
+    };
+
+    return call().catch(async res => {
+      if (res?.status === HTTP_STATUS_UNAUTHORIZED) {
+        return handleUnauthorized(res);
+      }
+      if (!(await isCsrfError(res))) {
+        return Promise.reject(res);
+      }
+      try {
+        await this.refreshCSRFToken();
+      } catch {
+        return Promise.reject(res);
+      }
+      return call().catch(handleUnauthorized);
     });
+  }
+
+  async refreshCSRFToken(): Promise<void> {
+    this.csrfRefreshPromise ??= this.reAuthenticate()
+      .then(() => undefined)
+      .catch(error => {
+        this.csrfPromise = undefined;
+        throw error;
+      })
+      .finally(() => {
+        this.csrfRefreshPromise = undefined;
+      });
+    return this.csrfRefreshPromise;
   }
 
   async ensureAuth(): CsrfPromise {
@@ -296,8 +388,26 @@ export default class SupersetClientClass {
     const host = inputHost ?? this.host;
     const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
 
+    // Strip a single leading appRoot segment so callers that accidentally
+    // pre-prefix their endpoint (e.g. by wrapping with ensureAppRoot before
+    // passing to the client) do not produce a doubled `/superset/superset/...`
+    // URL. Single-pass strip mirrors
+    // `stripAppRoot` in `src/utils/pathUtils` and `normalizeBackendUrlString`
+    // exactly: a genuine `/superset/superset/<slug>` is a legitimate route, not
+    // a double-prefix bug. The L2 static invariant still flags pre-prefixing as
+    // a migration issue; this is the runtime safety net.
+    let cleanEndpoint = endpoint;
+    const root = this.appRoot;
+    if (root) {
+      if (cleanEndpoint === root) {
+        cleanEndpoint = '';
+      } else if (cleanEndpoint.startsWith(`${root}/`)) {
+        cleanEndpoint = cleanEndpoint.slice(root.length);
+      }
+    }
+
     return `${this.protocol}//${cleanHost}${this.appRoot}/${
-      endpoint[0] === '/' ? endpoint.slice(1) : endpoint
+      cleanEndpoint[0] === '/' ? cleanEndpoint.slice(1) : cleanEndpoint
     }`;
   }
 }

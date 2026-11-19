@@ -34,7 +34,7 @@ import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
-import FilterConfigurationLink from '../FilterConfigurationLink';
+import MemoizedFilterConfigurationLink from '../FilterConfigurationLink';
 
 type SelectedKey = FilterBarOrientation | string | number;
 
@@ -170,9 +170,9 @@ const FilterBarSettings = () => {
       items.push({
         key: ADD_EDIT_FILTERS_MENU_KEY,
         label: (
-          <FilterConfigurationLink>
+          <MemoizedFilterConfigurationLink>
             {t('Add or edit filters and controls')}
-          </FilterConfigurationLink>
+          </MemoizedFilterConfigurationLink>
         ),
       });
       if (canEdit) {

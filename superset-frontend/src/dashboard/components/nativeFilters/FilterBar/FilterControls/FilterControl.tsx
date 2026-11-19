@@ -25,17 +25,20 @@ import {
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { isChartCustomization } from '@superset-ui/core';
 import { ChartCustomizationPlugins } from 'src/constants';
+import { t } from '@apache-superset/core/translation';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
 import { FilterBarScrollContext } from '../Vertical';
 import { FilterControlProps } from './types';
 import { FilterCardPlacement } from '../../FilterCard/types';
-import { useIsFilterInScope } from '../../state';
+import { isFilterWithoutScope, useIsFilterInScope } from '../../state';
 import {
   FilterStyledIcon,
+  FilterControlTitleGroup,
   RequiredFieldIndicator,
   DescriptionToolTip,
+  OutOfScopeFilterToolTip,
   DeckglLayerVisibilityTooltip,
   useFilterControlDisplay,
 } from './FilterControlShared';
@@ -66,6 +69,7 @@ const FilterControl = ({
   const validateStatus = isMissingRequiredValue ? 'error' : undefined;
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
   const inverseSelection = !!filter.controlValues?.inverseSelection;
+  const isOutOfScope = isFilterWithoutScope(filter);
 
   const {
     FilterControlContainer,
@@ -77,13 +81,24 @@ const FilterControl = ({
   const label = useMemo(
     () => (
       <FilterControlTitleBox>
-        <FilterControlTitle
-          id={`filter-name-${filter.id}`}
-          data-test="filter-control-name"
-        >
-          {name}
-        </FilterControlTitle>
-        {isRequired && <RequiredFieldIndicator />}
+        <FilterControlTitleGroup data-test="filter-control-title-group">
+          <FilterControlTitle
+            id={`filter-name-${filter.id}`}
+            data-test="filter-control-name"
+          >
+            {name}
+          </FilterControlTitle>
+          {isRequired && <RequiredFieldIndicator />}
+          {isOutOfScope && <OutOfScopeFilterToolTip />}
+        </FilterControlTitleGroup>
+        {filter.filterType === 'filter_select' &&
+          filter.controlValues?.multiSelect && (
+            <DescriptionToolTip
+              description={t(
+                'When typing or pasting filter values, commas will separate values into multiple entries. To include a comma within a value, wrap it in double quotes: "San Francisco, CA"',
+              )}
+            />
+          )}
         {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
         )}
@@ -101,7 +116,9 @@ const FilterControl = ({
       isRequired,
       filter.description,
       filter.filterType,
+      filter.controlValues?.multiSelect,
       icon,
+      isOutOfScope,
     ],
   );
 

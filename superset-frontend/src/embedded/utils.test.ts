@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DataMaskStateWithId } from '@superset-ui/core';
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from 'lodash-es';
 import { getDataMaskChangeTrigger, getChartDataPayloads } from './utils';
 import { RootState } from 'src/views/store';
 import * as chartStateConverter from 'src/dashboard/util/chartStateConverter';
@@ -301,6 +301,18 @@ test('getChartDataPayloads merges baseOwnState with converted chart state', asyn
         someState: 'value',
         converted: 'state',
       },
+    }),
+  );
+});
+
+test('embedded payload assembly receives cross-filter datasource metadata', async () => {
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  await getChartDataPayloads(mockState as RootState);
+  expect(getFormDataWithExtraFilters).toHaveBeenCalledWith(
+    expect.objectContaining({
+      sourceDatasources: { 123: '1__table', 456: '2__table' },
     }),
   );
 });

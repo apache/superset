@@ -145,7 +145,9 @@ describe('Header', () => {
     const deleteComponent = jest.fn();
     setup({ editMode: true, deleteComponent });
 
-    const trashButton = screen.getByRole('button', { name: 'delete' });
+    const trashButton = screen.getByRole('button', {
+      name: 'Delete component',
+    });
     fireEvent.click(trashButton);
 
     expect(deleteComponent).toHaveBeenCalledTimes(1);

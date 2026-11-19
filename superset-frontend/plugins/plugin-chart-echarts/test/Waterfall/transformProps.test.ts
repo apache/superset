@@ -23,6 +23,7 @@ import {
   WaterfallChartTransformedProps,
 } from '../../src/Waterfall/types';
 import transformProps from '../../src/Waterfall/transformProps';
+import { LEGEND } from '../../src/Waterfall/constants';
 
 const extractSeries = (props: WaterfallChartTransformedProps) => {
   const { echartOptions } = props;
@@ -104,6 +105,37 @@ test('should tranform chart props for viz when breakdown exist', () => {
   ]);
 });
 
+test('resolves a hex increase/decrease/total color carried over from another chart type', () => {
+  // `normalizeRgbaColor` tolerates a hex string left over from switching
+  // viz types (e.g. Big Number with Time Period Comparison, which stores
+  // these controls as hex rather than {r,g,b,a}) -- this exercises that
+  // through the actual Waterfall transform, not `normalizeRgbaColor` alone.
+  const chartProps = new ChartProps({
+    formData: {
+      ...formData,
+      increaseColor: '#336699',
+      decreaseColor: '#996633',
+      totalColor: '#669933',
+    },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+  });
+  const transformedProps = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  const { series } = transformedProps.echartOptions as unknown as {
+    series: { name: string; itemStyle?: { color: string } }[];
+  };
+  const colorByName = Object.fromEntries(
+    series.map(item => [item.name, item.itemStyle?.color]),
+  );
+  expect(colorByName[LEGEND.INCREASE]).toBe('#336699');
+  expect(colorByName[LEGEND.DECREASE]).toBe('#996633');
+  expect(colorByName[LEGEND.TOTAL]).toBe('#669933');
+});
+
 test('renaming series names, checking legend and X axis labels', () => {
   const chartProps = new ChartProps({
     formData: {
@@ -165,4 +197,57 @@ test('hide totals', () => {
     ['-', 5],
     ['-', '-'],
   ]);
+});
+
+const buildAxes = (extraFormData: Record<string, unknown>) => {
+  const chartProps = new ChartProps({
+    formData: { ...formData, ...extraFormData },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+  });
+  const transformedProps = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  return {
+    xAxis: transformedProps.echartOptions.xAxis as any,
+    yAxis: transformedProps.echartOptions.yAxis as any,
+    grid: transformedProps.echartOptions.grid as any,
+  };
+};
+
+test('shows both axes by default', () => {
+  const { xAxis, yAxis } = buildAxes({});
+  expect(xAxis.show).not.toBe(false);
+  expect(yAxis.show).not.toBe(false);
+});
+
+test('hides the whole X axis when showXAxis is false', () => {
+  const { xAxis } = buildAxes({ showXAxis: false });
+  // echarts hides the axis line, ticks, labels, name, and gridlines when
+  // `show` is false — a single flag rather than a set of sub-flags.
+  expect(xAxis.show).toBe(false);
+});
+
+test('hides the whole Y axis when showYAxis is false', () => {
+  const { yAxis } = buildAxes({ showYAxis: false });
+  expect(yAxis.show).toBe(false);
+});
+
+test('reclaims the bottom grid margin when the X axis is hidden', () => {
+  const { grid: shown } = buildAxes({ showXAxis: true });
+  const { grid: hidden } = buildAxes({ showXAxis: false });
+  // The bottom margin reserves room for the X-axis labels and name; with the
+  // axis hidden that space should be reclaimed for a clean, axis-free layout.
+  expect(hidden.bottom).toBeLessThan(shown.bottom);
+  // Hiding the X axis must not shrink the Y-axis (left) margin.
+  expect(hidden.left).toBe(shown.left);
+});
+
+test('reclaims the left grid margin when the Y axis is hidden', () => {
+  const { grid: shown } = buildAxes({ showYAxis: true });
+  const { grid: hidden } = buildAxes({ showYAxis: false });
+  expect(hidden.left).toBeLessThan(shown.left);
+  expect(hidden.bottom).toBe(shown.bottom);
 });

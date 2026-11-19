@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { TimeGranularity } from '@superset-ui/core';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
 import { ExpressionTypes, Clauses } from '../types';
@@ -207,6 +208,38 @@ describe('AdhocFilter', () => {
     expect(adhocFilter10.isValid()).toBe(true);
   });
 
+  test('is invalid when a comparator-taking operator has no comparator', () => {
+    // A comparator that was never set, or that was cleared through the value
+    // Select's clear affordance, is `undefined` rather than `null` or `[]`.
+    const adhocFilter1 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: 'IN',
+      comparator: undefined,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter1.isValid()).toBe(false);
+
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: '==',
+      comparator: undefined,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter2.isValid()).toBe(false);
+
+    // `false` is a legitimate boolean comparator, not a missing value
+    const adhocFilter3 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: '==',
+      comparator: false,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter3.isValid()).toBe(true);
+  });
+
   test('can translate from simple expressions to sql expressions', () => {
     const adhocFilter1 = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
@@ -270,6 +303,74 @@ describe('AdhocFilter', () => {
     });
     expect(adhocFilter.comparator).toBe(undefined);
   });
+  // Charts saved before #32701 persisted `==` as the operation for IS_TRUE and
+  // IS_FALSE, alongside a boolean comparator. `translateToSql` and the backend
+  // both key off `operator`, so dropping the comparator would render such a
+  // filter as `col =` and query it as `col IS NULL`.
+  test('keeps the legacy boolean comparator for IS_TRUE', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsTrue,
+      comparator: true,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.operator).toBe('==');
+    expect(adhocFilter.comparator).toBe(true);
+    expect(adhocFilter.translateToSql()).toBe("col = 'TRUE'");
+  });
+  test('keeps the legacy boolean comparator for IS_FALSE', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsFalse,
+      comparator: false,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.operator).toBe('==');
+    expect(adhocFilter.comparator).toBe(false);
+    expect(adhocFilter.translateToSql()).toBe("col = 'FALSE'");
+  });
+  test('restores the boolean even when the stored comparator is missing', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsTrue,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.comparator).toBe(true);
+  });
+  test('keeps a legacy boolean filter intact when the control re-posts it', () => {
+    const stored = {
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsTrue,
+      comparator: true,
+      clause: Clauses.Where,
+    };
+    // DndFilterSelect wraps props.value and hands those instances to onChange
+    const posted = JSON.parse(JSON.stringify(new AdhocFilter(stored)));
+    expect(posted.operator).toBe('==');
+    expect(posted.comparator).toBe(true);
+    expect(posted.operatorId).toBe(Operators.IsTrue);
+  });
+  test('leaves a genuine equality filter on a boolean value alone', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.Equals,
+      comparator: true,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.operator).toBe('==');
+    expect(adhocFilter.comparator).toBe(true);
+    expect(adhocFilter.translateToSql()).toBe("col = 'TRUE'");
+  });
   test('sets the label properly if subject is a string', () => {
     const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
@@ -302,4 +403,137 @@ describe('AdhocFilter', () => {
     });
     expect(adhocFilter.getDefaultLabel()).toBe('');
   });
+  test('uses the column verbose_name in the label when one is given', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'num',
+      operator: '>',
+      comparator: '500',
+      clause: Clauses.Where,
+    });
+    expect(
+      adhocFilter.getDefaultLabel([
+        { column_name: 'num', verbose_name: 'total_count' },
+      ]),
+    ).toBe('total_count > 500');
+  });
+  test('falls back to the column_name when no verbose_name is set', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'num',
+      operator: '>',
+      comparator: '500',
+      clause: Clauses.Where,
+    });
+    expect(
+      adhocFilter.getDefaultLabel([{ column_name: 'num', verbose_name: '' }]),
+    ).toBe('num > 500');
+    expect(adhocFilter.getDefaultLabel([])).toBe('num > 500');
+    expect(adhocFilter.getDefaultLabel()).toBe('num > 500');
+  });
+});
+
+test('Explore filter duplicates preserve grains but bucket edits clear them', () => {
+  const filter = new AdhocFilter({
+    expressionType: 'SIMPLE',
+    subject: 'ts',
+    operator: '==',
+    comparator: '2026-08-01',
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.duplicateWith({})).toMatchObject({
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.duplicateWith({ comparator: '2026-09-01' })).not.toHaveProperty(
+    'timeGrain',
+    TimeGranularity.MONTH,
+  );
+  expect(
+    filter.equals(filter.duplicateWith({ timeGrain: TimeGranularity.YEAR })),
+  ).toBe(false);
+  expect(filter.duplicateWith({ subject: 'category' })).not.toHaveProperty(
+    'timeGrain',
+    'P1M',
+  );
+});
+
+test('a grained drill filter displays its grain and drops it on operator or SQL edits', () => {
+  const filter = new AdhocFilter({
+    expressionType: 'SIMPLE',
+    subject: 'ts',
+    operator: '==',
+    comparator: '2026-08-01',
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.getDefaultLabel()).toContain('[P1M]');
+  expect(filter.getTooltipTitle()).toContain('[P1M]');
+  expect(filter.duplicateWith({ operator: '>' })).not.toHaveProperty(
+    'timeGrain',
+    TimeGranularity.MONTH,
+  );
+  expect(
+    filter.duplicateWith({ expressionType: ExpressionTypes.Sql }),
+  ).not.toHaveProperty('timeGrain', TimeGranularity.MONTH);
+});
+
+const bucketFilter = () =>
+  new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'order_date',
+    operator: '==',
+    operatorId: Operators.Equals,
+    comparator: Date.UTC(2004, 0, 1),
+    timeGrain: TimeGranularity.MONTH,
+    clause: Clauses.Where,
+  });
+
+test('a drilled bucket filter keeps its time grain through Explore edits', () => {
+  const filter = bucketFilter();
+  expect(filter.timeGrain).toBe('P1M');
+  expect(filter.duplicateWith({ clause: Clauses.Having }).timeGrain).toBe(
+    'P1M',
+  );
+  expect(filter.duplicateWith({ comparator: 0 }).timeGrain).toBeUndefined();
+  expect(filter.equals(filter.duplicateWith({}))).toBe(true);
+  // A grain belongs to the time buckets of its subject.
+  expect(
+    filter.duplicateWith({ subject: 'ship_date' }).timeGrain,
+  ).toBeUndefined();
+  expect(
+    filter.equals(new AdhocFilter({ ...filter, timeGrain: undefined })),
+  ).toBe(false);
+});
+
+test('a drilled bucket filter shows its bucket as a datetime', () => {
+  const filter = bucketFilter();
+  expect(filter.getDefaultLabel()).toBe(
+    "[P1M] order_date = '2004-01-01T00:00:00'",
+  );
+  expect(filter.getTooltipTitle()).toBe(
+    "[P1M] order_date = '2004-01-01T00:00:00'",
+  );
+});
+
+test.each(['TEMPORAL_RANGE', '!=', 'IS NULL'])(
+  'a drilled bucket filter drops its time grain when changing operator to %s',
+  operator => {
+    const filter = bucketFilter();
+    const edited = filter.duplicateWith({
+      subject: 'order_date',
+      operator,
+      comparator: '2004-01-15 : 2004-02-15',
+    });
+    expect(edited.timeGrain).toBeUndefined();
+    expect(filter.timeGrain).toBe('P1M');
+  },
+);
+
+test('a drilled bucket filter keeps its grain with an explicitly unchanged operator', () => {
+  expect(
+    bucketFilter().duplicateWith({
+      subject: 'order_date',
+      operator: '==',
+      comparator: Date.UTC(2004, 0, 1),
+    }).timeGrain,
+  ).toBe('P1M');
 });

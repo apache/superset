@@ -99,6 +99,10 @@ export function Loading({
       $spinnerHeight="auto"
       $opacity={opacity}
       className={cls('loading', position, className)}
+      // role="status" is the standard WAI-ARIA live-region pattern for a
+      // loading spinner; <output> (the suggested tag) is for form
+      // calculation results, not a fit here.
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="status"
       aria-live="polite"
       aria-label={t('Loading')}

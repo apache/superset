@@ -24,6 +24,8 @@ import { styled, useTheme, css, keyframes } from '@apache-superset/core/theme';
 import { InfoTooltip, Icons, Tooltip } from '@superset-ui/core/components';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import PartitionPruningIndicator from 'src/explore/components/PartitionPruningIndicator';
+import type { PartitionFilterMapping } from '@superset-ui/chart-controls';
 import { StyledMetricOption } from '../../optionRenderers';
 
 export const DragContainer = styled.div`
@@ -83,9 +85,14 @@ export const CaretContainer = styled.div`
   margin-left: auto;
 `;
 
-export const CloseContainer = styled.div`
+export const CloseContainer = styled.button`
+  appearance: none;
+  background: none;
+  padding: 0;
+  font: inherit;
   height: auto;
   width: ${({ theme }) => theme.sizeUnit * 6}px;
+  border: none;
   border-right: solid 1px ${({ theme }) => theme.colorBorder};
   cursor: pointer;
 `;
@@ -255,6 +262,7 @@ export const OptionControlLabel = ({
   isExtra,
   datasourceWarningMessage,
   tooltipTitle,
+  partitionMapping,
   multi = true,
   ...props
 }: {
@@ -272,6 +280,8 @@ export const OptionControlLabel = ({
   isExtra?: boolean;
   datasourceWarningMessage?: string;
   tooltipTitle?: string;
+  /** Set when this filter's column is mirrored onto a partition column. */
+  partitionMapping?: PartitionFilterMapping | null;
   multi?: boolean;
 }) => {
   const theme = useTheme();
@@ -291,6 +301,9 @@ export const OptionControlLabel = ({
   } = useSortable({
     id: sortableId,
     disabled: !multi,
+    // Disable @dnd-kit's default FLIP layout animation: on drop it plays a
+    // springy settle that reads as a confusing "bounce" for reordered pills.
+    animateLayoutChanges: () => false,
     data: {
       type,
       dragIndex: index,
@@ -301,7 +314,9 @@ export const OptionControlLabel = ({
   });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    // Translate only (no scaleX/scaleY) so variable-width pills slide into
+    // place without morphing into their neighbor's size during reorder.
+    transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
@@ -347,7 +362,7 @@ export const OptionControlLabel = ({
       `}
     >
       <CloseContainer
-        role="button"
+        type="button"
         data-test="remove-control-button"
         onClick={onRemove}
       >
@@ -363,6 +378,7 @@ export const OptionControlLabel = ({
         {isFunction && <Icons.FunctionOutlined iconSize="m" />}
         {getLabelContent()}
       </Label>
+      <PartitionPruningIndicator mapping={partitionMapping} />
       {(!!datasourceWarningMessage || isExtra) && (
         <StyledInfoTooltip
           type="warning"

@@ -36,8 +36,12 @@ type Page = navigationApi.Page;
 
 /** Maps route path patterns to their corresponding Page type. */
 const PAGE_ROUTES: { path: string; page: Page }[] = [
-  { path: RoutePaths.DASHBOARD, page: 'dashboard' },
+  // List routes must precede their parameterised detail counterparts: with
+  // prefix-free paths, `matchPath(exact: false)` lets `/dashboard/:idOrSlug/`
+  // greedily capture `/dashboard/list/` (idOrSlug='list'), so the more specific
+  // list route has to win first — mirroring the `routes.tsx` Switch precedence.
   { path: RoutePaths.DASHBOARD_LIST, page: 'dashboard_list' },
+  { path: RoutePaths.DASHBOARD, page: 'dashboard' },
   { path: RoutePaths.QUERY_HISTORY, page: 'query_history' },
   { path: RoutePaths.SAVED_QUERIES, page: 'saved_queries' },
   { path: RoutePaths.SQLLAB, page: 'sqllab' },

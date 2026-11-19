@@ -144,12 +144,14 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
         background-color ${theme.motionDurationMid} ease-in-out,
         border-color ${theme.motionDurationMid} ease-in-out;
       border: ${statusConfig.needsBorder ? '1px solid' : 'none'};
-      border-color: ${statusConfig.needsBorder
-        ? statusConfig.outlineColor
-        : 'transparent'};
-      box-shadow: ${statusConfig.needsBorder
-        ? 'none'
-        : `0 0 0 2px ${theme.colorBgContainer}`};
+      border-color: ${
+        statusConfig.needsBorder ? statusConfig.outlineColor : 'transparent'
+      };
+      box-shadow: ${
+        statusConfig.needsBorder
+          ? 'none'
+          : `0 0 0 2px ${theme.colorBgContainer}`
+      };
       margin-left: ${theme.marginXS}px;
       margin-right: ${theme.marginXS}px;
       cursor: help;
@@ -160,6 +162,10 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
   return (
     <span
       css={dotStyles}
+      // role="status" is the standard WAI-ARIA live-region pattern for a
+      // status indicator; <output> (the suggested tag) is for form
+      // calculation results, not a fit here.
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="status"
       aria-label={`Auto-refresh status: ${displayStatus}`}
       data-test="status-indicator-dot"

@@ -24,8 +24,7 @@ from typing import Any, Type, Union
 import sqlalchemy as sa
 from alembic import op
 from flask import current_app
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import lazyload, Session
+from sqlalchemy.orm import declarative_base, lazyload, Session
 
 from superset import db, security_manager
 from superset.db_engine_specs.base import GenericDBException

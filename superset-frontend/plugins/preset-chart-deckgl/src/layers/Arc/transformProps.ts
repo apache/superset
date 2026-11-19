@@ -17,17 +17,14 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
-import {
-  processSpatialData,
-  addJsColumnsToExtraProps,
-  DataRecord,
-} from '../spatialUtils';
+import { processSpatialData, DataRecord } from '../spatialUtils';
 import {
   createBaseTransformResult,
   getRecordsFromQuery,
   addPropertiesToFeature,
 } from '../transformUtils';
 import { DeckArcFormData } from './buildQuery';
+import { NULL_CATEGORY_KEY } from '../../utils';
 
 interface ArcPoint {
   sourcePosition: [number, number];
@@ -43,7 +40,6 @@ function processArcData(
   startSpatial: DeckArcFormData['start_spatial'],
   endSpatial: DeckArcFormData['end_spatial'],
   dimension?: string,
-  jsColumns?: string[],
 ): ArcPoint[] {
   if (!startSpatial || !endSpatial || !records.length) {
     return [];
@@ -52,9 +48,7 @@ function processArcData(
   const startFeatures = processSpatialData(records, startSpatial);
   const endFeatures = processSpatialData(records, endSpatial);
   const excludeKeys = new Set(
-    ['__timestamp', dimension, ...(jsColumns || [])].filter(
-      (key): key is string => key != null,
-    ),
+    ['__timestamp', dimension].filter((key): key is string => key != null),
   );
 
   return records
@@ -72,12 +66,6 @@ function processArcData(
         extraProps: {},
       };
 
-      arcPoint = addJsColumnsToExtraProps(arcPoint, record, jsColumns);
-
-      if (dimension && record[dimension] != null) {
-        arcPoint.cat_color = String(record[dimension]);
-      }
-
       // eslint-disable-next-line no-underscore-dangle
       if (record.__timestamp != null) {
         // eslint-disable-next-line no-underscore-dangle
@@ -85,6 +73,15 @@ function processArcData(
       }
 
       arcPoint = addPropertiesToFeature(arcPoint, record, excludeKeys);
+
+      // Assigned after the property copy so a column named `cat_color` cannot
+      // overwrite the selected dimension's category.
+      if (dimension) {
+        arcPoint.cat_color =
+          record[dimension] != null
+            ? String(record[dimension])
+            : NULL_CATEGORY_KEY;
+      }
       return arcPoint;
     })
     .filter((point): point is ArcPoint => point !== null);
@@ -92,8 +89,7 @@ function processArcData(
 
 export default function transformProps(chartProps: ChartProps) {
   const { rawFormData: formData } = chartProps;
-  const { start_spatial, end_spatial, dimension, js_columns } =
-    formData as DeckArcFormData;
+  const { start_spatial, end_spatial, dimension } = formData as DeckArcFormData;
 
   const records = getRecordsFromQuery(chartProps.queriesData);
   const features = processArcData(
@@ -101,7 +97,6 @@ export default function transformProps(chartProps: ChartProps) {
     start_spatial,
     end_spatial,
     dimension,
-    js_columns,
   );
 
   return createBaseTransformResult(chartProps, features);

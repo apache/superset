@@ -185,6 +185,7 @@ test('opens SQL Lab in a new tab when View in SQL Lab button is clicked with met
   expect(window.open).toHaveBeenCalledWith(
     `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(sql)}`,
     '_blank',
+    'noopener noreferrer',
   );
 });
 

@@ -18,12 +18,18 @@
 
 from datetime import datetime
 from typing import Optional
+from unittest.mock import Mock, patch
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
+from flask import Flask
 from pytest_mock import MockerFixture
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
+from superset.constants import TimeGrain
+from superset.errors import ErrorLevel, SupersetErrorType
+from superset.exceptions import SupersetTimeoutException
 from superset.sql.parse import Table
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -50,6 +56,80 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
+@pytest.mark.parametrize(
+    ("grain", "expected_expression"),
+    [
+        (
+            TimeGrain.WEEK,
+            "date_format(date_sub(my_col, "
+            "CAST(from_unixtime(unix_timestamp(my_col),'u') as int)-1), "
+            "'yyyy-MM-dd 00:00:00')",
+        ),
+    ],
+)
+def test_time_grain_expressions(grain: TimeGrain, expected_expression: str) -> None:
+    """
+    Test that time grain expressions generate the expected SQL.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    actual = HiveEngineSpec._time_grain_expressions[grain].format(col="my_col")
+    assert actual == expected_expression
+
+
+def test_week_time_grain_buckets_to_monday() -> None:
+    """
+    Evaluate the Hive ``WEEK`` grain expression and check that every day of a
+    week maps to that week's Monday.
+
+    The expression runs on SQLite with Python stand-ins for the Hive functions
+    it uses, following Hive's semantics (``'u'`` is the ISO day of week).
+    """
+    import sqlite3
+    from datetime import date, timedelta, timezone
+
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    def unix_timestamp(value: str) -> int:
+        day = datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+        return int(day.timestamp())
+
+    def from_unixtime(seconds: int, fmt: str) -> str:
+        # Assumes Java SimpleDateFormat semantics for ``'u'`` (ISO day of week,
+        # Monday=1 ... Sunday=7), as used by Hive 2.x/3.x ``from_unixtime``.
+        # Hive versions that format ``'u'`` differently are not covered here.
+        assert fmt == "u"
+        return str(datetime.fromtimestamp(seconds, timezone.utc).isoweekday())
+
+    def date_sub(value: str, days: int) -> str:
+        return (date.fromisoformat(value[:10]) - timedelta(days=days)).isoformat()
+
+    def date_format(value: str, fmt: str) -> str:
+        day = date.fromisoformat(value[:10])
+        return (
+            fmt.replace("yyyy", f"{day.year:04d}")
+            .replace("MM", f"{day.month:02d}")
+            .replace("dd", f"{day.day:02d}")
+        )
+
+    connection = sqlite3.connect(":memory:")
+    connection.create_function("unix_timestamp", 1, unix_timestamp)
+    connection.create_function("from_unixtime", 2, from_unixtime)
+    connection.create_function("date_sub", 2, date_sub)
+    connection.create_function("date_format", 2, date_format)
+
+    expression = HiveEngineSpec._time_grain_expressions[TimeGrain.WEEK].format(col="d")
+    monday = date(2025, 1, 6)
+    for offset in range(14):
+        day = monday + timedelta(days=offset)
+        (bucket,) = connection.execute(
+            f"SELECT {expression} FROM (SELECT ? AS d)",  # noqa: S608
+            (day.isoformat(),),
+        ).fetchone()
+        expected = monday + timedelta(days=(offset // 7) * 7)
+        assert bucket == f"{expected.isoformat()} 00:00:00", day
+
+
 def test_get_schema_from_engine_params() -> None:
     """
     Test the ``get_schema_from_engine_params`` method.
@@ -61,6 +141,74 @@ def test_get_schema_from_engine_params() -> None:
             make_url("hive://localhost:10000/default"), {}
         )
         == "default"
+    )
+
+
+@pytest.mark.parametrize(
+    "catalog,schema",
+    [
+        (None, None),
+        (None, "new_schema"),
+        ("catalog", None),
+        ("catalog", "new_schema"),
+    ],
+)
+def test_adjust_engine_params(catalog: Optional[str], schema: Optional[str]) -> None:
+    """
+    Test that ``adjust_engine_params`` leaves the URI untouched.
+
+    The URI database must not be rewritten to the selected schema: PyHive runs
+    ``USE`` on it at connect time, and on Spark Thrift Server it can select a
+    catalog, so overwriting it with the schema breaks table resolution (see
+    issue #30208). Schema selection happens via ``get_prequeries`` instead.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    uri = make_url("hive://localhost:10000/default")
+    connect_args = {"foo": "bar"}
+
+    adjusted_uri, adjusted_connect_args = HiveEngineSpec.adjust_engine_params(
+        uri,
+        connect_args,
+        catalog=catalog,
+        schema=schema,
+    )
+    assert adjusted_uri is uri
+    assert adjusted_connect_args is connect_args
+    assert connect_args == {"foo": "bar"}
+
+
+@pytest.mark.parametrize(
+    "catalog,schema,expected",
+    [
+        (None, None, []),
+        ("catalog", None, []),
+        (None, "new_schema", ["USE `new_schema`"]),
+        ("catalog", "new_schema", ["USE `new_schema`"]),
+        (None, "evil`schema", ["USE `evil``schema`"]),
+    ],
+)
+def test_get_prequeries(
+    mocker: MockerFixture,
+    catalog: Optional[str],
+    schema: Optional[str],
+    expected: list[str],
+) -> None:
+    """
+    Test that ``get_prequeries`` selects the schema with a ``USE`` statement.
+
+    Together with ``supports_dynamic_schema`` this implements per-query schema
+    selection, so unqualified table names resolve in the schema Superset
+    attributes the query to.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert HiveEngineSpec.supports_dynamic_schema
+
+    database = mocker.MagicMock()
+    assert (
+        HiveEngineSpec.get_prequeries(database, catalog=catalog, schema=schema)
+        == expected
     )
 
 
@@ -183,3 +331,151 @@ def test_partition_query_escapes_identifiers() -> None:
         database=None,  # type: ignore
     )
     assert result == "SHOW PARTITIONS `no_schema_tbl`"
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """HiveQL/Spark SQL quote identifiers with backticks, not ANSI double
+    quotes, unlike the PrestoEngineSpec parent class it otherwise reuses."""
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert HiveEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+
+
+def test_spark_identifier_quote_uses_backticks() -> None:
+    """SparkEngineSpec inherits the backtick quoting from HiveEngineSpec."""
+    from superset.db_engine_specs.spark import SparkEngineSpec
+
+    assert SparkEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+
+
+def test_hive_does_not_guess_the_epoch_partition_bucket() -> None:
+    """
+    `unix_timestamp(:value)` only belongs on engines where it parses. The
+    one-argument form takes the bound being mirrored; the zero-argument form
+    means "now" on Hive and is rejected at save time.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.db_engine_specs.spark import SparkEngineSpec
+
+    assert HiveEngineSpec.partition_value_transform_default is None
+    # Spark SQL inherits from Hive and shares the syntax.
+    assert SparkEngineSpec.partition_value_transform_default is None
+
+
+def test_the_partition_transform_default_is_not_inherited_by_presto() -> None:
+    """
+    HiveEngineSpec extends PrestoEngineSpec, so pin that the default did not
+    travel up: Presto has no `unix_timestamp`.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    assert PrestoEngineSpec.partition_value_transform_default is None
+
+
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="The query exceeded the 30 seconds timeout.",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+def test_handle_cursor_propagates_time_limits(timeout: Exception) -> None:
+    """
+    A SQL Lab time limit that fires while the logs are fetched is not a failed
+    ``fetch_logs`` call: it fires only once, so swallowing it leaves the query
+    running until the hard limit.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    # The pyhive driver needs thrift, which is not always installed.
+    states = Mock(
+        INITIALIZED_STATE="INITIALIZED_STATE",
+        RUNNING_STATE="RUNNING_STATE",
+        FINISHED_STATE="FINISHED_STATE",
+    )
+    hive = Mock(ttypes=Mock(TOperationState=states))
+
+    app: Flask = Flask(__name__)
+    app.config["DB_POLL_INTERVAL_SECONDS"] = {"hive": 0}
+    query: Mock = Mock(id=1, progress=0)
+    cursor: Mock = Mock()
+    # Finite, so a swallowed time limit shows up as a failed assertion rather than
+    # a loop that never ends.
+    cursor.poll.side_effect = [
+        Mock(operationState=states.RUNNING_STATE),
+        Mock(operationState=states.RUNNING_STATE),
+        Mock(operationState=states.FINISHED_STATE),
+    ]
+    cursor.fetch_logs.side_effect = timeout
+    with (
+        app.app_context(),
+        patch("superset.db_engine_specs.hive.db") as db,
+        patch("superset.db_engine_specs.hive.time.sleep"),
+        patch.dict("sys.modules", {"pyhive": Mock(hive=hive), "pyhive.hive": hive}),
+    ):
+        db.session.query.return_value.filter_by.return_value.one.return_value = query
+        query.status = "running"
+        with pytest.raises(type(timeout)):
+            HiveEngineSpec.handle_cursor(cursor, query)
+    cursor.fetch_logs.assert_called_once_with()
+    # Mock methods do not interrupt a guarded RPC, so cleanup remains enabled.
+    assert cursor._operationHandle is not None
+    cursor._connection._transport.close.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="The query exceeded the 30 seconds timeout.",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+@pytest.mark.parametrize("interrupted", ["poll", "fetch"])
+def test_fetch_data_preserves_clean_cursor_on_time_limits(
+    interrupted: str, timeout: Exception
+) -> None:
+    """A limit outside a guarded RPC leaves normal cleanup enabled."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    class ProgrammingError(Exception):
+        pass
+
+    # The pyhive driver needs thrift, which is not always installed.
+    ttypes = Mock()
+    pyhive = Mock(exc=Mock(ProgrammingError=ProgrammingError))
+    cursor: Mock = Mock()
+    if interrupted == "poll":
+        cursor.poll.side_effect = timeout
+    with (
+        patch.dict(
+            "sys.modules",
+            {"pyhive": pyhive, "TCLIService": Mock(ttypes=ttypes)},
+        ),
+        patch.object(BaseEngineSpec, "fetch_data", side_effect=timeout),
+    ):
+        with pytest.raises(type(timeout)) as raised:
+            HiveEngineSpec.fetch_data(cursor)
+
+    assert raised.value is timeout
+    assert cursor._operationHandle is not None
+    cursor._connection._transport.close.assert_not_called()
+    cursor.close.assert_not_called()

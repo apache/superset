@@ -65,11 +65,25 @@ const docsRoot = path.join(__dirname, '..');
 const ROOTS = ['docs', 'admin_docs', 'developer_docs', 'components'];
 
 const NON_DOC_EXTENSIONS = new Set([
-  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico',
-  '.json', '.yaml', '.yml', '.txt', '.csv',
-  '.zip', '.tar', '.gz',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
+  '.svg',
+  '.ico',
+  '.json',
+  '.yaml',
+  '.yml',
+  '.txt',
+  '.csv',
+  '.zip',
+  '.tar',
+  '.gz',
   '.pdf',
-  '.mp4', '.webm', '.mov',
+  '.mp4',
+  '.webm',
+  '.mov',
 ]);
 
 const LINK_RE = /\[[^\]\n]+?\]\((?<url>\.{1,2}\/[^)\s]+?)\)/g;
@@ -180,19 +194,19 @@ for (const f of findings) {
 }
 
 console.error(
-  `✗ lint-docs-links: found ${findings.length} broken internal link(s)`
+  `✗ lint-docs-links: found ${findings.length} broken internal link(s)`,
 );
 console.error('');
 
 if (groups.bare.length) {
   console.error(
-    `  ${groups.bare.length} bare relative link(s) (no .md/.mdx extension)`
+    `  ${groups.bare.length} bare relative link(s) (no .md/.mdx extension)`,
   );
   console.error(
-    "  Docusaurus's file resolver skips these; the browser resolves them"
+    "  Docusaurus's file resolver skips these; the browser resolves them",
   );
   console.error(
-    '  against the current page URL — wrong directory for trailing-slash routes.'
+    '  against the current page URL — wrong directory for trailing-slash routes.',
   );
   console.error('  Add the extension so the file resolver picks them up.');
   console.error('');
@@ -204,21 +218,19 @@ if (groups.bare.length) {
 
 if (groups['wrong-extension'].length) {
   console.error(
-    `  ${groups['wrong-extension'].length} wrong-extension link(s) (.md vs .mdx mismatch)`
+    `  ${groups['wrong-extension'].length} wrong-extension link(s) (.md vs .mdx mismatch)`,
   );
   console.error('  The target file exists with the other extension on disk.');
   console.error('');
   for (const f of groups['wrong-extension']) {
-    console.error(
-      `    ${f.file}:${f.line}  ${f.url}  →  use ${f.actualExt}`
-    );
+    console.error(`    ${f.file}:${f.line}  ${f.url}  →  use ${f.actualExt}`);
   }
   console.error('');
 }
 
 if (groups['missing-target'].length) {
   console.error(
-    `  ${groups['missing-target'].length} missing-target link(s) (file doesn't exist)`
+    `  ${groups['missing-target'].length} missing-target link(s) (file doesn't exist)`,
   );
   console.error('');
   for (const f of groups['missing-target']) {

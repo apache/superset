@@ -19,12 +19,14 @@
 import {
   isValidElement,
   cloneElement,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type ComponentType,
+  FC,
 } from 'react';
-import { isNil } from 'lodash';
+import { isNil } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd';
@@ -73,16 +75,18 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     const closeButtonWidth = theme.sizeUnit * 14;
 
     return css`
-      ${responsive &&
-      css`
-        max-width: ${maxWidth ?? '900px'};
-        padding-left: ${theme.sizeUnit * 3}px;
-        padding-right: ${theme.sizeUnit * 3}px;
-        padding-bottom: 0;
-        top: 0;
-      `}
+      ${
+        responsive &&
+        css`
+          max-width: ${maxWidth ?? '900px'};
+          padding-left: ${theme.sizeUnit * 3}px;
+          padding-right: ${theme.sizeUnit * 3}px;
+          padding-bottom: 0;
+          top: 0;
+        `
+      }
 
-      .ant-modal-content {
+      .ant-modal-container {
         background-color: ${theme.colorBgContainer};
         display: flex;
         flex-direction: column;
@@ -118,8 +122,8 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         right: 0;
         display: flex;
         justify-content: center;
-        // Keep the close button clickable when modal body content uses
-        // position: sticky with elevated z-index (e.g. DatabaseModal header).
+        /* Keep the close button clickable when modal body content uses */
+        /* position: sticky with elevated z-index (e.g. DatabaseModal header). */
         z-index: ${theme.zIndexPopupBase + 1};
       }
 
@@ -168,40 +172,46 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         padding: 0;
       }
 
-      ${draggable &&
-      css`
-        .ant-modal-header {
-          padding: 0;
+      ${
+        draggable &&
+        css`
+          .ant-modal-header {
+            padding: 0;
 
-          .draggable-trigger {
-            cursor: move;
-            padding: ${theme.sizeUnit * 4}px ${closeButtonWidth}px
-              ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
-            width: 100%;
-          }
-        }
-      `}
-
-      ${resizable &&
-      css`
-        .resizable {
-          pointer-events: all;
-
-          .resizable-wrapper {
-            height: 100%;
-          }
-
-          .ant-modal-content {
-            height: 100%;
-
-            .ant-modal-body {
-              height: ${hideFooter
-                ? `calc(100% - ${MODAL_HEADER_HEIGHT}px)`
-                : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px)`};
+            .draggable-trigger {
+              cursor: move;
+              padding: ${theme.sizeUnit * 4}px ${closeButtonWidth}px
+                ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
+              width: 100%;
             }
           }
-        }
-      `}
+        `
+      }
+
+      ${
+        resizable &&
+        css`
+          .resizable {
+            pointer-events: all;
+
+            .resizable-wrapper {
+              height: 100%;
+            }
+
+            .ant-modal-container {
+              height: 100%;
+
+              .ant-modal-body {
+                height: ${
+                  hideFooter
+                    ? `calc(100% - ${MODAL_HEADER_HEIGHT}px)`
+                    : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px)`
+                };
+              }
+            }
+          }
+        `
+      }
     `;
   }}
 `;
@@ -224,6 +234,29 @@ const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
     right: true,
   },
 });
+
+/** Merge caller overrides without dropping default resize-handle guards. */
+export function mergeResizableConfig(
+  hideFooter: boolean | undefined,
+  overrides: ModalProps['resizableConfig'] = {},
+): NonNullable<ModalProps['resizableConfig']> {
+  const defaults = defaultResizableConfig(hideFooter);
+  if (!overrides || Object.keys(overrides).length === 0) {
+    return defaults;
+  }
+  const { enable: enableOverride, ...restOverrides } = overrides;
+  return {
+    ...defaults,
+    ...restOverrides,
+    enable:
+      enableOverride === false
+        ? false
+        : {
+            ...defaults.enable,
+            ...(typeof enableOverride === 'object' ? enableOverride : {}),
+          },
+  };
+}
 
 const CustomModal = ({
   children,
@@ -260,8 +293,25 @@ const CustomModal = ({
     [bodyStyle, stylesProp],
   );
   const draggableRef = useRef<HTMLDivElement>(null);
+  // Modal position at the start of a resize gesture; see onResize below.
+  const resizeBasePositionRef = useRef<{ x: number; y: number } | null>(null);
+  // Viewport bounds captured at resize start; see onResize below.
+  const resizeBoundsRef = useRef<DraggableBounds>({});
   const [bounds, setBounds] = useState<DraggableBounds>({});
-  const [dragDisabled, setDragDisabled] = useState<boolean>(true);
+  // Controlled position for react-draggable. Keeping Draggable in controlled
+  // mode lets us sync position with re-resizable's onResize so that resizing
+  // from top/left edges correctly repositions the modal (anchoring the
+  // opposite corner) instead of fighting over position.
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  // Reset drag position when modal closes so it doesn't retain the
+  // previous offset on next open.
+  useEffect(() => {
+    if (!show) {
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [show]);
+
   const theme = useTheme();
 
   const handleOnHide = () => {
@@ -309,39 +359,36 @@ const CustomModal = ({
   const modalWidth = width || (responsive ? '100vw' : '600px');
   const shouldShowMask = !(resizable || draggable);
 
-  const onDragStart = (_: DraggableEvent, uiData: DraggableData) => {
+  // Computes DraggableBounds confining the modal to the viewport, expressed
+  // relative to the wrapper's current position (x, y). Shared by drag and
+  // resize so both gestures respect the same on-screen limits.
+  const getViewportBounds = (x: number, y: number): DraggableBounds => {
     const { clientWidth, clientHeight } = document.documentElement;
     const targetRect = draggableRef?.current?.getBoundingClientRect();
 
-    if (targetRect) {
-      setBounds({
-        left: -targetRect?.left + uiData?.x,
-        right: clientWidth - (targetRect?.right - uiData?.x),
-        top: -targetRect?.top + uiData?.y,
-        bottom: clientHeight - (targetRect?.bottom - uiData?.y),
-      });
+    if (!targetRect) {
+      return {};
     }
+
+    return {
+      left: -targetRect.left + x,
+      right: clientWidth - (targetRect.right - x),
+      top: -targetRect.top + y,
+      bottom: clientHeight - (targetRect.bottom - y),
+    };
   };
 
-  const getResizableConfig = useMemo(() => {
-    if (Object.keys(resizableConfig).length === 0) {
-      return defaultResizableConfig(hideFooter);
-    }
-    return resizableConfig;
-  }, [hideFooter, resizableConfig]);
+  const onDragStart = (_: DraggableEvent, uiData: DraggableData) => {
+    setBounds(getViewportBounds(uiData?.x ?? 0, uiData?.y ?? 0));
+  };
+
+  const getResizableConfig = useMemo(
+    () => mergeResizableConfig(hideFooter, resizableConfig),
+    [hideFooter, resizableConfig],
+  );
 
   const ModalTitle = () =>
-    draggable ? (
-      <div
-        className="draggable-trigger"
-        onMouseOver={() => dragDisabled && setDragDisabled(false)}
-        onMouseOut={() => !dragDisabled && setDragDisabled(true)}
-      >
-        {title}
-      </div>
-    ) : (
-      <>{title}</>
-    );
+    draggable ? <div className="draggable-trigger">{title}</div> : <>{title}</>;
 
   return (
     <StyledModal
@@ -368,16 +415,69 @@ const CustomModal = ({
       modalRender={modal =>
         resizable || draggable ? (
           <Draggable
-            disabled={!draggable || dragDisabled}
             bounds={bounds ?? false}
             onStart={(event, uiData) => onDragStart(event, uiData)}
+            {...draggableConfig}
+            // `disabled` and `handle` are applied after the spread so callers
+            // can't use `draggableConfig` to re-enable dragging on a
+            // non-draggable modal or move the drag handle off the title bar.
+            // A caller opting a draggable modal out via
+            // `draggableConfig.disabled` is still honored.
+            disabled={!draggable || !!draggableConfig?.disabled}
+            handle={draggable ? '.draggable-trigger' : undefined}
+            // Controlled position and its drag sync are applied after the
+            // spread too: the resize anchoring below depends on owning both.
+            position={position}
+            onDrag={(_, data) => setPosition({ x: data.x, y: data.y })}
             // Pass nodeRef so react-draggable does not fall back to
             // ReactDOM.findDOMNode (deprecated in React 18+ Strict Mode).
             nodeRef={draggableRef}
-            {...draggableConfig}
           >
             {resizable ? (
-              <Resizable className="resizable" {...getResizableConfig}>
+              <Resizable
+                className="resizable"
+                {...getResizableConfig}
+                onResizeStart={() => {
+                  resizeBasePositionRef.current = position;
+                  // Capture bounds here: react-draggable only clamps during
+                  // drag gestures, so onResize must clamp its own setPosition
+                  // calls or a large resize from the top/left could push the
+                  // modal off-screen with no way to drag it back (e.g. on a
+                  // resizable modal with draggable disabled).
+                  resizeBoundsRef.current = getViewportBounds(
+                    position.x,
+                    position.y,
+                  );
+                }}
+                onResize={(_e, direction, _ref, delta) => {
+                  // When resizing from the top or left, the opposite corner
+                  // should stay anchored. re-resizable adjusts size but
+                  // cannot move the Draggable wrapper, so we sync position.
+                  // delta is cumulative from gesture start, so the target
+                  // position must be derived from the position captured at
+                  // resize start, not accumulated per event. Direction
+                  // strings are camelCase ("topLeft"), so match
+                  // case-insensitively.
+                  const base = resizeBasePositionRef.current ?? position;
+                  const dir = direction.toLowerCase();
+                  const {
+                    left = -Infinity,
+                    right = Infinity,
+                    top = -Infinity,
+                    bottom = Infinity,
+                  } = resizeBoundsRef.current;
+                  setPosition(prev => ({
+                    // Only the axis matching the resized edge moves; clamp it
+                    // so the modal cannot be pushed outside the viewport.
+                    x: dir.includes('left')
+                      ? Math.min(Math.max(base.x - delta.width, left), right)
+                      : prev.x,
+                    y: dir.includes('top')
+                      ? Math.min(Math.max(base.y - delta.height, top), bottom)
+                      : prev.y,
+                  }));
+                }}
+              >
                 <div className="resizable-wrapper" ref={draggableRef}>
                   {modal}
                 </div>
@@ -403,9 +503,13 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
-export const Modal = Object.assign(CustomModal, {
-  error: AntdModal.error,
-  warning: AntdModal.warning,
-  confirm: AntdModal.confirm,
-  useModal: AntdModal.useModal,
-});
+// The explicit type keeps the non-exported CustomModal out of the package's
+// declaration output, which TypeScript 7 rejects (TS4082).
+export const Modal: FC<ModalProps> &
+  Pick<typeof AntdModal, 'error' | 'warning' | 'confirm' | 'useModal'> =
+  Object.assign(CustomModal, {
+    error: AntdModal.error,
+    warning: AntdModal.warning,
+    confirm: AntdModal.confirm,
+    useModal: AntdModal.useModal,
+  });

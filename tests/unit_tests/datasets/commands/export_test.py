@@ -41,10 +41,27 @@ def test_export(session: Session) -> None:
     db.session.flush()
 
     columns = [
-        TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
-        TableColumn(column_name="user_id", type="INTEGER"),
-        TableColumn(column_name="revenue", type="INTEGER"),
-        TableColumn(column_name="expenses", type="INTEGER"),
+        TableColumn(
+            column_name="ds",
+            is_dttm=1,
+            type="TIMESTAMP",
+            uuid=UUID("00000000-0000-0000-0000-000000000006"),
+        ),
+        TableColumn(
+            column_name="user_id",
+            type="INTEGER",
+            uuid=UUID("00000000-0000-0000-0000-000000000007"),
+        ),
+        TableColumn(
+            column_name="revenue",
+            type="INTEGER",
+            uuid=UUID("00000000-0000-0000-0000-000000000008"),
+        ),
+        TableColumn(
+            column_name="expenses",
+            type="INTEGER",
+            uuid=UUID("00000000-0000-0000-0000-000000000009"),
+        ),
         TableColumn(
             column_name="profit",
             type="INTEGER",
@@ -199,6 +216,8 @@ folders:
     - uuid: 00000000-0000-0000-0000-000000000005
       type: column
       name: profit
+partition_column: null
+partition_mapped_column: null
 uuid: {payload["uuid"]}
 metrics:
 - metric_name: cnt
@@ -211,6 +230,7 @@ metrics:
   extra:
     warning_markdown: null
   warning_text: null
+  uuid: 00000000-0000-0000-0000-000000000004
 columns:
 - column_name: profit
   verbose_name: null
@@ -226,6 +246,9 @@ columns:
   datetime_format: null
   extra:
     certified_by: User
+  partition_value_transform: null
+  partition_transform_is_monotonic: false
+  uuid: 00000000-0000-0000-0000-000000000005
 - column_name: ds
   verbose_name: null
   is_dttm: 1
@@ -239,6 +262,9 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
+  partition_value_transform: null
+  partition_transform_is_monotonic: false
+  uuid: 00000000-0000-0000-0000-000000000006
 - column_name: user_id
   verbose_name: null
   is_dttm: false
@@ -252,19 +278,9 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
-- column_name: expenses
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: INTEGER
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  datetime_format: null
-  extra: null
+  partition_value_transform: null
+  partition_transform_is_monotonic: false
+  uuid: 00000000-0000-0000-0000-000000000007
 - column_name: revenue
   verbose_name: null
   is_dttm: false
@@ -278,6 +294,25 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
+  partition_value_transform: null
+  partition_transform_is_monotonic: false
+  uuid: 00000000-0000-0000-0000-000000000008
+- column_name: expenses
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: null
+  partition_value_transform: null
+  partition_transform_is_monotonic: false
+  uuid: 00000000-0000-0000-0000-000000000009
 version: 1.0.0
 database_uuid: {database.uuid}
 """,
@@ -305,6 +340,55 @@ version: 1.0.0
 """,
         ),
     ]
+
+
+def test_export_database_bundle_includes_child_uuids(session: Session) -> None:
+    """
+    Datasets embedded in a *database* export must carry metric/column UUIDs.
+
+    ``ExportDatabasesCommand`` reaches datasets through its own
+    ``export_to_dict(recursive=True, export_uuids=True)`` call rather than
+    through ``ExportDatasetsCommand``, so it needs its own coverage: without
+    ``export_uuids`` being forwarded to the recursive child export, the
+    ``datasets/`` files in a database bundle would drop the UUIDs that custom
+    folder assignments reference.
+    """
+    from superset.commands.database.export import ExportDatabasesCommand
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    metric_uuid = UUID("00000000-0000-0000-0000-0000000000f1")
+    column_uuid = UUID("00000000-0000-0000-0000-0000000000f2")
+    sqla_table = SqlaTable(
+        table_name="my_table",
+        database=database,
+        metrics=[
+            SqlMetric(metric_name="cnt", expression="COUNT(*)", uuid=metric_uuid),
+        ],
+        columns=[
+            TableColumn(column_name="profit", type="INTEGER", uuid=column_uuid),
+        ],
+    )
+    db.session.add(sqla_table)
+    db.session.flush()
+
+    contents = {
+        path: content_fn()
+        for path, content_fn in ExportDatabasesCommand._export(database)  # pylint: disable=protected-access
+    }
+    dataset_paths = [path for path in contents if path.startswith("datasets/")]
+    assert len(dataset_paths) == 1
+
+    payload = yaml.safe_load(contents[dataset_paths[0]])
+    assert [metric["uuid"] for metric in payload["metrics"]] == [str(metric_uuid)]
+    assert [column["uuid"] for column in payload["columns"]] == [str(column_uuid)]
 
 
 def test_export_two_datasets_same_table_name_different_schema(

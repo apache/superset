@@ -37,8 +37,17 @@ logger = logging.getLogger(__name__)
 
 
 class TestEmailSmtp(SupersetTestCase):
-    def setUp(self):
+    SMTP_CONFIG_KEYS = ("SMTP_SSL", "SMTP_SSL_SERVER_AUTH", "SMTP_STARTTLS")
+
+    def setUp(self) -> None:
+        self._original_smtp_config = {
+            key: current_app.config[key] for key in self.SMTP_CONFIG_KEYS
+        }
         current_app.config["SMTP_SSL"] = False
+
+    def tearDown(self) -> None:
+        current_app.config.update(self._original_smtp_config)
+        super().tearDown()
 
     @mock.patch("superset.utils.core.send_mime_email")
     def test_send_smtp(self, mock_send_mime):
@@ -210,6 +219,7 @@ class TestEmailSmtp(SupersetTestCase):
     @mock.patch("smtplib.SMTP")
     def test_send_mime_ssl(self, mock_smtp, mock_smtp_ssl):
         current_app.config["SMTP_SSL"] = True
+        current_app.config["SMTP_SSL_SERVER_AUTH"] = False
         mock_smtp.return_value = mock.Mock()
         mock_smtp_ssl.return_value = mock.Mock()
         utils.send_mime_email(

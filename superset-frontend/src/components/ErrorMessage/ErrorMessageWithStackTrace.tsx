@@ -18,12 +18,21 @@
  */
 import { ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { ErrorSource, SupersetError } from '@superset-ui/core';
 import { Typography } from '@superset-ui/core/components';
 import { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';
 import { ErrorAlert } from './ErrorAlert';
 
 const DEFAULT_TITLE = t('Unexpected error');
+
+// Render the stack trace in the monospace font in both light and dark mode.
+// Set font-family explicitly from the theme token (as SQL Lab does) rather
+// than relying on the browser/antd default styling for `pre`, which is
+// cascade-order dependent and can fall back to the UI font in dark mode.
+const StackTrace = styled.pre`
+  font-family: ${({ theme }) => theme.fontFamilyCode};
+`;
 
 type Props = {
   title?: string;
@@ -53,6 +62,7 @@ export function ErrorMessageWithStackTrace({
   fallback,
   compact,
   closable = true,
+  errorMitigationFunction,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
@@ -68,6 +78,7 @@ export function ErrorMessageWithStackTrace({
           error={error}
           source={source}
           subtitle={subtitle}
+          errorMitigationFunction={errorMitigationFunction}
         />
       );
     }
@@ -90,7 +101,7 @@ export function ErrorMessageWithStackTrace({
           </Typography.Link>
         )}
         <br />
-        {stackTrace && <pre>{stackTrace}</pre>}
+        {stackTrace && <StackTrace>{stackTrace}</StackTrace>}
       </>
     ) : undefined);
 

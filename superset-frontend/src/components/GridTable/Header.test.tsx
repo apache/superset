@@ -210,7 +210,11 @@ test('does not attach click handler when enableSorting is false', () => {
 test('does not call progressSort on click when enableSorting is false', () => {
   const progressSort = jest.fn();
   const { getByText } = render(
-    <Header {...mockedProps} enableSorting={false} progressSort={progressSort} />,
+    <Header
+      {...mockedProps}
+      enableSorting={false}
+      progressSort={progressSort}
+    />,
   );
   fireEvent.click(getByText(mockedProps.displayName));
   expect(progressSort).not.toHaveBeenCalled();

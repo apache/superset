@@ -103,6 +103,19 @@ class DatasourceTypeUpdateRequiredValidationError(ValidationError):
         )
 
 
+class ChartQueryContextDatasourceMismatchValidationError(ValidationError):
+    """
+    Raised when a query-context-only update carries a datasource that does not
+    match the chart's own datasource.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("The query context datasource does not match the chart datasource"),
+            field_name="query_context",
+        )
+
+
 class ChartNotFoundError(CommandException):
     message = "Chart not found."
 
@@ -123,6 +136,16 @@ class ChartDeleteFailedError(DeleteFailedError):
     message = _("Charts could not be deleted.")
 
 
+class ChartRestoreFailedError(UpdateFailedError):
+    # Restore semantically clears ``deleted_at``; it is an UPDATE, not a new
+    # row. ``UpdateFailedError`` is the nearest typed middle-tier base in the
+    # codebase. A dedicated ``RestoreFailedError`` in
+    # ``superset/commands/exceptions.py`` would be more precise across the
+    # entity rollouts but lives in already-merged infrastructure (#39977);
+    # introducing it can be a cross-entity follow-up.
+    message = _("Chart could not be restored.")
+
+
 class ChartDeleteFailedReportsExistError(ChartDeleteFailedError):
     message = _("There are associated alerts or reports")
 
@@ -137,6 +160,10 @@ class ChartForbiddenError(ForbiddenError):
 
 class ChartDataQueryFailedError(CommandException):
     pass
+
+
+class ChartDataQueryValidationError(ChartDataQueryFailedError):
+    """A chart-data query that failed because the query itself is invalid."""
 
 
 class ChartDataCacheLoadError(CommandException):

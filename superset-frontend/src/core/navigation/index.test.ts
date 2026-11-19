@@ -35,12 +35,12 @@ test('getPage falls back to "home" for the welcome page and unknown pathnames', 
   const { navigation, notifyLocationChanged } = await importNavigation();
   // The default pathname ('/') is not enumerated and falls back to home.
   expect(navigation.getPage()).toBe('home');
-  notifyLocationChanged('/superset/welcome/');
+  notifyLocationChanged('/welcome/');
   expect(navigation.getPage()).toBe('home');
 });
 
 test('getPage derives the page from window.location.pathname', async () => {
-  window.location.pathname = '/superset/dashboard/42/';
+  window.location.pathname = '/dashboard/42/';
   const { navigation } = await importNavigation();
   expect(navigation.getPage()).toBe('dashboard');
 });
@@ -56,19 +56,19 @@ test('notifyLocationChanged fires listeners on page type change', async () => {
   const listener = jest.fn();
   const disposable = navigation.onDidChangePage(listener);
 
-  notifyLocationChanged('/superset/dashboard/1/');
+  notifyLocationChanged('/dashboard/1/');
   expect(listener).toHaveBeenCalledWith('dashboard');
 
   disposable.dispose();
 });
 
 test('notifyLocationChanged does not fire listeners when page type is unchanged', async () => {
-  window.location.pathname = '/superset/dashboard/1/';
+  window.location.pathname = '/dashboard/1/';
   const { navigation, notifyLocationChanged } = await importNavigation();
   const listener = jest.fn();
   navigation.onDidChangePage(listener);
 
-  notifyLocationChanged('/superset/dashboard/2/');
+  notifyLocationChanged('/dashboard/2/');
   expect(listener).not.toHaveBeenCalled();
 });
 
@@ -78,7 +78,7 @@ test('onDidChangePage listener is removed after dispose', async () => {
   const disposable = navigation.onDidChangePage(listener);
 
   disposable.dispose();
-  notifyLocationChanged('/superset/dashboard/1/');
+  notifyLocationChanged('/dashboard/1/');
   expect(listener).not.toHaveBeenCalled();
 });
 

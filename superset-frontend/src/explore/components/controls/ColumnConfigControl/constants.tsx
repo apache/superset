@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core/translation';
 import { validateNumber } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   ControlFormItemSpec,
   D3_FORMAT_DOCS,
@@ -56,11 +57,14 @@ const d3NumberFormat: ControlFormItemSpec<'Select'> = {
   })),
   defaultValue: D3_FORMAT_OPTIONS[0][0],
   creatable: true,
+  // Keep commas out of token separators because they are valid in D3 number formats.
+  tokenSeparators: ['\r\n', '\n', '\t', ';'],
   minWidth: '14em',
   debounceDelay: 500,
 };
 
 const d3TimeFormat: ControlFormItemSpec<'Select'> = {
+  allowNewOptions: true,
   controlType: 'Select',
   label: t('D3 format'),
   description: D3_TIME_FORMAT_DOCS,
@@ -103,7 +107,7 @@ const horizontalAlign: ControlFormItemSpec<'RadioButtonControl'> & {
   controlType: 'RadioButtonControl',
   label: t('Text align'),
   description: t('Horizontal alignment'),
-  width: 130,
+  width: supersetTheme.sizeUnit * 42,
   debounceDelay: 50,
   defaultValue: 'left',
   options: [
@@ -249,5 +253,12 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       'columnWidth',
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
+  ],
+  [GenericDataType.MultiValue]: [
+    [
+      'columnWidth',
+      { name: 'horizontalAlign', override: { defaultValue: 'left' } },
+    ],
+    ['truncateLongCells'],
   ],
 };

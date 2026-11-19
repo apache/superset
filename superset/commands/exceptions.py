@@ -105,18 +105,10 @@ class ImportFailedError(CommandException):
     message = "Import failed for an unknown reason"
 
 
-class OwnersNotFoundValidationError(ValidationError):
-    status = 422
+class ImportRefusedError(ImportFailedError):
+    """An import refused because of what the bundle contains, not a server fault."""
 
-    def __init__(self) -> None:
-        super().__init__([_("Owners are invalid")], field_name="owners")
-
-
-class RolesNotFoundValidationError(ValidationError):
-    status = 422
-
-    def __init__(self) -> None:
-        super().__init__([_("Some roles do not exist")], field_name="roles")
+    status = 400
 
 
 class DatasourceTypeInvalidError(ValidationError):

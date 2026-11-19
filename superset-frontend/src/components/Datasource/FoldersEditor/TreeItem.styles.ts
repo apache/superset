@@ -71,7 +71,7 @@ export const ItemSeparator = styled.div<{
 export const TreeFolderContainer = styled(TreeItemContainer)<{
   isForbiddenDropTarget?: boolean;
 }>`
-  ${({ theme, depth, isForbiddenDropTarget, isOverlay }) => `
+  ${({ theme, depth, isForbiddenDropTarget }) => `
     margin-top: 0;
     margin-bottom: 0;
     padding-top: ${theme.paddingSM}px;
@@ -188,17 +188,21 @@ export const EmptyFolderDropZone = styled.div<{
     margin-left: ${depth * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH}px;
     padding: ${theme.paddingLG}px;
     border: 2px dashed
-      ${isOver
-        ? isForbidden
-          ? theme.colorError
-          : theme.colorPrimary
-        : 'transparent'};
+      ${
+        isOver
+          ? isForbidden
+            ? theme.colorError
+            : theme.colorPrimary
+          : 'transparent'
+      };
     border-radius: ${theme.borderRadius}px;
-    background: ${isOver
-      ? isForbidden
-        ? theme.colorErrorBg
-        : theme.colorPrimaryBg
-      : 'transparent'};
+    background: ${
+      isOver
+        ? isForbidden
+          ? theme.colorErrorBg
+          : theme.colorPrimaryBg
+        : 'transparent'
+    };
     text-align: center;
     transition: all 0.2s ease-in-out;
     cursor: ${isOver && isForbidden ? 'not-allowed' : 'default'};

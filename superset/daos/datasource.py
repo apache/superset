@@ -20,7 +20,7 @@ import uuid
 from typing import Any, cast, Union
 
 from sqlalchemy import and_, func, literal, or_, select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, Query as ORMQuery
 from sqlalchemy.sql import Select
 
 from superset import db, security_manager
@@ -33,6 +33,10 @@ from superset.daos.exceptions import (
     DatasourceValueIsIncorrect,
 )
 from superset.models.sql_lab import Query, SavedQuery
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils.core import DatasourceType
 from superset.utils.filters import get_dataset_access_filters
@@ -60,12 +64,18 @@ class DatasourceDAO(BaseDAO[Datasource]):
         datasource_type: Union[DatasourceType, str],
         database_id_or_uuid: int | str,
     ) -> Datasource:
+        if (
+            datasource_type == DatasourceType.SEMANTIC_VIEW
+            and not is_semantic_layers_enabled()
+        ):
+            raise SemanticLayersDisabledError()
+
         if datasource_type not in cls.sources:
             raise DatasourceTypeNotSupportedError()
 
         model = cls.sources[datasource_type]
 
-        if str(database_id_or_uuid).isdigit():
+        if str(database_id_or_uuid).isdecimal():
             filter = model.id == int(database_id_or_uuid)
         else:
             try:
@@ -91,11 +101,34 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
         return datasource
 
+    @classmethod
+    def get_datasources_by_ids(
+        cls, datasource_type: str, datasource_ids: set[int]
+    ) -> dict[int, Datasource]:
+        """Fetch typed integer references in one query; omit invalid/missing IDs."""
+        if datasource_type not in cls.sources:
+            raise DatasourceTypeNotSupportedError()
+        ids: set[int] = {
+            value for value in datasource_ids if type(value) is int and value > 0
+        }
+        if not ids:
+            return {}
+        model: type[Datasource] = cls.sources[datasource_type]
+        query: ORMQuery[Datasource] = db.session.query(model)
+        if model is Query:
+            # Query.perm and schema checks read the database for every member.
+            query = query.options(joinedload(Query.database))
+        return {
+            item.id: item
+            for item in query.filter(model.id.in_(ids)).all()  # type: ignore[union-attr]
+        }
+
     @staticmethod
     def build_dataset_query(
         name_filter: str | None,
         sql_filter: bool | None,
         database_id: int | None = None,
+        schema_filter: str | None = None,
     ) -> Select:
         """Build a SELECT for datasets, applying access and content filters."""
         ds_table = SqlaTable.__table__
@@ -114,6 +147,17 @@ class DatasourceDAO(BaseDAO[Datasource]):
             db_table.c.id == ds_table.c.database_id,
         )
 
+        # ``build_dataset_query`` uses a Core ``select`` rather than an ORM
+        # query, so the ``SoftDeleteMixin`` listener (which runs on
+        # ``do_orm_execute``) does not append the visibility filter. Add it
+        # explicitly here so soft-deleted datasets don't count toward the
+        # combined datasource list, pagination totals, or count totals.
+        # Deliberately NOT gated on the SOFT_DELETE flag (unlike the ORM
+        # listener): always-hiding is the safer failure mode for this
+        # aggregate listing, and the flag-independence is documented in
+        # UPDATING.md's "flag-independent parts" list.
+        ds_q = ds_q.where(ds_table.c.deleted_at.is_(None))
+
         if not security_manager.can_access_all_datasources():
             ds_q = ds_q.where(get_dataset_access_filters(SqlaTable))
 
@@ -129,6 +173,9 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
         if database_id is not None:
             ds_q = ds_q.where(SqlaTable.database_id == database_id)
+
+        if schema_filter is not None:
+            ds_q = ds_q.where(SqlaTable.schema == schema_filter)
 
         return ds_q
 
@@ -194,9 +241,13 @@ class DatasourceDAO(BaseDAO[Datasource]):
         sort_col = combined.c[sort_col_name]
         ordered_col = sort_col.desc() if order_direction == "desc" else sort_col.asc()
 
+        # None of the sortable columns is unique across the union (a dataset
+        # and a semantic view may share a name, two datasets may share a
+        # changed_on), so offset pagination needs a total order or rows can
+        # repeat or vanish at page boundaries.
         rows = db.session.execute(
             select(combined.c.item_id, combined.c.source_type)
-            .order_by(ordered_col)
+            .order_by(ordered_col, combined.c.source_type, combined.c.item_id)
             .offset(page * page_size)
             .limit(page_size)
         ).fetchall()
@@ -212,7 +263,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
             db.session.query(SqlaTable)
             .options(
                 joinedload(SqlaTable.database),
-                joinedload(SqlaTable.owners),
+                joinedload(SqlaTable.editors),
                 joinedload(SqlaTable.changed_by),
             )
             .filter(cast(Any, SqlaTable.id).in_(ids))

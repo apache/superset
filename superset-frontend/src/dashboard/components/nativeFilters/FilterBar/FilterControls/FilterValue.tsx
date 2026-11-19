@@ -27,29 +27,31 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { logging } from '@apache-superset/core/utils';
 import {
   ChartDataResponseResult,
   Behavior,
   DataMask,
-  isFeatureEnabled,
-  FeatureFlag,
+  DatasourceType,
   getChartMetadataRegistry,
   JsonObject,
   QueryFormData,
   SuperChart,
   ClientErrorObject,
   getClientErrorObject,
+  getSemanticSelectionSources,
   isChartCustomization,
+  isGrainOnlyExtraFormData,
 } from '@superset-ui/core';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
-import { logging } from '@apache-superset/core/utils';
 import { useTheme } from '@emotion/react';
-import { useDispatch, useSelector } from 'react-redux';
-import { isEqual, isEqualWith } from 'lodash';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
+import { isEqual, isEqualWith } from 'lodash-es';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
-import { Loading, Constants, Flex } from '@superset-ui/core/components';
-import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { Loading, Constants, Flex, Button } from '@superset-ui/core/components';
+import { useAsyncModeOverride } from 'src/utils/asyncMode';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   onFiltersRefreshSuccess,
@@ -61,9 +63,14 @@ import {
   unsetHoveredChartCustomization,
 } from 'src/dashboard/actions/nativeFilters';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
+import isSemanticRange from 'src/filters/components/Range/isSemanticRange';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
-import { getFormData } from '../../utils';
+import {
+  getFormData,
+  isSelectionFreeGrainControlMask,
+  withNativeFilterProvenance,
+} from '../../utils';
 import { useFilterDependencies, useTransitiveParentIds } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
 
@@ -85,36 +92,15 @@ const StyledDiv = styled.div<{
   }
 `;
 
+const ReselectActionButton = styled(Button)`
+  max-width: 100%;
+  height: auto;
+  min-height: ${({ theme }) => theme.controlHeight}px;
+  padding-block: ${({ theme }) => theme.sizeUnit}px;
+  white-space: normal;
+`;
+
 const queriesDataPlaceholder = [{ data: [{}] }];
-
-type TimeGrainFilterConfig = {
-  time_grains?: string[];
-};
-
-export const applyTimeGrainAllowlist = (
-  filterType: string,
-  allowedTimeGrains: string[] | undefined,
-  results: ChartDataResponseResult[],
-): ChartDataResponseResult[] => {
-  if (filterType !== 'filter_timegrain' || !allowedTimeGrains?.length) {
-    return results;
-  }
-
-  return results.map(result => {
-    if (!Array.isArray(result.data)) {
-      return result;
-    }
-
-    return {
-      ...result,
-      data: result.data.filter(row =>
-        allowedTimeGrains.includes(
-          (row as { duration?: string }).duration ?? '',
-        ),
-      ),
-    };
-  });
-};
 
 /**
  * Resolve the granularity_sqla a filter should send. A filter's own
@@ -161,9 +147,6 @@ const FilterValue: FC<FilterValueProps> = ({
   const theme = useTheme() as SupersetTheme;
   const { id, targets, filterType } = filter;
   const isCustomization = isChartCustomization(filter);
-  const allowedTimeGrains = isCustomization
-    ? undefined
-    : (filter as TimeGrainFilterConfig).time_grains;
   const adhocFilters = isCustomization ? undefined : filter.adhoc_filters;
   const timeRange = isCustomization ? undefined : filter.time_range;
   const granularitySqla = isCustomization ? undefined : filter.granularity_sqla;
@@ -171,6 +154,19 @@ const FilterValue: FC<FilterValueProps> = ({
   const dependencies = useFilterDependencies(id, dataMaskSelected);
   const transitiveParentIds = useTransitiveParentIds(id);
   const shouldRefresh = useShouldFilterRefresh();
+
+  // Derive only the defaultToFirstItem flag per filter to avoid re-renders
+  // when unrelated filter config fields change.
+  const parentDefaultToFirstItem = useSelector(
+    (state: RootState) =>
+      Object.fromEntries(
+        Object.entries(state.nativeFilters?.filters ?? {}).map(([fId, f]) => [
+          fId,
+          Boolean(f.controlValues?.defaultToFirstItem),
+        ]),
+      ),
+    shallowEqual,
+  );
 
   const behaviors = useMemo(
     () => [
@@ -184,53 +180,86 @@ const FilterValue: FC<FilterValueProps> = ({
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
+  // Per-dashboard async override so filter requests honor the same policy
+  // (force on/off) as the dashboard's charts.
+  const asyncModeOverride = useAsyncModeOverride();
 
   const [error, setError] = useState<ClientErrorObject>();
+  const [isNetworkError, setIsNetworkError] = useState(false);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
   });
   const [ownState, setOwnState] = useState<JsonObject>({});
-  const [inViewFirstTime, setInViewFirstTime] = useState(inView);
+  const isRequiredFirst =
+    'requiredFirst' in filter &&
+    filter.requiredFirst === true &&
+    filter.filterType !== 'filter_time';
+  const [inViewFirstTime, setInViewFirstTime] = useState(
+    inView || isRequiredFirst,
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets || [];
   const {
     datasetId,
+    datasourceType,
+    semantic_selection_version,
     column = {},
-  }: Partial<{ datasetId: number; column: { name?: string } }> = target || {};
+  }: Partial<{
+    datasetId: number;
+    datasourceType: DatasourceType;
+    semantic_selection_version?: string;
+    column: { name?: string };
+  }> = target || {};
   const groupby = column?.name;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const dispatch = useDispatch();
 
-  // When a Date Range parent filter is active, the child filter needs
-  // granularity_sqla to apply the temporal WHERE clause. Read main_dttm_col
-  // from the Redux datasource cache as a fallback.
+  // When a Date Range parent filter is active and the filter has no
+  // granularity_sqla of its own, the request needs one to apply the temporal
+  // WHERE clause. Fall back to the dataset's main_dttm_col from the Redux
+  // datasource cache.
   //
   // The dashboard datasets API (/api/v1/dashboard/:id/datasets) only returns
   // datasets used by chart slices, so native-filter-only datasets are never
-  // in state.datasources. Dispatch fetchDatasourceMetadata at mount time to
-  // populate the cache explicitly for those datasets.
+  // in state.datasources. Fetch their metadata when the fallback is needed
+  // and it is not already cached.
+  const hasTimeRangeDependency = Boolean(dependencies.time_range);
+  const tableDatasourceKey =
+    datasetId != null &&
+    (datasourceType === undefined || datasourceType === DatasourceType.Table)
+      ? `${datasetId}__${DatasourceType.Table}`
+      : undefined;
   const datasourceMainDttmCol = useSelector<RootState, string | undefined>(
     state =>
-      datasetId != null
-        ? state.datasources?.[`${datasetId}__table`]?.main_dttm_col
+      tableDatasourceKey
+        ? state.datasources?.[tableDatasourceKey]?.main_dttm_col
         : undefined,
   );
+  const isDatasourceCached = useSelector<RootState, boolean>(state =>
+    tableDatasourceKey ? !!state.datasources?.[tableDatasourceKey] : false,
+  );
+  const needsDatasourceMetadata =
+    !!tableDatasourceKey &&
+    !granularitySqla &&
+    hasTimeRangeDependency &&
+    !isDatasourceCached;
 
   useEffect(() => {
-    if (datasetId != null) {
-      // Best-effort prime of the datasource cache for the granularity_sqla
-      // fallback. A failure here is non-fatal — the filter still works, just
-      // without the time-range cascade fallback — so handle the rejection
-      // explicitly to avoid an unhandled promise rejection.
-      Promise.resolve(
-        dispatch(fetchDatasourceMetadata(`${datasetId}__table`)),
-      ).catch(error =>
+    if (!needsDatasourceMetadata || !tableDatasourceKey) {
+      return;
+    }
+    // Best-effort prime of the datasource cache for the granularity_sqla
+    // fallback. A failure here is non-fatal (the filter still works, just
+    // without the time-range cascade fallback), so catch both synchronous
+    // throws and rejections instead of letting them escape the effect.
+    Promise.resolve()
+      .then(() => dispatch(fetchDatasourceMetadata(tableDatasourceKey)))
+      .catch(error =>
         logging.warn('Failed to fetch filter datasource metadata', error),
       );
-    }
-  }, [datasetId, dispatch]);
+  }, [needsDatasourceMetadata, tableDatasourceKey, dispatch]);
 
   const { outlinedFilterId, lastUpdated } = useFilterOutlined();
 
@@ -247,10 +276,10 @@ const FilterValue: FC<FilterValueProps> = ({
   }, [hasDeps]);
 
   useEffect(() => {
-    if (!inViewFirstTime && inView) {
+    if (!inViewFirstTime && (inView || isRequiredFirst)) {
       setInViewFirstTime(true);
     }
-  }, [inView, inViewFirstTime, setInViewFirstTime]);
+  }, [inView, inViewFirstTime, setInViewFirstTime, isRequiredFirst]);
 
   useEffect(() => {
     if (!inViewFirstTime) {
@@ -259,13 +288,15 @@ const FilterValue: FC<FilterValueProps> = ({
     const newFormData = getFormData({
       ...filter,
       datasetId,
+      datasourceType,
+      semantic_selection_version,
       dependencies,
       groupby,
       adhoc_filters: adhocFilters,
       time_range: timeRange,
       granularity_sqla: resolveGranularitySqla(
         granularitySqla,
-        Boolean(dependencies.time_range),
+        hasTimeRangeDependency,
         datasourceMainDttmCol,
       ),
       dashboardId,
@@ -276,6 +307,21 @@ const FilterValue: FC<FilterValueProps> = ({
       // selections first. We walk the full transitive ancestor chain (not just
       // direct parents) so the counts line up with `dependencies`, which is
       // itself built from the transitive chain by `useFilterDependencies`.
+
+      // Block if any parent with defaultToFirstItem hasn't auto-selected yet.
+      // Without this, the child fetches unfiltered options before the parent
+      // auto-selects, leading to a stale first-value dispatch that never
+      // gets corrected because subsequent re-selections are not first-initialization.
+      const hasDefaultFirstParentPending = transitiveParentIds.some(pId => {
+        const parentMask = dataMaskSelected?.[pId];
+        return (
+          parentDefaultToFirstItem[pId] &&
+          parentMask?.filterState?.value === undefined
+        );
+      });
+      if (hasDefaultFirstParentPending) {
+        return;
+      }
 
       let selectedParentFilterValueCounts = 0;
       let isTimeRangeSelected = false;
@@ -324,61 +370,31 @@ const FilterValue: FC<FilterValueProps> = ({
         return;
       }
       setIsRefreshing(true);
-      getChartDataRequest({
-        formData: newFormData,
-        force: shouldRefresh,
-        ownState: filterOwnState,
-      })
-        .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-            // deal with getChartDataRequest transforming the response data
-            const result = 'result' in json ? json.result[0] : json;
-            if (response.status === 200) {
-              setState(
-                applyTimeGrainAllowlist(filterType, allowedTimeGrains, [
-                  result as ChartDataResponseResult,
-                ]),
-              );
-              setError(undefined);
-              handleFilterLoadFinish();
-            } else if (response.status === 202) {
-              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
-                .then((asyncResult: ChartDataResponseResult[]) => {
-                  setState(
-                    applyTimeGrainAllowlist(
-                      filterType,
-                      allowedTimeGrains,
-                      asyncResult,
-                    ),
-                  );
-                  setError(undefined);
-                  handleFilterLoadFinish();
-                })
-                .catch((error: Response) => {
-                  getClientErrorObject(error).then(clientErrorObject => {
-                    setError(clientErrorObject);
-                    handleFilterLoadFinish();
-                  });
-                });
-            } else {
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
-            }
-          } else {
-            setState(
-              applyTimeGrainAllowlist(
-                filterType,
-                allowedTimeGrains,
-                json.result as ChartDataResponseResult[],
-              ),
-            );
-            setError(undefined);
-            handleFilterLoadFinish();
-          }
+      const query = isSemanticRange(newFormData)
+        ? Promise.resolve(queriesDataPlaceholder)
+        : requestChartDataResolved({
+            formData: newFormData,
+            force: shouldRefresh,
+            ownState: filterOwnState,
+            requestParams: { async_mode_override: asyncModeOverride },
+          });
+      query
+        .then(queriesResponse => {
+          setState(queriesResponse as ChartDataResponseResult[]);
+          setError(undefined);
+          handleFilterLoadFinish();
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {
+            // Raw error details stay in devtools; they are not rendered.
+            logging.warn('Failed to load filter values', clientErrorObject);
+            // `fetch` rejects with a TypeError (in every browser) only when no
+            // response was received; anything else was reported by the server.
+            setIsNetworkError(
+              error instanceof TypeError &&
+                !clientErrorObject.status &&
+                !clientErrorObject.errors?.length,
+            );
             setError(clientErrorObject);
             handleFilterLoadFinish();
           });
@@ -391,7 +407,6 @@ const FilterValue: FC<FilterValueProps> = ({
     groupby,
     handleFilterLoadFinish,
     filter,
-    allowedTimeGrains,
     hasDataSource,
     isRefreshing,
     shouldRefresh,
@@ -399,6 +414,8 @@ const FilterValue: FC<FilterValueProps> = ({
     setHasDepsFilterValue,
     transitiveParentIds,
     datasourceMainDttmCol,
+    parentDefaultToFirstItem,
+    asyncModeOverride,
   ]);
 
   useEffect(() => {
@@ -413,8 +430,22 @@ const FilterValue: FC<FilterValueProps> = ({
   }, [inputRef, outlinedFilterId, lastUpdated, filter.id, overflow]);
 
   const setDataMask = useCallback(
-    (dataMask: DataMask) => onFilterSelectionChange(filter, dataMask),
-    [filter, onFilterSelectionChange],
+    (dataMask: DataMask) =>
+      onFilterSelectionChange(
+        filter,
+        withNativeFilterProvenance(dataMask, filter.filterType, {
+          datasetId,
+          datasourceType,
+          semantic_selection_version,
+        }),
+      ),
+    [
+      filter,
+      onFilterSelectionChange,
+      datasetId,
+      datasourceType,
+      semantic_selection_version,
+    ],
   );
 
   const setFocusedFilter = useCallback(() => {
@@ -491,15 +522,89 @@ const FilterValue: FC<FilterValueProps> = ({
     [orientation, overflow],
   );
 
+  const selectionSources = getSemanticSelectionSources(
+    filter.dataMask?.extraFormData,
+  );
+  const selectedValue = filter.dataMask?.filterState?.value;
+  const hasEmptyValue =
+    selectedValue === undefined ||
+    selectedValue === null ||
+    (Array.isArray(selectedValue) &&
+      (selectedValue.length === 0 ||
+        (filter.filterType === 'filter_range' &&
+          selectedValue.length === 2 &&
+          selectedValue.every(value => value === null))));
+  // An empty display value must not hide stale provenance or member predicates.
+  // In particular, [null] in a select is a selected NULL, not a cleared value.
+  const hasSavedSelection =
+    !hasEmptyValue ||
+    selectionSources.length > 0 ||
+    Object.values(filter.dataMask?.extraFormData ?? {}).some(
+      value => value !== undefined,
+    );
+  const staleSelection =
+    semantic_selection_version &&
+    hasSavedSelection &&
+    !isGrainOnlyExtraFormData(filter.dataMask?.extraFormData) &&
+    !isSelectionFreeGrainControlMask(
+      filter.filterType,
+      filter.dataMask?.extraFormData,
+    ) &&
+    (selectionSources.length === 0 ||
+      selectionSources.some(
+        source =>
+          source.datasource !== `${datasetId}__${datasourceType}` ||
+          source.version !== semantic_selection_version,
+      ));
+  if (staleSelection) {
+    return (
+      <Alert
+        type="warning"
+        styles={{
+          root: { flexWrap: 'wrap', rowGap: theme.sizeUnit * 2 },
+          section: { flex: '1 1 0%', minWidth: 0 },
+          actions: {
+            marginInlineStart: 0,
+            minWidth: 0,
+            maxWidth: '100%',
+            flexBasis: '100%',
+            order: 1,
+          },
+        }}
+        message={t('Reselect saved filter values')}
+        description={t(
+          'This saved filter state predates the member-ID format. Reset it and explicitly choose its values again.',
+        )}
+        action={
+          <ReselectActionButton
+            onClick={() =>
+              setDataMask({ filterState: {}, ownState: {}, extraFormData: {} })
+            }
+          >
+            {t('Reset and reselect values')}
+          </ReselectActionButton>
+        }
+      />
+    );
+  }
+
   if (error) {
+    // Errors without a registered `error_type` are rendered by the fallback.
+    // Server error text can expose database internals, so it is not shown.
     return (
       <ErrorMessageWithStackTrace
         error={error.errors?.[0]}
         compact
         fallback={
           <ErrorAlert
-            errorType={t('Network error')}
-            message={t('Network error while attempting to fetch resource')}
+            errorType={
+              isNetworkError ? t('Network error') : t('Cannot load filter')
+            }
+            message={
+              isNetworkError
+                ? t('Network error while attempting to fetch resource')
+                : t('Sorry, something went wrong. Try again later.')
+            }
             type="error"
             compact
           />

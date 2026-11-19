@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 import {
   ensureIsArray,
   getChartControlPanelRegistry,
@@ -41,6 +41,10 @@ export const sharedMetricsKey = [
   'x', // via sharedControls, scalar
   'y', // via sharedControls, scalar
   'secondary_metric', // via sharedControls, scalar
+  'open', // candlestick
+  'close', // candlestick
+  'high', // candlestick
+  'low', // candlestick
 ];
 export const sharedColumnsKey = [
   'groupby', // via sharedControls, array
@@ -80,6 +84,7 @@ export const publicControls = [
   // advanced analytics - resample
   'resample_rule', // via sections.advancedAnalytics
   'resample_method', // via sections.advancedAnalytics
+  'resample_fill_time_range', // via sections.advancedAnalytics
   // dashboard context
   'dashboardId', // preserve dashboard context when changing viz type
 ];
