@@ -7,8 +7,8 @@ name: "Wiki Labeler"
 on: # zizmor: ignore[dangerous-triggers] - needs pull_request_target for a
   # writable token on fork PRs; the scripts only read the opaque author
   # login/number fields, never PR-controlled free text (title, body,
-  # branch), nothing is interpolated into a shell `run:`, and no PR code is
-  # checked out
+  # branch), nothing is interpolated into a shell `run:`, and the checkout
+  # is of the base branch, never of PR code
   pull_request_target:
     types: [opened, reopened, synchronize]
   issues:
@@ -28,67 +28,49 @@ jobs:
     name: wiki-labeler
     permissions:
       contents: read
-      issues: write # to add a roster label to a matching issue
+      issues: write # to add a roster label to an issue, and to create a label on first use
       pull-requests: write # to add roster and path labels to a matching PR
     runs-on: ubuntu-slim
     steps:
+    # The page parser is shared with wiki-labels-lint.yml. On
+    # pull_request_target the default ref is the base branch, so this never
+    # checks out PR code.
+    - name: Check out the wiki page parser
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+        sparse-checkout: .github/scripts
+        sparse-checkout-cone-mode: false
+
     - name: Label if the author is on a wiki roster
       if: github.event.action == 'opened'
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          // Rosters live on the wiki so committers can edit them without a
-          // PR: https://github.com/apache/superset/wiki/Label-Rosters
+          // Rosters: https://github.com/apache/superset/wiki/Label-Rosters
           // Each `## heading` on that page is a label; each list item under
           // it is a GitHub handle.
-          const ROSTER_PAGE = 'Label-Rosters';
-
-          // The wiki can only assign labels named here. Wiki edits are not
-          // reviewed, and some labels drive other workflows (`hold`,
-          // showtime), so adding a label to this list takes a PR while
-          // adding handles to a roster does not.
-          const ALLOWED_LABELS = ['utsc2026'];
-
+          const wiki = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/wiki-labels.js`);
           const { owner, repo } = context.repo;
-          const url = `https://raw.githubusercontent.com/wiki/${owner}/${repo}/${ROSTER_PAGE}.md`;
-          let response;
+
+          // A roster label is a courtesy, so an unreadable page only warns.
+          let text;
           try {
-            response = await fetch(url);
+            text = await wiki.fetchPage(owner, repo, 'rosters');
           } catch (error) {
-            core.warning(`Could not read ${url} (${error.message}); no roster labels applied.`);
-            return;
-          }
-          if (!response.ok) {
-            core.warning(`Could not read ${url} (HTTP ${response.status}); no roster labels applied.`);
+            core.warning(`${error.message}; no roster labels applied.`);
             return;
           }
 
-          const rosters = new Map();
-          let label = null;
-          for (const line of (await response.text()).split('\n')) {
-            const heading = line.match(/^##\s+`?([^`]+?)`?\s*$/);
-            if (heading) {
-              label = heading[1];
-              continue;
-            }
-            const handle = line.match(/^\s*[-*]\s+@?([A-Za-z0-9-]+)\s*$/);
-            if (label && handle) {
-              if (!rosters.has(label)) rosters.set(label, new Set());
-              rosters.get(label).add(handle[1].toLowerCase());
-            }
+          const { rules, problems } = wiki.parse('rosters', text);
+          for (const { line, message } of problems) {
+            core.warning(`${wiki.PAGES.rosters.page} line ${line}: ${message}`);
           }
 
           const target = context.payload.pull_request ?? context.payload.issue;
-          const author = target.user.login.toLowerCase();
-          const labels = [...rosters.keys()].filter(name => rosters.get(name).has(author));
-
-          const blocked = labels.filter(name => !ALLOWED_LABELS.includes(name));
-          if (blocked.length) {
-            core.warning(`Skipping roster label(s) missing from ALLOWED_LABELS: ${blocked.join(', ')}`);
-          }
-          const allowed = labels.filter(name => ALLOWED_LABELS.includes(name));
-          if (!allowed.length) {
+          const labels = wiki.rosterLabels(rules, target.user.login);
+          if (!labels.length) {
             return;
           }
 
@@ -96,73 +78,45 @@ jobs:
             owner,
             repo,
             issue_number: target.number,
-            labels: allowed,
+            labels,
           });
 
-    - name: Read the audit hold paths from the wiki
-      id: holds
+    - name: Read the path rules from the wiki
+      id: paths
       if: github.event_name == 'pull_request_target'
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       with:
         script: |
-          // Path-triggered holds live on the wiki:
+          // Path-triggered holds:
           // https://github.com/apache/superset/wiki/Audit-Hold-Paths
-          // Each `## heading` on that page is a label; each list item in
-          // backticks under it is a path glob. Other list items (the
-          // auditor handles) are for people, not for this job.
-          const HOLDS_PAGE = 'Audit-Hold-Paths';
-
-          // The page can only assign labels with this prefix, so a wiki
-          // edit cannot apply labels that drive other workflows.
-          const ALLOWED_PREFIX = 'hold:audit-';
+          // Each `## heading` on that page is a label; each list item under
+          // it is a path glob, apart from the `@handles` of the auditors.
+          const wiki = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/wiki-labels.js`);
+          const { owner, repo } = context.repo;
 
           // Unlike the roster step, this one fails when the page cannot be
           // read or yields no rules: these labels gate merges, and the
           // labeler below removes a hold whose paths no longer match, so
           // running it on an empty rule set would lift every hold.
-          const { owner, repo } = context.repo;
-          const url = `https://raw.githubusercontent.com/wiki/${owner}/${repo}/${HOLDS_PAGE}.md`;
-          const response = await fetch(url);
-          if (!response.ok) {
-            throw new Error(`Could not read ${url} (HTTP ${response.status})`);
+          const { rules, problems } = wiki.parse('holds', await wiki.fetchPage(owner, repo, 'holds'));
+          for (const { line, message } of problems) {
+            core.warning(`${wiki.PAGES.holds.page} line ${line}: ${message}`);
           }
-
-          const rules = new Map();
-          let label = null;
-          for (const line of (await response.text()).split('\n')) {
-            const heading = line.match(/^##\s+`?([^`]+?)`?\s*$/);
-            if (heading) {
-              label = heading[1];
-              continue;
-            }
-            const glob = line.match(/^\s*[-*]\s+`([^`\s]+)`\s*$/);
-            if (label && glob) {
-              if (!rules.has(label)) rules.set(label, []);
-              rules.get(label).push(glob[1]);
-            }
-          }
-
-          const config = {};
-          for (const [name, globs] of rules) {
-            if (!name.startsWith(ALLOWED_PREFIX)) {
-              core.warning(`Skipping "${name}": labels on ${HOLDS_PAGE} must start with ${ALLOWED_PREFIX}`);
-              continue;
-            }
-            config[name] = [{ 'changed-files': [{ 'any-glob-to-any-file': globs }] }];
-          }
-          if (!Object.keys(config).length) {
-            throw new Error(`No ${ALLOWED_PREFIX}* rules found on ${url}`);
+          if (!rules.size) {
+            throw new Error(`No hold rules found on ${wiki.pageUrl(owner, repo, 'holds')}`);
           }
 
           // JSON is valid YAML, so the labeler reads this file as-is.
           const path = require('path');
-          const file = path.join(process.env.RUNNER_TEMP, 'audit-hold-paths.yml');
-          require('fs').writeFileSync(file, JSON.stringify(config, null, 2));
+          const file = path.join(process.env.RUNNER_TEMP, 'wiki-path-labels.yml');
+          require('fs').writeFileSync(file, JSON.stringify(wiki.labelerConfig(rules), null, 2));
           core.setOutput('config', file);
 
-    - name: Apply the audit hold labels
+    # A label that does not exist in the repository yet is created by GitHub
+    # the first time it is applied (hence `issues: write`).
+    - name: Apply the path labels
       if: github.event_name == 'pull_request_target'
       uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
       with:
-        configuration-path: ${{ steps.holds.outputs.config }}
+        configuration-path: ${{ steps.paths.outputs.config }}
         sync-labels: true
