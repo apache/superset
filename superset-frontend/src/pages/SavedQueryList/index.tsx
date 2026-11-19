@@ -57,7 +57,11 @@ import {
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
 import { commonMenuData } from 'src/features/home/commonMenuData';
-import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
+import {
+  QueryObjectColumns,
+  SavedQueryObject,
+  FileEncryptedExtraFields,
+} from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -71,9 +75,9 @@ const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
     'import them together with the saved queries. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
+    '"Certificate" section of the database configuration is not ' +
+    'present in export files, and should be added manually after the ' +
+    'import if it is needed.',
 );
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more saved queries that already exist. ' +
@@ -155,6 +159,9 @@ function SavedQueryList({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
   const history = useHistory();
 
   const openSavedQueryImportModal = () => {
@@ -739,6 +746,8 @@ function SavedQueryList({
         setSSHTunnelPrivateKeyPasswordFields={
           setSSHTunnelPrivateKeyPasswordFields
         }
+        encryptedExtraFields={encryptedExtraFields}
+        setEncryptedExtraFields={setEncryptedExtraFields}
       />
       {preparingExport && <Loading />}
     </>
