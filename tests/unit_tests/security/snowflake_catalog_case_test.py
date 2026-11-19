@@ -278,6 +278,7 @@ def test_catalog_list_with_dataset_access(
     selected ``schema``).
     """
     dataset = _dataset(snowflake_database, "marts", DEFAULT_CATALOG)
+    assert dataset.perm is not None
     user = _user_with(("datasource_access", dataset.perm))
     with override_user(user):
         assert security_manager.get_catalogs_accessible_by_user(
@@ -529,6 +530,7 @@ def test_authorized_physical_catalog_matches_connection(
     """A listed physical lowercase catalog must not connect to uppercase."""
     physical = "sales_db"
     dataset = _dataset(snowflake_database, "marts", physical)
+    assert dataset.perm is not None
     suffix = ".[marts]" if permission == "schema_access" else ""
     user = _user_with(
         (permission, f"[{DATABASE_NAME}].[{physical}]{suffix}"),

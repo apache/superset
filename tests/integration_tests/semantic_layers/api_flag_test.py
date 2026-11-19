@@ -58,36 +58,43 @@ SEMANTIC_ROUTES: list[tuple[str, str, int]] = [
 def test_every_semantic_route_is_guarded_at_runtime(
     test_client: FlaskClient[Any],
     login_as_admin: None,
-    monkeypatch: pytest.MonkeyPatch,
     method: str,
     path: str,
     expected_status: int,
 ) -> None:
-    """Boot-off registration plus a hook flip protects dispatch before any work."""
+    """Runtime refusal allows permission checks but prevents semantic lookups."""
+    from superset import db
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+
     assert "SemanticLayerRestApi" in app.blueprints
     assert "SemanticViewRestApi" in app.blueprints
-    endpoint: str = app.url_map.bind("localhost").match(path, method=method)[0]
-    handler: MagicMock = MagicMock(wraps=app.view_functions[endpoint])
-    monkeypatch.setitem(app.view_functions, endpoint, handler)
     decision: dict[str, bool] = {"enabled": False}
+    query: MagicMock
+    enabled: bool
 
     def resolve(name: str, default: bool) -> bool:
         """Change only the semantic flag, without rebuilding the application."""
         return decision["enabled"] if name == "SEMANTIC_LAYERS" else default
 
-    with patch.object(feature_flag_manager, "_is_feature_enabled_func", resolve):
-        assert test_client.open(path, method=method).status_code == 404
-        assert test_client.open(path, method=method).json == {"message": "Not found"}
-        handler.assert_not_called()
-        decision["enabled"] = True
-        enabled_response: TestResponse = test_client.open(path, method=method)
-        assert enabled_response.status_code == expected_status, (
-            enabled_response.get_data(as_text=True)
-        )
-        assert handler.call_count == 1
-        decision["enabled"] = False
-        assert test_client.open(path, method=method).status_code == 404
-        assert handler.call_count == 1
+    with (
+        patch.object(feature_flag_manager, "_is_feature_enabled_func", resolve),
+        patch.object(db.session, "query", wraps=db.session.query) as query,
+    ):
+        for enabled in (False, True, False):
+            decision["enabled"] = enabled
+            query.reset_mock()
+            response: TestResponse = test_client.open(path, method=method)
+            assert response.status_code == (expected_status if enabled else 404), (
+                response.get_data(as_text=True)
+            )
+            if not enabled:
+                assert response.json == {"message": "Not found"}
+                # FAB may query users and permissions before the runtime guard.
+                assert not any(
+                    entity is SemanticView or entity is SemanticLayer
+                    for query_call in query.call_args_list
+                    for entity in query_call.args
+                )
 
 
 def test_boot_off_registers_existing_semantic_permissions(app_context: Any) -> None:

@@ -20,8 +20,15 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock, patch
 
+import pyarrow as pa
 import pytest
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.types import (
+    Dimension,
+    Filter,
+    Operator,
+    PredicateType,
+)
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
@@ -29,6 +36,8 @@ from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.semantic_layers.mapper import _get_time_filter, ValidatedQueryObject
+from superset.superset_typing import AdhocColumn
 from superset.utils.cache import generate_cache_key
 from superset.utils.core import QueryObjectFilterClause
 
@@ -510,6 +519,56 @@ class TestQueryContextFactory:
 
         assert len(query_object.filter) == 1
         assert query_object.filter[0]["col"] == "ds"
+
+    def test_apply_granularity_keeps_grained_bucket_filters(self):
+        """A grained filter selects time buckets, not a range: the Time Column
+        override keeps it while it drops the x-axis time filters."""
+        bucket = {"col": "ds", "op": "==", "val": 1704067200000, "grain": "P1M"}
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "ship_date"
+        query_object.columns = [
+            {
+                "sqlExpression": "ds",
+                "label": "ds",
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1M",
+            }
+        ]
+        query_object.post_processing = []
+        query_object.filter = [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"},
+            dict(bucket),
+        ]
+        datasource = Mock()
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "ship_date", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(query_object, {"x_axis": "ds"}, datasource)
+
+        # get_sqla_query compares it to the overridden axis column by label.
+        assert query_object.filter == [bucket]
+        assert query_object.columns[0]["sqlExpression"] == "ship_date"
+
+    def test_apply_granularity_keeps_a_grained_filter_on_the_time_column(self):
+        """Without an x-axis the Time Column's range filter is replaced, but a
+        bucket on it (e.g. a Sunburst level) is not."""
+        bucket = {"col": "ds", "op": "==", "val": 1704067200000, "grain": "P1M"}
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "ds"
+        query_object.columns = ["other_col"]
+        query_object.post_processing = []
+        query_object.filter = [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"},
+            dict(bucket),
+        ]
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(query_object, {}, datasource)
+
+        assert query_object.filter == [bucket]
 
     def test_apply_granularity_no_granularity(self):
         """Test _apply_granularity when no granularity is set"""
@@ -1325,3 +1384,82 @@ def test_time_override_stamps_only_unbounded_saved_predicates(
     assert bool(filter_.get("isExtra")) == (
         already_extra or (dashboard and saved in (None, "No filter", "Aucun filtre"))
     )
+
+
+@pytest.mark.parametrize("preferred", [None, "order_date"])
+@pytest.mark.parametrize("explicit", [False, True])
+@pytest.mark.parametrize("with_filter", [False, True])
+def test_saved_temporal_bindings_use_default_only_for_omitted_granularity(
+    preferred: str | None, explicit: bool, with_filter: bool
+) -> None:
+    """Explicit predicates stay fixed; implicit bounds may adopt a new default."""
+    axis: str | AdhocColumn = (
+        "ship_date"
+        if explicit
+        else AdhocColumn(sqlExpression="amount / 10", label="amount_bucket")
+    )
+    form_data: dict[str, object] = {"x_axis": axis}
+    original_form_data: dict[str, object] = deepcopy(form_data)
+    filters: list[QueryObjectFilterClause] = (
+        [
+            {
+                "col": "delivery_date",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-01-10 : 2024-01-20",
+            }
+        ]
+        if with_filter
+        else []
+    )
+    original_filters: list[QueryObjectFilterClause] = deepcopy(filters)
+    datasource: Mock = Mock()
+    datasource.main_dttm_col = preferred
+    datasource.columns = [
+        {"column_name": "order_date", "is_dttm": True},
+        {"column_name": "ship_date", "is_dttm": True},
+        {"column_name": "delivery_date", "is_dttm": True},
+    ]
+    start: datetime = datetime(2024, 1, 1)
+    end: datetime = datetime(2024, 2, 1)
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=[axis],
+        metrics=[],
+        granularity="ship_date" if explicit else None,
+        from_dttm=start,
+        to_dttm=end,
+        time_range="2024-01-01 : 2024-02-01",
+        filters=deepcopy(filters),
+    )
+    QueryContextFactory()._apply_granularity(query, form_data, datasource)
+    expected: str | None = "ship_date" if explicit else preferred
+    assert query.granularity == expected
+    assert query.filter == original_filters
+    assert form_data == original_form_data
+    dimensions: dict[str, Dimension] = {
+        name: Dimension(name, name, pa.date32())
+        for name in ("order_date", "ship_date", "delivery_date")
+    }
+    predicate_subject: str | None = expected or (
+        "delivery_date" if with_filter else None
+    )
+    predicates: set[Filter] = _get_time_filter(query, None, dimensions)
+    assert predicates == (
+        {
+            Filter(
+                PredicateType.WHERE,
+                dimensions[predicate_subject],
+                Operator.GREATER_THAN_OR_EQUAL,
+                start,
+            ),
+            Filter(
+                PredicateType.WHERE,
+                dimensions[predicate_subject],
+                Operator.LESS_THAN,
+                end,
+            ),
+        }
+        if predicate_subject is not None
+        else set()
+    )
+    datasource.save.assert_not_called()
