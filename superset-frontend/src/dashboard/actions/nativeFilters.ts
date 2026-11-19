@@ -21,6 +21,7 @@ import {
   FilterConfiguration,
   Filters,
   SupersetApiError,
+  parseErrorJson,
   makeApi,
   Divider,
   ChartCustomization,
@@ -120,7 +121,9 @@ export const setFilterConfiguration =
       const original = apiError?.originalError;
       const message =
         original && typeof original === 'object' && 'message' in original
-          ? original.message
+          ? typeof original.message === 'object'
+            ? parseErrorJson({ message: original.message }).error
+            : original.message
           : err instanceof Error
             ? err.message
             : undefined;

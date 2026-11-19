@@ -42,24 +42,30 @@ export type DatasourceListPage = {
 export type FetchDatasourceListOptions = {
   /** Transport to use; pass a cached variant to share responses. */
   get?: typeof SupersetClient.get;
+  /** Request only ordinary datasets when semantic views are unsupported. */
+  includeSemanticViews?: boolean;
 };
 
 /**
  * Fetches one page of datasources by name, ordered by name.
  *
- * When the SEMANTIC_LAYERS feature flag is enabled the combined datasource
- * endpoint is queried and the page mixes datasets with semantic views
- * (distinguished by `kind`); otherwise only datasets are listed. Every picker
- * that offers datasources should load through here so the two endpoints stay
- * behind one contract.
+ * When the SEMANTIC_LAYERS feature flag is enabled, the combined datasource
+ * endpoint mixes datasets with semantic views (distinguished by `kind`).
+ * Callers that cannot use semantic views request the dataset-only endpoint so
+ * pagination counts only compatible rows. Every datasource picker loads through
+ * this function so both endpoints stay behind one contract.
  */
 export const fetchDatasourceList = (
   search: string,
   page: number,
   pageSize: number,
-  { get = SupersetClient.get }: FetchDatasourceListOptions = {},
+  {
+    get = SupersetClient.get,
+    includeSemanticViews = true,
+  }: FetchDatasourceListOptions = {},
 ): Promise<DatasourceListPage> => {
-  const useCombinedList = isFeatureEnabled(FeatureFlag.SemanticLayers);
+  const useCombinedList =
+    includeSemanticViews && isFeatureEnabled(FeatureFlag.SemanticLayers);
   const query = rison.encode({
     ...(useCombinedList ? {} : { columns: DATASET_LIST_COLUMNS }),
     filters: [{ col: 'table_name', opr: 'ct', value: search }],

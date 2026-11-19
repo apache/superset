@@ -27,7 +27,10 @@ from superset.commands.dashboard.exceptions import (
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
-from superset.dashboards.permalink.exceptions import DashboardPermalinkInvalidStateError
+from superset.dashboards.permalink.exceptions import (
+    DashboardPermalinkInvalidKeyError,
+    DashboardPermalinkInvalidStateError,
+)
 from superset.dashboards.permalink.schemas import DashboardPermalinkStateSchema
 from superset.extensions import event_logger
 from superset.key_value.exceptions import KeyValueAccessDeniedError
@@ -225,5 +228,5 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
             return self.response(200, **value)
         except DashboardAccessDeniedError as ex:
             return self.response(403, message=str(ex))
-        except DashboardNotFoundError as ex:
+        except (DashboardNotFoundError, DashboardPermalinkInvalidKeyError) as ex:
             return self.response(404, message=str(ex))

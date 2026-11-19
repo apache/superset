@@ -31,6 +31,15 @@ assists people when migrating to a new version.
   from source) must install the headers they need themselves, for instance with
   `apt-get install`.
 
+- Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
+  the caller cannot view it, rather than treating an access-filtered dashboard
+  as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
+  dashboards withheld by an `EXTRA_ACCESS_QUERY_EXCLUSIONS` hook and dashboards
+  outside an embedded guest token's scope. The legacy dashboard HTML entry also
+  returns 403 for authenticated callers denied access. Clients should handle
+  these responses separately; list endpoints continue to omit dashboards the
+  caller cannot access.
+
 - **Realtime websocket authentication (`WEBSOCKET_ENABLE`):** the browser
   authenticates the socket with a short-lived ticket from
   `GET /api/v1/realtime/token/` sent in-band, instead of a JWT cookie. The
@@ -151,7 +160,8 @@ assists people when migrating to a new version.
   import (HTTP 400, naming the missing fields) rather than stored and ignored while
   both embedding flags are enabled. Import also refuses a credential on a
   connection whose file turns **Impersonate logged in user** off and, with either
-  flag off, a new or changed credential, as the API does. Validation
+  flag off, a new or changed credential, as the API does. Import also refuses a key
+  pair that doesn't decode with its passphrase, as the API does. Validation
   uses the engine's credential rules and edited credentials rather than stale stored
   values, and rejects whitespace-only usernames. An OAuth2 client with a blank client
   ID or secret counts as no client, and an update that would turn impersonation off
@@ -1806,6 +1816,12 @@ unversioned external member overrides cannot borrow a chart's version. Recreate
 old dashboard permalink/filter state after reselection. Cross-view overlays are
 rejected unless their source identity matches the receiving semantic view;
 matching display titles are not proof of matching members.
+
+Time comparison is unsupported on semantic views, including relative shifts,
+inherited ranges and custom start dates. Remove the time shift from affected
+charts to query them. The host refuses these queries before reading cached
+results because comparisons could return incorrect values. Ordinary semantic
+queries and SQL-dataset time comparisons are unchanged.
 
 Dynamic group-by display controls are unsupported on versioned semantic views,
 including Cube. Remove those charts from the control's scope; resetting or
