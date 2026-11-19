@@ -99,6 +99,7 @@ from superset.superset_typing import (
 )
 from superset.utils.core import (
     FilterOperator,
+    get_base_axis_labels,
     QueryObjectFilterClause,
     TIME_COMPARISON,
 )
@@ -457,6 +458,30 @@ def _coerce_empty_result(
     )
 
 
+def _cast_resample_date_axes(table: pa.Table, query_object: QueryObject) -> pa.Table:
+    """Give resample's DatetimeIndex guard typed axes without changing DATE series."""
+    if not any(
+        operation.get("operation") == "resample"
+        for operation in query_object.post_processing
+    ):
+        return table
+
+    axis_labels: set[str | None] = {
+        *get_base_axis_labels(query_object.columns),
+        query_object.granularity,
+    }
+    index: int
+    field: pa.Field
+    for index, field in enumerate(table.schema):
+        if field.name in axis_labels and pa.types.is_date(field.type):
+            table = table.set_column(
+                index,
+                field.with_type(pa.timestamp("ms")),
+                table.column(index).cast(pa.timestamp("ms")),
+            )
+    return table
+
+
 def map_semantic_result_to_query_result(
     semantic_result: SemanticResult,
     query_object: ValidatedQueryObject,
@@ -497,15 +522,9 @@ def map_semantic_result_to_query_result(
 
     return QueryResult(
         # Core data
-        df=stringify_extension_columns(semantic_result.results).to_pandas(
-            integer_object_nulls=True,
-            # Resampling needs a DatetimeIndex after pivoting. Keep DATE objects
-            # otherwise so raw and non-resampled exports retain date-only cells.
-            date_as_object=not any(
-                operation.get("operation") == "resample"
-                for operation in query_object.post_processing
-            ),
-        ),
+        df=stringify_extension_columns(
+            _cast_resample_date_axes(semantic_result.results, query_object)
+        ).to_pandas(integer_object_nulls=True),
         query=query_str,
         duration=duration,
         # Template filters - not applicable to semantic layers

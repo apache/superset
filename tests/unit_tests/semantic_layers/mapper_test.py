@@ -2164,10 +2164,10 @@ def test_get_results_without_time_offsets(
     pd.testing.assert_frame_equal(result.df, main_df)
 
 
-def test_date_resample_preserves_date_range(
+def test_date_resample_fills_gaps_through_get_results(
     mock_datasource: MagicMock, mocker: MockerFixture
 ) -> None:
-    """DATE conversion leaves the provider's inclusive/exclusive range unchanged."""
+    """Provider DATE results fill chart gaps without shifting the selected range."""
     mock_datasource.implementation._dimensions = {
         Dimension("orders.order_date", "order_date", pa.date32())
     }
