@@ -1058,3 +1058,16 @@ test('syncing restores a column deleted in the session as its saved row', async 
   expect(columns).toHaveLength(1);
   expect(columns[0]).toMatchObject({ id: 1, column_name: 'ds' });
 });
+
+test('the Is temporal column header explains the Datetime format requirement', async () => {
+  await asyncRender(createProps());
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  const header = (await screen.findByRole('columnheader', {
+    name: /is temporal/i,
+  })) as HTMLElement;
+  within(header).getByRole('button', { name: 'Show info tooltip' }).focus();
+
+  expect(await screen.findByText(/Datetime format below/i)).toBeInTheDocument();
+});
