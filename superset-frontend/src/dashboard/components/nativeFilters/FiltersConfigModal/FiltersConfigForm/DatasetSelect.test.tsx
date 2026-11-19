@@ -318,3 +318,27 @@ test('does not exclude semantic views that share dataset IDs', async () => {
     window.featureFlags = originalFeatureFlags;
   }
 });
+
+test('Dynamic group by excludes semantic views but retains same-id datasets', async () => {
+  supersetGetCache.clear();
+  const originalFeatureFlags = window.featureFlags;
+  window.featureFlags = { ...originalFeatureFlags, SEMANTIC_LAYERS: true };
+  try {
+    fetchMock.get('glob:*/api/v1/datasource/*', {
+      result: [
+        { id: 7, table_name: 'orders_semantic_view', kind: 'semantic_view' },
+      ],
+      count: 1,
+    });
+    fetchMock.get('glob:*/api/v1/dataset/*', {
+      result: [{ id: 7, table_name: 'orders_dataset', kind: 'physical' }],
+      count: 1,
+    });
+    const result = await loadDatasetOptions('', 0, 100, [], true);
+    expect(result.data.map(item => item.value)).toEqual(['ds:7']);
+    expect(result.totalCount).toBe(1);
+    expect(fetchMock.callHistory.called('glob:*/api/v1/dataset/*')).toBe(true);
+  } finally {
+    window.featureFlags = originalFeatureFlags;
+  }
+});
