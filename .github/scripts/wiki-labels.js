@@ -24,8 +24,10 @@
 // it to check a page after every wiki edit, so both read a page the same way.
 //
 // On every page a `## heading` is a label and the list items under it are
-// that label's entries. Anything above the first horizontal rule (the
-// editing notes) and anything that is not a heading or a list item is prose.
+// that label's entries. List items under a "Reviewers:" line are instead the
+// people asked to review a PR that gets the label. Anything above the first
+// horizontal rule (the editing notes) and anything that is not a heading, a
+// list item or one of those "Name:" lines is prose.
 
 // Wiki edits are not reviewed, and some labels drive other workflows (`hold`
 // blocks merges, the showtime labels start environments). So each page can
@@ -48,6 +50,11 @@ const PAGES = {
 
 const HANDLE = /^@?([A-Za-z0-9-]+(?:\[bot\])?)$/;
 
+// A line holding only "Reviewers:" (or "Paths:", "Members:", ...) says what
+// the list under it holds. "Auditors:" is the older name for reviewers.
+const LIST_NAME = /^\s*(?:\*\*|__)?([A-Za-z][A-Za-z ]*?)(?:\*\*|__)?:(?:\*\*|__)?\s*$/;
+const REVIEWERS = /^(reviewers?|auditors?)$/i;
+
 function isAllowed(kind, label) {
   return PAGES[kind].allowed.some(rule =>
     rule instanceof RegExp ? rule.test(label) : rule === label,
@@ -58,8 +65,9 @@ function isAllowed(kind, label) {
  * Parse one page.
  *
  * Returns `rules`, a Map of label -> entries holding only what CI acts on
- * (allowed labels, well-formed entries), and `problems`, a list of
- * `{ line, message }` for everything an editor most likely got wrong.
+ * (allowed labels, well-formed entries); `reviewers`, a Map of label ->
+ * handles for the labels in `rules` that name reviewers; and `problems`, a
+ * list of `{ line, message }` for everything an editor most likely got wrong.
  * Applying labels uses `rules` and carries on past the problems; the lint
  * job fails on them.
  */
@@ -74,6 +82,7 @@ function parse(kind, text) {
   const rule = lines.findIndex(line => /^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line));
   let section = null;
   let fenced = false;
+  let listing = 'entries';
 
   lines.forEach((line, index) => {
     const number = index + 1;
@@ -87,12 +96,18 @@ function parse(kind, text) {
     const heading = line.match(/^##\s+(.+?)\s*#*\s*$/);
     if (heading) {
       const label = heading[1].replace(/^`(.*)`$/, '$1').trim();
-      section = { label, line: number, values: [] };
+      section = { label, line: number, values: [], reviewers: [] };
       sections.push(section);
+      listing = 'entries';
       return;
     }
     if (/^#\s/.test(line)) {
       section = null;
+      return;
+    }
+    const name = line.match(LIST_NAME);
+    if (name) {
+      listing = REVIEWERS.test(name[1]) ? 'reviewers' : 'entries';
       return;
     }
 
@@ -100,6 +115,20 @@ function parse(kind, text) {
     if (!item || !section) return;
     const quoted = /^`.*`$/.test(item[1]);
     const value = item[1].replace(/^`(.*)`$/, '$1').trim();
+
+    // On a path page an `@handle` is a reviewer wherever it is listed.
+    if (listing === 'reviewers' || (entries === 'globs' && value.startsWith('@'))) {
+      const handle = value.match(HANDLE);
+      if (handle) {
+        section.reviewers.push(handle[1].toLowerCase());
+      } else {
+        problems.push({
+          line: number,
+          message: `"${value}" is not a GitHub handle. Put one reviewer on each list item.`,
+        });
+      }
+      return;
+    }
 
     if (entries === 'handles') {
       const handle = value.match(HANDLE);
@@ -114,9 +143,7 @@ function parse(kind, text) {
       return;
     }
 
-    // Path pages: an item starting with `@` names a person, and an item
-    // with spaces that is not in backticks is a note. Neither is read.
-    if (value.startsWith('@')) return;
+    // Path pages: an item with spaces that is not in backticks is a note.
     if (!quoted && /\s/.test(value)) return;
     if (!value || /\s/.test(value)) {
       problems.push({
@@ -134,7 +161,8 @@ function parse(kind, text) {
   });
 
   const rules = new Map();
-  for (const { label, line, values } of sections) {
+  const reviewers = new Map();
+  for (const { label, line, values, reviewers: people } of sections) {
     if (!isAllowed(kind, label)) {
       problems.push({
         line,
@@ -156,6 +184,9 @@ function parse(kind, text) {
       continue;
     }
     rules.set(label, [...new Set([...(rules.get(label) ?? []), ...values])]);
+    if (people.length) {
+      reviewers.set(label, [...new Set([...(reviewers.get(label) ?? []), ...people])]);
+    }
   }
 
   if (!sections.length) {
@@ -165,7 +196,7 @@ function parse(kind, text) {
     });
   }
 
-  return { rules, problems };
+  return { rules, reviewers, problems };
 }
 
 function pageUrl(owner, repo, kind) {
@@ -188,6 +219,21 @@ function rosterLabels(rules, login) {
   return [...rules.keys()].filter(label => rules.get(label).includes(handle));
 }
 
+/**
+ * Who to ask for a review: the reviewers of every given label, minus anyone
+ * in `skip` (the author, people already asked, people who already reviewed).
+ */
+function reviewersFor(reviewers, labels, skip = []) {
+  const skipped = new Set(skip.map(login => login.toLowerCase()));
+  const wanted = new Set();
+  for (const label of labels) {
+    for (const login of reviewers.get(label) ?? []) {
+      if (!skipped.has(login)) wanted.add(login);
+    }
+  }
+  return [...wanted];
+}
+
 /** Path rules in the shape actions/labeler reads as its configuration. */
 function labelerConfig(rules) {
   const config = {};
@@ -203,5 +249,6 @@ module.exports = {
   labelerConfig,
   pageUrl,
   parse,
+  reviewersFor,
   rosterLabels,
 };

@@ -10,7 +10,7 @@ on: # zizmor: ignore[dangerous-triggers] - needs pull_request_target for a
   # branch), nothing is interpolated into a shell `run:`, and the checkout
   # is of the base branch, never of PR code
   pull_request_target:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened, synchronize, ready_for_review]
   issues:
     types: [opened]
 
@@ -29,7 +29,7 @@ jobs:
     permissions:
       contents: read
       issues: write # to add a roster label to an issue, and to create a label on first use
-      pull-requests: write # to add roster and path labels to a matching PR
+      pull-requests: write # to add roster and path labels to a PR, and to request reviews
     runs-on: ubuntu-slim
     steps:
     # The page parser is shared with wiki-labels-lint.yml. On
@@ -98,7 +98,7 @@ jobs:
           // read or yields no rules: these labels gate merges, and the
           // labeler below removes a hold whose paths no longer match, so
           // running it on an empty rule set would lift every hold.
-          const { rules, problems } = wiki.parse('holds', await wiki.fetchPage(owner, repo, 'holds'));
+          const { rules, reviewers, problems } = wiki.parse('holds', await wiki.fetchPage(owner, repo, 'holds'));
           for (const { line, message } of problems) {
             core.warning(`${wiki.PAGES.holds.page} line ${line}: ${message}`);
           }
@@ -111,6 +111,7 @@ jobs:
           const file = path.join(process.env.RUNNER_TEMP, 'wiki-path-labels.yml');
           require('fs').writeFileSync(file, JSON.stringify(wiki.labelerConfig(rules), null, 2));
           core.setOutput('config', file);
+          core.setOutput('reviewers', JSON.stringify(Object.fromEntries(reviewers)));
 
     # A label that does not exist in the repository yet is created by GitHub
     # the first time it is applied (hence `issues: write`).
@@ -120,3 +121,70 @@ jobs:
       with:
         configuration-path: ${{ steps.paths.outputs.config }}
         sync-labels: true
+
+    # The pages can name reviewers for a label. Ask them once the PR is out
+    # of draft, leaving out the author and anyone already asked or already
+    # reviewing. A failure here only warns: the labels above are what gate a
+    # merge, and no-hold-label.yml needs this job to succeed.
+    - name: Request reviews from the reviewers named on the wiki
+      if: github.event_name == 'pull_request_target'
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        PATH_REVIEWERS: ${{ steps.paths.outputs.reviewers }}
+      with:
+        script: |
+          const wiki = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/wiki-labels.js`);
+          const { owner, repo } = context.repo;
+          const pull_number = context.payload.pull_request.number;
+          try {
+            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number });
+            if (pr.draft || pr.state !== 'open') {
+              return;
+            }
+
+            // Path labels: the reviewers of each such label now on the PR.
+            const reviewers = new Map(Object.entries(JSON.parse(process.env.PATH_REVIEWERS || '{}')));
+            const labels = pr.labels.map(label => label.name);
+
+            // Roster labels: the reviewers of each roster the author is on.
+            try {
+              const rosters = wiki.parse('rosters', await wiki.fetchPage(owner, repo, 'rosters'));
+              for (const label of wiki.rosterLabels(rosters.rules, pr.user.login)) {
+                labels.push(label);
+                reviewers.set(label, [...(reviewers.get(label) ?? []), ...(rosters.reviewers.get(label) ?? [])]);
+              }
+            } catch (error) {
+              core.warning(`${error.message}; no roster reviewers requested.`);
+            }
+
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner,
+              repo,
+              pull_number,
+              per_page: 100,
+            });
+            const wanted = wiki.reviewersFor(reviewers, labels, [
+              pr.user.login,
+              ...pr.requested_reviewers.map(user => user.login),
+              ...reviews.map(review => review.user?.login).filter(Boolean),
+            ]);
+            if (!wanted.length) {
+              return;
+            }
+
+            // GitHub rejects the whole request if one login cannot be asked
+            // (not a collaborator, say), so fall back to asking one by one.
+            try {
+              await github.rest.pulls.requestReviewers({ owner, repo, pull_number, reviewers: wanted });
+            } catch (error) {
+              for (const login of wanted) {
+                try {
+                  await github.rest.pulls.requestReviewers({ owner, repo, pull_number, reviewers: [login] });
+                } catch (inner) {
+                  core.warning(`Could not request a review from @${login}: ${inner.message}`);
+                }
+              }
+            }
+          } catch (error) {
+            core.warning(`Could not request reviews: ${error.message}`);
+          }

@@ -165,6 +165,8 @@ Some labels are applied by CI rather than by hand, from rules kept on the projec
 - [Label Rosters](https://github.com/apache/superset/wiki/Label-Rosters) maps labels to GitHub handles, for labels that depend on who opened the PR or issue (for example `utsc2026`, for students contributing through a university course).
 - [Audit Hold Paths](https://github.com/apache/superset/wiki/Audit-Hold-Paths) maps `hold:audit-*` labels to file paths. A PR that changes one of those paths is held from merging until a reviewer has checked the risk described on that page and removed the label.
 
+A section on any of these pages can also list reviewers. CI requests a review from them when a PR gets that section's label (once the PR is out of draft), which is how path-based review requests work without a `CODEOWNERS` entry.
+
 The wiki is edited by committers, and each page keeps its full edit history. Changes take effect within a few minutes. The workflow (`.github/workflows/wiki-labeler.yml`) limits which labels each page can apply, so adding a new roster label still takes a PR. Every wiki edit is also checked by `.github/workflows/wiki-labels-lint.yml`, which fails and notifies the editor if a page no longer reads cleanly.
 
 ## Revert Guidelines
