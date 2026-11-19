@@ -1426,9 +1426,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         buttonStyle: 'primary',
         component: (
           <Dropdown
-            css={css`
-              margin-left: ${theme.sizeUnit * 2}px;
-            `}
             menu={{
               items: [
                 {
