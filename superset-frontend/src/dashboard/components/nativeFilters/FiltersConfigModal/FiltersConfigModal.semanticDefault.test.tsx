@@ -358,11 +358,16 @@ test('the semantic field warning wraps its action in narrow modal content', asyn
   const section = warning.querySelector('.ant-alert-section') as HTMLElement;
   const actions = warning.querySelector('.ant-alert-actions') as HTMLElement;
   expect(warning.style.flexWrap).toBe('wrap');
-  expect(section.style.flex).toBe('1 1 max-content');
+  expect(section.style.flex).toBe('1 1 0%');
   expect(actions.style.maxWidth).toBe('100%');
-  expect(actions).toContainElement(
-    within(warning).getByRole('button', { name: 'Start field selection' }),
-  );
+  expect(actions.style.flexBasis).toBe('100%');
+  expect(actions.style.order).toBe('1');
+  const button = within(warning).getByRole('button', {
+    name: 'Start field selection',
+  });
+  expect(actions).toContainElement(button);
+  expect(button).toHaveStyleRule('min-height', '32px');
+  expect(button).toHaveStyleRule('padding-block', '4px');
 });
 
 const saveAndCapture = async (onSave: jest.Mock, name = 'Status') => {

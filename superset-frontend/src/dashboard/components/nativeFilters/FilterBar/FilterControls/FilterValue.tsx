@@ -94,6 +94,8 @@ const StyledDiv = styled.div<{
 const ReselectActionButton = styled(Button)`
   max-width: 100%;
   height: auto;
+  min-height: ${({ theme }) => theme.controlHeight}px;
+  padding-block: ${({ theme }) => theme.sizeUnit}px;
   white-space: normal;
 `;
 
@@ -495,8 +497,14 @@ const FilterValue: FC<FilterValueProps> = ({
         type="warning"
         styles={{
           root: { flexWrap: 'wrap', rowGap: theme.sizeUnit * 2 },
-          section: { flex: '1 1 max-content', minWidth: 0 },
-          actions: { marginInlineStart: 0, minWidth: 0, maxWidth: '100%' },
+          section: { flex: '1 1 0%', minWidth: 0 },
+          actions: {
+            marginInlineStart: 0,
+            minWidth: 0,
+            maxWidth: '100%',
+            flexBasis: '100%',
+            order: 1,
+          },
         }}
         message={t('Reselect saved filter values')}
         description={t(
