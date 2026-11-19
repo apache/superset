@@ -656,7 +656,7 @@ multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
-mysqlclient==2.3.0
+mysqlclient==2.3.2
     # via apache-superset
 nh3==0.3.7
     # via
@@ -858,7 +858,7 @@ pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
     # via apache-superset
-pyfakefs==6.2.0
+pyfakefs==6.3.2
     # via apache-superset
 pygeohash==3.2.2
     # via
@@ -1140,7 +1140,7 @@ sqlalchemy-utils==0.43.0
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.24.0
+sqlglot==30.31.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
