@@ -279,30 +279,36 @@ function Echart(
             label: { color: antdTheme.colorText },
           },
         } as any;
-        if (options?.xAxis) {
-          echartsTheme.xAxis = {
-            axisLine: { lineStyle: { color: axisLineColor } },
-            axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: axisLineColor } },
-            minorSplitLine: {
-              lineStyle: { color: antdTheme.colorBorderSecondary },
-            },
-          };
-        }
-        if (options?.yAxis) {
-          echartsTheme.yAxis = {
-            axisLine: { lineStyle: { color: axisLineColor } },
-            axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: axisLineColor } },
-            minorSplitLine: {
-              lineStyle: { color: antdTheme.colorBorderSecondary },
-            },
-          };
-        }
+        const axisDefaults = {
+          axisLine: { lineStyle: { color: axisLineColor } },
+          axisLabel: { color: antdTheme.colorTextSecondary },
+          splitLine: { lineStyle: { color: axisLineColor } },
+          minorSplitLine: {
+            lineStyle: { color: antdTheme.colorBorderSecondary },
+          },
+        };
+        if (options?.xAxis) echartsTheme.xAxis = axisDefaults;
+        if (options?.yAxis) echartsTheme.yAxis = axisDefaults;
         return echartsTheme;
       };
 
       const baseTheme = getEchartsTheme(echartOptions);
+      // Array-shaped axes (e.g. dual y-axis) replace an object-shaped theme
+      // default wholesale when merged, so lay the defaults under each axis
+      // entry first; the chart's explicit axis settings still win.
+      const withPerAxisDefaults = (axisKey: 'xAxis' | 'yAxis') => {
+        const axes = echartOptions?.[axisKey];
+        if (!Array.isArray(axes) || !baseTheme[axisKey]) return {};
+        return {
+          [axisKey]: axes.map(axis =>
+            mergeEchartsThemeOverrides(baseTheme[axisKey], axis),
+          ),
+        };
+      };
+      const themedAxisOptions = {
+        ...withPerAxisDefaults('xAxis'),
+        ...withPerAxisDefaults('yAxis'),
+      };
       const globalOverrides = theme.echartsOptionsOverrides || {};
       const chartOverrides = vizType
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
@@ -328,6 +334,7 @@ function Echart(
         ariaDefault,
         baseTheme,
         echartOptions,
+        themedAxisOptions,
         globalOverrides,
         chartOverrides,
         animationOverride,

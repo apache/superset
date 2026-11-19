@@ -356,3 +356,33 @@ test("keeps a theme's own colorSplit on axis and split lines", async () => {
     expect(lastOptions[axis].splitLine.lineStyle.color).toBe('#ff0000');
   });
 });
+
+test('applies axis contrast defaults to each entry of array-shaped axes', async () => {
+  render(
+    renderEchart({
+      echartOptions: {
+        xAxis: { type: 'category' },
+        yAxis: [
+          { type: 'value' },
+          { type: 'value', axisLine: { lineStyle: { color: '#00ff00' } } },
+        ],
+        series: [],
+      } as EChartsCoreOption,
+    }),
+    { initialState, useRedux: true },
+  );
+
+  await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
+
+  const { yAxis } = mockChart.setOption.mock.calls.at(-1)?.[0];
+  expect(yAxis).toHaveLength(2);
+  expect(yAxis[0].axisLine.lineStyle.color).toBe(
+    supersetTheme.colorTextTertiary,
+  );
+  expect(yAxis[1].axisLine.lineStyle.color).toBe('#00ff00');
+  yAxis.forEach((axis: any) => {
+    expect(axis.splitLine.lineStyle.color).toBe(
+      supersetTheme.colorTextTertiary,
+    );
+  });
+});
