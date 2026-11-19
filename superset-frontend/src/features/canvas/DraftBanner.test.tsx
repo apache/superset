@@ -149,6 +149,19 @@ test('discarding is held while a layout change is still saving', () => {
   expect(actions.discard).not.toHaveBeenCalled();
 });
 
+test('a step not yet on screen holds the next step and Save, but not Discard', () => {
+  // Both would name the revision on screen, which the step has moved past;
+  // a discard names none. Held here whatever the history offers.
+  renderBanner({
+    history: { ...history, canUndo: true, canRedo: true, settling: true },
+  });
+
+  expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled();
+});
+
 test('the banner cannot be dismissed', () => {
   // It is what says a draft is open, and it carries the only two ways to
   // close one. Dismissing it would hide the state and both exits.

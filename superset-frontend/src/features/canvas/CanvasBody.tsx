@@ -27,6 +27,7 @@ import DraftBanner from './DraftBanner';
 import CanvasToolbar from './CanvasToolbar';
 import { useDraftActions } from './useDraftActions';
 import { useDraftHistory } from './useDraftHistory';
+import { usePublishActiveCanvas } from './useActiveCanvas';
 import { useStartDraft } from './useStartDraft';
 import { useCanvasLayout } from './useCanvasLayout';
 import {
@@ -68,6 +69,24 @@ interface CanvasBodyProps {
    * lift all of that into the page, the page lends this a node in its header.
    */
   toolbarSlot?: HTMLElement | null;
+  /**
+   * What the page knows about the canvas, for telling extensions which one is
+   * open. Left out while the page has nothing current to say.
+   */
+  active?: {
+    title?: string;
+    /** Revision of the definition the page has loaded. */
+    revision: number;
+    /**
+     * Whether `draftToken`'s own definition has loaded, and the draft has not
+     * since turned out to be gone.
+     */
+    draftLoaded: boolean;
+    /** Whether the last refresh of the draft failed. */
+    draftRefreshFailed: boolean;
+    /** The saved version rendered in place of the canvas, if any. */
+    previewedVersion?: { uuid: string; number: number };
+  };
 }
 
 /**
@@ -90,6 +109,7 @@ export default function CanvasBody({
   onDraftClosed,
   isEmpty,
   toolbarSlot,
+  active,
 }: CanvasBodyProps) {
   const layout = useCanvasLayout(canvasId, result, reload, draftToken);
   const { addDangerToast } = useToasts();
@@ -115,6 +135,27 @@ export default function CanvasBody({
     canvasId,
   );
   const history = useDraftHistory(draftToken, layout.revision, result, reload);
+  // Here rather than in the page: whether a change to the draft is in flight,
+  // and the revision it has reached, are only known here.
+  usePublishActiveCanvas(
+    active?.title === undefined
+      ? undefined
+      : {
+          id: canvasId,
+          title: active.title,
+          revision: active.revision,
+          draftToken,
+          draftLoaded: active.draftLoaded && !versionUuid,
+          draftRevision: layout.revision,
+          draftPending:
+            active.draftRefreshFailed ||
+            layout.saving ||
+            committing ||
+            history.busy ||
+            Boolean(history.settling),
+          previewedVersion: versionUuid ? active.previewedVersion : undefined,
+        },
+  );
   const { start, starting } = useStartDraft(canvasId, onDraftOpened);
   // Changes are made in a plan; the published canvas is read-only even for
   // someone who may edit it. Editing also stops once a publish starts: the

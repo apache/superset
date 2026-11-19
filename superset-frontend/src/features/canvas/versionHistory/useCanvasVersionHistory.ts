@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getClientErrorObject } from '@superset-ui/core';
 import type { VersionMeta } from 'src/features/versionHistory/types';
 import { LOG_ACTIONS_CANVAS_ERROR } from 'src/logger/LogUtils';
@@ -65,6 +65,10 @@ export function useCanvasVersionHistory(
   const [preview, setPreview] = useState<CanvasVersionSnapshot>();
   const [loading, setLoading] = useState<string>();
   const [error, setError] = useState<string>();
+  // Which preview request is the latest. A response for an earlier one -- a
+  // version clicked before another, or before a draft opened and turned the
+  // history off -- is dropped rather than shown in place of the canvas.
+  const request = useRef(0);
 
   const reload = useCallback(async () => {
     if (!enabled || !canvasUuid) return;
@@ -89,20 +93,30 @@ export function useCanvasVersionHistory(
   }, [enabled, canvasUuid, log]);
 
   useEffect(() => {
+    request.current += 1;
     setVersions(undefined);
     setPreview(undefined);
+    setLoading(undefined);
     reload();
   }, [reload]);
 
   const showVersion = useCallback(
     async (versionUuid: string) => {
       if (!canvasUuid) return;
+      request.current += 1;
+      const requested = request.current;
+      const latest = () => requested === request.current;
       setLoading(versionUuid);
       try {
-        setPreview(await fetchCanvasVersion(canvasUuid, versionUuid));
+        const snapshot = await fetchCanvasVersion(canvasUuid, versionUuid);
+        if (!latest()) return;
+        setPreview(snapshot);
         setError(undefined);
       } catch (response) {
-        setError(await errorMessage(response));
+        const message = await errorMessage(response);
+        if (latest()) setError(message);
+        // Counted even when superseded: the request still failed, and this
+        // event is the only trace of it once its message is dropped.
         const { status } = await getClientErrorObject(response);
         log(LOG_ACTIONS_CANVAS_ERROR, {
           scope: 'version_preview',
@@ -110,19 +124,28 @@ export function useCanvasVersionHistory(
           has_err: true,
         });
       } finally {
-        setLoading(undefined);
+        // Whatever superseded this request cleared or owns the spinner.
+        if (latest()) setLoading(undefined);
       }
     },
     [canvasUuid, log],
   );
 
-  const showCurrent = useCallback(() => setPreview(undefined), []);
+  const showCurrent = useCallback(() => {
+    request.current += 1;
+    setPreview(undefined);
+    setLoading(undefined);
+  }, []);
 
   const restore = useCallback(
     async (versionUuid: string) => {
       if (!canvasUuid) throw new Error('No canvas to restore');
       const result = await restoreCanvasVersion(canvasUuid, versionUuid);
+      // Back on the current canvas, as with showCurrent: a preview still
+      // loading was asked for before the restore and is dropped.
+      request.current += 1;
       setPreview(undefined);
+      setLoading(undefined);
       await reload();
       return result;
     },

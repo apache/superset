@@ -111,6 +111,8 @@ export interface CanvasSettings {
 export interface CanvasDefinitionResult {
   version: number;
   revision: number;
+  /** The canvas a draft belongs to; only the draft route sets it. */
+  canvasId?: number;
   definition: CanvasDefinition;
   /** Filter node id -> node ids it drives. */
   filterScopes: Record<string, string[]>;
