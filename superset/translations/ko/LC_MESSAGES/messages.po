@@ -14758,7 +14758,7 @@ msgstr "잘못된 탭 ID: %(tab_ids)s"
 # Machine-translated via backfill_po.py (gemma4-26b) [no refs]
 #, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr "%(column)s 컬럼의 시간 필터 값이 유효하지 않습니다."
+msgstr "%(column)s 컬럼의 시간 필터 값이 유효하지 않습니다"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
