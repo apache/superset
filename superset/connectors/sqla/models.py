@@ -25,7 +25,7 @@ from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cache
-from typing import Any, Callable, cast, Optional, Union
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING, Union
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import pandas as pd
@@ -99,6 +99,7 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetGenericDBErrorException,
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
@@ -113,6 +114,7 @@ from superset.jinja_context import (
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import (
+    _is_temporal_column,
     AuditMixinNullable,
     CertificationMixin,
     ExploreMixin,
@@ -147,6 +149,9 @@ from superset.utils.sqlalchemy_events import (
     DeleteListenerEffect,
     register_delete_listener,
 )
+
+if TYPE_CHECKING:
+    from superset.utils.rls import RLSSchema
 
 config = current_app.config  # Backward compatibility for tests
 metadata = Model.metadata  # pylint: disable=no-member
@@ -2369,6 +2374,12 @@ class SqlaTable(
             # helper the query path uses, for the same reason
             # `mirrorable_operators` is.
             "literal_resolution": self._column_literal_resolution(mapped_column).value,
+            # Whether the engine compares the mapped column as a date or
+            # timestamp. There a string the server cannot read as ISO 8601 is
+            # declined at every resolution -- the instant is what is probed, and
+            # it has none -- which `literal_resolution` alone cannot tell the
+            # glyph: a TIMESTAMP and a VARCHAR both compare the full value.
+            "mapped_column_is_temporal": _is_temporal_column(mapped_column),
             # Which characters this database's driver and engine would not
             # spell the same way, for the same reason and read by the same
             # glyph: a filter value carrying one is declined by the query path
@@ -2628,6 +2639,38 @@ class SqlaTable(
             effective_offset_hours,
         )
 
+    def _probe_adhoc_column(
+        self, sql: str, sql_expression: str
+    ) -> list[ResultSetColumnType]:
+        """
+        Run the zero-row type probe for an adhoc column.
+
+        A database error here is typically a user-authored expression the
+        database rejects (unknown column, or a function this engine doesn't
+        support). Point at the expression instead of surfacing a bare driver
+        error, and flag it as a warning rather than an unexpected error.
+        """
+        try:
+            return get_columns_description(
+                self.database,
+                self.catalog,
+                self.schema or None,
+                sql,
+            )
+        except SupersetGenericDBErrorException as ex:
+            raise SupersetGenericDBErrorException(
+                message=_(
+                    "The custom SQL expression %(expression)s could not be "
+                    "run against this dataset's database: %(error)s. Check "
+                    "that it only uses columns and functions this database "
+                    "supports.",
+                    expression=sql_expression,
+                    error=ex.error.message,
+                ),
+                level=ErrorLevel.WARNING,
+                extra=ex.error.extra,
+            ) from ex
+
     def adhoc_column_to_sqla(  # pylint: disable=too-many-locals
         self,
         col: AdhocColumn,
@@ -2724,12 +2767,7 @@ class SqlaTable(
                 # SupersetGenericDBErrorException from get_columns_description and
                 # is allowed to propagate unchanged; only a genuine empty result
                 # (the column truly isn't there) is a ColumnNotFoundException.
-                col_desc = get_columns_description(
-                    self.database,
-                    self.catalog,
-                    self.schema or None,
-                    sql,
-                )
+                col_desc = self._probe_adhoc_column(sql, sql_expression)
                 if not col_desc:
                     raise ColumnNotFoundException(message="Column not found")
                 is_dttm = col_desc[0]["is_dttm"]  # type: ignore
@@ -3309,7 +3347,7 @@ class SqlaTable(
         self,
         *,
         resolve_catalog: Callable[[], str | None] | None = None,
-        resolve_schema: Callable[[], str] | None = None,
+        resolve_schema: Callable[[], RLSSchema] | None = None,
     ) -> list[str]:
         """Key caches on table-bound inner RLS, with viewer isolation on failure."""
         from superset.utils.rls import collect_rls_predicates_for_sql
