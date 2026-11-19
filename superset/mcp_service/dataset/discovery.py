@@ -70,7 +70,11 @@ def discover_dataset(
     ).filter(identity_filter, SqlaTable.deleted_at.is_(None))
     query = DatasetDAO._apply_base_filter(query)
     if (scope := get_dataset_scope()) is not None:
-        query = query.filter(SqlaTable.uuid.in_(scope))
+        # SqlaTable.uuid is an unannotated Column, so mypy sees the raw
+        # nullable value type here instead of an InstrumentedAttribute; same
+        # false positive already ignored in
+        # superset/mcp_service/dataset_scope.py.
+        query = query.filter(SqlaTable.uuid.in_(scope))  # type: ignore[union-attr]
     row = query.one_or_none()
     if row is None:
         return DatasetError.create("Dataset not found", "not_found")
