@@ -10900,6 +10900,15 @@ msgstr ""
 msgid "Pivot Table"
 msgstr ""
 
+msgid "Pivot Table has too many rollup levels for a semantic view. Remove row or column dimensions and try again."
+msgstr ""
+
+msgid "Pivot Table pagination is not supported on semantic views. Clear the row offset and try again."
+msgstr ""
+
+msgid "Pivot Table reached its safe row limit on a semantic view. Add filters or remove row or column dimensions and try again."
+msgstr ""
+
 msgid "Pivot operation must include at least one aggregate"
 msgstr ""
 
@@ -11933,6 +11942,9 @@ msgid "Restoring will remove %s chart added after this version from this dashboa
 msgid_plural "Restoring will remove %s charts added after this version from this dashboard. The charts themselves will not be deleted."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Result aggregation is not supported for Pivot Tables on semantic views. Use a metric from the semantic view."
+msgstr ""
 
 msgid "Results"
 msgstr ""

@@ -614,7 +614,7 @@ def _map_query_object(
         ),
     )
     limit = query_object.row_limit
-    offset = query_object.row_offset
+    offset: int | None = query_object.row_offset or None
 
     group_limit = _get_group_limit_from_query_object(
         query_object,

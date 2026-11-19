@@ -5116,7 +5116,7 @@ def test_row_offset_mapping_without_advertised_capability(
     queries: list[SemanticQuery] = map_query_object(query_object)
 
     assert len(queries) == 1
-    assert queries[0].offset == (offset or 0)
+    assert queries[0].offset == (offset or None)
     assert queries[0].limit == limit
     assert queries[0].order is not None
     assert queries[0].order[0][1] == OrderDirection.ASC

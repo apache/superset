@@ -160,6 +160,12 @@ positive `series_limit` and no series columns run without a series limit.
 Timeseries queries with metrics and at least one `columns` value infer series
 columns from `columns` and keep the limit.
 
+Pivot Table queries on semantic views use a bounded Cell limit and at most nine
+rollup levels. If a level reaches the limit, add filters or remove row or
+column dimensions; the chart refuses to show incomplete totals. Date rows and
+columns can use a supported Time Grain. Custom SQL dimensions, saved row
+offsets, and result aggregation remain unsupported for semantic views.
+
 To save the visualization, click on **Save** in the top left of the screen. In the following modal,
 
 - Select the **Save as**
