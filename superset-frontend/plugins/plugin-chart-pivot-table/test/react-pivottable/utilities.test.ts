@@ -1132,3 +1132,196 @@ test('Sum and Average stay blank (null) when every input in the scope is NULL', 
   expect(run('Sum', [null, 4])).toBe(4);
   expect(run('Average', [null, 4])).toBe(4);
 });
+
+test.each([undefined, 'Sum', 'Average'])(
+  'hide empty metric columns without changing %s aggregates',
+  aggregateFunction => {
+    const data = ['2024', '2025'].flatMap(year =>
+      ['A', 'B'].flatMap(product => [
+        {
+          year,
+          product,
+          Metric: 'limited',
+          value: product === 'A' ? 10 : null,
+          __metricKey: 'Metric',
+        },
+        { year, product, Metric: 'all', value: 20, __metricKey: 'Metric' },
+      ]),
+    );
+    const input = {
+      data,
+      rows: ['year'],
+      cols: ['Metric', 'product'],
+      vals: ['value'],
+      aggregateFunction,
+    };
+    const shown = new PivotData(input);
+    const hidden = new PivotData({ ...input, hideEmptyColumns: true });
+    expect(shown.getColKeys()).toHaveLength(4);
+    expect(hidden.getColKeys()).toEqual([
+      ['all', 'A'],
+      ['all', 'B'],
+      ['limited', 'A'],
+    ]);
+    // Visibility must not remove records or mutate aggregators used by totals.
+    for (const row of [[], ...shown.getRowKeys()]) {
+      for (const column of [[], ...shown.getColKeys()]) {
+        expect(hidden.getAggregator(row, column).value()).toEqual(
+          shown.getAggregator(row, column).value(),
+        );
+      }
+    }
+    expect(hidden.getAggregator(['2024'], ['limited', 'A']).value()).toBe(10);
+  },
+);
+
+test.each([0, -3, 5])('keep a column with the non-null value %s', value => {
+  const pivot = new PivotData({
+    hideEmptyColumns: true,
+    rows: ['year'],
+    cols: ['product'],
+    vals: ['value'],
+    data: [
+      { year: '2024', product: 'A', value: null },
+      { year: '2025', product: 'A', value },
+    ],
+  });
+  expect(pivot.getColKeys()).toEqual([['A']]);
+});
+
+test('keep non-null database summaries and parents of populated columns', () => {
+  const pivot = new PivotData(
+    {
+      hideEmptyColumns: true,
+      rows: ['year'],
+      cols: ['Metric', 'product'],
+      vals: ['value'],
+      data: [
+        { year: '2024', Metric: 'ratio', product: 'A', value: 0.5 },
+        {
+          year: '2024',
+          Metric: 'ratio',
+          value: null,
+          __rows: ['year'],
+          __columns: ['Metric'],
+        },
+        { year: '2024', Metric: 'ratio', product: 'B', value: null },
+        {
+          Metric: 'ratio',
+          product: 'B',
+          value: 0,
+          __rows: [],
+          __columns: ['Metric', 'product'],
+        },
+      ],
+    },
+    { colEnabled: true },
+  );
+  expect(pivot.getColKeys()).toEqual(
+    expect.arrayContaining([['ratio'], ['ratio', 'A'], ['ratio', 'B']]),
+  );
+  expect(pivot.getAggregator([], ['ratio', 'B']).value()).toBe(0);
+});
+
+test('hide empty columns when there are no row dimensions', () => {
+  const pivot = new PivotData({
+    hideEmptyColumns: true,
+    rows: [],
+    cols: ['product'],
+    vals: ['value'],
+    data: [
+      { product: 'empty', value: null },
+      { product: 'zero', value: 0 },
+    ],
+  });
+  expect(pivot.getColKeys()).toEqual([['zero']]);
+});
+
+test.each(['Metric', 'Sum as Fraction of Total'])(
+  'keep zero columns with undefined percentages (%s)',
+  aggregateFunction => {
+    const pivot = new PivotData({
+      hideEmptyColumns: true,
+      rows: ['year'],
+      cols: ['Metric', 'product'],
+      vals: ['value'],
+      aggregateFunction,
+      showValuesAs: ShowValuesAsEnum.PERCENT_OF_TOTAL,
+      data: [
+        {
+          year: '2024',
+          Metric: 'sales',
+          product: 'zero',
+          value: 0,
+          __metricKey: 'Metric',
+        },
+        {
+          year: '2024',
+          Metric: 'sales',
+          product: 'empty',
+          value: null,
+          __metricKey: 'Metric',
+        },
+        {
+          Metric: 'sales',
+          value: 0,
+          __rows: [],
+          __columns: ['Metric'],
+          __metricKey: 'Metric',
+        },
+      ],
+    });
+    expect(pivot.getColKeys()).toContainEqual(['sales', 'zero']);
+    expect(pivot.getColKeys()).not.toContainEqual(['sales', 'empty']);
+    expect(pivot.getAggregator(['2024'], ['sales', 'zero']).value()).toBeNull();
+  },
+);
+
+test.each(['Metric', 'Sum as Fraction of Total'])(
+  'hiding NULL columns preserves exact percentages (%s)',
+  aggregateFunction => {
+    const data = [
+      {
+        year: '2024',
+        Metric: 'sales',
+        product: 'A',
+        value: 51,
+        __metricKey: 'Metric',
+      },
+      {
+        year: '2024',
+        Metric: 'sales',
+        product: 'empty',
+        value: null,
+        __metricKey: 'Metric',
+      },
+      {
+        year: '2025',
+        Metric: 'sales',
+        product: 'A',
+        value: 949,
+        __metricKey: 'Metric',
+      },
+      {
+        Metric: 'sales',
+        value: 1000,
+        __rows: [],
+        __columns: ['Metric'],
+        __metricKey: 'Metric',
+      },
+    ];
+    const pivot = new PivotData({
+      hideEmptyColumns: true,
+      data: aggregateFunction === 'Metric' ? data : data.slice(0, 3),
+      rows: ['year'],
+      cols: ['Metric', 'product'],
+      vals: ['value'],
+      aggregateFunction,
+      showValuesAs: ShowValuesAsEnum.PERCENT_OF_TOTAL,
+    });
+    pivot.getColKeys();
+    expect(pivot.getAggregator(['2024'], ['sales', 'A']).value()).toBeCloseTo(
+      0.051,
+    );
+  },
+);

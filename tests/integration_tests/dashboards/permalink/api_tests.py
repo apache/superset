@@ -89,7 +89,7 @@ def test_post(
 def test_post_access_denied(test_client, login_as, dashboard_id: int):
     login_as("gamma")
     resp = test_client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_post_invalid_schema(dashboard_id: int, test_client, login_as_admin):
@@ -112,6 +112,12 @@ def test_get(dashboard_id: int, permalink_salt: str, test_client, login_as_admin
     id_ = decode_permalink_id(key, permalink_salt)
     db.session.query(KeyValueEntry).filter_by(id=id_).delete()
     db.session.commit()
+
+
+def test_get_invalid_key(test_client, login_as_admin):
+    resp = test_client.get("api/v1/dashboard/permalink/undefined")
+    assert resp.status_code == 404
+    assert resp.json["message"] == "Invalid permalink key"
 
 
 @pytest.fixture
