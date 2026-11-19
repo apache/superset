@@ -120,7 +120,10 @@ const output = {
 };
 
 if (!isDevMode) {
-  output.clean = true;
+  // The Country Map (Experimental) GeoJSON files are committed under the
+  // build directory rather than emitted by webpack, so a plain `clean: true`
+  // would delete them on every production build.
+  output.clean = { keep: /^country-maps[\\/]/ };
 }
 
 const plugins = [

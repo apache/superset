@@ -132,6 +132,7 @@
     "@superset-ui/plugin-chart-cartodiagram": "file:./plugins/plugin-chart-cartodiagram",
     "@superset-ui/plugin-chart-chord": "file:./plugins/plugin-chart-chord",
     "@superset-ui/plugin-chart-country-map": "file:./plugins/plugin-chart-country-map",
+    "@superset-ui/plugin-chart-country-map-v2": "file:./plugins/plugin-chart-country-map-v2",
     "@superset-ui/plugin-chart-echarts": "file:./plugins/plugin-chart-echarts",
     "@superset-ui/plugin-chart-handlebars": "file:./plugins/plugin-chart-handlebars",
     "@superset-ui/plugin-chart-horizon": "file:./plugins/plugin-chart-horizon",

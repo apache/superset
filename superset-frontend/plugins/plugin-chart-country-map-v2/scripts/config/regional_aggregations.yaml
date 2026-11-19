@@ -1,0 +1,111 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Dissolve Admin 1 features into coarser administrative regions.
+#
+# Some countries have a meaningful intermediate level between Admin 0
+# (country) and Admin 1 (provinces/states/departments). Examples:
+#   - Turkey: NUTS-1 statistical regions (12 regions from 81 provinces)
+#   - France: 18 administrative regions dissolved from 101 departments
+#   - Italy: 20 regions dissolved from 110 provinces
+#   - Philippines: 17 regions dissolved from 118 provinces+cities
+#
+# For each defined region set, the build script:
+#   1. Loads the country's Admin 1 features
+#   2. Dissolves features by the mapping below
+#   3. Outputs a new GeoJSON keyed by `<country>_<set_name>`
+#   4. Plugin exposes it as a third "admin level" option in the UI:
+#      "Admin 0 (countries) / Admin 1 (subdivisions) / Aggregated regions"
+#
+# Schema:
+#   countries:
+#     <ISO3>:
+#       region_sets:
+#         <set_name>:                      # arbitrary identifier
+#           description: human-readable
+#           display_name: text shown in UI dropdown
+#           grouping_field: <field>        # field on Admin 1 features used to group
+#                                          # OR
+#           explicit_mapping:              # explicit ISO → region_code dict
+#             <region_code>:
+#               name: <display name>
+#               members: [<iso_3166_2>, ...]
+
+countries:
+
+  # -------------------------------------------------------------------
+  # Turkey — NUTS-1 statistical regions
+  # Hand-coded mapping of 81 cities → 12 regions per Eurostat NUTS-1
+  # classification adapted for Türkiye.
+  # -------------------------------------------------------------------
+  TUR:
+    region_sets:
+      nuts_1:
+        description: Eurostat NUTS-1 statistical regions for Türkiye
+        display_name: "Türkiye (NUTS-1 regions)"
+        explicit_mapping:
+          TR1: { name: "İstanbul", members: [TR-34] }
+          TR2: { name: "Batı Marmara", members: [TR-59, TR-22, TR-39, TR-10, TR-17] }
+          TR3: { name: "Ege", members: [TR-35, TR-09, TR-20, TR-48, TR-45, TR-03, TR-43, TR-64] }
+          TR4: { name: "Doğu Marmara", members: [TR-16, TR-26, TR-11, TR-41, TR-54, TR-81, TR-14, TR-77] }
+          TR5: { name: "Batı Anadolu", members: [TR-06, TR-42, TR-70] }
+          TR6: { name: "Akdeniz", members: [TR-07, TR-32, TR-15, TR-01, TR-33, TR-31, TR-46, TR-80] }
+          TR7: { name: "Orta Anadolu", members: [TR-71, TR-68, TR-51, TR-50, TR-40, TR-38, TR-58, TR-66] }
+          TR8: { name: "Batı Karadeniz", members: [TR-67, TR-78, TR-74, TR-37, TR-18, TR-57, TR-55, TR-60, TR-19, TR-05] }
+          TR9: { name: "Doğu Karadeniz", members: [TR-61, TR-52, TR-28, TR-53, TR-08, TR-29] }
+          TRA: { name: "Kuzeydoğu Anadolu", members: [TR-25, TR-24, TR-69, TR-04, TR-36, TR-76, TR-75] }
+          TRB: { name: "Ortadoğu Anadolu", members: [TR-44, TR-23, TR-12, TR-62, TR-65, TR-49, TR-13, TR-30] }
+          TRC: { name: "Güneydoğu Anadolu", members: [TR-27, TR-02, TR-79, TR-63, TR-21, TR-47, TR-72, TR-73, TR-56] }
+
+  # -------------------------------------------------------------------
+  # France — 18 administrative regions (since 2016 reform)
+  # Use NE's `region_cod` field to group departments. After name fixes
+  # in name_overrides.yaml, the codes should align with the 2016 reform.
+  # -------------------------------------------------------------------
+  FRA:
+    region_sets:
+      regions:
+        description: French administrative regions (post-2016 reform)
+        display_name: "France (regions)"
+        grouping_field: region_cod
+
+  # -------------------------------------------------------------------
+  # Italy — 20 regions
+  # -------------------------------------------------------------------
+  ITA:
+    region_sets:
+      regions:
+        description: Italian administrative regions
+        display_name: "Italy (regions)"
+        grouping_field: region_cod
+
+  # -------------------------------------------------------------------
+  # Philippines — 17 regions (after Caraga / BARMM renames)
+  # -------------------------------------------------------------------
+  PHL:
+    region_sets:
+      regions:
+        description: Philippine administrative regions
+        display_name: "Philippines (regions)"
+        grouping_field: region
+
+  # -------------------------------------------------------------------
+  # Future candidates (not yet enabled — verify NE field availability):
+  # - DEU: Bundesländer aggregation if NE provides Kreise as Admin 1
+  # - GBR: NUTS-1 regions (England + Wales + Scotland + NI subdivisions)
+  # - USA: BEA regions, Census divisions
+  # -------------------------------------------------------------------
