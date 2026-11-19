@@ -40,15 +40,19 @@
 import { Disposable, Event } from '../common';
 
 /**
- * Represents a menu item that links a view to a command.
+ * What every menu item carries, whatever it points at.
  */
-export interface MenuItem {
-  /** The identifier of the view associated with this menu item. */
-  view: string;
-  /** The command to execute when this menu item is selected. */
-  command: string;
+export interface MenuItemBase {
+  /**
+   * The view this item is attached to, where the location has one -- a SQL
+   * Lab toolbar belongs to an editor. A navbar item has no hosting view, so
+   * this is optional.
+   */
+  view?: string;
   /** Optional description of the menu item, for display in contribution manifests. */
   description?: string;
+  /** Name of an icon to render beside the label. */
+  icon?: string;
   /**
    * Sort position within the location. Lower comes first; items without one
    * come last, and ties keep registration order.
@@ -57,7 +61,72 @@ export interface MenuItem {
    * is network timing rather than anything an author chose.
    */
   order?: number;
+  /**
+   * At a location whose menu is divided into named groups -- the Settings
+   * dropdown's Data, Security and Manage -- the group this item joins.
+   *
+   * Ignored where a location has no groups. A group the host did not render
+   * is not invented: the item is skipped, the same as one whose target is
+   * unregistered. Superset builds Manage only when the user may see
+   * something in it, so a group conjured here would be one the rest of the
+   * application does not agree exists.
+   */
+  section?: string;
 }
+
+/**
+ * An item that navigates to a page.
+ *
+ * Declarative rather than a command so the host can render a real link --
+ * middle-click, ctrl-click, open in a new tab, and a screen reader all work
+ * -- highlight it when the page is the current one, and leave it out when
+ * nothing has registered the page. Its click handler is the host's own
+ * `core.navigation.openPage` command.
+ */
+export interface PageMenuItem extends MenuItemBase {
+  /**
+   * Id of a view registered at `views.PAGE_LOCATION`, navigated to at
+   * `/extensions/pages/<page>`. The label is that view's `name`.
+   */
+  page: string;
+  command?: never;
+}
+
+/**
+ * An item that runs a command without navigating -- opening a modal,
+ * starting a job. The label is the command's `title`.
+ */
+export interface CommandMenuItem extends MenuItemBase {
+  /** The command to execute when this menu item is selected. */
+  command: string;
+  page?: never;
+}
+
+/**
+ * A menu item: exactly one of `page` or `command`.
+ *
+ * `registerMenuItem` throws on an item that sets neither or both, rather
+ * than the host silently skipping it -- an item that never appears, with
+ * nothing said about why, is the hardest kind of mistake to find.
+ */
+export type MenuItem = PageMenuItem | CommandMenuItem;
+
+/**
+ * The main navigation bar, beside Dashboards, Charts and Datasets.
+ *
+ * Contributed items are appended after the built-ins and cannot displace
+ * them. Past a small number they collapse into an overflow, so a handful of
+ * extensions cannot wrap the bar under the logo.
+ */
+export declare const NAVBAR_LOCATION: string;
+
+/**
+ * The Settings dropdown.
+ *
+ * Use `section` to join one of its named groups -- `'Manage'` for an
+ * administrative screen -- rather than sitting at the top of the dropdown.
+ */
+export declare const SETTINGS_MENU_LOCATION: string;
 
 /**
  * Defines the structure of registered menu items, organized into primary, secondary, and context menus.

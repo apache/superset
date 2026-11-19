@@ -25,7 +25,6 @@ export * as extensions from './extensions';
 export * as menus from './menus';
 export * as navigation from './navigation';
 export * as http from './http';
-export * as pages from './pages';
 export * as sqlLab from './sqlLab';
 export * as views from './views';
 export * as contributions from './contributions';

@@ -63,11 +63,39 @@ const notifyUnregister = (event: MenuItemUnregisteredEvent) => {
   unregisterEmitter.fire(event);
 };
 
+/**
+ * The main navigation bar, beside Dashboards, Charts and Datasets.
+ */
+export const NAVBAR_LOCATION = 'global.navbar';
+
+/**
+ * The Settings dropdown. An item's `section` chooses which of its named
+ * groups to join.
+ */
+export const SETTINGS_MENU_LOCATION = 'global.settingsMenu';
+
 const registerMenuItem: typeof menusApi.registerMenuItem = (
   item: MenuItem,
   location: string,
   group: 'primary' | 'secondary' | 'context',
 ): Disposable => {
+  // Thrown, not skipped. An item with neither target has nothing to do and
+  // an item with both is two intentions in one row; either way the host
+  // would have to pick, and whatever it picked would be a guess at what the
+  // author meant. A skipped item is invisible with nothing said about why,
+  // which is the one outcome worth ruling out.
+  const targets = [item?.page, item?.command].filter(Boolean).length;
+  if (targets !== 1) {
+    throw new Error(
+      targets === 0
+        ? `A menu item at "${location}" sets neither "page" nor "command", ` +
+            `so there is nothing for it to do. Give it exactly one.`
+        : `A menu item at "${location}" sets both "page" and "command". ` +
+            `An item either navigates to a page or runs a command, not ` +
+            `both; give it exactly one.`,
+    );
+  }
+
   const stored: StoredMenuItem = { item, location, group };
   menuItems.push(stored);
   notifyRegister({ item, location, group });
@@ -142,6 +170,8 @@ export const onDidUnregisterMenuItem: typeof menusApi.onDidUnregisterMenuItem =
 export const menus: typeof menusApi = {
   registerMenuItem,
   getMenu,
+  NAVBAR_LOCATION,
+  SETTINGS_MENU_LOCATION,
   onDidRegisterMenuItem,
   onDidUnregisterMenuItem,
 };

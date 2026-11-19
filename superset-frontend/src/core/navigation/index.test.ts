@@ -22,7 +22,7 @@ beforeEach(() => {
   jest.resetModules();
   Object.defineProperty(window, 'location', {
     writable: true,
-    value: { pathname: '/' },
+    value: { pathname: '/', search: '', assign: jest.fn() },
   });
 });
 
@@ -36,16 +36,18 @@ async function importNavigation() {
  *
  * Imported after `importNavigation` so both modules come from the same
  * registry instance -- `jest.resetModules()` means a second import would
- * otherwise give navigation a different `pages` module than this does, and
+ * otherwise give navigation a different views registry than this does, and
  * nothing would be found.
+ *
+ * A page is an ordinary view at the reserved location; there is no separate
+ * page registry to register into.
  */
 async function registerPage(id: string) {
-  const pages = await import('../pages');
+  const views = await import('../views');
   const Component = () => null;
-  return pages.registerPageFor(
-    'acme.tools',
-    [{ id }],
+  return views.registerView(
     { id, name: 'Contributed' },
+    views.PAGE_LOCATION,
     Component as never,
   );
 }
@@ -257,4 +259,91 @@ test('moving between two contributed pages does not change the surface', async (
     first.dispose();
     second.dispose();
   }
+});
+
+test('getLocation reports where the user is, path and query', async () => {
+  const { navigation, notifyLocationChanged } = await importNavigation();
+
+  notifyLocationChanged('/extensions/pages/acme.tools.queue/42', '?tab=open');
+
+  expect(navigation.getLocation()).toEqual({
+    pathname: '/extensions/pages/acme.tools.queue/42',
+    search: '?tab=open',
+  });
+});
+
+test('a page reads its own sub-path by stripping its own address', async () => {
+  // This is the idiom that replaces `useSubPath`. The host forms the address,
+  // so a page knows its own id and can take the remainder; there is no
+  // host-supplied page root any more.
+  const { navigation, notifyLocationChanged } = await importNavigation();
+  const id = 'acme.tools.queue';
+
+  notifyLocationChanged(`/extensions/pages/${id}/42/edit`);
+
+  const subPath = navigation
+    .getLocation()
+    .pathname.slice(`/extensions/pages/${id}`.length);
+  expect(subPath).toBe('/42/edit');
+});
+
+test('onDidChangeLocation fires for a move inside one page', async () => {
+  // The move `getPage` cannot report: both addresses are `'extension'`, so a
+  // page watching only the surface would hear nothing. This is the whole
+  // reason the location is reported separately from the page.
+  const { navigation, notifyLocationChanged } = await importNavigation();
+  const seen: string[] = [];
+  const sub = navigation.onDidChangeLocation(l => seen.push(l.pathname));
+
+  try {
+    notifyLocationChanged('/extensions/pages/acme.tools.queue/mine');
+    notifyLocationChanged('/extensions/pages/acme.tools.queue/all');
+
+    expect(seen).toEqual([
+      '/extensions/pages/acme.tools.queue/mine',
+      '/extensions/pages/acme.tools.queue/all',
+    ]);
+    expect(navigation.getPage()).toBe('extension');
+  } finally {
+    sub.dispose();
+  }
+});
+
+test('onDidChangeLocation reports a query-only change', async () => {
+  const { navigation, notifyLocationChanged } = await importNavigation();
+  const seen: string[] = [];
+  const sub = navigation.onDidChangeLocation(l => seen.push(l.search));
+
+  try {
+    notifyLocationChanged('/extensions/pages/acme.tools.queue', '?tab=open');
+    notifyLocationChanged('/extensions/pages/acme.tools.queue', '?tab=mine');
+
+    expect(seen).toEqual(['?tab=open', '?tab=mine']);
+  } finally {
+    sub.dispose();
+  }
+});
+
+test('navigateTo pushes onto the host router rather than reloading', async () => {
+  const { navigation, setNavigationHistory } = await importNavigation();
+  const push = jest.fn();
+  setNavigationHistory({ push });
+
+  navigation.navigateTo('/extensions/pages/acme.tools.queue/42');
+
+  expect(push).toHaveBeenCalledWith('/extensions/pages/acme.tools.queue/42');
+  expect(window.location.assign).not.toHaveBeenCalled();
+});
+
+test('navigateTo still reaches the address before the shell hands over', async () => {
+  // A command handler can fire before the app shell has given its history
+  // over. A full load reaches the same place; only the transition is lost,
+  // which beats silently doing nothing.
+  const { navigation } = await importNavigation();
+
+  navigation.navigateTo('/extensions/pages/acme.tools.queue');
+
+  expect(window.location.assign).toHaveBeenCalledWith(
+    '/extensions/pages/acme.tools.queue',
+  );
 });

@@ -83,3 +83,41 @@ export declare function getPage(): Page;
  * ```
  */
 export declare const onDidChangePage: Event<Page>;
+
+/**
+ * Where the user is: the pathname, and the query string if there is one.
+ */
+export interface AppLocation {
+  /** The path, rooted at the application, as in `/extensions/pages/acme.tools.queue/42`. */
+  pathname: string;
+  /** The query string including its `?`, or `''` when there is none. */
+  search: string;
+}
+
+/**
+ * The current location.
+ *
+ * This is how a page reads its own sub-path: everything after
+ * `/extensions/pages/<its own id>` belongs to it. A plain function rather
+ * than a hook, so a command handler or any code outside a component can ask.
+ */
+export declare function getLocation(): AppLocation;
+
+/**
+ * Fired whenever the location changes, including between two addresses
+ * inside the same page.
+ */
+export declare const onDidChangeLocation: Event<AppLocation>;
+
+/**
+ * Moves the user to `path` as a client-side transition, without a reload.
+ *
+ * `react-router-dom` is not in the module federation share scope, so an
+ * extension importing it gets a second router instance the host's own
+ * `<Router>` never populates, and `history.push` on it fires no `popstate`.
+ * This goes through the host's router instead.
+ *
+ * `path` is rooted at the application. A page navigating within itself passes
+ * its own address and the sub-path below it.
+ */
+export declare function navigateTo(path: string): void;

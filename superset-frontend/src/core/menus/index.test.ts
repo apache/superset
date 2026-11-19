@@ -123,33 +123,91 @@ test('dispose removes the menu registration', () => {
   expect(menus.getMenu('sqllab.editor')).toBeUndefined();
 });
 
-test('order decides the sequence, and ties keep registration order', () => {
-  // Bundles load in parallel, so registration order is network timing. An
-  // author who cares about position says so with `order`.
-  disposables.push(
-    menus.registerMenuItem(
-      { command: 'c.last', view: 'builtin.editor', order: 30 },
-      'sqllab.editor',
-      'primary',
-    ),
-    menus.registerMenuItem(
-      { command: 'c.unordered', view: 'builtin.editor' },
-      'sqllab.editor',
-      'primary',
-    ),
-    menus.registerMenuItem(
-      { command: 'c.first', view: 'builtin.editor', order: 10 },
-      'sqllab.editor',
-      'primary',
-    ),
-    menus.registerMenuItem(
-      { command: 'c.tie', view: 'builtin.editor', order: 10 },
-      'sqllab.editor',
-      'primary',
-    ),
-  );
+describe('exactly one of page or command', () => {
+  // Thrown rather than skipped. A skipped item is invisible with nothing
+  // said about why, which is the hardest kind of mistake for an author to
+  // find -- so the guard exists to turn it into a loud failure, and these
+  // pin that it stays loud.
+  test('neither target throws, naming the location', () => {
+    expect(() =>
+      menus.registerMenuItem({} as never, 'global.navbar', 'primary'),
+    ).toThrow(/sets neither "page" nor "command"/);
+  });
 
-  expect(
-    menus.getMenu('sqllab.editor')?.primary?.map(item => item.command),
-  ).toEqual(['c.first', 'c.tie', 'c.last', 'c.unordered']);
+  test('both targets throw', () => {
+    expect(() =>
+      menus.registerMenuItem(
+        { page: 'acme.tools.queue', command: 'acme.run' } as never,
+        'global.navbar',
+        'primary',
+      ),
+    ).toThrow(/sets both "page" and "command"/);
+  });
+
+  test('a refused item is not stored', () => {
+    // The throw has to leave the registry as it was, or a later `getMenu`
+    // would report a row that was rejected.
+    expect(() =>
+      menus.registerMenuItem({} as never, 'global.settingsMenu', 'primary'),
+    ).toThrow();
+
+    expect(menus.getMenu('global.settingsMenu')).toBeUndefined();
+  });
+
+  test('a page alone is accepted', () => {
+    disposables.push(
+      menus.registerMenuItem(
+        { page: 'acme.tools.queue' },
+        'global.navbar',
+        'primary',
+      ),
+    );
+
+    expect(menus.getMenu('global.navbar')?.primary).toHaveLength(1);
+  });
+});
+
+describe('order, then registration order', () => {
+  // Without this the sequence is whichever remote entry finished loading
+  // first, which moves with the network rather than with anything an author
+  // chose. `Menu.tsx` preserves what this settles, so it is the only place
+  // ordering is decided.
+  const register = (page: string, order?: number) =>
+    disposables.push(
+      menus.registerMenuItem({ page, order }, 'global.navbar', 'primary'),
+    );
+
+  test('a lower order comes first, whatever the arrival', () => {
+    register('acme.c', 3);
+    register('acme.a', 1);
+    register('acme.b', 2);
+
+    expect(menus.getMenu('global.navbar')?.primary?.map(i => i.page)).toEqual([
+      'acme.a',
+      'acme.b',
+      'acme.c',
+    ]);
+  });
+
+  test('items with no order come last, keeping arrival order', () => {
+    register('acme.none-first');
+    register('acme.ordered', 1);
+    register('acme.none-second');
+
+    expect(menus.getMenu('global.navbar')?.primary?.map(i => i.page)).toEqual([
+      'acme.ordered',
+      'acme.none-first',
+      'acme.none-second',
+    ]);
+  });
+
+  test('equal orders keep arrival order', () => {
+    register('acme.first', 5);
+    register('acme.second', 5);
+
+    expect(menus.getMenu('global.navbar')?.primary?.map(i => i.page)).toEqual([
+      'acme.first',
+      'acme.second',
+    ]);
+  });
 });

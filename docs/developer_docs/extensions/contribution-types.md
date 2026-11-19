@@ -47,9 +47,10 @@ views.registerView(
 
 #### Where a view can go
 
-A location is a string, and the nested shape of the `contributions.views`
-block in `extension.json` mirrors it: `sqllab.panels` is declared under
-`sqllab` → `panels`.
+A location is a dotted string naming where the view renders:
+`sqllab.panels` is the panel area of SQL Lab, `global.page` a page of its
+own. It is passed to `registerView`; nothing about it is declared in
+`extension.json`, which carries no contributions at all.
 
 | Location | Where it renders |
 | --- | --- |
@@ -156,28 +157,9 @@ See [Chat](./extension-points/chat.md) for implementation details.
 Extensions can add a page of their own: a whole screen at its own URL, as
 opposed to a view that occupies a slot inside a screen Superset already ships.
 
-A page is declared in `extension.json` and registered in code. Both halves are
-needed. The declaration is what the server reads to decide who may open the
-page, so that loading the page's URL directly works; the registration supplies
-the component to render there.
-
-```json
-{
-  "contributions": {
-    "pages": [
-      {
-        "id": "acme.tools.review-queue",
-        "name": "Review queue",
-        "nav": { "label": "Review queue" },
-        "permission": "can_review"
-      }
-    ]
-  }
-}
-```
-
-A page is a view at a reserved location, so it is registered the way every
-other view is:
+A page is a view registered at a reserved location. There is nothing to
+declare in `extension.json`: like every other contribution, a page is
+registered in code.
 
 ```typescript
 import { views } from '@apache-superset/core';
@@ -198,91 +180,113 @@ You name the page; Superset decides where it is served. The host serves it at
 longer collide with one of Superset's own screens, with an operator's
 blueprint, or with another extension's page.
 
-The id must begin with your extension's own id (`publisher.name`), so that no
-extension can claim or overwrite another's page. Ids are dot-separated
-lowercase segments in the same shape as a technical name:
-`acme.tools.review-queue`, `acme.tools.reports`. A page registered under an id
-its manifest does not declare, or under an id belonging to another extension,
-is ignored and the reason is logged.
+A page id must begin with your extension's own id, so that no extension can
+claim or overwrite another's page. Registering one that does not throws.
 
-#### Routing inside a page
+#### Appearing in the navigation
 
-A page owns everything beneath its address, so it can have more than one
-screen. Two hooks read the host's router:
+A page has no entry until you register a menu item for it. The item names the
+page it opens; its label is that page's `name`.
 
 ```typescript
-// '/42/edit' at /extensions/pages/acme.tools.review-queue/42/edit
-const subPath = pages.useSubPath();
-const navigate = pages.useNavigate();
+import { menus } from '@apache-superset/core';
 
-navigate('/42');  // a client-side transition, relative to the page
-navigate('/');    // back to the page root
+menus.registerMenuItem(
+  { page: 'acme.tools.review-queue', icon: 'AuditOutlined' },
+  menus.NAVBAR_LOCATION,
+  'primary',
+);
 ```
 
-`navigate` takes a path relative to the page, so a page never writes its own
-URL. These exist because `react-router-dom` is not shared with extensions: an
-extension importing it would get a second copy with its own React context, and
-`useLocation()` would throw.
+For an administrative screen, use the Settings dropdown and name the group it
+belongs in:
 
-#### Appearing in the navigation bar
+```typescript
+menus.registerMenuItem(
+  { page: 'acme.tools.review-queue', section: 'Manage' },
+  menus.SETTINGS_MENU_LOCATION,
+  'primary',
+);
+```
 
-Add `nav` and the page gets a top-level entry, labelled `nav.label` or the
-page's `name`. Omit `nav` for a page reached from somewhere the extension
-renders itself — a button on one of its own screens — and the page stays
-reachable by URL.
+A group Superset did not render is not invented — the item is simply absent,
+the same as one whose page nothing registered. Use `order` to place an item
+among its siblings; without it the order is whichever bundle finished loading
+first, which is network timing rather than anything you chose.
 
-#### Restricting access
+#### Restricting who may open a page
 
-Name a `permission` and only users holding it may open the page; anyone else
-gets 403 and sees no navigation entry. Superset creates the permission when
-the extension loads and shows it in **Settings → List Roles** as, for example,
-`can review on extension:acme.tools`, ready to grant to any role. The Admin
-role receives it automatically, unless some role already holds it.
+Name a permission on the registration and the page is left out of the
+navigation, and refuses to open, for anyone who does not hold it.
 
-Omit `permission` and the page is open to any signed-in user — unless it
-also declares a `featureFlag` that is off, which hides it from everyone.
+```typescript
+views.registerView(
+  { id: 'acme.tools.review-queue', name: 'Review queue' },
+  views.PAGE_LOCATION,
+  ReviewQueue,
+  { classPermissionName: 'AcmeReview', methodPermissionName: 'read' },
+);
+```
 
-A few names are reserved, because Superset's own role rules already give them
-meaning: `database_access`, `catalog_access`, `schema_access`,
-`datasource_access`, `can_userinfo` and `can_recent_activity`. A page naming
-one has its permission refused at startup, with the reason logged, so the page
-is not openable at all.
+The permission must be one that already exists. The usual choice is the one
+your own `@api` class defines through `class_permission_name` and
+`method_permission_name`, so the page is guarded by the same permission as the
+data behind it and the two cannot come apart. A host permission works too, as
+`{ classPermissionName: 'Dashboard', methodPermissionName: 'read' }`.
 
-The permission gates the page itself. Anything the page then calls — Superset's
-APIs, or your extension's own — is authorised separately, so a page is not a
-way to widen what a user can reach.
+Nothing is created for the page. That has two consequences worth knowing:
 
-#### Following a feature flag
+- Set `class_permission_name` explicitly on your API class. It defaults to the
+  Python class name, so renaming the class would quietly close the page.
+- Nothing is granted at install either. After installing an extension whose
+  page names a permission, run `superset init` or grant the permission in the
+  Roles screen — until then the page refuses everyone, administrators
+  included.
 
-Name a `featureFlag` and the page exists only while that flag is on:
+This gates reachability and advertisement, not data. The page's own endpoints
+are the security boundary and check the same permission server-side; the shell
+route is login-gated and serves the shell for every page id.
 
-```json
-{
-  "contributions": {
-    "pages": [
-      {
-        "id": "acme.tools.review-queue",
-        "name": "Review queue",
-        "nav": { "label": "Review queue" },
-        "featureFlag": "CHANGE_MANAGEMENT"
-      }
-    ]
-  }
+Omit the permission and the page is open to any signed-in user.
+
+#### Hiding a page behind a feature flag
+
+There is no feature-flag field. A page that should disappear with a flag is
+one you do not register:
+
+```typescript
+if (isEnabled) {
+  views.registerView(/* ... */);
+  menus.registerMenuItem(/* ... */);
 }
 ```
 
-With the flag off the page is left out of the navigation and its URL answers
-**404**, for every signed-in user including Admin. That is deliberate: a
-permission answers *who*, a flag answers *whether the feature is running at
-all*, and with the feature off there is no page to be refused access to.
+With nothing registered there is no navigation entry, and the page's URL shows
+"not found" — the same screen a misspelled id gets. Registering late is fine:
+the navigation and the page host both subscribe, so an entry appears the
+moment it is registered.
 
-The flag is the operator's, not yours. It is a key of the deployment's
-`FEATURE_FLAGS` config, so a name that config does not define reads as off
-everywhere — which makes a page opt-in for operators who have not switched
-the feature on. The flag is read per request, so flipping it takes effect
-without restarting Superset.
+#### Owning addresses beneath your own
 
-Omit `featureFlag` for a page that does not depend on one.
+Everything below a page's address belongs to that page. Read the current
+address from the `navigation` namespace and take the part after your own id:
+
+```typescript
+import { navigation } from '@apache-superset/core';
+
+const root = '/extensions/pages/acme.tools.review-queue';
+const subPath = navigation.getLocation().pathname.slice(root.length);
+
+navigation.navigateTo(`${root}/42`); // a client-side transition
+```
+
+`onDidChangeLocation` reports every move, including between two addresses
+inside one page — which `getPage` cannot, since both are `'extension'`. These
+are plain functions and an event rather than React hooks, so they work in a
+command handler or anywhere else outside a component.
+
+To open a page from elsewhere, run the host's own command:
+`commands.executeCommand('core.navigation.openPage', 'acme.tools.review-queue')`.
 
 #### Using Superset's API from a page
 

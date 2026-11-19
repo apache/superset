@@ -35,7 +35,6 @@ export * from './http';
 export * from './menus';
 export * from './models';
 export * from './navigation';
-export * from './pages';
 export * from './sqlLab';
 export * from './storage';
 export * from './utils';

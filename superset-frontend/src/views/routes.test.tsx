@@ -20,7 +20,7 @@ import { matchPath } from 'react-router-dom';
 // Imported statically, and before './routes', so both hold the same page
 // registry. A dynamic import here would resolve against a module registry an
 // earlier `jest.resetModules()` has since replaced.
-import { registerPageFor } from 'src/core/pages';
+import { PAGE_LOCATION, registerView } from 'src/core/views';
 import { isFrontendRoute, routes } from './routes';
 
 jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
@@ -171,10 +171,9 @@ test('isFrontendRoute recognises a contributed page and its sub-paths', () => {
   // Answered on the prefix the host owns, so it stays right for a page that
   // registers after this module was evaluated. Without it the menu would
   // full-page-reload to reach a contributed page.
-  const registration = registerPageFor(
-    'acme.tools',
-    [{ id: 'acme.tools.review-queue' }],
+  const registration = registerView(
     { id: 'acme.tools.review-queue', name: 'Queue' },
+    PAGE_LOCATION,
     () => null,
   );
 

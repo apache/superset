@@ -50,7 +50,7 @@ export function createEventEmitter<T>(): EventEmitter<T> {
     // Each listener is isolated. Listeners come from extensions as well as
     // from the host, they are held in one set per event, and `fire` is called
     // from the middle of operations that have already taken effect -- a page
-    // is in the registry before `onDidRegisterPage` fires. Letting one throw
+    // is in the registry before `onDidRegisterView` fires. Letting one throw
     // would abort the rest of the notification, so a single bad listener
     // would stop its peers being told and surface inside whichever extension
     // happened to trigger the event, aborting that module's evaluation.

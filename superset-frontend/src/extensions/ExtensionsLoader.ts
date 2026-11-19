@@ -20,7 +20,6 @@ import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core, views as viewsApi } from '@apache-superset/core';
 import type { ComponentType } from 'react';
-import { registerPageFor } from 'src/core/pages';
 import { PAGE_LOCATION, registerView } from 'src/core/views';
 import { makeUrl } from 'src/utils/navigationUtils';
 import 'src/extensions/Namespaces';
@@ -39,19 +38,6 @@ export interface LoadedExtension extends Extension {
   remoteEntry?: string;
   /** Webpack Module Federation container name (maps to window[name]). */
   moduleFederationName?: string;
-  /**
-   * What the extension's manifest declares it contributes.
-   *
-   * The authoritative list of page ids this extension may register a
-   * component against, and what the server itself reads when it decides
-   * whether to answer `/extensions/pages/<id>` -- so a registration the
-   * manifest does not declare is one no permission or feature flag guards.
-   * `permitted` is what the server resolved for this user, which is what
-   * keeps a navigation entry from advertising a page that would be refused.
-   */
-  contributions?: {
-    pages?: { id: string; permitted?: boolean }[];
-  };
 }
 
 /**
@@ -59,6 +45,38 @@ export interface LoadedExtension extends Extension {
  * `WebpackFederationContainer`, verifying it exposes the runtime methods
  * we depend on rather than trusting an assertion.
  */
+/**
+ * Refuses a page id that is not the registering extension's own.
+ *
+ * Thrown rather than logged, which the SIP asks for and which is right for
+ * this one: a page id that is not the extension's own is a mistake in the
+ * author's own source, it cannot depend on anything at runtime, and the
+ * alternative is a page that is simply absent with only a console line to
+ * say why.
+ *
+ * Exported for its own test. It is the only remaining defence against one
+ * extension claiming another's page -- the server-side rule went with the
+ * manifest -- so it is worth testing directly rather than through a
+ * federation container.
+ */
+export function assertPageIdIsOwned(
+  extensionId: string,
+  viewId: string | undefined,
+  location: string,
+): void {
+  if (location !== PAGE_LOCATION) {
+    return;
+  }
+  if (!viewId?.startsWith(`${extensionId}.`)) {
+    throw new Error(
+      `Extension "${extensionId}" registered a page as ` +
+        `"${viewId ?? '<missing>'}". A page id must begin with ` +
+        `the extension's own id, so that no extension can claim or ` +
+        `overwrite another's page.`,
+    );
+  }
+}
+
 function isWebpackFederationContainer(
   value: unknown,
 ): value is WebpackFederationContainer {
@@ -227,7 +245,6 @@ class ExtensionsLoader {
     // receives the same pre-bound instance. Parallel loading is safe because each
     // container gets its own scope with its own resolved module instance.
     const context = createExtensionContext(extension);
-    const declaredPages = extension.contributions?.pages ?? [];
     const scopedCore = {
       ...window.superset,
       extensions: {
@@ -248,10 +265,11 @@ class ExtensionsLoader {
           view: viewsApi.View,
           location: string,
           component: ComponentType,
-        ) =>
-          location === PAGE_LOCATION
-            ? registerPageFor(extension.id, declaredPages, view, component)
-            : registerView(view, location, component),
+          options?: viewsApi.ViewOptions,
+        ) => {
+          assertPageIdIsOwned(extension.id, view?.id, location);
+          return registerView(view, location, component, options);
+        },
       },
     };
     // Reuse the version key webpack already resolved for the host's own

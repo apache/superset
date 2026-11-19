@@ -24,7 +24,6 @@ import { getExtensionsRegistry } from '@superset-ui/core';
 import * as CoreTheme from '@apache-superset/core/theme';
 import { Menu } from './Menu';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
-import { registerPageFor } from 'src/core/pages';
 
 // Capture what `<GenericLink to={...}>` receives so the SPA-route regression
 // tests can assert on the value handed to react-router-dom (which applies its
@@ -1246,207 +1245,72 @@ test('navbar renders inline on mobile viewport (md: false)', async () => {
   expect(navbar).toHaveClass('ant-menu-inline');
 });
 
-// Scoped so the registrations and the pushed route cannot leak into the rest
-// of the file.
-describe('active tab highlighting for a contributed page', () => {
-  const registered: Array<{ dispose: () => void }> = [];
-
-  /** Register a page the way the loader does, with a navbar entry. */
-  const contribute = (id: string, label: string) => {
-    registered.push(
-      registerPageFor(
-        'acme.tools',
-        // `nav` is a manifest field: the declaration is what opts a page into
-        // the menu, so the registration does not repeat it.
-        [{ id, nav: { label } }],
-        { id, name: label },
-        (() => null) as never,
-      ),
-    );
-  };
-
-  const renderMenu = () => {
-    useSelectorMock.mockReturnValue({ roles: user.roles });
-    render(<Menu {...mockedProps} />, {
-      useRedux: true,
-      useQueryParams: true,
-      useRouter: true,
-      useTheme: true,
-    });
-  };
-
-  afterEach(() => {
-    registered.forEach(r => r.dispose());
-    registered.length = 0;
-    window.history.pushState({}, '', '/');
+test("a host entry's Font Awesome class name never renders as navbar text", async () => {
+  // Regression. `MenuObjectChildProps.icon` is typed `ReactNode` and a
+  // string satisfies it, but FAB forwards a Font Awesome *class name*
+  // (`icon="fa-dashboard"`). antd's `replaceElement` returns a non-element
+  // unchanged, so forwarding it put "fa-table Sources" in the bar on a
+  // default install with no extensions at all -- and nothing in the types
+  // or the existing tests saw it.
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  const { container } = render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
   });
 
-  test('its own entry is selected while its page is open', async () => {
-    contribute('acme.tools.approvals', 'Approvals');
-    window.history.pushState({}, '', '/extensions/pages/acme.tools.approvals');
-    renderMenu();
-
-    await screen.findByText('Approvals');
-    expect(getMenuItemByText('Approvals')).toHaveClass(
-      'ant-menu-item-selected',
-    );
-  });
-
-  test('a page keeps its entry selected on a path beneath it', async () => {
-    contribute('acme.tools.approvals', 'Approvals');
-    window.history.pushState(
-      {},
-      '',
-      '/extensions/pages/acme.tools.approvals/42/edit',
-    );
-    renderMenu();
-
-    await screen.findByText('Approvals');
-    expect(getMenuItemByText('Approvals')).toHaveClass(
-      'ant-menu-item-selected',
-    );
-  });
-
-  test('a path that only shares a prefix selects nothing', async () => {
-    // `acme.tools.approvals-extra` shares a prefix with
-    // `acme.tools.approvals` without being it, and the id is one whole
-    // segment of the address, so neither entry may light up. Under the page
-    // prefix rather than at `/approvals-extra`, which is a host screen now
-    // and would pass whatever the id comparison did.
-    contribute('acme.tools.approvals', 'Approvals');
-    window.history.pushState(
-      {},
-      '',
-      '/extensions/pages/acme.tools.approvals-extra',
-    );
-    renderMenu();
-
-    await screen.findByText('Approvals');
-    expect(getMenuItemByText('Approvals')).not.toHaveClass(
-      'ant-menu-item-selected',
-    );
-  });
-
-  test('a page whose id merely looks like another is not selected', async () => {
-    // Under author-chosen paths `/reports` was a prefix of `/reports-archive`,
-    // so which entry lit up depended on matching the longest one. The id is
-    // a whole segment now, so a lookalike cannot be mistaken for it.
-    contribute('acme.tools.reports', 'Reports');
-    contribute('acme.tools.reports-archive', 'Archive');
-    window.history.pushState(
-      {},
-      '',
-      '/extensions/pages/acme.tools.reports/archive',
-    );
-    renderMenu();
-
-    await screen.findByText('Reports');
-    expect(getMenuItemByText('Reports')).toHaveClass('ant-menu-item-selected');
-    expect(getMenuItemByText('Archive')).not.toHaveClass(
-      'ant-menu-item-selected',
-    );
-  });
-
-  test('a page under a host prefix does not light up the host entry', async () => {
-    // The host cases match by unbounded prefix, so `/dashboard-review` read as
-    // Dashboards before the registry was consulted first.
-    contribute('acme.tools.dashboard-review', 'Dashboard review');
-    window.history.pushState(
-      {},
-      '',
-      '/extensions/pages/acme.tools.dashboard-review',
-    );
-    renderMenu();
-
-    await screen.findByText('Dashboard review');
-    expect(getMenuItemByText('Dashboards')).not.toHaveClass(
-      'ant-menu-item-selected',
-    );
-    expect(getMenuItemByText('Dashboard review')).toHaveClass(
-      'ant-menu-item-selected',
-    );
-  });
-
-  test('a page registering after the first render still gets selected', async () => {
-    // A cold load onto a contributed page: the address is in the bar before
-    // the bundle that claims it arrives, and no navigation follows to re-run
-    // the effect.
-    window.history.pushState({}, '', '/extensions/pages/acme.tools.approvals');
-    renderMenu();
-    await screen.findByText('Dashboards');
-
-    contribute('acme.tools.approvals', 'Approvals');
-
-    expect(await screen.findByText('Approvals')).toBeInTheDocument();
-    expect(getMenuItemByText('Approvals')).toHaveClass(
-      'ant-menu-item-selected',
-    );
-  });
+  await screen.findByText(/sources/i);
+  const nav = container.querySelector('.main-nav');
+  expect(nav).not.toBeNull();
+  // The fixtures above carry `fa-table`, `fa-database` and `fa-fw ...`.
+  expect(nav?.textContent ?? '').not.toMatch(/fa-/);
 });
 
-describe('the More dropdown for contributed pages', () => {
-  const registered: Array<{ dispose: () => void }> = [];
+describe('a command item whose command arrives late', () => {
+  // The ordering the hook subscribes for. An extension registers its menu
+  // item and its command as separate calls, and the navbar has already
+  // rendered by then. A reader that looked the command up once would show
+  // nothing for it for ever, because the menu registration -- the only thing
+  // it watched -- had already fired.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+  const { menus } = require('src/core/menus');
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+  const { commands } = require('src/core/commands');
 
-  const contribute = (id: string, label: string) => {
-    registered.push(
-      registerPageFor(
-        'acme.tools',
-        // `nav` is a manifest field: the declaration is what opts a page into
-        // the menu, so the registration does not repeat it.
-        [{ id, nav: { label } }],
-        { id, name: label },
-        (() => null) as never,
+  const held: { dispose: () => void }[] = [];
+  afterEach(() => {
+    held.forEach(d => d.dispose());
+    held.length = 0;
+  });
+
+  test('appears once the command registers, without a navigation', async () => {
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    held.push(
+      menus.registerMenuItem(
+        { command: 'acme.tools.sync' },
+        'global.navbar',
+        'primary',
       ),
     );
-  };
 
-  const renderMenu = () => {
-    useSelectorMock.mockReturnValue({ roles: user.roles });
     render(<Menu {...mockedProps} />, {
       useRedux: true,
       useQueryParams: true,
       useRouter: true,
       useTheme: true,
     });
-  };
+    await screen.findByText(/sources/i);
+    // Nothing to label it with yet, so it is correctly absent.
+    expect(screen.queryByText('Sync now')).toBeNull();
 
-  afterEach(() => {
-    registered.forEach(r => r.dispose());
-    registered.length = 0;
-    window.history.pushState({}, '', '/');
-  });
-
-  test('a fourth contributed page puts the tail behind one entry', async () => {
-    ['alpha', 'beta', 'gamma', 'delta'].forEach(name =>
-      contribute(`acme.tools.${name}`, name),
+    held.push(
+      commands.registerCommand(
+        { id: 'acme.tools.sync', title: 'Sync now', description: '' },
+        () => undefined,
+      ),
     );
-    renderMenu();
 
-    // Two stay on the bar; the rest are behind "More", which antd renders as
-    // a submenu because the entry carries children and no url.
-    await screen.findByText('alpha');
-    expect(screen.getByText('beta')).toBeInTheDocument();
-    expect(screen.getByText('More')).toBeInTheDocument();
-    expect(screen.queryByText('gamma')).not.toBeInTheDocument();
-  });
-
-  test('the host entries are untouched by the fold', async () => {
-    ['alpha', 'beta', 'gamma', 'delta'].forEach(name =>
-      contribute(`acme.tools.${name}`, name),
-    );
-    renderMenu();
-
-    await screen.findByText('More');
-    expect(screen.getByText('Dashboards')).toBeInTheDocument();
-  });
-
-  test('three contributed pages need no dropdown', async () => {
-    ['alpha', 'beta', 'gamma'].forEach(name =>
-      contribute(`acme.tools.${name}`, name),
-    );
-    renderMenu();
-
-    await screen.findByText('gamma');
-    expect(screen.queryByText('More')).not.toBeInTheDocument();
+    expect(await screen.findByText('Sync now')).toBeInTheDocument();
   });
 });

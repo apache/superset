@@ -30,103 +30,15 @@ from pydantic import (  # noqa: I001
     computed_field,
     Field,
     field_validator,
-    model_validator,
 )
 
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
-    PAGE_ID_PATTERN,
-    PERMISSION_NAME_PATTERN,
     PUBLISHER_PATTERN,
     RESERVED_PUBLISHERS,
     TECHNICAL_NAME_PATTERN,
     VERSION_PATTERN,
 )
-
-
-class PageNav(BaseModel):
-    """Placement of a page in the navigation."""
-
-    label: str | None = Field(
-        default=None,
-        description=(
-            "Text of the navigation entry. Defaults to the page's name, "
-            "which is what the host falls back to when this is absent."
-        ),
-        min_length=1,
-    )
-    category: str | None = Field(
-        default=None,
-        description=(
-            "A group of the Settings menu to sit in, such as 'Manage', "
-            "rather than the top-level navigation bar. The group must be "
-            "one Superset already renders."
-        ),
-        min_length=1,
-    )
-
-
-class Page(BaseModel):
-    """A page an extension contributes, served by the host at its id."""
-
-    id: str = Field(
-        ...,
-        description=(
-            "Id of the view registered as this page, e.g. 'acme.tools.queue'. "
-            "The host serves it at /extensions/pages/<id>, so an extension "
-            "names its page rather than choosing where it is served."
-        ),
-        pattern=PAGE_ID_PATTERN,
-        max_length=255,
-    )
-    name: str = Field(
-        ...,
-        description="Human-readable page name",
-        min_length=1,
-    )
-    nav: PageNav | None = Field(
-        default=None,
-        description="Navigation entry, when the page should appear in the menu",
-    )
-    permission: str | None = Field(
-        default=None,
-        description=(
-            "Permission a user must hold to open the page, granted on the "
-            "extension in the Roles screen. Omit to require only that the "
-            "user is signed in."
-        ),
-        pattern=PERMISSION_NAME_PATTERN,
-        max_length=100,
-    )
-    featureFlag: str | None = Field(  # noqa: N815
-        default=None,
-        description=(
-            "Feature flag the page depends on. While the flag is off the "
-            "page is hidden from the navigation and refuses to open, so a "
-            "feature that is switched off advertises nothing. Omit for a "
-            "page that does not depend on a flag."
-        ),
-        pattern=r"^[A-Z][A-Z0-9_]*$",
-        max_length=100,
-    )
-
-
-class Contributions(BaseModel):
-    """What an extension adds to the host.
-
-    Declared rather than merely registered at runtime, because the host has to
-    act on it in two places that never see each other: the server reads it to
-    decide whether to answer a page's URL and who may open it, and the React
-    router mounts the component. One declaration keeps them from disagreeing.
-    """
-
-    pages: list[Page] = Field(
-        default_factory=list,
-        description="Pages contributed by this extension",
-        # Read on the way in to every request for a contributed page, so it
-        # cannot be unbounded. Far above what a real extension needs.
-        max_length=100,
-    )
 
 
 class BaseExtension(BaseModel):
@@ -171,10 +83,6 @@ class BaseExtension(BaseModel):
         default_factory=list,
         description="Permissions required by this extension",
     )
-    contributions: Contributions = Field(
-        default_factory=Contributions,
-        description="What this extension contributes to the host",
-    )
 
     @field_validator("publisher")
     @classmethod
@@ -198,58 +106,6 @@ class BaseExtension(BaseModel):
     @property
     def id(self) -> str:
         return f"{self.publisher}.{self.name}"
-
-    @model_validator(mode="after")
-    def _pages_are_this_extension_s_to_declare(self) -> BaseExtension:
-        """Refuse a page id that is not this extension's own.
-
-        A page id begins with its extension's id, and both ends of the host
-        hold to that -- ``owns_page`` before the server answers
-        ``/extensions/pages/<id>``, and ``registerPageFor`` before the
-        frontend mounts a component. ``PAGE_ID_PATTERN`` cannot: an id's
-        shape says nothing about whose it is, so it admits ``acme.tools``,
-        which is the extension's own id with no page part, and
-        ``other.ext.queue``, which belongs to someone else. Either one
-        builds and installs, and then fails where nobody is looking -- a
-        line in the server log and an error in the console, with the page
-        itself saying nothing.
-
-        So the build refuses it, where the author is the one reading.
-        """
-        prefix = f"{self.id}."
-        for page in self.contributions.pages:
-            if not page.id.startswith(prefix):
-                raise ValueError(
-                    f"page id '{page.id}' is not this extension's to declare: "
-                    f"a page id begins with the extension's own id, so it must "
-                    f"start with '{prefix}' and name the page after it, as in "
-                    f"'{prefix}queue'"
-                )
-        return self
-
-    @model_validator(mode="after")
-    def _each_page_is_declared_once(self) -> BaseExtension:
-        """Refuse the same page id declared twice in one manifest.
-
-        The server reads the first declaration of an id and enforces what it
-        requires. A second row for the same id therefore changes nothing it
-        enforces while still being read as a page -- so declaring one gated
-        and then ungated advertises a page the route answers 403 for, and
-        the author sees a working entry that opens for the wrong people.
-
-        There is no reading of two rows for one id that is not a mistake:
-        whichever requirement the author meant, only one of them applies.
-        """
-        seen: set[str] = set()
-        for page in self.contributions.pages:
-            if page.id in seen:
-                raise ValueError(
-                    f"page id '{page.id}' is declared more than once: only the "
-                    f"first declaration is read, so a second can only disagree "
-                    f"with what the server enforces; declare each page once"
-                )
-            seen.add(page.id)
-        return self
 
 
 # =============================================================================

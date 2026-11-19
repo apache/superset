@@ -18,9 +18,9 @@
  */
 
 import { createElement } from 'react';
-import { MemoryRouter, Route, useHistory, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route } from 'react-router-dom';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import { registerPageFor, resolvePage } from 'src/core/pages';
+import { PAGE_LOCATION, registerView } from 'src/core/views';
 import ExtensionPage from './index';
 
 // Must be `mock`-prefixed: jest forbids a mock factory from closing over
@@ -41,12 +41,25 @@ afterEach(() => {
   mockInitializeExtensions.mockClear();
 });
 
+/** The address the host serves a contributed page at. */
+const at = (id: string) => `/extensions/pages/${id}`;
+
+const Page = () => createElement('div', null, 'the page');
+
 /**
  * Rendered through the host's own route, because that is where the page id
- * comes from now: `ExtensionPage` reads it as a route parameter rather than
+ * comes from: `ExtensionPage` reads it as a route parameter rather than
  * parsing it out of the pathname itself.
+ *
+ * `roles` is the shape `bootstrap_user_data(include_perms=True)` puts in the
+ * store -- a role name to a list of `[permission, resource]` pairs -- which
+ * is what the page checks against. It is the only input the permission
+ * decision has, so there is nothing to stub beyond it.
  */
-const renderAt = (pathname: string) =>
+const renderAt = (
+  pathname: string,
+  roles: Record<string, [string, string][]> = {},
+) =>
   render(
     createElement(
       MemoryRouter,
@@ -57,246 +70,111 @@ const renderAt = (pathname: string) =>
         createElement(ExtensionPage),
       ),
     ),
+    { useRedux: true, initialState: { user: { roles } } },
   );
 
-/** The address the host serves a contributed page at. */
-const at = (id: string) => `/extensions/pages/${id}`;
-
-const Page = () => createElement('div', null, 'the page');
+const register = (id: string, options?: Record<string, string>) =>
+  disposables.push(
+    registerView({ id, name: 'Queue' }, PAGE_LOCATION, Page, options),
+  );
 
 test('renders the page that claims the path', async () => {
-  disposables.push(
-    registerPageFor(
-      'acme.tools',
-      [{ id: 'acme.tools.review-queue' }],
-      { id: 'acme.tools.review-queue', name: 'Queue' },
-      Page,
-    ),
-  );
+  register('acme.tools.review-queue');
 
   renderAt(at('acme.tools.review-queue'));
 
   expect(await screen.findByText('the page')).toBeInTheDocument();
 });
 
-test('a deep path reaches the same page', async () => {
-  disposables.push(
-    registerPageFor(
-      'acme.tools',
-      [{ id: 'acme.tools.review-queue' }],
-      { id: 'acme.tools.review-queue', name: 'Queue' },
-      Page,
-    ),
-  );
+test('a page that names no permission opens for any signed-in user', async () => {
+  // The user below holds nothing at all. Adding the option must not be able
+  // to close a page that already worked, so a page without one cannot
+  // consult permissions.
+  register('acme.tools.review-queue');
 
-  renderAt(`${at('acme.tools.review-queue')}/42/edit`);
+  renderAt(at('acme.tools.review-queue'), {});
 
   expect(await screen.findByText('the page')).toBeInTheDocument();
 });
 
-test('a page the user may not open renders a refusal, not the component', async () => {
-  disposables.push(
-    registerPageFor(
-      'acme.tools',
-      [{ id: 'acme.tools.review-queue', permitted: false }],
-      { id: 'acme.tools.review-queue', name: 'Queue' },
-      Page,
-    ),
-  );
+test('a page opens for a user who holds its permission', async () => {
+  register('acme.tools.review-queue', {
+    classPermissionName: 'ChangeRequest',
+    methodPermissionName: 'read',
+  });
 
-  renderAt(at('acme.tools.review-queue'));
+  renderAt(at('acme.tools.review-queue'), {
+    Gamma: [['can_read', 'ChangeRequest']],
+  });
 
-  expect(await screen.findByText(/Not authorized/i)).toBeInTheDocument();
+  expect(await screen.findByText('the page')).toBeInTheDocument();
+});
+
+test('a page refuses a user who does not hold its permission', async () => {
+  register('acme.tools.review-queue', {
+    classPermissionName: 'ChangeRequest',
+    methodPermissionName: 'read',
+  });
+
+  // Holding the write half is not holding the read half, and holding read on
+  // something else is not holding it here: the pair is one permission.
+  renderAt(at('acme.tools.review-queue'), {
+    Gamma: [
+      ['can_write', 'ChangeRequest'],
+      ['can_read', 'Dashboard'],
+    ],
+  });
+
+  expect(await screen.findByText('Not authorized')).toBeInTheDocument();
   expect(screen.queryByText('the page')).not.toBeInTheDocument();
 });
 
-test('an unclaimed path waits for extensions before saying not found', async () => {
-  // Extensions register long after first render, so concluding "not found"
-  // early would flash an error on every cold load of a real page.
-  let settle: () => void = () => {};
-  mockInitializeExtensions.mockImplementationOnce(
-    () =>
-      new Promise<void>(resolve => {
-        settle = resolve;
-      }),
+test('the refusal names the permission to ask for', async () => {
+  // The reader cannot act on "you lack permission"; an administrator needs
+  // the pair to grant it in the Roles screen.
+  register('acme.tools.review-queue', {
+    classPermissionName: 'ChangeRequest',
+    methodPermissionName: 'read',
+  });
+
+  renderAt(at('acme.tools.review-queue'), {});
+
+  expect(await screen.findByText(/can_read/)).toBeInTheDocument();
+  expect(screen.getByText(/ChangeRequest/)).toBeInTheDocument();
+});
+
+test('an id nothing has registered says so once extensions have settled', async () => {
+  renderAt(at('nobody.registered.this'));
+
+  expect(await screen.findByText('Page not found')).toBeInTheDocument();
+});
+
+test('a page registering late is picked up without a remount', async () => {
+  // The server serves the shell for every id, so arriving before the bundle
+  // has landed is the ordinary case rather than an error. Until extensions
+  // settle this must not say "not found": the page may be moments away.
+  renderAt(at('acme.tools.review-queue'));
+
+  expect(screen.queryByText('the page')).not.toBeInTheDocument();
+
+  register('acme.tools.review-queue');
+
+  expect(await screen.findByText('the page')).toBeInTheDocument();
+});
+
+test('a page registering late with a permission is checked on arrival', async () => {
+  // The same subscription that notices a page notices what it requires, so
+  // a late page is gated the moment it registers rather than rendering
+  // first and refusing afterwards.
+  renderAt(at('acme.tools.review-queue'), {});
+
+  register('acme.tools.review-queue', {
+    classPermissionName: 'ChangeRequest',
+    methodPermissionName: 'read',
+  });
+
+  expect(await screen.findByText('Not authorized')).toBeInTheDocument();
+  await waitFor(() =>
+    expect(screen.queryByText('the page')).not.toBeInTheDocument(),
   );
-
-  renderAt(at('acme.tools.nobody-claims-this'));
-
-  expect(screen.queryByText(/Page not found/i)).not.toBeInTheDocument();
-
-  settle();
-
-  expect(await screen.findByText(/Page not found/i)).toBeInTheDocument();
-});
-
-test('a failure to load extensions still settles the question', async () => {
-  mockInitializeExtensions.mockImplementationOnce(() =>
-    Promise.reject(new Error('boom')),
-  );
-
-  renderAt(at('acme.tools.nobody-claims-this'));
-
-  expect(await screen.findByText(/Page not found/i)).toBeInTheDocument();
-});
-
-test('a page that throws does not poison the next page', async () => {
-  // ErrorBoundary keeps its caught error in state and cannot be cleared, so
-  // without a key per page the first crash would render over every page the
-  // user visited afterwards.
-  const Boom = () => {
-    throw new Error('page exploded');
-  };
-  const consoleError = jest
-    .spyOn(console, 'error')
-    .mockImplementation(() => {});
-
-  try {
-    disposables.push(
-      registerPageFor(
-        'acme.tools',
-        [{ id: 'acme.tools.crashes' }],
-        { id: 'acme.tools.crashes', name: 'Crashes' },
-        Boom,
-      ),
-      registerPageFor(
-        'acme.tools',
-        [{ id: 'acme.tools.review-queue' }],
-        { id: 'acme.tools.review-queue', name: 'Queue' },
-        Page,
-      ),
-    );
-
-    // Rendered inside a router: the boundary reads the location so it can
-    // clear a crash when the user moves within the page.
-    const crashed = render(
-      createElement(
-        MemoryRouter,
-        { initialEntries: [at('acme.tools.crashes')] },
-        createElement('div', null, resolvePage('acme.tools.crashes')),
-      ),
-    );
-    await waitFor(() =>
-      expect(screen.getByText(/page exploded/i)).toBeInTheDocument(),
-    );
-
-    crashed.rerender(
-      createElement(
-        MemoryRouter,
-        { initialEntries: [at('acme.tools.review-queue')] },
-        createElement('div', null, resolvePage('acme.tools.review-queue')),
-      ),
-    );
-
-    expect(await screen.findByText('the page')).toBeInTheDocument();
-    expect(screen.queryByText(/page exploded/i)).not.toBeInTheDocument();
-  } finally {
-    consoleError.mockRestore();
-  }
-});
-
-test('a crashed page offers a retry that remounts it', async () => {
-  // A page's first render usually depends on a request, so the common crash
-  // is a response the component did not expect -- worth one more attempt
-  // without making the user reload the browser.
-  let shouldThrow = true;
-  const Flaky = () => {
-    if (shouldThrow) {
-      throw new Error('page exploded');
-    }
-    return createElement('div', null, 'recovered');
-  };
-  const consoleError = jest
-    .spyOn(console, 'error')
-    .mockImplementation(() => {});
-
-  try {
-    disposables.push(
-      registerPageFor(
-        'acme.tools',
-        [{ id: 'acme.tools.flaky' }],
-        { id: 'acme.tools.flaky', name: 'Flaky' },
-        Flaky,
-      ),
-    );
-
-    render(
-      createElement(
-        MemoryRouter,
-        { initialEntries: [at('acme.tools.flaky')] },
-        createElement('div', null, resolvePage('acme.tools.flaky')),
-      ),
-    );
-
-    expect(await screen.findByText(/page exploded/i)).toBeInTheDocument();
-
-    shouldThrow = false;
-    screen.getByRole('button', { name: /Try again/i }).click();
-
-    expect(await screen.findByText('recovered')).toBeInTheDocument();
-    expect(screen.queryByText(/page exploded/i)).not.toBeInTheDocument();
-  } finally {
-    consoleError.mockRestore();
-  }
-});
-
-test('moving within a page clears a crash from the previous sub-path', async () => {
-  // A page owns a subtree of URLs, so the user can move from /42 to /43
-  // without leaving it. Carrying the first crash across would make the rest
-  // of the page unreachable without a browser reload.
-  const Record = () => {
-    const { pathname } = useLocation();
-    if (pathname === `${at('acme.tools.records')}/42`) {
-      throw new Error('record 42 is broken');
-    }
-    return createElement('div', null, `showing ${pathname}`);
-  };
-  // Navigates through the router's own history rather than a hand-built one,
-  // so this does not depend on the standalone `history` package resolving to
-  // the version react-router v5 expects.
-  const Elsewhere = () => {
-    const history = useHistory();
-    return createElement(
-      'button',
-      {
-        type: 'button',
-        onClick: () => history.push(`${at('acme.tools.records')}/43`),
-      },
-      'go',
-    );
-  };
-  const consoleError = jest
-    .spyOn(console, 'error')
-    .mockImplementation(() => {});
-
-  try {
-    disposables.push(
-      registerPageFor(
-        'acme.tools',
-        [{ id: 'acme.tools.records' }],
-        { id: 'acme.tools.records', name: 'Records' },
-        Record,
-      ),
-    );
-
-    render(
-      createElement(
-        MemoryRouter,
-        { initialEntries: [`${at('acme.tools.records')}/42`] },
-        createElement(Elsewhere),
-        resolvePage('acme.tools.records'),
-      ),
-    );
-
-    expect(await screen.findByText(/record 42 is broken/i)).toBeInTheDocument();
-
-    screen.getByRole('button', { name: 'go' }).click();
-
-    expect(
-      await screen.findByText(`showing ${at('acme.tools.records')}/43`),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/record 42 is broken/i)).not.toBeInTheDocument();
-  } finally {
-    consoleError.mockRestore();
-  }
 });

@@ -40,11 +40,13 @@ const menu = [
   { label: 'Dashboards', name: 'Dashboards', url: '/dashboard/list/' },
 ];
 
+// What `useContributedPages` hands these two: a page id, the page's own name
+// as the label, and the section the menu item asked for. Whether the user may
+// open the page is settled before this point, so there is no `permitted` here
+// -- those cases live against the hook that decides them.
 const page = (over: Record<string, unknown> = {}) => ({
   name: 'Review queue',
   id: 'acme.tools.review-queue',
-  nav: { label: 'Queue' },
-  permitted: true,
   ...over,
 });
 
@@ -53,37 +55,28 @@ test('a page opting into the nav is appended at the address the host forms', () 
 
   expect(result).toHaveLength(2);
   expect(result[1]).toMatchObject({
-    label: 'Queue',
+    label: 'Review queue',
     url: '/extensions/pages/acme.tools.review-queue',
   });
 });
 
-test('the page name is used when nav carries no label', () => {
-  const result = withExtensionPages(menu as never, [page({ nav: {} })]);
+test("the label is the page's own name", () => {
+  const result = withExtensionPages(menu as never, [
+    page({ section: undefined }),
+  ]);
 
   expect(result[1]).toMatchObject({ label: 'Review queue' });
 });
 
-test('contributed entries are ordered by id, not by arrival', () => {
-  // Remote entries are injected in parallel and register as they finish, so
-  // the registry's order is a network race. The bar has to read the same way
-  // on every reload.
+test('the order the menu settled is preserved, not re-sorted', () => {
+  // `getMenu` has already applied the author's `order` and then registration
+  // order for ties, so the sequence reaching this helper is the authoritative
+  // one. Re-sorting here -- by id or anything else -- would discard the
+  // `order` an author chose, which is why it does not.
   const arrived = [
-    page({
-      name: 'Lineage',
-      id: 'acme.tools.data-lineage',
-      nav: { label: 'Lineage' },
-    }),
-    page({
-      name: 'Queue',
-      id: 'acme.tools.approvals',
-      nav: { label: 'Approvals' },
-    }),
-    page({
-      name: 'Audit',
-      id: 'acme.tools.review-log',
-      nav: { label: 'Audit' },
-    }),
+    page({ id: 'acme.tools.data-lineage', name: 'Lineage' }),
+    page({ id: 'acme.tools.approvals', name: 'Approvals' }),
+    page({ id: 'acme.tools.review-log', name: 'Audit' }),
   ];
 
   const order = (pages: ReturnType<typeof page>[]) =>
@@ -92,11 +85,14 @@ test('contributed entries are ordered by id, not by arrival', () => {
       .map(item => item.url);
 
   expect(order(arrived)).toEqual([
-    '/extensions/pages/acme.tools.approvals',
     '/extensions/pages/acme.tools.data-lineage',
+    '/extensions/pages/acme.tools.approvals',
     '/extensions/pages/acme.tools.review-log',
   ]);
-  expect(order([...arrived].reverse())).toEqual(order(arrived));
+
+  // Reversing the input reverses the output: the helper is order-preserving,
+  // so it cannot be hiding a sort of its own.
+  expect(order([...arrived].reverse())).toEqual([...order(arrived)].reverse());
 });
 
 test('host entries keep their order and come first', () => {
@@ -106,7 +102,7 @@ test('host entries keep their order and come first', () => {
   ];
 
   const result = withExtensionPages(hostMenu as never, [
-    page({ id: 'acme.tools.approvals', nav: { label: 'Approvals' } }),
+    page({ id: 'acme.tools.approvals', name: 'Approvals' }),
   ]);
 
   expect(result.map(item => item.name)).toEqual([
@@ -116,28 +112,35 @@ test('host entries keep their order and come first', () => {
   ]);
 });
 
-test('a page that did not opt in is left out', () => {
-  // Reachable by URL, but nothing advertises it -- for a page an extension
-  // links to from one of its own screens.
-  expect(withExtensionPages(menu as never, [page({ nav: undefined })])).toEqual(
-    menu,
-  );
+test('a page with no section belongs to the navbar', () => {
+  // Which of the two surfaces an entry lands on is the menu item's own
+  // choice: no section means the bar, a section means that group of
+  // Settings. A page that should be reachable by URL and advertised nowhere
+  // registers no menu item at all, so it never reaches either function.
+  const result = withExtensionPages(menu as never, [page()]);
+
+  expect(result).toHaveLength(2);
+  expect(result[1]).toMatchObject({ label: 'Review queue' });
 });
 
-test('a page the user may not open is left out', () => {
-  // The server answers 403 for it, so an entry here would advertise a dead
-  // end. The page stays registered so a direct link still explains itself.
-  expect(
-    withExtensionPages(menu as never, [page({ permitted: false })]),
-  ).toEqual(menu);
+test('this function does not filter, it places', () => {
+  // Whether the user may open a page, and whether anything registered it,
+  // are both settled by `useContributedPages` before an entry gets here.
+  // Re-testing them here would pass whatever this function did, because it
+  // would be asserting against a list that was already filtered -- so what
+  // is worth pinning is that nothing handed in is silently dropped.
+  const result = withExtensionPages(menu as never, [
+    page({ id: 'acme.tools.one', name: 'One' }),
+    page({ id: 'acme.tools.two', name: 'Two' }),
+  ]);
+
+  expect(result.slice(menu.length).map(e => e.label)).toEqual(['One', 'Two']);
 });
 
-test('a page whose permission the server did not report is shown', () => {
+test('every entry handed in is rendered', () => {
   // The flag is absent for a page with no declared permission, and from an
   // older server. Treating absent as refused would hide every page.
-  const result = withExtensionPages(menu as never, [
-    page({ permitted: undefined }),
-  ]);
+  const result = withExtensionPages(menu as never, [page()]);
 
   expect(result).toHaveLength(2);
 });
@@ -151,7 +154,7 @@ test('a page labelled like a host entry does not collide with its key', () => {
   // so a page labelled "Charts" would duplicate the host's own entry key.
   const result = withExtensionPages(
     [{ label: 'Charts', name: 'Charts', url: '/chart/list/' }] as never,
-    [page({ nav: { label: 'Charts' }, id: 'acme.tools.review-charts' })],
+    [page({ name: 'Charts', id: 'acme.tools.review-charts' })],
   );
 
   expect(result[1]).toMatchObject({
@@ -181,7 +184,7 @@ describe('withExtensionSettings', () => {
     // `MenuWrapper` splits the FAB menu by group name, so an entry appended
     // to the navbar list can never reach Settings.
     const result = withExtensionSettings(settings as never, [
-      page({ nav: { label: 'Change review', category: 'Manage' } }),
+      page({ name: 'Change review', section: 'Manage' }),
     ]);
 
     const manage = result.find(group => group.name === 'Manage');
@@ -194,7 +197,7 @@ describe('withExtensionSettings', () => {
 
   test('the host entries in that group are kept, and come first', () => {
     const result = withExtensionSettings(settings as never, [
-      page({ nav: { label: 'Change review', category: 'Manage' } }),
+      page({ name: 'Change review', section: 'Manage' }),
     ]);
 
     expect(
@@ -209,36 +212,159 @@ describe('withExtensionSettings', () => {
     // group conjured here would be one the rest of Superset does not agree
     // exists; the page keeps its URL, it is the entry that is missing.
     const result = withExtensionSettings([settings[1]] as never, [
-      page({ nav: { label: 'Change review', category: 'Manage' } }),
+      page({ name: 'Change review', section: 'Manage' }),
     ]);
 
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('Security');
   });
 
-  test('a page the user may not open is left out', () => {
+  test('nothing handed in is silently dropped from a group', () => {
     const result = withExtensionSettings(settings as never, [
-      page({
-        nav: { label: 'Change review', category: 'Manage' },
-        permitted: false,
-      }),
+      page({ id: 'acme.tools.a', name: 'A', section: 'Manage' }),
+      page({ id: 'acme.tools.b', name: 'B', section: 'Manage' }),
     ]);
 
-    expect(result.find(g => g.name === 'Manage')?.childs).toHaveLength(1);
+    expect(result.find(g => g.name === 'Manage')?.childs).toHaveLength(3);
   });
 
-  test('a page with no category is left for the navbar', () => {
-    expect(withExtensionSettings(settings as never, [page()])).toBe(settings);
+  test('an item naming no section is appended after the built-ins', () => {
+    // The SIP's rule for the Settings dropdown. It arrives in a trailing
+    // group because `RightMenu` renders every element of `settings` as one
+    // from its `childs`, so a bare entry here would render as a heading
+    // with nothing under it. The group carries no label, so what a reader
+    // sees is the item after the last built-in section.
+    const result = withExtensionSettings(settings as never, [page()]);
+
+    expect(result).toHaveLength(settings.length + 1);
+    const trailing = result[result.length - 1];
+    expect(trailing.label).toBe('');
+    expect(trailing.name).toBe('extension:settings');
+    expect((trailing.childs ?? []).map(c => (c as { label: string }).label)) //
+      .toEqual(['Review queue']);
   });
 
-  test('the navbar and Settings never both take the same page', () => {
-    // The two helpers partition on `nav.category`, so a page cannot appear
-    // twice under different labels.
+  test('no trailing group is added when every item names a section', () => {
+    const result = withExtensionSettings(settings as never, [
+      page({ section: 'Manage' }),
+    ]);
+
+    expect(result).toHaveLength(settings.length);
+    expect(result.some(g => g.name === 'extension:settings')).toBe(false);
+  });
+
+  test('a section naming a group that is not there drops the item', () => {
+    // Where the two rules meet, and the one sharp edge left. The named group
+    // is not invented, and naming a section opts out of the trailing group,
+    // so a misspelled section loses the entry with nothing said. Pinned as
+    // the current behaviour rather than endorsed: the alternative is to fall
+    // back to the trailing group, which needs a decision on the SIP thread
+    // because it would also silently relocate a Manage screen on an
+    // instance where FAB did not build Manage.
+    const result = withExtensionSettings([settings[1]] as never, [
+      page({ section: 'Mannage' }),
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Security');
+  });
+
+  test('a navbar item naming a section still renders, section ignored', () => {
+    // The published type says `section` is "ignored where a location has no
+    // groups", and the navbar has none -- so it is ignored, not treated as a
+    // reason to drop the entry. The two helpers are fed different lists
+    // (`global.navbar` items and `global.settingsMenu` items), so an item
+    // skipped here would not reappear under Settings; it would just vanish,
+    // which is what this used to do.
     const navPages = withExtensionPages([] as never, [
-      page({ nav: { label: 'Change review', category: 'Manage' } }),
+      page({ name: 'Change review', section: 'Manage' }),
     ]);
 
-    expect(navPages).toHaveLength(0);
+    expect(navPages).toHaveLength(1);
+    expect(navPages[0]).toMatchObject({ label: 'Change review' });
+  });
+});
+
+describe('items that run a command rather than opening a page', () => {
+  // Its own fixture: the one above is scoped to the `withExtensionSettings`
+  // block.
+  const settings = [
+    { label: 'Data', name: 'Data', childs: [] },
+    { label: 'Security', name: 'Security', childs: [] },
+  ];
+
+  test('a navbar command entry gets a handler and deliberately no url', () => {
+    // No address means no `href`, which is the point: there is nothing to
+    // open in a new tab, and a link that navigates nowhere is worse than a
+    // button. `buildMenuItem` branches on exactly this shape.
+    const [entry] = withExtensionPages([] as never, [
+      page({ id: 'acme.tools.export', name: 'Export', command: 'acme.export' }),
+    ]);
+
+    expect(entry.url).toBeUndefined();
+    expect(typeof entry.onClick).toBe('function');
+    expect(entry.label).toBe('Export');
+    expect(entry.name).toBe('extension:acme.tools.export');
+  });
+
+  test('a Settings command child gets one too', () => {
+    const result = withExtensionSettings(settings as never, [
+      page({ id: 'acme.tools.sync', name: 'Sync', command: 'acme.sync' }),
+    ]);
+    const [child] = result[result.length - 1].childs ?? [];
+
+    expect((child as { url?: string }).url).toBeUndefined();
+    expect(typeof (child as { onClick?: unknown }).onClick).toBe('function');
+  });
+
+  test('a page entry has no handler', () => {
+    // The two are mutually exclusive, so a page keeps rendering as a link.
+    const [entry] = withExtensionPages([] as never, [page()]);
+
+    expect(entry.onClick).toBeUndefined();
+    expect(entry.url).toBe('/extensions/pages/acme.tools.review-queue');
+  });
+});
+
+describe('icons', () => {
+  test('a named icon is rendered beside the label', () => {
+    const [entry] = withExtensionPages([] as never, [
+      page({ icon: 'DatabaseOutlined' }),
+    ]);
+
+    expect(entry.icon).toBeTruthy();
+  });
+
+  test('an unknown icon name costs the icon, not the entry', () => {
+    // The name crosses the extension boundary as a string, so it is an
+    // author's spelling against the host's catalogue. A typo should not
+    // remove the menu entry.
+    const [entry] = withExtensionPages([] as never, [
+      page({ icon: 'NoSuchIconExists' }),
+    ]);
+
+    expect(entry.icon).toBeUndefined();
+    expect(entry.label).toBe('Review queue');
+  });
+
+  test.each(['constructor', 'valueOf', 'hasOwnProperty', 'toString'])(
+    'an icon named %p reaches Object.prototype and must not render',
+    name => {
+      // `Icons` is a plain object literal, so a bare index finds these on
+      // the prototype. They are truthy, and rendering one throws inside
+      // `Menu` -- which has no error boundary above it, so the whole app
+      // shell would blank because an extension misspelled an icon.
+      const [entry] = withExtensionPages([] as never, [page({ icon: name })]);
+
+      expect(entry.icon).toBeUndefined();
+      expect(entry.label).toBe('Review queue');
+    },
+  );
+
+  test('no icon named, nothing rendered', () => {
+    const [entry] = withExtensionPages([] as never, [page()]);
+
+    expect(entry.icon).toBeUndefined();
   });
 });
 
@@ -251,7 +377,7 @@ describe('under a subdirectory deployment', () => {
     mockApplicationRoot.mockReturnValue('/analytics');
 
     const [entry] = withExtensionPages([] as never, [
-      page({ id: 'acme.tools.review-queue', nav: { label: 'Queue' } }),
+      page({ id: 'acme.tools.review-queue', name: 'Queue' }),
     ]);
 
     expect(entry.url).toBe(
@@ -267,7 +393,8 @@ describe('under a subdirectory deployment', () => {
       [
         page({
           id: 'acme.tools.approvals',
-          nav: { label: 'Approvals', category: 'Manage' },
+          name: 'Approvals',
+          section: 'Manage',
         }),
       ],
     );
@@ -281,7 +408,7 @@ describe('under a subdirectory deployment', () => {
     mockApplicationRoot.mockReturnValue('/analytics');
 
     const [entry] = withExtensionPages([] as never, [
-      page({ id: 'acme.tools.review-queue', nav: { label: 'Queue' } }),
+      page({ id: 'acme.tools.review-queue', name: 'Queue' }),
     ]);
 
     expect(entry.url).not.toBe('/analytics/analytics/review-queue');
@@ -289,7 +416,7 @@ describe('under a subdirectory deployment', () => {
 
   test('nothing is prefixed when the app serves from the domain root', () => {
     const [entry] = withExtensionPages([] as never, [
-      page({ id: 'acme.tools.review-queue', nav: { label: 'Queue' } }),
+      page({ id: 'acme.tools.review-queue', name: 'Queue' }),
     ]);
 
     expect(entry.url).toBe('/extensions/pages/acme.tools.review-queue');
@@ -300,9 +427,8 @@ describe('when more pages are contributed than the bar can hold', () => {
   const many = (n: number) =>
     Array.from({ length: n }, (_, i) =>
       page({
-        name: `Page ${i}`,
         id: `acme.tools.page-${i}`,
-        nav: { label: `Page ${i}` },
+        name: `Page ${i}`,
       }),
     );
 
@@ -368,10 +494,10 @@ describe('when more pages are contributed than the bar can hold', () => {
     });
   });
 
-  test('a page the user may not open is not folded in either', () => {
+  test('every folded page is reachable from the dropdown', () => {
     const pages = [
       ...many(4),
-      page({ id: 'acme.tools.secret', permitted: false }),
+      page({ id: 'acme.tools.secret', name: 'Secret' }),
     ];
 
     const [, , more] = withExtensionPages(menu as never, pages).slice(
@@ -383,6 +509,6 @@ describe('when more pages are contributed than the bar can hold', () => {
         c =>
           (c as { url: string }).url === '/extensions/pages/acme.tools.secret',
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 });

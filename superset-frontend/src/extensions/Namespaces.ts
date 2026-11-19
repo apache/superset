@@ -36,7 +36,6 @@ import type {
   http,
   menus,
   navigation,
-  pages,
   sqlLab,
   views,
 } from 'src/core';
@@ -52,7 +51,6 @@ export interface Namespaces {
   http: typeof http;
   menus: typeof menus;
   navigation: typeof navigation;
-  pages: typeof pages;
   sqlLab: typeof sqlLab;
   views: typeof views;
 }

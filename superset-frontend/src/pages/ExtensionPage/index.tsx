@@ -19,12 +19,19 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Loading } from '@superset-ui/core/components';
-import { findPageById, resolvePage, usePages } from 'src/core/pages';
+import {
+  getViewOptions,
+  resolveView,
+  useViews,
+  PAGE_LOCATION,
+} from 'src/core/views';
 import ExtensionsLoader from 'src/extensions/ExtensionsLoader';
 import { ErrorAlert } from 'src/components/ErrorMessage/ErrorAlert';
+import { findPermission } from 'src/utils/findPermission';
+import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 /**
  * Renders whichever extension page claims the current URL.
@@ -34,6 +41,9 @@ import { ErrorAlert } from 'src/components/ErrorMessage/ErrorAlert';
  * extension serves that id can only be decided once extensions have
  * finished loading, so until then this must not say "not found": the page
  * may be moments away.
+ *
+ * The server answers every page id with the shell, so this component owns
+ * all three answers -- the page, "not authorized", and "not found".
  */
 /** What a cold load of this id would have answered: 404. */
 function NotFound() {
@@ -52,34 +62,15 @@ function NotFound() {
   );
 }
 
-/**
- * Whether this page is hidden because the feature it belongs to is off.
- *
- * `permitted` is one answer to two questions: the server leaves a page out
- * of the permitted set both when the user lacks the page's permission and
- * when the page's `featureFlag` is off, and those deserve opposite screens.
- * The flag is re-read here from `window.featureFlags`, the resolved map
- * served in the same bootstrap the server computed availability from.
- *
- * The two can still disagree for as long as a tab stays open: the bootstrap
- * is baked into the document at load while `permitted` comes from a
- * per-request call, so a flag switched off mid-session leaves the stale map
- * saying it is on, and this branch is not taken until the page is reloaded.
- *
- * A page's flag is an operator's `FEATURE_FLAGS` key, which need not be one
- * of Superset's own, hence the cast: `isFeatureEnabled` reads the map by
- * name and a key that is not in it is off, which is what the server decides
- * too.
- */
-function hiddenByFeatureFlag(featureFlag?: string): boolean {
-  return !!featureFlag && !isFeatureEnabled(featureFlag as FeatureFlag);
-}
-
 export default function ExtensionPage() {
   const { pageId } = useParams<{ pageId: string }>();
   // Subscribed rather than read once: an extension registering after this
-  // first render is the normal case, not the exception.
-  usePages();
+  // first render is the normal case, not the exception. The subscription is
+  // what makes the permission check happen the moment a page registers.
+  const registered = useViews(PAGE_LOCATION);
+  const roles = useSelector(
+    (state: { user?: UserWithPermissionsAndRoles }) => state.user?.roles,
+  );
   const [extensionsSettled, setExtensionsSettled] = useState(false);
 
   useEffect(() => {
@@ -102,42 +93,42 @@ export default function ExtensionPage() {
   // The id is the route's own parameter, so there is nothing to parse and
   // no precedence to resolve: either an extension registered this id or
   // nothing did.
-  const page = findPageById(pageId);
+  const page = registered?.find(view => view.id === pageId);
 
-  if (page && !page.permitted && hiddenByFeatureFlag(page.featureFlag)) {
-    // Not a refusal: a cold load of this id answers 404, and the message
-    // below would tell even an Admin to ask an administrator for a
-    // permission the page may never have declared. Client-side arrival has
-    // to answer what the URL itself answers.
-    return <NotFound />;
+  if (!page) {
+    // Deliberately not folded in with the permission check below. They
+    // happen to be reached the same way -- nothing to render -- but they
+    // answer different questions, and a page that registered without naming
+    // a permission must render, not refuse.
+    return extensionsSettled ? <NotFound /> : <Loading />;
   }
 
-  if (page && !page.permitted) {
-    // The server has already refused a cold load of this path with 403; this
-    // is the client-side arrival, where saying so beats rendering the page's
-    // chrome around data its own API calls will refuse one by one.
-    return (
-      <ErrorAlert
-        errorType={t('Not authorized')}
-        message={t('You do not have permission to open this page.')}
-        description={t(
-          'Ask an administrator to grant you the permission this page ' +
-            'requires on the extension that provides it.',
-        )}
-        type="warning"
-        closable={false}
-      />
-    );
+  const options = getViewOptions(pageId);
+  const needed = options?.methodPermissionName
+    ? `can_${options.methodPermissionName}`
+    : undefined;
+
+  if (needed && options?.classPermissionName) {
+    // Read from the permissions this page's own shell already shipped --
+    // `bootstrap_user_data(include_perms=True)` -- so there is nothing to
+    // fetch and nothing that can disagree with the server: this is the same
+    // permission the page's endpoints check, not a parallel one.
+    if (!findPermission(needed, options.classPermissionName, roles)) {
+      return (
+        <ErrorAlert
+          errorType={t('Not authorized')}
+          message={t('You do not have permission to open this page.')}
+          description={t(
+            'Ask an administrator to grant you %(permission)s on ' +
+              '%(resource)s.',
+            { permission: needed, resource: options.classPermissionName },
+          )}
+          type="warning"
+          closable={false}
+        />
+      );
+    }
   }
 
-  if (page) {
-    return resolvePage(page.id);
-  }
-
-  if (!extensionsSettled) {
-    return <Loading />;
-  }
-
-  // Everything that can claim this id has had its chance.
-  return <NotFound />;
+  return resolveView(pageId);
 }

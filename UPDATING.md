@@ -24,6 +24,39 @@ assists people when migrating to a new version.
 
 ## Next
 
+- `list` and `pages` are now reserved extension publisher names. An
+  extension already published under either will fail manifest validation
+  and the `superset-extensions` CLI will refuse to build it; the host owns
+  `/extensions/list/` and `/extensions/pages/<id>`, so a publisher of those
+  names could not be addressed. Rename the publisher and reinstall.
+
+- `navigation.getPage()` can now return `'extension'`, for a page contributed
+  by an extension. Code that switches exhaustively on the `Page` union will
+  not compile until that member is handled, and code that switches without a
+  default may fall through on an extension page at runtime.
+
+- Permissions on a resource an extension registers with `@api` are now
+  classified admin-only during role sync. `_is_gamma_pvm` is a denylist, so
+  until now every such permission was granted to the stock Gamma and Alpha
+  roles on the next `superset init` -- which meant a screen gated on an
+  extension permission stopped being gated at the next role sync. A fresh
+  `@api` permission now goes to Admin alone until an operator grants it to a
+  role of their own.
+
+  **Deployments where Gamma or Alpha already hold an extension permission
+  lose it on the next `superset init`.** Re-grant it to a custom role, which
+  role sync does not rebuild, or to Admin. Custom roles are unaffected.
+
+  Two limits worth knowing before you rely on this:
+
+  - **The classification is process state, not a stored fact.** A resource is
+    recorded when the extension's `@api` registers in that process, so a
+    `superset init` run where extensions are not loaded -- the feature flag
+    off, discovery failing, an entrypoint erroring, or an extension
+    uninstalled while its permissions remain -- does not recognise the
+    resource and hands those permissions back to Gamma and Alpha. Run
+    `superset init` with extensions loading as they do in production.
+
 - Semantic cache rollups serve limited queries only when the post-filter,
   rolled-up result fits within the limit. Queries with nonzero row offsets bypass
   containment reuse. Larger rolled-up results fall back to

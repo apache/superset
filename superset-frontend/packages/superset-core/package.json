@@ -59,10 +59,6 @@
       "types": "./lib/http/index.d.ts",
       "default": "./lib/http/index.js"
     },
-    "./pages": {
-      "types": "./lib/pages/index.d.ts",
-      "default": "./lib/pages/index.js"
-    },
     "./contributions": {
       "types": "./lib/contributions/index.d.ts",
       "default": "./lib/contributions/index.js"

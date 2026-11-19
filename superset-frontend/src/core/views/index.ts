@@ -26,7 +26,6 @@
 
 import React, { ComponentType, useSyncExternalStore } from 'react';
 import type { views as viewsApi } from '@apache-superset/core';
-import { logging } from '@apache-superset/core/utils';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import { Disposable } from '../models';
@@ -35,10 +34,16 @@ import { createEventEmitter } from '../utils';
 type View = viewsApi.View;
 type ViewRegisteredEvent = viewsApi.ViewRegisteredEvent;
 type ViewUnregisteredEvent = viewsApi.ViewUnregisteredEvent;
+type ViewOptions = viewsApi.ViewOptions;
 
 const viewRegistry: Map<
   string,
-  { view: View; location: string; component: ComponentType<any> }
+  {
+    view: View;
+    location: string;
+    component: ComponentType<any>;
+    options?: ViewOptions;
+  }
 > = new Map();
 
 const locationIndex: Map<string, Set<string>> = new Map();
@@ -64,29 +69,98 @@ const notifyUnregister = (event: ViewUnregisteredEvent) => {
   unregisterEmitter.fire(event);
 };
 
+/**
+ * The reserved location that marks a view as a top-level page.
+ *
+ * A page carries no path. The host serves it at `/extensions/pages/<id>`,
+ * which is why nothing here has to reason about one page shadowing another or
+ * a host screen: an extension names the page, not the address.
+ *
+ * It is an ordinary location in every other respect. A page lives in
+ * `viewRegistry` like any other view, and `getViews` and `onDidRegisterView`
+ * report it -- which is what lets the page host and a navbar item resolve the
+ * same registration, reactively, without a second registry keeping its own
+ * copy of the same state.
+ */
+export const PAGE_LOCATION = 'global.page';
+
+/**
+ * Refuses a permission that cannot do what the author means by it.
+ *
+ * Throwing is the unusual choice here -- registration is a module side
+ * effect, so this takes the extension's whole bundle down, its other views
+ * and commands with it. It is the right one anyway, because every case below
+ * is the author's own typo, visible in their own source, deterministic, and
+ * caught the first time the bundle loads. The alternative failure is an
+ * ungated surface that looks gated, which nobody finds until it matters.
+ */
+const assertUsableOptions = (
+  id: string,
+  location: string,
+  options?: ViewOptions,
+): void => {
+  if (!options?.classPermissionName && !options?.methodPermissionName) {
+    return;
+  }
+  if (location !== PAGE_LOCATION) {
+    throw new Error(
+      `View "${id}" was registered at "${location}" with a permission, but ` +
+        `only a page -- a view at "${PAGE_LOCATION}" -- is gated by one. ` +
+        `Nothing would check it here, so the view would look guarded and ` +
+        `not be. Gate the data instead, on the endpoint behind it.`,
+    );
+  }
+  if (!options.classPermissionName || !options.methodPermissionName) {
+    throw new Error(
+      `Page "${id}" names only half a permission. Both ` +
+        `classPermissionName and methodPermissionName are needed: together ` +
+        `they are one permission -- can_<method> on <class> -- and either ` +
+        `alone matches nothing.`,
+    );
+  }
+  if (options.methodPermissionName.startsWith('can_')) {
+    throw new Error(
+      `Page "${id}" names methodPermissionName ` +
+        `"${options.methodPermissionName}", which already carries the ` +
+        `"can_" prefix the host adds. It would be checked as ` +
+        `"can_${options.methodPermissionName}", which no permission is ` +
+        `called, so the page would refuse everyone. Drop the prefix.`,
+    );
+  }
+};
+
 export const registerView: typeof viewsApi.registerView = <Props>(
   view: View,
   location: string,
   component: ComponentType<Props>,
+  options?: ViewOptions,
 ): Disposable => {
   const { id } = view;
 
-  // Ids are the registry's keys, so a second registration under one id
-  // replaces the first and whatever the first contributed stops appearing.
-  // Nothing errors, which is the hard part: two extensions that happen to
-  // pick the same id leave one of them quietly absent.
-  const replaced = viewRegistry.get(id);
-  if (replaced) {
-    logging.warn(
+  assertUsableOptions(id, location, options);
+
+  // Ids are the registry's keys, so a second registration under one id would
+  // replace the first and whatever the first contributed would stop
+  // appearing -- silently, which is the hard part. Thrown rather than
+  // replaced, as the SIP asks: a duplicate id is a mistake in source that
+  // cannot depend on anything at runtime, and the alternative is a view that
+  // is simply absent with only a console line to say why.
+  //
+  // Two *extensions* cannot collide on a page id -- the loader requires the
+  // registering extension's own prefix -- so what this catches is one
+  // extension registering the same id twice, and any two views colliding at
+  // a non-page location.
+  const existing = viewRegistry.get(id);
+  if (existing) {
+    throw new Error(
       `A view is already registered as "${id}"${
-        replaced.location === location ? '' : ` at "${replaced.location}"`
-      }; it has been replaced and no longer renders. View ids must be ` +
-        `unique, so prefix yours with something specific to the extension.`,
+        existing.location === location ? '' : ` at "${existing.location}"`
+      }. View ids must be unique, so prefix yours with something specific ` +
+        `to the extension.`,
     );
-    locationIndex.get(replaced.location)?.delete(id);
   }
 
-  const entry = { view, location, component };
+  const entry = { view, location, component, options };
   viewRegistry.set(id, entry);
 
   const ids = locationIndex.get(location) ?? new Set();
@@ -106,6 +180,16 @@ export const registerView: typeof viewsApi.registerView = <Props>(
     notifyUnregister({ view, location });
   });
 };
+
+/**
+ * The permission a registered view named, if it named one.
+ *
+ * Host-internal: it is not on the `views` object an extension receives,
+ * because an extension states its own page's permission and has no business
+ * reading another's.
+ */
+export const getViewOptions = (id: string): ViewOptions | undefined =>
+  viewRegistry.get(id)?.options;
 
 /**
  * Renders the component registered under `id`, inside an error boundary.
@@ -151,22 +235,6 @@ export const useViews = (location: string): View[] | undefined =>
     },
     () => undefined,
   );
-
-/**
- * The reserved location that marks a view as a top-level page.
- *
- * A page carries no path. The host serves it at `/extensions/pages/<id>`,
- * which is why nothing here has to reason about one page shadowing another or
- * a host screen: an extension names the page, not the address.
- *
- * It is a location rather than a separate registration call so that an author
- * writes one `registerView`, but it is the only location this registry does
- * not itself store: the loader routes a registration here to
- * `pages.registerPageFor`, which checks the id against what the manifest
- * declares. So a page never reaches `viewRegistry`, and `getViews` and
- * `onDidRegisterView` never see one -- pages are read through `pages`.
- */
-export const PAGE_LOCATION = 'global.page';
 
 export const onDidRegisterView: typeof viewsApi.onDidRegisterView = (
   listener: (e: ViewRegisteredEvent) => void,
