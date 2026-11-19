@@ -2611,12 +2611,9 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "pg_logical_emit_message",
         "pg_create_restore_point",
         "pg_drop_replication_slot",
-        # Sequence functions: `setval` and `nextval` change state through a
-        # plain SELECT; `currval` and `lastval` read it.
+        # Sequence functions that change state through a plain SELECT.
         "setval",
         "nextval",
-        "currval",
-        "lastval",
     },
     # MySQL functions and variables that could reveal sensitive information
     "mysql": {
@@ -2679,13 +2676,21 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "getSetting",
         # Table functions that read from locations outside the configured
         # database (other servers, object storage, filesystems, other databases).
+        # Matching is by name and does not resolve aliases, so aliases are
+        # listed alongside their targets. This list is not exhaustive;
+        # restrict external reads at the source with ClickHouse's `SOURCES`
+        # grants.
         "remote",
         "remoteSecure",
         "s3",
         "s3Cluster",
+        "gcs",
+        "oss",
+        "urlCluster",
         "file",
         "fileCluster",
         "hdfs",
+        "hdfsCluster",
         "mysql",
         "postgresql",
         "mongodb",
@@ -2763,6 +2768,8 @@ DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
     },
     "mysql": {
         "mysql.user",
+        # MariaDB 10.4+ keeps credentials here; `mysql.user` is a view over it.
+        "mysql.global_priv",
         "performance_schema.threads",
         "performance_schema.processlist",
     },

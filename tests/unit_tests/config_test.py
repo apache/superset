@@ -800,8 +800,8 @@ def test_send_mime_email_server_auth_disabled_skips_context(
 @pytest.mark.parametrize(
     "engine, function",
     [
-        # State-changing or state-reading sequence functions.
-        *(("postgresql", f) for f in ("setval", "nextval", "currval", "lastval")),
+        # State-changing sequence functions.
+        *(("postgresql", f) for f in ("setval", "nextval")),
         # Table functions that read outside the configured database.
         *(
             ("clickhouse", f)
@@ -810,10 +810,14 @@ def test_send_mime_email_server_auth_disabled_skips_context(
                 "remoteSecure",
                 "s3",
                 "s3Cluster",
+                "gcs",
+                "oss",
                 "file",
                 "fileCluster",
                 "hdfs",
+                "hdfsCluster",
                 "url",
+                "urlCluster",
                 "mysql",
                 "postgresql",
                 "mongodb",
@@ -831,3 +835,26 @@ def test_default_disallowed_functions(engine: str, function: str) -> None:
     from superset.config import DISALLOWED_SQL_FUNCTIONS
 
     assert function in DISALLOWED_SQL_FUNCTIONS[engine]
+
+
+@pytest.mark.parametrize("function", ["currval", "lastval"])
+def test_sequence_readers_not_disallowed(function: str) -> None:
+    """
+    ``currval`` and ``lastval`` only read the session's own value, and this
+    denylist ignores ``allow_dml``, so listing them would refuse
+    ``INSERT ...; SELECT currval(...)`` on DML-enabled databases.
+    """
+    from superset.config import DISALLOWED_SQL_FUNCTIONS
+
+    assert function not in DISALLOWED_SQL_FUNCTIONS["postgresql"]
+
+
+def test_mysql_disallowed_tables_cover_mariadb_credentials() -> None:
+    """
+    MariaDB 10.4+ stores credentials in ``mysql.global_priv``, with
+    ``mysql.user`` a view over it, so both must be listed. The ``mariadb`` key
+    mirrors ``mysql``, which ``test_mariadb.py`` covers.
+    """
+    from superset.config import DISALLOWED_SQL_TABLES
+
+    assert {"mysql.user", "mysql.global_priv"} <= DISALLOWED_SQL_TABLES["mysql"]
