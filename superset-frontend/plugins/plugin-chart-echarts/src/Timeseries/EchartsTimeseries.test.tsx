@@ -25,6 +25,7 @@ import {
   AxisType,
   createTimeRangeFromGranularity,
   DTTM_ALIAS,
+  getTimeFormatter,
   TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -1477,6 +1478,7 @@ test('drillBy filters by time bucket when a categorical axis is forced onto a te
     {
       ...defaultProps,
       onContextMenu: onContextMenuMock,
+      resolvedTimeGrain: TimeGranularity.MONTH,
       formData: {
         ...defaultFormData,
         xAxisForceCategorical: true,
@@ -1509,9 +1511,10 @@ test('drillBy filters by time bucket when a categorical axis is forced onto a te
   expect(drillBy.xAxisFilters).toEqual([
     {
       col: 'order_date',
-      op: 'TEMPORAL_RANGE',
-      val: '2021-02-01T00:00:00 : 2021-03-01T00:00:00',
-      formattedVal: '2021-02-01T00:00:00',
+      op: '==',
+      val: Date.UTC(2021, 1, 1),
+      grain: TimeGranularity.MONTH,
+      formattedVal: 'Feb 2021',
     },
   ]);
 });
@@ -1561,4 +1564,218 @@ test('drillBy uses the swapped data index for a horizontal time-based axis', asy
       formattedVal: '2021-02-01T00:00:00',
     },
   ]);
+});
+
+test('Drill by uses the dashboard time grain for the clicked time-axis bucket', async () => {
+  const onContextMenu = jest.fn();
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      onContextMenu={onContextMenu}
+      resolvedTimeGrain={TimeGranularity.YEAR}
+      xValueFormatter={getTimeFormatter('%Y')}
+      formData={{
+        ...defaultFormData,
+        granularitySqla: 'order_date',
+        timeGrainSqla: TimeGranularity.MONTH,
+        extraFormData: { time_grain_sqla: TimeGranularity.YEAR },
+      }}
+      xAxis={{ label: DTTM_ALIAS, type: AxisType.Time }}
+    />,
+  );
+
+  await getLatestEchartProps().eventHandlers?.contextmenu?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: [Date.UTC(2003, 0, 1), 1000],
+    name: '2003',
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const { drillBy, drillToDetail } = onContextMenu.mock.calls[0][2];
+  // A legacy '__timestamp' bucket resolves to the time column the query
+  // groups by, including a dashboard Time Column override.
+  expect(drillBy.xAxisFilters).toEqual([
+    {
+      col: 'order_date',
+      op: '==',
+      val: Date.UTC(2003, 0, 1),
+      grain: TimeGranularity.YEAR,
+      formattedVal: '2003',
+    },
+  ]);
+  expect(drillToDetail).toContainEqual(
+    expect.objectContaining({ grain: TimeGranularity.YEAR }),
+  );
+});
+
+test.each([
+  [AxisType.Time, TimeGranularity.DAY, OrientationType.Horizontal],
+  [AxisType.Category, TimeGranularity.DAY, OrientationType.Vertical],
+  [AxisType.Category, TimeGranularity.MONTH, OrientationType.Horizontal],
+])(
+  'Drill by uses the dashboard grain after a cross-filter on a %s axis saved with %s grain (%s)',
+  async (axisType, savedGrain, orientation) => {
+    const onContextMenu = jest.fn();
+    const timestamp = Date.UTC(2003, 0, 1);
+    render(
+      <EchartsTimeseries
+        {...defaultProps}
+        onContextMenu={onContextMenu}
+        resolvedTimeGrain={TimeGranularity.YEAR}
+        xValueFormatter={getTimeFormatter('%Y')}
+        formData={{
+          ...defaultFormData,
+          orientation,
+          timeGrainSqla: savedGrain,
+          xAxisForceCategorical: axisType === AxisType.Category,
+          extraFormData: {
+            time_grain_sqla: TimeGranularity.YEAR,
+            time_range: '2003-10-01 : 2003-11-01',
+            filters: [{ col: 'deal_size', op: 'IN', val: ['Small'] }],
+          },
+        }}
+        coltypeMapping={{ order_date: GenericDataType.Temporal }}
+        xAxis={{ label: 'order_date', type: axisType }}
+      />,
+    );
+
+    await getLatestEchartProps().eventHandlers?.contextmenu?.({
+      componentType: 'series',
+      seriesName: 'Sales',
+      data:
+        orientation === OrientationType.Horizontal
+          ? [65, timestamp]
+          : [timestamp, 65],
+      name: '2003',
+      event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+    });
+
+    expect(onContextMenu).toHaveBeenCalledTimes(1);
+    expect(onContextMenu.mock.calls[0][2].drillBy.xAxisFilters).toEqual([
+      {
+        col: 'order_date',
+        op: '==',
+        val: Date.UTC(2003, 0, 1),
+        grain: TimeGranularity.YEAR,
+        formattedVal: '2003',
+      },
+    ]);
+  },
+);
+
+test.each([undefined, 'ship_date'])(
+  'legacy Drill by emits a resolvable bucket column for Edit chart with Time Column %s',
+  async timeColumn => {
+    const onContextMenu = jest.fn();
+    render(
+      <EchartsTimeseries
+        {...defaultProps}
+        onContextMenu={onContextMenu}
+        resolvedTimeGrain={TimeGranularity.MONTH}
+        xValueFormatter={getTimeFormatter('%b %Y')}
+        formData={{
+          ...defaultFormData,
+          granularitySqla: 'order_date',
+          extraFormData: timeColumn ? { granularity_sqla: timeColumn } : {},
+        }}
+        xAxis={{ label: DTTM_ALIAS, type: AxisType.Time }}
+      />,
+    );
+    await getLatestEchartProps().eventHandlers?.contextmenu?.({
+      componentType: 'series',
+      seriesName: 'Sales',
+      data: [Date.UTC(2024, 1, 1), 10],
+      event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      {
+        col: timeColumn ?? 'order_date',
+        op: '==',
+        val: Date.UTC(2024, 1, 1),
+        grain: TimeGranularity.MONTH,
+        formattedVal: 'Feb 2024',
+      },
+    ]);
+  },
+);
+
+const makeVerticalLegend = (orientation: LegendOrientation) =>
+  ({
+    grid: { bottom: 20, top: 20 },
+    items: [
+      {
+        color: '#ff0000',
+        icon: { shape: 'box', opacity: 1 },
+        interactive: true,
+        name: 'Alpha',
+        selected: true,
+      },
+      {
+        color: '#00ff00',
+        icon: { shape: 'box', opacity: 1 },
+        interactive: true,
+        name: 'Beta',
+        selected: true,
+      },
+    ],
+    orientation,
+    showSelectors: true,
+  }) as never;
+
+test.each([LegendOrientation.Left, LegendOrientation.Right])(
+  'bounds a %s custom legend by chart width and the full chart body height',
+  async orientation => {
+    mockOffsetHeight = 0;
+    const { queryByTestId } = render(
+      <EchartsTimeseries
+        {...defaultProps}
+        height={400}
+        width={800}
+        customLegend={makeVerticalLegend(orientation)}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(queryByTestId('timeseries-custom-legend')).toHaveStyle({
+        maxHeight: '400px',
+        maxWidth: '320px',
+      });
+    });
+  },
+);
+
+test('keeps a vertical custom legend on a chart too short for a horizontal one', async () => {
+  mockOffsetHeight = 0;
+  const { queryByTestId } = render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={80}
+      width={800}
+      customLegend={makeVerticalLegend(LegendOrientation.Left)}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(queryByTestId('timeseries-custom-legend')).toHaveStyle({
+      maxHeight: '80px',
+    });
+  });
+});
+
+test('hides a vertical custom legend when the width cap rounds down to zero', async () => {
+  mockOffsetHeight = 0;
+  const { queryByTestId } = render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={400}
+      width={2}
+      customLegend={makeVerticalLegend(LegendOrientation.Right)}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(queryByTestId('timeseries-custom-legend')).not.toBeInTheDocument();
+  });
 });

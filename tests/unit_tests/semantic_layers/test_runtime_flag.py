@@ -143,10 +143,10 @@ def test_saving_semantic_chart_is_validation_error_when_disabled() -> None:
 @pytest.mark.parametrize(
     "path", ["/api/v1/semantic_layer/types", "/api/v1/semantic_view/17/structure"]
 )
-def test_registered_semantic_api_refuses_before_dispatch(
-    client: FlaskClient[Any], path: str
+def test_semantic_blueprints_remain_registered_when_disabled(
+    client: FlaskClient[Any], path: str, full_api_access: None
 ) -> None:
-    """The off-at-boot application still owns both guarded blueprints."""
+    """Both semantic blueprints stay registered while runtime availability is off."""
     assert "SemanticLayerRestApi" in client.application.blueprints
     assert "SemanticViewRestApi" in client.application.blueprints
     with patch("superset.feature_flag_manager.is_feature_enabled", return_value=False):

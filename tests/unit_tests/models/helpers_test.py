@@ -23,6 +23,7 @@ import contextlib
 import copy
 import re
 from contextlib import contextmanager
+from datetime import datetime
 from typing import Any, cast, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
@@ -115,7 +116,7 @@ def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
 
     from superset.models.helpers import build_like_predicate
 
-    predicate = build_like_predicate(sa.column("c"), "50%")
+    predicate = build_like_predicate(sa.column("c", sa.String()), "50%")
 
     # The search term is lower-cased for a case-insensitive match, and the
     # user's ``%`` wildcard is neutralized (autoescape) rather than matching
@@ -143,6 +144,269 @@ def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
         )
     )
     assert "ESCAPE" not in bigquery_sql
+
+
+@pytest.mark.parametrize("engine_name", ["mssql", "sybase", "custom_mssql"])
+def test_native_like_predicate_escapes_sqlserver_subclass_brackets(
+    engine_name: str,
+) -> None:
+    """Bracket wildcard escaping follows engine inheritance, including Sybase."""
+    import sqlalchemy as sa
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.db_engine_specs.sybase import SybaseEngineSpec
+    from superset.models.helpers import build_native_like_predicate
+
+    class CustomMssqlEngineSpec(MssqlEngineSpec):
+        """Represent an operator-provided SQL Server derivative."""
+
+        engine = "custom_mssql"
+
+    spec = {
+        "mssql": MssqlEngineSpec,
+        "sybase": SybaseEngineSpec,
+        "custom_mssql": CustomMssqlEngineSpec,
+    }[engine_name]
+    predicate = build_native_like_predicate(sa.column("name"), "[a-c][", spec)
+    compiled = predicate.compile(dialect=sa.dialects.registry.load("mssql")())
+    assert "%/[a-c]/[%" in compiled.params.values()
+    assert "ESCAPE '/'" in str(compiled)
+
+
+@pytest.mark.parametrize(
+    ("operator", "value"),
+    [
+        ("IN", "Alice"),
+        ("IN", []),
+        ("IN", [["Alice"]]),
+        ("NOT IN", {"name": "Alice"}),
+        ("==", ["Alice"]),
+        ("==", {"name": "Alice"}),
+        ("ILIKE", ["Alice"]),
+        ("==", float("inf")),
+    ],
+)
+def test_malformed_internal_literal_predicates_raise_validation_error(
+    database: Database, operator: str, value: Any
+) -> None:
+    """Private malformed predicates fail validation before SQL compilation."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        table_name="t",
+        columns=[TableColumn(column_name="b", type="TEXT")],
+    )
+    with pytest.raises(QueryObjectValidationError, match="Literal"):
+        table.get_sqla_query(
+            columns=["b"],
+            metrics=[],
+            extras={},
+            filter=[{"col": "b", "op": operator, "val": value, "is_literal": True}],
+            granularity=None,
+            is_timeseries=False,
+            orderby=[],
+        )
+
+
+def test_schema_bypassing_query_context_keeps_ordinary_chart_sql(
+    database: Database, mocker: MockerFixture
+) -> None:
+    """The legacy query endpoint and stored contexts cannot activate private flags."""
+    from superset.common.query_context_factory import QueryContextFactory
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        id=7,
+        database=database,
+        table_name="t",
+        columns=[TableColumn(column_name="b", type="TEXT")],
+    )
+    factory = QueryContextFactory()
+    mocker.patch.object(factory, "_convert_to_model", return_value=table)
+    context = factory.create(
+        datasource={"id": 7, "type": "table"},
+        queries=[
+            {
+                "columns": ["b"],
+                "metrics": [],
+                "filters": [
+                    {"col": "b", "op": "IN", "val": "Alice", "is_literal": True}
+                ],
+                "extras": {"preserve_literal_values": True},
+            }
+        ],
+    )
+    query = context.queries[0]
+    assert "is_literal" not in query.filter[0]
+    assert "preserve_literal_values" not in query.extras
+    built = table.get_sqla_query(
+        columns=query.columns,
+        metrics=query.metrics,
+        filter=query.filter,
+        extras=query.extras,
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    ordinary = table.get_sqla_query(
+        columns=["b"],
+        metrics=[],
+        filter=[{"col": "b", "op": "IN", "val": "Alice"}],
+        extras={},
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    assert str(built.sqla_query) == str(ordinary.sqla_query)
+    assert built.sqla_query.compile().params == ordinary.sqla_query.compile().params
+
+
+def test_build_like_predicate_casts_non_text_columns() -> None:
+    import sqlalchemy as sa
+    from sqlalchemy_bigquery import BigQueryDialect
+
+    from superset.models.helpers import build_like_predicate
+
+    postgres = sa.dialects.registry.load("postgresql")()
+
+    def compile_sql(predicate: sa.ColumnElement, dialect: sa.engine.Dialect) -> str:
+        return str(
+            predicate.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+        )
+
+    for column_type in (sa.Numeric(), sa.Integer()):
+        sql = compile_sql(
+            build_like_predicate(sa.column("n", column_type), "0"), postgres
+        )
+        assert "lower(CAST(n AS VARCHAR))" in sql
+
+    # String columns are left untouched: no CAST is introduced.
+    text_sql = compile_sql(
+        build_like_predicate(sa.column("s", sa.String()), "a"), postgres
+    )
+    assert "lower(s)" in text_sql
+    assert "CAST" not in text_sql
+
+    # Untyped expressions (e.g. calculated columns) are cast as well.
+    untyped_sql = compile_sql(
+        build_like_predicate(sa.literal_column("upper(s)"), "a"), postgres
+    )
+    assert "lower(CAST(upper(s) AS VARCHAR))" in untyped_sql
+
+    # Dialects that need a length or a unicode type get one.
+    oracle_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"),
+        sa.dialects.registry.load("oracle")(),
+    )
+    assert "CAST(n AS VARCHAR2(4000 CHAR))" in oracle_sql
+    mssql_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"),
+        sa.dialects.registry.load("mssql")(),
+    )
+    assert "CAST(n AS NVARCHAR(max))" in mssql_sql
+
+    # BigQuery still has no ESCAPE clause for a non-text column.
+    bigquery_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"), BigQueryDialect()
+    )
+    assert "ESCAPE" not in bigquery_sql
+
+
+@pytest.mark.parametrize(
+    "dialect_name",
+    ["postgresql", "mysql", "mssql", "oracle", "sqlite"],
+)
+def test_build_like_predicate_matches_plain_contains(dialect_name: str) -> None:
+    """Outside ClickHouse the SQL is identical to ``contains(autoescape=True)``."""
+    import sqlalchemy as sa
+
+    from superset.models.helpers import build_like_predicate
+
+    column = sa.column("c", sa.String())
+    dialect = sa.dialects.registry.load(dialect_name)()
+
+    def render(predicate: Any) -> str:
+        return str(
+            sa.select(column)
+            .where(predicate)
+            .compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+        )
+
+    assert render(build_like_predicate(column, "A%_b")) == render(
+        sa.func.lower(column).contains("a%_b", autoescape=True)
+    )
+
+
+def test_build_like_predicate_matches_plain_contains_bigquery() -> None:
+    import sqlalchemy as sa
+
+    pytest.importorskip("sqlalchemy_bigquery")
+    from sqlalchemy_bigquery import BigQueryDialect
+
+    from superset.models.helpers import build_like_predicate
+
+    column = sa.column("c", sa.String())
+
+    def render(predicate: Any) -> str:
+        return str(
+            sa.select(column)
+            .where(predicate)
+            .compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
+        )
+
+    assert render(build_like_predicate(column, "A%_b")) == render(
+        sa.func.lower(column).contains("a%_b", autoescape=True)
+    )
+
+
+def test_build_like_predicate_executes_correctly_on_sqlite() -> None:
+    import sqlalchemy as sa
+
+    from superset.models.helpers import build_like_predicate
+
+    engine = sa.create_engine("sqlite://")
+    table = sa.table("t", sa.column("c", sa.String))
+    with engine.begin() as conn:
+        conn.execute(sa.text("CREATE TABLE t (c TEXT)"))
+        for value in ("50%x", "50ax", "A_b", "ab"):
+            conn.execute(sa.text("INSERT INTO t VALUES (:v)"), {"v": value})
+
+        def search(term: str) -> list[str]:
+            query = sa.select(table.c.c).where(build_like_predicate(table.c.c, term))
+            return sorted(row[0] for row in conn.execute(query))
+
+        assert search("a_") == ["A_b"]
+        assert search("zz") == []
+        assert search("50%") == ["50%x"]
+
+
+def test_build_like_predicate_clickhouse_uses_backslash_escaping() -> None:
+    """
+    clickhouse-connect's compiler raises on ``LIKE ... ESCAPE``; ClickHouse
+    treats backslash as the LIKE escape character natively, so wildcards are
+    escaped in the term itself and no ESCAPE clause is emitted.
+    """
+    import sqlalchemy as sa
+
+    pytest.importorskip("clickhouse_connect.cc_sqlalchemy.dialect")
+    from clickhouse_connect.cc_sqlalchemy.dialect import ClickHouseDialect
+
+    from superset.models.helpers import build_like_predicate
+
+    column = sa.column("c", sa.String())
+    predicate = build_like_predicate(column, "50%_a\\B")
+    clickhouse_sql = str(
+        sa.select(column)
+        .where(predicate)
+        .compile(dialect=ClickHouseDialect(), compile_kwargs={"literal_binds": True})
+    )
+    assert "ESCAPE" not in clickhouse_sql
+    assert "= 1" not in clickhouse_sql
+    # LIKE-level ``\%``, ``\_`` and ``\\`` (each backslash doubled again by the
+    # dialect's string-literal rendering); the term is lower-cased.
+    assert "50\\\\%\\\\_a\\\\\\\\b" in clickhouse_sql
 
 
 def test_values_for_column_search(database: Database) -> None:
@@ -1087,6 +1351,205 @@ def test_get_sqla_query_does_not_mutate_adhoc_orderby_with_jinja(
         "SUM(CASE WHEN a > {{ 1 + 1 }} THEN 1 END)",
         "a>2",
     )
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    ["a : b", "2024-02-01 : 2024-01-01"],
+)
+def test_get_sqla_query_rejects_a_bad_range_in_a_second_temporal_filter(
+    database: Database, time_range: str
+) -> None:
+    """
+    Building the SQL parses every temporal filter, not just the one the query
+    context was built from, so a bad range in any of them is a bad request.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="ds", is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="other_ds", is_dttm=True, type="TIMESTAMP"),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError) as excinfo:
+        table.get_sqla_query(
+            columns=["a"],
+            metrics=[],
+            granularity="ds",
+            is_timeseries=False,
+            row_limit=100,
+            filter=[
+                # The range the query context is built from, which is parsed
+                # and reported on well before this point.
+                {
+                    "col": "ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": "2024-01-01 : 2024-12-31",
+                },
+                {
+                    "col": "other_ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": time_range,
+                },
+            ],
+        )
+
+    assert "other_ds" in excinfo.value.message
+
+
+@pytest.mark.parametrize(
+    "filters,message",
+    [
+        pytest.param(
+            [
+                {"col": "ds", "val": "2024-01-01 : 2024-12-31"},
+                {"col": "other_ds", "val": "a : b"},
+            ],
+            "Cannot parse time string [a]",
+            id="unreadable range in the last temporal filter",
+        ),
+        pytest.param(
+            [
+                {"col": "other_ds", "val": "a : b"},
+                {"col": "ds", "val": "2024-01-01 : 2024-12-31"},
+            ],
+            "Cannot parse time string [a]",
+            id="unreadable range in an earlier temporal filter",
+        ),
+        pytest.param(
+            [
+                {"col": "ds", "val": "2024-01-01 : 2024-12-31"},
+                {"col": "other_ds", "val": "2024-02-01 : 2024-01-01"},
+            ],
+            "From date cannot be larger than to date",
+            id="reversed range in the last temporal filter",
+        ),
+    ],
+)
+def test_processing_time_offsets_rejects_a_bad_temporal_range(
+    database: Database, filters: list[dict[str, str]], message: str
+) -> None:
+    """
+    A time comparison parses the temporal filters twice, once to find the
+    enclosing range and once to shift each of them, and neither is covered by
+    the parsing the query context was built from.
+
+    The two ways a range fails arrive as different exceptions, so both have to
+    be caught for the answer to be a 400. A range the parser cannot read raises
+    ``TimeRangeParseFailError``, which is a marshmallow ``ValidationError``; a
+    range whose bounds are the wrong way round raises a bare ``ValueError``.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="ds", is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="other_ds", is_dttm=True, type="TIMESTAMP"),
+        ],
+    )
+    query_object = QueryObject(
+        datasource=table,
+        columns=["a"],
+        metrics=[],
+        is_timeseries=False,
+        row_limit=10,
+        time_offsets=["1 week ago"],
+        from_dttm=datetime(2024, 1, 1),
+        to_dttm=datetime(2024, 12, 31),
+        filters=[
+            {"col": flt["col"], "op": FilterOperator.TEMPORAL_RANGE, "val": flt["val"]}
+            for flt in filters
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError) as excinfo:
+        # The index column is absent from the frame, which is what sends a
+        # relative offset down the branch that shifts every temporal filter.
+        table.processing_time_offsets(pd.DataFrame({"a": [1, 2]}), query_object)
+
+    assert message in excinfo.value.message
+
+
+@pytest.mark.parametrize(
+    "offset,message",
+    [
+        pytest.param(
+            "2024-01-01:2024-12-31",
+            "Cannot parse time string [2024-01-01:2024-12-31]",
+            id="colon without the surrounding spaces",
+        ),
+        pytest.param(
+            "2024-02-01 : 2024-01-01",
+            "From date cannot be larger than to date",
+            id="reversed bounds",
+        ),
+    ],
+)
+@with_feature_flags(DATE_RANGE_TIMESHIFTS_ENABLED=True)
+def test_processing_time_offsets_rejects_a_bad_date_range_offset(
+    database: Database, offset: str, message: str
+) -> None:
+    """
+    A date-range time offset that cannot be used is a bad request too.
+
+    ``is_valid_date_range`` splits the offset on ``:`` while the range parser
+    wants ``" : "``, so an offset written without the spaces passes the check
+    and is then sent down this branch, where it cannot be read. That failure is
+    a marshmallow ``ValidationError``, which is not a ``ValueError``, while
+    reversed bounds fail as a bare ``ValueError``.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="ds", is_dttm=True, type="TIMESTAMP"),
+        ],
+    )
+    query_object = QueryObject(
+        datasource=table,
+        columns=["a"],
+        metrics=[],
+        is_timeseries=False,
+        row_limit=10,
+        time_offsets=[offset],
+        from_dttm=datetime(2024, 1, 1),
+        to_dttm=datetime(2024, 12, 31),
+        filters=[
+            {
+                "col": "ds",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2024-01-01 : 2024-12-31",
+            }
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError) as excinfo:
+        table.processing_time_offsets(pd.DataFrame({"a": [1, 2]}), query_object)
+
+    assert message in excinfo.value.message
 
 
 def test_cache_key_stable_across_query_build(database: Database) -> None:
@@ -3840,6 +4303,44 @@ def test_adhoc_column_type_probe_propagates_db_error(database: Database) -> None
 
     assert db_error_message in str(excinfo.value)
     assert not isinstance(excinfo.value, ColumnNotFoundException)
+
+
+def test_adhoc_column_type_probe_db_error_names_the_expression(
+    database: Database,
+) -> None:
+    """
+    A database rejecting a user-authored adhoc expression (e.g. an unsupported
+    function) is reported against the expression, as a warning-level error.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.errors import ErrorLevel
+    from superset.exceptions import SupersetGenericDBErrorException
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "DATE_PARSE(a, '%Y%m%d')",
+        "label": "d",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=SupersetGenericDBErrorException("no such function: DATE_PARSE"),
+    ):
+        with pytest.raises(SupersetGenericDBErrorException) as excinfo:
+            table.adhoc_column_to_sqla(adhoc_col, force_type_check=True)
+
+    assert "DATE_PARSE(a, '%Y%m%d')" in excinfo.value.error.message
+    assert "no such function: DATE_PARSE" in excinfo.value.error.message
+    assert excinfo.value.error.level == ErrorLevel.WARNING
 
 
 def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
@@ -6821,3 +7322,58 @@ def test_not_in_filter_null_check_uses_the_engine_spec_hook(
     kql = compile_not_in()
     assert "isnull(state)" in kql
     assert "IS NULL" not in kql
+
+
+def test_get_query_result_leaves_a_custom_operation_fault_unwrapped(
+    database: "Database",
+) -> None:
+    """
+    A fault inside a custom operation must not be reported as a bad request.
+
+    An operation registered through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` is the
+    operator's own code. ``exec_post_processing`` leaves its exceptions alone,
+    and this path must not convert them either, or a bug in that operation
+    answers 400 and tells the caller their request was malformed.
+    """
+    from datetime import timedelta
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import QueryResult
+
+    def _raise_type_error(df: pd.DataFrame, **options: Any) -> pd.DataFrame:
+        raise TypeError("a fault inside the operator's own code")
+
+    table = SqlaTable(table_name="t", database=database)
+    df = pd.DataFrame({"metric": [1.0, 2.0]})
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "_raise_type_error"}],
+    )
+
+    with (
+        patch.object(
+            table,
+            "query",
+            return_value=QueryResult(
+                df=df,
+                query="SELECT 1",
+                duration=timedelta(0),
+                sql_shifted_temporal_labels=set(),
+            ),
+        ),
+        patch.object(table, "normalize_df", return_value=df),
+        patch.dict(
+            "superset.common.query_object.current_app.config",
+            {"EXTRA_PANDAS_POSTPROCESSING_OPS": [_raise_type_error]},
+        ),
+        pytest.raises(TypeError, match="operator's own code") as excinfo,
+    ):
+        table.get_query_result(query_object)
+
+    assert not isinstance(excinfo.value, QueryObjectValidationError)
