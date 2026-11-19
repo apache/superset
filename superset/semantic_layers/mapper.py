@@ -264,6 +264,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
     """
     if not query_object.datasource:
         raise ValueError("QueryObject must have a datasource defined.")
+    query_object.validate_semantic_time_offsets()
     query_object = cast(ValidatedQueryObject, query_object)
     metadata: _ViewMetadata = _validation_metadata(query_object)
 

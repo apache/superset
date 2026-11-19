@@ -16131,6 +16131,9 @@ msgstr ""
 msgid "Time comparison"
 msgstr ""
 
+msgid "Time comparison is not yet supported on semantic views. Remove the time shift and try again."
+msgstr ""
+
 msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
