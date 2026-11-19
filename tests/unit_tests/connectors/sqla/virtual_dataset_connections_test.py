@@ -26,6 +26,7 @@ import pytest
 from flask_caching import Cache
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine, event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import NullPool
 
@@ -4363,11 +4364,22 @@ def set_cache_test_guest(tenant: int) -> None:
     )
 
 
+@pytest.fixture
+def cold_engine() -> Iterator[Engine]:
+    """Provide an engine whose default schema has not been discovered."""
+    engine = create_engine("sqlite://")
+    try:
+        yield engine
+    finally:
+        engine.dispose()
+
+
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
 @pytest.mark.parametrize("entry_point", ["run", "execute", "task_key", "payload"])
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True, EMBEDDED_SUPERSET=True)
 def test_guest_cache_context_failure_prevents_cache_read(
     guest_chart_cache: tuple[QueryContext, Cache],
+    cold_engine: Engine,
     mocker: MockerFixture,
     entry_point: str,
 ) -> None:
@@ -4384,8 +4396,10 @@ def test_guest_cache_context_failure_prevents_cache_read(
     assert cache.get(warm["cache_key"]) is not None
     error = ConnectionError("database unreachable")
     mocker.patch.object(
-        context.datasource.database, "resolve_query_default_schema", side_effect=error
+        context.datasource.database, "_get_sqla_engine", return_value=cold_engine
     )
+    assert cold_engine.dialect.default_schema_name is None
+    mocker.patch.object(cold_engine, "raw_connection", side_effect=error)
     read = mocker.spy(cache, "get")
 
     def read_result() -> object:
@@ -4405,23 +4419,24 @@ def test_guest_cache_context_failure_prevents_cache_read(
 
 
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
-@pytest.mark.parametrize("entry_point", ["run", "execute"])
+@pytest.mark.parametrize("entry_point", ["run", "execute", "task_key", "payload"])
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True, EMBEDDED_SUPERSET=True)
-def test_guest_chart_cache_with_local_schema_survives_database_outage(
+def test_guest_chart_cache_with_discovered_schema_survives_database_outage(
     guest_chart_cache: tuple[QueryContext, Cache],
     mocker: MockerFixture,
     entry_point: str,
 ) -> None:
-    """Locally resolvable schemas retain complete keys and warm guest results."""
+    """A discovered schema needs no connection to key macros and guest RLS."""
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.tasks.async_queries import _query_task_cache_key
 
     context, cache = guest_chart_cache
     assert isinstance(context.datasource, SqlaTable)
-    database = context.datasource.database
-    mocker.patch.object(
-        database.db_engine_spec, "get_schema_from_engine_params", return_value="main"
+    context.datasource.sql = (
+        "SELECT col1 FROM physical WHERE '{{ current_username() }}' != ''"
     )
+    assert context.datasource.schema is None
+    database = context.datasource.database
     keys = []
     for tenant in (1, 2):
         set_cache_test_guest(tenant)
@@ -4429,10 +4444,16 @@ def test_guest_chart_cache_with_local_schema_survives_database_outage(
         assert warm["data"] == [{"col1": tenant}]
         assert not warm["is_cached"]
         assert cache.get(warm["cache_key"]) is not None
+        extra_keys = context.datasource.get_extra_cache_keys(
+            context.queries[0].to_dict()
+        )
+        assert "viewer" in extra_keys
+        assert f"guest_user_attribute:tenant:{tenant}" in extra_keys
         keys.append(warm["cache_key"])
     assert keys[0] != keys[1]
 
     with database.get_sqla_engine() as engine:
+        assert engine.dialect.default_schema_name == "main"
         connect = mocker.patch.object(
             engine,
             "raw_connection",
@@ -4443,11 +4464,52 @@ def test_guest_chart_cache_with_local_schema_survives_database_outage(
         assert context.query_cache_key(context.queries[0]) == key
         assert _query_task_cache_key(context, 0) == key
         command = ChartDataCommand(context)
-        if entry_point == "execute":
+        if entry_point == "task_key":
+            continue
+        if entry_point == "payload":
+            hit = context.get_df_payload_result(
+                context.queries[0], force_cached=True
+            ).payload
+        elif entry_point == "execute":
             hit = command.execute(force_cached=True).queries[0].payload
         else:
             hit = command.run(force_cached=True)["queries"][0]
         assert hit["is_cached"]
         assert hit["cache_key"] == key
-        assert hit["data"] == [{"col1": tenant}]
+        rows = (
+            hit["df"].to_dict(orient="records")
+            if entry_point == "payload"
+            else hit["data"]
+        )
+        assert rows == [{"col1": tenant}]
+    connect.assert_not_called()
+
+
+def test_discovered_schema_preserves_inner_rls_during_outage(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """Dataset and query-backed collectors keep physical-table RLS offline."""
+    virtual, rule = static_schema_datasource
+    virtual.schema = None
+    query: QueryObjectDict = {"columns": ["col1"], "metrics": []}
+    with virtual.database.get_sqla_engine() as engine:
+        assert engine.dialect.default_schema_name == "main"
+        connect = mocker.patch.object(
+            engine,
+            "raw_connection",
+            side_effect=ConnectionError("database unreachable"),
+        )
+    keys = []
+    for tenant in (1, 2):
+        rule.clause = f"col1 = {tenant}"
+        extra_keys = virtual.get_extra_cache_keys(query)
+        assert extra_keys == [PHYSICAL_RLS_KEYS[tenant]]
+        assert f"col1 = {tenant}" in str(
+            virtual.get_sqla_query(
+                columns=["col1"], metrics=[], is_timeseries=False
+            ).sqla_query
+        )
+        keys.append(extra_keys)
+    assert keys[0] != keys[1]
     connect.assert_not_called()

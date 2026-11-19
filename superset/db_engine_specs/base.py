@@ -1349,9 +1349,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_default_schema(cls, database: Database, catalog: str | None) -> str | None:
         """
         Return the default schema for a catalog in a given database.
+
+        Reuse SQLAlchemy's discovered default when the selected engine has already
+        been initialized, without opening another inspector connection.
         """
-        with database.get_inspector(catalog=catalog) as inspector:
-            return inspector.default_schema_name
+        return database.get_default_schema_from_engine(catalog)
 
     @classmethod
     def get_catalog_reference_schema(

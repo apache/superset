@@ -28,8 +28,9 @@ from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+import sqlalchemy as sqla
 from pytest_mock import MockerFixture
-from sqlalchemy import Boolean, Column, column, Integer, types
+from sqlalchemy import Boolean, Column, column, create_engine, Integer, types
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
@@ -53,6 +54,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     SupersetGenericDBErrorException,
 )
+from superset.models.core import Database
 from superset.security.guest_token import GuestToken, GuestUser
 from superset.sql.parse import Table
 from superset.superset_typing import (
@@ -275,7 +277,6 @@ def test_extra_table_metadata(mocker: MockerFixture) -> None:
     """
     Test the deprecated `extra_table_metadata` method.
     """
-    from superset.models.core import Database
 
     class ThirdPartyDBEngineSpec(BaseEngineSpec):
         @classmethod
@@ -2534,6 +2535,70 @@ def test_get_catalog_reference_schema() -> None:
     one (``catalog..table``) leaves it unknown.
     """
     assert BaseEngineSpec.get_catalog_reference_schema("cat") is None
+
+
+@pytest.mark.parametrize("initialized", [False, True])
+@pytest.mark.parametrize("entry_point", ["schema", "query_schema", "search_path"])
+def test_default_schema_reuses_dialect_discovery(
+    mocker: MockerFixture, app_context: None, initialized: bool, entry_point: str
+) -> None:
+    """Only the initial discovery needs an inspector connection."""
+    database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
+    engine = create_engine("sqlite://")
+    mocker.patch.object(database, "_get_sqla_engine", return_value=engine)
+    try:
+        if initialized:
+            with engine.connect():
+                pass
+        inspect = mocker.spy(sqla, "inspect")
+        connect = mocker.spy(engine, "raw_connection")
+        for _ in range(2):
+            if entry_point == "query_schema":
+                assert (
+                    database.resolve_query_default_schema(
+                        "SELECT * FROM physical", None, "catalog"
+                    )
+                    == "main"
+                )
+            elif entry_point == "search_path":
+                assert database.get_search_path("catalog", ["physical"]) == (
+                    ["main"],
+                    {},
+                )
+            else:
+                assert database.get_default_schema("catalog") == "main"
+        assert connect.call_count == (0 if initialized else 1)
+        if initialized:
+            inspect.assert_not_called()
+        else:
+            inspect.assert_called_once_with(engine)
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        ConnectionError("database unreachable"),
+        OAuth2Error("sign-in failed"),
+        OAuth2RedirectError("https://example.com", "tab", "https://example.com"),
+    ],
+)
+def test_default_schema_cold_engine_preserves_error(
+    mocker: MockerFixture, app_context: None, error: Exception
+) -> None:
+    """An unknown default must not be guessed, including on sign-in failures."""
+    database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
+    engine = create_engine("sqlite://")
+    mocker.patch.object(database, "_get_sqla_engine", return_value=engine)
+    mocker.patch.object(engine, "raw_connection", side_effect=error)
+    try:
+        assert engine.dialect.default_schema_name is None
+        with pytest.raises(type(error)) as raised:
+            BaseEngineSpec.get_default_schema(database, "catalog")
+        assert raised.value is error
+    finally:
+        engine.dispose()
 
 
 @pytest.mark.parametrize("default_schema, expected", [("main", ["main"]), (None, [])])

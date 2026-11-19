@@ -1093,6 +1093,27 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         """
         return self.db_engine_spec.get_default_schema(self, catalog)
 
+    def get_default_schema_from_engine(self, catalog: str | None) -> str | None:
+        """Read the selected engine's default, discovering it only when unknown.
+
+        An inspector's default_schema_name is the value retained on the dialect,
+        but constructing the inspector checks out a connection. Reusing that
+        value lets cache keys collect their full macro/RLS context offline.
+        Cold-engine discovery retains the inspector's OAuth2 retry policy.
+        """
+
+        @contextmanager
+        def open_schema() -> Iterator[str | None]:
+            """Resolve before yielding so login failures can be retried."""
+            with self.get_sqla_engine(catalog=catalog) as engine:
+                yield (
+                    engine.dialect.default_schema_name
+                    or sqla.inspect(engine).default_schema_name
+                )
+
+        with self._open_with_oauth2_retry(open_schema) as schema:
+            return schema
+
     def get_search_path(
         self, catalog: str | None, tables: Collection[str] = ()
     ) -> tuple[list[str], dict[str, list[str]]]:

@@ -427,12 +427,17 @@ def test_get_default_schema(mocker: MockerFixture) -> None:
         sqlalchemy_uri="postgresql://user:password@host:5432/examples",
     )
 
-    get_inspector = mocker.patch.object(database, "get_inspector")
-    with get_inspector() as inspector:
-        inspector.default_schema_name = "public"
+    engine = mocker.MagicMock()
+    engine.dialect.default_schema_name = None
+    mocker.patch.object(database, "_get_sqla_engine", return_value=engine)
+    get_engine = mocker.spy(database, "get_sqla_engine")
+    inspect = mocker.patch("superset.models.core.sqla.inspect")
+    inspect.return_value.default_schema_name = "public"
 
     assert database.get_default_schema("examples") == "public"
-    get_inspector.assert_called_with(catalog="examples")
+    get_engine.assert_called_once()
+    assert get_engine.call_args.kwargs["catalog"] == "examples"
+    inspect.assert_called_once_with(engine)
 
 
 def test_get_all_catalog_names(mocker: MockerFixture) -> None:
@@ -3081,26 +3086,40 @@ def test_get_raw_connection_refreshes_a_token_rejected_at_login(
     connection.close.assert_called_once()
 
 
+@pytest.mark.parametrize("lookup", ["inspector", "schema"])
+@pytest.mark.parametrize("failure_phase", ["engine", "inspector"])
 def test_get_inspector_refreshes_a_token_rejected_at_login(
     app_context: None,
     mocker: MockerFixture,
+    lookup: str,
+    failure_phase: str,
 ) -> None:
     """Metadata (and the default schema chart data reads) log in the same way."""
     engine = mocker.MagicMock()
+    engine.dialect.default_schema_name = None
     database = _login_rejecting_database(mocker, engine)
     inspector = mocker.MagicMock()
+    inspector.default_schema_name = "public"
+    error = RuntimeError("token rejected")
     inspect = mocker.patch(
         "superset.models.core.sqla.inspect",
-        side_effect=[RuntimeError("token rejected"), inspector],
+        side_effect=[error, inspector] if failure_phase == "inspector" else [inspector],
     )
+    if failure_phase == "engine":
+        mocker.patch.object(database, "_get_sqla_engine", side_effect=[error, engine])
     refresh = mocker.patch(
         "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
     )
 
-    with database.get_inspector() as result:
-        assert result is inspector
+    if lookup == "inspector":
+        with database.get_inspector() as result:
+            assert result is inspector
+    else:
+        from superset.db_engine_specs.base import BaseEngineSpec
 
-    assert inspect.call_count == 2
+        assert BaseEngineSpec.get_default_schema(database, None) == "public"
+
+    assert inspect.call_count == (2 if failure_phase == "inspector" else 1)
     refresh.assert_called_once()
 
 
