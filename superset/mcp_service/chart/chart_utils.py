@@ -3484,7 +3484,7 @@ def _pie_chart_what(config: PieChartConfig) -> str:
     metric_label = (
         config.metric.label or config.metric.name or config.metric.sql_expression
     )
-    return f"{dim} by {metric_label}"
+    return f"{metric_label} by {dim}"
 
 
 def _gauge_chart_what(config: GaugeChartConfig) -> str:
@@ -3539,7 +3539,7 @@ def _treemap_chart_what(config: TreemapChartConfig) -> str:
     )
     dims = ", ".join(g.name for g in config.groupby if g.name)
     if dims:
-        return f"{dims} by {metric_label}"
+        return f"{metric_label} by {dims}"
     return f"{metric_label}"
 
 

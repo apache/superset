@@ -7792,6 +7792,9 @@ msgstr "Dinamik Bölüm Etiketi"
 msgid "Dynamic group by"
 msgstr "Dinamik grup Tarafından"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -10023,6 +10026,14 @@ msgstr "Hide Line"
 msgid "Hide chart description"
 msgstr "Gizle grafik açıklaması"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Gizle katmanı"
 
@@ -10675,6 +10686,11 @@ msgstr "Invalid state."
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Geçersiz sekme kimlikleri: %(tab_ids)s"
+
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "%(column)s sütunu için geçersiz zamansal filtre değeri"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
