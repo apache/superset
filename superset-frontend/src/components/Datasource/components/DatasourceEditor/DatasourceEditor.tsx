@@ -2306,7 +2306,9 @@ function DatasourceEditor({
               <FieldLabelWithTooltip>
                 <span>{t('Default time range')}</span>
                 <InfoTooltip
-                  tooltip={t('Initial time range for new charts in Explore.')}
+                  tooltip={t(
+                    'Time range of the time filters Explore adds for this dataset, such as on new charts.',
+                  )}
                 />
               </FieldLabelWithTooltip>
               <DateFilterComponent
