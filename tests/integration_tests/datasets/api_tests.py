@@ -1257,6 +1257,36 @@ class TestDatasetApi(SupersetTestCase):
 
         self.items_to_delete = [dataset]
 
+    def test_update_dataset_item_w_override_columns_keeps_column_flags(self):
+        """
+        Dataset API: a column sync keeps Is dimension / Is filterable unset
+        """
+        dataset = self.insert_default_dataset()
+        self.items_to_delete = [dataset]
+        hidden = dataset.columns[0].column_name
+        cols = [
+            {
+                "id": c.id,
+                "column_name": c.column_name,
+                "type": c.type,
+                "groupby": c.column_name != hidden,
+                "filterable": c.column_name != hidden,
+            }
+            for c in dataset.columns
+        ]
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dataset/{dataset.id}?override_columns=true"
+        rv = self.put_assert_metric(uri, {"columns": cols}, "put")
+        assert rv.status_code == 200
+
+        rv = self.client.get(f"api/v1/dataset/{dataset.id}")
+        columns = {
+            c["column_name"]: c for c in json.loads(rv.data)["result"]["columns"]
+        }
+        assert columns[hidden]["groupby"] is False
+        assert columns[hidden]["filterable"] is False
+
     def test_update_dataset_item_w_override_columns_same_columns(self):
         """
         Dataset API: Test update dataset with override columns
@@ -2802,6 +2832,70 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/related_objects/?q={rison.dumps([table.id])}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
+
+    def test_related_objects_include_dashboards_filtering_on_the_dataset(self):
+        """
+        Dataset API: Test the single and bulk related objects list a dashboard
+        that uses the dataset only through a native filter, once
+        """
+        filter_only = self.insert_dataset(
+            table_name="related_filter_only", editor_user_ids=[], fetch_metadata=False
+        )
+        charted = self.insert_dataset(
+            table_name="related_charted", editor_user_ids=[], fetch_metadata=False
+        )
+        chart = self.insert_chart("related charted chart", charted.id)
+        metadata = json.dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER-1",
+                        "targets": [
+                            {"datasetId": filter_only.id},
+                            {"datasetId": charted.id},
+                        ],
+                    }
+                ]
+            }
+        )
+        dashboard = self.insert_dashboard(
+            "related filter dashboard",
+            "related-filter-dashboard",
+            [],
+            slices=[chart],
+            json_metadata=metadata,
+        )
+
+        try:
+            self.login(ADMIN_USERNAME)
+            single = self.get_assert_metric(
+                f"api/v1/dataset/{filter_only.id}/related_objects", "related_objects"
+            )
+            assert single.status_code == 200
+            single_payload = json.loads(single.data)
+            assert single_payload["charts"]["count"] == 0
+            assert single_payload["dashboards"]["count"] == 1
+            assert [d["id"] for d in single_payload["dashboards"]["result"]] == [
+                dashboard.id
+            ]
+
+            ids = rison.dumps([filter_only.id, charted.id])
+            bulk = self.get_assert_metric(
+                f"api/v1/dataset/related_objects/?q={ids}", "bulk_related_objects"
+            )
+            assert bulk.status_code == 200
+            bulk_payload = json.loads(bulk.data)
+            assert bulk_payload["charts"]["count"] == 1
+            assert bulk_payload["dashboards"]["count"] == 1
+            assert [d["id"] for d in bulk_payload["dashboards"]["result"]] == [
+                dashboard.id
+            ]
+        finally:
+            db.session.delete(dashboard)
+            db.session.delete(chart)
+            db.session.delete(filter_only)
+            db.session.delete(charted)
+            db.session.commit()
 
     @pytest.mark.usefixtures("create_datasets", "create_virtual_datasets")
     def test_get_datasets_custom_filter_sql(self):

@@ -128,13 +128,6 @@ export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 31 * 12,
 };
 
-// ECharts' own fallback for a degenerate single-point time-axis domain
-// (min === max): it pads by exactly this much on each side, regardless of
-// grain (see calcNiceForTimeScale in echarts/lib/scale/Time.js). Bar-width
-// sizing for a sparse single-bucket chart mirrors this fixed padding rather
-// than guessing at a different visible span.
-export const ONE_DAY_MS = 3600 * 1000 * 24;
-
 export const DEFAULT_LEGEND_FORM_DATA: LegendFormData = {
   legendMargin: null,
   legendOrientation: LegendOrientation.Top,
