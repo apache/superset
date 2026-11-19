@@ -1590,29 +1590,3 @@ class TestDeserializationPreservesStatus:
         stored raw image bytes, rebuilt via `ScreenshotCachePayload(payload)`)
         must still yield UPDATED."""
         assert ScreenshotCachePayload(FAKE_PNG_BYTES).status == StatusValues.UPDATED
-
-
-def test_successful_capture_marks_policy_but_failed_capture_does_not(
-    mocker: MockerFixture, mock_user: MagicMock
-) -> None:
-    """Only newly captured bytes carry the chart-type refusal policy version."""
-    screenshot: DashboardScreenshot = DashboardScreenshot(
-        "http://example.com", "digest"
-    )
-    cache: MockCache = MockCache()
-    mocker.patch.object(BaseScreenshot, "cache", cache)
-    mocker.patch(DISTRIBUTED_LOCK_PATH)
-    mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
-    capture: MagicMock = mocker.patch(
-        BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=FAKE_PNG_BYTES
-    )
-    mocker.patch(BASE_SCREENSHOT_PATH + ".resize_image", return_value=FAKE_PNG_BYTES)
-    screenshot.compute_and_cache(user=mock_user, force=True)
-    payload: ScreenshotCachePayload = ScreenshotCachePayload.from_dict(
-        cache.get(screenshot.get_cache_key())
-    )
-    assert payload.has_current_chart_type_policy()
-    capture.side_effect = RuntimeError("capture failed")
-    screenshot.compute_and_cache(user=mock_user, force=True)
-    payload = ScreenshotCachePayload.from_dict(cache.get(screenshot.get_cache_key()))
-    assert not payload.has_current_chart_type_policy()

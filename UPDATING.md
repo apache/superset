@@ -28,7 +28,8 @@ assists people when migrating to a new version.
   Period Pivot, Nightingale Rose, Horizon, and Paired t-test charts instead of
   returning misleading or empty data. This includes saved charts and their cached
   chart images. Fresh dashboard images/PDFs include the refusal tile; old cached
-  dashboard images must be captured again. Use Line/Bar for time series or Table with an explicit time dimension;
+  dashboard images may show the old tile until expiry or regeneration. Use Line/Bar
+  for time series or Table with an explicit time dimension;
   use an explicit count metric in Bar/Table for frequencies. Ordinary datasets
   are unaffected.
 
