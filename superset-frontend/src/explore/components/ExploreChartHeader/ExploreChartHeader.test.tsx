@@ -877,6 +877,32 @@ describe('Additional actions tests', () => {
     });
   });
 
+  test.each(
+    ['semantic_view', 'table', 'query'].flatMap(type =>
+      [true, false].map(saved => ({ type, saved })),
+    ),
+  )(
+    'Explore SQL Lab action respects datasource $type (saved=$saved)',
+    async ({ type, saved }) => {
+      const props = createProps(saved ? {} : { slice: null });
+      props.chart.latestQueryFormData = {
+        ...props.chart.latestQueryFormData,
+        datasource: `49__${type}`,
+        slice_id: saved ? 318 : undefined,
+      };
+      render(<ExploreHeader {...props} />, { useRedux: true });
+      await userEvent.click(
+        await screen.findByLabelText('Menu actions trigger'),
+      );
+      expect(await screen.findByText('View query')).toBeInTheDocument();
+      if (type === 'semantic_view') {
+        expect(screen.queryByText('Run in SQL Lab')).not.toBeInTheDocument();
+      } else {
+        expect(screen.getByText('Run in SQL Lab')).toBeInTheDocument();
+      }
+    },
+  );
+
   test('Should render a button', async () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, { useRedux: true });

@@ -21,13 +21,24 @@ set -euo pipefail
 EVENT_NAME="${1:-${GITHUB_EVENT_NAME:-}}"
 REF="${2:-${GITHUB_REF:-}}"
 REF_NAME="${3:-${GITHUB_REF_NAME:-}}"
+# Optional: a single platform (linux/amd64 or linux/arm64) for a master
+# publish. The docker workflow builds each platform natively in its own job
+# (QEMU emulation of arm64 on an amd64 runner took most of the build time) and
+# merges the two manifests afterwards, so each job asks for its own platform.
+# Without it a master publish keeps the combined multi-platform plan, which
+# the release workflow's single-job build still uses.
+PLATFORM="${4:-}"
 
 BUILD_CONTEXT="$EVENT_NAME"
 BUILD_CONTEXT_REF=""
 PUBLISH_DOCKER_CACHE=""
 
 if [ "$EVENT_NAME" = "push" ] && [ "$REF" = "refs/heads/master" ]; then
-  PLATFORM_ARG="--platform linux/arm64 --platform linux/amd64"
+  if [ -n "$PLATFORM" ]; then
+    PLATFORM_ARG="--platform $PLATFORM"
+  else
+    PLATFORM_ARG="--platform linux/arm64 --platform linux/amd64"
+  fi
   PUSH_OR_LOAD="--push"
   BUILD_CONTEXT_REF="${REF_NAME:-master}"
   PUBLISH_DOCKER_CACHE="true"

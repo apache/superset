@@ -255,10 +255,10 @@ MCP_JWT_DEBUG_ERRORS = False
 MCP_API_KEY_ENABLED: bool | None = None
 
 # URL surfaced to users when an API key is rejected, pointing them at the
-# place to create or rotate a key. Defaults to the FAB user profile page;
-# deployments that manage keys elsewhere can override this to point at their
-# own key-management UI without forking the auth code.
-MCP_API_KEY_CREATE_URL = "/profile/"
+# place to create or rotate a key. Defaults to the user info page, where API
+# keys are managed; deployments that manage keys elsewhere can override this to
+# point at their own key-management UI without forking the auth code.
+MCP_API_KEY_CREATE_URL = "/user_info/"
 
 # Accept Superset embedded guest tokens on the MCP transport (opt-in, default
 # False). Requires the EMBEDDED_SUPERSET flag and the shared core
@@ -424,12 +424,14 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
         "add_chart_to_existing_dashboard",
         "apply_dashboard_filters",
         "create_dataset",
+        "create_dataset_column",
         "create_dataset_metric",
         "create_theme",
         "create_virtual_dataset",
         "delete_chart",
         "delete_dashboard",
         "delete_dataset",
+        "delete_dataset_column",
         "delete_dataset_metric",
         "duplicate_dashboard",
         "execute_sql",
@@ -450,6 +452,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
         "update_chart_preview",
         "update_dashboard",
         "update_dataset",
+        "update_dataset_column",
         "update_dataset_metric",
     ],
 }
