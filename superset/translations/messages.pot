@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 09:45+1100\n"
+"POT-Creation-Date: 2026-11-19 04:39+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4761,6 +4761,10 @@ msgstr ""
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr ""
 
+#, python-format
+msgid "Dashboard %(id)s not found"
+msgstr ""
+
 msgid "Dashboard Filter"
 msgstr ""
 
@@ -8221,6 +8225,10 @@ msgid "Invalid cumulative operator: %(operator)s"
 msgstr ""
 
 msgid "Invalid currency code in saved metrics"
+msgstr ""
+
+#, python-format
+msgid "Invalid dashboard id: %(id)s"
 msgstr ""
 
 msgid "Invalid date/timestamp format"
