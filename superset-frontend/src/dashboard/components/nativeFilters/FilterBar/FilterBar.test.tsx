@@ -1899,9 +1899,22 @@ test.each([
     required: false,
     stale: true,
   },
+  {
+    filterType: 'filter_select',
+    value: ['legacy'],
+    required: true,
+    stale: true,
+    requiredFirst: true,
+  },
 ])(
   'semantic Clear all stages a current empty mask: %j',
-  async ({ filterType, value, required, stale = false }) => {
+  async ({
+    filterType,
+    value,
+    required,
+    stale = false,
+    requiredFirst = false,
+  }) => {
     fetchMock.post(
       'glob:*/api/v1/chart/data',
       {
@@ -1940,6 +1953,7 @@ test.each([
       ],
       controlValues: { enableEmptyFilter: required },
       defaultDataMask: { filterState: { value }, extraFormData },
+      ...(requiredFirst ? { requiredFirst } : {}),
     });
     const state = createStateWithFilter(
       filter,
