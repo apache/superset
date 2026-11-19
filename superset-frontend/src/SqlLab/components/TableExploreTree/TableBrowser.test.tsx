@@ -18,6 +18,7 @@
  */
 import type { ReactNode } from 'react';
 import fetchMock from 'fetch-mock';
+import { Tree } from 'react-arborist';
 import {
   fireEvent,
   createStore,
@@ -27,6 +28,8 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { TableBrowser } from '.';
+import TreeNodeRenderer from './TreeNodeRenderer';
+import type { TreeNodeData } from './types';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import type { RootState } from 'src/views/store';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -276,4 +279,44 @@ test('keyboard expansion of a schema does not preview it as a table', async () =
   fireEvent.keyDown(schemaRow!, { key: 'Enter' });
   expect(await screen.findByText('orders')).toBeVisible();
   expect(onPreviewTable).not.toHaveBeenCalled();
+});
+
+test('table nodes retain working pin controls when showTablePins is omitted', async () => {
+  const handlePinTable = jest.fn();
+  const data: TreeNodeData[] = [
+    {
+      id: 'table:1:public:orders',
+      name: 'orders',
+      schema: 'public',
+      type: 'table',
+    },
+  ];
+  render(
+    <Tree<TreeNodeData> data={data} height={300} width={500}>
+      {nodeProps => (
+        <TreeNodeRenderer
+          {...nodeProps}
+          manuallyOpenedNodes={{}}
+          loadingNodes={{}}
+          searchTerm=""
+          catalog={null}
+          pinnedTableKeys={new Set()}
+          pinnedSchemas={new Set()}
+          selectStarMap={{}}
+          handleRefreshTables={jest.fn()}
+          handlePinTable={handlePinTable}
+          handleUnpinTable={jest.fn()}
+          handlePinSchema={jest.fn()}
+          handleUnpinSchema={jest.fn()}
+          refreshTableSchema={jest.fn()}
+          sortedTables={{}}
+          toggleSortColumns={jest.fn()}
+        />
+      )}
+    </Tree>,
+  );
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Pin to the result panel' }),
+  );
+  expect(handlePinTable).toHaveBeenCalledWith('orders', 'public', null);
 });
