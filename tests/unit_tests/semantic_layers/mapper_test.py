@@ -5116,7 +5116,7 @@ def test_row_offset_mapping_without_advertised_capability(
     queries: list[SemanticQuery] = map_query_object(query_object)
 
     assert len(queries) == 1
-    assert queries[0].offset == (offset or None)
+    assert queries[0].offset == (offset or 0)
     assert queries[0].limit == limit
     assert queries[0].order is not None
     assert queries[0].order[0][1] == OrderDirection.ASC
@@ -5124,10 +5124,11 @@ def test_row_offset_mapping_without_advertised_capability(
     assert queries[0].order[0][0].name == "category"
 
 
+@pytest.mark.parametrize("offset", [0, 2])
 def test_unadvertised_offset_reaches_provider(
-    mock_datasource: MagicMock, mocker: MockerFixture
+    mock_datasource: MagicMock, mocker: MockerFixture, offset: int
 ) -> None:
-    """Do not add host-wide rejection for capable but unadvertised providers."""
+    """Keep first and later page offsets for capable providers."""
     mock_datasource.implementation.features = frozenset()
     result: SemanticResult = SemanticResult(
         requests=[], results=pa.table({"category": ["third"], "total_sales": [3.0]})
@@ -5138,14 +5139,14 @@ def test_unadvertised_offset_reaches_provider(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["category"],
-        row_offset=2,
+        row_offset=offset,
         row_limit=2,
     )
 
     get_results(query_object)
 
     execute.assert_called_once()
-    assert execute.call_args.args[0].offset == 2
+    assert execute.call_args.args[0].offset == offset
     assert execute.call_args.args[0].limit == 2
 
 

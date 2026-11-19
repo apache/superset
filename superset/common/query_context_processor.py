@@ -111,6 +111,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Two row and two column dimensions with totals and subtotals can need
+# (2 + 1) * (2 + 1) rollup levels. Requests with more levels are refused.
 MAX_SEMANTIC_PIVOT_LEVELS: int = 9
 MAX_SEMANTIC_PIVOT_ROWS_PER_LEVEL: int = 10000
 
@@ -858,8 +860,9 @@ class QueryContextProcessor:
             if semantic_row_limit is not None and len(result.df) >= semantic_row_limit:
                 raise QueryObjectValidationError(
                     _(
-                        "Pivot Table reached its safe row limit on a semantic view. "
-                        "Add filters or remove row or column dimensions and try again."
+                        "Pivot Table level reached the row limit on a semantic "
+                        "view; it may be complete or truncated. Add filters or "
+                        "remove row or column dimensions and try again."
                     )
                 )
             level_df = result.df.copy()

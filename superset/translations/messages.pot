@@ -10903,10 +10903,10 @@ msgstr ""
 msgid "Pivot Table has too many rollup levels for a semantic view. Remove row or column dimensions and try again."
 msgstr ""
 
-msgid "Pivot Table pagination is not supported on semantic views. Clear the row offset and try again."
+msgid "Pivot Table level reached the row limit on a semantic view; it may be complete or truncated. Add filters or remove row or column dimensions and try again."
 msgstr ""
 
-msgid "Pivot Table reached its safe row limit on a semantic view. Add filters or remove row or column dimensions and try again."
+msgid "Pivot Table pagination is not supported on semantic views. Clear the row offset and try again."
 msgstr ""
 
 msgid "Pivot operation must include at least one aggregate"

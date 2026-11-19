@@ -161,10 +161,14 @@ Timeseries queries with metrics and at least one `columns` value infer series
 columns from `columns` and keep the limit.
 
 Pivot Table queries on semantic views use a bounded Cell limit and at most nine
-rollup levels. If a level reaches the limit, add filters or remove row or
-column dimensions; the chart refuses to show incomplete totals. Date rows and
-columns can use a supported Time Grain. Custom SQL dimensions, saved row
-offsets, and result aggregation remain unsupported for semantic views.
+rollup levels. Two row dimensions and two column dimensions with totals and
+subtotals can need nine levels; requests needing more levels are refused. If a
+level reaches the limit, the chart refuses it even when that level may be
+complete, because it cannot confirm whether more rows exist. Add filters or
+remove dimensions.
+
+Date rows and columns can use a supported Time Grain. Custom SQL dimensions,
+saved row offsets, and result aggregation remain unsupported for semantic views.
 
 To save the visualization, click on **Save** in the top left of the screen. In the following modal,
 
