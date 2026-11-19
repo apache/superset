@@ -647,6 +647,7 @@ def test_send_rejects_rebound_peer_despite_passed_hostname_check(
             "superset.reports.notifications.webhook.is_safe_host",
             lambda host: True,
         )
+        monkeypatch.setattr("time.sleep", lambda *a, **k: None)
 
         with pytest.raises(
             (NotificationParamException, NotificationUnprocessableException)
