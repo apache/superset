@@ -505,7 +505,7 @@ def initialize_core_mcp_host_tools() -> None:
 def initialize_core_mcp_dependencies() -> None:
     """
     Initialize MCP dependency injection by replacing abstract functions
-    in superset_core.api.mcp with concrete implementations, then registering the
+    in superset_core.mcp.decorators with concrete implementations, then registering the
     host tools.
 
     Kept for backwards compatibility and callers that want the full MCP setup in a
