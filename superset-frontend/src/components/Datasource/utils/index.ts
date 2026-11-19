@@ -27,6 +27,7 @@ import { nanoid } from 'nanoid';
 import { SupersetClient } from '@superset-ui/core';
 import { tn } from '@apache-superset/core/translation';
 import rison from 'rison';
+import type { ColumnObject } from 'src/features/datasets/types';
 
 // Type definitions
 
@@ -38,6 +39,13 @@ interface ColumnMetadata {
   groupby?: boolean;
   filterable?: boolean;
   expression?: string;
+  partition_value_transform?: string | null;
+  partition_transform_is_monotonic?: boolean;
+}
+
+interface PartitionMappingFields {
+  partition_column?: string | null;
+  partition_mapped_column?: string | null;
 }
 
 interface ColumnChanges {
@@ -184,8 +192,8 @@ export function updateColumns(
   if (columnChanges.modified.length) {
     addSuccessToast(
       tn(
-        'Modified 1 column in the virtual dataset',
-        'Modified %s columns in the virtual dataset',
+        'Modified 1 column in the dataset',
+        'Modified %s columns in the dataset',
         columnChanges.modified.length,
         columnChanges.modified.length,
       ),
@@ -194,8 +202,8 @@ export function updateColumns(
   if (columnChanges.removed.length) {
     addSuccessToast(
       tn(
-        'Removed 1 column from the virtual dataset',
-        'Removed %s columns from the virtual dataset',
+        'Removed 1 column from the dataset',
+        'Removed %s columns from the dataset',
         columnChanges.removed.length,
         columnChanges.removed.length,
       ),
@@ -204,8 +212,8 @@ export function updateColumns(
   if (columnChanges.added.length) {
     addSuccessToast(
       tn(
-        'Added 1 new column to the virtual dataset',
-        'Added %s new columns to the virtual dataset',
+        'Added 1 new column to the dataset',
+        'Added %s new columns to the dataset',
         columnChanges.added.length,
         columnChanges.added.length,
       ),
@@ -222,6 +230,42 @@ export function updateColumns(
  * @param signal - Optional AbortSignal to cancel the request
  * @returns Promise Array of column metadata objects
  */
+/**
+ * The parts of a partition filter mapping whose columns a sync just removed.
+ *
+ * Returns the fields to patch onto the datasource, or `null` when nothing needs
+ * to change. The backend clears a dangling mapping too, on the authoritative
+ * `override_columns` path -- this keeps the editor's own state honest between
+ * a sync and the next save, so the owner isn't looking at a mapping that points
+ * at a column the table no longer has.
+ */
+export function clearDanglingPartitionMapping(
+  datasource: PartitionMappingFields,
+  finalColumns: Pick<ColumnMetadata, 'column_name'>[],
+): PartitionMappingFields | null {
+  if (!datasource.partition_column) {
+    return null;
+  }
+
+  const surviving = new Set(finalColumns.map(col => col.column_name));
+
+  if (!surviving.has(datasource.partition_column)) {
+    return { partition_column: null, partition_mapped_column: null };
+  }
+
+  if (
+    datasource.partition_mapped_column &&
+    !surviving.has(datasource.partition_mapped_column)
+  ) {
+    return {
+      partition_column: datasource.partition_column,
+      partition_mapped_column: null,
+    };
+  }
+
+  return null;
+}
+
 export async function fetchSyncedColumns(
   datasource: DatasourceForSync,
   signal?: AbortSignal,
@@ -247,4 +291,30 @@ export async function fetchSyncedColumns(
   )}`;
   const { json } = await SupersetClient.get({ endpoint, signal });
   return json as ColumnMetadata[];
+}
+
+/**
+ * Lift each column's certification out of its `extra` JSON into the flat
+ * fields the datasource editor binds to.
+ */
+export function withCertificationFields(columns: ColumnObject[] = []) {
+  return columns.map(column => {
+    // Malformed `extra` must not take out the whole column list, the way an
+    // uncaught parse would — same fallback as `hydrateMetricExtra`.
+    let parsedExtra;
+    try {
+      parsedExtra = JSON.parse(column.extra || '{}') || {};
+    } catch {
+      parsedExtra = {};
+    }
+    const {
+      certification: { details = '', certified_by: certifiedBy = '' } = {},
+    } = parsedExtra;
+    return {
+      ...column,
+      certification_details: details || '',
+      certified_by: certifiedBy || '',
+      is_certified: details || certifiedBy,
+    };
+  });
 }

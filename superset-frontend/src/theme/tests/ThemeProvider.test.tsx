@@ -23,7 +23,7 @@ import {
   ThemeMode,
 } from '@apache-superset/core/theme';
 import { act, render, screen } from '@superset-ui/core/spec';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { SupersetThemeProvider, useThemeContext } from '../ThemeProvider';
 import { ThemeController } from '../ThemeController';
 
@@ -75,6 +75,7 @@ describe('SupersetThemeProvider', () => {
     mockThemeController = {
       getTheme: jest.fn().mockReturnValue(mockTheme),
       getCurrentMode: jest.fn().mockReturnValue(ThemeMode.DEFAULT),
+      getCurrentModeResolved: jest.fn().mockReturnValue('dark'),
       setTheme: jest.fn(),
       setThemeMode: jest.fn(),
       resetTheme: jest.fn(),
@@ -85,11 +86,13 @@ describe('SupersetThemeProvider', () => {
       clearLocalOverrides: jest.fn(),
       getCurrentCrudThemeId: jest.fn().mockReturnValue(null),
       hasDevOverride: jest.fn().mockReturnValue(false),
+      hasThemeConfigOverride: jest.fn().mockReturnValue(false),
       canSetMode: jest.fn().mockReturnValue(true),
       canSetTheme: jest.fn().mockReturnValue(true),
       canDetectOSPreference: jest.fn().mockReturnValue(true),
       createDashboardThemeProvider: jest.fn(),
       getAppliedThemeId: jest.fn().mockReturnValue(null),
+      refreshSystemThemes: jest.fn().mockResolvedValue(undefined),
       destroy: jest.fn(),
     } as unknown as jest.Mocked<ThemeController>;
 
@@ -129,6 +132,20 @@ describe('SupersetThemeProvider', () => {
       expect(mockThemeController.getCurrentMode).toHaveBeenCalled();
       expect(result.current.theme).toBe(mockTheme);
       expect(result.current.themeMode).toBe(ThemeMode.DEFAULT);
+    });
+
+    test('exposes refreshSystemThemes and delegates to the controller', async () => {
+      const wrapper = createWrapper(mockThemeController);
+
+      const { result } = renderHook((): ThemeContextType => useThemeContext(), {
+        wrapper,
+      });
+
+      await act(async () => {
+        await result.current.refreshSystemThemes();
+      });
+
+      expect(mockThemeController.refreshSystemThemes).toHaveBeenCalledTimes(1);
     });
 
     test('should register onChange listener on mount', () => {
@@ -275,5 +292,60 @@ describe('SupersetThemeProvider', () => {
         42,
       );
     });
+  });
+
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-theme-mode');
+  });
+
+  test('should set data-theme-mode="light" on mount when resolved mode is light', () => {
+    mockThemeController.getCurrentModeResolved.mockReturnValue('light');
+
+    render(
+      <SupersetThemeProvider themeController={mockThemeController}>
+        <div>Content</div>
+      </SupersetThemeProvider>,
+    );
+
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'light',
+    );
+  });
+
+  test('should set data-theme-mode="dark" on mount when resolved mode is dark', () => {
+    mockThemeController.getCurrentModeResolved.mockReturnValue('dark');
+
+    render(
+      <SupersetThemeProvider themeController={mockThemeController}>
+        <div>Content</div>
+      </SupersetThemeProvider>,
+    );
+
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'dark',
+    );
+  });
+
+  test('should update data-theme-mode when theme changes', () => {
+    mockThemeController.getCurrentModeResolved.mockReturnValue('light');
+
+    render(
+      <SupersetThemeProvider themeController={mockThemeController}>
+        <div>Content</div>
+      </SupersetThemeProvider>,
+    );
+
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'light',
+    );
+
+    act(() => {
+      mockThemeController.getCurrentModeResolved.mockReturnValue('dark');
+      mockOnChangeCallback(mockDarkTheme);
+    });
+
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'dark',
+    );
   });
 });

@@ -129,6 +129,30 @@ def add_missing_schemas(spec: dict[str, Any]) -> tuple[dict[str, Any], list[str]
         }
         fixed.append("DashboardColorsConfigUpdateSchema")
 
+    # DashboardChartCustomizationsConfigUpdateSchema (dashboards/schemas.py)
+    if "DashboardChartCustomizationsConfigUpdateSchema" not in schemas:
+        schemas["DashboardChartCustomizationsConfigUpdateSchema"] = {
+            "type": "object",
+            "properties": {
+                "deleted": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of deleted chart customization IDs.",
+                },
+                "modified": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": "List of modified chart customizations.",
+                },
+                "reordered": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of chart customization IDs in new order.",
+                },
+            },
+        }
+        fixed.append("DashboardChartCustomizationsConfigUpdateSchema")
+
     # FormatQueryPayloadSchema - based on superset/sqllab/schemas.py
     if "FormatQueryPayloadSchema" not in schemas:
         schemas["FormatQueryPayloadSchema"] = {
@@ -263,7 +287,6 @@ def add_missing_operation_ids(spec: dict[str, Any]) -> int:
 TAG_DESCRIPTIONS = {
     "Advanced Data Type": "Advanced data type operations and conversions.",
     "Annotation Layers": "Manage annotation layers and annotations for charts.",
-    "AsyncEventsRestApi": "Real-time event streaming via Server-Sent Events (SSE).",
     "Available Domains": "Get available domains for the Superset instance.",
     "CSS Templates": "Manage CSS templates for custom dashboard styling.",
     "CacheRestApi": "Cache management and invalidation operations.",
@@ -295,6 +318,7 @@ TAG_DESCRIPTIONS = {
     "Security Roles": "Manage security roles and their permissions.",
     "Security Users": "Manage user accounts.",
     "Tags": "Organize assets with tags.",
+    "Themes": "Manage UI themes for customizing Superset's appearance.",
     "User": "User profile and preferences.",
 }
 

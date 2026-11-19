@@ -1,0 +1,13 @@
+{
+  "schema": {
+    "properties": {
+      "result": {
+        "items": { "description": "A database catalog name", "type": "string" },
+        "type": "array"
+      }
+    },
+    "type": "object",
+    "title": "CatalogsResponseSchema"
+  },
+  "schemaType": "response"
+}

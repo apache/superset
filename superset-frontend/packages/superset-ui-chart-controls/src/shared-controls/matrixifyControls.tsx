@@ -20,7 +20,7 @@
 
 import { t } from '@apache-superset/core/translation';
 import { validateNonEmpty } from '@superset-ui/core';
-import { SharedControlConfig } from '../types';
+import { ControlStateMapping, SharedControlConfig } from '../types';
 import { dndAdhocMetricControl } from './dndControls';
 import { defineSavedMetrics } from '../utils';
 
@@ -29,9 +29,12 @@ import { defineSavedMetrics } from '../utils';
  * Controls for transforming charts into matrix/grid layouts
  */
 
-// Utility function to check if matrixify controls should be visible
+// Utility function to check if matrixify controls should be visible.
+// Controls both visibility callbacks and validator injection via mapStateToProps.
+// The matrixify_enable guard prevents hidden validators from firing on
+// pre-revamp charts with stale matrixify_mode defaults (fix for #38519).
 const isMatrixifyVisible = (
-  controls: any,
+  controls: ControlStateMapping | undefined,
   axis: 'rows' | 'columns',
   mode?: 'metrics' | 'dimensions',
   selectionMode?: 'members' | 'topn' | 'all',
@@ -115,11 +118,11 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     description: t(`Select dimension and values`),
     default: { dimension: '', values: [] },
     validators: [], // No validation - rely on visibility
-    renderTrigger: true,
     tabOverride: 'matrixify',
     shouldMapStateToProps: (prevState, state) => {
       // Recalculate when any relevant form_data field changes
       const fieldsToCheck = [
+        'semantic_selection_version',
         `matrixify_topn_value_${axis}`,
         `matrixify_topn_metric_${axis}`,
         `matrixify_topn_order_${axis}`,

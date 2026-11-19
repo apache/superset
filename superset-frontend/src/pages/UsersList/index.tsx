@@ -168,7 +168,7 @@ function UsersList({ user }: UsersListProps) {
           .then(() => {
             deletedUserNames.push(user.username);
           })
-          .catch(err => {
+          .catch(() => {
             addDangerToast(t('Error deleting %s', user.username));
           }),
       ),
@@ -287,14 +287,14 @@ function UsersList({ user }: UsersListProps) {
         id: 'login_count',
         Header: t('Login count'),
         hidden: true,
-        Cell: ({ row: { original } }: any) => original.login_count,
+        Cell: ({ row: { original } }: any) => original.login_count ?? 0,
       },
       {
         accessor: 'fail_login_count',
         id: 'fail_login_count',
         Header: t('Fail login count'),
         hidden: true,
-        Cell: ({ row: { original } }: any) => original.fail_login_count,
+        Cell: ({ row: { original } }: any) => original.fail_login_count ?? 0,
       },
       {
         accessor: 'created_on',

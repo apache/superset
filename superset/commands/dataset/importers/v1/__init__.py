@@ -21,8 +21,12 @@ from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
 
 from superset.commands.database.importers.v1.utils import import_database
-from superset.commands.dataset.exceptions import DatasetImportError
+from superset.commands.dataset.exceptions import (
+    DatasetImportError,
+    MultiCatalogDisabledValidationError,
+)
 from superset.commands.dataset.importers.v1.utils import import_dataset
+from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.daos.dataset import DatasetDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
@@ -36,7 +40,8 @@ class ImportDatasetsCommand(ImportModelsCommand):
     model_name = "dataset"
     prefix = "datasets/"
     schemas: dict[str, Schema] = {
-        "databases/": ImportV1DatabaseSchema(),
+        # Related databases are reused rather than overwritten.
+        "databases/": ImportV1DatabaseSchema(overwrites_existing=False),
         "datasets/": ImportV1DatasetSchema(),
     }
     import_error = DatasetImportError
@@ -69,4 +74,11 @@ class ImportDatasetsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                import_dataset(config, overwrite=overwrite)
+                try:
+                    import_dataset(config, overwrite=overwrite)
+                except MultiCatalogDisabledValidationError as ex:
+                    # surface as a 422 validation error instead of a generic 500
+                    raise CommandInvalidError(
+                        "; ".join(str(message) for message in ex.messages),
+                        [ex],
+                    ) from ex

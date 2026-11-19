@@ -24,19 +24,29 @@ about a specific dataset.
 
 import logging
 from datetime import datetime, timezone
+from typing import cast
 
 from fastmcp import Context
 from sqlalchemy.orm import joinedload, subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.dataset.dataset_utils import SQL_DATASET_SOURCE_GUIDANCE
 from superset.mcp_service.dataset.schemas import (
+    DatasetColumnPage,
     DatasetError,
     DatasetInfo,
+    DatasetMetricPage,
+    DatasetSummaryResponse,
     GetDatasetInfoRequest,
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,14 +58,30 @@ logger = logging.getLogger(__name__)
         title="Get dataset info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
+@requires_data_model_metadata_access
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
-) -> DatasetInfo | DatasetError:
-    """Get dataset metadata by ID or UUID.
+) -> (
+    DatasetInfo
+    | DatasetError
+    | DatasetSummaryResponse
+    | DatasetColumnPage
+    | DatasetMetricPage
+):
+    """Get metadata by ID or UUID for SQL datasets only.
 
-    Returns columns, metrics, and schema details.
+    For semantic views, start with list_semantic_views, then list_metrics scoped
+    to the selected view and get_table for queries.
+
+    Returns columns, metrics, and schema details. For progressive discovery, pass
+    ``discovery={"section": "summary"}`` first, then request ``columns`` or
+    ``metrics`` with optional search/page/page_size (default 25, maximum 100).
+    Follow next_page with the same source/search/page_size. Discovery never loads
+    all member relationships or returns SQL expressions. It cannot be combined
+    with select_columns/column_fields. Omit discovery for the legacy response.
 
     IMPORTANT FOR LLM CLIENTS:
     - Use numeric ID (e.g., 123) or UUID string (e.g., "a1b2c3d4-...")
@@ -66,6 +92,15 @@ async def get_dataset_info(
     The response includes both 'columns' (raw database columns) and 'metrics'
     (pre-defined saved metrics). When building chart configs, use saved_metric=true
     for metrics — do not treat them as columns. See instructions for details.
+
+    The select_columns parameter controls which top-level fields are returned.
+    Default fields: 'id', 'table_name', 'schema', 'database_name', 'database_id',
+    'uuid', 'is_virtual', 'description', 'main_dttm_col', 'sql', 'url',
+    'columns', 'metrics'.
+    Additional fields available on request: 'certified_by', 'certification_details',
+    'changed_on', 'changed_on_humanized', 'created_on', 'created_on_humanized',
+    'tags', 'schema_perm', 'offset', 'cache_timeout', 'params', 'template_params',
+    'extra', 'is_favorite'.
 
     Example usage:
     ```json
@@ -80,6 +115,14 @@ async def get_dataset_info(
         "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
     }
     ```
+
+    Or to fetch only columns metadata:
+    ```json
+    {
+        "identifier": 123,
+        "select_columns": ["columns"]
+    }
+    ```
     """
     await ctx.info(
         "Retrieving dataset information: identifier=%s" % (request.identifier,)
@@ -92,6 +135,26 @@ async def get_dataset_info(
             request.force_refresh,
         )
     )
+
+    # The decorator hides this tool from search; this check enforces direct calls.
+    if not user_can_view_data_model_metadata():
+        await ctx.warning("Dataset metadata lookup blocked by privacy controls")
+        return DatasetError.create(
+            error="You don't have permission to access dataset details for your role.",
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
+
+    if request.discovery is not None:
+        from superset.mcp_service.dataset.discovery import discover_dataset
+
+        try:
+            with event_logger.log_context(action="mcp.get_dataset_info.discovery"):
+                return discover_dataset(request)
+        except Exception:
+            logger.exception("Progressive dataset metadata lookup failed")
+            return DatasetError.create(
+                "Unable to retrieve dataset metadata.", "InternalError"
+            )
 
     try:
         from superset.connectors.sqla.models import SqlaTable
@@ -130,7 +193,25 @@ async def get_dataset_info(
                     len(result.metrics) if result.metrics else 0,
                 )
             )
+            await ctx.debug(
+                "Filtering response: select_columns=%s, column_fields=%s"
+                % (request.select_columns, request.column_fields)
+            )
+            with event_logger.log_context(action="mcp.get_dataset_info.serialization"):
+                return cast(
+                    DatasetInfo,
+                    result.model_dump(
+                        mode="json",
+                        by_alias=True,
+                        context={
+                            "select_columns": request.select_columns,
+                            "column_fields": request.column_fields,
+                        },
+                    ),
+                )
         else:
+            if isinstance(result, DatasetError) and result.error_type == "not_found":
+                result.error = f"{result.error}. {SQL_DATASET_SOURCE_GUIDANCE}"
             await ctx.warning(
                 "Dataset retrieval failed: error_type=%s, error=%s"
                 % (result.error_type, result.error)

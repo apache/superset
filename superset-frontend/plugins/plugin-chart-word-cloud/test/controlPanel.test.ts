@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isCustomControlItem } from '@superset-ui/chart-controls';
 import controlPanel from '../src/plugin/controlPanel';
 import React, { ReactElement } from 'react';
 
@@ -44,4 +45,25 @@ test('control panel has rotation and color_scheme controls', () => {
     row.some(item => isNameControl(item, 'color_scheme')),
   );
   expect(colorSchemeRow).toBeDefined();
+});
+
+test('sort_by_series defaults to true to preserve legacy ordering', () => {
+  const querySection = controlPanel.controlPanelSections.find(
+    (section): section is NonNullable<typeof section> =>
+      Boolean(section && section.label === 'Query'),
+  );
+  expect(querySection).toBeDefined();
+  if (!querySection) {
+    throw new Error('Query section missing');
+  }
+
+  const sortBySeriesEntry = querySection.controlSetRows
+    .flat()
+    .find(item => isCustomControlItem(item) && item.name === 'sort_by_series');
+
+  expect(isCustomControlItem(sortBySeriesEntry)).toBe(true);
+  if (!isCustomControlItem(sortBySeriesEntry)) {
+    throw new Error('sort_by_series control missing');
+  }
+  expect(sortBySeriesEntry.config.default).toBe(true);
 });

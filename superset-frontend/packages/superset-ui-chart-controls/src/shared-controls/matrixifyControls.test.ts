@@ -18,6 +18,7 @@
  */
 
 import { isMatrixifyVisible } from './matrixifyControls';
+import type { ControlStateMapping } from '../types';
 
 /**
  * Helper to build a controls object matching the shape used by
@@ -25,7 +26,7 @@ import { isMatrixifyVisible } from './matrixifyControls';
  */
 function makeControls(
   overrides: Record<string, unknown> = {},
-): Record<string, { value: unknown }> {
+): ControlStateMapping {
   const defaults: Record<string, unknown> = {
     matrixify_enable: false,
     matrixify_mode_rows: 'disabled',
@@ -36,7 +37,7 @@ function makeControls(
   const merged = { ...defaults, ...overrides };
   return Object.fromEntries(
     Object.entries(merged).map(([k, v]) => [k, { value: v }]),
-  );
+  ) as ControlStateMapping;
 }
 
 // ── matrixify_enable guard ──────────────────────────────────────────

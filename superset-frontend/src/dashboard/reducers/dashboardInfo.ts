@@ -24,9 +24,12 @@ import {
 } from '@superset-ui/core';
 import {
   DASHBOARD_INFO_UPDATED,
+  DASHBOARD_SAVE_SUCCEEDED,
   SET_FILTER_BAR_ORIENTATION,
   SET_CROSS_FILTERS_ENABLED,
   DASHBOARD_INFO_FILTERS_CHANGED,
+  REPLACE_DASHBOARD_SEMANTIC_DATASETS,
+  UPDATE_DASHBOARD_SEMANTIC_DATASET,
 } from '../actions/dashboardInfo';
 import {
   SAVE_CHART_CUSTOMIZATION_COMPLETE,
@@ -44,6 +47,10 @@ import {
   FilterConfigItem,
 } from '../types';
 
+type SemanticDatasets = NonNullable<
+  DashboardInfo['semanticDatasets']
+>['datasets'];
+
 interface DashboardInfoAction {
   type: string;
   newInfo?: Partial<DashboardInfo>;
@@ -54,10 +61,17 @@ interface DashboardInfoAction {
   isLoading?: boolean;
   data?: ColumnOption[];
   pendingCustomization?: ChartCustomization;
+  dashboardId?: number;
+  datasets?: SemanticDatasets | null;
+  sourceKey?: string;
+  dataset?: SemanticDatasets[number] | null;
+  requestId?: string;
+  isRefreshStart?: boolean;
+  expectedGeneration?: number;
   [key: string]: unknown;
 }
 
-interface HydrateDashboardAction {
+export interface HydrateDashboardInfoAction {
   type: typeof HYDRATE_DASHBOARD;
   data: {
     dashboardInfo: DashboardInfo;
@@ -65,16 +79,19 @@ interface HydrateDashboardAction {
   };
 }
 
-type DashboardInfoReducerAction = DashboardInfoAction | HydrateDashboardAction;
+type DashboardInfoReducerAction =
+  | DashboardInfoAction
+  | HydrateDashboardInfoAction;
 
 type DashboardInfoState = Partial<DashboardInfo> & {
   last_modified_time?: number;
+  versionHistoryRevision?: number;
   [key: string]: unknown;
 };
 
 function isHydrateAction(
   action: DashboardInfoReducerAction,
-): action is HydrateDashboardAction {
+): action is HydrateDashboardInfoAction {
   return action.type === HYDRATE_DASHBOARD;
 }
 
@@ -89,7 +106,10 @@ function preserveScopes<T extends ScopedConfigItem>(
   existingConfig: T[] | undefined,
   incomingConfig: T[] | undefined,
 ): T[] {
-  const existingScopesMap = (existingConfig || []).reduce<
+  const truthyExistingConfig = (existingConfig || []).filter(Boolean);
+  const truthyIncomingConfig = (incomingConfig || []).filter(Boolean);
+
+  const existingScopesMap = truthyExistingConfig.reduce<
     Record<string, { chartsInScope?: number[]; tabsInScope?: string[] }>
   >((acc, item) => {
     if (item.chartsInScope != null || item.tabsInScope != null) {
@@ -101,7 +121,7 @@ function preserveScopes<T extends ScopedConfigItem>(
     return acc;
   }, {});
 
-  return (incomingConfig || []).map(item => {
+  return truthyIncomingConfig.map(item => {
     const existingScopes = existingScopesMap[item.id];
     if (item.chartsInScope == null && existingScopes) {
       return {
@@ -119,6 +139,129 @@ export default function dashboardInfoReducer(
   action: DashboardInfoReducerAction,
 ): DashboardInfoState {
   switch (action.type) {
+    case REPLACE_DASHBOARD_SEMANTIC_DATASETS: {
+      const {
+        dashboardId,
+        datasets,
+        requestId,
+        isRefreshStart,
+        expectedGeneration,
+      } = action as DashboardInfoAction;
+      if (dashboardId === undefined || dashboardId !== state.id) {
+        return state;
+      }
+      if (isRefreshStart && !requestId) return state;
+      const currentGeneration = state.semanticDatasetsGeneration ?? 0;
+      const pageGeneration = expectedGeneration ?? 0;
+      if (
+        !isRefreshStart &&
+        (state.semanticDatasetsRequestId !== requestId ||
+          (!requestId &&
+            (pageGeneration > currentGeneration ||
+              pageGeneration < (state.semanticDatasetsSaveGeneration ?? 0) ||
+              (datasets === null && pageGeneration !== currentGeneration))))
+      ) {
+        return state;
+      }
+      const pageModifiedKeys = new Set(
+        !requestId
+          ? [
+              ...Object.entries(state.semanticDatasetMutationGenerations ?? {})
+                .filter(([, generation]) => generation > pageGeneration)
+                .map(([sourceKey]) => sourceKey),
+              ...Object.keys(state.semanticDatasetRequests ?? {}),
+            ]
+          : [],
+      );
+      const overrides = state.semanticDatasetOverrides ?? {};
+      const mergedDatasets =
+        datasets &&
+        (requestId
+          ? [
+              ...datasets.filter(source => !(source.uid in overrides)),
+              ...Object.values(overrides).filter(
+                (source): source is SemanticDatasets[number] => source !== null,
+              ),
+            ]
+          : [
+              ...datasets.filter(source => !pageModifiedKeys.has(source.uid)),
+              ...(state.semanticDatasets?.datasets ?? []).filter(source =>
+                pageModifiedKeys.has(source.uid),
+              ),
+            ]);
+      return {
+        ...state,
+        semanticDatasets: mergedDatasets
+          ? { dashboardId, datasets: mergedDatasets }
+          : null,
+        semanticDatasetsRequestId: isRefreshStart ? requestId : undefined,
+        semanticDatasetRequests: isRefreshStart
+          ? {}
+          : state.semanticDatasetRequests,
+        semanticDatasetOverrides: isRefreshStart ? {} : undefined,
+        semanticDatasetsGeneration: currentGeneration + (requestId ? 1 : 0),
+        semanticDatasetsSaveGeneration: requestId
+          ? currentGeneration + 1
+          : state.semanticDatasetsSaveGeneration,
+      };
+    }
+    case UPDATE_DASHBOARD_SEMANTIC_DATASET: {
+      const { dashboardId, sourceKey, dataset, requestId, isRefreshStart } =
+        action as DashboardInfoAction;
+      if (dashboardId === undefined || dashboardId !== state.id || !sourceKey) {
+        return state;
+      }
+      if (isRefreshStart && !requestId) return state;
+      if (
+        !isRefreshStart &&
+        (state.semanticDatasetRequests?.[sourceKey] !== requestId ||
+          (!requestId && state.semanticDatasetsRequestId !== undefined))
+      ) {
+        return state;
+      }
+      const sourceRequests = { ...state.semanticDatasetRequests };
+      if (isRefreshStart && requestId) {
+        sourceRequests[sourceKey] = requestId;
+      } else {
+        delete sourceRequests[sourceKey];
+      }
+      const overrides = { ...state.semanticDatasetOverrides };
+      if (isRefreshStart) {
+        delete overrides[sourceKey];
+      } else if (state.semanticDatasetsRequestId) {
+        overrides[sourceKey] = dataset ?? null;
+      }
+      const previous =
+        state.semanticDatasets &&
+        state.semanticDatasets.dashboardId === dashboardId
+          ? state.semanticDatasets.datasets
+          : [];
+      return {
+        ...state,
+        semanticDatasets: {
+          dashboardId,
+          datasets: [
+            ...previous.filter(source => source.uid !== sourceKey),
+            ...(dataset ? [dataset] : []),
+          ],
+        },
+        semanticDatasetsRequestId: state.semanticDatasetsRequestId,
+        semanticDatasetRequests: sourceRequests,
+        semanticDatasetOverrides: overrides,
+        semanticDatasetsGeneration: (state.semanticDatasetsGeneration ?? 0) + 1,
+        semanticDatasetMutationGenerations: {
+          ...state.semanticDatasetMutationGenerations,
+          [sourceKey]: (state.semanticDatasetsGeneration ?? 0) + 1,
+        },
+      };
+    }
+    case DASHBOARD_SAVE_SUCCEEDED:
+      return (action as DashboardInfoAction).dashboardId === state.id
+        ? {
+            ...state,
+            versionHistoryRevision: (state.versionHistoryRevision ?? 0) + 1,
+          }
+        : state;
     case DASHBOARD_INFO_UPDATED: {
       const dashAction = action as DashboardInfoAction;
       const newInfo = dashAction.newInfo || {};
@@ -184,6 +327,7 @@ export default function dashboardInfoReducer(
           native_filter_configuration: newConfigWithScopes,
         } as DashboardInfo['metadata'],
         last_modified_time: Math.round(new Date().getTime() / 1000),
+        versionHistoryRevision: (state.versionHistoryRevision ?? 0) + 1,
       };
     }
     case HYDRATE_DASHBOARD: {
@@ -203,6 +347,37 @@ export default function dashboardInfoReducer(
       return {
         ...state,
         ...action.data.dashboardInfo,
+        semanticDatasets:
+          state.semanticDatasets?.dashboardId === action.data.dashboardInfo.id
+            ? state.semanticDatasets
+            : null,
+        semanticDatasetsRequestId:
+          state.id === action.data.dashboardInfo.id ||
+          state.semanticDatasets?.dashboardId === action.data.dashboardInfo.id
+            ? state.semanticDatasetsRequestId
+            : undefined,
+        // A remount's page load supersedes add requests from the previous mount.
+        semanticDatasetRequests: {},
+        semanticDatasetOverrides:
+          state.id === action.data.dashboardInfo.id ||
+          state.semanticDatasets?.dashboardId === action.data.dashboardInfo.id
+            ? state.semanticDatasetOverrides
+            : {},
+        semanticDatasetsGeneration:
+          state.id === action.data.dashboardInfo.id ||
+          state.semanticDatasets?.dashboardId === action.data.dashboardInfo.id
+            ? state.semanticDatasetsGeneration
+            : 0,
+        semanticDatasetsSaveGeneration:
+          state.id === action.data.dashboardInfo.id ||
+          state.semanticDatasets?.dashboardId === action.data.dashboardInfo.id
+            ? state.semanticDatasetsSaveGeneration
+            : 0,
+        semanticDatasetMutationGenerations:
+          state.id === action.data.dashboardInfo.id ||
+          state.semanticDatasets?.dashboardId === action.data.dashboardInfo.id
+            ? state.semanticDatasetMutationGenerations
+            : {},
         metadata: {
           ...incomingMetadata,
           native_filter_configuration: mergedFilterConfig,
@@ -289,8 +464,9 @@ export default function dashboardInfoReducer(
         pendingChartCustomizations: {},
       };
     case CLEAR_ALL_CHART_CUSTOMIZATIONS: {
-      const customizationConfig =
-        state.metadata?.chart_customization_config || [];
+      const customizationConfig = (
+        state.metadata?.chart_customization_config || []
+      ).filter(Boolean);
       return {
         ...state,
         metadata: {
@@ -300,6 +476,7 @@ export default function dashboardInfoReducer(
               ...customization,
               targets: customization.targets?.map(target => ({
                 datasetId: target.datasetId,
+                datasourceType: target.datasourceType,
               })),
             }),
           ),

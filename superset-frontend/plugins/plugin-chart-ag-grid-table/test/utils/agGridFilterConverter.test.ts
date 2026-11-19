@@ -95,7 +95,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters).toHaveLength(1);
       expect(result.simpleFilters[0]).toEqual({
         col: 'name',
-        op: '=',
+        op: '==',
         val: 'John',
       });
     });
@@ -264,7 +264,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    test('should convert inRange filter to BETWEEN', () => {
+    test('should split a numeric inRange filter into two bounded filters', () => {
       const filterModel: AgGridFilterModel = {
         age: {
           filterType: 'number',
@@ -276,13 +276,87 @@ describe('agGridFilterConverter', () => {
 
       const result = convertAgGridFiltersToSQL(filterModel);
 
-      // inRange creates a simple filter with BETWEEN operator
-      expect(result.simpleFilters).toHaveLength(1);
-      expect(result.simpleFilters[0]).toEqual({
-        col: 'age',
-        op: 'BETWEEN',
-        val: 18,
-      });
+      // There is no BETWEEN FilterOperator; a range becomes two bounded filters
+      // whose ops are valid enum values.
+      expect(result.simpleFilters).toEqual([
+        { col: 'age', op: '>=', val: 18 },
+        { col: 'age', op: '<=', val: 65 },
+      ]);
+    });
+
+    test('should drop a non-metric inRange filter with a missing upper bound', () => {
+      const filterModel = {
+        age: {
+          filterType: 'number',
+          type: 'inRange',
+          filter: 18,
+        },
+      } as unknown as AgGridFilterModel;
+
+      const result = convertAgGridFiltersToSQL(filterModel);
+
+      expect(result.simpleFilters).toHaveLength(0);
+    });
+
+    test('should emit a numeric BETWEEN clause for a metric range filter', () => {
+      const filterModel: AgGridFilterModel = {
+        revenue: {
+          filterType: 'number',
+          type: 'inRange',
+          filter: 10,
+          filterTo: 20,
+        },
+      };
+
+      // revenue is a metric, so the range filter renders as a HAVING clause
+      const result = convertAgGridFiltersToSQL(filterModel, ['revenue']);
+
+      expect(result.havingClause).toContain('BETWEEN 10 AND 20');
+    });
+
+    test('should drop a metric range filter whose bounds are not numeric', () => {
+      const filterModel = {
+        revenue: {
+          filterType: 'number',
+          type: 'inRange',
+          filter: '0',
+          filterTo: '100 OR 1=1',
+        },
+      } as unknown as AgGridFilterModel;
+
+      const result = convertAgGridFiltersToSQL(filterModel, ['revenue']);
+
+      // a non-numeric bound must never be interpolated into the clause
+      expect(result.havingClause).toBeUndefined();
+
+      const emptyBoundFilterModel = {
+        revenue: {
+          filterType: 'number',
+          type: 'inRange',
+          filter: '0',
+          filterTo: '',
+        },
+      } as unknown as AgGridFilterModel;
+
+      const result2 = convertAgGridFiltersToSQL(emptyBoundFilterModel, [
+        'revenue',
+      ]);
+      expect(result2.havingClause).toBeUndefined();
+
+      // A missing upper bound must drop the clause rather than fall through
+      // to a generic single-operand BETWEEN.
+      const missingBoundFilterModel = {
+        revenue: {
+          filterType: 'number',
+          type: 'inRange',
+          filter: '0',
+        },
+      } as unknown as AgGridFilterModel;
+
+      const result3 = convertAgGridFiltersToSQL(missingBoundFilterModel, [
+        'revenue',
+      ]);
+      expect(result3.havingClause).toBeUndefined();
     });
   });
 
@@ -442,6 +516,26 @@ describe('agGridFilterConverter', () => {
 
       expect(result.complexWhere).toContain('BETWEEN');
       expect(result.complexWhere).toContain('IS NOT NULL');
+    });
+
+    test('should route a date "not equal" filter to complexWhere instead of dropping it', () => {
+      const filterModel = {
+        created_at: {
+          filterType: 'date',
+          type: 'notEqual',
+          dateFrom: '2024-06-15',
+        },
+      } as unknown as AgGridFilterModel;
+
+      const result = convertAgGridFiltersToSQL(filterModel);
+
+      // "Not equal" on a date needs an OR of two bounds, so it can't be a
+      // single structured filter; it must fall back to the raw clause rather
+      // than being silently dropped from the export.
+      expect(result.simpleFilters).toHaveLength(0);
+      expect(result.complexWhere).toContain('created_at <');
+      expect(result.complexWhere).toContain(' OR ');
+      expect(result.complexWhere).toContain('created_at >');
     });
 
     test('should handle compound filter with invalid conditions gracefully', () => {
@@ -617,7 +711,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters).toHaveLength(1);
       expect(result.simpleFilters[0]).toEqual({
         col: 'status',
-        op: '=',
+        op: '==',
         val: 'active',
       });
 
@@ -828,7 +922,7 @@ describe('agGridFilterConverter', () => {
 
       expect(result.simpleFilters[0]).toEqual({
         col: 'is_active',
-        op: '=',
+        op: '==',
         val: true,
       });
     });

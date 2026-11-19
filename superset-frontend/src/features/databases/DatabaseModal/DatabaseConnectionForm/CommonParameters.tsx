@@ -48,6 +48,8 @@ export const hostField = ({
     errorMessage={validationErrors?.host}
     placeholder={t('e.g. 127.0.0.1')}
     className="form-group-w-50"
+    // i18n: hostname of the database server, as it appears in the user's own
+    // database tooling
     label={t('Host')}
     onChange={changeMethods.onParametersChange}
   />
@@ -236,6 +238,33 @@ export const passwordField = ({
     onChange={changeMethods.onParametersChange}
   />
 );
+// The AWS secret is rendered as a password input in both add and edit mode.
+// `LabeledErrorBoundInput` only masks when `visibilityToggle` is set (or the
+// field is literally named `password`), so it is always passed here; turning
+// it off in edit mode would fall back to a plaintext input and expose a
+// newly-typed secret.
+export const awsSecretAccessKeyField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+  isValidating,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="aws_secret_access_key"
+    name="aws_secret_access_key"
+    required={required}
+    isValidating={isValidating}
+    visibilityToggle
+    value={db?.parameters?.aws_secret_access_key}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.aws_secret_access_key}
+    placeholder={t('e.g. ********')}
+    label={t('AWS Secret Access Key')}
+    onChange={changeMethods.onParametersChange}
+  />
+);
 export const accessTokenField = ({
   required,
   changeMethods,
@@ -243,6 +272,7 @@ export const accessTokenField = ({
   validationErrors,
   db,
   isEditMode,
+  isValidating,
   default_value,
   description,
 }: FieldPropTypes) => (
@@ -250,6 +280,7 @@ export const accessTokenField = ({
     id="access_token"
     name="access_token"
     required={required}
+    isValidating={isValidating}
     visibilityToggle={!isEditMode}
     value={db?.parameters?.access_token}
     validationMethods={{ onBlur: getValidation }}

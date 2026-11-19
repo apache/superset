@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.engine import create_engine
 
 from superset.constants import TimeGrain
@@ -32,6 +33,7 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
         ("Text", "'2019-01-02 03:04:05'"),
         ("DateTime", "'2019-01-02 03:04:05'"),
         ("TimeStamp", "'2019-01-02 03:04:05'"),
+        ("Date", "'2019-01-02 03:04:05'"),
         ("Other", None),
     ],
 )
@@ -43,6 +45,88 @@ def test_convert_dttm(
     from superset.db_engine_specs.sqlite import SqliteEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "'2019-01-02'"),
+        ("Text", "'2019-01-02 00:00:00'"),
+        ("DateTime", "'2019-01-02 00:00:00'"),
+        ("TimeStamp", "'2019-01-02 00:00:00'"),
+        ("Other", None),
+    ],
+)
+def test_convert_dttm_midnight(
+    target_type: str,
+    expected_result: Optional[str],
+) -> None:
+    """
+    Test that midnight is written as a bare date for DATE columns only.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec as spec  # noqa: N813
+
+    assert_convert_dttm(spec, target_type, expected_result, datetime(2019, 1, 2))
+
+
+@pytest.mark.parametrize("sqlalchemy_uri", ["sqlite://", "d1://account:token@db"])
+@pytest.mark.parametrize("time_grain", [None, TimeGrain.DAY])
+@pytest.mark.parametrize(
+    "start,end,expected",
+    [
+        (
+            datetime(2026, 9, 20),
+            datetime(2026, 9, 22),
+            ["2026-09-20", "2026-09-21"],
+        ),
+        (
+            datetime(2026, 9, 20, 12),
+            datetime(2026, 9, 22, 12),
+            ["2026-09-21", "2026-09-22"],
+        ),
+    ],
+)
+def test_time_filter_on_date_column(
+    app_context: None,
+    sqlalchemy_uri: str,
+    time_grain: Optional[str],
+    start: datetime,
+    end: datetime,
+    expected: list[str],
+) -> None:
+    """
+    Test that a time filter on a DATE column stored as text returns the right days.
+
+    The filter comes from ``get_time_filter``, as in a chart query. D1 is SQLite,
+    so both run on an in-memory SQLite database. Each day counts as its midnight,
+    as it would in a comparison of dates.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    column = TableColumn(column_name="day", type="DATE", is_dttm=True)
+    table = SqlaTable(
+        table_name="t",
+        columns=[column],
+        database=Database(database_name="db", sqlalchemy_uri=sqlalchemy_uri),
+    )
+    time_filter = table.get_time_filter(column, start, end, time_grain=time_grain)
+    assert time_filter is not None
+
+    engine = create_engine("sqlite://")
+    where = time_filter.compile(engine, compile_kwargs={"literal_binds": True})
+    sql = f"SELECT day FROM t WHERE {where} ORDER BY day"  # noqa: S608
+    with engine.connect() as connection:
+        connection.execute(text("CREATE TABLE t (day DATE)"))
+        connection.execute(
+            text(
+                "INSERT INTO t VALUES "
+                "('2026-09-19'), ('2026-09-20'), ('2026-09-21'), ('2026-09-22')"
+            )
+        )
+        rows = connection.execute(text(sql)).fetchall()
+
+    assert [row[0] for row in rows] == expected
 
 
 @pytest.mark.parametrize(
@@ -120,12 +204,44 @@ def test_time_grain_expressions(dttm: str, grain: str, expected: str) -> None:  
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
     engine = create_engine("sqlite://")
-    connection = engine.connect()
-    connection.execute("CREATE TABLE t (dttm DATETIME)")
-    connection.execute("INSERT INTO t VALUES (?)", dttm)
+    with engine.begin() as connection:
+        connection.execute(text("CREATE TABLE t (dttm DATETIME)"))
+        connection.execute(text("INSERT INTO t VALUES (:dttm)"), {"dttm": dttm})
 
     # pylint: disable=protected-access
     expression = SqliteEngineSpec._time_grain_expressions[grain].format(col="dttm")
     sql = f"SELECT {expression} FROM t"  # noqa: S608
-    result = connection.execute(sql).scalar()
+    with engine.connect() as connection:
+        result = connection.execute(text(sql)).scalar()
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "year,expected",
+    [
+        (2013, "2013-01-01 00:00:00"),
+        (2013.0, "2013-01-01 00:00:00"),
+        (None, None),
+    ],
+)
+def test_year_pdf_time_grain(year: Optional[float], expected: Optional[str]) -> None:
+    """A bare four-digit year (e.g. the `year` column on the `video_game_sales`
+    example dataset) has no native date type; without `year_to_dttm` the raw
+    value is passed straight into the grain function, which SQLite reads as a
+    Julian day number rather than a calendar year, silently producing NULL."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    engine = create_engine("sqlite://")
+    with engine.begin() as connection:
+        connection.execute(text("CREATE TABLE t (year REAL)"))
+        connection.execute(text("INSERT INTO t VALUES (:year)"), {"year": year})
+
+    expression = SqliteEngineSpec.get_timestamp_expr(
+        col=column("year"), pdf="%Y", time_grain=TimeGrain.YEAR
+    )
+    sql = f"SELECT {expression} FROM t"  # noqa: S608
+    with engine.connect() as connection:
+        result = connection.execute(text(sql)).scalar()
     assert result == expected

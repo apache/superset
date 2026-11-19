@@ -17,32 +17,108 @@
  * under the License.
  */
 
-import prettyMs from 'pretty-ms';
+import { parseMilliseconds } from '@superset-ui/core/number-format/utils/parseMilliseconds';
 
 /**
  * Maximum ETA to display (24 hours in seconds).
  * ETAs beyond this are not shown as they're unreliable.
  */
 const MAX_ETA_SECONDS = 86400;
+const durationFormatters = new Map<string, Intl.DurationFormat>();
+
+function createDurationFormatter(locale: string): Intl.DurationFormat {
+  const normalizedLocale = locale.replace(/_/g, '-');
+
+  try {
+    return new Intl.DurationFormat(normalizedLocale, { style: 'narrow' });
+  } catch {
+    return new Intl.DurationFormat('en', { style: 'narrow' });
+  }
+}
+
+function getCachedDurationFormatter(locale?: string): Intl.DurationFormat {
+  const key = locale ?? '';
+  const formatter = durationFormatters.get(key);
+
+  if (formatter) {
+    return formatter;
+  }
+
+  const newFormatter = createDurationFormatter(locale ?? 'en');
+  durationFormatters.set(key, newFormatter);
+  return newFormatter;
+}
+
+// Sub-minute durations render as the seconds unit with up to one decimal
+// ("0.3s", "37.5s") — enough precision for a quick query without ms/μs noise.
+const secondsFormatters = new Map<string, Intl.NumberFormat>();
+
+function getCachedSecondsFormatter(locale?: string): Intl.NumberFormat {
+  const key = locale ?? '';
+  const cached = secondsFormatters.get(key);
+  if (cached) {
+    return cached;
+  }
+  const options: Intl.NumberFormatOptions = {
+    style: 'unit',
+    unit: 'second',
+    unitDisplay: 'narrow',
+    maximumFractionDigits: 1,
+  };
+  let formatter: Intl.NumberFormat;
+  try {
+    formatter = new Intl.NumberFormat(
+      (locale ?? 'en').replace(/_/g, '-'),
+      options,
+    );
+  } catch {
+    formatter = new Intl.NumberFormat('en', options);
+  }
+  secondsFormatters.set(key, formatter);
+  return formatter;
+}
 
 /**
  * Format a duration in seconds to a human-readable string.
  *
+ * Under a minute it shows the seconds unit with up to one decimal ("0.3s",
+ * "37.5s"); a minute or longer shows the two highest *adjacent* whole units
+ * ("1m 30s", "2h 15m", "1d 2h") — never sub-second (ms/μs/ns) noise.
+ *
  * @param seconds - Duration in seconds
- * @returns Formatted string like "1m 30s" or "2h 15m", or null if invalid
+ * @param locale - Current locale
+ * @returns Formatted string like "0.3s", "1m 30s", or "2h 15m", or null if invalid
  */
 export function formatDuration(
   seconds: number | null | undefined,
+  locale = 'en',
 ): string | null {
   if (seconds === null || seconds === undefined || seconds <= 0) {
     return null;
   }
 
-  return prettyMs(seconds * 1000, {
-    unitCount: 2,
-    secondsDecimalDigits: 0,
-    keepDecimalsOnWholeSeconds: false,
-  });
+  // Under a minute: seconds with up to one decimal.
+  if (seconds < 60) {
+    return getCachedSecondsFormatter(locale).format(seconds);
+  }
+
+  // A minute or longer: the two highest *adjacent* whole units (never skipping a
+  // zero middle unit, so an exact "1h 0m 5s" reads "1h", not "1h 5s"). Round to
+  // whole seconds so no ms/μs/ns units are ever emitted.
+  const durObject = parseMilliseconds(Math.round(seconds) * 1000);
+  const unitOrder = ['years', 'days', 'hours', 'minutes', 'seconds'] as const;
+  const firstIdx = unitOrder.findIndex(unit => durObject[unit] > 0);
+  const nonZeroUnits = unitOrder
+    .slice(firstIdx, firstIdx + 2)
+    .filter(unit => durObject[unit] > 0)
+    .reduce(
+      (obj, unit) => {
+        obj[unit] = durObject[unit];
+        return obj;
+      },
+      {} as Record<string, number>,
+    );
+  return getCachedDurationFormatter(locale).format(nonZeroUnits);
 }
 
 /**
@@ -53,11 +129,13 @@ export function formatDuration(
  *
  * @param progressPercent - Progress as a fraction (0.0 to 1.0)
  * @param durationSeconds - Time elapsed so far in seconds
+ * @param locale - Current locale
  * @returns Formatted ETA string or null if cannot be calculated
  */
 export function calculateEta(
   progressPercent: number | null | undefined,
   durationSeconds: number | null | undefined,
+  locale?: string,
 ): string | null {
   // Need both progress and duration to calculate ETA
   if (
@@ -76,19 +154,16 @@ export function calculateEta(
 
   // ETA = (elapsed / progress) * (1 - progress)
   const estimatedTotalTime = durationSeconds / progressPercent;
-  const remainingSeconds = estimatedTotalTime * (1 - progressPercent);
+  const remainingSeconds = Math.round(
+    estimatedTotalTime * (1 - progressPercent),
+  );
 
   // Only show ETA if it's reasonable (less than 24 hours)
   if (remainingSeconds <= 0 || remainingSeconds > MAX_ETA_SECONDS) {
     return null;
   }
 
-  // Use unitCount: 2 to show up to 2 units (e.g., "1m 30s" instead of just "1m")
-  // Use secondsDecimalDigits: 0 to show whole seconds (e.g., "52s" instead of "52.4s")
-  return prettyMs(remainingSeconds * 1000, {
-    unitCount: 2,
-    secondsDecimalDigits: 0,
-  });
+  return formatDuration(remainingSeconds, locale);
 }
 
 /**
@@ -105,6 +180,7 @@ export function calculateEta(
  * @param progressTotal - Total count of items to process
  * @param progressPercent - Progress as a fraction (0.0 to 1.0)
  * @param durationSeconds - Time elapsed so far in seconds (used for ETA calculation)
+ * @param locale - Current locale
  * @returns Array of lines for tooltip display
  */
 export function formatProgressTooltip(
@@ -113,6 +189,7 @@ export function formatProgressTooltip(
   progressTotal?: number | null,
   progressPercent?: number | null,
   durationSeconds?: number | null,
+  locale?: string,
 ): string[] {
   const lines: string[] = [];
   let progressPart = '';
@@ -142,7 +219,7 @@ export function formatProgressTooltip(
   }
 
   // Add ETA on a separate line if available
-  const eta = calculateEta(progressPercent, durationSeconds);
+  const eta = calculateEta(progressPercent, durationSeconds, locale);
   if (eta) {
     lines.push(`ETA: ${eta}`);
   }

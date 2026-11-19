@@ -17,10 +17,13 @@
 import logging
 import re
 from re import Pattern
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from flask_babel import gettext as __
 from sqlalchemy import Numeric, TEXT, types
+from sqlalchemy.engine import Connection
+from sqlalchemy.exc import NoSuchTableError, ProgrammingError
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.type_api import TypeEngine
 
 from superset.db_engine_specs.base import DatabaseCategory
@@ -83,6 +86,12 @@ class OceanBaseEngineSpec(MySQLEngineSpec):
     )
     encryption_parameters = {"ssl": "0"}
     supports_dynamic_schema = True
+
+    # `MySQLEngineSpec._extended_aggregations` (STDDEV_SAMP/VAR_SAMP) is verified
+    # against real MySQL behavior, not OceanBase's distributed query engine;
+    # disable it here until someone confirms the same expressions against a live
+    # OceanBase instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
 
     metadata = {
         "description": "OceanBase is a distributed relational database.",
@@ -194,3 +203,87 @@ class OceanBaseEngineSpec(MySQLEngineSpec):
             {},
         ),
     }
+
+
+def monkeypatch_dialect() -> None:
+    """
+    Monkeypatch oceanbase_py's SQLAlchemy dialect to work under SQLAlchemy 2.0.
+
+    ``OceanBaseDialect.has_table()`` and ``get_columns()`` both pass a raw SQL
+    string straight to ``Connection.execute()`` (e.g.
+    ``connection.execute(f"DESCRIBE {full_name}")``), which SQLAlchemy 2.0
+    rejects outright with ``ObjectNotExecutableError``. Every *other* raw-SQL
+    method in the same dialect module already uses
+    ``connection.exec_driver_sql(...)`` instead, so this looks like an
+    isolated oversight rather than a deliberate choice. ``has_table()`` also
+    never catches the error ``DESCRIBE`` raises for a table that doesn't
+    exist (MySQL/OceanBase error 1146), so even with that call fixed it can
+    only ever return ``True``, raising instead of returning ``False`` for
+    exactly the case ``MetaData.create_all()``'s default ``checkfirst=True``
+    relies on.
+
+    The ``oceanbase_py`` PyPI package has no public source repository to open
+    an issue or PR against, so this is filed upstream by email instead; patch
+    here until (if ever) a fixed release ships.
+    """
+    try:
+        from oceanbase_py.sqlalchemy import datatype
+        from oceanbase_py.sqlalchemy.dialect import OceanBaseDialect
+    except ImportError:
+        return
+
+    def has_table(
+        self: Any,
+        connection: Connection,
+        table_name: str,
+        schema: Optional[str] = None,
+        **kw: Any,
+    ) -> bool:
+        if schema is None:
+            schema = self.default_schema_name
+        quote = self.identifier_preparer.quote_identifier
+        full_name = quote(table_name)
+        if schema:
+            full_name = f"{quote(schema)}.{full_name}"
+        try:
+            res = connection.exec_driver_sql(f"DESCRIBE {full_name}")
+        except ProgrammingError as ex:
+            # Only "table doesn't exist" (1146) means False; re-raise the rest
+            args = getattr(ex.orig, "args", ())
+            if args and args[0] == 1146:
+                return False
+            raise
+        return res.first() is not None
+
+    def get_columns(
+        self: Any,
+        connection: Connection,
+        table_name: str,
+        schema: Optional[str] = None,
+        **kw: Any,
+    ) -> list[dict[str, Any]]:
+        if not self.has_table(connection, table_name, schema):
+            raise NoSuchTableError(f"schema={schema}, table={table_name}")
+        schema = schema or self._get_default_schema_name(connection)
+
+        quote = self.identifier_preparer.quote_identifier
+        full_name = quote(table_name)
+        if schema:
+            full_name = f"{quote(schema)}.{full_name}"
+
+        res = connection.exec_driver_sql(f"SHOW COLUMNS FROM {full_name}")
+        return [
+            {
+                "name": record.Field,
+                "type": datatype.parse_sql_type(record.Type),
+                "nullable": record.Null == "YES",
+                "default": record.Default,
+            }
+            for record in res
+        ]
+
+    OceanBaseDialect.has_table = has_table
+    OceanBaseDialect.get_columns = get_columns
+
+
+monkeypatch_dialect()

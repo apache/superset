@@ -18,7 +18,7 @@
  */
 
 import { CSSProperties, memo } from 'react';
-import type { ListChildComponentProps } from 'react-window';
+import type { RowComponentProps } from 'react-window';
 import { useDroppable } from '@dnd-kit/core';
 import type { UniqueIdentifier } from '@dnd-kit/core';
 import type { Metric, ColumnMeta } from '@superset-ui/chart-controls';
@@ -135,32 +135,34 @@ const TreeItemWrapper = memo(function TreeItemWrapper({
   );
 });
 
-function VirtualizedTreeItemComponent({
+// Not wrapped in `memo()` here: react-window v2 already wraps `rowComponent`
+// in its own `memo()` internally (comparing `ariaAttributes`/`style`/the
+// rest of the row props), so an outer `memo()` would be redundant - and
+// React 19's `memo()` typings widen the wrapped component's return type to
+// `ReactNode`, which react-window v2's `rowComponent` type (expecting
+// `ReactElement | null`) rejects.
+export function VirtualizedTreeItem({
   index,
   style,
-  data,
-}: ListChildComponentProps<VirtualizedTreeItemData>) {
-  const {
-    flattenedItems,
-    collapsedIds,
-    selectedItemIds,
-    editingFolderId,
-    folderChildCounts,
-    itemSeparatorInfo,
-    visibleItemIds,
-    searchTerm,
-    metricsMap,
-    columnsMap,
-    activeId,
-    draggedFolderChildIds,
-    forbiddenDropFolderIds,
-    currentDropTargetId,
-    onToggleCollapse,
-    onSelect,
-    onStartEdit,
-    onFinishEdit,
-  } = data;
-
+  flattenedItems,
+  collapsedIds,
+  selectedItemIds,
+  editingFolderId,
+  folderChildCounts,
+  itemSeparatorInfo,
+  visibleItemIds,
+  searchTerm,
+  metricsMap,
+  columnsMap,
+  activeId,
+  draggedFolderChildIds,
+  forbiddenDropFolderIds,
+  currentDropTargetId,
+  onToggleCollapse,
+  onSelect,
+  onStartEdit,
+  onFinishEdit,
+}: RowComponentProps<VirtualizedTreeItemData>) {
   const item = flattenedItems[index];
 
   if (!item) {
@@ -224,5 +226,3 @@ function VirtualizedTreeItemComponent({
     />
   );
 }
-
-export const VirtualizedTreeItem = memo(VirtualizedTreeItemComponent);

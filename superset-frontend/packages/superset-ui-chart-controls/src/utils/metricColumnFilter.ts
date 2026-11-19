@@ -75,7 +75,9 @@ export function isRegularMetric(
   colname: string,
   formData: SqlaFormData,
 ): boolean {
-  return !!formData.metrics?.some(metric => getMetricLabel(metric) === colname);
+  return !!formData.metrics?.some(
+    (metric: QueryFormMetric) => getMetricLabel(metric) === colname,
+  );
 }
 
 /**

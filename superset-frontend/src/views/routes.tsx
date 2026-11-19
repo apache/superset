@@ -18,169 +18,184 @@
  */
 
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import {
-  lazy,
-  ComponentType,
-  ComponentProps,
-  LazyExoticComponent,
-} from 'react';
+import { ComponentType, ComponentProps, LazyExoticComponent } from 'react';
+import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { stripAppRoot } from 'src/utils/navigationUtils';
+import { RoutePaths } from './routePaths';
 
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
 
-const ChartCreation = lazy(
+const ChartCreation = lazyWithRetry(
   () =>
     import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
 );
 
-const AnnotationLayerList = lazy(
+const AnnotationLayerList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "AnnotationLayerList" */ 'src/pages/AnnotationLayerList'
     ),
 );
 
-const AlertReportList = lazy(
+const AlertReportList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "AlertReportList" */ 'src/pages/AlertReportList'
     ),
 );
 
-const AnnotationList = lazy(
+const AnnotationList = lazyWithRetry(
   () =>
     import(/* webpackChunkName: "AnnotationList" */ 'src/pages/AnnotationList'),
 );
 
-const ChartList = lazy(
+const ChartList = lazyWithRetry(
   () => import(/* webpackChunkName: "ChartList" */ 'src/pages/ChartList'),
 );
 
-const CssTemplateList = lazy(
+const ArchivedList = lazyWithRetry(
+  () => import(/* webpackChunkName: "ArchivedList" */ 'src/pages/ArchivedList'),
+);
+
+const CssTemplateList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "CssTemplateList" */ 'src/pages/CssTemplateList'
     ),
 );
 
-const ThemeList = lazy(
+const ThemeList = lazyWithRetry(
   () => import(/* webpackChunkName: "ThemeList" */ 'src/pages/ThemeList'),
 );
 
-const DashboardList = lazy(
+const DashboardList = lazyWithRetry(
   () =>
     import(/* webpackChunkName: "DashboardList" */ 'src/pages/DashboardList'),
 );
 
-const Dashboard = lazy(
+const Dashboard = lazyWithRetry(
   () => import(/* webpackChunkName: "Dashboard" */ 'src/pages/Dashboard'),
 );
 
-const DatabaseList = lazy(
+const DatabaseList = lazyWithRetry(
   () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DatabaseList'),
 );
 
-const DatasetList = lazy(
+const DatasetList = lazyWithRetry(
   () => import(/* webpackChunkName: "DatasetList" */ 'src/pages/DatasetList'),
 );
 
-const DatasetCreation = lazy(
+const DatasetCreation = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "DatasetCreation" */ 'src/pages/DatasetCreation'
     ),
 );
 
-const ExecutionLogList = lazy(
+const ExecutionLogList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "ExecutionLogList" */ 'src/pages/ExecutionLogList'
     ),
 );
 
-const Chart = lazy(
+const Chart = lazyWithRetry(
   () => import(/* webpackChunkName: "Chart" */ 'src/pages/Chart'),
 );
 
-const QueryHistoryList = lazy(
+const QueryHistoryList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "QueryHistoryList" */ 'src/pages/QueryHistoryList'
     ),
 );
 
-const SavedQueryList = lazy(
+const SavedQueryList = lazyWithRetry(
   () =>
     import(/* webpackChunkName: "SavedQueryList" */ 'src/pages/SavedQueryList'),
 );
 
-const SqlLab = lazy(
+const SqlLab = lazyWithRetry(
   () => import(/* webpackChunkName: "SqlLab" */ 'src/pages/SqlLab'),
 );
 
-const AllEntities = lazy(
+const AllEntities = lazyWithRetry(
   () => import(/* webpackChunkName: "AllEntities" */ 'src/pages/AllEntities'),
 );
 
-const Tags = lazy(
+const Tags = lazyWithRetry(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
 );
 
-const Extensions = lazy(
-  () => import(/* webpackChunkName: "Tags" */ 'src/extensions/ExtensionsList'),
+const Extensions = lazyWithRetry(
+  () =>
+    import(
+      /* webpackChunkName: "Extensions" */ 'src/extensions/ExtensionsList'
+    ),
 );
 
-const RowLevelSecurityList = lazy(
+const RowLevelSecurityList = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
     ),
 );
 
-const TaskList = lazy(
+const TaskList = lazyWithRetry(
   () => import(/* webpackChunkName: "TaskList" */ 'src/pages/TaskList'),
 );
 
-const RolesList = lazy(
+const RolesList = lazyWithRetry(
   () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
 );
 
-const UsersList: LazyExoticComponent<any> = lazy(
+const UsersList: LazyExoticComponent<any> = lazyWithRetry(
   () => import(/* webpackChunkName: "UsersList" */ 'src/pages/UsersList'),
 );
 
-const UserInfo = lazy(
+const UserInfo = lazyWithRetry(
   () => import(/* webpackChunkName: "UserInfo" */ 'src/pages/UserInfo'),
 );
-const ActionLogList: LazyExoticComponent<any> = lazy(
+const ActionLogList: LazyExoticComponent<any> = lazyWithRetry(
   () => import(/* webpackChunkName: "ActionLogList" */ 'src/pages/ActionLog'),
 );
 
-const Login = lazy(
+const Login = lazyWithRetry(
   () => import(/* webpackChunkName: "Login" */ 'src/pages/Login'),
 );
 
-const Register = lazy(
+const Register = lazyWithRetry(
   () => import(/* webpackChunkName: "Register" */ 'src/pages/Register'),
 );
 
-const GroupsList: LazyExoticComponent<any> = lazy(
+const ForgotPassword = lazyWithRetry(
+  () =>
+    import(/* webpackChunkName: "ForgotPassword" */ 'src/pages/ForgotPassword'),
+);
+
+const ResetPassword = lazyWithRetry(
+  () =>
+    import(/* webpackChunkName: "ResetPassword" */ 'src/pages/ResetPassword'),
+);
+
+const GroupsList: LazyExoticComponent<any> = lazyWithRetry(
   () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
 );
-const UserRegistrations = lazy(
+const UserRegistrations = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "UserRegistrations" */ 'src/pages/UserRegistrations'
     ),
 );
 
-const FileHandler = lazy(
+const FileHandler = lazyWithRetry(
   () => import(/* webpackChunkName: "FileHandler" */ 'src/pages/FileHandler'),
 );
 
-const RedirectWarning = lazy(
+const RedirectWarning = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "RedirectWarning" */ 'src/pages/RedirectWarning'
@@ -192,154 +207,90 @@ type Routes = {
   Component: ComponentType;
   Fallback?: ComponentType;
   props?: ComponentProps<any>;
+  /**
+   * Marks a route as usable in the mobile consumption-only experience.
+   * Routes without this flag show the MobileUnsupported screen on small
+   * screens when MOBILE_CONSUMPTION_MODE is enabled.
+   */
+  mobileSupported?: boolean;
 }[];
 
 export const routes: Routes = [
   {
-    path: '/redirect/',
+    path: RoutePaths.REDIRECT,
     Component: RedirectWarning,
+    mobileSupported: true,
+  },
+  // The route switch matches by prefix, so these must precede LOGIN.
+  {
+    path: RoutePaths.FORGOT_PASSWORD,
+    Component: ForgotPassword,
+    mobileSupported: true,
   },
   {
-    path: '/login/',
-    Component: Login,
+    path: RoutePaths.RESET_PASSWORD,
+    Component: ResetPassword,
+    mobileSupported: true,
   },
+  { path: RoutePaths.LOGIN, Component: Login, mobileSupported: true },
   {
-    path: '/register/activation/:activationHash',
+    path: RoutePaths.REGISTER_ACTIVATION,
     Component: Register,
+    mobileSupported: true,
   },
+  { path: RoutePaths.REGISTER, Component: Register, mobileSupported: true },
+  { path: RoutePaths.LOGOUT, Component: Login, mobileSupported: true },
+  { path: RoutePaths.HOME, Component: Home, mobileSupported: true },
+  { path: RoutePaths.FILE_HANDLER, Component: FileHandler },
   {
-    path: '/register/',
-    Component: Register,
-  },
-  {
-    path: '/logout/',
-    Component: Login,
-  },
-  {
-    path: '/superset/welcome/',
-    Component: Home,
-  },
-  {
-    path: '/superset/file-handler',
-    Component: FileHandler,
-  },
-  {
-    path: '/dashboard/list/',
+    path: RoutePaths.DASHBOARD_LIST,
     Component: DashboardList,
+    mobileSupported: true,
   },
+  { path: RoutePaths.DASHBOARD, Component: Dashboard, mobileSupported: true },
+  { path: RoutePaths.CHART_ADD, Component: ChartCreation },
+  { path: RoutePaths.CHART_LIST, Component: ChartList },
+  { path: RoutePaths.DATASET_LIST, Component: DatasetList },
+  { path: RoutePaths.DATABASE_LIST, Component: DatabaseList },
+  { path: RoutePaths.SAVED_QUERIES, Component: SavedQueryList },
+  { path: RoutePaths.CSS_TEMPLATES, Component: CssTemplateList },
+  { path: RoutePaths.THEMES, Component: ThemeList },
+  { path: RoutePaths.ANNOTATION_LAYERS, Component: AnnotationLayerList },
+  { path: RoutePaths.ANNOTATION_LIST, Component: AnnotationList },
+  { path: RoutePaths.QUERY_HISTORY, Component: QueryHistoryList },
+  { path: RoutePaths.ALERTS, Component: AlertReportList },
   {
-    path: '/superset/dashboard/:idOrSlug/',
-    Component: Dashboard,
-  },
-  {
-    path: '/chart/add',
-    Component: ChartCreation,
-  },
-  {
-    path: '/chart/list/',
-    Component: ChartList,
-  },
-  {
-    path: '/tablemodelview/list/',
-    Component: DatasetList,
-  },
-  {
-    path: '/databaseview/list/',
-    Component: DatabaseList,
-  },
-  {
-    path: '/savedqueryview/list/',
-    Component: SavedQueryList,
-  },
-  {
-    path: '/csstemplatemodelview/list/',
-    Component: CssTemplateList,
-  },
-  {
-    path: '/theme/list/',
-    Component: ThemeList,
-  },
-  {
-    path: '/annotationlayer/list/',
-    Component: AnnotationLayerList,
-  },
-  {
-    path: '/annotationlayer/:annotationLayerId/annotation/',
-    Component: AnnotationList,
-  },
-  {
-    path: '/sqllab/history/',
-    Component: QueryHistoryList,
-  },
-  {
-    path: '/alert/list/',
+    path: RoutePaths.REPORTS,
     Component: AlertReportList,
+    props: { isReportEnabled: true },
   },
+  { path: RoutePaths.ALERT_LOG, Component: ExecutionLogList },
   {
-    path: '/report/list/',
-    Component: AlertReportList,
-    props: {
-      isReportEnabled: true,
-    },
-  },
-  {
-    path: '/alert/:alertId/log/',
+    path: RoutePaths.REPORT_LOG,
     Component: ExecutionLogList,
+    props: { isReportEnabled: true },
   },
-  {
-    path: '/report/:alertId/log/',
-    Component: ExecutionLogList,
-    props: {
-      isReportEnabled: true,
-    },
-  },
-  {
-    path: '/explore/',
-    Component: Chart,
-  },
-  {
-    path: '/superset/explore/p',
-    Component: Chart,
-  },
-  {
-    path: '/dataset/add/',
-    Component: DatasetCreation,
-  },
-  {
-    path: '/dataset/:datasetId',
-    Component: DatasetCreation,
-  },
-  {
-    path: '/rowlevelsecurity/list',
-    Component: RowLevelSecurityList,
-  },
-  {
-    path: '/tasks/list/',
-    Component: TaskList,
-  },
-  {
-    path: '/sqllab/',
-    Component: SqlLab,
-  },
-  { path: '/user_info/', Component: UserInfo },
-  {
-    path: '/actionlog/list',
-    Component: ActionLogList,
-  },
-  {
-    path: '/registrations/',
-    Component: UserRegistrations,
-  },
+  { path: RoutePaths.EXPLORE, Component: Chart },
+  { path: RoutePaths.EXPLORE_PERMALINK, Component: Chart },
+  { path: RoutePaths.DATASET_ADD, Component: DatasetCreation },
+  { path: RoutePaths.DATASET, Component: DatasetCreation },
+  { path: RoutePaths.ROW_LEVEL_SECURITY, Component: RowLevelSecurityList },
+  { path: RoutePaths.TASKS, Component: TaskList },
+  { path: RoutePaths.SQLLAB, Component: SqlLab },
+  { path: RoutePaths.USER_INFO, Component: UserInfo, mobileSupported: true },
+  { path: RoutePaths.ACTION_LOG, Component: ActionLogList },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+  routes.push({ path: RoutePaths.ALL_ENTITIES, Component: AllEntities });
+  routes.push({ path: RoutePaths.TAGS, Component: Tags });
+}
+
+// Recently-Archived view — gated by the soft-delete feature (T007).
+if (isFeatureEnabled(FeatureFlag.SoftDelete)) {
   routes.push({
-    path: '/superset/all_entities/',
-    Component: AllEntities,
-  });
-  routes.push({
-    path: '/superset/tags/',
-    Component: Tags,
+    path: '/archived/',
+    Component: ArchivedList,
   });
 }
 
@@ -350,33 +301,18 @@ const isAdmin = isUserAdmin(user);
 
 if (isAdmin) {
   routes.push(
-    {
-      path: '/roles/',
-      Component: RolesList,
-    },
-    {
-      path: '/users/',
-      Component: UsersList,
-    },
-    {
-      path: '/list_groups/',
-      Component: GroupsList,
-    },
+    { path: RoutePaths.ROLES, Component: RolesList },
+    { path: RoutePaths.USERS, Component: UsersList },
+    { path: RoutePaths.GROUPS, Component: GroupsList },
   );
 
   if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
-    routes.push({
-      path: '/extensions/list/',
-      Component: Extensions,
-    });
+    routes.push({ path: RoutePaths.EXTENSIONS, Component: Extensions });
   }
 }
 
 if (authRegistrationEnabled) {
-  routes.push({
-    path: '/registrations/',
-    Component: UserRegistrations,
-  });
+  routes.push({ path: RoutePaths.REGISTRATIONS, Component: UserRegistrations });
 }
 
 const frontEndRoutes: Record<string, boolean> = routes
@@ -391,7 +327,16 @@ const frontEndRoutes: Record<string, boolean> = routes
 
 export const isFrontendRoute = (path?: string): boolean => {
   if (path) {
-    const basePath = path.split(/[?#]/)[0]; // strip out query params and link bookmarks
+    // Strip query / hash, then strip the application-root segment so menu URLs
+    // emitted by the backend (`url_for(...)` → `/<appRoot>/<route>`) match
+    // against the route table, which is keyed by post-basename paths.
+    //
+    // Note: this is a literal dictionary lookup, not a path-pattern match —
+    // parameterised routes such as `/dashboard/:idOrSlug/` are NOT matched
+    // by a concrete `/dashboard/123/` URL. Callers relying on that behaviour
+    // (e.g., the brand-link SPA-route check in `Menu.tsx`) accept a
+    // full-page-reload fallback for those URLs.
+    const basePath = stripAppRoot(path.split(/[?#]/)[0]);
     return !!frontEndRoutes[basePath];
   }
   return false;

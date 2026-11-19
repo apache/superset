@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { getExtensionsRegistry } from '@superset-ui/core';
+import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
@@ -35,7 +35,6 @@ import { CheckboxChangeEvent } from '@superset-ui/core/components/Checkbox/types
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-import { makeUrl } from 'src/utils/pathUtils';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Button,
@@ -53,6 +52,7 @@ import {
 } from '@superset-ui/core/components';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import isPrivateKeyField from 'src/components/ImportModal/isPrivateKeyField';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -64,7 +64,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import { FileEncryptedExtraFields } from 'src/views/CRUD/types';
 import { useCommonConf } from 'src/features/databases/state';
-import { isEmpty, pick } from 'lodash';
+import { isEmpty, pick } from 'lodash-es';
 import { OnlyKeyWithType } from 'src/utils/types';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
@@ -104,6 +104,7 @@ import {
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 import SSHTunnelForm from './SSHTunnelForm';
 import SSHTunnelSwitch from './SSHTunnelSwitch';
+import { normalizeMetadataCacheTimeouts } from './utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -128,11 +129,11 @@ const engineSpecificAlertMapping = {
 };
 
 const TabsStyled = styled(Tabs)`
-  .ant-tabs-content {
+  .ant-tabs-body {
     width: 100%;
     overflow: inherit;
 
-    & > .ant-tabs-tabpane {
+    & > .ant-tabs-content {
       position: relative;
     }
   }
@@ -168,6 +169,7 @@ export enum ActionType {
   ExtraEditorChange,
   ExtraInputChange,
   EncryptedExtraInputChange,
+  ClearEncryptedExtraKey,
   Fetched,
   InputChange,
   ParametersChange,
@@ -199,7 +201,7 @@ export type DBReducerActionType =
       type:
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
-        | ActionType.EncryptedExtraInputChange
+        | ActionType.ClearEncryptedExtraKey
         | ActionType.TextChange
         | ActionType.QueryChange
         | ActionType.InputChange
@@ -209,7 +211,16 @@ export type DBReducerActionType =
       payload: DBReducerPayloadType;
     }
   | {
+      // Nested Secure Extra blocks (e.g. `embedded_credentials`) carry an
+      // object rather than a string.
+      type: ActionType.EncryptedExtraInputChange;
+      payload: Omit<DBReducerPayloadType, 'value'> & {
+        value?: string | Record<string, string>;
+      };
+    }
+  | {
       type: ActionType.Fetched;
+      isEditMode?: boolean;
       payload: Partial<DatabaseObject>;
     }
   | {
@@ -240,6 +251,8 @@ export type DBReducerActionType =
       payload: {
         database_name?: string;
         engine?: string;
+        driver?: string;
+        sqlalchemy_uri_placeholder?: string;
         configuration_method: ConfigurationMethod;
       };
     }
@@ -286,26 +299,73 @@ export function dbReducer(
           [action.payload.name]: actionPayloadJson,
         }),
       };
-    case ActionType.EncryptedExtraInputChange:
+    case ActionType.EncryptedExtraInputChange: {
+      // `masked_encrypted_extra` can arrive as the literal string "null" or
+      // malformed JSON from older payloads — defend the parse so a single
+      // bad value can't crash the reducer.
+      let parsedUnknown: unknown;
+      try {
+        parsedUnknown = JSON.parse(trimmedState.masked_encrypted_extra || '{}');
+      } catch (e) {
+        if (!(e instanceof SyntaxError)) throw e;
+        parsedUnknown = {};
+      }
+      const parsed: Record<string, unknown> =
+        parsedUnknown &&
+        typeof parsedUnknown === 'object' &&
+        !Array.isArray(parsedUnknown)
+          ? (parsedUnknown as Record<string, unknown>)
+          : {};
+      // Generic input change: store the value as-is (including empty string).
+      // Use `ClearEncryptedExtraKey` if the intent is to remove the key.
       return {
         ...trimmedState,
         masked_encrypted_extra: JSON.stringify({
-          ...JSON.parse(trimmedState.masked_encrypted_extra || '{}'),
+          ...parsed,
           [action.payload.name]: action.payload.value,
         }),
       };
+    }
+    case ActionType.ClearEncryptedExtraKey: {
+      // Same defensive parse as EncryptedExtraInputChange — see comment above.
+      let parsedUnknown: unknown;
+      try {
+        parsedUnknown = JSON.parse(trimmedState.masked_encrypted_extra || '{}');
+      } catch (e) {
+        if (!(e instanceof SyntaxError)) throw e;
+        parsedUnknown = {};
+      }
+      const parsed: Record<string, unknown> =
+        parsedUnknown &&
+        typeof parsedUnknown === 'object' &&
+        !Array.isArray(parsedUnknown)
+          ? (parsedUnknown as Record<string, unknown>)
+          : {};
+      // Explicit key removal — used by the gsheets public/private toggle to
+      // drop previously stored service_account_info / oauth2_client_info so
+      // the save-time merge in this modal doesn't carry them forward.
+      delete parsed[action.payload.name as string];
+      return {
+        ...trimmedState,
+        masked_encrypted_extra: JSON.stringify(parsed),
+      };
+    }
     case ActionType.ExtraInputChange:
       if (
         action.payload.name === 'schema_cache_timeout' ||
         action.payload.name === 'table_cache_timeout'
       ) {
+        const timeoutValue =
+          action.payload.value === ''
+            ? undefined
+            : Math.max(0, Number(action.payload.value) || 0);
         return {
           ...trimmedState,
           extra: JSON.stringify({
             ...extraJson,
             metadata_cache_timeout: {
               ...extraJson?.metadata_cache_timeout,
-              [action.payload.name]: Number(action.payload.value),
+              [action.payload.name]: timeoutValue,
             },
           }),
         };
@@ -369,6 +429,16 @@ export function dbReducer(
         return {
           ...trimmedState,
           [action.payload.name]: action.payload.checked,
+        };
+      }
+      if (action.payload.name === 'cache_timeout') {
+        const val =
+          action.payload.value === '' ? NaN : Number(action.payload.value);
+        return {
+          ...trimmedState,
+          cache_timeout: Number.isNaN(val)
+            ? undefined
+            : String(Math.max(-1, val)),
         };
       }
       return {
@@ -494,11 +564,26 @@ export function dbReducer(
       return {
         ...trimmedState,
       };
-    case ActionType.EditorChange:
-      return {
+    case ActionType.EditorChange: {
+      const edited = {
         ...trimmedState,
         [action.payload.name]: action.payload.json,
       };
+      if (
+        action.payload.name === 'masked_encrypted_extra' &&
+        edited.parameters
+      ) {
+        // `onSave` copies these typed blocks over Secure Extra, which would undo
+        // this later edit of them.
+        const {
+          embedded_credentials: _typedCredentials,
+          oauth2_client_info: _typedClientInfo,
+          ...parameters
+        } = edited.parameters;
+        return { ...edited, parameters };
+      }
+      return edited;
+    }
     case ActionType.QueryChange:
       return {
         ...trimmedState,
@@ -514,7 +599,14 @@ export function dbReducer(
         ...trimmedState,
         [action.payload.name]: action.payload.value,
       };
-    case ActionType.Fetched:
+    case ActionType.Fetched: {
+      const configurationMethod =
+        action.isEditMode &&
+        action.payload.configuration_method ===
+          ConfigurationMethod.DynamicForm &&
+        !Object.keys(action.payload.parameters_schema?.properties || {}).length
+          ? ConfigurationMethod.SqlalchemyUri
+          : action.payload.configuration_method;
       // convert query to a string and store in query_input
       query = action.payload?.parameters?.query || {};
       // eslint-disable-next-line camelcase
@@ -539,28 +631,37 @@ export function dbReducer(
 
         return {
           ...action.payload,
+          extra: normalizeMetadataCacheTimeouts(action.payload.extra),
           engine: action.payload.backend || trimmedState.engine,
-          configuration_method: action.payload.configuration_method,
+          configuration_method: configurationMethod,
           catalog: engineRootCatalog,
           parameters: {
             ...(action.payload.parameters || trimmedState.parameters),
             catalog: payloadCatalog,
           },
           // eslint-disable-next-line camelcase
+          engine_information:
+            action.payload.engine_information ||
+            trimmedState.engine_information,
+          // eslint-disable-next-line camelcase
           query_input,
         };
       }
       return {
         ...action.payload,
+        extra: normalizeMetadataCacheTimeouts(action.payload.extra),
         masked_encrypted_extra: action.payload.masked_encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
-        configuration_method: action.payload.configuration_method,
+        configuration_method: configurationMethod,
         parameters: action.payload.parameters || trimmedState.parameters,
         ssh_tunnel: action.payload.ssh_tunnel || trimmedState.ssh_tunnel,
         // eslint-disable-next-line camelcase
+        engine_information:
+          action.payload.engine_information || trimmedState.engine_information,
+        // eslint-disable-next-line camelcase
         query_input,
       };
-
+    }
     case ActionType.DbSelected:
       // set initial state for blank form
       return {
@@ -568,10 +669,36 @@ export function dbReducer(
         extra: DEFAULT_EXTRA,
         expose_in_sqllab: true,
       };
-    case ActionType.ConfigMethodChange:
-      return {
+    case ActionType.ConfigMethodChange: {
+      // Switching connection mode keeps everything already entered so that
+      // toggling back and forth does not discard the user's input.
+      const nextState = {
+        ...trimmedState,
         ...action.payload,
+        database_name:
+          action.payload.database_name ?? trimmedState.database_name,
+        engine: action.payload.engine ?? trimmedState.engine,
       };
+      // The dynamic form has no "Secure extra" editor, so a value that is not
+      // a JSON object could no longer be corrected there while still being
+      // sent for validation, which would reject the connection.
+      if (
+        action.payload.configuration_method ===
+          ConfigurationMethod.DynamicForm &&
+        nextState.masked_encrypted_extra
+      ) {
+        try {
+          const parsed = JSON.parse(nextState.masked_encrypted_extra);
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            nextState.masked_encrypted_extra = '';
+          }
+        } catch (e) {
+          if (!(e instanceof SyntaxError)) throw e;
+          nextState.masked_encrypted_extra = '';
+        }
+      }
+      return nextState;
+    }
 
     case ActionType.Reset:
     default:
@@ -595,7 +722,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   >(dbReducer, null);
   // Database fetch logic
   const {
-    state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
+    state: { resource: dbFetched, error: dbErrors },
     fetchResource,
     createResource,
     updateResource,
@@ -607,7 +734,22 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     'connection',
   );
 
+  const databaseRequestGeneration = useRef(0);
+  const dbFetchedGeneration = useRef(0);
+
+  /** Bind resource publication and save continuations to the requesting session. */
+  const getResponseGuard = () => {
+    const generation = databaseRequestGeneration.current;
+    return () => {
+      const active = show && generation === databaseRequestGeneration.current;
+      if (active) dbFetchedGeneration.current = generation;
+      return active;
+    };
+  };
+
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  // Bumped after each successful update, so revealed secret endings reset.
+  const [secretsGeneration, setSecretsGeneration] = useState(0);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [
     validationErrors,
@@ -617,6 +759,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     hasValidated,
     setHasValidated,
   ] = useDatabaseValidation();
+  const lastValidatedDbSnapshotRef = useRef<string | null>(null);
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [showCTAbtns, setShowCTAbtns] = useState(false);
   const [dbName, setDbName] = useState('');
@@ -695,14 +838,22 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const useSqlAlchemyForm =
     db?.configuration_method === ConfigurationMethod.SqlalchemyUri;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
-  const isDynamic = (engine: string | undefined) =>
-    availableDbs?.databases?.find(
+  const isDynamic = (engine: string | undefined) => {
+    // several entries can share an engine (e.g. SQL Server and Azure Synapse
+    // are both ``mssql``), so prefer the one matching the selected driver
+    const candidates = availableDbs?.databases?.filter(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
-    )?.parameters !== undefined;
+    );
+    const match =
+      candidates?.find(
+        (DB: DatabaseForm) => DB.default_driver === db?.driver,
+      ) || candidates?.[0];
+    return match?.parameters !== undefined;
+  };
   const showDBError = validationErrors || dbErrors;
   const history = useHistory();
 
-  const dbModel: DatabaseForm =
+  const availableDbModel: DatabaseForm =
     // TODO: we need a centralized engine in one place
 
     // first try to match both engine and driver
@@ -721,9 +872,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     ) ||
     {};
 
+  // A saved driver's schema can remain usable even when that driver is no longer
+  // installed. Do not replace it with another driver's form for the same engine.
+  const dbModel: DatabaseForm =
+    isEditMode && db?.parameters_schema?.properties
+      ? {
+          ...availableDbModel,
+          parameters: db.parameters_schema as DatabaseForm['parameters'],
+        }
+      : availableDbModel;
+
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);
     setHasValidated(false);
+    lastValidatedDbSnapshotRef.current = null;
     clearError();
   }, [setValidationErrors, setHasValidated, clearError]);
 
@@ -800,6 +962,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     [onChange],
   );
 
+  const handleTextChange = useCallback(
+    ({ target }: { target: HTMLInputElement }) => {
+      onChange(ActionType.TextChange, {
+        name: target.name,
+        value: target.value,
+      });
+    },
+    [onChange],
+  );
+
   const handleChangeWithValidation = useCallback(
     (
       actionType: ActionType,
@@ -811,7 +983,23 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     [onChange, handleClearValidationErrors],
   );
 
+  const getBlurValidation = useCallback(async () => {
+    const currentDbSnapshot = JSON.stringify(db);
+    if (currentDbSnapshot === lastValidatedDbSnapshotRef.current) {
+      return [];
+    }
+    const result = await getValidation(db);
+    // Only cache after a request that produced a usable response. ``null``
+    // signals an unexpected/network failure, in which case we leave the
+    // snapshot untouched so the next blur retries.
+    if (result !== null) {
+      lastValidatedDbSnapshotRef.current = currentDbSnapshot;
+    }
+    return result;
+  }, [db, getValidation]);
+
   const onClose = () => {
+    databaseRequestGeneration.current += 1;
     setDB({ type: ActionType.Reset });
     setHasConnectedDb(false);
     handleClearValidationErrors(); // reset validation errors on close
@@ -857,6 +1045,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   });
 
   const onSave = async () => {
+    const shouldApplyResponse = getResponseGuard();
     let dbConfigExtraExtensionOnSaveError;
     setLoading(true);
     setHasValidated(false);
@@ -889,9 +1078,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       const errors = await getValidation(dbToUpdate, true);
-      if (!isEmpty(validationErrors) || errors?.length) {
+      if (!shouldApplyResponse()) return;
+      // ``getValidation`` returns ``[]`` on success, a field-keyed object
+      // for blocking errors (e.g. the duplicate ``database_name`` check),
+      // and ``null`` for stale or unexpected responses. During save we
+      // cannot proceed without a usable result, so treat ``null`` as
+      // blocking too — only ``[]`` is a clean pass. The decision relies on
+      // this fresh result alone: the ``validationErrors`` state in this
+      // closure may still hold errors from before the user fixed the form.
+      const hasReturnedErrors =
+        errors === null ||
+        (Array.isArray(errors) ? errors.length > 0 : !isEmpty(errors));
+      if (hasReturnedErrors) {
+        // ``extra`` errors (e.g. an invalid cache timeout) are not rendered
+        // anywhere in the form, so surface the server's explanation here.
+        const extraError = isEmpty(errors)
+          ? undefined
+          : (errors as JsonObject).extra;
         addDangerToast(
-          t('Connection failed, please check your connection settings.'),
+          typeof extraError === 'string'
+            ? extraError
+            : t('Connection failed, please check your connection settings.'),
         );
         setLoading(false);
         return;
@@ -973,9 +1180,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         db.id as number,
         dbToUpdate as DatabaseObject,
         dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm, // onShow toast on SQLA Forms
+        true,
+        shouldApplyResponse,
       );
+      // A completed server write must refresh the parent even after this session ends.
+      if (result) onDatabaseAdd?.();
+      if (!shouldApplyResponse()) return;
       if (result) {
-        if (onDatabaseAdd) onDatabaseAdd();
+        setSecretsGeneration(generation => generation + 1);
         dbConfigExtraExtension
           ?.onSave(extraExtensionComponentState, db)
           .then(({ error }: { error: any }) => {
@@ -986,11 +1198,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         if (dbConfigExtraExtensionOnSaveError) {
           setLoading(false);
+          // The modal stays open on what the server now holds, stored
+          // secret fields included, as the create flow does on Back.
+          fetchResource(db.id as number, getResponseGuard());
           return;
         }
         if (!editNewDb) {
           onClose();
           addSuccessToast(t('Database settings updated'));
+        } else {
+          fetchResource(db.id as number, getResponseGuard());
         }
       }
     } else if (db) {
@@ -998,10 +1215,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const dbId = await createResource(
         dbToUpdate as DatabaseObject,
         dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm, // onShow toast on SQLA Forms
+        shouldApplyResponse,
       );
+      if (dbId) onDatabaseAdd?.();
+      if (!shouldApplyResponse()) return;
       if (dbId) {
         setHasConnectedDb(true);
-        if (onDatabaseAdd) onDatabaseAdd();
         dbConfigExtraExtension
           ?.onSave(extraExtensionComponentState, db)
           .then(({ error }: { error: any }) => {
@@ -1051,19 +1270,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setLoading(false);
   };
 
+  /** Fetch only into the modal session that requested the database. */
+  const fetchDatabase = (id: number) => fetchResource(id, getResponseGuard());
+
   // Initialize
   const fetchDB = () => {
     if (isEditMode && databaseId) {
-      if (!dbLoading) {
-        fetchResource(databaseId).catch(e =>
-          addDangerToast(
-            t(
-              'Sorry there was an error fetching database information: %s',
-              e.message,
-            ),
+      fetchDatabase(databaseId).catch(e =>
+        addDangerToast(
+          t(
+            'Sorry there was an error fetching database information: %s',
+            e.message,
           ),
-        );
-      }
+        ),
+      );
     }
   };
 
@@ -1144,11 +1364,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             (database: DatabaseForm, index: number) => ({
               value: database.name,
               label: database.name,
+              // lets a search for the backend name (e.g. "mssql") find it
+              engine: database.engine,
               key: `database-${index}`,
             }),
           ),
           { value: 'Other', label: t('Other'), key: 'Other' },
         ]}
+        optionFilterProps={['label', 'value', 'engine']}
         showSearch
         sortComparator={(a, b) => {
           // Always put "Other" at the end
@@ -1157,9 +1380,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           // For all other options, sort alphabetically
           return String(a.label).localeCompare(String(b.label));
         }}
-        getPopupContainer={triggerNode =>
-          triggerNode.parentElement || document.body
-        }
+        getPopupContainer={() => document.body}
         dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
       />
       <Alert
@@ -1215,7 +1436,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             className="preferred-item"
             onClick={() => setDatabaseModel(database.name)}
             buttonText={database.name}
-            icon={dbImages?.[database.engine]}
+            icon={dbImages?.[database.engine] || ''}
             key={`${database.name}`}
           />
         ))}
@@ -1224,13 +1445,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const handleBackButtonOnFinish = () => {
     if (dbFetched) {
-      fetchResource(dbFetched.id as number);
+      fetchDatabase(dbFetched.id as number);
     }
     setShowCTAbtns(false);
     setEditNewDb(true);
   };
 
   const handleBackButtonOnConnect = () => {
+    databaseRequestGeneration.current += 1;
+    // An abandoned save cannot reach its own loading-state reset.
+    setLoading(false);
     handleClearValidationErrors();
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
@@ -1416,18 +1640,30 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (databaseId && show) {
       fetchDB();
     }
+    return () => {
+      // Closing or switching targets invalidates outstanding connection requests.
+      databaseRequestGeneration.current += 1;
+    };
   }, [show, databaseId]);
 
   useEffect(() => {
-    if (dbFetched) {
+    if (
+      show &&
+      dbFetched &&
+      dbFetchedGeneration.current === databaseRequestGeneration.current &&
+      (!databaseId || dbFetched.id === databaseId)
+    ) {
       setDB({
         type: ActionType.Fetched,
+        isEditMode,
         payload: dbFetched,
       });
       // keep a copy of the name separate for display purposes
       // because it shouldn't change when the form is updated
       setDbName(dbFetched.database_name);
     }
+    // Apply resource changes only while open, including multi-step creates.
+    // Opening the modal must not reapply a cached record after onClose resets it.
   }, [dbFetched]);
 
   useEffect(() => {
@@ -1643,7 +1879,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             id={`encrypted_extra_${field.path}`}
             name={`encrypted_extra_${field.path}`}
             required
-            visibilityToggle
+            visibilityToggle={!isPrivateKeyField(field.path)}
+            renderAsTextArea={isPrivateKeyField(field.path)}
             value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setEncryptedExtraSecrets({
@@ -1782,7 +2019,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const fetchAndSetDB = () => {
     setLoading(true);
-    fetchResource(dbFetched?.id as number).then(r => {
+    fetchDatabase(dbFetched?.id as number).then(r => {
       setItem(LocalStorageKeys.Database, r);
     });
   };
@@ -1796,7 +2033,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           name: target.name,
           value: target.value,
         });
-        handleClearValidationErrors();
       }}
       setSSHTunnelLoginMethod={(method: AuthType) =>
         setDB({
@@ -1804,6 +2040,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           payload: { login_method: method },
         })
       }
+      isValidating={isValidating}
+      validationErrors={validationErrors}
+      // ``validate_parameters`` only understands dynamic-form payloads; in
+      // SQLAlchemy-URI mode SSH fields are exercised via "Test connection"
+      // instead, so blur validation is skipped there.
+      getValidation={useSqlAlchemyForm ? () => {} : getBlurValidation}
     />
   );
 
@@ -1824,7 +2066,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          redirectURL(makeUrl(`/sqllab?db=true`));
+          // redirectURL() delegates to history.push; React Router's basename
+          // already prefixes the application root, so pass a relative path.
+          redirectURL('/sqllab?db=true');
         }}
       >
         {t('Query data in SQL Lab')}
@@ -1865,6 +2109,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             value: target.value,
           })
         }
+        onClearEncryptedExtraKey={(name: string) =>
+          handleChangeWithValidation(ActionType.ClearEncryptedExtraKey, {
+            name,
+          })
+        }
         onRemoveTableCatalog={(idx: number) => {
           setDB({
             type: ActionType.RemoveTableCatalogSheet,
@@ -1872,13 +2121,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         }}
         onParametersChange={handleParametersChange}
-        onChange={({ target }: { target: HTMLInputElement }) =>
-          handleChangeWithValidation(ActionType.TextChange, {
-            name: target.name,
-            value: target.value,
-          })
-        }
-        getValidation={() => getValidation(db)}
+        onChange={handleTextChange}
+        getValidation={getBlurValidation}
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
         clearValidationErrors={handleClearValidationErrors}
@@ -2088,6 +2332,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                                 configuration_method:
                                   ConfigurationMethod.DynamicForm,
                                 engine: db?.engine,
+                                driver: db?.driver,
+                                sqlalchemy_uri_placeholder:
+                                  db?.sqlalchemy_uri_placeholder,
                               },
                             })
                           }
@@ -2146,6 +2393,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <ExtraOptions
                 extraExtension={dbConfigExtraExtension}
                 db={db as DatabaseObject}
+                secretsGeneration={secretsGeneration}
                 onInputChange={(e: CheckboxChangeEvent) => {
                   const { target } = e;
                   handleChangeWithValidation(ActionType.InputChange, {
@@ -2249,6 +2497,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     id="databaseFile"
                     data-test="database-file-input"
                     accept=".yaml,.json,.yml,.zip"
+                    fileList={fileList}
                     customRequest={() => {}}
                     onChange={onDbImport}
                     onRemove={removeFile}
@@ -2289,6 +2538,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                             type: ActionType.ConfigMethodChange,
                             payload: {
                               engine: db.engine,
+                              driver: db.driver,
+                              sqlalchemy_uri_placeholder:
+                                db.sqlalchemy_uri_placeholder,
                               configuration_method:
                                 ConfigurationMethod.SqlalchemyUri,
                               database_name: db.database_name,

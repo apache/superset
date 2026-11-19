@@ -24,7 +24,33 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 
-import ControlPopover, { PopoverProps } from './ControlPopover';
+// Reaching into antd's internals pins the overflow behaviour ControlPopover
+// relies on, so an upgrade that changes it fails here.
+import { getOverflowOptions } from 'antd/lib/_util/placements';
+
+import { TooltipPlacement } from '@superset-ui/core/components/Tooltip/types';
+
+import ControlPopover, {
+  SHIFT_INTO_VIEWPORT,
+  getAutoAdjustOverflow,
+  PopoverProps,
+} from './ControlPopover';
+
+// Records what the underlying popover is handed, so dropping the prop that wires
+// the overflow options through fails instead of going unnoticed.
+const mockPopoverProps: PopoverProps[] = [];
+jest.mock('@superset-ui/core/components', () => {
+  const actual = jest.requireActual('@superset-ui/core/components');
+  const Probe = (props: PopoverProps) => {
+    mockPopoverProps.push(props);
+    return <actual.Popover {...props} />;
+  };
+  // The module exports lazy getters and is mid-load here, so read through to it
+  // rather than spreading it, which would resolve them all too early.
+  return new Proxy(actual, {
+    get: (target, name) => (name === 'Popover' ? Probe : target[name]),
+  });
+});
 
 const createProps = (): Partial<PopoverProps> => ({
   trigger: 'click',
@@ -65,26 +91,56 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test('Should render', () => {
+test('Should render', async () => {
   setupTest();
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
   expect(screen.getByText('Control Popover Test')).toBeInTheDocument();
   expect(screen.getByTestId('control-popover-content')).toBeInTheDocument();
 });
 
-test('Should lock the vertical scroll when the popover is visible', () => {
+test('Should lock the vertical scroll when the popover is visible', async () => {
   setupTest();
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
   expect(screen.getByTestId('outer-container')).not.toHaveStyle(
     'overflowY: hidden',
   );
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
   expect(screen.getByTestId('outer-container')).toHaveStyle(
     'overflowY: hidden',
   );
-  userEvent.click(document.body);
+  await userEvent.click(document.body);
   expect(screen.getByTestId('outer-container')).not.toHaveStyle(
+    'overflowY: hidden',
+  );
+});
+
+test('does not release the scroll lock when a closed sibling popover mounts', async () => {
+  const TwoPopovers = ({ showSibling = false }: { showSibling?: boolean }) => (
+    <div id="controlSections">
+      <div data-test="outer-container">
+        <ControlPopover {...createProps()} destroyOnHidden open>
+          <span data-test="open-popover">Open</span>
+        </ControlPopover>
+        {showSibling && (
+          <ControlPopover {...createProps()} destroyOnHidden open={false}>
+            <span data-test="closed-popover">Closed</span>
+          </ControlPopover>
+        )}
+      </div>
+    </div>
+  );
+
+  const { rerender } = render(<TwoPopovers />);
+
+  expect(await screen.findByText('Control Popover Test')).toBeInTheDocument();
+  expect(screen.getByTestId('outer-container')).toHaveStyle(
+    'overflowY: hidden',
+  );
+
+  rerender(<TwoPopovers showSibling />);
+
+  expect(screen.getByTestId('outer-container')).toHaveStyle(
     'overflowY: hidden',
   );
 });
@@ -96,7 +152,7 @@ test('Should place popover at the top', async () => {
   });
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
 
   await waitFor(() => {
     expect(setStateMock).toHaveBeenCalledWith('rightTop');
@@ -110,7 +166,7 @@ test('Should place popover at the center', async () => {
   });
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
 
   await waitFor(() => {
     expect(setStateMock).toHaveBeenCalledWith('left');
@@ -124,7 +180,7 @@ test('Should place popover at the bottom', async () => {
   });
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
 
   await waitFor(() => {
     expect(setStateMock).toHaveBeenCalledWith('rightBottom');
@@ -134,12 +190,12 @@ test('Should place popover at the bottom', async () => {
 test('Should close popover on escape press', async () => {
   setupTest({
     ...createProps(),
-    destroyTooltipOnHide: true,
+    destroyOnHidden: true,
   });
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
   expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
-  userEvent.click(screen.getByTestId('control-popover'));
+  await userEvent.click(screen.getByTestId('control-popover'));
   expect(await screen.findByText('Control Popover Test')).toBeInTheDocument();
 
   // Ensure that pressing any other key than escape does nothing
@@ -165,7 +221,7 @@ test('Should close popover on escape press', async () => {
 test('Controlled mode', async () => {
   const baseProps = {
     ...createProps(),
-    destroyTooltipOnHide: true,
+    destroyOnHidden: true,
     open: false,
   };
 
@@ -181,4 +237,118 @@ test('Controlled mode', async () => {
   await waitFor(() => {
     expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
   });
+});
+
+test('stays closed when a parent keeps open={false}', async () => {
+  const onOpenChange = jest.fn();
+  setupTest({
+    ...createProps(),
+    destroyOnHidden: true,
+    open: false,
+    onOpenChange,
+  });
+
+  expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByTestId('control-popover'));
+  expect(onOpenChange).toHaveBeenCalledWith(true);
+  expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
+});
+
+test('does not close on Escape when a parent keeps open={true}', async () => {
+  const onOpenChange = jest.fn();
+  setupTest({
+    ...createProps(),
+    destroyOnHidden: true,
+    open: true,
+    onOpenChange,
+  });
+
+  expect(await screen.findByText('Control Popover Test')).toBeInTheDocument();
+
+  fireEvent.keyDown(screen.getByTestId('control-popover'), {
+    key: 'Escape',
+    code: 'Escape',
+    keyCode: 27,
+  });
+
+  expect(onOpenChange).toHaveBeenCalledWith(false);
+  expect(screen.getByText('Control Popover Test')).toBeInTheDocument();
+});
+
+test('Keeps an oversized popover reachable inside the viewport', () => {
+  const arrowOffset = { arrowOffsetHorizontal: 12, arrowOffsetVertical: 12 };
+  const overflowFor = (placement: TooltipPlacement) =>
+    getOverflowOptions(
+      placement,
+      arrowOffset,
+      16,
+      getAutoAdjustOverflow(placement),
+    );
+
+  for (const placement of [
+    'rightTop',
+    'rightBottom',
+    'leftTop',
+    'leftBottom',
+    'topLeft',
+    'topRight',
+    'bottomLeft',
+    'bottomRight',
+  ] as TooltipPlacement[]) {
+    // antd ships these with no shift at all, so they have to ask for it.
+    expect(
+      getOverflowOptions(placement, arrowOffset, 16, true),
+    ).not.toMatchObject({ shiftX: expect.anything() });
+    expect(overflowFor(placement)).toMatchObject({
+      adjustX: 1,
+      adjustY: 1,
+      shiftX: true,
+      shiftY: true,
+    });
+  }
+
+  // The base placements already shift, capped to the span the arrow needs to stay
+  // on its trigger. Asking for more would trade one broken popover for four.
+  expect(overflowFor('right')).toMatchObject({ shiftX: true, shiftY: 40 });
+  expect(overflowFor('left')).toMatchObject({ shiftX: true, shiftY: 40 });
+  expect(overflowFor('top')).toMatchObject({ shiftY: true, shiftX: 40 });
+  expect(overflowFor('bottom')).toMatchObject({ shiftY: true, shiftX: 40 });
+});
+
+test('Hands the overflow options for its placement to the popover', async () => {
+  // The placement is only computed once the popover opens, so each case has to
+  // open it and wait for that placement to arrive before reading the options.
+  const openAt = async (
+    placement: string,
+    props: Partial<PopoverProps> = {},
+  ) => {
+    mockPopoverProps.length = 0;
+    const { unmount } = render(<TestComponent {...createProps()} {...props} />);
+    await userEvent.click(screen.getByTestId('control-popover'));
+    await waitFor(() =>
+      expect(mockPopoverProps[mockPopoverProps.length - 1].placement).toBe(
+        placement,
+      ),
+    );
+    const seen = mockPopoverProps[mockPopoverProps.length - 1];
+    unmount();
+    return seen.autoAdjustOverflow;
+  };
+
+  // A corner placement, which antd would otherwise leave stranded off screen.
+  expect(
+    await openAt('rightBottom', {
+      getVisibilityRatio: () => ({ yRatio: 0.9, xRatio: 0.2 }),
+    }),
+  ).toBe(SHIFT_INTO_VIEWPORT);
+
+  // A base placement keeps antd's own capped shifting.
+  expect(
+    await openAt('left', {
+      getVisibilityRatio: () => ({ yRatio: 0.5, xRatio: 0.7 }),
+    }),
+  ).toBe(true);
+
+  // Callers stay in control.
+  expect(await openAt('rightTop', { autoAdjustOverflow: false })).toBe(false);
 });

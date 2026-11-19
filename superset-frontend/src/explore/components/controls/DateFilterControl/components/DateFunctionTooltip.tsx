@@ -85,12 +85,13 @@ dateunit = (year | month | week)`}</code>
     </div>
     <div>
       <h3>HOLIDAY</h3>
-      <p>{t('Get the specify date for the holiday')}</p>
+      <p>{t('Get the specified date for the holiday')}</p>
       <h4>{t('Syntax')}</h4>
       <pre>
         <code>{`holiday([string])
 holiday([holiday string], [datetime])
-holiday([holiday string], [datetime], [country name])`}</code>
+holiday([holiday string], [country code])
+holiday([holiday string], [datetime], [country code])`}</code>
       </pre>
       <h4>{t('Example')}</h4>
       <pre>
@@ -98,6 +99,7 @@ holiday([holiday string], [datetime], [country name])`}</code>
 holiday("christmas", datetime("2019"))
 holiday("christmas", dateadd(datetime("2019"), 1, year))
 holiday("christmas", datetime("2 years ago"))
+holiday("Boxing Day", "UK")
 holiday("Easter Monday", datetime("2019"), "UK")`}</code>
       </pre>
     </div>
@@ -111,27 +113,25 @@ const StyledTooltip = (props: any) => {
       {({ css }) => (
         <Tooltip
           overlayClassName={css`
-            .ant-tooltip-content {
+            .ant-tooltip-container {
               min-width: ${theme.sizeUnit * 125}px;
+              max-width: ${theme.sizeUnit * 125}px;
               max-height: 410px;
               overflow-y: scroll;
 
-              .ant-tooltip-inner {
-                max-width: ${theme.sizeUnit * 125}px;
-                h3 {
-                  font-size: ${theme.fontSize}px;
-                  font-weight: ${theme.fontWeightStrong};
-                }
-                h4 {
-                  font-size: ${theme.fontSize}px;
-                  font-weight: ${theme.fontWeightStrong};
-                }
-                pre {
-                  border: none;
-                  text-align: left;
-                  word-break: break-word;
-                  font-size: ${theme.fontSizeSM}px;
-                }
+              h3 {
+                font-size: ${theme.fontSize}px;
+                font-weight: ${theme.fontWeightStrong};
+              }
+              h4 {
+                font-size: ${theme.fontSize}px;
+                font-weight: ${theme.fontWeightStrong};
+              }
+              pre {
+                border: none;
+                text-align: left;
+                word-break: break-word;
+                font-size: ${theme.fontSizeSM}px;
               }
             }
           `}

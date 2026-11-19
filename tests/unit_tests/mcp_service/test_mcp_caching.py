@@ -17,15 +17,159 @@
 
 """Tests for MCP response caching middleware."""
 
-from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from superset.mcp_service.caching import _build_caching_settings
+import pytest
+
+from superset.mcp_service.caching import (
+    _build_caching_settings,
+    _bypass_dashboard_scoped_calls,
+    _version_cache_prefix,
+    MCP_RESPONSE_CACHE_NAMESPACE,
+)
+from superset.utils import json
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("identifier_alias", ["identifier", "id", "dashboard_id"])
+@pytest.mark.parametrize("request_encoding", ["object", "json", "flat"])
+@pytest.mark.parametrize("tool_name", ["get_dashboard_info", "call_tool", "invoke"])
+@pytest.mark.parametrize("scoped", [False, True])
+async def test_filter_discovery_bypasses_response_cache(
+    identifier_alias: str, request_encoding: str, tool_name: str, scoped: bool
+) -> None:
+    """A warm response cache cannot skip discovery's fresh authorization."""
+    request: dict[str, Any] = {identifier_alias: 7, "include_filter_values": True}
+    arguments: dict[str, Any] = (
+        request
+        if request_encoding == "flat"
+        else {"request": json.dumps(request) if request_encoding == "json" else request}
+    )
+    if tool_name != "get_dashboard_info":
+        arguments = {"name": "get_dashboard_info", "arguments": arguments}
+    context = SimpleNamespace(
+        message=SimpleNamespace(name=tool_name, arguments=arguments)
+    )
+    cached_call = AsyncMock(return_value={"secret": "old authorized choices"})
+    middleware = SimpleNamespace(on_call_tool=cached_call)
+    call_next = AsyncMock(side_effect=[{"values": ["authorized"]}, PermissionError])
+    scope = SimpleNamespace(has_constraints=False) if scoped else None
+    with patch(
+        "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
+        return_value=scope,
+    ):
+        _bypass_dashboard_scoped_calls(middleware, proxy_name="invoke")
+        assert await middleware.on_call_tool(context, call_next) == {
+            "values": ["authorized"]
+        }
+        with pytest.raises(PermissionError):
+            await middleware.on_call_tool(context, call_next)
+    # Neither the cache read nor the write path can run, even with no active
+    # scope constraints, and a revoked grant is checked on the second call.
+    cached_call.assert_not_called()
+    assert call_next.await_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("include", [None, False])
+async def test_filter_metadata_preserves_response_cache(include: bool | None) -> None:
+    """Ordinary dashboard metadata keeps its existing cache policy."""
+    request = {"identifier": 7}
+    if include is not None:
+        request["include_filter_values"] = include
+    context = SimpleNamespace(
+        message=SimpleNamespace(
+            name="get_dashboard_info", arguments={"request": request}
+        )
+    )
+    cached_call = AsyncMock(return_value={"id": 7})
+    middleware = SimpleNamespace(on_call_tool=cached_call)
+    call_next = AsyncMock()
+    with patch(
+        "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
+        return_value=None,
+    ):
+        _bypass_dashboard_scoped_calls(middleware)
+        assert await middleware.on_call_tool(context, call_next) == {"id": 7}
+    cached_call.assert_awaited_once_with(context, call_next)
+    call_next.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("proxy_name", [None, "call_tool"])
+@pytest.mark.parametrize("scoped", [False, True])
+async def test_filter_discovery_real_cache_rechecks_changed_access(
+    proxy_name: str | None, scoped: bool
+) -> None:
+    """Actual FastMCP cache hits cannot replay authorized values after revocation."""
+    from fastmcp import Client, FastMCP
+    from fastmcp.exceptions import ToolError
+    from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+
+    from superset.mcp_service.server import _apply_tool_search_transform
+
+    middleware = _bypass_dashboard_scoped_calls(ResponseCachingMiddleware())
+    server = FastMCP("filter-discovery-cache-test", middleware=[middleware])
+    allowed = True
+    query_calls = 0
+
+    @server.tool
+    def get_dashboard_info(request: dict[str, Any]) -> dict[str, Any]:
+        """Simulate fresh native authorization on each data-bearing call."""
+        nonlocal query_calls
+        assert request["include_filter_values"] is True
+        query_calls += 1
+        if not allowed:
+            raise ToolError("Access denied")
+        return {"values": ["authorized choice"]}
+
+    if proxy_name:
+        _apply_tool_search_transform(
+            server, {"enabled": True, "call_tool_name": proxy_name}
+        )
+    arguments: dict[str, Any] = {
+        "request": {"dashboard_id": 7, "include_filter_values": True}
+    }
+    if proxy_name:
+        arguments = {"name": "get_dashboard_info", "arguments": arguments}
+    scope = SimpleNamespace(has_constraints=False) if scoped else None
+    with patch(
+        "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
+        return_value=scope,
+    ):
+        async with Client(server) as client:
+            first = await client.call_tool(
+                proxy_name or "get_dashboard_info", arguments
+            )
+            assert first.data == {"values": ["authorized choice"]}
+            allowed = False
+            second = await client.call_tool(
+                proxy_name or "get_dashboard_info", arguments, raise_on_error=False
+            )
+            assert second.is_error
+            assert "authorized choice" not in str(second.content)
+    assert query_calls == 2
+
+
+def test_version_cache_prefix_appends_response_contract_namespace() -> None:
+    assert _version_cache_prefix("mcp_cache_") == (
+        f"mcp_cache_{MCP_RESPONSE_CACHE_NAMESPACE}"
+    )
+
+
+def test_version_cache_prefix_preserves_callable_partitioning() -> None:
+    prefix = _version_cache_prefix(lambda: "tenant_7_")
+
+    assert callable(prefix)
+    assert prefix() == f"tenant_7_{MCP_RESPONSE_CACHE_NAMESPACE}"
 
 
 def test_build_caching_settings_empty_config():
-    """Empty config returns empty settings."""
+    """Empty config only carries the always-excluded tools."""
     result = _build_caching_settings({})
-    assert result == {}
+    assert result == {"call_tool_settings": {"excluded_tools": ["get_catalog"]}}
 
 
 def test_build_caching_settings_list_ttls():
@@ -64,8 +208,16 @@ def test_build_caching_settings_call_tool_with_exclusions():
 
     assert result["call_tool_settings"] == {
         "ttl": 3600,
-        "excluded_tools": ["execute_sql", "generate_chart"],
+        "excluded_tools": ["execute_sql", "generate_chart", "get_catalog"],
     }
+
+
+def test_build_caching_settings_always_excludes_catalog():
+    """The per-user catalog is never cached, even if the operator's
+    excluded_tools list omits it or is empty."""
+    for config in ({}, {"call_tool_ttl": 60}, {"excluded_tools": []}):
+        result = _build_caching_settings(config)
+        assert "get_catalog" in result["call_tool_settings"]["excluded_tools"]
 
 
 def test_create_response_caching_middleware_returns_none_when_disabled():
@@ -89,7 +241,11 @@ def test_create_response_caching_middleware_falls_back_to_memory_when_no_prefix(
     """Caching middleware uses in-memory store when CACHE_KEY_PREFIX is not set."""
     mock_flask_app = MagicMock()
     mock_configs = {
-        "MCP_CACHE_CONFIG": {"enabled": True, "list_tools_ttl": 300},
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "list_tools_ttl": 300,
+        },
         "MCP_STORE_CONFIG": {"enabled": True},  # Store enabled but no CACHE_KEY_PREFIX
     }
     mock_flask_app.config.get.side_effect = lambda key, default=None: mock_configs.get(
@@ -124,7 +280,11 @@ def test_create_response_caching_middleware_uses_memory_store_when_store_disable
     """Caching middleware uses in-memory store when MCP_STORE_CONFIG is disabled."""
     mock_flask_app = MagicMock()
     mock_configs = {
-        "MCP_CACHE_CONFIG": {"enabled": True, "list_tools_ttl": 300},
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "list_tools_ttl": 300,
+        },
         "MCP_STORE_CONFIG": {"enabled": False},
     }
     mock_flask_app.config.get.side_effect = lambda key, default=None: mock_configs.get(
@@ -160,6 +320,7 @@ def test_create_response_caching_middleware_creates_middleware():
     mock_flask_app = MagicMock()
     mock_flask_app.config.get.return_value = {
         "enabled": True,
+        "dangerously_share_cache_across_principals": True,
         "CACHE_KEY_PREFIX": "mcp_cache_v1_",
         "list_tools_ttl": 300,
     }
@@ -174,7 +335,7 @@ def test_create_response_caching_middleware_creates_middleware():
         with patch("flask.has_app_context", return_value=True):
             with patch(
                 "superset.mcp_service.caching.get_mcp_store", return_value=mock_store
-            ):
+            ) as mock_get_store:
                 with patch(
                     "fastmcp.server.middleware.caching.ResponseCachingMiddleware",
                     return_value=mock_middleware,
@@ -186,8 +347,123 @@ def test_create_response_caching_middleware_creates_middleware():
                     result = create_response_caching_middleware()
 
                     assert result is mock_middleware
+                    mock_get_store.assert_called_once_with(
+                        prefix=f"mcp_cache_v1_{MCP_RESPONSE_CACHE_NAMESPACE}"
+                    )
                     # Verify middleware was created with store and settings
                     mock_middleware_class.assert_called_once()
                     call_kwargs = mock_middleware_class.call_args[1]
                     assert call_kwargs["cache_storage"] is mock_store
                     assert call_kwargs["list_tools_settings"] == {"ttl": 300}
+
+
+def test_create_response_caching_middleware_fails_closed_without_principal_optin():
+    """Enabling the cache without the explicit cross-principal opt-in is refused.
+
+    The cache key contains no principal and hits are served before any
+    authorization runs, so a shared cache would replay one principal's
+    responses to another (see create_response_caching_middleware).
+    """
+    mock_flask_app = MagicMock()
+    mock_configs = {
+        "MCP_CACHE_CONFIG": {"enabled": True, "call_tool_ttl": 3600},
+        "MCP_STORE_CONFIG": {"enabled": False},
+    }
+    mock_flask_app.config.get.side_effect = lambda key, default=None: mock_configs.get(
+        key, default
+    )
+
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app",
+        return_value=mock_flask_app,
+    ):
+        with patch("flask.has_app_context", return_value=True):
+            from superset.mcp_service.caching import (
+                create_response_caching_middleware,
+            )
+
+            assert create_response_caching_middleware() is None
+
+
+@pytest.mark.asyncio
+async def test_excluded_tools_covers_every_mutating_tool():
+    """Every registered tool without readOnlyHint=True must be listed in
+    MCP_CACHE_CONFIG["excluded_tools"].
+
+    Caching is keyed on tool name + arguments and served ahead of
+    per-request auth/RBAC, so a mutating tool left off this list can
+    silently replay a stale create/update/delete result to a caller who
+    repeats an identical call expecting it to actually run again. This
+    list is maintained by hand (FastMCP's caching middleware only accepts
+    a static exclusion list); this test is what keeps it complete as new
+    tools are added, by failing with the specific tool name(s) missing.
+    """
+    from superset.mcp_service.app import mcp
+    from superset.mcp_service.mcp_config import MCP_CACHE_CONFIG
+
+    tools = await mcp.list_tools()
+    mutating_tool_names = {
+        tool.name
+        for tool in tools
+        if tool.annotations is None or tool.annotations.readOnlyHint is not True
+    }
+
+    excluded = set(MCP_CACHE_CONFIG["excluded_tools"])
+    missing = mutating_tool_names - excluded
+    assert not missing, (
+        f"These mutating tools are cacheable because they're missing from "
+        f"MCP_CACHE_CONFIG['excluded_tools']: {sorted(missing)}"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("proxy_name", [None, "call_tool", "invoke_tool"])
+async def test_catalog_cache_exclusion_survives_revocation(
+    proxy_name: str | None,
+) -> None:
+    """Neither direct calls nor the search proxy may replay a catalog page."""
+    from fastmcp import Client, FastMCP
+
+    from superset.mcp_service.caching import create_response_caching_middleware
+    from superset.mcp_service.server import _apply_tool_search_transform
+
+    search_config = {"enabled": True, "call_tool_name": proxy_name or "call_tool"}
+    flask_app = MagicMock()
+    configs = {
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "excluded_tools": [],
+        },
+        "MCP_STORE_CONFIG": {"enabled": False},
+        "MCP_TOOL_SEARCH_CONFIG": search_config,
+    }
+    flask_app.config.get.side_effect = lambda key, default=None: configs.get(
+        key, default
+    )
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app", return_value=flask_app
+    ):
+        middleware = create_response_caching_middleware()
+    assert middleware is not None
+    server = FastMCP("catalog-cache-test", middleware=[middleware])
+    visible_names = ["Sales"]
+    calls = 0
+
+    @server.tool
+    def get_catalog() -> list[str]:
+        """Simulate a live catalog projection after a grant lookup."""
+        nonlocal calls
+        calls += 1
+        return list(visible_names)
+
+    if proxy_name:
+        _apply_tool_search_transform(server, search_config)
+    arguments = {"name": "get_catalog", "arguments": {}} if proxy_name else {}
+    async with Client(server) as client:
+        first = await client.call_tool(proxy_name or "get_catalog", arguments)
+        assert first.data == ["Sales"]
+        visible_names.clear()
+        second = await client.call_tool(proxy_name or "get_catalog", arguments)
+        assert second.data == []
+    assert calls == 2

@@ -99,6 +99,8 @@ export default function transformProps(chartProps: ChartProps) {
     subheaderFontSize,
     comparisonColorScheme,
     comparisonColorEnabled,
+    increaseColor,
+    decreaseColor,
     percentDifferenceFormat,
     subtitle = '',
     subtitleFontSize,
@@ -109,9 +111,17 @@ export default function transformProps(chartProps: ChartProps) {
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
   const metrics = chartProps.datasource?.metrics || [];
-  const originalLabel = getOriginalLabel(metric, metrics);
+  const originalLabel = getOriginalLabel(
+    metric,
+    metrics,
+    chartProps.datasource?.verboseMap,
+  );
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
-  const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
+
+  const dashboardTimeCompare = formData?.extraFormData?.time_compare;
+  const timeComparison =
+    dashboardTimeCompare ||
+    ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
     (adhoc_filter: SimpleAdhocFilter) =>
@@ -221,6 +231,8 @@ export default function transformProps(chartProps: ChartProps) {
     compType,
     comparisonColorEnabled,
     comparisonColorScheme,
+    increaseColor,
+    decreaseColor,
     percentDifferenceNumber: percentDifferenceNum,
     currentTimeRangeFilter,
     startDateOffset,

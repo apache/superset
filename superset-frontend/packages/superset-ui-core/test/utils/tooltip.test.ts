@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sanitizeHtml, tooltipHtml } from '@superset-ui/core';
+import {
+  sanitizeHtml,
+  tooltipHtml,
+  tooltipMarker,
+  truncateLabel,
+  TRUNCATION_MAX_CHARS,
+} from '@superset-ui/core';
 
 const TITLE_STYLE =
   'style="font-weight: 700;max-width:300px;overflow:hidden;text-overflow:ellipsis;"';
@@ -161,10 +167,13 @@ test('should preserve table styling after sanitization (fixes ECharts tooltip fo
     </table>
   `;
 
+  // The `xss` CSS filter normalizes declarations, dropping the space after
+  // each colon (e.g. `opacity: 0.8;` becomes `opacity:0.8;`) while preserving
+  // the property/value pairs themselves.
   const sanitized = sanitizeHtml(tableWithStyles);
-  expect(sanitized).toContain('style="opacity: 0.8;"');
-  expect(sanitized).toContain('style="text-align: left; padding-left: 0px;"');
-  expect(sanitized).toContain('style="text-align: right; padding-left: 16px;"');
+  expect(sanitized).toContain('style="opacity:0.8;"');
+  expect(sanitized).toContain('style="text-align:left; padding-left:0px;"');
+  expect(sanitized).toContain('style="text-align:right; padding-left:16px;"');
 
   const data = [
     ['Metric', 'Value'],
@@ -172,10 +181,128 @@ test('should preserve table styling after sanitization (fixes ECharts tooltip fo
   ];
   const html = tooltipHtml(data, 'Test Tooltip');
 
-  expect(html).toContain('style="opacity: 0.8;"');
-  expect(html).toContain('text-align: left');
-  expect(html).toContain('text-align: right');
-  expect(html).toContain('padding-left: 0px');
-  expect(html).toContain('padding-left: 16px');
-  expect(html).toContain('max-width: 300px');
+  expect(html).toContain('style="opacity:0.8;"');
+  expect(html).toContain('text-align:left');
+  expect(html).toContain('text-align:right');
+  expect(html).toContain('padding-left:0px');
+  expect(html).toContain('padding-left:16px');
+  expect(html).toContain('max-width:300px');
+});
+
+describe('truncateLabel', () => {
+  const long = 'prod-us-east-1-service-checkout-latency-p99'; // 43 chars
+
+  test('returns text unchanged for off and end', () => {
+    expect(truncateLabel(long, 'off')).toBe(long);
+    expect(truncateLabel(long, 'end')).toBe(long);
+  });
+
+  test('defaults to end, which does not slice', () => {
+    expect(truncateLabel(long)).toBe(long);
+  });
+
+  test('truncates the start, keeping the distinguishing suffix', () => {
+    expect(truncateLabel(long, 'start')).toBe(
+      '…-us-east-1-service-checkout-latency-p99',
+    );
+    expect(truncateLabel(long, 'start')).toHaveLength(TRUNCATION_MAX_CHARS);
+  });
+
+  test('truncates the middle, keeping both ends', () => {
+    expect(truncateLabel(long, 'middle')).toBe(
+      'prod-us-east-1-servi…heckout-latency-p99',
+    );
+    expect(truncateLabel(long, 'middle')).toHaveLength(TRUNCATION_MAX_CHARS);
+  });
+
+  test('leaves text at or under the limit untouched', () => {
+    const atLimit = 'x'.repeat(TRUNCATION_MAX_CHARS);
+    expect(truncateLabel(atLimit, 'start')).toBe(atLimit);
+    expect(truncateLabel(atLimit, 'middle')).toBe(atLimit);
+    expect(truncateLabel('short', 'start')).toBe('short');
+    expect(truncateLabel('', 'middle')).toBe('');
+  });
+
+  test('truncates text one character over the limit', () => {
+    const overLimit = 'x'.repeat(TRUNCATION_MAX_CHARS + 1);
+    expect(truncateLabel(overLimit, 'start')).toBe(
+      `…${'x'.repeat(TRUNCATION_MAX_CHARS - 1)}`,
+    );
+  });
+});
+
+describe('tooltipHtml truncation modes', () => {
+  const rows = [['label', 'value']];
+
+  // sanitizeHtml normalizes spacing inside style attributes, and it does so
+  // differently across versions, so compare with whitespace stripped.
+  const styles = (
+    title: string | undefined,
+    truncation?: 'off' | 'end' | 'start' | 'middle',
+  ) => removeWhitespaces(tooltipHtml(rows, title, undefined, truncation));
+
+  test('emits the 300px cap for end and for the default', () => {
+    expect(styles('Title', 'end')).toContain('max-width:300px');
+    expect(tooltipHtml(rows, 'Title')).toBe(
+      tooltipHtml(rows, 'Title', undefined, 'end'),
+    );
+  });
+
+  test('emits no truncation style for off', () => {
+    const html = styles('Title', 'off');
+    expect(html).not.toContain('max-width');
+    expect(html).not.toContain('text-overflow');
+    expect(html).not.toContain('white-space');
+  });
+
+  test.each(['start', 'middle'] as const)(
+    'emits nowrap instead of a cap for %s',
+    mode => {
+      const html = styles('Title', mode);
+      expect(html).toContain('white-space:nowrap');
+      expect(html).not.toContain('max-width');
+    },
+  );
+
+  test('never slices cell text itself, whatever the mode', () => {
+    const longCell = 'y'.repeat(TRUNCATION_MAX_CHARS + 20);
+    (['off', 'end', 'start', 'middle'] as const).forEach(mode => {
+      expect(tooltipHtml([[longCell]], undefined, undefined, mode)).toContain(
+        longCell,
+      );
+    });
+  });
+});
+
+describe('tooltipMarker', () => {
+  test('keeps its color and shape through sanitizeHtml', () => {
+    const html = removeWhitespaces(
+      sanitizeHtml(tooltipMarker('#1f77b4', 'pin')),
+    );
+    expect(html).toContain('color:#1f77b4');
+    expect(html).toContain('border:5pxsolidcurrentcolor');
+    expect(html).toContain('border-radius:50%50%050%');
+  });
+
+  test('keeps the triangle borders and lift through sanitizeHtml', () => {
+    const html = removeWhitespaces(
+      sanitizeHtml(tooltipMarker('#1f77b4', 'triangle')),
+    );
+    expect(html).toContain('border-width:05px10px');
+    expect(html).toContain('border-color:transparenttransparentcurrentcolor');
+    expect(html).toContain('vertical-align:calc(0.5em+5px)');
+  });
+
+  test('draws the diamond as a glyph', () => {
+    expect(tooltipMarker('#1f77b4', 'diamond')).toContain('◆');
+  });
+
+  test('falls back to a circle for unknown symbols', () => {
+    expect(tooltipMarker('red', 'arrow')).toBe(tooltipMarker('red', 'circle'));
+  });
+
+  test('returns nothing without a color string', () => {
+    expect(tooltipMarker(undefined)).toBe('');
+    expect(tooltipMarker({ type: 'linear' })).toBe('');
+  });
 });

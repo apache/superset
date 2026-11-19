@@ -16,14 +16,22 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -#}
+{% import "superset/macros.html" as macros %}
 <!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
   </head>
   <body>
-    <script>
-      window.opener.postMessage({ tabId: '{{ tab_id }}' });
+    <script nonce="{{ macros.get_nonce() }}">
+      const message = { tabId: '{{ tab_id }}' };
+      if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel('oauth');
+        channel.postMessage(message);
+        channel.close();
+      }
+      localStorage.setItem('oauth2_auth_complete', JSON.stringify(message));
+      localStorage.removeItem('oauth2_auth_complete');
       window.close();
     </script>
     <p>You can close this window and re-run the query.</p>

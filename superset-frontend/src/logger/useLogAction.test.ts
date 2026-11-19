@@ -18,7 +18,7 @@
  */
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { createWrapper } from 'spec/helpers/testing-library';
 import useLogAction from './useLogAction';
 import { LOG_ACTIONS_SQLLAB_COPY_LINK } from './LogUtils';

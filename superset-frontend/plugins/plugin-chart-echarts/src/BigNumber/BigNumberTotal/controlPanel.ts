@@ -32,6 +32,7 @@ import {
   subtitleControl,
   showMetricNameControl,
   metricNameFontSizeWithVisibility,
+  headerAlignmentControl,
 } from '../sharedControls';
 
 export default {
@@ -124,6 +125,7 @@ export default {
             },
           },
         ],
+        [headerAlignmentControl],
       ],
     },
   ],

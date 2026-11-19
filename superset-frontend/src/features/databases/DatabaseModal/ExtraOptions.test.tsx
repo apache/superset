@@ -27,6 +27,7 @@ import { t } from '@apache-superset/core/translation';
 import * as ace from 'ace-builds';
 
 import ExtraOptions from './ExtraOptions';
+import fetchMock from 'fetch-mock';
 import { DatabaseObject } from '../types';
 
 const defaultDb = {
@@ -86,6 +87,7 @@ describe('ExtraOptions Component', () => {
         onExtraEditorChange={onExtraEditorChange}
         extraExtension={extension}
       />,
+      { useRedux: true },
     );
 
   beforeEach(() => {
@@ -184,6 +186,25 @@ describe('ExtraOptions Component', () => {
     expect(onExtraInputChange).toHaveBeenCalled();
   });
 
+  test('schema cache timeout input has min=0 to prevent negative values', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('schema-cache-timeout-test');
+    expect(input).toHaveAttribute('min', '0');
+  });
+
+  test('schema cache timeout rejects negative values', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('schema-cache-timeout-test');
+    fireEvent.change(input, {
+      target: { value: '-4', name: 'schema_cache_timeout' },
+    });
+    expect(onExtraInputChange).not.toHaveBeenCalled();
+  });
+
   test('handles input change for table cache timeout', () => {
     renderComponent();
     const performanceHeader = screen.getByText(t('Performance'));
@@ -191,6 +212,55 @@ describe('ExtraOptions Component', () => {
     const input = screen.getByTestId('table-cache-timeout-test');
     fireEvent.change(input, { target: { value: '1000' } });
     expect(onExtraInputChange).toHaveBeenCalled();
+  });
+
+  test('table cache timeout input has min=0 to prevent negative values', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('table-cache-timeout-test');
+    expect(input).toHaveAttribute('min', '0');
+  });
+
+  test('table cache timeout rejects negative values', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('table-cache-timeout-test');
+    fireEvent.change(input, {
+      target: { value: '-1', name: 'table_cache_timeout' },
+    });
+    expect(onExtraInputChange).not.toHaveBeenCalled();
+  });
+
+  test('chart cache timeout input has min=-1', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('cache-timeout-test');
+    expect(input).toHaveAttribute('min', '-1');
+  });
+
+  test('chart cache timeout allows -1 (bypass cache)', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('cache-timeout-test');
+    fireEvent.change(input, {
+      target: { value: '-1', name: 'cache_timeout' },
+    });
+    expect(onInputChange).toHaveBeenCalled();
+  });
+
+  test('chart cache timeout rejects values less than -1', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('cache-timeout-test');
+    fireEvent.change(input, {
+      target: { value: '-5', name: 'cache_timeout' },
+    });
+    expect(onInputChange).not.toHaveBeenCalled();
   });
 
   test('renders the collaps tab correctly and resets to default tab after closing', () => {
@@ -237,4 +307,284 @@ describe('ExtraOptions Component', () => {
       expect(panelTab).toHaveAttribute('aria-expanded', 'false');
     });
   });
+});
+
+const maskedDb = {
+  ...defaultDb,
+  id: 3,
+  masked_encrypted_extra: JSON.stringify({
+    connect_args: { jwt: 'XXXXXXXXXX', password: 'XXXXXXXXXX', host: 'h' },
+  }),
+  engine_information: {
+    ...defaultDb.engine_information,
+    encrypted_extra_sensitive_fields: {
+      '$.connect_args.jwt': 'JWT Token',
+      '$.connect_args.password': 'Password',
+      '$.oauth2_client_info.secret': 'OAuth2 client secret',
+    },
+  },
+};
+
+const renderSecurityPanel = (db: object, hintChars: number) => {
+  render(
+    <ExtraOptions
+      db={db as unknown as DatabaseObject}
+      onInputChange={jest.fn()}
+      onTextChange={jest.fn()}
+      onEditorChange={jest.fn()}
+      onExtraInputChange={jest.fn()}
+      onExtraEditorChange={jest.fn()}
+      extraExtension={undefined}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: hintChars } },
+      },
+    },
+  );
+  fireEvent.click(screen.getByText(t('Security')));
+};
+
+const expectNoSecretFields = () => {
+  expect(screen.getByText(t('Secure extra'))).toBeInTheDocument();
+  expect(screen.queryByTestId('secure-extra-hints')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Show' }),
+  ).not.toBeInTheDocument();
+};
+
+test('secret fields render in edit mode for each masked declared path', () => {
+  renderSecurityPanel(maskedDb, 5);
+  const blocks = screen.getAllByTestId('secure-extra-hint');
+  expect(blocks).toHaveLength(2);
+  expect(blocks[0]).toHaveTextContent('JWT Token');
+  expect(blocks[0]).toHaveTextContent('Stored at connect_args.jwt.');
+  expect(blocks[1]).toHaveTextContent('Password');
+  expect(blocks[1]).toHaveTextContent('Stored at connect_args.password.');
+  expect(screen.getAllByRole('button', { name: 'Show' })).toHaveLength(2);
+  expect(screen.queryByText('OAuth2 client secret')).not.toBeInTheDocument();
+});
+
+test('secret fields are absent when the config is 0', () => {
+  renderSecurityPanel(maskedDb, 0);
+  expectNoSecretFields();
+});
+
+test('secret fields are absent in create mode', () => {
+  renderSecurityPanel({ ...maskedDb, id: undefined }, 5);
+  expectNoSecretFields();
+});
+
+test('secret fields are absent when the secure extra has no mask', () => {
+  renderSecurityPanel(
+    {
+      ...maskedDb,
+      masked_encrypted_extra: JSON.stringify({ connect_args: { jwt: 'x' } }),
+    },
+    5,
+  );
+  expectNoSecretFields();
+});
+
+test('secret fields are absent when no declared path holds the mask', () => {
+  renderSecurityPanel(
+    {
+      ...maskedDb,
+      masked_encrypted_extra: JSON.stringify({ other: { jwt: 'XXXXXXXXXX' } }),
+    },
+    5,
+  );
+  expectNoSecretFields();
+});
+
+test('secret fields are absent when the engine declares no sensitive fields', () => {
+  renderSecurityPanel(
+    { ...maskedDb, engine_information: defaultDb.engine_information },
+    5,
+  );
+  expectNoSecretFields();
+});
+
+test('secret fields are absent when the secure extra is invalid JSON', () => {
+  renderSecurityPanel(
+    { ...maskedDb, masked_encrypted_extra: '{"connect_args": "XXXXXXXXXX"' },
+    5,
+  );
+  expectNoSecretFields();
+});
+
+test('a hint length configured as a string reads as the number', async () => {
+  fetchMock.get('glob:*/api/v1/database/3/encrypted_extra_hints/', {
+    result: [{ path: '$.connect_args.jwt', label: 'JWT Token', suffix: null }],
+  });
+  renderSecurityPanel(maskedDb, '5' as unknown as number);
+  expect(screen.getAllByTestId('secure-extra-hint')).toHaveLength(2);
+
+  fireEvent.click(screen.getAllByRole('button', { name: 'Show' })[0]);
+  fireEvent.mouseEnter(await screen.findByText('Too short to show safely'));
+
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    'Only the ending of secrets with at least 20 characters is shown.',
+  );
+  fetchMock.clearHistory().removeRoutes();
+});
+
+test('the too short note uses four times the configured hint length', async () => {
+  fetchMock.get('glob:*/api/v1/database/3/encrypted_extra_hints/', {
+    result: [
+      {
+        path: '$.connect_args.jwt',
+        label: 'JWT Token',
+        suffix: null,
+      },
+    ],
+  });
+  renderSecurityPanel(maskedDb, 5);
+
+  fireEvent.click(screen.getAllByRole('button', { name: 'Show' })[0]);
+  const note = await screen.findByText('Too short to show safely');
+  fireEvent.mouseEnter(note);
+
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    'Only the ending of secrets with at least 20 characters is shown.',
+  );
+  fetchMock.clearHistory().removeRoutes();
+});
+
+const HINTS_ENDPOINT = 'glob:*/api/v1/database/3/encrypted_extra_hints/';
+const SECRET_HINTS = {
+  result: [
+    { path: '$.connect_args.jwt', label: 'JWT Token', suffix: 'Ab3dE' },
+    { path: '$.connect_args.password', label: 'Password', suffix: null },
+  ],
+};
+
+const secretProps = {
+  onInputChange: jest.fn(),
+  onTextChange: jest.fn(),
+  onEditorChange: jest.fn(),
+  onExtraInputChange: jest.fn(),
+  onExtraEditorChange: jest.fn(),
+  extraExtension: undefined,
+};
+
+// Renders the Security panel of `maskedDb` with its JWT field revealed.
+const renderRevealedJwt = async () => {
+  fetchMock.get(HINTS_ENDPOINT, SECRET_HINTS);
+  const view = render(
+    <ExtraOptions
+      {...secretProps}
+      db={maskedDb as unknown as DatabaseObject}
+      secretsGeneration={0}
+    />,
+    {
+      useRedux: true,
+      initialState: { common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: 5 } } },
+    },
+  );
+  fireEvent.click(screen.getByText(t('Security')));
+  fireEvent.click(screen.getAllByRole('button', { name: 'Show' })[0]);
+  const input = await screen.findByDisplayValue(/Ab3dE$/);
+  return { ...view, input };
+};
+
+const withSecureExtra = (maskedEncryptedExtra: string) =>
+  ({
+    ...maskedDb,
+    masked_encrypted_extra: maskedEncryptedExtra,
+  }) as unknown as DatabaseObject;
+
+test('a transiently invalid secure extra keeps the revealed secret fields mounted', async () => {
+  try {
+    const { rerender, input } = await renderRevealedJwt();
+    const valid = maskedDb.masked_encrypted_extra;
+
+    rerender(
+      <ExtraOptions
+        {...secretProps}
+        db={withSecureExtra(valid.slice(0, -1))}
+        secretsGeneration={0}
+      />,
+    );
+    expect(screen.getAllByTestId('secure-extra-hint')).toHaveLength(2);
+    expect(screen.getByDisplayValue(/Ab3dE$/)).toBe(input);
+
+    rerender(
+      <ExtraOptions
+        {...secretProps}
+        db={withSecureExtra(valid)}
+        secretsGeneration={0}
+      />,
+    );
+    expect(screen.getByDisplayValue(/Ab3dE$/)).toBe(input);
+    expect(fetchMock.callHistory.calls(HINTS_ENDPOINT)).toHaveLength(1);
+  } finally {
+    fetchMock.clearHistory().removeRoutes();
+  }
+});
+
+test('another database never inherits the last valid secure extra', async () => {
+  try {
+    const { rerender } = await renderRevealedJwt();
+
+    // Same engine map, so only the database id keeps the old JSON out.
+    rerender(
+      <ExtraOptions
+        {...secretProps}
+        db={{ ...withSecureExtra(''), id: 4 }}
+        secretsGeneration={0}
+      />,
+    );
+
+    expectNoSecretFields();
+    expect(document.body.innerHTML).not.toContain('Ab3dE');
+  } finally {
+    fetchMock.clearHistory().removeRoutes();
+  }
+});
+
+test('removing the mask from a valid secure extra still hides its field', async () => {
+  try {
+    const { rerender } = await renderRevealedJwt();
+
+    rerender(
+      <ExtraOptions
+        {...secretProps}
+        db={withSecureExtra(
+          JSON.stringify({
+            connect_args: { jwt: 'a-new-token', password: 'XXXXXXXXXX' },
+          }),
+        )}
+        secretsGeneration={0}
+      />,
+    );
+
+    const fields = screen.getAllByTestId('secure-extra-hint');
+    expect(fields).toHaveLength(1);
+    expect(fields[0]).toHaveTextContent('Password');
+  } finally {
+    fetchMock.clearHistory().removeRoutes();
+  }
+});
+
+test('a new secrets generation remounts the fields, so their endings are fetched again', async () => {
+  try {
+    const { rerender } = await renderRevealedJwt();
+
+    rerender(
+      <ExtraOptions
+        {...secretProps}
+        db={maskedDb as unknown as DatabaseObject}
+        secretsGeneration={1}
+      />,
+    );
+
+    expect(screen.queryByDisplayValue(/Ab3dE$/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Show' })[0]);
+    expect(await screen.findByDisplayValue(/Ab3dE$/)).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls(HINTS_ENDPOINT)).toHaveLength(2);
+  } finally {
+    fetchMock.clearHistory().removeRoutes();
+  }
 });

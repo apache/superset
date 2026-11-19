@@ -20,20 +20,23 @@ from typing import Any, TYPE_CHECKING
 
 from flask import request
 from flask_appbuilder import expose
-from flask_appbuilder.api import rison
+from flask_appbuilder.api import rison as parse_rison
 from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import lazy_gettext as _
 
-from superset import db, event_logger
+from superset import event_logger
 from superset.commands.chart.exceptions import (
+    ChartNotFoundError,
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
+from superset.daos.chart import ChartDAO
+from superset.exceptions import QueryObjectValidationError
 from superset.legacy import update_time_range
-from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.date_parser import get_since_until
+from superset.utils.error_sanitization import redact_sensitive_query_fields
 from superset.views.base import api, BaseSupersetView
 from superset.views.error_handling import handle_api_exception
 
@@ -67,13 +70,23 @@ class Api(BaseSupersetView):
 
         raises SupersetSecurityException: If the user cannot access the resource
         """
-        query_context = self.get_query_context_factory().create(
-            **json.loads(request.form["query_context"])
-        )
+        try:
+            query_context_params = json.loads(request.form["query_context"])
+        except ValueError as ex:
+            raise QueryObjectValidationError(
+                _("query_context must be valid JSON")
+            ) from ex
+        if not isinstance(query_context_params, dict):
+            raise QueryObjectValidationError(_("query_context must be a JSON object"))
+        query_context = self.get_query_context_factory().create(**query_context_params)
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
-        return json.dumps(payload_json, default=json.json_int_dttm_ser, ignore_nan=True)
+        # These are the same query-context payloads ``/api/v1/chart/data``
+        # returns, including the generated SQL under ``query``, so apply the same
+        # guest redaction before responding.
+        redact_sensitive_query_fields(payload_json)
+        return self.json_response(payload_json)
 
     @event_logger.log_this
     @api
@@ -85,11 +98,17 @@ class Api(BaseSupersetView):
         Get the form_data stored in the database for existing slice.
         params: slice_id: integer
         """
-        form_data = {}
+        form_data: dict[str, Any] = {}
         if slice_id := request.args.get("slice_id"):
-            slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
-            if slc:
-                form_data = slc.form_data.copy()
+            # Reuse ChartDAO.get_by_id_or_uuid so this endpoint applies the
+            # same ChartFilter (dataset-scoped) as ChartRestApi.get. Both a
+            # missing chart and a chart the caller cannot access surface as
+            # ChartNotFoundError, mapped to 404 so the status code cannot be
+            # used to distinguish the two cases.
+            try:
+                form_data = ChartDAO.get_by_id_or_uuid(slice_id).form_data.copy()
+            except ChartNotFoundError:
+                return self.json_response({}, 404)
 
         update_time_range(form_data)
 
@@ -98,7 +117,7 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @rison(get_time_range_schema)
+    @parse_rison(get_time_range_schema)
     @expose("/v1/time_range/", methods=("GET",))
     def time_range(self, **kwargs: Any) -> FlaskResponse:
         """Get actually time range from human-readable string or datetime expression."""
@@ -131,5 +150,7 @@ class Api(BaseSupersetView):
             # pylint: disable=import-outside-toplevel
             from superset.common.query_context_factory import QueryContextFactory
 
-            self.query_context_factory = QueryContextFactory()
+            self.query_context_factory = QueryContextFactory(
+                authorize_semantic_before_metadata=True
+            )
         return self.query_context_factory

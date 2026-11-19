@@ -30,6 +30,9 @@
 import path from 'path';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineConfig } from '@playwright/test';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const serverURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
 const baseURL = serverURL.endsWith('/') ? serverURL : `${serverURL}/`;
@@ -64,6 +67,7 @@ export default defineConfig({
       name: 'docs-generators',
       use: {
         browserName: 'chromium',
+        baseURL, // explicit here so globalSetup can read it from config.projects[0].use.baseURL
         testIdAttribute: 'data-test',
         storageState: path.resolve(__dirname, '../.auth/user.json'),
       },

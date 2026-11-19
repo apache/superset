@@ -18,7 +18,12 @@
  */
 
 import { ReactNode } from 'react';
-import { Divider, Filter } from '@superset-ui/core';
+import {
+  ChartCustomization,
+  ChartCustomizationDivider,
+  Divider,
+  Filter,
+} from '@superset-ui/core';
 import { css, SupersetTheme } from '@apache-superset/core/theme';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
@@ -28,11 +33,19 @@ export interface FiltersDropdownContentProps {
   overflowedCrossFilters: CrossFilterIndicator[];
   filtersInScope: (Filter | Divider)[];
   filtersOutOfScope: (Filter | Divider)[];
+  overflowedCustomizationsInScope?: (
+    | ChartCustomization
+    | ChartCustomizationDivider
+  )[];
   renderer: (filter: Filter | Divider, index: number) => ReactNode;
   rendererCrossFilter: (
     crossFilter: CrossFilterIndicator,
     orientation: FilterBarOrientation.Vertical,
     last: CrossFilterIndicator,
+  ) => ReactNode;
+  customizationRenderer?: (
+    item: ChartCustomization | ChartCustomizationDivider,
+    index: number,
   ) => ReactNode;
   showCollapsePanel?: boolean;
   forceRenderOutOfScope?: boolean;
@@ -42,8 +55,10 @@ export const FiltersDropdownContent = ({
   overflowedCrossFilters,
   filtersInScope,
   filtersOutOfScope,
+  overflowedCustomizationsInScope = [],
   renderer,
   rendererCrossFilter,
+  customizationRenderer,
   showCollapsePanel,
   forceRenderOutOfScope,
 }: FiltersDropdownContentProps) => (
@@ -61,7 +76,11 @@ export const FiltersDropdownContent = ({
       ),
     )}
     {filtersInScope.map(renderer)}
-    {showCollapsePanel && (
+    {customizationRenderer &&
+      overflowedCustomizationsInScope.map((item, index) =>
+        customizationRenderer(item, index),
+      )}
+    {showCollapsePanel && filtersOutOfScope.length > 0 && (
       <FiltersOutOfScopeCollapsible
         filtersOutOfScope={filtersOutOfScope}
         renderer={renderer}

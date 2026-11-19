@@ -158,17 +158,60 @@ test('passes all props through to AgGridReact', () => {
     />,
   );
 
+  // onGridReady and onFirstDataRendered are intercepted by the component to expose
+  // the grid API on the container element; the wrapped function is passed instead.
   expect(AgGridReact).toHaveBeenCalledWith(
     expect.objectContaining({
       rowData: mockRowData,
       columnDefs: mockColumnDefs,
-      onGridReady,
+      onGridReady: expect.any(Function),
       onCellClicked,
       pagination: true,
       paginationPageSize: 10,
     }),
     expect.any(Object),
   );
+});
+
+test('onGridReady wrapper calls user callback and exposes api on container', () => {
+  const onGridReady = jest.fn();
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      onGridReady={onGridReady}
+    />,
+  );
+
+  // Retrieve the wrapped handler that was passed to AgGridReact
+  const lastCall = (AgGridReact as jest.Mock).mock.calls.at(-1)[0];
+  const wrappedOnGridReady = lastCall.onGridReady as Function;
+
+  const mockApi = { setGridOption: jest.fn() };
+  wrappedOnGridReady({ api: mockApi });
+
+  // The user-provided callback must be forwarded
+  expect(onGridReady).toHaveBeenCalledWith({ api: mockApi });
+});
+
+test('onFirstDataRendered wrapper calls user callback', () => {
+  const onFirstDataRendered = jest.fn();
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      onFirstDataRendered={onFirstDataRendered}
+    />,
+  );
+
+  const lastCall = (AgGridReact as jest.Mock).mock.calls.at(-1)[0];
+  const wrappedOnFirstDataRendered = lastCall.onFirstDataRendered as Function;
+
+  wrappedOnFirstDataRendered({ firstRow: 0 });
+
+  expect(onFirstDataRendered).toHaveBeenCalledWith({ firstRow: 0 });
 });
 
 test('applies custom theme colors from Superset theme', () => {
@@ -201,6 +244,34 @@ test('wraps component with proper container div', () => {
   expect(wrapper).toBeInTheDocument();
   // Styles are now applied via css prop, not inline styles
   expect(wrapper).toHaveAttribute('data-themed-ag-grid', 'true');
+});
+
+test('applies non-transparent backgrounds to native menus, tooltips and overlays', () => {
+  const customTheme = {
+    ...supersetTheme,
+    colorBgElevated: '#f2f2f2',
+  };
+
+  render(
+    <ThemeProvider theme={customTheme}>
+      <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
+    </ThemeProvider>,
+  );
+
+  const agGrid = screen.getByTestId('ag-grid-react');
+  const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
+
+  // ag-grid's own context/column menus, side bar, tooltips and overlays are
+  // rendered against these params rather than `backgroundColor` (which is
+  // intentionally 'transparent' so the surrounding app shows through the
+  // grid body). Without explicit values they inherit transparency too,
+  // making native menus/popups unreadable.
+  expect(theme.chromeBackgroundColor).toBe('#f2f2f2');
+  expect(theme.menuBackgroundColor).toBe('#f2f2f2');
+  expect(theme.menuBorder).toBe(true);
+  expect(theme.sideBarBackgroundColor).toBe('#f2f2f2');
+  expect(theme.tooltipBackgroundColor).toBe('#f2f2f2');
+  expect(theme.modalOverlayBackgroundColor).toBe('#f2f2f2');
 });
 
 test('handles missing theme gracefully', () => {

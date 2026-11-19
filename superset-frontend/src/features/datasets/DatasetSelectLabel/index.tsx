@@ -19,17 +19,24 @@
 import { Tooltip } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
+import { parentLabelLower } from 'src/features/semanticLayers/label';
 
 type Database = {
   database_name: string;
 };
 
+/**
+ * One row of a dataset or combined datasource listing. Semantic views report
+ * ``kind: 'semantic_view'`` and carry no schema; their ``database`` names the
+ * owning semantic layer.
+ */
 export type Dataset = {
   id: number;
   table_name: string;
   datasource_type?: string;
-  schema: string;
-  database: Database;
+  kind?: string;
+  schema?: string | null;
+  database?: Database | null;
 };
 
 const TooltipContent = styled.div`
@@ -103,14 +110,14 @@ export const DatasetSelectLabel = (item: Dataset) => (
         </div>
         <div className="tooltip-description">
           <div>
-            {t('Database')}: {item.database.database_name}
+            {parentLabelLower(item.kind)}:{' '}
+            {item.database?.database_name ?? t('Not defined')}
           </div>
-          <div>
-            {t('Schema')}:{' '}
-            {item.schema && isValidValue(item.schema)
-              ? item.schema
-              : t('Not defined')}
-          </div>
+          {item.schema && isValidValue(item.schema) && (
+            <div>
+              {t('Schema')}: {item.schema}
+            </div>
+          )}
         </div>
       </TooltipContent>
     }
@@ -119,10 +126,12 @@ export const DatasetSelectLabel = (item: Dataset) => (
       <StyledLabel>
         {item.table_name && isValidValue(item.table_name)
           ? item.table_name
-          : item.database.database_name}
+          : (item.database?.database_name ?? t('Not defined'))}
       </StyledLabel>
       <StyledDetailWrapper>
-        <StyledLabelDetail>{item.database.database_name}</StyledLabelDetail>
+        <StyledLabelDetail>
+          {item.database?.database_name ?? t('Not defined')}
+        </StyledLabelDetail>
         {item.schema && isValidValue(item.schema) && (
           <StyledLabelDetail>&nbsp;- {item.schema}</StyledLabelDetail>
         )}

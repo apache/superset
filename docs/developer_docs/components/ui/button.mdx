@@ -43,7 +43,7 @@ The Button component from Superset's UI library.
 <StoryWithControls
   component="Button"
   props={{
-  buttonStyle: "default",
+  buttonStyle: "primary",
   buttonSize: "default",
   children: "Button!"
 }}
@@ -111,7 +111,7 @@ Edit the code below to experiment with the component:
 function Demo() {
   return (
     <Button
-      buttonStyle="default"
+      buttonStyle="primary"
       buttonSize="default"
     >
       Button!
@@ -124,14 +124,14 @@ function Demo() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `buttonStyle` | `string` | `"default"` | The style variant of the button. |
+| `buttonStyle` | `string` | `"primary"` | The style variant of the button. |
 | `buttonSize` | `string` | `"default"` | The size of the button. |
 | `children` | `string` | `"Button!"` | The button text or content. |
 
 ## Import
 
 ```tsx
-import { Button } from '@superset/components';
+import { Button } from '@superset-ui/core/components';
 ```
 
 ---

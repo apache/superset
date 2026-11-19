@@ -121,13 +121,17 @@ describe('GroupsList', () => {
 
   test('renders the filters correctly', async () => {
     await renderComponent();
-    const filtersSelect = screen.getAllByTestId('filters-select')[0];
 
-    expect(within(filtersSelect).getByText(/name/i)).toBeInTheDocument();
-    expect(within(filtersSelect).getByText(/label/i)).toBeInTheDocument();
-    expect(within(filtersSelect).getByText(/description/i)).toBeInTheDocument();
-    expect(within(filtersSelect).getByText(/roles/i)).toBeInTheDocument();
-    expect(within(filtersSelect).getByText(/users/i)).toBeInTheDocument();
+    // The compact filter UI renders the first search filter as an input,
+    // and select filters as pill buttons. Only "Name" search renders inline;
+    // "Label" and "Description" searches are hidden (one search box per page).
+    expect(screen.getByTestId('filters-search')).toBeInTheDocument();
+
+    // Select filters render as compact pill buttons
+    const pills = screen.getAllByTestId('compact-filter-pill');
+    const pillLabels = pills.map(p => p.textContent ?? '');
+    expect(pillLabels.some(l => /roles/i.test(l))).toBe(true);
+    expect(pillLabels.some(l => /users/i.test(l))).toBe(true);
   });
 
   test('renders correct columns in the table', async () => {

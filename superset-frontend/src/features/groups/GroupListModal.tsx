@@ -29,7 +29,14 @@ import {
   AsyncSelect,
 } from '@superset-ui/core/components';
 import { FormValues, GroupModalProps } from './types';
-import { createGroup, fetchUserOptions, updateGroup } from './utils';
+import {
+  createGroup,
+  fetchUserOptions,
+  toUserSelectOption,
+  updateGroup,
+  USER_OPTION_FILTER_PROPS,
+  userOptionSortComparator,
+} from './utils';
 
 function GroupListModal({
   show,
@@ -91,11 +98,7 @@ function GroupListModal({
   const initialValues = {
     ...group,
     roles: group?.roles?.map(role => role.id) || [],
-    users:
-      group?.users?.map(user => ({
-        value: user.id,
-        label: user.username,
-      })) || [],
+    users: group?.users?.map(toUserSelectOption) || [],
   };
 
   return (
@@ -139,7 +142,7 @@ function GroupListModal({
             value: role.id,
             label: role.name,
           }))}
-          getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
+          getPopupContainer={trigger => trigger.closest('.ant-modal-container')}
         />
       </FormItem>
       <FormItem name="users" label={t('Users')}>
@@ -150,6 +153,10 @@ function GroupListModal({
           options={(filterValue, page, pageSize) =>
             fetchUserOptions(filterValue, page, pageSize, addDangerToast)
           }
+          // The server matches on username and email too; re-filter on the
+          // option's plain-text name, email and username, not its React label.
+          optionFilterProps={USER_OPTION_FILTER_PROPS}
+          sortComparator={userOptionSortComparator}
         />
       </FormItem>
     </FormModal>

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import type { Layer } from '@deck.gl/core';
 import { getMapboxApiKey } from './utils/mapbox';
 import {
@@ -31,6 +31,7 @@ import {
   FilterState,
   JsonValue,
   ContextMenuFilters,
+  getMapProviderMapStyle,
 } from '@superset-ui/core';
 
 import {
@@ -39,6 +40,7 @@ import {
 } from './DeckGLContainer';
 import CategoricalDeckGLContainer from './CategoricalDeckGLContainer';
 import fitViewport, { Viewport } from './utils/fitViewport';
+import computeBoundsFromPoints from './utils/computeBoundsFromPoints';
 import { Point } from './types';
 import { TooltipProps } from './components/Tooltip';
 import { getColorBreakpointsBuckets } from './utils';
@@ -112,6 +114,30 @@ export function createDeckGLComponent(
     );
 
     const [viewport, setViewport] = useState(getAdjustedViewport());
+    // The area autozoom last fitted. The transform builds a new features array
+    // on every run, including the one Explore triggers when it saves the
+    // viewer's pan, zoom or tilt, so a refit keys on these bounds by value.
+    const autozoomBoundsRef = useRef(
+      props.formData.autozoom
+        ? computeBoundsFromPoints(getPoints(props.payload.data.features))
+        : undefined,
+    );
+
+    useEffect(() => {
+      // A dashboard auto-refresh keeps the chart mounted and swaps in new
+      // data, so autozoom refits the map here when the new rows cover
+      // another area.
+      const autozoomBounds = props.formData.autozoom
+        ? computeBoundsFromPoints(getPoints(props.payload.data.features))
+        : undefined;
+      if (
+        autozoomBounds &&
+        !isEqual(autozoomBounds, autozoomBoundsRef.current)
+      ) {
+        setViewport(getAdjustedViewport());
+      }
+      autozoomBoundsRef.current = autozoomBounds;
+    }, [getAdjustedViewport, props]);
 
     const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
       const { current } = containerRef;
@@ -184,6 +210,12 @@ export function createDeckGLComponent(
     }, [computeLayers, prevFormData, prevFilterState, prevPayload, props]);
 
     const { formData, setControlValue, height, width } = props;
+    const selectedMap = getMapProviderMapStyle({
+      mapProvider: formData.map_renderer,
+      maplibreStyle: formData.maplibre_style,
+      mapboxStyle: formData.mapbox_style,
+      legacyMapStyle: formData.map_style,
+    });
 
     return (
       <div style={{ position: 'relative' }}>
@@ -191,14 +223,8 @@ export function createDeckGLComponent(
           ref={containerRef}
           viewport={viewport}
           layers={layers}
-          mapStyle={
-            formData.map_renderer === 'mapbox'
-              ? formData.mapbox_style
-              : formData.maplibre_style
-          }
-          mapProvider={
-            formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre'
-          }
+          mapStyle={selectedMap.mapStyle}
+          mapProvider={selectedMap.mapProvider}
           mapboxApiKey={getMapboxApiKey()}
           setControlValue={setControlValue}
           width={width}

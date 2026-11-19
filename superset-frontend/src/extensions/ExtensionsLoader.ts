@@ -19,8 +19,39 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
+import { makeUrl } from 'src/utils/navigationUtils';
+import 'src/extensions/Namespaces';
+import { createExtensionContext } from './ExtensionContext';
 
 type Extension = core.Extension;
+
+/**
+ * An extension as returned by the extensions API, with loader-internal
+ * fields used to fetch and initialize its module. These fields are not
+ * part of the public `Extension` metadata exposed to extension authors,
+ * and are only present for extensions that declare a frontend bundle.
+ */
+export interface LoadedExtension extends Extension {
+  /** URL to the extension's remote entry script. */
+  remoteEntry?: string;
+  /** Webpack Module Federation container name (maps to window[name]). */
+  moduleFederationName?: string;
+}
+
+/**
+ * Narrows an unknown `window[containerName]` lookup to a
+ * `WebpackFederationContainer`, verifying it exposes the runtime methods
+ * we depend on rather than trusting an assertion.
+ */
+function isWebpackFederationContainer(
+  value: unknown,
+): value is WebpackFederationContainer {
+  const container = value as Partial<WebpackFederationContainer> | null;
+  return (
+    typeof container?.init === 'function' &&
+    typeof container?.get === 'function'
+  );
+}
 
 /**
  * Loads extension modules via webpack module federation.
@@ -32,7 +63,9 @@ type Extension = core.Extension;
 class ExtensionsLoader {
   private static instance: ExtensionsLoader;
 
-  private extensionIndex: Map<string, Extension> = new Map();
+  private extensionIndex: Map<string, LoadedExtension> = new Map();
+
+  private initializationPromise: Promise<void> | null = null;
 
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
@@ -54,16 +87,33 @@ class ExtensionsLoader {
    * Initializes extensions by fetching the list from the API and loading each one.
    * @throws Error if initialization fails.
    */
-  public async initializeExtensions(): Promise<void> {
-    const response = await SupersetClient.get({
-      endpoint: '/api/v1/extensions/',
-    });
-    const extensions: Extension[] = response.json.result;
-    await Promise.all(
-      extensions.map(async extension => {
-        await this.initializeExtension(extension);
-      }),
-    );
+  public initializeExtensions(): Promise<void> {
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+    this.initializationPromise = (async () => {
+      try {
+        const response = await SupersetClient.get({
+          endpoint: '/api/v1/extensions/',
+        });
+        const extensions: LoadedExtension[] = response.json.result;
+        const results = await Promise.all(
+          extensions.map(ext => this.initializeExtension(ext)),
+        );
+        if (results.every(Boolean)) {
+          logging.info('Extensions initialized successfully.');
+        } else {
+          const failedCount = results.filter(succeeded => !succeeded).length;
+          logging.info(
+            `Extensions initialized with ${failedCount} of ` +
+              `${extensions.length} extension(s) failing. See errors above.`,
+          );
+        }
+      } catch (error) {
+        logging.error('Error setting up extensions:', error);
+      }
+    })();
+    return this.initializationPromise;
   }
 
   /**
@@ -71,18 +121,23 @@ class ExtensionsLoader {
    * If the extension has a remote entry, loads the module (which triggers
    * side-effect registrations for commands, views, menus, and editors).
    * @param extension The extension to initialize.
+   * @returns Whether the extension was initialized successfully.
    */
-  public async initializeExtension(extension: Extension) {
+  public async initializeExtension(
+    extension: LoadedExtension,
+  ): Promise<boolean> {
     try {
       if (extension.remoteEntry) {
         await this.loadModule(extension);
       }
       this.extensionIndex.set(extension.id, extension);
+      return true;
     } catch (error) {
       logging.error(
         `Failed to initialize extension ${extension.name}\n`,
         error,
       );
+      return false;
     }
   }
 
@@ -91,13 +146,18 @@ class ExtensionsLoader {
    * The module's top-level side effects fire contribution registrations.
    * @param extension The extension to load.
    */
-  private async loadModule(extension: Extension): Promise<void> {
+  private async loadModule(extension: LoadedExtension): Promise<void> {
     const { remoteEntry, id } = extension;
+    if (!remoteEntry) {
+      throw new Error(`Extension ${id} has no remote entry to load.`);
+    }
 
-    // Load the remote entry script
+    // Load the remote entry script. The backend emits a router-relative
+    // remoteEntry URL; `makeUrl` applies the application root for
+    // subdirectory deployments (idempotent, and absolute URLs pass through).
     await new Promise<void>((resolve, reject) => {
       const element = document.createElement('script');
-      element.src = remoteEntry;
+      element.src = makeUrl(remoteEntry);
       element.type = 'text/javascript';
       element.async = true;
       element.onload = () => resolve();
@@ -126,17 +186,64 @@ class ExtensionsLoader {
     });
 
     // Initialize Webpack module federation
-    // @ts-expect-error
     await __webpack_init_sharing__('default');
-    // Use moduleFederationName (camelCase) for webpack container access, fallback to id for compatibility
-    const containerName = (extension as any).moduleFederationName || id;
-    const container = (window as any)[containerName];
+    // Use moduleFederationName for webpack container access, fallback to id for compatibility
+    const containerName = extension.moduleFederationName || id;
+    const container = (window as unknown as Record<string, unknown>)[
+      containerName
+    ];
+    if (!isWebpackFederationContainer(container)) {
+      throw new Error(
+        `Extension container "${containerName}" was not found on window, or ` +
+          'does not expose the expected Module Federation runtime ' +
+          '(init/get). This may indicate the remote entry failed to ' +
+          'register itself, or a webpack version mismatch.',
+      );
+    }
 
-    // @ts-expect-error
-    await container.init(__webpack_share_scopes__.default);
+    // Build a custom scope that injects a per-extension instance of @apache-superset/core
+    // with getContext pre-bound to this extension's isolated context. All other exports
+    // (commands, views, menus, etc.) are references to the same shared host singletons,
+    // sourced from window.superset (the real implementations wired in ExtensionsStartup),
+    // not the @apache-superset/core package itself, which only contains type-only stubs.
+    // Module federation caches the resolved module per container, so every import of
+    // @apache-superset/core inside this extension — no matter when it evaluates —
+    // receives the same pre-bound instance. Parallel loading is safe because each
+    // container gets its own scope with its own resolved module instance.
+    const context = createExtensionContext(extension);
+    const scopedCore = {
+      ...window.superset,
+      extensions: {
+        ...window.superset.extensions,
+        getContext: () => context,
+      },
+    };
+    // Reuse the version key webpack already resolved for the host's own
+    // @apache-superset/core shared module, rather than recomputing it, so
+    // this entry always matches what the runtime considers the real one.
+    const sharedScope = __webpack_share_scopes__.default ?? {};
+    const existingCoreVersions = sharedScope['@apache-superset/core'] ?? {};
+    const supersetCoreVersion = Object.keys(existingCoreVersions)[0];
+    if (!supersetCoreVersion) {
+      throw new Error(
+        "Could not resolve the host's @apache-superset/core version " +
+          'from the webpack share scope. Ensure __webpack_init_sharing__ ' +
+          'has registered the host module before loading extensions.',
+      );
+    }
+    const customScope = {
+      ...sharedScope,
+      '@apache-superset/core': {
+        [supersetCoreVersion]: {
+          get: () => Promise.resolve(() => scopedCore),
+          loaded: true,
+          eager: true,
+        },
+      },
+    };
+    await container.init(customScope);
 
     const factory = await container.get('./index');
-    // Execute the module factory - side effects fire registrations
     factory();
   }
 

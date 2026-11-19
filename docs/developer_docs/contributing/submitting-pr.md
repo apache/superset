@@ -29,13 +29,16 @@ Learn how to create and submit high-quality pull requests to Apache Superset.
 ## Before You Start
 
 ### Prerequisites
+
 - [ ] Development environment is set up
 - [ ] You've forked and cloned the repository
-- [ ] You've read the [contributing overview](./overview)
+- [ ] You've read the [contributing overview](./overview.md)
+- [ ] You've read the project's [guideline for AI-assisted PRs](./ai-pr-guideline.md)
 - [ ] You've found or created an issue to work on
 
 ### PR Readiness Checklist
-- [ ] Code follows [coding guidelines](../guidelines/design-guidelines)
+
+- [ ] Code follows [coding guidelines](../guidelines/design-guidelines.md)
 - [ ] Tests are passing locally
 - [ ] Linting passes (`pre-commit run --all-files`)
 - [ ] Documentation is updated if needed
@@ -82,6 +85,7 @@ type(scope): description
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation only
@@ -95,6 +99,7 @@ type(scope): description
 - `revert`: Reverting changes
 
 **Scopes:**
+
 - `dashboard`: Dashboard functionality
 - `sqllab`: SQL Lab features
 - `explore`: Chart explorer
@@ -105,6 +110,7 @@ type(scope): description
 - `config`: Configuration
 
 **Examples:**
+
 ```
 feat(sqllab): add query cost estimation
 fix(dashboard): resolve filter cascading issue
@@ -119,23 +125,28 @@ Use the template from `.github/PULL_REQUEST_TEMPLATE.md`:
 
 ```markdown
 ### SUMMARY
+
 Brief description of changes and motivation.
 
 ### BEFORE/AFTER SCREENSHOTS OR ANIMATED GIF
+
 [Required for UI changes]
 
 ### TESTING INSTRUCTIONS
+
 1. Step-by-step instructions
 2. How to verify the fix/feature
 3. Any specific test scenarios
 
 ### ADDITIONAL INFORMATION
+
 - [ ] Has associated issue: #12345
 - [ ] Required feature flags:
 - [ ] API changes:
 - [ ] DB migration required:
 
 ### CHECKLIST
+
 - [ ] CI checks pass
 - [ ] Tests added/updated
 - [ ] Documentation updated
@@ -158,11 +169,13 @@ gh pr create --title "feat(sqllab): add query cost estimation" \
 ## PR Best Practices
 
 ### Keep PRs Focused
+
 - One feature/fix per PR
 - Break large changes into smaller PRs
 - Separate refactoring from feature changes
 
 ### Write Good Commit Messages
+
 ```bash
 # Good
 git commit -m "fix(dashboard): prevent duplicate API calls when filters change"
@@ -173,6 +186,7 @@ git commit -m "updates"
 ```
 
 ### Include Tests
+
 ```python
 # Backend test example
 def test_new_feature():
@@ -190,15 +204,19 @@ test('renders new component', () => {
 ```
 
 ### Add Screenshots for UI Changes
+
 ```markdown
 ### Before
+
 ![Before](link-to-before-screenshot)
 
-### After  
+### After
+
 ![After](link-to-after-screenshot)
 ```
 
 ### Update Documentation
+
 - Update relevant docs in `/docs` directory
 - Add docstrings to new functions/classes
 - Update UPDATING.md for breaking changes
@@ -206,7 +224,9 @@ test('renders new component', () => {
 ## CI Checks
 
 ### Required Checks
+
 All PRs must pass:
+
 - `Python Tests` - Backend unit/integration tests
 - `Frontend Tests` - JavaScript/TypeScript tests
 - `Linting` - Code style checks
@@ -217,6 +237,7 @@ All PRs must pass:
 ### Common CI Failures
 
 #### Python Test Failures
+
 ```bash
 # Run locally to debug
 pytest tests/unit_tests/ -v
@@ -224,12 +245,14 @@ pytest tests/integration_tests/ -v
 ```
 
 #### Frontend Test Failures
+
 ```bash
 cd superset-frontend
 npm run test -- --coverage
 ```
 
 #### Linting Failures
+
 ```bash
 # Auto-fix many issues
 pre-commit run --all-files
@@ -243,6 +266,7 @@ pre-commit run --all-files
 ## Responding to Reviews
 
 ### Address Feedback Promptly
+
 ```bash
 # Make requested changes
 edit files...
@@ -254,11 +278,13 @@ git push origin feature/your-feature-name
 ```
 
 ### Request Re-review
+
 - Click "Re-request review" after addressing feedback
 - Comment on resolved discussions
 - Thank reviewers for their time
 
 ### Handling Conflicts
+
 ```bash
 # Update your branch
 git fetch upstream
@@ -276,6 +302,7 @@ git push --force-with-lease origin feature/your-feature-name
 ## After Merge
 
 ### Clean Up
+
 ```bash
 # Delete local branch
 git checkout master
@@ -291,6 +318,7 @@ git push origin master
 ```
 
 ### Follow Up
+
 - Monitor for any issues reported
 - Help with documentation if needed
 - Consider related improvements
@@ -298,6 +326,7 @@ git push origin master
 ## Tips for Success
 
 ### Do
+
 - ✅ Keep PRs small and focused
 - ✅ Write descriptive PR titles and descriptions
 - ✅ Include tests for new functionality
@@ -306,6 +335,7 @@ git push origin master
 - ✅ Be patient with the review process
 
 ### Don't
+
 - ❌ Submit PRs with failing tests
 - ❌ Include unrelated changes
 - ❌ Force push to master
@@ -318,4 +348,4 @@ git push origin master
 - **GitHub**: Tag @apache/superset-committers for attention
 - **Mailing List**: dev@superset.apache.org
 
-Next: [Understanding code review process](./code-review)
+Next: [Understanding code review process](./code-review.md)

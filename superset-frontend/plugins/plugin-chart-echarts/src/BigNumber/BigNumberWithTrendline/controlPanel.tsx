@@ -35,6 +35,7 @@ import {
   subtitleControl,
   showMetricNameControl,
   metricNameFontSizeWithVisibility,
+  headerAlignmentControl,
 } from '../sharedControls';
 
 const config: ControlPanelConfig = {
@@ -235,6 +236,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [headerAlignmentControl],
       ],
     },
     {
@@ -341,6 +343,27 @@ const config: ControlPanelConfig = {
                 ['sum', t('Sum values')],
               ],
               description: t('Pandas resample method'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'resample_fill_time_range',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Fill the entire time range'),
+              default: false,
+              description: t(
+                'Fill missing periods across the whole time range of the chart ' +
+                  'instead of only between the first and the last data point. ' +
+                  'Useful to keep a series anchored to the selected time range ' +
+                  'when the data starts late or ends early.',
+              ),
+              visibility: ({ controls }) =>
+                Boolean(
+                  controls?.resample_rule?.value &&
+                  controls?.resample_method?.value,
+                ),
             },
           },
         ],

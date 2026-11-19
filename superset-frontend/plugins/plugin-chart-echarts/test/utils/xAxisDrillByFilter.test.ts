@@ -1,0 +1,372 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { init, use } from 'echarts/core';
+import { LineChart } from 'echarts/charts';
+import { GridComponent } from 'echarts/components';
+import { SVGRenderer } from 'echarts/renderers';
+import { TimeGranularity } from '@superset-ui/core';
+import {
+  formatNaiveDateTime,
+  getTemporalBucketDrillByFilter,
+  getTemporalXAxisDrillByFilter,
+  getCategoryAxisValues,
+  getTimeAxisDrillByValue,
+  getTimeBucketRange,
+} from '../../src/utils/xAxisDrillByFilter';
+
+const utc = (dateString: string) => new Date(`${dateString}Z`);
+
+const expectRange = (
+  bucketLabel: string,
+  grain: TimeGranularity,
+  since: string,
+  until: string,
+) => {
+  const range = getTimeBucketRange(utc(bucketLabel), grain);
+  expect(range).toBeDefined();
+  expect(formatNaiveDateTime(range!.since)).toEqual(since);
+  expect(formatNaiveDateTime(range!.until)).toEqual(until);
+};
+
+/* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
+
+test('getTimeBucketRange computes sub-daily buckets', () => {
+  expectRange(
+    '2021-03-14T01:59:00',
+    TimeGranularity.MINUTE,
+    '2021-03-14T01:59:00',
+    '2021-03-14T02:00:00',
+  );
+  expectRange(
+    '2021-03-14T01:30:00',
+    TimeGranularity.THIRTY_MINUTES,
+    '2021-03-14T01:30:00',
+    '2021-03-14T02:00:00',
+  );
+  expectRange(
+    '2021-03-14T23:00:00',
+    TimeGranularity.HOUR,
+    '2021-03-14T23:00:00',
+    '2021-03-15T00:00:00',
+  );
+});
+
+test('getTimeBucketRange computes daily and weekly buckets', () => {
+  expectRange(
+    '2021-12-31T00:00:00',
+    TimeGranularity.DAY,
+    '2021-12-31T00:00:00',
+    '2022-01-01T00:00:00',
+  );
+  expectRange(
+    '2021-04-26T00:00:00',
+    TimeGranularity.WEEK,
+    '2021-04-26T00:00:00',
+    '2021-05-03T00:00:00',
+  );
+  expectRange(
+    '2021-04-25T00:00:00',
+    TimeGranularity.WEEK_STARTING_SUNDAY,
+    '2021-04-25T00:00:00',
+    '2021-05-02T00:00:00',
+  );
+});
+
+test('getTimeBucketRange extends week-ending buckets backwards from their label', () => {
+  expectRange(
+    '2021-05-01T00:00:00',
+    TimeGranularity.WEEK_ENDING_SATURDAY,
+    '2021-04-25T00:00:00',
+    '2021-05-02T00:00:00',
+  );
+  expectRange(
+    '2021-05-02T00:00:00',
+    TimeGranularity.WEEK_ENDING_SUNDAY,
+    '2021-04-26T00:00:00',
+    '2021-05-03T00:00:00',
+  );
+});
+
+test('getTimeBucketRange respects calendar month lengths', () => {
+  expectRange(
+    '2021-01-01T00:00:00',
+    TimeGranularity.MONTH,
+    '2021-01-01T00:00:00',
+    '2021-02-01T00:00:00',
+  );
+  expectRange(
+    '2021-02-01T00:00:00',
+    TimeGranularity.MONTH,
+    '2021-02-01T00:00:00',
+    '2021-03-01T00:00:00',
+  );
+  expectRange(
+    '2024-02-01T00:00:00',
+    TimeGranularity.MONTH,
+    '2024-02-01T00:00:00',
+    '2024-03-01T00:00:00',
+  );
+  expectRange(
+    '2021-12-01T00:00:00',
+    TimeGranularity.MONTH,
+    '2021-12-01T00:00:00',
+    '2022-01-01T00:00:00',
+  );
+});
+
+test('getTimeBucketRange computes quarter and year buckets', () => {
+  expectRange(
+    '2021-10-01T00:00:00',
+    TimeGranularity.QUARTER,
+    '2021-10-01T00:00:00',
+    '2022-01-01T00:00:00',
+  );
+  expectRange(
+    '2024-01-01T00:00:00',
+    TimeGranularity.YEAR,
+    '2024-01-01T00:00:00',
+    '2025-01-01T00:00:00',
+  );
+});
+
+test('getTimeBucketRange returns undefined for unknown grains', () => {
+  expect(
+    getTimeBucketRange(utc('2021-01-01T00:00:00'), 'P1D2H' as TimeGranularity),
+  ).toBeUndefined();
+});
+
+test('getTemporalXAxisDrillByFilter builds a temporal range for known grains', () => {
+  expect(
+    getTemporalXAxisDrillByFilter(
+      'ds',
+      utc('2021-01-01T00:00:00').getTime(),
+      TimeGranularity.MONTH,
+      'Jan 2021',
+    ),
+  ).toEqual({
+    col: 'ds',
+    op: 'TEMPORAL_RANGE',
+    val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    formattedVal: 'Jan 2021',
+  });
+});
+
+test('getTemporalXAxisDrillByFilter falls back to exact match without a grain', () => {
+  expect(
+    getTemporalXAxisDrillByFilter(
+      'ds',
+      utc('2021-01-01T12:34:56').getTime(),
+      undefined,
+      '2021-01-01 12:34:56',
+    ),
+  ).toEqual({
+    col: 'ds',
+    op: '==',
+    val: '2021-01-01T12:34:56',
+    formattedVal: '2021-01-01 12:34:56',
+  });
+});
+
+test('getTemporalXAxisDrillByFilter preserves sub-second precision in the exact-match fallback', () => {
+  expect(
+    getTemporalXAxisDrillByFilter(
+      'ds',
+      new Date('2021-01-01T12:34:56.123Z').getTime(),
+      undefined,
+      '2021-01-01 12:34:56.123',
+    ),
+  ).toEqual({
+    col: 'ds',
+    op: '==',
+    val: '2021-01-01T12:34:56.123',
+    formattedVal: '2021-01-01 12:34:56.123',
+  });
+});
+
+test('getTemporalXAxisDrillByFilter falls back to exact match for unknown grains', () => {
+  expect(
+    getTemporalXAxisDrillByFilter(
+      'ds',
+      utc('2021-01-01T00:00:00').getTime(),
+      'P1D2H' as TimeGranularity,
+    ),
+  ).toMatchObject({ op: '==', val: '2021-01-01T00:00:00' });
+});
+
+test('getTemporalXAxisDrillByFilter accepts parseable date strings and Dates', () => {
+  expect(
+    getTemporalXAxisDrillByFilter(
+      'ds',
+      '2021-01-01T00:00:00Z',
+      TimeGranularity.DAY,
+    ),
+  ).toMatchObject({
+    op: 'TEMPORAL_RANGE',
+    val: '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
+  });
+  expect(
+    getTemporalXAxisDrillByFilter(
+      'ds',
+      utc('2021-01-01T00:00:00'),
+      TimeGranularity.DAY,
+    ),
+  ).toMatchObject({
+    op: 'TEMPORAL_RANGE',
+    val: '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
+  });
+});
+
+test('getTemporalXAxisDrillByFilter returns undefined for unusable input', () => {
+  expect(
+    getTemporalXAxisDrillByFilter('ds', 'not a date', TimeGranularity.DAY),
+  ).toBeUndefined();
+  expect(
+    getTemporalXAxisDrillByFilter('ds', null, TimeGranularity.DAY),
+  ).toBeUndefined();
+  expect(
+    getTemporalXAxisDrillByFilter('', 1609459200000, TimeGranularity.DAY),
+  ).toBeUndefined();
+});
+
+test('markerless bucket lookup preserves point values and horizontal coordinates', () => {
+  expect(getTimeAxisDrillByValue([1000, 5], undefined, undefined)).toBe(1000);
+  expect(getTimeAxisDrillByValue(1000, undefined, undefined)).toBe(1000);
+  expect(getTimeAxisDrillByValue('2024-01-01', undefined, undefined)).toBe(
+    '2024-01-01',
+  );
+  expect(
+    getTimeAxisDrillByValue(
+      undefined,
+      {
+        data: [
+          [5, 1000],
+          [6, 2000],
+        ],
+      },
+      [5, 1800],
+      1,
+    ),
+  ).toBe(2000);
+  expect(
+    getTimeAxisDrillByValue(undefined, { data: [] }, [1800, 5]),
+  ).toBeUndefined();
+  expect(
+    getTimeAxisDrillByValue(undefined, { data: [[1000, 5]] }, [NaN, 5]),
+  ).toBeUndefined();
+  expect(
+    getTimeAxisDrillByValue(undefined, undefined, [1000, 5]),
+  ).toBeUndefined();
+});
+
+test.each([
+  TimeGranularity.MONTH,
+  TimeGranularity.WEEK_ENDING_SATURDAY,
+  'PT6H' as TimeGranularity,
+])(
+  'getTemporalBucketDrillByFilter matches the %s bucket of the clicked label',
+  grain => {
+    const label = Date.UTC(2024, 9, 5, 6);
+    // Epoch milliseconds, a naive UTC string and a Date are the same bucket.
+    [label, '2024-10-05T06:00:00', new Date(label)].forEach(value =>
+      expect(
+        getTemporalBucketDrillByFilter('order_date', value, grain, 'Oct'),
+      ).toEqual({
+        col: 'order_date',
+        op: '==',
+        val: label,
+        grain,
+        formattedVal: 'Oct',
+      }),
+    );
+  },
+);
+
+test('getTemporalBucketDrillByFilter falls back to the exact timestamp without a grain', () => {
+  expect(
+    getTemporalBucketDrillByFilter('order_date', Date.UTC(2024, 9, 5, 6)),
+  ).toEqual({ col: 'order_date', op: '==', val: '2024-10-05T06:00:00' });
+});
+
+test('getTemporalBucketDrillByFilter returns undefined for unusable input', () => {
+  expect(
+    getTemporalBucketDrillByFilter('order_date', 'not a date', 'P1M'),
+  ).toBeUndefined();
+  expect(
+    getTemporalBucketDrillByFilter('', Date.UTC(2024, 9, 5), 'P1M'),
+  ).toBeUndefined();
+});
+
+test.each([0, 1])(
+  'categorical bucket lookup matches the axis domain rather than sparse series offsets (%s)',
+  valueIndex => {
+    const timestamps = [0, 1, 2].map(month => Date.UTC(2024, month, 1));
+    const series = {
+      data: timestamps
+        .slice(1)
+        .map(timestamp =>
+          valueIndex === 0 ? [timestamp, 10] : [10, timestamp],
+        ),
+    };
+    const lookup = (index: number) =>
+      getTimeAxisDrillByValue(
+        undefined,
+        series,
+        valueIndex === 0 ? [index, 10] : [10, index],
+        valueIndex,
+        true,
+        timestamps.map(String),
+      );
+    expect(lookup(1)).toBe(timestamps[1]);
+    expect(lookup(2)).toBe(timestamps[2]);
+    expect(lookup(0)).toBeUndefined();
+    expect(lookup(3)).toBeUndefined();
+    expect(lookup(-1)).toBeUndefined();
+  },
+);
+
+test.each([false, true])(
+  'category domain includes all queries on the rendered temporal axis (horizontal: %s)',
+  horizontal => {
+    use([LineChart, GridComponent, SVGRenderer]);
+    const chart = init(document.createElement('div'), undefined, {
+      renderer: 'svg',
+      ssr: true,
+      width: 400,
+      height: 300,
+    });
+    const timestamps = [0, 1, 2].map(month => Date.UTC(2024, month, 1));
+    const valueIndex = horizontal ? 1 : 0;
+    try {
+      chart.setOption({
+        animation: false,
+        xAxis: { type: horizontal ? 'value' : 'category' },
+        yAxis: { type: horizontal ? 'category' : 'value' },
+        series: [timestamps, timestamps.slice(1)].map(values => ({
+          type: 'line',
+          data: values.map(value => (horizontal ? [10, value] : [value, 10])),
+        })),
+      });
+      expect(getCategoryAxisValues(chart, valueIndex)?.map(String)).toEqual(
+        timestamps.map(String),
+      );
+    } finally {
+      chart.dispose();
+    }
+  },
+);

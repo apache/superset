@@ -17,20 +17,27 @@ env:
   GITHUB_ORG: ${{ github.repository_owner }}
   GITHUB_REPO: ${{ github.event.repository.name }}
 
+permissions:
+  contents: read
+
 jobs:
   cleanup-expired:
     name: Clean up expired showtime environments
+    # The environments live in the upstream project's infrastructure; forks
+    # and mirrors can still start a cleanup manually.
+    if: github.event_name != 'schedule' || github.repository == 'apache/superset'
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
+      issues: write        # delete orphaned showtime label definitions (label CRUD is the issues API)
       pull-requests: write
 
     steps:
       - name: Install Superset Showtime
         run: pip install superset-showtime
 
-      - name: Cleanup expired environments
+      - name: Cleanup expired environments and orphaned labels
         run: |
-          echo "Cleaning up environments respecting TTL labels"
-          python -m showtime cleanup --respect-ttl
+          echo "Cleaning up environments respecting TTL labels, and pruning orphaned 🎪 labels"
+          python -m showtime cleanup --respect-ttl --force

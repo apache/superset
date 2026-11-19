@@ -41,7 +41,6 @@ jest.mock('src/core/editors', () => ({
     onBlur?: (v: string) => void;
   }) => (
     <textarea
-      role="textbox"
       defaultValue={value}
       onChange={e => onChange?.(e.target.value)}
       onBlur={e => onBlur?.(e.target.value)}
@@ -194,44 +193,30 @@ test('should call updateComponents when switching from edit to preview with chan
     },
   });
 
-  // Enter edit mode and change content
+  // Enter edit mode
+  const markdownHolder = screen.getByTestId('dashboard-component-chart-holder');
   await act(async () => {
-    const markdownHolder = screen.getByTestId(
-      'dashboard-component-chart-holder',
-    );
     fireEvent.click(markdownHolder);
+  });
 
-    // Wait for editor to be fully mounted
-    await new Promise(resolve => setTimeout(resolve, 50));
+  // Wait for the editor textarea to appear
+  const editor = await screen.findByRole('textbox');
 
-    // Find the actual textarea element
-    const editor = screen.getByRole('textbox');
+  // Change content
+  await act(async () => {
+    fireEvent.change(editor, { target: { value: mockCode } });
+  });
 
-    if (editor) {
-      // Simulate direct input
-      fireEvent.input(editor, { target: { value: mockCode } });
-
-      // Force blur and change events
-      fireEvent.change(editor, { target: { value: mockCode } });
-      fireEvent.blur(editor);
-    }
-
-    // Wait for state update
-    await new Promise(resolve => setTimeout(resolve, 50));
-
-    // Click the Edit dropdown button
-    const editDropdown = screen.getByText('Edit');
+  // Click the Edit dropdown button
+  const editDropdown = screen.getByText('Edit');
+  await act(async () => {
     fireEvent.click(editDropdown);
+  });
 
-    // Wait for dropdown to open
-    await new Promise(resolve => setTimeout(resolve, 50));
-
-    // Find and click preview in dropdown
-    const previewOption = await screen.findByText(/preview/i);
+  // Find and click preview in dropdown
+  const previewOption = await screen.findByText(/preview/i);
+  await act(async () => {
     fireEvent.click(previewOption);
-
-    // Wait for update to complete
-    await new Promise(resolve => setTimeout(resolve, 50));
   });
 
   // Update assertion to match actual component structure
@@ -381,7 +366,7 @@ test('shouldFocusMarkdown returns true when clicking inside markdown container',
     'dashboard-component-chart-holder',
   );
 
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
@@ -393,11 +378,11 @@ test('shouldFocusMarkdown returns false when clicking outside markdown container
     'dashboard-component-chart-holder',
   );
 
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
-  userEvent.click(document.body);
+  await userEvent.click(document.body);
   await new Promise(resolve => setTimeout(resolve, 50));
 
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
@@ -411,16 +396,16 @@ test('should re-enter edit mode on a single click after clicking outside', async
   );
 
   // Click to enter edit mode
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
   // Click outside to exit edit mode
-  userEvent.click(document.body);
+  await userEvent.click(document.body);
   await new Promise(resolve => setTimeout(resolve, 50));
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 
   // Click back inside — editor should appear on a single click
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
 
@@ -431,13 +416,13 @@ test('shouldFocusMarkdown keeps focus when clicking on menu items', async () => 
     'dashboard-component-chart-holder',
   );
 
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
   const editButton = screen.getByText('Edit');
 
-  userEvent.click(editButton);
+  await userEvent.click(editButton);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
@@ -449,7 +434,7 @@ test('should exit edit mode when clicking outside in same row', async () => {
     'dashboard-component-chart-holder',
   );
 
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
@@ -457,7 +442,7 @@ test('should exit edit mode when clicking outside in same row', async () => {
   outsideElement.className = 'grid-row';
   document.body.appendChild(outsideElement);
 
-  userEvent.click(outsideElement);
+  await userEvent.click(outsideElement);
   await new Promise(resolve => setTimeout(resolve, 50));
 
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();

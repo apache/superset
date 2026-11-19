@@ -19,16 +19,14 @@
 import { isValidElement } from 'react';
 import { render } from 'spec/helpers/testing-library';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
-import { mockedActions, table } from 'src/SqlLab/fixtures';
+import { table } from 'src/SqlLab/fixtures';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColumnElement', () => {
-  const mockedProps = {
-    actions: mockedActions,
-    column: table.columns[0],
-  };
   test('is valid with props', () => {
-    expect(isValidElement(<ColumnElement {...mockedProps} />)).toBe(true);
+    expect(isValidElement(<ColumnElement column={table.columns[0]} />)).toBe(
+      true,
+    );
   });
   test('renders a proper primary key', () => {
     const { container } = render(<ColumnElement column={table.columns[0]} />);

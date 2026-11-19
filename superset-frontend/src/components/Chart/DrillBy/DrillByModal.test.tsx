@@ -19,8 +19,15 @@
 
 import { useState } from 'react';
 import fetchMock from 'fetch-mock';
-import { omit, omitBy } from 'lodash';
+import { omit, omitBy } from 'lodash-es';
 import {
+  buildQueryObject,
+  QueryData,
+  QueryFormData,
+  QueryObject,
+} from '@superset-ui/core';
+import {
+  act,
   render,
   screen,
   userEvent,
@@ -29,13 +36,32 @@ import {
 } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import * as chartActions from '../chartAction';
+import * as contextMenu from '../ChartContextMenu/useContextMenu';
+import * as resultsTableView from './useResultsTableView';
 import DrillByModal, { DrillByModalProps } from './DrillByModal';
+
+setupAGGridModules();
 
 // Mock the isEmbedded function
 jest.mock('src/dashboard/util/isEmbedded', () => ({
   isEmbedded: jest.fn(() => false),
 }));
+
+jest.mock('src/explore/exploreUtils', () => {
+  const actual = jest.requireActual('src/explore/exploreUtils');
+  return {
+    ...actual,
+    exportChart: jest.fn(),
+  };
+});
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { exportChart: exportChartMock } = jest.requireMock(
+  'src/explore/exploreUtils',
+) as { exportChart: jest.Mock };
 
 const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
 const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
@@ -63,12 +89,7 @@ const dataset = {
   created_on_humanized: '01-01-2001',
   description: 'desc',
   table_name: 'my_dataset',
-  owners: [
-    {
-      first_name: 'Sarah',
-      last_name: 'Connor',
-    },
-  ],
+  editors: [{ id: 1, label: 'Sarah Connor', type: 1 }],
   columns: [
     {
       column_name: 'gender',
@@ -117,11 +138,12 @@ const renderModal = async (
     },
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
   await screen.findByRole('dialog', { name: `Drill by: ${chartName}` });
 };
 
 beforeEach(() => {
+  jest.spyOn(chartActions, 'requestChartDataResolved');
   fetchMock
     .post(CHART_DATA_ENDPOINT, { body: {} }, { name: CHART_DATA_ENDPOINT })
     .post(
@@ -131,7 +153,19 @@ beforeEach(() => {
     );
 });
 
-afterEach(() => fetchMock.removeRoutes().clearHistory());
+afterEach(async () => {
+  // Await query building as well as fetches before clearing the request history.
+  await act(async () => {
+    await Promise.allSettled(
+      jest
+        .spyOn(chartActions, 'requestChartDataResolved')
+        .mock.results.map(result => result.value),
+    );
+    await fetchMock.callHistory.flush(true);
+  });
+  fetchMock.removeRoutes().clearHistory();
+  jest.restoreAllMocks();
+});
 
 test('should render the title', async () => {
   await renderModal();
@@ -149,7 +183,7 @@ test('should render the button', async () => {
 test('should close the modal', async () => {
   await renderModal();
   expect(screen.getByRole('dialog')).toBeInTheDocument();
-  userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
+  await userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
@@ -220,6 +254,398 @@ test('should generate Explore url', async () => {
   ).toHaveAttribute('href', '/explore/?form_data_key=123&dashboard_page_id=1');
 });
 
+const OCT_2003 = Date.UTC(2003, 9, 1);
+// The filter the Timeseries plugin sends for a click on the Oct 2003 bar.
+const oct2003BucketFilter = {
+  col: 'ds',
+  op: '==' as const,
+  val: OCT_2003,
+  grain: 'P1M' as const,
+  formattedVal: 'Oct 2003',
+};
+const oct2003AdhocFilter = {
+  expressionType: 'SIMPLE',
+  clause: 'WHERE',
+  operator: '==',
+  operatorId: 'EQUALS',
+  subject: 'ds',
+  comparator: OCT_2003,
+  timeGrain: 'P1M',
+};
+
+const getLastChartDataFormData = () =>
+  JSON.parse(
+    fetchMock.callHistory.lastCall(CHART_DATA_ENDPOINT)?.options
+      ?.body as string,
+  ).form_data;
+
+const getLastChartDataQuery = (): QueryObject =>
+  JSON.parse(
+    fetchMock.callHistory.lastCall(CHART_DATA_ENDPOINT)?.options
+      ?.body as string,
+  ).queries[0];
+
+const temporalAdhocFilter = (subject: string, comparator: string) => ({
+  clause: 'WHERE' as const,
+  expressionType: 'SIMPLE' as const,
+  operator: 'TEMPORAL_RANGE' as const,
+  subject,
+  comparator,
+});
+
+const RANGE = '2003-10-15 : 2005-01-01';
+const shipFilter = temporalAdhocFilter('ship_date', '2003-01-01 : 2004-06-01');
+const xAxisNoFilter = {
+  col: 'ds',
+  op: 'TEMPORAL_RANGE' as const,
+  val: 'No filter',
+};
+
+// Time setups whose rules the backend applies to the chart and the drill.
+const timeSetups: [string, Partial<QueryFormData>][] = [
+  ['no time range', {}],
+  ['a saved time range', { time_range: RANGE }],
+  [
+    'a dashboard time range',
+    { time_range: 'No filter', extra_form_data: { time_range: RANGE } },
+  ],
+  [
+    'a legacy dashboard time range',
+    {
+      time_range: 'No filter',
+      extra_filters: [{ col: '__time_range', op: '==', val: RANGE }],
+    },
+  ],
+  [
+    'a time column and a dashboard x-axis filter',
+    {
+      time_range: RANGE,
+      granularity_sqla: 'ds',
+      extra_form_data: { filters: [xAxisNoFilter] },
+    },
+  ],
+  [
+    'a time column and a legacy x-axis filter',
+    {
+      time_range: RANGE,
+      granularity_sqla: 'ds',
+      extra_filters: [xAxisNoFilter],
+    },
+  ],
+  [
+    'a dashboard time column',
+    { extra_form_data: { time_range: RANGE, granularity_sqla: 'ship_date' } },
+  ],
+  [
+    'a custom SQL x-axis',
+    {
+      x_axis: { expressionType: 'SQL', sqlExpression: 'ds', label: 'ds' },
+      time_range: RANGE,
+    },
+  ],
+];
+
+test.each(timeSetups)(
+  'Drill by from a temporal bucket keeps the time filters of %s and adds the bucket',
+  async (_, setup) => {
+    const chartFormData = {
+      ...omit(formData, 'time_range', 'granularity'),
+      x_axis: 'ds',
+      adhoc_filters: [shipFilter],
+      ...setup,
+    } as QueryFormData;
+    await renderModal({
+      column: { column_name: 'name', verbose_name: null },
+      formData: chartFormData,
+      drillByConfig: {
+        filters: [oct2003BucketFilter],
+        groupbyFieldName: 'groupby',
+      },
+    });
+    await waitFor(() =>
+      expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+    );
+
+    const drilledFormData = getLastChartDataFormData();
+    // Every time setting of the chart is passed through untouched, so the
+    // backend applies the same time rules to the drill as to the chart.
+    [
+      'x_axis',
+      'time_range',
+      'granularity_sqla',
+      'extra_form_data',
+      'extra_filters',
+    ].forEach(key => expect(drilledFormData[key]).toEqual(chartFormData[key]));
+    expect(drilledFormData.adhoc_filters).toEqual([
+      shipFilter,
+      oct2003AdhocFilter,
+    ]);
+    const chartQuery = buildQueryObject(chartFormData);
+    const query = getLastChartDataQuery();
+    expect(query.time_range).toEqual(chartQuery.time_range);
+    expect(query.granularity).toEqual(chartQuery.granularity);
+    // The bucket is a grained equality, which no query time range replaces.
+    expect(query.filters).toEqual([
+      ...(chartQuery.filters ?? []),
+      { col: 'ds', op: '==', val: OCT_2003, grain: 'P1M' },
+    ]);
+  },
+);
+
+test('temporal drill sends the same bucket filter to the query, CSV and Explore', async () => {
+  exportChartMock.mockClear();
+  fetchMock.removeRoute(CHART_DATA_ENDPOINT);
+  fetchMock.post(CHART_DATA_ENDPOINT, {
+    result: [
+      {
+        data: [{ name: 'bucket', count: 67 }],
+        colnames: ['name', 'count'],
+        coltypes: [1, 0],
+      },
+    ],
+  });
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: {
+      ...formData,
+      x_axis: 'ds',
+      time_range: RANGE,
+      adhoc_filters: [shipFilter],
+    },
+    drillByConfig: {
+      filters: [oct2003BucketFilter],
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+  );
+  const drilledFormData = getLastChartDataFormData();
+  const tableRadio = await screen.findByRole('radio', { name: /table/i });
+  await userEvent.click(tableRadio.closest('label') ?? tableRadio);
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Download' }),
+  );
+  await userEvent.click(await screen.findByText('Export to CSV'));
+  const exported = exportChartMock.mock.lastCall[0];
+  expect(exported.resultFormat).toBe('csv');
+  expect(exported.formData.adhoc_filters).toEqual(
+    drilledFormData.adhoc_filters,
+  );
+  expect(buildQueryObject(exported.formData).filters).toEqual(
+    getLastChartDataQuery().filters,
+  );
+  const explorePayload = JSON.parse(
+    JSON.parse(
+      fetchMock.callHistory.lastCall(FORM_DATA_KEY_ENDPOINT)?.options
+        ?.body as string,
+    ).form_data,
+  );
+  expect(explorePayload.adhoc_filters).toEqual([
+    shipFilter,
+    oct2003AdhocFilter,
+  ]);
+  expect(explorePayload.time_range).toBe(RANGE);
+});
+
+test('nested temporal drills keep the outer bucket beside the new filters', async () => {
+  const selection = jest.spyOn(contextMenu, 'useContextMenu');
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: { ...formData, x_axis: 'ds', time_range: RANGE },
+    drillByConfig: {
+      filters: [oct2003BucketFilter],
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+  );
+  const shipBucket = {
+    col: 'ship_date',
+    op: '==' as const,
+    val: Date.UTC(2004, 0, 1),
+    grain: 'P1M' as const,
+    formattedVal: 'Jan 2004',
+  };
+  act(() =>
+    selection.mock.lastCall?.[2]?.(
+      { column_name: 'gender', verbose_name: null },
+      {
+        filters: [shipBucket, { col: 'name', op: '==', val: 'Joe' }],
+        groupbyFieldName: 'groupby',
+      },
+    ),
+  );
+  await waitFor(() =>
+    expect(getLastChartDataFormData().groupby).toEqual(['gender']),
+  );
+  expect(getLastChartDataQuery().time_range).toBe(RANGE);
+  expect(getLastChartDataQuery().filters).toEqual([
+    { col: 'ds', op: '==', val: OCT_2003, grain: 'P1M' },
+    { col: 'ship_date', op: '==', val: Date.UTC(2004, 0, 1), grain: 'P1M' },
+    { col: 'name', op: '==', val: 'Joe' },
+  ]);
+});
+
+test('Mixed Timeseries query B drills add the bucket to its own filters', async () => {
+  const request = jest
+    .spyOn(chartActions, 'requestChartDataResolved')
+    .mockResolvedValue([]);
+  const savedB = temporalAdhocFilter('ds', RANGE);
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: {
+      ...omit(formData, 'time_range'),
+      adhoc_filters: [],
+      groupby_b: ['ds'],
+      adhoc_filters_b: [savedB],
+    },
+    drillByConfig: {
+      filters: [oct2003BucketFilter],
+      groupbyFieldName: 'groupby_b',
+      adhocFilterFieldName: 'adhoc_filters_b',
+    },
+  });
+  await waitFor(() => expect(request).toHaveBeenCalled());
+  const drilled = request.mock.lastCall?.[0].formData;
+  expect(drilled?.adhoc_filters_b).toEqual([savedB, oct2003AdhocFilter]);
+  expect(drilled?.adhoc_filters).toEqual([]);
+  expect(drilled?.time_range).toBeUndefined();
+});
+
+test('Drill by from a grained temporal bucket shows one bucket label in the breadcrumb', async () => {
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    drillByConfig: {
+      filters: [oct2003BucketFilter],
+      groupbyFieldName: 'groupby',
+    },
+  });
+
+  const breadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
+  await waitFor(() =>
+    expect(within(breadcrumbItems[0]).getByText(/\(Oct 2003\)$/)).toBeVisible(),
+  );
+  expect(screen.getAllByText(/\(Oct 2003\)$/)).toHaveLength(1);
+  expect(breadcrumbItems[0]).not.toHaveTextContent(String(OCT_2003));
+});
+
+test('categorical Drill by keeps the chart and dashboard time range', async () => {
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: {
+      ...formData,
+      time_range: 'Last year',
+      extra_form_data: { time_range: '2003-01-01 : 2005-01-01' },
+    },
+    drillByConfig: {
+      filters: [{ col: 'gender', op: '==', val: 'boy' }],
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+  );
+
+  const drilledFormData = getLastChartDataFormData();
+  expect(drilledFormData.time_range).toEqual('Last year');
+  expect(drilledFormData.extra_form_data.time_range).toEqual(
+    '2003-01-01 : 2005-01-01',
+  );
+});
+
+/** A response for a superseded drill must not replace the current one. */
+async function assertLateRequestIgnored(
+  requestKind: 'initial' | 'reload',
+  outcome: 'success' | 'error',
+): Promise<void> {
+  let resolveOldRequest!: (value: QueryData[]) => void;
+  let rejectOldRequest!: (reason: Error) => void;
+  const oldRequest = new Promise<QueryData[]>((resolve, reject) => {
+    resolveOldRequest = resolve;
+    rejectOldRequest = reject;
+  });
+  let resolveNewRequest!: (value: QueryData[]) => void;
+  const newRequest = new Promise<QueryData[]>(resolve => {
+    resolveNewRequest = resolve;
+  });
+  const request = jest.spyOn(chartActions, 'requestChartDataResolved');
+  if (requestKind === 'reload') {
+    request.mockResolvedValueOnce([]);
+  }
+  request.mockReturnValueOnce(oldRequest).mockReturnValueOnce(newRequest);
+  const selection = jest.spyOn(contextMenu, 'useContextMenu');
+  const results = jest.spyOn(resultsTableView, 'useResultsTableView');
+
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: { ...formData, time_range: 'Last year' },
+  });
+  if (requestKind === 'reload') {
+    await waitFor(() =>
+      expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument(),
+    );
+    act(() => results.mock.lastCall?.[5]?.());
+  }
+  await waitFor(() =>
+    expect(request).toHaveBeenCalledTimes(requestKind === 'reload' ? 2 : 1),
+  );
+  const oldSignal = request.mock.lastCall?.[1];
+  act(() =>
+    selection.mock.lastCall?.[2]?.(
+      { column_name: 'gender', verbose_name: null },
+      { filters: [oct2003BucketFilter], groupbyFieldName: 'groupby' },
+    ),
+  );
+  await waitFor(() =>
+    expect(request).toHaveBeenCalledTimes(requestKind === 'reload' ? 3 : 2),
+  );
+  expect(oldSignal?.aborted).toBe(true);
+
+  await act(async () => {
+    if (outcome === 'success') {
+      resolveOldRequest([]);
+    } else {
+      rejectOldRequest(new Error('superseded request failed'));
+    }
+  });
+  expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  expect(results.mock.lastCall?.[0]).toBeUndefined();
+  expect(screen.queryByTestId('drill-by-chart')).not.toBeInTheDocument();
+
+  expect(request.mock.lastCall?.[0].formData.adhoc_filters).toContainEqual(
+    oct2003AdhocFilter,
+  );
+  await act(async () => resolveNewRequest([]));
+  expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+  expect(screen.getByTestId('drill-by-chart')).toBeInTheDocument();
+}
+
+test('ignores a stale initial success after a further drill', async () => {
+  await expect(
+    assertLateRequestIgnored('initial', 'success'),
+  ).resolves.toBeUndefined();
+});
+
+test('ignores a stale initial error after a further drill', async () => {
+  await expect(
+    assertLateRequestIgnored('initial', 'error'),
+  ).resolves.toBeUndefined();
+});
+
+test('ignores a stale reload success after a further drill', async () => {
+  await expect(
+    assertLateRequestIgnored('reload', 'success'),
+  ).resolves.toBeUndefined();
+});
+
+test('ignores a stale reload error after a further drill', async () => {
+  await expect(
+    assertLateRequestIgnored('reload', 'error'),
+  ).resolves.toBeUndefined();
+});
+
 test('should render radio buttons', async () => {
   await renderModal();
   const chartRadio = screen.getByRole('radio', { name: /chart/i });
@@ -229,7 +655,7 @@ test('should render radio buttons', async () => {
   expect(tableRadio).toBeInTheDocument();
   expect(chartRadio).toBeChecked();
   expect(tableRadio).not.toBeChecked();
-  userEvent.click(tableRadio);
+  await userEvent.click(tableRadio.closest('label') ?? tableRadio);
   expect(chartRadio).not.toBeChecked();
   expect(tableRadio).toBeChecked();
 });
@@ -250,13 +676,13 @@ test('render breadcrumbs', async () => {
   ).toBeInTheDocument();
   expect(within(breadcrumbItems[1]).getByText('name')).toBeInTheDocument();
 
-  userEvent.click(screen.getByText('gender (boy)'));
+  await userEvent.click(screen.getByText('gender (boy)'));
 
   const newBreadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
   // we need to assert that there is only 1 element now
   // eslint-disable-next-line jest-dom/prefer-in-document
   expect(newBreadcrumbItems).toHaveLength(1);
-  expect(within(breadcrumbItems[0]).getByText('gender')).toBeInTheDocument();
+  expect(within(newBreadcrumbItems[0]).getByText('gender')).toBeInTheDocument();
 });
 
 test('should render "Edit chart" as disabled without can_explore permission', async () => {
@@ -400,22 +826,15 @@ describe('Table view with pagination', () => {
 
     // Switch to table view
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
 
     // Wait for table to render
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
-
-    // Check that pagination is rendered (there's also a breadcrumb list)
-    const lists = screen.getAllByRole('list');
-    const paginationList = lists.find(list =>
-      list.className?.includes('pagination'),
-    );
-    expect(paginationList).toBeInTheDocument();
   });
 
-  test('should handle pagination in table view', async () => {
+  test('should render data in table view', async () => {
     await renderModal({
       column: { column_name: 'state', verbose_name: null },
       drillByConfig: {
@@ -426,25 +845,15 @@ describe('Table view with pagination', () => {
 
     // Switch to table view
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
 
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
 
-    // Check that first page data is shown
-    expect(screen.getByText('State0')).toBeInTheDocument();
-
-    // Check pagination controls exist
-    const nextPageButton = screen.getByTitle('Next Page');
-    expect(nextPageButton).toBeInTheDocument();
-
-    // Click next page
-    userEvent.click(nextPageButton);
-
-    // Verify page changed (State0 should not be visible on page 2)
+    // Check that data is rendered in the grid
     await waitFor(() => {
-      expect(screen.queryByText('State0')).not.toBeInTheDocument();
+      expect(screen.getByText('State0')).toBeInTheDocument();
     });
   });
 
@@ -461,19 +870,19 @@ describe('Table view with pagination', () => {
     const tableRadio = screen.getByRole('radio', { name: /table/i });
 
     // Switch to table view
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
 
     // Switch back to chart view
-    userEvent.click(chartRadio);
+    await userEvent.click(chartRadio.closest('label') ?? chartRadio);
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-chart')).toBeInTheDocument();
     });
 
     // Switch back to table view - should maintain state
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
@@ -495,7 +904,7 @@ describe('Table view with pagination', () => {
 
     // Switch to table view
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
 
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
@@ -536,17 +945,18 @@ describe('Table view with pagination', () => {
 
     // Switch to table view
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
 
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
 
-    // Should show empty state
-    expect(screen.getByText('No data')).toBeInTheDocument();
+    // ag-grid shows its own empty overlay when there are no rows
+    const tableContainer = screen.getByTestId('drill-by-results-table');
+    expect(tableContainer).toBeInTheDocument();
   });
 
-  test('should handle sorting in table view', async () => {
+  test('should render grid in table view', async () => {
     await renderModal({
       column: { column_name: 'state', verbose_name: null },
       drillByConfig: {
@@ -557,22 +967,75 @@ describe('Table view with pagination', () => {
 
     // Switch to table view
     const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    userEvent.click(tableRadio);
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
 
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
-
-    // Find sortable column header
-    const sortableHeaders = screen.getAllByTestId('sort-header');
-    expect(sortableHeaders.length).toBeGreaterThan(0);
-
-    // Click to sort
-    userEvent.click(sortableHeaders[0]);
 
     // Table should still be rendered without crashes
-    await waitFor(() => {
-      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+  });
+
+  test('CSV download calls exportChart with drilledFormData', async () => {
+    exportChartMock.mockClear();
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
     });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText('Export to CSV'));
+
+    expect(exportChartMock).toHaveBeenCalledTimes(1);
+    expect(exportChartMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resultFormat: 'csv',
+        resultType: 'full',
+        formData: expect.objectContaining({ slice_id: 0 }),
+      }),
+    );
+  });
+
+  test('XLSX download calls exportChart with xlsx format', async () => {
+    exportChartMock.mockClear();
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText('Export to Excel'));
+
+    expect(exportChartMock).toHaveBeenCalledTimes(1);
+    expect(exportChartMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resultFormat: 'xlsx',
+        resultType: 'full',
+        formData: expect.objectContaining({ slice_id: 0 }),
+      }),
+    );
   });
 });

@@ -19,6 +19,8 @@
 import {
   ControlPanelConfig,
   sharedControls,
+  D3_TIME_FORMAT_DOCS,
+  D3_TIME_FORMAT_OPTIONS,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 
@@ -50,12 +52,26 @@ const config: ControlPanelConfig = {
             name: 'enableEmptyFilter',
             config: {
               type: 'CheckboxControl',
-              label: t('Filter value is required'),
+              label: () => t('Filter value is required'),
               default: false,
               renderTrigger: true,
-              description: t(
-                'User must select a value before applying the filter',
-              ),
+              description: () =>
+                t('User must select a value before applying the filter'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'displayFormat',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: () => t('Display format'),
+              default: null,
+              clearable: true,
+              renderTrigger: true,
+              choices: D3_TIME_FORMAT_OPTIONS,
+              description: D3_TIME_FORMAT_DOCS,
             },
           },
         ],

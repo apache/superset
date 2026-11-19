@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
         title="Open SQL Lab with context",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 def open_sql_lab_with_context(
@@ -53,6 +54,8 @@ def open_sql_lab_with_context(
     """Generate SQL Lab URL with pre-populated sql and context.
 
     Pass the sql parameter to pre-fill the editor. Returns URL for direct navigation.
+    The URL scheme matches the configured instance URL (HTTPS in production/staging,
+    HTTP in local development).
     """
     try:
         from superset.daos.database import DatabaseDAO
@@ -61,12 +64,16 @@ def open_sql_lab_with_context(
             # Validate database exists and is accessible
             database = DatabaseDAO.find_by_id(request.database_connection_id)
         if not database:
+            error_message = (
+                f"Database with ID {request.database_connection_id} not found."
+                " Use list_databases to get valid database IDs."
+            )
             return SqlLabResponse(
                 url="",
                 database_id=request.database_connection_id,
                 schema_name=request.schema_name,
                 title=request.title,
-                error=f"Database with ID {request.database_connection_id} not found",
+                error=error_message,
             )
 
         # Build query parameters for SQL Lab URL
@@ -81,7 +88,10 @@ def open_sql_lab_with_context(
             params["sql"] = request.sql
 
         if request.title:
-            params["title"] = request.title
+            # SQL Lab's PopEditorTab reads `name` from query string to set the
+            # tab label; keep the MCP-facing field as `title` (more natural for
+            # LLMs) but emit `name` on the URL.
+            params["name"] = request.title
 
         if request.dataset_in_context:
             # Add dataset context as a comment in the SQL if no SQL provided

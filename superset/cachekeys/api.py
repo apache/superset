@@ -100,7 +100,10 @@ class CacheRestApi(BaseSupersetModelRestApi):
         )
         cache_keys = [c.cache_key for c in cache_key_objs]
         if cache_key_objs:
-            all_keys_deleted = cache_manager.cache.delete_many(*cache_keys)
+            # Chart query results live in ``data_cache``, not the default
+            # ``cache`` — using the wrong backend silently misses the Redis
+            # keys when ``CACHE_KEY_PREFIX`` differs between the two configs.
+            all_keys_deleted = cache_manager.data_cache.delete_many(*cache_keys)
 
             if not all_keys_deleted:
                 # expected behavior as keys may expire and cache is not a

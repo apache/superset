@@ -27,13 +27,12 @@ import {
 } from '@superset-ui/core';
 import { css, SupersetTheme, styled } from '@apache-superset/core/theme';
 import { Button, Tooltip, Icons, Flex } from '@superset-ui/core/components';
-import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import tinycolor from 'tinycolor2';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getFilterBarTestId } from '../utils';
+import { isChartCustomization } from '../../FiltersConfigModal/utils';
 
 interface ActionButtonsProps {
-  width?: number;
   onApply: () => void;
   onClearAll: () => void;
   dataMaskSelected: DataMaskState;
@@ -44,37 +43,40 @@ interface ActionButtonsProps {
   hasOutOfScopeRequiredFilters?: boolean;
 }
 
-const ButtonsContainer = styled.div<{ isVertical: boolean; width: number }>`
-  ${({ theme, isVertical, width }) => css`
+const ButtonsContainer = styled.div<{ isVertical: boolean }>`
+  ${({ theme, isVertical }) => css`
     display: flex;
 
-    ${isVertical
-      ? css`
-          flex-direction: column;
-          align-items: center;
-          position: fixed;
-          z-index: 100;
-          width: ${width - 1}px;
-          bottom: 0;
-          padding: ${theme.sizeUnit * 4}px;
-          padding-top: ${theme.sizeUnit * 6}px;
-          background: linear-gradient(
-            ${tinycolor(theme.colorBgLayout).setAlpha(0).toRgbString()},
-            ${theme.colorBgContainer} 20%
-          );
-        `
-      : css`
-          align-items: center;
-          margin-left: auto;
-        `}
+    ${
+      isVertical
+        ? css`
+            flex-direction: column;
+            align-items: center;
+            position: sticky;
+            z-index: 100;
+            bottom: 0;
+            padding: ${theme.sizeUnit * 4}px;
+            padding-top: ${theme.sizeUnit * 6}px;
+            background: linear-gradient(
+              ${tinycolor(theme.colorBgLayout).setAlpha(0).toRgbString()},
+              ${theme.colorBgContainer} 20%
+            );
+          `
+        : css`
+            align-items: center;
+            margin-left: auto;
+          `
+    }
   `}
 `;
 
 const applyButtonStyle = (theme: SupersetTheme, isVertical: boolean) => css`
-  ${isVertical &&
-  css`
-    margin-bottom: ${theme.sizeUnit * 3}px;
-  `}
+  ${
+    isVertical &&
+    css`
+      margin-bottom: ${theme.sizeUnit * 3}px;
+    `
+  }
 `;
 
 const clearAllButtonStyle = (theme: SupersetTheme, isVertical: boolean) => css`
@@ -91,16 +93,17 @@ const clearAllButtonStyle = (theme: SupersetTheme, isVertical: boolean) => css`
       color: ${theme.colorTextDisabled};
     }
 
-    ${!isVertical &&
-    css`
-      text-transform: capitalize;
-      font-weight: ${theme.fontWeightNormal};
-    `}
+    ${
+      !isVertical &&
+      css`
+        text-transform: capitalize;
+        font-weight: ${theme.fontWeightNormal};
+      `
+    }
   }
 `;
 
 const ActionButtons = ({
-  width = OPEN_FILTER_BAR_WIDTH,
   onApply,
   onClearAll,
   dataMaskApplied,
@@ -113,19 +116,22 @@ const ActionButtons = ({
   const isVertical = filterBarOrientation === FilterBarOrientation.Vertical;
 
   const isClearAllEnabled = useMemo(() => {
+    const isVisibleMask = (id: string) =>
+      !isChartCustomization(id) ||
+      chartCustomizationItems?.some(item => item.id === id);
     const hasSelectedChanges = Object.entries(dataMaskSelected).some(
-      ([, mask]) => {
+      ([id, mask]) => {
         const hasValue = isDefined(mask?.filterState?.value);
         const hasGroupBy = isDefined(mask?.ownState?.column);
-        return hasValue || hasGroupBy;
+        return isVisibleMask(id) && (hasValue || hasGroupBy);
       },
     );
 
     const hasAppliedChanges = Object.entries(dataMaskApplied).some(
-      ([, mask]) => {
+      ([id, mask]) => {
         const hasValue = isDefined(mask?.filterState?.value);
         const hasGroupBy = isDefined(mask?.ownState?.column);
-        return hasValue || hasGroupBy;
+        return isVisibleMask(id) && (hasValue || hasGroupBy);
       },
     );
 
@@ -143,7 +149,6 @@ const ActionButtons = ({
   return (
     <ButtonsContainer
       isVertical={isVertical}
-      width={width}
       data-test="filterbar-action-buttons"
     >
       <Button

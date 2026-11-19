@@ -24,7 +24,7 @@ Create Date: 2017-12-17 11:06:30.180267
 
 from alembic import op
 from sqlalchemy import Column, Integer, or_, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json

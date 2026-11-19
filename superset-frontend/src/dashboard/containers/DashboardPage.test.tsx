@@ -18,14 +18,49 @@
  */
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  createStore,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import {
   useDashboard,
   useDashboardCharts,
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
-import { SupersetClient } from '@superset-ui/core';
+import {
+  DatasourceType,
+  SupersetApiError,
+  SupersetClient,
+} from '@superset-ui/core';
+import type { RootState } from 'src/dashboard/types';
+import { replaceDashboardSemanticDatasets } from 'src/dashboard/actions/dashboardInfo';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
+import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
+import {
+  clearDashboardHistory,
+  UPDATE_COMPONENTS,
+} from 'src/dashboard/actions/dashboardLayout';
+import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
+import {
+  fetchFilterValue,
+  fetchPermalinkValue,
+} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import {
+  SHARED_STATE_ATTEMPT_TIMEOUT_MS,
+  SHARED_STATE_MAX_ATTEMPTS,
+  SHARED_STATE_RETRY_DELAY_MS,
+} from 'src/dashboard/util/loadSharedFilterState';
+import {
+  isFilterKeyPublishHeld,
+  releaseFilterKeyPublish,
+  resetFilterKeyHold,
+} from 'src/dashboard/util/sharedFilterStateHold';
 import DashboardPage from './DashboardPage';
 
 const mockTheme = {
@@ -48,8 +83,7 @@ const mockDashboard = {
   changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
   changed_on: '2024-01-01T00:00:00',
   charts: [],
-  owners: [],
-  roles: [],
+  editors: [],
   theme: mockTheme,
 };
 
@@ -62,6 +96,11 @@ jest.mock('src/hooks/apiResources', () => ({
 jest.mock('src/dashboard/actions/hydrate', () => ({
   ...jest.requireActual('src/dashboard/actions/hydrate'),
   hydrateDashboard: jest.fn(() => ({ type: 'MOCK_HYDRATE' })),
+}));
+
+jest.mock('src/dashboard/actions/dashboardLayout', () => ({
+  ...jest.requireActual('src/dashboard/actions/dashboardLayout'),
+  clearDashboardHistory: jest.fn(() => ({ type: 'MOCK_CLEAR_HISTORY' })),
 }));
 
 jest.mock('src/dashboard/actions/datasources', () => ({
@@ -116,12 +155,14 @@ jest.mock('src/dashboard/util/activeDashboardFilters', () => ({
 }));
 
 jest.mock('src/utils/urlUtils', () => ({
-  getUrlParam: () => null,
+  getUrlParam: jest.fn().mockReturnValue(null),
 }));
 
+const mockGetUrlParam = getUrlParam as jest.Mock;
+
 jest.mock('src/dashboard/components/nativeFilters/FilterBar/keyValue', () => ({
-  getFilterValue: jest.fn(),
-  getPermalinkValue: jest.fn(),
+  fetchFilterValue: jest.fn(),
+  fetchPermalinkValue: jest.fn(),
 }));
 
 jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
@@ -141,6 +182,13 @@ afterEach(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Tests assert against the global document.title and the unmount restore
+  // effect can carry title state across tests, so reset it for isolation.
+  document.title = '';
+  // clearAllMocks does not reset mockImplementation — reset explicitly so
+  // per-test overrides don't leak into subsequent tests.
+  mockGetUrlParam.mockReset();
+  mockGetUrlParam.mockReturnValue(null);
   mockUseDashboard.mockReturnValue({
     result: mockDashboard,
     error: null,
@@ -154,6 +202,151 @@ beforeEach(() => {
     error: null,
     status: 'complete',
   });
+});
+
+test('page load treats an omitted semantic source as unproven despite retained Redux metadata', async () => {
+  const source = {
+    uid: '2__semantic_view',
+    type: 'semantic_view',
+    columns: [{ column_name: 'country', is_dttm: false }],
+  };
+  const store = createStore(
+    {
+      dashboardInfo: {
+        id: 1,
+        metadata: {},
+        semanticDatasets: { dashboardId: 1, datasets: [source] },
+      },
+      datasources: { [source.uid]: source },
+      dashboardState: { sliceIds: [] },
+      dashboardLayout: { past: [], future: [], present: {} },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() =>
+    expect(
+      (store.getState() as unknown as RootState).dashboardInfo.semanticDatasets
+        ?.datasets,
+    ).toEqual([]),
+  );
+  expect(
+    (store.getState() as unknown as RootState).datasources[source.uid],
+  ).toEqual(source);
+});
+
+test('same-dashboard remount accepts freshly loaded semantic metadata after a save', async () => {
+  const oldSource = {
+    uid: '2__semantic_view',
+    type: DatasourceType.SemanticView,
+    columns: [{ column_name: 'created_at', is_dttm: true }],
+  };
+  const freshSource = {
+    ...oldSource,
+    columns: [{ column_name: 'created_at', is_dttm: false }],
+  };
+  mockUseDashboardDatasets.mockReturnValue({
+    result: [oldSource],
+    error: null,
+    status: 'complete',
+  });
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [] },
+      dashboardLayout: { past: [], future: [], present: {} },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+  const firstPage = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+  await waitFor(() =>
+    expect(
+      (store.getState() as unknown as RootState).dashboardInfo.semanticDatasets
+        ?.datasets,
+    ).toEqual([oldSource]),
+  );
+  firstPage.unmount();
+
+  store.dispatch(replaceDashboardSemanticDatasets(1, null, 'save', true));
+  store.dispatch(replaceDashboardSemanticDatasets(1, [oldSource], 'save'));
+  mockUseDashboardDatasets.mockReturnValue({
+    result: [freshSource],
+    error: null,
+    status: 'complete',
+  });
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+  await waitFor(() =>
+    expect(
+      (store.getState() as unknown as RootState).dashboardInfo.semanticDatasets
+        ?.datasets,
+    ).toEqual([freshSource]),
+  );
+});
+
+test('new dashboard datasets are published after that dashboard hydrates', async () => {
+  const source = {
+    uid: '2__semantic_view',
+    type: 'semantic_view',
+    columns: [{ column_name: 'country', is_dttm: false }],
+  };
+  mockUseDashboard.mockReturnValue({
+    result: { ...mockDashboard, id: 2 },
+    error: null,
+  });
+  mockUseDashboardDatasets.mockReturnValue({
+    result: [source],
+    error: null,
+    status: 'complete',
+  });
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [] },
+      dashboardLayout: { past: [], future: [], present: {} },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="2" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+  await screen.findByText('DashboardBuilder');
+  store.dispatch({
+    type: 'DASHBOARD_INFO_UPDATED',
+    newInfo: { id: 2 },
+  });
+
+  await waitFor(() =>
+    expect(
+      (store.getState() as unknown as RootState).dashboardInfo.semanticDatasets,
+    ).toEqual({ dashboardId: 2, datasets: [source] }),
+  );
 });
 
 test('passes full theme object from dashboard API response to CrudThemeProvider', async () => {
@@ -226,6 +419,174 @@ test('uses theme from Redux dashboardInfo when it differs from API response (Pro
   );
 });
 
+test('document.title tracks the live Redux dashboard title after a rename, not the stale API value', async () => {
+  // Renaming a dashboard updates the live title in Redux
+  // (dashboardLayout HEADER meta.text) and persists via an in-SPA save with
+  // no full reload, so the useDashboard() API result stays stale. The browser
+  // tab title must follow the live title, otherwise a newly created dashboard
+  // keeps showing "[ untitled dashboard ]" after being renamed and saved.
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        dashboardLayout: {
+          past: [],
+          future: [],
+          present: {
+            [DASHBOARD_HEADER_ID]: {
+              id: DASHBOARD_HEADER_ID,
+              type: 'HEADER',
+              meta: { text: 'Live Renamed Title' },
+            },
+          },
+        },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // API result (mockDashboard.dashboard_title) is 'Test Dashboard', but the
+  // live title is 'Live Renamed Title' — the tab title must reflect the latter.
+  await waitFor(() => {
+    expect(document.title).toBe('Live Renamed Title');
+  });
+});
+
+test('document.title updates when the dashboard is renamed after mount', async () => {
+  // The bug is a live rename: the title is edited in Redux after the page has
+  // already mounted, so the tab title must react to the change rather than only
+  // reflecting the title present at initial render.
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [] },
+      dashboardLayout: {
+        past: [],
+        future: [],
+        present: {
+          [DASHBOARD_HEADER_ID]: {
+            id: DASHBOARD_HEADER_ID,
+            type: 'HEADER',
+            meta: { text: 'Title At Mount' },
+          },
+        },
+      },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() => expect(document.title).toBe('Title At Mount'));
+
+  // Simulate the in-SPA rename mutating the live header title.
+  store.dispatch({
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents: {
+        [DASHBOARD_HEADER_ID]: {
+          id: DASHBOARD_HEADER_ID,
+          type: 'HEADER',
+          meta: { text: 'Renamed After Mount' },
+        },
+      },
+    },
+  });
+
+  await waitFor(() => expect(document.title).toBe('Renamed After Mount'));
+});
+
+test('document.title uses the fresh API title during dashboard-to-dashboard navigation', async () => {
+  // While switching dashboards in the SPA the component instance and Redux store
+  // are reused, so the previous dashboard's layout (header title) lingers until
+  // the new dashboard hydrates. The tab title must follow the newly loaded
+  // dashboard's API title, not the stale live layout title.
+  mockUseDashboard.mockReturnValue({
+    result: { ...mockDashboard, id: 2, dashboard_title: 'Dashboard Two' },
+    error: null,
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="2" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        // dashboardInfo still describes the previously hydrated dashboard 1.
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        dashboardLayout: {
+          past: [],
+          future: [],
+          present: {
+            [DASHBOARD_HEADER_ID]: {
+              id: DASHBOARD_HEADER_ID,
+              type: 'HEADER',
+              meta: { text: 'Dashboard One' },
+            },
+          },
+        },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  await waitFor(() => expect(document.title).toBe('Dashboard Two'));
+});
+
+test('document.title falls back to the API dashboard_title before the layout is hydrated', async () => {
+  // Before hydration there is no HEADER component in the layout, so the tab
+  // title should still come from the dashboard API response.
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  await waitFor(() => {
+    expect(document.title).toBe('Test Dashboard');
+  });
+});
+
 test('passes null theme when Redux dashboardInfo.theme is explicitly null (theme removed)', async () => {
   render(
     <Suspense fallback="loading">
@@ -254,3 +615,624 @@ test('passes null theme when Redux dashboardInfo.theme is explicitly null (theme
     expect.anything(),
   );
 });
+
+test('copies currentState to filterState for legacy native_filters URL params', async () => {
+  // Pre-2021 URLs encode filter selections under `currentState`. The dataMask
+  // reducer uses `filterState`, so without normalization the filter panel shows
+  // no active selections even though extraFormData still filters chart queries.
+  mockGetUrlParam.mockImplementation((param: { name: string }) => {
+    if (param.name === 'native_filters') {
+      return {
+        'NATIVE_FILTER-OvPTDNKc9': {
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+          currentState: { value: ['MarginEdge'] },
+        },
+      };
+    }
+    return null;
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-OvPTDNKc9': expect.objectContaining({
+          filterState: { value: ['MarginEdge'] },
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+          currentState: { value: ['MarginEdge'] },
+        }),
+      }),
+    }),
+  );
+});
+
+test('does not overwrite filterState when modern native_filters URL format is used', async () => {
+  // Modern URLs already carry `filterState`; the normalization must not clobber it.
+  mockGetUrlParam.mockImplementation((param: { name: string }) => {
+    if (param.name === 'native_filters') {
+      return {
+        'NATIVE_FILTER-OvPTDNKc9': {
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+          filterState: { value: ['MarginEdge'] },
+        },
+      };
+    }
+    return null;
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-OvPTDNKc9': expect.objectContaining({
+          filterState: { value: ['MarginEdge'] },
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+        }),
+      }),
+    }),
+  );
+
+  // currentState must not have been injected
+  const callArg = (hydrateDashboard as jest.Mock).mock.calls[0][0];
+  expect(
+    callArg.dataMask['NATIVE_FILTER-OvPTDNKc9'].currentState,
+  ).toBeUndefined();
+});
+
+test.each([
+  { status: 404, title: 'This dashboard does not exist' },
+  { status: 403, title: 'Forbidden' },
+])(
+  'renders a distinct dashboard error state for status $status',
+  async ({ status, title }) => {
+    mockUseDashboard.mockReturnValue({
+      result: null,
+      error: new SupersetApiError({ status, message: title }),
+    });
+    mockUseDashboardCharts.mockReturnValue({
+      result: null,
+      error: new SupersetApiError({ status, message: title }),
+    });
+    mockUseDashboardDatasets.mockReturnValue({
+      result: null,
+      error: new SupersetApiError({ status, message: title }),
+      status: 'error',
+    });
+
+    render(
+      <Suspense fallback="loading">
+        <DashboardPage idOrSlug="404" />
+      </Suspense>,
+      {
+        useRedux: true,
+        useRouter: true,
+        initialState: {
+          dashboardInfo: {},
+          dashboardState: { sliceIds: [] },
+          nativeFilters: { filters: {} },
+          dataMask: {},
+        },
+      },
+    );
+
+    expect(await screen.findByText(title)).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        status === 403 ? 'This dashboard does not exist' : 'Forbidden',
+      ),
+    ).not.toBeInTheDocument();
+    if (status === 403) {
+      expect(
+        screen.getByText("You don't have access to this dashboard."),
+      ).toBeInTheDocument();
+    }
+    expect(screen.queryByTestId('dashboard-builder')).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'See all dashboards' }),
+    );
+    expect(window.location.pathname).toBe('/dashboard/list/');
+  },
+);
+
+test('clears undo history after hydrating the dashboard', async () => {
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalled();
+  expect(clearDashboardHistory).toHaveBeenCalled();
+  const hydrateOrder = (hydrateDashboard as jest.Mock).mock
+    .invocationCallOrder[0];
+  const clearOrder = (clearDashboardHistory as jest.Mock).mock
+    .invocationCallOrder[0];
+  expect(clearOrder).toBeGreaterThan(hydrateOrder);
+});
+
+test('document.title falls back to the app name on unmount, not the title present at mount', async () => {
+  // A direct page load of a dashboard URL arrives with the dashboard name
+  // already in <title>, so restoring the title seen at mount leaves the stale
+  // name in the tab after navigating away.
+  const titleBeforeTest = document.title;
+  document.title = 'Test Dashboard';
+  try {
+    const { unmount } = render(
+      <Suspense fallback="loading">
+        <DashboardPage idOrSlug="1" />
+      </Suspense>,
+      {
+        useRedux: true,
+        useRouter: true,
+        initialState: {
+          dashboardInfo: { id: 1, metadata: {} },
+          dashboardState: { sliceIds: [] },
+          nativeFilters: { filters: {} },
+          dataMask: {},
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText('loading')).not.toBeInTheDocument();
+    });
+    await waitFor(() => expect(document.title).toBe('Test Dashboard'));
+
+    unmount();
+
+    expect(document.title).toBe('Superset');
+  } finally {
+    document.title = titleBeforeTest;
+  }
+});
+
+const mockFetchFilterValue = fetchFilterValue as jest.Mock;
+const mockFetchPermalinkValue = fetchPermalinkValue as jest.Mock;
+
+const FAILED_BANNER = /couldn.t load the filters from this link/;
+const EXPIRED_BANNER = /filters from this link have expired/;
+const STALL_TOTAL_MS =
+  SHARED_STATE_MAX_ATTEMPTS * SHARED_STATE_ATTEMPT_TIMEOUT_MS +
+  (SHARED_STATE_MAX_ATTEMPTS - 1) * SHARED_STATE_RETRY_DELAY_MS;
+
+const renderWithUrlParam = (
+  paramName: string,
+  value = 'abc123',
+  dashboardInfo: object = { id: 1, metadata: {} },
+) => {
+  mockGetUrlParam.mockImplementation((param: { name: string }) =>
+    param.name === paramName ? value : null,
+  );
+  return render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo,
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+};
+const renderWithFilterKey = () => renderWithUrlParam('native_filters_key');
+const renderWithPermalink = () => renderWithUrlParam('permalink_key', 'perma');
+
+const neverResolves = () => new Promise(() => {});
+
+afterEach(() => {
+  resetFilterKeyHold();
+});
+
+test('shows the shared-view loading message while the saved filters load', async () => {
+  mockFetchFilterValue.mockReturnValue(neverResolves());
+  // Dashboard info is empty until the first hydrate, so the loading branch shows.
+  renderWithUrlParam('native_filters_key', 'abc123', {});
+
+  const message = await screen.findByText('Loading the view shared with you…');
+  expect(message).toBeInTheDocument();
+  // <output> carries the implicit status role for screen readers.
+  expect(message.tagName).toBe('OUTPUT');
+});
+
+test('applies the saved filter state when the request resolves', async () => {
+  const savedMask = {
+    'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1', filterState: { value: ['a'] } },
+  };
+  mockFetchFilterValue.mockResolvedValue(savedMask);
+  renderWithFilterKey();
+
+  await waitFor(() => {
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({ dataMask: savedMask }),
+    );
+  });
+  expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  expect(isFilterKeyPublishHeld()).toBe(false);
+});
+
+test('retries quietly after a failed attempt and applies the state', async () => {
+  const savedMask = { 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } };
+  mockFetchFilterValue
+    .mockRejectedValueOnce(new Error('network'))
+    .mockResolvedValueOnce(savedMask);
+  renderWithFilterKey();
+
+  await waitFor(() => {
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({ dataMask: savedMask }),
+    );
+  });
+  expect(mockFetchFilterValue).toHaveBeenCalledTimes(2);
+  expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+});
+
+test('shows a banner with Try again and hydrates with defaults when every attempt stalls', async () => {
+  jest.useFakeTimers();
+  try {
+    mockFetchFilterValue.mockReturnValue(neverResolves());
+    renderWithFilterKey();
+    // The lazy-loaded dashboard body must resolve before the page effect (and
+    // its timeout) starts, so wait for the fetch before advancing the clock.
+    await waitFor(() => expect(mockFetchFilterValue).toHaveBeenCalled());
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(STALL_TOTAL_MS - 1000);
+    });
+    expect(hydrateDashboard).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(1000);
+    });
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({ dataMask: {} }),
+    );
+    expect(mockFetchFilterValue).toHaveBeenCalledTimes(
+      SHARED_STATE_MAX_ATTEMPTS,
+    );
+    expect(await screen.findByText(FAILED_BANNER)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Try again' }),
+    ).toBeInTheDocument();
+    expect(isFilterKeyPublishHeld()).toBe(true);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('shows an expired banner without Try again when the key is gone', async () => {
+  mockFetchFilterValue.mockRejectedValue({ status: 404 });
+  renderWithFilterKey();
+
+  expect(await screen.findByText(EXPIRED_BANNER)).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Try again' }),
+  ).not.toBeInTheDocument();
+  expect(mockFetchFilterValue).toHaveBeenCalledTimes(1);
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({ dataMask: {} }),
+  );
+});
+
+test('the banner can be dismissed', async () => {
+  mockFetchFilterValue.mockRejectedValue({ status: 404 });
+  renderWithFilterKey();
+
+  await screen.findByText(EXPIRED_BANNER);
+  await userEvent.click(screen.getByRole('button', { name: /close/i }));
+
+  await waitFor(() => {
+    expect(screen.queryByText(EXPIRED_BANNER)).not.toBeInTheDocument();
+  });
+});
+
+test('Try again reloads with the original key and clears the banner', async () => {
+  mockFetchFilterValue
+    .mockRejectedValueOnce(new Error('network'))
+    .mockRejectedValueOnce(new Error('network'))
+    .mockResolvedValue({ 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } });
+  renderWithFilterKey();
+
+  await screen.findByText(FAILED_BANNER);
+  expect(isFilterKeyPublishHeld()).toBe(true);
+  await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+  await waitFor(() => {
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  });
+  expect(mockFetchFilterValue).toHaveBeenLastCalledWith(
+    1,
+    'abc123',
+    expect.any(AbortSignal),
+  );
+  expect(isFilterKeyPublishHeld()).toBe(false);
+});
+
+test('applies a permalink state when the request resolves', async () => {
+  mockFetchPermalinkValue.mockResolvedValue({
+    state: { dataMask: { 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } } },
+  });
+  renderWithPermalink();
+
+  await waitFor(() => {
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dataMask: { 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } },
+      }),
+    );
+  });
+});
+
+test('shows the banner and hydrates with defaults when a permalink request fails', async () => {
+  mockFetchPermalinkValue.mockRejectedValue(new Error('network'));
+  renderWithPermalink();
+
+  expect(await screen.findByText(FAILED_BANNER)).toBeInTheDocument();
+  expect(mockFetchPermalinkValue).toHaveBeenCalledTimes(
+    SHARED_STATE_MAX_ATTEMPTS,
+  );
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({ dataMask: {} }),
+  );
+});
+
+test('does not hydrate when unmounted while the saved filter state is loading', async () => {
+  let resolveValue: (value: unknown) => void = () => {};
+  mockFetchFilterValue.mockReturnValue(
+    new Promise(resolve => {
+      resolveValue = resolve;
+    }),
+  );
+  const { unmount } = renderWithFilterKey();
+  await waitFor(() => expect(mockFetchFilterValue).toHaveBeenCalled());
+
+  unmount();
+  const signal = mockFetchFilterValue.mock.calls[0][2];
+  expect(signal.aborted).toBe(true);
+  await act(async () => {
+    resolveValue({ 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } });
+  });
+
+  expect(hydrateDashboard).not.toHaveBeenCalled();
+  expect(mockFetchFilterValue).toHaveBeenCalledTimes(1);
+});
+
+test('does not hydrate when unmounted while the permalink is loading', async () => {
+  let resolveValue: (value: unknown) => void = () => {};
+  mockFetchPermalinkValue.mockReturnValue(
+    new Promise(resolve => {
+      resolveValue = resolve;
+    }),
+  );
+  const { unmount } = renderWithPermalink();
+  await waitFor(() => expect(mockFetchPermalinkValue).toHaveBeenCalled());
+
+  unmount();
+  await act(async () => {
+    resolveValue({ state: { dataMask: {} } });
+  });
+
+  expect(hydrateDashboard).not.toHaveBeenCalled();
+});
+
+test('does not hydrate a previous dashboard when the dashboard changes mid-fetch', async () => {
+  let resolveValue: (value: unknown) => void = () => {};
+  mockFetchFilterValue.mockReturnValueOnce(
+    new Promise(resolve => {
+      resolveValue = resolve;
+    }),
+  );
+  const { rerender } = renderWithFilterKey();
+  await waitFor(() => expect(mockFetchFilterValue).toHaveBeenCalledTimes(1));
+
+  mockFetchFilterValue.mockResolvedValue({
+    'NATIVE_FILTER-B': { id: 'NATIVE_FILTER-B' },
+  });
+  mockUseDashboard.mockReturnValue({
+    result: { ...mockDashboard, id: 2 },
+    error: null,
+  });
+  rerender(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="2" />
+    </Suspense>,
+  );
+  const firstSignal = mockFetchFilterValue.mock.calls[0][2];
+  await waitFor(() => expect(firstSignal.aborted).toBe(true));
+
+  await act(async () => {
+    resolveValue({ 'NATIVE_FILTER-A': { id: 'NATIVE_FILTER-A' } });
+  });
+  await waitFor(() => expect(hydrateDashboard).toHaveBeenCalled());
+
+  const hydrated = (hydrateDashboard as jest.Mock).mock.calls.map(
+    ([arg]) => arg,
+  );
+  expect(hydrated.every(arg => arg.dashboard.id === 2)).toBe(true);
+  expect(hydrated.some(arg => 'NATIVE_FILTER-A' in (arg.dataMask ?? {}))).toBe(
+    false,
+  );
+});
+
+test('Try again on a permalink restores tabs, chart states and anchor like the first load', async () => {
+  const state = {
+    dataMask: { 'NATIVE_FILTER-1': { id: 'NATIVE_FILTER-1' } },
+    activeTabs: ['TAB-1'],
+    chartStates: { 5: { state: 'x' } },
+    anchor: 'CHART-5',
+  };
+  mockFetchPermalinkValue
+    .mockRejectedValueOnce(new Error('network'))
+    .mockRejectedValueOnce(new Error('network'))
+    .mockResolvedValue({ state });
+  renderWithPermalink();
+
+  await screen.findByText(FAILED_BANNER);
+  (hydrateDashboard as jest.Mock).mockClear();
+  await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+  await waitFor(() => {
+    expect(hydrateDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dataMask: state.dataMask,
+        activeTabs: state.activeTabs,
+        chartStates: state.chartStates,
+      }),
+    );
+  });
+  await waitFor(() => {
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  });
+});
+
+test('the banner goes away once the viewer changes a filter', async () => {
+  mockFetchFilterValue.mockRejectedValue(new Error('network'));
+  renderWithFilterKey();
+
+  await screen.findByText(FAILED_BANNER);
+  expect(isFilterKeyPublishHeld()).toBe(true);
+  act(() => {
+    releaseFilterKeyPublish();
+  });
+
+  await waitFor(() => {
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  });
+});
+
+test('switching dashboards mid-retry does not leave Try again stuck loading', async () => {
+  mockFetchFilterValue.mockRejectedValue(new Error('network'));
+  const { rerender } = renderWithFilterKey();
+  await screen.findByText(FAILED_BANNER);
+
+  // Try again stalls; then the page moves on to another dashboard that also
+  // falls back. Its Try again button must not be stuck in the loading state.
+  mockFetchFilterValue.mockReturnValueOnce(neverResolves());
+  await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /Try again/ })).toHaveClass(
+      'ant-btn-loading',
+    ),
+  );
+
+  mockFetchFilterValue.mockRejectedValue(new Error('network'));
+  mockUseDashboard.mockReturnValue({
+    result: { ...mockDashboard, id: 2 },
+    error: null,
+  });
+  rerender(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="2" />
+    </Suspense>,
+  );
+
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /Try again/ })).not.toHaveClass(
+      'ant-btn-loading',
+    ),
+  );
+});
+
+test.each(['filter key', 'permalink'])(
+  'a viewer filter change cancels an in-flight %s retry and ignores its late response',
+  async kind => {
+    const fetchValue =
+      kind === 'filter key' ? mockFetchFilterValue : mockFetchPermalinkValue;
+    fetchValue.mockRejectedValue(new Error('network'));
+    if (kind === 'filter key') renderWithFilterKey();
+    else renderWithPermalink();
+    await screen.findByText(FAILED_BANNER);
+
+    let resolveRetry: (value: unknown) => void = () => {};
+    fetchValue.mockReturnValueOnce(
+      new Promise(resolve => {
+        resolveRetry = resolve;
+      }),
+    );
+    (hydrateDashboard as jest.Mock).mockClear();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(fetchValue).toHaveBeenCalledTimes(3));
+    const retryCall = fetchValue.mock.calls[2];
+    const signal = retryCall[kind === 'filter key' ? 2 : 1] as AbortSignal;
+
+    act(() => releaseFilterKeyPublish());
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+    // Resolve even after cancellation to model a transport ignoring abort.
+    const savedMask = { 'NATIVE_FILTER-saved': { id: 'NATIVE_FILTER-saved' } };
+    await act(async () => {
+      resolveRetry(
+        kind === 'filter key' ? savedMask : { state: { dataMask: savedMask } },
+      );
+    });
+    expect(hydrateDashboard).not.toHaveBeenCalled();
+    expect(signal.aborted).toBe(true);
+    expect(fetchValue).toHaveBeenCalledTimes(3);
+    expect(isFilterKeyPublishHeld()).toBe(false);
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  },
+);

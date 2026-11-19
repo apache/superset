@@ -42,6 +42,15 @@ class TestCurrentUserApi(SupersetTestCase):
         assert True is response["result"]["is_active"]
         assert False is response["result"]["is_anonymous"]
 
+    def test_get_me_includes_groups(self):
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.get(meUri)
+
+        assert 200 == rv.status_code
+        response = json.loads(rv.data.decode("utf-8"))
+        assert isinstance(response["result"]["groups"], list)
+
     def test_get_me_with_roles(self):
         self.login(ADMIN_USERNAME)
 
@@ -50,6 +59,8 @@ class TestCurrentUserApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         roles = list(response["result"]["roles"].keys())
         assert "Admin" == roles.pop()
+        assert "groups" in response["result"]
+        assert isinstance(response["result"]["groups"], list)
 
     @patch("superset.security.manager.g")
     def test_get_my_roles_anonymous(self, mock_g):

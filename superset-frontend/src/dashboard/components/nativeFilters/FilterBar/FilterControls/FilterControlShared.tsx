@@ -19,6 +19,7 @@
 import { useMemo } from 'react';
 import { truncationCSS } from '@superset-ui/core';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import {
   FormItem as StyledFormItem,
   Form,
@@ -42,6 +43,8 @@ export const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
   font-weight: ${({ theme }) => theme.fontWeightNormal};
   color: ${({ theme }) => theme.colorText};
   margin: 0;
+  flex: 1;
+  min-width: 0;
   ${truncationCSS};
 `;
 
@@ -59,6 +62,14 @@ export const VerticalFilterControlTitleBox = styled.div`
   justify-content: space-between;
 `;
 
+export const FilterControlTitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+  flex: 1;
+  min-width: 0;
+`;
+
 export const HorizontalFilterControlTitleBox = styled(
   VerticalFilterControlTitleBox,
 )`
@@ -72,8 +83,8 @@ export const HorizontalOverflowFilterControlTitleBox = styled(
 `;
 
 export const AllFilterControlContainer = styled(Form)`
-  // TODO this is a hack related to having form items inside others which is not
-  // normal antd-expected usage
+  /* TODO this is a hack related to having form items inside others which is not */
+  /* normal antd-expected usage */
   .ant-form-item .ant-form-item {
     margin-bottom: 0 !important;
   }
@@ -201,6 +212,32 @@ const ToolTipContainer = styled.div`
   display: flex;
 `;
 
+const StyledInfoCircleOutlined = styled(Icons.InfoCircleOutlined)`
+  padding-left: ${({ theme }) => theme.sizeUnit}px;
+`;
+
+const StyledWarningOutlined = styled(Icons.WarningOutlined)`
+  display: inline-flex;
+`;
+
+const StyledWarningButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+`;
+
 export const RequiredFieldIndicator = () => (
   <span
     css={(theme: SupersetTheme) => ({
@@ -231,12 +268,51 @@ export const DescriptionToolTip = ({
         whiteSpace: 'normal',
       }}
     >
-      <Icons.InfoCircleOutlined
+      {/* Deliberate role="button" on this tooltip-trigger icon (no click
+          handler) — mirrors DeckglLayerVisibilityTooltip below; not a fit
+          for the linter's suggested <button> tag. */}
+      {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role */}
+      <StyledInfoCircleOutlined className="text-muted" role="button" />
+    </Tooltip>
+  </ToolTipContainer>
+);
+
+export const OutOfScopeFilterToolTip = () => {
+  const message = t("This filter isn't applied to any charts yet");
+
+  return (
+    <Tooltip
+      title={message}
+      placement="right"
+      trigger={['hover', 'focus', 'click']}
+    >
+      <StyledWarningButton
+        type="button"
+        aria-label={t('Warning')}
+        data-test="out-of-scope-filter-tooltip-icon"
+      >
+        <StyledWarningOutlined aria-hidden="true" />
+      </StyledWarningButton>
+    </Tooltip>
+  );
+};
+
+export const DeckglLayerVisibilityTooltip = () => (
+  <ToolTipContainer>
+    <Tooltip
+      title={t(
+        'Choose layers to hide from all deck.gl Multiple Layer charts in this dashboard.',
+      )}
+      placement="right"
+    >
+      {/* Deliberate role="button" on this tooltip-trigger icon (no click
+          handler) — covered by existing test expectations; not a fit for
+          the linter's suggested <button> tag. */}
+      <StyledInfoCircleOutlined
         className="text-muted"
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
         role="button"
-        css={(theme: SupersetTheme) => ({
-          paddingLeft: `${theme.sizeUnit}px`,
-        })}
+        data-test="deckgl-layer-visibility-tooltip-icon"
       />
     </Tooltip>
   </ToolTipContainer>

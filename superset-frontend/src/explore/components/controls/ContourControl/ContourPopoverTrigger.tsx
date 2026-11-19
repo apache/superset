@@ -50,9 +50,12 @@ const ContourPopoverTrigger = ({
       defaultOpen={visible}
       open={visible}
       onOpenChange={setVisibility}
-      destroyTooltipOnHide
+      destroyOnHidden
     >
-      {props.children}
+      {/* Keep a ref-compatible, block-width anchor even when the add-new
+          placeholder has zero height. Right placement depends on its width,
+          not on adding artificial height (sc-120502). */}
+      <span style={{ display: 'block' }}>{props.children}</span>
     </ControlPopover>
   );
 };

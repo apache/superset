@@ -17,9 +17,10 @@
  * under the License.
  */
 
-import type { Response, APIResponse } from '@playwright/test';
+import type { Page, Response, APIResponse } from '@playwright/test';
 import { expect } from '@playwright/test';
 import * as unzipper from 'unzipper';
+import { apiGet } from './requests';
 
 /**
  * Common interface for response types with status() method.
@@ -61,6 +62,51 @@ export function expectStatusOneOf<T extends ResponseLike>(
   return response;
 }
 
+/**
+ * Poll an API endpoint until it returns 404, confirming a resource was deleted.
+ * Shared across chart, dashboard, and dataset list tests.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param endpoint - API endpoint path (e.g. 'api/v1/dataset/')
+ * @param id - Resource ID to check
+ * @param options - Optional timeout (default 10000ms) and label for error messages
+ */
+export async function expectDeleted(
+  page: Page,
+  endpoint: string,
+  id: number,
+  options?: { timeout?: number; label?: string },
+): Promise<void> {
+  const timeout = options?.timeout ?? 10000;
+  const label = options?.label ?? `Resource ${id}`;
+  await expect
+    .poll(
+      async () => {
+        const response = await apiGet(page, `${endpoint}${id}`, {
+          failOnStatusCode: false,
+        });
+        return response.status();
+      },
+      { timeout, message: `${label} should return 404 after delete` },
+    )
+    .toBe(404);
+}
+
+/**
+ * Extract the resource ID from a JSON response body.
+ * Handles both `{ result: { id } }` and `{ id }` shapes.
+ * @param response - Playwright Response or APIResponse object
+ * @returns The extracted numeric ID
+ */
+export async function extractIdFromResponse(
+  response: ResponseLike,
+): Promise<number> {
+  const body = await response.json();
+  const id: number = body.result?.id ?? body.id;
+  expect(typeof id, 'Response body must contain a numeric id').toBe('number');
+  expect(Number.isNaN(id), 'Response id must not be NaN').toBe(false);
+  return id;
+}
+
 interface ExportZipOptions {
   /** Directory name containing resource yaml files (e.g. 'charts', 'datasets') */
   resourceDir: string;
@@ -75,8 +121,18 @@ interface ExportZipOptions {
 /**
  * Validate an export zip response: content-type, zip structure, and resource yaml files.
  * Shared across chart and dataset export tests.
+ *
+ * Status/content-type come from `response` itself, but the zip bytes are
+ * re-fetched independently via `page.request` (the browser context's own
+ * APIRequestContext, sharing its cookies) rather than read off `response`
+ * directly. The app consumes `response` itself via `fetch().then(r =>
+ * r.blob())` to trigger the download, and Playwright 1.64's bundled
+ * Chromium no longer reliably keeps that response's network body available
+ * to `response.body()` once the page has already drained it - an
+ * independent GET of the same (idempotent) export URL avoids that race.
  */
 export async function expectValidExportZip(
+  page: Page,
   response: ResponseLike,
   options: ExportZipOptions,
 ): Promise<void> {
@@ -95,7 +151,11 @@ export async function expectValidExportZip(
     );
   }
 
-  const body = await response.body();
+  const refetched = await page.request.get(response.url(), {
+    headers: { Accept: 'application/zip, application/x-zip-compressed' },
+  });
+  expect(refetched.status()).toBe(200);
+  const body = await refetched.body();
   expect(body.length).toBeGreaterThan(0);
 
   const entries: string[] = [];

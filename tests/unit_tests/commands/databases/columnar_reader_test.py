@@ -17,7 +17,7 @@
 import io
 import tempfile
 from typing import Any
-from zipfile import ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import pytest
@@ -96,7 +96,7 @@ COLUMNAR_WITH_FLOATS: dict[str, list[Any]] = {
             ["Name", "Age", "City", "Birth"],
             [
                 ["name1", np.nan, "city1", "1990-02-01"],
-                ["name2", 25, None, "1995-02-01"],
+                ["name2", 25, np.nan, "1995-02-01"],
                 ["name3", 20, "city3", "2000-02-01"],
             ],
         ),
@@ -143,10 +143,10 @@ def test_excel_reader_wrong_columns_to_read():
     assert (
         str(ex.value)
         == (
-            "Parsing error: No match for FieldRef.Name(xpto) in Name: string\n"
+            "Parsing error: No match for FieldRef.Name(xpto) in Name: large_string\n"
             "Age: int64\n"
-            "City: string\n"
-            "Birth: string\n"
+            "City: large_string\n"
+            "Birth: large_string\n"
             "__fragment_index: int32\n"
             "__batch_index: int32\n"
             "__last_in_fragment: bool\n"
@@ -228,6 +228,40 @@ def test_columnar_reader_bad_zip():
     with pytest.raises(DatabaseUploadFailed) as ex:
         reader.file_to_dataframe(FileStorage(io.BytesIO(b"bad zip file"), "test.zip"))
     assert str(ex.value) == "Not a valid ZIP file"
+
+
+def _make_high_ratio_zip() -> io.BytesIO:
+    """
+    Build a ZIP whose single entry has a very high decompression ratio,
+    well above the default ``ZIP_FILE_MAX_COMPRESS_RATIO`` threshold.
+    """
+    buffer = io.BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as zip_file:
+        # A megabyte of zeros compresses to roughly a kilobyte, far exceeding
+        # the default 200:1 ratio guard.
+        zip_file.writestr("test.parquet", b"\x00" * (1024 * 1024))
+    buffer.seek(0)
+    return buffer
+
+
+def test_columnar_reader_unsafe_zip_rejected():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    unsafe_zip = _make_high_ratio_zip()
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        reader.file_to_dataframe(FileStorage(unsafe_zip, "test.zip"))
+    assert "compress ratio above allowed threshold" in str(ex.value)
+
+
+def test_columnar_reader_unsafe_zip_rejected_in_metadata():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    unsafe_zip = _make_high_ratio_zip()
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        reader.file_metadata(FileStorage(unsafe_zip, "test.zip"))
+    assert "compress ratio above allowed threshold" in str(ex.value)
 
 
 def test_columnar_reader_metadata():

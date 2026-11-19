@@ -17,14 +17,28 @@
 from __future__ import annotations
 
 import logging
+import re
+from collections.abc import Iterator
 from typing import Any
+from urllib.parse import unquote
 
-from sqlalchemy.orm import joinedload
+import requests
+from flask import current_app as app
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload, Query
+
+try:
+    from odps import ODPS, options as odps_options
+    from odps.errors import BaseODPSError
+except ImportError:
+    ODPS = None
+    odps_options = None
+    BaseODPSError = None
 
 from superset import is_feature_enabled
 from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelingNotEnabledError
 from superset.connectors.sqla.models import SqlaTable
-from superset.daos.base import BaseDAO
+from superset.daos.base import BaseDAO, SKIP_VISIBILITY_FILTER_CLASSES
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
@@ -37,9 +51,33 @@ from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
 
+RELATED_DATASET_BATCH_SIZE = 100
+
 
 class DatabaseDAO(BaseDAO[Database]):
     base_filter = DatabaseFilter
+
+    @staticmethod
+    def _related_datasets_query(database_id: int) -> Query[SqlaTable]:
+        return (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.database_id == database_id)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+        )
+
+    @classmethod
+    def _iter_related_datasets(cls, database_id: int) -> Iterator[SqlaTable]:
+        """Yield dataset dependents in bounded batches, including archived rows."""
+        last_id: int | None = None
+        while True:
+            query = cls._related_datasets_query(database_id)
+            if last_id is not None:
+                query = query.filter(SqlaTable.id > last_id)
+            batch = query.order_by(SqlaTable.id).limit(RELATED_DATASET_BATCH_SIZE).all()
+            if not batch:
+                return
+            yield from batch
+            last_id = batch[-1].id
 
     @classmethod
     def create(
@@ -71,6 +109,9 @@ class DatabaseDAO(BaseDAO[Database]):
         skip_base_filter: bool = False,
         id_column: str | None = None,
         query_options: list[Any] | None = None,
+        *,
+        skip_visibility_filter: bool = False,
+        force_fetch: bool | None = None,
     ) -> Database | None:
         """
         Find a database by id, eagerly loading the SSH tunnel relationship.
@@ -78,7 +119,11 @@ class DatabaseDAO(BaseDAO[Database]):
         all_options = [joinedload(Database.ssh_tunnel)]
         if query_options:
             all_options.extend(query_options)
-        query = db.session.query(cls.model_cls).options(*all_options)
+        query = cls._query(force_fetch).options(*all_options)
+        if skip_visibility_filter:
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
         query = cls._apply_base_filter(query, skip_base_filter)
 
         column_name = id_column or cls.id_column_name
@@ -160,11 +205,20 @@ class DatabaseDAO(BaseDAO[Database]):
 
     @staticmethod
     def get_database_by_name(database_name: str) -> Database | None:
-        return (
-            db.session.query(Database)
-            .filter(Database.database_name == database_name)
-            .one_or_none()
+        """
+        Look up a database by name, scoped to the requesting user's object-level
+        visibility (the same ``DatabaseFilter`` boundary ``find_by_id``/
+        ``get_connection`` already apply). An unfiltered lookup would let any
+        principal with class-level ``can_write`` reference an arbitrary
+        existing database by name -- including one they have no catalog,
+        schema, datasource, or database access to -- and ride along with
+        whatever secret-rehydration behavior callers apply to the result.
+        """
+        query = db.session.query(Database).filter(
+            Database.database_name == database_name
         )
+        query = DatabaseDAO._apply_base_filter(query)
+        return query.one_or_none()
 
     @staticmethod
     def build_db_for_connection_test(
@@ -185,8 +239,9 @@ class DatabaseDAO(BaseDAO[Database]):
     @classmethod
     def get_related_objects(cls, database_id: int) -> dict[str, Any]:
         database: Any = cls.find_by_id(database_id)
-        datasets = database.tables
-        dataset_ids = [dataset.id for dataset in datasets]
+        dataset_ids = select(SqlaTable.id).where(SqlaTable.database_id == database.id)
+        if is_feature_enabled("SOFT_DELETE"):
+            dataset_ids = dataset_ids.where(SqlaTable.deleted_at.is_(None))
 
         charts = (
             db.session.query(Slice)
@@ -212,10 +267,20 @@ class DatabaseDAO(BaseDAO[Database]):
             db.session.query(TabState).filter(TabState.database_id == database_id).all()
         )
 
+        # Datasets are dependents in their own right: ``DeleteDatabaseCommand``
+        # refuses to delete a database while any ``SqlaTable`` row references it.
+        # Count with the soft-delete visibility filter bypassed, exactly as that
+        # validation does. Keep the detail query lazy and batched so its API
+        # consumer can stop once it has enough authorized names for the preview.
+        related_dataset_count = cls._related_datasets_query(database_id).count()
+        related_datasets = cls._iter_related_datasets(database_id)
+
         return {
             "charts": charts,
             "dashboards": dashboards,
             "sqllab_tab_states": sqllab_tab_states,
+            "datasets": related_datasets,
+            "dataset_count": related_dataset_count,
         }
 
     @classmethod
@@ -243,11 +308,95 @@ class DatabaseDAO(BaseDAO[Database]):
             .all()
         )
 
+    @classmethod
+    def is_odps_partitioned_table(
+        cls, database: Database, table_name: str
+    ) -> tuple[bool, list[str]]:
+        """
+        This function is used to determine and retrieve
+        partition information of the ODPS table.
+        The return values are whether the partition
+        table is partitioned and the names of all partition fields.
+        """
+        if not database:
+            raise ValueError("Database not found")
+        if database.backend != "odps":
+            return False, []
+        if ODPS is None:
+            logger.warning("pyodps is not installed, cannot check ODPS partition info")
+            return False, []
+        uri = database.sqlalchemy_uri
+        access_key = database.password
+        pattern = re.compile(
+            r"odps://(?P<username>[^:]+):(?P<password>[^@]+)@(?P<project>[^/]+)/(?:\?"
+            r"endpoint=(?P<endpoint>[^&]+))"
+        )
+        if not uri or not isinstance(uri, str):
+            logger.warning(
+                "Invalid or missing sqlalchemy URI, please provide a correct URI"
+            )
+            return False, []
+        if match := pattern.match(unquote(uri)):
+            access_id = match.group("username")
+            project = match.group("project")
+            endpoint = match.group("endpoint")
+            # `get_table` is a synchronous network call. Bound it with a
+            # configurable connect/read timeout so an unreachable or slow ODPS
+            # endpoint can't block the worker indefinitely.
+            timeout = app.config["ODPS_PARTITION_DETECT_TIMEOUT"]
+            if odps_options is not None:
+                odps_options.connect_timeout = timeout
+                odps_options.read_timeout = timeout
+            try:
+                odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
+                table = odps_client.get_table(table_name)
+                if table.exist_partition:
+                    partition_spec = table.table_schema.partitions
+                    partition_fields = [partition.name for partition in partition_spec]
+                    return True, partition_fields
+                return False, []
+            except (BaseODPSError, requests.exceptions.RequestException) as ex:
+                # Network/auth/lookup failures against ODPS shouldn't break table
+                # preview; fall back to the non-partitioned path.
+                logger.warning(
+                    "Error fetching ODPS partition info for table %r: %s",
+                    table_name,
+                    ex,
+                )
+                return False, []
+        logger.warning(
+            "ODPS sqlalchemy_uri did not match the expected pattern; "
+            "unable to determine partition info for table %r",
+            table_name,
+        )
+        return False, []
+
 
 class DatabaseUserOAuth2TokensDAO(BaseDAO[DatabaseUserOAuth2Tokens]):
     """
     DAO for OAuth2 tokens.
     """
+
+    @classmethod
+    def find_by_database_and_ids(
+        cls, database_id: int, token_ids: list[int]
+    ) -> list[DatabaseUserOAuth2Tokens]:
+        """Get selected OAuth2 tokens belonging to a DB connection in a single query."""
+        if not token_ids:
+            return []
+        return cls.query(
+            db.session.query(DatabaseUserOAuth2Tokens).filter(
+                DatabaseUserOAuth2Tokens.database_id == database_id,
+                DatabaseUserOAuth2Tokens.id.in_(token_ids),
+            )
+        )
+
+    @classmethod
+    def delete_all_tokens(cls, database_id: int) -> None:
+        """Delete credentials in bulk without loading every user's token secrets."""
+        db.session.query(DatabaseUserOAuth2Tokens).filter_by(
+            database_id=database_id
+        ).delete(synchronize_session=False)
 
     @classmethod
     def get_database(cls, database_id: int) -> Database | None:

@@ -19,7 +19,10 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import rison from 'rison';
+import { FeatureFlag } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
+import { selectPillOption } from 'spec/helpers/testing-library';
+import { useLocation } from 'react-router-dom';
 import {
   setupMocks,
   renderDatasetList,
@@ -29,9 +32,16 @@ import {
   mockExportOnlyUser,
   mockDatasets,
   mockApiError403,
+  mockDatasetListEndpoints,
+  setupApiPermissions,
   API_ENDPOINTS,
   RisonFilter,
 } from './DatasetList.testHelpers';
+
+function LocationSearch() {
+  const { search } = useLocation();
+  return <output data-test="location-search">{search}</output>;
+}
 
 // Increase default timeout for tests that involve multiple async operations
 jest.setTimeout(15000);
@@ -41,14 +51,15 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  // Restore real timers FIRST so the flush below uses real setTimeout,
+  // preventing a deadlock if a test threw while fake timers were active.
+  jest.useRealTimers();
+
   // Flush pending React state updates within act() to prevent warnings
   // and "document global undefined" errors from async operations
   await act(async () => {
     await new Promise(resolve => setTimeout(resolve, 0));
   });
-
-  // Restore real timers in case a test using fake timers threw early
-  jest.useRealTimers();
 
   // Reset browser history state to prevent query params leaking between tests
   window.history.replaceState({}, '', '/');
@@ -68,13 +79,14 @@ test('shows loading state during initial data fetch', () => {
   // Use fake timers to avoid leaving real timers running after test
   jest.useFakeTimers();
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    new Promise(resolve =>
-      setTimeout(() => resolve({ result: [], count: 0 }), 10000),
-    ),
+  const delayedResponse = new Promise(resolve =>
+    setTimeout(() => resolve({ result: [], count: 0 }), 10000),
   );
+  fetchMock.removeRoutes({
+    names: [API_ENDPOINTS.DATASETS, API_ENDPOINTS.DATASETS],
+  });
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
 
   renderDatasetList(mockAdminUser);
 
@@ -87,13 +99,14 @@ test('maintains component structure during loading', () => {
   // Use fake timers to avoid leaving real timers running after test
   jest.useFakeTimers();
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    new Promise(resolve =>
-      setTimeout(() => resolve({ result: [], count: 0 }), 10000),
-    ),
+  const delayedResponse = new Promise(resolve =>
+    setTimeout(() => resolve({ result: [], count: 0 }), 10000),
   );
+  fetchMock.removeRoutes({
+    names: [API_ENDPOINTS.DATASETS, API_ENDPOINTS.DATASETS],
+  });
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
 
   renderDatasetList(mockAdminUser);
 
@@ -190,8 +203,8 @@ test('renders Name search filter', async () => {
 test('renders Type filter (Virtual/Physical dropdown)', async () => {
   renderDatasetList(mockAdminUser);
 
-  // Filter dropdowns should be present
-  const filters = await screen.findAllByRole('combobox');
+  // Filter pills should be present (compact pill UI)
+  const filters = await screen.findAllByTestId('compact-filter-pill');
   expect(filters.length).toBeGreaterThan(0);
 });
 
@@ -205,7 +218,6 @@ test('handles datasets with missing fields and renders gracefully', async () => 
       id: '1',
       database_name: 'PostgreSQL',
     },
-    owners: [],
     changed_by_name: 'Unknown',
     changed_by: null,
     changed_on_delta_humanized: 'Unknown',
@@ -214,8 +226,7 @@ test('handles datasets with missing fields and renders gracefully', async () => 
     sql: null,
   };
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [datasetWithMissingFields],
     count: 1,
   });
@@ -226,7 +237,7 @@ test('handles datasets with missing fields and renders gracefully', async () => 
     expect(screen.getByText('Incomplete Dataset')).toBeInTheDocument();
   });
 
-  // Verify empty owners renders without crashing (no FacePile)
+  // Verify empty editors renders without crashing
   const table = screen.getByRole('table');
   expect(table).toBeInTheDocument();
 
@@ -241,8 +252,7 @@ test('handles datasets with missing fields and renders gracefully', async () => 
 });
 
 test('handles empty results (shows empty state)', async () => {
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [], count: 0 });
+  mockDatasetListEndpoints({ result: [], count: 0 });
 
   renderDatasetList(mockAdminUser);
 
@@ -346,8 +356,7 @@ test('toggling bulk select mode shows checkboxes', async () => {
 }, 30000);
 
 test('handles 500 error on initial load without crashing', async () => {
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     throws: new Error('Internal Server Error'),
   });
 
@@ -385,8 +394,7 @@ test('handles 403 error on _info endpoint and disables create actions', async ()
 });
 
 test('handles network timeout without crashing', async () => {
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     throws: new Error('Network timeout'),
   });
 
@@ -431,7 +439,8 @@ test('selecting Database filter triggers API call with database relation filter'
 
   await waitForDatasetsPageReady();
 
-  const filtersContainers = screen.getAllByRole('combobox');
+  // Filter pills should be present (compact pill UI replaces comboboxes)
+  const filtersContainers = screen.getAllByTestId('compact-filter-pill');
   expect(filtersContainers.length).toBeGreaterThan(0);
 });
 
@@ -446,8 +455,7 @@ test('renders datasets with certification data', async () => {
     }),
   };
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [certifiedDataset],
     count: 1,
   });
@@ -474,8 +482,7 @@ test('displays datasets with warning_markdown', async () => {
     }),
   };
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [datasetWithWarning],
     count: 1,
   });
@@ -493,24 +500,23 @@ test('displays datasets with warning_markdown', async () => {
   expect(datasetRow).toBeInTheDocument();
 });
 
-test('displays dataset with multiple owners', async () => {
-  const datasetWithOwners = mockDatasets[1]; // Has 2 owners: Jane Smith, Bob Jones
+test('displays dataset with multiple editors', async () => {
+  const datasetWithEditors = mockDatasets[1];
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
-    result: [datasetWithOwners],
+  mockDatasetListEndpoints({
+    result: [datasetWithEditors],
     count: 1,
   });
 
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
-    expect(screen.getByText(datasetWithOwners.table_name)).toBeInTheDocument();
+    expect(screen.getByText(datasetWithEditors.table_name)).toBeInTheDocument();
   });
 
   // Verify row exists with the dataset
   const datasetRow = screen
-    .getByText(datasetWithOwners.table_name)
+    .getByText(datasetWithEditors.table_name)
     .closest('tr');
   expect(datasetRow).toBeInTheDocument();
 });
@@ -518,8 +524,7 @@ test('displays dataset with multiple owners', async () => {
 test('displays ModifiedInfo with humanized date', async () => {
   const datasetWithModified = mockDatasets[0]; // changed_by_name: 'John Doe', changed_on: '1 day ago'
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [datasetWithModified],
     count: 1,
   });
@@ -541,8 +546,7 @@ test('displays ModifiedInfo with humanized date', async () => {
 test('dataset name links to Explore with correct explore_url', async () => {
   const dataset = mockDatasets[0]; // explore_url: '/explore/?datasource=1__table'
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
   renderDatasetList(mockAdminUser);
 
@@ -555,3 +559,330 @@ test('dataset name links to Explore with correct explore_url', async () => {
   expect(exploreLink).toBeInTheDocument();
   expect(exploreLink).toHaveAttribute('href', dataset.explore_url);
 });
+
+test('shows RLS badge when dataset has rls_filters', async () => {
+  // mockDatasets[5] is 'Restricted Sales' with one rls_filter
+  const dataset = mockDatasets[5];
+
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  // RlsBadge renders a lock icon with accessible name when filters are present
+  expect(
+    screen.getByRole('img', { name: /row-level security/i }),
+  ).toBeInTheDocument();
+});
+
+test('does not show RLS badge when dataset has no rls_filters', async () => {
+  // mockDatasets[0] has no rls_filters field
+  const dataset = mockDatasets[0];
+
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  // No RLS badge when rls_filters is absent
+  expect(
+    screen.queryByRole('img', { name: /row-level security/i }),
+  ).not.toBeInTheDocument();
+});
+
+test.each([false, true])(
+  'renders dataset type badges with semantic layers enabled=%s',
+  async enabled => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFlags,
+      [FeatureFlag.SemanticLayers]: enabled,
+    };
+    try {
+      const physical = { ...mockDatasets[0], kind: 'physical' };
+      const virtual = { ...mockDatasets[1], kind: 'virtual' };
+      const semantic = {
+        ...mockDatasets[0],
+        id: 900,
+        table_name: 'Semantic Orders',
+        kind: 'semantic_view',
+      };
+      const result = enabled
+        ? [physical, virtual, semantic]
+        : [physical, virtual];
+      mockDatasetListEndpoints({ result, count: result.length });
+      renderDatasetList(mockAdminUser);
+      const table = await screen.findByRole('table');
+      await waitFor(() =>
+        expect(within(table).getAllByTestId('dataset-type-label')).toHaveLength(
+          result.length,
+        ),
+      );
+      expect(within(table).getByText('Physical')).toBeInTheDocument();
+      expect(within(table).getByText('Virtual')).toBeInTheDocument();
+      if (enabled) {
+        const badge = within(table)
+          .getByText('Semantic View')
+          .closest('[data-test="dataset-type-label"]');
+        expect(badge).toBeInTheDocument();
+        expect(
+          within(badge as HTMLElement).getByRole('img', { name: 'apartment' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Datasources')).toBeInTheDocument();
+      } else {
+        expect(
+          within(table).queryByText('Semantic View'),
+        ).not.toBeInTheDocument();
+        expect(screen.getByText('Datasets')).toBeInTheDocument();
+      }
+    } finally {
+      window.featureFlags = previousFlags;
+    }
+  },
+);
+
+const listRequestUrls = (pattern: RegExp) =>
+  fetchMock.callHistory
+    .calls()
+    .map(call => call.url)
+    .filter(url => pattern.test(url));
+
+test('lists datasets through the dataset API when semantic layers are off', async () => {
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
+      0,
+    );
+  });
+  expect(listRequestUrls(/\/api\/v1\/datasource\/\?q=/)).toHaveLength(0);
+});
+
+test('lists datasets through the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    await waitFor(() => {
+      expect(
+        listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+      ).toBeGreaterThan(0);
+    });
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});
+
+const lastRequestQuery = (pattern: RegExp) => {
+  const urls = listRequestUrls(pattern);
+  const url = urls[urls.length - 1];
+  const query = new URL(url, 'http://localhost').searchParams.get('q');
+  return rison.decode(query!) as {
+    filters?: RisonFilter[];
+    order_column?: string;
+    order_direction?: string;
+  };
+};
+
+test('name filter reaches the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    const searchContainer = await screen.findByTestId(
+      'search-filter-container',
+    );
+    const searchInput = within(searchContainer).getByRole('textbox');
+    await userEvent.type(searchInput, 'sales{enter}');
+
+    await waitFor(
+      () => {
+        const { filters = [] } = lastRequestQuery(
+          /\/api\/v1\/datasource\/\?q=/,
+        );
+        expect(
+          filters.some(
+            filter =>
+              filter.col === 'table_name' &&
+              filter.opr === 'ct' &&
+              filter.value === 'sales',
+          ),
+        ).toBe(true);
+      },
+      { timeout: 5000 },
+    );
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});
+
+test('sorting reaches the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    const table = await screen.findByTestId('listview-table');
+    const nameHeader = within(table).getByRole('columnheader', {
+      name: /Name/i,
+    });
+    await waitFor(() => {
+      expect(
+        listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+      ).toBeGreaterThan(0);
+    });
+    const callsBeforeSort = listRequestUrls(
+      /\/api\/v1\/datasource\/\?q=/,
+    ).length;
+
+    await userEvent.click(nameHeader);
+
+    await waitFor(
+      () => {
+        expect(
+          listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+        ).toBeGreaterThan(callsBeforeSort);
+        expect(
+          lastRequestQuery(/\/api\/v1\/datasource\/\?q=/).order_column,
+        ).toBe('table_name');
+      },
+      { timeout: 5000 },
+    );
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});
+
+test('a saved Source = Semantic layer is not sent to the dataset API when semantic layers are off', async () => {
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {},
+    "/?filters=(source_type:(label:'Semantic layer',value:semantic_layer))",
+  );
+
+  await waitFor(() => {
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
+      0,
+    );
+  });
+  const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+  // /api/v1/dataset/ rejects source_type, so a leftover value would leave the
+  // list in an error state with no Source control to clear it.
+  expect(filters.map(filter => filter.col)).not.toContain('source_type');
+  expect(listRequestUrls(/source_type/)).toHaveLength(0);
+
+  // The saved Source must not leak into the Database control either: with it
+  // read as "semantic_layer" the connection dropdown would list no databases.
+  await selectPillOption('PostgreSQL', 'Database');
+  await waitFor(() => {
+    const { filters: applied = [] } = lastRequestQuery(
+      /\/api\/v1\/dataset\/\?q=/,
+    );
+    expect(applied.map(filter => filter.col)).toContain('database');
+  });
+});
+
+test('a saved semantic-layer connection is dropped when semantic layers are off', async () => {
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {},
+    "/?filters=(database:(label:'Warehouse layer',value:'sl:layer-uuid-1'))",
+  );
+
+  await waitFor(() => {
+    const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+    expect(filters.map(filter => filter.col)).not.toContain(
+      'semantic_layer_uuid',
+    );
+  });
+  // The stale connection is cleared from the filter state too, so it neither
+  // lingers in the filter bar nor is re-sent by the next refetch.
+  await waitFor(() => {
+    const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+    expect(filters.map(filter => filter.col)).not.toContain('database');
+  });
+  expect(listRequestUrls(/semantic_layer_uuid/)).toHaveLength(0);
+});
+
+test('a saved Type = Semantic View is dropped when semantic layers are off', async () => {
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {},
+    "/?filters=(sql:(label:'Semantic View',value:semantic_view))",
+  );
+
+  await waitFor(() => {
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
+      0,
+    );
+  });
+  // The dataset API reads the truthy string as "physical", so the list would
+  // show physical datasets under a Type pill with no matching option.
+  const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+  expect(filters.map(filter => filter.col)).not.toContain('sql');
+  expect(listRequestUrls(/semantic_view/)).toHaveLength(0);
+});
+
+test('semantic-view creation link opens the semantic-view modal', async () => {
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.SemanticLayers]: true,
+  };
+  try {
+    fetchMock.get(API_ENDPOINTS.SEMANTIC_LAYERS, { result: [], count: 0 });
+    renderDatasetList(
+      mockAdminUser,
+      {},
+      {},
+      '/tablemodelview/list/?create=semantic_view',
+      <LocationSearch />,
+    );
+    expect(await screen.findByText('Add Semantic View')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        new URLSearchParams(
+          screen.getByTestId('location-search').textContent ?? '',
+        ).has('create'),
+      ).toBe(false),
+    );
+  } finally {
+    window.featureFlags = previousFlags;
+  }
+});
+
+test.each([
+  ['Semantic Layers disabled', false, ['can_read', 'can_write']],
+  ['dataset write denied', true, ['can_read']],
+])(
+  'semantic-view creation link stays closed when %s',
+  async (_, enabled, permissions) => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFlags,
+      [FeatureFlag.SemanticLayers]: enabled,
+    };
+    try {
+      setupApiPermissions(permissions);
+      renderDatasetList(
+        mockAdminUser,
+        {},
+        {},
+        '/tablemodelview/list/?create=semantic_view',
+      );
+      await screen.findByRole('table');
+      expect(screen.queryByText('Add Semantic View')).not.toBeInTheDocument();
+    } finally {
+      window.featureFlags = previousFlags;
+    }
+  },
+);

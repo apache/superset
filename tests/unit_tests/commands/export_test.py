@@ -38,7 +38,11 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ExportDatabasesCommand.return_value.run.return_value = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: Database\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\n"
+                "type: Database\n"
+                "timestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
         ),
         ("databases/example.yaml", lambda: "<DATABASE CONTENTS>"),
     ]
@@ -48,7 +52,11 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ExportDatasetsCommand.return_value.run.return_value = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: Dataset\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\n"
+                "type: Dataset\n"
+                "timestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
         ),
         ("datasets/example/dataset.yaml", lambda: "<DATASET CONTENTS>"),
     ]
@@ -58,7 +66,9 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ExportChartsCommand.return_value.run.return_value = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: Slice\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\ntype: Slice\ntimestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
         ),
         ("charts/pie.yaml", lambda: "<CHART CONTENTS>"),
     ]
@@ -68,7 +78,11 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ExportDashboardsCommand.return_value.run.return_value = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: Dashboard\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\n"
+                "type: Dashboard\n"
+                "timestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
         ),
         ("dashboards/sales.yaml", lambda: "<DASHBOARD CONTENTS>"),
     ]
@@ -78,9 +92,40 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ExportSavedQueriesCommand.return_value.run.return_value = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: SavedQuery\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\n"
+                "type: SavedQuery\n"
+                "timestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
         ),
         ("queries/example/metric.yaml", lambda: "<SAVED QUERY CONTENTS>"),
+    ]
+
+    ExportAnnotationLayersCommand = mocker.patch(  # noqa: N806
+        "superset.commands.export.assets.ExportAnnotationLayersCommand"
+    )
+    ExportAnnotationLayersCommand.return_value.run.return_value = [
+        (
+            "metadata.yaml",
+            lambda: (
+                "version: 1.0.0\n"
+                "type: AnnotationLayer\n"
+                "timestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
+        ),
+        ("annotation_layers/events.yaml", lambda: "<ANNOTATION LAYER CONTENTS>"),
+    ]
+    mocker.patch(
+        "superset.commands.export.assets.security_manager.can_access",
+        return_value=True,
+    )
+
+    ExportTagsCommand = mocker.patch(  # noqa: N806
+        "superset.commands.export.assets.ExportTagsCommand"
+    )
+
+    ExportTagsCommand.return_value.run.return_value = [
+        ("tags.yaml", lambda: "<TAGS CONTENTS>"),
     ]
 
     with freeze_time("2022-01-01T00:00:00Z"):
@@ -96,7 +141,40 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
         ("charts/pie.yaml", "<CHART CONTENTS>"),
         ("dashboards/sales.yaml", "<DASHBOARD CONTENTS>"),
         ("queries/example/metric.yaml", "<SAVED QUERY CONTENTS>"),
+        ("annotation_layers/events.yaml", "<ANNOTATION LAYER CONTENTS>"),
+        ("tags.yaml", "<TAGS CONTENTS>"),
     ]
+
+
+def test_export_assets_command_skips_unreadable_annotation_layers(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Annotation layers are left out of the assets bundle without can_read on
+    Annotation.
+    """
+    from superset.commands.export.assets import ExportAssetsCommand
+
+    for name in (
+        "ExportDatabasesCommand",
+        "ExportDatasetsCommand",
+        "ExportChartsCommand",
+        "ExportDashboardsCommand",
+        "ExportSavedQueriesCommand",
+        "ExportTagsCommand",
+    ):
+        mocker.patch(f"superset.commands.export.assets.{name}")
+    ExportAnnotationLayersCommand = mocker.patch(  # noqa: N806
+        "superset.commands.export.assets.ExportAnnotationLayersCommand"
+    )
+    mocker.patch(
+        "superset.commands.export.assets.security_manager.can_access",
+        return_value=False,
+    )
+
+    list(ExportAssetsCommand().run())
+
+    ExportAnnotationLayersCommand.assert_not_called()
 
 
 @pytest.fixture

@@ -27,6 +27,7 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const mockedProps = {
+  addSuccessToast: jest.fn(),
   addDangerToast: () => {},
   onDatasourceSave: jest.fn(),
   onChange: () => {},
@@ -90,4 +91,37 @@ test('changes the datasource', async () => {
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(/api\/v1\/dataset\/7/)).toHaveLength(1),
   );
+});
+
+test('does not show success toast or close modal when datasource request fails', async () => {
+  const props = {
+    ...mockedProps,
+    addDangerToast: jest.fn(),
+    addSuccessToast: jest.fn(),
+    onHide: jest.fn(),
+  };
+  (fetchMock.removeRoutes as any)(DATASOURCE_ENDPOINT);
+  (fetchMock.removeRoutes as any)(DATASOURCES_ENDPOINT);
+  (fetchMock.removeRoutes as any)(INFO_ENDPOINT);
+  fetchMock.get(DATASOURCES_ENDPOINT, { result: [mockDatasource['7__table']] });
+  fetchMock.get(INFO_ENDPOINT, {});
+  fetchMock.get(DATASOURCE_ENDPOINT, 500);
+
+  const { findByTestId, getByRole } = setup(props);
+  const confirmLink = await findByTestId('datasource-link');
+  fireEvent.click(confirmLink);
+  fireEvent.click(getByRole('button', { name: 'Proceed' }));
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(/api\/v1\/dataset\/7/)).toHaveLength(1);
+  });
+  expect(props.addSuccessToast).not.toHaveBeenCalled();
+  expect(props.onHide).not.toHaveBeenCalled();
+
+  (fetchMock.removeRoutes as any)(DATASOURCE_ENDPOINT);
+  (fetchMock.removeRoutes as any)(DATASOURCES_ENDPOINT);
+  (fetchMock.removeRoutes as any)(INFO_ENDPOINT);
+  fetchMock.get(DATASOURCES_ENDPOINT, { result: [mockDatasource['7__table']] });
+  fetchMock.get(INFO_ENDPOINT, {});
+  fetchMock.get(DATASOURCE_ENDPOINT, DATASOURCE_PAYLOAD);
 });

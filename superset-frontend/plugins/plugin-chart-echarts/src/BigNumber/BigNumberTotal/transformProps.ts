@@ -29,6 +29,7 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
+import { PROPORTION } from '../constants';
 import { getDateFormatter, getOriginalLabel, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
 
@@ -62,6 +63,7 @@ export default function transformProps(
     currencyFormat,
     subheader,
     subheaderFontSize,
+    headerAlignment,
   } = formData;
   const refs: Refs = {};
   const {
@@ -71,15 +73,26 @@ export default function transformProps(
   } = queriesData[0] || {};
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   const metrics = chartProps.datasource?.metrics || [];
-  const originalLabel = getOriginalLabel(metric, metrics);
+  const originalLabel = getOriginalLabel(
+    metric,
+    metrics,
+    chartProps.datasource?.verboseMap,
+  );
   const metricName = getMetricLabel(metric);
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const formattedSubtitle = subtitle?.trim() ? subtitle : subheader || '';
   const formattedSubtitleFontSize = subtitle?.trim()
-    ? (subtitleFontSize ?? 1)
-    : (subheaderFontSize ?? 1);
+    ? (subtitleFontSize ?? PROPORTION.SUBHEADER)
+    : (subheaderFontSize ?? subtitleFontSize ?? PROPORTION.SUBHEADER);
+  const rawValue = data.length === 0 ? null : data[0][metricName];
+  const parsedValue = rawValue == null ? null : parseMetricValue(rawValue);
+
   const bigNumber =
-    data.length === 0 ? null : parseMetricValue(data[0][metricName]);
+    parsedValue === null &&
+    typeof rawValue === 'string' &&
+    rawValue.trim() !== ''
+      ? rawValue
+      : parsedValue;
 
   let metricEntry: Metric | undefined;
   if (chartProps.datasource?.metrics) {
@@ -135,5 +148,6 @@ export default function transformProps(
     metricName: originalLabel,
     showMetricName,
     metricNameFontSize,
+    headerAlignment,
   };
 }

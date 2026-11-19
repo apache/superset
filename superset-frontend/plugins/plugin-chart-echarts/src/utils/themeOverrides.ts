@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { mergeWith, isPlainObject } from 'lodash';
+import { mergeWith, isPlainObject } from 'lodash-es';
 
 /**
  * Custom merge function for ECharts theme overrides.

@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 
 import pytest
-import prison
+import rison
 from datetime import datetime
 from freezegun import freeze_time
 from sqlalchemy.sql import func
@@ -111,7 +111,7 @@ class TestCssTemplateApi(SupersetTestCase):
         )
         self.login(ADMIN_USERNAME)
         query_string = {"order_column": "template_name", "order_direction": "asc"}
-        uri = f"api/v1/css_template/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/css_template/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -138,7 +138,7 @@ class TestCssTemplateApi(SupersetTestCase):
                 }
             ],
         }
-        uri = f"api/v1/css_template/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/css_template/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -158,7 +158,7 @@ class TestCssTemplateApi(SupersetTestCase):
                 }
             ],
         }
-        uri = f"api/v1/css_template/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/css_template/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -179,7 +179,7 @@ class TestCssTemplateApi(SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/css_template/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/css_template/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -339,7 +339,7 @@ class TestCssTemplateApi(SupersetTestCase):
         css_template_ids = [css_template.id for css_template in css_templates]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/css_template/?q={prison.dumps(css_template_ids)}"
+        uri = f"api/v1/css_template/?q={rison.dumps(css_template_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -359,7 +359,7 @@ class TestCssTemplateApi(SupersetTestCase):
         css_template_ids = [css_template.id]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/css_template/?q={prison.dumps(css_template_ids)}"
+        uri = f"api/v1/css_template/?q={rison.dumps(css_template_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -374,7 +374,7 @@ class TestCssTemplateApi(SupersetTestCase):
         """
         css_template_ids = [1, "a"]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/css_template/?q={prison.dumps(css_template_ids)}"
+        uri = f"api/v1/css_template/?q={rison.dumps(css_template_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 400
 
@@ -387,6 +387,6 @@ class TestCssTemplateApi(SupersetTestCase):
 
         css_template_ids = [max_id + 1, max_id + 2]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/css_template/?q={prison.dumps(css_template_ids)}"
+        uri = f"api/v1/css_template/?q={rison.dumps(css_template_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404
