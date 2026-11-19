@@ -45,6 +45,7 @@ interface DatasetSelectProps {
   }) => void;
   value?: { label: string | ReactNode; value: number; kind?: string };
   excludeDatasetIds?: number[];
+  excludeSemanticViews?: boolean;
 }
 
 /**
@@ -84,12 +85,18 @@ export const loadDatasetOptions = async (
   page: number,
   pageSize: number,
   excludeDatasetIds: number[] = [],
+  excludeSemanticViews = false,
 ) => {
   const useSemanticLayers = isFeatureEnabled(FeatureFlag.SemanticLayers);
-  return fetchDatasourceList(search, page, pageSize, { get: cachedSupersetGet })
+  return fetchDatasourceList(search, page, pageSize, {
+    get: cachedSupersetGet,
+    includeSemanticViews: !excludeSemanticViews,
+  })
     .then(({ result, count }) => {
       const filteredResult = result.filter(
-        item => !isExcludedDatasource(item, excludeDatasetIds),
+        item =>
+          !isExcludedDatasource(item, excludeDatasetIds) &&
+          (!excludeSemanticViews || item.kind !== 'semantic_view'),
       );
 
       const list: {
@@ -125,13 +132,20 @@ const DatasetSelect = ({
   onChange,
   value,
   excludeDatasetIds = [],
+  excludeSemanticViews = false,
 }: DatasetSelectProps) => {
   const useSemanticLayers = isFeatureEnabled(FeatureFlag.SemanticLayers);
 
   const loadDatasetOptionsCallback = useCallback(
     (search: string, page: number, pageSize: number) =>
-      loadDatasetOptions(search, page, pageSize, excludeDatasetIds),
-    [excludeDatasetIds],
+      loadDatasetOptions(
+        search,
+        page,
+        pageSize,
+        excludeDatasetIds,
+        excludeSemanticViews,
+      ),
+    [excludeDatasetIds, excludeSemanticViews],
   );
 
   // Convert the external numeric value to the composite string format that
