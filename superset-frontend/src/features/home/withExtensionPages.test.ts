@@ -274,8 +274,7 @@ describe('withExtensionSettings', () => {
     // groups", and the navbar has none -- so it is ignored, not treated as a
     // reason to drop the entry. The two helpers are fed different lists
     // (`global.navbar` items and `global.settingsMenu` items), so an item
-    // skipped here would not reappear under Settings; it would just vanish,
-    // which is what this used to do.
+    // skipped here would not reappear under Settings; it would just vanish.
     const navPages = withExtensionPages([] as never, [
       page({ name: 'Change review', section: 'Manage' }),
     ]);
@@ -285,40 +284,10 @@ describe('withExtensionSettings', () => {
   });
 });
 
-describe('items that run a command rather than opening a page', () => {
-  // Its own fixture: the one above is scoped to the `withExtensionSettings`
-  // block.
-  const settings = [
-    { label: 'Data', name: 'Data', childs: [] },
-    { label: 'Security', name: 'Security', childs: [] },
-  ];
-
-  test('a navbar command entry gets a handler and deliberately no url', () => {
-    // No address means no `href`, which is the point: there is nothing to
-    // open in a new tab, and a link that navigates nowhere is worse than a
-    // button. `buildMenuItem` branches on exactly this shape.
-    const [entry] = withExtensionPages([] as never, [
-      page({ id: 'acme.tools.export', name: 'Export', command: 'acme.export' }),
-    ]);
-
-    expect(entry.url).toBeUndefined();
-    expect(typeof entry.onClick).toBe('function');
-    expect(entry.label).toBe('Export');
-    expect(entry.name).toBe('extension:acme.tools.export');
-  });
-
-  test('a Settings command child gets one too', () => {
-    const result = withExtensionSettings(settings as never, [
-      page({ id: 'acme.tools.sync', name: 'Sync', command: 'acme.sync' }),
-    ]);
-    const [child] = result[result.length - 1].childs ?? [];
-
-    expect((child as { url?: string }).url).toBeUndefined();
-    expect(typeof (child as { onClick?: unknown }).onClick).toBe('function');
-  });
-
-  test('a page entry has no handler', () => {
-    // The two are mutually exclusive, so a page keeps rendering as a link.
+describe('a contributed entry is a link', () => {
+  test('a page entry renders as a url and has no handler', () => {
+    // A page has to render as a real link: middle-click, ctrl-click, open in
+    // a new tab, and the active-tab highlight all depend on an `href`.
     const [entry] = withExtensionPages([] as never, [page()]);
 
     expect(entry.onClick).toBeUndefined();

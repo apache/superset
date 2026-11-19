@@ -30,15 +30,20 @@ import { Disposable } from '../models';
 import { createEventEmitter } from '../utils';
 
 type MenuItem = menusApi.MenuItem;
+type PageMenuItem = menusApi.PageMenuItem;
 type Menu = menusApi.Menu;
 type MenuItemRegisteredEvent = menusApi.MenuItemRegisteredEvent;
 type MenuItemUnregisteredEvent = menusApi.MenuItemUnregisteredEvent;
 
 type StoredMenuItem = {
-  item: MenuItem;
+  item: MenuItem | PageMenuItem;
   location: string;
   group: 'primary' | 'secondary' | 'context';
 };
+
+/** A page item is the one that names a page; a menu item names a command. */
+const isPageItem = (item: MenuItem | PageMenuItem): item is PageMenuItem =>
+  typeof (item as PageMenuItem)?.page === 'string';
 
 const menuItems: StoredMenuItem[] = [];
 
@@ -52,14 +57,17 @@ const registerEmitter = createEventEmitter<MenuItemRegisteredEvent>();
 const unregisterEmitter = createEventEmitter<MenuItemUnregisteredEvent>();
 
 const menuCache = new Map<string, Menu | undefined>();
-const notifyRegister = (event: MenuItemRegisteredEvent) => {
+/** Drops the cache and re-renders `useMenu` callers. */
+const notifyChanged = () => {
   menuCache.clear();
   syncListeners.forEach(l => l());
+};
+const notifyRegister = (event: MenuItemRegisteredEvent) => {
+  notifyChanged();
   registerEmitter.fire(event);
 };
 const notifyUnregister = (event: MenuItemUnregisteredEvent) => {
-  menuCache.clear();
-  syncListeners.forEach(l => l());
+  notifyChanged();
   unregisterEmitter.fire(event);
 };
 
@@ -74,39 +82,64 @@ export const NAVBAR_LOCATION = 'global.navbar';
  */
 export const SETTINGS_MENU_LOCATION = 'global.settingsMenu';
 
-const registerMenuItem: typeof menusApi.registerMenuItem = (
-  item: MenuItem,
+/** The two application menus, which take a page item rather than a command. */
+const PAGE_MENU_LOCATIONS: string[] = [NAVBAR_LOCATION, SETTINGS_MENU_LOCATION];
+
+const registerMenuItemImpl = (
+  item: MenuItem | PageMenuItem,
   location: string,
   group: 'primary' | 'secondary' | 'context',
 ): Disposable => {
-  // Thrown, not skipped. An item with neither target has nothing to do and
-  // an item with both is two intentions in one row; either way the host
-  // would have to pick, and whatever it picked would be a guess at what the
-  // author meant. A skipped item is invisible with nothing said about why,
-  // which is the one outcome worth ruling out.
-  const targets = [item?.page, item?.command].filter(Boolean).length;
-  if (targets !== 1) {
+  // Thrown, not skipped. Each case below is an item that could never do
+  // anything at the location it names, and a skipped item is invisible with
+  // nothing said about why -- the one outcome worth ruling out.
+  const page = isPageItem(item);
+  const isPageLocation = PAGE_MENU_LOCATIONS.includes(location);
+  if (page && !isPageLocation) {
     throw new Error(
-      targets === 0
-        ? `A menu item at "${location}" sets neither "page" nor "command", ` +
-            `so there is nothing for it to do. Give it exactly one.`
-        : `A menu item at "${location}" sets both "page" and "command". ` +
-            `An item either navigates to a page or runs a command, not ` +
-            `both; give it exactly one.`,
+      `A menu item at "${location}" names a page, but only ` +
+        `"${NAVBAR_LOCATION}" and "${SETTINGS_MENU_LOCATION}" open pages. ` +
+        `Elsewhere an item names a view and a command.`,
+    );
+  }
+  if (!page && isPageLocation) {
+    throw new Error(
+      `A menu item at "${location}" names no page. The navbar and the ` +
+        `Settings dropdown are menus of the application rather than of a ` +
+        `view, so an item there sets "page" to the id of a view registered ` +
+        `at the page location.`,
     );
   }
 
   const stored: StoredMenuItem = { item, location, group };
   menuItems.push(stored);
-  notifyRegister({ item, location, group });
+  // The register and unregister events carry command items only, so a
+  // listener written against `MenuItem` never receives one without a `view`
+  // or a `command`. Page items are read back through `getMenu`, which the
+  // host's own `useMenu` subscribes to.
+  if (page) {
+    notifyChanged();
+  } else {
+    notifyRegister({ item: item as MenuItem, location, group });
+  }
   return new Disposable(() => {
     const index = menuItems.indexOf(stored);
     if (index >= 0) {
       menuItems.splice(index, 1);
     }
-    notifyUnregister({ item, location, group });
+    if (page) {
+      notifyChanged();
+    } else {
+      notifyUnregister({ item: item as MenuItem, location, group });
+    }
   });
 };
+
+// Cast because the declared signature is overloaded: the implementation takes
+// the union of both forms and sorts them out at runtime, which is what the
+// overloads describe to a caller.
+const registerMenuItem =
+  registerMenuItemImpl as typeof menusApi.registerMenuItem;
 
 const getMenu: typeof menusApi.getMenu = (
   location: string,
@@ -116,20 +149,29 @@ const getMenu: typeof menusApi.getMenu = (
 
   const result: Menu = {};
 
-  // `order` first, then registration order for ties. Without this the
-  // sequence is whichever remote entry finished loading first, which moves
-  // with the network rather than with anything an author chose.
+  // `order` first where an item carries one, then registration order for
+  // ties. Without this the sequence is whichever remote entry finished
+  // loading first, which moves with the network rather than with anything an
+  // author chose.
+  const orderOf = (item: MenuItem | PageMenuItem) =>
+    isPageItem(item)
+      ? (item.order ?? Number.MAX_SAFE_INTEGER)
+      : Number.MAX_SAFE_INTEGER;
   const ordered = items
     .map((entry, index) => ({ entry, index }))
     .sort(
       (a, b) =>
-        (a.entry.item.order ?? Number.MAX_SAFE_INTEGER) -
-          (b.entry.item.order ?? Number.MAX_SAFE_INTEGER) || a.index - b.index,
+        orderOf(a.entry.item) - orderOf(b.entry.item) || a.index - b.index,
     )
     .map(({ entry }) => entry);
 
   for (const { item, group } of ordered) {
-    if (group === 'primary') {
+    if (isPageItem(item)) {
+      // Flat, and not under a group: `group` names a menu of a view, and the
+      // two locations that take page items have no such division.
+      result.pages = result.pages ?? [];
+      result.pages.push(item);
+    } else if (group === 'primary') {
       result.primary = result.primary ?? [];
       result.primary.push(item);
     } else if (group === 'secondary') {

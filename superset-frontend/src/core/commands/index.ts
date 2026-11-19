@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSyncExternalStore } from 'react';
 import { logging } from '@apache-superset/core/utils';
 import { commands as commandsApi } from '@apache-superset/core';
 import { Disposable } from '../models';
@@ -26,38 +25,6 @@ type Command = commandsApi.Command;
 const commandsMap: Map<string, Command> = new Map();
 
 const commandRegistry: Map<string, (...args: any[]) => any> = new Map();
-
-/**
- * Lets a renderer re-read the registry when it changes.
- *
- * A menu item can point at a command that is not registered yet -- the host
- * renders the navbar long before an extension's bundle arrives, and the two
- * registrations land in whatever order the bundle happens to make them. A
- * reader that looked the command up once would show nothing for it for ever,
- * because the menu registration it does watch had already fired.
- *
- * A version counter rather than the map itself: `useSyncExternalStore`
- * compares snapshots by identity, and a `Map` mutated in place is identical
- * to itself on every read.
- */
-const syncListeners = new Set<() => void>();
-let registryVersion = 0;
-const subscribe = (listener: () => void) => {
-  syncListeners.add(listener);
-  return () => syncListeners.delete(listener);
-};
-const notifyChanged = () => {
-  registryVersion += 1;
-  syncListeners.forEach(listener => listener());
-};
-
-/** Re-renders the caller whenever a command is registered or disposed. */
-export const useCommandRegistry = (): number =>
-  useSyncExternalStore(
-    subscribe,
-    () => registryVersion,
-    () => 0,
-  );
 
 export const registerCommand: typeof commandsApi.registerCommand = (
   command: Command,
@@ -75,12 +42,10 @@ export const registerCommand: typeof commandsApi.registerCommand = (
   commandsMap.set(id, command);
   const boundCallback = thisArg ? callback.bind(thisArg) : callback;
   commandRegistry.set(id, boundCallback);
-  notifyChanged();
 
   return new Disposable(() => {
     commandsMap.delete(id);
     commandRegistry.delete(id);
-    notifyChanged();
   });
 };
 
@@ -105,7 +70,6 @@ const getCommand: typeof commandsApi.getCommand = (
 export const resetContributions = (): void => {
   commandsMap.clear();
   commandRegistry.clear();
-  notifyChanged();
 };
 
 export const commands: typeof commandsApi = {

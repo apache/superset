@@ -88,7 +88,17 @@ export declare const onDidChangePage: Event<Page>;
  * Where the user is: the pathname, and the query string if there is one.
  */
 export interface AppLocation {
-  /** The path, rooted at the application, as in `/extensions/pages/acme.tools.queue/42`. */
+  /**
+   * The path, relative to the application root, as in
+   * `/extensions/pages/acme.tools.queue/42`.
+   *
+   * The deployment's root prefix is not included: on a Superset served from
+   * `/analytics`, that same page reports exactly the path above, not
+   * `/analytics/extensions/pages/...`. So a page can strip its own root and
+   * read the remainder without knowing where the deployment is mounted. Use
+   * {@link getApplicationRoot} where a full URL is needed, as when calling
+   * the API.
+   */
   pathname: string;
   /** The query string including its `?`, or `''` when there is none. */
   search: string;
@@ -121,3 +131,20 @@ export declare const onDidChangeLocation: Event<AppLocation>;
  * its own address and the sub-path below it.
  */
 export declare function navigateTo(path: string): void;
+
+/**
+ * The prefix this Superset is served under, or `''` when it is at the root
+ * of its domain.
+ *
+ * Never a trailing slash, so a path is formed by appending one:
+ *
+ * ```typescript
+ * const url = `${navigation.getApplicationRoot()}/api/v1/chart/`;
+ * ```
+ *
+ * Paths handed to {@link navigateTo} do not need it -- the host's router
+ * applies the root itself -- and {@link getLocation} has already removed it.
+ * It is needed for a request made with `fetch`, which goes to the browser
+ * rather than through the router, and would miss the prefix without it.
+ */
+export declare function getApplicationRoot(): string;

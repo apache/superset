@@ -35,6 +35,12 @@ assists people when migrating to a new version.
   not compile until that member is handled, and code that switches without a
   default may fall through on an extension page at runtime.
 
+- `navigation.getLocation().pathname` is relative to the application root. On
+  a deployment served under a prefix it no longer carries that prefix on the
+  first read, where it previously reported the raw browser path until the
+  first navigation. `navigation.getApplicationRoot()` reports the prefix for
+  callers that need it, such as a `fetch` built by hand.
+
 - Permissions on a resource an extension registers with `@api` are now
   classified admin-only during role sync. `_is_gamma_pvm` is a denylist, so
   until now every such permission was granted to the stock Gamma and Alpha
@@ -391,19 +397,6 @@ assists people when migrating to a new version.
   HTTP 400 and an already-issued token carrying one is treated as unauthenticated.
   Host applications that pass long display names or names containing those
   characters should truncate or normalize them before then.
-- **Extensions reach Superset's API through a new `http` namespace on
-  `@apache-superset/core`.** `http.get` / `post` / `put` / `del` take an
-  `endpoint` -- a path under this Superset, to which the host applies the
-  application root -- and return the parsed `json`, the `status` and the
-  response `headers`. The host supplies the session and attaches a CSRF token
-  to every write, so an extension no longer fetches one. An absolute or
-  protocol-relative endpoint is refused, since the call carries the session.
-
-  `@superset-ui/core` is not shared with extensions, and `SupersetClient` is
-  not extension API. An extension that imports `@superset-ui/core` bundles its
-  own copy, which the host never configures, so its calls throw before they
-  reach the server; move those calls to `http`.
-
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP

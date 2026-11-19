@@ -40,15 +40,36 @@
 import { Disposable, Event } from '../common';
 
 /**
- * What every menu item carries, whatever it points at.
+ * Represents a menu item that links a view to a command.
  */
-export interface MenuItemBase {
+export interface MenuItem {
+  /** The identifier of the view associated with this menu item. */
+  view: string;
+  /** The command to execute when this menu item is selected. */
+  command: string;
+  /** Optional description of the menu item, for display in contribution manifests. */
+  description?: string;
+}
+
+/**
+ * An item that navigates to a page, for the navbar and the Settings dropdown.
+ *
+ * A separate type rather than a variant of {@link MenuItem}: `view` and
+ * `command` are required there and a page item has neither, so widening that
+ * type would make both fields optional for every existing reader.
+ *
+ * Declarative rather than a command so the host can render a real link --
+ * middle-click, ctrl-click, open in a new tab, and a screen reader all work
+ * -- highlight it when the page is the current one, and leave it out when
+ * nothing has registered the page. Its click handler is the host's own
+ * `core.navigation.openPage` command.
+ */
+export interface PageMenuItem {
   /**
-   * The view this item is attached to, where the location has one -- a SQL
-   * Lab toolbar belongs to an editor. A navbar item has no hosting view, so
-   * this is optional.
+   * Id of a view registered at `views.PAGE_LOCATION`, navigated to at
+   * `/extensions/pages/<page>`. The label is that view's `name`.
    */
-  view?: string;
+  page: string;
   /** Optional description of the menu item, for display in contribution manifests. */
   description?: string;
   /** Name of an icon to render beside the label. */
@@ -75,50 +96,13 @@ export interface MenuItemBase {
 }
 
 /**
- * An item that navigates to a page.
- *
- * Declarative rather than a command so the host can render a real link --
- * middle-click, ctrl-click, open in a new tab, and a screen reader all work
- * -- highlight it when the page is the current one, and leave it out when
- * nothing has registered the page. Its click handler is the host's own
- * `core.navigation.openPage` command.
- */
-export interface PageMenuItem extends MenuItemBase {
-  /**
-   * Id of a view registered at `views.PAGE_LOCATION`, navigated to at
-   * `/extensions/pages/<page>`. The label is that view's `name`.
-   */
-  page: string;
-  command?: never;
-}
-
-/**
- * An item that runs a command without navigating -- opening a modal,
- * starting a job. The label is the command's `title`.
- */
-export interface CommandMenuItem extends MenuItemBase {
-  /** The command to execute when this menu item is selected. */
-  command: string;
-  page?: never;
-}
-
-/**
- * A menu item: exactly one of `page` or `command`.
- *
- * `registerMenuItem` throws on an item that sets neither or both, rather
- * than the host silently skipping it -- an item that never appears, with
- * nothing said about why, is the hardest kind of mistake to find.
- */
-export type MenuItem = PageMenuItem | CommandMenuItem;
-
-/**
  * The main navigation bar, beside Dashboards, Charts and Datasets.
  *
  * Contributed items are appended after the built-ins and cannot displace
  * them. Past a small number they collapse into an overflow, so a handful of
  * extensions cannot wrap the bar under the logo.
  */
-export declare const NAVBAR_LOCATION: string;
+export declare const NAVBAR_LOCATION: 'global.navbar';
 
 /**
  * The Settings dropdown.
@@ -126,7 +110,18 @@ export declare const NAVBAR_LOCATION: string;
  * Use `section` to join one of its named groups -- `'Manage'` for an
  * administrative screen -- rather than sitting at the top of the dropdown.
  */
-export declare const SETTINGS_MENU_LOCATION: string;
+export declare const SETTINGS_MENU_LOCATION: 'global.settingsMenu';
+
+/**
+ * The locations that take a {@link PageMenuItem}.
+ *
+ * Both are menus of the application itself rather than of a view, so an item
+ * there names a page to open and nothing else. A {@link MenuItem}, which
+ * names a view and a command, belongs at a location that has a view.
+ */
+export type PageMenuLocation =
+  | typeof NAVBAR_LOCATION
+  | typeof SETTINGS_MENU_LOCATION;
 
 /**
  * Defines the structure of registered menu items, organized into primary, secondary, and context menus.
@@ -138,6 +133,15 @@ export interface Menu {
   secondary?: MenuItem[];
   /** Items to appear in the context menu. */
   context?: MenuItem[];
+  /**
+   * Page items registered at this location, ordered by `order` and then by
+   * registration.
+   *
+   * Only the {@link PageMenuLocation} menus have these. It is a field of its
+   * own rather than part of `primary` so that a reader written against
+   * {@link MenuItem} never receives an item without a `view` or a `command`.
+   */
+  pages?: PageMenuItem[];
 }
 
 /**
@@ -156,7 +160,25 @@ export interface Menu {
  *   'secondary',
  * );
  * ```
+ *
+ * At {@link NAVBAR_LOCATION} and {@link SETTINGS_MENU_LOCATION} the item is a
+ * {@link PageMenuItem} instead, naming the page it opens. `group` is not used
+ * at those two locations; read the items back from `Menu.pages`.
+ *
+ * @example
+ * ```typescript
+ * menus.registerMenuItem(
+ *   { page: 'acme.tools.review-queue', section: 'Manage' },
+ *   menus.SETTINGS_MENU_LOCATION,
+ *   'primary',
+ * );
+ * ```
  */
+export declare function registerMenuItem(
+  item: PageMenuItem,
+  location: PageMenuLocation,
+  group: 'primary' | 'secondary' | 'context',
+): Disposable;
 export declare function registerMenuItem(
   item: MenuItem,
   location: string,
@@ -177,11 +199,18 @@ export declare function registerMenuItem(
  *   // render secondary menu items
  * }
  * ```
+ *
+ * At a {@link PageMenuLocation} the items are in `pages`; `primary`,
+ * `secondary` and `context` are left undefined there.
  */
 export declare function getMenu(location: string): Menu | undefined;
 
 /**
  * Event fired when a menu item is registered.
+ *
+ * Carries {@link MenuItem} registrations only. A {@link PageMenuItem} is read
+ * back through `getMenu`, so this event's `item` keeps the shape every
+ * existing listener was written against.
  */
 export interface MenuItemRegisteredEvent {
   /** The menu item that was registered. */

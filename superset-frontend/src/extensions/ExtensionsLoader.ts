@@ -18,9 +18,8 @@
  */
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import type { common as core, views as viewsApi } from '@apache-superset/core';
-import type { ComponentType } from 'react';
-import { PAGE_LOCATION, registerView } from 'src/core/views';
+import type { common as core } from '@apache-superset/core';
+import { registerView } from 'src/core/views';
 import { makeUrl } from 'src/utils/navigationUtils';
 import 'src/extensions/Namespaces';
 import { createExtensionContext } from './ExtensionContext';
@@ -45,54 +44,6 @@ export interface LoadedExtension extends Extension {
  * `WebpackFederationContainer`, verifying it exposes the runtime methods
  * we depend on rather than trusting an assertion.
  */
-/**
- * Refuses a page id that is not the registering extension's own.
- *
- * Thrown rather than logged, which the SIP asks for and which is right for
- * this one: a page id that is not the extension's own is a mistake in the
- * author's own source, it cannot depend on anything at runtime, and the
- * alternative is a page that is simply absent with only a console line to
- * say why.
- *
- * Exported for its own test. It is the only remaining defence against one
- * extension claiming another's page -- the server-side rule went with the
- * manifest -- so it is worth testing directly rather than through a
- * federation container.
- */
-export function assertPageIdIsOwned(
-  extensionId: string,
-  viewId: string | undefined,
-  location: string,
-): void {
-  if (location !== PAGE_LOCATION) {
-    return;
-  }
-  if (!viewId?.startsWith(`${extensionId}.`)) {
-    throw new Error(
-      `Extension "${extensionId}" registered a page as ` +
-        `"${viewId ?? '<missing>'}". A page id must begin with ` +
-        `the extension's own id, so that no extension can claim or ` +
-        `overwrite another's page.`,
-    );
-  }
-  // The id becomes one path segment: the host serves every page from
-  // `/extensions/pages/:pageId`, which matches a single segment. An id
-  // carrying any of these registers happily and takes a navbar entry, and
-  // then the route never matches it -- so the page renders not-found for
-  // ever, with nothing to say why. The prefix check above already throws
-  // for the other way of getting an id wrong; this is the same mistake.
-  const unusable = /[/?#%]/.exec(viewId.slice(extensionId.length + 1));
-  if (unusable) {
-    throw new Error(
-      `Extension "${extensionId}" registered a page as "${viewId}", which ` +
-        `contains "${unusable[0]}". A page id is one path segment of ` +
-        `"/extensions/pages/<id>", so it cannot contain "/", "?", "#" or ` +
-        `"%" -- the route would never match it and the page would always ` +
-        `render as not found.`,
-    );
-  }
-}
-
 function isWebpackFederationContainer(
   value: unknown,
 ): value is WebpackFederationContainer {
@@ -277,15 +228,7 @@ class ExtensionsLoader {
       // bound instance.
       views: {
         ...window.superset.views,
-        registerView: (
-          view: viewsApi.View,
-          location: string,
-          component: ComponentType,
-          options?: viewsApi.ViewOptions,
-        ) => {
-          assertPageIdIsOwned(extension.id, view?.id, location);
-          return registerView(view, location, component, options);
-        },
+        registerView,
       },
     };
     // Reuse the version key webpack already resolved for the host's own
@@ -293,7 +236,7 @@ class ExtensionsLoader {
     // this entry always matches what the runtime considers the real one.
     const sharedScope = __webpack_share_scopes__.default ?? {};
     const existingCoreVersions = sharedScope['@apache-superset/core'] ?? {};
-    const [supersetCoreVersion] = Object.keys(existingCoreVersions);
+    const supersetCoreVersion = Object.keys(existingCoreVersions)[0];
     if (!supersetCoreVersion) {
       throw new Error(
         "Could not resolve the host's @apache-superset/core version " +

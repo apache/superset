@@ -29,7 +29,11 @@ import { useEffect, useRef } from 'react';
 import { useHistory, useLocation, matchPath } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import type { navigation as navigationApi } from '@apache-superset/core';
-import { redirect } from '../../utils/navigationUtils';
+import {
+  ensureAppRoot,
+  redirect,
+  stripAppRoot,
+} from '../../utils/navigationUtils';
 import { RoutePaths } from '../../views/routePaths';
 import { registerCommand as commandsRegisterCommand } from '../commands';
 import { Disposable } from '../models';
@@ -78,12 +82,20 @@ function derivePage(pathname: string): Page {
 
 // Seeded from the address the app was loaded at, so a cold load onto a
 // contributed page reports `'extension'` without waiting for a navigation.
-const pageEmitter = createValueEventEmitter<Page>(
-  derivePage(window.location.pathname),
-);
+//
+// Rooted away first. Every later value comes from the router, whose
+// `basename` is the application root, so `location.pathname` there is already
+// relative to it. `window.location.pathname` is not: on a deployment served
+// under a prefix the raw path still carries it, and an `AppLocation` that
+// sometimes includes the root and sometimes does not is one a page cannot
+// strip its own id from. `derivePage` would miss the page prefix too, and
+// report `'home'` for a contributed page on a cold load.
+const initialPathname = stripAppRoot(window.location.pathname);
+
+const pageEmitter = createValueEventEmitter<Page>(derivePage(initialPathname));
 
 const locationEmitter = createValueEventEmitter<AppLocation>({
-  pathname: window.location.pathname,
+  pathname: initialPathname,
   search: window.location.search,
 });
 
@@ -144,6 +156,20 @@ const onDidChangeLocation: typeof navigationApi.onDidChangeLocation = (
   thisArgs?: unknown,
 ): Disposable => locationEmitter.subscribe(listener, thisArgs);
 
+/**
+ * The prefix the deployment is served under, or `''` at a domain root.
+ *
+ * Through `ensureAppRoot`, which is the sanctioned reader of the root --
+ * `navigationUtils.invariants.test.ts` rejects a direct `applicationRoot()`
+ * call from here. Passing `null` asks it for the root alone, which it reports
+ * as `'/'` when there is none; `''` is the more useful answer for a caller
+ * building a path by concatenation.
+ */
+const getApplicationRoot: typeof navigationApi.getApplicationRoot = () => {
+  const root = ensureAppRoot(null);
+  return root === '/' ? '' : root;
+};
+
 const navigateTo: typeof navigationApi.navigateTo = (path: string): void => {
   if (!history) {
     // Before the shell has handed its history over there is no router to
@@ -203,4 +229,5 @@ export const navigation: typeof navigationApi = {
   getLocation,
   onDidChangeLocation,
   navigateTo,
+  getApplicationRoot,
 };

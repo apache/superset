@@ -123,25 +123,29 @@ test('dispose removes the menu registration', () => {
   expect(menus.getMenu('sqllab.editor')).toBeUndefined();
 });
 
-describe('exactly one of page or command', () => {
+describe('an item has to fit the location it names', () => {
   // Thrown rather than skipped. A skipped item is invisible with nothing
   // said about why, which is the hardest kind of mistake for an author to
   // find -- so the guard exists to turn it into a loud failure, and these
   // pin that it stays loud.
-  test('neither target throws, naming the location', () => {
-    expect(() =>
-      menus.registerMenuItem({} as never, 'global.navbar', 'primary'),
-    ).toThrow(/sets neither "page" nor "command"/);
-  });
-
-  test('both targets throw', () => {
+  test('a command item at a page location throws, naming the location', () => {
     expect(() =>
       menus.registerMenuItem(
-        { page: 'acme.tools.queue', command: 'acme.run' } as never,
+        { command: 'acme.run', view: 'builtin.editor' },
         'global.navbar',
         'primary',
       ),
-    ).toThrow(/sets both "page" and "command"/);
+    ).toThrow(/names no page/);
+  });
+
+  test('a page item at a view location throws', () => {
+    expect(() =>
+      menus.registerMenuItem(
+        { page: 'acme.tools.queue' } as never,
+        'sqllab.editor',
+        'primary',
+      ),
+    ).toThrow(/only "global.navbar" and "global.settingsMenu" open pages/);
   });
 
   test('a refused item is not stored', () => {
@@ -154,7 +158,7 @@ describe('exactly one of page or command', () => {
     expect(menus.getMenu('global.settingsMenu')).toBeUndefined();
   });
 
-  test('a page alone is accepted', () => {
+  test('a page item at a page location is accepted', () => {
     disposables.push(
       menus.registerMenuItem(
         { page: 'acme.tools.queue' },
@@ -163,7 +167,48 @@ describe('exactly one of page or command', () => {
       ),
     );
 
-    expect(menus.getMenu('global.navbar')?.primary).toHaveLength(1);
+    expect(menus.getMenu('global.navbar')?.pages).toHaveLength(1);
+  });
+
+  test('a page item is kept out of the command groups', () => {
+    // `primary`, `secondary` and `context` are read by code written against
+    // `MenuItem`, which requires `view` and `command`. A page item has
+    // neither, so it is reported separately.
+    disposables.push(
+      menus.registerMenuItem(
+        { page: 'acme.tools.queue' },
+        'global.navbar',
+        'primary',
+      ),
+    );
+
+    const menu = menus.getMenu('global.navbar');
+    expect(menu?.primary).toBeUndefined();
+    expect(menu?.secondary).toBeUndefined();
+    expect(menu?.context).toBeUndefined();
+    expect(menu?.pages?.[0].page).toBe('acme.tools.queue');
+  });
+
+  test('the register event carries command items only', () => {
+    // A listener written against `MenuItem` would otherwise receive an item
+    // with no `view` and no `command`.
+    const heard: unknown[] = [];
+    disposables.push(menus.onDidRegisterMenuItem(e => heard.push(e.item)));
+
+    disposables.push(
+      menus.registerMenuItem(
+        { page: 'acme.tools.queue' },
+        'global.navbar',
+        'primary',
+      ),
+      menus.registerMenuItem(
+        { command: 'acme.run', view: 'builtin.editor' },
+        'sqllab.editor',
+        'primary',
+      ),
+    );
+
+    expect(heard).toEqual([{ command: 'acme.run', view: 'builtin.editor' }]);
   });
 });
 
@@ -182,7 +227,7 @@ describe('order, then registration order', () => {
     register('acme.a', 1);
     register('acme.b', 2);
 
-    expect(menus.getMenu('global.navbar')?.primary?.map(i => i.page)).toEqual([
+    expect(menus.getMenu('global.navbar')?.pages?.map(i => i.page)).toEqual([
       'acme.a',
       'acme.b',
       'acme.c',
@@ -194,7 +239,7 @@ describe('order, then registration order', () => {
     register('acme.ordered', 1);
     register('acme.none-second');
 
-    expect(menus.getMenu('global.navbar')?.primary?.map(i => i.page)).toEqual([
+    expect(menus.getMenu('global.navbar')?.pages?.map(i => i.page)).toEqual([
       'acme.ordered',
       'acme.none-first',
       'acme.none-second',
@@ -205,7 +250,7 @@ describe('order, then registration order', () => {
     register('acme.first', 5);
     register('acme.second', 5);
 
-    expect(menus.getMenu('global.navbar')?.primary?.map(i => i.page)).toEqual([
+    expect(menus.getMenu('global.navbar')?.pages?.map(i => i.page)).toEqual([
       'acme.first',
       'acme.second',
     ]);

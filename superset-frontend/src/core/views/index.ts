@@ -25,6 +25,7 @@
  */
 
 import React, { ComponentType, useSyncExternalStore } from 'react';
+import { logging } from '@apache-superset/core/utils';
 import type { views as viewsApi } from '@apache-superset/core';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
@@ -94,6 +95,31 @@ export const PAGE_LOCATION = 'global.page';
  * caught the first time the bundle loads. The alternative failure is an
  * ungated surface that looks gated, which nobody finds until it matters.
  */
+/**
+ * Refuses a page id that the host's own route could never match.
+ *
+ * A page is served from `/extensions/pages/:pageId`, which matches a single
+ * path segment. An id carrying a separator registers happily and takes a
+ * navigation entry, and then the route never matches it -- so the page
+ * renders not-found for ever, with nothing to say why.
+ *
+ * Only at the page location, because only there does the id become part of
+ * an address.
+ */
+const assertUsableAsPathSegment = (id: string, location: string): void => {
+  if (location !== PAGE_LOCATION) {
+    return;
+  }
+  const unusable = /[/?#%]/.exec(id);
+  if (unusable) {
+    throw new Error(
+      `Page "${id}" contains "${unusable[0]}". A page id is one path ` +
+        `segment of "/extensions/pages/<id>", so a separator in it leaves ` +
+        `an id the route cannot match and a page that never opens.`,
+    );
+  }
+};
+
 const assertUsableOptions = (
   id: string,
   location: string,
@@ -137,26 +163,16 @@ export const registerView: typeof viewsApi.registerView = <Props>(
 ): Disposable => {
   const { id } = view;
 
+  assertUsableAsPathSegment(id, location);
   assertUsableOptions(id, location, options);
 
-  // Ids are the registry's keys, so a second registration under one id would
-  // replace the first and whatever the first contributed would stop
-  // appearing -- silently, which is the hard part. Thrown rather than
-  // replaced, as the SIP asks: a duplicate id is a mistake in source that
-  // cannot depend on anything at runtime, and the alternative is a view that
-  // is simply absent with only a console line to say why.
-  //
-  // Two *extensions* cannot collide on a page id -- the loader requires the
-  // registering extension's own prefix -- so what this catches is one
-  // extension registering the same id twice, and any two views colliding at
-  // a non-page location.
-  const existing = viewRegistry.get(id);
-  if (existing) {
-    throw new Error(
-      `A view is already registered as "${id}"${
-        existing.location === location ? '' : ` at "${existing.location}"`
-      }. View ids must be unique, so prefix yours with something specific ` +
-        `to the extension.`,
+  // Ids are the registry's keys, so a second registration under one id
+  // replaces the first. Warned and overwritten, which is the policy
+  // `registerCommand` has: a view and a command behave the same way on a
+  // duplicate id.
+  if (viewRegistry.has(id)) {
+    logging.warn(
+      `View "${id}" is already registered. Overwriting the existing view.`,
     );
   }
 

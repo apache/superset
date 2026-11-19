@@ -124,15 +124,9 @@ describe('the host route that serves contributed pages', () => {
     jest.resetModules();
   });
 
-  test('is a concrete host route, so nothing has to outrank anything', async () => {
-    const scoped = await routesWithExtensions();
-
-    expect(scoped.filter(r => r.path === EXTENSION_PAGE_ROUTE)).toHaveLength(1);
-  });
-
   test('no host route is shadowed by it', async () => {
-    // What the author-chosen paths could not promise: this route matches one
-    // prefix the host owns, so no host screen can be reached through it.
+    // The route matches one prefix the host owns, so no host screen can be
+    // reached through it.
     const scoped = await routesWithExtensions();
     const hostPaths = scoped
       .map(r => r.path)

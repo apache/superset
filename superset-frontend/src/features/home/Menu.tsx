@@ -30,8 +30,6 @@ import {
   useMenu,
 } from 'src/core/menus';
 import { getViewOptions, PAGE_LOCATION, useViews } from 'src/core/views';
-import { commands, useCommandRegistry } from 'src/core/commands';
-import { logging } from '@apache-superset/core/utils';
 import { findPermission } from 'src/utils/findPermission';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
@@ -218,26 +216,19 @@ const { useBreakpoint } = Grid;
  * then registration order -- and both helpers preserve what they are given.
  */
 type ContributedPage = {
-  /** The page's id, or the command's id for an item that runs one. */
+  /** The page's id. */
   id: string;
   name: string;
   section?: string;
   order?: number;
   /** Name of a host icon to render beside the label, if the item named one. */
   icon?: string;
-  /**
-   * Set only for an item that runs a command instead of navigating. The two
-   * are kept apart here rather than collapsed into a click handler, because
-   * a page has to render as a real link -- middle-click, open in a new tab,
-   * and the active-tab highlight all depend on an `href` being there.
-   */
-  command?: string;
 };
 
 /**
  * The contributed navigation entries this user may actually see.
  *
- * Three subscriptions, because a menu item and the page it points at are
+ * Two subscriptions, because a menu item and the page it points at are
  * separate registrations that arrive in either order: the item can land
  * first and the page second, or the reverse. Watching only one of them
  * leaves an entry that never appears.
@@ -252,50 +243,20 @@ type ContributedPage = {
 function useContributedPages(location: string): ContributedPage[] {
   const items = useMenu(location);
   const pages = useViews(PAGE_LOCATION);
-  // A command item's label is the command's own `title`, and the command can
-  // register after the menu item that points at it. Subscribed, so that
-  // arrival re-runs the memo below instead of leaving the item invisible.
-  const commandsVersion = useCommandRegistry();
   const roles = useSelector(
     (state: { user?: { roles?: Record<string, [string, string][]> } }) =>
       state.user?.roles,
   );
 
-  // Memoised on the three subscriptions, not rebuilt per render. The result
+  // Memoised on the subscriptions, not rebuilt per render. The result
   // is a dependency of the active-tab effect, and a fresh array every render
   // makes that effect re-run every render -- which sets state, which renders
   // again. `useMenu` and `useViews` are `useSyncExternalStore` snapshots and
   // `roles` comes from the store, so all three are stable between changes.
   return useMemo(() => {
     const contributed: ContributedPage[] = [];
-    for (const item of items?.primary ?? []) {
+    for (const item of items?.pages ?? []) {
       const pageId = item.page;
-      if (!pageId) {
-        // A command item. Its label is the command's own `title`, so an
-        // unregistered command is skipped for the same reason an
-        // unregistered page is: there would be nothing to label the entry
-        // with and nothing for it to do. It is not skipped for ever,
-        // though -- `useCommandRegistry` above makes this memo a subscriber,
-        // so a command that registers after its menu item still brings the
-        // entry back.
-        const commandId = item.command;
-        if (!commandId) {
-          continue;
-        }
-        const command = commands.getCommand(commandId);
-        if (!command) {
-          continue;
-        }
-        contributed.push({
-          id: commandId,
-          name: command.title,
-          section: item.section,
-          order: item.order,
-          icon: item.icon,
-          command: commandId,
-        });
-        continue;
-      }
       const page = pages?.find(view => view.id === pageId);
       if (!page) {
         continue;
@@ -320,21 +281,8 @@ function useContributedPages(location: string): ContributedPage[] {
       });
     }
     return contributed;
-  }, [items, pages, roles, commandsVersion]);
+  }, [items, pages, roles]);
 }
-
-/**
- * Runs a menu item's command, reporting a rejection rather than dropping it.
- *
- * The item is only rendered once the command is registered, so a failure
- * here is the command's own -- which belongs in the console, not in an
- * unhandled rejection with no context.
- */
-const runCommand = (id: string): void => {
-  commands.executeCommand(id).catch(error => {
-    logging.error(`Menu command "${id}" failed`, error);
-  });
-};
 
 /**
  * The icon an item named, if the host has one by that name.
@@ -427,26 +375,14 @@ export function withExtensionPages(
       // requires to carry the registering extension's own prefix.
       name: `extension:${page.id}`,
       icon: iconFor(page.icon),
-      // A command item gets a handler and deliberately no `url`: there is
-      // no address to open in a new tab, and giving it one would render a
-      // link that navigates nowhere.
-      ...(page.command
-        ? {
-            onClick: () => {
-              runCommand(page.command as string);
-            },
-          }
-        : {
-            // Rooted, because every other `url` in this menu is: the
-            // backend emits host entries through `url_for`, and
-            // `buildMenuItem` strips the root again before handing the
-            // path to `NavLink`. An unrooted path survives that round trip
-            // only because `stripAppRoot` leaves one alone -- until a
-            // page's first segment happens to equal the app root, where the
-            // strip eats it, the registry lookup misses and the entry
-            // degrades to a plain link to a URL that does not exist.
-            url: ensureAppRoot(pageUrl(page.id)),
-          }),
+      // Rooted, because every other `url` in this menu is: the backend emits
+      // host entries through `url_for`, and `buildMenuItem` strips the root
+      // again before handing the path to `NavLink`. An unrooted path
+      // survives that round trip only because `stripAppRoot` leaves one
+      // alone -- until a page's first segment happens to equal the app root,
+      // where the strip eats it, the registry lookup misses and the entry
+      // degrades to a plain link to a URL that does not exist.
+      url: ensureAppRoot(pageUrl(page.id)),
     }) as unknown as MenuObjectProps;
 
   if (contributed.length <= MAX_CONTRIBUTED_NAV_ENTRIES) {
@@ -512,13 +448,7 @@ export function withExtensionSettings(
     // collide with a host item.
     name: `extension:${page.id}`,
     icon: iconFor(page.icon),
-    ...(page.command
-      ? {
-          onClick: () => {
-            runCommand(page.command as string);
-          },
-        }
-      : { url: ensureAppRoot(pageUrl(page.id)) }),
+    url: ensureAppRoot(pageUrl(page.id)),
   });
 
   const withTrailing = (groups: MenuObjectProps[]) =>

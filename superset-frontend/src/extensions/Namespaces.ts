@@ -33,7 +33,6 @@ import type {
   core,
   editors,
   extensions,
-  http,
   menus,
   navigation,
   sqlLab,
@@ -48,7 +47,6 @@ export interface Namespaces {
   commands: typeof commands;
   editors: typeof editors;
   extensions: typeof extensions;
-  http: typeof http;
   menus: typeof menus;
   navigation: typeof navigation;
   sqlLab: typeof sqlLab;

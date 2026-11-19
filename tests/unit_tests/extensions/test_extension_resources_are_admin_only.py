@@ -84,8 +84,10 @@ class _ExtensionView:
 class _UnmarkedExtensionView:
     """An extension view registered with `appbuilder.add_api` directly.
 
-    No `_api_metadata` at all, because only the `@api` decorator sets it.
-    This is the shape that used to be mistaken for the host's.
+    No `_api_metadata` at all, because only the `@api` decorator sets it. It
+    is the host's own registration shape, so what separates it from a host
+    view is the package it is defined in -- which is why the check asks that
+    and not whether metadata is present.
     """
 
     def __init__(self, resource: str) -> None:
@@ -190,15 +192,14 @@ def test_an_extension_cannot_claim_a_host_resource():
     assert manager._is_gamma_pvm(_pvm("can_read", "Dashboard")) is True
 
 
-def test_the_guard_reads_registered_views_not_a_parallel_registry():
-    """Why the check lives against `appbuilder.baseviews`.
+def test_host_claim_is_read_from_registered_views():
+    """The check reads `appbuilder.baseviews`, which is what the app has.
 
-    An earlier version fed a registry from the host branch of the `@api`
-    decorator, which no host code uses -- there are no `@api` applications
-    under `superset/`, because the host registers with
-    `appbuilder.add_api(...)`. That registry was empty in production, so the
-    guard never fired. This asserts the guard works from what the app
-    actually registered.
+    It has to be the registry the app actually populates. The host registers
+    its own APIs with `appbuilder.add_api(...)` rather than through the `@api`
+    decorator -- there are no `@api` applications under `superset/` -- so a
+    check that consulted the decorator instead would see nothing in
+    production and never fire.
     """
     permissions.register_extension_resource("Chart")
     manager = _manager(_view("Chart", is_extension=False))

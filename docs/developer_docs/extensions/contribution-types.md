@@ -176,12 +176,17 @@ views.registerView(
 
 You name the page; Superset decides where it is served. The host serves it at
 `/extensions/pages/<id>` — so `acme.tools.review-queue` above is at
-`/extensions/pages/acme.tools.review-queue` — which is why a page can no
-longer collide with one of Superset's own screens, with an operator's
-blueprint, or with another extension's page.
+`/extensions/pages/acme.tools.review-queue`. Every page lives under that one
+host-owned prefix, so a page id cannot reach an address Superset already
+answers.
 
-A page id must begin with your extension's own id, so that no extension can
-claim or overwrite another's page. Registering one that does not throws.
+Prefix the id with your extension's own id, as above. Ids are global across
+every installed extension, and a duplicate replaces the earlier registration
+with a warning, the same as a duplicate command.
+
+The id becomes a single path segment, so it cannot contain `/`, `?`, `#` or
+`%`. Registering one that does throws, because the route would never match it
+and the page would never open.
 
 #### Appearing in the navigation
 
@@ -281,6 +286,18 @@ const subPath = navigation.getLocation().pathname.slice(root.length);
 navigation.navigateTo(`${root}/42`); // a client-side transition
 ```
 
+`pathname` is relative to the application root, and so is the path you hand
+`navigateTo`. On a Superset served under a prefix — `/analytics`, say — that
+page still reports `/extensions/pages/acme.tools.review-queue`, not
+`/analytics/extensions/...`, so the code above works unchanged wherever the
+deployment is mounted. Where you need the prefix, as when calling the API with
+`fetch`, ask for it:
+
+```typescript
+const root = navigation.getApplicationRoot(); // '/analytics', or '' at the domain root
+const response = await fetch(`${root}/api/v1/acme/reviews/`);
+```
+
 `onDidChangeLocation` reports every move, including between two addresses
 inside one page — which `getPage` cannot, since both are `'extension'`. These
 are plain functions and an event rather than React hooks, so they work in a
@@ -288,39 +305,6 @@ command handler or anywhere else outside a component.
 
 To open a page from elsewhere, run the host's own command:
 `commands.executeCommand('core.navigation.openPage', 'acme.tools.review-queue')`.
-
-#### Using Superset's API from a page
-
-Call Superset's API through the `http` namespace. It carries the host's
-session and attaches a CSRF token to every write, so a page never fetches one
-of its own:
-
-```ts
-import { http } from '@apache-superset/core';
-
-const { json } = await http.get<{ result: Review[] }>({
-  endpoint: '/api/v1/acme/reviews/',
-});
-const reviews = json?.result ?? [];
-
-const { status } = await http.del({ endpoint: '/api/v1/acme/reviews/42' });
-```
-
-`get`, `post`, `put` and `del` all take an `endpoint` -- a path under this
-Superset, beginning with `/`, to which the host applies the application root
--- and return the parsed `json`, the `status` and the response `headers`. An
-absolute or protocol-relative URL is refused: the call carries your session,
-so reaching another origin is `fetch`'s job, not this namespace's. The
-delete verb is `del`, because `delete` is a reserved word.
-
-`json` is `undefined` when the response had no body, which a 204 from a
-successful `del` usually is, so narrow it before reading a field. For a call
-whose answer is simply whether it worked, read `status` instead.
-
-`@superset-ui/core` is not shared with extensions, and `SupersetClient` is not
-part of the extension API. An extension that imports it bundles its own copy,
-which the host never configures, so its calls throw before they reach the
-server.
 
 ## Backend
 

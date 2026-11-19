@@ -17,13 +17,28 @@
  * under the License.
  */
 import React from 'react';
-import { views, resolveView } from './index';
+import { logging } from '@apache-superset/core/utils';
+import {
+  getViewOptions,
+  onDidRegisterView,
+  onDidUnregisterView,
+  PAGE_LOCATION,
+  registerView,
+  resolveView,
+  views,
+} from './index';
+
+jest.mock('@apache-superset/core/utils', () => ({
+  ...jest.requireActual('@apache-superset/core/utils'),
+  logging: { warn: jest.fn(), error: jest.fn() },
+}));
 
 const disposables: Array<{ dispose: () => void }> = [];
 
 afterEach(() => {
   disposables.forEach(d => d.dispose());
   disposables.length = 0;
+  jest.clearAllMocks();
 });
 
 test('register stores view metadata and makes it resolvable', () => {
@@ -114,10 +129,7 @@ test('dispose removes the view registration', () => {
 describe('a duplicate view id', () => {
   const component = () => React.createElement('div', null, 'x');
 
-  test('is refused rather than silently replacing the first', () => {
-    // The SIP asks for a throw. Replacing would leave whatever the first
-    // registration contributed simply absent, with only a console line to
-    // say why -- the hardest kind of mistake for an author to find.
+  test('replaces the first and warns, as a duplicate command does', () => {
     disposables.push(
       views.registerView(
         { id: 'acme.one', name: 'One' },
@@ -127,73 +139,194 @@ describe('a duplicate view id', () => {
     );
 
     expect(() =>
-      views.registerView(
-        { id: 'acme.one', name: 'Two' },
-        'sqllab.panels',
-        component,
-      ),
-    ).toThrow(/already registered as "acme.one"/);
-  });
-
-  test('names the other location when the two differ', () => {
-    // An author hunting this needs to know where the id is already taken,
-    // which is not necessarily the location they just registered at.
-    disposables.push(
-      views.registerView(
-        { id: 'acme.two', name: 'One' },
-        'sqllab.panels',
-        component,
-      ),
-    );
-
-    expect(() =>
-      views.registerView(
-        { id: 'acme.two', name: 'Two' },
-        'global.page',
-        component,
-      ),
-    ).toThrow(/at "sqllab.panels"/);
-  });
-
-  test('the first registration survives the refusal', () => {
-    // The throw must not have torn down what was already there.
-    disposables.push(
-      views.registerView(
-        { id: 'acme.three', name: 'Keep' },
-        'sqllab.panels',
-        component,
-      ),
-    );
-    expect(() =>
-      views.registerView(
-        { id: 'acme.three', name: 'Drop' },
-        'sqllab.panels',
-        component,
-      ),
-    ).toThrow();
-
-    expect(views.getViews('sqllab.panels')).toEqual([
-      { id: 'acme.three', name: 'Keep' },
-    ]);
-  });
-
-  test('the id is free again once the first is disposed', () => {
-    // Otherwise an extension could never be unloaded and reloaded.
-    const first = views.registerView(
-      { id: 'acme.four', name: 'One' },
-      'sqllab.panels',
-      component,
-    );
-    first.dispose();
-
-    expect(() =>
       disposables.push(
         views.registerView(
-          { id: 'acme.four', name: 'Two' },
+          { id: 'acme.one', name: 'Two' },
           'sqllab.panels',
           component,
         ),
       ),
     ).not.toThrow();
+
+    expect(logging.warn).toHaveBeenCalledWith(
+      expect.stringContaining('View "acme.one" is already registered'),
+    );
+    expect(views.getViews('sqllab.panels')).toEqual([
+      { id: 'acme.one', name: 'Two' },
+    ]);
+  });
+
+  test('disposing the replaced registration leaves the replacement alone', () => {
+    // Otherwise an extension tearing down its own view would remove the one
+    // that had taken its id.
+    const first = views.registerView(
+      { id: 'acme.two', name: 'One' },
+      'sqllab.panels',
+      component,
+    );
+    disposables.push(
+      views.registerView(
+        { id: 'acme.two', name: 'Two' },
+        'sqllab.panels',
+        component,
+      ),
+    );
+
+    first.dispose();
+
+    expect(views.getViews('sqllab.panels')).toEqual([
+      { id: 'acme.two', name: 'Two' },
+    ]);
+  });
+});
+
+describe('a page is a view at the page location', () => {
+  const Component = () => null;
+  const page = (id: string) => ({ id, name: 'Queue' });
+
+  test('PAGE_LOCATION is the location SIP-235 names', () => {
+    expect(PAGE_LOCATION).toBe('global.page');
+  });
+
+  test('getViews reports a page', () => {
+    disposables.push(
+      registerView(page('acme.tools.queue'), PAGE_LOCATION, Component),
+    );
+
+    expect(views.getViews(PAGE_LOCATION)?.map(v => v.id)).toContain(
+      'acme.tools.queue',
+    );
+  });
+
+  test('a disposed page leaves the registry', () => {
+    const d = registerView(page('acme.tools.queue'), PAGE_LOCATION, Component);
+    d.dispose();
+
+    expect(views.getViews(PAGE_LOCATION)?.map(v => v.id) ?? []).not.toContain(
+      'acme.tools.queue',
+    );
+  });
+
+  test('onDidRegisterView fires for a page', () => {
+    const seen: string[] = [];
+    disposables.push(onDidRegisterView(e => seen.push(e.view.id)));
+    disposables.push(
+      registerView(page('acme.tools.queue'), PAGE_LOCATION, Component),
+    );
+
+    expect(seen).toEqual(['acme.tools.queue']);
+  });
+
+  test('onDidUnregisterView fires for a page', () => {
+    const seen: string[] = [];
+    const d = registerView(page('acme.tools.queue'), PAGE_LOCATION, Component);
+    disposables.push(onDidUnregisterView(e => seen.push(e.view.id)));
+
+    d.dispose();
+
+    expect(seen).toEqual(['acme.tools.queue']);
+  });
+});
+
+describe('the permission a page names', () => {
+  const Component = () => null;
+  const page = (id: string) => ({ id, name: 'Queue' });
+
+  test('a page that names none reports none', () => {
+    // Which is what keeps the option from locking anyone out of a page that
+    // already worked: absent is absent, never a permission nobody holds.
+    disposables.push(
+      registerView(page('acme.tools.queue'), PAGE_LOCATION, Component),
+    );
+
+    expect(getViewOptions('acme.tools.queue')).toBeUndefined();
+  });
+
+  test('a page reports the permission it named', () => {
+    disposables.push(
+      registerView(page('acme.tools.queue'), PAGE_LOCATION, Component, {
+        classPermissionName: 'ChangeRequest',
+        methodPermissionName: 'read',
+      }),
+    );
+
+    expect(getViewOptions('acme.tools.queue')).toEqual({
+      classPermissionName: 'ChangeRequest',
+      methodPermissionName: 'read',
+    });
+  });
+
+  test('half a permission is refused', () => {
+    expect(() =>
+      registerView(page('acme.tools.queue'), PAGE_LOCATION, Component, {
+        classPermissionName: 'ChangeRequest',
+      }),
+    ).toThrow(/only half a permission/);
+  });
+
+  test('a methodPermissionName that already carries can_ is refused', () => {
+    // Otherwise it is checked as `can_can_read`, which no permission is
+    // called, and the page refuses everyone with nothing to say why.
+    expect(() =>
+      registerView(page('acme.tools.queue'), PAGE_LOCATION, Component, {
+        classPermissionName: 'ChangeRequest',
+        methodPermissionName: 'can_read',
+      }),
+    ).toThrow(/already carries the "can_" prefix/);
+  });
+
+  test('a permission at a location nothing checks is refused', () => {
+    // The failure this prevents is the quiet one: an author gates a SQL Lab
+    // panel, believes it guarded, and it is not.
+    expect(() =>
+      registerView(page('acme.tools.panel'), 'sqllab.panels', Component, {
+        classPermissionName: 'ChangeRequest',
+        methodPermissionName: 'read',
+      }),
+    ).toThrow(/only a page .* is gated by one/);
+  });
+
+  test('a view with no permission at any location is fine', () => {
+    disposables.push(
+      registerView(page('acme.tools.panel'), 'sqllab.panels', Component),
+    );
+
+    expect(views.getViews('sqllab.panels')?.map(v => v.id)).toContain(
+      'acme.tools.panel',
+    );
+  });
+});
+
+describe('a page id has to be one path segment', () => {
+  // The host serves a page from `/extensions/pages/:pageId`, which matches a
+  // single segment. An id carrying a separator registers happily and takes a
+  // navigation entry, and then the route never matches it.
+  const Component = () => null;
+
+  test.each([
+    'acme.tools/queue',
+    'acme.tools?queue',
+    'acme.tools#queue',
+    'acme.tools%queue',
+  ])('refuses %s', id => {
+    expect(() =>
+      registerView({ id, name: 'Queue' }, PAGE_LOCATION, Component),
+    ).toThrow(/one path segment/);
+  });
+
+  test('the same id is fine at a location that is not an address', () => {
+    // The rule is a property of the route, not of the id, so it applies only
+    // where the id becomes part of a URL.
+    disposables.push(
+      registerView(
+        { id: 'acme.tools/panel', name: 'Panel' },
+        'sqllab.panels',
+        Component,
+      ),
+    );
+
+    expect(views.getViews('sqllab.panels')?.map(v => v.id)).toContain(
+      'acme.tools/panel',
+    );
   });
 });

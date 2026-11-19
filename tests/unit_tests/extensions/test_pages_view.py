@@ -17,16 +17,20 @@
 """The shell route for a contributed page.
 
 The route is login-gated and nothing more, and it answers with the shell for
-every page id there will ever be. That is the whole of what the server does
-for a page, so it is the whole of what there is to test here: SIP-235 puts
-the gate on the client, checked against the permissions the shell already
-ships, because the shell carries no data and the extension's own
-``@protect()``ed endpoints are the security boundary.
+every page id there will ever be. Pages are registered in the browser, so the
+server cannot know which ids exist: it serves the shell and the client decides
+whether to render the page, "not found" or "not authorized".
 
-The cases below are mostly about what the route does *not* do. Each of the
-four mechanisms this route used to carry -- a declared permission, a 403, a
-per-page feature flag and a 404 -- is a Rejected Alternative in SIP-235, and
-a test that only asserted the happy path would not notice one coming back.
+That is the whole of what the server does for a page, so it is the whole of
+what there is to test here. SIP-235 puts the gate on the client, checked
+against the permissions the shell's bootstrap payload already ships, because
+the shell carries no data and the extension's own ``@protect()``ed endpoints
+are the security boundary.
+
+Several cases below assert what the route does *not* do -- it does not 403 and
+it does not 404 -- because those are the behaviours a later change would most
+plausibly add back, and a test that only asserted the happy path would not
+notice.
 """
 
 from types import SimpleNamespace
@@ -85,8 +89,8 @@ def test_a_page_the_user_may_not_open_is_served_the_shell_too(
     state from the permissions the shell's bootstrap payload already carries.
 
     Nothing here sets up a permission, because there is nothing to set up --
-    which is the assertion. A 403 reappearing means the server has started
-    reading a declaration again.
+    which is the assertion. A 403 appearing here would mean the server had
+    started reading a page's permission, which only the client does.
     """
     response = served.test_client().get("/extensions/pages/acme.tools.queue/")
 
@@ -98,34 +102,13 @@ def test_an_id_nothing_registered_is_served_the_shell(served: Flask) -> None:
 
     The server cannot tell a real page from a typo: pages are registered in
     the browser. So it serves the shell and the client says "not found" once
-    extensions have settled. Previously a 403 against a 200 told an
-    unauthenticated prober which page ids existed; now every id answers
-    alike.
+    extensions have settled. Every id answers alike, which is also what keeps
+    the route from telling an unauthenticated prober which page ids exist.
     """
     response = served.test_client().get("/extensions/pages/nobody.registered.this/")
 
     assert response.status_code == 200
     assert response.get_data(as_text=True) == "<shell/>"
-
-
-def test_a_feature_flag_does_not_decide_whether_a_page_is_served(
-    served: Flask, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """A flag that is off no longer 404s here.
-
-    SIP-235 has no per-page feature flag, so there is nothing for the route
-    to read. An extension that wants a page to disappear with a flag skips
-    its own ``registerView`` call, and the page then falls into the
-    not-found case above -- the same screen, decided in the one place that
-    knows.
-    """
-    import superset
-
-    monkeypatch.setattr(superset, "is_feature_enabled", lambda _: False)
-
-    response = served.test_client().get("/extensions/pages/acme.tools.queue/")
-
-    assert response.status_code == 200
 
 
 def test_a_sub_path_resolves_to_the_same_shell(served: Flask) -> None:

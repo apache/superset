@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { act, renderHook } from '@testing-library/react';
-import { commands, useCommandRegistry } from './index';
+import { commands } from './index';
 
 const held: { dispose: () => void }[] = [];
 
@@ -54,67 +53,4 @@ test('disposing removes the command', () => {
   d.dispose();
 
   expect(commands.getCommand('acme.two')).toBeUndefined();
-});
-
-describe('useCommandRegistry', () => {
-  // The registry is read by the navbar, which renders long before an
-  // extension's bundle arrives: a menu item can point at a command that is
-  // not registered yet. Without a subscription the reader would show nothing
-  // for it for ever, so these pin that a change is observable.
-  test('the version changes when a command registers', () => {
-    const { result } = renderHook(() => useCommandRegistry());
-    const before = result.current;
-
-    // Inside `act`, or the notify fires but React never flushes the
-    // re-render that re-reads the snapshot.
-    act(() => {
-      held.push(
-        commands.registerCommand(
-          { id: 'acme.three', title: 'Three', description: '' },
-          () => undefined,
-        ),
-      );
-    });
-
-    expect(result.current).not.toBe(before);
-  });
-
-  test('the version changes when a command is disposed', () => {
-    const d = commands.registerCommand(
-      { id: 'acme.four', title: 'Four', description: '' },
-      () => undefined,
-    );
-    const { result } = renderHook(() => useCommandRegistry());
-    const before = result.current;
-
-    act(() => d.dispose());
-
-    expect(result.current).not.toBe(before);
-  });
-
-  test('the snapshot is stable between changes', () => {
-    // `useSyncExternalStore` compares snapshots by identity and loops for
-    // ever on one that differs every read -- which is why this is a counter
-    // and not the registry map.
-    const { result, rerender } = renderHook(() => useCommandRegistry());
-    const first = result.current;
-    rerender();
-
-    expect(result.current).toBe(first);
-  });
-
-  test('unmounting stops the hook being notified', () => {
-    // A listener left in the set would keep a dead component subscribed.
-    const { unmount } = renderHook(() => useCommandRegistry());
-    unmount();
-
-    expect(() =>
-      held.push(
-        commands.registerCommand(
-          { id: 'acme.five', title: 'Five', description: '' },
-          () => undefined,
-        ),
-      ),
-    ).not.toThrow();
-  });
 });
