@@ -30,6 +30,7 @@ import { Button, Tooltip, Icons, Flex } from '@superset-ui/core/components';
 import tinycolor from 'tinycolor2';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getFilterBarTestId } from '../utils';
+import { isChartCustomization } from '../../FiltersConfigModal/utils';
 
 interface ActionButtonsProps {
   onApply: () => void;
@@ -115,19 +116,22 @@ const ActionButtons = ({
   const isVertical = filterBarOrientation === FilterBarOrientation.Vertical;
 
   const isClearAllEnabled = useMemo(() => {
+    const isVisibleMask = (id: string) =>
+      !isChartCustomization(id) ||
+      chartCustomizationItems?.some(item => item.id === id);
     const hasSelectedChanges = Object.entries(dataMaskSelected).some(
-      ([, mask]) => {
+      ([id, mask]) => {
         const hasValue = isDefined(mask?.filterState?.value);
         const hasGroupBy = isDefined(mask?.ownState?.column);
-        return hasValue || hasGroupBy;
+        return isVisibleMask(id) && (hasValue || hasGroupBy);
       },
     );
 
     const hasAppliedChanges = Object.entries(dataMaskApplied).some(
-      ([, mask]) => {
+      ([id, mask]) => {
         const hasValue = isDefined(mask?.filterState?.value);
         const hasGroupBy = isDefined(mask?.ownState?.column);
-        return hasValue || hasGroupBy;
+        return isVisibleMask(id) && (hasValue || hasGroupBy);
       },
     );
 
