@@ -764,3 +764,23 @@ test('should verify DatasourceControl callback fires on save', async () => {
 // Note: Cross-component integration test removed due to complex Redux/user context setup
 // The existing callback tests provide sufficient coverage for metric creation workflows
 // Future enhancement could add MetricsControl integration when test infrastructure supports it
+
+test.each(['semantic_view', 'table', 'query'])(
+  'datasource SQL Lab action respects datasource %s',
+  async type => {
+    const props = createProps({
+      value: `25__${type}`,
+      datasource: { ...mockDatasource, type },
+    });
+    render(<DatasourceControl {...props} />, { useRouter: true });
+    await userEvent.click(await screen.findByTestId('datasource-menu-trigger'));
+    if (type !== 'query') {
+      expect(await screen.findByText('Swap dataset')).toBeInTheDocument();
+    }
+    if (type === 'semantic_view') {
+      expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
+    } else {
+      expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
+    }
+  },
+);

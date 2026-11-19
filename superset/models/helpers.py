@@ -63,6 +63,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
+from marshmallow import ValidationError
 from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
@@ -99,6 +100,7 @@ from superset.common.grouping_sets import (
 from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
+    get_since_until_from_temporal_filter,
     get_since_until_from_time_range,
 )
 from superset.connectors.sqla.partition_mapping import (
@@ -210,6 +212,7 @@ from superset.utils.rls import (
     RLSSchema,
     SearchPath,
 )
+from superset.utils.timing_metrics import timed
 
 
 class ValidationResultDict(TypedDict):
@@ -2899,7 +2902,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         datasource types (Query, SqlaTable, etc.).
         """
         qry_start_dttm = datetime.now()
-        query_str_ext = self.get_query_str_extended(query_obj)
+        with timed("datasource.query.sql_generation"):
+            query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
 
         self._raise_for_disallowed_sql(sql)
@@ -3362,22 +3366,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df = result.df
         if not df.empty:
             # Normalize datetime columns and metrics
-            df = self.normalize_df(
-                df,
-                query_object,
-                result.sql_shifted_temporal_labels,
-                keep_exact_integers=dataframe_utils.can_keep_exact_integers(
-                    query_object
-                ),
-            )
+            with timed("datasource.query.normalize"):
+                df = self.normalize_df(
+                    df,
+                    query_object,
+                    result.sql_shifted_temporal_labels,
+                    keep_exact_integers=dataframe_utils.can_keep_exact_integers(
+                        query_object
+                    ),
+                )
 
             # Process time offsets if requested
             if query_object.time_offsets:
                 # Process time offsets using the datasource's own method
                 # Note: caching is disabled here as we don't have query context
-                time_offsets = self.processing_time_offsets(
-                    df, query_object, cache_key_fn=None, cache_timeout_fn=None
-                )
+                with timed("datasource.query.time_offsets"):
+                    time_offsets = self.processing_time_offsets(
+                        df, query_object, cache_key_fn=None, cache_timeout_fn=None
+                    )
                 df = time_offsets["df"]
                 queries = time_offsets["queries"]
                 query += ";\n\n".join(queries)
@@ -3385,11 +3391,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Execute post-processing operations
             try:
-                df = query_object.exec_post_processing(df)
+                if query_object.post_processing:
+                    with timed("datasource.query.post_processing"):
+                        df = query_object.exec_post_processing(df)
+                else:
+                    df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
-            except (TypeError, pd.errors.DataError) as ex:
-                raise QueryObjectValidationError(str(ex)) from ex
 
         # Update result with processed data
         result.df = df
@@ -3430,7 +3438,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         cache_keys: list[str | None] = []
         offset_dfs: dict[str, pd.DataFrame] = {}
 
-        outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
+        try:
+            outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(
+                query_object
+            )
+        except (ValidationError, ValueError) as ex:
+            # The range comes from the last temporal filter, which is not
+            # necessarily the one the query context was built from and so is not
+            # necessarily one that has already been parsed and reported on.
+            raise QueryObjectValidationError(str(ex)) from ex
         if not outer_from_dttm or not outer_to_dttm:
             raise QueryObjectValidationError(
                 _(
@@ -3519,7 +3535,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     query_object_clone.granularity or x_axis_label
                 )
 
-            except ValueError as ex:
+            except (ValidationError, ValueError) as ex:
+                # Reversed bounds raise a bare ``ValueError``, while a range
+                # the parser cannot read raises ``TimeRangeParseFailError``, a
+                # marshmallow ``ValidationError``. The date-range branch is
+                # reachable with the second, since ``is_valid_date_range``
+                # splits the offset on ``:`` while the parser wants ``" : "``.
                 raise QueryObjectValidationError(str(ex)) from ex
 
             query_object_clone.time_offsets = []
@@ -3585,8 +3606,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             (
                                 new_outer_from_dttm,
                                 new_outer_to_dttm,
-                            ) = get_since_until_from_time_range(
+                            ) = get_since_until_from_temporal_filter(
                                 time_range=time_range,
+                                column=str(flt.get("col")),
                                 time_shift=offset,
                             )
                             flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
@@ -7915,8 +7937,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         and isinstance(eq, str)
                         and col_obj is not None
                     ):
-                        _since, _until = get_since_until_from_time_range(
+                        _since, _until = get_since_until_from_temporal_filter(
                             time_range=eq,
+                            column=get_column_name(flt_col),
                             time_shift=time_shift,
                             extras=extras,
                         )
