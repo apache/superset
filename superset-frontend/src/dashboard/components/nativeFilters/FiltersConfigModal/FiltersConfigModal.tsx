@@ -551,6 +551,7 @@ function FiltersConfigModal({
             onCancel={handleCancel}
             handleSave={modalSaveLogic.handleSave}
             canSave={modalSaveLogic.canSave}
+            isSaving={modalSaveLogic.isSaving}
             saveAlertVisible={saveAlertVisible}
             onConfirmCancel={handleConfirmCancel}
           />

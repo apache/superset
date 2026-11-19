@@ -502,6 +502,7 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             report_type, changed_content_fields, changed_condition_fields, exceptions
         )
         self._validate_attachment_executor(exceptions)
+        self.validate_executor_target_access(exceptions)
 
         # Validate retry config when the feature is enabled.
         if is_feature_enabled("ALERT_REPORTS_RETRY"):

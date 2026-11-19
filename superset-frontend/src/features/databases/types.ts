@@ -60,8 +60,16 @@ export type DatabaseParameters = {
   warehouse?: string;
   role?: string;
   account?: string;
+  aws_access_key_id?: string;
+  aws_secret_access_key?: string;
+  region_name?: string;
+  s3_staging_dir?: string;
+  schema_name?: string;
+  work_group?: string;
   ssh?: boolean;
   project_id?: string;
+  oauth2_client_info?: Record<string, string>;
+  embedded_credentials?: Record<string, string>;
 };
 
 export type DatabaseObject = {
@@ -118,6 +126,7 @@ export type DatabaseObject = {
     supports_dynamic_catalog?: boolean;
     supports_oauth2?: boolean;
     oauth2_enabled?: boolean;
+    encrypted_extra_sensitive_fields?: Record<string, string>;
   };
 
   // SSH Tunnel information
@@ -224,6 +233,7 @@ export type DatabaseForm = {
     supports_file_upload: boolean;
     disable_ssh_tunneling: boolean;
     supports_dynamic_catalog: boolean;
+    encrypted_extra_sensitive_fields?: Record<string, string>;
   };
 };
 
@@ -265,6 +275,19 @@ export interface ExtraJson {
   };
   version?: string;
 }
+
+// Ending of a stored secret, from the encrypted_extra_hints endpoint.
+export type EncryptedExtraHint = {
+  path: string;
+  label: string;
+  suffix: string | null;
+};
+
+// A stored secret's field, known from the engine's declared sensitive paths.
+export type EncryptedExtraSecretField = {
+  path: string;
+  label: string;
+};
 
 export type CustomTextType = {
   value?: string | boolean | number | object;
