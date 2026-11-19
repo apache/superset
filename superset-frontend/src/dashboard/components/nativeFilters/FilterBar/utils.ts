@@ -227,6 +227,11 @@ export const getAppliedFilterLogPayload = (
     ];
   });
 
+// Only `true` marks a filter as required first. Stored dashboard metadata can
+// hold other values (e.g. `{}`), which must not count as enabled.
+export const isRequiredFirst = (filter: Pick<Filter, 'requiredFirst'>) =>
+  filter.requiredFirst === true;
+
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);
 

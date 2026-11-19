@@ -35,6 +35,7 @@ import {
   getAppliedFilterLogPayload,
   getOnlyExtraFormData,
   getFiltersToApply,
+  isRequiredFirst,
 } from './utils';
 
 // Factory functions for test data
@@ -939,4 +940,13 @@ test('cross-filter verbose maps use each chart own labels on a shared datasource
     '14': {},
   });
   expect(datasource.verbose_map).toEqual({ shared_column: 'Dataset label' });
+});
+
+test('isRequiredFirst is true only for requiredFirst === true', () => {
+  expect(isRequiredFirst({ requiredFirst: true })).toBe(true);
+  expect(isRequiredFirst({ requiredFirst: {} as unknown as boolean })).toBe(
+    false,
+  );
+  expect(isRequiredFirst({ requiredFirst: false })).toBe(false);
+  expect(isRequiredFirst({})).toBe(false);
 });
