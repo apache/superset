@@ -45,6 +45,13 @@ from superset.mcp_service.chart.response_preflight import (
     finalize_query_dataset_response,
 )
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
+from superset.mcp_service.chart.validation.dataset_validator import (
+    is_temporal_filter_column,
+    temporal_filter_storage_format,
+)
+from superset.mcp_service.common.temporal_filter_values import (
+    invalid_temporal_filter_value,
+)
 from superset.mcp_service.dataset.dataset_utils import (
     resolve_dataset,
     SQL_DATASET_SOURCE_GUIDANCE,
@@ -190,6 +197,31 @@ async def _query_dataset(  # noqa: C901
             order_names=request.order_by,
             metrics_empty_hint=_NO_SAVED_METRICS_HINT,
         )
+
+        db_engine_spec = getattr(dataset.database, "db_engine_spec", None)
+        temporal_columns = (
+            {
+                c.column_name: c
+                for c in dataset.columns
+                if is_temporal_filter_column(c, db_engine_spec)
+            }
+            if db_engine_spec is not None
+            else {}
+        )
+        for filter_ in request.filters:
+            if filter_.col in temporal_columns and (
+                reason := invalid_temporal_filter_value(
+                    filter_.op,
+                    filter_.val,
+                    python_date_format=temporal_filter_storage_format(
+                        temporal_columns[filter_.col], db_engine_spec
+                    ),
+                )
+            ):
+                validation_errors.append(
+                    f"Filter value for temporal column '{filter_.col}' is not a "
+                    f"valid date: {reason}"
+                )
 
         missing_dimensions = [
             name for name in request.columns if name not in valid_columns
