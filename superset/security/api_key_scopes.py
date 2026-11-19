@@ -32,6 +32,7 @@ class ApiKeyScopeError(BadRequest, ValueError):
     def __str__(self) -> str:
         return self.description or ""
 
+
 # Map FAB method permissions used by MCP tools to the coarser actions supported
 # by API-key scopes. Keep this explicit so an unknown permission fails closed.
 METHOD_PERMISSION_SCOPE_ACTION: dict[str, str] = {
