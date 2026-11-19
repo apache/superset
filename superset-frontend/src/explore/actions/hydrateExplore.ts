@@ -50,6 +50,7 @@ import {
 import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
+  getDatasetDefaultTimeRange,
 } from 'src/explore/controlUtils';
 import { getDatasourceUid } from 'src/utils/getDatasourceUid';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -89,11 +90,10 @@ function isNeutralNewChartEntry([key, value]: [string, unknown]): boolean {
 }
 
 /**
- * Returns the dataset's `extra.default_time_range` for a new chart, unless the
- * chart already has a time filter or the dataset has no temporal column.
- * Unparseable metadata falls back to the instance default.
+ * Returns the dataset's default time range for a new chart, unless the chart
+ * already has a time filter or the dataset has no temporal column.
  */
-function getDatasetDefaultTimeRange(
+function getNewChartTimeRange(
   dataset: Dataset,
   formData: QueryFormData,
 ): string | undefined {
@@ -104,17 +104,7 @@ function getDatasetDefaultTimeRange(
   if (hasTimeFilter || !getTemporalColumns(dataset).defaultTemporalColumn) {
     return undefined;
   }
-  let range: unknown;
-  try {
-    const extra =
-      typeof dataset.extra === 'string'
-        ? JSON.parse(dataset.extra)
-        : dataset.extra;
-    range = extra?.default_time_range;
-  } catch {
-    return undefined;
-  }
-  return typeof range === 'string' && range ? range : undefined;
+  return getDatasetDefaultTimeRange(dataset);
 }
 
 export const hydrateExplore =
@@ -167,7 +157,7 @@ export const hydrateExplore =
     }
     if (!initialFormData.time_range) {
       initialFormData.time_range =
-        (isNewChart && getDatasetDefaultTimeRange(dataset, initialFormData)) ||
+        (isNewChart && getNewChartTimeRange(dataset, initialFormData)) ||
         common?.conf?.DEFAULT_TIME_FILTER ||
         NO_TIME_RANGE;
     }

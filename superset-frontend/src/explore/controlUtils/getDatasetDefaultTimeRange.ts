@@ -1,0 +1,40 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { Dataset } from '@superset-ui/chart-controls';
+
+/**
+ * Returns the dataset's `extra.default_time_range`, which Explore uses instead
+ * of the instance default when it adds a time filter. Unparseable metadata
+ * counts as unset.
+ */
+export function getDatasetDefaultTimeRange(
+  dataset?: Pick<Dataset, 'extra'>,
+): string | undefined {
+  let range: unknown;
+  try {
+    const extra =
+      typeof dataset?.extra === 'string'
+        ? JSON.parse(dataset.extra)
+        : dataset?.extra;
+    range = extra?.default_time_range;
+  } catch {
+    return undefined;
+  }
+  return typeof range === 'string' && range ? range : undefined;
+}

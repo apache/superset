@@ -75,7 +75,10 @@ import Tabs from '@superset-ui/core/components/Tabs';
 import { PluginContext } from 'src/components';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
 
-import { getSectionsToRender } from 'src/explore/controlUtils';
+import {
+  getDatasetDefaultTimeRange,
+  getSectionsToRender,
+} from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -319,7 +322,10 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   >(state => state.explore.controlsTransferred);
 
   const defaultTimeFilter = useSelector<ExplorePageState>(
-    state => state.common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
+    state =>
+      getDatasetDefaultTimeRange(state.explore.datasource) ||
+      state.common?.conf?.DEFAULT_TIME_FILTER ||
+      NO_TIME_RANGE,
   );
 
   const { form_data, actions } = props;
