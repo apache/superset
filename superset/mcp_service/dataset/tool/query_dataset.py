@@ -99,15 +99,40 @@ def _string_list(value: Any) -> list[str]:
     return [item for item in value if isinstance(item, str)]
 
 
+def _time_range_status(
+    column: str, dttm_cols: set[str], query_result: dict[str, Any]
+) -> tuple[str, str | None]:
+    """Status of the TEMPORAL_RANGE filter on the query's time column.
+
+    The query context removes that filter and applies the range as the
+    engine's primary time bounds instead, so it never appears in the engine's
+    filter report. The engine also swaps a time column that is not a datetime
+    column for the dataset's main datetime column (``get_sqla_query``).
+    """
+    if column not in dttm_cols:
+        return FILTER_REJECTED, (
+            f"'{column}' is not a datetime column on this dataset, so the "
+            "engine does not apply the time range to it"
+        )
+    if query_result.get("from_dttm") is None and query_result.get("to_dttm") is None:
+        return FILTER_UNRESOLVED, "the engine reported no time bounds for this range"
+    return FILTER_APPLIED, None
+
+
 def _filter_status(
-    filters: list[QueryDatasetFilter], query_result: dict[str, Any]
+    filters: list[QueryDatasetFilter],
+    query_result: dict[str, Any],
+    *,
+    time_column: str | None,
+    dttm_cols: set[str],
 ) -> list[QueryDatasetFilterStatus]:
     """Classify each requested filter from the engine's own filter report.
 
     The engine reports filter columns it put in the query (``applied_filters``),
     columns it dropped (``rejected_filters``) and columns a Jinja template
     consumed (``applied_template_filters``). A template-consumed column is not
-    proof the rows were constrained, so it is unresolved, not applied.
+    proof the rows were constrained, so it is unresolved, not applied. The time
+    range on ``time_column`` is checked against the engine's time bounds.
     """
     applied = {
         entry["column"]
@@ -126,7 +151,9 @@ def _filter_status(
     statuses = []
     for filter_ in filters:
         status, reason = FILTER_APPLIED, None
-        if filter_.col in rejected:
+        if filter_.op == "TEMPORAL_RANGE" and filter_.col == time_column:
+            status, reason = _time_range_status(filter_.col, dttm_cols, query_result)
+        elif filter_.col in rejected:
             status, reason = FILTER_REJECTED, rejected[filter_.col]
         elif filter_.col in template:
             status, reason = FILTER_UNRESOLVED, _TEMPLATE_CONSUMED_REASON
@@ -138,6 +165,17 @@ def _filter_status(
             )
         )
     return statuses
+
+
+def _dttm_cols(dataset: Any) -> set[str]:
+    """Datetime columns the engine accepts as a time column."""
+    dttm_cols = getattr(dataset, "dttm_cols", None)
+    if isinstance(dttm_cols, (list, tuple, set)):
+        return set(dttm_cols)
+    names = {c.column_name for c in dataset.columns if c.is_dttm}
+    if main_dttm_col := getattr(dataset, "main_dttm_col", None):
+        names.add(main_dttm_col)
+    return names
 
 
 def _describe_unapplied(statuses: list[QueryDatasetFilterStatus]) -> list[str]:
@@ -452,7 +490,12 @@ async def _query_dataset(  # noqa: C901
         await ctx.report_progress(5, 5, "Formatting results")
         query_result = result["queries"][0]
 
-        filter_status = _filter_status(effective_filters, query_result)
+        filter_status = _filter_status(
+            effective_filters,
+            query_result,
+            time_column=granularity,
+            dttm_cols=_dttm_cols(dataset),
+        )
         unapplied = _describe_unapplied(filter_status)
         if unapplied and request.strict_filters:
             await ctx.warning("Strict filter check failed")

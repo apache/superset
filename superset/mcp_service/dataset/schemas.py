@@ -1715,8 +1715,8 @@ class QueryDatasetResponse(BaseModel):
     truncated: bool | None = Field(
         None,
         description=(
-            "True: more rows matched than row_limit. False: all rows returned. "
-            "Null: unknown (server row cap)."
+            "True: not every matching row is returned. False: all rows "
+            "returned. Null: unknown (server row cap)."
         ),
     )
     from_dttm: datetime | None = Field(

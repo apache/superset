@@ -1146,11 +1146,11 @@
       "compact_description_chars": 243,
       "description_chars": 1267,
       "entry_bytes": {
-        "structured": 11748,
+        "structured": 11750,
         "text_only": 4642
       },
       "input_schema_bytes": 3098,
-      "output_schema_bytes": 7090
+      "output_schema_bytes": 7092
     },
     "remove_chart_from_dashboard": {
       "annotations": {
@@ -1331,11 +1331,11 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 559581,
+      "structured": 559583,
       "text_only": 230710
     },
     "compact_catalog_bytes": {
-      "structured": 501263,
+      "structured": 501265,
       "text_only": 172392
     },
     "largest_entry": {

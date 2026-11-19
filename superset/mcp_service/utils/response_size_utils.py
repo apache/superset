@@ -1245,6 +1245,9 @@ def _truncate_rows_field(
         data["_truncation_notes"] = notes
         if "row_count" in data:
             data["row_count"] = kept
+        if "truncated" in data:
+            # Matching rows are no longer all returned, whatever the query said.
+            data["truncated"] = True
         return notes
 
     # Reserving headroom turned out not to be needed after all — no rows
