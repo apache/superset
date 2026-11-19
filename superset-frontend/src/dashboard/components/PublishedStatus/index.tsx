@@ -18,7 +18,7 @@
  */
 import { useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { Tooltip, PublishedLabel } from '@superset-ui/core/components';
+import { Tooltip, PublishedLabel, Modal } from '@superset-ui/core/components';
 import { HeaderProps, HeaderDropdownProps } from '../Header/types';
 
 export type DashboardPublishedStatusType = {
@@ -51,7 +51,19 @@ export default function PublishedStatus({
   savePublished,
 }: DashboardPublishedStatusType) {
   const togglePublished = useCallback(() => {
-    savePublished(dashboardId, !isPublished);
+    if (isPublished) {
+      Modal.confirm({
+        title: t('Make this dashboard a draft?'),
+        content: t(
+          'Active alerts and reports may stop delivering if their execution account is not an Admin or dashboard editor. Check the accounts running those schedules before unpublishing.',
+        ),
+        okText: t('Make draft'),
+        cancelText: t('Cancel'),
+        onOk: () => savePublished(dashboardId, false),
+      });
+    } else {
+      savePublished(dashboardId, true);
+    }
   }, [dashboardId, isPublished, savePublished]);
 
   // Show everybody the draft badge
