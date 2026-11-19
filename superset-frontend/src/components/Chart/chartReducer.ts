@@ -76,6 +76,7 @@ export default function chartReducer(
         chartUpdateEndTime: null,
         chartUpdateStartTime: now(),
         queryController: action.queryController,
+        latestQueryId: action.latestQueryId,
       };
     },
     [actions.CHART_UPDATE_STOPPED](state) {

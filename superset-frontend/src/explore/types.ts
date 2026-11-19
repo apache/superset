@@ -62,6 +62,8 @@ export interface ChartState {
   form_data?: LatestQueryFormData;
   sliceFormData: QueryFormData | null;
   queryController: AbortController | null;
+  /** Client-generated id of the in-flight query, used to cancel it server-side. */
+  latestQueryId?: string;
   queriesResponse: QueryData[] | null;
   triggerQuery: boolean;
 }
