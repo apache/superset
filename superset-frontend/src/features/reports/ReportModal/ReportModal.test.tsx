@@ -992,3 +992,29 @@ test('retry fields are included in the POST body when Enable Retries is enabled'
     expect(typeof body.retry_notify_recipients).toBe('boolean');
   });
 });
+
+test.each([false, true])(
+  'dashboard header notice follows published=%s',
+  async published => {
+    fetchMock.get(
+      '/api/v1/dashboard/1',
+      { result: { published } },
+      { name: 'notice-dashboard' },
+    );
+    render(<ReportModal {...defaultProps} />, { useRedux: true });
+    await waitFor(() =>
+      expect(fetchMock.callHistory.called('notice-dashboard')).toBe(true),
+    );
+    await fetchMock.callHistory.flush(true);
+    if (published) {
+      expect(
+        screen.queryByText('Draft dashboard access'),
+      ).not.toBeInTheDocument();
+    } else {
+      await waitFor(() =>
+        expect(screen.getByText('Draft dashboard access')).toBeVisible(),
+      );
+    }
+    fetchMock.removeRoute('notice-dashboard');
+  },
+);

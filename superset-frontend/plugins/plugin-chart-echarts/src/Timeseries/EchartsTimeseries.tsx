@@ -56,7 +56,12 @@ import {
   TimeseriesCustomLegend,
 } from './types';
 import { formatSeriesName } from '../utils/series';
-import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
+import {
+  getCategoryAxisValues,
+  getTemporalBucketDrillByFilter,
+  getTimeAxisDrillByValue,
+  parseTemporalValue,
+} from '../utils/xAxisDrillByFilter';
 import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 import { ExtraControls } from '../components/ExtraControls';
 import TimeseriesLegend from './TimeseriesLegend';
@@ -145,6 +150,7 @@ export default function EchartsTimeseries({
   coltypeMapping,
   onLegendScroll,
 }: TimeseriesChartTransformedProps) {
+  const xAxisColumn = xAxis.column ?? xAxis.label;
   const { stack } = formData;
   const theme = useTheme();
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -414,7 +420,7 @@ export default function EchartsTimeseries({
                 ? []
                 : [
                     {
-                      col: xAxis.label,
+                      col: xAxisColumn,
                       op: 'IN' as const,
                       val: values,
                     },
@@ -432,13 +438,13 @@ export default function EchartsTimeseries({
         isCurrentValueSelected: selected.includes(stringValue),
       };
     },
-    [selectedValues, xAxis.label],
+    [selectedValues, xAxisColumn],
   );
 
   const getTimeAxisCrossFilterDataMask = useCallback(
     (clickedTimestamp: number) => {
       const filterColumn =
-        xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+        xAxisColumn === DTTM_ALIAS ? formData.granularitySqla : xAxisColumn;
       const grain = resolvedTimeGrain as TimeGranularity | undefined;
 
       if (!filterColumn || !grain) {
@@ -498,7 +504,7 @@ export default function EchartsTimeseries({
         isCurrentValueSelected,
       };
     },
-    [formData.granularitySqla, resolvedTimeGrain, selectedValues, xAxis.label],
+    [formData.granularitySqla, resolvedTimeGrain, selectedValues, xAxisColumn],
   );
 
   const handleChange = useCallback(
@@ -627,20 +633,28 @@ export default function EchartsTimeseries({
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const pointerEvent = eventParams.event.event;
+        const groupBy = ensureIsArray(formData.groupby);
+        const seriesParts = labelMap[seriesName] ?? [];
+        // a series tuple leads with its metric (or `<metric>, <offset>`)
+        // part whenever more than one metric is pivoted, so only its trailing
+        // dimension values map onto the groupby columns
         const values = [
           ...(eventParams.name ? [eventParams.name] : []),
-          ...(labelMap[seriesName] ?? []),
+          ...(groupBy.length
+            ? seriesParts.slice(
+                Math.max(0, seriesParts.length - groupBy.length),
+              )
+            : seriesParts),
         ];
-        const groupBy = ensureIsArray(formData.groupby);
         if (data && xAxis.type === AxisType.Time) {
           const timeAxisValue = getXAxisValue(data, eventParams.name);
           if (timeAxisValue !== undefined) {
             drillToDetailFilters.push({
               col:
                 // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
-                xAxis.label === DTTM_ALIAS
+                xAxisColumn === DTTM_ALIAS
                   ? formData.granularitySqla
-                  : xAxis.label,
+                  : xAxisColumn,
               grain: resolvedTimeGrain,
               op: '==',
               val: timeAxisValue,
@@ -649,7 +663,7 @@ export default function EchartsTimeseries({
           }
         }
         [
-          ...(xAxis.type === AxisType.Category && data ? [xAxis.label] : []),
+          ...(xAxis.type === AxisType.Category && data ? [xAxisColumn] : []),
           ...groupBy,
         ].forEach((dimension, i) =>
           drillToDetailFilters.push({
@@ -684,42 +698,74 @@ export default function EchartsTimeseries({
         const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
         const xAxisCol =
           // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
-          xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
-        if (data && xAxis.type === AxisType.Time && xAxisCol) {
-          // For horizontal orientation the [x, value] pair is swapped
-          const xValue = Array.isArray(data) ? data[xAxisValueIndex] : data;
-          const xAxisFilter = getTemporalXAxisDrillByFilter(
+          xAxisColumn === DTTM_ALIAS
+            ? (formData.extraFormData?.granularity_sqla ??
+              formData.granularitySqla)
+            : xAxisColumn;
+        const isTemporalCategory =
+          xAxis.type === AxisType.Category &&
+          coltypeMapping?.[getColumnLabel(xAxisColumn)] ===
+            GenericDataType.Temporal;
+        if ((xAxis.type === AxisType.Time || isTemporalCategory) && xAxisCol) {
+          // A markerless line/area event identifies the series but no point.
+          // Snap its pixel coordinate to an actual bucket in that series.
+          const series = ensureIsArray(echartOptions.series)[
+            eventParams.seriesIndex
+          ];
+          const xValue = getTimeAxisDrillByValue(
+            data ??
+              (isTemporalCategory && eventParams.name
+                ? eventParams.name
+                : undefined),
+            series,
+            data
+              ? undefined
+              : echartRef.current
+                  ?.getEchartInstance()
+                  ?.convertFromPixel({ seriesIndex: eventParams.seriesIndex }, [
+                    eventParams.event.offsetX,
+                    eventParams.event.offsetY,
+                  ]),
+            xAxisValueIndex,
+            isTemporalCategory,
+            isTemporalCategory && data === undefined
+              ? getCategoryAxisValues(
+                  echartRef.current?.getEchartInstance(),
+                  xAxisValueIndex,
+                )
+              : undefined,
+          );
+          const xAxisFilter = getTemporalBucketDrillByFilter(
+            // Persist a real column for legacy charts: Explore populates
+            // x_axis on edit, so '__timestamp' would stop resolving there.
             xAxisCol,
             xValue,
-            formData.timeGrainSqla,
-            String(xValueFormatter(xValue as number)),
+            resolvedTimeGrain,
+            isTemporalCategory
+              ? getTimeFormatter(
+                  undefined,
+                  resolvedTimeGrain,
+                )(parseTemporalValue(xValue))
+              : String(xValueFormatter(xValue as number)),
           );
-          if (xAxisFilter) {
+          if (
+            xAxisFilter &&
+            (data !== undefined ||
+              (isTemporalCategory && eventParams.name) ||
+              xAxisFilter.grain)
+          ) {
             xAxisFilters.push(xAxisFilter);
           }
         } else if (xAxis.type === AxisType.Category && xAxisCol) {
           const categoryAxisValue = getXAxisValue(data, eventParams.name);
           if (categoryAxisValue !== undefined) {
-            // A category axis can still sit on a temporal column when the
-            // axis is forced categorical; filter by time bucket in that case
-            const xAxisFilter =
-              coltypeMapping?.[getColumnLabel(xAxis.label)] ===
-              GenericDataType.Temporal
-                ? getTemporalXAxisDrillByFilter(
-                    xAxisCol,
-                    categoryAxisValue,
-                    formData.timeGrainSqla,
-                    String(eventParams.name ?? categoryAxisValue),
-                  )
-                : {
-                    col: xAxisCol,
-                    op: '==' as const,
-                    val: categoryAxisValue,
-                    formattedVal: String(categoryAxisValue),
-                  };
-            if (xAxisFilter) {
-              xAxisFilters.push(xAxisFilter);
-            }
+            const xAxisFilter = {
+              col: xAxisCol,
+              op: '==' as const,
+              val: categoryAxisValue,
+              formattedVal: String(categoryAxisValue),
+            };
+            xAxisFilters.push(xAxisFilter);
           }
         }
 
