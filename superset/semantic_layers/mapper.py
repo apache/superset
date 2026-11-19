@@ -499,6 +499,12 @@ def map_semantic_result_to_query_result(
         # Core data
         df=stringify_extension_columns(semantic_result.results).to_pandas(
             integer_object_nulls=True,
+            # Resampling needs a DatetimeIndex after pivoting. Keep DATE objects
+            # otherwise so raw and non-resampled exports retain date-only cells.
+            date_as_object=not any(
+                operation.get("operation") == "resample"
+                for operation in query_object.post_processing
+            ),
         ),
         query=query_str,
         duration=duration,
