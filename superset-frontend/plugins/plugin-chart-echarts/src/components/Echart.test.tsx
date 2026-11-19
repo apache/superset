@@ -374,7 +374,8 @@ test('applies axis contrast defaults to each entry of array-shaped axes', async 
 
   await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
 
-  const { yAxis } = mockChart.setOption.mock.calls.at(-1)?.[0];
+  const lastOptions = mockChart.setOption.mock.calls.at(-1)?.[0];
+  const { yAxis } = lastOptions;
   expect(yAxis).toHaveLength(2);
   expect(yAxis[0].axisLine.lineStyle.color).toBe(
     supersetTheme.colorTextTertiary,
