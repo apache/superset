@@ -524,7 +524,12 @@ async def test_time_range_with_other_temporal_column_is_rejected_before_query(
         request["time_column"] = "order_date"
     dataset = _dataset()
     dataset.columns.append(_column("ship_date", is_dttm=True))
-    with _engine(_engine_result(ROWS, bounds=JANUARY)) as queries:
+    # Match the engine report from the SQL builder after ship_date's range
+    # displaced the requested January bounds on order_date.
+    december = (datetime(2025, 12, 1), datetime(2026, 1, 1))
+    with _engine(
+        _engine_result(ROWS, applied=["ship_date"], bounds=december)
+    ) as queries:
         with patch.object(
             query_dataset_module, "resolve_dataset", return_value=dataset
         ):
