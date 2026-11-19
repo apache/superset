@@ -410,19 +410,11 @@ class Superset(BaseSupersetView):
 
         utils.remove_extra_adhoc_filters(form_data)
 
-        assert slc
-        slc.params = json.dumps(form_data, indent=2, sort_keys=True)
-        slc.datasource_name = datasource_name
-        slc.viz_type = form_data["viz_type"]
-        slc.datasource_type = datasource_type
-        slc.datasource_id = datasource_id
-        slc.last_saved_by = g.user
-        slc.last_saved_at = datetime.now()
-        slc.slice_name = slice_name
-        slc.query_context = query_context
-
-        # Resolve and validate the dashboard target BEFORE saving the
+        # Resolve and validate the dashboard target before touching the
         # chart: a failed dashboard check must not leave a chart behind.
+        # On overwrite the loaded chart is already persistent, so fields
+        # assigned before this check would be committed by the request's
+        # event-log commit even when the request is refused.
         dash: Dashboard | None = None
 
         save_to_dashboard_id = request.args.get("save_to_dashboard_id")
@@ -458,6 +450,17 @@ class Superset(BaseSupersetView):
                     __("You don't have the rights to create a dashboard"),
                     status=403,
                 )
+
+        assert slc
+        slc.params = json.dumps(form_data, indent=2, sort_keys=True)
+        slc.datasource_name = datasource_name
+        slc.viz_type = form_data["viz_type"]
+        slc.datasource_type = datasource_type
+        slc.datasource_id = datasource_id
+        slc.last_saved_by = g.user
+        slc.last_saved_at = datetime.now()
+        slc.slice_name = slice_name
+        slc.query_context = query_context
 
         if action == "saveas" and slice_add_perm:
             ChartDAO.create(slc)
