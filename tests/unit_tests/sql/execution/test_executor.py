@@ -4001,3 +4001,75 @@ def test_truncation_survives_cache_round_trip(
     cached = executor._get_from_cache("SELECT 1", QueryOptions())
     assert cached is not None
     assert cached.statements[0].truncated is truncated
+
+
+class _ArrowAndRowsCursor:
+    """Cursor with both an Arrow reader and a consuming row fetch."""
+
+    def __init__(self, values: list[int]) -> None:
+        self.description = [("a", "int", None, None, None, None, True)]
+        self.values = values
+        self.arrow_reads = 0
+        self._rows: list[tuple[int, ...]] = [(value,) for value in values]
+
+    def to_arrow_reader(self) -> Any:
+        import pyarrow as pa
+
+        self.arrow_reads += 1
+        return pa.table({"a": pa.array(self.values, type=pa.int64())})
+
+    def fetchmany(self, size: int | None = None) -> list[tuple[int, ...]]:
+        if size is None:
+            size = len(self._rows)
+        batch = self._rows[:size]
+        self._rows = self._rows[size:]
+        return batch
+
+    def fetchall(self) -> list[tuple[int, ...]]:
+        return self.fetchmany(len(self._rows))
+
+
+def test_executor_arrow_sets_truncated_from_the_extra_row(
+    mocker: MockerFixture,
+) -> None:
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+    from superset.sql.execution.executor import _result_set_for_statement
+
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    truncated = _result_set_for_statement(
+        DuckDBEngineSpec, _ArrowAndRowsCursor([1, 2, 3]), row_limit=2
+    )
+    assert truncated.truncated is True
+    assert truncated.pa_table.column("a").to_pylist() == [1, 2]
+
+    exact = _result_set_for_statement(
+        DuckDBEngineSpec, _ArrowAndRowsCursor([1, 2]), row_limit=2
+    )
+    assert exact.truncated is False
+    assert exact.size == 2
+
+    unlimited = _result_set_for_statement(
+        DuckDBEngineSpec, _ArrowAndRowsCursor([1, 2, 3]), row_limit=None
+    )
+    assert unlimited.truncated is False
+    assert unlimited.size == 3
+
+
+def test_executor_row_fallback_still_probes_truncation(
+    mocker: MockerFixture,
+) -> None:
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+    from superset.sql.execution.executor import _result_set_for_statement
+
+    mocker.patch("superset.is_feature_enabled", return_value=False)
+    cursor = _ArrowAndRowsCursor([1, 2, 3])
+    result = _result_set_for_statement(DuckDBEngineSpec, cursor, row_limit=2)
+    assert cursor.arrow_reads == 0
+    assert result.truncated is True
+    assert result.pa_table.column("a").to_pylist() == [1, 2]
+
+    short = _result_set_for_statement(
+        DuckDBEngineSpec, _ArrowAndRowsCursor([1]), row_limit=2
+    )
+    assert short.truncated is False
+    assert short.pa_table.column("a").to_pylist() == [1]
