@@ -76,7 +76,7 @@ _DATASET_TYPES = frozenset({DatasourceType.TABLE.value, DatasourceType.DATASET.v
 
 
 def _load_dataset_for_samples(
-    view: BaseSupersetView, params: dict[str, Any]
+    params: dict[str, Any],
 ) -> tuple[DatasourceModel | None, FlaskResponse | None]:
     """Pre-fetch and access-check the dataset for an authenticated request.
 
@@ -96,7 +96,7 @@ def _load_dataset_for_samples(
             database_id_or_uuid=params["datasource_id"],
         )
     except (DatasourceNotFound, DatasourceTypeNotSupportedError):
-        return None, view.response_404()
+        return None, json_error_response(_("Not found"), status=404)
     try:
         security_manager.raise_for_access(datasource=dataset)
     except SupersetSecurityException:
@@ -656,21 +656,21 @@ class Datasource(BaseSupersetView):
             # spaces, so the lookup below would validate whichever unrelated
             # SqlaTable happens to share the integer id.
             if params["datasource_type"] not in _DATASET_TYPES:
-                return self.response_404()
+                return json_error_response(_("Not found"), status=404)
             dashboard_id = params["dashboard_id"]
             dataset = DatasetDAO.find_by_id(
                 params["datasource_id"], skip_base_filter=True
             )
             dashboard = DashboardDAO.find_by_id(dashboard_id, skip_base_filter=True)
             if not (dashboard and dataset):
-                return self.response_404()
+                return json_error_response(_("Not found"), status=404)
             if not security_manager.can_drill_dataset_via_dashboard_access(
                 dataset,
                 dashboard,
             ):
                 return json_error_response(_("Forbidden"), status=403)
         else:
-            dataset, error_response = _load_dataset_for_samples(self, params)
+            dataset, error_response = _load_dataset_for_samples(params)
             if error_response is not None:
                 return error_response
 

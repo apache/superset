@@ -186,6 +186,21 @@ class SupersetSecurityException(SupersetErrorException):
         self.payload = payload
 
 
+class SemanticViewGuestRLSUnsupportedError(SupersetSecurityException):
+    """Fixed refusal when a semantic view cannot apply guest row restrictions."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message=_(
+                    "Semantic views cannot enforce guest row-level security rules."
+                ),
+                level=ErrorLevel.WARNING,
+            )
+        )
+
+
 class SupersetVizException(SupersetErrorsException):
     status = 400
 

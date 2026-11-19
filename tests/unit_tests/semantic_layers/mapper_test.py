@@ -5302,8 +5302,12 @@ def test_execution_rejects_stale_selection_before_metadata_fetch(
     query: ValidatedQueryObject = ValidatedQueryObject(
         datasource=mock_datasource, metrics=["total_sales"], columns=["category"]
     )
-    with pytest.raises(ValueError, match="stale selection"):
+    refused: pytest.ExceptionInfo[QueryObjectValidationError]
+    with pytest.raises(
+        QueryObjectValidationError, match="explicitly reselect"
+    ) as refused:
         get_results(query)
+    assert str(refused.value.__cause__) == "stale selection"
     metrics.assert_not_called()
     dimensions.assert_not_called()
 
@@ -5554,3 +5558,26 @@ def test_legacy_sunburst_dashboard_grain_reaches_semantic_mapper(
         "order_date": Grains.DAY,
         "category": None,
     }
+
+
+@pytest.mark.parametrize(
+    "declarations",
+    [None, 7, "GROUP_LIMIT", ["GROUP_LIMIT"], {SemanticViewFeature.GROUP_LIMIT: True}],
+)
+def test_group_limit_requires_projected_enum_grant(
+    mock_datasource: MagicMock,
+    declarations: object,
+) -> None:
+    """Malformed declarations and strings cannot grant group limiting."""
+    mock_datasource.implementation.features = declarations
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        series_columns=["category"],
+        series_limit=10,
+    )
+    with pytest.raises(
+        QueryObjectValidationError, match="Group limit is not supported"
+    ):
+        validate_query_object(query)
