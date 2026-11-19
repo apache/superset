@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 04:39+0000\n"
+"POT-Creation-Date: 2026-11-20 08:54+1100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -980,6 +980,9 @@ msgstr ""
 msgid "A dashboard filter or display control has incompatible semantic selections. Dynamic group-by is unsupported on versioned semantic views; remove this chart from that control's scope. For other filters or controls, reset and reselect fields or saved values. If it targets another semantic view, remove this chart from its scope."
 msgstr ""
 
+msgid "A database operation failed. Test the destination database connection and check its credentials and permissions. If it still fails, contact an administrator with the reference below."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr ""
 
@@ -1093,6 +1096,9 @@ msgid "A readable URL for your dashboard"
 msgstr ""
 
 msgid "A reference to the [Time] configuration, taking granularity into account"
+msgstr ""
+
+msgid "A referenced database, schema, or table is unavailable. Check that it exists in the destination connection and that the database account can access it, then retry."
 msgstr ""
 
 #, python-format
@@ -2150,6 +2156,9 @@ msgid "An export for this dashboard is already in progress."
 msgstr ""
 
 msgid "An unexpected error occurred"
+msgstr ""
+
+msgid "An unexpected error occurred. Contact an administrator with this reference and the time of the import."
 msgstr ""
 
 msgid "Anchor to"
@@ -4371,6 +4380,10 @@ msgstr ""
 
 #, python-format
 msgid "Could not find %s"
+msgstr ""
+
+#, python-format
+msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
 msgstr ""
 
 msgid "Could not load SQL Lab"
@@ -10685,6 +10698,9 @@ msgstr ""
 msgid "Page navigation"
 msgstr ""
 
+msgid "Page not found"
+msgstr ""
+
 msgid "Paired t-test Table"
 msgstr ""
 
@@ -11033,9 +11049,6 @@ msgid "Please provide both time bounds (Since and Until)"
 msgstr ""
 
 msgid "Please re-enter the password."
-msgstr ""
-
-msgid "Please re-export your file and try importing again"
 msgstr ""
 
 msgid "Please reach out to the Chart Editor for assistance."
@@ -14169,6 +14182,9 @@ msgstr ""
 msgid "Superset chart"
 msgstr ""
 
+msgid "Superset could not reach the database. Check the host, port, network access, and database availability, then retry the import."
+msgstr ""
+
 msgid "Superset docs link"
 msgstr ""
 
@@ -14560,6 +14576,9 @@ msgstr ""
 msgid "The annotation has been updated"
 msgstr ""
 
+msgid "The asset configuration is invalid. Review this file's fields and references against the destination Superset version, then retry the import."
+msgstr ""
+
 msgid "The background color of the charts."
 msgstr ""
 
@@ -14664,10 +14683,22 @@ msgstr ""
 msgid "The data this version was built on is no longer available, so it cannot be previewed"
 msgstr ""
 
+msgid "The database TLS connection failed. Ask an administrator to check the certificate and connection security settings, then retry."
+msgstr ""
+
+msgid "The database account does not have the required permissions. Ask a database administrator to grant access to the required database, schema, and tables, then retry."
+msgstr ""
+
 msgid "The database columns that contains lines information"
 msgstr ""
 
+msgid "The database connection timed out. Check database availability and network access, then retry the import."
+msgstr ""
+
 msgid "The database could not be found"
+msgstr ""
+
+msgid "The database driver could not be loaded. Ask an administrator to install the required driver, then retry the import."
 msgstr ""
 
 msgid "The database is currently running too many queries."
@@ -14677,6 +14708,12 @@ msgid "The database is under an unusual load."
 msgstr ""
 
 msgid "The database referenced in this query was not found. Please contact an administrator for further assistance or try again."
+msgstr ""
+
+msgid "The database rejected the connection credentials or required connection details are missing. Check the database authentication settings and test the connection, then retry the import."
+msgstr ""
+
+msgid "The database requires authorization. Open the database connection, sign in with its authentication provider, then retry the import."
 msgstr ""
 
 msgid "The database returned an unexpected error."
@@ -14715,6 +14752,9 @@ msgid ""
 msgstr ""
 
 msgid "The dataset has been saved"
+msgstr ""
+
+msgid "The dataset uses a catalog that this connection does not allow. Use the connection's default catalog, or ask an administrator to enable access to the required catalog."
 msgstr ""
 
 msgid "The dataset was changed by another user or browser tab after you opened it. Reopen it to pick up the latest version, then reapply your changes."
@@ -18020,6 +18060,9 @@ msgstr ""
 msgid "You do not have permission to edit this dashboard"
 msgstr ""
 
+msgid "You do not have permission to import this asset. Ask its owner or an administrator for the required access, then retry."
+msgstr ""
+
 msgid "You do not have permission to perform this operation"
 msgstr ""
 
@@ -19329,7 +19372,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-msgid "Page not found"
 msgstr ""

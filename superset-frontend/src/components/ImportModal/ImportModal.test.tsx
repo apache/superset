@@ -207,3 +207,51 @@ test('should render multiple encrypted extra secret fields for multiple files', 
   });
   expect(getAllByTestId('encrypted_extra_secret')).toHaveLength(3);
 });
+
+test('shows recovery instructions and permits retry after an import failure', async () => {
+  const endpoint = 'glob:*/api/v1/dashboard/import/';
+  const recovery =
+    'Could not import databases/example.yaml. Check the database credentials, then retry. Reference: test-reference';
+  fetchMock.postOnce(endpoint, {
+    status: 400,
+    body: {
+      errors: [
+        {
+          message: recovery,
+          error_type: 'GENERIC_COMMAND_ERROR',
+          level: 'error',
+          extra: {},
+        },
+      ],
+    },
+  });
+  const onModelImport = jest.fn();
+  const { getByTestId, getByRole, findByText, queryByText } = setup({
+    resourceName: 'dashboard',
+    resourceLabel: 'dashboard',
+    onModelImport,
+  });
+  fireEvent.change(getByTestId('model-file-input'), {
+    target: { files: [new File(['test'], 'dashboard.zip')] },
+  });
+  await waitFor(() =>
+    expect(getByRole('button', { name: 'Import' })).toBeEnabled(),
+  );
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+  expect(
+    await findByText(
+      `An error occurred while importing dashboard: ${recovery}`,
+    ),
+  ).toBeInTheDocument();
+  expect(queryByText(/Please re-export/)).not.toBeInTheDocument();
+  await waitFor(() =>
+    expect(getByRole('button', { name: 'Import' })).toBeEnabled(),
+  );
+  expect(getByTestId('model-file-input')).not.toBeDisabled();
+  expect(onModelImport).not.toHaveBeenCalled();
+
+  fetchMock.postOnce(endpoint, { result: 'OK' });
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+  await waitFor(() => expect(onModelImport).toHaveBeenCalledTimes(1));
+  expect(queryByText(/test-reference/)).not.toBeInTheDocument();
+});

@@ -218,3 +218,82 @@ def test_dashboard_import_new_dashboard(
 
     assert len(chart_ids) == expected_number_of_charts
     assert len(dashboard_ids) == expected_number_of_dashboards
+
+
+def test_dashboard_import_database_failure_has_asset_context(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """The real dashboard import wraps the failing database, not just the bundle."""
+    import pytest
+    from sqlalchemy.exc import OperationalError
+
+    from superset import db, security_manager
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.commands.importers.v1.errors import ImportAssetError
+    from superset.models.dashboard import Dashboard
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    Dashboard.metadata.create_all(db.session.get_bind())
+    configs = {
+        **copy.deepcopy(databases_config),
+        **copy.deepcopy(datasets_config),
+        **copy.deepcopy(charts_config_1),
+        **copy.deepcopy(dashboards_config_1),
+    }
+    configs["databases/examples.yaml"]["sqlalchemy_uri"] = "postgresql://user@host/db"
+    mocker.patch(
+        "superset.commands.dashboard.importers.v1.import_database",
+        side_effect=OperationalError(
+            None,
+            None,
+            Exception('password authentication failed for user "hidden-user"'),
+        ),
+    )
+    with pytest.raises(ImportAssetError) as caught:
+        ImportDashboardsCommand._import(configs)
+    assert "databases/examples.yaml" in caught.value.message
+    assert "credentials" in caught.value.message
+    assert "hidden-user" not in caught.value.message
+    assert db.session.query(Dashboard).count() == 0
+
+
+def test_dashboard_import_failure_rolls_back_before_retry(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """A dataset failure rolls back the new connection before a successful retry."""
+    import pytest
+    import yaml
+
+    from superset import db, security_manager
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.commands.importers.v1.errors import ImportAssetError
+    from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+    from tests.integration_tests.fixtures.importexport import dashboard_metadata_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Dashboard.metadata.create_all(db.session.get_bind())
+    configs = {
+        **copy.deepcopy(databases_config),
+        **copy.deepcopy(datasets_config),
+        **copy.deepcopy(charts_config_1),
+        **copy.deepcopy(dashboards_config_1),
+    }
+    contents = {name: yaml.safe_dump(config) for name, config in configs.items()}
+    contents["metadata.yaml"] = yaml.safe_dump(dashboard_metadata_config)
+    failure = mocker.patch(
+        "superset.commands.dashboard.importers.v1.import_dataset",
+        side_effect=RuntimeError("internal-secret"),
+    )
+    with pytest.raises(ImportAssetError) as caught:
+        ImportDashboardsCommand(contents).run()
+    assert "datasets/examples/video_game_sales.yaml" in caught.value.message
+    assert "internal-secret" not in caught.value.message
+    assert db.session.query(Database).count() == 0
+    assert db.session.query(Dashboard).count() == 0
+
+    mocker.stop(failure)
+    ImportDashboardsCommand(contents).run()
+    assert db.session.query(Database).count() == 1
+    assert db.session.query(Dashboard).count() == 1

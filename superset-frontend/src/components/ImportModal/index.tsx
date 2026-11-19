@@ -192,6 +192,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       return;
     }
 
+    setErrorMessage('');
     setImportingModel(true);
     importResource(
       fileList[0].originFileObj,
@@ -203,6 +204,7 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       confirmedOverwrite,
       overwriteAll,
     ).then(result => {
+      setImportingModel(false);
       if (result) {
         clearModal();
         onModelImport();

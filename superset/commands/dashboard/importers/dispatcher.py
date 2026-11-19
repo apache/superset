@@ -71,7 +71,10 @@ class ImportDashboardsCommand(BaseCommand):
                 logger.exception("Error running import command")
                 raise
 
-        raise CommandInvalidError("Could not find a valid command to import file")
+        raise CommandInvalidError(
+            "This file is not a supported dashboard export. Select a dashboard ZIP "
+            "exported by a compatible Superset version, then retry."
+        )
 
     def validate(self) -> None:
         pass

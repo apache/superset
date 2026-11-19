@@ -650,10 +650,6 @@ export function useImportResource(
       const formData = new FormData();
       formData.append('formData', bundle);
 
-      const RE_EXPORT_TEXT = t(
-        'Please re-export your file and try importing again',
-      );
-
       /* The import bundle never contains database passwords; if required
        * they should be provided by the user during import.
        */
@@ -746,10 +742,7 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  [
-                    ...error.errors.map(payload => payload.message),
-                    RE_EXPORT_TEXT,
-                  ].join('.\n'),
+                  error.errors.map(payload => payload.message).join('\n'),
                 ),
               );
             } else {
