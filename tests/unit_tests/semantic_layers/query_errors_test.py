@@ -791,6 +791,7 @@ def test_provider_execution_error_http(
     [
         "UNSUPPORTED_QUERY",
         "UNSUPPORTED_OFFSET",
+        "UNSUPPORTED_GROUP_OTHERS_METRIC",
         "INVALID_FILTER",
         "INVALID_QUERY",
         "private-unknown-code",
@@ -1194,6 +1195,14 @@ def test_async_completeness_does_not_publish_success(
             ),
         ),
         (
+            "UNSUPPORTED_GROUP_OTHERS_METRIC",
+            (
+                '"Group remaining as Others" cannot be calculated for this metric '
+                "on a semantic view. Turn it off, or choose a sum, count, minimum, "
+                "or maximum metric."
+            ),
+        ),
+        (
             "INVALID_FILTER",
             (
                 "A semantic query filter is invalid. "
@@ -1237,6 +1246,42 @@ def test_provider_rejection_uses_host_guidance(
     dispatcher.assert_called_once()
 
 
+@pytest.mark.parametrize("guest", [False, True])
+def test_others_metric_guidance_in_chart_response(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    guest: bool,
+) -> None:
+    """Chart responses identify Others while preserving embedded guest sanitization."""
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    date_view.get_table.side_effect = SemanticQueryRejectedError(
+        "UNSUPPORTED_GROUP_OTHERS_METRIC"
+    )
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == 400
+    assert response.get_json()["message"] == (
+        "An error occurred while fetching the data."
+        if guest
+        else (
+            '"Group remaining as Others" cannot be calculated for this metric '
+            "on a semantic view. Turn it off, or choose a sum, count, minimum, "
+            "or maximum metric."
+        )
+    )
+    date_view.get_table.assert_called_once()
+
+
 def test_unknown_rejection_code_is_logged_before_normalizing(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -1257,6 +1302,7 @@ def test_unknown_rejection_code_is_logged_before_normalizing(
     [
         "UNSUPPORTED_QUERY",
         "UNSUPPORTED_OFFSET",
+        "UNSUPPORTED_GROUP_OTHERS_METRIC",
         "INVALID_FILTER",
         "INVALID_QUERY",
         "unknown-private-code",
