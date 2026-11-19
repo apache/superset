@@ -41,6 +41,13 @@ set -euo pipefail
 BUILD_PRESET="${1:?usage: docker-build-extra-flags.sh <build_preset> [image_tag]}"
 IMAGE_TAG="${2:-}"
 BUILD_MODE="${3:-ci}"
+# Optional platform of a single-platform master publish. Each platform gets
+# its own registry cache ref: `--cache-to mode=max` writes one cache manifest
+# per ref, so two native per-platform builds exporting to the same ref would
+# keep overwriting each other's layers. linux/amd64 keeps the unsuffixed ref
+# that pull_request validation builds, docker-compose's cache_from entries
+# and the release build all read; linux/arm64 gets a `-arm64` suffix.
+PLATFORM="${4:-}"
 DEFAULT_PY_VER="$(sed -n 's/^ARG PY_VER=//p' Dockerfile | head -n 1)"
 # PY_VER pins a digest (tag@sha256:...); registry cache refs take the tag only
 DEFAULT_PY_TAG="${DEFAULT_PY_VER%%@*}"
@@ -77,7 +84,22 @@ case "$BUILD_PRESET" in
     ;;
 esac
 
+case "$PLATFORM" in
+  ""|linux/amd64) ;;
+  linux/arm64) CACHE_REF="${CACHE_REF}-arm64" ;;
+  *)
+    echo "Unsupported platform for the docker cache ref: $PLATFORM" >&2
+    exit 1
+    ;;
+esac
+
 EXTRA_FLAGS="--cache-from=type=registry,ref=$CACHE_REF $EXTRA_FLAGS"
+# The release build compiles linux/arm64 and linux/amd64 in one job without a
+# platform, but the unsuffixed ref is now written only by the native amd64
+# publish; read the arm64 ref too so the arm64 half is not a cold build.
+if [ "$BUILD_MODE" = "release" ] && [ -z "$PLATFORM" ]; then
+  EXTRA_FLAGS="--cache-from=type=registry,ref=${CACHE_REF}-arm64 $EXTRA_FLAGS"
+fi
 if [ "${PUBLISH_DOCKER_CACHE:-}" = "true" ] && [ -n "${DOCKERHUB_TOKEN:-}" ]; then
   EXTRA_FLAGS="--cache-to=type=registry,mode=max,ref=$CACHE_REF $EXTRA_FLAGS"
 fi
