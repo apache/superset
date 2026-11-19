@@ -764,7 +764,14 @@ categories:
     - name: HOLLYLAND猛玛
       url: https://www.hollyland.com
       logo: hollyland猛玛.svg
+    - name: HOLLYLAND猛玛
+      url: https://www.hollyland.com
+      logo: hollyland猛玛.svg
       contributors: ["@hlyda0601"]
+     
+    - name: Huwiz Inc.
+      url: https://www.huwiz.com
+      contributors: ["@sylvain-prado"]
 
     - name: Increff
       url: https://www.increff.com/
