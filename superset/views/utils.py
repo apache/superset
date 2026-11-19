@@ -665,7 +665,7 @@ def _deserialize_results_payload(
                 raise SerializationError("Unable to deserialize table") from ex
 
         df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
-        ds_payload["data"] = dataframe.df_to_records(df) or []
+        ds_payload["data"] = dataframe.df_to_records(df, convert_decimals=True) or []
 
         for column in ds_payload["selected_columns"]:
             if "name" in column:

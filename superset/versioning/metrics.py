@@ -67,8 +67,8 @@ def emit_capture_timing(stage: str, duration_ms: float) -> None:
     edit the dominant cost — sampled whenever at least one pre-state read
     was attempted, including reads that fail and retain nothing)
     and ``finalize`` (the post-flush record build and persist, sampled on
-    every commit on the session, including commits touching no versioned
-    entity, which still pay the listener overhead). Alert on both, on upper
+    commits with allowed versioned work; unrelated commits skip capture
+    and emit no sample). Alert on both, on upper
     percentiles rather than the mean. :func:`incr_capture_error` covers
     *loss*; this covers *slowdown*. Best-effort under the same fail-open
     posture: metrics emission must never itself break a user's save.
@@ -81,7 +81,7 @@ def emit_capture_timing(stage: str, duration_ms: float) -> None:
             f"{_CAPTURE_METRIC_PREFIX}.{stage}.latency", duration_ms
         )
     except Exception as ex:  # pylint: disable=broad-except
-        # This runs on every commit, so a structurally broken stats backend
+        # This runs on captured commits, so a structurally broken stats backend
         # (a custom StatsLogger without ``timing()``, or a not-yet-configured
         # instance at startup) would otherwise log a full traceback per
         # commit — identical each time. One warning line per occurrence, no

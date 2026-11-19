@@ -22,6 +22,7 @@ from zipfile import is_zipfile, ZipExtFile
 import pandas as pd
 import pytest
 from freezegun import freeze_time
+from pytest_mock import MockerFixture
 from pytz import timezone
 
 from tests.unit_tests.conftest import with_feature_flags
@@ -344,7 +345,7 @@ def test_final_failure_template_cta_link_respects_include_cta(
 
 
 @with_feature_flags(DATE_FORMAT_IN_EMAIL_SUBJECT=True)
-def test_email_subject_with_datetime() -> None:
+def test_email_subject_with_datetime(mocker: MockerFixture) -> None:
     # `superset.models.helpers`, a dependency of following imports,
     # requires app context
     from superset.reports.models import ReportRecipients, ReportRecipientType
@@ -387,6 +388,12 @@ def test_email_subject_with_datetime() -> None:
         subject = notification._get_subject()
     assert datetime_pattern not in subject
     assert frozen_now.strftime(datetime_pattern) in subject
+
+    mocker.patch(
+        "superset.reports.notifications.email.ReportConfigDAO.get_effective_value",
+        return_value=False,
+    )
+    assert datetime_pattern in notification._get_subject()
 
 
 def _make_notification(

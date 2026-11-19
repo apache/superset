@@ -31,9 +31,9 @@ Usage:
   # Dry run (print what would be translated without writing)
   python scripts/translations/backfill_po.py --lang de --dry-run
 
-  # Limit to 100 entries and use a specific model
+  # Limit to 100 entries and pin a specific model
   python scripts/translations/backfill_po.py --lang es --limit 100 \
-    --model claude-opus-4-6
+    --model claude-opus-5-5
 
 Options:
   --lang LANG        ISO language code to backfill (required)
@@ -41,7 +41,9 @@ Options:
   --limit N          Stop after translating N entries (default: unlimited)
   --min-context N    Skip entries with fewer than N existing translations across
                      reference languages (default: 0 — translate everything)
-  --model MODEL      Claude model ID (default: claude-sonnet-4-6)
+  --model MODEL      Claude model ID or alias (default: sonnet, i.e. the latest
+                     Sonnet; the alias is resolved once per run and the concrete
+                     model ID is recorded in each entry's attribution comment)
   --index PATH       Path to translation_index.json (default: auto-detect)
   --dry-run          Print translations without writing to .po file
   --no-fuzzy         Do not mark generated translations as fuzzy (default: mark fuzzy)
@@ -55,6 +57,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -66,7 +69,11 @@ except ImportError:
 
 TRANSLATIONS_DIR = Path(__file__).parent.parent.parent / "superset" / "translations"
 DEFAULT_INDEX = TRANSLATIONS_DIR / "translation_index.json"
-DEFAULT_MODEL = "claude-sonnet-4-6"
+# A Claude Code model alias rather than a pinned ID, so the script tracks the
+# latest Sonnet without edits. ``resolve_model`` turns it into the concrete ID
+# that gets recorded in the attribution comment.
+DEFAULT_MODEL = "sonnet"
+_CLAUDE_MODEL_ALIASES = frozenset({"sonnet", "opus", "haiku"})
 DEFAULT_BATCH_SIZE = 50
 
 _ASF_LICENSE_HEADER = """\
@@ -110,7 +117,7 @@ LANGUAGE_NAMES: dict[str, str] = {
     "ru": "Russian",
     "sk": "Slovak",
     "sl": "Slovenian",
-    "sr": "Serbian",
+    "sr": "Serbian (Cyrillic script)",
     "sr_Latn": "Serbian (Latin script)",
     "th": "Thai",
     "tr": "Turkish",
@@ -197,11 +204,16 @@ def _load_do_not_translate(path: Path = DO_NOT_TRANSLATE_REGISTRY) -> frozenset[
 
 DO_NOT_TRANSLATE: frozenset[str] = _load_do_not_translate()
 
-# An explicit do-not-translate marker on an entry, matched in either the
-# extracted comment (`#. do-not-translate`, the standard propagated
-# from the .pot) or a translator comment (e.g. the ru catalog's legacy
-# "# Не переводить"). Honored so a human's deliberate decision is never
-# overridden even if a msgid is missing from the registry.
+# The extracted comment apply_do_not_translate.py stamps after extraction
+# (`#. do-not-translate`), propagated from the .pot to every catalog.
+_DO_NOT_TRANSLATE_MARKER = "do-not-translate"
+
+# A do-not-translate marker written by hand in a translator comment (e.g. the
+# ru catalog's legacy "# Не переводить"), in any phrasing. Honored so a human's
+# deliberate decision is never overridden even if a msgid is missing from the
+# registry. Matched only in translator comments: extracted comments also carry
+# free-text `i18n:` notes, where a phrase like "do not translate as the animal"
+# is guidance on meaning, not a marker.
 _DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
     r"не\s+переводить|do[\s-]?not[\s-]?translate|don'?t\s+translate",
     re.IGNORECASE,
@@ -211,15 +223,45 @@ _DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
 def _is_do_not_translate(entry: polib.POEntry) -> bool:
     """Return True if an entry must be left for a human (never machine-filled).
 
-    Either its msgid is in the do-not-translate registry, or the entry carries
-    an explicit do-not-translate marker in its extracted or translator comment.
+    Either its msgid is in the do-not-translate registry, its extracted comment
+    has the exact ``do-not-translate`` marker line, or its translator comment
+    carries an explicit do-not-translate marker.
     """
     if entry.msgid in DO_NOT_TRANSLATE:
         return True
-    return any(
-        comment and _DO_NOT_TRANSLATE_COMMENT.search(comment)
-        for comment in (entry.comment, entry.tcomment)
-    )
+    if any(
+        line.strip() == _DO_NOT_TRANSLATE_MARKER
+        for line in (entry.comment or "").splitlines()
+    ):
+        return True
+    return bool(entry.tcomment and _DO_NOT_TRANSLATE_COMMENT.search(entry.tcomment))
+
+
+_I18N_COMMENT_TAG = "i18n:"
+
+
+def _developer_note(entry: polib.POEntry) -> str | None:
+    """Return the ``i18n:`` translator comment on ``entry``, if any.
+
+    Developers tag a comment in source with ``i18n:`` to say which sense of an
+    ambiguous term is meant; ``babel_update.sh`` extracts it into every catalog
+    as an extracted comment (``#. i18n: ...``), which polib joins across wrapped
+    lines with newlines. Other extracted comments, such as the
+    ``do-not-translate`` marker, are not part of the note.
+    """
+    note: list[str] = []
+    in_note = False
+    for line in (entry.comment or "").splitlines():
+        text = line.strip()
+        if text.startswith(_I18N_COMMENT_TAG):
+            note.append(text[len(_I18N_COMMENT_TAG) :])
+            in_note = True
+        elif in_note and text and text != _DO_NOT_TRANSLATE_MARKER:
+            note.append(text)
+        else:
+            in_note = False
+    joined = " ".join(" ".join(note).split())
+    return joined or None
 
 
 def _context_langs(
@@ -262,6 +304,9 @@ def _render_item(
     if item.get("msgid_plural"):
         plural_json = json.dumps(item["msgid_plural"], ensure_ascii=False)
         lines.append(f"English plural: {plural_json}")
+    if item.get("developer_note"):
+        note_json = json.dumps(item["developer_note"], ensure_ascii=False)
+        lines.append(f"Developer note: {note_json}")
     key = item["index_key"]
     if key in index and reference_langs_sorted:
         for lang in reference_langs_sorted:
@@ -323,6 +368,18 @@ def build_prompt(
         " visualization UI context.",
         "",
     ]
+
+    if any(item.get("developer_note") for item in batch):
+        lines.extend(
+            [
+                "Some strings carry a Developer note, written by the Superset"
+                " developers, saying which meaning is intended. A Developer note"
+                " is authoritative: when it disagrees with the reference"
+                " translations, follow the note, because a reference translation"
+                " can itself have the wrong sense.",
+                "",
+            ]
+        )
 
     if reference_langs_sorted:
         lines.append(
@@ -388,6 +445,95 @@ def parse_response(text: str, batch_size: int) -> dict[int, str]:
     }
 
 
+def _claude_command(claude_bin: str, model: str, *extra: str) -> list[str]:
+    """Build a ``claude -p`` invocation for a pure text-in/text-out request.
+
+    Tools are disabled (``--tools ""``): translation never needs file, shell or
+    web access, and running with none keeps an unattended run (e.g. the
+    scheduled CI backfill) from acting on anything the prompt happens to say.
+    """
+    return [
+        claude_bin,
+        "--model",
+        model,
+        "-p",
+        "--tools",
+        "",
+        "--no-session-persistence",
+        *extra,
+    ]
+
+
+# Seconds to wait before each retry of a failed ``claude -p`` call. Gateways
+# (and the API under load) fail individual requests transiently; without a
+# retry one such failure loses an entire batch.
+_RETRY_DELAYS: tuple[float, ...] = (10, 30)
+
+
+def _run_claude(cmd: list[str], prompt: str) -> subprocess.CompletedProcess[str]:
+    """Run a ``claude -p`` command, retrying non-zero exits with backoff.
+
+    Returns the last attempt's result; the caller decides what a final
+    failure means.
+    """
+    for delay in (*_RETRY_DELAYS, None):
+        # cmd[0] is resolved via shutil.which — not user-controlled input
+        result = subprocess.run(  # noqa: S603
+            cmd,
+            input=prompt,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 or delay is None:
+            return result
+        print(
+            f"  claude exited with code {result.returncode}; retrying in {delay:g}s …",
+            file=sys.stderr,
+        )
+        time.sleep(delay)
+    raise AssertionError("unreachable")
+
+
+def resolve_model(model: str) -> str:
+    """Resolve a model alias such as ``sonnet`` to the concrete model ID.
+
+    Anything other than a Claude Code alias (a concrete ``claude-...`` ID, or
+    a model served through another Anthropic-compatible gateway via
+    ``ANTHROPIC_BASE_URL``) is returned unchanged. For an alias, one tiny
+    request is made with JSON output and the model ID it reports is returned,
+    so every entry translated in this run is attributed to (and produced by)
+    the same pinned model. Falls back to the alias if the response can't be
+    read.
+    """
+    if model not in _CLAUDE_MODEL_ALIASES:
+        return model
+    claude_bin = shutil.which("claude")
+    if not claude_bin:
+        raise RuntimeError(
+            "claude CLI not found. Install Claude Code or add it to PATH."
+        )
+    # claude_bin is resolved via shutil.which — not user-controlled input
+    result = subprocess.run(  # noqa: S603
+        _claude_command(claude_bin, model, "--output-format", "json"),
+        input="Reply with the single word OK.",
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"claude exited with code {result.returncode}:\n{result.stderr}"
+        )
+    try:
+        usage = json.loads(result.stdout).get("modelUsage") or {}
+    except (json.JSONDecodeError, AttributeError):
+        return model
+    ids = [m for m in usage if isinstance(m, str) and m.startswith("claude-")]
+    preferred = [m for m in ids if model in m]
+    return (preferred or ids or [model])[0]
+
+
 def translate_batch(
     model: str,
     target_lang: str,
@@ -407,14 +553,7 @@ def translate_batch(
     # Pipe the prompt over stdin rather than passing it as argv: a single batch
     # with many reference languages can grow into the tens of KB and approach
     # ARG_MAX on some platforms.
-    # claude_bin is resolved via shutil.which — not user-controlled input
-    result = subprocess.run(  # noqa: S603
-        [claude_bin, "--model", model, "-p"],
-        input=prompt,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _run_claude(_claude_command(claude_bin, model), prompt)
     if result.returncode != 0:
         raise RuntimeError(
             f"claude exited with code {result.returncode}:\n{result.stderr}"
@@ -454,6 +593,11 @@ def _translate_single_plaintext(
     ]
     if item.get("msgid_plural"):
         lines.append(f"English plural: {item['msgid_plural']}")
+    if item.get("developer_note"):
+        lines.append(
+            f"Developer note (authoritative on the intended meaning): "
+            f"{item['developer_note']}"
+        )
     refs = index.get(item["index_key"], {})
     ref_lines = [
         f"{_lang_name(lang)}: {val}"
@@ -465,14 +609,7 @@ def _translate_single_plaintext(
         lines.append("Reference translations in other languages:")
         lines.extend(ref_lines)
     prompt = "\n".join(lines)
-    # claude_bin is resolved via shutil.which — not user-controlled input
-    result = subprocess.run(  # noqa: S603
-        [claude_bin, "--model", model, "-p"],
-        input=prompt,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _run_claude(_claude_command(claude_bin, model), prompt)
     if result.returncode != 0:
         return None
     text = result.stdout.strip()
@@ -594,6 +731,8 @@ def _build_batch_items(
                 "index_key": entry.msgid,
                 "is_plural": False,
             }
+        if note := _developer_note(entry):
+            item["developer_note"] = note
         item["context_langs"] = _context_langs(item, index, lang)
         item["context_count"] = len(item["context_langs"])
         items.append(item)
@@ -669,6 +808,38 @@ def _process_batches(
                 file=sys.stderr,
             )
     return translated_count, failed_count
+
+
+# Mirrors the post-processing at the end of babel_update.sh: Babel tags these
+# msgids python-format because of the bare ``%``, but they are literal labels.
+_PERCENT_LABEL_MSGIDS = {"% calculation", "% of parent", "% of total"}
+
+
+def normalize_catalog(po_path: Path) -> None:
+    """Re-serialize a catalog in the canonical form ``babel_update.sh`` writes.
+
+    polib writes long strings unwrapped and reorders some header fields, while
+    the committed catalogs are produced by ``pybabel update`` (76-column
+    wrapping). Without this pass a backfill re-wraps thousands of untouched
+    lines, burying the actual translations in the diff and churning again on
+    the next catalog sync. Only formatting changes: the entry set, comments,
+    flags and translations are preserved.
+    """
+    from babel.messages.pofile import read_po, write_po
+
+    lang = po_path.parent.parent.name
+    with open(po_path, "rb") as f:
+        catalog = read_po(f, locale=lang)
+    for message in catalog:
+        if message.id in _PERCENT_LABEL_MSGIDS and "python-format" in message.flags:
+            message.flags.discard("python-format")
+            message.flags.add("no-python-format")
+    with open(po_path, "wb") as f:
+        write_po(f, catalog, width=76)
+    # babel_update.sh also strips the final blank line Babel leaves behind.
+    text = po_path.read_text(encoding="utf-8")
+    if text.endswith("\n\n"):
+        po_path.write_text(text[:-1], encoding="utf-8")
 
 
 def backfill(
@@ -757,6 +928,9 @@ def backfill(
         print("Nothing to do.", file=sys.stderr)
         return
 
+    model = resolve_model(model)
+    print(f"Using model {model}.", file=sys.stderr)
+
     translated_count, failed_count = _process_batches(
         missing,
         index,
@@ -774,6 +948,7 @@ def backfill(
         file=sys.stderr,
     )
     if not dry_run and translated_count > 0:
+        normalize_catalog(po_path)
         print(
             f"Translations written to {po_path} (marked #, fuzzy for review).",
             file=sys.stderr,
@@ -805,7 +980,10 @@ def main() -> None:
     parser.add_argument(
         "--model",
         default=DEFAULT_MODEL,
-        help=f"Claude model ID (default: {DEFAULT_MODEL})",
+        help=(
+            f"Claude model ID or alias (default: {DEFAULT_MODEL}, the latest "
+            "Sonnet). Aliases are resolved to a concrete ID once per run."
+        ),
     )
     parser.add_argument(
         "--index",

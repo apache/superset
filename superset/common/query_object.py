@@ -19,14 +19,17 @@ from __future__ import annotations
 
 import inspect
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from pprint import pformat
-from typing import Any, NamedTuple, TYPE_CHECKING
+from typing import Any, cast, NamedTuple, TYPE_CHECKING
 
 from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
+from pandas.errors import DataError
+from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset import feature_flag_manager
 from superset.common.chart_data import ChartDataResultType
@@ -43,6 +46,7 @@ from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
+    format_list,
     get_column_names,
     get_metric_names,
     is_adhoc_metric,
@@ -53,6 +57,7 @@ from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
+    from superset.semantic_layers.models import SemanticView
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +90,32 @@ _QUERY_OBJECT_RESOLVED_OPTIONS: dict[str, frozenset[str]] = {
 }
 
 
+def selection_version_error(version: object) -> QueryObjectValidationError:
+    """Return the user-facing refusal for a semantic selection version."""
+    if version == "unverified-external-selections":
+        return QueryObjectValidationError(
+            _(
+                "A dashboard filter or display control has "
+                "incompatible semantic selections. Dynamic group-by "
+                "is unsupported on versioned semantic views; remove "
+                "this chart from that control's scope. For other "
+                "filters or controls, reset and reselect fields or "
+                "saved values. If it targets another semantic view, "
+                "remove this chart from its scope."
+            )
+        )
+    return QueryObjectValidationError(
+        _(
+            "Saved semantic selections use an older identity format. "
+            "Reset and explicitly reselect the metrics and dimensions, "
+            "then save the chart. Display titles cannot be recovered "
+            "automatically. For API requests, select current member "
+            "IDs and supply semantic_selection_version from "
+            "datasource metadata or MCP list_metrics."
+        )
+    )
+
+
 class QueryObject:  # pylint: disable=too-many-instance-attributes
     """
     The query objects are constructed on the client.
@@ -93,10 +124,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     annotation_layers: list[dict[str, Any]]
     applied_time_extras: dict[str, str]
     apply_fetch_values_predicate: bool
+    cache_timeout: int | None
     columns: list[Column]
     datasource: BaseDatasource | None
     extras: dict[str, Any]
     filter: list[QueryObjectFilterClause]
+    force_query: bool
     from_dttm: datetime | None
     granularity: str | None
     grouping_sets: list[list[str]]
@@ -126,10 +159,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         annotation_layers: list[dict[str, Any]] | None = None,
         applied_time_extras: dict[str, str] | None = None,
         apply_fetch_values_predicate: bool = False,
+        cache_timeout: int | None = None,
         columns: list[Column] | None = None,
         datasource: BaseDatasource | None = None,
         extras: dict[str, Any] | None = None,
         filters: list[QueryObjectFilterClause] | None = None,
+        force_query: bool = False,
         granularity: str | None = None,
         is_rowcount: bool = False,
         is_timeseries: bool | None = None,
@@ -151,10 +186,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self._set_annotation_layers(annotation_layers)
         self.applied_time_extras = applied_time_extras or {}
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
+        # Resolved chart/custom/datasource cache timeout; None until the query
+        # context processor resolves it.
+        self.cache_timeout = cache_timeout
         self.columns = columns or []
         self.datasource = datasource
         self.extras = extras or {}
         self.filter = filters or []
+        self.force_query = force_query
         self.granularity = granularity
         self.is_rowcount = is_rowcount
         self._set_is_timeseries(is_timeseries)
@@ -342,9 +381,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def _rename_deprecated_fields(self, kwargs: dict[str, Any]) -> None:
         # rename deprecated fields
+        # Logged at info: a chart saved before the field was renamed hits this
+        # on every render, so a warning would repeat for as long as the chart
+        # is not resaved, without anything new to report.
         for field in DEPRECATED_FIELDS:
             if field.old_name in kwargs:
-                logger.warning(
+                logger.info(
                     "The field `%s` is deprecated, please use `%s` instead.",
                     field.old_name,
                     field.new_name,
@@ -352,7 +394,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 value = kwargs[field.old_name]
                 if value:
                     if hasattr(self, field.new_name):
-                        logger.warning(
+                        logger.info(
                             "The field `%s` is already populated, "
                             "replacing value with contents from `%s`.",
                             field.new_name,
@@ -362,9 +404,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def _move_deprecated_extra_fields(self, kwargs: dict[str, Any]) -> None:
         # move deprecated extras fields to extras
+        # Logged at info: same rationale as `_rename_deprecated_fields` above.
         for field in DEPRECATED_EXTRAS_FIELDS:
             if field.old_name in kwargs:
-                logger.warning(
+                logger.info(
                     "The field `%s` is deprecated and should "
                     "be passed to `extras` via the `%s` property.",
                     field.old_name,
@@ -373,7 +416,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 value = kwargs[field.old_name]
                 if value:
                     if hasattr(self.extras, field.new_name):
-                        logger.warning(
+                        logger.info(
                             "The field `%s` is already populated in "
                             "`extras`, replacing value with contents "
                             "from `%s`.",
@@ -395,6 +438,25 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         )
 
     @property
+    def is_datasource_metadata_request(self) -> bool:
+        """Whether this query asks only for datasource metadata and selects nothing.
+
+        Column and time grain options are answered from the datasource itself;
+        a query that also names members, filters or a time column is a selection.
+        The query's own result type is used: one that leaves it unset keeps the
+        selection checks even when its context asks for metadata.
+        """
+        return self.result_type in ChartDataResultType.datasource_metadata() and not (
+            self.metrics
+            or self.columns
+            or self.orderby
+            or self.filter
+            or self.granularity
+            or self.series_columns
+            or self.series_limit_metric
+        )
+
+    @property
     def column_names(self) -> list[str]:
         """Return column names (labels). Gives priority to groupbys if both groupbys
         and metrics are non-empty, otherwise returns column labels."""
@@ -405,6 +467,43 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     ) -> QueryObjectValidationError | None:
         """Validate query object"""
         try:
+            self.validate_semantic_time_offsets()
+            self._validate_semantic_view_extras()
+            if self.datasource and self.datasource.type == "semantic_view":
+                implementation: SemanticViewABC = cast(
+                    "SemanticView", self.datasource
+                ).implementation
+                version: object = self.extras.get("semantic_selection_version")
+                try:
+                    # Column and time grain options select no members, so there
+                    # is no saved selection identity to check.
+                    if not self.is_datasource_metadata_request:
+                        implementation.validate_selection_version(version)
+                except ValueError as ex:
+                    raise selection_version_error(version) from ex
+                if self.filter:
+                    # Validate before result-cache access, including old entries
+                    # computed while non-dimension predicates were discarded.
+                    # avoid circular import: mapper imports QueryObject.
+                    from superset.semantic_layers.exceptions import (
+                        discover_dimensions,
+                        discover_metrics,
+                        DiscoveryTarget,
+                    )
+                    from superset.semantic_layers.mapper import validate_filter_columns
+
+                    target: DiscoveryTarget = DiscoveryTarget.of(self.datasource)
+                    dimension_names: set[str] = {
+                        dimension.name
+                        for dimension in discover_dimensions(
+                            lambda: implementation, target
+                        )
+                    }
+                    metric_names: set[str] = {
+                        metric.name
+                        for metric in discover_metrics(lambda: implementation, target)
+                    }
+                    validate_filter_columns(self.filter, dimension_names, metric_names)
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
             self._validate_time_offsets()
@@ -415,6 +514,42 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 raise
             return ex
 
+    def validate_semantic_time_offsets(self) -> None:
+        """Refuse unsupported comparisons before provider discovery or cache reads."""
+        if (
+            self.time_offsets
+            and self.datasource
+            and self.datasource.type == "semantic_view"
+        ):
+            # Import here to avoid the semantic model/QueryObject import cycle.
+            from superset_core.semantic_layers.errors import SemanticQueryErrorCode
+
+            from superset.semantic_layers.exceptions import (
+                SemanticLayerQueryRejectedError,
+            )
+
+            raise SemanticLayerQueryRejectedError(
+                SemanticQueryErrorCode.UNSUPPORTED_QUERY,
+                message=_(
+                    "Time comparison is not yet supported on semantic views. "
+                    "Remove the time shift and try again."
+                ),
+            )
+
+    def _validate_semantic_view_extras(self) -> None:
+        """Reject unsupported SQL clauses before resolving a semantic provider."""
+        if (
+            self.datasource
+            and self.datasource.type == "semantic_view"
+            and (self.extras.get("where") or self.extras.get("having"))
+        ):
+            raise QueryObjectValidationError(
+                _(
+                    "SQL WHERE/HAVING expressions are not supported for semantic "
+                    "views. Remove the SQL clause or use a semantic dimension filter."
+                )
+            )
+
     def _validate_no_have_duplicate_labels(self) -> None:
         all_labels = self.metric_names + self.column_names
         if len(set(all_labels)) < len(all_labels):
@@ -423,7 +558,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 _(
                     "Duplicate column/metric labels: %(labels)s. Please make "
                     "sure all columns and metrics have a unique label.",
-                    labels=", ".join(f'"{x}"' for x in dup_labels),
+                    labels=format_list(dup_labels),
                 )
             )
 
@@ -506,16 +641,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 _(
                     "The following entries in `series_columns` are missing "
                     "in `columns`: %(columns)s. ",
-                    columns=", ".join(f'"{x}"' for x in missing_series),
+                    columns=format_list([str(col) for col in missing_series]),
                 )
             )
 
     def to_dict(self) -> QueryObjectDict:
         query_object_dict: QueryObjectDict = {
             "apply_fetch_values_predicate": self.apply_fetch_values_predicate,
+            "cache_timeout": self.cache_timeout,
             "columns": self.columns,
             "extras": self.extras,
             "filter": self.filter,
+            "force_query": self.force_query,
             "from_dttm": self.from_dttm,
             "granularity": self.granularity,
             "inner_from_dttm": self.inner_from_dttm,
@@ -574,6 +711,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 cache_dict["extra_cache_keys"],
                 key=lambda value: (type(value).__name__, str(value)),
             )
+
+        # Force refresh and timeout control cache reads and retention, not the
+        # logical result identity.
+        cache_dict.pop("force_query", None)
+        cache_dict.pop("cache_timeout", None)
 
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
         #  predetermined point in time when orgs are aware that the previously
@@ -659,7 +801,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         :param df: DataFrame returned from database model.
         :return: new DataFrame to which all post processing operations have been
                  applied
-        :raises QueryObjectValidationError: If the post processing operation
+        :raises InvalidPostProcessingError: If the post processing operation
                  is incorrect
         """
         logger.debug("post_processing: \n %s", pformat(self.post_processing))
@@ -673,7 +815,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 # ``OPERATIONS`` is the authoritative list of built-in operations;
                 # excludes escape_separator/unescape_separator (str -> str helpers
                 # used by flatten, not DataFrame post-processing operations).
-                if operation in pandas_postprocessing.OPERATIONS:
+                is_builtin = operation in pandas_postprocessing.OPERATIONS
+                if is_builtin:
                     func = getattr(pandas_postprocessing, operation)
                 else:
                     extra_ops = pandas_postprocessing.build_extra_ops_map(
@@ -690,8 +833,80 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 options = post_process.get("options", {})
                 if operation == "resample":
                     options = self._resolve_resample_options(options)
-                df = func(df, **options)
+                df = self._exec_operation(func, operation, is_builtin, df, options)
             return df
+
+    @staticmethod
+    def _exec_operation(
+        func: Callable[..., DataFrame],
+        operation: str,
+        is_builtin: bool,
+        df: DataFrame,
+        options: dict[str, Any],
+    ) -> DataFrame:
+        """
+        Run one post-processing operation, reporting a bad request as one.
+
+        An operation is driven entirely by the request's ``options`` dict, which
+        ``ChartDataPostProcessingOperationSchema`` accepts as an untyped
+        ``fields.Dict``. Nothing validates an option before it reaches pandas,
+        so a malformed one surfaces as whatever pandas raises. Those are
+        bad-request failures, and left unwrapped they reach
+        ``app.errorhandler(Exception)``, which answers 500.
+
+        ``ImportError`` is deliberately not among them: a missing optional
+        dependency, such as scipy for a ``rolling`` ``win_type``, is a
+        deployment matter rather than a bad request.
+
+        :param func: The operation to run.
+        :param operation: Its name, for the message and to tell the two kinds
+                          of operation apart.
+        :param is_builtin: Whether ``func`` is a built-in operation rather than
+                           one registered through
+                           ``EXTRA_PANDAS_POSTPROCESSING_OPS``.
+        :param df: DataFrame to run the operation on.
+        :param options: Options for the operation, straight from the request.
+        :return: DataFrame with the operation applied
+        :raises InvalidPostProcessingError: If the options are unusable
+        """
+        try:
+            return func(df, **options)
+        except (AttributeError, DataError, KeyError, TypeError, ValueError) as ex:
+            if not is_builtin:
+                # The operation came from ``EXTRA_PANDAS_POSTPROCESSING_OPS``,
+                # which the operator owns and this code cannot reason about. A
+                # failure inside it is a fault in that operation rather than a
+                # malformed request, so leave it to the error handler.
+                raise
+            # The caller turns this into a message on the response without
+            # logging it, and these types are broad enough to also cover a
+            # genuine fault in a built-in operation, so keep the traceback.
+            logger.warning(
+                "Post-processing operation %s failed and was reported as a bad request",
+                operation,
+                exc_info=True,
+            )
+            if isinstance(ex, KeyError):
+                # Every KeyError a built-in operation raises names a column or
+                # MultiIndex level the options asked for and the result does
+                # not have. `str(KeyError)` is only the repr'd key, which alone
+                # reads as a bare quoted string.
+                raise InvalidPostProcessingError(
+                    _(
+                        "The `%(operation)s` post-processing operation "
+                        "references a column or level that is not in the query "
+                        "result: %(name)s",
+                        operation=operation,
+                        name=ex.args[0] if ex.args else ex,
+                    )
+                ) from ex
+            raise InvalidPostProcessingError(
+                _(
+                    "The `%(operation)s` post-processing operation failed: %(message)s",
+                    operation=operation,
+                    message=str(ex),
+                )
+            ) from ex
 
     def _resolve_resample_options(self, options: dict[str, Any]) -> dict[str, Any]:
         """

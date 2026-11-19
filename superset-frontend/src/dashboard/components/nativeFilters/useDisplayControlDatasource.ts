@@ -18,10 +18,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { DatasourceType } from '@superset-ui/core';
-import {
-  cachedSupersetGet,
-  supersetGetCache,
-} from 'src/utils/cachedSupersetGet';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   fetchSemanticViewStructure,
   semanticViewDimensionsToColumns,
@@ -127,21 +124,11 @@ export function useDisplayControlDatasource(
         };
       }
       const endpoint = `/api/v1/dataset/${datasetId}`;
-      try {
-        const { json } = await cachedSupersetGet({ endpoint });
-        return {
-          name: json?.result?.table_name,
-          columns: json?.result?.columns ?? [],
-        };
-      } catch (err) {
-        // cachedSupersetGet caches the in-flight promise but never evicts a
-        // rejected one, so a single 500 would poison this endpoint for the
-        // whole page session — a later type-flip or retry would re-await the
-        // same failure. Evict on rejection, mirroring the semantic-view branch
-        // (sc-111089 review).
-        supersetGetCache.delete(endpoint);
-        throw err;
-      }
+      const { json } = await cachedSupersetGet({ endpoint });
+      return {
+        name: json?.result?.table_name,
+        columns: json?.result?.columns ?? [],
+      };
     };
 
     load()

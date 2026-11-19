@@ -266,15 +266,17 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         )
         return ExecuteSqlResponse(
             success=False,
+            query_id=ex.query_id,
             error=build_oauth2_redirect_message(ex),
             error_type=SupersetErrorType.OAUTH2_REDIRECT.value,
         )
-    except OAuth2Error:
+    except OAuth2Error as ex:
         await ctx.error(
             "OAuth2 configuration/flow error: database_id=%s" % request.database_id
         )
         return ExecuteSqlResponse(
             success=False,
+            query_id=ex.query_id,
             error=OAUTH2_CONFIG_ERROR_MESSAGE,
             error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR.value,
         )
@@ -353,7 +355,12 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
     if result.status != QueryStatus.SUCCESS:
         return ExecuteSqlResponse(
             success=False,
-            error=result.error_message,
+            query_id=result.query_id,
+            error=(
+                "Query was stopped"
+                if result.status == QueryStatus.STOPPED
+                else result.error_message
+            ),
             error_type=result.status.value,
         )
 
@@ -371,8 +378,13 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
         statements.append(
             StatementInfo(
                 original_sql=stmt.original_sql,
-                executed_sql=stmt.executed_sql,
+                executed_sql=(
+                    stmt.executed_sql
+                    if stmt.executed_sql != stmt.original_sql
+                    else None
+                ),
                 row_count=stmt.row_count,
+                truncated=stmt.truncated,
                 execution_time_ms=stmt.execution_time_ms,
                 data=stmt_data,
             )
@@ -395,6 +407,8 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
         rows = last_data_stmt.data.rows
         columns = last_data_stmt.data.columns
         row_count = len(last_data_stmt.data.rows)
+        # Keep the promoted result only at the top level, not in both places.
+        last_data_stmt.data = None
     elif result.statements:
         # DML-only query
         last_stmt = result.statements[-1]
@@ -409,13 +423,14 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
             "data-bearing statements. "
             "The top-level rows/columns contain only the "
             "last data-bearing statement's results. "
-            "Check the 'data' field in each entry of the "
-            "'statements' array to see results from ALL "
-            "statements."
+            "Earlier results are in the 'data' field of the "
+            "'statements' array; the last data-bearing statement's "
+            "'data' is null to avoid duplicating the top-level result."
         )
 
     return ExecuteSqlResponse(
         success=True,
+        query_id=result.query_id,
         rows=rows,
         columns=columns,
         row_count=row_count,

@@ -29,13 +29,16 @@ These tests cover the SQL execution API including:
 - Async execution
 """
 
+import sqlite3
+from contextlib import closing
+from itertools import islice
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import call, MagicMock
 
 import msgpack
 import pandas as pd
 import pytest
-from flask import current_app
+from flask import current_app, has_request_context
 from pytest_mock import MockerFixture
 from superset_core.queries.types import (
     CacheOptions,
@@ -43,13 +46,15 @@ from superset_core.queries.types import (
     QueryStatus,
 )
 
+from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
 from superset.models.core import Database
-from superset.sql.parse import SQLScript
+from superset.sql.parse import LimitMethod, SQLScript
 
 # Note: database, database_with_dml, mock_db_session fixtures and
 # mock_query_execution helper are imported from conftest.py
 from .conftest import (
     _passthrough_mutate_sql_based_on_config,
+    create_mock_connection,
     create_mock_cursor,
     mock_query_execution,
 )
@@ -242,6 +247,57 @@ def test_execute_delete_without_permission(
     assert result.status == QueryStatus.FAILED
     assert result.error_message is not None
     assert "DML queries are not allowed" in result.error_message
+
+
+# =============================================================================
+# Client-side file-transfer statement tests
+# =============================================================================
+
+
+@pytest.mark.parametrize("allow_dml", [False, True])
+@pytest.mark.parametrize(
+    "sql, expected_heads",
+    [
+        # Per-statement parsing of every form is covered in parse_tests; here
+        # one Command fallback, one structured node, one multi-statement.
+        ("PUT file:///tmp/data.csv @my_stage", "PUT"),
+        ("GET @my_stage 'file:///tmp/'", "GET"),
+        ("SELECT 1; PUT file:///tmp/data.csv @my_stage", "PUT"),
+        # Several heads render sorted and comma-separated, not as a raw set.
+        ("REMOVE @my_stage/b; PUT file:///tmp/a @my_stage", "PUT, REMOVE"),
+    ],
+)
+def test_check_security_rejects_client_file_transfer(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+    expected_heads: str,
+    allow_dml: bool,
+) -> None:
+    """
+    Client-side file-transfer statements are rejected regardless of
+    `allow_dml`: they perform host file I/O, not DML.
+    """
+    from superset.exceptions import SupersetSecurityException
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}},
+    )
+    database = Database(
+        id=3,
+        database_name="test_snowflake",
+        sqlalchemy_uri="snowflake://user:pw@account/db/schema",
+        allow_dml=allow_dml,
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        SQLExecutor(database)._check_security(SQLScript(sql, "snowflake"))
+
+    assert excinfo.value.error.message == (
+        f"Disallowed client-side file-transfer command(s): {expected_heads}"
+    )
 
 
 # =============================================================================
@@ -511,6 +567,125 @@ def test_check_disallowed_tables_no_config(
     assert result is None
 
 
+@pytest.mark.parametrize(
+    "entry, sql, search_path, blocked",
+    [
+        # a qualified entry matches an unqualified table in the default schema
+        ("public.secrets", "SELECT * FROM secrets", "public", True),
+        ("archive.secrets", "SELECT * FROM secrets", "public", False),
+        # or in the schema the search path reads it from
+        ("public.secrets", "SELECT * FROM secrets", {"secrets": ["public"]}, True),
+        ("analyst.secrets", "SELECT * FROM secrets", {"secrets": ["public"]}, False),
+        # without a known default schema only a bare entry can match
+        ("public.secrets", "SELECT * FROM secrets", "", False),
+        ("secrets", "SELECT * FROM secrets", "", True),
+        # a qualified table matches as before
+        ("public.secrets", "SELECT * FROM public.secrets", "", True),
+    ],
+)
+def test_check_disallowed_tables_without_schema(
+    mocker: MockerFixture,
+    app_context: None,
+    entry: str,
+    sql: str,
+    search_path: str | dict[str, list[str]],
+    blocked: bool,
+) -> None:
+    """
+    A query without a schema reads unqualified tables through the connection's
+    search path, the ``table_schemas`` ``_prepare_sql`` resolves, so a
+    schema-qualified entry is matched against the schema each is read from.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.utils.rls import SearchPath
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config, {"DISALLOWED_SQL_TABLES": {"postgresql": {entry}}}
+    )
+    table_schemas: str | SearchPath = search_path  # type: ignore[assignment]
+    if isinstance(search_path, dict):
+        mocker.patch.object(
+            database,
+            "get_search_path",
+            return_value=(["analyst", "public"], search_path),
+        )
+        table_schemas = SearchPath(database, None, ["analyst", "public"])
+
+    result = SQLExecutor(database)._check_disallowed_tables(
+        SQLScript(sql, "postgresql"), None, table_schemas
+    )
+
+    assert result == ({entry} if blocked else None)
+
+
+def test_prepare_sql_resolves_table_schemas_once(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    ``_prepare_sql`` looks the unqualified tables of a query without a schema up on
+    the connection's search path once, and hands it to both RLS and the denylist
+    check.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.utils.rls import SearchPath
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_TABLES": {"postgresql": {"public.secrets"}}},
+    )
+    get_search_path = mocker.patch.object(
+        database, "get_search_path", return_value=(["analyst", "public"], {})
+    )
+    apply_rls = mocker.patch.object(SQLExecutor, "_apply_rls_to_script")
+
+    *_, schema, table_schemas = SQLExecutor(database)._prepare_sql(
+        "SELECT * FROM secrets", QueryOptions()
+    )
+
+    assert schema is None
+    assert isinstance(table_schemas, SearchPath)
+    get_search_path.assert_called_once_with("analytics", ["secrets"])
+    assert apply_rls.call_args.args[2] is table_schemas
+
+
+def test_prepare_sql_skips_search_path_when_no_control_could_match(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    ``_prepare_sql`` doesn't connect for the search path of a query reading no table
+    an RLS rule or a schema-qualified denylist entry could be about, a dry run
+    included.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_TABLES": {"postgresql": {"public.secrets"}}},
+    )
+    mocker.patch("superset.utils.rls.get_predicates_for_table", return_value=[])
+    get_search_path = mocker.patch.object(database, "get_search_path")
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+
+    *_, table_schemas = SQLExecutor(database)._prepare_sql(
+        "SELECT * FROM unrelated", QueryOptions(dry_run=True)
+    )
+
+    assert table_schemas == ""
+    get_search_path.assert_not_called()
+    get_inspector.assert_not_called()
+    get_raw_connection.assert_not_called()
+
+
 # =============================================================================
 # Row-Level Security Tests
 # =============================================================================
@@ -565,11 +740,21 @@ def test_execute_returns_cached_result(
         },
     )
 
-    # Mock _get_from_cache to simulate a cache hit
-    cached_result = MagicMock()
-    cached_result.status = QueryStatus.SUCCESS
-    cached_result.data = cached_df
-    cached_result.is_cached = True
+    from superset_core.queries.types import QueryResult, StatementResult
+
+    cached_result = QueryResult(
+        status=QueryStatus.SUCCESS,
+        statements=[
+            StatementResult(
+                original_sql="SELECT * FROM users",
+                executed_sql="SELECT * FROM users",
+                data=cached_df,
+                row_count=2,
+                execution_time_ms=0,
+            )
+        ],
+        is_cached=True,
+    )
     mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=cached_result)
 
     # get_raw_connection should NOT be called if cache hit
@@ -579,6 +764,9 @@ def test_execute_returns_cached_result(
 
     assert result.status == QueryStatus.SUCCESS
     assert result.is_cached is True
+    assert result.statements[0].data is not None
+    assert result.statements[0].data.equals(cached_df)
+    assert result.statements[0].row_count == 2
     get_conn_mock.assert_not_called()
 
 
@@ -677,6 +865,86 @@ def test_execute_timeout(
 
     assert result.status == QueryStatus.TIMED_OUT
     assert result.error_message is not None
+
+
+def test_execute_timeout_records_query(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """A timed-out run is finished as timed out in query history."""
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import SupersetTimeoutException
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_conn = MagicMock()
+    mock_conn.__enter__ = MagicMock(
+        side_effect=SupersetTimeoutException(
+            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+            message="Query timed out",
+            level=ErrorLevel.ERROR,
+        )
+    )
+    mock_conn.__exit__ = MagicMock(return_value=False)
+    mocker.patch.object(database, "get_raw_connection", return_value=mock_conn)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 1,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+    mock_query = MagicMock(id=123, status="running", end_time=None)
+    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=mock_query)
+    commit = mocker.patch(
+        "superset.sql.execution.utils.commit_query_unless_stopped",
+        return_value=True,
+    )
+
+    result = database.execute("SELECT * FROM large_table")
+
+    assert result.status == QueryStatus.TIMED_OUT
+    assert result.query_id == 123
+    assert mock_query.status == QueryStatus.TIMED_OUT.value
+    assert mock_query.error_message == "Query exceeded the timeout limit"
+    assert mock_query.end_time is not None
+    # Once to publish the start of the run, once to record the timeout.
+    assert commit.call_args_list == [
+        call(mock_query),
+        call(mock_query, keep_success=True),
+    ]
+
+
+@pytest.mark.parametrize("status", [QueryStatus.FAILED, QueryStatus.TIMED_OUT])
+def test_record_failure_metadata_write_error(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+    status: QueryStatus,
+) -> None:
+    """A metadata write error rolls back without replacing the query error."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    query = MagicMock(id=123)
+    commit = mocker.patch(
+        "superset.sql.execution.utils.commit_query_unless_stopped",
+        side_effect=RuntimeError("metadata unavailable"),
+    )
+    warning = mocker.patch("superset.sql.execution.executor.logger.warning")
+
+    result = SQLExecutor(database)._record_failure(
+        query, 123, status, "original query error", 0.0
+    )
+
+    commit.assert_called_once_with(query, keep_success=True)
+    mock_db_session.rollback.assert_called_once_with()
+    warning.assert_called_once_with(
+        "Unable to record failure of query %s", 123, exc_info=True
+    )
+    assert result.status == status
+    assert result.error_message == "original query error"
+    assert result.query_id == 123
 
 
 def test_execute_custom_timeout(
@@ -923,8 +1191,7 @@ def test_async_handle_cancel(
     from superset.models.sql_lab import Query
     from superset.sql.execution.executor import SQLExecutor
 
-    mock_query = MagicMock(spec=Query)
-    mock_query.status = "running"
+    mock_query = Query(status="running")
     mock_query.database = database
     filter_mock = mock_db_session.query.return_value.filter_by.return_value
     filter_mock.one_or_none.return_value = mock_query
@@ -1050,6 +1317,7 @@ def test_execute_multi_statement_updates_query_progress(
     )
 
     mock_result_set = MagicMock(spec=SupersetResultSet)
+    mock_result_set.truncated = False
     mock_result_set.to_pandas_df.return_value = pd.DataFrame(
         {"id": ["1"], "name": ["Alice"]}
     )
@@ -1067,6 +1335,7 @@ def test_execute_multi_statement_updates_query_progress(
 
     # Track progress updates on the Query model
     mock_query = MagicMock(spec=QueryModel)
+    mock_query.limit = None
     mock_query.id = 123
     mocker.patch("superset.models.sql_lab.Query", return_value=mock_query)
 
@@ -1328,6 +1597,7 @@ def test_execute_sql_with_cursor_stopped_mid_execution(
     mock_cursor.fetchall = MagicMock()
 
     mock_query = MagicMock()
+    mock_query.limit = None
     mock_query.schema = "public"
     mock_query.progress = 0
     mock_query.set_extra_json_key = MagicMock()
@@ -1368,6 +1638,7 @@ def test_execute_sql_with_cursor_custom_execute_fn(
     mock_cursor.fetchall = MagicMock()
 
     mock_query = MagicMock()
+    mock_query.limit = None
     mock_query.schema = "public"
     mock_query.progress = 0
     mock_query.set_extra_json_key = MagicMock()
@@ -1477,6 +1748,617 @@ def test_execute_no_limit_for_dml(
 
     # Should not apply limit to DML
     apply_limit_mock.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "sql,limit,sql_max_row,expected",
+    [
+        ("SELECT 1 LIMIT 5", 10, None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 10", 5, None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 5", 5, None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 5", None, None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1", 5, None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1", None, None, "SELECT 1"),
+        ("SELECT 1 LIMIT 0", 10, None, "SELECT 1 LIMIT 0"),
+        ("SELECT 1 LIMIT 10 OFFSET 2", 5, None, "SELECT 1 LIMIT 5 OFFSET 2"),
+        ("SELECT 1 LIMIT 5 OFFSET 2", 10, None, "SELECT 1 LIMIT 5 OFFSET 2"),
+        (
+            "WITH c AS (SELECT 1 LIMIT 2) SELECT * FROM c LIMIT 10",
+            5,
+            None,
+            "WITH c AS (SELECT 1 LIMIT 2) SELECT * FROM c LIMIT 5",
+        ),
+        (
+            "SELECT * FROM (SELECT 1 LIMIT 2) AS s LIMIT 10",
+            5,
+            None,
+            "SELECT * FROM (SELECT 1 LIMIT 2) AS s LIMIT 5",
+        ),
+        (
+            "SELECT * FROM (SELECT 1 LIMIT 2) AS s",
+            5,
+            None,
+            "SELECT * FROM (SELECT 1 LIMIT 2) AS s LIMIT 5",
+        ),
+        (
+            "SELECT 1 LIMIT 20; SELECT 2 LIMIT 10",
+            5,
+            None,
+            "SELECT 1 LIMIT 20; SELECT 2 LIMIT 5",
+        ),
+        ("SELECT 1 LIMIT 10", 20, 3, "SELECT 1 LIMIT 3"),
+        ("SELECT 1 LIMIT 2", 20, 3, "SELECT 1 LIMIT 2"),
+        ("SELECT 1", 20, 3, "SELECT 1 LIMIT 3"),
+        ("SELECT 1 LIMIT 10", None, 3, "SELECT 1 LIMIT 10"),
+    ],
+)
+def test_apply_limit_to_script_caps_outer_limit(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    sql: str,
+    limit: int | None,
+    sql_max_row: int | None,
+    expected: str,
+) -> None:
+    """Cap only the last outer limit, preserving omitted limits and SQL structure."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": sql_max_row})
+    engine = database.db_engine_spec.engine
+    script = SQLScript(sql, engine)
+    SQLExecutor(database)._apply_limit_to_script(script, QueryOptions(limit=limit))
+    assert script.format() == SQLScript(expected, engine).format()
+
+
+@pytest.mark.parametrize(
+    "sql,limit,expected",
+    [
+        ("SELECT 1 LIMIT 5", 10, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 5", 5, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 0", 10, "SELECT 1 LIMIT 0"),
+        ("SELECT 1 LIMIT 10", 5, "SELECT * FROM (SELECT 1 LIMIT 10) LIMIT 5"),
+        ("SELECT 1", 5, "SELECT * FROM (SELECT 1) LIMIT 5"),
+        ("SELECT 1 LIMIT 5", None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 0", None, "SELECT 1 LIMIT 0"),
+    ],
+)
+def test_apply_limit_to_script_wrap_sql(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    sql: str,
+    limit: int | None,
+    expected: str,
+) -> None:
+    """WRAP_SQL must cap explicit limits and preserve omitted limits."""
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.sql.parse import LimitMethod
+
+    # Exercise the wrapping strategy independently of dialect-specific parsers.
+    mocker.patch.object(database.db_engine_spec, "limit_method", LimitMethod.WRAP_SQL)
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": None})
+    assert database.db_engine_spec.limit_method == LimitMethod.WRAP_SQL
+    engine = database.db_engine_spec.engine
+    script = SQLScript(sql, engine)
+    SQLExecutor(database)._apply_limit_to_script(script, QueryOptions(limit=limit))
+    assert script.format() == SQLScript(expected, engine).format()
+
+
+@pytest.mark.parametrize("run_async", [False, True])
+@pytest.mark.parametrize("sql_limit,request_limit", [(5, 10), (10, 5), (5, None)])
+def test_execute_dry_run_caps_limit(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    run_async: bool,
+    sql_limit: int,
+    request_limit: int | None,
+) -> None:
+    """Sync and async dry runs expose capped SQL without executing a query."""
+    mocker.patch.dict(
+        current_app.config, {"SQL_MAX_ROW": None, "SQL_QUERY_MUTATOR": None}
+    )
+    connection = mocker.patch.object(database, "get_raw_connection")
+    sql = f"SELECT 1 LIMIT {sql_limit}"
+    options = QueryOptions(limit=request_limit, dry_run=True)
+    result = (
+        database.execute_async(sql, options).get_result()
+        if run_async
+        else database.execute(sql, options)
+    )
+    assert result.status == QueryStatus.SUCCESS
+    assert (
+        result.statements[0].executed_sql
+        == SQLScript("SELECT 1 LIMIT 5", "sqlite").format()
+    )
+    assert result.statements[0].original_sql == SQLScript(sql, "sqlite").format()
+    connection.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "sql_limit,request_limit,expected_rows",
+    [
+        (5, 10, 5),
+        (10, 5, 5),
+        (5, 5, 5),
+        (5, None, 5),
+        (3, None, 3),
+        (7, 2, 2),
+        (None, 5, 5),
+        (0, 10, 0),
+    ],
+)
+def test_execute_limit_caps_returned_rows(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    sql_limit: int | None,
+    request_limit: int | None,
+    expected_rows: int,
+) -> None:
+    """Execute against in-memory SQLite to verify actual rows, not mocked results."""
+    mocker.patch.dict(
+        current_app.config,
+        {"SQL_MAX_ROW": None, "SQL_QUERY_MUTATOR": None, "QUERY_LOGGER": None},
+    )
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.execute("CREATE TABLE numbers (n INTEGER)")
+        connection.executemany(
+            "INSERT INTO numbers VALUES (?)", [(n,) for n in range(20)]
+        )
+        mocker.patch.object(database, "get_raw_connection", return_value=connection)
+        sql = "SELECT n FROM numbers ORDER BY n"
+        if sql_limit is not None:
+            sql += f" LIMIT {sql_limit}"
+        result = database.execute(sql, QueryOptions(limit=request_limit))
+    assert result.status == QueryStatus.SUCCESS
+    statement = result.statements[0]
+    assert statement.row_count == expected_rows
+    assert statement.data is not None
+    assert len(statement.data) == expected_rows
+    assert (
+        SQLScript(statement.executed_sql, "sqlite").statements[0].get_limit_value()
+        == expected_rows
+    )
+
+
+@pytest.mark.parametrize("engine", ["postgresql", "duckdb"])
+@pytest.mark.parametrize(
+    "sql,request_limit,expected_rows,inner_limit",
+    [
+        ("SELECT * FROM generate_series(1,20) LIMIT 4", 10, 4, None),
+        ("SELECT * FROM generate_series(1,20) LIMIT 0", 10, 0, None),
+        (
+            "SELECT * FROM (SELECT * FROM generate_series(1,20) LIMIT 7) AS s LIMIT 4",
+            10,
+            4,
+            7,
+        ),
+        (
+            "SELECT * FROM (SELECT * FROM generate_series(1,20) LIMIT 7) AS s",
+            2,
+            2,
+            7,
+        ),
+    ],
+)
+def test_apply_limit_generate_series_returned_rows(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    engine: str,
+    sql: str,
+    request_limit: int,
+    expected_rows: int,
+    inner_limit: int | None,
+) -> None:
+    """Run capped SELECTs locally, preserving outer and nested limit semantics."""
+    import duckdb
+
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": None})
+    script = SQLScript(sql, engine)
+    SQLExecutor(database)._apply_limit_to_script(
+        script, QueryOptions(limit=request_limit)
+    )
+    executed_sql = script.format()
+    assert script.statements[0].get_limit_value() == expected_rows
+    if inner_limit is not None:
+        assert f"LIMIT {inner_limit} )" in " ".join(executed_sql.split())
+    # DuckDB executes the PostgreSQL-compatible series without an external server.
+    with closing(duckdb.connect(":memory:")) as connection:
+        assert len(connection.execute(executed_sql).fetchall()) == expected_rows
+
+
+@pytest.mark.parametrize(
+    "engine,sql,expected",
+    [
+        (
+            "postgresql",
+            "SELECT * FROM t FETCH FIRST 5 ROWS ONLY",
+            "SELECT * FROM t FETCH FIRST 5 ROWS ONLY",
+        ),
+        (
+            "postgresql",
+            "SELECT * FROM t FETCH FIRST ROW ONLY",
+            "SELECT * FROM t FETCH FIRST ROW ONLY",
+        ),
+        ("sqlite", "SELECT * FROM t LIMIT (5)", "SELECT * FROM t LIMIT (5)"),
+        (
+            "sqlite",
+            "SELECT * FROM t LIMIT (2 + 3)",
+            "SELECT * FROM (SELECT * FROM t LIMIT (2 + 3)) "
+            "AS __superset_limit LIMIT 10",
+        ),
+        (
+            "mssql",
+            "SELECT TOP 5 PERCENT * FROM t",
+            "SELECT TOP 5 PERCENT * FROM t",
+        ),
+        (
+            "mssql",
+            "SELECT TOP 5 WITH TIES * FROM t ORDER BY n",
+            "SELECT TOP 5 WITH TIES * FROM t ORDER BY n",
+        ),
+        (
+            "postgresql",
+            "SELECT * FROM t ORDER BY n FETCH FIRST 5 ROWS WITH TIES",
+            "SELECT * FROM (SELECT * FROM t ORDER BY n FETCH FIRST 5 ROWS WITH TIES) "
+            "AS __superset_limit LIMIT 10",
+        ),
+        (
+            "mssql",
+            "WITH t AS (SELECT 1 AS n) SELECT TOP 5 PERCENT * FROM t",
+            "WITH t AS (SELECT 1 AS n) SELECT TOP 5 PERCENT * FROM t",
+        ),
+    ],
+)
+@pytest.mark.parametrize("request_limit", [10, 100])
+def test_apply_limit_preserves_nonliteral_and_modified_limits(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    engine: str,
+    sql: str,
+    expected: str,
+    request_limit: int,
+) -> None:
+    """Preserve SQL row restrictions while enforcing request and server caps."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": 10})
+    script = SQLScript(sql, engine)
+    SQLExecutor(database)._apply_limit_to_script(
+        script, QueryOptions(limit=request_limit)
+    )
+    assert script.format() == SQLScript(expected, engine).format()
+
+
+@pytest.mark.parametrize("modifier", ["PERCENT", "WITH TIES"])
+@pytest.mark.parametrize(
+    "projection,source,order_by",
+    [
+        ("1 AS n, 2 AS n", "", "1"),
+        ("COUNT(*)", "FROM t", "COUNT(*)"),
+        ("a.id, b.id", "FROM a JOIN b ON a.id = b.id", "a.id"),
+        ("*", "FROM a JOIN b ON a.id = b.id", "a.id"),
+        ("1 AS n, 2 AS N", "", "1"),
+    ],
+)
+def test_apply_limit_preserves_unsafe_tsql_projections(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    modifier: str,
+    projection: str,
+    source: str,
+    order_by: str,
+) -> None:
+    """Do not introduce invalid derived tables for unnamed or duplicate columns."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": 10})
+    sql = f"SELECT TOP 50 {modifier} {projection} {source} ORDER BY {order_by}"
+    script = SQLScript(sql, "mssql")
+    original = script.format()
+
+    SQLExecutor(database)._apply_limit_to_script(script, QueryOptions(limit=10))
+
+    assert script.format() == original
+    assert script.statements[0].get_limit_value() is None
+
+
+@pytest.mark.parametrize(
+    "request_limit,server_limit,expected_rows",
+    [
+        (10, None, 10),
+        (10, 5, 5),
+        (5, 10, 5),
+        (20, None, 20),
+        (30, None, 20),
+        (None, 5, 20),
+        (0, None, 0),
+    ],
+)
+def test_execute_caps_rows_without_sql_rewrite(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    request_limit: int | None,
+    server_limit: int | None,
+    expected_rows: int,
+) -> None:
+    """The shared result path caps the last statement even without a SQL cap."""
+    mocker.patch.dict(
+        current_app.config,
+        {"SQL_MAX_ROW": server_limit, "SQL_QUERY_MUTATOR": None, "QUERY_LOGGER": None},
+    )
+    # SQLite supplies real cursor results without requiring a SQL Server service.
+    mocker.patch("superset.sql.execution.executor.SQLExecutor._apply_limit_to_script")
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.execute("CREATE TABLE numbers (n INTEGER)")
+        connection.executemany(
+            "INSERT INTO numbers VALUES (?)", [(n,) for n in range(20)]
+        )
+        mocker.patch.object(database, "get_raw_connection", return_value=connection)
+        result = database.execute(
+            "SELECT n FROM numbers; SELECT n FROM numbers",
+            QueryOptions(limit=request_limit),
+        )
+
+    assert result.status == QueryStatus.SUCCESS
+    assert result.statements[0].row_count == 20
+    assert result.statements[-1].row_count == expected_rows
+    assert result.statements[0].truncated is False
+    assert result.statements[-1].truncated is (expected_rows < 20)
+    assert result.statements[-1].data is not None
+    assert len(result.statements[-1].data) == expected_rows
+
+
+@pytest.mark.parametrize("limit_method", list(LimitMethod))
+@pytest.mark.parametrize("engine", ["base", "mssql", "bigquery"])
+@pytest.mark.parametrize(
+    "request_limit,server_limit,expected_limit",
+    [(10, None, 10), (10, 5, 5), (5, 10, 5), (0, 10, 0)],
+)
+def test_execute_bounds_cursor_fetches(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    engine: str,
+    limit_method: LimitMethod,
+    request_limit: int,
+    server_limit: int | None,
+    expected_limit: int,
+) -> None:
+    """Cap cursor reads, not just results, while retaining engine processing."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    spec = {
+        "base": BaseEngineSpec,
+        "mssql": MssqlEngineSpec,
+        "bigquery": BigQueryEngineSpec,
+    }[engine]
+    mocker.patch.object(spec, "limit_method", limit_method)
+    mock_database.db_engine_spec = spec
+    mock_query.limit = request_limit
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": server_limit})
+    rows = [(n,) for n in range(100)]
+    cursor = create_mock_cursor(["n"], rows)
+    remaining = iter(rows)
+    cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+    mocker.patch("superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", 2)
+    result_set = mocker.patch("superset.result_set.SupersetResultSet")
+    convert = mocker.spy(MssqlEngineSpec, "pyodbc_rows_to_tuples")
+
+    execute_sql_with_cursor(
+        database=mock_database,
+        cursor=cursor,
+        statements=["SELECT TOP 50 PERCENT n FROM t"],
+        query=mock_query,
+        execute_fn=MagicMock(),
+    )
+
+    cursor.fetchall.assert_not_called()
+    assert (
+        sum(call.args[0] for call in cursor.fetchmany.call_args_list)
+        <= expected_limit + 1
+    )
+    assert result_set.call_args.args[0] == rows[:expected_limit]
+    if engine == "mssql":
+        assert convert.call_args_list == [
+            mocker.call(rows[:expected_limit]),
+            mocker.call(rows[expected_limit : expected_limit + 1]),
+        ]
+
+
+def test_limited_cursor_writes_driver_state_to_the_real_cursor() -> None:
+    """
+    State an engine spec sets, such as a closed flag, reaches the real cursor.
+
+    The executor closes the real cursor, so a flag left on the wrapper would
+    be invisible to the driver.
+    """
+    from superset.sql.execution.executor import _LimitedCursor
+
+    cursor = create_mock_cursor(["n"], [(n,) for n in range(3)])
+    cursor.fetchmany.return_value = [(0,)]
+    limited = _LimitedCursor(cursor, 3)
+    probe = _LimitedCursor(limited, 1)
+
+    probe._closed = True
+
+    assert cursor._closed is True
+    assert "_closed" not in vars(limited)
+    assert "_closed" not in vars(probe)
+    assert probe.fetchall() == [(0,)]
+
+
+@pytest.mark.parametrize("first_read", ["fetchmany", "fetchone", "iterate"])
+def test_limited_cursor_shares_read_budget(first_read: str) -> None:
+    """All cursor read methods share a budget; metadata stays on the driver."""
+    from superset.sql.execution.executor import _LimitedCursor
+
+    cursor = create_mock_cursor(["n"], [(n,) for n in range(100)])
+    cursor.arraysize = 7
+    cursor.fetchmany.side_effect = [[(1,)], [(2,), (3,)]]
+    limited = _LimitedCursor(cursor, 3)
+    assert limited.description is cursor.description
+    limited.arraysize = 1
+    assert cursor.arraysize == limited.arraysize == 1
+
+    if first_read == "fetchmany":
+        assert limited.fetchmany() == [(1,)]
+    elif first_read == "fetchone":
+        assert limited.fetchone() == (1,)
+    else:
+        assert next(iter(limited)) == (1,)
+    assert limited.fetchall() == [(2,), (3,)]
+    assert limited.fetchmany(100) == []
+    assert limited.fetchall() == []
+    assert limited.fetchone() is None
+    assert list(limited) == []
+    assert [call.args[0] for call in cursor.fetchmany.call_args_list] == [1, 2]
+    cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize("retry_method", ["fetchall", "fetchmany"])
+@pytest.mark.parametrize("failed_size", [3, 100])
+def test_limited_cursor_error_fallback_stays_bounded(
+    retry_method: str, failed_size: int
+) -> None:
+    """Failed reads preserve the budget for a bounded fallback or retry."""
+    from superset.sql.execution.executor import _LimitedCursor
+
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.side_effect = [
+        RuntimeError("fetch failed"),
+        [(1,), (2,)],
+        [(3,), (4,), (5,)],
+    ]
+    limited = _LimitedCursor(cursor, 5)
+    with pytest.raises(RuntimeError, match="fetch failed"):
+        limited.fetchmany(failed_size)
+    if retry_method == "fetchall":
+        # A short batch does not end the read while budget remains.
+        assert limited.fetchall() == [(1,), (2,), (3,), (4,), (5,)]
+    else:
+        assert limited.fetchmany(100) == [(1,), (2,)]
+        assert limited.fetchall() == [(3,), (4,), (5,)]
+    assert limited.fetchall() == []
+    assert limited.fetchmany(100) == []
+    assert [call.args[0] for call in cursor.fetchmany.call_args_list] == [
+        min(failed_size, 5),
+        5,
+        3,
+    ]
+    cursor.fetchall.assert_not_called()
+
+
+def test_limited_cursor_fetchall_reads_through_short_batches() -> None:
+    """A driver returning short batches cannot make a capped result look complete."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.sql.execution.executor import _LimitedCursor
+
+    available = [(n,) for n in range(10)]
+    cursor = create_mock_cursor(["n"])
+
+    def short_batches(size: int) -> list[tuple[int]]:
+        """Serve at most two rows per call, as PEP 249 allows."""
+        batch = available[:2][:size]
+        del available[: len(batch)]
+        return batch
+
+    cursor.fetchmany.side_effect = short_batches
+    limited = _LimitedCursor(cursor, 5)
+
+    assert BaseEngineSpec.fetch_data(limited) == [(n,) for n in range(5)]
+    assert limited.check_truncated(BaseEngineSpec) is True
+    assert [call.args[0] for call in cursor.fetchmany.call_args_list] == [
+        5,
+        3,
+        1,
+        1,
+    ]
+    cursor.fetchall.assert_not_called()
+
+
+def test_limited_cursor_bigquery_error_fallback() -> None:
+    """BigQuery's parent fetch fallback retains the budget after a driver error."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.sql.execution.executor import _LimitedCursor
+
+    cursor = create_mock_cursor(["n"])
+    rows = [(1,), (2,), (3,)]
+    cursor.fetchmany.side_effect = [RuntimeError("fetch failed"), rows]
+    limited = _LimitedCursor(cursor, 3)
+
+    assert BigQueryEngineSpec.fetch_data(limited) == rows
+    assert limited.fetchall() == []
+    assert [call.args[0] for call in cursor.fetchmany.call_args_list] == [3, 3]
+    cursor.fetchall.assert_not_called()
+
+
+def test_limited_cursor_preserves_engine_conversions(mocker: MockerFixture) -> None:
+    """Keep base column normalization and SQL Server's native row conversion."""
+    from typing import NamedTuple
+
+    from sqlalchemy.types import Integer
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.execution.executor import _LimitedCursor
+
+    class Row(NamedTuple):
+        """Stand in for a native pyodbc row."""
+
+        n: int
+
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.return_value = [Row(1), Row(2)]
+    rows = MssqlEngineSpec.fetch_data(_LimitedCursor(cursor, 2))
+    assert rows == [(1,), (2,)]
+    assert all(type(row) is tuple for row in rows)
+
+    mocker.patch.object(MssqlEngineSpec, "get_sqla_column_type", return_value=Integer())
+    mocker.patch.object(
+        MssqlEngineSpec, "column_type_mutators", {Integer: lambda value: value + 10}
+    )
+    rows = MssqlEngineSpec.fetch_data(_LimitedCursor(cursor, 2))
+    assert rows == [(11,), (12,)]
+    cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "sql_limit", ["(5)", "(2 + 3)", "(0)", "(1 - 1)", "(15)", "(10 + 5)"]
+)
+def test_execute_expression_limit_never_increases_rows(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    sql_limit: str,
+) -> None:
+    """Verify conservative caps on expressions using actual SQLite results."""
+    mocker.patch.dict(
+        current_app.config,
+        {"SQL_MAX_ROW": 10, "SQL_QUERY_MUTATOR": None, "QUERY_LOGGER": None},
+    )
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.execute("CREATE TABLE numbers (n INTEGER)")
+        connection.executemany(
+            "INSERT INTO numbers VALUES (?)", [(n,) for n in range(20)]
+        )
+        mocker.patch.object(database, "get_raw_connection", return_value=connection)
+        sql = f"SELECT n FROM numbers ORDER BY n LIMIT {sql_limit}"  # noqa: S608
+        original = connection.execute(sql).fetchall()
+        result = database.execute(sql, QueryOptions(limit=10))
+    assert result.status == QueryStatus.SUCCESS
+    assert result.statements[0].row_count == min(len(original), 10)
 
 
 def test_apply_limit_to_script_respects_sql_max_row(
@@ -1747,6 +2629,7 @@ def test_async_handle_get_result_with_results_backend(
                     ],
                     "row_count": 2,
                     "execution_time_ms": 10.0,
+                    "truncated": True,
                 }
             ],
             "total_execution_time_ms": 10.0,
@@ -1778,6 +2661,7 @@ def test_async_handle_get_result_with_results_backend(
     assert len(query_result.statements) > 0
     assert query_result.statements[0].data is not None
     assert sum(s.row_count for s in query_result.statements) == 2
+    assert query_result.statements[0].truncated is True
 
 
 def test_async_handle_get_result_backend_load_error(
@@ -1915,6 +2799,7 @@ def test_cancel_query_early_cancel_flag(
     from superset.constants import QUERY_EARLY_CANCEL_KEY
     from superset.sql.execution.executor import SQLExecutor
 
+    session = mocker.patch("superset.sql.execution.executor.db.session")
     mock_query = MagicMock()
     mock_query.extra = {QUERY_EARLY_CANCEL_KEY: True}
 
@@ -1929,6 +2814,44 @@ def test_cancel_query_early_cancel_flag(
 
     assert result is True
     prepare_cancel_mock.assert_called_with(mock_query)
+    session.commit.assert_not_called()
+
+
+@pytest.mark.parametrize("finished_status", ["success", "failed", "timed_out"])
+def test_cancel_query_finished_while_preparing(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    finished_status: str,
+) -> None:
+    """A query that finished while the stop was prepared is not cancelled."""
+    from superset.common.db_query_status import QueryStatus
+    from superset.constants import QUERY_CANCEL_KEY
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query = MagicMock()
+    mock_query.status = QueryStatus.RUNNING
+    mock_query.extra = {QUERY_CANCEL_KEY: "0123456789abcdef:0123456789abcdef"}
+
+    def finish(query: MagicMock) -> None:
+        query.status = QueryStatus(finished_status)
+
+    mocker.patch.object(
+        database.db_engine_spec, "has_implicit_cancel", return_value=False
+    )
+    mocker.patch.object(
+        database.db_engine_spec, "prepare_cancel_query", side_effect=finish
+    )
+    cancel_mock = mocker.patch.object(
+        database.db_engine_spec, "cancel_query", return_value=True
+    )
+    get_engine = mocker.patch.object(database, "get_sqla_engine")
+
+    result = SQLExecutor._cancel_query(database, mock_query)
+
+    assert result is False
+    cancel_mock.assert_not_called()
+    get_engine.assert_not_called()
 
 
 def test_cancel_query_no_cancel_id(
@@ -2144,6 +3067,7 @@ def test_execute_sql_with_cursor_no_rows_or_description(
     mock_cursor.fetchall = MagicMock()
 
     mock_query = MagicMock()
+    mock_query.limit = None
     mock_query.schema = "public"
     mock_query.progress = 0
     mock_query.set_extra_json_key = MagicMock()
@@ -2233,10 +3157,13 @@ def test_try_get_cached_result_with_mutation(
     assert result is None
 
 
+@pytest.mark.parametrize(
+    "status", [QueryStatus.FAILED, QueryStatus.STOPPED, QueryStatus.TIMED_OUT]
+)
 def test_store_in_cache_with_failed_status(
-    mocker: MockerFixture, database: Database, app_context: None
+    mocker: MockerFixture, database: Database, app_context: None, status: QueryStatus
 ) -> None:
-    """Test that failed queries are not cached."""
+    """Unsuccessful outcomes, including a winning Stop, are never cached."""
     from superset_core.queries.types import QueryResult as QueryResultType
 
     from superset.sql.execution.executor import SQLExecutor
@@ -2244,7 +3171,7 @@ def test_store_in_cache_with_failed_status(
     executor = SQLExecutor(database)
 
     failed_result = QueryResultType(
-        status=QueryStatus.FAILED,
+        status=status,
         error_message="Test error",
     )
 
@@ -2460,6 +3387,7 @@ def test_get_from_cache_returns_cached_result(
                 "data": pd.DataFrame({"id": [1, 2]}),
                 "row_count": 2,
                 "execution_time_ms": 10.0,
+                "truncated": True,
             }
         ],
         "total_execution_time_ms": 10.0,
@@ -2474,6 +3402,7 @@ def test_get_from_cache_returns_cached_result(
     assert result.status == QueryStatus.SUCCESS
     assert result.is_cached is True
     assert sum(s.row_count for s in result.statements) == 2
+    assert result.statements[0].truncated is True
 
 
 def test_cached_async_result_get_result_returns_cached(
@@ -2725,3 +3654,350 @@ def test_store_in_cache_skips_when_identity_unknown(
     executor._store_in_cache(result, "SELECT * FROM salaries", QueryOptions())
 
     mock_cache_set.assert_not_called()
+
+
+@pytest.mark.parametrize("limit", [0, 2, 3, 5])
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "PRAGMA table_info(numbers)",
+        "INSERT INTO numbers VALUES (1, 2, 3), (4, 5, 6), (7, 8, 9) RETURNING n",
+    ],
+)
+def test_execute_reports_non_query_truncation(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    sql: str,
+    limit: int,
+) -> None:
+    """Metadata and RETURNING results distinguish omitted rows from exact caps."""
+    database.allow_dml = True
+    mocker.patch.dict(
+        current_app.config,
+        {"SQL_MAX_ROW": None, "SQL_QUERY_MUTATOR": None, "QUERY_LOGGER": None},
+    )
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.execute("CREATE TABLE numbers (n INTEGER, a INTEGER, b INTEGER)")
+        mocker.patch.object(database, "get_raw_connection", return_value=connection)
+        result = database.execute(sql, QueryOptions(limit=limit))
+        assert result.status == QueryStatus.SUCCESS
+        statement = result.statements[0]
+        assert statement.row_count == min(limit, 3)
+        assert statement.truncated is (limit < 3)
+
+
+@pytest.mark.parametrize("row_count,limit", [(0, 0), (0, 2), (2, 2), (3, 2)])
+def test_limited_cursor_truncation_probe(row_count: int, limit: int) -> None:
+    """A single probe distinguishes an exhausted result from omitted rows."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.sql.execution.executor import _LimitedCursor
+
+    with closing(sqlite3.connect(":memory:")) as connection:
+        cursor = connection.execute(
+            "SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 LIMIT ?", (row_count,)
+        )
+        limited = _LimitedCursor(cursor, limit)
+        assert len(limited.fetchall()) == min(limit, row_count)
+        assert limited.check_truncated(BaseEngineSpec) is (row_count > limit)
+
+
+@pytest.mark.parametrize("timeout_type", TIME_LIMIT_EXCEPTIONS)
+def test_execute_truncation_probe_propagates_time_limits(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    caplog: pytest.LogCaptureFixture,
+    timeout_type: type[BaseException],
+) -> None:
+    """A probe timeout propagates unchanged instead of returning partial rows."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import SupersetTimeoutException
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    timeout = (
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Truncation probe timed out",
+            level=ErrorLevel.ERROR,
+        )
+        if timeout_type is SupersetTimeoutException
+        else timeout_type()
+    )
+    mock_database.db_engine_spec = BaseEngineSpec
+    mock_query.limit = 2
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.return_value = [(1,), (2,)]
+    result_set = mocker.patch("superset.result_set.SupersetResultSet")
+
+    def fetch_rows(fetch_cursor: Any) -> list[tuple[int, ...]]:
+        """Consume the row budget, then interrupt the next engine fetch."""
+        rows = fetch_cursor.fetchall()
+        fetch_data.side_effect = timeout
+        return rows
+
+    fetch_data = mocker.patch.object(
+        BaseEngineSpec, "fetch_data", side_effect=fetch_rows
+    )
+
+    with pytest.raises(timeout_type) as raised:
+        execute_sql_with_cursor(
+            mock_database,
+            cursor,
+            ["SELECT n FROM t"],
+            mock_query,
+            execute_fn=MagicMock(),
+        )
+
+    assert raised.value is timeout
+    assert fetch_data.call_count == 2
+    assert fetch_data.call_args.args[0]._remaining == 1
+    assert "Truncation probe failed" not in caplog.text
+    result_set.assert_not_called()
+
+
+def test_execute_truncation_probe_propagates_an_engine_stop(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    A stop the engine observes during the probe ends the run as stopped,
+    instead of being logged as a failed probe and reported as a partial result.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.exceptions import QueryStoppedException
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    stop = QueryStoppedException("Query 1 was stopped while fetching results")
+    mock_database.db_engine_spec = BaseEngineSpec
+    mock_query.limit = 2
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.return_value = [(1,), (2,)]
+    result_set = mocker.patch("superset.result_set.SupersetResultSet")
+
+    def fetch_rows(fetch_cursor: Any) -> list[tuple[int, ...]]:
+        """Consume the row budget, then stop the next engine fetch."""
+        rows = fetch_cursor.fetchall()
+        fetch_data.side_effect = stop
+        return rows
+
+    fetch_data = mocker.patch.object(
+        BaseEngineSpec, "fetch_data", side_effect=fetch_rows
+    )
+
+    with pytest.raises(QueryStoppedException) as raised:
+        execute_sql_with_cursor(
+            mock_database,
+            cursor,
+            ["SELECT n FROM t"],
+            mock_query,
+            execute_fn=MagicMock(),
+        )
+
+    assert raised.value is stop
+    assert fetch_data.call_count == 2
+    assert "Truncation probe failed" not in caplog.text
+    result_set.assert_not_called()
+
+
+@pytest.mark.parametrize("eof", [True, False])
+def test_execute_truncation_probe_engine_errors(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    eof: bool,
+) -> None:
+    """Normalize Drill EOF; a real probe error keeps rows and flags truncation."""
+    from superset.db_engine_specs.drill import DrillEngineSpec
+    from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+    from superset.result_set import SupersetResultSet
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mock_database.db_engine_spec = DrillEngineSpec
+    mock_query.limit = 2
+    cursor = create_mock_cursor(["n"])
+    error = (
+        RuntimeError("generator raised StopIteration")
+        if eof
+        else OSError("connection lost")
+    )
+    cursor.fetchmany.side_effect = [[(1,), (2,)], error]
+    mocker.patch.object(
+        DrillEngineSpec,
+        "get_dbapi_exception_mapping",
+        return_value={OSError: SupersetDBAPIConnectionError},
+    )
+
+    def execute() -> list[tuple[str, SupersetResultSet | None, float, int]]:
+        """Exercise the shared sync/Celery fetch path."""
+        return execute_sql_with_cursor(
+            mock_database,
+            cursor,
+            ["SELECT n FROM t"],
+            mock_query,
+            execute_fn=MagicMock(),
+        )
+
+    # A failed probe keeps the fetched rows and reports them as possibly partial.
+    results = execute()
+    result_set = results[0][1]
+    assert result_set is not None
+    assert result_set.size == 2
+    assert result_set.truncated is not eof
+    assert cursor.fetchmany.call_args_list == [mocker.call(2), mocker.call(1)]
+    cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize("async_execution", [False, True])
+@pytest.mark.parametrize("limit", [None, 5])
+@pytest.mark.parametrize("sample_size", [2, 4])
+def test_execute_bigquery_memory_truncation_without_request(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    async_execution: bool,
+    limit: int | None,
+    sample_size: int,
+) -> None:
+    """Both execution paths retain engine truncation without a request context."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.sql.execution.celery_task import _execute_sql_statements
+    from superset.sql.execution.executor import SQLExecutor
+
+    assert not has_request_context()
+    mocker.patch.dict(
+        current_app.config,
+        {"BQ_FETCH_MAX_MB": 1, "SQL_MAX_ROW": None, "QUERY_LOGGER": None},
+    )
+    mocker.patch(
+        "superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", sample_size
+    )
+    mock_database.db_engine_spec = BigQueryEngineSpec
+    mock_query.database = mock_database
+    mock_query.limit = limit
+    mock_query.sql = "SELECT n FROM t"
+    # Three rows fit in 1 MB: exercise both the first- and second-batch caps.
+    rows = [("x" * 300_000,) for _ in range(5)]
+    remaining = iter(rows)
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+    mock_database.get_raw_connection.return_value = create_mock_connection(cursor)
+    mocker.patch.object(BigQueryEngineSpec, "execute")
+    mocker.patch.object(BigQueryEngineSpec, "execute_with_cursor")
+    mocker.patch.object(BigQueryEngineSpec, "get_cancel_query_id", return_value=None)
+
+    if async_execution:
+        mocker.patch(
+            "superset.sql.execution.celery_task._get_query", return_value=mock_query
+        )
+        mocker.patch("superset.sql.execution.celery_task.results_backend", None)
+        mocker.patch("superset.results_backend_use_msgpack", False)
+        payload = _execute_sql_statements(mock_query.id, mock_query.sql, None)
+        assert payload is not None
+        statement = payload["statements"][0]
+        assert statement["truncated"] is True
+        assert statement["row_count"] == max(3, sample_size)
+    else:
+        script = SQLScript(mock_query.sql, "bigquery")
+        statements = SQLExecutor(mock_database)._execute_statements(
+            script,
+            script,
+            None,
+            None,
+            mock_query,
+        )
+        assert statements[0].truncated is True
+        assert statements[0].row_count == max(3, sample_size)
+    assert sum(call.args[0] for call in cursor.fetchmany.call_args_list) == max(
+        4, sample_size + 1
+    )
+    cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize("row_delta", [-1, 0, 1])
+@pytest.mark.parametrize("request_cap", [False, True])
+def test_execute_bigquery_exact_sample_truncation(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    row_delta: int,
+    request_cap: bool,
+) -> None:
+    """A full memory-limited sample is truncated only if another row exists."""
+    from superset.db_engine_specs.bigquery import (
+        _BQ_INITIAL_SAMPLE_ROWS,
+        BigQueryEngineSpec,
+    )
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mocker.patch.dict(current_app.config, {"BQ_FETCH_MAX_MB": 1, "SQL_MAX_ROW": None})
+    mock_database.db_engine_spec = BigQueryEngineSpec
+    mock_query.limit = _BQ_INITIAL_SAMPLE_ROWS if request_cap else None
+    row_count = _BQ_INITIAL_SAMPLE_ROWS + row_delta
+    # The initial sample exceeds 1 MB, even at the exact EOF boundary.
+    row_bytes = 1024 * 1024 // _BQ_INITIAL_SAMPLE_ROWS + 1
+    rows = [("x" * row_bytes,) for _ in range(row_count)]
+    remaining = iter(rows)
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+
+    results = execute_sql_with_cursor(
+        mock_database,
+        cursor,
+        ["SELECT n FROM t"],
+        mock_query,
+        execute_fn=MagicMock(),
+    )
+    result_set = results[0][1]
+    assert result_set is not None
+    assert result_set.size == min(row_count, _BQ_INITIAL_SAMPLE_ROWS)
+    assert result_set.truncated is (row_delta > 0)
+    expected_calls = [mocker.call(_BQ_INITIAL_SAMPLE_ROWS)]
+    if row_delta >= 0:
+        expected_calls.append(mocker.call(1))
+    assert cursor.fetchmany.call_args_list == expected_calls
+    cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize("truncated", [False, True])
+def test_truncation_survives_cache_round_trip(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    truncated: bool,
+) -> None:
+    """Cache serialization retains fetch truncation independently of row count."""
+    from superset_core.queries.types import QueryResult, StatementResult
+
+    from superset.extensions import cache_manager
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+    result = QueryResult(
+        status=QueryStatus.SUCCESS,
+        statements=[
+            StatementResult(
+                original_sql="SELECT 1",
+                executed_sql="SELECT 1",
+                data=pd.DataFrame({"n": [1]}),
+                row_count=1,
+                truncated=truncated,
+            )
+        ],
+    )
+    cache_set = mocker.patch.object(cache_manager.data_cache, "set")
+    executor._store_in_cache(result, "SELECT 1", QueryOptions())
+    mocker.patch.object(
+        cache_manager.data_cache, "get", return_value=cache_set.call_args.args[1]
+    )
+    cached = executor._get_from_cache("SELECT 1", QueryOptions())
+    assert cached is not None
+    assert cached.statements[0].truncated is truncated

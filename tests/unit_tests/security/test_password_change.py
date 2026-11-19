@@ -16,17 +16,20 @@
 # under the License.
 
 from collections.abc import Iterator
+from datetime import datetime
 from typing import Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
+from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 
 from superset.security.password_change import (
     _get_user_attribute,
     _is_exempt_endpoint,
     password_change_required,
 )
+from superset.views.base import BaseSupersetView
 from superset.views.health import health_blueprint
 
 
@@ -36,10 +39,21 @@ from superset.views.health import health_blueprint
         (None, True),  # unmatched URLs
         ("", True),
         ("static", True),
-        ("ResetMyPasswordView.this_form_get", True),
-        ("ResetMyPasswordView.this_form_post", True),
-        ("ResetPasswordView.this_form_get", True),
-        ("ResetPasswordView.this_form_post", True),
+        # The SPA profile page, where the password gets changed, and the APIs
+        # its modal needs.
+        ("UserInfoView.list", True),
+        ("CurrentUserRestApi.get_me", True),
+        ("CurrentUserRestApi.update_me", True),
+        ("SecurityRestApi.csrf_token", True),
+        # ...and only those endpoints, never the whole API view class: a
+        # flagged user's permissions must not unlock guest tokens, the
+        # permissions search or the roles listing before the change.
+        ("SecurityRestApi.guest_token", False),
+        ("SecurityRestApi.get_list", False),
+        ("CurrentUserRestApi.get_my_roles", False),
+        # The legacy FAB reset views are no longer registered, nor exempt.
+        ("ResetMyPasswordView.this_form_get", False),
+        ("ResetPasswordView.this_form_get", False),
         ("AuthDBView.login", True),
         ("AuthDBView.logout", True),
         ("appbuilder.static", True),
@@ -113,6 +127,9 @@ def test_enforcement_exempts_health_blueprint(
         app.app_context(),
         app.test_client() as client,
         patch.object(app.login_manager, "_user_callback", return_value=user),
+        # Whether the profile-page redirect target itself is reachable is not
+        # under test here, only that health routes stay exempt either way.
+        patch.object(type(appbuilder.sm), "has_access", return_value=True),
         patch(
             "superset.security.password_change._get_user_attribute",
             return_value=UserAttribute(user_id=user.id, password_must_change=True),
@@ -143,8 +160,72 @@ def test_enforcement_exempts_health_blueprint(
         # unregistered hook or an anonymous session must not make this pass.
         response = client.get("/")
         assert response.status_code == 302
-        assert response.headers["Location"].endswith("/resetmypassword/form")
+        assert response.headers["Location"].endswith("/user_info/")
         get_attribute.assert_called_once_with(user.id)
+
+
+def test_enforcement_lets_flagged_user_change_password_in_the_spa(
+    app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A flagged user reaches the profile page and the APIs its "Reset my
+    password" modal needs, and nothing else: the redirect target must itself
+    be usable or the flow would trap the user."""
+    from superset.extensions import appbuilder
+    from superset.models.user_attributes import UserAttribute
+
+    now = datetime.now()
+    user = appbuilder.sm.user_model(
+        id=5,
+        active=True,
+        roles=[appbuilder.sm.find_role("Admin")],
+        username="flagged",
+        first_name="Flagged",
+        last_name="User",
+        email="flagged@example.org",
+        created_on=now,
+        changed_on=now,
+    )
+    monkeypatch.setitem(app.config, "ENABLE_FORCE_PASSWORD_CHANGE", True)
+    with (
+        app.app_context(),
+        app.test_client() as client,
+        patch.object(app.login_manager, "_user_callback", return_value=user),
+        # Neither authorization nor the SPA shell is under test here: grant
+        # every permission, and stand in for the template the minimal test
+        # app does not ship.
+        patch.object(type(appbuilder.sm), "has_access", return_value=True),
+        patch.object(BaseSupersetView, "render_app_template", return_value="ok"),
+        patch(
+            "superset.security.password_change._get_user_attribute",
+            return_value=UserAttribute(user_id=user.id, password_must_change=True),
+        ),
+        patch(
+            "superset.security.session_invalidation._get_user_invalidated_at",
+            return_value=None,
+        ),
+    ):
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+            session["_fresh"] = True
+
+        for path in ("/user_info/", "/api/v1/me/", "/api/v1/security/csrf_token/"):
+            response = client.get(path)
+            assert response.status_code == 200, path
+
+        for path in ("/", "/api/v1/dashboard/"):
+            response = client.get(path)
+            assert response.status_code == 302, path
+            assert response.headers["Location"].endswith("/user_info/"), path
+
+        # The exemption is per endpoint, not per view class: this user holds
+        # every permission, yet the rest of the security API stays behind the
+        # gate until the password is changed.
+        for path in ("/api/v1/security/guest_token/", "/api/v1/me/roles/"):
+            response = client.open(
+                path, method="POST" if "guest_token" in path else "GET", json={}
+            )
+            assert response.status_code == 302, path
+            assert response.headers["Location"].endswith("/user_info/"), path
 
 
 def test_get_user_attribute_deterministic_with_duplicates() -> None:
@@ -202,6 +283,14 @@ def enforcement_app() -> Flask:
     def index() -> str:  # pylint: disable=unused-variable
         return "index"
 
+    # Stand in for the real appbuilder/security manager: defaults to "the
+    # user can reach the profile page", which most tests in this module
+    # assume. Tests exercising the no-access fallback override
+    # `has_access.return_value` directly.
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.has_access.return_value = True
+    app.appbuilder.sm.auth_view = None
+
     register_password_change_enforcement(app)
     return app
 
@@ -218,9 +307,9 @@ def _no_babel_flash() -> Iterator[None]:
         yield
 
 
-def test_enforcement_redirects_to_reset_view(enforcement_app: Flask) -> None:
-    # Happy path: the reset endpoint resolves, so flagged users are redirected
-    # there (an exempt route) — no loop.
+def test_enforcement_redirects_to_profile_page(enforcement_app: Flask) -> None:
+    # Happy path: the SPA profile page resolves, so flagged users are
+    # redirected there (an exempt route) — no loop.
     with (
         patch(
             "superset.security.password_change.password_change_required",
@@ -228,22 +317,55 @@ def test_enforcement_redirects_to_reset_view(enforcement_app: Flask) -> None:
         ),
         patch(
             "superset.security.password_change.url_for",
-            return_value="/resetmypassword/form",
-        ),
+            return_value="/user_info/",
+        ) as mock_url_for,
     ):
         resp = enforcement_app.test_client().get("/")
     assert resp.status_code == 302
-    assert resp.headers["Location"].endswith("/resetmypassword/form")
+    assert resp.headers["Location"].endswith("/user_info/")
+    mock_url_for.assert_called_once_with("UserInfoView.list")
+
+
+def test_enforcement_skips_unreachable_profile_page_falls_back_to_logout(
+    enforcement_app: Flask,
+) -> None:
+    # A role without `can_read` on `user` (any custom role not based on
+    # Admin/Alpha/Gamma) can't reach `UserInfoView.list`: redirecting there
+    # anyway would hit FAB's own access-denied redirect (to login), which,
+    # since the user is already authenticated, bounces to the index, which
+    # re-runs this hook and redirects back to the profile page — an infinite
+    # loop. The hook must recognize that up front and go straight to the
+    # logout fallback instead.
+    enforcement_app.appbuilder.sm.has_access.return_value = False
+    with (
+        patch(
+            "superset.security.password_change.password_change_required",
+            return_value=True,
+        ),
+        patch(
+            "superset.security.password_change.url_for",
+            return_value="/logout",
+        ) as mock_url_for,
+        patch("superset.security.password_change.flash") as mock_flash,
+    ):
+        resp = enforcement_app.test_client().get("/")
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/logout")
+    mock_url_for.assert_called_once_with("AuthDBView.logout")
+    enforcement_app.appbuilder.sm.has_access.assert_called_with("can_read", "user")
+    assert any(
+        "does not have access" in call.args[0] for call in mock_flash.call_args_list
+    )
 
 
 def test_enforcement_falls_back_to_exempt_logout_not_index(
     enforcement_app: Flask,
 ) -> None:
-    # If the reset endpoint can't be resolved, the fallback must be an exempt
+    # If the profile page can't be resolved, the fallback must be an exempt
     # route (logout) — never "/" / the index, which would loop. We make the
-    # reset endpoint fail and the logout endpoint resolve.
+    # profile page fail and the logout endpoint resolve.
     def fake_url_for(endpoint: str, *args, **kwargs) -> str:
-        if endpoint == "ResetMyPasswordView.this_form_get":
+        if endpoint == "UserInfoView.list":
             raise RuntimeError("no such endpoint")
         if endpoint == "AuthDBView.logout":
             return "/logout"
@@ -285,3 +407,22 @@ def test_enforcement_no_resolvable_target_returns_error_not_loop(
         resp = enforcement_app.test_client().get("/")
     assert resp.status_code == 503
     assert "Location" not in resp.headers
+
+
+def test_enforcement_remote_user_without_profile_access_returns_terminal_403(
+    enforcement_app: Flask,
+) -> None:
+    # Under AUTH_REMOTE_USER a logout redirect cannot help: the unchanged
+    # REMOTE_USER header re-authenticates the user at once and the request
+    # loops. A flagged user without profile access must get a terminal
+    # explanatory response instead of a redirect.
+    enforcement_app.config["AUTH_TYPE"] = AUTH_REMOTE_USER
+    enforcement_app.appbuilder.sm.has_access.return_value = False
+    with patch(
+        "superset.security.password_change.password_change_required",
+        return_value=True,
+    ):
+        resp = enforcement_app.test_client().get("/")
+    assert resp.status_code == 403
+    assert "Location" not in resp.headers
+    assert "does not have access" in resp.get_data(as_text=True)

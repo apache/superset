@@ -30,7 +30,10 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,
+    DashboardNotFoundError,
+)
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.layout_validation import (
@@ -42,6 +45,9 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardError,
     UpdateDashboardRequest,
     UpdateDashboardResponse,
+)
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -81,6 +87,11 @@ def _find_and_authorize_dashboard(
         return None, DashboardError(
             error=f"Dashboard not found: {identifier!r}",
             error_type="DashboardNotFound",
+        )
+    except DashboardAccessDeniedError:
+        return None, UpdateDashboardResponse(
+            permission_denied=True,
+            error=f"You don't have access to dashboard {identifier!r}.",
         )
     except SQLAlchemyError:
         # ``str(exc)`` on SQLAlchemyError frequently contains table/column/
@@ -310,6 +321,9 @@ async def update_dashboard(
 ) -> UpdateDashboardResponse | DashboardError:
     """Patch an existing dashboard's layout, theme, styling, or metadata.
 
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
+
     Companion to ``generate_dashboard`` for incremental metadata and styling
     edits. An LLM can:
 
@@ -343,6 +357,10 @@ async def update_dashboard(
     dashboard, auth_error = _find_and_authorize_dashboard(request.identifier)
     if auth_error is not None:
         return auth_error
+
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is not None:
+        return UpdateDashboardResponse(managed_externally=True, error=refusal)
 
     validation_error: DashboardError | None = _validate_update_request(
         dashboard, request

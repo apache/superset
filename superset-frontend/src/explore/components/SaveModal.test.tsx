@@ -104,6 +104,7 @@ const initialState = {
     isVisible: true,
   },
   explore: {
+    can_add: true,
     datasource: {},
     slice: {
       slice_id: 1,
@@ -907,3 +908,57 @@ test('addChartToDashboard handles empty position_json', async () => {
     mockNanoid.mockRestore();
   }
 });
+
+test.each([
+  {
+    name: 'explicit editor',
+    editors: [{ id: 1 }],
+    extraEditors: [],
+    canWrite: false,
+  },
+  {
+    name: 'explicit editor',
+    editors: [{ id: 1 }],
+    extraEditors: [],
+    canWrite: true,
+  },
+  { name: 'extra editor', editors: [], extraEditors: [1], canWrite: false },
+  { name: 'extra editor', editors: [], extraEditors: [1], canWrite: true },
+])(
+  '$name overwrite requires Chart write permission ($canWrite)',
+  ({ editors, extraEditors, canWrite }) => {
+    const { getByRole, getByText } = setup(
+      {},
+      mockStore({
+        ...initialState,
+        explore: {
+          ...initialState.explore,
+          can_add: canWrite,
+          can_overwrite: false,
+          slice: {
+            ...initialState.explore.slice,
+            editors,
+            extra_editors: extraEditors,
+          },
+        },
+        user: {
+          userId: 1,
+          username: 'Gamma',
+          roles: { Gamma: [] },
+          permissions: {},
+        },
+      }),
+    );
+    const overwrite = getByRole('radio', { name: 'Save (Overwrite)' });
+    if (canWrite) {
+      expect(overwrite).toBeEnabled();
+      expect(overwrite).toBeChecked();
+    } else {
+      expect(overwrite).toBeDisabled();
+      expect(getByRole('radio', { name: 'Save as...' })).toBeChecked();
+      expect(
+        getByText('You do not have permission to edit this chart'),
+      ).toBeInTheDocument();
+    }
+  },
+);

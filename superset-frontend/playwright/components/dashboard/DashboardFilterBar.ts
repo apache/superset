@@ -125,7 +125,11 @@ export class DashboardFilterBar {
     return modal;
   }
 
-  private getApplyButton(): Button {
+  /**
+   * The Apply button, exposed for specs that need to assert on its
+   * enabled/disabled state (e.g. a re-selection re-enabling it).
+   */
+  getApplyButton(): Button {
     return new Button(
       this.page,
       this.root.locator(DashboardFilterBar.SELECTORS.APPLY_BUTTON),

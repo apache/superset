@@ -39,10 +39,14 @@ _BUTTON_STYLE = (
     "text-decoration:none;border-radius:4px;"
 )
 
-# Reason keys under which the export task groups charts it could not export.
-# The task classifies each omitted chart under one of these; the email renders a
-# separate, labelled section per non-empty group with its own remediation text.
+# Reason keys under which the export groups charts it could not export.
+# Each omitted chart is classified under one of these; the email and the
+# workbook's summary sheet render a labelled section per non-empty group with
+# its own remediation text.
 ERROR_NO_QUERY_CONTEXT = "no-query-context"
+# Direct downloads only: the chart's queries have no row bound known before
+# they run, so only a background export can include it.
+ERROR_UNBOUNDED = "unbounded-query"
 ERROR_GENERAL = "general-exception"
 
 
@@ -96,13 +100,18 @@ def errored_groups(errored: dict[str, list[str]]) -> list[tuple[str, list[str]]]
             "The following charts were omitted because they have no saved query "
             "context. To include them, open each chart in Explore and re-save."
         ),
+        ERROR_UNBOUNDED: __(
+            "The following charts were omitted because their size cannot be "
+            "determined before they run. Ask an administrator to enable "
+            "background exports to include them."
+        ),
         ERROR_GENERAL: __(
             "The following charts were omitted because an error occurred while "
             "exporting them:"
         ),
     }
     fallback = __("The following charts could not be exported:")
-    ordered = [ERROR_NO_QUERY_CONTEXT, ERROR_GENERAL]
+    ordered = [ERROR_NO_QUERY_CONTEXT, ERROR_UNBOUNDED, ERROR_GENERAL]
     reasons = ordered + [reason for reason in errored if reason not in ordered]
     return [
         (str(notes.get(reason, fallback)), labels)

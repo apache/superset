@@ -18,6 +18,15 @@
  */
 export const ELEMENT_HEIGHT_SCALE = 0.85 as const;
 
+// Category names are drawn as markLine labels anchored to the start of the grid,
+// which `grid.containLabel` does not account for, so the room they need is
+// reserved by hand. These drive that calculation in transformProps.
+export const CATEGORY_LABEL_GAP = 8 as const;
+export const MAX_CATEGORY_LABEL_WIDTH_RATIO = 0.25 as const;
+// ECharts' `overflow: 'truncate'` treats a label box as 1px narrower than its
+// `width`, so a box sized to exactly the measured text width truncates it.
+export const CATEGORY_LABEL_TRUNCATE_GAP = 1 as const;
+
 export enum Dimension {
   StartTime = 'startTime',
   EndTime = 'endTime',

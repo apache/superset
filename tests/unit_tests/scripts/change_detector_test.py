@@ -15,12 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import io
+from pathlib import Path
 from unittest import mock
 from urllib.error import HTTPError, URLError
 
 import pytest
 
 from scripts import change_detector
+from superset.utils import json
 
 
 def _make_response(body: bytes) -> mock.MagicMock:
@@ -176,3 +178,282 @@ def test_docker_workflow_changes_trigger_docker_build() -> None:
         [".github/workflows/docker.yml"],
         change_detector.PATTERNS["docker"],
     )
+
+
+def test_grype_config_changes_trigger_docker_build() -> None:
+    """A change to only `.grype.yaml` (the vulnerability-scan config) must
+    still be classified as "docker", or an accidental broad exclusion in it
+    goes unexercised by CI until it reaches master."""
+    assert change_detector.detect_changes(
+        [".grype.yaml"],
+        change_detector.PATTERNS["docker"],
+    )
+
+
+def test_fetch_changed_files_push_uses_full_push_range() -> None:
+    changed_files = [
+        {"filename": "superset/foo.py"},
+        {"filename": "superset-frontend/src/foo.tsx"},
+    ]
+
+    with mock.patch.object(
+        change_detector,
+        "fetch_files_github_api",
+        return_value={"files": changed_files},
+    ) as fetch_mock:
+        result = change_detector.fetch_changed_files_push(
+            "apache/superset",
+            "after-sha",
+            "before-sha",
+        )
+
+    assert result == [
+        "superset/foo.py",
+        "superset-frontend/src/foo.tsx",
+    ]
+
+    fetch_mock.assert_called_once_with(
+        "https://api.github.com/repos/apache/superset/compare/before-sha...after-sha"
+    )
+
+
+def test_get_push_event_returns_empty_without_event_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Local runs have no event file, so there is no `before` to compare from."""
+    monkeypatch.delenv("GITHUB_EVENT_PATH", raising=False)
+
+    assert change_detector.get_push_event() == {}
+
+
+def test_get_push_event_reads_event_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The webhook payload GitHub writes to GITHUB_EVENT_PATH is returned as-is."""
+    event = {"before": "before-sha", "after": "after-sha", "forced": False}
+    event_file = tmp_path / "github-event.json"
+    event_file.write_text(json.dumps(event))
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event_file))
+
+    assert change_detector.get_push_event() == event
+
+
+def test_main_push_detects_changes_from_multiple_commits(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The push range is `before...after`: the final commit only touches the
+    frontend, yet python must be detected from the earlier commit. A revert to
+    the parent-only compare fails the python assertion."""
+    event_file = tmp_path / "github-event.json"
+    event_file.write_text(json.dumps({"before": "before-sha", "after": "after-sha"}))
+    output_file = tmp_path / "github-output"
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event_file))
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+
+    responses = {
+        "https://api.github.com/repos/apache/superset/compare/before-sha...after-sha": {
+            "files": [
+                {"filename": "superset/foo.py"},
+                {"filename": "superset-frontend/src/foo.tsx"},
+            ]
+        },
+        "https://api.github.com/repos/apache/superset/commits/after-sha": {
+            "parents": [{"sha": "parent-sha"}]
+        },
+        "https://api.github.com/repos/apache/superset/compare/parent-sha...after-sha": {
+            "files": [{"filename": "superset-frontend/src/foo.tsx"}]
+        },
+    }
+    with mock.patch.object(
+        change_detector,
+        "fetch_files_github_api",
+        side_effect=lambda url: responses[url],
+    ):
+        change_detector.main("push", "after-sha", "apache/superset")
+
+    output = output_file.read_text()
+    assert "python=true" in output
+    assert "frontend=true" in output
+
+
+def test_main_push_without_event_file_compares_against_parent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Local runs have no event file, so the parent-only compare is kept."""
+    output_file = tmp_path / "github-output"
+    monkeypatch.delenv("GITHUB_EVENT_PATH", raising=False)
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+
+    responses = {
+        "https://api.github.com/repos/apache/superset/commits/after-sha": {
+            "parents": [{"sha": "parent-sha"}]
+        },
+        "https://api.github.com/repos/apache/superset/compare/parent-sha...after-sha": {
+            "files": [{"filename": "superset-frontend/src/foo.tsx"}]
+        },
+    }
+    with mock.patch.object(
+        change_detector,
+        "fetch_files_github_api",
+        side_effect=lambda url: responses[url],
+    ):
+        change_detector.main("push", "after-sha", "apache/superset")
+
+    output = output_file.read_text()
+    assert "frontend=true" in output
+    assert "python=true" not in output
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        pytest.param(
+            {"before": "a" * 40, "after": "b" * 40, "forced": True},
+            id="forced-push",
+        ),
+        pytest.param(
+            {"before": change_detector.ZERO_SHA, "after": "b" * 40, "forced": False},
+            id="new-branch-first-push",
+        ),
+    ],
+)
+def test_main_push_assumes_all_changed_for_forced_or_new_branch_push(
+    event: dict[str, object], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A force push rewrites history, so `before...after` can skip real changes,
+    and a zero `before` has no base to compare against. Both must run every
+    group and every language without calling the GitHub API."""
+    event_file = tmp_path / "github-event.json"
+    event_file.write_text(json.dumps(event))
+    output_file = tmp_path / "github-output"
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event_file))
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+
+    with mock.patch.object(change_detector, "fetch_files_github_api") as fetch_mock:
+        change_detector.main("push", "b" * 40, "apache/superset")
+
+    fetch_mock.assert_not_called()
+    output = output_file.read_text().splitlines()
+    for group in change_detector.PATTERNS:
+        assert f"{group}=true" in output
+    assert 'languages=["javascript", "python"]' in output
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "superset/coordination/cache_backend.py",
+        "superset/utils/cache_manager.py",
+        "superset/semantic_layers/cache_repository.py",
+    ],
+)
+def test_lease_backend_changes_trigger_semantic_cache_coordination(path: str) -> None:
+    """The real-Redis coordination job must run for the owner-token lease code
+    it exercises, which lives outside the semantic_layers package."""
+    assert change_detector.detect_changes(
+        [path], change_detector.PATTERNS["semantic-layers"]
+    )
+
+
+def test_detect_languages_classifies_js_outside_frontend_dir() -> None:
+    """A .js file outside superset-frontend/ is still "javascript", even
+    though PATTERNS groups it under "python" by directory -- the gap
+    https://github.com/apache/superset/issues/44822 tracks."""
+    files = ["superset/mcp_service/index.js"]
+    assert change_detector.detect_languages(files) == ["javascript"]
+    assert change_detector.detect_changes(files, change_detector.PATTERNS["python"])
+    assert not change_detector.detect_changes(
+        files, change_detector.PATTERNS["frontend"]
+    )
+
+
+def test_detect_languages_mixed_py_and_ts() -> None:
+    files = ["superset/foo.py", "superset-frontend/src/bar.tsx"]
+    assert change_detector.detect_languages(files) == ["javascript", "python"]
+
+
+def test_detect_languages_ignores_unmapped_extensions() -> None:
+    assert change_detector.detect_languages(["docs/intro.md", "Dockerfile"]) == []
+
+
+def test_detect_languages_none_means_every_language() -> None:
+    """workflow_dispatch/schedule runs assume everything changed."""
+    assert change_detector.detect_languages(None) == ["javascript", "python"]
+
+
+def test_group_language_extensions_reuses_pattern_group_names() -> None:
+    """The language map is keyed by the same group names as PATTERNS,
+    rather than introducing its own, so a group's language(s) can be looked
+    up directly."""
+    assert set(change_detector.GROUP_LANGUAGE_EXTENSIONS) <= set(
+        change_detector.PATTERNS
+    )
+    assert change_detector.GROUP_LANGUAGE_EXTENSIONS["python"] == {".py": "python"}
+    assert change_detector.GROUP_LANGUAGE_EXTENSIONS["frontend"][".tsx"] == (
+        "javascript"
+    )
+
+
+def test_main_writes_languages_to_github_output(tmp_path, monkeypatch) -> None:
+    """`main()` must write `languages` to $GITHUB_OUTPUT, not just compute it
+    -- a value that's assigned but never written is invisible to any
+    consuming workflow step."""
+    output_file = tmp_path / "github_output.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    monkeypatch.setattr(
+        change_detector,
+        "fetch_changed_files_push",
+        lambda repo, sha, before_sha=None: [
+            "superset/foo.py",
+            "superset-frontend/src/bar.tsx",
+        ],
+    )
+
+    change_detector.main("push", "deadbeef", "apache/superset")
+
+    output = output_file.read_text()
+    assert 'languages=["javascript", "python"]' in output
+    assert "python=true" in output
+    assert "frontend=true" in output
+
+
+def test_main_languages_respects_the_99_file_cap(tmp_path, monkeypatch) -> None:
+    """A push/PR touching >= 99 files is treated as "everything changed" for
+    the PATTERNS groups; languages must honor the same cap so a consumer
+    combining both outputs never sees a language silently excluded by it."""
+    output_file = tmp_path / "github_output.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    monkeypatch.setattr(
+        change_detector,
+        "fetch_changed_files_push",
+        lambda repo, sha, before_sha=None: [f"docs/page{i}.md" for i in range(99)],
+    )
+
+    change_detector.main("push", "deadbeef", "apache/superset")
+
+    output = output_file.read_text()
+    assert 'languages=["javascript", "python"]' in output
+
+
+@pytest.mark.parametrize("group", ["frontend", "python"])
+def test_composite_action_changes_trigger_tests(group: str) -> None:
+    """Composite actions are shared setup matched by nothing else, so a change
+    to one can break a job while touching neither superset-frontend/ nor
+    superset/. setup-backend is a backend action, so "python" needs it too."""
+    assert change_detector.detect_changes(
+        [".github/actions/setup-backend/action.yml"],
+        change_detector.PATTERNS[group],
+    )
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "superset-core/src/superset_core/semantic_layers/layer.py",
+        "superset-core/tests/semantic_layers/test_registration.py",
+        "superset-core/pyproject.toml",
+    ],
+)
+def test_sdk_changes_trigger_python_unit_workflow(path: str) -> None:
+    """SDK-only changes must run the workflow that contains the SDK test step."""
+    assert change_detector.detect_changes([path], change_detector.PATTERNS["python"])

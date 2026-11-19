@@ -76,6 +76,7 @@ import { CrossFilterIndicator } from '../../selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
+import { isHiddenSemanticCustomization } from '../../utils';
 import FilterControl from './FilterControl';
 import FilterDivider from './FilterDivider';
 
@@ -102,10 +103,6 @@ type FilterControlsProps = {
   onCascadeClearComplete?: (filterId: string) => void;
   hideHeader?: boolean;
 };
-
-const SectionContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
-`;
 
 const SectionHeader = styled.button`
   appearance: none;
@@ -214,7 +211,10 @@ const FilterControls: FC<FilterControlsProps> = ({
     useSelectFiltersInScope(filtersWithValues);
 
   const filteredChartCustomizationValues = useMemo(
-    () => chartCustomizationValues.filter(item => !item.removed),
+    () =>
+      chartCustomizationValues.filter(
+        item => !item.removed && !isHiddenSemanticCustomization(item),
+      ),
     [chartCustomizationValues],
   );
 
@@ -327,7 +327,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     () => (
       <>
         {filtersInScope.length > 0 && (
-          <SectionContainer>
+          <div>
             {!hideHeader && (
               <SectionHeader
                 type="button"
@@ -353,7 +353,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               <SectionContent>{filtersInScope.map(renderer)}</SectionContent>
             )}
             {(hideHeader || sectionsOpen.filters) && <StyledDivider />}
-          </SectionContainer>
+          </div>
         )}
 
         {showFiltersOutOfScope && (
@@ -365,7 +365,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         )}
 
         {customizationsInScope.length > 0 && (
-          <SectionContainer>
+          <div>
             {!hideHeader && (
               <SectionHeader
                 type="button"
@@ -402,7 +402,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             {(hideHeader || sectionsOpen.chartCustomization) && (
               <StyledDivider />
             )}
-          </SectionContainer>
+          </div>
         )}
 
         {showCustomizationCollapsePanel &&
@@ -429,8 +429,6 @@ const FilterControls: FC<FilterControlsProps> = ({
       toggleSection,
       theme,
       hideHeader,
-      handleChartCustomizationChange,
-      dataMaskSelected,
     ],
   );
 
@@ -509,7 +507,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     const dividerItems = [];
     if (
       (crossFilters.length > 0 || nativeFiltersInScope.length > 0) &&
-      chartCustomizationValues.length > 0
+      customizationsInScope.length > 0
     ) {
       dividerItems.push({
         id: 'chart-customization-divider',
@@ -586,7 +584,6 @@ const FilterControls: FC<FilterControlsProps> = ({
     theme,
     handleChartCustomizationChange,
     dataMaskSelected,
-    chartCustomizationValues.length,
   ]);
 
   const renderHorizontalContent = useCallback(
@@ -663,6 +660,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                         rendererCrossFilter={rendererCrossFilter}
                         customizationRenderer={customizationRenderer}
                         showCollapsePanel={showCollapsePanel}
+                        // Out-of-scope collapsible panels inside opened dropdown content
                         forceRenderOutOfScope={hasRequiredFirst}
                       />
                       {showCustomizationCollapsePanel && (
@@ -677,7 +675,6 @@ const FilterControls: FC<FilterControlsProps> = ({
                 }
               : undefined
           }
-          forceRender={hasRequiredFirst}
           ref={popoverRef}
           onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
             if (

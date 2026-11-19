@@ -28,6 +28,8 @@ The suite runs with ``ENABLE_VERSIONING_CAPTURE=True`` (see
 autouse fixture clears the version tables around each test.
 """
 
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -35,12 +37,15 @@ import pytest
 import sqlalchemy as sa
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session
+from sqlalchemy_continuum import version_class
+from werkzeug.test import TestResponse
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
+from superset.versioning.baseline.children import CHILD_BASELINE_HANDLERS
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
@@ -578,8 +583,14 @@ class TestDatasetVersionsApi(SupersetTestCase):
         original = dataset.description
         clear_version_tables()
         self.login(ADMIN_USERNAME)
+        baseline_children: Callable[[Session, object, int], None] = (
+            CHILD_BASELINE_HANDLERS["SqlaTable"]
+        )
+        handler_calls: list[int] = []
 
         def fail_children(session: Session, _parent: object, _tx_id: int) -> None:
+            baseline_children(session, _parent, _tx_id)
+            handler_calls.append(_tx_id)
             session.connection().execute(
                 sa.text("INSERT INTO __missing_child_shadow__ (x) VALUES (1)")
             )
@@ -589,12 +600,13 @@ class TestDatasetVersionsApi(SupersetTestCase):
                 "superset.versioning.baseline.insertion.CHILD_BASELINE_HANDLERS",
                 {"SqlaTable": fail_children},
             ):
-                rv = self.client.put(
+                rv: TestResponse = self.client.put(
                     f"/api/v1/dataset/{dataset_id}",
                     json={"description": "survives child baseline failure"},
                 )
 
             assert rv.status_code == 200, rv.data
+            assert len(handler_calls) == 1
             got = json.loads(self.client.get(f"/api/v1/dataset/{dataset_id}").data)[
                 "result"
             ]
@@ -607,45 +619,83 @@ class TestDatasetVersionsApi(SupersetTestCase):
                 ),
                 {"id": dataset_id},
             )
-            child_baselines = db.session.scalar(
-                sa.text(
-                    "SELECT count(*) FROM table_columns_version "
-                    "WHERE table_id = :id AND operation_type = 0"
-                ),
-                {"id": dataset_id},
-            )
-            metric_baselines = db.session.scalar(
-                sa.text(
-                    "SELECT count(*) FROM sql_metrics_version "
-                    "WHERE table_id = :id AND operation_type = 0"
-                ),
-                {"id": dataset_id},
-            )
             assert parent_baselines == 0
-            assert child_baselines == 0
-            assert metric_baselines == 0
-            canonical_updates = db.session.scalar(
-                sa.text(
-                    "SELECT count(*) FROM tables_version "
-                    "WHERE id = :id AND operation_type = 1 "
-                    "AND description = :description"
-                ),
-                {
-                    "id": dataset_id,
-                    "description": "survives child baseline failure",
-                },
+            canonical_transactions: list[int] = list(
+                db.session.scalars(
+                    sa.text(
+                        "SELECT transaction_id FROM tables_version "
+                        "WHERE id = :id AND operation_type = 1 "
+                        "AND description = :description"
+                    ),
+                    {
+                        "id": dataset_id,
+                        "description": "survives child baseline failure",
+                    },
+                )
             )
-            assert canonical_updates == 1
+            assert len(canonical_transactions) == 1
             assert (
                 db.session.scalar(sa.text("SELECT count(*) FROM version_transaction"))
                 == 1
             )
+            canonical_tx: int = canonical_transactions[0]
+            expected_children: dict[str, set[int]] = {}
+            live_table: sa.Table
+            shadow_table: sa.Table
+            snapshot_key: str
+            for live_table, shadow_table, snapshot_key in (
+                (
+                    TableColumn.__table__,
+                    version_class(TableColumn).__table__,
+                    "columns",
+                ),
+                (SqlMetric.__table__, version_class(SqlMetric).__table__, "metrics"),
+            ):
+                live_ids: set[int] = set(
+                    db.session.scalars(
+                        sa.select(live_table.c.id).where(
+                            live_table.c.table_id == dataset_id
+                        )
+                    )
+                )
+                captured: list[tuple[int, int, int, int | None]] = list(
+                    db.session.execute(
+                        sa.select(
+                            shadow_table.c.id,
+                            shadow_table.c.transaction_id,
+                            shadow_table.c.operation_type,
+                            shadow_table.c.end_transaction_id,
+                        ).where(shadow_table.c.table_id == dataset_id)
+                    )
+                )
+                # Reconciliation records the complete current children at the
+                # surviving update, with no rows from the rolled-back baseline.
+                assert len(captured) == len(live_ids)
+                assert {child_id for child_id, *_ in captured} == live_ids
+                assert all(
+                    tx_id == canonical_tx and operation == 0 and end_tx is None
+                    for _, tx_id, operation, end_tx in captured
+                )
+                expected_children[snapshot_key] = live_ids
+            assert expected_children["columns"]
 
             listing = json.loads(
                 self.client.get(f"/api/v1/dataset/{got['uuid']}/versions/").data
             )
             assert listing["count"] == 1
             assert listing["result"][0]["operation_type"] == "update"
+            version_uuid: str = listing["result"][0]["version_uuid"]
+            rv = self.client.get(
+                f"/api/v1/dataset/{got['uuid']}/versions/{version_uuid}/"
+            )
+            assert rv.status_code == 200, rv.data
+            snapshot: dict[str, Any] = json.loads(rv.data)["result"]
+            assert {child["id"] for child in snapshot["columns"]} == expected_children[
+                "columns"
+            ]
+            assert {child["id"] for child in snapshot["metrics"]} == expected_children[
+                "metrics"
+            ]
         finally:
             self.client.put(
                 f"/api/v1/dataset/{dataset_id}",

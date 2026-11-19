@@ -43,10 +43,17 @@ from typing import Any
 from fastmcp.server.auth import AccessToken
 from fastmcp.server.auth.providers.jwt import TokenVerifier
 
+from superset.security.guest_token import (
+    enforce_guest_token_identity,
+    GuestTokenIdentityError,
+)
+
 logger = logging.getLogger(__name__)
 
-# Namespaced claim flagging an AccessToken as a verified guest token. The paired
-# ``client_id == "guest"`` check keeps an external IdP JWT from posing as a guest.
+# Namespaced claim flagging an AccessToken as a verified guest token. At
+# resolution it is honored only with the verifier's ``client_id == "guest"`` and
+# a bearer that re-verifies as a guest token, so an external IdP JWT carrying the
+# claim cannot pose as a guest.
 GUEST_TOKEN_CLAIM: str = "_superset_mcp_guest_token"  # noqa: S105
 
 
@@ -110,6 +117,12 @@ class GuestTokenVerifier(TokenVerifier):
                     or parsed.get("type") != "guest"
                 ):
                     logger.debug("Guest token failed structural validation; deferring")
+                    return None
+
+                try:
+                    enforce_guest_token_identity(parsed["user"], parsed["resources"])
+                except GuestTokenIdentityError:
+                    logger.debug("Guest token carries an invalid identity; deferring")
                     return None
 
                 if sm._is_guest_token_revoked(parsed):  # noqa: SLF001

@@ -159,20 +159,20 @@ export const FilterBarScrollContext = createContext(false);
 const VerticalFilterBar: FC<VerticalBarProps> = ({
   actions,
   canEdit,
+  clearAllTriggers,
   dataMaskSelected,
   filtersOpen,
   filterValues,
   chartCustomizationValues,
   height,
   isInitialized,
+  onClearAllComplete,
   offset,
   onSelectionChange,
   onPendingCustomizationDataMaskChange,
   toggleFiltersBar,
   width,
   mobileMode,
-  clearAllTriggers,
-  onClearAllComplete,
   cascadeClearTriggers,
   onCascadeClearComplete,
 }) => {
@@ -265,15 +265,15 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     return hasFiltersOrCustomizations ? (
       <FilterControlsWrapper bounded={embedded}>
         <FilterControls
+          clearAllTriggers={clearAllTriggers}
           dataMaskSelected={dataMaskSelected}
+          onClearAllComplete={onClearAllComplete}
           onFilterSelectionChange={onSelectionChange}
           onPendingCustomizationDataMaskChange={
             onPendingCustomizationDataMaskChange
           }
           chartCustomizationValues={chartCustomizationValues}
           hideHeader={hasOnlyOneSectionType}
-          clearAllTriggers={clearAllTriggers}
-          onClearAllComplete={onClearAllComplete}
           cascadeClearTriggers={cascadeClearTriggers}
           onCascadeClearComplete={onCascadeClearComplete}
         />
@@ -295,15 +295,15 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     );
   }, [
     canEdit,
+    clearAllTriggers,
     dataMaskSelected,
     embedded,
     filterValues.length,
+    onClearAllComplete,
     onSelectionChange,
     onPendingCustomizationDataMaskChange,
     chartCustomizationValues,
     hasOnlyOneSectionType,
-    clearAllTriggers,
-    onClearAllComplete,
     cascadeClearTriggers,
     onCascadeClearComplete,
   ]);

@@ -19,14 +19,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any, ClassVar
 
 from pydantic import ValidationError
 
+from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_utils import _summarize_filters, map_gantt_config
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, GanttChartConfig
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    GanttChartConfig,
+    VegaLitePreview,
+)
 from superset.mcp_service.chart.validation.dataset_validator import (
     AmbiguousDatasetReferenceError,
     DatasetValidator,
@@ -39,11 +45,21 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class GanttChartPlugin(BaseChartPlugin):
     """Plugin matching ``plugin-chart-echarts/src/Gantt``."""
 
+    query_role_keys = BaseChartPlugin.query_role_keys | {
+        "start_time",
+        "end_time",
+        "y_axis",
+        "tooltip_columns",
+        "tooltip_metrics",
+    }
     chart_type = "gantt"
     display_name = "Gantt Chart"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "gantt_chart": "Gantt Chart",
     }
+    allows_empty_result = True
+    strict_dataset_rebind = True
+    resizes_saved_preview = True
 
     def pre_validate(self, config: dict[str, Any]) -> ChartGenerationError | None:
         aliases = {
@@ -235,3 +251,95 @@ class GanttChartPlugin(BaseChartPlugin):
             ],
             error_code="GANTT_VALIDATION_ERROR",
         )
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        from superset.mcp_service.chart.chart_helpers import (
+            build_single_query_dict,
+            resolve_gantt_query_fields,
+        )
+
+        try:
+            columns, metrics, orderby, series_columns = resolve_gantt_query_fields(
+                form_data
+            )
+        except ValueError as ex:
+            raise QueryObjectValidationError(str(ex)) from ex
+        query = build_single_query_dict(
+            form_data, columns, metrics, row_limit=row_limit
+        )
+        query["orderby"] = orderby
+        query["series_columns"] = series_columns
+        return [query]
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        from superset.mcp_service.chart.preview_utils import (
+            _generate_gantt_vega_lite_preview,
+        )
+
+        return _generate_gantt_vega_lite_preview(data, form_data)
+
+    def merge_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        config: Any,
+        *,
+        dataset_rebind: bool,
+    ) -> dict[str, Any] | None:
+        from superset.mcp_service.chart.chart_utils import merge_gantt_update_form_data
+
+        if not isinstance(config, GanttChartConfig):
+            return None
+        return merge_gantt_update_form_data(
+            existing_form_data, new_form_data, config, dataset_rebind
+        )
+
+    def validate_merged_form_data(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_id: int | str | None,
+        dataset_context: Callable[[], Any] | None = None,
+        update_config: Any = None,
+    ) -> Any | None:
+        from superset.mcp_service.chart.chart_utils import validate_gantt_form_data
+
+        return validate_gantt_form_data(
+            form_data,
+            dataset_id,
+            dataset_context=dataset_context() if dataset_context else None,
+        )
+
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        from superset.mcp_service.chart.chart_utils import (
+            _preserve_gantt_adhoc_filters,
+        )
+
+        # The Gantt mapper owns its complete control surface: the typed schema
+        # rejects unmodeled native controls, so saved state is inherited only
+        # through the modeled controls and the presentation allowlist the
+        # update tools apply with merge_gantt_ui_config. An explicit filters
+        # list, including [], keeps the mapper's generated time binding.
+        merged = dict(new_form_data)
+        if (
+            isinstance(config, GanttChartConfig)
+            and config.filters is None
+            and existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+        ):
+            _preserve_gantt_adhoc_filters(merged, existing_form_data, config)
+        return merged

@@ -20,13 +20,18 @@ import importlib
 import os
 import unittest.mock
 from collections.abc import Iterator
+from contextlib import ExitStack
 from typing import Any, Callable, Union
 from unittest.mock import patch
 
 import pytest
 from _pytest.fixtures import SubRequest
+from alembic.config import Config
+from alembic.script import ScriptDirectory
+from flask_appbuilder.menu import Menu
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
@@ -34,26 +39,57 @@ from superset import security_manager
 from superset.app import SupersetApp
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object_factory import QueryObjectFactory
-from superset.extensions import appbuilder, feature_flag_manager
+from superset.extensions import appbuilder, csrf, feature_flag_manager
 from superset.initialization import SupersetAppInitializer
 
 
 @pytest.fixture
-def get_session(mocker: MockerFixture) -> Callable[[], Session]:
-    """
-    Create an in-memory SQLite db.session.to test models.
-    """
-    engine = create_engine("sqlite://")
+def semantic_layers_enabled(app_context: None) -> Iterator[None]:
+    """Enable semantic behavior explicitly and restore the host hook after each test."""
+    previous: Callable[[str, bool], bool] | None = (
+        feature_flag_manager._is_feature_enabled_func
+    )
 
-    def get_session():
-        Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806
-        in_memory_session = Session_()
+    def resolve(name: str, default: bool) -> bool:
+        """Override only the semantic flag and preserve other host decisions."""
+        if name == "SEMANTIC_LAYERS":
+            return True
+        return previous(name, default) if previous else default
+
+    with patch.object(feature_flag_manager, "_is_feature_enabled_func", resolve):
+        yield
+
+
+@pytest.fixture
+def session_engine() -> Engine:
+    """
+    The engine behind ``session``; a module may override it for one test file.
+    """
+    return create_engine("sqlite://")
+
+
+@pytest.fixture
+def get_session(
+    mocker: MockerFixture, session_engine: Engine
+) -> Iterator[Callable[[], Session]]:
+    """
+    Create patched sessions and release their transactions after each test.
+    """
+    engine: Engine = session_engine
+    cleanup: ExitStack = ExitStack()
+
+    def get_session() -> Session:
+        """Create and patch a session owned by this fixture's cleanup stack."""
+        Session_: sessionmaker[Session] = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806
+        in_memory_session: Session = Session_()
+        cleanup.callback(in_memory_session.close)
+        cleanup.callback(in_memory_session.rollback)
 
         # flask calls db.session.remove()
         in_memory_session.remove = lambda: None
 
         # patch session
-        get_session = mocker.patch(
+        get_session: unittest.mock.MagicMock = mocker.patch(
             "superset.security.SupersetSecurityManager.session",
         )
         get_session.return_value = in_memory_session
@@ -65,7 +101,10 @@ def get_session(mocker: MockerFixture) -> Callable[[], Session]:
         mocker.patch("superset.db.session", in_memory_session)
         return in_memory_session
 
-    return get_session
+    # Roll back before closing so version capture releases its units of work.
+    # Track every factory call, not only the session installed in db.session.
+    with cleanup:
+        yield get_session
 
 
 @pytest.fixture
@@ -105,14 +144,61 @@ def _preload_clock_reading_drivers() -> None:
         pass
 
 
-@pytest.fixture(scope="module")
-def app(request: SubRequest) -> Iterator[SupersetApp]:
+@pytest.fixture(scope="session", autouse=True)
+def _reuse_migration_script_directory() -> Iterator[None]:
+    """Parse the alembic migration scripts once per worker instead of per app.
+
+    Every app built here runs ``SupersetApp.sync_config_to_db``, whose
+    migration-status check loads the whole ``superset/migrations`` script
+    directory to find the head revision. With one app per test module (about a
+    thousand per suite run), that re-parse was about 40% of each build: 1.3s
+    against 0.5s per build when cached, measured under coverage. The scripts
+    cannot change while the tests run, so each distinct configuration is parsed
+    once; configurations read from an ini file are not cached.
     """
-    A fixture that generates a Superset app.
+    from_config: classmethod[ScriptDirectory, [Config], ScriptDirectory] = (
+        ScriptDirectory.__dict__["from_config"]
+    )
+    cache: dict[tuple[tuple[str, str], ...], ScriptDirectory] = {}
+
+    def cached_from_config(
+        cls: type[ScriptDirectory], config: Config
+    ) -> ScriptDirectory:
+        uncached: Callable[[Config], ScriptDirectory] = from_config.__get__(None, cls)
+        if cls is not ScriptDirectory or config.config_file_name is not None:
+            return uncached(config)
+        options = config.get_section(config.config_ini_section, {})
+        key: tuple[tuple[str, str], ...] = tuple(sorted(options.items()))
+        if key not in cache:
+            cache[key] = uncached(config)
+        return cache[key]
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            ScriptDirectory, "from_config", classmethod(cached_from_config)
+        )
+        yield
+
+
+def build_app(config_overrides: dict[str, Any] | None = None) -> SupersetApp:
+    """
+    Build and initialize a Superset app for the unit tests.
+
+    Every test module gets its own app, so this runs hundreds of times in one
+    xdist worker. Each initialization must replace the previous app in the
+    process-wide singletons rather than add to them: an app that stays
+    reachable keeps its views, routing rules, mappers and worker pools alive
+    for the rest of the worker's life, and the suite's resident memory then
+    grows with the number of modules until the CI runner is exhausted.
     """
     app = SupersetApp(__name__)
 
     app.config.from_object("superset.config")
+    # ``from_object`` shares ``superset.config``'s dict, and the feature flag
+    # manager updates it in place with this app's FEATURE_FLAGS. Without a copy,
+    # one module's flag overrides would stay on for every later module in the
+    # same xdist worker.
+    app.config["DEFAULT_FEATURE_FLAGS"] = dict(app.config["DEFAULT_FEATURE_FLAGS"])
     app.config["SQLALCHEMY_DATABASE_URI"] = (
         os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI") or "sqlite://"
     )
@@ -126,24 +212,22 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     app.config["APPLICATION_ROOT"] = "/"
     app.config["PREFERRED_URL_SCHEME="] = "http"
 
-    # loop over extra configs passed in by tests
-    # and update the app config
-    # to override the default configs use:
-    #
-    # @pytest.mark.parametrize(
-    #     "app",
-    #     [{"SOME_CONFIG": "SOME_VALUE"}],
-    #     indirect=True,
-    # )
-    # def test_some_test(app_context: None) -> None:
-    if request and hasattr(request, "param"):
-        for key, val in request.param.items():
-            app.config[key] = val
+    for key, val in (config_overrides or {}).items():
+        app.config[key] = val
 
     # ``superset.extensions.appbuilder`` is a singleton, and won't rebuild the
-    # routes when this fixture is called multiple times; we need to clear the
-    # registered views to ensure the initialization can happen more than once.
+    # routes when this runs multiple times; we need to clear the registered
+    # views to ensure the initialization can happen more than once. The menu
+    # is reset for the same reason: ``init_views`` adds one set of menu items
+    # per initialization, and each item's link closure holds the app that
+    # registered it.
     appbuilder.baseviews = []
+    appbuilder.menu = Menu()
+    # ``superset.extensions.csrf`` is a singleton too, and accumulates the CSRF
+    # exemptions of every app built here; reset them so one test's config (e.g.
+    # FAB_API_KEY_ENABLED) can't leak exempt blueprints into later tests.
+    csrf._exempt_views = set()  # noqa: SLF001
+    csrf._exempt_blueprints = set()  # noqa: SLF001
 
     app_initializer = SupersetAppInitializer(app)
     app_initializer.init_app()
@@ -155,6 +239,23 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
         importlib.reload(superset.views.base)
 
     return app
+
+
+@pytest.fixture(scope="module")
+def app(request: SubRequest) -> SupersetApp:
+    """
+    A fixture that generates a Superset app.
+
+    To override the default configs use:
+
+        @pytest.mark.parametrize(
+            "app",
+            [{"SOME_CONFIG": "SOME_VALUE"}],
+            indirect=True,
+        )
+        def test_some_test(app_context: None) -> None:
+    """
+    return build_app(getattr(request, "param", None))
 
 
 @pytest.fixture

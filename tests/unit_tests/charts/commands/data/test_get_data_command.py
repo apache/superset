@@ -20,7 +20,10 @@ from unittest.mock import Mock, patch
 import pytest
 
 from superset.commands.chart.data.get_data_command import ChartDataCommand
-from superset.commands.chart.exceptions import ChartDataQueryFailedError
+from superset.commands.chart.exceptions import (
+    ChartDataQueryFailedError,
+    ChartDataQueryValidationError,
+)
 from superset.common.chart_data import ChartDataResultType
 from superset.common.chart_data_timing import (
     QueryContextExecutionResult,
@@ -28,6 +31,10 @@ from superset.common.chart_data_timing import (
     QueryTiming,
 )
 from superset.common.query_context import QueryContext
+from superset.exceptions import (
+    QueryObjectValidationError,
+    QueryObjectValidationMessage,
+)
 
 
 def _query_timing() -> QueryTiming:
@@ -261,6 +268,60 @@ def test_full_result_type_fails_fast_on_first_error_in_multiple_queries() -> Non
     assert "First query failed" in str(exc_info.value)
 
 
+def _validation_failure_context() -> tuple[Mock, QueryObjectValidationError]:
+    """A data request whose query failed validation while it ran."""
+    cause = QueryObjectValidationError("Semantic IN/NOT IN filters cannot be empty.")
+    payload = {"error": QueryObjectValidationMessage(cause)}
+    query_context = Mock(spec=QueryContext)
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.get_payload.return_value = {"queries": [payload]}
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(QueryDataResult(payload, _query_timing()),),
+    )
+    return query_context, cause
+
+
+@pytest.mark.parametrize("entry", ["run", "execute"])
+def test_validation_failure_raises_typed_error(entry: str) -> None:
+    """A query that failed validation keeps that category and its cause."""
+    query_context, cause = _validation_failure_context()
+
+    with pytest.raises(ChartDataQueryValidationError) as exc_info:
+        getattr(ChartDataCommand(query_context), entry)()
+
+    assert isinstance(exc_info.value, ChartDataQueryFailedError)
+    assert exc_info.value.__cause__ is cause
+    assert str(exc_info.value) == ("Error: Semantic IN/NOT IN filters cannot be empty.")
+
+
+@pytest.mark.parametrize("entry", ["run", "execute"])
+def test_other_query_failure_stays_untyped(entry: str) -> None:
+    """Database and other failures keep the plain query-failed error."""
+    query_context = Mock(spec=QueryContext)
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.get_payload.return_value = {"queries": [{"error": "timeout"}]}
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(QueryDataResult({"error": "timeout"}, _query_timing()),),
+    )
+
+    with pytest.raises(ChartDataQueryFailedError) as exc_info:
+        getattr(ChartDataCommand(query_context), entry)()
+
+    assert type(exc_info.value) is ChartDataQueryFailedError
+
+
+def test_query_result_type_returns_validation_failure() -> None:
+    """Query-only requests still return a validation failure in the payload."""
+    query_context, _ = _validation_failure_context()
+    query_context.result_type = ChartDataResultType.QUERY
+
+    result = ChartDataCommand(query_context).run()
+
+    assert result["queries"][0]["error"] == (
+        "Semantic IN/NOT IN filters cannot be empty."
+    )
+
+
 def test_get_query_catches_parsing_error() -> None:
     """
     Test that _get_query() catches SupersetParseError and returns both SQL and error.
@@ -384,3 +445,31 @@ def test_get_query_handles_parsing_error_with_null_sql_value() -> None:
         assert "query" not in result
         assert result["error"] == "Parsing error occurred"
         assert result["language"] == "sql"
+
+
+@pytest.mark.parametrize("entry", ["run", "execute"])
+def test_database_error_while_building_the_query_is_a_failed_query(entry: str) -> None:
+    """
+    A connection failure while the query is being built -- a virtual dataset's
+    default-schema lookup connects -- is reported as a failed query (a 400),
+    not left to escape as an unexpected server error (an HTML 500).
+    """
+    from sqlalchemy.exc import OperationalError
+
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.FULL
+    error = OperationalError(
+        "connect", {}, Exception("Incorrect username or password was specified.")
+    )
+    mock_query_context.get_payload.side_effect = error
+    mock_query_context.get_payload_result.side_effect = error
+    database = Mock()
+    database.db_engine_spec.extract_error_message.return_value = (
+        "Incorrect username or password was specified."
+    )
+    mock_query_context.datasource = Mock(database=database)
+
+    with pytest.raises(ChartDataQueryFailedError) as excinfo:
+        getattr(ChartDataCommand(mock_query_context), entry)()
+
+    assert "Incorrect username or password" in excinfo.value.message

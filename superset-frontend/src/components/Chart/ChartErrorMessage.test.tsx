@@ -58,7 +58,7 @@ describe('ChartErrorMessage', () => {
     });
     render(<ChartErrorMessage {...defaultProps} />);
 
-    expect(screen.getByText('Data error')).toBeInTheDocument();
+    expect(screen.getByText('Error: Data error')).toBeInTheDocument();
     expect(screen.getByText('Test subtitle')).toBeInTheDocument();
   });
 

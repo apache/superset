@@ -152,7 +152,7 @@ def create_tool_decorator(
     class_permission_name: Optional[str] = None,
     method_permission_name: Optional[str] = None,
     annotations: ToolAnnotations | None = None,
-) -> Callable[[F], F] | F:
+) -> Callable[..., Any]:
     """
     Create the concrete MCP tool decorator implementation.
 
@@ -176,10 +176,11 @@ def create_tool_decorator(
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,
-        or the wrapped function when used without parentheses
+        or the wrapped function when used without parentheses. Protected handlers
+        are async even when the original function is synchronous.
     """
 
-    def decorator(func: F) -> F:
+    def decorator(func: F) -> Callable[..., Any]:
         try:
             # Import here to avoid circular imports
             from superset.mcp_service.app import mcp
@@ -254,14 +255,13 @@ def create_tool_decorator(
 
     # If called as @tool (without parentheses)
     if callable(func_or_name):
-        # Type cast is safe here since we've confirmed it's callable
-        return decorator(func_or_name)  # type: ignore[arg-type]
+        return decorator(func_or_name)
 
     # If called as @tool() or @tool(name="...")
     # func_or_name would be the name parameter or None
     actual_name = func_or_name if isinstance(func_or_name, str) else name
 
-    def parameterized_decorator(func: F) -> F:
+    def parameterized_decorator(func: F) -> Callable[..., Any]:
         # Use the actual_name if provided via func_or_name
         nonlocal name
         if actual_name is not None:
@@ -279,7 +279,7 @@ def create_prompt_decorator(
     description: Optional[str] = None,
     tags: Optional[set[str]] = None,
     protect: bool = True,
-) -> Callable[[F], F] | F:
+) -> Callable[..., Any]:
     """
     Create the concrete MCP prompt decorator implementation.
 
@@ -299,10 +299,11 @@ def create_prompt_decorator(
 
     Returns:
         Decorator that registers and wraps the prompt with optional authentication,
-        or the wrapped function when used without parentheses
+        or the wrapped function when used without parentheses. Protected handlers
+        are async even when the original function is synchronous.
     """
 
-    def decorator(func: F) -> F:
+    def decorator(func: F) -> Callable[..., Any]:
         try:
             # Import here to avoid circular imports
             from superset.mcp_service.app import mcp
@@ -355,14 +356,13 @@ def create_prompt_decorator(
 
     # If called as @prompt (without parentheses)
     if callable(func_or_name):
-        # Type cast is safe here since we've confirmed it's callable
-        return decorator(func_or_name)  # type: ignore[arg-type]
+        return decorator(func_or_name)
 
     # If called as @prompt() or @prompt(name="...")
     # func_or_name would be the name parameter or None
     actual_name = func_or_name if isinstance(func_or_name, str) else name
 
-    def parameterized_decorator(func: F) -> F:
+    def parameterized_decorator(func: F) -> Callable[..., Any]:
         # Use the actual_name if provided via name_or_fn
         nonlocal name
         if actual_name is not None:
