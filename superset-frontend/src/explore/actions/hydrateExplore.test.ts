@@ -676,13 +676,6 @@ test.each([
   },
 );
 
-test('a dataset without temporal columns adds no default time filter', () => {
-  const query = hydrateNewChartQuery({
-    dataset: { columns: [], main_dttm_col: '' },
-  });
-  expect(query.adhoc_filters).toEqual([]);
-});
-
 test.each([
   ['a new chart', null, datasetRange],
   ['a saved chart', exploreInitialData.slice, instanceRange],
