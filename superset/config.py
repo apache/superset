@@ -3492,6 +3492,8 @@ GUEST_TOKEN_VALIDATOR_HOOK = None
 #   - AUTH_ROLES_SYNC_AT_LOGIN (default False): with it off, `role_keys` only
 #     takes effect when a user is first created; an existing user keeps their
 #     current roles. Turn it on to replace them from `role_keys` at every login.
+#     With it on, a resolver that omits `role_keys` leaves an existing user with
+#     only AUTH_USER_REGISTRATION_ROLE, or with no roles if registration is off.
 #
 #   from flask import Request
 #   from superset.security.login_token import LoginTokenUserInfo
