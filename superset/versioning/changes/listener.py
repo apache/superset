@@ -568,13 +568,14 @@ def register_change_record_listener() -> None:
     # pylint: disable=import-outside-toplevel
     from superset.connectors.sqla.models import SqlaTable
     from superset.extensions import db
+    from superset.models.canvas import Canvas
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
 
     if getattr(db.session, _REGISTERED_SENTINEL, False):
         return
 
-    versioned_classes: tuple[type, ...] = (Dashboard, Slice, SqlaTable)
+    versioned_classes: tuple[type, ...] = (Dashboard, Slice, SqlaTable, Canvas)
 
     def capture_initial_states(
         session: Session, _flush_context: Any, _instances: Any

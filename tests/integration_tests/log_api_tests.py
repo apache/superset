@@ -41,6 +41,7 @@ from tests.integration_tests.test_app import app  # noqa: F401
 
 EXPECTED_COLUMNS = [
     "action",
+    "canvas_id",
     "dashboard_id",
     "dttm",
     "duration_ms",

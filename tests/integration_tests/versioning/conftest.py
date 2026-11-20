@@ -37,6 +37,7 @@ _VERSION_TABLES: tuple[str, ...] = (
     "tables_version",
     "table_columns_version",
     "sql_metrics_version",
+    "canvases_version",
     "version_changes",
     "version_transaction",
 )

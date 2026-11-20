@@ -18,6 +18,7 @@
  */
 export * as common from './common';
 export * as authentication from './authentication';
+export * as canvas from './canvas';
 export * as chat from './chat';
 export * as commands from './commands';
 export * as editors from './editors';
@@ -31,4 +32,5 @@ export * as theme from './theme';
 export * as translation from './translation';
 export * as components from './components';
 export * as storage from './storage';
+export * as telemetry from './telemetry';
 export * as utils from './utils';

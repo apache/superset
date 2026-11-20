@@ -1227,3 +1227,189 @@ def diff_dashboard_slices(
             )
         )
     return records
+
+
+# Depth to which canvas props, settings and interactions are walked before a
+# sub-tree is recorded as one value.
+_CANVAS_DIFF_DEPTH = 3
+
+
+def _canvas_parents(definition: Mapping[str, Any]) -> dict[str, tuple[str, int]]:
+    """Each node's ``(parent id, index among its siblings)``; root is ``""``."""
+    parents: dict[str, tuple[str, int]] = {}
+    root = definition.get("root")
+    containers: list[tuple[str, Any]] = [
+        ("", root if isinstance(root, Mapping) else {})
+    ]
+    nodes = definition.get("nodes")
+    if isinstance(nodes, Mapping):
+        containers.extend(nodes.items())
+    for parent_id, container in containers:
+        children = container.get("children") if isinstance(container, Mapping) else []
+        for index, child in enumerate(children or []):
+            parents[child] = (parent_id, index)
+    return parents
+
+
+def _canvas_node_summary(node: Mapping[str, Any], parent: str | None) -> dict[str, Any]:
+    """What a history entry needs to name a node, not its full content."""
+    summary: dict[str, Any] = {"parent": parent or None}
+    if widget_id := node.get("widgetId"):
+        summary["widgetId"] = widget_id
+    if widget_type := node.get("widgetType"):
+        summary["widgetType"] = widget_type
+    props = node.get("props")
+    if isinstance(props, Mapping) and isinstance(props.get("title"), str):
+        summary["title"] = props["title"]
+    return summary
+
+
+def _reordered(before: list[str], after: list[str]) -> set[str]:
+    """
+    The fewest siblings that moved to turn one order into the other: those
+    outside the longest run kept in the same relative order on both sides.
+    """
+    position = {child: index for index, child in enumerate(after)}
+    kept = [child for child in before if child in position]
+    # Longest increasing subsequence of the kept siblings' new positions.
+    best: list[int] = [1] * len(kept)
+    previous: list[int] = [-1] * len(kept)
+    for i, child in enumerate(kept):
+        for j in range(i):
+            if position[kept[j]] < position[child] and best[j] + 1 > best[i]:
+                best[i], previous[i] = best[j] + 1, j
+    stayed: set[str] = set()
+    index = max(range(len(kept)), key=best.__getitem__, default=-1)
+    while index != -1:
+        stayed.add(kept[index])
+        index = previous[index]
+    return set(kept) - stayed
+
+
+def diff_canvas_definition(from_value: Any, to_value: Any) -> list[ChangeRecord]:
+    """
+    Diff two canvas definitions node by node.
+
+    Node records are keyed ``[node_id, ...]`` so the record-count cap applies
+    per node: ``kind="widget"`` for adding, removing, moving or editing a
+    node's widget or inline props, ``kind="layout"`` for its placement. The
+    root layout, ``interactions`` and ``settings`` are walked under their own
+    keys with kinds ``layout``, ``interaction`` and ``setting``.
+    """
+    pre = _coerce_params(from_value)
+    post = _coerce_params(to_value)
+    pre_nodes: Mapping[str, Any] = pre.get("nodes") or {}
+    post_nodes: Mapping[str, Any] = post.get("nodes") or {}
+    pre_parents = _canvas_parents(pre)
+    post_parents = _canvas_parents(post)
+
+    def children(definition: Mapping[str, Any], parent_id: str) -> list[str]:
+        container = (
+            definition.get("root")
+            if parent_id == ""
+            else (definition.get("nodes") or {}).get(parent_id)
+        )
+        return list((container or {}).get("children") or [])
+
+    reordered: set[str] = set()
+    for parent_id in {""} | (set(pre_nodes) & set(post_nodes)):
+        reordered |= _reordered(children(pre, parent_id), children(post, parent_id))
+
+    records: list[ChangeRecord] = []
+    for node_id in sorted(set(pre_nodes) | set(post_nodes)):
+        before, after = pre_nodes.get(node_id), post_nodes.get(node_id)
+        old_parent = pre_parents.get(node_id, ("", 0))[0]
+        new_parent = post_parents.get(node_id, ("", 0))[0]
+        if before is None or after is None:
+            records.append(
+                ChangeRecord(
+                    kind="widget",
+                    operation="add" if before is None else "remove",
+                    path=[node_id],
+                    from_value=None
+                    if before is None
+                    else _canvas_node_summary(before, old_parent),
+                    to_value=None
+                    if after is None
+                    else _canvas_node_summary(after, new_parent),
+                )
+            )
+            continue
+        if old_parent != new_parent or node_id in reordered:
+            records.append(
+                ChangeRecord(
+                    kind="widget",
+                    operation="move",
+                    path=[node_id],
+                    from_value=_canvas_node_summary(before, old_parent),
+                    to_value=_canvas_node_summary(after, new_parent),
+                )
+            )
+        if (before.get("widgetId"), before.get("widgetType")) != (
+            after.get("widgetId"),
+            after.get("widgetType"),
+        ):
+            records.append(
+                ChangeRecord(
+                    kind="widget",
+                    operation="edit",
+                    path=[node_id],
+                    from_value=_canvas_node_summary(before, old_parent),
+                    to_value=_canvas_node_summary(after, new_parent),
+                )
+            )
+        elif before.get("props") != after.get("props"):
+            records.extend(
+                _recursive_leaf_diff(
+                    kind="widget",
+                    path_prefix=[node_id, "props"],
+                    pre=before.get("props"),
+                    post=after.get("props"),
+                    max_depth=_CANVAS_DIFF_DEPTH,
+                )
+            )
+        if not _values_equivalent(before.get("layout"), after.get("layout")):
+            records.append(
+                ChangeRecord(
+                    kind="layout",
+                    operation="edit",
+                    path=[node_id, "layout"],
+                    from_value=before.get("layout"),
+                    to_value=after.get("layout"),
+                )
+            )
+
+    records.extend(
+        _recursive_leaf_diff(
+            kind="layout",
+            path_prefix=["root", "layout"],
+            pre=(pre.get("root") or {}).get("layout"),
+            post=(post.get("root") or {}).get("layout"),
+            max_depth=_CANVAS_DIFF_DEPTH,
+        )
+    )
+    for key, kind in (("interactions", "interaction"), ("settings", "setting")):
+        records.extend(
+            _recursive_leaf_diff(
+                kind=kind,
+                path_prefix=[key],
+                pre=pre.get(key),
+                post=post.get(key),
+                max_depth=_CANVAS_DIFF_DEPTH,
+            )
+        )
+    return records
+
+
+def diff_canvas(
+    pre: dict[str, Any],
+    post: dict[str, Any],
+    *,
+    fields: Iterable[str],
+) -> list[ChangeRecord]:
+    """Canvas diff: scalar fields plus :func:`diff_canvas_definition`."""
+    records = diff_scalar_fields(pre, post, fields=fields)
+    records.extend(
+        diff_canvas_definition(pre.get("definition"), post.get("definition"))
+    )
+    return records

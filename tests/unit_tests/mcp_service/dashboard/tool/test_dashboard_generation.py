@@ -138,6 +138,14 @@ def mock_chart_access() -> Iterator[None]:
         yield
 
 
+@pytest.fixture(autouse=True)
+def stop_started_patches() -> Iterator[None]:
+    """Stop the patches the setup helper starts, so they don't leak into other
+    test files on the same worker."""
+    yield
+    patch.stopall()
+
+
 def _mock_chart(id: int = 1, slice_name: str = "Test Chart") -> Mock:
     """Create a mock chart object."""
     chart = Mock()
@@ -241,8 +249,7 @@ def _setup_generate_dashboard_mocks(
     mock_dashboard_cls.tags = _RealDashboard.tags
 
     # Prevent Subject DB queries during dashboard creation.
-    # The mock is started here and will be cleaned up by patch.stopall()
-    # or when the test process ends.
+    # Stopped after each test by ``stop_started_patches``.
     patch("superset.subjects.utils.get_user_subject", return_value=None).start()
 
 

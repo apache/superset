@@ -55,6 +55,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         "json",
         "slice_id",
         "dashboard_id",
+        "canvas_id",
         "duration_ms",
         "referrer",
     ]
@@ -66,6 +67,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         "json",
         "slice_id",
         "dashboard_id",
+        "canvas_id",
         "duration_ms",
         "referrer",
     ]

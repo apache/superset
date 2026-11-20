@@ -100,6 +100,7 @@ def _resolve_shadow_tables(tx_table: sa.Table) -> ShadowTables:
     from sqlalchemy_continuum.exc import ClassNotVersioned
 
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.canvas import Canvas
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
 
@@ -110,7 +111,7 @@ def _resolve_shadow_tables(tx_table: sa.Table) -> ShadowTables:
     # into a no-op retention pass.
     missing_tables: list[str] = []
     parent_tables: list[sa.Table] = []
-    for cls in (Dashboard, Slice, SqlaTable):
+    for cls in (Dashboard, Slice, SqlaTable, Canvas):
         try:
             parent_tables.append(version_class(cls).__table__)
         except ClassNotVersioned:

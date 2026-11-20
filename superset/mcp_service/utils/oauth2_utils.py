@@ -31,7 +31,11 @@ def build_oauth2_redirect_message(ex: OAuth2RedirectError) -> str:
     """
     # extra is always set by OAuth2RedirectError.__init__
     assert ex.error.extra is not None  # noqa: S101
-    oauth_url = ex.error.extra["url"]
+    return build_oauth2_redirect_message_from_url(ex.error.extra["url"])
+
+
+def build_oauth2_redirect_message_from_url(oauth_url: str) -> str:
+    """Build reconnect guidance from an already classified authorization URL."""
     return (
         "This database uses OAuth for authentication. "
         "Please open the following URL in your browser to "
