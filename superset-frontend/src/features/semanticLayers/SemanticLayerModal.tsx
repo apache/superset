@@ -175,6 +175,8 @@ export default function SemanticLayerModal({
   const dynamicDepsRef = useRef<Record<string, string[]>>({});
   const [formSnapshots] = useState(() => new WeakSet<object>());
   const formSessionRef = useRef(0);
+  // Back and close must unmount JsonForms so queued notifications retain
+  // the old session's callback and are rejected after the reset.
   const formSession = formSessionRef.current;
   const schemaRequestRef = useRef(0);
   // Tracks the most recent value we auto-populated into the Name field so we
