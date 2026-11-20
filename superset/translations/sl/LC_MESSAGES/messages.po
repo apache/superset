@@ -2248,6 +2248,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Opozorilo"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "Opozorilo »%(alertName)s« je bilo uspešno sproženo"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "Opozorilo sproženo, v obdobju mirovanja"
 
@@ -9094,6 +9098,14 @@ msgstr "Napaka pri označevanju elementov"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "%(alertType)s »%(alertName)s« ni bilo mogoče sprožiti: %(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "Opozorilo »%(alertName)s« ni bilo mogoče sprožiti: %(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "Poročilo »%(alertName)s« ni bilo mogoče sprožiti: %(error)s"
+
 msgid "Failed to update report"
 msgstr "Posodabljanje poročila neuspešno"
 
@@ -14852,6 +14864,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "Poročilo"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "Poročilo »%(alertName)s« je bilo uspešno sproženo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
