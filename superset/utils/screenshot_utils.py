@@ -819,6 +819,61 @@ async (maxWaitMs) => {{
 """
 
 
+# Nominates the colour of the page behind the dashboard, for trimming a capture.
+# Every ``.dashboard-grid`` in the document walks up through itself and its
+# ancestors to the innermost box with an opaque background whose border box
+# covers the whole page (``html`` always counts; ``body`` counts whenever
+# ``html`` paints nothing, per CSS canvas propagation). The body colour alone is
+# not enough: the app shell paints ``body`` one colour and covers it with layout
+# boxes of another. The colour is returned only if every grid nominates exactly
+# the same one, otherwise ``null``. No grid is trusted to be the real one: a tab
+# that is not selected, or a grid that paints nothing for any other reason
+# (transparent, off the page, empty, skipped), would decide the colour, and the
+# ways not to paint cannot be listed. The grids of a tabbed dashboard sit in the
+# same shell and agree; one outside it nominates another colour, or none, and
+# the trim declines. The result is only a nomination; the image must confirm it
+# row by row.
+PAGE_BACKGROUND_COLOR_JS = r"""
+() => {
+    const grids = Array.from(document.querySelectorAll('.dashboard-grid'));
+    if (grids.length === 0) { return null; }
+    const root = document.documentElement;
+    const pageWidth = root.scrollWidth;
+    const pageHeight = root.scrollHeight;
+    const coversPage = (el) => {
+        const rect = el.getBoundingClientRect();
+        return rect.left + window.scrollX <= 0.5 && rect.top + window.scrollY <= 0.5
+            && rect.right + window.scrollX >= pageWidth - 0.5
+            && rect.bottom + window.scrollY >= pageHeight - 0.5;
+    };
+    const rootStyle = getComputedStyle(root);
+    const rootPaints = rootStyle.backgroundImage !== 'none'
+        || !/^rgba\(\d+, \d+, \d+, 0\)$/.test(rootStyle.backgroundColor);
+    const nominate = (grid) => {
+        for (let el = grid; el; el = el.parentElement) {
+            const isCanvas = el === root || (el === document.body && !rootPaints);
+            if (!isCanvas && !coversPage(el)) { continue; }
+            const style = getComputedStyle(el);
+            if (style.backgroundImage !== 'none') { return null; }
+            const match = /^rgba?\((\d+), (\d+), (\d+)(?:, ([0-9.]+))?\)$/
+                .exec(style.backgroundColor);
+            if (!match) { return null; }
+            const alpha = match[4] === undefined ? 1 : Number(match[4]);
+            if (alpha === 0) { continue; }
+            if (alpha !== 1) { return null; }
+            return [Number(match[1]), Number(match[2]), Number(match[3])];
+        }
+        return null;
+    };
+    const colors = grids.map(nominate);
+    const [first] = colors;
+    const agrees = (color) => color !== null
+        && color.every((channel, index) => channel === first[index]);
+    return first !== null && colors.every(agrees) ? first : null;
+}
+"""
+
+
 def expand_chart_table_max_pixels() -> int:
     """
     Device-pixel budget for an un-clipped single-chart capture.
@@ -972,6 +1027,144 @@ def combine_screenshot_tiles(
             # opt out because delivering only the first tile is incomplete.
             return screenshot_tiles[0]
         raise
+
+
+def read_page_background_color(
+    page: "Page", log_context: str | None = None
+) -> tuple[int, int, int] | None:
+    """Read the colour of the page behind the dashboard, or None if unknown.
+
+    Anything other than three integers in 0..255 is treated as unknown, so a
+    page that cannot be read only costs the trim.
+    """
+    try:
+        color = page.evaluate(PAGE_BACKGROUND_COLOR_JS)
+    except (SoftTimeLimitExceeded, ReportExecutionBudgetExceededError):
+        raise
+    except Exception:  # noqa: BLE001  # an unreadable page only costs the trim
+        logger.warning(
+            "Unable to read the page background colour%s",
+            f" [{log_context}]" if log_context else "",
+            exc_info=True,
+        )
+        return None
+    if (
+        isinstance(color, list)
+        and len(color) == 3
+        and all(
+            isinstance(channel, int)
+            and not isinstance(channel, bool)
+            and 0 <= channel <= 255
+            for channel in color
+        )
+    ):
+        return color[0], color[1], color[2]
+    return None
+
+
+def trim_trailing_background_rows(
+    screenshot: bytes,
+    background: tuple[int, int, int],
+    log_context: str | None = None,
+) -> bytes:
+    """Remove the blank band below the content of a PNG capture.
+
+    A row is blank only if every pixel is exactly ``background``. As many
+    background rows as lead the image (the top margin) are kept below the last
+    row that differs, so the frame stays symmetric. Every failure, and every
+    capture with nothing to remove, returns the original bytes object: trimming
+    only ever errs toward leaving blank space.
+    """
+    try:
+        with Image.open(io.BytesIO(screenshot)) as probe:
+            # The integrity check delivery validation applies. Decoding alone
+            # tolerates a bad checksum or a missing IEND, so re-encoding without
+            # it would turn bytes validation rejects into bytes it accepts.
+            probe.verify()
+        with Image.open(io.BytesIO(screenshot)) as image:
+            # 8-bit truecolour only: what Chromium emits and the tile combiner
+            # writes. Pillow reports a 16-bit capture as plain RGB and narrows
+            # it, so the raw sample format is checked rather than the mode.
+            raw_modes: list[object] = [tile.args for tile in image.tile]
+            if (
+                raw_modes not in (["RGB"], ["RGBA"])
+                or getattr(image, "n_frames", 1) != 1
+                or "transparency" in image.info
+            ):
+                return screenshot
+            width, height = image.size
+            background_row = (
+                bytes(background) + (b"\xff" if image.mode == "RGBA" else b"")
+            ) * width
+
+            def is_background(row: int) -> bool:
+                return image.crop((0, row, width, row + 1)).tobytes() == background_row
+
+            top_margin = 0
+            while top_margin < height and is_background(top_margin):
+                top_margin += 1
+            if top_margin == height:
+                return screenshot  # nothing but background: validation judges it
+            content_bottom = height
+            while is_background(content_bottom - 1):
+                content_bottom -= 1
+            kept_height = content_bottom + top_margin
+            if kept_height >= height:
+                return screenshot
+            output = io.BytesIO()
+            image.crop((0, 0, width, kept_height)).save(output, format="PNG")
+            logger.info(
+                "report_capture_trimmed height_px=%s->%s%s",
+                height,
+                kept_height,
+                f" [{log_context}]" if log_context else "",
+            )
+            return output.getvalue()
+    except (SoftTimeLimitExceeded, ReportExecutionBudgetExceededError):
+        raise
+    except Exception:  # noqa: BLE001  # an image that cannot be read is left as it is
+        logger.warning(
+            "Unable to trim the screenshot to its content%s",
+            f" [{log_context}]" if log_context else "",
+            exc_info=True,
+        )
+        return screenshot
+
+
+def trim_report_screenshot_to_content(
+    page: "Page",
+    screenshot: bytes,
+    report_execution_context: ReportExecutionContext | None = None,
+    log_context: str | None = None,
+) -> bytes:
+    """End a finished report capture at its content instead of the capture window.
+
+    A full-page capture is never shorter than the capture window, so a dashboard
+    that ends above the window bottom comes with a band of empty page background.
+    The page nominates the background colour and the image confirms it on every
+    removed row; when either is unavailable the capture is returned untouched.
+    """
+    context = report_execution_context
+    delivery_context = (
+        context if context is not None and context.validate_for_delivery else None
+    )
+    if delivery_context is not None:
+        # The blank-capture verdict belongs to the capture as taken: one that
+        # fails here is never trimmed into one that passes. Returns at once for
+        # bytes this context already approved (the tiled combined image).
+        validate_report_screenshot(screenshot, delivery_context)
+    background = read_page_background_color(page, log_context)
+    if background is None:
+        return screenshot
+    trimmed = trim_trailing_background_rows(screenshot, background, log_context)
+    if trimmed is screenshot:
+        return screenshot
+    if delivery_context is not None:
+        # Approval is keyed to exact bytes. The original was approved just
+        # above, so the rows that remain carry its content verdict; the new
+        # bytes still have to pass the decode checks.
+        validate_report_screenshot(trimmed, delivery_context, content_validated=True)
+    return trimmed
 
 
 def take_tiled_screenshot(  # noqa: C901

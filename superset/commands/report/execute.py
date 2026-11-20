@@ -1140,6 +1140,8 @@ class BaseReportState:
                     self._report_schedule.dashboard.digest,
                     window_size=window_size,
                     thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                    # A schedule that pins a height gets exactly that height.
+                    trim_to_content=not self._report_schedule.custom_height,
                 )
                 for url in urls
             ]

@@ -61,6 +61,7 @@ from superset.utils.screenshot_utils import (
     STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS,
     take_tiled_screenshot,
     TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+    trim_report_screenshot_to_content,
     validate_report_screenshot,
     wait_for_stable_readiness,
 )
@@ -208,11 +209,13 @@ class WebDriverPlaywright(WebDriverProxy):
         window: WindowSize | None = None,
         *,
         require_complete_capture: bool = False,
+        trim_to_content: bool = False,
         browser_manager: _PlaywrightBrowserManager | None = None,
     ) -> None:
         super().__init__(driver_type, window)
         self._browser_manager = browser_manager or _browser_manager
         self._require_complete_capture = require_complete_capture
+        self._trim_to_content = trim_to_content
 
     @staticmethod
     def auth(user: User, context: BrowserContext) -> BrowserContext:
@@ -1453,6 +1456,18 @@ class WebDriverPlaywright(WebDriverProxy):
                         len(img) if img else 0,
                         url,
                         context_suffix,
+                    )
+
+                # A full-page capture is never shorter than the capture window,
+                # so a dashboard that ends above the window bottom comes with a
+                # band of empty page background. Runs after the capture and its
+                # validation, for the tiled and both standard branches alike.
+                if self._trim_to_content and img:
+                    img = trim_report_screenshot_to_content(
+                        page,
+                        img,
+                        report_execution_context=report_execution_context,
+                        log_context=log_context,
                     )
 
             except PlaywrightTimeout:
