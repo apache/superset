@@ -103,6 +103,10 @@ class SharedKey(StrEnum):
     # Read live each run by deletion_retention.purge_soft_deleted; falls back to
     # SOFT_DELETE_RETENTION_DAYS when unset. 0 disables the purge.
     SOFT_DELETE_RETENTION_DAYS = "soft_delete_retention_days"
+    # FAB view menus an extension's API registered. Recorded so role sync
+    # classifies their permissions admin-only even in a process where no
+    # extension loaded. See `superset.extensions.permissions`.
+    EXTENSION_RESOURCES = "extension_resources"
 
 
 class KeyValueCodec(ABC):

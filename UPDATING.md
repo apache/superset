@@ -24,6 +24,25 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Permissions on a resource an extension registers with `@api` are now
+  classified admin-only during role sync. `_is_gamma_pvm` is a denylist, so
+  until now every such permission was granted to the stock Gamma and Alpha
+  roles on the next `superset init` -- which meant a screen gated on an
+  extension permission stopped being gated at the next role sync. A fresh
+  `@api` permission now goes to Admin alone until an operator grants it to a
+  role of their own.
+
+  **Deployments where Gamma or Alpha already hold an extension permission
+  lose it on the next `superset init`.** Re-grant it to a custom role, which
+  role sync does not rebuild, or to Admin. Custom roles are unaffected.
+
+  The classification is recorded in the metadata database as the extension's
+  API registers, so it survives a `superset init` run where no extension
+  loaded -- a feature flag turned off, discovery failing, an entrypoint
+  raising, or an extension uninstalled while its permissions remain. Such a
+  run keeps the permissions admin-only rather than handing them back to the
+  stock roles.
+
 - Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
   the caller cannot view it, rather than treating an access-filtered dashboard
   as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
