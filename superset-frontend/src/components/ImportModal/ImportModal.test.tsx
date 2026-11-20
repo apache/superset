@@ -16,11 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { ImportResourceName } from 'src/views/CRUD/types';
+import {
+  FileEncryptedExtraFields,
+  ImportResourceName,
+} from 'src/views/CRUD/types';
 import type { ImportModelsModalProps } from './types';
 import { ImportModal } from '.';
 
@@ -28,7 +32,11 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const DATABASE_IMPORT_URL = 'glob:*/api/v1/database/import/';
-fetchMock.post(DATABASE_IMPORT_URL, { result: 'OK' });
+fetchMock.post(
+  DATABASE_IMPORT_URL,
+  { result: 'OK' },
+  { name: 'database-import-default' },
+);
 
 const requiredProps = {
   resourceName: 'database' as ImportResourceName,
@@ -43,7 +51,12 @@ const requiredProps = {
 };
 
 afterEach(() => {
-  fetchMock.clearHistory();
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.post(
+    DATABASE_IMPORT_URL,
+    { result: 'OK' },
+    { name: 'database-import-default' },
+  );
   jest.clearAllMocks();
 });
 
@@ -207,3 +220,213 @@ test('should render multiple encrypted extra secret fields for multiple files', 
   });
   expect(getAllByTestId('encrypted_extra_secret')).toHaveLength(3);
 });
+
+test('shows recovery instructions and permits retry after an import failure', async () => {
+  const endpoint = 'glob:*/api/v1/dashboard/import/';
+  const recovery =
+    'Could not import databases/example.yaml. Check the database credentials, then retry. Reference: test-reference';
+  fetchMock.postOnce(endpoint, {
+    status: 400,
+    body: {
+      errors: [
+        {
+          message: recovery,
+          error_type: 'GENERIC_COMMAND_ERROR',
+          level: 'error',
+          extra: {},
+        },
+      ],
+    },
+  });
+  const onModelImport = jest.fn();
+  const { getByTestId, getByRole, findByText, queryByText } = setup({
+    resourceName: 'dashboard',
+    resourceLabel: 'dashboard',
+    onModelImport,
+  });
+  fireEvent.change(getByTestId('model-file-input'), {
+    target: { files: [new File(['test'], 'dashboard.zip')] },
+  });
+  await waitFor(() =>
+    expect(getByRole('button', { name: 'Import' })).toBeEnabled(),
+  );
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+  expect(
+    await findByText(
+      `An error occurred while importing dashboard: ${recovery}`,
+    ),
+  ).toBeInTheDocument();
+  expect(queryByText(/Please re-export/)).not.toBeInTheDocument();
+  await waitFor(() =>
+    expect(getByRole('button', { name: 'Import' })).toBeEnabled(),
+  );
+  expect(getByTestId('model-file-input')).not.toBeDisabled();
+  expect(onModelImport).not.toHaveBeenCalled();
+
+  fetchMock.postOnce(endpoint, { result: 'OK' });
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+  await waitFor(() => expect(onModelImport).toHaveBeenCalledTimes(1));
+  expect(queryByText(/test-reference/)).not.toBeInTheDocument();
+});
+
+function StatefulImportModal() {
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [sshTunnelPasswordFields, setSSHTunnelPasswordFields] = useState<
+    string[]
+  >([]);
+  const [sshTunnelPrivateKeyFields, setSSHTunnelPrivateKeyFields] = useState<
+    string[]
+  >([]);
+  const [
+    sshTunnelPrivateKeyPasswordFields,
+    setSSHTunnelPrivateKeyPasswordFields,
+  ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
+  return (
+    <ImportModal
+      {...requiredProps}
+      resourceName="dashboard"
+      resourceLabel="dashboard"
+      {...{
+        passwordFields,
+        setPasswordFields,
+        sshTunnelPasswordFields,
+        setSSHTunnelPasswordFields,
+        sshTunnelPrivateKeyFields,
+        setSSHTunnelPrivateKeyFields,
+        sshTunnelPrivateKeyPasswordFields,
+        setSSHTunnelPrivateKeyPasswordFields,
+        encryptedExtraFields,
+        setEncryptedExtraFields,
+      }}
+    />
+  );
+}
+
+test.each(['replace', 'remove'])(
+  'clears credentials and overwrite state when the file changes: %s',
+  async action => {
+    const endpoint = 'glob:*/api/v1/dashboard/import/';
+    const prompt = {
+      errors: [
+        {
+          message: 'Validation failed',
+          error_type: 'GENERIC_COMMAND_ERROR',
+          extra: {
+            'databases/examples.yaml': {
+              _schema: [
+                'Must provide a password for the database',
+                'Must provide a password for the ssh tunnel',
+                'Must provide a private key for the ssh tunnel',
+                'Must provide a private key password for the ssh tunnel',
+                'Must provide value for masked_encrypted_extra field: $.token (Token)',
+              ],
+            },
+            'dashboards/example.yaml':
+              'Dashboard already exists and `overwrite=true` was not passed',
+          },
+        },
+      ],
+    };
+    fetchMock.postOnce(endpoint, { status: 400, body: prompt });
+    const { getByTestId, getByRole, findByTestId, findByText, queryByText } =
+      render(<StatefulImportModal />, { store });
+    const selectFile = (name: string) =>
+      fireEvent.change(getByTestId('model-file-input'), {
+        target: { files: [new File(['bundle'], name)] },
+      });
+    selectFile('first.zip');
+    await waitFor(() =>
+      expect(getByRole('button', { name: 'Import' })).toBeEnabled(),
+    );
+    fireEvent.click(getByRole('button', { name: 'Import' }));
+    await findByTestId('ssh_tunnel_password');
+    const password = document.querySelector(
+      'input[name="password-databases/examples.yaml"]',
+    )!;
+    fireEvent.change(password, { target: { value: 'old-password' } });
+    for (const id of [
+      'ssh_tunnel_password',
+      'ssh_tunnel_private_key',
+      'ssh_tunnel_private_key_password',
+      'encrypted_extra_secret',
+    ]) {
+      fireEvent.change(getByTestId(id), { target: { value: 'old-secret' } });
+    }
+    fireEvent.change(getByTestId('overwrite-modal-input'), {
+      target: { value: 'OVERWRITE' },
+    });
+    fetchMock.postOnce(endpoint, {
+      status: 400,
+      body: {
+        errors: [
+          { message: 'Connection failed. Check credentials.', extra: {} },
+        ],
+      },
+    });
+    fireEvent.click(getByRole('button', { name: 'Overwrite' }));
+    await findByText(/Connection failed. Check credentials./);
+    expect(
+      queryByText(/Database driver for importing/),
+    ).not.toBeInTheDocument();
+    if (action === 'remove') {
+      fireEvent.click(getByRole('button', { name: /remove file/i }));
+      await waitFor(() =>
+        expect(getByRole('button', { name: 'Import' })).toBeDisabled(),
+      );
+    }
+    selectFile('second.zip');
+    await waitFor(() =>
+      expect(getByRole('button', { name: 'Import' })).toBeEnabled(),
+    );
+    expect(queryByText(/Connection failed/)).not.toBeInTheDocument();
+    expect(
+      document.querySelector('input[name="password-databases/examples.yaml"]'),
+    ).not.toBeInTheDocument();
+    fetchMock.postOnce(endpoint, { result: 'OK' });
+    fireEvent.click(getByRole('button', { name: 'Import' }));
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(endpoint)).toHaveLength(3),
+    );
+    const body = fetchMock.callHistory.lastCall(endpoint)?.options
+      .body as FormData;
+    for (const key of [
+      'passwords',
+      'ssh_tunnel_passwords',
+      'ssh_tunnel_private_keys',
+      'ssh_tunnel_private_key_passwords',
+      'encrypted_extra_secrets',
+    ]) {
+      expect(JSON.parse((body.get(key) as string) || '{}')).toEqual({});
+    }
+    expect(body.get('overwrite')).not.toBe('true');
+    expect(body.get('overwrite_all')).not.toBe('true');
+  },
+);
+
+test.each(['database', 'dataset', 'saved_query'] as ImportResourceName[])(
+  'keeps recovery guidance for %s imports',
+  async resourceName => {
+    const endpoint = `glob:*/api/v1/${resourceName}/import/`;
+    fetchMock.removeRoute('database-import-default');
+    fetchMock.postOnce(endpoint, {
+      status: 500,
+      body: {
+        errors: [{ message: 'Import failed for an unknown reason', extra: {} }],
+      },
+    });
+    const { getByTestId, getByRole, findByText } = setup({ resourceName });
+    fireEvent.change(getByTestId('model-file-input'), {
+      target: { files: [new File(['bundle'], 'bundle.zip')] },
+    });
+    await waitFor(() =>
+      expect(getByRole('button', { name: 'Import' })).toBeEnabled(),
+    );
+    fireEvent.click(getByRole('button', { name: 'Import' }));
+    await findByText(
+      /Check the import file and destination connection settings/,
+    );
+  },
+);
