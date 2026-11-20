@@ -81,6 +81,7 @@ const LAST_YEAR: ChartRange = {
 };
 
 let ranges: Record<number, ChartRange[]> = {};
+let nonTemporalCharts: number[] = [];
 
 const answerRanges = ({ options }: { options: { body?: unknown } }) => ({
   result: {
@@ -94,6 +95,9 @@ const answerRanges = ({ options }: { options: { body?: unknown } }) => ({
         key: entry.key,
         status: 'ok',
         ranges: ranges[formData.slice_id as number] ?? [],
+        ...(nonTemporalCharts.includes(formData.slice_id as number) && {
+          non_temporal: true,
+        }),
         dataset_id: 7,
         dashboard_id: DASHBOARD_ID,
       };
@@ -177,6 +181,7 @@ beforeEach(() => {
   jest.mocked(buildV1ChartDataPayload).mockClear();
   window.featureFlags = { TIME_RANGE_LIMITS: true };
   ranges = {};
+  nonTemporalCharts = [];
   fetchMock.post(RANGES_URL, answerRanges);
   fetchMock.post(CHART_DATA_URL, { result: [{ data: [] }] });
 });
@@ -984,6 +989,180 @@ test.each([['loading'], ['failed']])(
     expect(posts()).toHaveLength(0);
   },
 );
+
+const verifiedNonTemporal = (chartId: number) => ({
+  signature: JSON.stringify(formDataOf(chartId)),
+  status: 'queried',
+  nonTemporal: true,
+  ownStateKey: '{}',
+});
+
+test.each([['loading'], ['failed']])(
+  'policy %s: every refresh checks a verified non-temporal chart again and posts it',
+  async status => {
+    nonTemporalCharts = [1];
+    const store = setup({
+      charts: heldCharts(),
+      timeRangeLimits: limitsOf({
+        status,
+        payload: null,
+        charts: { 1: verifiedNonTemporal(1) },
+      }),
+    });
+
+    await dispatchOn(store, onRefresh([1, 2], true, 0, 9));
+    await dispatchOn(store, onRefresh([1, 2], true, 0, 9));
+
+    expect(rangeCalls()).toHaveLength(2);
+    const posted = posts().map(
+      call => JSON.parse(String(call.options.body)).form_data.slice_id,
+    );
+    expect(posted).toEqual([1, 1]);
+    expect(holdOf(store, 1)).toEqual(
+      expect.objectContaining({ status: 'queried', nonTemporal: true }),
+    );
+  },
+);
+
+test.each([['loading'], ['failed']])(
+  'policy %s: a refresh posts nothing and keeps the display when the server no longer verifies the chart as non-temporal',
+  async status => {
+    ranges = { 1: [LAST_WEEK] };
+    const store = setup({
+      charts: { 1: chartOf(1) },
+      timeRangeLimits: limitsOf({
+        status,
+        payload: null,
+        charts: { 1: verifiedNonTemporal(1) },
+      }),
+    });
+
+    await dispatchOn(store, refreshChart(1, true, 9));
+
+    expect(rangeCalls()).toHaveLength(1);
+    expect(posts()).toHaveLength(0);
+    expect(holdOf(store, 1)).toEqual(verifiedNonTemporal(1));
+  },
+);
+
+test.each([['loading'], ['failed']])(
+  'policy %s: a temporal chart that ran keeps its display on a refresh and is not posted',
+  async status => {
+    ranges = { 1: [LAST_WEEK] };
+    const ran = { signature: JSON.stringify(formDataOf(1)), status: 'queried' };
+    const store = setup({
+      charts: { 1: chartOf(1) },
+      timeRangeLimits: limitsOf({ status, payload: null, charts: { 1: ran } }),
+    });
+
+    await dispatchOn(store, refreshChart(1, true, 9));
+
+    expect(rangeCalls()).toHaveLength(1);
+    expect(posts()).toHaveLength(0);
+    expect(holdOf(store, 1)).toEqual(ran);
+  },
+);
+
+test('policy failed: after a failed non-temporal check, the next refresh posts once the endpoint is back', async () => {
+  nonTemporalCharts = [1];
+  fetchMock.removeRoutes();
+  fetchMock.post(RANGES_URL, { status: 500, body: {} });
+  fetchMock.post(CHART_DATA_URL, { result: [{ data: [] }] });
+  const store = setup({
+    charts: { 1: chartOf(1) },
+    timeRangeLimits: limitsOf({
+      status: 'failed',
+      payload: null,
+      charts: { 1: verifiedNonTemporal(1) },
+    }),
+  });
+
+  await dispatchOn(store, refreshChart(1, true, 9));
+
+  expect(posts()).toHaveLength(0);
+  expect(holdOf(store, 1)).toEqual(verifiedNonTemporal(1));
+
+  fetchMock.removeRoutes();
+  fetchMock.post(RANGES_URL, answerRanges);
+  fetchMock.post(CHART_DATA_URL, { result: [{ data: [] }] });
+  await dispatchOn(store, refreshChart(1, true, 9));
+
+  expect(posts()).toHaveLength(1);
+});
+
+test('a non-temporal chart released by the no-rule shortcut keeps refreshing after the limits fail', async () => {
+  nonTemporalCharts = [1];
+  const store = setup({
+    charts: { 1: chartOf(1) },
+    timeRangeLimits: limitsOf({
+      payload: {
+        ...PAYLOAD,
+        dashboard: UNSET,
+        datasets: [
+          { id: 7, name: 'calls', policy: UNSET },
+          { id: 8, name: 'orders', policy: SPAN_90 },
+        ],
+      },
+    }),
+  });
+  expect(await dispatchOn(store, checkChartRanges(1, formDataOf(1)))).toBe(
+    true,
+  );
+  expect(rangeCalls()).toHaveLength(0);
+  store.dispatch({
+    type: 'TIME_RANGE_LIMITS_LOADING',
+    dashboardId: DASHBOARD_ID,
+    request: 1,
+  });
+  store.dispatch({
+    type: 'TIME_RANGE_LIMITS_FAILED',
+    dashboardId: DASHBOARD_ID,
+    request: 1,
+  });
+
+  await dispatchOn(store, refreshChart(1, true, 9));
+
+  expect(rangeCalls()).toHaveLength(1);
+  expect(posts()).toHaveLength(1);
+});
+
+test('policy failed: a non-temporal proof for other form data does not let a refresh run', async () => {
+  nonTemporalCharts = [1];
+  const store = setup({
+    charts: {
+      1: chartOf(1, {
+        latestQueryFormData: formDataOf(1, { row_limit: 5 }),
+      }),
+    },
+    timeRangeLimits: limitsOf({
+      status: 'failed',
+      payload: null,
+      charts: { 1: verifiedNonTemporal(1) },
+    }),
+  });
+
+  await dispatchOn(store, refreshChart(1, true, 9));
+
+  expect(rangeCalls()).toHaveLength(0);
+  expect(posts()).toHaveLength(0);
+});
+
+test('policy failed: a verified non-temporal chart waiting for its own check is not posted by a refresh', async () => {
+  nonTemporalCharts = [1];
+  const store = setup({
+    charts: { 1: chartOf(1, { triggerQuery: true }) },
+    timeRangeLimits: limitsOf({
+      status: 'failed',
+      payload: null,
+      charts: { 1: verifiedNonTemporal(1) },
+    }),
+  });
+
+  await dispatchOn(store, refreshChart(1, true, 9));
+
+  expect(rangeCalls()).toHaveLength(0);
+  expect(posts()).toHaveLength(0);
+});
 
 test('a chart waiting for its own check is not posted by a refresh', async () => {
   ranges = { 1: [LAST_WEEK] };

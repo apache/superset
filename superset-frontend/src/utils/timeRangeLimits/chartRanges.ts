@@ -73,6 +73,7 @@ export type ChartRangesAnswer =
       ranges: ChartRange[];
       dataset_id: number | null;
       dashboard_id: number | null;
+      non_temporal?: boolean;
     }
   | { key: string; status: 'error'; error: ChartRangesError };
 
@@ -135,11 +136,18 @@ export type ChartRangesLevels = {
 export type ChartRangeFailure = LimitFailure & { range: ChartRange };
 
 export type ChartRangesJudgement =
-  | { status: 'valid' }
+  | { status: 'valid'; nonTemporal?: boolean }
   | { status: 'invalid'; failures: ChartRangeFailure[] }
   | { status: 'unbounded'; failures: ChartRangeFailure[] }
   | { status: 'error'; error: ChartRangesError }
   | { status: 'unavailable' };
+
+/** Whether the server verified a request without temporal columns or ranges. */
+export const isNonTemporalAnswer = (answer: ChartRangesAnswer | undefined) =>
+  answer?.status === 'ok' &&
+  answer.non_temporal === true &&
+  Array.isArray(answer.ranges) &&
+  answer.ranges.length === 0;
 
 function judgeAnswer(
   answer: Extract<ChartRangesAnswer, { status: 'ok' }>,
@@ -147,6 +155,9 @@ function judgeAnswer(
   today: Dayjs,
   now: Dayjs,
 ): ChartRangesJudgement {
+  if (isNonTemporalAnswer(answer)) {
+    return { status: 'valid', nonTemporal: true };
+  }
   const dataset = levels.datasets?.find(item => item.id === answer.dataset_id);
   if (dataset?.error) {
     return { status: 'unavailable' };

@@ -375,7 +375,9 @@ def _inline_series_ranges(
         and spec.time_groupby_inline
     ):
         ranking_filters = [entry for entry in ranges if entry[4][0][0] != "granularity"]
-        return _combine(ranking_filters) or [(None, None, None, ())]
+        return _combine(ranking_filters) or (
+            [(None, None, None, ())] if has_temporal_column(datasource) else []
+        )
 
     return []
 
@@ -386,6 +388,100 @@ def has_temporal_column(datasource: Explorable) -> bool:
     if datasource.type == DatasourceType.SEMANTIC_VIEW:
         return any(col.is_dttm for col in datasource.columns)
     return bool(getattr(datasource, "dttm_cols", None))
+
+
+def _known_non_temporal_datasource(datasource: Explorable) -> bool:
+    """Require readable column metadata before the non-temporal exemption."""
+    if (
+        datasource.type
+        not in (
+            DatasourceType.TABLE,
+            DatasourceType.QUERY,
+            DatasourceType.SEMANTIC_VIEW,
+        )
+        or not datasource.columns
+    ):
+        return False
+    return not has_temporal_column(datasource)
+
+
+def _has_time_request(value: Any) -> bool:
+    """Find temporal request fields even when no temporal column resolves them."""
+    if isinstance(value, Mapping):
+        if (
+            str(value.get("op") or value.get("operator") or "").upper()
+            == FilterOperator.TEMPORAL_RANGE
+        ):
+            return True
+        time_fields = {
+            "time_range",
+            "time_range_b",
+            "granularity",
+            "granularity_sqla",
+            "granularity_sqla_b",
+            "time_shift",
+            "time_offsets",
+            "time_compare",
+            "time_compare_b",
+            "time_compare_full_range",
+            "from_dttm",
+            "to_dttm",
+            "inner_from_dttm",
+            "inner_to_dttm",
+            "since",
+            "until",
+            "is_timeseries",
+        }
+        return any(
+            (
+                key in time_fields
+                and item is not None
+                and item != ""
+                and not (
+                    key in {"time_range", "time_range_b"} and item == _NO_TIME_RANGE
+                )
+                and not (
+                    key in {"time_offsets", "time_compare", "time_compare_b"}
+                    and item == []
+                )
+                and not (
+                    key in {"is_timeseries", "time_compare_full_range"}
+                    and item is False
+                )
+            )
+            or _has_time_request(item)
+            for key, item in value.items()
+        )
+    if isinstance(value, (list, tuple)):
+        return any(_has_time_request(item) for item in value)
+    return False
+
+
+def is_non_temporal_query_context(query_context: QueryContext) -> bool:
+    """Verify that the non-temporal exemption covers the datasource and every query."""
+    if not query_context.queries or not _known_non_temporal_datasource(
+        query_context.datasource
+    ):
+        return False
+    form_data = query_context.form_data
+    if form_data is not None and not isinstance(form_data, dict):
+        return False
+    if _has_time_request(form_data):
+        return False
+    for query in query_context.queries:
+        if _has_time_request(
+            {
+                **query.to_dict(),
+                "time_range": query.time_range,
+                "time_offsets": query.time_offsets,
+            }
+        ) or get_query_ranges(
+            query_context.datasource,
+            query,
+            query.result_type or query_context.result_type,
+        ):
+            return False
+    return True
 
 
 def _semantic_view_ranges(
@@ -1365,6 +1461,8 @@ def _check_query_context(query_context: QueryContext) -> None:
         ],
     )
 
+    if is_non_temporal_query_context(query_context):
+        return
     checks, native = _bound_value_lists(query_context, dashboard, now, checks, native)
     _check_ranges(
         datasource,
@@ -1728,6 +1826,8 @@ def check_datasource_open_query(
     ``TimeRangeLimitsUnavailableError`` when the limits can't be loaded.
     """
     if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+        return
+    if _known_non_temporal_datasource(datasource):
         return
     with limit_scope(dataset_id=scope_dataset_id(datasource)):
         ranges = get_query_ranges(datasource, cast("QueryObject", _DictQuery({})), None)

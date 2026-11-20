@@ -39,6 +39,7 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.time_range_limits.enforcement import (
+    is_non_temporal_query_context,
     request_date_ranges,
     RequestRanges,
     SourcedRange,
@@ -195,7 +196,13 @@ def _range(query_index: int, sourced: SourcedRange) -> dict[str, Any]:
     }
 
 
-def _answer(key: Any, found: RequestRanges, datasource: Explorable) -> dict[str, Any]:
+def _answer(
+    key: Any,
+    found: RequestRanges,
+    datasource: Explorable,
+    *,
+    non_temporal: bool = False,
+) -> dict[str, Any]:
     if found.dashboard_unreadable:
         return _error_answer(
             key,
@@ -210,6 +217,7 @@ def _answer(key: Any, found: RequestRanges, datasource: Explorable) -> dict[str,
         if datasource.type == DatasourceType.TABLE
         else None,
         "dashboard_id": found.dashboard.id if found.dashboard is not None else None,
+        **({"non_temporal": True} if non_temporal else {}),
     }
 
 
@@ -236,10 +244,15 @@ def _modern_ranges(key: Any, body: Any) -> dict[str, Any]:
         for query in query_context.queries:
             query.validate()
         found = request_date_ranges(query_context)
+        non_temporal = (
+            not found.dashboard_unreadable
+            and not found.ranges
+            and is_non_temporal_query_context(query_context)
+        )
     except Exception as ex:  # pylint: disable=broad-except
         logger.info("Chart ranges of %s not read", key, exc_info=True)
         return _error_answer(key, *_chart_data_error(ex))
-    return _answer(key, found, datasource)
+    return _answer(key, found, datasource, non_temporal=non_temporal)
 
 
 class ChartRangesRestApi(BaseSupersetApi):

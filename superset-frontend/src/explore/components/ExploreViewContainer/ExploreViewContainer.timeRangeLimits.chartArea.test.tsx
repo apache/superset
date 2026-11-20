@@ -178,7 +178,7 @@ test('check failed after a chart rendered: the limits-failed Alert shows and the
   expect(chartDataCalls()).toBe(1);
 });
 
-test('policy failed: limits-failed Alert, Retry reads the current dataset once per click', async () => {
+test('policy failed: limits-failed Alert, a temporal request stays blocked after its check, Retry reads the current dataset once per click', async () => {
   fetchMock.get(EXPLORE_GET, 503);
   const initial = state({ limits: { status: 'failed' } });
   initial.explore.datasource = { ...initial.explore.datasource, id: 5 };
@@ -189,8 +189,10 @@ test('policy failed: limits-failed Alert, Retry reads the current dataset once p
     ),
   ).toBeInTheDocument();
   expect(await findUpdateChart()).toBeDisabled();
-  await settle();
-  expect(checkCalls()).toHaveLength(0);
+  await checked();
+  expect(checkCalls()).toHaveLength(1);
+  expect(updateChart()).toBeDisabled();
+  expect(chartDataCalls()).toBe(0);
   await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(EXPLORE_GET)).toHaveLength(1),

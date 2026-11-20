@@ -288,6 +288,94 @@ class TestTimeRangeLimitsRequestPaths(SupersetTestCase):
             else token
         }
 
+    def check_non_temporal_broken_limit(self, level: str) -> None:
+        """Exercise actual chart-data and classification routes on all surfaces."""
+        table = db.session.get(SqlaTable, self.ids["table"])
+        dashboard = db.session.get(Dashboard, self.ids["dashboard"])
+        columns, main, extra, metadata = (
+            [(column, column.is_dttm) for column in table.columns],
+            table.main_dttm_col,
+            table.extra,
+            dashboard.json_metadata,
+        )
+        bad = {"schema_version": 1, "max_span": {"quantity": -1, "time_grain": "P1D"}}
+        try:
+            for column, _temporal in columns:
+                column.is_dttm = False
+            table.main_dttm_col = None
+            if level == "dataset":
+                table.extra = json.dumps({"time_range_limits": bad})
+            if level == "dashboard":
+                dashboard.json_metadata = json.dumps({"time_range_limits": bad})
+            db.session.commit()
+            config = {
+                "TIME_RANGE_LIMITS_GLOBAL": bad
+                if level == "global"
+                else span_policy(90)
+            }
+            for surface in ("explore", "dashboard", "embedded"):
+                self.client = app.test_client()
+                headers = self.guest_headers() if surface == "embedded" else {}
+                if surface != "embedded":
+                    self.login(ADMIN_USERNAME)
+                payload = query_context(self.ids["table"], "No filter")
+                payload["queries"] = [{"columns": ["name"], "metrics": ["count"]}]
+                if surface != "explore" or level == "dashboard":
+                    payload["form_data"] = {
+                        "dashboardId": self.ids["dashboard"],
+                        "slice_id": self.ids["chart"],
+                    }
+                with patch.dict(app.config, config):
+                    response = self.client.post(
+                        "/api/v1/chart/data", json=payload, headers=headers
+                    )
+                    assert response.status_code == 200, (surface, response.json)
+                    assert response.json["result"][0]["data"]
+                    classified = self.client.post(
+                        "/api/v1/time_range_limits/chart_ranges/",
+                        json={"charts": [{"key": "plain", "query_context": payload}]},
+                        headers=headers,
+                    )
+                    assert classified.status_code == 200, classified.json
+                    answer = classified.json["result"]["charts"][0]
+                    assert answer["status"] == "ok", answer
+                    assert answer["non_temporal"] is True, answer
+                    payload["queries"].append(
+                        {
+                            "columns": ["name"],
+                            "metrics": ["count"],
+                            "time_range": "Last week",
+                        }
+                    )
+                    refused = self.client.post(
+                        "/api/v1/chart/data", json=payload, headers=headers
+                    )
+                    assert refused.status_code == 503, (surface, refused.json)
+        finally:
+            for column, temporal in columns:
+                column.is_dttm = temporal
+            table.main_dttm_col, table.extra = main, extra
+            dashboard.json_metadata = metadata
+            db.session.commit()
+
+    @pytest.mark.usefixtures("public_role_like_gamma_scoped")
+    @with_feature_flags(EMBEDDED_SUPERSET=True, **FLAG_ON)
+    def test_non_temporal_with_broken_global(self) -> None:
+        """A broken global cannot hold a non-temporal query."""
+        self.check_non_temporal_broken_limit("global")
+
+    @pytest.mark.usefixtures("public_role_like_gamma_scoped")
+    @with_feature_flags(EMBEDDED_SUPERSET=True, **FLAG_ON)
+    def test_non_temporal_with_broken_dataset(self) -> None:
+        """An invalid dataset limit is irrelevant to its non-temporal query."""
+        self.check_non_temporal_broken_limit("dataset")
+
+    @pytest.mark.usefixtures("public_role_like_gamma_scoped")
+    @with_feature_flags(EMBEDDED_SUPERSET=True, **FLAG_ON)
+    def test_non_temporal_with_broken_dashboard(self) -> None:
+        """An invalid dashboard limit cannot block a non-temporal query."""
+        self.check_non_temporal_broken_limit("dashboard")
+
     def post_dashboard_chart_data(
         self, time_range: str, headers: dict[str, str] | None = None, **extra: Any
     ) -> Any:

@@ -81,6 +81,7 @@ export type TimeRangeCheckStatus =
 export type ExploreTimeRangeCheck = {
   key: string;
   status: TimeRangeCheckStatus;
+  nonTemporal?: boolean;
   failures: ChartRangeFailure[];
   // The errors this check put on each control, and those it puts on Update chart.
   controlErrors: Record<string, string[]>;
@@ -243,6 +244,13 @@ export function exploreRunAllowed(
   check: ExploreTimeRangeCheck | undefined,
   key: string,
 ): boolean {
+  if (
+    check?.key === key &&
+    check.status === 'valid' &&
+    check.nonTemporal === true
+  ) {
+    return true;
+  }
   return (
     limits?.status === 'loaded' &&
     !limits.refreshing &&

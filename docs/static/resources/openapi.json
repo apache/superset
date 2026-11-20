@@ -3211,6 +3211,10 @@
           "key": {
             "type": "string"
           },
+          "non_temporal": {
+            "description": "True only for a verified non-temporal request.",
+            "type": "boolean"
+          },
           "ranges": {
             "items": {
               "$ref": "#/components/schemas/ChartRange"

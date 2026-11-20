@@ -150,6 +150,64 @@ test('page open: waits for the check, then runs once on valid', async () => {
   expect(await findUpdateChart()).toBeEnabled();
 });
 
+test.each(['failed', 'dashboard'] as const)(
+  'Explore runs a verified non-temporal request despite %s limits',
+  async failure => {
+    server.dashboardId = failure === 'dashboard' ? 7 : null;
+    fetchMock.removeRoutes();
+    mockRoutes(undefined, () => {
+      const answer = chartRangesAnswer([]);
+      return {
+        result: {
+          ...answer.result,
+          charts: answer.result.charts.map(chart => ({
+            ...chart,
+            non_temporal: true,
+          })),
+        },
+      };
+    });
+    const { store } = renderExplore(
+      state({
+        limits:
+          failure === 'failed'
+            ? { status: 'failed' }
+            : { ...LOADED, dashboard: { id: 7, status: 'failed' } },
+        formData: failure === 'dashboard' ? { dashboardId: 7 } : {},
+      }),
+    );
+    await checked();
+    expect(store.getState().explore.timeRangeCheck?.nonTemporal).toBe(true);
+    await waitFor(() => expect(chartDataCalls()).toBe(1));
+    expect(await findUpdateChart()).toBeEnabled();
+    await settle();
+    expect(chartDataCalls()).toBe(1);
+  },
+);
+
+test.each([undefined, false])(
+  'Explore empty ranges without proof (%s) never bypass a failed policy',
+  async nonTemporal => {
+    fetchMock.removeRoutes();
+    mockRoutes(undefined, () => {
+      const answer = chartRangesAnswer([]);
+      return {
+        result: {
+          ...answer.result,
+          charts: answer.result.charts.map(chart => ({
+            ...chart,
+            non_temporal: nonTemporal,
+          })),
+        },
+      };
+    });
+    renderExplore(state({ limits: { status: 'failed' } }));
+    await checked();
+    expect(chartDataCalls()).toBe(0);
+    expect(await findUpdateChart()).toBeDisabled();
+  },
+);
+
 test('page open: an invalid range never runs; the error is on the filter and Update chart and Save are disabled', async () => {
   server.answer = LAST_45_DAYS;
   const { store } = renderExplore();
@@ -834,6 +892,15 @@ test('stale link: no request while the check is pending; the held run goes once 
   const { store } = renderExplore(state({ queriesResponse: RENDERED }));
   await checked();
   await waitFor(() => expect(chartDataCalls()).toBe(1));
+  let release: () => void = () => {};
+  fetchMock.removeRoutes();
+  mockRoutes(
+    undefined,
+    () =>
+      new Promise(resolve => {
+        release = () => resolve(chartRangesAnswer(server.answer));
+      }),
+  );
   act(() => {
     store.dispatch(
       setControlValue('adhoc_filters', [
@@ -843,6 +910,8 @@ test('stale link: no request while the check is pending; the held run goes once 
   });
   await userEvent.click(screen.getByText('click here'));
   expect(chartDataCalls()).toBe(1);
+  await waitFor(() => expect(checkCalls()).toHaveLength(2));
+  await act(async () => release());
   await checked(2);
   await waitFor(() => expect(chartDataCalls()).toBe(2));
   await settle();
@@ -906,12 +975,13 @@ test.each(['mount', 'query'] as const)(
       store.dispatch(setTimeRangeRunOnValid(run));
     });
     expect(chartDataCalls()).toBe(0);
+    await checked();
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(chartDataCalls()).toBe(1));
     expect(store.getState().explore.timeRangeRunOnValid).toBeNull();
     await settle();
     expect(chartDataCalls()).toBe(1);
-    expect(checkCalls()).toHaveLength(0);
+    expect(checkCalls()).toHaveLength(1);
   },
 );
 
@@ -962,7 +1032,7 @@ const emptyLevels = () => ({
   ],
 });
 
-test('a dashboard with empty hydrated limits loads its level before any range check', async () => {
+test('a dashboard with empty hydrated limits still holds temporal charts while classifying', async () => {
   let release: () => void = () => {};
   fetchMock.get(
     DASHBOARD,
@@ -983,7 +1053,7 @@ test('a dashboard with empty hydrated limits loads its level before any range ch
   );
   await settle();
   expect(chartDataCalls()).toBe(0);
-  expect(checkCalls()).toHaveLength(0);
+  expect(checkCalls()).toHaveLength(1);
   expect(await findUpdateChart()).toBeDisabled();
   await act(async () => release());
   await waitFor(() => expect(chartDataCalls()).toBe(1));
@@ -997,11 +1067,11 @@ test('a dashboard with empty hydrated limits loads its level before any range ch
   await userEvent.click(await findUpdateChart());
   await waitFor(() => expect(chartDataCalls()).toBe(2));
   await settle();
-  expect(checkCalls()).toHaveLength(0);
+  expect(checkCalls()).toHaveLength(1);
   expect(fetchMock.callHistory.calls(DASHBOARD)).toHaveLength(1);
 });
 
-test('a failed dashboard level load holds an empty hydrated policy without range checks', async () => {
+test('a failed dashboard level load holds temporal charts after classification', async () => {
   fetchMock.get(DASHBOARD, 503);
   renderExplore(state({ formData: { dashboardId: 7 }, limits: emptyLevels() }));
   await screen.findByRole(
@@ -1011,7 +1081,7 @@ test('a failed dashboard level load holds an empty hydrated policy without range
   );
   await settle();
   expect(chartDataCalls()).toBe(0);
-  expect(checkCalls()).toHaveLength(0);
+  expect(checkCalls()).toHaveLength(1);
   expect(fetchMock.callHistory.calls(DASHBOARD)).toHaveLength(1);
 });
 

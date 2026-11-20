@@ -68,6 +68,8 @@ export type ChartHoldStatus =
 export type ChartHold = {
   signature: string;
   status: ChartHoldStatus;
+  nonTemporal?: boolean;
+  ownStateKey?: string;
   failures?: ChartRangeFailure[];
   error?: ChartRangesError;
   attribution?: ChartHoldAttribution;

@@ -735,6 +735,110 @@ def test_no_time_filter_on_a_dataset_without_temporal_columns_passes(
     check(context)
 
 
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+@pytest.mark.parametrize("broken", ["global", "dataset", "dashboard"])
+@pytest.mark.parametrize("principal", ["alpha", "guest"])
+def test_non_temporal_query_ignores_broken_limits(
+    mocker: MockerFixture, broken: str, principal: str
+) -> None:
+    """A verified non-temporal datasource is exempt even with invalid policies."""
+    bad = policy(max_span=(-1, "P1D"))
+    use_datasource(
+        mocker,
+        make_dataset(
+            temporal=False,
+            extra=json.dumps({"time_range_limits": bad})
+            if broken == "dataset"
+            else None,
+        ),
+    )
+    as_user(mocker, principal)
+    use_dashboards(
+        mocker, make_dashboard(limits=bad if broken == "dashboard" else None)
+    )
+    set_limits(mocker, bad if broken == "global" else policy(max_span=(90, "P1D")))
+    context = make_context(
+        [{"columns": ["name"], "metrics": ["count"]}],
+        {"dashboardId": 3, "slice_id": 11},
+    )
+    assert ranges_of(context) == []
+    check(context)
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+@pytest.mark.parametrize(
+    "query,form_data",
+    [
+        ({"time_range": "Last week"}, {}),
+        ({"time_shift": "1 year ago"}, {}),
+        ({"time_offsets": ["1 year ago"]}, {}),
+        ({"filters": [tr("Last week", col="name")]}, {}),
+        ({}, {"extra_form_data": {"time_range": "Last week"}}),
+        ({}, {"time_compare": ["1 year ago"]}),
+    ],
+)
+def test_non_temporal_datasource_with_time_request_still_fails_closed(
+    mocker: MockerFixture, query: dict[str, Any], form_data: dict[str, Any]
+) -> None:
+    """Empty extracted ranges cannot exempt supplied temporal request fields."""
+    use_datasource(mocker, make_dataset(temporal=False))
+    set_limits(mocker, policy(max_span=(-1, "P1D")))
+    context = make_context(
+        [{"columns": ["name"], "metrics": ["count"], **query}], form_data
+    )
+    with pytest.raises(TimeRangeLimitsUnavailableError):
+        check(context)
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_non_temporal_mixed_request_keeps_temporal_check(mocker: MockerFixture) -> None:
+    """One temporal query object prevents a request-wide exemption."""
+    use_datasource(mocker, make_dataset(temporal=False))
+    set_limits(mocker, policy(max_span=(-1, "P1D")))
+    context = make_context(
+        [{"columns": ["name"]}, {"filters": [tr("Last week", col="name")]}]
+    )
+    with pytest.raises(TimeRangeLimitsUnavailableError):
+        check(context)
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_empty_datasource_metadata_is_not_non_temporal(mocker: MockerFixture) -> None:
+    """Missing column metadata must not prove that the datasource is non-temporal."""
+    datasource = make_dataset(temporal=False)
+    datasource.columns = []
+    use_datasource(mocker, datasource)
+    set_limits(mocker, policy(max_span=(-1, "P1D")))
+    with pytest.raises(TimeRangeLimitsUnavailableError):
+        check(make_context([{"metrics": ["count"]}]))
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_non_temporal_unreadable_dashboard_stays_closed(mocker: MockerFixture) -> None:
+    """A guest's unreadable dashboard context is not a non-temporal exemption."""
+    use_datasource(mocker, make_dataset(temporal=False))
+    as_user(mocker, "guest")
+    use_dashboards(mocker)
+    set_limits(mocker, policy(max_span=(-1, "P1D")))
+    with pytest.raises(TimeRangeLimitsUnavailableError):
+        check(make_context([{"metrics": ["count"]}], {"dashboardId": "broken"}))
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_non_temporal_open_query_ignores_broken_global(mocker: MockerFixture) -> None:
+    """Open queries such as a dashboard example export keep the exemption."""
+    from superset.time_range_limits.enforcement import check_datasource_open_query
+
+    set_limits(mocker, policy(max_span=(-1, "P1D")))
+    check_datasource_open_query(make_dataset(temporal=False))
+
+
 def make_query_datasource() -> Any:
     from superset.models.core import Database
     from superset.models.sql_lab import Query
@@ -4193,6 +4297,51 @@ def test_inline_series_ranking_requires_its_own_time_bound(
     assert "JOIN (SELECT" in sql
     assert reason == (None if independent_filter else "UNBOUNDED_RANGE")
     assert ran == (1 if independent_filter else 0)
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+@pytest.mark.parametrize("broken", [False, True], ids=["normal", "broken"])
+def test_non_temporal_inline_series_ranking_passes(
+    mocker: MockerFixture, broken: bool
+) -> None:
+    """A series limit cannot create a time range on a non-temporal datasource."""
+    datasource = use_datasource(mocker, make_dataset(temporal=False))
+    mocker.patch.object(datasource.db_engine_spec, "time_groupby_inline", True)
+    set_limits(mocker, policy(max_span=(-1 if broken else 90, "P1D")))
+    context = make_context(
+        [
+            {
+                "columns": ["name", "value"],
+                "series_columns": ["name"],
+                "series_limit": 5,
+                "metrics": ["count"],
+            }
+        ]
+    )
+    check(context)
+    assert ranges_of(context) == []
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_temporal_inline_series_ranking_stays_unbounded(
+    mocker: MockerFixture, dataset: Any
+) -> None:
+    """A temporal datasource still requires a finite ranking-subquery range."""
+    mocker.patch.object(dataset.db_engine_spec, "time_groupby_inline", True)
+    set_limits(mocker, policy(max_span=(90, "P1D")))
+    context = make_context(
+        [
+            {
+                "columns": ["name", "value"],
+                "series_columns": ["name"],
+                "series_limit": 5,
+                "metrics": ["count"],
+            }
+        ]
+    )
+    assert reason_of(context) == "UNBOUNDED_RANGE"
 
 
 @freeze_time(NOW)

@@ -29,6 +29,7 @@ import {
   fetchChartRanges,
   hasLimits,
   judgeChartRanges,
+  isNonTemporalAnswer,
 } from 'src/utils/timeRangeLimits';
 import {
   ExploreTimeRangeCheck,
@@ -212,14 +213,10 @@ export default function useExploreTimeRangeCheck({
         optionReasons: levels ? lastReasons.current : {},
       }),
     );
-    if (!levels) {
-      return undefined;
-    }
     if (waitingForDashboard && dashboardId !== undefined) {
       if (dashboard?.id !== dashboardId) {
         dispatch(fetchExploreDashboardLimits(dashboardId) as never);
       }
-      return undefined;
     }
     let current = true;
     const timer = setTimeout(async () => {
@@ -266,11 +263,16 @@ export default function useExploreTimeRangeCheck({
   ]);
 
   useEffect(() => {
-    if (!enabled || !policy || !answer || answer.key !== checkKey) {
+    if (!enabled || !answer || answer.key !== checkKey) {
       return;
     }
     if (!('calls' in answer)) {
-      dispatch(setTimeRangeCheck({ key: checkKey, status: 'error' }));
+      dispatch(
+        setTimeRangeCheck({
+          key: checkKey,
+          status: policy ? 'error' : 'unavailable',
+        }),
+      );
       return;
     }
     const [call] = answer.calls;
@@ -278,6 +280,26 @@ export default function useExploreTimeRangeCheck({
       call && 'result' in call
         ? call.result.charts.find(item => item.key === ENTRY_KEY)
         : undefined;
+    if (isNonTemporalAnswer(chart)) {
+      dispatch(
+        setTimeRangeCheck({
+          key: checkKey,
+          status: 'valid',
+          nonTemporal: true,
+        }),
+      );
+      return;
+    }
+    if (!policy) {
+      if (limits?.refreshing) {
+        return;
+      }
+      dispatch(setTimeRangeCheck({ key: checkKey, status: 'unavailable' }));
+      return;
+    }
+    if (waitingForDashboard) {
+      return;
+    }
     if (chart?.status === 'ok') {
       if (chart.dataset_id !== null && chart.dataset_id !== policy.datasetId) {
         // Right after a dataset switch: wait for its limits, read once.
@@ -377,9 +399,11 @@ export default function useExploreTimeRangeCheck({
     answer,
     checkKey,
     policy,
+    limits?.refreshing,
     dashboard,
     dashboardId,
     datasetName,
+    waitingForDashboard,
     dispatch,
   ]);
 

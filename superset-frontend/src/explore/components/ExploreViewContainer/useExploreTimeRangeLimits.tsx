@@ -321,12 +321,13 @@ export function useExploreTimeRangeStatus({
 }) {
   const { limitsOn, checkKey, isQueryAllowed, retryTimeRangeCheck } = run;
   const { limitRejection, refusedKey } = rejection;
+  const queryAllowed = isQueryAllowed();
   const timeRangeFailed =
     limitsOn &&
+    !queryAllowed &&
     (limitsFailed(props.timeRangeLimits) ||
       (props.timeRangeCheck?.key === checkKey &&
         props.timeRangeCheck.status === 'unavailable'));
-  const queryAllowed = isQueryAllowed();
   const timeRangeBusy =
     limitsOn &&
     !queryAllowed &&

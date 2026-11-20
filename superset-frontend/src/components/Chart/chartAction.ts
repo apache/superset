@@ -68,6 +68,7 @@ import type { ChartState } from 'src/explore/types';
 import type { TimeRangeLimitsState } from 'src/dashboard/reducers/timeRangeLimits';
 import {
   chartHoldMode,
+  chartSignature,
   checkChartRanges,
   takePrebuiltQueryContext,
 } from 'src/dashboard/actions/timeRangeLimits';
@@ -1172,7 +1173,13 @@ export function refreshChart(
       return post();
     }
     // A held chart (or one still waiting for its own check) is never posted.
-    if (holdMode !== 'on' || chart.triggerQuery) {
+    // While the limits are loading or failed, a chart that ran this request is
+    // checked again without changing its display, and posted only if the
+    // server verifies the request as non-temporal.
+    const ranThisRequest =
+      (hold?.status === 'valid' || hold?.status === 'queried') &&
+      hold.signature === chartSignature(latestQueryFormData);
+    if (chart.triggerQuery || (holdMode !== 'on' && !ranThisRequest)) {
       return Promise.resolve();
     }
     return (
@@ -1181,6 +1188,7 @@ export function refreshChart(
           chart.id,
           latestQueryFormData,
           ownState,
+          holdMode !== 'on',
         ) as unknown as ChartThunkAction<Promise<boolean>>,
       ) as Promise<boolean>
     ).then(released => (released ? post() : undefined));

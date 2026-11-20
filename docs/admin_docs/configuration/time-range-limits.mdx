@@ -83,7 +83,8 @@ The duration is `quantity × time_grain`. Ranges are end-exclusive. For units un
 - **Day and longer units** are calendar units: the span is counted back from the end, the way Superset builds "Last N months", so `2026-02-28 : 2026-03-31` ("Last month" on March 31) fits 1 month (March 31 minus 1 month is February 28). The look-forward bound starts at midnight, so a range can run to the end of today even when `max_look_forward` is 0.
 - **Look-back** of a day or longer counts from the start of today, in the server's time zone. With a 7-day look-back, "Last 7 days" passes, and "Current day" or `today : now` passes a look-back of 0.
 - **Units under a day** are elapsed time from `now`, with one second of slack either way. They follow the server's wall clock, as Superset's own date parser does.
-- A query on a datasource with a temporal column and no time range is refused while any rule applies (`UNBOUNDED_RANGE`), except a value list, which gets a window (see [Value lists](#value-lists)). Charts with no temporal column run as before.
+- A query on a datasource with a temporal column and no time range is refused while any rule applies (`UNBOUNDED_RANGE`), except a value list, which gets a window (see [Value lists](#value-lists)). This includes charts that display no time field on a datasource that has one.
+- Queries on datasources with no temporal columns, including semantic views with no temporal dimensions, run unchanged even when a global, dataset or dashboard policy is invalid or the policy endpoint is unavailable. The server applies this only after verifying that no query object in the final request has a temporal range, filter, shift or comparison. Missing column metadata or an unreadable request context never qualifies for this exception. `No filter` without a temporal filter or time column represents the absence of a range.
 - Time comparison ranges and annotation layer charts are checked as well. A time filter written in custom SQL or a Jinja template that can remove the filter counts as no time range. Jinja macros that read the request's form data, such as `get_time_filter`, `get_filters` and `filter_values`, read the checked query instead.
 
 ## What users see
@@ -176,6 +177,8 @@ An invalid dataset policy does not fail the entire dashboard response. Its datas
 Dashboard and dataset chart save checks evaluate at most 50 readable charts and return `truncated: true` when more charts are available. An unreadable chart's dataset policy does not affect the dashboard chart check.
 
 The `time_range_limits` key can also be written through the usual dashboard create, update, copy and import, the dataset update and import, the legacy datasource save, and the MCP `update_dashboard` and `generate_dashboard` tools (see [Writes](#writes-400-and-422)).
+
+The chart-ranges response adds `non_temporal: true` only when the server verifies the non-temporal exception for the whole request. Dashboard, embedded and Explore clients can use this result even when policy loading fails. Empty ranges without this explicit result, a failed chart-ranges request, or a result containing a range do not release a chart through an unavailable policy.
 
 ## Errors
 

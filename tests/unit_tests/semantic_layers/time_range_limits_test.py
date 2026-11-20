@@ -380,6 +380,24 @@ def test_a_view_with_no_temporal_dimension_is_not_limited(
 
 
 @freeze_time(NOW)
+@pytest.mark.usefixtures("full_api_access", "flag_on")
+def test_non_temporal_view_ignores_broken_global(
+    client: FlaskClient, stub_orders: SemanticViewABC, mocker: MockerFixture
+) -> None:
+    """A non-temporal semantic view is exempt in the same way as a dataset."""
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": policy(span=-1)})
+    response = client.post("/api/v1/chart/data", json=body())
+    assert response.status_code == 200, response.json
+    classified = client.post(
+        "/api/v1/time_range_limits/chart_ranges/",
+        json={"charts": [{"key": "plain", "query_context": body()}]},
+    )
+    answer = classified.json["result"]["charts"][0]
+    assert answer["status"] == "ok", answer
+    assert answer["non_temporal"] is True
+
+
+@freeze_time(NOW)
 @pytest.mark.usefixtures("full_api_access", "flag_on", "look_back_30")
 def test_a_view_with_no_preferred_temporal_dimension_is_still_checked(
     client: FlaskClient,

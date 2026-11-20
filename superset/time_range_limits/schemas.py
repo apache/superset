@@ -326,6 +326,9 @@ class ChartRangesChartSchema(Schema):
     key = fields.String()
     status = fields.String(metadata={"description": "ok or error."})
     ranges = fields.List(fields.Nested(ChartRangeSchema))
+    non_temporal = fields.Boolean(
+        metadata={"description": "True only for a verified non-temporal request."}
+    )
     dataset_id = fields.Integer(allow_none=True)
     dashboard_id = fields.Integer(
         allow_none=True,

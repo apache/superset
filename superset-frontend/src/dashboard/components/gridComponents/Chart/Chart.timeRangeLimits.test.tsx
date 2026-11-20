@@ -54,9 +54,11 @@ jest.mock('src/explore/exploreUtils', () => {
 });
 
 let capturedChartContainerProps: Record<string, unknown> = {};
+let mockCapturedTriggerQueries: unknown[] = [];
 jest.mock('src/components/Chart/ChartContainer', () => {
   const MockChartContainer = (props: Record<string, unknown>) => {
     capturedChartContainerProps = props;
+    mockCapturedTriggerQueries.push(props.triggerQuery);
     return <div data-test="chart-container" />;
   };
   return { __esModule: true, default: MockChartContainer };
@@ -156,6 +158,7 @@ beforeAll(() => {
 
 afterEach(() => {
   jest.clearAllMocks();
+  mockCapturedTriggerQueries = [];
 });
 
 const RANGES_URL = 'glob:*/api/v1/time_range_limits/chart_ranges/';
@@ -247,6 +250,67 @@ function setupHeld(
 
 const rangeCalls = () => fetchMock.callHistory.calls(RANGES_URL);
 
+test('embedded chart uses the same verified exemption on policy failure', async () => {
+  const frame = jest
+    .spyOn(window, 'frameElement', 'get')
+    .mockReturnValue(document.createElement('iframe'));
+  try {
+    const { queryByTestId } = setupHeld(
+      limitsState({ status: 'failed', payload: null }),
+      { status: 'ok', ranges: [], non_temporal: true },
+    );
+    await waitFor(() =>
+      expect(queryByTestId('chart-container')).toBeInTheDocument(),
+    );
+    expect(capturedChartContainerProps.triggerQuery).toBe(true);
+  } finally {
+    frame.mockRestore();
+  }
+});
+
+test.each(['failed', 'loading'])(
+  'verified non-temporal chart runs with policy %s',
+  async status => {
+    const { queryByTestId } = setupHeld(
+      limitsState({ status, payload: null }),
+      { status: 'ok', ranges: [], non_temporal: true },
+    );
+    await waitFor(() =>
+      expect(queryByTestId('chart-container')).toBeInTheDocument(),
+    );
+    expect(capturedChartContainerProps.triggerQuery).toBe(true);
+    expect(rangeCalls()).toHaveLength(1);
+  },
+);
+
+test.each([undefined, false])(
+  'empty ranges without non-temporal proof (%s) keep failed policies closed',
+  async nonTemporal => {
+    const { queryByTestId } = setupHeld(
+      limitsState({ status: 'failed', payload: null }),
+      { status: 'ok', ranges: [], non_temporal: nonTemporal },
+    );
+    await waitFor(() => expect(rangeCalls()).toHaveLength(1));
+    expect(queryByTestId('chart-container')).not.toBeInTheDocument();
+  },
+);
+
+test('dataset policy error does not hold a verified non-temporal chart', async () => {
+  const { queryByTestId } = setupHeld(
+    limitsState({
+      payload: {
+        ...LIMITS_PAYLOAD,
+        datasets: [{ id: 1, name: 'plain', error: {} }],
+      },
+    }),
+    { status: 'ok', dataset_id: 1, ranges: [], non_temporal: true },
+  );
+  await waitFor(() =>
+    expect(queryByTestId('chart-container')).toBeInTheDocument(),
+  );
+  expect(capturedChartContainerProps.triggerQuery).toBe(true);
+});
+
 const held = (container: HTMLElement) =>
   container.querySelector('[data-test="chart-held"]');
 
@@ -337,6 +401,37 @@ const finalFormData = () => {
   fetchMock.clearHistory().removeRoutes();
   return JSON.parse(JSON.stringify(formData));
 };
+
+test('non-temporal proof cannot release a different chart own state', async () => {
+  const formData = finalFormData();
+  mockCapturedTriggerQueries = [];
+  let release: () => void = () => {};
+  const pending = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  fetchMock.post(RANGES_URL, async (call: { options: { body?: unknown } }) => {
+    await pending;
+    return answerWith({ status: 'ok', ranges: [] })(call);
+  });
+  setupWithStore({
+    ...limitsState({
+      status: 'failed',
+      payload: null,
+      charts: {
+        [queryId]: {
+          signature: JSON.stringify(formData),
+          status: 'valid',
+          nonTemporal: true,
+          ownStateKey: '{}',
+        },
+      },
+    }),
+    dataMask: { [queryId]: { ownState: { time_range: 'Last week' } } },
+  });
+  expect(mockCapturedTriggerQueries).not.toContain(true);
+  await waitFor(() => expect(rangeCalls()).toHaveLength(1));
+  await act(async () => release());
+});
 
 test('limits on, endpoint call failed (unavailable): "Waiting for a valid time range", never run', async () => {
   fetchMock.post(RANGES_URL, { status: 500, body: {} });

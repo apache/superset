@@ -437,20 +437,26 @@ function runChartRangesCheck(
   chartId: number,
   formData: ChartFormData,
   ownState: JsonObject,
+  keepHold: boolean,
 ) {
   return async (
     dispatch: LimitsDispatch,
     getState: () => LimitsState,
   ): Promise<boolean> => {
     const signature = chartSignature(formData);
+    const ownStateKey = JSON.stringify(ownState);
     const { dashboardId, payload } = getState().timeRangeLimits;
-    if (payload && hasNoRule(payload, formData)) {
+    if (
+      chartHoldMode(getState().timeRangeLimits) === 'on' &&
+      payload &&
+      hasNoRule(payload, formData)
+    ) {
       holdChart(dispatch, dashboardId, chartId, { signature, status: 'valid' });
       return true;
     }
     const rejected = (hold?: ChartHold) =>
       hold?.signature === signature && hold.status === 'rejected';
-    if (!rejected(getState().timeRangeLimits.charts[chartId])) {
+    if (!keepHold && !rejected(getState().timeRangeLimits.charts[chartId])) {
       holdChart(dispatch, dashboardId, chartId, {
         signature,
         status: 'checking',
@@ -467,11 +473,11 @@ function runChartRangesCheck(
     if (
       state.timeRangeLimits.dashboardId !== dashboardId ||
       current?.signature !== signature ||
-      chartHoldMode(state.timeRangeLimits) !== 'on'
+      chartHoldMode(state.timeRangeLimits) === 'off'
     ) {
       return false;
     }
-    if (!built) {
+    if (!built && chartHoldMode(state.timeRangeLimits) === 'on') {
       // No request can be built either: let the chart run it and show its error.
       holdChart(dispatch, dashboardId, chartId, { signature, status: 'valid' });
       return true;
@@ -481,8 +487,30 @@ function runChartRangesCheck(
       levelsOf(state.timeRangeLimits.payload),
     )[key] ?? { status: 'unavailable' };
 
+    if (
+      chartHoldMode(state.timeRangeLimits) !== 'on' &&
+      !(judgement.status === 'valid' && judgement.nonTemporal)
+    ) {
+      if (keepHold) {
+        return false;
+      }
+      holdChart(dispatch, dashboardId, chartId, {
+        signature,
+        status:
+          chartHoldMode(state.timeRangeLimits) === 'loading'
+            ? 'checking'
+            : 'unavailable',
+      });
+      return false;
+    }
+
     if (judgement.status === 'valid') {
-      holdChart(dispatch, dashboardId, chartId, { signature, status: 'valid' });
+      holdChart(dispatch, dashboardId, chartId, {
+        signature,
+        status: 'valid',
+        nonTemporal: judgement.nonTemporal,
+        ...(judgement.nonTemporal && { ownStateKey }),
+      });
       return true;
     }
     if (judgement.status === 'invalid' || judgement.status === 'unbounded') {
@@ -527,12 +555,16 @@ function runChartRangesCheck(
  * endpoint (one call per tick for every chart that asks), judged with the
  * chart's own levels. Resolves `true` only when the request may be sent. A
  * chart the server rejected keeps its rejection while its ranges still fail.
- * The same check asked again while it runs gets the running one.
+ * The same check asked again while it runs gets the running one. With
+ * `keepHold`, while the limits are loading or failed, the chart's hold changes
+ * only when the server verifies the request as non-temporal, so a chart on
+ * screen keeps its display on any other answer.
  */
 export function checkChartRanges(
   chartId: number,
   formData: ChartFormData,
   ownState: JsonObject = {},
+  keepHold = false,
 ) {
   return (
     dispatch: LimitsDispatch,
@@ -543,6 +575,7 @@ export function checkChartRanges(
       chartId,
       chartSignature(formData),
       ownState,
+      keepHold,
     ]);
     const running = runningChecks.get(getState) ?? new Map();
     runningChecks.set(getState, running);
@@ -554,6 +587,7 @@ export function checkChartRanges(
       chartId,
       formData,
       ownState,
+      keepHold,
     )(dispatch, getState).finally(() => running.delete(key));
     running.set(key, check);
     return check;

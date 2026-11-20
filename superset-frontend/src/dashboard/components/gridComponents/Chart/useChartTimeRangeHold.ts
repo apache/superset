@@ -64,14 +64,15 @@ export default function useChartTimeRangeHold({
     [holdMode, formData],
   );
   const triggerQuery = chart?.triggerQuery;
+  const ownStateKey = JSON.stringify(ownState);
 
   useEffect(() => {
-    if (holdMode === 'on' && triggerQuery) {
+    if (holdMode !== 'off' && triggerQuery) {
       dispatch(checkChartRanges(chartId, formData, ownState));
     }
     // The signature stands for the form data, so an equal copy is not checked again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, holdMode, triggerQuery, signature, chartId]);
+  }, [dispatch, holdMode, triggerQuery, signature, ownStateKey, chartId]);
 
   useEffect(() => {
     if (
@@ -83,9 +84,14 @@ export default function useChartTimeRangeHold({
   }, [dispatch, holdMode, chartStatus, queriesResponse, chartId]);
 
   const currentHold =
-    chartHold?.signature === signature ? chartHold : undefined;
+    chartHold?.signature === signature &&
+    (!chartHold.nonTemporal || chartHold.ownStateKey === ownStateKey)
+      ? chartHold
+      : undefined;
+  const nonTemporal =
+    currentHold?.status === 'valid' && currentHold.nonTemporal === true;
   let heldView: HeldView = null;
-  if (holdMode !== 'off') {
+  if (holdMode !== 'off' && !nonTemporal) {
     if (
       currentHold?.status === 'invalid' ||
       currentHold?.status === 'unbounded' ||
@@ -124,7 +130,9 @@ export default function useChartTimeRangeHold({
     holdMode === 'off'
       ? triggerQuery
       : Boolean(
-          triggerQuery && holdMode === 'on' && currentHold?.status === 'valid',
+          triggerQuery &&
+          (holdMode === 'on' || nonTemporal) &&
+          currentHold?.status === 'valid',
         );
 
   return {
