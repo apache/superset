@@ -17559,7 +17559,7 @@ msgid "Shows or hides markers for the time series"
 msgstr "Gösteriler veya zaman serisi için işaretleyicileri gizler"
 
 msgid "Sign in"
-msgstr "Sign in Sign in"
+msgstr "Giriş"
 
 msgid "Sign in with"
 msgstr "Sign in with"

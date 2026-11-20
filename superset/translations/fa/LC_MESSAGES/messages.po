@@ -18221,9 +18221,8 @@ msgstr "فهرستی از تمام سری‌های موجود در آن زمان
 msgid "Shows or hides markers for the time series"
 msgstr "نشان دادن یا پنهان کردن نشانگرها برای سری‌های زمانی"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "نه در"
+msgstr "ورود"
 
 #, fuzzy
 msgid "Sign in with"

@@ -18941,9 +18941,8 @@ msgstr "Pokazuje listę wszystkich dostępnych serii w danym momencie"
 msgid "Shows or hides markers for the time series"
 msgstr "Pokazuje lub ukrywa znaczniki dla szeregu czasowego"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "Nie w"
+msgstr "Zaloguj się"
 
 #, fuzzy
 msgid "Sign in with"

@@ -18364,9 +18364,8 @@ msgstr "顯示那個時間點可用的所有系列的列表。"
 msgid "Shows or hides markers for the time series"
 msgstr "顯示或隐藏時間序列的標記點。"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "Not In"
+msgstr "登入"
 
 #, fuzzy
 msgid "Sign in with"
