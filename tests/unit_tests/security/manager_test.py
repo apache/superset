@@ -4130,8 +4130,122 @@ def test_raise_for_access_catalog_self_reference_does_not_weaken_sqllab_strict_m
         side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
     )
 
-    with pytest.raises(SupersetSecurityException):
+    with pytest.raises(SupersetSecurityException) as excinfo:
         sm.raise_for_access(query=query, force_dataset_match=True)
+    message = str(excinfo.value)
+    assert "datasource_access" in message
+    assert "schema_access" in message
+    assert "catalog_access" in message
+
+
+def test_raise_for_access_rejects_schema_rebind_when_dataset_match_off(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    ``USE`` rebinds the shared cursor even when dataset matching is off.
+
+    A grant on ``tenant_a`` must not authorize ``USE tenant_b; SELECT * FROM
+    orders``: the access check would qualify ``orders`` as ``tenant_a.orders``
+    while execution reads ``tenant_b.orders``.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=True)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.database_name = "warehouse"
+    database.db_engine_spec.engine = "mysql"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "tenant_a"
+    query = mocker.MagicMock(
+        database=database,
+        schema="tenant_a",
+        catalog=None,
+        sql="SELECT * FROM orders",
+    )
+
+    sm.raise_for_access(query=query, force_dataset_match=False)
+
+    query.sql = "USE tenant_b; SELECT * FROM orders"
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query=query, force_dataset_match=False)
+    assert "changes the schema" in str(excinfo.value)
+
+
+def test_raise_for_access_rejects_unparseable_sql_when_dataset_match_off(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A statement sqlglot cannot model stays denied when dataset matching is off.
+
+    ``CALL`` extracts no tables, so a schema grant would otherwise authorize
+    SQL the per-table check never saw.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "warehouse"
+    database.db_engine_spec.engine = "postgresql"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "public"
+    query = mocker.MagicMock(
+        database=database,
+        schema="public",
+        catalog=None,
+        sql="CALL get_secret_data();",
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query=query, force_dataset_match=False)
+    assert "could not be fully parsed" in str(excinfo.value)
+
+
+def test_raise_for_access_rejects_unresolved_schema_when_dataset_match_off(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A schema grant does not cover a table whose schema cannot be determined.
+
+    The dataset lookup drops its schema filter when the schema is missing and
+    could match a same-named table in another schema.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=True)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.database_name = "warehouse"
+    database.db_engine_spec.engine = "mysql"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = None
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM orders",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, force_dataset_match=False)
+    SqlaTable.query_datasources_by_name.assert_not_called()
 
 
 def test_raise_for_access_editorship_denied_in_strict_mode(
