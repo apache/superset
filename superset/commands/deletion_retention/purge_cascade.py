@@ -36,7 +36,8 @@ Cascade tiers:
   ORM hard delete of the dataset leaves them.
 * **Version history** — the entity's own ``*_version`` shadows and
   the ``version_changes`` scoped to them, plus an orphan-sweep of any
-  ``version_transaction`` left owning zero surviving shadows. Runs
+  ``version_transaction`` left owning zero surviving shadows, change records,
+  or archive scopes. Runs
   behind a ``has_table`` check so it no-ops when versioning is absent.
 """
 
@@ -372,7 +373,8 @@ def _delete_version_history(session: Session, entity: Any, entity_id: int) -> in
     Deletes the entity's parent + child + M2M ``*_version`` shadow rows and the
     ``version_changes`` rows scoped to this entity (by ``entity_kind`` +
     ``entity_id`` — **not** by transaction, which is shared), then sweeps any
-    ``version_transaction`` left owning zero surviving shadow / change rows. A
+    ``version_transaction`` left owning zero surviving shadow, change,
+    or archive-scope rows. A
     ``version_transaction`` is a *shared* unit-of-work boundary that can span
     entities, so it is removed only once orphaned — never blind-deleted. Gated
     on the version tables existing, so it no-ops cleanly without versioning.
@@ -399,39 +401,87 @@ def _delete_version_history(session: Session, entity: Any, entity_id: int) -> in
     changes = metadata.tables.get("version_changes")
     targets = _entity_version_targets(model, metadata, parent_shadow, entity_id)
 
-    # Transactions these shadow rows are anchored to — orphan-sweep candidates.
-    tx_ids: set[int] = set()
-    for tbl, pred in targets:
-        if "transaction_id" in tbl.c:
-            tx_ids.update(
-                row[0]
-                for row in session.execute(
-                    sa.select(tbl.c.transaction_id).where(pred).distinct()
-                )
-            )
+    from superset.versioning.changes import ENTITY_KIND_BY_CLASS_NAME
 
-    removed = 0
-    for tbl, pred in targets:
-        removed += session.execute(sa.delete(tbl).where(pred)).rowcount
-
-    # version_changes scoped to this entity (entity_kind + entity_id).
-    # Counted alongside the shadow rows: callers report the total as the
-    # definitive number of version-history rows removed.
-    if changes is not None:
-        from superset.versioning.changes import ENTITY_KIND_BY_CLASS_NAME
-
-        kind = ENTITY_KIND_BY_CLASS_NAME.get(model.__name__)
-        if kind is not None:
-            removed += session.execute(
-                sa.delete(changes).where(
+    kind = ENTITY_KIND_BY_CLASS_NAME.get(model.__name__)
+    if changes is not None and kind is not None:
+        targets.append(
+            (
+                changes,
+                sa.and_(
                     changes.c.entity_kind == kind,
                     changes.c.entity_id == entity_id,
-                )
-            ).rowcount
+                ),
+            )
+        )
+
+    scope = metadata.tables.get("version_chart_archive_scope")
+    if scope is not None and not sa.inspect(session.connection()).has_table(scope.name):
+        scope = None
+    # A re-imported dashboard must not remove another incarnation's scopes.
+    if (
+        scope is not None
+        and kind in {"chart", "dashboard"}
+        and entity_uuid(entity) is not None
+    ):
+        identity = scope.c[f"{kind}_uuid"] == entity_uuid(entity)
+        if kind == "chart" and changes is not None:
+            # Existing purge policy removes all changes for the internal chart
+            # ID, including an older incarnation. Remove its event projections
+            # before those canonical changes disappear, avoiding orphan scopes.
+            from superset.versioning.lifecycle import CHART_ARCHIVE_KIND
+
+            identity = sa.or_(
+                identity,
+                sa.exists(
+                    sa.select(1)
+                    .select_from(changes)
+                    .where(
+                        changes.c.entity_kind == "chart",
+                        changes.c.entity_id == scope.c.chart_id,
+                        changes.c.transaction_id == scope.c.transaction_id,
+                        changes.c.kind == CHART_ARCHIVE_KIND,
+                    )
+                ),
+            )
+        targets.insert(
+            0, (scope, sa.and_(scope.c[f"{kind}_id"] == entity_id, identity))
+        )
+
+    tx_ids: set[int] = set()
+    removed = _delete_history_targets(session, targets, tx_ids)
 
     if tx is not None and tx_ids:
-        _sweep_orphan_transactions(session, metadata, tx, changes, tx_ids)
+        _sweep_orphan_transactions(session, metadata, tx, changes, tx_ids, scope)
 
+    return removed
+
+
+def _delete_history_targets(
+    session: Session,
+    targets: list[tuple[sa.Table, Any]],
+    tx_ids: set[int],
+) -> int:
+    """Remove scoped history and collect every referenced transaction for sweeping."""
+    removed = 0
+    for table, predicate in targets:
+        # Both shadow endpoints can become orphaned when their rows are removed.
+        # Change records and archive scopes have only the opening endpoint.
+        endpoints = [
+            table.c[name]
+            for name in ("transaction_id", "end_transaction_id")
+            if name in table.c
+        ]
+        if endpoints:
+            tx_ids.update(
+                endpoint
+                for row in session.execute(
+                    sa.select(*endpoints).where(predicate).distinct()
+                )
+                for endpoint in row
+                if endpoint is not None
+            )
+        removed += session.execute(sa.delete(table).where(predicate)).rowcount
     return removed
 
 
@@ -456,10 +506,12 @@ def _sweep_orphan_transactions(
     tx: sa.Table,
     changes: sa.Table | None,
     tx_ids: set[int],
+    archive_scope: sa.Table | None = None,
 ) -> None:
     """Delete unreferenced ``version_transaction`` rows.
 
-    Every ``*_version`` table and ``version_changes`` is checked. A double-sweep
+    Every ``*_version`` table, ``version_changes``, and archive scope is checked.
+    A double-sweep
     of the same orphan is a harmless no-op.
 
     A shadow row references a transaction through **either** endpoint of its
@@ -485,6 +537,8 @@ def _sweep_orphan_transactions(
     ]
     if changes is not None and "transaction_id" in changes.c:
         sources.append(changes)
+    if archive_scope is not None:
+        sources.append(archive_scope)
     still_referenced: set[int] = set()
     for source in sources:
         # ``version_changes`` has no closing endpoint; shadow tables do.

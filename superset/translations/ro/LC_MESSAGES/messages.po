@@ -150,48 +150,12 @@ msgstr " unul nou"
 msgid " at line %(line)d"
 msgstr " la linia %(line)d"
 
-msgid " expression which needs to adhere to the "
-msgstr " expresie care trebuie să respecte "
-
 msgid " for details."
 msgstr " pentru detalii."
 
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " lângă '%(highlight)s'"
-
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-" standard pentru a asigura că ordonarea lexicografică\n"
-"                      coincide cu ordonarea cronologică. Dacă formatul\n"
-"                      marcajului temporal nu respectă standardul ISO "
-"8601,\n"
-"                      va trebui să definiți o expresie și un tip pentru\n"
-"                      transformarea șirului într-o dată sau un marcaj "
-"temporal. Rețineți\n"
-"                      că în prezent fusurile orare nu sunt acceptate. "
-"Dacă timpul este stocat\n"
-"                      în format epoch, introduceți `epoch_s`, `epoch_ms` "
-"sau `epoch_us`. Dacă nu este\n"
-"                      specificat niciun model, se utilizează valorile "
-"implicite opționale la nivel de\n"
-"                      bază de date/nume de coloană prin parametrul extra."
 
 msgid " to add calculated columns"
 msgstr " pentru a adăuga coloane calculate"
@@ -308,6 +272,16 @@ msgstr ""
 "%(dialect)s nu poate fi utilizat ca sursă de date din motive de "
 "securitate."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s sau %(lastSuggestion)s în loc de "
+"\"%(undefinedParameter)s\"?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "fișier %(label)s"
@@ -416,18 +390,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d rânduri returnate"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(lastSuggestion)s în loc de \"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s sau %(lastSuggestion)s în loc de "
-"\"%(undefinedParameter)s\"?"
-msgstr[2] ""
-"%(firstSuggestions)s sau %(lastSuggestion)s în loc de "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s în loc de \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""
@@ -6429,7 +6395,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "ȘTERGE"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10271,7 +10237,7 @@ msgstr "Personalizează suplimentar modul de afișare al fiecărui indicator"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "GRUPARE DUPĂ"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Grafic Gantt"
@@ -10484,6 +10450,7 @@ msgstr "Utilizatorul oaspete nu poate modifica payload-ul graficului"
 msgid "HTTP Path"
 msgstr "Cale HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10571,6 +10538,9 @@ msgstr "Valoarea maximă pentru fiecare perioadă."
 msgid "Histogram"
 msgstr "Histogramă"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "Acasă"
 
@@ -10641,9 +10611,6 @@ msgstr "ISO 3166-2"
 
 msgid "ISO 3166-2 Codes"
 msgstr "Coduri ISO 3166-2"
-
-msgid "ISO 8601"
-msgstr "ISO 8601"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -10866,6 +10833,9 @@ msgstr "În această vedere poți previzualiza primele 25 de rânduri. "
 #, fuzzy
 msgid "Inactive"
 msgstr "Inactiv"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "Include Serie"
@@ -13050,7 +13020,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NU GRUPAT DUPĂ"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOI"
@@ -13867,7 +13837,7 @@ msgstr "SAU"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SUPRASCRIE"
+msgstr ""
 
 msgid "October"
 msgstr "Octombrie"
@@ -15039,6 +15009,9 @@ msgstr ""
 msgid "Preview"
 msgstr "Previzualizare"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -15158,9 +15131,6 @@ msgstr "Pune etichetele în afara graficului circular?"
 
 msgid "Put your code here"
 msgstr "Pune codul tău aici"
-
-msgid "Python datetime string pattern"
-msgstr "Model șir datetime Python"
 
 msgid "Quarter"
 msgstr "Trimestru"
@@ -19201,7 +19171,7 @@ msgstr "TABELE"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "INTERVAL_TEMPORAL"
+msgstr ""
 
 msgid "THU"
 msgstr "JOI"
@@ -20413,8 +20383,22 @@ msgstr ""
 "Parolele pentru bazele de date de mai jos sunt necesare pentru a le "
 "importa."
 
-msgid "The pattern of timestamp format. For strings use "
-msgstr "Modelul formatului timestamp. Pentru șiruri folosește "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20467,10 +20451,8 @@ msgstr "Portul este închis."
 msgid "The port number is invalid."
 msgstr "Numărul portului este invalid."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Previzualizarea nu a putut fi încărcată."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr ""
@@ -20936,15 +20918,9 @@ msgstr ""
 "Transformarea a corespuns rândurilor eșantionate, nu întregului set de "
 "date."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"Transformarea a returnat %(returned)s pentru %(column)s, care este "
-"%(kind)s. Filtrele oglindite de pe această mapare ar eșua în baza de "
-"date."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20956,6 +20932,9 @@ msgstr ""
 "Transformarea a returnat %(returned)s pentru %(column)s, pe care această "
 "bază de date nu îl poate scrie într-o interogare ca valoare %(type)s fără"
 " a-l modifica. Filtrele de pe această mapare nu vor fi oglindite."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "Cele două parole pe care le-ați introdus nu se potrivesc!"
@@ -21065,23 +21044,12 @@ msgstr ""
 "sesiune separată, iar rezultatul este păstrat în cache, astfel încât "
 "predicatul generat ar îngheța o instantanee a acelui moment."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Transformarea valorii nu a putut fi analizată sintactic. Maparea este "
-"salvată, dar rămâne inactivă până când aceasta reușește."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Transformarea valorii nu a putut fi analizată sintactic: %(detail)s "
-"Maparea este salvată, dar rămâne inactivă până când aceasta reușește."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22777,6 +22745,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Prea multe solicitări de previzualizare pentru acest set de date. "
 "Așteptați un moment și încercați din nou."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25832,7 +25803,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "fulger"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -26140,7 +26111,7 @@ msgstr "intrări"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "mesaj_eroare"
+msgstr ""
 
 msgid "every"
 msgstr "fiecare"
@@ -26795,6 +26766,10 @@ msgstr "anulează"
 msgid "unknown type icon"
 msgstr "iconiță tip necunoscut"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "nesetat"
 
@@ -26807,6 +26782,9 @@ msgid ""
 msgstr ""
 "percentila superioară trebuie să fie mai mare decât 0 și mai mică decât "
 "100. Trebuie să fie mai mare decât percentila inferioară."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "folosește șablonul latest_partition"

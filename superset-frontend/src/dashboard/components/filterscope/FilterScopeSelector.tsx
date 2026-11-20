@@ -320,6 +320,12 @@ const ScopeSelector = styled.div`
         label:active {
           background: none !important;
         }
+
+        /* react-checkbox-tree.css removes the focus outline on node titles */
+        .rct-node-clickable:focus-visible {
+          outline: 2px solid ${theme.colorPrimary};
+          outline-offset: -2px;
+        }
       }
 
       .multi-edit-mode {

@@ -255,6 +255,8 @@ class ChartDataRestApi(ChartRestApi):
         try:
             with timed("chart_data.query_context.build"):
                 query_context = self._create_query_context_from_form(json_body)
+            if query_context.datasource.type == "semantic_view":
+                query_context.slice_ = chart
             command = ChartDataCommand(query_context)
             with timed("chart_data.query_context.validate"):
                 command.validate()

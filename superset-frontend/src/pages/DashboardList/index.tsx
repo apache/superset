@@ -57,10 +57,12 @@ import {
   ModifiedInfo,
   ImportModal as ImportModelsModal,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilter,
   type ListViewFilters,
+  ListViewTitleCell,
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
 import {
@@ -120,6 +122,11 @@ export interface Dashboard {
   changed_by: string;
   changed_on?: string;
   dashboard_title: string;
+  // Title resolved for the viewer's locale (read-only). The server always
+  // sends it when the column is selected, mirroring dashboard_title when
+  // translation is off or no translation exists -- so it is a display value,
+  // not a signal that a translation was found.
+  localized_title?: string | null;
   id: number;
   published: boolean;
   url: string;
@@ -138,27 +145,10 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
 `;
 
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  a {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.2;
-    min-width: 0;
-  }
-
-  svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
-`;
-
 const DASHBOARD_COLUMNS_TO_FETCH = [
   'id',
   'dashboard_title',
+  'localized_title',
   'published',
   'url',
   'slug',
@@ -298,6 +288,7 @@ function DashboardList(props: DashboardListProps) {
                 changed_by_name: changedByName,
                 changed_by: changedBy,
                 dashboard_title: dashboardTitle = '',
+                localized_title: localizedTitle,
                 slug = '',
                 description = '',
                 json_metadata: jsonMetadata = '',
@@ -314,6 +305,9 @@ function DashboardList(props: DashboardListProps) {
                 changed_by_name: changedByName,
                 changed_by: changedBy,
                 dashboard_title: dashboardTitle,
+                // Refreshed alongside the canonical title: a translation of the
+                // previous title would otherwise keep displaying over the new one.
+                localized_title: localizedTitle,
                 slug,
                 description,
                 json_metadata: jsonMetadata,
@@ -389,7 +383,7 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Dashboard>[]>(
     () => [
       {
         Cell: ({
@@ -407,7 +401,7 @@ function DashboardList(props: DashboardListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'sm',
+        layout: 'icon',
         hidden: !user?.userId,
       },
       {
@@ -415,31 +409,36 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: {
               url,
-              dashboard_title: dashboardTitle,
+              dashboard_title: canonicalTitle,
+              localized_title: localizedTitle,
               certified_by: certifiedBy,
               certification_details: certificationDetails,
               description,
             },
           },
-        }: any) => (
-          <FlexRowContainer>
-            <Link to={url} title={dashboardTitle}>
-              {certifiedBy && (
-                <>
-                  <CertifiedBadge
-                    certifiedBy={certifiedBy}
-                    details={certificationDetails}
-                  />{' '}
-                </>
-              )}
-              {dashboardTitle}
-            </Link>
-            {description && <InfoTooltip tooltip={description} />}
-          </FlexRowContainer>
-        ),
+        }: any) => {
+          const dashboardTitle = localizedTitle ?? canonicalTitle;
+          return (
+            <ListViewTitleCell
+              trailing={description && <InfoTooltip tooltip={description} />}
+            >
+              <Link to={url} title={dashboardTitle}>
+                {certifiedBy && (
+                  <>
+                    <CertifiedBadge
+                      certifiedBy={certifiedBy}
+                      details={certificationDetails}
+                    />{' '}
+                  </>
+                )}
+                {dashboardTitle}
+              </Link>
+            </ListViewTitleCell>
+          );
+        },
         Header: t('Name'),
         accessor: 'dashboard_title',
-        size: 'xxxl',
+        layout: 'title',
         id: 'dashboard_title',
       },
       {
@@ -452,7 +451,7 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Status'),
         accessor: 'published',
-        size: 'sm',
+        layout: 'status',
         id: 'published',
         className: 'no-ellipsis',
       },
@@ -482,6 +481,7 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        layout: 'tags',
         id: 'tags',
       },
       {
@@ -493,6 +493,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Editors'),
         accessor: 'editors',
         disableSortBy: true,
+        layout: 'people',
         id: 'editors',
       },
       ...(isFeatureEnabled(FeatureFlag.EnableViewers)
@@ -506,6 +507,7 @@ function DashboardList(props: DashboardListProps) {
               Header: t('Viewers'),
               accessor: 'viewers',
               disableSortBy: true,
+              layout: 'people' as const,
               id: 'viewers',
             },
           ]
@@ -521,6 +523,7 @@ function DashboardList(props: DashboardListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -624,6 +627,7 @@ function DashboardList(props: DashboardListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actions',
         hidden: !canEdit && !canDelete && !canExport,
         disableSortBy: true,
       },

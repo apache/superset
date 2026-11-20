@@ -20,6 +20,7 @@ import uuid as uuid_lib
 from typing import Annotated, Any, Literal
 from unittest.mock import ANY, MagicMock
 
+import pyarrow as pa
 import pytest
 from flask.testing import FlaskClient
 from pydantic import BaseModel, Field, model_validator, SecretStr
@@ -28,6 +29,7 @@ from superset_core.semantic_layers.transport import (
     ProviderRequestError,
     ProviderRequestFailure,
 )
+from superset_core.semantic_layers.types import Dimension, Grains
 from werkzeug.test import TestResponse
 
 from superset.commands.semantic_layer.exceptions import (
@@ -3048,10 +3050,12 @@ def test_get_views_flag_off_returns_404(
 
 
 @SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("verbose_name", ["Order date", None])
 def test_get_semantic_view_structure(
     client: Any,
     full_api_access: None,
     mocker: MockerFixture,
+    verbose_name: str | None,
 ) -> None:
     """Test GET /<pk>/structure returns dimensions and metrics."""
     mock_dim = MagicMock()
@@ -3061,6 +3065,7 @@ def test_get_semantic_view_structure(
     mock_dim.description = "Order date"
     mock_dim.grain = MagicMock()
     mock_dim.grain.name = "Day"
+    mock_dim.verbose_name = verbose_name
 
     mock_metric = MagicMock()
     mock_metric.name = "orders"
@@ -3098,12 +3103,63 @@ def test_get_semantic_view_structure(
     assert result["dimensions"][0]["definition"] == "ordered_at"
     assert result["dimensions"][0]["description"] == "Order date"
     assert result["dimensions"][0]["grain"] == "Day"
+    assert result["dimensions"][0]["verbose_name"] == verbose_name
     assert len(result["metrics"]) == 1
     assert result["metrics"][0]["name"] == "orders"
     assert result["metrics"][0]["type"] == "double"
     assert result["metrics"][0]["definition"] == "SIMPLE"
     assert result["metrics"][0]["description"] == "Order count"
     mock_view.raise_for_access.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_semantic_view_structure_orders_grain_variants(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Order an unordered provider set by the same grain preference as Explore."""
+    dimensions: set[Dimension] = {
+        Dimension(
+            id=grain.name,
+            name="order_date",
+            type=pa.int64() if grain == Grains.YEAR else pa.date32(),
+            grain=grain,
+            verbose_name=f"Order {grain.name.lower()}",
+        )
+        for grain in (
+            Grains.DAY,
+            Grains.WEEK,
+            Grains.MONTH,
+            Grains.YEAR,
+            Grains.get("P2W", "Fortnight"),
+        )
+    }
+    mock_view: MagicMock = MagicMock()
+    mock_view.name = "orders"
+    mock_view.description = None
+    mock_view.cache_timeout = None
+    mock_view.implementation.selection_identity_version = None
+    mock_view.implementation.get_dimensions.return_value = dimensions
+    mock_view.implementation.get_metrics.return_value = set()
+    mock_db_session: MagicMock = mocker.patch("superset.semantic_layers.api.db.session")
+    mock_db_session.query.return_value.filter_by.return_value.first.return_value = (
+        mock_view
+    )
+
+    response: TestResponse = client.get("/api/v1/semantic_view/1/structure")
+
+    assert response.status_code == 200
+    assert [
+        dimension["grain"] for dimension in response.json["result"]["dimensions"]
+    ] == [
+        "Day",
+        "Week",
+        "Month",
+        "Year",
+        "Fortnight",
+    ]
+    assert response.json["result"]["dimensions"][0]["verbose_name"] == "Order day"
 
 
 @SEMANTIC_LAYERS_APP
@@ -3178,6 +3234,7 @@ def test_get_semantic_view_structure_no_grain(
     mock_dim.definition = None
     mock_dim.description = None
     mock_dim.grain = None
+    mock_dim.verbose_name = None
 
     mock_view: MagicMock = MagicMock(
         implementation=MagicMock(selection_identity_version=None)
@@ -3198,6 +3255,7 @@ def test_get_semantic_view_structure_no_grain(
     assert response.status_code == 200
     result = response.json["result"]
     assert result["dimensions"][0]["grain"] is None
+    assert result["dimensions"][0]["verbose_name"] is None
     assert result["metrics"] == []
     assert result["semantic_selection_version"] is None
     # An unset description must come back as null, not be omitted: the modal

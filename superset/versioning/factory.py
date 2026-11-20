@@ -148,6 +148,32 @@ class VersionTransactionFactory(TransactionFactory):
         return cls
 
 
+def transaction_actor_args() -> dict[str, Any]:
+    """Return validated request actor attribution for content and lifecycle writes."""
+    # pylint: disable=import-outside-toplevel
+    from flask import has_request_context, request
+
+    from superset.utils.core import get_user_id
+
+    user_id = get_user_id()
+    # get_user_id() returns an int in a real request, or None for a
+    # context-less save (CLI, Celery, import/export). Guard against any
+    # non-int so a bogus value never reaches the integer
+    # ``version_transaction.user_id`` column — notably a mocked ``g`` in
+    # tests, where ``g.user.id`` is a Mock rather than None and would
+    # otherwise blow up the flush with a SQL bind error.
+    if not isinstance(user_id, int):
+        return {}
+
+    remote_addr: str | None
+    try:
+        remote_addr = request.remote_addr if has_request_context() else None
+    except RuntimeError:
+        remote_addr = None
+
+    return {"user_id": user_id, "remote_addr": remote_addr}
+
+
 class VersioningFlaskPlugin(FlaskPlugin):
     """FlaskPlugin subclass that uses Superset's :func:`get_user_id` (which
     reads ``g.user``) instead of Flask-Login's ``current_user``. Superset's
@@ -159,28 +185,7 @@ class VersioningFlaskPlugin(FlaskPlugin):
     """
 
     def transaction_args(self, uow: Any, session: Any) -> dict[str, Any]:
-        # pylint: disable=import-outside-toplevel
-        from flask import has_request_context, request
-
-        from superset.utils.core import get_user_id
-
-        user_id = get_user_id()
-        # get_user_id() returns an int in a real request, or None for a
-        # context-less save (CLI, Celery, import/export). Guard against any
-        # non-int so a bogus value never reaches the integer
-        # ``version_transaction.user_id`` column — notably a mocked ``g`` in
-        # tests, where ``g.user.id`` is a Mock rather than None and would
-        # otherwise blow up the flush with a SQL bind error.
-        if not isinstance(user_id, int):
-            return {}
-
-        remote_addr: str | None
-        try:
-            remote_addr = request.remote_addr if has_request_context() else None
-        except RuntimeError:
-            remote_addr = None
-
-        return {"user_id": user_id, "remote_addr": remote_addr}
+        return transaction_actor_args()
 
 
 class SkipUnmodifiedPlugin(Plugin):

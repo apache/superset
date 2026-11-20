@@ -10,7 +10,7 @@
     # via
     #   -r requirements/development.in
     #   apache-superset
-aiofile==3.9.0
+aiofile==3.12.3
     # via py-key-value-aio
 aiohappyeyeballs==2.7.1
     # via aiohttp
@@ -67,7 +67,7 @@ attrs==25.3.0
     #   jsonschema
     #   referencing
     #   requests-cache
-authlib==1.6.12
+authlib==1.9.10
     # via fastmcp-slim
 babel==2.17.0
     # via
@@ -120,12 +120,12 @@ cachelib==0.17.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==7.3.1
+cachetools==8.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   py-key-value-aio
-caio==0.9.25
+caio==0.12.10
     # via aiofile
 cattrs==25.1.1
     # via
@@ -293,9 +293,9 @@ execnet==2.1.2
     # via pytest-xdist
 fastapi==0.162.0
     # via microsoft-teams-apps
-fastmcp==4.1.6
+fastmcp==4.2.4
     # via apache-superset
-fastmcp-slim==4.1.6
+fastmcp-slim==4.2.4
     # via fastmcp
 filelock==3.20.3
     # via
@@ -460,7 +460,7 @@ grpcio==1.85.1
     #   ydb
 grpcio-status==1.60.1
     # via google-api-core
-gunicorn==26.2.0
+gunicorn==27.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -473,7 +473,7 @@ hashids==1.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-holidays==0.107
+holidays==0.109
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -535,10 +535,11 @@ jmespath==1.1.0
     #   boto3
     #   botocore
     #   pymongosql
-joserfc==1.7.7
+joserfc==1.8.0
     # via
     #   -r requirements/development.in
     #   apache-superset
+    #   authlib
     #   fastmcp-slim
 jsonpath-ng==1.13.0
     # via
@@ -549,6 +550,7 @@ jsonref==1.1.0
 jsonschema==4.23.0
     # via
     #   -c requirements/base-constraint.txt
+    #   fastmcp-slim
     #   flask-appbuilder
     #   mcp
     #   openapi-schema-validator
@@ -601,7 +603,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==4.3.1
+marshmallow==4.4.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -696,7 +698,7 @@ openpyxl==3.1.5
     #   pandas
 opensearch-py==2.8.0
     # via elasticsearch-dbapi
-opentelemetry-api==1.45.1
+opentelemetry-api==1.45.2
     # via
     #   fastapi
     #   fastmcp-slim
@@ -811,7 +813,7 @@ psutil==6.1.0
     #   pandas-gbq
 psycopg2-binary==2.9.13
     # via apache-superset
-py-key-value-aio==0.4.4
+py-key-value-aio==0.5.0
     # via fastmcp-slim
 pyarrow==26.0.1
     # via
@@ -1070,7 +1072,7 @@ shillelagh==1.4.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-simplejson==4.2.0
+simplejson==4.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1091,7 +1093,7 @@ snowflake-sqlalchemy==1.11.1
     # via apache-superset
 sortedcontainers==2.4.0
     # via snowflake-connector-python
-sqlalchemy==2.0.55
+sqlalchemy==2.0.58
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
@@ -1241,7 +1243,7 @@ tzlocal==5.4.4
     #   -c requirements/base-constraint.txt
     #   celery
     #   trino
-uncalled-for==0.4.0
+uncalled-for==0.6.2
     # via fastmcp-slim
 url-normalize==2.2.1
     # via
