@@ -1861,8 +1861,10 @@ def _mapping_command(
     mapped_column = mocker.MagicMock()
     mapped_column.column_name = "event_time"
     mapped_column.partition_value_transform = transform
+    mapped_column.expression = None
     partition_column = mocker.MagicMock()
     partition_column.column_name = "dt_epoch"
+    partition_column.expression = None
     # The partition column is the target of a mapping, never the source of one.
     partition_column.partition_value_transform = None
 
@@ -2484,3 +2486,87 @@ def test_a_normalized_default_catalog_is_not_a_move(
 
     assert exceptions == []
     gate.assert_not_called()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_stored_transform_moved_to_another_column_is_not_forgiven(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A Jinja transform stored on one column is forgiven while it stays there.
+    Re-pointing the mapping at another column that carries the same text
+    introduces that transform, so it is refused as a new one would be.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "{{ 1 }} + :value", partition_mapped_column="event_time"
+    )
+    model = cast(Any, command._model)
+    mapped, partition = model.columns
+    mapped.id, partition.id = 10, 11
+    other = mocker.MagicMock()
+    other.id = 12
+    other.column_name = "other_time"
+    other.partition_value_transform = None
+    other.expression = None
+    model.columns.append(other)
+    command._properties.update(
+        {
+            "partition_mapped_column": "other_time",
+            "columns": [
+                {"id": 10, "column_name": "event_time"},
+                {"id": 11, "column_name": "dt_epoch"},
+                {
+                    "id": 12,
+                    "column_name": "other_time",
+                    "partition_value_transform": "{{ 1 }} + :value",
+                },
+            ],
+        }
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert "partition_value_transform" in [exc.field_name for exc in exceptions]
+
+
+@pytest.mark.parametrize(
+    "sent, expected",
+    [
+        ({"id": 11, "column_name": "dt_epoch"}, {"partition_column": (11, 10, None)}),
+        (
+            {"id": 11, "column_name": "dt_epoch", "expression": "{{ ds }}"},
+            {"partition_column": (11, 10, "{{ ds }}")},
+        ),
+    ],
+    ids=["expression-omitted", "expression-changed"],
+)
+def test_the_partition_column_key_includes_its_expression(
+    mocker: MockerFixture, sent: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    """
+    A templated partition-column expression is refused, so an issue on that
+    field is only the stored one while the expression is too. A payload that
+    leaves the expression out keeps the stored expression.
+    """
+    command = _mapping_command(mocker, None, partition_mapped_column="event_time")
+    mapped, partition = cast(Any, command._model).columns
+    mapped.id, partition.id = 10, 11
+
+    inputs = command._mapping_inputs(
+        [{"id": 10, "column_name": "event_time"}, sent],
+        "dt_epoch",
+        "event_time",
+        "event_time",
+        None,
+        "sqlite",
+    )
+    stored = command._mapping_inputs(
+        None, "dt_epoch", "event_time", "event_time", None, "sqlite"
+    )
+
+    assert inputs["partition_column"] == expected["partition_column"]
+    assert (inputs["partition_column"] == stored["partition_column"]) is (
+        "expression" not in sent
+    )

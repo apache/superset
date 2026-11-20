@@ -647,15 +647,10 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         unchanged_fields = self._unchanged_mapping_fields(
             self._mapping_inputs(
-                {
-                    column["column_name"]: column.get("id")
-                    for column in columns
-                    if column.get("column_name")
-                }
-                if columns is not None
-                else None,
+                columns,
                 partition_column,
                 partition_mapped_column,
+                effective_mapped_column,
                 transform,
                 database.backend,
             )
@@ -700,9 +695,10 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
     def _mapping_inputs(  # pylint: disable=too-many-arguments
         self,
-        ids_by_name: dict[str, int | None] | None,
+        columns: list[dict[str, Any]] | None,
         partition_column: str | None,
         partition_mapped_column: str | None,
+        transform_column: str | None,
         transform: str | None,
         engine: str,
     ) -> dict[str, tuple[Any, ...]]:
@@ -711,12 +707,32 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         A column is identified by id rather than by name, so a column renamed in
         place is still the same column; one with no id (new in this request) or
-        not on the dataset at all is identified by its name. `ids_by_name` is
-        `None` to read the stored columns.
+        not on the dataset at all is identified by its name. `columns` is the
+        request's column payload, or `None` to read the stored columns.
+
+        Each key holds everything its field's checks read: the partition
+        column's expression (a templated one is refused), and the column the
+        transform sits on as well as its text, so the same text moved to another
+        column is not mistaken for the stored transform.
         """
         model = cast(SqlaTable, self._model)
-        if ids_by_name is None:
+        stored_expressions = {column.id: column.expression for column in model.columns}
+        if columns is None:
             ids_by_name = {column.column_name: column.id for column in model.columns}
+            expressions = {
+                column.column_name: column.expression for column in model.columns
+            }
+        else:
+            named = [column for column in columns if column.get("column_name")]
+            ids_by_name = {column["column_name"]: column.get("id") for column in named}
+            # A column the payload names by id but sends without an expression
+            # keeps the stored one.
+            expressions = {
+                column["column_name"]: column["expression"]
+                if "expression" in column
+                else stored_expressions.get(column.get("id"))
+                for column in named
+            }
 
         def identity(name: str | None) -> Any:
             if not name:
@@ -728,9 +744,14 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             "partition_column": (
                 identity(partition_column),
                 identity(partition_mapped_column),
+                expressions.get(partition_column) if partition_column else None,
             ),
             "partition_mapped_column": (identity(partition_mapped_column),),
-            "partition_value_transform": (transform, engine),
+            "partition_value_transform": (
+                identity(transform_column),
+                transform,
+                engine,
+            ),
         }
 
     def _unchanged_mapping_fields(
@@ -750,13 +771,13 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         model = cast(SqlaTable, self._model)
         if not model.partition_column:
             return set()
+        stored_transform_column = model.partition_mapped_column or model.main_dttm_col
         stored = self._mapping_inputs(
             None,
             model.partition_column,
             model.partition_mapped_column,
-            self._effective_transform(
-                None, model.partition_mapped_column or model.main_dttm_col
-            ),
+            stored_transform_column,
+            self._effective_transform(None, stored_transform_column),
             model.database.backend,
         )
         return {field for field, inputs in requested.items() if stored[field] == inputs}
