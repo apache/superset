@@ -35,6 +35,7 @@ import { LegendOrientation, LegendType, Refs } from '../types';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { OpacityEnum } from '../constants';
 import {
+  calculateLowerLogTick,
   getColtypesMapping,
   getLegendProps,
   getLegendScrollDataIndex,
@@ -85,6 +86,7 @@ export default function transformProps(
     xAxisTitle,
     yAxisTitle,
     yAxisFormat,
+    yAxisLogScale,
   } = formData;
   const queryData = queriesData[0] ?? { data: [] };
   const data = queryData.data ?? [];
@@ -174,6 +176,28 @@ export default function transformProps(
     };
   });
 
+  // Log axes only render strictly positive values and start bars at 1 by
+  // default, so anchor both the axis minimum and the bar baseline strictly
+  // below the smallest positive bin value (normalized bins are fractions
+  // below 1, and a bin sitting on the baseline would have no height).
+  let yAxisLogMin: number | undefined;
+  if (yAxisLogScale) {
+    const minPositiveValue = rows.reduce(
+      (min, { datum }) =>
+        binKeys.reduce((rowMin, key) => {
+          const value = datum[key];
+          return typeof value === 'number' && value > 0
+            ? Math.min(rowMin, value)
+            : rowMin;
+        }, min),
+      Number.POSITIVE_INFINITY,
+    );
+    if (Number.isFinite(minPositiveValue)) {
+      const lowerTick = calculateLowerLogTick(minPositiveValue);
+      yAxisLogMin = lowerTick < minPositiveValue ? lowerTick : lowerTick / 10;
+    }
+  }
+
   const legendOptions = barSeries.map(series => series.name as string);
   if (isEmpty(legendState)) {
     legendOptions.forEach(legend => {
@@ -236,7 +260,11 @@ export default function transformProps(
       ...defaultYAxis,
       name: yAxisTitle,
       nameGap: normalize ? 55 : 40,
-      type: 'value',
+      type: yAxisLogScale ? 'log' : 'value',
+      ...(yAxisLogMin !== undefined && {
+        min: yAxisLogMin,
+        startValue: yAxisLogMin,
+      }),
       nameLocation: 'middle',
       axisLabel: {
         formatter: (value: number) => yAxisFormatter.format(value),

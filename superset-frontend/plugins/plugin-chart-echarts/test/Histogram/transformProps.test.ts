@@ -256,3 +256,43 @@ test('tooltip rows start with a marker in the series color', () => {
   expect(html.replace(/\s/g, '')).toContain('style="color:#1f77b4;');
   expect(html).toContain('price');
 });
+
+const readYAxis = (props: ChartProps) =>
+  transformProps(props as HistogramChartProps).echartOptions.yAxis as {
+    type: string;
+    min?: number;
+    startValue?: number;
+  };
+
+test('log scale anchors the y-axis below the smallest non-zero count', () => {
+  const yAxis = readYAxis(
+    createChartProps([{ '0 - 5': 80, '5 - 10': 0, '10 - 15': 1 }], {
+      yAxisLogScale: true,
+    }),
+  );
+
+  expect(yAxis.type).toBe('log');
+  expect(yAxis.min).toBe(0.1);
+  expect(yAxis.startValue).toBe(0.1);
+});
+
+test('log scale keeps normalized fractions above the y-axis minimum', () => {
+  const yAxis = readYAxis(
+    createChartProps([{ '0 - 5': 0.016, '5 - 10': 0, '10 - 15': 0.978 }], {
+      yAxisLogScale: true,
+      normalize: true,
+    }),
+  );
+
+  expect(yAxis.type).toBe('log');
+  expect(yAxis.min).toBe(0.01);
+  expect(yAxis.startValue).toBe(0.01);
+});
+
+test('charts saved without the log scale option keep a linear y-axis', () => {
+  const yAxis = readYAxis(createChartProps([{ '0 - 5': 3, '5 - 10': 7 }]));
+
+  expect(yAxis.type).toBe('value');
+  expect(yAxis).not.toHaveProperty('min');
+  expect(yAxis).not.toHaveProperty('startValue');
+});
