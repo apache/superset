@@ -37,6 +37,7 @@ from superset.sql.parse import (
     count_referenced_tables,
     CTASMethod,
     extract_tables_from_statement,
+    find_unmatched_parenthesis,
     folds_unquoted_object_names,
     has_aggregate,
     is_constant_expression,
@@ -199,6 +200,59 @@ def extract_tables_from_sql(sql: str, engine: str = "postgresql") -> set[Table]:
         for statement in SQLScript(sql, engine).statements
         for table in extract_tables_from_statement(statement._parsed, dialect)
     }
+
+
+@pytest.mark.parametrize(
+    "engine,catalog,expected",
+    [
+        ("snowflake", "sales", "SALES"),
+        ("snowflake", "Sales", "SALES"),
+        ("snowflake", "SALES", "SALES"),
+        ("snowflake", '"sales"', "sales"),
+        ("snowflake", '"Sales"', "Sales"),
+        ("snowflake", '"SALES"', "SALES"),
+        ("postgresql", "sales", "sales"),
+        ("postgresql", '"Sales"', "Sales"),
+    ],
+)
+def test_extract_catalog_preserves_quoted_snowflake_case(
+    engine: str, catalog: str, expected: str
+) -> None:
+    """Only unquoted Snowflake SQL catalogs are folded."""
+    prefixes = ["SELECT * FROM"]
+    if engine == "snowflake":
+        prefixes.append("SHOW COLUMNS IN TABLE")
+    for prefix in prefixes:
+        statement = SQLStatement(f"{prefix} {catalog}.marts.orders", engine)
+        assert extract_tables_from_statement(
+            statement._parsed, SQLGLOT_DIALECTS.get(engine)
+        ) == {Table("orders", "marts", expected)}
+
+
+@pytest.mark.parametrize(
+    "catalog,expected",
+    [
+        ("sales", "SALES"),
+        ("Sales", "SALES"),
+        ("SALES", "SALES"),
+        ('"sales"', '"sales"'),
+        ('"Sales"', '"Sales"'),
+    ],
+)
+def test_snowflake_statement_spells_catalog_like_its_tables(
+    catalog: str, expected: str
+) -> None:
+    """
+    The statement itself is folded, not a copy, so the AST and ``tables`` agree.
+
+    RLS rules are keyed by ``tables`` and matched against the AST, so an AST that
+    still spells the catalog in lowercase silently drops the predicate.
+    """
+    sql = f"SELECT * FROM {catalog}.marts.orders"  # noqa: S608
+    statement = SQLStatement(sql, "snowflake")
+    assert statement._parsed.find(exp.Table).catalog == expected.strip('"')
+    assert statement.format().endswith(f"{expected}.marts.orders")
+    assert {t.catalog for t in statement.tables} == {expected.strip('"')}
 
 
 def test_extract_tables_from_sql() -> None:
@@ -1043,7 +1097,7 @@ def test_extract_tables_cte_name_shared_with_table() -> None:
         "WITH orders AS (SELECT 1 AS amt, 'a' AS mth) "
         "SELECT * FROM cat..orders PIVOT(SUM(amt) FOR mth IN ('a'))",
         engine="snowflake",
-    ) == {Table("orders", None, "cat")}
+    ) == {Table("orders", None, "CAT")}
 
 
 def test_extract_tables_cte_reference_not_table() -> None:
@@ -1937,6 +1991,15 @@ on $left.Day1 == $right.Day
 | project Day1, Day2, Percentage = count_*100.0/count_1
             """,
             ],
+        ),
+        # text preceding a multi-line string literal must be kept
+        (
+            "print x = ```a;b```",
+            ["print x = ```a;b```"],
+        ),
+        (
+            "T | where Name == ```O'Brien``` | take 10; print 2",
+            ["T | where Name == ```O'Brien``` | take 10", " print 2"],
         ),
     ],
 )
@@ -3925,25 +3988,21 @@ def test_show_binlog_events_in_log_name_still_parses() -> None:
         "SUBMIT TASK etl0 AS CREATE TABLE tbl1 AS SELECT * FROM src_tbl",
         "SUBMIT TASK AS INSERT OVERWRITE tbl2 SELECT * FROM src_tbl",
         "DEALLOCATE PREPARE select_by_id_stmt",
-        # StarRocks blacklist management. ADD/DELETE already mean something
-        # else in the grammar (ALTER TABLE ADD ..., the DML DELETE
-        # statement), so these need the specific-phrase peek in
-        # `_parse_statement`, not a blanket keyword remap.
+        # StarRocks blacklist management. sqlglot tokenizes these multi-word
+        # heads as a single COMMAND token.
         'ADD SQLBLACKLIST "select count(*) from .+"',
         "DELETE SQLBLACKLIST 3, 4",
         "ADD BACKEND BLACKLIST 10001",
         "DELETE BACKEND BLACKLIST 10001",
         "ADD COMPUTE NODE BLACKLIST 10005",
-        # Ordinary ADD/DELETE must be unaffected by the blacklist peek.
+        # Ordinary ADD/DELETE must be unaffected by the blacklist commands.
         "ALTER TABLE t ADD COLUMN c INT",
         "DELETE FROM my_table WHERE k1 = 3",
-        # TRANSLATE TRINO translates a Trino SELECT into StarRocks SQL. Like
-        # ADD/DELETE, TRANSLATE can't be remapped to TokenType.COMMAND
-        # outright -- it also names the ordinary TRANSLATE(string, from, to)
-        # scalar function -- so this needs the same specific-phrase peek.
+        # TRANSLATE TRINO translates a Trino SELECT into StarRocks SQL; sqlglot
+        # tokenizes the two-word head as a COMMAND.
         "TRANSLATE TRINO SELECT 1",
         "TRANSLATE TRINO SELECT id, name FROM products WHERE category = 'Electronics'",
-        # Ordinary use of the scalar function must be unaffected by the peek.
+        # Ordinary use of the scalar function must be unaffected.
         "SELECT TRANSLATE(col, 'a', 'b') FROM t",
     ],
 )
@@ -4267,12 +4326,12 @@ def test_starrocks_create_alter_table_clauses_parse(sql: str) -> None:
             'ADMIN SET FRONTEND CONFIG ("disable_balance" = "true")',
             True,
         ),
-        # StarRocks blacklist management via the ADD/DELETE peek.
+        # StarRocks blacklist management as COMMAND statements.
         ('ADD SQLBLACKLIST "select count(*) from .+"', True),
         ("DELETE SQLBLACKLIST 3, 4", True),
         ("ADD BACKEND BLACKLIST 10001", True),
         ("DELETE BACKEND BLACKLIST 10001", True),
-        # Ordinary DELETE (and the ADD/DELETE peek generally) must not
+        # Ordinary DELETE must not
         # misclassify unrelated statements.
         ("DELETE FROM my_table WHERE k1 = 3", True),
         ("DELETE FROM my_table PARTITION p1 WHERE k1 = 3", True),
@@ -8328,6 +8387,24 @@ def test_strip_comments_refuses_what_does_not_relex_the_same(
     mocker.patch("superset.sql.parse.Dialect.get_or_raise", return_value=lexer)
 
     assert strip_comments("lower(:value) -- c", "hive") is None
+
+
+@pytest.mark.parametrize(
+    ("sql", "expected"),
+    [
+        ("CAST(:value AS DATE)", None),
+        ("CAST(:value AS DATE", 5),
+        ("UPPER(:value))", 14),
+        ("CONCAT(:value, '(')", None),
+        ("UPPER(:value) -- )", None),
+        ("'unterminated", None),
+    ],
+)
+def test_find_unmatched_parenthesis(sql: str, expected: int | None) -> None:
+    """
+    Unbalanced parentheses are located, ignoring quoted text and comments.
+    """
+    assert find_unmatched_parenthesis(sql, "postgresql") == expected
 
 
 @pytest.mark.parametrize("method", [RLSMethod.AS_PREDICATE, RLSMethod.AS_SUBQUERY])

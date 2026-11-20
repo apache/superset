@@ -36,7 +36,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
-  formatSpecifier,
+  isPercentD3Format,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -981,23 +981,6 @@ function EditorsSelector({
 }
 const ResultTable =
   extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
-
-// D3's '%' and 'p' types both multiply by 100; parsed via d3-format's own
-// grammar so garbage like "foo%" is rejected rather than matched by suffix.
-// The stored value is trimmed before parsing because
-// NumberFormatterRegistry.get() trims it the same way before rendering, so
-// this check agrees with what the renderer actually sees.
-export const isPercentD3Format = (d3format?: string): boolean => {
-  if (!d3format) {
-    return false;
-  }
-  try {
-    const { type } = formatSpecifier(d3format.trim());
-    return type === '%' || type === 'p';
-  } catch {
-    return false;
-  }
-};
 
 // Matches the outermost COUNT(...) call's parens by depth, so a ratio like
 // `COUNT(*) / COUNT(*)` isn't misclassified but a nested call like
@@ -1986,6 +1969,11 @@ function DatasourceEditor({
               opr: 'eq',
               value: datasource.id,
             },
+            {
+              col: 'datasource_type',
+              opr: 'eq',
+              value: datasource.datasource_type || datasource.type,
+            },
           ],
           order_column: sortColumn,
           order_direction: sortDirection,
@@ -2042,7 +2030,12 @@ function DatasourceEditor({
         abortControllers.current.fetchUsageData = null;
       }
     },
-    [datasource.id, addDangerToast],
+    [
+      datasource.id,
+      datasource.datasource_type,
+      datasource.type,
+      addDangerToast,
+    ],
   );
 
   const handleTabSelect = useCallback((key: string) => {
@@ -3200,6 +3193,20 @@ function DatasourceEditor({
               filterTerm={columnSearchTerm}
               filterFields={['column_name']}
               onColumnsChange={cols => setColumns({ databaseColumns: cols })}
+              columnLabelTooltips={{
+                is_dttm: t(
+                  'Marks the column as a time column for time range filters ' +
+                    'and time grains. If the column type in the database is ' +
+                    'not a date or timestamp, set a Datetime format below: ' +
+                    'for strings it sets how time range filter values are ' +
+                    'written, and for epoch numbers (epoch_s, epoch_ms, ' +
+                    'epoch_us) it converts them to timestamps. A Datetime ' +
+                    'format does not convert a string column, so on some ' +
+                    'databases a time grain on it can fail or return wrong ' +
+                    'results; a calculated column that casts the value to a ' +
+                    'timestamp avoids this.',
+                ),
+              }}
               datasource={datasource}
               onMoveMappingHere={handleMoveMappingHere}
               onRemoveMapping={handleRemoveMapping}
