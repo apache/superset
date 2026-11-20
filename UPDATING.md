@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view user exclusions (`!=`, non-empty `NOT IN` without NULL, `NOT LIKE`, and `NOT ILIKE`) reach providers as an OR group with `IS_NULL`; upgrade leaf-only adapters before deploying the host, even if they accepted those operators before. See the [provider filter contract](docs/developer_docs/extensions/extension-points/semantic-layers.md#filter-expressions).
+
 - **Realtime websocket authentication (`WEBSOCKET_ENABLE`):** the browser
   authenticates the socket with a short-lived ticket from
   `GET /api/v1/realtime/token/` sent in-band, instead of a JWT cookie. The

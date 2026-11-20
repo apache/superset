@@ -228,7 +228,9 @@ def test_provider_receives_mixed_null_membership_without_opt_in(
                         PredicateType.WHERE,
                         CATEGORY,
                         Operator(operator),
-                        frozenset({"a"}) if operator in {"IN", "NOT IN"} else value,
+                        frozenset({"a"})
+                        if operator in {"IN", "NOT IN"}
+                        else cast(str, value),
                     ),
                     Filter(PredicateType.WHERE, CATEGORY, Operator.IS_NULL, None),
                 }
@@ -250,7 +252,7 @@ def test_or_group_is_hashable_and_keeps_predicate_stage(stage: PredicateType) ->
     assert len({group, OrFilter(frozenset({null, leaf}))}) == 1
     assert {child.type for child in group.filters} == {stage}
     with pytest.raises(FrozenInstanceError):
-        group.filters = frozenset()  # Exercise runtime freezing.
+        setattr(group, "filters", frozenset())  # noqa: B010
 
 
 @pytest.mark.parametrize(

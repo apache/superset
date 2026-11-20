@@ -138,7 +138,7 @@ exclude those rows too; `!= NULL` remains `IS NOT NULL`.
 This user-filter normalization does not change SDK-authored predicates or
 literal SQL semantics. A provider that does not support an operator continues
 to refuse it as before.
-Cached chart results for semantic views are rebuilt once after deployment.
+Cached chart results for semantic views and ordinary dataset charts with annotation layers are rebuilt once after deployment.
 
 Host filter-value types accept missing values (`None`) inside list selections
 and variable-length tuples, so multi-value selections can preserve NULL members.
