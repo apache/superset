@@ -62,6 +62,7 @@ import {
   areDependenciesSatisfied,
   serializeDependencyValues,
   SCHEMA_REFRESH_DEBOUNCE_MS,
+  SCHEMA_BACKFILL,
 } from './jsonFormsHelpers';
 
 import { isRecord } from '../semanticViews/creationResult';
@@ -508,7 +509,8 @@ export default function SemanticLayerModal({
           ? { ...action, data: state.data }
           : action;
       let next = reduce(state, update);
-      if (action.type === UPDATE_DATA) {
+      // Schema backfills are not user edits and must preserve saved dependents.
+      if (action.type === UPDATE_DATA && action.context !== SCHEMA_BACKFILL) {
         // Clear dependencies in the same reduction as the edit, before
         // validation/notification; a delayed host snapshot can be older.
         const cleared: Record<string, unknown> = {};
