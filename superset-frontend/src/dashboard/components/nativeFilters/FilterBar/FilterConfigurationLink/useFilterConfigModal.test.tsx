@@ -137,17 +137,18 @@ test.each([
 );
 
 test.each([false, true])(
-  'names the unavailable dataset from a validation dict, display controls=%s',
+  'renders the endpoint validation dict, display controls=%s',
   async failControls => {
-    // Dataset validation returns normalized_messages() via response_422.
+    // Both endpoints return 400 for schema errors and 422 for dataset validation.
+    const detail = failControls
+      ? 'Field may not be null.'
+      : 'The native filters reference datasets that are not available: 42';
     const failure = {
-      status: 422,
+      status: failControls ? 400 : 422,
       body: {
-        message: {
-          native_filter_configuration: [
-            'The native filters reference datasets that are not available: 42',
-          ],
-        },
+        message: failControls
+          ? { modified: [detail] }
+          : { native_filter_configuration: [detail] },
       },
     };
     fetchMock.route(
@@ -162,7 +163,7 @@ test.each([false, true])(
     expect(store.getState()).toMatchObject({
       messageToasts: [
         {
-          text: `Your ${failControls ? 'display control' : 'filter'} changes were not saved: The native filters reference datasets that are not available: 42`,
+          text: `Your ${failControls ? 'display control' : 'filter'} changes were not saved: ${detail}`,
         },
       ],
     });

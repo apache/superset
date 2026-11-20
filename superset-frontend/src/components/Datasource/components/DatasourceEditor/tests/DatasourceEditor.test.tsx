@@ -19,6 +19,7 @@
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import {
+  act,
   fireEvent,
   screen,
   waitFor,
@@ -1163,4 +1164,24 @@ test('the partition column section is hidden on an engine that does not support 
   expect(
     screen.queryByTestId('partition-column-fields'),
   ).not.toBeInTheDocument();
+});
+
+test('the Is temporal column header explains the Datetime format requirement', async () => {
+  await asyncRender(createProps());
+
+  await userEvent.click(screen.getByTestId('collection-tab-Columns'));
+
+  const header = (await screen.findByRole('columnheader', {
+    name: /is temporal/i,
+  })) as HTMLElement;
+  const infoButton = within(header).getByRole('button', {
+    name: 'Show info tooltip',
+  });
+  act(() => infoButton.focus());
+
+  expect(
+    await screen.findByText(/does not convert a string column/i, undefined, {
+      timeout: 5000,
+    }),
+  ).toBeInTheDocument();
 });
