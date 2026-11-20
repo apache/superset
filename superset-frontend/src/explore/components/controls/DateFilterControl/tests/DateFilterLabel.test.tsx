@@ -1051,6 +1051,99 @@ test('an open end asks for an end date under End', async () => {
   expect(applyButton()).toBeDisabled();
 });
 
+test('with limits on, an empty range that fits the limits warns without blocking Apply', async () => {
+  const onChange = renderPicker('2025-05-01 : 2025-05-01', limitsOn());
+  await openPicker();
+
+  await waitFor(() =>
+    expect(within(row()).getByRole('alert')).toHaveTextContent(
+      EMPTY_TIME_RANGE_WARNING,
+    ),
+  );
+  await waitFor(() => expect(applyButton()).toBeEnabled());
+  await userEvent.click(applyButton());
+  expect(onChange).toHaveBeenCalledWith('2025-05-01 : 2025-05-01');
+});
+
+test('with limits on, the empty range warning clears once the end is corrected', async () => {
+  const onChange = renderPicker('2025-05-01 : 2025-05-01', limitsOn());
+  await openPicker();
+  await waitFor(() =>
+    expect(within(row()).getByText(EMPTY_TIME_RANGE_WARNING)).toBeVisible(),
+  );
+
+  const [, end] = textboxes();
+  await userEvent.clear(end);
+  await userEvent.type(end, '2025-05-02');
+
+  await waitFor(
+    () =>
+      expect(
+        within(row()).getByText('2025-05-01 ≤ col < 2025-05-02'),
+      ).toBeVisible(),
+    { timeout: 5000 },
+  );
+  expect(
+    within(row()).queryByText(EMPTY_TIME_RANGE_WARNING),
+  ).not.toBeInTheDocument();
+  await waitFor(() => expect(applyButton()).toBeEnabled());
+  await userEvent.click(applyButton());
+  expect(onChange).toHaveBeenCalledWith('2025-05-01 : 2025-05-02');
+});
+
+test('with limits on, the empty range warning follows the current draft only', async () => {
+  renderPicker('2025-05-01 : 2025-05-01', limitsOn());
+  await openPicker();
+  await waitFor(() =>
+    expect(within(row()).getByText(EMPTY_TIME_RANGE_WARNING)).toBeVisible(),
+  );
+
+  const releaseCorrected = holdDraft('2025-05-01 : 2025-05-02');
+  const [, end] = textboxes();
+  await userEvent.clear(end);
+  await userEvent.type(end, '2025-05-02');
+  expect(applyButton()).toBeDisabled();
+  expect(
+    within(row()).queryByText(EMPTY_TIME_RANGE_WARNING),
+  ).not.toBeInTheDocument();
+  releaseCorrected();
+  await settled();
+  await waitFor(() => expect(applyButton()).toBeEnabled(), { timeout: 5000 });
+
+  const releaseEmpty = holdDraft('2025-05-02 : 2025-05-02');
+  const [start] = textboxes();
+  await userEvent.clear(start);
+  await userEvent.type(start, '2025-05-02');
+  await waitFor(() =>
+    expect(
+      timeRangeRequests().some(
+        request =>
+          Array.isArray(request) &&
+          request[0].timeRange === '2025-05-02 : 2025-05-02',
+      ),
+    ).toBe(true),
+  );
+  expect(
+    within(row()).queryByText(EMPTY_TIME_RANGE_WARNING),
+  ).not.toBeInTheDocument();
+  releaseEmpty();
+  await settled();
+  await waitFor(() =>
+    expect(within(row()).getByText(EMPTY_TIME_RANGE_WARNING)).toBeVisible(),
+  );
+});
+
+test('with limits on, an open end is not reported as an empty range', async () => {
+  renderPicker('2025-01-01 : ', limitsOn());
+  await openPicker();
+
+  const [, end] = textboxes();
+  await waitFor(() => expect(end).toHaveAttribute('aria-invalid', 'true'));
+  expect(
+    within(row()).queryByText(EMPTY_TIME_RANGE_WARNING),
+  ).not.toBeInTheDocument();
+});
+
 test('a span error shows in the range row in place of the range and marks the fields invalid', async () => {
   renderPicker('2025-01-01 : 2025-05-31', limitsOn());
   await openPicker();

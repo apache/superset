@@ -19,6 +19,7 @@
 import { KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { uniqueId } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
   NO_TIME_RANGE,
   SEPARATOR,
@@ -341,6 +342,10 @@ export function useDateFilterLimitsView({
   const checked = draftCheck?.status === 'checked' ? draftCheck : null;
   const failures = checked?.failures ?? [];
   const draftValid = !draftPending && !!checked && !failures.length;
+  const emptyRange =
+    !draftPending &&
+    !!checked?.range.since &&
+    checked.range.since === checked.range.until;
   const fieldFrame = frame === 'Custom' || frame === 'Advanced';
   const fieldMessage = (field: 'start' | 'end') => {
     const messages = fieldFrame
@@ -542,6 +547,7 @@ export function useDateFilterLimitsView({
       : undefined,
     row: {
       checked,
+      emptyRange,
       spanErrorShown,
       rowMessages,
       limitLine,
@@ -564,6 +570,7 @@ export function LimitsTimeRangeRow({
 }) {
   const {
     checked,
+    emptyRange,
     spanErrorShown,
     rowMessages,
     limitLine,
@@ -595,6 +602,13 @@ export function LimitsTimeRangeRow({
             {[limitLine.line, limitLine.timezone].filter(Boolean).join(' ')}
           </div>
         ))}
+      {emptyRange && (
+        <Alert type="warning" closable={false}>
+          {t(
+            'This time range is empty. Choose an end time later than the start time.',
+          )}
+        </Alert>
+      )}
     </div>
   );
 }
