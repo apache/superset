@@ -15,21 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-List the saved charts and time range filter defaults that proposed time range
-limits would refuse. Read only: no data query, nothing written, no error built.
+Check saved chart ranges and filter defaults, and fit defaults on dashboard
+copies. These checks run no data queries.
 """
 
 from __future__ import annotations
 
 import logging
+import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from operator import attrgetter
 from typing import Any, Callable, cast, TYPE_CHECKING
 
+from dateutil.parser import parse as parse_datetime
 from marshmallow import ValidationError
 
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.extensions import feature_flag_manager
 from superset.time_range_limits.enforcement import (
     chart_date_ranges,
     chart_range_label,
@@ -40,8 +44,11 @@ from superset.time_range_limits.enforcement import (
 )
 from superset.time_range_limits.policy import (
     checked_policy,
+    copy_relative_time_range,
     date_range_failure,
     DateRangeFailure,
+    FEATURE_FLAG,
+    fit_copy_date_range,
     load_dataset_limits,
     load_global_limits,
     load_level,
@@ -51,6 +58,7 @@ from superset.time_range_limits.policy import (
     ResolvedTimeRangeLimits,
     stored_limits,
     TimeRangeLimits,
+    TimeRangeLimitsUnavailableError,
 )
 from superset.utils import json
 from superset.utils.core import DatasourceType
@@ -352,6 +360,133 @@ def filter_default_errors(
 
 def _empty() -> dict[str, list[dict[str, Any]]]:
     return {"charts": [], "filters": [], "unlimited": [], "unchecked": []}
+
+
+def _copy_time_filter_mask(mask: Any, value: str) -> dict[str, Any]:
+    """Synchronize a copied Time Range filter's query and visible state."""
+    mask = mask if isinstance(mask, dict) else {}
+    state = mask.get("filterState")
+    extra = mask.get("extraFormData")
+    state = dict(state) if isinstance(state, dict) else {}
+    for key in ("validateStatus", "validateMessage", "limitInvalid"):
+        state.pop(key, None)
+    if "label" in state:
+        state["label"] = value
+    return {
+        **mask,
+        "filterState": {**state, "value": value},
+        "extraFormData": {
+            **(extra if isinstance(extra, dict) else {}),
+            "time_range": value,
+        },
+    }
+
+
+def _fixed_copy_default(value: str | None) -> bool:
+    """Recognize complete fixed dates, including Custom offsets from a fixed date."""
+    parts = (value or "").split(" : ")
+    if len(parts) != 2:
+        return False
+    for part in parts:
+        match = re.fullmatch(
+            r'DATEADD\(DATETIME\("([^"]+)"\),\s*-?\d+,\s*\w+\)',
+            part,
+            re.IGNORECASE,
+        )
+        literal = match[1] if match else part
+        if literal.startswith('DATETIME("') and literal.endswith('")'):
+            literal = literal[10:-2]
+        try:
+            if parse_datetime(literal, default=datetime(2001, 1, 1)) != parse_datetime(
+                literal, default=datetime(2002, 2, 2)
+            ):
+                return False
+        except (ValueError, OverflowError):
+            return False
+    return True
+
+
+def _valid_copy_default(
+    resolved: tuple[datetime | None, datetime | None] | None,
+    limits: ResolvedTimeRangeLimits,
+) -> bool:
+    """Check a resolved default is positive and passes the copy's limits."""
+    return (
+        resolved is not None
+        and resolved[0] is not None
+        and resolved[1] is not None
+        and resolved[0] < resolved[1]
+        and date_range_failure(*resolved, limits) is None
+    )
+
+
+def _fit_copy_default(
+    value: str | None,
+    limits: ResolvedTimeRangeLimits,
+    levels: Sequence[tuple[str, TimeRangeLimits | None]],
+    now: datetime,
+) -> str | None:
+    """Keep fixed defaults fixed and prefer a checked rolling replacement otherwise."""
+    resolved = _resolve(value) if value is not None else None
+    if _valid_copy_default(resolved, limits):
+        return value
+    if not _fixed_copy_default(value):
+        candidate = copy_relative_time_range(limits, levels, now)
+        if candidate is not None and _valid_copy_default(_resolve(candidate), limits):
+            return candidate
+    window = fit_copy_date_range(*(resolved or (None, None)), limits, now)
+    return (
+        " : ".join(bound.isoformat(timespec="seconds") for bound in window)
+        if window is not None
+        else None
+    )
+
+
+def fit_copy_filter_defaults(
+    dashboard: Dashboard, now: datetime
+) -> dict[str, list[str]]:
+    """Fit a copy's native Time Range defaults without changing its source."""
+    if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+        return {}
+    metadata = dashboard.params_dict
+    configuration = metadata.get("native_filter_configuration")
+    if not isinstance(configuration, list):
+        return {}
+    filters = [
+        item
+        for item in configuration
+        if isinstance(item, dict) and item.get("filterType") == "filter_time"
+    ]
+    if not filters:
+        return {}
+    stored = load_stored_levels(chart_datasets(list(dashboard.slices)))
+    levels = [
+        ("global", stored.global_limits),
+        *(("dataset", policy) for policy in stored.dataset_limits),
+        ("dashboard", stored_dashboard_limits(dashboard)),
+    ]
+    limits = resolve_time_range_limits(levels, now)
+    if limits is None:
+        return {}
+    errors: dict[str, list[str]] = {}
+    for native_filter in filters:
+        value = time_filter_value("filter_time", native_filter.get("defaultDataMask"))
+        value = _fit_copy_default(value, limits, levels, now)
+        if value is None:
+            field = (
+                f"native_filter_configuration.{native_filter.get('id')}.defaultDataMask"
+            )
+            failure = date_range_failure(None, None, limits, filter_preview=True)
+            if failure is None:
+                raise TimeRangeLimitsUnavailableError(source="dashboard", field=field)
+            errors[f"json_metadata.{field}"] = [failure.message]
+            continue
+        native_filter["defaultDataMask"] = _copy_time_filter_mask(
+            native_filter.get("defaultDataMask"), value
+        )
+    if not errors:
+        dashboard.json_metadata = json.dumps(metadata)
+    return errors
 
 
 def dashboard_save_check(

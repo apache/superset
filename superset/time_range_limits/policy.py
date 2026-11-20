@@ -721,6 +721,24 @@ def stricter_errors(
     return errors
 
 
+def clamp_inherited_copy_limits(
+    raw: dict[str, Any] | None, stored: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """Replace only unchanged stale copy rules with their global limits."""
+    if (policy := parse_written_policy(raw)) is None:
+        return raw
+    global_limits = load_global_limits() or TimeRangeLimits()
+    replacements = {
+        rule: dataclasses.asdict(limit)
+        for rule in RULES
+        if (value := getattr(policy, rule)) is not None
+        and (limit := getattr(global_limits, rule)) is not None
+        and not _changed(policy, stored, rule)
+        and _looser_than(rule, value, limit, "dashboard") is not None
+    }
+    return {**(raw or {}), **replacements}
+
+
 def policy_errors(
     read: Callable[[], TimeRangeLimits | None],
     stored: dict[str, Any] | None,
@@ -811,6 +829,17 @@ def get_effective_time_range_limits(
     return resolve_time_range_limits(levels, now)
 
 
+def level_constraints(
+    levels: Sequence[tuple[str, TimeRangeLimits | None]], rule: str
+) -> list[Constraint]:
+    """The ``rule`` of every level that sets it, in level order."""
+    return [
+        Constraint(source, value.quantity, value.time_grain)
+        for source, limits in levels
+        if limits is not None and (value := getattr(limits, rule)) is not None
+    ]
+
+
 def resolve_time_range_limits(
     levels: Sequence[tuple[str, TimeRangeLimits | None]], now: datetime
 ) -> ResolvedTimeRangeLimits | None:
@@ -819,30 +848,22 @@ def resolve_time_range_limits(
     (global, dataset, dashboard), as ``get_effective_time_range_limits`` does.
     Returns ``None`` when no level sets a rule.
     """
-    set_levels = [(source, limits) for source, limits in levels if limits is not None]
-    if not set_levels:
+    if all(limits is None for _, limits in levels):
         return None
-
-    def constraints(rule: str) -> list[Constraint]:
-        return [
-            Constraint(source, value.quantity, value.time_grain)
-            for source, limits in set_levels
-            if (value := getattr(limits, rule)) is not None
-        ]
 
     look_back = [
         bound
-        for limit in constraints("max_look_back")
+        for limit in level_constraints(levels, "max_look_back")
         if (bound := _look_back_bound(limit, now)) is not None
     ]
     look_forward = [
         bound
-        for limit in constraints("max_look_forward")
+        for limit in level_constraints(levels, "max_look_forward")
         if (bound := _look_forward_bound(limit, now)) is not None
     ]
     # max/min return the first of equal values, so a tie keeps the lower level.
     return ResolvedTimeRangeLimits(
-        max_span=tuple(constraints("max_span")),
+        max_span=tuple(level_constraints(levels, "max_span")),
         earliest_start=max(look_back, key=attrgetter("value"), default=None),
         latest_end=min(look_forward, key=attrgetter("value"), default=None),
     )
@@ -957,6 +978,173 @@ def value_list_window(
 def _fits(since: datetime, until: datetime, amount: int, unit: str) -> bool:
     start = _shift(until, -amount, unit)
     return start is not None and start >= since
+
+
+def _recent_copy_window(
+    limits: ResolvedTimeRangeLimits, now: datetime
+) -> tuple[datetime, datetime] | None:
+    """Choose a copy's fallback window, including a permitted future interval."""
+    window = value_list_window(limits, now)
+    if window is None or window[0] >= window[1]:
+        until = now.replace(microsecond=0)
+        if limits.earliest_start is not None:
+            future = _shift(limits.earliest_start.value, 1, "second")
+            if future is None:
+                return None
+            until = max(until, future)
+        if limits.latest_end is not None:
+            until = min(until, limits.latest_end.value)
+        window = _fit_window(limits, until, None)
+        if window is None:
+            window = _shift(until, -1, "day") or datetime.min, until
+    return window
+
+
+def fit_copy_date_range(
+    since: datetime | None,
+    until: datetime | None,
+    limits: ResolvedTimeRangeLimits,
+    now: datetime,
+) -> tuple[datetime, datetime] | None:
+    """Clip a copied default to its limits, or choose a valid recent window."""
+    if since is not None and until is not None and since < until:
+        if limits.latest_end is not None:
+            until = min(until, limits.latest_end.value)
+        if (binding := _binding_span(until, limits.max_span)) is not None:
+            since = max(since, binding[1])
+        if limits.earliest_start is not None:
+            since = max(since, limits.earliest_start.value)
+        if since < until and date_range_failure(since, until, limits) is None:
+            return since, until
+    window = _recent_copy_window(limits, now)
+    if (
+        window is not None
+        and window[0] < window[1]
+        and date_range_failure(*window, limits) is None
+    ):
+        return window
+    return None
+
+
+def _copy_relative_expression(limit: Constraint, anchor: str, sign: int) -> str:
+    """Encode a duration in the picker's Custom relative-date syntax."""
+    count = limit.quantity * (1 if _is_quarter(limit.time_grain) else limit.length[0])
+    return f'DATEADD(DATETIME("{anchor}"), {sign * count}, {_length_unit(limit)})'
+
+
+def _calendar_months(limit: Constraint) -> int | None:
+    count, unit = limit.length
+    months = {"month": 1, "year": 12}.get(unit)
+    return None if months is None else limit.quantity * count * months
+
+
+def _shortest_length(limit: Constraint) -> timedelta:
+    """The shortest length ``limit`` has on any date."""
+    if (months := _calendar_months(limit)) is not None:
+        return timedelta(days=_min_days(months))
+    count, unit = limit.length
+    measure, size = _UNIT_MEASURE[unit]
+    return timedelta(**{measure: limit.quantity * count * size})
+
+
+def _mixed_unit_limit(limits: Sequence[Constraint]) -> Constraint | None:
+    """
+    A length no longer than any of ``limits`` on any date, when both calendar
+    and fixed units constrain it, since those swap which one is shorter from one
+    date to another: the shortest fixed limit if it is never longer than the
+    shortest calendar one, otherwise the fewest days the calendar one spans.
+    ``None`` when the units don't mix.
+    """
+    positive = [limit for limit in limits if limit.quantity > 0]
+    calendar = [limit for limit in positive if _calendar_months(limit) is not None]
+    fixed = [limit for limit in positive if _calendar_months(limit) is None]
+    if not calendar or not fixed:
+        return None
+    shortest_calendar = min(calendar, key=_shortest_length)
+    shortest_fixed = min(fixed, key=_shortest_length)
+    if _shortest_length(shortest_fixed) <= _shortest_length(shortest_calendar):
+        return shortest_fixed
+    return Constraint(
+        shortest_calendar.source, _shortest_length(shortest_calendar).days, "P1D"
+    )
+
+
+def _copy_zero_look_back_range(
+    spans: tuple[Constraint, ...],
+    look_back: Sequence[Constraint],
+    look_forward: Sequence[Constraint],
+    now: datetime,
+) -> str:
+    """
+    Use the tightest allowed endpoint for a rolling zero-look-back default. It
+    starts at ``now`` when any level's look-back is under a day, since that one
+    can become the strictest later the same day, and a zero look-forward at any
+    level ends it. A range from ``now`` under both a zero look-forward of a day
+    or longer (the end of today) and a limit shorter than a day (``now`` plus
+    that limit) can't follow either one at every hour, so it ends at the next
+    whole hour, which fits both, or one second after ``now`` when that limit is
+    under an hour.
+    """
+    sub_day = any(limit.sub_day for limit in look_back)
+    anchor = "now" if sub_day else "today"
+    clock = now if sub_day else midnight(now)
+    limits = [*spans, *look_forward]
+    short = [
+        _shortest_length(limit)
+        for limit in limits
+        if limit.quantity > 0 and _shortest_length(limit) < timedelta(days=1)
+    ]
+    if (
+        sub_day
+        and short
+        and any(limit.quantity == 0 and not limit.sub_day for limit in look_forward)
+    ):
+        if min(short) < timedelta(hours=1):
+            return 'now : DATEADD(DATETIME("now"), 1, second)'
+        return 'now : DATETRUNC(DATEADD(DATETIME("now"), 1, hour), hour)'
+    mixed = _mixed_unit_limit(limits)
+    forward = [
+        (until, _copy_relative_expression(limit, anchor, 1))
+        for limit in ((mixed,) if mixed else limits)
+        if limit.quantity > 0 and (until := limit.shift(clock, 1)) is not None
+    ]
+    for limit in look_forward:
+        if limit.quantity > 0:
+            continue
+        if limit.sub_day:
+            forward.append((now, "now"))
+        elif (tomorrow := _shift(midnight(now), 1, "day")) is not None:
+            forward.append((tomorrow, 'DATEADD(DATETIME("today"), 1, day)'))
+    until_expression = (
+        min(forward, key=lambda item: item[0])[1]
+        if forward
+        else f'DATEADD(DATETIME("{anchor}"), 1, day)'
+    )
+    return f"{anchor} : {until_expression}"
+
+
+def copy_relative_time_range(
+    limits: ResolvedTimeRangeLimits,
+    levels: Sequence[tuple[str, TimeRangeLimits | None]],
+    now: datetime,
+) -> str | None:
+    """
+    Suggest a rolling copy default that still fits the same ``levels`` on any
+    later date: the shortest span or look-back of any level in its own unit, or
+    in days when calendar and fixed units both constrain it, ending ``now``
+    when any level has a rule under a day and ``today`` otherwise.
+    """
+    look_back = level_constraints(levels, "max_look_back")
+    look_forward = level_constraints(levels, "max_look_forward")
+    if any(limit.quantity == 0 for limit in look_back):
+        return _copy_zero_look_back_range(limits.max_span, look_back, look_forward, now)
+    rules = [*limits.max_span, *look_back, *look_forward]
+    anchor = "now" if any(rule.sub_day for rule in rules) else "today"
+    lengths = [limit for limit in (*limits.max_span, *look_back) if limit.quantity > 0]
+    if not lengths:
+        return None
+    limit = _mixed_unit_limit(lengths) or min(lengths, key=_shortest_length)
+    return f"{_copy_relative_expression(limit, anchor, -1)} : {anchor}"
 
 
 def _length_unit(limit: Constraint) -> str:

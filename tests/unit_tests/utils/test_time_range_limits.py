@@ -3996,3 +3996,83 @@ def test_dashboard_payload_isolates_invalid_dataset(mocker: MockerFixture) -> No
     assert datasets[7]["policy"]["max_span"]["quantity"] == 7
     assert datasets[8]["error"]["extra"]["reason_code"] == "POLICY_UNAVAILABLE"
     assert "value" not in datasets[8]["error"]["extra"]
+
+
+@pytest.mark.parametrize("name", ["max_span", "max_look_back", "max_look_forward"])
+@pytest.mark.parametrize("grain", ["P1D", "PT1H"])
+def test_copy_clamps_only_inherited_stale_rules(
+    mocker: MockerFixture, limits_on: None, name: str, grain: str
+) -> None:
+    """Every inherited rule clamps, while a changed rule is left for validation."""
+    from superset.time_range_limits.policy import clamp_inherited_copy_limits
+
+    admin = policy()
+    admin[name] = {"quantity": 14, "time_grain": "P1D"}
+    stored = policy()
+    quantity = 30 if grain == "P1D" else 337
+    stored[name] = {"quantity": quantity, "time_grain": grain}
+    set_global(mocker, admin)
+    before = json.dumps(stored)
+    assert clamp_inherited_copy_limits(stored, stored) == admin
+    changed = {**stored, name: {"quantity": quantity + 1, "time_grain": grain}}
+    assert clamp_inherited_copy_limits(changed, stored) == changed
+    assert json.dumps(stored) == before
+
+
+def test_copy_keeps_stricter_rules_and_flag_off_values(mocker: MockerFixture) -> None:
+    """Copy normalization does not loosen stricter rules or run with the flag off."""
+    from superset.time_range_limits.policy import clamp_inherited_copy_limits
+
+    set_global(mocker, policy((14, "P1D")))
+    set_flag(mocker, True)
+    stricter = policy((7, "P1D"))
+    assert clamp_inherited_copy_limits(stricter, stricter) == stricter
+    assert clamp_inherited_copy_limits(None, stricter) is None
+    set_flag(mocker, False)
+    stale = policy((30, "P1D"))
+    assert clamp_inherited_copy_limits(stale, stale) == stale
+
+
+@pytest.mark.parametrize(
+    "since,until,span,expected",
+    [
+        (
+            datetime(2026, 1, 1),
+            datetime(2026, 2, 1),
+            (14, "P1D"),
+            (datetime(2026, 1, 18), datetime(2026, 2, 1)),
+        ),
+        (
+            datetime(2026, 1, 1),
+            datetime(2026, 1, 1, 7),
+            (6, "PT1H"),
+            (datetime(2026, 1, 1, 1), datetime(2026, 1, 1, 7)),
+        ),
+        (
+            datetime(2026, 1, 1),
+            datetime(2026, 3, 31),
+            (1, "P1M"),
+            (datetime(2026, 2, 28), datetime(2026, 3, 31)),
+        ),
+    ],
+)
+def test_copy_default_clips_back_from_its_end(
+    since: datetime, until: datetime, span: Rule, expected: tuple[datetime, datetime]
+) -> None:
+    """Fitted defaults use the same day, elapsed and calendar span arithmetic."""
+    from superset.time_range_limits.policy import fit_copy_date_range
+
+    limits = span_limits(span)
+    assert fit_copy_date_range(since, until, limits, NOW) == expected
+    assert_passes(*expected, limits)
+
+
+def test_copy_fixed_fallback_can_fit_after_a_zero_look_back() -> None:
+    """The fixed fallback can fit a positive window when relative fitting fails."""
+    from superset.time_range_limits.policy import fit_copy_date_range
+
+    limits = resolve(policy(max_look_back=(0, "PT1H")), now=NOW)
+    window = fit_copy_date_range(None, None, limits, NOW)
+    assert window is not None
+    assert window == (NOW, NOW + timedelta(seconds=1))
+    assert_passes(*window, limits)

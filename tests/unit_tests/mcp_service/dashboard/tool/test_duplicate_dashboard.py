@@ -859,7 +859,7 @@ async def test_compact_duplicate_description_keeps_default() -> None:
 @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
 @pytest.mark.asyncio
 @pytest.mark.parametrize("max_span", [13, -1])
-async def test_copy_check_compares_the_source_time_range_limits(
+async def test_copy_clamps_inherited_time_range_limits(
     mock_get_by_id_or_slug: Mock,
     mock_copy_dashboard: Mock,
     mock_find_by_id: Mock,
@@ -867,10 +867,7 @@ async def test_copy_check_compares_the_source_time_range_limits(
     mcp_server: object,
     app_context: None,
 ) -> None:
-    """The tool goes through CopyDashboardCommand, so the copy gets the
-    dashboard copy check against the source's stored limits: a stored value
-    looser than a later global one is copied, a malformed one is refused and
-    nothing is copied."""
+    """MCP clamps inherited stale rules through the shared copy command."""
     from flask import current_app
 
     from superset.extensions import feature_flag_manager
@@ -916,6 +913,14 @@ async def test_copy_check_compares_the_source_time_range_limits(
         assert content["error"] is None
         assert content["dashboard"]["id"] == 2
         mock_copy_dashboard.assert_called_once()
+        payload = mock_copy_dashboard.call_args.args[1]
+        assert json.loads(payload["json_metadata"])["time_range_limits"] == policy
+        assert (
+            json.loads(mock_get_by_id_or_slug.return_value.json_metadata)[
+                "time_range_limits"
+            ]
+            == stored
+        )
     else:
         assert content["dashboard"] is None
         assert "json_metadata.time_range_limits.max_span" in content["error"]

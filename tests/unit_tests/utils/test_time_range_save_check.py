@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
@@ -1026,3 +1026,704 @@ def test_dataset_check_cap_is_its_own_constant(
     assert response.status_code == 200
     assert len(response.json["result"]["charts"]) <= 1
     assert response.json["result"]["truncated"] is True
+
+
+@pytest.mark.parametrize(
+    "mask",
+    [
+        {"filterState": {"value": "Last 30 days"}},
+        {"extraFormData": {"time_range": "Last 30 days"}},
+        {"filterState": {"value": "No filter"}},
+        {"filterState": {"value": "not a time range"}},
+        {"filterState": {"value": "2026-10-29 : 2026-10-01"}},
+        {},
+        None,
+    ],
+)
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_copy_fits_native_default_shapes(world: Any, mask: Any) -> None:
+    """Copies reconcile UI and query values against their retained datasets."""
+    from superset.common.utils.time_range_utils import get_since_until_from_time_range
+    from superset.time_range_limits.policy import (
+        date_range_failure,
+        resolve_time_range_limits,
+    )
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    native = named_filter("Time range", None)
+    native["defaultDataMask"] = mask
+    dashboard = make_dash(
+        [modern(41, "Strict dataset", 9, [tr("Last 30 days")])], [native], P(span=14)
+    )
+    assert fit_copy_filter_defaults(dashboard, datetime.now()) == {}
+    fitted_mask = dashboard.params_dict["native_filter_configuration"][0][
+        "defaultDataMask"
+    ]
+    value = fitted_mask["filterState"]["value"]
+    assert value == fitted_mask["extraFormData"]["time_range"]
+    resolved = get_since_until_from_time_range(value)
+    limits = resolve_time_range_limits(
+        [("dataset", parse_time_range_limits(P(span=7)))], datetime.now()
+    )
+    assert limits is not None
+    assert resolved[0] is not None
+    assert resolved[1] is not None
+    assert resolved[0] < resolved[1]
+    assert date_range_failure(*resolved, limits) is None
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_copy_preserves_valid_relative_default_and_clears_stale_state(
+    world: Any,
+) -> None:
+    """A valid preset stays relative and no longer carries an old error."""
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    native = named_filter("Time range", "Last 7 days")
+    native["defaultDataMask"] = {
+        "filterState": {
+            "value": "Last 7 days",
+            "validateStatus": "error",
+            "validateMessage": "old",
+            "limitInvalid": True,
+        },
+        "extraFormData": {"time_range": "Last 30 days"},
+    }
+    dashboard = make_dash([], [native], P(span=14))
+    assert fit_copy_filter_defaults(dashboard, datetime.now()) == {}
+    mask = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"]
+    assert mask["filterState"] == {"value": "Last 7 days"}
+    assert mask["extraFormData"]["time_range"] == "Last 7 days"
+
+
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_copy_cannot_fit_disjoint_limits(world: Any, mocker: MockerFixture) -> None:
+    """An impossible effective window returns a field error without writing."""
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    native = named_filter("Time range", "Last 30 days")
+    dashboard = make_dash(
+        [modern(41, "Strict dataset", 9, [tr("Last 30 days")])], [native]
+    )
+    global_policy = P()
+    global_policy["max_look_back"] = {"quantity": 0, "time_grain": "PT1H"}
+    dataset_policy = P()
+    dataset_policy["max_look_forward"] = {"quantity": 0, "time_grain": "PT1H"}
+    world[9].extra = json.dumps({"time_range_limits": dataset_policy})
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_policy})
+    before = dashboard.json_metadata
+    errors = fit_copy_filter_defaults(dashboard, datetime.now())
+    field = (
+        "json_metadata.native_filter_configuration.NATIVE_FILTER-time.defaultDataMask"
+    )
+    assert field in errors
+    assert "No time range fits" in errors[field][0]
+    assert dashboard.json_metadata == before
+
+
+@with_feature_flags(TIME_RANGE_LIMITS=False)
+def test_copy_flag_off_keeps_filter_defaults(world: Any) -> None:
+    """Disabled limits leave even an invalid default untouched."""
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    dashboard = make_dash([], [named_filter("Time range", "No filter")], P(span=14))
+    before = dashboard.json_metadata
+    assert fit_copy_filter_defaults(dashboard, datetime.now()) == {}
+    assert dashboard.json_metadata == before
+
+
+@pytest.mark.parametrize(
+    "raw,expected,later",
+    [
+        (
+            P(span=14, back=30),
+            'DATEADD(DATETIME("today"), -14, day) : today',
+            timedelta(days=31),
+        ),
+        (
+            P(span=90, back=30),
+            'DATEADD(DATETIME("today"), -30, day) : today',
+            timedelta(days=31),
+        ),
+        (
+            P(back=14),
+            'DATEADD(DATETIME("today"), -14, day) : today',
+            timedelta(days=15),
+        ),
+        (
+            P(span=6, span_grain="PT1H", back=30, back_grain="PT1H"),
+            'DATEADD(DATETIME("now"), -6, hour) : now',
+            timedelta(hours=30, days=1),
+        ),
+        (
+            P(span=1, span_grain="P1M", back=13, back_grain="P1M"),
+            'DATEADD(DATETIME("today"), -1, month) : today',
+            timedelta(days=401),
+        ),
+        (
+            P(span=1, span_grain="P3M"),
+            'DATEADD(DATETIME("today"), -1, quarter) : today',
+            timedelta(days=401),
+        ),
+    ],
+)
+@pytest.mark.parametrize("source", ["Last 2 years", None])
+@with_feature_flags(**FLAG_ON)
+def test_copy_relative_default_remains_valid_after_look_back(
+    world: Any,
+    mocker: MockerFixture,
+    raw: Any,
+    expected: str,
+    later: timedelta,
+    source: str | None,
+) -> None:
+    """Fitted rolling defaults stay valid beyond the original look-back window."""
+    from superset.time_range_limits.policy import (
+        date_range_failure,
+        resolve_time_range_limits,
+    )
+    from superset.time_range_limits.save_check import _resolve, fit_copy_filter_defaults
+
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": raw})
+    dashboard = make_dash([], [named_filter("Time range", source)])
+    now = datetime(2026, 11, 18, 14, 30)
+    with freeze_time(now):
+        assert fit_copy_filter_defaults(dashboard, now) == {}
+    value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
+        "filterState"
+    ]["value"]
+    assert value == expected
+    for clock in (now, now + later):
+        with freeze_time(clock):
+            resolved = _resolve(value)
+            assert resolved is not None
+            assert resolved[0] is not None
+            assert resolved[1] is not None
+            assert resolved[0] < resolved[1]
+            limits = resolve_time_range_limits(
+                [("global", parse_time_range_limits(raw))], clock
+            )
+            assert limits is not None
+            assert date_range_failure(*resolved, limits) is None
+
+
+@with_feature_flags(**FLAG_ON)
+def test_copy_zero_look_back_default_rolls_forward(
+    world: Any, mocker: MockerFixture
+) -> None:
+    """A future default uses the allowed duration and remains valid a minute later."""
+    from superset.time_range_limits.policy import (
+        date_range_failure,
+        resolve_time_range_limits,
+    )
+    from superset.time_range_limits.save_check import _resolve, fit_copy_filter_defaults
+
+    raw = P()
+    raw["max_look_back"] = {"quantity": 0, "time_grain": "PT1H"}
+    raw["max_look_forward"] = {"quantity": 7, "time_grain": "P1D"}
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": raw})
+    dashboard = make_dash([], [named_filter("Time range", "No filter")])
+    now = datetime(2026, 11, 18, 14, 30)
+    with freeze_time(now):
+        assert fit_copy_filter_defaults(dashboard, now) == {}
+    value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
+        "filterState"
+    ]["value"]
+    assert value == 'now : DATEADD(DATETIME("now"), 7, day)'
+    for clock in (now, now + timedelta(minutes=1)):
+        with freeze_time(clock):
+            resolved = _resolve(value)
+            assert resolved is not None
+            assert resolved[0] is not None
+            assert resolved[1] is not None
+            assert resolved[1] - resolved[0] > timedelta(seconds=1)
+            limits = resolve_time_range_limits(
+                [("global", parse_time_range_limits(raw))], clock
+            )
+            assert limits is not None
+            assert date_range_failure(*resolved, limits) is None
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "2026-10-01 : 2026-10-28",
+        "October 1, 2026 : October 28, 2026",
+        'DATEADD(DATETIME("2026-10-28T00:00:00"), -60, day) : 2026-10-28T00:00:00',
+        'DATETIME("2026-10-01T00:00:00") : DATETIME("2026-10-28T00:00:00")',
+    ],
+)
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_copy_fixed_default_stays_fixed(world: Any, source: str) -> None:
+    """A source's explicit date intent is preserved when clipping its range."""
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    dashboard = make_dash([], [named_filter("Time range", source)], P(span=14))
+    assert fit_copy_filter_defaults(dashboard, datetime.now()) == {}
+    value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
+        "filterState"
+    ]["value"]
+    assert value == "2026-10-14T00:00:00 : 2026-10-28T00:00:00"
+
+
+@pytest.mark.parametrize("candidate", ["Last 90 days", "invalid candidate"])
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_copy_checks_relative_candidate_before_falling_back(
+    world: Any,
+    mocker: MockerFixture,
+    candidate: str,
+) -> None:
+    """An invalid generated candidate is never stored instead of a checked window."""
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    mocker.patch(
+        "superset.time_range_limits.save_check.copy_relative_time_range",
+        return_value=candidate,
+    )
+    dashboard = make_dash([], [named_filter("Time range", "Last 60 days")], P(span=14))
+    assert fit_copy_filter_defaults(dashboard, datetime.now()) == {}
+    value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
+        "filterState"
+    ]["value"]
+    assert value == "2026-10-14T00:00:00 : 2026-10-28T00:00:00"
+
+
+@with_feature_flags(**FLAG_ON)
+def test_copy_no_window_fails_closed_without_a_failure_object(
+    world: Any,
+    mocker: MockerFixture,
+) -> None:
+    """An inconsistent no-window result fails closed using the existing error."""
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    mocker.patch(
+        "superset.time_range_limits.save_check._fit_copy_default", return_value=None
+    )
+    mocker.patch(
+        "superset.time_range_limits.save_check.date_range_failure", return_value=None
+    )
+    dashboard = make_dash([], [named_filter("Time range", "No filter")], P(span=14))
+    before = dashboard.json_metadata
+    with pytest.raises(TimeRangeLimitsUnavailableError) as excinfo:
+        fit_copy_filter_defaults(dashboard, datetime.now())
+    assert (
+        excinfo.value.error.message
+        == "Time range limits could not be verified. Retry the request."
+    )
+    assert dashboard.json_metadata == before
+
+
+@pytest.mark.parametrize(
+    "back_grain,forward_grain,span,expected",
+    [
+        ("PT1H", None, None, 'now : DATEADD(DATETIME("now"), 1, day)'),
+        ("P1D", None, None, 'today : DATEADD(DATETIME("today"), 1, day)'),
+        ("P1D", "PT1H", None, "today : now"),
+        ("P1D", "P1D", None, 'today : DATEADD(DATETIME("today"), 1, day)'),
+        ("PT1H", "P1D", None, 'now : DATEADD(DATETIME("today"), 1, day)'),
+        ("PT1H", "P1D", 14, 'now : DATEADD(DATETIME("today"), 1, day)'),
+    ],
+)
+@with_feature_flags(**FLAG_ON)
+def test_copy_zero_look_back_default_stays_relative_without_positive_upper_bound(
+    world: Any,
+    mocker: MockerFixture,
+    back_grain: str,
+    forward_grain: str | None,
+    span: int | None,
+    expected: str,
+) -> None:
+    """Zero-bound defaults use the reviewed forms and remain valid after time passes."""
+    from superset.time_range_limits.policy import (
+        date_range_failure,
+        resolve_time_range_limits,
+    )
+    from superset.time_range_limits.save_check import _resolve, fit_copy_filter_defaults
+
+    global_policy = P(span=span)
+    global_policy["max_look_back"] = {"quantity": 0, "time_grain": back_grain}
+    dataset_policy = P()
+    if forward_grain is not None:
+        dataset_policy["max_look_forward"] = {
+            "quantity": 0,
+            "time_grain": forward_grain,
+        }
+    world[9].extra = json.dumps({"time_range_limits": dataset_policy})
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_policy})
+    dashboard = make_dash(
+        [modern(41, "Chart", 9, [tr("Last 30 days")])],
+        [named_filter("Time range", "Last 30 days")],
+    )
+    now = datetime(2026, 11, 18, 14, 30)
+    with freeze_time(now):
+        assert fit_copy_filter_defaults(dashboard, now) == {}
+    value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
+        "filterState"
+    ]["value"]
+    assert value == expected
+    for clock in (now, now + timedelta(minutes=1), now + timedelta(days=1)):
+        with freeze_time(clock):
+            resolved = _resolve(value)
+            assert resolved is not None
+            assert resolved[0] is not None
+            assert resolved[1] is not None
+            assert resolved[0] < resolved[1]
+            limits = resolve_time_range_limits(
+                [
+                    ("global", parse_time_range_limits(global_policy)),
+                    ("dataset", parse_time_range_limits(dataset_policy)),
+                ],
+                clock,
+            )
+            assert limits is not None
+            assert date_range_failure(*resolved, limits) is None
+
+
+@pytest.mark.parametrize(
+    "value", ["99999999999999999999 : 2026-01-01", "9999999999 : 2026-01-01"]
+)
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_copy_fits_a_default_that_overflows_fixed_date_detection(
+    world: Any, value: str
+) -> None:
+    """An overflowing stored date is fitted like any other unparseable default."""
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    dashboard = make_dash([], [named_filter("Time range", value)], P(span=14))
+    assert fit_copy_filter_defaults(dashboard, datetime.now()) == {}
+    fitted = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"]
+    assert (
+        fitted["filterState"]["value"] == 'DATEADD(DATETIME("today"), -14, day) : today'
+    )
+    assert fitted["extraFormData"]["time_range"] == fitted["filterState"]["value"]
+
+
+def rules(
+    span: tuple[int, str] | None = None,
+    back: tuple[int, str] | None = None,
+    forward: tuple[int, str] | None = None,
+) -> dict[str, Any]:
+    def rule(value: tuple[int, str] | None) -> dict[str, Any] | None:
+        return {"quantity": value[0], "time_grain": value[1]} if value else None
+
+    return {
+        "schema_version": 1,
+        "max_span": rule(span),
+        "max_look_back": rule(back),
+        "max_look_forward": rule(forward),
+    }
+
+
+AGEING_CLOCKS = [
+    datetime(year, month, day, 12)
+    for year in (2026, 2027, 2028)
+    for month, day in (
+        (1, 28),
+        (1, 31),
+        (2, 1),
+        (2, 28),
+        (3, 1),
+        (3, 2),
+        (3, 31),
+        (4, 1),
+        (4, 30),
+        (5, 31),
+        (12, 31),
+    )
+] + [datetime(2028, 2, 29, 12)]
+
+
+@pytest.mark.parametrize(
+    "global_policy,dashboard_policy,copied_at,expected",
+    [
+        (
+            rules(span=(1, "P1M"), back=(30, "P1D")),
+            None,
+            datetime(2026, 3, 1, 12),
+            'DATEADD(DATETIME("today"), -28, day) : today',
+        ),
+        (
+            rules(span=(30, "P1D"), back=(1, "P1M")),
+            None,
+            datetime(2026, 1, 31, 12),
+            'DATEADD(DATETIME("today"), -28, day) : today',
+        ),
+        (
+            rules(span=(30, "P1D"), back=(0, "PT1H"), forward=(1, "P1M")),
+            None,
+            datetime(2026, 1, 31, 12),
+            'now : DATEADD(DATETIME("now"), 28, day)',
+        ),
+        (
+            rules(span=(30, "P1D"), back=(0, "P1D"), forward=(1, "P1M")),
+            None,
+            datetime(2026, 1, 31, 12),
+            'today : DATEADD(DATETIME("today"), 28, day)',
+        ),
+        (
+            rules(back=(30, "P1D")),
+            rules(back=(1, "P1M")),
+            datetime(2026, 1, 31, 12),
+            'DATEADD(DATETIME("today"), -28, day) : today',
+        ),
+        (
+            rules(span=(1, "P3M"), back=(120, "P1D")),
+            None,
+            datetime(2026, 1, 31, 12),
+            'DATEADD(DATETIME("today"), -89, day) : today',
+        ),
+        (
+            rules(span=(1, "P1Y"), back=(400, "P1D")),
+            None,
+            datetime(2026, 1, 31, 12),
+            'DATEADD(DATETIME("today"), -365, day) : today',
+        ),
+        (
+            rules(span=(1, "P1M"), back=(1000, "PT1H")),
+            None,
+            datetime(2026, 1, 31, 12),
+            'DATEADD(DATETIME("now"), -28, day) : now',
+        ),
+        (
+            rules(span=(3, "P1M"), back=(30, "P1D")),
+            None,
+            datetime(2026, 1, 31, 12),
+            'DATEADD(DATETIME("today"), -30, day) : today',
+        ),
+        (
+            rules(span=(4, "P1W")),
+            rules(span=(1, "P1M")),
+            datetime(2026, 2, 1, 12),
+            'DATEADD(DATETIME("today"), -4, week) : today',
+        ),
+    ],
+)
+@with_feature_flags(**FLAG_ON)
+def test_copy_mixed_unit_default_never_ages_out(
+    world: Any,
+    mocker: MockerFixture,
+    global_policy: dict[str, Any],
+    dashboard_policy: dict[str, Any] | None,
+    copied_at: datetime,
+    expected: str,
+) -> None:
+    """
+    When calendar and fixed units both constrain a fitted rolling default, the
+    saved value fits the unchanged limits on every later date, month ends and
+    February included.
+    """
+    from superset.time_range_limits.policy import (
+        date_range_failure,
+        resolve_time_range_limits,
+    )
+    from superset.time_range_limits.save_check import _resolve, fit_copy_filter_defaults
+
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_policy})
+    dashboard = make_dash(
+        [], [named_filter("Time range", "Last 2 years")], dashboard_policy
+    )
+    with freeze_time(copied_at):
+        assert fit_copy_filter_defaults(dashboard, copied_at) == {}
+    value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
+        "filterState"
+    ]["value"]
+    assert value == expected
+    levels = [
+        ("global", parse_time_range_limits(global_policy)),
+        ("dashboard", parse_time_range_limits(dashboard_policy)),
+    ]
+    for clock in [copied_at, *(c for c in AGEING_CLOCKS if c > copied_at)]:
+        with freeze_time(clock):
+            resolved = _resolve(value)
+            assert resolved is not None
+            assert resolved[0] is not None
+            assert resolved[1] is not None
+            assert resolved[0] < resolved[1]
+            limits = resolve_time_range_limits(levels, clock)
+            assert limits is not None
+            assert date_range_failure(*resolved, limits) is None, clock
+
+
+@pytest.mark.parametrize(
+    "global_policy,expected",
+    [
+        (rules(span=(14, "P1D"), back=(30, "P1D")), "-14, day"),
+        (rules(span=(1, "P1M"), back=(13, "P1M")), "-1, month"),
+        (rules(span=(6, "PT1H"), back=(2, "P1W")), "-6, hour"),
+    ],
+)
+@freeze_time(NOW)
+@with_feature_flags(**FLAG_ON)
+def test_copy_single_kind_units_keep_the_binding_unit(
+    world: Any,
+    mocker: MockerFixture,
+    global_policy: dict[str, Any],
+    expected: str,
+) -> None:
+    """Limits all in calendar units, or all in fixed units, keep their own unit."""
+    from superset.time_range_limits.save_check import fit_copy_filter_defaults
+
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_policy})
+    dashboard = make_dash([], [named_filter("Time range", "Last 2 years")])
+    assert fit_copy_filter_defaults(dashboard, datetime.now()) == {}
+    value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
+        "filterState"
+    ]["value"]
+    assert f"), {expected})" in value
+
+
+@pytest.mark.parametrize("copy_hour", [1, 13])
+@pytest.mark.parametrize(
+    "global_policy,dataset_policy,expected",
+    [
+        (
+            rules(span=(1, "P1M"), back=(1, "P1D")),
+            rules(back=(30, "PT1H")),
+            'DATEADD(DATETIME("now"), -1, day) : now',
+        ),
+        (
+            rules(span=(1, "P1M"), back=(0, "P1D")),
+            rules(back=(12, "PT1H")),
+            'now : DATEADD(DATETIME("now"), 1, month)',
+        ),
+        (
+            rules(back=(0, "P1D")),
+            rules(back=(12, "PT1H")),
+            'now : DATEADD(DATETIME("now"), 1, day)',
+        ),
+        (
+            rules(back=(1, "P1D")),
+            rules(back=(30, "PT1H")),
+            'DATEADD(DATETIME("now"), -1, day) : now',
+        ),
+    ],
+)
+@with_feature_flags(**FLAG_ON)
+def test_copy_default_fits_cross_level_sub_day_look_back_all_day(
+    world: Any,
+    mocker: MockerFixture,
+    global_policy: dict[str, Any],
+    dataset_policy: dict[str, Any],
+    expected: str,
+    copy_hour: int,
+) -> None:
+    """
+    A level's look-back that isn't the strictest at the copy time, under a day
+    or a zero look-back, can become the strictest hours later, so the saved
+    default still fits it at any hour of the following days.
+    """
+    copied_at = datetime(2026, 3, 1, copy_hour)
+    from superset.time_range_limits.policy import (
+        date_range_failure,
+        resolve_time_range_limits,
+    )
+    from superset.time_range_limits.save_check import _resolve, fit_copy_filter_defaults
+
+    world[9].extra = json.dumps({"time_range_limits": dataset_policy})
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_policy})
+    dashboard = make_dash(
+        [modern(41, "Chart", 9, [tr("Last 30 days")])],
+        [named_filter("Time range", "Last 2 years")],
+    )
+    with freeze_time(copied_at):
+        assert fit_copy_filter_defaults(dashboard, copied_at) == {}
+    value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
+        "filterState"
+    ]["value"]
+    assert value == expected
+    levels = [
+        ("global", parse_time_range_limits(global_policy)),
+        ("dataset", parse_time_range_limits(dataset_policy)),
+    ]
+    day = copied_at.replace(hour=0)
+    for clock in (
+        copied_at,
+        day + timedelta(hours=13),
+        day + timedelta(days=1, hours=1),
+        day + timedelta(days=1, hours=13),
+        day + timedelta(days=1, hours=23),
+        day + timedelta(days=30, hours=23),
+    ):
+        with freeze_time(clock):
+            resolved = _resolve(value)
+            assert resolved is not None
+            assert resolved[0] is not None
+            assert resolved[1] is not None
+            assert resolved[0] < resolved[1]
+            limits = resolve_time_range_limits(levels, clock)
+            assert limits is not None
+            assert date_range_failure(*resolved, limits) is None, clock
+
+
+@pytest.mark.parametrize("copy_hour", [13, 22])
+@pytest.mark.parametrize(
+    "forward,expected",
+    [
+        (
+            (6, "PT1H"),
+            'now : DATETRUNC(DATEADD(DATETIME("now"), 1, hour), hour)',
+        ),
+        ((30, "PT1M"), 'now : DATEADD(DATETIME("now"), 1, second)'),
+    ],
+)
+@with_feature_flags(**FLAG_ON)
+def test_copy_default_fits_a_zero_day_and_an_elapsed_look_forward_all_day(
+    world: Any,
+    mocker: MockerFixture,
+    copy_hour: int,
+    forward: tuple[int, str],
+    expected: str,
+) -> None:
+    """
+    A zero-day look-forward (the end of today) and a shorter elapsed one swap
+    which is tighter during the day, so the saved default fits both at every
+    hour: the next whole hour, or one second when the elapsed one is under an
+    hour.
+    """
+    from superset.time_range_limits.policy import (
+        date_range_failure,
+        resolve_time_range_limits,
+    )
+    from superset.time_range_limits.save_check import _resolve, fit_copy_filter_defaults
+
+    global_policy = rules(back=(0, "PT1H"), forward=forward)
+    dataset_policy = rules(forward=(0, "P1D"))
+    world[9].extra = json.dumps({"time_range_limits": dataset_policy})
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_policy})
+    dashboard = make_dash(
+        [modern(41, "Chart", 9, [tr("Last 30 days")])],
+        [named_filter("Time range", "Last 2 years")],
+    )
+    copied_at = datetime(2026, 3, 1, copy_hour)
+    with freeze_time(copied_at):
+        assert fit_copy_filter_defaults(dashboard, copied_at) == {}
+    value = dashboard.params_dict["native_filter_configuration"][0]["defaultDataMask"][
+        "filterState"
+    ]["value"]
+    assert value == expected
+    levels = [
+        ("global", parse_time_range_limits(global_policy)),
+        ("dataset", parse_time_range_limits(dataset_policy)),
+    ]
+    for clock in (
+        copied_at,
+        datetime(2026, 3, 1, 23),
+        datetime(2026, 3, 1, 23, 59, 59),
+        datetime(2026, 3, 2, 1),
+        datetime(2026, 3, 2, 13),
+    ):
+        with freeze_time(clock):
+            resolved = _resolve(value)
+            assert resolved is not None
+            assert resolved[0] is not None
+            assert resolved[1] is not None
+            assert resolved[0] < resolved[1]
+            limits = resolve_time_range_limits(levels, clock)
+            assert limits is not None
+            assert date_range_failure(*resolved, limits) is None, clock

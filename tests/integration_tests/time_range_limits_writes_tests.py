@@ -30,6 +30,7 @@ from zipfile import ZipFile
 import prison
 import pytest
 import yaml
+from freezegun import freeze_time
 from sqlalchemy_continuum import version_class
 
 from superset import db, security_manager
@@ -281,10 +282,73 @@ class TestDashboardWrites(LimitsTestCase):
             self.track(copied)
             assert stored_policy(copied.json_metadata) == span_policy(7)
 
+    @freeze_time("2026-11-18 12:00:00")
     @with_feature_flags(**FLAG_ON)
-    def test_copy_keeps_an_inherited_policy_a_later_global_made_looser(self) -> None:
-        """Like an update, the copy checks only rules changed from the source."""
+    def test_copy_clamps_an_inherited_policy_a_later_global_made_looser(self) -> None:
+        """A stale inherited rule and default fit on the copy, never the source."""
+        for explicit, duplicate_slices in (
+            (False, False),
+            (False, True),
+            (True, False),
+            (True, True),
+        ):
+            dashboard = self.dashboard(span_policy(30))
+            dashboard.json_metadata = metadata(
+                span_policy(30),
+                native_filter_configuration=[
+                    {
+                        "id": "NATIVE_FILTER-time",
+                        "filterType": "filter_time",
+                        "defaultDataMask": {
+                            "filterState": {"value": "Last 30 days"},
+                            "extraFormData": {"time_range": "Last 30 days"},
+                        },
+                    }
+                ],
+            )
+            db.session.commit()
+            source_metadata = dashboard.json_metadata
+            request_metadata: dict[str, Any] = {"positions": {}}
+            if explicit:
+                request_metadata[KEY] = span_policy(30)
+            self.login(ADMIN_USERNAME)
+            admin = span_policy(14)
+            admin["max_look_back"] = {"quantity": 30, "time_grain": "P1D"}
+            with patch.dict(app.config, {"TIME_RANGE_LIMITS_GLOBAL": admin}):
+                response = self.client.post(
+                    f"/api/v1/dashboard/{dashboard.id}/copy/",
+                    json={
+                        "dashboard_title": "copy",
+                        "json_metadata": json.dumps(request_metadata),
+                        "duplicate_slices": duplicate_slices,
+                    },
+                )
+            assert response.status_code == 200, response.json
+            copied = db.session.get(Dashboard, response.json["result"]["id"])
+            self.track(copied)
+            assert stored_policy(copied.json_metadata) == span_policy(14)
+            mask = copied.params_dict["native_filter_configuration"][0][
+                "defaultDataMask"
+            ]
+            fitted = 'DATEADD(DATETIME("today"), -14, day) : today'
+            assert mask["filterState"]["value"] == fitted
+            assert mask["extraFormData"]["time_range"] == fitted
+            db.session.refresh(dashboard)
+            assert dashboard.json_metadata == source_metadata
+
+    @with_feature_flags(TIME_RANGE_LIMITS=False)
+    def test_copy_flag_off_preserves_stale_policy_and_default(self) -> None:
+        """Copy normalization is disabled with the feature flag."""
         dashboard = self.dashboard(span_policy(30))
+        native = {
+            "id": "NATIVE_FILTER-time",
+            "filterType": "filter_time",
+            "defaultDataMask": {"filterState": {"value": "No filter"}},
+        }
+        dashboard.json_metadata = metadata(
+            span_policy(30), native_filter_configuration=[native]
+        )
+        db.session.commit()
         self.login(ADMIN_USERNAME)
         with patch.dict(app.config, GLOBAL_14_DAYS):
             response = self.client.post(
@@ -295,6 +359,53 @@ class TestDashboardWrites(LimitsTestCase):
         copied = db.session.get(Dashboard, response.json["result"]["id"])
         self.track(copied)
         assert stored_policy(copied.json_metadata) == span_policy(30)
+        assert copied.params_dict["native_filter_configuration"] == [native]
+
+    @freeze_time("2026-11-18 12:00:00")
+    @with_feature_flags(**FLAG_ON)
+    def test_copy_rolls_back_when_no_positive_default_fits(self) -> None:
+        """Conflicting effective limits cannot leave a blocked copy behind."""
+        policy = span_policy(30)
+        policy["max_look_back"] = {"quantity": 0, "time_grain": "PT1H"}
+        dashboard = self.dashboard(policy)
+        dashboard.json_metadata = metadata(
+            policy,
+            native_filter_configuration=[
+                {
+                    "id": "NATIVE_FILTER-time",
+                    "filterType": "filter_time",
+                    "defaultDataMask": {"filterState": {"value": "Last 30 days"}},
+                }
+            ],
+        )
+        db.session.commit()
+        before = dashboard.json_metadata
+        admin = span_policy(14)
+        admin["max_look_forward"] = {"quantity": 0, "time_grain": "PT1H"}
+        self.login(ADMIN_USERNAME)
+        with patch.dict(app.config, {"TIME_RANGE_LIMITS_GLOBAL": admin}):
+            response = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "impossible copy",
+                    "json_metadata": metadata(),
+                },
+            )
+        assert response.status_code == 422, response.json
+        assert (
+            "No time range fits"
+            in response.json["message"][
+                "json_metadata.native_filter_configuration.NATIVE_FILTER-time.defaultDataMask"
+            ][0]
+        )
+        assert (
+            db.session.query(Dashboard)
+            .filter_by(dashboard_title="impossible copy")
+            .count()
+            == 0
+        )
+        db.session.refresh(dashboard)
+        assert dashboard.json_metadata == before
 
 
 class TestDatasetWrites(LimitsTestCase):
