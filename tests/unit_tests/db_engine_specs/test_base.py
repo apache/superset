@@ -30,7 +30,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 import sqlalchemy as sqla
 from pytest_mock import MockerFixture
-from sqlalchemy import Boolean, Column, column, create_engine, Integer, types
+from sqlalchemy import Boolean, Column, column, create_engine, Integer, text, types
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
@@ -232,6 +232,55 @@ def test_convert_inspector_columns(
     cols: list[SQLAColumnType], expected_result: list[ResultSetColumnType]
 ):
     assert convert_inspector_columns(cols) == expected_result
+
+
+def test_convert_inspector_columns_stringifies_sql_expressions() -> None:
+    float_type = types.Float()
+    date_type = types.Date()
+    string_type = types.String()
+    cols = cast(
+        list[SQLAColumnType],
+        [
+            {
+                "name": "total",
+                "type": float_type,
+                "nullable": False,
+                "comment": None,
+                "clickhouse_alias": text("price * qty"),
+            },
+            {
+                "name": "day",
+                "type": date_type,
+                "clickhouse_materialized": text("toDate(ts)"),
+                "clickhouse_ttl": text("day + toIntervalDay(30)"),
+            },
+            {"name": "note", "type": string_type, "server_default": text("'x'")},
+        ],
+    )
+
+    assert convert_inspector_columns(cols) == [
+        {
+            "column_name": "total",
+            "name": "total",
+            "type": float_type,
+            "nullable": False,
+            "comment": None,
+            "clickhouse_alias": "price * qty",
+        },
+        {
+            "column_name": "day",
+            "name": "day",
+            "type": date_type,
+            "clickhouse_materialized": "toDate(ts)",
+            "clickhouse_ttl": "day + toIntervalDay(30)",
+        },
+        {
+            "column_name": "note",
+            "name": "note",
+            "type": string_type,
+            "server_default": "'x'",
+        },
+    ]
 
 
 def test_select_star(mocker: MockerFixture) -> None:
@@ -2486,6 +2535,8 @@ def test_encrypted_extra_hints_bigquery_private_key() -> None:
             "path": "$.credentials_info.private_key",
             "label": "Service Account Private Key",
             "suffix": "Ab3dE",
+            "expires_at": None,
+            "expired": None,
         }
     ]
 
@@ -2516,6 +2567,8 @@ def test_encrypted_extra_hints_label_falls_back_to_last_path_segment(
             "path": "$.credentials.token",
             "label": "token",
             "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
         }
     ]
 

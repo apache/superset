@@ -242,6 +242,9 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
       ['csv', 'xlsx'].includes(formData?.result_format || '') ||
       (formData?.result_format === 'json' &&
         formData?.result_type === 'results');
+    const isFileExport = ['csv', 'xlsx'].includes(
+      formData?.result_format || '',
+    );
 
     if (isDownloadQuery) {
       moreProps.row_limit = Number(formDataCopy.row_limit) || 0;
@@ -747,7 +750,10 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
           ? getTotalsMetrics(metrics ?? [], totalsAggregate)
           : undefined;
 
-    if (showAggregateTotals || rawSummaryColumns.length > 0) {
+    if (
+      !isFileExport &&
+      (showAggregateTotals || rawSummaryColumns.length > 0)
+    ) {
       // Start from the original, pre-filter extras (captured before any AG Grid
       // complexWhere/havingClause fragments were merged in above) rather than
       // trying to subtract those fragments back out of the now-combined

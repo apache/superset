@@ -105,6 +105,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetGenericDBErrorException,
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
@@ -337,6 +338,42 @@ def _physical_display_column(reference: dict[str, Any]) -> str | None:
         and reference.get("sqlExpression") == label
     ):
         return label
+    return None
+
+
+def _column_param_name(column_: Any) -> str | None:
+    """Return the column name a ``COLUMN_FORM_DATA_PARAMS`` entry refers to.
+
+    Entries are not uniformly shaped. Most params hold plain column names or
+    adhoc-column dicts, but ``order_by_cols`` holds ``[column, ascending]``
+    pairs -- canonically JSON *strings* (``'["col", false]'``), though older
+    writers persisted them as real lists. A raw list reaching ``set.update()``
+    raises ``TypeError: unhashable type: 'list'`` and 500s
+    ``GET /api/v1/dashboard/<id>/datasets``, which leaves the whole dashboard
+    without datasource metadata. Mirror the tolerance that
+    ``superset.common.form_data_query_context`` already applies: accept the
+    pair in either encoding and take the column half, which may itself be an
+    adhoc column. A string that is not valid JSON is a plain column name
+    (bracketed names such as ``[Revenue]`` are legal). Any other shape yields
+    ``None`` and is skipped rather than crashing the request.
+    """
+    if utils.is_adhoc_column(column_):
+        return utils.get_column_name(column_)
+    if isinstance(column_, str):
+        # A JSON-encoded ``[column, ascending]`` pair, or a plain column name.
+        if column_.startswith("["):
+            try:
+                parsed = json.loads(column_)
+            except (TypeError, ValueError):
+                return column_
+            return (
+                _column_param_name(parsed[0])
+                if parsed and isinstance(parsed, list)
+                else None
+            )
+        return column_
+    if isinstance(column_, (list, tuple)):
+        return _column_param_name(column_[0]) if column_ else None
     return None
 
 
@@ -944,13 +981,10 @@ class BaseDatasource(
                 column_names.update(query_context_column_names)
             else:
                 _columns = [
-                    (
-                        utils.get_column_name(column_)
-                        if utils.is_adhoc_column(column_)
-                        else column_
-                    )
+                    name
                     for column_param in COLUMN_FORM_DATA_PARAMS
                     for column_ in utils.as_list(form_data.get(column_param) or [])
+                    if (name := _column_param_name(column_)) is not None
                 ]
                 column_names.update(_columns)
 
@@ -2644,6 +2678,38 @@ class SqlaTable(
             effective_offset_hours,
         )
 
+    def _probe_adhoc_column(
+        self, sql: str, sql_expression: str
+    ) -> list[ResultSetColumnType]:
+        """
+        Run the zero-row type probe for an adhoc column.
+
+        A database error here is typically a user-authored expression the
+        database rejects (unknown column, or a function this engine doesn't
+        support). Point at the expression instead of surfacing a bare driver
+        error, and flag it as a warning rather than an unexpected error.
+        """
+        try:
+            return get_columns_description(
+                self.database,
+                self.catalog,
+                self.schema or None,
+                sql,
+            )
+        except SupersetGenericDBErrorException as ex:
+            raise SupersetGenericDBErrorException(
+                message=_(
+                    "The custom SQL expression %(expression)s could not be "
+                    "run against this dataset's database: %(error)s. Check "
+                    "that it only uses columns and functions this database "
+                    "supports.",
+                    expression=sql_expression,
+                    error=ex.error.message,
+                ),
+                level=ErrorLevel.WARNING,
+                extra=ex.error.extra,
+            ) from ex
+
     def adhoc_column_to_sqla(  # pylint: disable=too-many-locals
         self,
         col: AdhocColumn,
@@ -2740,12 +2806,7 @@ class SqlaTable(
                 # SupersetGenericDBErrorException from get_columns_description and
                 # is allowed to propagate unchanged; only a genuine empty result
                 # (the column truly isn't there) is a ColumnNotFoundException.
-                col_desc = get_columns_description(
-                    self.database,
-                    self.catalog,
-                    self.schema or None,
-                    sql,
-                )
+                col_desc = self._probe_adhoc_column(sql, sql_expression)
                 if not col_desc:
                     raise ColumnNotFoundException(message="Column not found")
                 is_dttm = col_desc[0]["is_dttm"]  # type: ignore
