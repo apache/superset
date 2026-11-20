@@ -14,17 +14,98 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from copy import deepcopy
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import Mock, patch
 
+import pyarrow as pa
 import pytest
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.types import (
+    Dimension,
+    Filter,
+    Operator,
+    PredicateType,
+)
 
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.semantic_layers.mapper import _get_time_filter, ValidatedQueryObject
+from superset.superset_typing import AdhocColumn
+from superset.utils.cache import generate_cache_key
 from superset.utils.core import QueryObjectFilterClause
+
+
+def test_ordinary_context_rewrites_reach_async_cache_values() -> None:
+    """Granularity, time-range, and WHERE rendering preserve cached context behavior."""
+    dataset = SqlaTable(
+        id=1,
+        table_name="events",
+        database=Database(database_name="test", sqlalchemy_uri="sqlite://"),
+        columns=[
+            TableColumn(column_name="ds", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="created_at", type="DATETIME", is_dttm=True),
+        ],
+    )
+    query: dict[str, Any] = {
+        "columns": ["ds"],
+        "granularity": "ds",
+        "time_range": "2024-01-01 : 2025-01-01",
+        "filters": [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "2020-01-01 : 2021-01-01"},
+            {
+                "col": "created_at",
+                "op": "TEMPORAL_RANGE",
+                "val": "2020-01-01 : 2021-01-01",
+            },
+        ],
+        "extras": {"where": "country = '{{ 'France' }}'", "time_grain_sqla": "P1D"},
+    }
+    expected = deepcopy(query)
+    expected["filters"][1]["val"] = query["time_range"]
+    expected["extras"]["where"] = "country = 'France'"
+    with (
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.jinja_context.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        ),
+        patch("superset.common.query_context_processor.security_manager"),
+    ):
+        context = QueryContextFactory().create(
+            datasource={"id": 1, "type": "table"},
+            queries=[query],
+            form_data={"x_axis": "ds"},
+        )
+        assert context.queries[0].filter == [query["filters"][1]]
+        assert context.queries[0].filter[0] is query["filters"][1]
+        assert query["filters"][1]["val"] == query["time_range"]
+        assert context.queries[0].extras is query["extras"]
+        unrendered_key = context._processor.cache_key()
+        context.raise_for_access()
+        expected_cache_values = {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [expected],
+            "result_type": ChartDataResultType.FULL,
+            "result_format": ChartDataResultFormat.JSON,
+        }
+        assert context.cache_values == expected_cache_values
+        assert context._processor.cache_key() == generate_cache_key(
+            expected_cache_values, "qc-"
+        )
+        assert context._processor.cache_key() != unrendered_key
+        restored = QueryContextFactory().create(**deepcopy(context.cache_values))
+        assert restored.queries[0].extras["where"] == "country = 'France'"
+        assert restored._processor.cache_key() == context._processor.cache_key()
 
 
 class TestQueryContextFactory:
@@ -438,6 +519,56 @@ class TestQueryContextFactory:
 
         assert len(query_object.filter) == 1
         assert query_object.filter[0]["col"] == "ds"
+
+    def test_apply_granularity_keeps_grained_bucket_filters(self):
+        """A grained filter selects time buckets, not a range: the Time Column
+        override keeps it while it drops the x-axis time filters."""
+        bucket = {"col": "ds", "op": "==", "val": 1704067200000, "grain": "P1M"}
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "ship_date"
+        query_object.columns = [
+            {
+                "sqlExpression": "ds",
+                "label": "ds",
+                "columnType": "BASE_AXIS",
+                "timeGrain": "P1M",
+            }
+        ]
+        query_object.post_processing = []
+        query_object.filter = [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"},
+            dict(bucket),
+        ]
+        datasource = Mock()
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "ship_date", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(query_object, {"x_axis": "ds"}, datasource)
+
+        # get_sqla_query compares it to the overridden axis column by label.
+        assert query_object.filter == [bucket]
+        assert query_object.columns[0]["sqlExpression"] == "ship_date"
+
+    def test_apply_granularity_keeps_a_grained_filter_on_the_time_column(self):
+        """Without an x-axis the Time Column's range filter is replaced, but a
+        bucket on it (e.g. a Sunburst level) is not."""
+        bucket = {"col": "ds", "op": "==", "val": 1704067200000, "grain": "P1M"}
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "ds"
+        query_object.columns = ["other_col"]
+        query_object.post_processing = []
+        query_object.filter = [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"},
+            dict(bucket),
+        ]
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(query_object, {}, datasource)
+
+        assert query_object.filter == [bucket]
 
     def test_apply_granularity_no_granularity(self):
         """Test _apply_granularity when no granularity is set"""
@@ -1052,3 +1183,82 @@ def test_time_override_stamps_only_unbounded_saved_predicates(
     assert bool(filter_.get("isExtra")) == (
         already_extra or (dashboard and saved in (None, "No filter", "Aucun filtre"))
     )
+
+
+@pytest.mark.parametrize("preferred", [None, "order_date"])
+@pytest.mark.parametrize("explicit", [False, True])
+@pytest.mark.parametrize("with_filter", [False, True])
+def test_saved_temporal_bindings_use_default_only_for_omitted_granularity(
+    preferred: str | None, explicit: bool, with_filter: bool
+) -> None:
+    """Explicit predicates stay fixed; implicit bounds may adopt a new default."""
+    axis: str | AdhocColumn = (
+        "ship_date"
+        if explicit
+        else AdhocColumn(sqlExpression="amount / 10", label="amount_bucket")
+    )
+    form_data: dict[str, object] = {"x_axis": axis}
+    original_form_data: dict[str, object] = deepcopy(form_data)
+    filters: list[QueryObjectFilterClause] = (
+        [
+            {
+                "col": "delivery_date",
+                "op": "TEMPORAL_RANGE",
+                "val": "2024-01-10 : 2024-01-20",
+            }
+        ]
+        if with_filter
+        else []
+    )
+    original_filters: list[QueryObjectFilterClause] = deepcopy(filters)
+    datasource: Mock = Mock()
+    datasource.main_dttm_col = preferred
+    datasource.columns = [
+        {"column_name": "order_date", "is_dttm": True},
+        {"column_name": "ship_date", "is_dttm": True},
+        {"column_name": "delivery_date", "is_dttm": True},
+    ]
+    start: datetime = datetime(2024, 1, 1)
+    end: datetime = datetime(2024, 2, 1)
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=[axis],
+        metrics=[],
+        granularity="ship_date" if explicit else None,
+        from_dttm=start,
+        to_dttm=end,
+        time_range="2024-01-01 : 2024-02-01",
+        filters=deepcopy(filters),
+    )
+    QueryContextFactory()._apply_granularity(query, form_data, datasource)
+    expected: str | None = "ship_date" if explicit else preferred
+    assert query.granularity == expected
+    assert query.filter == original_filters
+    assert form_data == original_form_data
+    dimensions: dict[str, Dimension] = {
+        name: Dimension(name, name, pa.date32())
+        for name in ("order_date", "ship_date", "delivery_date")
+    }
+    predicate_subject: str | None = expected or (
+        "delivery_date" if with_filter else None
+    )
+    predicates: set[Filter] = _get_time_filter(query, None, dimensions)
+    assert predicates == (
+        {
+            Filter(
+                PredicateType.WHERE,
+                dimensions[predicate_subject],
+                Operator.GREATER_THAN_OR_EQUAL,
+                start,
+            ),
+            Filter(
+                PredicateType.WHERE,
+                dimensions[predicate_subject],
+                Operator.LESS_THAN,
+                end,
+            ),
+        }
+        if predicate_subject is not None
+        else set()
+    )
+    datasource.save.assert_not_called()

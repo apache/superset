@@ -186,6 +186,21 @@ class SupersetSecurityException(SupersetErrorException):
         self.payload = payload
 
 
+class SemanticViewGuestRLSUnsupportedError(SupersetSecurityException):
+    """Fixed refusal when a semantic view cannot apply guest row restrictions."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message=_(
+                    "Semantic views cannot enforce guest row-level security rules."
+                ),
+                level=ErrorLevel.WARNING,
+            )
+        )
+
+
 class SupersetVizException(SupersetErrorsException):
     status = 400
 
@@ -357,6 +372,10 @@ class SupersetCancelQueryException(SupersetException):
     status = 422
 
 
+class QueryStoppedException(SupersetException):
+    """An engine ended a query's execution because a stop was committed for it."""
+
+
 class QueryNotFoundException(SupersetException):
     status = 404
 
@@ -438,6 +457,7 @@ class OAuth2RedirectError(SupersetErrorException):
     """
 
     status = 403
+    query_id: int | None = None
 
     def __init__(self, url: str, tab_id: str, redirect_uri: str):
         super().__init__(
@@ -480,6 +500,8 @@ class OAuth2Error(SupersetErrorException):
     """
     Exception for when OAuth2 goes wrong.
     """
+
+    query_id: int | None = None
 
     def __init__(self, error: str):
         super().__init__(

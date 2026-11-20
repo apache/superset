@@ -34,10 +34,12 @@ interface DatasetWithPartitionMapping {
  * partitions, or `undefined` when no time range would.
  *
  * Only a live mapping prunes, and only an order-preserving one mirrors a range
- * -- the time range among them. `evaluable === false` is the engine having
- * refused the transform; `null` is "not probed yet" and still counts. The
- * mapped column must be temporal, because that is what the filter's time
- * column picker offers.
+ * -- the time range among them. Only `evaluable === true` counts: `false` is
+ * the engine having refused the transform, and `null` -- never probed, or a
+ * verdict that has expired -- may be a transform that emits no predicate at
+ * all, where a default time range would scan every partition anyway and
+ * silently narrow the value list. The mapped column must be temporal, because
+ * that is what the filter's time column picker offers.
  */
 export function partitionedTimeRangeColumn(
   dataset: DatasetWithPartitionMapping | undefined,
@@ -46,7 +48,7 @@ export function partitionedTimeRangeColumn(
   const mappedColumn = mapping?.mapped_column;
   if (
     !mapping?.active ||
-    mapping.evaluable === false ||
+    mapping.evaluable !== true ||
     !mapping.is_monotonic ||
     !mappedColumn
   ) {
