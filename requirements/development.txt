@@ -46,7 +46,7 @@ apispec==6.6.1
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
-apsw==3.54.1.0
+apsw==3.50.4.0
     # via
     #   -c requirements/base-constraint.txt
     #   shillelagh

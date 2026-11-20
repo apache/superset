@@ -65,3 +65,12 @@ setuptools<85
 # explicitly in pyproject.toml and pin google-auth to the post-drop range so
 # the install path is internally consistent (#40962).
 google-auth>=2.53.0,<3.0.0
+
+# apsw bundles SQLite, and from 3.51 the planner reorders the metadb two-table
+# join so rows stream out after `execute()` returns, past the point where
+# `superset.extensions.metadb` has reset its multi-table flag. That applies
+# SUPERSET_META_DB_LIMIT to a joined table and drops genuine matches
+# (test_superset_joins_with_limit_drops_fanout_matches). Hold at 3.50.x, the
+# newest line with wheels for every supported Python, until the flag is held
+# for the cursor's whole fetch lifetime.
+apsw>=3.50.4.0,<3.51.0.0
