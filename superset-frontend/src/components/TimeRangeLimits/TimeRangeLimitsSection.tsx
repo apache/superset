@@ -25,6 +25,7 @@ import {
   Button,
   Col,
   Flex,
+  FormItem,
   InputNumber,
   Loading,
   Row,
@@ -447,24 +448,24 @@ export default function TimeRangeLimitsSection({
     const message = errors[`${rule}.${field}`];
     return message
       ? {
-          message,
+          itemProps: {
+            validateStatus: 'error' as const,
+            help: (
+              <span id={errorId(rule, field)} role="alert">
+                {message}
+              </span>
+            ),
+          },
           inputProps: {
             'aria-invalid': true,
             'aria-describedby': errorId(rule, field),
           },
         }
-      : { message: undefined, inputProps: {} };
+      : { itemProps: {}, inputProps: {} };
   };
 
-  const fieldErrorLines = RULE_NAMES.flatMap(rule =>
-    (['quantity', 'time_grain'] as const).flatMap(field => {
-      const { message } = fieldError(rule, field);
-      return message ? [{ rule, field, message }] : [];
-    }),
-  );
-
   const levelColumn = level === 'dashboard' ? t('Dashboard') : t('Dataset');
-  // The shared Table sets nowrap on every body cell; these two cells wrap so the table fits
+  // The shared Table sets nowrap on every body cell; these cells wrap so the table fits
   const wrapCell = () => ({ style: { whiteSpace: 'normal' as const } });
   const columns = [
     {
@@ -505,42 +506,46 @@ export default function TimeRangeLimitsSection({
         return (
           <Row gutter={[8, 8]}>
             <Col span={24}>
-              <InputNumber
-                aria-label={t('%(rule)s quantity', { rule: labels[rule] })}
-                value={shown[rule].quantity}
-                min={rule === 'max_span' ? 1 : 0}
-                max={9999}
-                precision={0}
-                disabled={disabled}
-                style={{ width: '100%' }}
-                onChange={next =>
-                  setRule(rule, {
-                    quantity: typeof next === 'number' ? next : null,
-                  })
-                }
-                {...quantity.inputProps}
-              />
+              <FormItem style={{ marginBottom: 0 }} {...quantity.itemProps}>
+                <InputNumber
+                  aria-label={t('%(rule)s quantity', { rule: labels[rule] })}
+                  value={shown[rule].quantity}
+                  min={rule === 'max_span' ? 1 : 0}
+                  max={9999}
+                  precision={0}
+                  disabled={disabled}
+                  style={{ width: '100%' }}
+                  onChange={next =>
+                    setRule(rule, {
+                      quantity: typeof next === 'number' ? next : null,
+                    })
+                  }
+                  {...quantity.inputProps}
+                />
+              </FormItem>
             </Col>
             <Col span={24}>
-              <Select
-                ariaLabel={t('%(rule)s unit', { rule: labels[rule] })}
-                options={allowedUnits(
-                  global?.[rule] ?? null,
-                  eligibleTimeGrains,
-                  stored[rule]?.time_grain,
-                  timeGrainLabels,
-                )}
-                value={shown[rule].time_grain ?? undefined}
-                sortComparator={() => 0}
-                allowClear
-                getPopupContainer={() => document.body}
-                disabled={disabled}
-                onChange={(next: string | undefined) =>
-                  setRule(rule, { time_grain: next ?? null })
-                }
-                onClear={() => setRule(rule, { time_grain: null })}
-                {...unit.inputProps}
-              />
+              <FormItem style={{ marginBottom: 0 }} {...unit.itemProps}>
+                <Select
+                  ariaLabel={t('%(rule)s unit', { rule: labels[rule] })}
+                  options={allowedUnits(
+                    global?.[rule] ?? null,
+                    eligibleTimeGrains,
+                    stored[rule]?.time_grain,
+                    timeGrainLabels,
+                  )}
+                  value={shown[rule].time_grain ?? undefined}
+                  sortComparator={() => 0}
+                  allowClear
+                  getPopupContainer={() => document.body}
+                  disabled={disabled}
+                  onChange={(next: string | undefined) =>
+                    setRule(rule, { time_grain: next ?? null })
+                  }
+                  onClear={() => setRule(rule, { time_grain: null })}
+                  {...unit.inputProps}
+                />
+              </FormItem>
             </Col>
             {rule === 'max_look_back' && (
               <Col span={24}>
@@ -551,6 +556,7 @@ export default function TimeRangeLimitsSection({
         );
       },
       width: 128,
+      onCell: wrapCell,
     },
     {
       title: t('Effective'),
@@ -665,22 +671,6 @@ export default function TimeRangeLimitsSection({
             pagination={false}
             tableLayout="auto"
           />
-        )}
-        {showRows && (
-          <div aria-live="polite">
-            <Space direction="vertical">
-              {fieldErrorLines.map(({ rule, field, message }) => (
-                <Typography.Text
-                  key={errorId(rule, field)}
-                  type="danger"
-                  id={errorId(rule, field)}
-                >
-                  <Typography.Text strong>{labels[rule]}</Typography.Text>{' '}
-                  {message}
-                </Typography.Text>
-              ))}
-            </Space>
-          </div>
         )}
         {staleNotes.map(note => (
           <Alert

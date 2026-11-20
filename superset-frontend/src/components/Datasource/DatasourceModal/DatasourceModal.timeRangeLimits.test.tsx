@@ -238,6 +238,12 @@ const sentExtra = () => puts()[puts().length - 1].extra;
 const saveButton = () => screen.getByTestId('datasource-modal-save');
 const section = () =>
   screen.findByRole('region', { name: 'Time range limits', hidden: true });
+const expectErrorUnderField = (input: HTMLElement, error: HTMLElement) => {
+  expect(input).toHaveAttribute('aria-describedby', error.id);
+  expect(error).toHaveAttribute('role', 'alert');
+  // eslint-disable-next-line testing-library/no-node-access
+  expect(error.closest('td')).toContainElement(input);
+};
 const spanQuantity = () =>
   screen.getByRole('spinbutton', {
     name: 'Longest range quantity',
@@ -575,7 +581,7 @@ test('invalid section disables Save with a tooltip', async () => {
     "Can't be longer than the admin limit (12 weeks)",
   );
   expect(spanQuantity()).toHaveAttribute('aria-invalid', 'true');
-  expect(spanQuantity()).toHaveAttribute('aria-describedby', message.id);
+  expectErrorUnderField(spanQuantity(), message);
   await waitFor(() => expect(saveButton()).toBeDisabled());
   expect(
     await tooltipOf("Can't be longer than the admin limit (12 weeks)"),

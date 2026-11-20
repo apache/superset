@@ -291,6 +291,12 @@ async function openLimits() {
   return limitsRegion();
 }
 
+const expectErrorUnderField = (input: HTMLElement, error: HTMLElement) => {
+  expect(input).toHaveAttribute('aria-describedby', error.id);
+  expect(error).toHaveAttribute('role', 'alert');
+  // eslint-disable-next-line testing-library/no-node-access
+  expect(error.closest('td')).toContainElement(input);
+};
 const spanQuantity = () =>
   screen.getByRole('spinbutton', { name: 'Longest range quantity' });
 const spanUnit = () =>
@@ -678,7 +684,7 @@ test('invalid section disables Save with a tooltip', async () => {
     "Can't be longer than the admin limit (12 weeks)",
   );
   expect(spanQuantity()).toHaveAttribute('aria-invalid', 'true');
-  expect(spanQuantity()).toHaveAttribute('aria-describedby', message.id);
+  expectErrorUnderField(spanQuantity(), message);
   await waitFor(() => expect(saveButton()).toBeDisabled());
   expect(
     within(label).getByRole('img', { name: 'exclamation-circle' }),
@@ -1031,7 +1037,7 @@ test('failed limits save keeps values', async () => {
   const message = await screen.findByText(
     'Dashboard maximum span must be 12 weeks or less.',
   );
-  expect(spanQuantity()).toHaveAttribute('aria-describedby', message.id);
+  expectErrorUnderField(spanQuantity(), message);
   expect(spanQuantity()).toHaveValue('5');
   expect(dashboardPuts()).toHaveLength(1);
   expect(limitsPuts()).toEqual([]);
@@ -1216,7 +1222,7 @@ test('a dashboard PUT error on the limits key shows on its field', async () => {
   await rowsReady();
   await userEvent.click(saveButton());
   const error = await screen.findByText(message);
-  expect(spanQuantity()).toHaveAttribute('aria-describedby', error.id);
+  expectErrorUnderField(spanQuantity(), error);
   expect(props.onSubmit).not.toHaveBeenCalled();
 });
 

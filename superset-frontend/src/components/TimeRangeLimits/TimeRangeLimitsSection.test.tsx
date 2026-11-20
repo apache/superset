@@ -103,18 +103,16 @@ function Harness({ initial, ...props }: HarnessProps) {
 
 const row = (name: RegExp) => screen.getByRole('row', { name });
 const cells = (name: RegExp) => within(row(name)).getAllByRole('cell');
-const fieldErrorRegion = () => {
-  const [table] = screen.getAllByRole('table');
-  return (
-    Array.from(
-      // eslint-disable-next-line testing-library/no-node-access
-      document.querySelectorAll<HTMLElement>('[aria-live]:not(.ant-spin)'),
-    ).find(
-      node =>
-        // eslint-disable-next-line no-bitwise
-        table.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ) ?? null
-  );
+const expectErrorUnderField = (input: HTMLElement, error: HTMLElement) => {
+  expect(input).toHaveAttribute('aria-invalid', 'true');
+  expect(input).toHaveAttribute('aria-describedby', error.id);
+  expect(error).toHaveAttribute('role', 'alert');
+  // eslint-disable-next-line testing-library/no-node-access
+  expect(error.closest('td')).toContainElement(input);
+  expect(
+    // eslint-disable-next-line no-bitwise
+    input.compareDocumentPosition(error) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
 };
 const quantity = (label: string) =>
   screen.getByRole('spinbutton', { name: `${label} quantity` });
@@ -300,7 +298,13 @@ test.each(['dashboard', 'dataset'] as const)(
     expect(quantity('Longest range')).not.toHaveAttribute('aria-invalid');
 
     await setQuantity('Longest range', '20');
-    expect(screen.getAllByRole('alert')).toHaveLength(2);
+    expect(
+      screen.getAllByRole('alert').map(alert => alert.textContent),
+    ).toEqual([
+      "Can't be longer than the admin limit (30 days)",
+      `Your admin's limit (2 days) and this ${level}'s limit (48 hours) both apply.`,
+      `Your admin's limit (3 months) and this ${level}'s limit (90 days) both apply.`,
+    ]);
     expect(
       screen.queryByText(/stricter than 2 months/),
     ).not.toBeInTheDocument();
@@ -395,22 +399,14 @@ test.each(['dashboard', 'dataset'] as const)(
       expect(unit(label)).toBeInTheDocument();
     });
 
-    // The live region exists before any error appears.
-    const live = fieldErrorRegion();
-    expect(live).toHaveAttribute('aria-live', 'polite');
-    expect(live).toBeEmptyDOMElement();
+    expect(screen.queryAllByRole('alert')).toHaveLength(0);
 
     await setQuantity('Longest range', '13');
     await pickUnit('Longest range', 'Week');
     const message = await screen.findByText(
       "Can't be longer than the admin limit (12 weeks)",
     );
-    expect(live).toContainElement(message);
-    expect(quantity('Longest range')).toHaveAttribute('aria-invalid', 'true');
-    expect(quantity('Longest range')).toHaveAttribute(
-      'aria-describedby',
-      message.id,
-    );
+    expectErrorUnderField(quantity('Longest range'), message);
 
     rerender(
       <Harness
@@ -446,11 +442,7 @@ test('time grain error goes on the unit select', async () => {
   const message = screen.getByText(
     'Dashboard maximum look-back must be 2 days or less.',
   );
-  expect(unit('Earliest start')).toHaveAttribute('aria-invalid', 'true');
-  expect(unit('Earliest start')).toHaveAttribute(
-    'aria-describedby',
-    message.id,
-  );
+  expectErrorUnderField(unit('Earliest start'), message);
   await userEvent.click(unit('Earliest start'));
   const options = await waitFor(() =>
     within(
@@ -1300,16 +1292,9 @@ test.each(['dashboard', 'dataset'] as const)(
   },
 );
 
-test('field errors sit under the table, name their rule, in one live region', async () => {
+test('each field error sits under its own field, without the rule name, and is announced', async () => {
   render(<Harness global={policy({ max_span: rule(12, 'P1W') })} />);
-
-  const live = fieldErrorRegion();
-  expect(live).toHaveAttribute('aria-live', 'polite');
-  expect(live).toBeEmptyDOMElement();
-  // eslint-disable-next-line testing-library/no-node-access
-  expect(document.querySelectorAll('[aria-live]:not(.ant-spin)')).toHaveLength(
-    1,
-  );
+  expect(screen.queryAllByRole('alert')).toHaveLength(0);
 
   await setQuantity('Longest range', '13');
   await pickUnit('Longest range', 'Week');
@@ -1319,12 +1304,7 @@ test('field errors sit under the table, name their rule, in one live region', as
   );
   const unitError = await screen.findByText('Select a unit.');
 
-  screen.getAllByRole('table').forEach(table => {
-    expect(within(table).queryByText(/Can't be longer than/)).toBeNull();
-    expect(within(table).queryByText('Select a unit.')).toBeNull();
-  });
-  expect(live).toContainElement(spanError);
-  expect(live).toContainElement(unitError);
+  expect(screen.getAllByRole('alert')).toEqual([spanError, unitError]);
   expect(spanError).toHaveAttribute(
     'id',
     'time-range-limits-max_span-quantity-error',
@@ -1334,18 +1314,19 @@ test('field errors sit under the table, name their rule, in one live region', as
     'time-range-limits-max_look_back-time_grain-error',
   );
   expect(spanError).toHaveTextContent(
-    /^Longest range Can't be longer than the admin limit \(12 weeks\)$/,
+    /^Can't be longer than the admin limit \(12 weeks\)$/,
   );
-  expect(unitError).toHaveTextContent(/^Earliest start Select a unit\.$/);
-  expect(within(spanError).getByText('Longest range').tagName).toBe('STRONG');
-  expect(quantity('Longest range')).toHaveAttribute(
-    'aria-describedby',
-    spanError.id,
-  );
-  expect(unit('Earliest start')).toHaveAttribute(
-    'aria-describedby',
-    unitError.id,
-  );
+  expect(unitError).toHaveTextContent(/^Select a unit\.$/);
+  expectErrorUnderField(quantity('Longest range'), spanError);
+  expectErrorUnderField(unit('Earliest start'), unitError);
+  expect(
+    within(row(/^Longest range/)).queryByText('Select a unit.'),
+  ).toBeNull();
+  expect(
+    within(row(/^Earliest start/)).queryByText(/Can't be longer than/),
+  ).toBeNull();
+  expect(unit('Longest range')).not.toHaveAttribute('aria-invalid');
+  expect(quantity('Earliest start')).not.toHaveAttribute('aria-invalid');
 });
 
 test('a successful Retry focuses the region, a failed one the new Retry', async () => {
@@ -1686,7 +1667,7 @@ test('an idle save check adds no busy wrapper and no extra live region', () => {
 
   const region = screen.getByRole('region', { name: 'Time range limits' });
   // eslint-disable-next-line testing-library/no-node-access
-  expect(region.querySelectorAll('[aria-live]:not(.ant-spin)')).toHaveLength(1);
+  expect(region.querySelectorAll('[aria-live]:not(.ant-spin)')).toHaveLength(0);
   // eslint-disable-next-line testing-library/no-node-access
   expect(region.querySelectorAll('[aria-busy]:not(.ant-spin)')).toHaveLength(0);
 });
