@@ -17,7 +17,11 @@
  * under the License.
  */
 import { hierarchy } from 'd3-hierarchy';
-import { init, PartitionDataNode, PartitionNode } from '../src/Partition';
+import Partition, {
+  init,
+  PartitionDataNode,
+  PartitionNode,
+} from '../src/Partition';
 
 // Mirrors the uneven-branching repro from #43727: category "B" has no
 // sub_subcategory (terminates one level shallower than "A"), which used to
@@ -89,4 +93,114 @@ test('positions descendants of the deeper branch relative to their true ancestor
   // branch visited in breadth-first order.
   expect(byName.A1a.x).toBeCloseTo(byName.A1.x);
   expect(byName.A1b.x).toBeCloseTo(byName.A1.x + byName.A1a.dx);
+});
+
+const CHART_WIDTH = 400;
+const CHART_HEIGHT = 300;
+const DEFAULT_TOOLTIP_WIDTH = 120;
+const TOOLTIP_OFFSET = 15;
+
+const props = {
+  width: CHART_WIDTH,
+  height: CHART_HEIGHT,
+  data: [
+    {
+      name: 'sum__num',
+      val: 100,
+      children: [
+        { name: 'boy', val: 60 },
+        { name: 'girl', val: 40 },
+      ],
+    },
+  ],
+  colorScheme: 'supersetColors',
+  dateTimeFormat: '%Y-%m-%d',
+  equalDateSize: true,
+  levels: ['gender'],
+  metrics: ['sum__num'],
+  numberFormat: ',d',
+  partitionLimit: 0,
+  partitionThreshold: 0,
+  timeSeriesOption: 'not_time',
+  useLogScale: false,
+  useRichTooltip: false,
+  sliceId: 1,
+};
+
+let container: HTMLDivElement;
+let tooltipWidth = DEFAULT_TOOLTIP_WIDTH;
+let rectSpy: jest.SpyInstance;
+let offsetWidthSpy: jest.SpyInstance;
+
+beforeEach(() => {
+  tooltipWidth = DEFAULT_TOOLTIP_WIDTH;
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  // jsdom performs no layout: give the container a fixed box so the
+  // pointer coordinates d3.mouse() derives from clientX are deterministic.
+  rectSpy = jest
+    .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+    .mockImplementation(function getRect(this: HTMLElement) {
+      const isTooltip = this.classList.contains('partition-tooltip');
+      const width = isTooltip ? tooltipWidth : CHART_WIDTH;
+
+      return {
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: width,
+        bottom: CHART_HEIGHT,
+        width,
+        height: CHART_HEIGHT,
+        toJSON: () => ({}),
+      } as DOMRect;
+    });
+  offsetWidthSpy = jest
+    .spyOn(HTMLElement.prototype, 'offsetWidth', 'get')
+    .mockImplementation(function getOffsetWidth(this: HTMLElement) {
+      return this.classList.contains('partition-tooltip')
+        ? tooltipWidth
+        : CHART_WIDTH;
+    });
+});
+
+afterEach(() => {
+  rectSpy.mockRestore();
+  offsetWidthSpy.mockRestore();
+  container.remove();
+});
+
+function hoverAt(clientX: number, clientY: number): HTMLElement {
+  Partition(container, props);
+  const node = container.querySelector('svg g rect') as SVGRectElement;
+  node.dispatchEvent(
+    new MouseEvent('mousemove', { bubbles: true, clientX, clientY }),
+  );
+
+  return container.querySelector('.partition-tooltip') as HTMLElement;
+}
+
+test('places the tooltip right of the cursor when there is room', () => {
+  const tooltip = hoverAt(50, 100);
+
+  expect(tooltip.style.left).toBe(`${50 + TOOLTIP_OFFSET}px`);
+  expect(tooltip.style.top).toBe('100px');
+});
+
+test('keeps the tooltip inside the chart when hovering near the right edge', () => {
+  const cursorX = CHART_WIDTH - 10;
+  const tooltip = hoverAt(cursorX, 100);
+
+  const left = parseFloat(tooltip.style.left);
+  expect(left + tooltipWidth).toBeLessThanOrEqual(CHART_WIDTH);
+  // shifted to the left of the cursor rather than overlapping it
+  expect(left + tooltipWidth).toBeLessThanOrEqual(cursorX);
+});
+
+test('clamps the tooltip to the chart origin when it is wider than the chart', () => {
+  tooltipWidth = CHART_WIDTH + 100;
+  const tooltip = hoverAt(CHART_WIDTH / 2, 100);
+
+  expect(parseFloat(tooltip.style.left)).toBe(0);
 });

@@ -397,6 +397,89 @@ describe('Scatter Chart Orientation and Dot Size Metric', () => {
     expect(g2.symbolSize(['A', 2])).toBe(30);
   });
 
+  test('size metric keeps its sizes when it is also the axis sort metric', () => {
+    // The size metric doubles as the "Sort By" metric, so it is queried once
+    // and has to stay readable for the dot sizes after it orders the axis.
+    const groupedData = [
+      {
+        data: [
+          {
+            category_col: 'A',
+            'sum_val, g1': 1,
+            'size_metric, g1': 10,
+            'sum_val, g2': 2,
+            'size_metric, g2': 20,
+          },
+          {
+            category_col: 'B',
+            'sum_val, g1': 3,
+            'size_metric, g1': 40,
+            'sum_val, g2': 4,
+            'size_metric, g2': 50,
+          },
+        ],
+        colnames: [
+          'category_col',
+          'sum_val, g1',
+          'size_metric, g1',
+          'sum_val, g2',
+          'size_metric, g2',
+        ],
+        coltypes: [
+          GenericDataType.String,
+          GenericDataType.Numeric,
+          GenericDataType.Numeric,
+          GenericDataType.Numeric,
+          GenericDataType.Numeric,
+        ],
+        label_map: {
+          category_col: ['category_col'],
+          'sum_val, g1': ['sum_val', 'g1'],
+          'size_metric, g1': ['size_metric', 'g1'],
+          'sum_val, g2': ['sum_val', 'g2'],
+          'size_metric, g2': ['size_metric', 'g2'],
+        },
+      },
+    ];
+    const chartProps = new ChartProps({
+      ...baseChartPropsConfig,
+      queriesData: groupedData,
+      formData: {
+        ...baseFormData,
+        x_axis: 'category_col',
+        xAxis: 'category_col',
+        metrics: ['sum_val'],
+        groupby: ['group_col'],
+        size: 'size_metric',
+        minMarkerSize: 5,
+        maxMarkerSize: 30,
+        timeseries_limit_metric: 'size_metric',
+        x_axis_sort: 'size_metric',
+        xAxisSort: 'size_metric',
+        x_axis_sort_asc: false,
+        xAxisSortAsc: false,
+      },
+    });
+
+    const series = getScatterSeries(
+      transformProps(chartProps as unknown as EchartsTimeseriesChartProps),
+    );
+    expect(series.map(s => s.name).sort()).toEqual([
+      'sum_val, g1',
+      'sum_val, g2',
+    ]);
+    const g1 = series.find(s => s.name === 'sum_val, g1')!;
+    const g2 = series.find(s => s.name === 'sum_val, g2')!;
+    // size_metric totals are A 30 and B 90, so a descending sort puts B first
+    expect(g1.data.map(([category]) => category)).toEqual(['B', 'A']);
+    // the size extent still spans every size column: A/g1 (10) is the
+    // minimum, B/g2 (50) the maximum
+    expect(g1.symbolSize(['A', 1])).toBe(5);
+    expect(g2.symbolSize(['B', 4])).toBe(30);
+    expect(g1.symbolSize(['B', 3])).toBeGreaterThan(5);
+    expect(g1.symbolSize(['B', 3])).toBeLessThan(30);
+  });
+
   test('size metric composes with time comparison offsets', () => {
     // Time-comparison series are named `<metric>__<offset>`; the size
     // metric's offset series must be excluded from rendering like its base

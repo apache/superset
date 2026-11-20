@@ -27,9 +27,9 @@ from flask import current_app as app, has_app_context
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import func, types
+from sqlalchemy import column, func, types
 from sqlalchemy.engine.url import URL
-from sqlalchemy.sql.expression import ColumnElement
+from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Label
 from urllib3.exceptions import NewConnectionError
 
 from superset import db
@@ -46,10 +46,13 @@ from superset.db_engine_specs.base import (
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import cache_manager
+from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import GenericDataType
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.reflection import Inspector
+
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -70,6 +73,22 @@ class ClickHouseQueryStoppedBeforeDispatchError(Exception):
     itself would be circular, since ``sql_lab.py`` already imports from
     ``superset.db_engine_specs``.
     """
+
+
+class AggregateFunctionState(types.UserDefinedType):
+    cache_ok = True
+
+    def get_col_spec(self, **kw: Any) -> str:
+        return "AggregateFunction"
+
+    def coerce_compared_value(self, op: Any, value: Any) -> types.TypeEngine[Any]:
+        return types.NullType().coerce_compared_value(op, value)
+
+    def column_expression(self, colexpr: ColumnElement) -> ColumnElement:
+        element = colexpr.element if isinstance(colexpr, Label) else colexpr
+        if isinstance(element, ColumnClause) and not element.is_literal:
+            return func.finalizeAggregation(colexpr)
+        return colexpr
 
 
 class ClickHouseBaseEngineSpec(BaseEngineSpec):
@@ -154,6 +173,11 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     }
 
     column_type_mappings = (
+        (
+            re.compile(r"^AggregateFunction\b", re.IGNORECASE),
+            AggregateFunctionState(),
+            GenericDataType.NUMERIC,
+        ),
         (
             # Anchor to the start so only top-level arrays match. This must be
             # ordered before the ``Enum`` entry below: ``Array(Enum8(...))`` is a
@@ -256,6 +280,19 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
             inner = wrapper.group("inner").strip()
         spec = cls.get_column_spec(inner)
         return spec.generic_type if spec else None
+
+    @classmethod
+    def _get_fields(cls, cols: list[ResultSetColumnType]) -> list[Any]:
+        return [
+            column(col["column_name"], type_=AggregateFunctionState()).label(
+                col["column_name"]
+            )
+            if isinstance(
+                cls.get_sqla_column_type(str(col["type"])), AggregateFunctionState
+            )
+            else field
+            for col, field in zip(cols, super()._get_fields(cols), strict=True)
+        ]
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -589,6 +626,30 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     }
 
     @classmethod
+    def get_table_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all the real table names within the specified schema.
+
+        The clickhouse-connect dialect's `get_table_names` runs `SHOW TABLES`, which
+        includes views, and since clickhouse-connect 1.10.1 its `get_view_names`
+        returns them too; without this, every view is listed twice.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The physical table names
+        """
+
+        return super().get_table_names(
+            database, inspector, schema
+        ) - cls.get_view_names(database, inspector, schema)
+
+    @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         return {}
 
@@ -808,15 +869,9 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         # here would run the statement to completion even though Superset
         # already told the user it stopped.
         try:
-            # flush() first: refresh() does NOT autoflush -- without this,
-            # a pending, uncommitted attribute set just before this call
-            # (e.g. the async/Celery path's own execute_fn sets
-            # query.executed_sql = sql immediately before calling
-            # execute_with_cursor, with no commit in between) would be
-            # silently discarded and reloaded back to its previous
-            # committed value instead of surviving to this query's later
-            # commits. Same idiom and same reasoning as the existing
-            # flush()-before-refresh() pairs already in sql_lab.py.
+            # Preserve any pending caller metadata before the full refresh.
+            # SQL Lab publishes executed_sql before dispatch, but this engine
+            # hook also supports callers with uncommitted query attributes.
             db.session.flush()
             db.session.refresh(query)
             already_stopped = query.status == QueryStatus.STOPPED
