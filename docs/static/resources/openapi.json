@@ -1569,6 +1569,12 @@
             "nullable": true,
             "type": "boolean"
           },
+          "client_id": {
+            "description": "Client-generated id identifying this chart query run. When the database supports query cancellation, it lets the client stop the running query via POST /api/v1/chart/data/stop. Scoped to the requesting user, so it can never address another user's query.",
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
           "custom_cache_timeout": {
             "description": "Override the default cache timeout",
             "nullable": true,
@@ -2883,6 +2889,20 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      },
+      "ChartDataStopSchema": {
+        "properties": {
+          "client_id": {
+            "description": "The `client_id` sent with the chart-data request whose query should be cancelled. Resolved within the requesting user's own in-flight queries only.",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id"
+        ],
         "type": "object"
       },
       "ChartDataTiming": {
@@ -7834,11 +7854,83 @@
         },
         "type": "object"
       },
+      "EncryptedExtraExpiration": {
+        "properties": {
+          "expired": {
+            "description": "Whether the stored JWT has expired",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "description": "When the stored JWT expires, from its exp claim, in UTC",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EncryptedExtraHintSchema": {
+        "properties": {
+          "expired": {
+            "description": "Whether the stored JWT has expired; null when expires_at is null",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expires_at": {
+            "description": "When the stored JWT expires, from its exp claim, in UTC; null when the value is not a JWT with an exp claim",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Human readable name of the masked field",
+            "type": "string"
+          },
+          "path": {
+            "description": "JSONPath of the masked field",
+            "type": "string"
+          },
+          "suffix": {
+            "description": "Last characters of the stored value (of the base64 body for a PEM key), null when the value is too short to reveal any",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "path"
+        ],
+        "type": "object"
+      },
+      "EncryptedExtraHintsResponseSchema": {
+        "properties": {
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/EncryptedExtraHintSchema"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "EngineInformation": {
         "properties": {
           "disable_ssh_tunneling": {
             "description": "SSH tunnel is not available to the database",
             "type": "boolean"
+          },
+          "encrypted_extra_expirations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EncryptedExtraExpiration"
+            },
+            "description": "On `/connection` only: JSONPath of each stored sensitive encrypted_extra field holding a JWT with an exp claim, and when it expires. The signature is not verified.",
+            "type": "object"
+          },
+          "encrypted_extra_sensitive_fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "JSONPath of each sensitive encrypted_extra field and its label. On the database GET and on `available`: the engine's declared patterns. On `/connection`: the fields present in the stored encrypted_extra.",
+            "type": "object"
           },
           "identifier_quote": {
             "allOf": [
@@ -17134,6 +17226,68 @@
         ]
       }
     },
+    "/api/v1/chart/data/stop": {
+      "post": {
+        "description": "Cancels the warehouse query started by a chart-data request that carried the given `client_id`, for databases whose engine supports query cancellation. The `client_id` is resolved only within the requesting user's own in-flight queries, so it cannot be used to reach another user's query.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChartDataStopSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "stopped": {
+                          "description": "Whether the engine reported the query cancelled. False when there was no such in-flight query for this user, or the engine could not cancel it.",
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Cancellation outcome"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Cancel a running chart-data query",
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
     "/api/v1/chart/export/": {
       "get": {
         "parameters": [
@@ -22580,6 +22734,13 @@
                             "description": "Whether the engine supports SSH Tunnels",
                             "type": "boolean"
                           },
+                          "encrypted_extra_sensitive_fields": {
+                            "additionalProperties": {
+                              "type": "string"
+                            },
+                            "description": "JSONPath of each sensitive encrypted_extra field and its label",
+                            "type": "object"
+                          },
                           "supports_file_upload": {
                             "description": "Whether the engine supports file uploads",
                             "type": "boolean"
@@ -23366,6 +23527,58 @@
           }
         ],
         "summary": "Get a database connection info",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/encrypted_extra_hints/": {
+      "get": {
+        "description": "Returns the label and last characters of each sensitive field in the database's encrypted extra, so that a stored secret can be told apart from another one without revealing it. A JWT also gets the expiry its unverified exp claim states. The number of characters is set by `ENCRYPTED_EXTRA_HINT_CHARS`; the list is empty when it is 0 or less.",
+        "parameters": [
+          {
+            "description": "The database id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncryptedExtraHintsResponseSchema"
+                }
+              }
+            },
+            "description": "Hints for the masked fields"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get hints for the masked fields of a database's encrypted extra",
         "tags": [
           "Database"
         ]
@@ -25199,7 +25412,7 @@
     },
     "/api/v1/dataset/related_objects/": {
       "get": {
-        "description": "Aggregates the charts built on any of the requested datasets and the dashboards those charts appear on. Each chart and dashboard is listed once even if it depends on several of the datasets. Requested datasets the user cannot see are ignored; the response is 404 only when none of them are visible.",
+        "description": "Aggregates the charts built on any of the requested datasets and the dashboards that depend on them, through those charts or through a native filter or display control targeting a dataset. Each chart and dashboard is listed once even if it depends on several of the datasets. Requested datasets the user cannot see are ignored; the response is 404 only when none of them are visible.",
         "parameters": [
           {
             "content": {
@@ -29011,6 +29224,11 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "default_executor": {
+                      "description": "Fixed default execution account, visible only to admins.",
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "result": {
                       "$ref": "#/components/schemas/ReportConfigurationSchema"
                     }

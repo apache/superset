@@ -30,7 +30,10 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,
+    DashboardNotFoundError,
+)
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.layout_validation import (
@@ -84,6 +87,11 @@ def _find_and_authorize_dashboard(
         return None, DashboardError(
             error=f"Dashboard not found: {identifier!r}",
             error_type="DashboardNotFound",
+        )
+    except DashboardAccessDeniedError:
+        return None, UpdateDashboardResponse(
+            permission_denied=True,
+            error=f"You don't have access to dashboard {identifier!r}.",
         )
     except SQLAlchemyError:
         # ``str(exc)`` on SQLAlchemyError frequently contains table/column/

@@ -407,6 +407,12 @@ You can mark a dashboard as a favorite by clicking on the star icon next to the 
 
 ### Customizing dashboard
 
+Dashboard access errors distinguish missing dashboards (**404 Not Found**) from
+existing dashboards you cannot view (**403 Forbidden**). The dashboard page shows
+a separate permission message for a 403 response. Opening a dashboard directly
+in a browser renders the dashboard error page with the corresponding HTTP status;
+API requests return JSON error responses.
+
 The following URL parameters can be used to modify how the dashboard is rendered:
 
 - `standalone`:
@@ -429,6 +435,16 @@ Top Nav and remove the Filter Bar:
 ### Table Chart Features
 
 The **Table** chart type has several advanced capabilities worth knowing:
+
+#### Client-side Paging
+
+With server pagination disabled, sorting or searching a Table returns it to the first
+page. Changing query criteria, such as a dashboard filter, also returns it to the
+first page even if the returned rows are identical. Refreshing the same query,
+including changed values from auto-refresh, or updating cross-filter selection
+highlighting preserves the selected page (unless it is no longer in range).
+Server-paginated Tables also return to the first page on sort changes. This applies
+to both dataset and semantic-view Tables.
 
 #### Conditional Formatting
 

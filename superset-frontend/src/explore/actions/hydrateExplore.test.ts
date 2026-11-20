@@ -26,6 +26,7 @@ import {
 } from '@superset-ui/core';
 import { ExplorePageState } from '../types';
 import exploreReducer from '../reducers/exploreReducer';
+import { setStashFormData } from './exploreActions';
 import { HYDRATE_CHART_NORMALIZATION } from 'src/features/versionHistory/reducer';
 import { hydrateExplore, HYDRATE_EXPLORE } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
@@ -43,6 +44,8 @@ afterEach(() => {
   window.history.pushState({}, '', '/');
 });
 
+// `hiddenFormData` seeds the replaced state's stash, so reintroducing a stash
+// guard in hydrateExplore fails the stamp tests that pass one.
 function hydrateNewSemanticChart(
   extraFormData: Partial<QueryFormData> = {},
   hiddenFormData: Partial<QueryFormData> = {},
@@ -144,16 +147,47 @@ test.each([
   );
 });
 
-test('does not stamp while hidden selections exist or for a non-semantic dataset', () => {
-  expect(
-    hydrateNewSemanticChart({}, { metrics: ['old'] }).data.explore.form_data
-      .semantic_selection_version,
-  ).toBeUndefined();
+test('ignores hidden selections of the replaced state but not a non-semantic dataset', () => {
+  // HYDRATE_EXPLORE discards the earlier state's stash, so it cannot reach the
+  // new chart; only the incoming form data decides whether a chart is new.
+  const action = hydrateNewSemanticChart({}, { metrics: ['old'] });
+  expect(action.data.explore.form_data.semantic_selection_version).toBe(
+    'cube-member-id-v1',
+  );
+  expect(action.data.explore.form_data.metrics).toBeUndefined();
+  expect(action.data.explore.hiddenFormData).toBeUndefined();
   expect(
     hydrateNewSemanticChart({}, {}, DatasourceType.Table).data.explore.form_data
       .semantic_selection_version,
   ).toBeUndefined();
 });
+
+test.each([
+  { metrics: ['old'] },
+  { groupby: ['old'] },
+  { adhoc_filters: [{ subject: 'old' }] },
+  { slice_id: 9 },
+  { url_params: { dashboard_id: '7', groupby: 'old' } },
+  { url_params: { dashboard_id: 7 } },
+])(
+  'still refuses selections or chart identity despite a stash and dashboard_id: %j',
+  extra => {
+    const action = hydrateNewSemanticChart(
+      {
+        url_params: {
+          datasource_id: '4',
+          datasource_type: 'semantic_view',
+          dashboard_id: '7',
+        },
+        ...extra,
+      } as Partial<QueryFormData>,
+      { all_columns: [] },
+    );
+    expect(
+      action.data.explore.form_data.semantic_selection_version,
+    ).toBeUndefined();
+  },
+);
 
 test('does not stamp a chart opened with a saved-chart URL identity', () => {
   window.history.pushState({}, '', '/explore/?slice_id=9');
@@ -564,5 +598,62 @@ test('does not seed normalization metadata for dashboard overrides', () => {
 
   expect(dispatch).not.toHaveBeenCalledWith(
     expect.objectContaining({ type: HYDRATE_CHART_NORMALIZATION }),
+  );
+});
+
+test('stamps a new semantic chart after an earlier Explore session stashed hidden controls', () => {
+  // Earlier in the same SPA session a saved aggregate-mode table chart was open.
+  // Its raw-mode controls are invisible, so StashFormDataContainer stashed them.
+  const savedTable = exploreReducer(
+    { controls: {}, form_data: {} as QueryFormData },
+    {
+      type: HYDRATE_EXPLORE,
+      data: {
+        explore: {
+          controls: {},
+          form_data: {
+            datasource: '1__table',
+            viz_type: 'table',
+            query_mode: 'aggregate',
+            all_columns: [],
+            order_by_cols: [],
+          } as unknown as QueryFormData,
+        },
+      },
+    } as never,
+  );
+  const leftover = exploreReducer(
+    savedTable,
+    setStashFormData(true, ['all_columns', 'order_by_cols']) as never,
+  );
+  expect(Object.keys(leftover.hiddenFormData ?? {})).toEqual([
+    'all_columns',
+    'order_by_cols',
+  ]);
+
+  // The user then opens a semantic view from the list. HYDRATE_EXPLORE replaces
+  // explore state, so nothing from the table chart reaches the new chart.
+  const action = hydrateNewSemanticChart({}, leftover.hiddenFormData);
+  expect(action.data.explore.hiddenFormData).toBeUndefined();
+  expect(
+    exploreReducer(leftover, action as never).hiddenFormData,
+  ).toBeUndefined();
+  expect(action.data.explore.form_data.semantic_selection_version).toBe(
+    'cube-member-id-v1',
+  );
+});
+
+test('stamps a new semantic chart created from a dashboard (+ Chart with dashboard_id)', () => {
+  // ChartCreation: /explore/?viz_type=table&datasource=4__semantic_view&dashboard_id=7
+  const action = hydrateNewSemanticChart({
+    url_params: {
+      viz_type: 'table',
+      datasource_id: '4',
+      datasource_type: 'semantic_view',
+      dashboard_id: '7',
+    },
+  });
+  expect(action.data.explore.form_data.semantic_selection_version).toBe(
+    'cube-member-id-v1',
   );
 });

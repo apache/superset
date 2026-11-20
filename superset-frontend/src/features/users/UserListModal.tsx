@@ -119,6 +119,7 @@ function UserListModal({
             >
               <Input
                 name="first_name"
+                autoComplete="off"
                 placeholder={t("Enter the user's first name")}
               />
             </FormItem>
@@ -129,6 +130,7 @@ function UserListModal({
             >
               <Input
                 name="last_name"
+                autoComplete="off"
                 placeholder={t("Enter the user's last name")}
               />
             </FormItem>
@@ -139,6 +141,7 @@ function UserListModal({
             >
               <Input
                 name="username"
+                autoComplete="off"
                 placeholder={t("Enter the user's username")}
               />
             </FormItem>
@@ -160,7 +163,11 @@ function UserListModal({
                 },
               ]}
             >
-              <Input name="email" placeholder={t("Enter the user's email")} />
+              <Input
+                name="email"
+                autoComplete="off"
+                placeholder={t("Enter the user's email")}
+              />
             </FormItem>
             <FormItem
               name="roles"
@@ -214,6 +221,7 @@ function UserListModal({
             >
               <Input.Password
                 name="password"
+                autoComplete="new-password"
                 placeholder={
                   isEditMode
                     ? t('Enter a new password')
@@ -259,6 +267,7 @@ function UserListModal({
             >
               <Input.Password
                 name="confirmPassword"
+                autoComplete="new-password"
                 placeholder={
                   isEditMode
                     ? t('Confirm the new password')

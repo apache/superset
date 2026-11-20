@@ -20,7 +20,7 @@ from typing import Any
 from marshmallow import fields
 
 from superset import db, security_manager
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError
 from superset.models.annotations import AnnotationLayer
 from superset.utils import json
 
@@ -48,7 +48,7 @@ def import_annotation_layer(
             return existing
         config["id"] = existing.id
     elif not can_write:
-        raise ImportFailedError(
+        raise ForbiddenError(
             "Annotation layer import requires can_write permission on Annotation"
         )
 
