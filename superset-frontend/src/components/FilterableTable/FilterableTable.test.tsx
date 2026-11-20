@@ -444,3 +444,30 @@ describe('FilterableTable sorting - RTL', () => {
     );
   });
 });
+
+const longValue = `${'long value '.repeat(20)}end`;
+const longTextProps = {
+  orderedColumnKeys: ['a'],
+  data: [{ a: longValue }],
+  height: 500,
+};
+
+test('opens long text in a modal when expandLongText is set', async () => {
+  setupAGGridModules();
+  render(<FilterableTable {...longTextProps} expandLongText />, {
+    useRedux: true,
+  });
+  const trigger = await screen.findByTestId('span-modal-trigger');
+  expect(trigger).toHaveTextContent(longValue.trim());
+  await userEvent.click(trigger);
+  expect(await screen.findByTestId('text-modal-body')).toHaveTextContent(
+    longValue.trim(),
+  );
+});
+
+test('renders long text inline when expandLongText is not set', async () => {
+  setupAGGridModules();
+  render(<FilterableTable {...longTextProps} />, { useRedux: true });
+  expect(await screen.findByRole('grid')).toBeInTheDocument();
+  expect(screen.queryByTestId('span-modal-trigger')).not.toBeInTheDocument();
+});

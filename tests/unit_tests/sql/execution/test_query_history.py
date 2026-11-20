@@ -753,6 +753,55 @@ def test_failure_history_timestamps(
     assert query.start_time <= query.start_running_time <= query.end_time
 
 
+def test_failure_preserves_recorded_end_time(
+    mocker: MockerFixture, session: Session, database: Database
+) -> None:
+    """Recording a failure must keep the end time already stored for the run."""
+
+    def fail_after_recording_end_time(*_args: Any) -> None:
+        query = session.query(Query).one()
+        query.end_time = query.start_running_time
+        session.commit()
+        mocker.patch(
+            "superset.sql.execution.executor.now_as_float",
+            return_value=query.end_time + 1,
+        )
+        raise RuntimeError("warehouse failed")
+
+    mocker.patch.object(
+        SQLExecutor, "_execute_statements", fail_after_recording_end_time
+    )
+    result = database.execute("SELECT 1 AS one")
+
+    assert result.status == QueryStatus.FAILED
+    query = session.get(Query, result.query_id)
+    assert query.end_time == query.start_running_time
+
+
+@pytest.mark.parametrize("rollback_fails", [False, True])
+def test_history_commit_failure_preserves_execution_error(
+    mocker: MockerFixture, session: Session, database: Database, rollback_fails: bool
+) -> None:
+    """The caller receives the warehouse error even if history recovery also fails."""
+    error = RuntimeError("warehouse failed")
+    rollback = mocker.patch.object(session, "rollback", wraps=session.rollback)
+    if rollback_fails:
+        rollback.side_effect = RuntimeError("history rollback failed")
+
+    def fail_execution(*_args: Any) -> None:
+        mocker.patch.object(
+            session, "commit", side_effect=RuntimeError("history commit failed")
+        )
+        raise error
+
+    mocker.patch.object(SQLExecutor, "_execute_statements", fail_execution)
+    result = database.execute("SELECT 1 AS one")
+
+    assert result.status == QueryStatus.FAILED
+    assert result.error_message == database.db_engine_spec.extract_error_message(error)
+    rollback.assert_called_once_with()
+
+
 def test_async_submission_failure_history_timestamps(
     mocker: MockerFixture, session: Session, database: Database
 ) -> None:
