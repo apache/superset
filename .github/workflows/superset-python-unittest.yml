@@ -43,8 +43,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-26.04
-    # Leave time for setup, the full suite, scoped coverage gates, and uploads.
-    timeout-minutes: 45
+    # The full suite takes about 42 minutes on two-worker runners. Leave
+    # headroom for setup, scoped coverage gates, uploads, and runner variance.
+    timeout-minutes: 60
     permissions:
       # Declaring any permission drops the defaults, and checkout and `$/` actions
       # need read access wherever the repository is not public.
