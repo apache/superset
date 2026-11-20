@@ -36,6 +36,7 @@ from superset.migrations.shared.security_converge import (  # noqa: E402
     add_pvms,
     get_reversed_new_pvms,
     get_reversed_pvm_map,
+    logger,
     migrate_roles,
     Pvm,
     Role,
@@ -64,9 +65,10 @@ def do_upgrade(session: Session) -> None:
 
     ``superset init`` recreates ``can_csv`` after this has run, so the
     revision can meet a database it has already converted (e.g. when
-    ``alembic_version`` is stamped back to its parent). To keep a re-run a
-    no-op, a role that already holds any granular export permission is left
-    as it is, and ``can_csv`` is only deleted once no role holds it.
+    ``alembic_version`` is stamped back to its parent). A re-run leaves any
+    role that already holds a granular export permission as it is, still
+    converts roles that hold only ``can_csv``, and deletes ``can_csv`` only
+    once no role holds it.
     """
     add_pvms(session, NEW_PVMS)
     (old_pvm_key, new_pvm_keys), *_ = PVM_MAP.items()
@@ -80,7 +82,9 @@ def do_upgrade(session: Session) -> None:
         if old_pvm not in role.permissions:
             continue
         if any(new_pvm in role.permissions for new_pvm in new_pvms):
+            logger.info("Keeping %s on %s: granular perms already set", old_pvm, role)
             continue
+        logger.info("Replacing %s with %s on %s", old_pvm, new_pvms, role)
         role.permissions.remove(old_pvm)
         role.permissions.extend(new_pvms)
 

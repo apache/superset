@@ -26,6 +26,7 @@ granular export permissions were already set.
 
 from __future__ import annotations
 
+import logging
 from importlib import import_module
 
 import pytest
@@ -140,6 +141,35 @@ def test_rerun_still_converts_legacy_only_roles(session: Session) -> None:
     assert _perm_names(session, "Legacy") == GRANULAR
     assert _perm_names(session, "Curated") == {"can_csv", "can_export_data"}
     assert _can_csv_exists(session)
+
+
+def test_logs_each_role_change(
+    session: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Each role gets a log line: the converted one and the one that keeps
+    ``can_csv`` because its granular permissions are already set."""
+    can_csv = _make_pvm(session, "can_csv")
+    export_data = _make_pvm(session, "can_export_data")
+    _make_pvm(session, "can_export_image")
+    _make_pvm(session, "can_copy_clipboard")
+    session.add(Role(name="Legacy", permissions=[can_csv]))
+    session.add(Role(name="Curated", permissions=[can_csv, export_data]))
+    session.add(Role(name="NoExport", permissions=[]))
+    session.commit()
+
+    with caplog.at_level(logging.INFO, logger="alembic.env"):
+        migration.do_upgrade(session)
+
+    messages = [
+        record.getMessage() for record in caplog.records if record.name == "alembic.env"
+    ]
+    assert "Keeping can_csv Superset on Curated: granular perms already set" in messages
+    assert any(
+        message.startswith("Replacing can_csv Superset with ")
+        and message.endswith(" on Legacy")
+        for message in messages
+    )
+    assert not any("NoExport" in message for message in messages)
 
 
 def test_is_idempotent(session: Session) -> None:
