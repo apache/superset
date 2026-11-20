@@ -48,7 +48,6 @@ except ImportError:  # pragma: no cover
 
 from superset import db, security_manager
 from superset.commands.chart.update import UpdateChartCommand
-from superset.commands.exceptions import CommandException
 from superset.commands.report.exceptions import (
     AlertQueryError,
     AlertQueryInvalidTypeError,
@@ -63,6 +62,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleScreenshotTimeout,
     ReportScheduleSystemErrorsException,
     ReportScheduleUnexpectedError,
+    ReportScheduleWorkingTimeoutError,
 )
 from superset.commands.report.execute import (
     AsyncExecuteReportScheduleCommand,
@@ -71,6 +71,7 @@ from superset.commands.report.execute import (
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.daos.report import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+    REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
     ReportScheduleDAO,
 )
 from superset.exceptions import SupersetException
@@ -2469,29 +2470,114 @@ def test_same_execution_replay_write_failure_does_not_claim_active_row(
 
 
 @pytest.mark.usefixtures("create_report_slack_chart_working")
-def test_report_schedule_working_timeout(create_report_slack_chart_working):
+@patch(
+    "superset.reports.notifications.slack_channel_resolver.get_channels_with_search_and_cache_status"
+)
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_report_schedule_working_timeout(
+    screenshot_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
+    create_report_slack_chart_working,
+    slack_raw_upload_mock,
+):
     """
-    ExecuteReport Command: Test report schedule stuck in WORKING past timeout
-    resets to NOOP and immediately retries via ReportNotTriggeredErrorState.
-    The retry itself may fail (e.g. no webdriver in CI) — that's expected;
-    what matters is the stuck state was recovered.
+    ExecuteReport Command: a report stuck in WORKING past its timeout is reset
+    and retried immediately, and the retry delivers.
     """
+    screenshot_mock.return_value = SCREENSHOT_FILE
+    _configure_v2_upload_client(slack_client_mock.return_value)
+    get_channels_with_search_mock.return_value = (
+        [
+            {
+                "id": "slack_channel_id",
+                "name": "slack_channel",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+        False,
+    )
+    stuck_log = db.session.query(ReportExecutionLog).one()
     current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
         seconds=create_report_slack_chart_working.working_timeout + 1
     )
     with freeze_time(current_time):
-        # The NOOP reset succeeds, but the immediate retry will fail
-        # in test environments (no webdriver), raising a CommandException.
-        with pytest.raises(CommandException):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID,
+            create_report_slack_chart_working.id,
+            datetime.utcnow(),
+        ).run()
+
+    db.session.commit()
+    logs = db.session.query(ReportExecutionLog).order_by(ReportExecutionLog.id).all()
+    # The stuck execution's row is left as it was, followed by this
+    # invocation's reset row and the retry's terminal row.
+    assert [(log.uuid, log.state, log.error_message) for log in logs] == [
+        (stuck_log.uuid, ReportState.WORKING, None),
+        (UUID(TEST_ID), ReportState.NOOP, REPORT_SCHEDULE_STUCK_RESET_MESSAGE),
+        (UUID(TEST_ID), ReportState.SUCCESS, None),
+    ]
+    assert slack_raw_upload_mock.call_args.kwargs["data"] == SCREENSHOT_FILE
+    assert create_report_slack_chart_working.last_state == ReportState.SUCCESS
+    assert create_report_slack_chart_working.execution_owner == TEST_ID
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_report_schedule_working_timeout_after_reset_retry(
+    screenshot_mock,
+    email_mock,
+    create_report_slack_chart_working,
+):
+    """
+    ExecuteReport Command: when the stuck execution was itself a reset retry,
+    recovery stops retrying and falls back to ERROR.
+    """
+    stuck_log = db.session.query(ReportExecutionLog).one()
+    db.session.add(
+        ReportExecutionLog(
+            scheduled_dttm=stuck_log.scheduled_dttm,
+            start_dttm=stuck_log.start_dttm,
+            end_dttm=stuck_log.end_dttm - timedelta(seconds=1),
+            state=ReportState.NOOP,
+            error_message=REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
+            report_schedule=create_report_slack_chart_working,
+            uuid=stuck_log.uuid,
+        )
+    )
+    db.session.commit()
+    current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
+        seconds=create_report_slack_chart_working.working_timeout + 1
+    )
+    with freeze_time(current_time):
+        with pytest.raises(ReportScheduleWorkingTimeoutError):
             AsyncExecuteReportScheduleCommand(
                 TEST_ID,
                 create_report_slack_chart_working.id,
                 datetime.utcnow(),
             ).run()
 
-    logs = db.session.query(ReportExecutionLog).all()
-    # Verify the NOOP reset happened (stuck working state was detected)
-    assert any("stuck" in (log.error_message or "").lower() for log in logs)
+    db.session.commit()
+    logs = (
+        db.session.query(ReportExecutionLog)
+        .filter(ReportExecutionLog.uuid == UUID(TEST_ID))
+        .order_by(ReportExecutionLog.id)
+        .all()
+    )
+    assert [(log.state, log.error_message) for log in logs][0] == (
+        ReportState.ERROR,
+        ReportScheduleWorkingTimeoutError.message,
+    )
+    assert all(log.state == ReportState.ERROR for log in logs)
+    # The fallback never re-executes the report.
+    screenshot_mock.assert_not_called()
+    assert create_report_slack_chart_working.last_state == ReportState.ERROR
+    assert create_report_slack_chart_working.execution_owner is None
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_success")

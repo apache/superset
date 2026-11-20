@@ -61,6 +61,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleTargetChartDeletedError,
     ReportScheduleTargetDashboardDeletedError,
     ReportScheduleUnexpectedError,
+    ReportScheduleWorkingTimeoutError,
     ReportScheduleXlsxFailedError,
     ReportScheduleXlsxTimeout,
 )
@@ -74,6 +75,7 @@ from superset.commands.report.slack_upgrade import SlackV1UpgradeCoordinator
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+    REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
     ReportConfigDAO,
     ReportScheduleDAO,
 )
@@ -2581,29 +2583,112 @@ class ReportWorkingState(BaseReportState):
     """
     Handle Working state.
 
-    When a report is found in WORKING state, one of two things happened:
+    When a report is found in WORKING state, one of three things happened:
 
-    1. The report is genuinely still running (recent WORKING log entry).
-       → Raise ``ReportSchedulePreviousWorkingError`` so the scheduler
-         skips this tick.
+    1. The report is genuinely still running (``working_timeout`` has not
+       elapsed).
+       → Record a refused-duplicate audit row and raise
+         ``ReportSchedulePreviousWorkingError`` so this tick is skipped.
 
-    2. The worker crashed (OOM, pod eviction, etc.) and the report is stuck.
-       The ``working_timeout`` has elapsed.
-       → Reset to **NOOP** and immediately re-execute via
-         ``ReportNotTriggeredErrorState``.  This is safe because by the
-         time ``working_timeout`` (typically ≥ 1 hour) has elapsed, any
-         celery broker requeue (~30 min) has already been attempted and
-         rejected with ``ReportSchedulePreviousWorkingError``.
+    2. The worker died (OOM, pod eviction, etc.) and the execution is stuck
+       past its ``working_timeout``.
+       → Take over the stuck execution's ownership in one compare-and-set,
+         write a **NOOP** log row carrying
+         ``REPORT_SCHEDULE_STUCK_RESET_MESSAGE`` and re-execute immediately
+         via ``ReportNotTriggeredErrorState``, so the schedule delivers on
+         this tick instead of skipping it. Taking over ownership fences the
+         old worker out of delivery should it still be alive.
+
+    3. As in 2, but an immediate retry is not safe or has already been tried:
+       the stuck execution was itself such a retry (its id has a stuck-reset
+       log row), this invocation is not for a newer schedule window than the
+       stuck one, or it has no execution context to claim ownership with.
+       → Set **ERROR**, notify the owners (subject to the error grace period)
+         and raise ``ReportScheduleWorkingTimeoutError``.
+
+    Rule 3 bounds recovery to a single immediate retry per stuck execution:
+    a report whose worker is killed every time alternates between one retry
+    and one ERROR, so owners are told about it rather than the schedule
+    resetting itself silently forever.
 
     next states:
-    - NOOP → (immediate retry via ReportNotTriggeredErrorState)
+    - WORKING → immediate retry (stuck execution, first time)
+    - ERROR (stuck execution, retry not allowed)
     - WORKING (genuinely still running)
     """
 
     current_states = [ReportState.WORKING]
 
+    def _stuck_execution_id(
+        self, last_working: ReportExecutionLog | None
+    ) -> UUID | None:
+        """Identify the stuck execution, preferring the schedule's owner claim."""
+        if owner := self._report_schedule.execution_owner:
+            try:
+                return UUID(str(owner))
+            except ValueError:
+                return None
+        return last_working.uuid if last_working else None
+
+    def _stuck_retry_context(
+        self, last_working: ReportExecutionLog | None
+    ) -> ReportExecutionContext | None:
+        """
+        Return the claimed context for an immediate retry of a stuck execution,
+        or None when the recovery must fall back to ERROR instead.
+        """
+        if self._report_execution_context is None:
+            return None
+        window = normalize_window(self._scheduled_dttm)
+        previous_window = normalize_window(self._report_schedule.execution_window)
+        if window is None or (
+            previous_window is not None and window <= previous_window
+        ):
+            return None
+        stuck_execution_id = self._stuck_execution_id(last_working)
+        if stuck_execution_id is not None and ReportScheduleDAO.find_stuck_reset_log(
+            self._report_schedule, stuck_execution_id
+        ):
+            return None
+        return replace(self._report_execution_context, execution_claimed=True)
+
+    def _notify_working_timeout(self, error_message: str) -> None:
+        """Tell the owners about a working timeout without masking it."""
+        try:
+            if self.is_in_error_grace_period():
+                return
+            self.send_error(
+                f"Error occurred for {self._report_schedule.type}:"
+                f" {self._report_schedule.name}",
+                error_message,
+            )
+            self.create_log(
+                REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+                log_state=ReportState.ERROR,
+                reuse_working_log=False,
+            )
+        except Exception:  # noqa: BLE001  # pylint: disable=broad-except
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            logger.warning(
+                "Failed to send working timeout notification - execution_id: %s",
+                self._execution_id,
+                exc_info=True,
+            )
+
     def next(self) -> None:
         if self.is_on_working_timeout():
+            last_working = ReportScheduleDAO.find_last_entered_working_log(
+                self._report_schedule
+            )
+            retry_context = self._stuck_retry_context(last_working)
+            takeover: dict[Any, Any] = {ReportSchedule.execution_owner: None}
+            if retry_context is not None:
+                takeover = {
+                    ReportSchedule.execution_owner: str(self._execution_id),
+                    ReportSchedule.execution_window: normalize_window(
+                        self._scheduled_dttm
+                    ),
+                }
             with db.session.no_autoflush:
                 recovered = (
                     db.session.query(ReportSchedule)
@@ -2615,42 +2700,59 @@ class ReportWorkingState(BaseReportState):
                         ReportSchedule.last_eval_dttm
                         == self._report_schedule.last_eval_dttm,
                     )
-                    .update(
-                        {ReportSchedule.execution_owner: None},
-                        synchronize_session=False,
-                    )
+                    .update(takeover, synchronize_session=False)
                 )
             if recovered != 1:
                 db.session.rollback()  # pylint: disable=consider-using-transaction
                 raise ReportSchedulePreviousWorkingError()
-            last_working = ReportScheduleDAO.find_last_entered_working_log(
-                self._report_schedule
-            )
             elapsed_seconds = (
                 (naive_utcnow() - last_working.end_dttm).total_seconds()
-                if last_working
+                if last_working and last_working.end_dttm
                 else None
             )
-            logger.warning(
-                "Working state timeout after %.2fs, resetting to NOOP "
-                "and retrying immediately - execution_id: %s",
+            if retry_context is not None:
+                logger.warning(
+                    "Working state timeout after %.2fs, resetting and retrying "
+                    "immediately - execution_id: %s",
+                    elapsed_seconds if elapsed_seconds else 0,
+                    self._execution_id,
+                )
+                # The schedule stays WORKING, now owned by this invocation, so
+                # no other worker can claim it between the reset and the retry.
+                # The NOOP row records the reset and marks this execution id as
+                # a recovery retry for the next working-timeout check.
+                self._report_execution_context = retry_context
+                self.create_log(
+                    REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
+                    include_execution_warnings=False,
+                    log_state=ReportState.NOOP,
+                    reuse_working_log=False,
+                )
+                ReportNotTriggeredErrorState(
+                    self._report_schedule,
+                    self._scheduled_dttm,
+                    self._execution_id,
+                    retry_context,
+                ).next()
+                return
+            logger.error(
+                "Working state timeout after %.2fs - execution_id: %s",
                 elapsed_seconds if elapsed_seconds else 0,
                 self._execution_id,
             )
+            exception_timeout = ReportScheduleWorkingTimeoutError()
+            # Keep recovery owned by this invocation. If it reuses the original
+            # execution id, create_log promotes that exact WORKING row. A distinct
+            # invocation must not mutate the old audit row: Celery hard limits do
+            # not preempt every worker pool, so the original worker may still be
+            # alive. The recovery ERROR still unblocks the schedule without risking
+            # a lost update or uncertain duplicate delivery.
             self.update_report_schedule_and_log(
-                ReportState.NOOP,
-                error_message=(
-                    "Working timeout reached: previous execution appears "
-                    "stuck (possibly due to a worker crash). "
-                    "Resetting and retrying."
-                ),
+                ReportState.ERROR,
+                error_message=str(exception_timeout),
             )
-            ReportNotTriggeredErrorState(
-                self._report_schedule,
-                self._scheduled_dttm,
-                self._execution_id,
-            ).next()
-            return
+            self._notify_working_timeout(str(exception_timeout))
+            raise exception_timeout
         logger.warning(
             "Report still in working state, refusing to re-compute - execution_id: %s",
             self._execution_id,

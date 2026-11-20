@@ -61,8 +61,12 @@ from superset.commands.report.execute import (
     ReportSuccessState,
     ReportWorkingState,
 )
+from superset.commands.report.execution_claim import normalize_window
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.daos.report import REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+from superset.daos.report import (
+    REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+    REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
+)
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.exceptions import SupersetException
 from superset.reports.models import (
@@ -4670,42 +4674,238 @@ def _make_state_instance(
     return instance
 
 
+def _make_stuck_working_state(
+    mocker: MockerFixture,
+    *,
+    with_context: bool = True,
+    previous_window: datetime | None = None,
+    owner: str | None = None,
+    reset_log: Any = None,
+) -> tuple[ReportWorkingState, MagicMock, Mock, MagicMock]:
+    """A WORKING schedule whose execution is past its working timeout."""
+    state = _make_state_instance(
+        mocker,
+        ReportWorkingState,
+        schedule_type=ReportScheduleType.REPORT,
+        last_state=ReportState.WORKING,
+    )
+    assert isinstance(state, ReportWorkingState)
+    schedule = state._report_schedule
+    schedule.id = 11
+    schedule.execution_owner = owner
+    schedule.execution_window = previous_window
+    if with_context:
+        state._report_execution_context = ReportExecutionContext(
+            execution_id=state._execution_id,
+            report_schedule_id=11,
+            deadline=ReportExecutionDeadline(
+                total_seconds=3600, started_at=time.monotonic()
+            ),
+        )
+    mocker.patch.object(state, "is_on_working_timeout", return_value=True)
+    query = mocker.patch("superset.commands.report.execute.db.session.query")
+    query.return_value.filter.return_value.update.return_value = 1
+    stuck_log = mocker.Mock(
+        end_dttm=datetime.utcnow() - timedelta(hours=2),
+        uuid=uuid4(),
+    )
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=stuck_log,
+    )
+    find_reset = mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_stuck_reset_log",
+        return_value=reset_log,
+    )
+    return state, query.return_value.filter.return_value.update, stuck_log, find_reset
+
+
 def test_working_state_timeout_resets_to_noop_and_retries(
     mocker: MockerFixture,
 ) -> None:
-    """Working state past timeout should reset to NOOP and immediately retry."""
-    state = _make_state_instance(mocker, ReportWorkingState)
-    mocker.patch.object(state, "is_on_working_timeout", return_value=True)
-    mocker.patch(
-        "superset.commands.report.execute.db.session.query"
-    ).return_value.filter.return_value.update.return_value = 1
-
-    mock_log = mocker.Mock()
-    mock_log.end_dttm = datetime.utcnow() - timedelta(hours=2)
-    mock_log.uuid = uuid4()
-    mocker.patch(
-        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
-        return_value=mock_log,
+    """A stuck execution is taken over, logged as a NOOP reset and retried."""
+    state, cas_update, stuck_log, find_reset = _make_stuck_working_state(
+        mocker, previous_window=datetime.utcnow() - timedelta(days=1)
     )
-    mocker.patch.object(state, "update_report_schedule_and_log")
-
-    # Mock the retry path so it doesn't actually execute the report
-    mock_retry_state = mocker.Mock()
-    mocker.patch(
-        "superset.commands.report.execute.ReportNotTriggeredErrorState",
-        return_value=mock_retry_state,
+    create_log = mocker.patch.object(state, "create_log")
+    update_and_log = mocker.patch.object(state, "update_report_schedule_and_log")
+    notify = mocker.patch.object(state, "_notify_working_timeout")
+    retry_cls = mocker.patch(
+        "superset.commands.report.execute.ReportNotTriggeredErrorState"
     )
 
-    # Should NOT raise — resets state and retries immediately
     state.next()
 
-    state.update_report_schedule_and_log.assert_called_once()  # type: ignore[attr-defined]
-    call_args = state.update_report_schedule_and_log.call_args  # type: ignore[attr-defined]
-    assert call_args[0][0] == ReportState.NOOP
-    assert "stuck" in call_args[1]["error_message"].lower()
+    find_reset.assert_called_once_with(state._report_schedule, stuck_log.uuid)
+    # Ownership moves to this invocation in the same compare-and-set that
+    # releases the stuck execution, so no other worker can claim in between.
+    assert cas_update.call_args.args[0] == {
+        ReportSchedule.execution_owner: str(state._execution_id),
+        ReportSchedule.execution_window: normalize_window(state._scheduled_dttm),
+    }
+    create_log.assert_called_once_with(
+        REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
+        include_execution_warnings=False,
+        log_state=ReportState.NOOP,
+        reuse_working_log=False,
+    )
+    update_and_log.assert_not_called()
+    notify.assert_not_called()
+    retry_cls.assert_called_once()
+    retry_context = retry_cls.call_args.args[3]
+    assert retry_context.execution_claimed is True
+    assert retry_cls.call_args.args[2] == state._execution_id
+    retry_cls.return_value.next.assert_called_once_with()
 
-    # Verify immediate retry was triggered
-    mock_retry_state.next.assert_called_once()
+
+def test_working_state_timeout_retry_after_reset_succeeds(
+    mocker: MockerFixture,
+) -> None:
+    """The immediate retry runs the normal execution and ends in SUCCESS."""
+    state, _, _, _ = _make_stuck_working_state(mocker)
+    schedule = state._report_schedule
+    create_log = mocker.patch.object(BaseReportState, "create_log")
+
+    def record_state(
+        new_state: ReportState, error_message: str | None = None, **kwargs: Any
+    ) -> None:
+        schedule.last_state = new_state
+
+    update_and_log = mocker.patch.object(
+        BaseReportState, "update_report_schedule_and_log", side_effect=record_state
+    )
+    send = mocker.patch.object(ReportNotTriggeredErrorState, "send")
+
+    state.next()
+
+    create_log.assert_called_once_with(
+        REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
+        include_execution_warnings=False,
+        log_state=ReportState.NOOP,
+        reuse_working_log=False,
+    )
+    send.assert_called_once_with()
+    assert [call.args[0] for call in update_and_log.call_args_list] == [
+        ReportState.WORKING,
+        ReportState.SUCCESS,
+    ]
+    assert update_and_log.call_args.kwargs["error_message"] is None
+    assert schedule.last_state == ReportState.SUCCESS
+
+
+def test_working_state_timeout_after_failed_retry_falls_back_to_error(
+    mocker: MockerFixture,
+) -> None:
+    """A stuck execution that was itself a reset retry is not retried again."""
+    stuck_owner = uuid4()
+    state, cas_update, _, find_reset = _make_stuck_working_state(
+        mocker,
+        owner=str(stuck_owner),
+        reset_log=mocker.Mock(),
+    )
+    update_and_log = mocker.patch.object(state, "update_report_schedule_and_log")
+    notify = mocker.patch.object(state, "_notify_working_timeout")
+    retry_cls = mocker.patch(
+        "superset.commands.report.execute.ReportNotTriggeredErrorState"
+    )
+
+    with pytest.raises(ReportScheduleWorkingTimeoutError):
+        state.next()
+
+    # The owner claim identifies the stuck execution even without its log.
+    find_reset.assert_called_once_with(state._report_schedule, stuck_owner)
+    assert cas_update.call_args.args[0] == {ReportSchedule.execution_owner: None}
+    update_and_log.assert_called_once_with(
+        ReportState.ERROR,
+        error_message=str(ReportScheduleWorkingTimeoutError()),
+    )
+    notify.assert_called_once_with(str(ReportScheduleWorkingTimeoutError()))
+    retry_cls.assert_not_called()
+
+
+def test_working_state_timeout_same_window_falls_back_to_error(
+    mocker: MockerFixture,
+) -> None:
+    """A redelivery of the stuck execution's own window is never re-executed."""
+    state, cas_update, _, find_reset = _make_stuck_working_state(mocker)
+    state._report_schedule.execution_window = normalize_window(state._scheduled_dttm)
+    update_and_log = mocker.patch.object(state, "update_report_schedule_and_log")
+    notify = mocker.patch.object(state, "_notify_working_timeout")
+    retry_cls = mocker.patch(
+        "superset.commands.report.execute.ReportNotTriggeredErrorState"
+    )
+
+    with pytest.raises(ReportScheduleWorkingTimeoutError):
+        state.next()
+
+    find_reset.assert_not_called()
+    assert cas_update.call_args.args[0] == {ReportSchedule.execution_owner: None}
+    update_and_log.assert_called_once_with(
+        ReportState.ERROR,
+        error_message=str(ReportScheduleWorkingTimeoutError()),
+    )
+    notify.assert_called_once()
+    retry_cls.assert_not_called()
+
+
+def test_working_state_timeout_lost_takeover_does_not_retry(
+    mocker: MockerFixture,
+) -> None:
+    """Another worker winning the compare-and-set leaves the retry to it."""
+    state, cas_update, _, _ = _make_stuck_working_state(mocker)
+    cas_update.return_value = 0
+    create_log = mocker.patch.object(state, "create_log")
+    retry_cls = mocker.patch(
+        "superset.commands.report.execute.ReportNotTriggeredErrorState"
+    )
+
+    with pytest.raises(ReportSchedulePreviousWorkingError):
+        state.next()
+
+    create_log.assert_not_called()
+    retry_cls.assert_not_called()
+
+
+@pytest.mark.parametrize("in_grace_period", [False, True])
+def test_working_timeout_notification_respects_error_grace_period(
+    mocker: MockerFixture, in_grace_period: bool
+) -> None:
+    """Owners hear about a working timeout at most once per grace period."""
+    state = _make_state_instance(mocker, ReportWorkingState)
+    assert isinstance(state, ReportWorkingState)
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=in_grace_period)
+    send_error = mocker.patch.object(state, "send_error")
+    create_log = mocker.patch.object(state, "create_log")
+
+    state._notify_working_timeout("timed out")
+
+    if in_grace_period:
+        send_error.assert_not_called()
+        create_log.assert_not_called()
+    else:
+        assert send_error.call_args.args[1] == "timed out"
+        create_log.assert_called_once_with(
+            REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+            log_state=ReportState.ERROR,
+            reuse_working_log=False,
+        )
+
+
+def test_working_timeout_notification_failure_is_swallowed(
+    mocker: MockerFixture,
+) -> None:
+    """A failed notification must not mask the working timeout itself."""
+    state = _make_state_instance(mocker, ReportWorkingState)
+    assert isinstance(state, ReportWorkingState)
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mocker.patch.object(state, "send_error", side_effect=RuntimeError("smtp down"))
+    create_log = mocker.patch.object(state, "create_log")
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+
+    state._notify_working_timeout("timed out")
+
+    mock_db.session.rollback.assert_called_once_with()
+    create_log.assert_not_called()
 
 
 def test_working_state_still_working_raises_previous_working(
@@ -4747,6 +4947,7 @@ def test_working_timeout_replay_delegates_single_terminal_update(
         "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
         return_value=working_log,
     )
+    mocker.patch.object(state, "_notify_working_timeout")
     update = mocker.patch.object(state, "update_report_schedule_and_log")
 
     with pytest.raises(ReportScheduleWorkingTimeoutError):
@@ -4783,6 +4984,7 @@ def test_stale_recovery_delegates_terminal_update_without_delivery(
         return_value=working_log,
     )
     recovered_next = mocker.patch.object(ReportNotTriggeredErrorState, "next")
+    mocker.patch.object(state, "_notify_working_timeout")
     update = mocker.patch.object(state, "update_report_schedule_and_log")
 
     with pytest.raises(ReportScheduleWorkingTimeoutError):
