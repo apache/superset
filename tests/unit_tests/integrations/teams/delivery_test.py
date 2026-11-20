@@ -426,6 +426,7 @@ def sdk_network(
     state = SimpleNamespace(
         posts=[],
         tokens=0,
+        discovery_status=200,
         oauth_responses=[],
         auth_sessions=[],
         clients=[],
@@ -471,6 +472,7 @@ def sdk_network(
                     "token_endpoint": f"https://login.microsoftonline.com/{TENANT}/oauth2/v2.0/token",
                     "issuer": f"https://login.microsoftonline.com/{TENANT}/v2.0",
                 }
+                response.status_code = state.discovery_status
             else:
                 assert method == "POST"
                 assert (
@@ -583,6 +585,20 @@ def test_real_sdk_refreshes_token_once_after_401(
         "Bearer token-2",
     ]
     assert retry_clock == [2.0]
+    assert_resources_closed(sdk_network)
+
+
+def test_invalid_tenant_discovery_fails_before_connector_post(
+    sdk_network: SimpleNamespace, configured: TeamsConfig
+) -> None:
+    sdk_network.discovery_status = 400
+    with pytest.raises(adapter.TeamsDeliveryError) as exc:
+        adapter.deliver_teams_alert(
+            configured, configured.destinations[0], SERVICE_URL, {}
+        )
+    assert exc.value.category == "authorization"
+    assert sdk_network.tokens == 0
+    assert sdk_network.posts == []
     assert_resources_closed(sdk_network)
 
 

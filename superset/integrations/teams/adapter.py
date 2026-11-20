@@ -33,6 +33,7 @@ from typing import Any, Literal, Protocol
 from uuid import UUID
 
 import httpx
+import jwt
 import requests
 from microsoft_teams.api import (
     ApiClient,
@@ -217,6 +218,20 @@ def process_teams_event(
     handlers and event loops are released after every callback, and no outbound
     SDK client is created. Credentials and event bodies are not cache keys.
     """
+    # Only use the unverified issuer to reject unsupported tokens. The SDK
+    # authenticates the original bearer token before invoking on_request.
+    authorization = headers.get("authorization") or headers.get("Authorization", "")
+    if not authorization.startswith("Bearer "):
+        return TeamsEventResult(401)
+    try:
+        claims = jwt.decode(
+            authorization.removeprefix("Bearer "), options={"verify_signature": False}
+        )
+    except (jwt.InvalidTokenError, RecursionError):
+        return TeamsEventResult(401)
+    if claims.get("iss") != PUBLIC.token_issuer:
+        return TeamsEventResult(401)
+
     server, lock = _callback_server(
         os.getpid(), config.application_id, config.tenant_id
     )
@@ -395,15 +410,18 @@ class _SDKTeamsTransport:
         """Acquire a bot token without exposing identity-provider errors."""
         if self.http.token:
             return
-        if self.auth is None:
-            self.auth = ConfidentialClientApplication(
-                self.config.application_id,
-                client_credential=self.config.credential,
-                authority=f"{PUBLIC.login_endpoint}/{self.config.tenant_id}",
-                http_client=self.auth_http,
-                instance_discovery=False,
-            )
-        result = self.auth.acquire_token_for_client([PUBLIC.bot_scope])
+        try:
+            if self.auth is None:
+                self.auth = ConfidentialClientApplication(
+                    self.config.application_id,
+                    client_credential=self.config.credential,
+                    authority=f"{PUBLIC.login_endpoint}/{self.config.tenant_id}",
+                    http_client=self.auth_http,
+                    instance_discovery=False,
+                )
+            result = self.auth.acquire_token_for_client([PUBLIC.bot_scope])
+        except ValueError:
+            raise TeamsDeliveryError("authorization") from None
         token = result.get("access_token")
         if not isinstance(token, str) or not token:
             status = (

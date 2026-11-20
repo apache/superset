@@ -272,7 +272,15 @@ def test_authenticated_events_must_match_deployment_scope(
     session.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "issuer",
+    [
+        f"https://login.microsoftonline.com/{TENANT}/v2.0",
+        f"https://sts.windows.net/{TENANT}/",
+    ],
+)
 def test_entra_tokens_cannot_bypass_signed_service_url_binding(
+    issuer: str,
     teams_client: FlaskClient,
     installation: dict[str, Any],
     auth_headers: Callable[..., dict[str, str]],
@@ -281,15 +289,19 @@ def test_entra_tokens_cannot_bypass_signed_service_url_binding(
     # connector tokens whose signed serviceurl claim binds the installation URL.
     headers = auth_headers(
         {
-            "iss": f"https://login.microsoftonline.com/{TENANT}/v2.0",
+            "iss": issuer,
             "tid": TENANT,
             "azp": "5a807f24-c9de-44ee-a3a7-329e88a00ffc",
             "serviceurl": None,
         }
     )
-    with patch.object(teams_api, "Session") as session:
+    with (
+        patch.object(teams_adapter, "_callback_server") as server,
+        patch.object(teams_api, "Session") as session,
+    ):
         response = teams_client.post(PATH, json=installation, headers=headers)
-    assert response.status_code == 403
+    assert response.status_code == 401
+    server.assert_not_called()
     session.assert_not_called()
 
 
@@ -549,7 +561,9 @@ def test_sdk_adapter_and_event_loop_are_operation_scoped(
         side_effect=AssertionError("unexpected outbound client"),
     ):
         result = teams_adapter.process_teams_event(
-            config, installation, {} if invalid_auth else auth_headers()
+            config,
+            installation,
+            auth_headers({"exp": 1}) if invalid_auth else auth_headers(),
         )
     assert result.status == (401 if invalid_auth else 200)
     assert len(loops) == 1
@@ -559,6 +573,7 @@ def test_sdk_adapter_and_event_loop_are_operation_scoped(
 def test_sdk_initialization_failure_still_releases_adapter(
     teams_config: dict[str, Any],
     installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     config = parse_teams_config(teams_config)
@@ -578,7 +593,7 @@ def test_sdk_initialization_failure_still_releases_adapter(
         side_effect=RuntimeError("initialization failed"),
     ):
         with pytest.raises(RuntimeError, match="initialization failed"):
-            teams_adapter.process_teams_event(config, installation, {})
+            teams_adapter.process_teams_event(config, installation, auth_headers())
     assert len(loops) == 1
     assert loops[0].is_closed()
 
@@ -936,7 +951,7 @@ def test_cached_callback_keeps_concurrent_request_state_separate(
 
 
 @pytest.mark.parametrize("authenticated", [False, True])
-def test_busy_callback_returns_503_without_touching_sdk_or_installations(
+def test_busy_callback_skips_sdk_and_installation_processing(
     teams_client: FlaskClient,
     teams_config: dict[str, Any],
     installation: dict[str, Any],
@@ -962,7 +977,7 @@ def test_busy_callback_returns_503_without_touching_sdk_or_installations(
             response = teams_client.post(
                 PATH, json=installation, headers=auth_headers() if authenticated else {}
             )
-        assert response.status_code == 503
+        assert response.status_code == (503 if authenticated else 401)
         request_handler.assert_not_called()
         session.assert_not_called()
         assert server.on_request is None
