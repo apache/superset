@@ -18,8 +18,11 @@
 # Checks the pinned requirements locks against every supported Python minor:
 # `lock-wheels` proves each pin has a prebuilt wheel for each minor on both
 # Linux architectures (apart from the source-only packages the script names),
-# and `lock-install` installs the locks on a real interpreter of each minor;
-# keep its matrix in sync with PYTHON_VERSIONS in scripts/check-lock-wheels.sh.
+# and `lock-install` installs the locks on a real interpreter of each minor.
+# Pull requests install on `current` only, as the rest of branch CI does;
+# `lock-wheels` still covers every minor on each PR, and pushes to master and
+# manual runs install on the full range. Keep that range in sync with
+# PYTHON_VERSIONS in scripts/check-lock-wheels.sh.
 # Scoped via `paths` so unrelated PRs are not
 # affected.
 name: Python lock check
@@ -84,9 +87,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
-    env:
-      PYTHON_VERSION: ${{ matrix.python-version }}
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["3.11", "3.12", "3.13", "3.14"]') }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -100,6 +101,12 @@ jobs:
         uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
+
+      # The matrix entry can be an alias such as `current`, so take the minor
+      # from the interpreter setup-backend installed.
+      - name: Resolve the interpreter version
+        run: |
+          echo "PYTHON_VERSION=$(python -c 'import sys; print("{}.{}".format(*sys.version_info[:2]))')" >> "$GITHUB_ENV"
 
       - name: Install base.txt into a fresh environment
         run: |
