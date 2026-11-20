@@ -973,6 +973,97 @@ def test_flag_off_exports_a_stored_malformed_policy(
     assert content["metadata"]["auto_refresh_policy"] == malformed
 
 
+@pytest.mark.parametrize(
+    "stored_policy, submitted, field, code",
+    [
+        (
+            {"auto_refresh_allowed": True},
+            {"auto_refresh_allowed": 1},
+            f"{POLICY}.auto_refresh_allowed",
+            "invalid_policy",
+        ),
+        (
+            {"auto_refresh_allowed": False},
+            {"auto_refresh_allowed": 0},
+            f"{POLICY}.auto_refresh_allowed",
+            "invalid_policy",
+        ),
+        (
+            {"minimum_refresh_interval": bound(1, "minutes")},
+            {"minimum_refresh_interval": bound(True, "minutes")},
+            MIN,
+            "invalid_boundary",
+        ),
+    ],
+)
+def test_flag_off_a_boolean_number_swap_is_refused(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    disable_policy: None,
+    stored_policy: dict[str, Any],
+    submitted: dict[str, Any],
+    field: str,
+    code: str,
+) -> None:
+    """With the flag off a boolean turned into a number is a new malformed policy."""
+    from superset.models.dashboard import Dashboard
+
+    before = {"auto_refresh_policy": stored_policy}
+    dashboard = make_dashboard(before)
+    count = db.session.query(Dashboard).count()
+    for response in (
+        put(client, dashboard, {"auto_refresh_policy": submitted}),
+        copy(client, dashboard, {"auto_refresh_policy": submitted}),
+    ):
+        assert response.status_code == 422
+        assert error_codes(response) == [(field, code)]
+    assert stored(dashboard) == before
+    assert db.session.query(Dashboard).count() == count
+
+
+BIG = 9007199254740993
+BIG_AS_DOUBLE = 9007199254740992
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"dashboard_title": "renamed"},
+        {"json_metadata_extra": {"positions": {}, "color_scheme": "x"}},
+    ],
+)
+def test_flag_off_a_browser_round_trip_keeps_the_stored_policy(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    disable_policy: None,
+    body: dict[str, Any],
+) -> None:
+    """An unrelated save that resends the policy as a browser parsed it passes."""
+    policy = {"custom_refresh_allowed": BIG}
+    dashboard = make_dashboard({"auto_refresh_policy": policy, "refresh_frequency": 0})
+    metadata = {
+        "auto_refresh_policy": {"custom_refresh_allowed": BIG_AS_DOUBLE},
+        "refresh_frequency": 0,
+        **body.pop("json_metadata_extra", {}),
+    }
+    response = put(client, dashboard, metadata, **body)
+    assert response.status_code == 200
+    assert stored(dashboard)["auto_refresh_policy"] == policy
+
+    response = put(
+        client,
+        dashboard,
+        {"auto_refresh_policy": {"custom_refresh_allowed": BIG + 2}},
+    )
+    assert response.status_code == 422
+    assert error_codes(response) == [
+        (f"{POLICY}.custom_refresh_allowed", "invalid_policy")
+    ]
+    assert history() == []
+
+
 def test_merged_frequency_is_checked_before_update_side_effects(
     make_dashboard: Callable[..., Any],
     client: Any,

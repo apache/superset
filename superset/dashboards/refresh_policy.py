@@ -96,13 +96,61 @@ def get_standard_refresh_intervals() -> list[float]:
     ]
 
 
+def same_json_value(left: Any, right: Any) -> bool:
+    """
+    Compare two JSON values the way a browser round trip leaves them: booleans
+    never equal numbers, and numbers are equal when they are equal as doubles.
+    """
+    if isinstance(left, bool) or isinstance(right, bool):
+        return type(left) is type(right) and left == right
+    if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+        try:
+            return float(left) == float(right)
+        except OverflowError:
+            return left == right
+    if isinstance(left, dict) and isinstance(right, dict):
+        return left.keys() == right.keys() and all(
+            same_json_value(value, right[key]) for key, value in left.items()
+        )
+    if isinstance(left, list) and isinstance(right, list):
+        return len(left) == len(right) and all(
+            same_json_value(a, b) for a, b in zip(left, right, strict=True)
+        )
+    return type(left) is type(right) and left == right
+
+
+def same_stored_policy(policy: Any, stored_policy: Any) -> bool:
+    """
+    Whether a write leaves the stored policy unchanged. With the feature flag off
+    a JSON-type change counts as a change and a browser round trip doesn't.
+    """
+    if is_feature_enabled("AUTO_REFRESH_POLICY"):
+        return policy == stored_policy
+    return same_json_value(policy, stored_policy)
+
+
+def keep_stored_policy(metadata: dict[str, Any], stored_policy: Any) -> None:
+    """
+    With the feature flag off, put the stored policy back into ``metadata`` when a
+    write resends it in an equal JSON form, so a browser round trip doesn't change it.
+    """
+    if (
+        not is_feature_enabled("AUTO_REFRESH_POLICY")
+        and POLICY_KEY in metadata
+        and same_json_value(metadata[POLICY_KEY], stored_policy)
+    ):
+        metadata[POLICY_KEY] = stored_policy
+
+
 def refresh_settings_changed(
     metadata: dict[str, Any], stored_metadata: dict[str, Any]
 ) -> bool:
     """Compare effective policy and frequency with the stored refresh settings."""
-    return metadata.get(POLICY_KEY) != stored_metadata.get(POLICY_KEY) or metadata.get(
+    return not same_stored_policy(
+        metadata.get(POLICY_KEY), stored_metadata.get(POLICY_KEY)
+    ) or metadata.get("refresh_frequency", 0) != stored_metadata.get(
         "refresh_frequency", 0
-    ) != stored_metadata.get("refresh_frequency", 0)
+    )
 
 
 def log_refresh_policy_change(
@@ -165,7 +213,7 @@ def check_refresh_policy(  # noqa: C901
     """
     shape_only = not is_feature_enabled("AUTO_REFRESH_POLICY")
     policy = metadata.get(POLICY_KEY)
-    if policy is None or (shape_only and policy == stored_policy):
+    if policy is None or (shape_only and same_json_value(policy, stored_policy)):
         return []
     if not isinstance(policy, dict):
         return [

@@ -464,6 +464,87 @@ def test_flag_off_skips_an_unchanged_policy(disable_policy: None) -> None:
     ] == ["invalid_policy"]
 
 
+TYPE_CHANGES = [
+    ({"auto_refresh_allowed": True}, {"auto_refresh_allowed": 1}, "invalid_policy"),
+    ({"auto_refresh_allowed": False}, {"auto_refresh_allowed": 0}, "invalid_policy"),
+    (
+        {"minimum_refresh_interval": bound(1)},
+        {"minimum_refresh_interval": bound(True)},
+        "invalid_boundary",
+    ),
+]
+
+
+@pytest.mark.parametrize("stored, submitted, code", TYPE_CHANGES)
+def test_flag_off_a_boolean_number_swap_is_a_change(
+    disable_policy: None, stored: Any, submitted: Any, code: str
+) -> None:
+    """With the flag off JSON booleans and numbers never count as unchanged."""
+    from superset.dashboards.refresh_policy import refresh_settings_changed
+
+    assert [
+        error.code
+        for error in check_refresh_policy({"auto_refresh_policy": submitted}, stored)
+    ] == [code]
+    assert refresh_settings_changed(
+        {"auto_refresh_policy": submitted}, {"auto_refresh_policy": stored}
+    )
+
+
+@pytest.mark.parametrize(
+    "stored, submitted",
+    [
+        (
+            {"custom_refresh_allowed": 9007199254740993},
+            {"custom_refresh_allowed": 9007199254740992},
+        ),
+        ({"custom": [1, {"a": 2}]}, {"custom": [1.0, {"a": 2.0}]}),
+    ],
+)
+def test_flag_off_numbers_equal_as_doubles_are_unchanged(
+    disable_policy: None, stored: Any, submitted: Any
+) -> None:
+    """With the flag off a policy that survives a browser JSON round trip is kept."""
+    from superset.dashboards.refresh_policy import refresh_settings_changed
+
+    assert check_refresh_policy({"auto_refresh_policy": submitted}, stored) == []
+    assert not refresh_settings_changed(
+        {"auto_refresh_policy": submitted}, {"auto_refresh_policy": stored}
+    )
+
+
+@pytest.mark.parametrize(
+    "stored, submitted",
+    [
+        ({"custom": 9007199254740993}, {"custom": 9007199254740995}),
+        ({"custom": 1}, {"custom": "1"}),
+        ({"custom": [1]}, {"custom": [1, 1]}),
+        ({"custom": {"a": 1}}, {"custom": {"b": 1}}),
+        ({"custom": None}, {"custom": False}),
+    ],
+)
+def test_flag_off_a_different_malformed_value_is_checked(
+    disable_policy: None, stored: Any, submitted: Any
+) -> None:
+    """With the flag off a genuinely different malformed policy is still refused."""
+    assert [
+        error.code
+        for error in check_refresh_policy({"auto_refresh_policy": submitted}, stored)
+    ] == ["invalid_policy"]
+
+
+@pytest.mark.parametrize("stored, submitted, code", TYPE_CHANGES)
+def test_flag_on_keeps_python_equality_in_the_change_gate(
+    stored: Any, submitted: Any, code: str
+) -> None:
+    """With the flag on the change gate compares policies as before."""
+    from superset.dashboards.refresh_policy import refresh_settings_changed
+
+    assert not refresh_settings_changed(
+        {"auto_refresh_policy": submitted}, {"auto_refresh_policy": stored}
+    )
+
+
 def test_huge_configured_interval_is_ignored(mocker: MockerFixture) -> None:
     """An overflowing operator value does not break policy validation."""
     set_intervals(mocker, [[10**400, "too large"], [60, "minute"]])

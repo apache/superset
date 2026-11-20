@@ -51,6 +51,7 @@ from superset.daos.dashboard import DashboardDAO, reconcile_position_json
 from superset.daos.report import ReportScheduleDAO
 from superset.dashboards.refresh_policy import (
     check_refresh_policy,
+    keep_stored_policy,
     log_refresh_policy_change,
     POLICY_KEY,
     refresh_settings_changed,
@@ -125,6 +126,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             metadata: dict[str, Any] | None = (
                 json.loads(json_metadata) if json_metadata else None
             )
+            if metadata is not None:
+                keep_stored_policy(metadata, old_policy)
 
             # Re-serialize position_json to escape 4-byte Unicode characters,
             # and reconcile it against membership: a layout node referencing a

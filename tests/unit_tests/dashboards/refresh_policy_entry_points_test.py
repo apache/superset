@@ -141,6 +141,65 @@ def test_mcp_update_flag_off_checks_only_a_changed_policy_shape(
     assert dashboard.params_dict == stored
 
 
+SWAPS = [
+    ({"auto_refresh_allowed": True}, {"auto_refresh_allowed": 1}),
+    ({"auto_refresh_allowed": False}, {"auto_refresh_allowed": 0}),
+    (
+        {"minimum_refresh_interval": {"value": 1, "unit": "minutes"}},
+        {"minimum_refresh_interval": {"value": True, "unit": "minutes"}},
+    ),
+]
+
+
+@pytest.mark.parametrize("stored_policy, submitted", SWAPS)
+def test_mcp_update_flag_off_refuses_a_boolean_number_swap(
+    mocker: MockerFixture, stored_policy: dict[str, Any], submitted: dict[str, Any]
+) -> None:
+    """With the flag off MCP treats a boolean turned into a number as a change."""
+    from superset.mcp_service.dashboard.schemas import UpdateDashboardRequest
+    from superset.mcp_service.dashboard.tool.update_dashboard import (
+        _validate_update_request,
+    )
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": False}
+    )
+    dashboard = Dashboard(
+        json_metadata=json.dumps({"auto_refresh_policy": stored_policy})
+    )
+    error = _validate_update_request(
+        dashboard,
+        UpdateDashboardRequest(
+            identifier=1, json_metadata_overrides={"auto_refresh_policy": submitted}
+        ),
+    )
+    assert error is not None
+    assert error.error_type == "InvalidRefreshPolicy"
+
+
+@pytest.mark.parametrize("stored_policy, submitted", SWAPS)
+def test_restore_flag_off_refuses_a_boolean_number_swap(
+    mocker: MockerFixture, stored_policy: dict[str, Any], submitted: dict[str, Any]
+) -> None:
+    """With the flag off a restore treats a boolean turned into a number as a change."""
+    from superset.commands.dashboard.exceptions import (
+        DashboardRefreshPolicyInvalidError,
+    )
+    from superset.versioning.restore import restore_version
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": False}
+    )
+    current = {"auto_refresh_policy": stored_policy}
+    dashboard = Dashboard(id=1, uuid=uuid4(), json_metadata=json.dumps(current))
+    target = MagicMock(json_metadata=json.dumps({"auto_refresh_policy": submitted}))
+    _restore_mocks(mocker, dashboard, target)
+    with pytest.raises(DashboardRefreshPolicyInvalidError):
+        restore_version(Dashboard, dashboard.uuid, 1, entity=dashboard)
+    target.revert.assert_not_called()
+    assert dashboard.params_dict == current
+
+
 def _restore_mocks(mocker: MockerFixture, dashboard: Dashboard, target: Any) -> None:
     """Patch the parts of a restore that need a database."""
     from contextlib import nullcontext
