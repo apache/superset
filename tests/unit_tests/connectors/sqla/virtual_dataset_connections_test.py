@@ -45,7 +45,11 @@ from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.db_engine_specs.duckdb import DuckDBEngineSpec
 from superset.db_engine_specs.tdengine import TDengineEngineSpec
-from superset.exceptions import QueryObjectValidationError, SupersetParseError
+from superset.exceptions import (
+    OAuth2RedirectError,
+    QueryObjectValidationError,
+    SupersetParseError,
+)
 from superset.jinja_context import BaseTemplateProcessor, PrestoTemplateProcessor
 from superset.models import helpers
 from superset.models.core import Database
@@ -1615,6 +1619,31 @@ def test_cache_key_with_database_outage_raises_original_error(
 
     assert raised.value is error
     rollback.assert_called_once()
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_oauth2_sign_in_is_not_rolled_back(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """A required sign-in reaches the caller without touching the session."""
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.schema = None
+    virtual.sql = "SELECT col1 FROM physical WHERE '{{ current_username() }}' != ''"
+    error = OAuth2RedirectError("https://idp.example/auth", "tab", "https://app/cb")
+    mocker.patch.object(
+        virtual.database, "resolve_query_default_schema", side_effect=error
+    )
+    rollback = mocker.spy(helpers.db.session, "rollback")
+    query = QueryObject(datasource=virtual, columns=["col1"], metrics=[])
+
+    with pytest.raises(OAuth2RedirectError) as raised:
+        virtual.get_extra_cache_keys(query.to_dict())
+
+    assert raised.value is error
+    rollback.assert_not_called()
 
 
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
