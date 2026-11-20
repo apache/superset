@@ -40,28 +40,6 @@ assists people when migrating to a new version.
   `navigation.getApplicationRoot()` reports the prefix for callers that need
   it, such as a `fetch` built by hand.
 
-- Permissions on a resource an extension registers with `@api` are now
-  classified admin-only during role sync. `_is_gamma_pvm` is a denylist, so
-  until now every such permission was granted to the stock Gamma and Alpha
-  roles on the next `superset init` -- which meant a screen gated on an
-  extension permission stopped being gated at the next role sync. A fresh
-  `@api` permission now goes to Admin alone until an operator grants it to a
-  role of their own.
-
-  **Deployments where Gamma or Alpha already hold an extension permission
-  lose it on the next `superset init`.** Re-grant it to a custom role, which
-  role sync does not rebuild, or to Admin. Custom roles are unaffected.
-
-  One limit worth knowing before you rely on this:
-
-  - **The classification is process state, not a stored fact.** A resource is
-    recorded when the extension's `@api` registers in that process, so a
-    `superset init` run where extensions are not loaded -- the feature flag
-    off, discovery failing, an entrypoint erroring, or an extension
-    uninstalled while its permissions remain -- does not recognise the
-    resource and hands those permissions back to Gamma and Alpha. Run
-    `superset init` with extensions loading as they do in production.
-
 - Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
   the caller cannot view it, rather than treating an access-filtered dashboard
   as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
