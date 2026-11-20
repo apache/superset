@@ -1,0 +1,98 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Per-feature attribute corrections to Natural Earth data.
+#
+# Use when NE has a wrong value for a specific feature: typos, outdated
+# administrative names, deprecated ISO codes, etc.
+# For one-off geometry fixes, use procedural/ scripts instead.
+#
+# Schema:
+#   overrides:
+#     - description: Human-readable why this override exists (REQUIRED)
+#       match:
+#         adm0_a3: <ISO3 country code>      # required: scope to one country
+#         <field>: <value>                  # one or more match conditions
+#       set:
+#         <field>: <value>                  # one or more fields to set
+#         [...]
+#
+# Match semantics: ALL conditions must match (logical AND). Apply to
+# both Admin 0 and Admin 1 features unless scope is restricted further.
+#
+# Tracking: each override should be revisited periodically against
+# upstream NE — many of these become obsolete when NE catches up.
+
+overrides:
+  # -------------------------------------------------------------------
+  # France — typos in NE attribute table (NE 5.x still ships these)
+  # -------------------------------------------------------------------
+  - description: Fix typo "Seien-et-Marne" → "Seine-et-Marne"
+    match: { adm0_a3: FRA, name: "Seien-et-Marne" }
+    set:   { name: "Seine-et-Marne" }
+
+  - description: Fix typo "Haute-Rhin" → "Haut-Rhin"
+    match: { adm0_a3: FRA, name: "Haute-Rhin" }
+    set:   { name: "Haut-Rhin" }
+
+  # -------------------------------------------------------------------
+  # France — update ISO 3166-2 codes to current values
+  # NE still uses pre-2016 region codes; map them to current standard.
+  # -------------------------------------------------------------------
+  - description: Paris uses ISO 3166-2 code FR-75C as of 2016 (NE has FR-75)
+    match: { adm0_a3: FRA, iso_3166_2: "FR-75" }
+    set:   { iso_3166_2: "FR-75C" }
+
+  - description: Guadeloupe is FR-971 in current ISO (NE has FR-GP)
+    match: { adm0_a3: FRA, iso_3166_2: "FR-GP" }
+    set:   { iso_3166_2: "FR-971" }
+
+  - description: Martinique is FR-972 in current ISO (NE has FR-MQ)
+    match: { adm0_a3: FRA, iso_3166_2: "FR-MQ" }
+    set:   { iso_3166_2: "FR-972" }
+
+  - description: French Guiana is FR-973 in current ISO (NE has FR-GF)
+    match: { adm0_a3: FRA, iso_3166_2: "FR-GF" }
+    set:   { iso_3166_2: "FR-973" }
+
+  - description: La Réunion is FR-974 in current ISO (NE has FR-RE)
+    match: { adm0_a3: FRA, iso_3166_2: "FR-RE" }
+    set:   { iso_3166_2: "FR-974" }
+
+  - description: Mayotte is FR-976 in current ISO (NE has FR-YT)
+    match: { adm0_a3: FRA, iso_3166_2: "FR-YT" }
+    set:   { iso_3166_2: "FR-976" }
+
+  # -------------------------------------------------------------------
+  # Philippines — administrative renames
+  # -------------------------------------------------------------------
+  - description: Region XIII renamed to "Caraga" in 2010 (NE still says "Dinagat Islands")
+    match: { adm0_a3: PHL, region: "Dinagat Islands (Region XIII)" }
+    set:   { region: "Caraga Administrative Region (Region XIII)" }
+
+  - description: ARMM reorganized as BARMM under the Bangsamoro Organic Law (2018-2019)
+    match: { adm0_a3: PHL, region: "Autonomous Region in Muslim Mindanao (ARMM)" }
+    set:   { region: "Bangsamoro Autonomous Region in Muslim Mindanao (BARMM)" }
+
+  # -------------------------------------------------------------------
+  # NOT included here — handled by other mechanisms:
+  # - Vietnam diacritics → use NE's NAME_VI field via name_language=vi
+  # - Crimea/Sevastopol  → handled by NE _ukr worldview selection
+  # - China + SARs       → see territory_assignments.yaml
+  # - Finland + Åland    → see territory_assignments.yaml
+  # - France-with-Overseas → see composite_maps.yaml
+  # -------------------------------------------------------------------

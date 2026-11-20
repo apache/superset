@@ -16,6 +16,7 @@
     "CHANGELOG/",
     "*.geojson",
     "*-topo.json",
+    "plugins/plugin-chart-country-map-v2/src/data/manifest.json",
     "storybook-static/",
     "*.snap",
     "/.nx/workspace-data"

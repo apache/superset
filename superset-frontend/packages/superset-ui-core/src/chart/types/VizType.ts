@@ -32,6 +32,10 @@ export enum VizType {
   Chord = 'chord',
   Compare = 'compare',
   CountryMap = 'country_map',
+  // Experimental worldview-aware Country Map (SIP proof of concept), kept
+  // separate from `country_map` so both can be registered side by side.
+  // See plugin-chart-country-map-v2/SIP_DRAFT.md.
+  CountryMapV2 = 'country_map_v2',
   Funnel = 'funnel',
   Gantt = 'gantt_chart',
   Gauge = 'gauge_chart',
