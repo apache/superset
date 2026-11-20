@@ -510,7 +510,7 @@ test('uses configured default time range if not set', () => {
 const instanceRange = 'Last year';
 const datasetRange = 'Last day';
 const datasetExtra = JSON.stringify({
-  default_time_range: datasetRange,
+  default_time_filter: datasetRange,
   warning_markdown: 'Note',
 });
 
@@ -615,8 +615,8 @@ function getTimeFilter(formData: QueryFormData) {
 test.each([
   [VizType.Table, datasetExtra, datasetRange],
   ['cal_heatmap', datasetExtra, datasetRange],
-  [VizType.Table, `{"default_time_range": "${NO_TIME_RANGE}"}`, NO_TIME_RANGE],
-  ['cal_heatmap', `{"default_time_range": "${NO_TIME_RANGE}"}`, NO_TIME_RANGE],
+  [VizType.Table, `{"default_time_filter": "${NO_TIME_RANGE}"}`, NO_TIME_RANGE],
+  ['cal_heatmap', `{"default_time_filter": "${NO_TIME_RANGE}"}`, NO_TIME_RANGE],
   [VizType.Table, '{}', instanceRange],
   ['cal_heatmap', '{}', instanceRange],
   [VizType.Table, '{bad', instanceRange],
@@ -653,7 +653,7 @@ test('an ad hoc time filter supplied to a new chart is its only time filter', ()
   expect(query.adhoc_filters).toEqual([expect.objectContaining(filter)]);
 });
 
-test('a saved chart ignores the dataset default time range', () => {
+test('a saved chart ignores the dataset default time filter', () => {
   const query = hydrateNewChartQuery({
     vizType: 'cal_heatmap',
     slice: exploreInitialData.slice,
@@ -661,18 +661,14 @@ test('a saved chart ignores the dataset default time range', () => {
   expect(query.time_range).toBe(instanceRange);
 });
 
-test.each([
-  [VizType.Table, 'ingested_at', instanceRange],
-  ['cal_heatmap', 'ingested_at', instanceRange],
-  ['cal_heatmap', 'created_at', datasetRange],
-])(
-  'a new %s chart with time column %s starts with %s',
-  (vizType, column, range) => {
+test.each([VizType.Table, 'cal_heatmap'])(
+  'a new %s chart on another time column starts with the dataset default time filter',
+  vizType => {
     const query = hydrateNewChartQuery({
       vizType,
-      formData: { granularity_sqla: column },
+      formData: { granularity_sqla: 'ingested_at' },
     });
-    expect(getTimeFilter(query)).toEqual([column, range]);
+    expect(getTimeFilter(query)).toEqual(['ingested_at', datasetRange]);
   },
 );
 
@@ -763,7 +759,7 @@ test.each([
   [VizType.Table, VizType.Pie],
   ['cal_heatmap', VizType.Table],
 ])(
-  'changing a new %s chart to %s keeps the dataset default time range',
+  'changing a new %s chart to %s keeps the dataset default time filter',
   (from, to) => {
     const formData = withControlPanels(() =>
       changeChartType(

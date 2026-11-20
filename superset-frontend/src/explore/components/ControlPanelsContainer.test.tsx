@@ -968,6 +968,96 @@ describe('ControlPanelsContainer', () => {
     });
   });
 
+  const datasourceWithDefaultTimeFilter: Dataset = {
+    id: 1,
+    type: DatasourceType.Table,
+    datasource_name: 'events',
+    description: null,
+    column_formats: {},
+    verbose_map: {},
+    main_dttm_col: 'ds',
+    always_filter_main_dttm: false,
+    columns: [{ column_name: 'ds', is_dttm: true }],
+    metrics: [],
+    extra: JSON.stringify({ default_time_filter: 'Last day' }),
+  };
+
+  test('the X-axis prompt adds a time filter with the dataset default time filter', async () => {
+    const setControlValue = jest.fn();
+    const props = {
+      ...getDefaultProps(),
+      actions: { setControlValue },
+      form_data: { datasource: '1__table', viz_type: 'table', x_axis: 'ds' },
+      exploreState: { datasource: datasourceWithDefaultTimeFilter },
+    } as unknown as ControlPanelsContainerProps;
+    render(<ControlPanelsContainer {...props} />, {
+      useRedux: true,
+      initialState: {
+        explore: { datasource: datasourceWithDefaultTimeFilter },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Yes' }));
+
+    expect(setControlValue).toHaveBeenCalledWith('adhoc_filters', [
+      expect.objectContaining({ subject: 'ds', comparator: 'Last day' }),
+    ]);
+  });
+
+  test('deleting the last time filter resets it to the dataset default time filter', async () => {
+    getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: t('Query'),
+          expanded: true,
+          controlSetRows: [['adhoc_filters']],
+        },
+      ],
+    });
+    const filter = {
+      expressionType: 'SIMPLE',
+      clause: 'WHERE',
+      subject: 'ds',
+      operator: 'TEMPORAL_RANGE',
+      comparator: NO_TIME_RANGE,
+    };
+    const formData = { datasource: '1__table', viz_type: 'table' };
+    const exploreState = {
+      controls: {},
+      form_data: formData,
+      datasource: datasourceWithDefaultTimeFilter,
+    };
+    const setControlValue = jest.fn();
+    const props = {
+      ...getDefaultProps(),
+      actions: { setControlValue },
+      controls: {
+        adhoc_filters: getControlStateFromControlConfig(
+          sharedControls.adhoc_filters,
+          exploreState as Parameters<
+            typeof getControlStateFromControlConfig
+          >[1],
+          [filter],
+        ),
+      },
+      form_data: { ...formData, adhoc_filters: [filter] },
+      exploreState,
+    } as unknown as ControlPanelsContainerProps;
+    render(<ControlPanelsContainer {...props} />, {
+      useRedux: true,
+      initialState: {
+        explore: { datasource: datasourceWithDefaultTimeFilter },
+      },
+    });
+
+    await userEvent.click(await screen.findByTestId('remove-control-button'));
+
+    expect(setControlValue).toHaveBeenCalledWith('adhoc_filters', [
+      expect.objectContaining({ subject: 'ds', comparator: 'Last day' }),
+    ]);
+  });
+
   function createStoreBackedExplore() {
     const datasource = {
       id: 1,

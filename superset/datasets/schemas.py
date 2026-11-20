@@ -118,9 +118,9 @@ def validate_partition_key(value: str) -> None:
         )
 
 
-def get_default_time_range(extra: Any) -> str | None:
+def get_default_time_filter(extra: Any) -> str | None:
     """
-    Return a dataset's ``extra.default_time_range`` from its ``extra``, given as
+    Return a dataset's ``extra.default_time_filter`` from its ``extra``, given as
     a JSON string or a dict. Like Explore, treat unparseable metadata,
     non-string values and empty strings as unset.
     """
@@ -129,13 +129,13 @@ def get_default_time_range(extra: Any) -> str | None:
             extra = json.loads(extra)
         except ValueError:
             return None
-    time_range = extra.get("default_time_range") if isinstance(extra, dict) else None
+    time_range = extra.get("default_time_filter") if isinstance(extra, dict) else None
     return time_range if isinstance(time_range, str) and time_range else None
 
 
-def validate_default_time_range(time_range: str) -> None:
+def validate_default_time_filter(time_range: str) -> None:
     """
-    Reject a dataset default time range that the time range parser cannot
+    Reject a dataset default time filter that the time range parser cannot
     evaluate, since every new chart on the dataset would fail to query.
     """
     try:
@@ -143,7 +143,7 @@ def validate_default_time_range(time_range: str) -> None:
     except (ValueError, ValidationError) as ex:
         # `str`, because marshmallow reads a lazy string as a list of messages.
         raise ValidationError(
-            str(_("Invalid default time range: %(range)s", range=time_range)),
+            str(_("Invalid default time filter: %(range)s", range=time_range)),
             field_name="extra",
         ) from ex
 
@@ -554,10 +554,10 @@ class ImportV1DatasetSchema(Schema):
     @validates_schema
     def validate_extra(self, data: dict[str, Any], **kwargs: Any) -> None:
         """
-        Reject a default time range that new charts could not query.
+        Reject a default time filter that new charts could not query.
         """
-        if time_range := get_default_time_range(data.get("extra")):
-            validate_default_time_range(time_range)
+        if time_range := get_default_time_filter(data.get("extra")):
+            validate_default_time_filter(time_range)
 
     @validates_schema
     def validate_unique_child_uuids(self, data: dict[str, Any], **kwargs: Any) -> None:

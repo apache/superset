@@ -52,7 +52,7 @@ import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWith
 import TableSelector from 'src/components/TableSelector';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
-import { getDatasetDefaultTimeRange } from '@superset-ui/chart-controls';
+import { getDatasetDefaultTimeFilter } from '@superset-ui/chart-controls';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -2225,18 +2225,18 @@ function DatasourceEditor({
         label: col.verbose_name || col.column_name,
       }));
 
-    // An unset default time range inherits the instance default. The field is
+    // An unset default time filter inherits the instance default. The field is
     // hidden while the Extra JSON is malformed.
     const extra = parseExtra(datasource.extra);
-    const defaultTimeRange = getDatasetDefaultTimeRange({ extra });
-    const setDefaultTimeRange = (range?: string) => {
+    const defaultTimeFilter = getDatasetDefaultTimeFilter({ extra });
+    const setDefaultTimeFilter = (range?: string) => {
       // An empty range is unset. Leave the Extra JSON as written when the
       // range does not change.
-      const default_time_range = range || undefined;
-      if (default_time_range === defaultTimeRange) return;
+      const default_time_filter = range || undefined;
+      if (default_time_filter === defaultTimeFilter) return;
       onDatasourceChange({
         ...datasource,
-        extra: JSON.stringify({ ...extra, default_time_range }),
+        extra: JSON.stringify({ ...extra, default_time_filter }),
       });
     };
     const DateFilterComponent =
@@ -2273,25 +2273,25 @@ function DatasourceEditor({
           {isSqla && extra && (
             <Flex vertical gap={theme?.sizeUnit ?? 4} align="start">
               <FieldLabelWithTooltip>
-                <span id="filter-name-default_time_range">
-                  {t('Default time range')}
+                <span id="filter-name-default_time_filter">
+                  {t('Default time filter')}
                 </span>
                 <InfoTooltip
                   tooltip={t(
-                    'Time range of the time filter Explore adds automatically on the default datetime column, such as on new charts.',
+                    'Time range of the time filters Explore adds for this dataset, such as on new charts.',
                   )}
                 />
               </FieldLabelWithTooltip>
               <DateFilterComponent
-                name="default_time_range"
+                name="default_time_filter"
                 placeholder={t('Use instance default')}
-                value={defaultTimeRange}
-                onChange={setDefaultTimeRange}
+                value={defaultTimeFilter}
+                onChange={setDefaultTimeFilter}
               />
-              {defaultTimeRange && (
+              {defaultTimeFilter && (
                 <Button
                   buttonStyle="link"
-                  onClick={() => setDefaultTimeRange()}
+                  onClick={() => setDefaultTimeFilter()}
                 >
                   {t('Use instance default')}
                 </Button>
