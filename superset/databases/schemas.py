@@ -1660,6 +1660,17 @@ class IdentifierQuoteSchema(Schema):
     )
 
 
+class EncryptedExtraExpirationSchema(Schema):
+    expires_at = fields.DateTime(
+        metadata={
+            "description": "When the stored JWT expires, from its exp claim, in UTC"
+        },
+    )
+    expired = fields.Boolean(
+        metadata={"description": "Whether the stored JWT has expired"},
+    )
+
+
 class EngineInformationSchema(Schema):
     query_cost_warning_metric = fields.String(allow_none=True)
     query_warning_supported = fields.Boolean()
@@ -1706,6 +1717,17 @@ class EngineInformationSchema(Schema):
                 "On the database GET and on `available`: the engine's declared "
                 "patterns. On `/connection`: the fields present in the stored "
                 "encrypted_extra."
+            )
+        },
+    )
+    encrypted_extra_expirations = fields.Dict(
+        keys=fields.String(),
+        values=fields.Nested(EncryptedExtraExpirationSchema),
+        metadata={
+            "description": (
+                "On `/connection` only: JSONPath of each stored sensitive "
+                "encrypted_extra field holding a JWT with an exp claim, and when "
+                "it expires. The signature is not verified."
             )
         },
     )

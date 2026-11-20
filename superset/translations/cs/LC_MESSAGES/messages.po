@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:13-0500\n"
+"POT-Creation-Date: 2026-11-20 04:48-0500\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -258,12 +258,6 @@ msgstr "% součtu řádku"
 msgid "% of total"
 msgstr "% z celku"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr "Úspěšně spuštěno: %(alertType)s „%(alertName)s“"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
@@ -296,6 +290,10 @@ msgstr[2] "%(count)s závislých prvků je archivováno."
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s nelze z bezpečnostních důvodů použít jako zdroj dat."
+
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
 
 #, python-format
 msgid "%(label)s file"
@@ -388,6 +386,12 @@ msgid ""
 msgstr ""
 "%(prefix)sVýsledky byly zkráceny na %(row_count)s řádků kvůli omezením "
 "paměti."
+
+#, python-format
+msgid ""
+"%(reason)s Ask the asset owner or an administrator for the required "
+"access, then retry."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -1328,6 +1332,12 @@ msgstr ""
 "pole nebo uložené hodnoty. Pokud cílí na jiný sémantický pohled, odeberte"
 " tento graf z jeho rozsahu."
 
+msgid ""
+"A database operation failed. Test the destination database connection and"
+" check its credentials and permissions. If it still fails, contact an "
+"administrator with the reference below."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Při připojování přes SSH tunel je vyžadován port databáze."
 
@@ -1553,6 +1563,12 @@ msgstr "Čitelná URL adresa pro vaši nástěnku"
 
 msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr "Odkaz na konfiguraci [Čas] s ohledem na granularitu"
+
+msgid ""
+"A referenced database, schema, or table is unavailable. Check that it "
+"exists in the destination connection and that the database account can "
+"access it, then retry."
+msgstr ""
 
 #, python-format
 msgid "A report named \"%(name)s\" already exists"
@@ -2296,6 +2312,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Upozornění"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr ""
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "Upozornění spuštěno, v ochranné lhůtě"
 
@@ -2964,6 +2984,11 @@ msgstr "Export tohoto dashboardu již probíhá."
 
 msgid "An unexpected error occurred"
 msgstr "Došlo k neočekávané chybě"
+
+msgid ""
+"An unexpected error occurred. Contact an administrator with this "
+"reference and the time of the import."
+msgstr ""
 
 msgid "Anchor to"
 msgstr "Ukotvit k"
@@ -4581,6 +4606,12 @@ msgstr "Podívejte se na tento graf: "
 msgid "Check out this dashboard: "
 msgstr "Podívejte se na tuto nástěnku: "
 
+msgid ""
+"Check the import file and destination connection settings. If the problem"
+" continues, contact an administrator with the error and time of the "
+"import."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Check the value transform →"
@@ -5796,6 +5827,10 @@ msgstr "Nepodařilo se načíst všechny uložené grafy"
 #, fuzzy, python-format
 msgid "Could not find %s"
 msgstr "Položku %s se nepodařilo najít"
+
+#, python-format
+msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -9430,11 +9465,13 @@ msgstr "Nepodařilo se uložit výsledky dotazu. Prosím, zkuste to znovu."
 msgid "Failed to tag items"
 msgstr "Nepodařilo se označit položky"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
-msgstr "Spuštění %(alertType)s „%(alertName)s“ se nezdařilo: %(error)s"
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "Nepodařilo se aktualizovat report"
@@ -10146,6 +10183,9 @@ msgstr ""
 "Přejděte do části Nedávno archivované, kde můžete archivované položky "
 "obnovit a znovu přiřadit nebo je trvale smazat, případně požádejte o "
 "pomoc správce."
+
+msgid "Go to Secure extra"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12110,6 +12150,17 @@ msgid ""
 msgstr ""
 "Označuje grafy vytvořené prostřednictvím geografického kontraktu MCP, aby"
 " si Explore zachoval jejich ověřovací kontroly."
+
+msgid ""
+"Marks the column as a time column for time range filters and time grains."
+" If the column type in the database is not a date or timestamp, set a "
+"Datetime format below: for strings it sets how time range filter values "
+"are written, and for epoch numbers (epoch_s, epoch_ms, epoch_us) it "
+"converts them to timestamps. A Datetime format does not convert a string "
+"column, so on some databases a time grain on it can fail or return wrong "
+"results; a calculated column that casts the value to a timestamp avoids "
+"this."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Typ značkování"
@@ -14237,6 +14288,9 @@ msgstr "Vložit"
 msgid "Paste Private Key here"
 msgstr "Vložte sem soukromý klíč"
 
+msgid "Paste a new token into Secure extra and click Finish."
+msgstr ""
+
 msgid "Paste content of service credentials JSON file here"
 msgstr "Vložte sem obsah souboru JSON s přihlašovacími údaji služby"
 
@@ -14429,6 +14483,22 @@ msgstr "režim úprav"
 msgid "Pivot Table"
 msgstr "Kontingenční tabulka"
 
+msgid ""
+"Pivot Table has too many rollup levels for a semantic view. Remove row or"
+" column dimensions and try again."
+msgstr ""
+
+msgid ""
+"Pivot Table level reached the row limit on a semantic view; it may be "
+"complete or truncated. Add filters or remove row or column dimensions and"
+" try again."
+msgstr ""
+
+msgid ""
+"Pivot Table pagination is not supported on semantic views. Clear the row "
+"offset and try again."
+msgstr ""
+
 msgid "Pivot operation must include at least one aggregate"
 msgstr "Operace kontingence musí obsahovat alespoň jednu agregaci"
 
@@ -14557,9 +14627,6 @@ msgstr "Zadejte prosím obě časové meze (Od a Do)"
 
 msgid "Please re-enter the password."
 msgstr "Zadejte prosím heslo znovu."
-
-msgid "Please re-export your file and try importing again"
-msgstr "Exportujte prosím soubor znovu a zkuste ho importovat znovu"
 
 msgid "Please reach out to the Chart Editor for assistance."
 msgid_plural "Please reach out to the Chart Editors for assistance."
@@ -15047,6 +15114,11 @@ msgstr "Nezpracované záznamy"
 msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
+msgid ""
+"Re-export the assets from a compatible Superset version, then retry with "
+"the new file."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -15410,6 +15482,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "Report"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -15775,6 +15851,11 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+
+msgid ""
+"Result aggregation is not supported for Pivot Tables on semantic views. "
+"Set Aggregation function to \"Use metric definition\"."
+msgstr ""
 
 msgid "Results"
 msgstr "Výsledky"
@@ -18731,6 +18812,11 @@ msgstr "Dokumentace Superset Embedded SDK."
 msgid "Superset chart"
 msgstr "Graf Superset"
 
+msgid ""
+"Superset could not reach the database. Check the host, port, network "
+"access, and database availability, then retry the import."
+msgstr ""
+
 msgid "Superset docs link"
 msgstr "Odkaz na dokumentaci Supersetu"
 
@@ -19246,6 +19332,12 @@ msgstr ""
 "reprezentaci\n"
 "          distribuce a transformace hodnot."
 
+msgid ""
+"The Snowflake connection could not be established. Check the account "
+"identifier, connection address, network access, and authentication "
+"settings, then retry the import."
+msgstr ""
+
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "V URL chybí parametry dataset_id nebo slice_id."
 
@@ -19297,8 +19389,21 @@ msgstr "Anotace byla uložena"
 msgid "The annotation has been updated"
 msgstr "Anotace byla aktualizována"
 
+msgid ""
+"The asset configuration is invalid. Review this file's fields and "
+"references. Re-export the assets from a compatible Superset version, then"
+" retry with the new file."
+msgstr ""
+
 msgid "The background color of the charts."
 msgstr "Barva pozadí grafů."
+
+#, python-format
+msgid ""
+"The bundle is missing a %(asset_type)s required by an imported asset. Re-"
+"export the dashboard with its dependencies from a compatible Superset "
+"version, then retry."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -19479,11 +19584,32 @@ msgstr ""
 "Data, na nichž byla tato verze vytvořena, již nejsou dostupná, proto "
 "nelze zobrazit náhled"
 
+msgid ""
+"The database TLS connection failed. Ask an administrator to check the "
+"certificate and connection security settings, then retry."
+msgstr ""
+
+msgid ""
+"The database account does not have the required permissions. Ask a "
+"database administrator to grant access to the required database, schema, "
+"and tables, then retry."
+msgstr ""
+
 msgid "The database columns that contains lines information"
 msgstr "Sloupce databáze, které obsahují informace o čarách"
 
+msgid ""
+"The database connection timed out. Check database availability and "
+"network access, then retry the import."
+msgstr ""
+
 msgid "The database could not be found"
 msgstr "Databázi se nepodařilo najít"
+
+msgid ""
+"The database driver could not be loaded. Ask an administrator to install "
+"the required driver, then retry the import."
+msgstr ""
 
 msgid "The database is currently running too many queries."
 msgstr "Databáze v současné době spouští příliš mnoho dotazů."
@@ -19497,6 +19623,17 @@ msgid ""
 msgstr ""
 "Databáze odkazovaná v tomto dotazu nebyla nalezena. Pro další pomoc "
 "kontaktujte administrátora nebo to zkuste znovu."
+
+msgid ""
+"The database rejected the connection credentials or required connection "
+"details are missing. Check the database authentication settings and test "
+"the connection, then retry the import."
+msgstr ""
+
+msgid ""
+"The database requires authorization. Open the database connection, sign "
+"in with its authentication provider, then retry the import."
+msgstr ""
 
 msgid "The database returned an unexpected error."
 msgstr "Databáze vrátila neočekávanou chybu."
@@ -19545,6 +19682,12 @@ msgstr ""
 
 msgid "The dataset has been saved"
 msgstr "Sada dat byla uložena"
+
+msgid ""
+"The dataset uses a catalog that this connection does not allow. Use the "
+"connection's default catalog, or ask an administrator to enable access to"
+" the required catalog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20353,6 +20496,21 @@ msgstr "Velikost čtvercové buňky v pixelech"
 
 msgid "The slope to compute all sizes from. \"LINEAR\" only"
 msgstr "Sklon pro výpočet všech velikostí. Pouze pro „LINEAR“"
+
+#, python-format
+msgid "The stored %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The stored %s expires in %s day (%s)."
+msgid_plural "The stored %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "The stored %s expires today at %s."
+msgstr ""
 
 msgid "The submitted payload failed validation."
 msgstr "Odeslaná data selhala při validaci."
@@ -21634,6 +21792,11 @@ msgid ""
 msgstr ""
 "Toto pole se používá jako jedinečný identifikátor pro připojení metriky "
 "ke grafům. Používá se také jako alias v SQL dotazu."
+
+msgid ""
+"This file is not a supported dashboard export. Re-export the dashboard "
+"from a compatible Superset version, then retry with the new ZIP file."
+msgstr ""
 
 #, fuzzy
 msgid "This filter already exist on the report"
@@ -24750,6 +24913,11 @@ msgstr "Nemáte oprávnění k úpravě tohoto grafu"
 msgid "You do not have permission to edit this dashboard"
 msgstr "Nemáte oprávnění k úpravě této nástěnky"
 
+msgid ""
+"You do not have permission to import this asset. Ask its owner or an "
+"administrator for the required access, then retry."
+msgstr ""
+
 #, fuzzy
 msgid "You do not have permission to perform this operation"
 msgstr "Nemáte oprávnění k úpravě tohoto grafu"
@@ -25504,6 +25672,10 @@ msgstr "Připojení k databázi"
 
 msgid "database"
 msgstr "databáze"
+
+#, python-format
+msgid "database \"%(name)s\" (%(file)s)"
+msgstr ""
 
 #, fuzzy
 msgid "databases"

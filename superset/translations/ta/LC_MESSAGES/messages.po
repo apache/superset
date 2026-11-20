@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:13-0500\n"
+"POT-Creation-Date: 2026-11-20 04:48-0500\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -259,12 +259,6 @@ msgstr "வரிசை மொத்தத்தின் %"
 msgid "% of total"
 msgstr "மொத்தத்தில் %"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr "%(alertType)s \"%(alertName)s\" வெற்றிகரமாகத் தூண்டப்பட்டது"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
@@ -299,6 +293,10 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "பாதுகாப்பு காரணங்களுக்காக %(dialect)s-ஐ ஒரு தரவு மூலமாகப் பயன்படுத்த "
 "முடியாது."
+
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
 
 #, python-format
 msgid "%(label)s file"
@@ -390,6 +388,12 @@ msgid ""
 msgstr ""
 "%(prefix)sநினைவகக் கட்டுப்பாடுகள் காரணமாக முடிவுகள் %(row_count)s "
 "வரிசைகளாகக் குறைக்கப்பட்டன."
+
+#, python-format
+msgid ""
+"%(reason)s Ask the asset owner or an administrator for the required "
+"access, then retry."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -1321,6 +1325,12 @@ msgstr ""
 "தேர்ந்தெடுக்கவும். இது வேறொரு சொற்பொருள் காட்சியை இலக்காகக் "
 "கொண்டிருந்தால், இந்த விளக்கப்படத்தை அதன் வரம்பிலிருந்து நீக்கவும்."
 
+msgid ""
+"A database operation failed. Test the destination database connection and"
+" check its credentials and permissions. If it still fails, contact an "
+"administrator with the reference below."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "SSH டன்னல் (Tunnel) வழியாக இணைக்கும்போது தரவுத்தள போர்ட் (port) தேவை."
 
@@ -1561,6 +1571,12 @@ msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr ""
 "நுட்பத்தை (granularity) கருத்தில் கொண்டு, [நேரம்] உள்ளமைவுக்கான ஒரு "
 "குறிப்பு"
+
+msgid ""
+"A referenced database, schema, or table is unavailable. Check that it "
+"exists in the destination connection and that the database account can "
+"access it, then retry."
+msgstr ""
 
 #, python-format
 msgid "A report named \"%(name)s\" already exists"
@@ -2306,6 +2322,10 @@ msgstr ""
 msgid "Alert"
 msgstr "எச்சரிக்கை"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr ""
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "எச்சரிக்கை தூண்டப்பட்டது, கருணைக் காலத்தில் (Grace Period) உள்ளது"
 
@@ -2976,6 +2996,11 @@ msgstr "இந்த டாஷ்போர்டுக்கான ஏற்ற�
 
 msgid "An unexpected error occurred"
 msgstr "எதிர்பாராத பிழை ஏற்பட்டது"
+
+msgid ""
+"An unexpected error occurred. Contact an administrator with this "
+"reference and the time of the import."
+msgstr ""
 
 msgid "Anchor to"
 msgstr "இணைக்கப்பட வேண்டிய இடம் (Anchor to)"
@@ -4599,6 +4624,12 @@ msgstr "இந்தச் சார்ட்டைப் பாருங்க�
 msgid "Check out this dashboard: "
 msgstr "இந்தத் டேஷ்போர்டைப் பாருங்கள்: "
 
+msgid ""
+"Check the import file and destination connection settings. If the problem"
+" continues, contact an administrator with the error and time of the "
+"import."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Check the value transform →"
@@ -5834,6 +5865,10 @@ msgstr "சேமிக்கப்பட்ட அனைத்து சார�
 #, fuzzy, python-format
 msgid "Could not find %s"
 msgstr "%s ஐ கண்டுபிடிக்க முடியவில்லை"
+
+#, python-format
+msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
+msgstr ""
 
 #, fuzzy
 msgid "Could not load SQL Lab"
@@ -9381,11 +9416,13 @@ msgstr "வினவல் முடிவுகளைச் சேமிப்�
 msgid "Failed to tag items"
 msgstr "உருப்படிகளுக்கு குறிச்சொல்லிடுவதில் தோல்வி"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
-msgstr "%(alertType)s \"%(alertName)s\" ஐத் தூண்ட முடியவில்லை: %(error)s"
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "அறிக்கையைப் புதுப்பிப்பதில் தோல்வி"
@@ -10088,6 +10125,9 @@ msgstr ""
 "காப்பகப்படுத்தப்பட்ட சொத்துகளை மீட்டெடுத்து மீண்டும் இணைக்க அல்லது அவற்றை"
 " நிரந்தரமாக நீக்க, 'சமீபத்தில் காப்பகப்படுத்தப்பட்டவை' பகுதிக்குச் "
 "செல்லவும், அல்லது நிர்வாகியின் உதவியைக் கோரவும்."
+
+msgid "Go to Secure extra"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12012,6 +12052,17 @@ msgstr ""
 "MCP புவியியல் ஒப்பந்தம் மூலம் உருவாக்கப்பட்ட விளக்கப்படங்களை Explore "
 "அவற்றின் சரிபார்ப்புப் பாதுகாப்புகளைத் தக்கவைத்துக்கொள்ளும் வகையில் "
 "குறிக்கிறது."
+
+msgid ""
+"Marks the column as a time column for time range filters and time grains."
+" If the column type in the database is not a date or timestamp, set a "
+"Datetime format below: for strings it sets how time range filter values "
+"are written, and for epoch numbers (epoch_s, epoch_ms, epoch_us) it "
+"converts them to timestamps. A Datetime format does not convert a string "
+"column, so on some databases a time grain on it can fail or return wrong "
+"results; a calculated column that casts the value to a timestamp avoids "
+"this."
+msgstr ""
 
 msgid "Markup type"
 msgstr "மார்க்கப் வகை"
@@ -14082,6 +14133,9 @@ msgstr "ஒட்டு (Paste)"
 msgid "Paste Private Key here"
 msgstr "தனிப்பட்ட சாவியை (Private Key) இங்கே ஒட்டவும்"
 
+msgid "Paste a new token into Secure extra and click Finish."
+msgstr ""
+
 msgid "Paste content of service credentials JSON file here"
 msgstr "சேவை நற்சான்றிதழ் JSON கோப்பின் உள்ளடக்கத்தை இங்கே ஒட்டவும்"
 
@@ -14273,6 +14327,22 @@ msgstr "பிவட் பயன்முறை (Pivot Mode)"
 msgid "Pivot Table"
 msgstr "பிவட் அட்டவணை (Pivot Table)"
 
+msgid ""
+"Pivot Table has too many rollup levels for a semantic view. Remove row or"
+" column dimensions and try again."
+msgstr ""
+
+msgid ""
+"Pivot Table level reached the row limit on a semantic view; it may be "
+"complete or truncated. Add filters or remove row or column dimensions and"
+" try again."
+msgstr ""
+
+msgid ""
+"Pivot Table pagination is not supported on semantic views. Clear the row "
+"offset and try again."
+msgstr ""
+
 msgid "Pivot operation must include at least one aggregate"
 msgstr "பிவட் செயல்பாட்டில் குறைந்தது ஒரு தொகுப்பு (aggregate) இருக்க வேண்டும்"
 
@@ -14394,9 +14464,6 @@ msgstr "இரு நேர வரம்புகளையும் வழங்
 
 msgid "Please re-enter the password."
 msgstr "கடவுச்சொல்லை மீண்டும் உள்ளிடவும்."
-
-msgid "Please re-export your file and try importing again"
-msgstr "கோப்பை மீண்டும் எக்ஸ்போர்ட் செய்து, இம்போர்ட் செய்ய முயற்சிக்கவும்"
 
 #, fuzzy
 msgid "Please reach out to the Chart Editor for assistance."
@@ -14885,6 +14952,11 @@ msgstr "மூலப் பதிவுகள் (Raw records)"
 msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
+msgid ""
+"Re-export the assets from a compatible Superset version, then retry with "
+"the new file."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -15229,6 +15301,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "அறிக்கை"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -15589,6 +15665,11 @@ msgid_plural ""
 "dashboard. The charts themselves will not be deleted."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid ""
+"Result aggregation is not supported for Pivot Tables on semantic views. "
+"Set Aggregation function to \"Use metric definition\"."
+msgstr ""
 
 msgid "Results"
 msgstr "முடிவுகள்"
@@ -18469,6 +18550,11 @@ msgstr "சூப்பர்செட் உட்பொதிக்கப்�
 msgid "Superset chart"
 msgstr "சூப்பர்செட் சார்ட்"
 
+msgid ""
+"Superset could not reach the database. Check the host, port, network "
+"access, and database availability, then retry the import."
+msgstr ""
+
 msgid "Superset docs link"
 msgstr "சூப்பர்செட் ஆவண இணைப்பு"
 
@@ -18968,6 +19054,12 @@ msgstr ""
 "சன்கி (Sankey) வரைபடம் மதிப்புகளின் ஓட்டம் மற்றும் மாற்றத்தைக் "
 "காட்டுகிறது."
 
+msgid ""
+"The Snowflake connection could not be established. Check the account "
+"identifier, connection address, network access, and authentication "
+"settings, then retry the import."
+msgstr ""
+
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "URL இல் dataset_id அல்லது slice_id அளவுருக்கள் இல்லை."
 
@@ -19018,8 +19110,21 @@ msgstr "குறிப்பு சேமிக்கப்பட்டது"
 msgid "The annotation has been updated"
 msgstr "குறிப்பு புதுப்பிக்கப்பட்டது"
 
+msgid ""
+"The asset configuration is invalid. Review this file's fields and "
+"references. Re-export the assets from a compatible Superset version, then"
+" retry with the new file."
+msgstr ""
+
 msgid "The background color of the charts."
 msgstr "சார்ட்டுகளின் பின்னணி நிறம்."
+
+#, python-format
+msgid ""
+"The bundle is missing a %(asset_type)s required by an imported asset. Re-"
+"export the dashboard with its dependencies from a compatible Superset "
+"version, then retry."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -19196,11 +19301,32 @@ msgstr ""
 "இந்தப் பதிப்பு உருவாக்கப்பட்ட தரவு இனி கிடைக்கவில்லை, எனவே முன்னோட்டம் "
 "பார்க்க முடியாது"
 
+msgid ""
+"The database TLS connection failed. Ask an administrator to check the "
+"certificate and connection security settings, then retry."
+msgstr ""
+
+msgid ""
+"The database account does not have the required permissions. Ask a "
+"database administrator to grant access to the required database, schema, "
+"and tables, then retry."
+msgstr ""
+
 msgid "The database columns that contains lines information"
 msgstr "கோடு தகவல்களைக் கொண்ட தரவுத்தள நெடுவரிசைகள்"
 
+msgid ""
+"The database connection timed out. Check database availability and "
+"network access, then retry the import."
+msgstr ""
+
 msgid "The database could not be found"
 msgstr "தரவுத்தளம் காணப்படவில்லை"
+
+msgid ""
+"The database driver could not be loaded. Ask an administrator to install "
+"the required driver, then retry the import."
+msgstr ""
 
 msgid "The database is currently running too many queries."
 msgstr "தரவுத்தளம் தற்போது அதிகமான வினவல்களை இயக்கி வருகிறது."
@@ -19214,6 +19340,17 @@ msgid ""
 msgstr ""
 "வினவலில் குறிப்பிடப்பட்ட தரவுத்தளம் காணப்படவில்லை. நிர்வாகியைத் தொடர்பு "
 "கொள்ளவும்."
+
+msgid ""
+"The database rejected the connection credentials or required connection "
+"details are missing. Check the database authentication settings and test "
+"the connection, then retry the import."
+msgstr ""
+
+msgid ""
+"The database requires authorization. Open the database connection, sign "
+"in with its authentication provider, then retry the import."
+msgstr ""
 
 msgid "The database returned an unexpected error."
 msgstr "தரவுத்தளம் எதிர்பாராத பிழையைத் தந்தது."
@@ -19258,6 +19395,12 @@ msgstr ""
 
 msgid "The dataset has been saved"
 msgstr "தரவுத்தொகுப்பு சேமிக்கப்பட்டது"
+
+msgid ""
+"The dataset uses a catalog that this connection does not allow. Use the "
+"connection's default catalog, or ask an administrator to enable access to"
+" the required catalog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20041,6 +20184,20 @@ msgstr "சதுர செல்லின் அளவு, பிக்சல�
 
 msgid "The slope to compute all sizes from. \"LINEAR\" only"
 msgstr "அனைத்து அளவுகளையும் கணக்கிடுவதற்கான சாய்வு (Slope). \"LINEAR\" மட்டும்"
+
+#, python-format
+msgid "The stored %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The stored %s expires in %s day (%s)."
+msgid_plural "The stored %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "The stored %s expires today at %s."
+msgstr ""
 
 msgid "The submitted payload failed validation."
 msgstr "சமர்ப்பிக்கப்பட்ட பேலோட் சரிபார்ப்பில் தோல்வியடைந்தது."
@@ -21287,6 +21444,11 @@ msgid ""
 msgstr ""
 "மெட்ரிக்கை சார்ட்டுகளுடன் இணைக்க இது தனித்துவ அடையாளங்காட்டியாகப் "
 "பயன்படுத்தப்படுகிறது."
+
+msgid ""
+"This file is not a supported dashboard export. Re-export the dashboard "
+"from a compatible Superset version, then retry with the new ZIP file."
+msgstr ""
 
 msgid "This filter already exist on the report"
 msgstr "இந்த வடிகட்டி அறிக்கையில் ஏற்கனவே உள்ளது"
@@ -24355,6 +24517,11 @@ msgstr "இந்தச் சார்ட்டை எடிட் செய்
 msgid "You do not have permission to edit this dashboard"
 msgstr "இந்தத் டாஷ்போர்டை எடிட் செய்ய உங்களுக்கு அனுமதி இல்லை"
 
+msgid ""
+"You do not have permission to import this asset. Ask its owner or an "
+"administrator for the required access, then retry."
+msgstr ""
+
 #, fuzzy
 msgid "You do not have permission to perform this operation"
 msgstr "இந்தச் சார்ட்டை எடிட் செய்ய உங்களுக்கு அனுமதி இல்லை"
@@ -25109,6 +25276,10 @@ msgstr "தரவுத்தள இணைப்புகள்"
 
 msgid "database"
 msgstr "தரவுத்தளம்"
+
+#, python-format
+msgid "database \"%(name)s\" (%(file)s)"
+msgstr ""
 
 #, fuzzy
 msgid "databases"

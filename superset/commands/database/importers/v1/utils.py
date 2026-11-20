@@ -27,7 +27,11 @@ from superset.commands.database.utils import (
     import_connection_identity_changed,
     ssh_tunnel_rebind_unsafe,
 )
-from superset.commands.exceptions import ImportFailedError, ImportRefusedError
+from superset.commands.exceptions import (
+    ForbiddenError,
+    ImportFailedError,
+    ImportRefusedError,
+)
 from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
 from superset.databases.schemas import (
     embedded_credentials_stranded,
@@ -252,7 +256,7 @@ def _sync_permissions_best_effort(database: Database) -> None:
     or OAuth2 failure rather than letting it fail the import.
     """
     try:
-        add_permissions(database)
+        add_permissions(database, commit=False)
     except (SupersetDBAPIError, OAuth2RedirectError) as ex:
         # ``add_permissions()`` calls ``get_all_catalog_names()`` outside of
         # its own per-catalog error handling, so any DBAPI error mapped from
@@ -286,7 +290,7 @@ def import_database(  # noqa: C901
             return existing
         config["id"] = existing.id
     elif not can_write:
-        raise ImportFailedError(
+        raise ForbiddenError(
             "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
         )
     incoming_extra = config.get("extra", {})

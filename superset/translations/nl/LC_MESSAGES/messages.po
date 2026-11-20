@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:13-0500\n"
+"POT-Creation-Date: 2026-11-20 04:48-0500\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -279,12 +279,6 @@ msgstr "% van rijtotaal"
 msgid "% of total"
 msgstr "Toon Totaal"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr "%(alertType)s \"%(alertName)s\" succesvol geactiveerd"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
@@ -319,6 +313,10 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "%(dialect)s kunnen om veiligheidsredenen niet als gegevensbron worden "
 "gebruikt."
+
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fr, it, ja, lv, mi, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn, ta, tr, uk]
@@ -412,6 +410,12 @@ msgid ""
 msgstr ""
 "%(prefix)sResultaten ingekort tot %(row_count)s rijen vanwege "
 "geheugenbeperkingen."
+
+#, python-format
+msgid ""
+"%(reason)s Ask the asset owner or an administrator for the required "
+"access, then retry."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -1348,6 +1352,12 @@ msgstr ""
 "een andere semantische weergave als doel heeft, verwijder deze grafiek "
 "dan uit het bereik ervan."
 
+msgid ""
+"A database operation failed. Test the destination database connection and"
+" check its credentials and permissions. If it still fails, contact an "
+"administrator with the reference below."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -1587,6 +1597,12 @@ msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr ""
 "Een verwijzing naar de [Time] configuratie, rekening houdend met "
 "granulariteit"
+
+msgid ""
+"A referenced database, schema, or table is unavailable. Check that it "
+"exists in the destination connection and that the database account can "
+"access it, then retry."
+msgstr ""
 
 #, python-format
 msgid "A report named \"%(name)s\" already exists"
@@ -2357,6 +2373,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Waarschuwing"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr ""
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "Waarschuwing geactiveerd, in grace periode"
 
@@ -3086,6 +3106,11 @@ msgstr "Er wordt al een export van dit dashboard uitgevoerd."
 
 msgid "An unexpected error occurred"
 msgstr "Een onverwachte fout is opgetreden"
+
+msgid ""
+"An unexpected error occurred. Contact an administrator with this "
+"reference and the time of the import."
+msgstr ""
 
 msgid "Anchor to"
 msgstr "Veranker naar"
@@ -4828,6 +4853,12 @@ msgstr "Bekijk deze grafiek: "
 msgid "Check out this dashboard: "
 msgstr "Kijk naar dit dashboard: "
 
+msgid ""
+"Check the import file and destination connection settings. If the problem"
+" continues, contact an administrator with the error and time of the "
+"import."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Check the value transform →"
@@ -6132,6 +6163,10 @@ msgstr "Kon niet alle opgeslagen grafieken ophalen"
 #, fuzzy, python-format
 msgid "Could not find %s"
 msgstr "Kan %s niet vinden"
+
+#, python-format
+msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -9991,11 +10026,13 @@ msgstr "Query-resultaten opslaan mislukt. Probeer het opnieuw."
 msgid "Failed to tag items"
 msgstr "Fout bij het taggen van items"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
-msgstr "%(alertType)s \"%(alertName)s\" activeren mislukt: %(error)s"
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "Bijwerken van rapport mislukt"
@@ -10779,6 +10816,9 @@ msgstr ""
 "Ga naar Recent gearchiveerd om gearchiveerde assets te herstellen en "
 "opnieuw te koppelen, of ze definitief te verwijderen, of vraag een "
 "beheerder om hulp."
+
+msgid "Go to Secure extra"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -12862,6 +12902,17 @@ msgid ""
 msgstr ""
 "Markeert grafieken die zijn gemaakt via het geografische MCP-contract, "
 "zodat Explore de validatiecontroles ervan behoudt."
+
+msgid ""
+"Marks the column as a time column for time range filters and time grains."
+" If the column type in the database is not a date or timestamp, set a "
+"Datetime format below: for strings it sets how time range filter values "
+"are written, and for epoch numbers (epoch_s, epoch_ms, epoch_us) it "
+"converts them to timestamps. A Datetime format does not convert a string "
+"column, so on some databases a time grain on it can fail or return wrong "
+"results; a calculated column that casts the value to a timestamp avoids "
+"this."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Opmaaktype(Markup type)"
@@ -15098,6 +15149,9 @@ msgstr "Bijwerken"
 msgid "Paste Private Key here"
 msgstr "Plak privésleutel hier"
 
+msgid "Paste a new token into Secure extra and click Finish."
+msgstr ""
+
 msgid "Paste content of service credentials JSON file here"
 msgstr "Plak de inhoud van het JSON-bestand met service inloggegevens hier"
 
@@ -15313,6 +15367,22 @@ msgstr "bewerk modus"
 msgid "Pivot Table"
 msgstr "Draaitabel"
 
+msgid ""
+"Pivot Table has too many rollup levels for a semantic view. Remove row or"
+" column dimensions and try again."
+msgstr ""
+
+msgid ""
+"Pivot Table level reached the row limit on a semantic view; it may be "
+"complete or truncated. Add filters or remove row or column dimensions and"
+" try again."
+msgstr ""
+
+msgid ""
+"Pivot Table pagination is not supported on semantic views. Clear the row "
+"offset and try again."
+msgstr ""
+
 msgid "Pivot operation must include at least one aggregate"
 msgstr "De pivotbewerking moet ten minste één aggregaat omvatten"
 
@@ -15460,9 +15530,6 @@ msgstr "Geef beide tijdgrenzen op (Vanaf en Tot)"
 
 msgid "Please re-enter the password."
 msgstr "Voer het wachtwoord opnieuw in."
-
-msgid "Please re-export your file and try importing again"
-msgstr "Exporteer uw bestand opnieuw en probeer opnieuw te importeren"
 
 msgid "Please reach out to the Chart Editor for assistance."
 msgid_plural "Please reach out to the Chart Editors for assistance."
@@ -15959,6 +16026,11 @@ msgstr "Ruwe records"
 msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
+msgid ""
+"Re-export the assets from a compatible Superset version, then retry with "
+"the new file."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -16348,6 +16420,10 @@ msgstr ""
 msgid "Report"
 msgstr "Rapport"
 
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Report Failed - All Retries Exhausted: %(name)s"
@@ -16736,6 +16812,11 @@ msgid_plural ""
 "dashboard. The charts themselves will not be deleted."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid ""
+"Result aggregation is not supported for Pivot Tables on semantic views. "
+"Set Aggregation function to \"Use metric definition\"."
+msgstr ""
 
 msgid "Results"
 msgstr "Resultaten"
@@ -19849,6 +19930,11 @@ msgstr "Superset ingesloten SDK documentatie."
 msgid "Superset chart"
 msgstr "Superset grafiek"
 
+msgid ""
+"Superset could not reach the database. Check the host, port, network "
+"access, and database availability, then retry the import."
+msgstr ""
+
 #, fuzzy
 msgid "Superset docs link"
 msgstr "Superset grafiek"
@@ -20414,6 +20500,12 @@ msgstr ""
 " biedt een duidelijke weergave van\n"
 "          waardeverdeling en -transformatie."
 
+msgid ""
+"The Snowflake connection could not be established. Check the account "
+"identifier, connection address, network access, and authentication "
+"settings, then retry the import."
+msgstr ""
+
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "De URL mist de dataset_id of slice_id parameters."
 
@@ -20468,9 +20560,22 @@ msgstr "De annotatie is opgeslagen"
 msgid "The annotation has been updated"
 msgstr "De annotatie is bijgewerkt"
 
+msgid ""
+"The asset configuration is invalid. Review this file's fields and "
+"references. Re-export the assets from a compatible Superset version, then"
+" retry with the new file."
+msgstr ""
+
 #, fuzzy
 msgid "The background color of the charts."
 msgstr "Voeg de naam van de grafiek toe"
+
+#, python-format
+msgid ""
+"The bundle is missing a %(asset_type)s required by an imported asset. Re-"
+"export the dashboard with its dependencies from a compatible Superset "
+"version, then retry."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -20675,11 +20780,32 @@ msgstr ""
 "De gegevens waarop deze versie is gebaseerd, zijn niet meer beschikbaar, "
 "dus er kan geen voorbeeld worden weergegeven"
 
+msgid ""
+"The database TLS connection failed. Ask an administrator to check the "
+"certificate and connection security settings, then retry."
+msgstr ""
+
+msgid ""
+"The database account does not have the required permissions. Ask a "
+"database administrator to grant access to the required database, schema, "
+"and tables, then retry."
+msgstr ""
+
 msgid "The database columns that contains lines information"
 msgstr "De database kolommen die regels met informatie bevatten"
 
+msgid ""
+"The database connection timed out. Check database availability and "
+"network access, then retry the import."
+msgstr ""
+
 msgid "The database could not be found"
 msgstr "De database kon niet worden gevonden"
+
+msgid ""
+"The database driver could not be loaded. Ask an administrator to install "
+"the required driver, then retry the import."
+msgstr ""
 
 msgid "The database is currently running too many queries."
 msgstr "De database draait momenteel te veel query's."
@@ -20693,6 +20819,17 @@ msgid ""
 msgstr ""
 "De database waarnaar verwezen wordt in deze query is niet gevonden. Neem "
 "contact op met een beheerder voor verdere hulp of probeer het opnieuw."
+
+msgid ""
+"The database rejected the connection credentials or required connection "
+"details are missing. Check the database authentication settings and test "
+"the connection, then retry the import."
+msgstr ""
+
+msgid ""
+"The database requires authorization. Open the database connection, sign "
+"in with its authentication provider, then retry the import."
+msgstr ""
 
 msgid "The database returned an unexpected error."
 msgstr "De database gaf een onverwachte foutmelding."
@@ -20752,6 +20889,12 @@ msgstr ""
 
 msgid "The dataset has been saved"
 msgstr "De dataset is opgeslagen"
+
+msgid ""
+"The dataset uses a catalog that this connection does not allow. Use the "
+"connection's default catalog, or ask an administrator to enable access to"
+" the required catalog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21650,6 +21793,20 @@ msgstr "De grootte van de vierkante cel, in pixels"
 #, fuzzy
 msgid "The slope to compute all sizes from. \"LINEAR\" only"
 msgstr "De helling waarmee alle groottes worden berekend. Alleen \"LINEAR\""
+
+#, python-format
+msgid "The stored %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The stored %s expires in %s day (%s)."
+msgid_plural "The stored %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "The stored %s expires today at %s."
+msgstr ""
 
 msgid "The submitted payload failed validation."
 msgstr "De ingezonden payload kon niet worden gevalideerd."
@@ -23009,6 +23166,11 @@ msgid ""
 msgstr ""
 "Dit veld wordt gebruikt als unieke id voor het koppelen van de metrieken "
 "aan de grafieken. Het wordt ook gebruikt als de alias in de SQL query."
+
+msgid ""
+"This file is not a supported dashboard export. Re-export the dashboard "
+"from a compatible Superset version, then retry with the new ZIP file."
+msgstr ""
 
 #, fuzzy
 msgid "This filter already exist on the report"
@@ -26344,6 +26506,11 @@ msgstr "U heeft geen toestemming om deze grafiek te bewerken"
 msgid "You do not have permission to edit this dashboard"
 msgstr "U hebt geen toestemming om dit dashboard te bewerken"
 
+msgid ""
+"You do not have permission to import this asset. Ask its owner or an "
+"administrator for the required access, then retry."
+msgstr ""
+
 #, fuzzy
 msgid "You do not have permission to perform this operation"
 msgstr "U heeft geen toestemming om deze grafiek te bewerken"
@@ -27136,6 +27303,10 @@ msgstr "Database Connecties"
 
 msgid "database"
 msgstr "database"
+
+#, python-format
+msgid "database \"%(name)s\" (%(file)s)"
+msgstr ""
 
 #, fuzzy
 msgid "databases"

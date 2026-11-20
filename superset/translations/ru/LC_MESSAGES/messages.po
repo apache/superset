@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:13-0500\n"
+"POT-Creation-Date: 2026-11-20 04:48-0500\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -253,12 +253,6 @@ msgstr "% от итога по строке"
 msgid "% of total"
 msgstr "% итого"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr "Запуск %(alertType)s «%(alertName)s» выполнен успешно"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
@@ -294,6 +288,10 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "%(dialect)s не может использоваться в качестве источника данных по "
 "соображениям безопасности"
+
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
 
 #, python-format
 msgid "%(label)s file"
@@ -384,6 +382,12 @@ msgid ""
 msgstr ""
 "%(prefix)sРезультаты усечены до %(row_count)s строк из-за ограничений "
 "памяти."
+
+#, python-format
+msgid ""
+"%(reason)s Ask the asset owner or an administrator for the required "
+"access, then retry."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -1307,6 +1311,12 @@ msgstr ""
 "сохранённые значения. Если он нацелен на другое семантическое "
 "представление, удалите эту диаграмму из его области действия."
 
+msgid ""
+"A database operation failed. Test the destination database connection and"
+" check its credentials and permissions. If it still fails, contact an "
+"administrator with the reference below."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "При подключении через туннель SSH нужно указать порт базы данных"
 
@@ -1533,6 +1543,12 @@ msgstr "Читаемый URL-адрес для дашборда"
 
 msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr "Ссылка на настройку [Время] с учетом периодичности"
+
+msgid ""
+"A referenced database, schema, or table is unavailable. Check that it "
+"exists in the destination connection and that the database account can "
+"access it, then retry."
+msgstr ""
 
 #, python-format
 msgid "A report named \"%(name)s\" already exists"
@@ -2240,6 +2256,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Оповещение"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr ""
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "Оповещение сработало во время перерыва"
 
@@ -2879,6 +2899,11 @@ msgstr "Экспорт этого дашборда уже выполняется
 
 msgid "An unexpected error occurred"
 msgstr "Произошла неожиданная ошибка"
+
+msgid ""
+"An unexpected error occurred. Contact an administrator with this "
+"reference and the time of the import."
+msgstr ""
 
 msgid "Anchor to"
 msgstr "Привязать к"
@@ -4477,6 +4502,12 @@ msgstr "Посмотреть диаграмму: "
 msgid "Check out this dashboard: "
 msgstr "Посмотреть дашборд: "
 
+msgid ""
+"Check the import file and destination connection settings. If the problem"
+" continues, contact an administrator with the error and time of the "
+"import."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Check the value transform →"
@@ -5662,6 +5693,10 @@ msgstr "Не удалось получить все сохраненные ди�
 #, fuzzy, python-format
 msgid "Could not find %s"
 msgstr "Не удалось найти %s"
+
+#, python-format
+msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
+msgstr ""
 
 msgid "Could not load SQL Lab"
 msgstr "Не удалось загрузить SQL Lab"
@@ -9148,11 +9183,13 @@ msgstr "Не удалось сохранить результаты запрос
 msgid "Failed to tag items"
 msgstr "Не удалось применить теги"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
-msgstr "Не удалось запустить %(alertType)s «%(alertName)s»: %(error)s"
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "Не удалось обновить отчет"
@@ -9856,6 +9893,9 @@ msgstr ""
 "Перейдите в раздел «Недавно архивированные», чтобы восстановить "
 "архивированные объекты и заново привязать их, либо удалить их навсегда, "
 "или обратитесь за помощью к администратору."
+
+msgid "Go to Secure extra"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11764,6 +11804,17 @@ msgid ""
 msgstr ""
 "Помечает диаграммы, созданные через географический контракт MCP, чтобы "
 "Explore сохранял их проверки валидации."
+
+msgid ""
+"Marks the column as a time column for time range filters and time grains."
+" If the column type in the database is not a date or timestamp, set a "
+"Datetime format below: for strings it sets how time range filter values "
+"are written, and for epoch numbers (epoch_s, epoch_ms, epoch_us) it "
+"converts them to timestamps. A Datetime format does not convert a string "
+"column, so on some databases a time grain on it can fail or return wrong "
+"results; a calculated column that casts the value to a timestamp avoids "
+"this."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Тип разметки"
@@ -13844,6 +13895,9 @@ msgstr "Вставить"
 msgid "Paste Private Key here"
 msgstr "Вставьте сюда приватный ключ"
 
+msgid "Paste a new token into Secure extra and click Finish."
+msgstr ""
+
 msgid "Paste content of service credentials JSON file here"
 msgstr "Скопировать и вставить JSON-файл сервисного аккаунта сюда"
 
@@ -14029,6 +14083,22 @@ msgstr "Режим сводной таблицы"
 msgid "Pivot Table"
 msgstr "Сводная таблица"
 
+msgid ""
+"Pivot Table has too many rollup levels for a semantic view. Remove row or"
+" column dimensions and try again."
+msgstr ""
+
+msgid ""
+"Pivot Table level reached the row limit on a semantic view; it may be "
+"complete or truncated. Add filters or remove row or column dimensions and"
+" try again."
+msgstr ""
+
+msgid ""
+"Pivot Table pagination is not supported on semantic views. Clear the row "
+"offset and try again."
+msgstr ""
+
 msgid "Pivot operation must include at least one aggregate"
 msgstr "Для операции pivot нужен хотя бы один агрегат"
 
@@ -14149,11 +14219,6 @@ msgstr "Укажите обе границы времени (С и По)"
 
 msgid "Please re-enter the password."
 msgstr "Пожалуйста, введите пароль еще раз"
-
-msgid "Please re-export your file and try importing again"
-msgstr ""
-"Пожалуйста, экспортируйте файл снова и попробуйте импортировать его еще "
-"раз"
 
 msgid "Please reach out to the Chart Editor for assistance."
 msgid_plural "Please reach out to the Chart Editors for assistance."
@@ -14625,6 +14690,11 @@ msgstr "Сырые записи"
 msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
+msgid ""
+"Re-export the assets from a compatible Superset version, then retry with "
+"the new file."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -14978,6 +15048,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "Отчет"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -15345,6 +15419,11 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+
+msgid ""
+"Result aggregation is not supported for Pivot Tables on semantic views. "
+"Set Aggregation function to \"Use metric definition\"."
+msgstr ""
 
 msgid "Results"
 msgstr "Результаты"
@@ -18148,6 +18227,11 @@ msgstr "Документация Superset Embedded SDK."
 msgid "Superset chart"
 msgstr "Диаграмма Superset"
 
+msgid ""
+"Superset could not reach the database. Check the host, port, network "
+"access, and database availability, then retry the import."
+msgstr ""
+
 msgid "Superset docs link"
 msgstr "Ссылка на документацию Superset"
 
@@ -18643,6 +18727,12 @@ msgstr ""
 "соответствующей меры,\n"
 "          что обеспечивает наглядность распределения значений."
 
+msgid ""
+"The Snowflake connection could not be established. Check the account "
+"identifier, connection address, network access, and authentication "
+"settings, then retry the import."
+msgstr ""
+
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "В URL отсутствуют параметры dataset_id или slice_id."
 
@@ -18692,8 +18782,21 @@ msgstr "Аннотация сохранена"
 msgid "The annotation has been updated"
 msgstr "Аннотация обновлена"
 
+msgid ""
+"The asset configuration is invalid. Review this file's fields and "
+"references. Re-export the assets from a compatible Superset version, then"
+" retry with the new file."
+msgstr ""
+
 msgid "The background color of the charts."
 msgstr "Цвет фона диаграмм."
+
+#, python-format
+msgid ""
+"The bundle is missing a %(asset_type)s required by an imported asset. Re-"
+"export the dashboard with its dependencies from a compatible Superset "
+"version, then retry."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -18866,11 +18969,32 @@ msgstr ""
 "Данные, на которых основана эта версия, больше недоступны, поэтому "
 "предварительный просмотр невозможен"
 
+msgid ""
+"The database TLS connection failed. Ask an administrator to check the "
+"certificate and connection security settings, then retry."
+msgstr ""
+
+msgid ""
+"The database account does not have the required permissions. Ask a "
+"database administrator to grant access to the required database, schema, "
+"and tables, then retry."
+msgstr ""
+
 msgid "The database columns that contains lines information"
 msgstr "Столбцы базы данных, содержащие информацию о линиях"
 
+msgid ""
+"The database connection timed out. Check database availability and "
+"network access, then retry the import."
+msgstr ""
+
 msgid "The database could not be found"
 msgstr "Не удалось найти базу данных"
+
+msgid ""
+"The database driver could not be loaded. Ask an administrator to install "
+"the required driver, then retry the import."
+msgstr ""
 
 msgid "The database is currently running too many queries."
 msgstr "В настоящий момент база данных обрабатывает слишком много запросов"
@@ -18884,6 +19008,17 @@ msgid ""
 msgstr ""
 "База данных, указанная в этом запросе, не найдена. Обратитесь к своему "
 "администратору или попробуйте еще раз."
+
+msgid ""
+"The database rejected the connection credentials or required connection "
+"details are missing. Check the database authentication settings and test "
+"the connection, then retry the import."
+msgstr ""
+
+msgid ""
+"The database requires authorization. Open the database connection, sign "
+"in with its authentication provider, then retry the import."
+msgstr ""
 
 msgid "The database returned an unexpected error."
 msgstr "База данных вернула неожиданную ошибку"
@@ -18934,6 +19069,12 @@ msgstr ""
 
 msgid "The dataset has been saved"
 msgstr "Датасет сохранен"
+
+msgid ""
+"The dataset uses a catalog that this connection does not allow. Use the "
+"connection's default catalog, or ask an administrator to enable access to"
+" the required catalog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19747,6 +19888,21 @@ msgid "The slope to compute all sizes from. \"LINEAR\" only"
 msgstr ""
 "Наклон, используемый для вычисления всех размеров. Доступно только для "
 "\"LINEAR\""
+
+#, python-format
+msgid "The stored %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The stored %s expires in %s day (%s)."
+msgid_plural "The stored %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "The stored %s expires today at %s."
+msgstr ""
 
 msgid "The submitted payload failed validation."
 msgstr "Не удалось проверить формат загруженных данных"
@@ -20997,6 +21153,11 @@ msgid ""
 msgstr ""
 "Это поле используется как уникальный идентификатор меры при добавлении ее"
 " на диаграммы. Также оно используется в качестве алиаса в SQL-запросе."
+
+msgid ""
+"This file is not a supported dashboard export. Re-export the dashboard "
+"from a compatible Superset version, then retry with the new ZIP file."
+msgstr ""
 
 msgid "This filter already exist on the report"
 msgstr "Этот фильтр уже существует в отчете"
@@ -24060,6 +24221,11 @@ msgstr "Недостаточно прав на редактирование эт
 msgid "You do not have permission to edit this dashboard"
 msgstr "Недостаточно на редактирование этого дашборда"
 
+msgid ""
+"You do not have permission to import this asset. Ask its owner or an "
+"administrator for the required access, then retry."
+msgstr ""
+
 msgid "You do not have permission to perform this operation"
 msgstr "Недостаточно прав на выполнение этой операции"
 
@@ -24800,6 +24966,10 @@ msgstr "подключения"
 
 msgid "database"
 msgstr "база данных"
+
+#, python-format
+msgid "database \"%(name)s\" (%(file)s)"
+msgstr ""
 
 msgid "databases"
 msgstr "базы данных"

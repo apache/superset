@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 17:13-0500\n"
+"POT-Creation-Date: 2026-11-20 04:48-0500\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -282,12 +282,6 @@ msgstr "% ukupne vrednosti reda"
 msgid "% of total"
 msgstr "% od ukupnog"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr "%(alertType)s „%(alertName)s“ je uspešno pokrenut"
-
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
@@ -324,6 +318,10 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "%(dialect)s ne može da se koristi kao izvor podataka iz bezbednosnih "
 "razloga."
+
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 #, python-format
@@ -418,6 +416,12 @@ msgid ""
 msgstr ""
 "%(prefix)sRezultati su skraćeni na %(row_count)s redova zbog ograničenja "
 "memorije."
+
+#, python-format
+msgid ""
+"%(reason)s Ask the asset owner or an administrator for the required "
+"access, then retry."
+msgstr ""
 
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
@@ -1466,6 +1470,12 @@ msgstr ""
 "sačuvane vrednosti. Ako cilja drugi semantički pogled, uklonite ovaj "
 "dijagram iz njegovog opsega."
 
+msgid ""
+"A database operation failed. Test the destination database connection and"
+" check its credentials and permissions. If it still fails, contact an "
+"administrator with the reference below."
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Port baze podataka je obavezan pri povezivanju preko SSH tunela."
@@ -1716,6 +1726,12 @@ msgstr "Čitljiv URL za vašu kontrolnu tablu"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr "Referenca na [Time] konfiguraciju, uzimajući u obzir granularnost"
+
+msgid ""
+"A referenced database, schema, or table is unavailable. Check that it "
+"exists in the destination connection and that the database account can "
+"access it, then retry."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
@@ -2566,6 +2582,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Upozorenje"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Alert Triggered, In Grace Period"
 msgstr "Upozorenje aktivirano, u periodu tolerancije"
@@ -3343,6 +3363,11 @@ msgstr "Izvoz za ovu kontrolnu tablu je već u toku."
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "An unexpected error occurred"
 msgstr "Došlo je do neočekivane greške"
+
+msgid ""
+"An unexpected error occurred. Contact an administrator with this "
+"reference and the time of the import."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Anchor to"
@@ -5282,6 +5307,12 @@ msgstr "Pogledajte ovaj grafikon: "
 msgid "Check out this dashboard: "
 msgstr "Pogledajte ovu kontrolnu tablu: "
 
+msgid ""
+"Check the import file and destination connection settings. If the problem"
+" continues, contact an administrator with the error and time of the "
+"import."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Check the value transform →"
@@ -6690,6 +6721,10 @@ msgstr "Nije moguće preuzeti sve sačuvane grafikone"
 #, fuzzy, python-format
 msgid "Could not find %s"
 msgstr "Nije moguće pronaći %s"
+
+#, python-format
+msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -10889,11 +10924,13 @@ msgstr "Neuspelo čuvanje rezultata upita. Pokušajte ponovo."
 msgid "Failed to tag items"
 msgstr "Neuspelo označavanje stavki"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
-# ja, pt, pt_BR, sl, zh]
-#, fuzzy, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
-msgstr "Pokretanje %(alertType)s „%(alertName)s“ nije uspelo: %(error)s"
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Failed to update report"
@@ -11727,6 +11764,9 @@ msgid ""
 msgstr ""
 "Idite na Nedavno arhivirano da biste vratili i ponovo povezali arhivirane"
 " resurse, ili ih trajno obrisali, ili zatražite pomoć od administratora."
+
+msgid "Go to Secure extra"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13987,6 +14027,17 @@ msgid ""
 msgstr ""
 "Označava grafikone kreirane preko MCP geografskog ugovora kako bi Explore"
 " zadržao njihove provere validacije."
+
+msgid ""
+"Marks the column as a time column for time range filters and time grains."
+" If the column type in the database is not a date or timestamp, set a "
+"Datetime format below: for strings it sets how time range filter values "
+"are written, and for epoch numbers (epoch_s, epoch_ms, epoch_us) it "
+"converts them to timestamps. A Datetime format does not convert a string "
+"column, so on some databases a time grain on it can fail or return wrong "
+"results; a calculated column that casts the value to a timestamp avoids "
+"this."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Tip markup-a"
@@ -16441,6 +16492,9 @@ msgstr "Nalepi"
 msgid "Paste Private Key here"
 msgstr "Nalepite privatni ključ ovde"
 
+msgid "Paste a new token into Secure extra and click Finish."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Paste content of service credentials JSON file here"
 msgstr "Nalepite ovde sadržaj JSON datoteke sa akreditivima servisa"
@@ -16667,6 +16721,22 @@ msgstr "Pivot režim"
 msgid "Pivot Table"
 msgstr "Pivot tabela"
 
+msgid ""
+"Pivot Table has too many rollup levels for a semantic view. Remove row or"
+" column dimensions and try again."
+msgstr ""
+
+msgid ""
+"Pivot Table level reached the row limit on a semantic view; it may be "
+"complete or truncated. Add filters or remove row or column dimensions and"
+" try again."
+msgstr ""
+
+msgid ""
+"Pivot Table pagination is not supported on semantic views. Clear the row "
+"offset and try again."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Pivot operation must include at least one aggregate"
 msgstr "Pivot operacija mora sadržati najmanje jednu agregaciju"
@@ -16817,10 +16887,6 @@ msgstr "Navedite obe vremenske granice (Od i Do)"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Please re-enter the password."
 msgstr "Ponovo unesite lozinku."
-
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-msgid "Please re-export your file and try importing again"
-msgstr "Ponovo izvezite svoju datoteku i pokušajte da je uvezete"
 
 msgid "Please reach out to the Chart Editor for assistance."
 msgid_plural "Please reach out to the Chart Editors for assistance."
@@ -17408,6 +17474,11 @@ msgstr "Sirovi zapisi"
 msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
+msgid ""
+"Re-export the assets from a compatible Superset version, then retry with "
+"the new file."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -17811,6 +17882,10 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Report"
 msgstr "Izveštaj"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -18237,6 +18312,11 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+
+msgid ""
+"Result aggregation is not supported for Pivot Tables on semantic views. "
+"Set Aggregation function to \"Use metric definition\"."
+msgstr ""
 
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -21613,6 +21693,11 @@ msgstr "Dokumentacija za Superset Embedded SDK."
 msgid "Superset chart"
 msgstr "Superset grafikon"
 
+msgid ""
+"Superset could not reach the database. Check the host, port, network "
+"access, and database availability, then retry the import."
+msgstr ""
+
 # ru, sk, uk]
 msgid "Superset docs link"
 msgstr "Veza do Superset dokumentacije"
@@ -22189,6 +22274,12 @@ msgstr ""
 "          čvora odgovara prikazanoj meri, pružajući jasan prikaz\n"
 "          raspodele i transformacije vrednosti."
 
+msgid ""
+"The Snowflake connection could not be established. Check the account "
+"identifier, connection address, network access, and authentication "
+"settings, then retry the import."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "URL adresi nedostaju parametri dataset_id ili slice_id."
@@ -22244,9 +22335,22 @@ msgstr "Anotacija je sačuvana"
 msgid "The annotation has been updated"
 msgstr "Anotacija je ažurirana"
 
+msgid ""
+"The asset configuration is invalid. Review this file's fields and "
+"references. Re-export the assets from a compatible Superset version, then"
+" retry with the new file."
+msgstr ""
+
 # ja, lv, mi, ru, sk, uk]
 msgid "The background color of the charts."
 msgstr "Boja pozadine grafikona."
+
+#, python-format
+msgid ""
+"The bundle is missing a %(asset_type)s required by an imported asset. Re-"
+"export the dashboard with its dependencies from a compatible Superset "
+"version, then retry."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -22446,13 +22550,34 @@ msgstr ""
 "Podaci na kojima je ova verzija napravljena više nisu dostupni, pa "
 "pregled nije moguć"
 
+msgid ""
+"The database TLS connection failed. Ask an administrator to check the "
+"certificate and connection security settings, then retry."
+msgstr ""
+
+msgid ""
+"The database account does not have the required permissions. Ask a "
+"database administrator to grant access to the required database, schema, "
+"and tables, then retry."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "The database columns that contains lines information"
 msgstr "Kolone baze podataka koje sadrže informacije o linijama"
 
+msgid ""
+"The database connection timed out. Check database availability and "
+"network access, then retry the import."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "The database could not be found"
 msgstr "Baza podataka nije pronađena"
+
+msgid ""
+"The database driver could not be loaded. Ask an administrator to install "
+"the required driver, then retry the import."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The database is currently running too many queries."
@@ -22469,6 +22594,17 @@ msgid ""
 msgstr ""
 "Baza podataka na koju se odnosi ovaj upit nije pronađena. Kontaktirajte "
 "administratora za dalju pomoć ili pokušajte ponovo."
+
+msgid ""
+"The database rejected the connection credentials or required connection "
+"details are missing. Check the database authentication settings and test "
+"the connection, then retry the import."
+msgstr ""
+
+msgid ""
+"The database requires authorization. Open the database connection, sign "
+"in with its authentication provider, then retry the import."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The database returned an unexpected error."
@@ -22528,6 +22664,12 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The dataset has been saved"
 msgstr "Skup podataka je sačuvan"
+
+msgid ""
+"The dataset uses a catalog that this connection does not allow. Use the "
+"connection's default catalog, or ask an administrator to enable access to"
+" the required catalog."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23419,6 +23561,21 @@ msgstr "Veličina kvadratne ćelije, u pikselima"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "The slope to compute all sizes from. \"LINEAR\" only"
 msgstr "Nagib na osnovu kojeg se računaju sve veličine. Samo za \"LINEAR\""
+
+#, python-format
+msgid "The stored %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The stored %s expires in %s day (%s)."
+msgid_plural "The stored %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "The stored %s expires today at %s."
+msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "The submitted payload failed validation."
@@ -24803,6 +24960,11 @@ msgid ""
 msgstr ""
 "Ovo polje se koristi kao jedinstveni identifikator za povezivanje metrike"
 " sa grafikonima. Takođe se koristi kao alijas u SQL upitu."
+
+msgid ""
+"This file is not a supported dashboard export. Re-export the dashboard "
+"from a compatible Superset version, then retry with the new ZIP file."
+msgstr ""
 
 # uk]
 msgid "This filter already exist on the report"
@@ -28367,6 +28529,11 @@ msgstr "Nemate dozvolu da uređujete ovaj grafikon"
 msgid "You do not have permission to edit this dashboard"
 msgstr "Nemate dozvolu da uređujete ovu kontrolnu tablu"
 
+msgid ""
+"You do not have permission to import this asset. Ask its owner or an "
+"administrator for the required access, then retry."
+msgstr ""
+
 msgid "You do not have permission to perform this operation"
 msgstr "Nemate dozvolu za izvršavanje ove operacije"
 
@@ -29221,6 +29388,10 @@ msgstr "veze sa podacima"
 # zh, zh_TW]
 msgid "database"
 msgstr "baza podataka"
+
+#, python-format
+msgid "database \"%(name)s\" (%(file)s)"
+msgstr ""
 
 msgid "databases"
 msgstr "baze podataka"
