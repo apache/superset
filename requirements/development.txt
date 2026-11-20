@@ -452,7 +452,7 @@ grpcio==1.85.1
     #   ydb
 grpcio-status==1.60.1
     # via google-api-core
-gunicorn==26.2.0
+gunicorn==27.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
