@@ -405,8 +405,8 @@
     "last 3 edge versions"
   ],
   "engines": {
-    "node": "^24.16.0",
-    "npm": "^11.13.0"
+    "node": "^24.22.3",
+    "npm": "^11.19.1"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
