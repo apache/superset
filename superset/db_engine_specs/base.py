@@ -59,6 +59,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
 from sqlalchemy.sql.expression import (
     BinaryExpression,
+    ClauseElement,
     ColumnClause,
     ColumnElement,
     Select,
@@ -171,7 +172,11 @@ TIME_LIMIT_EXCEPTIONS = (
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
     result_set_columns: list[ResultSetColumnType] = []
     for col in cols:
-        result_set_columns.append({"column_name": col.get("name"), **col})  # type: ignore
+        values = {
+            key: str(value) if isinstance(value, ClauseElement) else value
+            for key, value in col.items()
+        }
+        result_set_columns.append({"column_name": col.get("name"), **values})  # type: ignore
     return result_set_columns
 
 
@@ -3540,8 +3545,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         Each hint has the field `path`, a human `label` and the last `length`
         characters of the stored value as `suffix` (``None`` when the value is too
-        short to reveal any). Returns an empty list when `encrypted_extra` is
-        missing or malformed, or when `length` is not positive.
+        short to reveal any). A JWT also gets `expires_at` and `expired` from its
+        `exp` claim, ``None`` otherwise. Returns an empty list when `encrypted_extra`
+        is missing or malformed, or when `length` is not positive.
         """
         if encrypted_extra is None or length <= 0:
             return []
