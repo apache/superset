@@ -24,6 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **OAuth login with a single provider:** when `OAUTH_PROVIDERS` contains exactly
+  one provider, the login page now skips the provider choice and redirects
+  straight to that provider's sign-in. After logout, users land on the login page
+  and are redirected to the provider again, which may sign them straight back in
+  while their provider session is active. Set `LOGOUT_REDIRECT_URL` (or override
+  `logout` in a custom OAuth view) to send users elsewhere or end the provider
+  session.
+
 - Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
   the caller cannot view it, rather than treating an access-filtered dashboard
   as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
