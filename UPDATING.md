@@ -46,6 +46,13 @@ assists people when migrating to a new version.
   Canvases are behind the `CANVAS` feature flag, so deployments with the flag
   off are unaffected.
 
+- **`build_configuration_schema` reads a `field_order` class attribute.** A
+  configuration model (or a nested model in its `$defs`) that declares
+  `field_order: ClassVar[list[str]]` has its properties rendered in that order,
+  and the builder raises `ValueError` unless the list is an exact permutation of
+  the model's properties. Models without the attribute are unchanged; rename an
+  unrelated attribute that happens to use the name.
+
 - **`AFTER_ASSET_CREATE` now also fires for canvases.** The hook's `asset_type`
   argument can be `"canvas"` as well as `"chart"` and `"dashboard"`, and a
   canvas has neither `slice_name` nor `dashboard_title` — its name is `title`.
