@@ -254,53 +254,35 @@ def test_a_filter_on_another_temporal_dimension_bounds_that_dimension(
 
 
 @freeze_time(NOW)
-@pytest.mark.usefixtures("full_api_access", "flag_on")
-@pytest.mark.parametrize("offset,status", [("1 year ago", 200), ("2 years ago", 400)])
-def test_a_time_comparison_is_judged_as_the_mapper_shifts_it(
+@pytest.mark.usefixtures("full_api_access", "flag_on", "look_back_30")
+@pytest.mark.parametrize(
+    "columns,filters,offset",
+    [
+        ([X_AXIS], [tr("order_date", RECENT)], "1 year ago"),
+        ([X_AXIS], [tr("order_date", RECENT)], "2 years ago"),
+        (
+            None,
+            [tr("order_date", RECENT), tr("ship_date", "2026-10-08 : 2026-10-31")],
+            "1 week ago",
+        ),
+    ],
+    ids=["within-limits", "beyond-limits", "not-a-time-series"],
+)
+def test_a_time_comparison_is_refused_before_the_limits_are_checked(
     client: FlaskClient,
     timed_view: TimedOrdersView,
-    mocker: MockerFixture,
+    columns: list[Any] | None,
+    filters: list[dict[str, Any]],
     offset: str,
-    status: int,
 ) -> None:
-    mocker.patch.dict(
-        current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": policy(back=400)}
-    )
-    response = client.post(
-        "/api/v1/chart/data",
-        json=body(
-            columns=[X_AXIS],
-            filters=[tr("order_date", RECENT)],
-            time_offsets=[offset],
-        ),
-    )
-    assert response.status_code == status, response.json
-    if status == 400:
-        assert reason(response) == "MAX_LOOK_BACK_EXCEEDED"
-        assert timed_view.queries == []
-    else:
-        assert "order_date >= 2025-10-20 00:00:00" in timed_view.provider_filters()
-
-
-@freeze_time(NOW)
-@pytest.mark.usefixtures("full_api_access", "flag_on", "look_back_30")
-def test_a_comparison_that_is_not_a_time_series_shifts_the_other_filters(
-    client: FlaskClient, timed_view: TimedOrdersView
-) -> None:
-    response = client.post(
-        "/api/v1/chart/data",
-        json=body(
-            filters=[
-                tr("order_date", RECENT),
-                tr("ship_date", "2026-10-08 : 2026-10-31"),
-            ],
-            time_offsets=["1 week ago"],
-        ),
-    )
+    query: dict[str, Any] = {"filters": filters, "time_offsets": [offset]}
+    if columns is not None:
+        query["columns"] = columns
+    response = client.post("/api/v1/chart/data", json=body(**query))
     assert response.status_code == 400, response.json
     error = response.json["errors"][0]
-    assert error["extra"]["reason_code"] == "MAX_LOOK_BACK_EXCEEDED"
-    assert error["extra"]["time_offset"] == "1 week ago"
+    assert "Time comparison is not yet supported" in error["message"]
+    assert "reason_code" not in error.get("extra", {})
     assert timed_view.queries == []
 
 

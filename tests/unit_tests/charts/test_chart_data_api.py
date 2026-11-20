@@ -161,6 +161,7 @@ def test_should_run_async_gates_on_effective_query_result_type(
     qc.result_format = ChartDataResultFormat.JSON
     qc.result_type = ChartDataResultType.FULL
     qc.get_cache_timeout.return_value = 300
+    qc.limit_value_list_window = False
     # A query without its own result type inherits the context's.
     qc.queries = [MagicMock(result_type=rt) for rt in query_result_types]
 

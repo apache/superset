@@ -2746,8 +2746,6 @@ def test_time_comparison_reshifts_are_combined(
     filters: list[dict[str, Any]],
     datetime_index: bool,
 ) -> None:
-    from superset.commands.chart.exceptions import TimeRangeParseFailError
-
     set_limits(mocker, policy(max_span=(90, "P1D")))
     context = combined_context(
         filters,
@@ -2758,7 +2756,7 @@ def test_time_comparison_reshifts_are_combined(
 
     query = offset_query(mocker, dataset, context.queries[0], datetime_index)
     if not datetime_index and filters[0]["val"] == "No filter":
-        with pytest.raises(TimeRangeParseFailError):
+        with pytest.raises(QueryObjectValidationError):
             sql_overlap(dataset, query)
         return
     checked = [r[:2] for r in ranges_of(context) if r[2] == "1 year ago"]
