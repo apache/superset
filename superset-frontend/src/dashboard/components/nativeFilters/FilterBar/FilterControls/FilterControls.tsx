@@ -580,6 +580,65 @@ const FilterControls: FC<FilterControlsProps> = ({
     dataMaskSelected,
   ]);
 
+  const renderDropdownContent = useCallback(
+    (overflowedItems: DropdownItem[]) => {
+      // Which ids are overflowed comes from DropdownContainer's own fresh,
+      // synchronous partition of `items` (the argument it passes here), not
+      // from `overflowedIds` state — that state only updates one render later
+      // via onOverflowingStateChange, so using it here could show a filter
+      // that DropdownContainer's *own* main row, computed this same render,
+      // has already stopped excluding (duplicate chip).
+      const overflowedItemIds = new Set(overflowedItems.map(item => item.id));
+      const freshOverflowedFiltersInScope = filtersInScope.filter(({ id }) =>
+        overflowedItemIds.has(id),
+      );
+      const freshOverflowedCrossFilters = selectedCrossFilters.filter(
+        ({ emitterId, name }) => overflowedItemIds.has(`${name}${emitterId}`),
+      );
+      const freshOverflowedCustomizationsInScope = customizationsInScope.filter(
+        ({ id }) => overflowedItemIds.has(`chart-customization-${id}`),
+      );
+      return (
+        <>
+          <FiltersDropdownContent
+            overflowedCrossFilters={freshOverflowedCrossFilters}
+            filtersInScope={freshOverflowedFiltersInScope}
+            filtersOutOfScope={filtersOutOfScope}
+            overflowedCustomizationsInScope={
+              freshOverflowedCustomizationsInScope
+            }
+            renderer={renderer}
+            rendererCrossFilter={rendererCrossFilter}
+            customizationRenderer={customizationRenderer}
+            showCollapsePanel={showCollapsePanel}
+            // Out-of-scope collapsible panels inside opened dropdown content
+            forceRenderOutOfScope={hasRequiredFirst}
+          />
+          {showCustomizationCollapsePanel && (
+            <CustomizationsOutOfScopeCollapsible
+              customizationsOutOfScope={customizationsOutOfScope}
+              renderer={customizationRenderer}
+              forceRender={false}
+            />
+          )}
+        </>
+      );
+    },
+    [
+      filtersInScope,
+      selectedCrossFilters,
+      customizationsInScope,
+      filtersOutOfScope,
+      renderer,
+      rendererCrossFilter,
+      customizationRenderer,
+      showCollapsePanel,
+      hasRequiredFirst,
+      showCustomizationCollapsePanel,
+      customizationsOutOfScope,
+    ],
+  );
+
   const renderHorizontalContent = useCallback(
     () => (
       <div
@@ -619,54 +678,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             overflowedCustomizationsInScope.length ||
             (filtersOutOfScope.length && showCollapsePanel) ||
             (customizationsOutOfScope.length && showCustomizationCollapsePanel)
-              ? (overflowedItems: DropdownItem[]) => {
-                  // Which ids are overflowed comes from DropdownContainer's own
-                  // fresh, synchronous partition of `items` (the argument it
-                  // passes here), not from `overflowedIds` state — that state
-                  // only updates one render later via onOverflowingStateChange,
-                  // so using it here could show a filter here that
-                  // DropdownContainer's *own* main row, computed this same
-                  // render, has already stopped excluding (duplicate chip).
-                  const overflowedItemIds = new Set(
-                    overflowedItems.map(item => item.id),
-                  );
-                  const freshOverflowedFiltersInScope = filtersInScope.filter(
-                    ({ id }) => overflowedItemIds.has(id),
-                  );
-                  const freshOverflowedCrossFilters =
-                    selectedCrossFilters.filter(({ emitterId, name }) =>
-                      overflowedItemIds.has(`${name}${emitterId}`),
-                    );
-                  const freshOverflowedCustomizationsInScope =
-                    customizationsInScope.filter(({ id }) =>
-                      overflowedItemIds.has(`chart-customization-${id}`),
-                    );
-                  return (
-                    <>
-                      <FiltersDropdownContent
-                        overflowedCrossFilters={freshOverflowedCrossFilters}
-                        filtersInScope={freshOverflowedFiltersInScope}
-                        filtersOutOfScope={filtersOutOfScope}
-                        overflowedCustomizationsInScope={
-                          freshOverflowedCustomizationsInScope
-                        }
-                        renderer={renderer}
-                        rendererCrossFilter={rendererCrossFilter}
-                        customizationRenderer={customizationRenderer}
-                        showCollapsePanel={showCollapsePanel}
-                        // Out-of-scope collapsible panels inside opened dropdown content
-                        forceRenderOutOfScope={hasRequiredFirst}
-                      />
-                      {showCustomizationCollapsePanel && (
-                        <CustomizationsOutOfScopeCollapsible
-                          customizationsOutOfScope={customizationsOutOfScope}
-                          renderer={customizationRenderer}
-                          forceRender={false}
-                        />
-                      )}
-                    </>
-                  );
-                }
+              ? renderDropdownContent
               : undefined
           }
           ref={popoverRef}
@@ -690,17 +702,11 @@ const FilterControls: FC<FilterControlsProps> = ({
       overflowedFiltersInScope,
       overflowedCrossFilters,
       overflowedCustomizationsInScope,
-      filtersInScope,
-      selectedCrossFilters,
-      customizationsInScope,
       filtersOutOfScope,
       showCollapsePanel,
       customizationsOutOfScope,
       showCustomizationCollapsePanel,
-      customizationRenderer,
-      renderer,
-      rendererCrossFilter,
-      hasRequiredFirst,
+      renderDropdownContent,
       overflowedIds,
     ],
   );
