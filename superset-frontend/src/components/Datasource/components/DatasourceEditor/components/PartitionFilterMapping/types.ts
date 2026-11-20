@@ -85,6 +85,7 @@ export interface PartitionMappingPreview {
     | 'escaping'
     | 'transform_escaping'
     | 'unsaved'
+    | 'null_result'
     | 'engine'
     | 'type'
     | 'unconfigured';

@@ -160,6 +160,16 @@ positive `series_limit` and no series columns run without a series limit.
 Timeseries queries with metrics and at least one `columns` value infer series
 columns from `columns` and keep the limit.
 
+Pivot Table queries on semantic views use a bounded Cell limit and at most nine
+rollup levels. Two row dimensions and two column dimensions with totals and
+subtotals can need nine levels; requests needing more levels are refused. If a
+level reaches the limit, the chart refuses it even when that level may be
+complete, because it cannot confirm whether more rows exist. Add filters or
+remove dimensions.
+
+Date rows and columns can use a supported Time Grain. Custom SQL dimensions,
+saved row offsets, and result aggregation remain unsupported for semantic views.
+
 To save the visualization, click on **Save** in the top left of the screen. In the following modal,
 
 - Select the **Save as**
@@ -297,6 +307,10 @@ Once you’re done, publish the chart in your Tutorial Dashboard.
 
 Graph charts display SQL `NULL` categories as `<NULL>` and the literal string `<NULL>` as
 `"<NULL>"`, with independently selectable legend entries.
+
+Treemap tooltips display SQL `NULL` dimensions as `<NULL>`, including in nested
+hierarchies. Dimension names containing angle brackets or ampersands are shown
+as literal text in the tooltip title.
 
 ### Markup
 
@@ -503,6 +517,14 @@ Time ranges include the start timestamp and exclude the end timestamp. If both
 endpoints resolve to the same timestamp, the picker warns that the range is empty;
 you can still apply it. To include a full day, use midnight on that day as the
 start and midnight on the following day as the end.
+
+### Drill By Categories in Mixed Charts
+
+On a Mixed Timeseries chart with a categorical x-axis, **Drill by** keeps the
+clicked category for the selected query (A or B), for datasets and semantic views.
+If the point also belongs to a series group, both filters apply by default; the
+scope selector lets you choose the category or the series instead. The other
+query's controls and cross-filter behavior are unchanged.
 
 ### Drill By Time Buckets
 

@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 04:39+0000\n"
+"POT-Creation-Date: 2026-11-20 08:54+1100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -179,10 +179,6 @@ msgid "% of total"
 msgstr ""
 
 #, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr ""
-
-#, python-format
 msgid "%(column)s is an array column, which cannot be compared against the single value a transform returns. Mirrored filters on this mapping would fail at the database. Map a scalar partition column instead."
 msgstr ""
 
@@ -206,6 +202,10 @@ msgstr ""
 
 #, python-format
 msgid "%(engine)s doesn't support partition filter mapping, so charts won't mirror filters onto the partition column."
+msgstr ""
+
+#, python-format
+msgid "%(file)s (database \"%(name)s\")"
 msgstr ""
 
 #, python-format
@@ -268,6 +268,10 @@ msgstr ""
 
 #, python-format
 msgid "%(prefix)sResults truncated to %(row_count)s rows due to memory constraints."
+msgstr ""
+
+#, python-format
+msgid "%(reason)s Ask the asset owner or an administrator for the required access, then retry."
 msgstr ""
 
 #, python-format
@@ -984,6 +988,9 @@ msgstr ""
 msgid "A dashboard filter or display control has incompatible semantic selections. Dynamic group-by is unsupported on versioned semantic views; remove this chart from that control's scope. For other filters or controls, reset and reselect fields or saved values. If it targets another semantic view, remove this chart from its scope."
 msgstr ""
 
+msgid "A database operation failed. Test the destination database connection and check its credentials and permissions. If it still fails, contact an administrator with the reference below."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr ""
 
@@ -1097,6 +1104,9 @@ msgid "A readable URL for your dashboard"
 msgstr ""
 
 msgid "A reference to the [Time] configuration, taking granularity into account"
+msgstr ""
+
+msgid "A referenced database, schema, or table is unavailable. Check that it exists in the destination connection and that the database account can access it, then retry."
 msgstr ""
 
 #, python-format
@@ -1641,6 +1651,10 @@ msgstr ""
 msgid "Alert"
 msgstr ""
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr ""
+
 msgid "Alert Triggered, In Grace Period"
 msgstr ""
 
@@ -2154,6 +2168,9 @@ msgid "An export for this dashboard is already in progress."
 msgstr ""
 
 msgid "An unexpected error occurred"
+msgstr ""
+
+msgid "An unexpected error occurred. Contact an administrator with this reference and the time of the import."
 msgstr ""
 
 msgid "Anchor to"
@@ -3434,6 +3451,9 @@ msgstr ""
 msgid "Check out this dashboard: "
 msgstr ""
 
+msgid "Check the import file and destination connection settings. If the problem continues, contact an administrator with the error and time of the import."
+msgstr ""
+
 msgid "Check the value transform →"
 msgstr ""
 
@@ -4375,6 +4395,10 @@ msgstr ""
 
 #, python-format
 msgid "Could not find %s"
+msgstr ""
+
+#, python-format
+msgid "Could not import %(asset)s. %(recovery)s Reference: %(reference)s"
 msgstr ""
 
 msgid "Could not load SQL Lab"
@@ -6776,10 +6800,6 @@ msgstr ""
 msgid "Explore"
 msgstr ""
 
-#, python-format
-msgid "Explore - %(table)s"
-msgstr ""
-
 msgid "Explore the result set in the data exploration view"
 msgstr ""
 
@@ -6975,6 +6995,10 @@ msgstr ""
 msgid "Failed to create API key"
 msgstr ""
 
+#, python-format
+msgid "Failed to create API key: %s"
+msgstr ""
+
 msgid "Failed to create a new chart from this version"
 msgstr ""
 
@@ -7120,7 +7144,11 @@ msgid "Failed to tag items"
 msgstr ""
 
 #, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
 msgstr ""
 
 msgid "Failed to update report"
@@ -7832,6 +7860,9 @@ msgstr ""
 msgid "Histogram"
 msgstr ""
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr ""
 
@@ -8029,6 +8060,9 @@ msgid "In this view you can preview the first 25 rows. "
 msgstr ""
 
 msgid "Inactive"
+msgstr ""
+
+msgid "Include :value in the transform to represent the filter value."
 msgstr ""
 
 msgid "Include Series"
@@ -10695,6 +10729,9 @@ msgstr ""
 msgid "Page navigation"
 msgstr ""
 
+msgid "Page not found"
+msgstr ""
+
 msgid "Paired t-test Table"
 msgstr ""
 
@@ -10956,6 +10993,15 @@ msgstr ""
 msgid "Pivot Table"
 msgstr ""
 
+msgid "Pivot Table has too many rollup levels for a semantic view. Remove row or column dimensions and try again."
+msgstr ""
+
+msgid "Pivot Table level reached the row limit on a semantic view; it may be complete or truncated. Add filters or remove row or column dimensions and try again."
+msgstr ""
+
+msgid "Pivot Table pagination is not supported on semantic views. Clear the row offset and try again."
+msgstr ""
+
 msgid "Pivot operation must include at least one aggregate"
 msgstr ""
 
@@ -11046,9 +11092,6 @@ msgid "Please provide both time bounds (Since and Until)"
 msgstr ""
 
 msgid "Please re-enter the password."
-msgstr ""
-
-msgid "Please re-export your file and try importing again"
 msgstr ""
 
 msgid "Please reach out to the Chart Editor for assistance."
@@ -11202,6 +11245,9 @@ msgid "Preserves the generated dashboard-time predicate subject through Explore 
 msgstr ""
 
 msgid "Preview"
+msgstr ""
+
+msgid "Preview temporarily unavailable"
 msgstr ""
 
 msgid "Preview this version"
@@ -11453,6 +11499,9 @@ msgid "Raw records"
 msgstr ""
 
 msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
+msgid "Re-export the assets from a compatible Superset version, then retry with the new file."
 msgstr ""
 
 msgid "Re-pick fields"
@@ -11719,6 +11768,10 @@ msgid "Replace strftime date placeholders such as %Y-%m-%d in alert and report e
 msgstr ""
 
 msgid "Report"
+msgstr ""
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
 msgstr ""
 
 #, python-format
@@ -11995,6 +12048,9 @@ msgid "Restoring will remove %s chart added after this version from this dashboa
 msgid_plural "Restoring will remove %s charts added after this version from this dashboard. The charts themselves will not be deleted."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Result aggregation is not supported for Pivot Tables on semantic views. Set Aggregation function to \"Use metric definition\"."
+msgstr ""
 
 msgid "Results"
 msgstr ""
@@ -14185,6 +14241,9 @@ msgstr ""
 msgid "Superset chart"
 msgstr ""
 
+msgid "Superset could not reach the database. Check the host, port, network access, and database availability, then retry the import."
+msgstr ""
+
 msgid "Superset docs link"
 msgstr ""
 
@@ -14543,6 +14602,12 @@ msgid ""
 "          value distribution and transformation."
 msgstr ""
 
+msgid ""
+"The Snowflake connection could not be established. Check the account "
+"identifier, connection address, network access, and authentication "
+"settings, then retry the import."
+msgstr ""
+
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr ""
 
@@ -14576,7 +14641,17 @@ msgstr ""
 msgid "The annotation has been updated"
 msgstr ""
 
+msgid ""
+"The asset configuration is invalid. Review this file's fields and "
+"references. Re-export the assets from a compatible Superset version, then"
+" retry with the new file."
+msgstr ""
+
 msgid "The background color of the charts."
+msgstr ""
+
+#, python-format
+msgid "The bundle is missing a %(asset_type)s required by an imported asset. Re-export the dashboard with its dependencies from a compatible Superset version, then retry."
 msgstr ""
 
 msgid "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used."
@@ -14680,10 +14755,22 @@ msgstr ""
 msgid "The data this version was built on is no longer available, so it cannot be previewed"
 msgstr ""
 
+msgid "The database TLS connection failed. Ask an administrator to check the certificate and connection security settings, then retry."
+msgstr ""
+
+msgid "The database account does not have the required permissions. Ask a database administrator to grant access to the required database, schema, and tables, then retry."
+msgstr ""
+
 msgid "The database columns that contains lines information"
 msgstr ""
 
+msgid "The database connection timed out. Check database availability and network access, then retry the import."
+msgstr ""
+
 msgid "The database could not be found"
+msgstr ""
+
+msgid "The database driver could not be loaded. Ask an administrator to install the required driver, then retry the import."
 msgstr ""
 
 msgid "The database is currently running too many queries."
@@ -14693,6 +14780,12 @@ msgid "The database is under an unusual load."
 msgstr ""
 
 msgid "The database referenced in this query was not found. Please contact an administrator for further assistance or try again."
+msgstr ""
+
+msgid "The database rejected the connection credentials or required connection details are missing. Check the database authentication settings and test the connection, then retry the import."
+msgstr ""
+
+msgid "The database requires authorization. Open the database connection, sign in with its authentication provider, then retry the import."
 msgstr ""
 
 msgid "The database returned an unexpected error."
@@ -14731,6 +14824,9 @@ msgid ""
 msgstr ""
 
 msgid "The dataset has been saved"
+msgstr ""
+
+msgid "The dataset uses a catalog that this connection does not allow. Use the connection's default catalog, or ask an administrator to enable access to the required catalog."
 msgstr ""
 
 msgid "The dataset was changed by another user or browser tab after you opened it. Reopen it to pick up the latest version, then reapply your changes."
@@ -15022,7 +15118,7 @@ msgstr ""
 msgid "The port number is invalid."
 msgstr ""
 
-msgid "The preview could not be loaded."
+msgid "The preview could not be loaded. Try again."
 msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
@@ -15282,11 +15378,14 @@ msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database."
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
 
 #, python-format
 msgid "The transform returned %(returned)s for %(column)s, which this database cannot write into a query as a %(type)s value without changing it. Filters on this mapping will not be mirrored."
+msgstr ""
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
 msgstr ""
 
 msgid "The two passwords that you entered do not match!"
@@ -15347,11 +15446,11 @@ msgstr ""
 msgid "The value transform calls %(functions)s, whose result depends on when and where it runs. The transform is evaluated in a separate session and the result is cached, so the emitted predicate would freeze a snapshot of that moment."
 msgstr ""
 
-msgid "The value transform could not be parsed. The mapping is saved but stays inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 #, python-format
-msgid "The value transform could not be parsed: %(detail)s The mapping is saved but stays inactive until it does."
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 msgid "The value transform must contain the :value placeholder, which stands for the filter value being mirrored."
@@ -15372,6 +15471,9 @@ msgid "The version of the service"
 msgstr ""
 
 msgid "The view configuration must be a JSON object."
+msgstr ""
+
+msgid "The virtual dataset query could not be safely parsed, so the tables it references cannot be resolved. Qualify tables explicitly and avoid dynamic SQL or statements that change the default schema (e.g. USE, search_path)."
 msgstr ""
 
 msgid "The visible title of the layer"
@@ -15951,6 +16053,11 @@ msgstr ""
 msgid "This field is used as a unique identifier to attach the metric to charts. It is also used as the alias in the SQL query."
 msgstr ""
 
+msgid ""
+"This file is not a supported dashboard export. Re-export the dashboard "
+"from a compatible Superset version, then retry with the new ZIP file."
+msgstr ""
+
 msgid "This filter already exist on the report"
 msgstr ""
 
@@ -16394,6 +16501,9 @@ msgid "Token Request URI"
 msgstr ""
 
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
+msgid "Too many preview requests. Wait a moment and try again."
 msgstr ""
 
 msgid "Too many requests. Please wait and try again."
@@ -18054,6 +18164,9 @@ msgstr ""
 msgid "You do not have permission to edit this dashboard"
 msgstr ""
 
+msgid "You do not have permission to import this asset. Ask its owner or an administrator for the required access, then retry."
+msgstr ""
+
 msgid "You do not have permission to perform this operation"
 msgstr ""
 
@@ -18596,6 +18709,10 @@ msgid "data connections"
 msgstr ""
 
 msgid "database"
+msgstr ""
+
+#, python-format
+msgid "database \"%(name)s\" (%(file)s)"
 msgstr ""
 
 msgid "databases"
@@ -19277,6 +19394,10 @@ msgstr ""
 msgid "unknown type icon"
 msgstr ""
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr ""
 
@@ -19284,6 +19405,9 @@ msgid "updated"
 msgstr ""
 
 msgid "upper percentile must be greater than 0 and less than 100. Must be higher than lower percentile."
+msgstr ""
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
 msgstr ""
 
 msgid "use latest_partition template"
@@ -19363,7 +19487,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-msgid "Page not found"
 msgstr ""
