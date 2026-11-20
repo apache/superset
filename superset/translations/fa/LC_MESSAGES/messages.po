@@ -6383,7 +6383,7 @@ msgstr "دسامبر"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "حذف"
+msgstr ""
 
 msgid "DML"
 msgstr "دی‌ام‌ال"
@@ -8130,7 +8130,7 @@ msgstr "انتخاب پویای ستون‌های گروه‌بندی از یک 
 
 #. do-not-translate
 msgid "ECharts"
-msgstr "ای چارتس"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -8140,7 +8140,7 @@ msgstr "گزینه‌های ECharts (لیترال‌های شیء JS)"
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "ایمیل گزارشات"
+msgstr ""
 
 msgid "ERROR"
 msgstr "خطا"
@@ -10224,7 +10224,7 @@ msgstr "نحوه نمایش هر معیار را بیشتر سفارشی‌سا�
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "گروه‌بندی"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10437,8 +10437,9 @@ msgstr "کاربر مهمان نمی‌تواند بارگذاری نمودار 
 msgid "HTTP Path"
 msgstr "مسیر HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
-msgstr "هندلBars"
+msgstr ""
 
 msgid "Handlebars Template"
 msgstr "قالب هندل‌بارز"
@@ -13023,7 +13024,7 @@ msgstr "غیرقابل انتشار"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "غیر گروه‌بندی شده توسط"
+msgstr ""
 
 msgid "NOV"
 msgstr "نوامبر"
@@ -13835,7 +13836,7 @@ msgstr "یا"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "بازنویسی"
+msgstr ""
 
 msgid "October"
 msgstr "اکتبر"
@@ -19147,7 +19148,7 @@ msgstr "جدول‌ها"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "محدوده_زمانی"
+msgstr ""
 
 msgid "THU"
 msgstr "پنج‌شنبه"
@@ -25672,7 +25673,7 @@ msgstr "پس‌پرکنید"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "بولت"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -25767,7 +25768,7 @@ msgstr "ایجاد مجموعه داده از کوئریی SQL"
 
 #. do-not-translate
 msgid "crontab"
-msgstr "کرون‌تب"
+msgstr ""
 
 msgid "css"
 msgstr "سی‌اس‌اس"
@@ -26370,9 +26371,8 @@ msgid "permalink state not found"
 msgstr "وضعیت پیوند دائمی پیدا نشد"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "محور بندی شده"
+msgstr ""
 
 msgid "pixels"
 msgstr "پیکسل‌ها"

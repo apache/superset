@@ -6377,7 +6377,7 @@ msgstr "十二月"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "删除"
+msgstr ""
 
 msgid "DML"
 msgstr "允許 DML"
@@ -8081,7 +8081,7 @@ msgstr "從資料集動態選擇群組欄位"
 
 #. do-not-translate
 msgid "ECharts"
-msgstr "ECharts 圖表"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -8090,9 +8090,8 @@ msgid "ECharts Options (JS object literals)"
 msgstr "ECharts 選項（JS 物件字面量）"
 
 #. do-not-translate
-#, fuzzy
 msgid "EMAIL_REPORTS_CTA"
-msgstr "啟用郵件報告"
+msgstr ""
 
 #, fuzzy
 msgid "ERROR"
@@ -10223,9 +10222,8 @@ msgid "Further customize how to display each metric"
 msgstr "進一步定制如何顯示每個指標"
 
 #. do-not-translate
-#, fuzzy
 msgid "GROUP BY"
-msgstr "分組"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10454,6 +10452,7 @@ msgstr "訪客使用者無法修改圖表資料"
 msgid "HTTP Path"
 msgstr "HTTP 路徑"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -13107,9 +13106,8 @@ msgid "N/A"
 msgstr "N/A"
 
 #. do-not-translate
-#, fuzzy
 msgid "NOT GROUPED BY"
-msgstr "需要進行分組的一列或多列"
+msgstr ""
 
 msgid "NOV"
 msgstr "十一月"
@@ -13948,7 +13946,7 @@ msgstr "或者"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "覆盖"
+msgstr ""
 
 msgid "October"
 msgstr "十月"
@@ -19306,9 +19304,8 @@ msgid "TABLES"
 msgstr "表"
 
 #. do-not-translate
-#, fuzzy
 msgid "TEMPORAL_RANGE"
-msgstr "時間範圍"
+msgstr ""
 
 msgid "THU"
 msgstr "星期四"
@@ -25605,7 +25602,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "螺栓"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -25723,9 +25720,8 @@ msgid "create dataset from SQL query"
 msgstr "從 SQL 查詢創建數據集"
 
 #. do-not-translate
-#, fuzzy
 msgid "crontab"
-msgstr "計數"
+msgstr ""
 
 msgid "css"
 msgstr "css"
@@ -25801,9 +25797,8 @@ msgid "deck.gl Contour"
 msgstr "Deck.gl - 等高線"
 
 #. do-not-translate
-#, fuzzy
 msgid "deck.gl Geojson"
-msgstr "Deck.gl - Geojson"
+msgstr ""
 
 #, fuzzy
 msgid "deck.gl Grid"
@@ -25876,7 +25871,7 @@ msgstr "文檔"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "時間"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "例如：********"
@@ -25952,9 +25947,8 @@ msgid "entries"
 msgstr "序列"
 
 #. do-not-translate
-#, fuzzy
 msgid "error_message"
-msgstr "錯誤訊息"
+msgstr ""
 
 msgid "every"
 msgstr "任意"
@@ -26373,9 +26367,8 @@ msgid "permalink state not found"
 msgstr "未找到持久链接狀態"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "旋轉"
+msgstr ""
 
 msgid "pixels"
 msgstr "像素"
@@ -26539,9 +26532,8 @@ msgid ""
 msgstr "show_values_as 僅支援加總型彙總(總和、計數);以下指標使用了非加總運算子:%(metrics)s。"
 
 #. do-not-translate
-#, fuzzy
 msgid "sql"
-msgstr "SQL"
+msgstr ""
 
 #, fuzzy
 msgid "square"

@@ -6460,7 +6460,7 @@ msgstr "DEZ"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "APAGAR"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10311,7 +10311,7 @@ msgstr "Personalizar ainda mais como exibir cada métrica"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "AGRUPAR POR"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10535,6 +10535,7 @@ msgstr "O usuário convidado não pode modificar a carga útil do gráfico"
 msgid "HTTP Path"
 msgstr "Caminho HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -13163,7 +13164,7 @@ msgstr "N/D"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NÃO AGRUPADO POR"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -13993,7 +13994,7 @@ msgstr "OU"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SOBRESCREVER"
+msgstr ""
 
 msgid "October"
 msgstr "Outubro"
@@ -19373,7 +19374,7 @@ msgstr "TABELAS"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "INTERVALO TEMPORAL"
+msgstr ""
 
 msgid "THU"
 msgstr "QUI"
@@ -25994,7 +25995,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "parafuso"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26299,7 +26300,7 @@ msgstr "entradas"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "mensagem de erro"
+msgstr ""
 
 msgid "every"
 msgstr "todos"
@@ -26697,9 +26698,8 @@ msgid "permalink state not found"
 msgstr "estado do permalink não encontrado"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "pivotado_xlsx"
+msgstr ""
 
 #, fuzzy
 msgid "pixels"
@@ -26806,7 +26806,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "esquema1, esquema2"
+msgstr ""
 
 msgid "seconds"
 msgstr "segundos"
@@ -26891,7 +26891,7 @@ msgstr "soma"
 
 #. do-not-translate
 msgid "superset.example.com"
-msgstr "Superset.exemplo.com"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -27034,7 +27034,7 @@ msgstr "ano"
 
 #. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "seu-projeto-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "área de zoom"

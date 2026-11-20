@@ -6229,7 +6229,7 @@ msgstr "PRO"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "SMAZAT"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10159,7 +10159,7 @@ msgstr "Dále prispôsobiť, ako zobraziť každou metriku"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "SESKUPIT PODLE"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, lv, pt, ro, ru, sl, sr, sr_Latn, ta, tr, uk, zh]
@@ -10384,6 +10384,7 @@ msgstr "Hostující používateľ nemôže upravovať data grafu"
 msgid "HTTP Path"
 msgstr "HTTP cesta"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -13047,7 +13048,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NESESKUPENO PODLE"
+msgstr ""
 
 msgid "NOV"
 msgstr "LIS"
@@ -19454,7 +19455,7 @@ msgstr "TABULKY"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "ČASOVÝ_ROZSAH"
+msgstr ""
 
 msgid "THU"
 msgstr "ČT"
@@ -26172,7 +26173,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "šroub"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26514,7 +26515,7 @@ msgstr "položky"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "chybová_zpráva"
+msgstr ""
 
 msgid "every"
 msgstr "každý"
