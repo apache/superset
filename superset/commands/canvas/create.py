@@ -24,6 +24,7 @@ from typing import Any
 from flask import current_app
 from marshmallow import ValidationError
 
+from superset.canvas.definition.ops import newly_unreadable
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.schemas import canonical_widget_id, empty_definition
 from superset.canvas.definition.validation import (
@@ -102,9 +103,25 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
                 )
             )
             return
+        if denied := self._unreadable_bindings(definition):
+            exceptions.append(ValidationError(denied, field_name="definition"))
+            return
         self._properties["definition"] = json.dumps(definition)
         self._properties["definition_version"] = definition["version"]
         self._properties["revision"] = 1
+
+    @staticmethod
+    def _unreadable_bindings(definition: dict[str, Any]) -> dict[str, list[str]]:
+        """Inline props binding a dataset the caller can't read, by props path."""
+        denied: dict[str, list[str]] = {}
+        for node_id, node in definition["nodes"].items():
+            props = node.get("props")
+            if not isinstance(props, dict):
+                continue
+            for dataset_id, path in newly_unreadable(props, None).items():
+                pointer = "/".join(("", "nodes", node_id, "props", *path))
+                denied[pointer] = [f"unknown dataset {dataset_id}, or no access to it"]
+        return denied
 
     @staticmethod
     def _hidden_widgets(raw: Any) -> dict[str, str]:

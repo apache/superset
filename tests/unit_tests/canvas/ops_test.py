@@ -1079,7 +1079,7 @@ def test_editing_a_widget_bound_by_someone_else_needs_no_dataset_access(
     )
 
     assert result["nodes"]["n"]["props"]["title"] == "b"
-    unreadable.assert_called_with(set())
+    unreadable.assert_not_called()
 
 
 def test_changing_the_query_of_a_binding_needs_dataset_access(mocker: Any) -> None:
@@ -1100,6 +1100,29 @@ def test_changing_the_query_of_a_binding_needs_dataset_access(mocker: Any) -> No
 
     with pytest.raises(OperationError, match="dataset 9"):
         _apply_bound(canvas, {"op": "set_props", "id": "n", "props": changed})
+
+
+def test_rewriting_the_template_of_a_bound_widget_needs_dataset_access(
+    mocker: Any,
+) -> None:
+    mocker.patch(
+        "superset.canvas.definition.ops.unreadable_datasets",
+        side_effect=lambda ids: set(ids),
+    )
+    bound = {"count": 1, "dataBinding": {"datasetId": 9}}
+    canvas = empty_definition()
+    canvas["root"]["children"] = ["n"]
+    canvas["nodes"]["n"] = {
+        "widgetType": "note",
+        "schemaVersion": 1,
+        "props": bound,
+        "layout": {},
+    }
+
+    with pytest.raises(OperationError, match="dataset 9"):
+        _apply_bound(
+            canvas, {"op": "set_props", "id": "n", "props": {**bound, "count": 2}}
+        )
 
 
 def test_props_are_stored_as_parsed() -> None:

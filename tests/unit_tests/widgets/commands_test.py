@@ -241,26 +241,25 @@ def test_create_refuses_a_binding_to_a_dataset_the_user_cannot_read(
     }
 
 
-def test_update_checks_only_a_binding_it_changes(
+def test_update_without_dataset_access_can_only_rename_a_bound_widget(
     tables: Session, make_user: MakeUser, make_widget: MakeWidget
 ) -> None:
     alice_user, alice = make_user("alice", "Gamma")
-    widget = make_widget(
-        "Notes", editors=[alice], props={"content": "a", "dataBinding": BOUND}
-    )
+    bound = {"content": "a", "dataBinding": BOUND}
+    widget = make_widget("Notes", editors=[alice], props=bound)
     tables.commit()
 
     with override_user(alice_user):
         updated = UpdateWidgetCommand(
-            str(widget.uuid), {"props": {"content": "b", "dataBinding": BOUND}}
+            str(widget.uuid), {"name": "Renamed", "props": bound}
         ).run()
+        # The template decides where the bound rows end up.
         with pytest.raises(WidgetInvalidError):
             UpdateWidgetCommand(
-                str(widget.uuid),
-                {"props": {"content": "b", "dataBinding": {**BOUND, "datasetId": 998}}},
+                str(widget.uuid), {"props": {**bound, "content": "b"}}
             ).run()
 
-    assert updated.props["content"] == "b"
+    assert updated.name == "Renamed"
 
 
 def test_create_without_a_version_reads_props_at_the_current_one() -> None:

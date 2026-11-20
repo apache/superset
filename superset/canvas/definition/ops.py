@@ -166,32 +166,24 @@ def newly_unreadable(
     props: dict[str, Any], previous: dict[str, Any] | None
 ) -> dict[int, tuple[str, ...]]:
     """
-    Datasets whose binding in ``props`` differs from ``previous`` and the user
-    can't read.
+    Datasets ``props`` binds that the user can't read, unless only the title
+    changed from ``previous``.
 
-    A binding is checked whenever anything in it changes -- its metrics and
-    filters are SQL run as every viewer -- but not when only the rest of the
-    widget does: someone editing a title doesn't need access to a dataset
-    another editor bound it to.
+    Every other prop counts as part of the binding: its metrics and filters are
+    SQL run as every viewer, and the rest (a markdown template, a chart option)
+    decides where the rows end up. Someone retitling a widget another editor
+    bound doesn't need access to its dataset.
     """
-    previous = previous or {}
-    changed = {
-        dataset_id: path
-        for dataset_id, path in bound_datasets(props).items()
-        if _binding_at(props, path) != _binding_at(previous, path)
-    }
-    return {
-        dataset_id: changed[dataset_id]
-        for dataset_id in unreadable_datasets(set(changed))
-    }
+    bound = bound_datasets(props)
+    if not bound or (
+        previous is not None and _without_title(props) == _without_title(previous)
+    ):
+        return {}
+    return {dataset_id: bound[dataset_id] for dataset_id in unreadable_datasets(bound)}
 
 
-def _binding_at(props: dict[str, Any], path: tuple[str, ...]) -> Any:
-    """The binding ``path`` names the dataset of: ``dataBinding``, or the
-    widget's whole props for a top-level ``datasetId``."""
-    if len(path) == 1:
-        return {key: value for key, value in props.items() if key != "title"}
-    return props.get(path[0])
+def _without_title(props: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in props.items() if key != "title"}
 
 
 class WidgetContentError(ValueError):
@@ -216,8 +208,8 @@ def entity_props(
     ``props`` for a widget entity of ``widget_type``, upgraded to the type's
     current schema version and checked as ``add`` and ``set_props`` check them,
     so a widget saved outside a canvas is one a canvas can place and render.
-    ``previous`` is what the widget held, so only new dataset bindings are
-    checked for access. Returns the props and the version they are at.
+    ``previous`` is what the widget held, so a retitle alone skips the dataset
+    access check. Returns the props and the version they are at.
     """
     widget_types = get_widget_types() if widget_types is None else widget_types
     widget = widget_types.get(widget_type)
