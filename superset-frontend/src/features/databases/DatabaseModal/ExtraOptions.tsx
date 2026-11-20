@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, EventHandler, useState, useEffect } from 'react';
+import { ChangeEvent, EventHandler, useState, useEffect, useRef } from 'react';
 import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -31,9 +31,13 @@ import {
   Collapse,
   InfoTooltip,
   CollapseLabelInModal,
+  Flex,
+  Icons,
+  Typography,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
+import type { Ace } from 'ace-builds';
 import {
   StyledInputContainer,
   StyledJsonEditor,
@@ -41,6 +45,43 @@ import {
   no_margin_bottom,
 } from './styles';
 import { DatabaseObject, ExtraJson } from '../types';
+import { useCommonConf } from '../state';
+import SecureExtraHints, {
+  resolveMaskedSecretFields,
+} from './SecureExtraHints';
+import { expiryLines } from './expiry';
+
+// Timing of the scroll to Secure extra after a focus request. The tab switch
+// and the panel's opening animate the layout, so the scroll waits until the
+// scroll container's height and the editor's position both hold still.
+// Wait at least this long, so the tab and panel animations have started.
+const SCROLL_MIN_WAIT_MS = 400;
+// Frames in a row with no layout change that count as settled.
+const SCROLL_STILL_FRAMES = 3;
+// Scroll anyway once this long has passed.
+const SCROLL_SETTLE_LIMIT_MS = 1200;
+// When to check that the smooth scroll left the editor in view.
+const SCROLL_CHECK_MS = 600;
+
+// The nearest ancestor that scrolls, such as the modal body.
+const scrollContainerOf = (element: HTMLElement): Element => {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    if (/^(auto|scroll)$/.test(getComputedStyle(node).overflowY)) {
+      return node;
+    }
+  }
+  return document.scrollingElement ?? document.documentElement;
+};
+
+// Whether a Secure extra value parses as JSON.
+const isValidJson = (value: string | undefined) => {
+  try {
+    JSON.parse(value ?? '');
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const ExtraOptions = ({
   db,
@@ -50,6 +91,9 @@ const ExtraOptions = ({
   onExtraInputChange,
   onExtraEditorChange,
   extraExtension,
+  secretsGeneration = 0,
+  focusSecureExtra,
+  onSecureExtraFocused,
 }: {
   db: DatabaseObject | null;
   onInputChange: (
@@ -62,6 +106,12 @@ const ExtraOptions = ({
   ) => void;
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
+  // Bumped after each save, so revealed endings never outlive the stored values.
+  secretsGeneration?: number;
+  // Each new value opens the Security panel and scrolls to Secure extra.
+  focusSecureExtra?: number;
+  // Called once a focus request has been scrolled to and checked.
+  onSecureExtraFocused?: () => void;
 }) => {
   const onExtraInputChangeNonNegative = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -125,6 +175,47 @@ const ExtraOptions = ({
     errorPrefix: 'Invalid engine parameters JSON',
   });
 
+  // One field per masked secret of a saved database. Mid-edit invalid JSON
+  // keeps the fields of that database's last valid JSON.
+  const conf = useCommonConf();
+  // Read as the server reads it, so "5" means 5.
+  const hintChars = Number(conf?.ENCRYPTED_EXTRA_HINT_CHARS ?? 0);
+  const secureExtra = db?.masked_encrypted_extra;
+  const [lastValid, setLastValid] = useState({ id: db?.id, json: secureExtra });
+  const secureExtraIsValid = isValidJson(secureExtra);
+  if (
+    secureExtraIsValid &&
+    (secureExtra !== lastValid.json || db?.id !== lastValid.id)
+  ) {
+    setLastValid({ id: db?.id, json: secureExtra });
+  }
+  const lastValidOfThisDatabase =
+    lastValid.id === db?.id ? lastValid.json : undefined;
+  const resolvedSecureExtra = secureExtraIsValid
+    ? secureExtra
+    : lastValidOfThisDatabase;
+  const secretFields =
+    typeof db?.id === 'number' &&
+    hintChars > 0 &&
+    resolvedSecureExtra?.includes('XXXXXXXXXX')
+      ? resolveMaskedSecretFields(
+          resolvedSecureExtra,
+          db.engine_information?.encrypted_extra_sensitive_fields ?? {},
+        )
+      : [];
+
+  // The stored tokens that expired or expire soon, listed under the editor.
+  const expiryNotes = expiryLines(
+    db?.engine_information?.encrypted_extra_sensitive_fields ?? {},
+    db?.engine_information?.encrypted_extra_expirations ?? {},
+  );
+  const secureExtraRef = useRef<HTMLDivElement>(null);
+  // Ace measures itself when it mounts. Mounted inside a panel or tab that is
+  // still opening, it can keep a stale size and paint an empty editor, so it
+  // re-measures on the frame after Security opens and after a focus scroll.
+  const secureExtraEditorRef = useRef<Ace.Editor>();
+  const [secureExtraEditorLoaded, setSecureExtraEditorLoaded] = useState(false);
+
   const theme = useTheme();
   const ExtraExtensionComponent = extraExtension?.component;
   const ExtraExtensionLogo = extraExtension?.logo;
@@ -146,12 +237,99 @@ const ExtraOptions = ({
     setSchemasText(initialSchemas);
   }, [db?.extra]);
 
+  // Collapses the panels when SQL Lab exposure is switched off. Not on mount,
+  // where nothing is open yet unless a focus request just opened Security.
+  const wasExpandable = useRef(expandableModalIsOpen);
   useEffect(() => {
-    if (!expandableModalIsOpen && activeKey !== undefined) {
+    if (
+      wasExpandable.current &&
+      !expandableModalIsOpen &&
+      activeKey !== undefined
+    ) {
       setActiveKey(undefined);
     }
+    wasExpandable.current = expandableModalIsOpen;
     // See issue #34630 for why we omit `activeKey` from the dependency array
   }, [expandableModalIsOpen]);
+
+  // A new focus request opens Security in the same render, so the editor is
+  // mounted when the effect below scrolls to it.
+  const [focusRequestShown, setFocusRequestShown] = useState<number>();
+  if (focusSecureExtra && focusSecureExtra !== focusRequestShown) {
+    setFocusRequestShown(focusSecureExtra);
+    setActiveKey(['security']);
+  }
+
+  const securityOpen = !!activeKey?.includes('security');
+  useEffect(() => {
+    if (!securityOpen || !secureExtraEditorLoaded) return undefined;
+    if (typeof requestAnimationFrame !== 'function') return undefined;
+    const frame = requestAnimationFrame(() =>
+      secureExtraEditorRef.current?.resize(true),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [securityOpen, secureExtraEditorLoaded]);
+
+  // Scrolls to Secure extra once the layout settles, then corrects once if the
+  // smooth scroll left the editor outside the container. Centring keeps it
+  // clear of the modal's sticky header.
+  useEffect(() => {
+    if (!focusSecureExtra) return undefined;
+    if (typeof requestAnimationFrame !== 'function') return undefined;
+    const startedAt = Date.now();
+    let container: Element | undefined;
+    let last: { height: number; top: number } | undefined;
+    let stillFrames = 0;
+    let frame = 0;
+    let check: ReturnType<typeof setTimeout> | undefined;
+    const correct = () => {
+      const editor = secureExtraRef.current;
+      if (!editor || !container) return;
+      const box = editor.getBoundingClientRect();
+      const view = container.getBoundingClientRect();
+      if (box.top < view.top || box.bottom > view.bottom) {
+        editor.scrollIntoView?.({ block: 'center', behavior: 'auto' });
+      }
+    };
+    const settle = () => {
+      const editor = secureExtraRef.current;
+      if (editor && !container) container = scrollContainerOf(editor);
+      const current =
+        editor && container
+          ? {
+              height: container.scrollHeight,
+              top: editor.getBoundingClientRect().top,
+            }
+          : undefined;
+      stillFrames =
+        current &&
+        last &&
+        current.height === last.height &&
+        current.top === last.top
+          ? stillFrames + 1
+          : 0;
+      last = current;
+      const elapsed = Date.now() - startedAt;
+      if (
+        (stillFrames >= SCROLL_STILL_FRAMES && elapsed >= SCROLL_MIN_WAIT_MS) ||
+        elapsed >= SCROLL_SETTLE_LIMIT_MS
+      ) {
+        editor?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+        secureExtraEditorRef.current?.resize(true);
+        check = setTimeout(() => {
+          correct();
+          onSecureExtraFocused?.();
+        }, SCROLL_CHECK_MS);
+        return;
+      }
+      frame = requestAnimationFrame(settle);
+    };
+    frame = requestAnimationFrame(settle);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(check);
+    };
+  }, [focusSecureExtra, onSecureExtraFocused]);
 
   return (
     <Collapse
@@ -586,11 +764,15 @@ const ExtraOptions = ({
                   </div>
                 </StyledInputContainer>
               )}
-              <StyledInputContainer>
+              <StyledInputContainer ref={secureExtraRef}>
                 <div className="control-label">{t('Secure extra')}</div>
                 <div className="input-container">
                   <StyledJsonEditor
                     name="masked_encrypted_extra"
+                    onLoad={(editor: Ace.Editor) => {
+                      secureExtraEditorRef.current = editor;
+                      setSecureExtraEditorLoaded(true);
+                    }}
                     value={db?.masked_encrypted_extra || ''}
                     placeholder={t('Secure extra')}
                     onChange={(json: string) =>
@@ -610,8 +792,39 @@ const ExtraOptions = ({
                         'username:password syntax normally used by SQLAlchemy.',
                     )}
                   </div>
+                  {expiryNotes.map(({ path, text, expired }) => (
+                    // The icon carries the severity; the text stays readable.
+                    <Flex
+                      key={path}
+                      data-test="secure-extra-expiry-note"
+                      align="center"
+                      gap={theme.sizeUnit}
+                    >
+                      <Icons.ExclamationCircleFilled
+                        iconSize="s"
+                        iconColor={
+                          expired ? theme.colorError : theme.colorWarning
+                        }
+                        aria-hidden
+                      />
+                      <Typography.Text type={expired ? 'danger' : undefined}>
+                        {text}
+                      </Typography.Text>
+                    </Flex>
+                  ))}
                 </div>
               </StyledInputContainer>
+              {typeof db?.id === 'number' && secretFields.length > 0 && (
+                <SecureExtraHints
+                  // A different database or a save remounts, so no revealed hint
+                  // survives.
+                  key={`${db.id}:${secretsGeneration}`}
+                  databaseId={db.id}
+                  fields={secretFields}
+                  // The server reveals an ending only for values 4x as long.
+                  minLength={4 * hintChars}
+                />
+              )}
               <StyledInputContainer>
                 <div className="control-label">{t('Root certificate')}</div>
                 <div className="input-container">

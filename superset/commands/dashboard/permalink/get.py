@@ -23,7 +23,10 @@ from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dashboard.permalink.base import BaseDashboardPermalinkCommand
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.key_value import KeyValueDAO
-from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
+from superset.dashboards.permalink.exceptions import (
+    DashboardPermalinkGetFailedError,
+    DashboardPermalinkInvalidKeyError,
+)
 from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.key_value.exceptions import (
     KeyValueCodecDecodeException,
@@ -48,11 +51,12 @@ class GetDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 DashboardDAO.get_by_id_or_slug(value["dashboardId"])
                 return value
             return None
+        except KeyValueParseKeyError as ex:
+            raise DashboardPermalinkInvalidKeyError() from ex
         except (
             DashboardNotFoundError,
             KeyValueCodecDecodeException,
             KeyValueGetFailedError,
-            KeyValueParseKeyError,
         ) as ex:
             raise DashboardPermalinkGetFailedError(message=ex.message) from ex
         except SQLAlchemyError as ex:

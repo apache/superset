@@ -2215,6 +2215,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Alerte"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "Alerte « %(alertName)s » déclenchée avec succès"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "Alerte déclenchée, -période de grâce"
 
@@ -7797,6 +7801,9 @@ msgstr "Etiquette de section dynamique"
 msgid "Dynamic group by"
 msgstr "Grouper par"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Description dynamique"
 
@@ -9098,6 +9105,14 @@ msgstr "Échec de l'étiquetage des éléments"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "Échec du déclenchement de %(alertType)s « %(alertName)s » : %(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "Échec du déclenchement de l'alerte « %(alertName)s » : %(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "Échec du déclenchement du rapport « %(alertName)s » : %(error)s"
+
 msgid "Failed to update report"
 msgstr "Échec de la mise à jour du rapport"
 
@@ -9985,6 +10000,14 @@ msgstr "Masquer la ligne"
 msgid "Hide chart description"
 msgstr "Masquer la description du graphique"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Masquer la couche"
 
@@ -10012,6 +10035,9 @@ msgstr "Valeur la plus haute de chaque période."
 
 msgid "Histogram"
 msgstr "Histogramme"
+
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
 
 msgid "Home"
 msgstr "Accueil"
@@ -10297,6 +10323,9 @@ msgstr "Dans cette vue, vous pouvez prévisualiser les 25 premières lignes."
 
 msgid "Inactive"
 msgstr "Inactif"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "Inclure la série"
@@ -10645,9 +10674,10 @@ msgstr "État invalide."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Identifiants d'onglet non valides : %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Valeur de filtre temporel invalide pour la colonne %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -14302,6 +14332,9 @@ msgstr ""
 msgid "Preview"
 msgstr "Prévisualisation"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -14905,6 +14938,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "Rapport"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "Rapport « %(alertName)s » déclenché avec succès"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19440,10 +19477,8 @@ msgstr "Le port est fermé."
 msgid "The port number is invalid."
 msgstr "Le numéro de port est invalide."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "L'aperçu n'a pas pu être chargé."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr ""
@@ -19914,15 +19949,9 @@ msgstr ""
 "La transformation correspondait aux lignes échantillonnées, et non à "
 "l'ensemble du jeu de données."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"La transformation a renvoyé %(returned)s pour %(column)s, qui est "
-"%(kind)s. Les filtres répercutés sur cette association échoueraient dans "
-"la base de données."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19934,6 +19963,9 @@ msgstr ""
 "La transformation a renvoyé %(returned)s pour %(column)s, que cette base "
 "de données ne peut pas écrire dans une requête comme valeur %(type)s sans"
 " la modifier. Les filtres sur cette association ne seront pas répercutés."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "Les deux mots de passe saisis ne correspondent pas !"
@@ -20038,24 +20070,12 @@ msgstr ""
 "dans une session distincte et le résultat est mis en cache ; le prédicat "
 "émis figerait donc un instantané de ce moment."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"La transformation de valeur n'a pas pu être analysée. L'association est "
-"enregistrée mais reste inactive jusqu'à ce qu'elle le soit."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"La transformation de valeur n'a pas pu être analysée : %(detail)s La "
-"correspondance est enregistrée mais reste inactive tant que ce n'est pas "
-"résolu."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21707,6 +21727,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Trop de requêtes d'aperçu pour ce jeu de données. Patientez un instant et"
 " réessayez."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25534,6 +25557,10 @@ msgstr "annuler"
 msgid "unknown type icon"
 msgstr "type d'icône inconnu"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "non défini"
 
@@ -25546,6 +25573,9 @@ msgid ""
 msgstr ""
 "le centile supérieur doit être supérieur à 0 et inférieur à 100. Doit "
 "être supérieur au percentile inférieur."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "utiliser le modèle latest_partition"

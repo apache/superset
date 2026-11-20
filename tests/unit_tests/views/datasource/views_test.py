@@ -74,6 +74,20 @@ def _view_self() -> MagicMock:
     return self
 
 
+def _spec_view_self() -> MagicMock:
+    """Stand-in for a Datasource view instance restricted to its real attributes.
+
+    ``Datasource`` is a plain ``BaseView``, so FAB's ``BaseApi``-only helpers
+    (``response_404`` and friends) are absent; a bare ``MagicMock`` would mask
+    a call to one of them.
+    """
+    from superset.views.datasource.views import Datasource
+
+    self = MagicMock(spec=Datasource)
+    self.json_response = MagicMock(return_value="ok")
+    return self
+
+
 def _save_orm_dataset(**overrides: Any) -> MagicMock:
     """Stand-in for the dataset ``save`` loads, defaulting to a physical one.
 
@@ -1653,8 +1667,8 @@ def test_samples_guest_with_dashboard_gets_404_for_non_dataset_type(
     unrelated table shares the integer id.
     """
     mock_security_manager.is_guest_user.return_value = True
+    mock_json_error_response.return_value = "not-found-response"
 
-    view = _view_self()
     app = Flask(__name__)
     with app.test_request_context(
         "/datasource/samples?datasource_type=semantic_view&datasource_id=1"
@@ -1662,12 +1676,79 @@ def test_samples_guest_with_dashboard_gets_404_for_non_dataset_type(
         method="POST",
         json={},
     ):
-        result = _get_view_func("samples")(view)
+        result = _get_view_func("samples")(_spec_view_self())
 
-    assert result == view.response_404.return_value
-    view.response_404.assert_called_once()
+    assert result == "not-found-response"
+    mock_json_error_response.assert_called_once_with("Not found", status=404)
     mock_dataset_dao.find_by_id.assert_not_called()
-    mock_json_error_response.assert_not_called()
+    mock_get_samples.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.DashboardDAO")
+@patch("superset.views.datasource.views.DatasetDAO")
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@pytest.mark.parametrize("missing", ["dataset", "dashboard"])
+def test_samples_guest_gets_404_when_dataset_or_dashboard_is_missing(
+    mock_security_manager: MagicMock,
+    mock_json_error_response: MagicMock,
+    mock_dataset_dao: MagicMock,
+    mock_dashboard_dao: MagicMock,
+    mock_get_samples: MagicMock,
+    missing: str,
+) -> None:
+    """A guest naming a nonexistent dataset or dashboard gets 404, not a 500."""
+    mock_security_manager.is_guest_user.return_value = True
+    mock_json_error_response.return_value = "not-found-response"
+    if missing == "dataset":
+        mock_dataset_dao.find_by_id.return_value = None
+    else:
+        mock_dashboard_dao.find_by_id.return_value = None
+
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/samples?datasource_type=table&datasource_id=1&dashboard_id=5",
+        method="POST",
+        json={},
+    ):
+        result = _get_view_func("samples")(_spec_view_self())
+
+    assert result == "not-found-response"
+    mock_json_error_response.assert_called_once_with("Not found", status=404)
+    mock_security_manager.can_drill_dataset_via_dashboard_access.assert_not_called()
+    mock_get_samples.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+def test_samples_returns_404_when_dataset_is_not_found(
+    mock_security_manager: MagicMock,
+    mock_get_datasource: MagicMock,
+    mock_json_error_response: MagicMock,
+    mock_get_samples: MagicMock,
+) -> None:
+    """An authenticated user naming a nonexistent dataset gets 404, not a 500."""
+    from superset.daos.exceptions import DatasourceNotFound
+
+    mock_security_manager.is_guest_user.return_value = False
+    mock_get_datasource.side_effect = DatasourceNotFound()
+    mock_json_error_response.return_value = "not-found-response"
+
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/samples?datasource_type=table&datasource_id=1",
+        method="POST",
+        json={},
+    ):
+        result = _get_view_func("samples")(_spec_view_self())
+
+    assert result == "not-found-response"
+    mock_json_error_response.assert_called_once_with("Not found", status=404)
     mock_get_samples.assert_not_called()
 
 
