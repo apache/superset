@@ -257,6 +257,29 @@ async def test_chart_error_is_recorded_not_fatal(mock_dao, mock_exec, mcp_server
 @patch(EXEC, new_callable=AsyncMock)
 @patch(DAO)
 @pytest.mark.asyncio
+async def test_chart_error_type_is_carried_per_chart(mock_dao, mock_exec, mcp_server):
+    """A no-rows chart is told apart from a failed one by its error_type."""
+    mock_dao.return_value = _dashboard(
+        6, "D", [_slice(56, "Empty"), _slice(57, "Denied"), _slice(99, "Age")]
+    )
+    mock_exec.side_effect = [
+        ChartError(error_type="NoData", message="No data available for chart 56"),
+        ChartError(error_type="DatasetNotAccessible", message="no access"),
+        _chart_data(99, "Age"),
+    ]
+
+    async with Client(mcp_server) as client:
+        data = await _call(client, {"identifier": 6})
+
+    by_id = {c["chart_id"]: c for c in data["charts"]}
+    assert by_id[56]["error_type"] == "NoData"
+    assert by_id[57]["error_type"] == "DatasetNotAccessible"
+    assert by_id[99]["error_type"] is None
+
+
+@patch(EXEC, new_callable=AsyncMock)
+@patch(DAO)
+@pytest.mark.asyncio
 async def test_malformed_filter_is_recorded_not_fatal(mock_dao, mock_exec, mcp_server):
     # A non-dict applied_filters value makes GetChartDataRequest raise inside the
     # per-chart loop; the except branch must record it as an error and keep going

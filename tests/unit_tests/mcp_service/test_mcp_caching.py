@@ -688,3 +688,82 @@ def test_dashboard_without_total_failure_remains_cacheable(
     assert not is_failed_tool_result(
         ToolResult(content=[], structured_content={"charts": charts})
     )
+
+
+@pytest.mark.parametrize(
+    ("charts", "failed"),
+    [
+        ([{"error": "No data", "error_type": "NoData"}], False),
+        (
+            [
+                {"error": "No data", "error_type": "NoData"},
+                {"error": "No preview", "error_type": "NoDataError"},
+            ],
+            False,
+        ),
+        (
+            [
+                {"error": "No data", "error_type": "NoData"},
+                {"error": "warehouse timeout", "error_type": "ExecutionError"},
+            ],
+            True,
+        ),
+        ([{"error": "warehouse timeout"}, {"error": "warehouse timeout"}], True),
+    ],
+    ids=["all-no-data", "all-no-rows-types", "no-data-and-failure", "untyped-errors"],
+)
+def test_dashboard_of_empty_charts_is_not_a_failure(
+    charts: list[dict[str, Any]], failed: bool
+) -> None:
+    """Charts that matched no rows are an empty result, so the dashboard caches."""
+    from fastmcp.tools import ToolResult
+
+    from superset.mcp_service.caching import is_failed_tool_result
+
+    result = ToolResult(content=[], structured_content={"charts": charts})
+    assert is_failed_tool_result(result) is failed
+
+
+@pytest.mark.asyncio
+async def test_all_empty_dashboard_is_cached() -> None:
+    """A dashboard whose charts matched no rows is an answer, not a failure."""
+    from fastmcp import Client, FastMCP
+
+    from superset.mcp_service.caching import create_response_caching_middleware
+
+    flask_app = MagicMock()
+    configs = {
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "excluded_tools": [],
+        },
+        "MCP_STORE_CONFIG": {"enabled": False},
+    }
+    flask_app.config.get.side_effect = lambda key, default=None: configs.get(
+        key, default
+    )
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app", return_value=flask_app
+    ):
+        middleware = create_response_caching_middleware()
+    assert middleware is not None
+    server = FastMCP("dashboard-empty-cache", middleware=[middleware])
+    calls = 0
+
+    @server.tool
+    def get_dashboard_data() -> dict[str, Any]:
+        """Every chart's query ran and matched no rows."""
+        nonlocal calls
+        calls += 1
+        return {
+            "charts": [
+                {"chart_id": index, "error": "No data", "error_type": "NoData"}
+                for index in (1, 2)
+            ]
+        }
+
+    async with Client(server) as client:
+        await client.call_tool("get_dashboard_data", {})
+        await client.call_tool("get_dashboard_data", {})
+    assert calls == 1

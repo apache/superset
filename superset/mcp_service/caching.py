@@ -97,6 +97,10 @@ def _is_filter_value_discovery_call(
     )
 
 
+# Error schemas that mean "the query ran and matched no rows".
+NO_ROWS_ERROR_TYPES = frozenset({"NoData", "NoDataError"})
+
+
 def is_failed_tool_result(result: Any) -> bool:
     """Return True for a tool result that reports a failure.
 
@@ -116,10 +120,16 @@ def is_failed_tool_result(result: Any) -> bool:
         if not isinstance(payload, dict):
             return False
         charts = payload.get("charts")
-        all_charts_failed = (
+        # A chart whose query ran and matched no rows (NoData) is an empty
+        # result, not a failure: a dashboard of such charts is cacheable. Any
+        # other chart error with no chart data to show is a failure to retry.
+        all_charts_errored = (
             isinstance(charts, list)
             and bool(charts)
             and all(isinstance(chart, dict) and chart.get("error") for chart in charts)
+        )
+        all_charts_failed = all_charts_errored and any(
+            chart.get("error_type") not in NO_ROWS_ERROR_TYPES for chart in charts
         )
         return (
             bool(payload.get("error_type"))

@@ -458,11 +458,11 @@
       "compact_description_chars": 227,
       "description_chars": 1167,
       "entry_bytes": {
-        "structured": 9520,
+        "structured": 9667,
         "text_only": 3237
       },
       "input_schema_bytes": 1785,
-      "output_schema_bytes": 6267
+      "output_schema_bytes": 6414
     },
     "get_dashboard_datasets": {
       "annotations": {
@@ -1331,11 +1331,11 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 559583,
+      "structured": 559730,
       "text_only": 230710
     },
     "compact_catalog_bytes": {
-      "structured": 501265,
+      "structured": 501412,
       "text_only": 172392
     },
     "largest_entry": {
