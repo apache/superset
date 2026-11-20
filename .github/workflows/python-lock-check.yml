@@ -106,7 +106,8 @@ jobs:
       # from the interpreter setup-backend installed.
       - name: Resolve the interpreter version
         run: |
-          echo "PYTHON_VERSION=$(python -c 'import sys; print("{}.{}".format(*sys.version_info[:2]))')" >> "$GITHUB_ENV"
+          version="$(python -c 'import sys; print("{}.{}".format(*sys.version_info[:2]))')"
+          echo "PYTHON_VERSION=$version" >> "$GITHUB_ENV"
 
       - name: Install base.txt into a fresh environment
         run: |
