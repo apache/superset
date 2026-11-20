@@ -208,7 +208,7 @@ test('renders an enabled button if datasource and viz type are selected', async 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
   await userEvent.click(datasourceSelect);
   expect(
-    await screen.findByRole('option', { name: 'table' }),
+    await screen.findByRole('option', { name: 'table - test_db - public' }),
   ).toBeInTheDocument();
   await userEvent.click(await screen.findByText(/test_db/i));
 
@@ -480,10 +480,14 @@ test('lists a same-named dataset and semantic view as distinct, typed options', 
 
   expect(await screen.findAllByText('shared_source')).toHaveLength(2);
   expect(
-    screen.getByRole('option', { name: 'shared_source Dataset' }),
+    screen.getByRole('option', {
+      name: 'shared_source - examples - public Dataset',
+    }),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole('option', { name: 'shared_source Semantic View' }),
+    screen.getByRole('option', {
+      name: 'shared_source - Sales semantics Semantic View',
+    }),
   ).toBeInTheDocument();
   // The type label is plain text inside each option rather than colour or an
   // icon, so it is read out along with the name.
@@ -504,6 +508,111 @@ test('lists a same-named dataset and semantic view as distinct, typed options', 
     'true',
   );
 });
+
+test.each(
+  [false, true].flatMap(enabled =>
+    ['schema', 'database'].map(distinction => ({ enabled, distinction })),
+  ),
+)(
+  'dataset accessible names distinguish $distinction with semantic layers=$enabled',
+  async ({ enabled, distinction }) => {
+    if (enabled) enableSemanticLayers();
+    fetchMock.clearHistory().removeRoutes();
+    fetchMock.get(/\/api\/v1\/(dataset|datasource)\/\?q=.*/, {
+      body: {
+        result: [
+          {
+            id: 1,
+            table_name: 'orders',
+            schema: 'sales',
+            database: { database_name: 'warehouse' },
+          },
+          {
+            id: 2,
+            table_name: 'orders',
+            schema: distinction === 'schema' ? 'finance' : 'sales',
+            database: {
+              database_name:
+                distinction === 'database' ? 'archive' : 'warehouse',
+            },
+          },
+        ],
+        count: 2,
+      },
+    });
+    await renderComponent();
+    await userEvent.click(
+      screen.getByRole('combobox', {
+        name: enabled ? 'Datasource' : 'Dataset',
+      }),
+    );
+    for (const label of [
+      'orders - warehouse - sales',
+      distinction === 'schema'
+        ? 'orders - warehouse - finance'
+        : 'orders - archive - sales',
+    ]) {
+      expect(
+        await screen.findByRole('option', {
+          name: enabled ? `${label} Dataset` : label,
+        }),
+      ).toBeInTheDocument();
+    }
+  },
+);
+
+test.each(['', 'null', 'none'])(
+  'dataset accessible name shares the visible fallback for %s',
+  async tableName => {
+    enableSemanticLayers();
+    fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
+      body: {
+        result: [
+          {
+            id: 1,
+            table_name: tableName,
+            database: { database_name: 'warehouse' },
+            schema: 'null',
+          },
+        ],
+        count: 1,
+      },
+    });
+    await renderComponent();
+    await userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
+    expect(
+      await screen.findByRole('option', {
+        name: 'warehouse - warehouse Dataset',
+      }),
+    ).toBeInTheDocument();
+  },
+);
+
+test.each(['Dataset', 'Semantic View', 'examples', 'public'])(
+  'picker search does not match display-only label text %s',
+  async term => {
+    enableSemanticLayers();
+    fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
+      body: { result: combinedDatasourceFixtures, count: 2 },
+    });
+    await renderComponent();
+    const select = screen.getByRole('combobox', { name: 'Datasource' });
+    await userEvent.click(select);
+    expect(await screen.findAllByText('shared_source')).toHaveLength(2);
+    await userEvent.type(select, term);
+    expect(
+      await screen.findByText('No data', {
+        selector: '.ant-empty-description',
+      }),
+    ).toBeInTheDocument();
+    await userEvent.clear(select);
+    await userEvent.type(select, 'shared');
+    expect(await screen.findAllByText('shared_source')).toHaveLength(2);
+    await userEvent.clear(select);
+    await userEvent.type(select, '42');
+    expect(await screen.findAllByText('shared_source')).toHaveLength(2);
+  },
+);
 
 test('requests unified server ordering by table name', async () => {
   enableSemanticLayers();
@@ -589,7 +698,9 @@ test('dashboard chart creation preserves semantic identity with a named option',
   await renderComponent();
   await userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
   expect(
-    await screen.findByRole('option', { name: 'shared_source Semantic View' }),
+    await screen.findByRole('option', {
+      name: 'shared_source - Sales semantics Semantic View',
+    }),
   ).toBeInTheDocument();
   await userEvent.click(await screen.findByText('shared_source'));
   await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));

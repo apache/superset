@@ -47,6 +47,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import {
   Dataset,
   DatasetSelectLabel,
+  getDatasetSelectLabelParts,
 } from 'src/features/datasets/DatasetSelectLabel';
 import {
   fetchDatasetById,
@@ -220,12 +221,13 @@ const createDatasourceOption = (
 ): DatasourceOption => {
   const isSemanticView = item.kind === 'semantic_view';
   const datasourceLabel = DatasetSelectLabel(item);
+  const accessibleName = getDatasetSelectLabelParts(item).join(' - ');
   const typeLabel = isSemanticView ? t('Semantic View') : t('Dataset');
   return {
     id: item.id,
     'aria-label': withTypeTag
-      ? `${item.table_name} ${typeLabel}`
-      : item.table_name,
+      ? `${accessibleName} ${typeLabel}`
+      : accessibleName,
     value: `${item.id}__${isSemanticView ? 'semantic_view' : 'table'}`,
     table_name: item.table_name,
     label: withTypeTag ? (
