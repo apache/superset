@@ -19,15 +19,27 @@
 import { useEffect, useMemo } from 'react';
 import { isEqual } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
-import { FormItem, Select } from '@superset-ui/core/components';
+import {
+  AutoComplete,
+  FormItem,
+  Input,
+  Select,
+} from '@superset-ui/core/components';
 import { Spin } from '@superset-ui/core/components/Spin';
-import { withJsonFormsControlProps } from '@jsonforms/react';
+import { useJsonForms, withJsonFormsControlProps } from '@jsonforms/react';
 import type {
   JsonSchema,
   UISchemaElement,
   ControlProps,
 } from '@jsonforms/core';
-import { rankWith, and, isStringControl, schemaMatches } from '@jsonforms/core';
+import {
+  Actions,
+  rankWith,
+  and,
+  isStringControl,
+  isControl,
+  schemaMatches,
+} from '@jsonforms/core';
 import {
   rendererRegistryEntries,
   TextControl,
@@ -243,6 +255,55 @@ export function areDependenciesSatisfied(
   });
 }
 
+/** The metadata applies to top-level dynamic strings with manual entry. */
+function anyOption(
+  schema: JsonSchema,
+): { label: string; description?: string } | undefined {
+  const metadata = schema as Record<string, unknown>;
+  const option = metadata['x-anyOption'];
+  if (
+    schema.type !== 'string' ||
+    metadata['x-dynamic'] !== true ||
+    metadata['x-allowCustomValue'] !== true ||
+    !option ||
+    typeof option !== 'object' ||
+    !('label' in option) ||
+    typeof option.label !== 'string'
+  )
+    return undefined;
+  return {
+    label: option.label,
+    description:
+      'description' in option && typeof option.description === 'string'
+        ? option.description
+        : undefined,
+  };
+}
+
+/** Only a declared sibling boolean can be controlled/hidden by a string field. */
+function pairedFlag(schema: JsonSchema, root: JsonSchema): string | undefined {
+  const flag = (schema as Record<string, unknown>)['x-pairedFlag'];
+  return typeof flag === 'string' &&
+    Object.hasOwn(root.properties ?? {}, flag) &&
+    root.properties?.[flag]?.type === 'boolean'
+    ? flag
+    : undefined;
+}
+
+/** Initialize new forms only; existing saved pairs must not be normalized. */
+export function initializeAnyOptions(
+  schema: JsonSchema,
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  let result = data;
+  for (const [field, prop] of Object.entries(schema.properties ?? {})) {
+    if (!anyOption(prop) || data[field] !== undefined) continue;
+    const flag = pairedFlag(prop, schema);
+    result = { ...result, [field]: '', ...(flag ? { [flag]: true } : {}) };
+  }
+  return result;
+}
+
 /**
  * Renderer for fields marked `x-dynamic` in the JSON Schema.
  * Shows a loading spinner inside the input while the schema is being
@@ -361,6 +422,93 @@ const dynamicFieldEntry = {
     ),
   ),
   renderer: DynamicFieldRenderer,
+};
+
+/** Free-entry suggestions preserve provider order, with the empty choice first. */
+function AnyOptionControl(props: ControlProps) {
+  const { dispatch } = useJsonForms();
+  // Generated nested UI schemas may use a relative scope; the resolved data
+  // path is authoritative before issuing a root-level paired update.
+  if (props.path.includes('.')) return <DynamicFieldControl {...props} />;
+  const option = anyOption(props.schema);
+  const metadata = props.schema as Record<string, unknown>;
+  const deps = metadata['x-dependsOn'];
+  const refreshing =
+    !!props.config?.refreshingSchema &&
+    Array.isArray(deps) &&
+    areDependenciesSatisfied(
+      deps as string[],
+      props.config?.formData ?? {},
+      props.rootSchema,
+    );
+  const suggestions = metadata['x-suggestions'];
+  const values = Array.isArray(suggestions) ? suggestions : [];
+  const names = Array.isArray(metadata['x-enumNames'])
+    ? metadata['x-enumNames']
+    : [];
+  const options = [
+    { value: '', label: option?.label ?? '' },
+    ...values.flatMap((value, index) =>
+      typeof value === 'string' && value !== ''
+        ? [
+            {
+              value,
+              label: typeof names[index] === 'string' ? names[index] : value,
+            },
+          ]
+        : [],
+    ),
+  ];
+  const select = (value: string) => {
+    const flag = pairedFlag(props.schema, props.rootSchema);
+    // One reducer action updates both fields, including explicit re-selection.
+    dispatch?.(
+      Actions.update('', (data: Record<string, unknown>) => ({
+        ...data,
+        [props.path]: value,
+        ...(flag ? { [flag]: value === '' } : {}),
+      })),
+    );
+  };
+  return (
+    <FormItem
+      label={props.label}
+      extra={props.schema.description || option?.description}
+      required={props.required}
+    >
+      <AutoComplete
+        aria-label={props.label}
+        value={typeof props.data === 'string' ? props.data : ''}
+        placeholder={refreshing ? t('Loading...') : option?.label}
+        options={options}
+        virtual={false}
+        filterOption={(input, candidate) =>
+          candidate?.value === '' ||
+          String(candidate?.label ?? '')
+            .toLocaleLowerCase()
+            .includes(input.toLocaleLowerCase())
+        }
+        disabled={!props.enabled}
+        onChange={select}
+        onSelect={select}
+        allowClear
+      >
+        <Input suffix={refreshing ? <Spin size="small" /> : <span />} />
+      </AutoComplete>
+    </FormItem>
+  );
+}
+const anyOptionEntry = {
+  tester: rankWith(
+    7,
+    and(
+      isStringControl,
+      schemaMatches(schema => !!anyOption(schema)),
+      uischema =>
+        isControl(uischema) && /^#\/properties\/[^/.]+$/.test(uischema.scope),
+    ),
+  ),
+  renderer: withJsonFormsControlProps(AnyOptionControl),
 };
 
 /**
@@ -529,6 +677,7 @@ export const renderers = [
   enumNamesEntry,
   multiEnumEntry,
   dynamicFieldEntry,
+  anyOptionEntry,
 ];
 
 /**
@@ -567,7 +716,14 @@ export function sanitizeSchema(schema: JsonSchema): JsonSchema {
   if (!schema.properties) return schema;
   const properties: Record<string, JsonSchema> = {};
   for (const [key, prop] of Object.entries(schema.properties)) {
-    if (
+    if (anyOption(prop)) {
+      // Discovery values are suggestions, not an AJV restriction on manual names.
+      const { enum: suggestions, ...rest } = prop;
+      properties[key] = {
+        ...rest,
+        'x-suggestions': suggestions ?? [],
+      } as JsonSchema;
+    } else if (
       typeof prop === 'object' &&
       prop !== null &&
       'enum' in prop &&
@@ -596,8 +752,13 @@ export function buildUiSchema(schema: JsonSchema): UISchemaElement | undefined {
     ((schema as Record<string, unknown>)['x-propertyOrder'] as string[]) ??
     Object.keys(schema.properties);
 
+  const hiddenFlags = new Set(
+    Object.values(schema.properties)
+      .filter(prop => !!anyOption(prop))
+      .map(prop => pairedFlag(prop, schema)),
+  );
   const elements = propertyOrder
-    .filter(key => key in (schema.properties ?? {}))
+    .filter(key => key in (schema.properties ?? {}) && !hiddenFlags.has(key))
     .map(key => {
       const prop = schema.properties![key];
       const control: Record<string, unknown> = {
