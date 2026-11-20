@@ -7854,8 +7854,33 @@
         },
         "type": "object"
       },
+      "EncryptedExtraExpiration": {
+        "properties": {
+          "expired": {
+            "description": "Whether the stored JWT has expired",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "description": "When the stored JWT expires, from its exp claim, in UTC",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "EncryptedExtraHintSchema": {
         "properties": {
+          "expired": {
+            "description": "Whether the stored JWT has expired; null when expires_at is null",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expires_at": {
+            "description": "When the stored JWT expires, from its exp claim, in UTC; null when the value is not a JWT with an exp claim",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
           "label": {
             "description": "Human readable name of the masked field",
             "type": "string"
@@ -7892,6 +7917,13 @@
           "disable_ssh_tunneling": {
             "description": "SSH tunnel is not available to the database",
             "type": "boolean"
+          },
+          "encrypted_extra_expirations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EncryptedExtraExpiration"
+            },
+            "description": "On `/connection` only: JSONPath of each stored sensitive encrypted_extra field holding a JWT with an exp claim, and when it expires. The signature is not verified.",
+            "type": "object"
           },
           "encrypted_extra_sensitive_fields": {
             "additionalProperties": {
@@ -23499,7 +23531,7 @@
     },
     "/api/v1/database/{pk}/encrypted_extra_hints/": {
       "get": {
-        "description": "Returns the label and last characters of each sensitive field in the database's encrypted extra, so that a stored secret can be told apart from another one without revealing it. The number of characters is set by `ENCRYPTED_EXTRA_HINT_CHARS`; the list is empty when it is 0 or less.",
+        "description": "Returns the label and last characters of each sensitive field in the database's encrypted extra, so that a stored secret can be told apart from another one without revealing it. A JWT also gets the expiry its unverified exp claim states. The number of characters is set by `ENCRYPTED_EXTRA_HINT_CHARS`; the list is empty when it is 0 or less.",
         "parameters": [
           {
             "description": "The database id",
@@ -28292,6 +28324,46 @@
         ]
       }
     },
+    "/api/v1/me/api_key_scopes/": {
+      "get": {
+        "description": "Lists the ``superset:<resource>:<action>`` API-key scopes the current user is allowed to put on a new API key, i.e. the subset of the scope catalog that does not exceed the user's own permissions. Returns a 401 error if the user is unauthenticated.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The allowed scopes"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the self-issuable API-key scopes",
+        "tags": [
+          "Current User"
+        ]
+      }
+    },
     "/api/v1/me/roles/": {
       "get": {
         "description": "Gets the user roles corresponding to the agent making the request, or returns a 401 error if the user is unauthenticated.",
@@ -29189,6 +29261,11 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "default_executor": {
+                      "description": "Fixed default execution account, visible only to admins.",
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "result": {
                       "$ref": "#/components/schemas/ReportConfigurationSchema"
                     }

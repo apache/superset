@@ -137,12 +137,19 @@ test.each([
 );
 
 test.each([false, true])(
-  'uses the HTTP reason for a validation dict, display controls=%s',
+  'renders the endpoint validation dict, display controls=%s',
   async failControls => {
-    // Dashboard update schemas return error.messages via response_400.
+    // Both endpoints return 400 for schema errors and 422 for dataset validation.
+    const detail = failControls
+      ? 'Field may not be null.'
+      : 'The native filters reference datasets that are not available: 42';
     const failure = {
-      status: 400,
-      body: { message: { modified: ['Not a valid list.'] } },
+      status: failControls ? 400 : 422,
+      body: {
+        message: failControls
+          ? { modified: [detail] }
+          : { native_filter_configuration: [detail] },
+      },
     };
     fetchMock.route(
       FILTERS_URL,
@@ -156,7 +163,7 @@ test.each([false, true])(
     expect(store.getState()).toMatchObject({
       messageToasts: [
         {
-          text: `Your ${failControls ? 'display control' : 'filter'} changes were not saved: Bad Request`,
+          text: `Your ${failControls ? 'display control' : 'filter'} changes were not saved: ${detail}`,
         },
       ],
     });

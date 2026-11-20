@@ -99,7 +99,7 @@ def test_post_access_denied(test_client, login_as, dashboard_id: int):
     resp = test_client.post(
         f"api/v1/dashboard/{dashboard_id}/filter_state", json=payload
     )
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_post_same_key_for_same_tab_id(test_client, login_as_admin, dashboard_id: int):
@@ -252,7 +252,7 @@ def test_put_access_denied(test_client, login_as, dashboard_id: int):
             "value": UPDATED_VALUE,
         },
     )
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 @patch("superset.commands.dashboard.filter_state.create.check_access")
@@ -395,7 +395,7 @@ def test_get_dashboard_filter_state_null_native_filter_configuration(
 def test_get_access_denied(test_client, login_as, dashboard_id):
     login_as("gamma")
     resp = test_client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_delete(test_client, login_as_admin, dashboard_id: int):
@@ -406,10 +406,10 @@ def test_delete(test_client, login_as_admin, dashboard_id: int):
 def test_delete_access_denied(test_client, login_as, dashboard_id: int):
     login_as("gamma")
     resp = test_client.delete(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_delete_not_owner(test_client, login_as, dashboard_id: int):
     login_as("gamma")
     resp = test_client.delete(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
-    assert resp.status_code == 404
+    assert resp.status_code == 403

@@ -151,6 +151,41 @@ test('Apply is disabled when the API returns an error response', async () => {
   });
 });
 
+const EMPTY_TIME_RANGE_WARNING =
+  'This time range is empty. Choose an end time later than the start time.';
+
+test('warns about an empty evaluated range without disabling Apply', async () => {
+  getSpy.mockResolvedValue({
+    json: {
+      result: [{ since: '2024-01-01T00:00:00', until: '2024-01-01T00:00:00' }],
+    },
+  } as any);
+  const onSubmit = jest.fn();
+  renderFilter({ value: '2024-01-01 : 2024-01-01', onSubmit });
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    EMPTY_TIME_RANGE_WARNING,
+  );
+  const apply = screen.getByRole('button', { name: /apply/i });
+  expect(apply).toBeEnabled();
+  await userEvent.click(apply);
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledWith([
+      '2024-01-01T00:00:00',
+      '2024-01-01T00:00:00',
+    ]);
+  });
+});
+
+test('does not warn about a non-empty evaluated range', async () => {
+  renderFilter();
+  const apply = screen.getByRole('button', { name: /apply/i });
+  await waitFor(() => {
+    expect(apply).toBeEnabled();
+  });
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
 test('Cancel button calls onClose', async () => {
   const onClose = jest.fn();
   renderFilter({ onClose });

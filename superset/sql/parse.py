@@ -152,6 +152,7 @@ SQLGLOT_DIALECTS = {
     "oceanbase": Dialects.MYSQL,
     # "ocient": ???
     "odelasticsearch": OpenSearch,
+    "openobserve": Dialects.POSTGRES,
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
@@ -3189,6 +3190,10 @@ def tokenize_kql(kql: str) -> list[tuple[KQLTokenType, str]]:
                 )
                 buffer = ch
             elif ch == "`" and script[i - 2 : i] == "``":
+                # the first two backticks were buffered as plain text; flush
+                # whatever precedes them before starting the string literal
+                if buffer[:-2]:
+                    tokens.extend(classify_non_string_kql(buffer[:-2]))
                 state = KQLSplitState.INSIDE_MULTILINE_STRING
                 buffer = "```"
             else:
