@@ -86,6 +86,8 @@ import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { ChartCustomizationPlugins, FilterPlugins } from 'src/constants';
 import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
+import TopBannerChartPlugin from '@superset-ui/plugin-chart-top-banner';
+
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -171,6 +173,7 @@ export default class MainPreset extends Preset {
         new EchartsButterflyChartPlugin().configure({
           key: VizType.Butterfly,
         }),
+        new TopBannerChartPlugin().configure({ key: 'top-banner' }),
         new EchartsHeatmapChartPlugin().configure({ key: VizType.Heatmap }),
         new EchartsHistogramChartPlugin().configure({ key: VizType.Histogram }),
         new SelectFilterPlugin().configure({ key: FilterPlugins.Select }),
