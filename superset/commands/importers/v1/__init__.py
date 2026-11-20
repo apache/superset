@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from flask_babel import gettext as _
 from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
 from sqlalchemy.orm import Session  # noqa: F401
@@ -28,6 +29,7 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.commands.importers.v1.utils import (
+    ImportFormatValidationError,
     load_configs,
     load_metadata,
     load_yaml,  # noqa: F401
@@ -146,10 +148,13 @@ class ImportModelsCommand(BaseCommand):
                     detailed_errors.append(str(ex))
 
             error_summary = "; ".join(detailed_errors)
-            raise CommandInvalidError(
-                f"Error importing {self.model_name}: {error_summary}",
-                exceptions,
-            )
+            message = f"Error importing {self.model_name}: {error_summary}"
+            if any(isinstance(ex, ImportFormatValidationError) for ex in exceptions):
+                message += ". " + _(
+                    "Re-export the assets from a compatible Superset version, "
+                    "then retry with the new file."
+                )
+            raise CommandInvalidError(message, exceptions)
 
     def _reused_dependency_uuids(self) -> set[str]:
         """

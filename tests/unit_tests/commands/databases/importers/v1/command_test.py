@@ -157,7 +157,9 @@ def test_transient_schema_listing_failure_is_recovered_by_retry(
     from superset.models.core import Database
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
-    add_permission_view_menu = mocker.spy(security_manager, "add_permission_view_menu")
+    from superset.commands.database import utils
+
+    add_permission_view_menu = mocker.spy(utils, "add_pvm")
 
     engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
@@ -184,4 +186,6 @@ def test_transient_schema_listing_failure_is_recovered_by_retry(
     )
     ImportDatabasesCommand._import(copy.deepcopy(configs), overwrite=True)
 
-    add_permission_view_menu.assert_any_call("schema_access", "[examples].[new_schema]")
+    add_permission_view_menu.assert_any_call(
+        db.session, security_manager, "schema_access", "[examples].[new_schema]"
+    )

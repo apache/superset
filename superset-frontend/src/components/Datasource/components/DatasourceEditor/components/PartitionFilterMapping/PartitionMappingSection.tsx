@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef, useId } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
@@ -27,13 +27,16 @@ import {
   Icons,
   InfoTooltip,
   Input,
+  type InputRef,
   Loading,
   Typography,
 } from '@superset-ui/core/components';
+import PartitionDataValidation from './PartitionDataValidation';
 import { useDebouncedCommit } from './useDebouncedCommit';
 import { usePartitionMappingPreview } from './usePartitionMappingPreview';
 import {
   defaultTransformFor,
+  isNumericType,
   partitionRowState,
   previewOperatorFor,
   sampleValuesFor,
@@ -84,6 +87,9 @@ export default function PartitionMappingSection({
   onPreviewVerdict,
 }: PartitionMappingSectionProps) {
   const theme = useTheme();
+  const transformInput = useRef<InputRef>(null);
+  const moveRequested = useRef(false);
+  const diagnosticId = useId();
   const columnName = item?.column_name ?? '';
   const state = partitionRowState(datasource, columnName);
   const isMonotonic = Boolean(item?.partition_transform_is_monotonic);
@@ -97,7 +103,7 @@ export default function PartitionMappingSection({
     flush: flushTransform,
   } = useDebouncedCommit(value, (next: string) => onChange?.(next || null));
 
-  const { preview, loading } = usePartitionMappingPreview({
+  const { preview, loading, requestError, retry } = usePartitionMappingPreview({
     datasetId: datasource.id,
     mappedColumn: columnName,
     partitionColumn: datasource.partition_column ?? '',
@@ -126,6 +132,13 @@ export default function PartitionMappingSection({
       ),
   });
 
+  useEffect(() => {
+    if (state === 'mapped' && moveRequested.current) {
+      moveRequested.current = false;
+      transformInput.current?.focus();
+    }
+  }, [state]);
+
   // Reported rather than read upward, because the transform the preview judges
   // is the local, debounced one this panel holds. `null` while a request is in
   // flight: the previous verdict belongs to text that is no longer on screen.
@@ -144,11 +157,11 @@ export default function PartitionMappingSection({
     // would have the dataset banner claim nothing mirrors on the strength of a
     // question nobody answered.
     onPreviewVerdict?.(
-      loading || !preview || preview.reason === 'unsaved'
+      loading || requestError || !preview || preview.reason === 'unsaved'
         ? null
         : preview.valid,
     );
-  }, [state, loading, preview, onPreviewVerdict]);
+  }, [state, loading, requestError, preview, onPreviewVerdict]);
 
   if (state === 'none' || state === 'partition') {
     return null;
@@ -166,7 +179,10 @@ export default function PartitionMappingSection({
             {t('Not currently mapped to the partition column.')}{' '}
             <Button
               buttonStyle="link"
-              onClick={() => onMoveMappingHere(columnName)}
+              onClick={() => {
+                moveRequested.current = true;
+                onMoveMappingHere(columnName);
+              }}
               data-test="move-mapping-here"
             >
               {t('Move mapping to this column →')}
@@ -181,6 +197,18 @@ export default function PartitionMappingSection({
   // message appears as it is typed. The same check gates Save from
   // `DatasourceEditor.validate`, reading the committed record instead.
   const transformErrors = valueTransformIssues(item, transform);
+  // Any verdict the preview reported against mirroring -- a safety refusal or
+  // a transform the engine, operator or type cannot mirror -- so the copy above
+  // it stops promising the mirror the alert below withdraws.
+  const notMirrored = Boolean(
+    !loading && preview && !preview.valid && preview.reason !== 'unsaved',
+  );
+  // Data validation compares integer keys. On a text key it can never be
+  // enabled, so it is not offered; an unknown type keeps it, as before.
+  const partitionType = datasource.columns?.find(
+    col => col.column_name === datasource.partition_column,
+  )?.type;
+  const validatesData = !partitionType || isNumericType(partitionType);
 
   return (
     <Flex
@@ -219,11 +247,15 @@ export default function PartitionMappingSection({
         </Typography.Text>
       </Flex>
       <Typography.Text type="secondary">
-        {isTemporal
-          ? t('Filters on this column are mirrored onto the partition field.')
-          : t(
-              'This column holds the mapping instead of the default datetime column.',
-            )}
+        {notMirrored
+          ? t(
+              'Filters on this column are mapped onto the partition field, but with this transform they are not mirrored.',
+            )
+          : isTemporal
+            ? t('Filters on this column are mirrored onto the partition field.')
+            : t(
+                'This column holds the mapping instead of the default datetime column.',
+              )}
       </Typography.Text>
 
       <Flex align="center" gap={theme.sizeUnit}>
@@ -249,6 +281,8 @@ export default function PartitionMappingSection({
           />
         </Flex>
         <Input
+          ref={transformInput}
+          aria-describedby={transformErrors.length ? diagnosticId : undefined}
           value={transform}
           onChange={event => onTransformChange(event.target.value)}
           // The commit is debounced and DatasourceModal's `buildPayload` reads
@@ -276,18 +310,17 @@ export default function PartitionMappingSection({
                 'Required for non-temporal columns. Use :value for each value.',
               )}
         </Typography.Text>
-        {/* These block the save, so the reason has to be at the field and not
-            only in the disabled Save button's tooltip -- otherwise it means
-            searching a column table for the row that caused it. */}
-        {transformErrors.map(issue => (
-          <Typography.Text
-            key={issue.message}
-            type="danger"
-            data-test="partition-value-transform-error"
-          >
-            {issue.message}
-          </Typography.Text>
-        ))}
+        <div id={diagnosticId} aria-live="polite">
+          {transformErrors.map(issue => (
+            <Typography.Text
+              key={issue.message}
+              type={issue.blocking === false ? 'warning' : 'danger'}
+              data-test="partition-value-transform-error"
+            >
+              {issue.message}
+            </Typography.Text>
+          ))}
+        </div>
       </Flex>
 
       <Flex align="center" gap={theme.sizeUnit}>
@@ -332,7 +365,9 @@ export default function PartitionMappingSection({
                 iconColor={theme.colorSuccess}
                 iconSize="s"
               />
-              <Typography.Text type="success">{t('Valid')}</Typography.Text>
+              <Typography.Text>
+                {t('Expression evaluated — data not checked')}
+              </Typography.Text>
             </Flex>
           </Flex>
           <Flex gap={theme.sizeUnit * 2}>
@@ -348,6 +383,39 @@ export default function PartitionMappingSection({
             <Typography.Text code>{preview.emitted_predicate}</Typography.Text>
           </Flex>
         </Flex>
+      )}
+
+      {validatesData && (
+        <PartitionDataValidation
+          datasetId={datasource.id}
+          mappedColumn={columnName}
+          partitionColumn={datasource.partition_column ?? ''}
+          valueTransform={transform}
+          isMonotonic={isMonotonic}
+          sampleValues={sampleValuesFor(item)}
+          operator={previewOperatorFor(item)}
+          disabledReason={
+            !transform
+              ? t('Enter a value transform before validating against data.')
+              : transformErrors.length > 0
+                ? t(
+                    'Correct the value transform before validating against data.',
+                  )
+                : preview?.reason === 'unsaved'
+                  ? t('Save the dataset before validating against data.')
+                  : undefined
+          }
+        />
+      )}
+
+      {!loading && requestError && (
+        <Alert
+          type="warning"
+          showIcon
+          message={t('Preview temporarily unavailable')}
+          description={requestError}
+          action={<Button onClick={retry}>{t('Retry')}</Button>}
+        />
       )}
 
       {/* Only one of preview and error is ever visible. */}

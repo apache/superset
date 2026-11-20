@@ -64,6 +64,7 @@ from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
+from superset.semantic_layers.exceptions import normalize_provider_request_errors
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -172,6 +173,7 @@ def _grains_by_column(dimensions: Iterable[Dimension]) -> dict[str, dict[str, st
     return grains
 
 
+@normalize_provider_request_errors()
 def _resolve_external_view(
     request: GetTableRequest,
 ) -> _ResolvedDatasource | SemanticLayerError:
@@ -489,9 +491,10 @@ async def _run_get_table_query(
         and request.metrics
         and required_dimensions
     ):
-        compatible: set[str] = set(
-            resolved.view.get_compatible_dimensions(request.metrics, [])
-        )
+        with normalize_provider_request_errors():
+            compatible: set[str] = set(
+                resolved.view.get_compatible_dimensions(request.metrics, [])
+            )
         incompatible: list[str] = sorted(required_dimensions - compatible)
         if incompatible:
             return SemanticLayerError.create(
