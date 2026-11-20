@@ -73,7 +73,13 @@ export type DashboardLocation =
    */
   | 'sidebar'
   /** Inside an individual chart's overflow ("...") menu. */
-  | 'chartActions';
+  | 'chartActions'
+  /**
+   * Beside a chart's name on the dashboard, where a list view puts the same
+   * kind of mark: something belonging to the chart rather than to the
+   * actions you can take on it.
+   */
+  | 'chartNameCell';
 
 /**
  * Valid locations within Explore.

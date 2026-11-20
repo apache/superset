@@ -284,6 +284,13 @@ const ExtensionSidebarColumn = styled.div`
   align-self: start;
   height: calc(100vh - ${MAIN_HEADER_HEIGHT}px);
   z-index: 99;
+  /* DashboardWrapper declares two tracks (auto 1fr), so this is an implicit
+     third one, sized to its content. Capped, because the chart area is the
+     1fr beside it: without a limit a wide contribution takes the width it
+     asks for and the grid gives it up, which on a narrow dashboard squeezes
+     the charts rather than the panel. */
+  max-width: min(400px, 33vw);
+  overflow-x: hidden;
 
   &:empty {
     display: none;

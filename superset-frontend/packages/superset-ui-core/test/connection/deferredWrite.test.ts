@@ -55,7 +55,10 @@ test('a 202 from ordinary async work is not a deferral', () => {
   ];
   asyncJobs.forEach(job => {
     expect(
-      isDeferredWrite({ ...job, response: new Response(null, { status: 202 }) }),
+      isDeferredWrite({
+        ...job,
+        response: new Response(null, { status: 202 }),
+      }),
     ).toBe(false);
   });
 });
