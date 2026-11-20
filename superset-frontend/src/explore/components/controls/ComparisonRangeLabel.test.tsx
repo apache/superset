@@ -75,6 +75,7 @@ beforeEach(() => {
   // comparison range.
   mockedFetchTimeRange.mockImplementation(async (_range, _col, shifts) => ({
     value: shifts?.length ? COMPARISON_LABEL : CURRENT_RANGE_LABEL,
+    isEmpty: false,
   }));
 });
 
@@ -126,6 +127,28 @@ test.each([
     );
   },
 );
+
+test('warns when the comparison range is empty', async () => {
+  mockedFetchTimeRange.mockResolvedValue({
+    value: [COMPARISON_LABEL],
+    isEmpty: true,
+  });
+  renderLabel({ time_compare: ['1 month ago'] });
+
+  expect(await screen.findByText(COMPARISON_LABEL)).toBeInTheDocument();
+  expect(
+    screen.getByText('This comparison time range is empty.'),
+  ).toBeInTheDocument();
+});
+
+test('does not warn when the comparison range is not empty', async () => {
+  renderLabel({ time_compare: ['1 month ago'] });
+
+  expect(await screen.findByText(COMPARISON_LABEL)).toBeInTheDocument();
+  expect(
+    screen.queryByText('This comparison time range is empty.'),
+  ).not.toBeInTheDocument();
+});
 
 test('ignores an unknown legacy time_comparison shorthand', async () => {
   const { container } = renderLabel({ time_comparison: 'zzz' });
@@ -191,15 +214,19 @@ test('maps the legacy time_comparison shorthand "c" to a custom shift resolved f
 });
 
 test('custom shift without start_date_offset never requests a comparison range', async () => {
-  renderLabel({ time_compare: ['custom'] });
+  const { container } = renderLabel({ time_compare: ['custom'] });
 
   await settle();
   expect(mockedFetchTimeRange).not.toHaveBeenCalled();
   expect(screen.queryByText(COMPARISON_LABEL)).not.toBeInTheDocument();
+  // No usable comparison range was computed, so the header must not render
+  // either -- otherwise it shows with nothing underneath it.
+  expect(screen.queryByText(HEADER)).not.toBeInTheDocument();
+  expect(container).toBeEmptyDOMElement();
 });
 
 test('custom shift does not request a comparison when start_date_offset is after the current range start', async () => {
-  renderLabel({
+  const { container } = renderLabel({
     time_compare: ['custom'],
     start_date_offset: '2024-06-01',
   });
@@ -208,6 +235,10 @@ test('custom shift does not request a comparison when start_date_offset is after
   await settle();
   expect(mockedFetchTimeRange).toHaveBeenCalledTimes(1);
   expect(screen.queryByText(COMPARISON_LABEL)).not.toBeInTheDocument();
+  // No usable comparison range was computed, so the header must not render
+  // either -- otherwise it shows with nothing underneath it.
+  expect(screen.queryByText(HEADER)).not.toBeInTheDocument();
+  expect(container).toBeEmptyDOMElement();
 });
 
 test('inherit shift shifts back by the length of the current range', async () => {
@@ -249,4 +280,34 @@ test('inherit is combined with regular shifts in one comparison request', async 
     temporalRangeFilter.subject,
     ['30 days ago', '1 year ago'],
   );
+});
+
+test('renders every entry, with no duplicate-key warning, when distinct shifts resolve to the same label', async () => {
+  // A 30-day range makes `inherit` resolve to the same offset as the
+  // literal "30 days ago" shift, so the comparison request can legitimately
+  // come back with two identical entries for one filter.
+  const consoleError = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => {});
+  mockedFetchTimeRange
+    .mockImplementationOnce(async () => ({
+      value: CURRENT_RANGE_LABEL,
+      isEmpty: false,
+    }))
+    .mockImplementationOnce(async () => ({
+      value: [COMPARISON_LABEL, COMPARISON_LABEL],
+      isEmpty: false,
+    }));
+
+  renderLabel({ time_compare: ['inherit', '30 days ago'] });
+
+  await waitFor(() =>
+    expect(screen.getAllByText(COMPARISON_LABEL)).toHaveLength(2),
+  );
+  const duplicateKeyWarning = consoleError.mock.calls.some(call =>
+    String(call[0]).includes('same key'),
+  );
+  expect(duplicateKeyWarning).toBe(false);
+
+  consoleError.mockRestore();
 });

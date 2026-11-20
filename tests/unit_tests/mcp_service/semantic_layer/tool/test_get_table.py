@@ -36,7 +36,13 @@ import pytest
 import pytz
 from dateutil import tz as dateutil_tz
 from fastmcp import Client, FastMCP
+from fastmcp.client.client import CallToolResult
 from flask import current_app
+from superset_core.semantic_layers.errors import SemanticBackendError
+from superset_core.semantic_layers.transport import (
+    ProviderRequestError,
+    ProviderRequestFailure,
+)
 from superset_core.semantic_layers.types import Dimension, Grains
 
 from superset.commands.exceptions import CommandException
@@ -50,6 +56,7 @@ from superset.mcp_service.semantic_layer.schemas import (
     SemanticLayerError,
 )
 from superset.security.guest_token import GuestToken, GuestTokenRlsRule, GuestUser
+from superset.semantic_layers.exceptions import execute_semantic_query
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 from superset.utils.core import GenericDataType
@@ -1125,6 +1132,19 @@ async def test_get_table_normalizes_supported_producer_timezones(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     mock_ds = _make_dataset(42)
+    dublin_fold: datetime = datetime(
+        2024,
+        10,
+        27,
+        1,
+        30,
+        0,
+        123456,
+        tzinfo=dateutil_tz.gettz("Europe/Dublin"),
+        fold=1,
+    )
+    # Capture the producer offset before normalization or hostile hooks.
+    dublin_iso: str = dublin_fold.isoformat()
     query_result = chart_data_command_result(
         [
             {
@@ -1146,17 +1166,7 @@ async def test_get_table_normalizes_supported_producer_timezones(
                 "revenue": 3,
             },
             {
-                "created_at": datetime(
-                    2024,
-                    10,
-                    27,
-                    1,
-                    30,
-                    0,
-                    123456,
-                    tzinfo=dateutil_tz.gettz("Europe/Dublin"),
-                    fold=1,
-                ),
+                "created_at": dublin_fold,
                 "revenue": 4,
             },
             {
@@ -1237,7 +1247,7 @@ async def test_get_table_normalizes_supported_producer_timezones(
         {"created_at": "2024-01-02T03:04:05-04:00", "revenue": 2},
         {"created_at": "2024-01-02T03:04:05-08:00", "revenue": 3},
         {
-            "created_at": "2024-10-27T01:30:00.123456+01:00",
+            "created_at": dublin_iso,
             "revenue": 4,
         },
         {"created_at": "2024-03-10T02:30:00-04:00", "revenue": 5},
@@ -2600,3 +2610,123 @@ async def test_get_table_normalizes_nested_builtin_cells(
     assert data["source"] == "builtin"
     assert data["dataset_id"] == 42
     assert data["dataset_name"] == mock_ds.table_name
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("transport", [False, True])
+async def test_sdk_fault_retains_mcp_query_error_without_cause(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+    transport: bool,
+) -> None:
+    """The MCP entry point preserves safe host errors in its QueryError envelope."""
+    error: Exception = (
+        ProviderRequestError(
+            ProviderRequestFailure.HTTP_STATUS, status=403, provider="MetricFlow"
+        )
+        if transport
+        else SemanticBackendError()
+    )
+    error.__cause__ = ValueError("private-provider-cause")
+    dispatcher: Mock = Mock(side_effect=error)
+
+    async def fail_query(*args: Any, **kwargs: Any) -> None:
+        execute_semantic_query(dispatcher)
+
+    monkeypatch.setattr(get_table_module, "_run_get_table_query", fail_query)
+    client: Client
+    async with Client(mcp_server) as client:
+        result: CallToolResult = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+    returned: SemanticLayerError = SemanticLayerError.model_validate(
+        json.loads(result.content[0].text)
+    )
+    assert returned.error_type == "QueryError"
+    assert "private-provider" not in returned.message
+    if transport:
+        assert str(error) in returned.message
+    dispatcher.assert_called_once()
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("stage", ["factory", "dimensions", "metrics"])
+async def test_transport_failure_during_mcp_preparation_is_query_error(
+    mcp_server: FastMCP,
+    caplog: pytest.LogCaptureFixture,
+    stage: str,
+) -> None:
+    """Transport failures before query dispatch use the safe QueryError envelope."""
+    caplog.set_level("DEBUG")
+    error: ProviderRequestError = ProviderRequestError(
+        ProviderRequestFailure.HTTP_STATUS, status=403, provider="MetricFlow"
+    )
+    error.__cause__ = ValueError("private-preparation-cause")
+    provider: MagicMock = MagicMock()
+    provider.get_dimensions.return_value = []
+    provider.get_metrics.return_value = []
+    factory: MagicMock = MagicMock(return_value=provider)
+    if stage == "factory":
+        factory.side_effect = error
+    else:
+        getattr(provider, f"get_{stage}").side_effect = error
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    execute: MagicMock = MagicMock()
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(SemanticView, "raise_for_access"),
+        patch.object(SemanticView, "implementation", property(lambda self: factory())),
+        patch.object(get_table_module, "execute_tabular_query", execute),
+    ):
+        client: Client
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "get_table", {"request": {"view_id": 7, "metrics": ["revenue"]}}
+            )
+    returned: SemanticLayerError = SemanticLayerError.model_validate(
+        json.loads(result.content[0].text)
+    )
+    assert returned.error_type == "QueryError"
+    assert str(error) in returned.message
+    assert "private-preparation" not in returned.message
+    assert "private-preparation" not in caplog.text
+    execute.assert_not_called()
+    provider.get_table.assert_not_called()
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+async def test_transport_failure_during_mcp_compatibility_is_query_error(
+    mcp_server: FastMCP,
+    temporal_view: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A later discovery request gets the same envelope after resolution succeeds."""
+    caplog.set_level("DEBUG")
+    error: ProviderRequestError = ProviderRequestError(ProviderRequestFailure.TIMEOUT)
+    error.__cause__ = ValueError("private-compatibility-cause")
+    temporal_view.get_compatible_dimensions.side_effect = error
+    client: Client
+    async with Client(mcp_server) as client:
+        result: CallToolResult = await client.call_tool(
+            "get_table",
+            {
+                "request": {
+                    "view_id": 5,
+                    "metrics": ["bookings"],
+                    "dimensions": ["country_name"],
+                }
+            },
+        )
+    returned: SemanticLayerError = SemanticLayerError.model_validate(
+        json.loads(result.content[0].text)
+    )
+    assert returned.error_type == "QueryError"
+    assert str(error) in returned.message
+    assert "private-compatibility" not in returned.message
+    assert "private-compatibility" not in caplog.text
+    temporal_view.get_compatible_dimensions.assert_called_once()

@@ -39,6 +39,13 @@ EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
 
 PASSWORD_MASK = "X" * 10
 
+# Key under which a connection's embedded-guest fallback credential is stored in
+# ``encrypted_extra``, and the name of the matching connection-dialog parameter.
+# Shared rather than per-engine: the frontend's ``FORM_FIELD_MAP`` and
+# ``FormFieldOrder`` key off the same name, so an engine that renamed it would
+# store a credential the dialog could never render or edit.
+EMBEDDED_CREDENTIALS_KEY = "embedded_credentials"
+
 # ``python_date_format`` values that mark an integer column as a Unix epoch,
 # mapped to the number of units per second. The pandas resolution is the
 # suffix after ``epoch_`` (``s``/``ms``/``us``).
@@ -62,6 +69,7 @@ QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
 # fabricate a stop) apart from "this engine just has no cancel support"
 # (must fail honestly) when no cancel ID is on record.
 QUERY_DISPATCHED_KEY = "query_dispatched"
+QUERY_TARGET_COMMITTED_KEY = "target_committed"
 
 LRU_CACHE_MAX_SIZE = 256
 
@@ -194,6 +202,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "delete_object": "write",
     "copy_dash": "write",
     "get_connection": "write",
+    "encrypted_extra_hints": "write",
     "upload_metadata": "upload",
     "slack_channels": "write",
     "put_filters": "write",

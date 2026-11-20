@@ -131,7 +131,7 @@ async def update_dataset_metric(  # noqa: C901
         "dataset_id": 123,
         "metric": "sum_revenue",
         "expression": "SUM(net_revenue)",
-        "d3format": "$,.2f"
+        "d3format": ",.2f"
     }
     ```
     """

@@ -895,9 +895,15 @@ def test_recovery_stays_reachable_for_a_flagged_session(
     monkeypatch.setitem(app.config, "ENABLE_FORCE_PASSWORD_CHANGE", True)
 
     client = app.test_client()
-    with patch(
-        "superset.views.auth.BaseSupersetView.render_app_template",
-        return_value="<html></html>",
+    with (
+        patch(
+            "superset.views.auth.BaseSupersetView.render_app_template",
+            return_value="<html></html>",
+        ),
+        patch(
+            "superset.security.password_change._profile_page_reachable",
+            return_value=True,
+        ),
     ):
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)

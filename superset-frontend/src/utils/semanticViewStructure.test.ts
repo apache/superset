@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { GenericDataType } from '@apache-superset/core/common';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import {
   fetchSemanticViewStructure,
@@ -38,6 +39,54 @@ test('marks semantic dimensions as groupable for drill by', () => {
   ).toEqual([
     expect.objectContaining({ column_name: 'Orders Status', groupby: true }),
     expect.objectContaining({ column_name: 'Created At', groupby: true }),
+  ]);
+});
+
+test('collapses time grain variants into one labelled dimension', () => {
+  expect(
+    semanticViewDimensionsToColumns([
+      {
+        name: 'Orders.order_date',
+        type: 'timestamp[us]',
+        grain: 'Month',
+        verbose_name: 'Monthly order date',
+      },
+      {
+        name: 'Orders.order_date',
+        type: 'date32[day]',
+        grain: null,
+        verbose_name: 'Order date',
+      },
+      {
+        name: 'Orders.order_date',
+        type: 'timestamp[us]',
+        grain: 'Day',
+        verbose_name: 'Order date',
+      },
+      { name: 'Orders.order_ts', type: 'timestamp[us]', grain: 'Hour' },
+      {
+        name: 'Orders.ship_date',
+        type: 'date32[day]',
+        verbose_name: 'Order date',
+      },
+    ]),
+  ).toEqual([
+    expect.objectContaining({
+      column_name: 'Orders.order_date',
+      verbose_name: 'Order date',
+      type: 'date32[day]',
+      groupby: true,
+    }),
+    expect.objectContaining({
+      column_name: 'Orders.order_ts',
+      verbose_name: undefined,
+      groupby: true,
+    }),
+    expect.objectContaining({
+      column_name: 'Orders.ship_date',
+      verbose_name: 'Order date',
+      groupby: true,
+    }),
   ]);
 });
 
@@ -90,5 +139,54 @@ test.each([undefined, null])(
     });
     const structure = await fetchSemanticViewStructure(503);
     expect(structure.semantic_selection_version).toBeUndefined();
+  },
+);
+
+test.each([
+  'bigint',
+  'integer',
+  'smallint',
+  'tinyint',
+  'numeric',
+  'numeric(10,2)',
+  'real',
+  'BIGINT',
+  'INTEGER',
+])('preserves SQL numeric dimension %s in the shared column metadata', type => {
+  expect(semanticViewDimensionsToColumns([{ name: 'amount', type }])).toEqual([
+    expect.objectContaining({
+      column_name: 'amount',
+      type_generic: GenericDataType.Numeric,
+    }),
+  ]);
+});
+
+test.each([
+  'int8',
+  'int16',
+  'int32',
+  'int64',
+  'uint8',
+  'uint16',
+  'uint32',
+  'uint64',
+  'halffloat',
+  'float',
+  'double',
+  'decimal32(7, 2)',
+  'decimal64(7, 2)',
+  'decimal128(10, 2)',
+  'decimal256(40, 2)',
+])(
+  'preserves Arrow numeric dimension %s in the shared column metadata',
+  type => {
+    expect(semanticViewDimensionsToColumns([{ name: 'amount', type }])).toEqual(
+      [
+        expect.objectContaining({
+          column_name: 'amount',
+          type_generic: GenericDataType.Numeric,
+        }),
+      ],
+    );
   },
 );

@@ -35,6 +35,8 @@ class SemanticViewFeature(enum.Enum):
     Custom features supported by semantic layers.
     """
 
+    # Reserved for import compatibility: no SDK query shape supports this feature.
+    # Declaring it does not grant adhoc column expressions in the host.
     ADHOC_COLUMN_EXPRESSIONS = "ADHOC_COLUMN_EXPRESSIONS"
     ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
     GROUP_LIMIT = "GROUP_LIMIT"
@@ -58,22 +60,32 @@ class SemanticView(ABC):
       :attr:`selection_identity_version`.
     - **Grain variants.** Several dimension variants may share one ``name``, at
       most one per ``(name, grain)``. See
-      :class:`~superset_core.semantic_layers.types.Grains` for the intended
-      preference, which not every host lookup applies yet, and for why grains
+      :class:`~superset_core.semantic_layers.types.Grains` for the selection
+      preference and for why grains
       must not be ordered by name.
     - **NULL in filters.** ``None`` is never a comparison operand; splitting
       nullness into ``IS_NULL``/``IS_NOT_NULL`` is the host's responsibility.
       Mixed positive membership uses grouped OR predicates, which every
       provider must render; see :class:`~superset_core.semantic_layers.types.Operator`.
     - **Ordering before limit.** ``order`` is applied to the full result set
-      before ``offset`` and ``limit``. See
+      before ``offset`` and ``limit``. The host gives an unordered ``get_table``
+      query that selects a temporal dimension a default chronological order. See
       :class:`~superset_core.semantic_layers.types.SemanticQuery`.
+    - **Counts and value lists.** A row count is the size of the requested
+      result window, after ``offset`` and ``limit``, never the unrestricted
+      total of a windowed query or a count of underlying facts. ``get_values``
+      returns the complete filtered distinct set or raises; the host applies
+      its suggestion limit afterwards. Exactness is never approximated: what
+      cannot be verified raises. See
+      :class:`~superset_core.semantic_layers.types.SemanticQuery` and
+      :class:`~superset_core.semantic_layers.types.SemanticResult`.
 
     Uniqueness works at two levels. In the **catalog**, dimensions are unique
     per ``(name, grain)`` -- so several grain variants of one name are expected
     -- while metric names are unique on their own and must not collide with a
-    dimension name. These are provider obligations the host does not currently
-    check. In a **query**, at most one variant per name is selected, so a result
+    dimension name. The host rejects conflicting dimension variants, but metric
+    name uniqueness remains a provider obligation. In a **query**, at most one
+    variant per name is selected, so a result
     carries one column per selected member name.
     """
 
@@ -87,7 +99,12 @@ class SemanticView(ABC):
     preferred_temporal_dimension: str | None = None
 
     def validate_selection_version(self, version: object) -> None:
-        """Reject selections made under a different member identity contract."""
+        """Reject selections made under a different member identity contract.
+
+        Raises ``ValueError`` for a version mismatch. This selection guard is
+        separate from provider execution: callers must handle it at the selection
+        boundary, not classify arbitrary execution ``ValueError`` as a refusal.
+        """
         if (
             self.selection_identity_version is not None
             and version != self.selection_identity_version
@@ -107,7 +124,7 @@ class SemanticView(ABC):
     def metadata_cache_token(self) -> str | None:
         """Return the ``cache_token`` these members were discovered under.
 
-        Providers echo the token passed to ``from_configuration_with_cache_token``;
+        Providers echo the token passed to ``from_configuration``;
         legacy views return None. Report the token captured with the members, never
         a later one. The host keys its caches on its own metadata generation, not
         on this value.
@@ -141,10 +158,29 @@ class SemanticView(ABC):
         """
         Return distinct values for a dimension.
 
+        Name the value column exactly ``dimension.name``, not ``dimension.id``
+        or its display label. The host looks up that name for nonempty results;
+        its legacy single-column fallback and empty-result handling are unchanged.
+
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;
         never return a partial result instead.
         Do not drop ``filters`` and retry when a filtered request is incomplete.
+
+        The result is the whole distinct domain of the dimension under
+        ``filters``, not a provider-limited subset. Consumers may rely on this
+        complete-or-raise contract; no separate evidence field is required.
+        This signature takes no limit. The host sorts the complete result and
+        applies its suggestion limit afterwards, returning values up to that
+        limit. A shorter successful host list is complete under the filters;
+        reaching the limit may mean that the host cut the list.
+
+        A page size, transport cap or hard-coded ceiling of the provider's own
+        is not a bound the caller asked for. If it may have cut the result,
+        raise ``SemanticResultCompletenessError`` rather than returning it.
+        A separate bounded-suggestion API must not be improvised here. Values
+        come in no promised order unless the provider documents one applied
+        to the complete result before any cut.
 
         Raise SemanticQueryRejectedError for deliberate input rejection, such as a
         search filter the dimension cannot apply; the host returns it to the user
@@ -163,7 +199,8 @@ class SemanticView(ABC):
 
         Sort by ``query.order`` before applying ``query.offset`` and
         ``query.limit``; truncating before sorting returns the wrong rows. Name
-        each result column after the member that produced it.
+        each result column after the member that produced it. NULL placement and
+        the order of rows tied on every order key are provider-defined.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;
@@ -175,11 +212,27 @@ class SemanticView(ABC):
         """
         Execute a query and return the number of rows the result would have.
 
+        Count the requested result window: the rows of the filtered, grouped
+        result that remain after ``query.offset`` and ``query.limit``, as
+        :class:`~superset_core.semantic_layers.types.SemanticQuery` defines it,
+        under the same validation of the query's shape, ``order`` aside, that
+        ``get_table`` applies. Return one row with one integer column named
+        ``rowcount`` (see
+        :class:`~superset_core.semantic_layers.types.SemanticResult`); an empty
+        window has ``rowcount`` equal to ``0``. The unrestricted total is the
+        count only of a query with neither limit nor offset; for any other
+        query it may be a different number and must not be returned as the count.
+        A total may be turned into the window count arithmetically only when it
+        describes exactly this query's
+        matching result, with every filter, grouping and group limit applied.
+
         Raise SemanticQueryRejectedError for deliberate input rejection.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
-        when the result is incomplete or its completeness cannot be verified;
-        never return a partial result instead.
+        (``"incomplete"`` or ``"unverified"``) when the count cannot be established
+        exactly within the provider's budgets: never an estimate, the length of a
+        fetched page or a zero standing in for "unknown". Never return a partial
+        result instead.
         """
 
     @abstractmethod

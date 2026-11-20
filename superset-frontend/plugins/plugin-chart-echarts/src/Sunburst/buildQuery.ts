@@ -16,14 +16,77 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  buildQueryContext,
+  ensureIsArray,
+  isPhysicalColumn,
+  QueryFormColumn,
+  QueryFormData,
+} from '@superset-ui/core';
+
+import { isGrainedLevel } from './timeGrain';
+
+// Wrap each temporal hierarchy level in the BASE_AXIS column reference that
+// carries the time grain, the shape ``normalizeTimeColumn`` uses for a physical
+// x-axis. Non-temporal levels are left untouched.
+function applyTimeGrain(
+  columns: QueryFormColumn[],
+  formData: QueryFormData,
+  timeGrain: string | undefined,
+): { columns: QueryFormColumn[]; grained: boolean } {
+  let grained = false;
+  const mapped = columns.map(column => {
+    if (
+      timeGrain &&
+      isPhysicalColumn(column) &&
+      isGrainedLevel(
+        column,
+        formData.temporal_columns_lookup,
+        formData.extra_form_data?.granularity_sqla ?? formData.granularity_sqla,
+      )
+    ) {
+      grained = true;
+      return {
+        timeGrain,
+        columnType: 'BASE_AXIS',
+        sqlExpression: column,
+        label: column,
+        expressionType: 'SQL',
+        isColumnReference: true,
+      } as AdhocColumn;
+    }
+    return column;
+  });
+  return { columns: mapped, grained };
+}
 
 export default function buildQuery(formData: QueryFormData) {
   const { metric, sort_by_metric } = formData;
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      ...(sort_by_metric && { orderby: [[metric, false]] }),
-    },
-  ]);
+  return buildQueryContext(formData, baseQueryObject => {
+    const { columns, grained } = applyTimeGrain(
+      ensureIsArray(baseQueryObject.columns),
+      formData,
+      baseQueryObject.extras?.time_grain_sqla,
+    );
+    const extras = { ...baseQueryObject.extras };
+    if (
+      !grained &&
+      !baseQueryObject.granularity &&
+      formData.temporal_columns_lookup != null
+    ) {
+      // A grain with neither a temporal level nor a legacy granularity subject
+      // is dormant; semantic views reject a grain that has no time column.
+      // Without a lookup, temporal levels are unknown, so keep the grain.
+      delete extras.time_grain_sqla;
+    }
+    return [
+      {
+        ...baseQueryObject,
+        columns,
+        extras,
+        ...(sort_by_metric && { orderby: [[metric, false]] }),
+      },
+    ];
+  });
 }

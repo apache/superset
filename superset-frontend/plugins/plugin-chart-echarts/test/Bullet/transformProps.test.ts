@@ -16,10 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData, VizType } from '@superset-ui/core';
+import {
+  ChartProps,
+  getNumberFormatterRegistry,
+  NumberFormatter,
+  SqlaFormData,
+  VizType,
+} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/Bullet/transformProps';
 import { EchartsBulletChartProps } from '../../src/Bullet/types';
+
+jest.mock('@apache-superset/core/translation', () => {
+  const translation = jest.requireActual<
+    typeof import('@apache-superset/core/translation')
+  >('@apache-superset/core/translation');
+  return { ...translation, t: jest.fn(translation.t) };
+});
 
 const formData: SqlaFormData = {
   datasource: '5__table',
@@ -35,7 +49,7 @@ const formData: SqlaFormData = {
 
 const chartProps = (
   overrides: Partial<SqlaFormData> = {},
-  data: Array<Record<string, number>> = [{ sum__num: 120 }],
+  data: Array<Record<string, string | number>> = [{ sum__num: 120 }],
 ) =>
   new ChartProps({
     width: 800,
@@ -423,4 +437,225 @@ test('keeps exact-case dimensions and uses per-index fallbacks for short labels'
       .filter(series => series.type === 'line')
       .map(series => series.markLine?.data[0].label.formatter()),
   ).toEqual(['stretch', '260.0']);
+});
+
+test('escapes literal comparison text in every Bullet tooltip', () => {
+  const label = 'Users <30 & <img src=x>';
+  const metric = '<b>Total <3</b>';
+  const range = '<b>Range</b>';
+  jest.mocked(t).mockReturnValueOnce(range);
+  const value = '<b>120</b>';
+  const yAxisFormat = 'bullet-tooltip-markup';
+  getNumberFormatterRegistry().registerValue(
+    yAxisFormat,
+    new NumberFormatter({ id: yAxisFormat, formatFunc: () => value }),
+  );
+  const props = chartProps(
+    {
+      metric,
+      yAxisFormat,
+      rangeLabels: label,
+      ranges: '200',
+      markerLabels: label,
+      markers: '150',
+      groupby: ['group'],
+    },
+    [{ [metric]: 120, group: label }],
+  );
+  const { echartOptions } = transformProps(props);
+  const series = echartOptions.series as Array<{
+    tooltip?: { formatter: () => string };
+    data: Array<{ tooltip?: { formatter: () => string } }>;
+  }>;
+  const tips = [
+    series[0].tooltip!.formatter(),
+    ...series.slice(1).flatMap(s => s.data.map(d => d.tooltip!.formatter())),
+  ];
+  getNumberFormatterRegistry().remove(yAxisFormat);
+  tips.forEach(html => {
+    const element = document.createElement('div');
+    element.innerHTML = html;
+    expect(element.textContent).toContain(label);
+    expect(element.textContent).toContain(value);
+    expect(element.querySelectorAll('b')).toHaveLength(1);
+    expect(element.querySelector('img')).toBeNull();
+  });
+  const element = document.createElement('div');
+  element.innerHTML = tips[0];
+  expect(element.textContent).toContain(metric);
+  expect(element.textContent).toContain(`${range}: ${label}`);
+  expect(element.querySelector('b')).not.toBeNull();
+});
+
+test('applies custom range_colors to their bands, matched by original (pre-sort) range order', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ rangeColors: ['#ff0000', '#00ff00', '#0000ff'] }),
+  );
+  const { series } = echartOptions as any;
+
+  // bands are drawn largest-threshold-first (300, 200, 100), but colors
+  // must stay pinned to their original range value (100 -> red, 200 ->
+  // green, 300 -> blue), not to the post-sort draw order.
+  const bandColors = series[0].markArea.data.map(
+    (d: any) => d[0].itemStyle.color,
+  );
+  expect(bandColors).toEqual(['#0000ff', '#00ff00', '#ff0000']);
+});
+
+test('picks a contrasting label color for custom range fills', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ showLabels: true, rangeColors: ['#000000', '#ffffff', ''] }),
+  );
+  const labelColors = (echartOptions as any).series[0].markArea.data.map(
+    (d: any) => d[0].label.color,
+  );
+  // bands are drawn largest-threshold-first: unset, white, black
+  expect(labelColors).toEqual([
+    supersetTheme.colorTextSecondary,
+    '#1f1f1f',
+    '#ffffff',
+  ]);
+});
+
+test('uses the nearest outer custom fill to pick an uncolored band label color', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ showLabels: true, rangeColors: ['', '#000000', ''] }),
+  );
+  const labelColors = (echartOptions as any).series[0].markArea.data.map(
+    (d: any) => d[0].label.color,
+  );
+  // drawn largest-first: unset (outermost), black, unset sitting on black
+  expect(labelColors).toEqual([
+    supersetTheme.colorTextSecondary,
+    '#ffffff',
+    '#ffffff',
+  ]);
+});
+
+test('labels a translucent band from the opaque custom fill beneath it', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ showLabels: true, rangeColors: ['#ffffff33', '#000000', ''] }),
+  );
+  const labelColors = (echartOptions as any).series[0].markArea.data.map(
+    (d: any) => d[0].label.color,
+  );
+  // drawn largest-first: unset, black, translucent white over black
+  expect(labelColors).toEqual([
+    supersetTheme.colorTextSecondary,
+    '#ffffff',
+    '#ffffff',
+  ]);
+});
+
+test('keeps the default label color for an opaque fill it cannot parse', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ showLabels: true, rangeColors: ['yellow', '#000000', ''] }),
+  );
+  const labelColors = (echartOptions as any).series[0].markArea.data.map(
+    (d: any) => d[0].label.color,
+  );
+  // drawn largest-first: unset, black, a named color covering the black band
+  expect(labelColors).toEqual([
+    supersetTheme.colorTextSecondary,
+    '#ffffff',
+    supersetTheme.colorTextSecondary,
+  ]);
+});
+
+test('derives the label color from the fill itself, including near-opaque alpha', () => {
+  const { echartOptions } = transformProps(
+    chartProps({
+      showLabels: true,
+      rangeColors: ['#000000fc', '#ffffff', '#00000033'],
+    }),
+  );
+  const labelColors = (echartOptions as any).series[0].markArea.data.map(
+    (d: any) => d[0].label.color,
+  );
+  // drawn largest-threshold-first: mostly transparent, white, near-opaque black
+  expect(labelColors).toEqual([
+    supersetTheme.colorTextSecondary,
+    '#1f1f1f',
+    '#ffffff',
+  ]);
+});
+
+test('picks the dark foreground for a mid-tone fill where it actually contrasts better', () => {
+  // '#999999' has WCAG relative luminance ~0.32: above the old, wrong 0.4
+  // cutoff's "light" side, but well above the ~0.21 luminance where white
+  // and the dark foreground actually have equal contrast against a fill.
+  // The dark foreground (#1f1f1f) contrasts far better here (~5.8:1 vs
+  // ~2.85:1), so it must be the one picked.
+  const { echartOptions } = transformProps(
+    chartProps({ showLabels: true, rangeColors: ['#999999'] }),
+  );
+  const labelColors = (echartOptions as any).series[0].markArea.data.map(
+    (d: any) => d[0].label.color,
+  );
+  expect(labelColors[labelColors.length - 1]).toBe('#1f1f1f');
+});
+
+test('falls back to the default theme-token ramp when range_colors is absent (backward compatibility)', () => {
+  const { echartOptions } = transformProps(chartProps());
+  const { series } = echartOptions as any;
+
+  const bandColors = series[0].markArea.data.map(
+    (d: any) => d[0].itemStyle.color,
+  );
+  expect(bandColors).toEqual([
+    supersetTheme.colorFillQuaternary,
+    supersetTheme.colorFillTertiary,
+    supersetTheme.colorFillSecondary,
+  ]);
+});
+
+test('falls back to the default ramp for individual ranges left unset in range_colors', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ rangeColors: ['', '#00ff00', ''] }),
+  );
+  const { series } = echartOptions as any;
+
+  const bandColors = series[0].markArea.data.map(
+    (d: any) => d[0].itemStyle.color,
+  );
+  // draw order is 300, 200, 100 -> only the 200 threshold (index 1) has a
+  // custom color; the other two fall back to the ramp at their draw index.
+  expect(bandColors).toEqual([
+    supersetTheme.colorFillQuaternary,
+    '#00ff00',
+    supersetTheme.colorFillSecondary,
+  ]);
+});
+
+test('drops a range value that overflows to Infinity instead of shifting range_colors onto the wrong bands', () => {
+  // BulletRangeColorsControl parses `ranges` itself (dropping non-finite
+  // tokens) to render one color row per threshold, so `rangeColors` here is
+  // authored against only the two finite thresholds (100, 300) -- index 1
+  // means "300", not "the third comma-separated token". `ranges` must drop
+  // the same overflowing token the same way, or that color lands on the
+  // wrong band.
+  const { echartOptions } = transformProps(
+    chartProps({
+      ranges: '100,1e999,300',
+      rangeColors: ['#ff0000', '#00ff00'],
+    }),
+  );
+  const { series } = echartOptions as any;
+
+  const bandColors = series[0].markArea.data.map(
+    (d: any) => d[0].itemStyle.color,
+  );
+  expect(bandColors).toEqual(['#00ff00', '#ff0000']);
+});
+
+test('ignores range_colors when ranges is empty and the automatic fallback band is used', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ ranges: '', rangeColors: ['#ff0000', '#00ff00'] }),
+  );
+  const { series } = echartOptions as any;
+
+  const bandColors = series[0].markArea.data.map(
+    (d: any) => d[0].itemStyle.color,
+  );
+  expect(bandColors).toEqual([supersetTheme.colorFillQuaternary]);
 });

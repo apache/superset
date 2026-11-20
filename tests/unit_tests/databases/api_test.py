@@ -19,11 +19,13 @@
 
 from __future__ import annotations
 
+import base64
 from datetime import datetime
 from io import BytesIO
 from typing import Any
 from unittest.mock import ANY, Mock
 from uuid import UUID
+from zipfile import is_zipfile, ZipFile
 
 import pytest
 import yaml
@@ -32,12 +34,14 @@ from flask.testing import FlaskClient
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
+from werkzeug.test import TestResponse
 
 from superset import db
 from superset.commands.database.uploaders.base import UploadCommand
 from superset.commands.database.uploaders.columnar_reader import ColumnarReader
 from superset.commands.database.uploaders.csv_reader import CSVReader
 from superset.commands.database.uploaders.excel_reader import ExcelReader
+from superset.constants import PASSWORD_MASK
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
@@ -45,6 +49,7 @@ from superset.sql.parse import Partition, Table
 from superset.superset_typing import OAuth2State
 from superset.utils import json
 from superset.utils.oauth2 import encode_oauth2_state
+from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.fixtures.common import (
     create_columnar_file,
     create_csv_file,
@@ -332,7 +337,14 @@ def test_database_connection(
             "database_name": "my_database",
             "driver": "gsheets",
             "engine_information": {
+                "oauth2_enabled": False,
                 "disable_ssh_tunneling": True,
+                "encrypted_extra_expirations": {},
+                "encrypted_extra_sensitive_fields": {
+                    "$.service_account_info.private_key": (
+                        "Service Account Private Key"
+                    ),
+                },
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
                 "supports_oauth2": True,
@@ -428,7 +440,21 @@ def test_database_connection(
             "database_name": "my_database",
             "driver": "gsheets",
             "engine_information": {
+                "oauth2_enabled": False,
                 "disable_ssh_tunneling": True,
+                "encrypted_extra_sensitive_fields": {
+                    "$.embedded_credentials.password": "Embedded guest password",
+                    "$.embedded_credentials.privatekey_body": (
+                        "Embedded guest private key (PEM)"
+                    ),
+                    "$.embedded_credentials.privatekey_pass": (
+                        "Embedded guest private key passphrase"
+                    ),
+                    "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+                    "$.service_account_info.private_key": (
+                        "Service Account Private Key"
+                    ),
+                },
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
                 "supports_oauth2": True,
@@ -448,6 +474,404 @@ def test_database_connection(
             "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
         },
     }
+
+
+JWT_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzZXJ2aWNlIn0.c2lnbmF0dXJlabcde"  # noqa: S105
+
+
+def add_druid_database(session: Session, encrypted_extra: str) -> None:
+    """
+    Store a Druid database with the given ``encrypted_extra``.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    db.session.add(
+        Database(
+            database_name="my_druid",
+            sqlalchemy_uri="druid://localhost:8082/druid/v2/sql/",
+            encrypted_extra=encrypted_extra,
+        )
+    )
+    db.session.commit()
+
+
+def test_encrypted_extra_hints(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    The endpoint returns a hint per sensitive field and never the value itself.
+    """
+    add_druid_database(
+        session,
+        json.dumps(
+            {
+                "connect_args": {
+                    "scheme": "https",
+                    "jwt": JWT_TOKEN,
+                    "password": "hunter2",
+                }
+            }
+        ),
+    )
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json == {
+        "result": [
+            {
+                "path": "$.connect_args.jwt",
+                "label": "JWT Token",
+                "suffix": "abcde",
+                "expires_at": None,
+                "expired": None,
+            },
+            {
+                "path": "$.connect_args.password",
+                "label": "Password",
+                "suffix": None,
+                "expires_at": None,
+                "expired": None,
+            },
+        ]
+    }
+    assert all(
+        set(hint) == {"path", "label", "suffix", "expires_at", "expired"}
+        for hint in response.json["result"]
+    )
+    assert JWT_TOKEN.encode() not in response.data
+    assert b"hunter2" not in response.data
+
+    event_log.assert_called_once()
+    assert event_log.call_args.args[1] == "DatabaseRestApi.encrypted_extra_hints"
+    assert event_log.call_args.kwargs["records"][0]["pk"] == 1
+    assert JWT_TOKEN not in str(event_log.call_args)
+    assert "hunter2" not in str(event_log.call_args)
+
+
+def jwt_with_claims(claims: dict[str, Any]) -> str:
+    """
+    An HS256-shaped token carrying ``claims``, with a fake but decodable signature
+    that ends in ``abcde``.
+    """
+    payload = base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=")
+    return f"eyJhbGciOiJIUzI1NiJ9.{payload.decode()}.c2lnbmF0dXJlXYZabcde"
+
+
+@freeze_time("2026-11-05T12:00:00Z")
+@pytest.mark.parametrize(
+    "expires_at,expired",
+    [("2027-01-04T12:00:00+00:00", False), ("2026-11-04T12:00:00+00:00", True)],
+)
+def test_encrypted_extra_hints_jwt_expiry(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    expires_at: str,
+    expired: bool,
+) -> None:
+    """
+    A stored JWT's hint says when its exp claim expires; no other claim is returned.
+    """
+    exp = int(datetime.fromisoformat(expires_at).timestamp())
+    token = jwt_with_claims(
+        {"sub": "service-account", "email": "owner@example.com", "exp": exp}
+    )
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": token}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json == {
+        "result": [
+            {
+                "path": "$.connect_args.jwt",
+                "label": "JWT Token",
+                "suffix": "abcde",
+                "expires_at": expires_at,
+                "expired": expired,
+            }
+        ]
+    }
+    assert token.encode() not in response.data
+    assert b"service-account" not in response.data
+    assert b"owner@example.com" not in response.data
+    assert str(exp).encode() not in response.data
+
+
+def test_encrypted_extra_hints_only_declared_keys(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Keys outside path, label and suffix never reach the response, not even a
+    length.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch.object(
+        DruidEngineSpec,
+        "encrypted_extra_hints",
+        return_value=[
+            {
+                "path": "$.connect_args.jwt",
+                "label": "JWT Token",
+                "suffix": "abcde",
+                "length": len(JWT_TOKEN),
+                "expires_at": None,
+                "expired": None,
+                "value": JWT_TOKEN,
+            }
+        ],
+    )
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json == {
+        "result": [
+            {
+                "path": "$.connect_args.jwt",
+                "label": "JWT Token",
+                "suffix": "abcde",
+                "expires_at": None,
+                "expired": None,
+            }
+        ]
+    }
+
+
+@pytest.mark.parametrize("hint_chars", [0, -3])
+def test_encrypted_extra_hints_disabled(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    hint_chars: int,
+) -> None:
+    """
+    No hints are returned when ``ENCRYPTED_EXTRA_HINT_CHARS`` is 0 or negative.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": hint_chars})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json == {"result": []}
+
+
+@pytest.mark.parametrize(
+    "encrypted_extra",
+    ["null", "[]", "{}", '{"connect_args": {"jwt": '],
+)
+def test_encrypted_extra_hints_malformed(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    encrypted_extra: str,
+) -> None:
+    """
+    An unusable ``encrypted_extra`` yields no hints instead of an error.
+    """
+    add_druid_database(session, encrypted_extra)
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json == {"result": []}
+
+
+@pytest.mark.parametrize("database_id", [0, 2])
+def test_encrypted_extra_hints_not_found(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    database_id: int,
+) -> None:
+    """
+    An unknown database id returns a JSON 404 and logs only the id.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get(f"/api/v1/database/{database_id}/encrypted_extra_hints/")
+
+    assert response.status_code == 404
+    assert response.json == {"message": "Not found"}
+    event_log.assert_called_once()
+    assert event_log.call_args.kwargs["records"][0]["pk"] == database_id
+    assert JWT_TOKEN not in str(event_log.call_args)
+    assert "abcde" not in str(event_log.call_args)
+
+
+@pytest.mark.parametrize("database_id", ["-1", "abc"])
+def test_encrypted_extra_hints_invalid_id(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    database_id: str,
+) -> None:
+    """
+    A negative or non-integer id does not match the route.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get(f"/api/v1/database/{database_id}/encrypted_extra_hints/")
+
+    assert response.status_code == 404
+    assert JWT_TOKEN.encode() not in response.data
+    event_log.assert_not_called()
+
+
+def test_encrypted_extra_hints_requires_write(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    A user who can read databases but not write them gets a 403.
+    """
+    from superset import security_manager
+
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    def can_read_only(permission_name: str, view_name: str) -> bool:
+        return permission_name != "can_write"
+
+    mocker.patch.object(security_manager, "is_item_public", side_effect=can_read_only)
+    has_access = mocker.patch.object(
+        security_manager, "has_access", side_effect=can_read_only
+    )
+
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 403
+    assert JWT_TOKEN.encode() not in response.data
+    has_access.assert_any_call("can_write", "Database")
+    event_log.assert_not_called()
+
+
+def test_encrypted_extra_hints_requires_login(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+) -> None:
+    """
+    An anonymous request gets a 401 and leaves no event log row.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 401
+    assert JWT_TOKEN.encode() not in response.data
+    assert b"abcde" not in response.data
+    event_log.assert_not_called()
+
+
+def test_encrypted_extra_hints_ignores_query_params(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    The hint length comes only from the server config, never from the request,
+    and the audit row records the database id without the request parameters.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get(
+        "/api/v1/database/1/encrypted_extra_hints/",
+        query_string={"length": "500", "path": "$.connect_args.jwt"},
+    )
+
+    assert response.status_code == 200
+    assert response.json == {
+        "result": [
+            {
+                "path": "$.connect_args.jwt",
+                "label": "JWT Token",
+                "suffix": "abcde",
+                "expires_at": None,
+                "expired": None,
+            }
+        ]
+    }
+    assert JWT_TOKEN.encode() not in response.data
+    assert event_log.call_args.kwargs["records"] == [
+        {
+            "path": "/api/v1/database/1/encrypted_extra_hints/",
+            "url_rule": "/api/v1/database/<int:pk>/encrypted_extra_hints/",
+            "object_ref": "DatabaseRestApi.encrypted_extra_hints",
+            "pk": 1,
+            "database_id": 1,
+        }
+    ]
+    assert event_log.call_args.kwargs["curated_payload"] == {}
+    assert event_log.call_args.kwargs["database_id"] == 1
+
+
+def test_encrypted_extra_hints_accepts_string_config(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    A length configured as a string, as from an environment variable, still works.
+    """
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": JWT_TOKEN}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": "5"})
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    response = client.get("/api/v1/database/1/encrypted_extra_hints/")
+
+    assert response.status_code == 200
+    assert response.json["result"][0]["suffix"] == "abcde"
 
 
 @pytest.mark.parametrize("full_payload", [False, True])
@@ -614,7 +1038,7 @@ def test_import(
         ),
     }
     mocker.patch("superset.databases.api.is_zipfile", return_value=True)
-    mocker.patch("superset.databases.api.ZipFile")
+    mocker.patch("superset.databases.api.open_import_bundle")
     mocker.patch(
         "superset.databases.api.get_contents_from_bundle",
         return_value=contents,
@@ -675,7 +1099,7 @@ def test_import_with_encrypted_extra_secrets(
         ),
     }
     mocker.patch("superset.databases.api.is_zipfile", return_value=True)
-    mocker.patch("superset.databases.api.ZipFile")
+    mocker.patch("superset.databases.api.open_import_bundle")
     mocker.patch(
         "superset.databases.api.get_contents_from_bundle",
         return_value=contents,
@@ -708,6 +1132,50 @@ def test_import_with_encrypted_extra_secrets(
     )
 
 
+@pytest.mark.parametrize(
+    "field, value, message",
+    [
+        ("passwords", "{not json", "Form field 'passwords' is not valid JSON"),
+        ("passwords", "123", "Form field 'passwords' must be a JSON object"),
+        (
+            "encrypted_extra_secrets",
+            "{not json",
+            "Form field 'encrypted_extra_secrets' is not valid JSON",
+        ),
+    ],
+)
+def test_import_invalid_json_form_field(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    field: str,
+    value: str,
+    message: str,
+) -> None:
+    """
+    Test that a malformed JSON form field returns a 400 instead of a 500.
+    """
+    mocker.patch("superset.databases.api.is_zipfile", return_value=True)
+    mocker.patch("superset.databases.api.open_import_bundle")
+    mocker.patch(
+        "superset.databases.api.get_contents_from_bundle",
+        return_value={"metadata.yaml": "version: 1.0.0\n"},
+    )
+    command = mocker.patch("superset.databases.api.ImportDatabasesCommand")
+
+    form_data = {"formData": (BytesIO(b"test"), "test.zip"), field: value}
+    response = client.post(
+        "/api/v1/database/import/",
+        data=form_data,
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 400
+    assert response.json["errors"][0]["message"] == message
+    assert response.json["errors"][0]["error_type"] == "INVALID_PAYLOAD_FORMAT_ERROR"
+    command.assert_not_called()
+
+
 def test_non_zip_import(client: Any, full_api_access: None) -> None:
     """
     Test that non-ZIP imports are not allowed.
@@ -733,6 +1201,46 @@ def test_non_zip_import(client: Any, full_api_access: None) -> None:
                         {
                             "code": 1010,
                             "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+
+
+def test_corrupt_zip_import(client: Any, full_api_access: None) -> None:
+    """
+    Test that a ZIP with a corrupt central directory returns a 422, not a 500.
+    """
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n")
+    corrupt = BytesIO(buf.getvalue().replace(b"PK\x01\x02", b"XXXX"))
+    assert is_zipfile(corrupt)
+    form_data = {
+        "formData": (corrupt, "corrupt.zip"),
+    }
+    response = client.post(
+        "/api/v1/database/import/",
+        data=form_data,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "Invalid or corrupted ZIP file",
+                "error_type": "GENERIC_COMMAND_ERROR",
+                "level": "warning",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1010,
+                            "message": (
+                                "Issue 1010 - Superset encountered an error while "
+                                "running a command."
+                            ),
                         }
                     ]
                 },
@@ -2797,7 +3305,7 @@ def test_import_includes_configuration_method(
 
     with (
         patch("superset.databases.api.is_zipfile", return_value=True),
-        patch("superset.databases.api.ZipFile"),
+        patch("superset.databases.api.open_import_bundle"),
         patch("superset.databases.api.get_contents_from_bundle", return_value=contents),
     ):
         form_data = {"formData": (BytesIO(b"test"), "test.zip")}
@@ -2957,3 +3465,782 @@ def test_related_objects_limits_dataset_details(
     assert payload["count"] == MAX_RELATED_DATASETS + 2
     assert len(payload["result"]) == MAX_RELATED_DATASETS
     assert can_access.call_count == MAX_RELATED_DATASETS
+
+
+@pytest.mark.parametrize("valid", [True, False])
+def test_partial_update_validates_embedded_credentials_with_the_stored_engine(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    valid: bool,
+) -> None:
+    """PUT retains engine-specific validation when the caller omits the URI."""
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    class TokenEngineSpec(SqliteEngineSpec):
+        @classmethod
+        def validate_embedded_credentials(
+            cls, credentials: Any
+        ) -> dict[str, str] | None:
+            if isinstance(credentials, dict) and credentials.get("token"):
+                return credentials
+            return None
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.get_feature_flags",
+        return_value={"EMBEDDED_CREDENTIAL_FALLBACK": True, "EMBEDDED_SUPERSET": True},
+    )
+    mocker.patch.object(Database, "get_db_engine_spec", return_value=TokenEngineSpec)
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    database = Database(
+        database_name="test_db", sqlalchemy_uri="sqlite://", encrypted_extra="{}"
+    )
+    session.add(database)
+    session.commit()
+    database_id = database.id
+    credentials = (
+        {"token": "engine-token"} if valid else {"username": "svc", "password": "pw"}
+    )
+    payload = {
+        "masked_encrypted_extra": json.dumps({"embedded_credentials": credentials})
+    }
+
+    response = client.put(f"/api/v1/database/{database_id}", json=payload)
+
+    assert response.status_code == (200 if valid else 400)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == (
+        {"embedded_credentials": credentials} if valid else {}
+    )
+
+
+@pytest.mark.parametrize("rename", [False, True])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_removed_embedded_credential_round_trips_through_the_dialog(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    rename: bool,
+) -> None:
+    """
+    After the credential is cleared, re-saving what the dialog loaded succeeds.
+
+    The empty password used to come back masked, so the dialog re-posted an
+    empty username with a mask, which reads as half-filled: every later save of
+    the connection, even a rename, answered 400 (QA OEF-SECRET-07).
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    # The Snowflake override lists specific paths; the base default masks `$.*`.
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "encrypted_extra_sensitive_fields",
+        {"$.embedded_credentials.password": "Embedded Fallback Password"},
+    )
+    removed = {"embedded_credentials": {"username": "", "password": ""}}
+    database = Database(
+        database_name="test_database",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(removed),
+    )
+    session.add(database)
+    session.commit()
+    database_id = database.id
+
+    loaded = client.get(f"/api/v1/database/{database_id}/connection").json["result"]
+    assert json.loads(loaded["masked_encrypted_extra"]) == removed
+    payload = {"masked_encrypted_extra": loaded["masked_encrypted_extra"]}
+    if rename:
+        payload["database_name"] = "renamed"
+
+    response = client.put(f"/api/v1/database/{database_id}", json=payload)
+
+    assert response.status_code == 200, response.json
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == removed
+
+
+_EMBEDDED_CLIENT = {
+    "id": "client",
+    "secret": "secret",
+    "scope": "refresh_token",
+    "authorization_request_uri": "https://oauth.example/authorize",
+    "token_request_uri": "https://oauth.example/token",
+}
+_EMBEDDED_CREDENTIALS = {"username": "embedded_svc", "password": "embedded_pw"}
+
+
+def _stored_embedded_connection(
+    mocker: MockerFixture,
+    session: Session,
+    encrypted_extra: dict[str, Any],
+    *,
+    impersonate_user: bool = True,
+) -> int:
+    """Store a connection on an engine that opted into the embedded fallback."""
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch.object(SqliteEngineSpec, "supports_embedded_credential_fallback", True)
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    database = Database(
+        database_name="test_db",
+        sqlalchemy_uri="sqlite://",
+        impersonate_user=impersonate_user,
+        encrypted_extra=json.dumps(encrypted_extra),
+    )
+    session.add(database)
+    session.commit()
+    return database.id
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_turning_impersonation_off_is_refused_while_a_credential_is_stored(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    sc-130268: ``{"impersonate_user": false}`` alone used to be accepted, leaving
+    the credential stored while every embedded viewer ran as the base account.
+    """
+    from superset.models.core import Database
+
+    stored_extra = {
+        "oauth2_client_info": _EMBEDDED_CLIENT,
+        "embedded_credentials": _EMBEDDED_CREDENTIALS,
+    }
+    database_id = _stored_embedded_connection(mocker, session, stored_extra)
+
+    response = client.put(
+        f"/api/v1/database/{database_id}", json={"impersonate_user": False}
+    )
+
+    assert response.status_code == 400
+    assert "Clear the embedded credentials" in str(response.json)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert stored.impersonate_user is True
+    assert json.loads(stored.encrypted_extra) == stored_extra
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_turning_impersonation_off_while_clearing_the_credential_is_allowed(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    from superset.models.core import Database
+
+    database_id = _stored_embedded_connection(
+        mocker,
+        session,
+        {
+            "oauth2_client_info": _EMBEDDED_CLIENT,
+            "embedded_credentials": _EMBEDDED_CREDENTIALS,
+        },
+    )
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "impersonate_user": False,
+            "masked_encrypted_extra": json.dumps(
+                {"oauth2_client_info": _EMBEDDED_CLIENT}
+            ),
+        },
+    )
+
+    assert response.status_code == 200, response.json
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert stored.impersonate_user is False
+    assert "embedded_credentials" not in json.loads(stored.encrypted_extra)
+
+
+def _fallback_off(mocker: MockerFixture) -> None:
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.get_feature_flags",
+        return_value={"EMBEDDED_CREDENTIAL_FALLBACK": False, "EMBEDDED_SUPERSET": True},
+    )
+
+
+def test_a_credential_is_refused_while_the_fallback_is_off(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    sc-130270: with the fallback off, a credential PUT on a non-impersonating
+    connection used to be stored unchecked and go live when the flag came on.
+    """
+    from superset.models.core import Database
+
+    _fallback_off(mocker)
+    database_id = _stored_embedded_connection(
+        mocker, session, {}, impersonate_user=False
+    )
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "masked_encrypted_extra": json.dumps(
+                {"embedded_credentials": {"username": "EMBED_VIEWER"}}
+            )
+        },
+    )
+
+    assert response.status_code == 400
+    assert "can't be added or changed" in str(response.json)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == {}
+
+
+@pytest.mark.parametrize("rename", [False, True])
+def test_a_stored_credential_round_trips_while_the_fallback_is_off(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    rename: bool,
+) -> None:
+    """
+    OEF-REG-07: re-saving what the dialog loaded, with its masked secrets, is not
+    a change, and the stored credential survives for when the flag returns.
+    """
+    from superset.constants import PASSWORD_MASK
+    from superset.models.core import Database
+
+    _fallback_off(mocker)
+    # The Snowflake override lists specific paths; the base default masks `$.*`.
+    mocker.patch.object(SqliteEngineSpec, "encrypted_extra_sensitive_fields", set())
+    stored_extra = {
+        "oauth2_client_info": _EMBEDDED_CLIENT,
+        "embedded_credentials": _EMBEDDED_CREDENTIALS,
+    }
+    database_id = _stored_embedded_connection(mocker, session, stored_extra)
+
+    loaded = client.get(f"/api/v1/database/{database_id}/connection").json["result"]
+    masked = json.loads(loaded["masked_encrypted_extra"])
+    assert masked["embedded_credentials"]["password"] == PASSWORD_MASK
+    payload = {"masked_encrypted_extra": loaded["masked_encrypted_extra"]}
+    if rename:
+        payload["database_name"] = "renamed"
+
+    response = client.put(f"/api/v1/database/{database_id}", json=payload)
+
+    assert response.status_code == 200, response.json
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == stored_extra
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_credential_is_refused_on_a_blank_oauth2_client(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    sc-127897 step 6: a client block with an empty id and secret used to pass the
+    save check, and guests were then served through the fallback account.
+    """
+    from flask import current_app
+
+    from superset.models.core import Database
+
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    blank_client = {**_EMBEDDED_CLIENT, "id": "", "secret": ""}
+    database_id = _stored_embedded_connection(
+        mocker, session, {"oauth2_client_info": blank_client}
+    )
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "masked_encrypted_extra": json.dumps(
+                {
+                    "oauth2_client_info": blank_client,
+                    "embedded_credentials": _EMBEDDED_CREDENTIALS,
+                }
+            )
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Configure OAuth2 client information" in str(response.json)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == {"oauth2_client_info": blank_client}
+
+
+OAUTH2_ONLY_SNOWFLAKE_URI = "snowflake://account/TEST_DB?warehouse=WAREHOUSE_1"
+OAUTH2_ONLY_CLIENT_INFO = {
+    "id": "client-id",
+    "secret": "client-secret",
+    "authorization_request_uri": (
+        "https://account.snowflakecomputing.com/oauth/authorize"
+    ),
+    "token_request_uri": "https://account.snowflakecomputing.com/oauth/token-request",
+    "scope": "refresh_token",
+}
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri",
+    [
+        "snowflake://account/TEST_DB?warehouse=WAREHOUSE_2",
+        "snowflake://account/OTHER_DB?warehouse=WAREHOUSE_1",
+        "snowflake://account/TEST_DB?role=ANALYST&warehouse=WAREHOUSE_1",
+    ],
+)
+@pytest.mark.parametrize(
+    "secret, saved",
+    [("client-secret", True), ("new-secret", True), (PASSWORD_MASK, False)],
+)
+def test_update_oauth2_only_snowflake_connection_settings(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    sqlalchemy_uri: str,
+    secret: str,
+    saved: bool,
+) -> None:
+    """
+    Changing the warehouse, database or role of an OAuth2-only Snowflake
+    connection saves once the client secret is re-entered.
+
+    The connection has no URI password, so the destination-change guard only
+    looks at the OAuth2 client secret. Re-entering the stored value used to read
+    as reusing it, because unmasking it rebuilt the stored blob byte for byte,
+    and the save was refused with the "effective destination" error. A secret
+    left masked is still refused, and the stored connection is left unchanged.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(Database, "get_default_catalog", return_value="TEST_DB")
+    # An earlier save stores the blob as `json.dumps` renders it.
+    stored = json.dumps({"oauth2_client_info": OAUTH2_ONLY_CLIENT_INFO})
+    database = Database(
+        database_name="snowflake_oauth2",
+        encrypted_extra=stored,
+        impersonate_user=True,
+    )
+    database.set_sqlalchemy_uri(OAUTH2_ONLY_SNOWFLAKE_URI)
+    session.add(database)
+    session.commit()
+    database_id = database.id
+    assert database.password is None
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "sqlalchemy_uri": sqlalchemy_uri,
+            "masked_encrypted_extra": json.dumps(
+                {"oauth2_client_info": {**OAUTH2_ONLY_CLIENT_INFO, "secret": secret}}
+            ),
+        },
+    )
+
+    assert response.status_code == (200 if saved else 422), response.json
+    session.expire_all()
+    updated = session.get(Database, database_id)
+    assert updated is not None
+    if saved:
+        assert updated.sqlalchemy_uri == sqlalchemy_uri
+        assert (
+            json.loads(updated.encrypted_extra)["oauth2_client_info"]["secret"]
+            == secret
+        )
+    else:
+        assert "effective destination" in response.json["message"]["sqlalchemy_uri"]
+        assert updated.sqlalchemy_uri == OAUTH2_ONLY_SNOWFLAKE_URI
+        assert updated.encrypted_extra == stored
+
+
+def test_update_oauth2_only_snowflake_connection_keeps_masked_secret(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    A save that leaves the connection settings alone keeps the masked secret.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(Database, "get_default_catalog", return_value="TEST_DB")
+    stored = json.dumps({"oauth2_client_info": OAUTH2_ONLY_CLIENT_INFO})
+    database = Database(
+        database_name="snowflake_oauth2",
+        encrypted_extra=stored,
+        impersonate_user=True,
+    )
+    database.set_sqlalchemy_uri(OAUTH2_ONLY_SNOWFLAKE_URI)
+    session.add(database)
+    session.commit()
+    database_id = database.id
+
+    loaded = client.get(f"/api/v1/database/{database_id}/connection").json["result"]
+    assert (
+        json.loads(loaded["masked_encrypted_extra"])["oauth2_client_info"]["secret"]
+        == PASSWORD_MASK
+    )
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "database_name": "renamed",
+            "sqlalchemy_uri": loaded["sqlalchemy_uri"],
+            "masked_encrypted_extra": loaded["masked_encrypted_extra"],
+        },
+    )
+
+    assert response.status_code == 200, response.json
+    session.expire_all()
+    updated = session.get(Database, database_id)
+    assert updated is not None
+    assert updated.database_name == "renamed"
+    assert updated.encrypted_extra == stored
+
+
+def test_available_databricks_includes_dynamic_form(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """An installed official Databricks driver exposes the connection form."""
+    from superset.db_engine_specs.databricks import DatabricksPythonConnectorEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DatabricksPythonConnectorEngineSpec: {"databricks"}},
+    )
+
+    response: TestResponse = client.get("/api/v1/database/available/")
+
+    assert response.status_code == 200
+    assert response.json is not None
+    entry: dict[str, Any] = response.json["databases"][0]
+    assert entry["engine"] == "databricks"
+    assert entry["available_drivers"] == ["databricks"]
+    assert entry["default_driver"] == "databricks"
+    assert entry["parameters"]
+    assert {"host", "http_path_field", "access_token"} <= set(
+        entry["parameters"]["properties"]
+    )
+
+
+def test_available_hides_legacy_databricks(
+    mocker: MockerFixture,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """New connections offer the supported Databricks form, not the legacy one."""
+    from superset.db_engine_specs.databricks import (
+        DatabricksNativeEngineSpec,
+        DatabricksPythonConnectorEngineSpec,
+    )
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={
+            DatabricksNativeEngineSpec: {"connector"},
+            DatabricksPythonConnectorEngineSpec: {"databricks-sql-python"},
+        },
+    )
+    response = client.get("/api/v1/database/available/")
+    assert response.status_code == 200
+    assert [item["name"] for item in response.json["databases"]] == ["Databricks"]
+
+
+@pytest.mark.parametrize(
+    "drivers",
+    [{"pyodbc"}, {"pymssql", "pyodbc"}],
+)
+def test_available_keeps_azure_synapse_on_uri_form(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    drivers: set[str],
+) -> None:
+    """
+    Azure Synapse never gets the dynamic form, whichever MSSQL drivers are
+    installed; SQL Server gets it only when pymssql is available.
+    """
+    from superset.db_engine_specs.mssql import AzureSynapseSpec, MssqlEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={MssqlEngineSpec: drivers, AzureSynapseSpec: drivers},
+    )
+
+    response = client.get("/api/v1/database/available/")
+
+    assert response.status_code == 200
+    databases = {db["name"]: db for db in response.json["databases"]}
+    assert "parameters" not in databases["Azure Synapse"]
+    assert ("parameters" in databases["Microsoft SQL Server"]) is ("pymssql" in drivers)
+
+
+def test_available_includes_sensitive_field_labels(
+    mocker: MockerFixture,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """The engine information lists the stored-secret fields of each engine."""
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DruidEngineSpec: {"pydruid"}},
+    )
+    response = client.get("/api/v1/database/available/")
+    assert response.status_code == 200
+    information = response.json["databases"][0]["engine_information"]
+    assert information["encrypted_extra_sensitive_fields"] == {
+        "$.connect_args.jwt": "JWT Token",
+        "$.connect_args.password": "Password",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+
+@freeze_time("2026-11-05T12:00:00Z")
+def test_connection_lists_stored_secret_expirations(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    The connection endpoint says when each stored JWT expires; the plain GET, the
+    list and `available` carry no expirations. The expiry is years past any row
+    timestamp, and the checks are on keys, so they hold whatever the clock says.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    exp = int(datetime.fromisoformat("2031-06-15T12:00:00+00:00").timestamp())
+    token = jwt_with_claims({"sub": "service-account", "exp": exp})
+    add_druid_database(
+        session,
+        json.dumps({"connect_args": {"jwt": token, "password": "hunter2"}}),
+    )
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DruidEngineSpec: {"pydruid"}},
+    )
+
+    response = client.get("/api/v1/database/1/connection")
+    assert response.status_code == 200
+    information = response.json["result"]["engine_information"]
+    assert information["encrypted_extra_expirations"] == {
+        "$.connect_args.jwt": {
+            "expires_at": "2031-06-15T12:00:00+00:00",
+            "expired": False,
+        },
+    }
+    assert token.encode() not in response.data
+    assert b"service-account" not in response.data
+
+    response = client.get("/api/v1/database/1")
+    assert response.status_code == 200
+    assert (
+        "encrypted_extra_expirations"
+        not in (response.json["result"]["engine_information"])
+    )
+
+    response = client.get("/api/v1/database/")
+    assert response.status_code == 200
+    assert (
+        "encrypted_extra_expirations"
+        not in (response.json["result"][0]["engine_information"])
+    )
+
+    response = client.get("/api/v1/database/available/")
+    assert response.status_code == 200
+    assert (
+        "encrypted_extra_expirations"
+        not in (response.json["databases"][0]["engine_information"])
+    )
+
+
+def test_connection_lists_expirations_with_hints_disabled(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    The expiry warning does not depend on `ENCRYPTED_EXTRA_HINT_CHARS`: with hints
+    off, the connection endpoint still says when the stored JWT expires.
+    """
+    exp = int(datetime.fromisoformat("2031-06-15T12:00:00+00:00").timestamp())
+    token = jwt_with_claims({"sub": "service-account", "exp": exp})
+    add_druid_database(session, json.dumps({"connect_args": {"jwt": token}}))
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch.dict(current_app.config, {"ENCRYPTED_EXTRA_HINT_CHARS": 0})
+
+    response = client.get("/api/v1/database/1/connection")
+
+    assert response.status_code == 200
+    assert response.json["result"]["engine_information"][
+        "encrypted_extra_expirations"
+    ] == {
+        "$.connect_args.jwt": {
+            "expires_at": "2031-06-15T12:00:00+00:00",
+            "expired": False,
+        },
+    }
+
+
+def test_connection_lists_stored_sensitive_fields(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    The connection endpoint lists the sensitive fields stored for the database,
+    while the plain GET and the list keep the engine's declared patterns.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    db.session.add(
+        Database(
+            database_name="my_database",
+            sqlalchemy_uri="sqlite://",
+            encrypted_extra=json.dumps(
+                {
+                    "api_key": "x",
+                    "connect_args": {"timeout": 5},
+                    "oauth2_client_info": {"secret": "s"},
+                }
+            ),
+        )
+    )
+    db.session.commit()
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+
+    declared = {
+        "$.*": "Encrypted Extra",
+        "$.embedded_credentials.password": "Embedded guest password",
+        "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",
+        "$.embedded_credentials.privatekey_pass": (
+            "Embedded guest private key passphrase"
+        ),
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+    response = client.get("/api/v1/database/1/connection")
+    assert response.status_code == 200
+    information = response.json["result"]["engine_information"]
+    assert information["encrypted_extra_sensitive_fields"] == {
+        "$.api_key": "api_key",
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+    response = client.get("/api/v1/database/1")
+    assert response.status_code == 200
+    fields = response.json["result"]["engine_information"][
+        "encrypted_extra_sensitive_fields"
+    ]
+    assert fields == declared
+    assert "$.api_key" not in fields
+
+    response = client.get("/api/v1/database/")
+    assert response.status_code == 200
+    fields = response.json["result"][0]["engine_information"][
+        "encrypted_extra_sensitive_fields"
+    ]
+    assert fields == declared
+
+
+def test_connection_parses_encrypted_extra_once(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    The connection endpoint reads the sensitive fields and their expirations from
+    one parse of the stored `encrypted_extra`.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    add_druid_database(
+        session,
+        json.dumps({"connect_args": {"jwt": jwt_with_claims({"exp": 1})}}),
+    )
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="rest")
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DruidEngineSpec: {"pydruid"}},
+    )
+    paths = mocker.spy(json, "get_sensitive_field_paths")
+    expirations = mocker.spy(json, "get_sensitive_field_expirations")
+
+    response = client.get("/api/v1/database/1/connection")
+
+    assert response.status_code == 200
+    paths.assert_called_once()
+    expirations.assert_called_once()
+    assert paths.call_args.args[0] is expirations.call_args.args[0]

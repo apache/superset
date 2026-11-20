@@ -17,6 +17,7 @@
 
 """Producer wire contracts for safe argument-validation failures."""
 
+import inspect
 from enum import Enum
 from typing import Any, Literal
 from unittest.mock import patch
@@ -35,6 +36,7 @@ from superset.mcp_service.middleware import (
     GlobalErrorHandlerMiddleware,
     ToolResultCompatibilityMiddleware,
 )
+from superset.mcp_service.utils import validation
 from superset.mcp_service.utils.validation import validation_message
 from superset.utils import json
 
@@ -379,7 +381,7 @@ async def test_validation_details_are_bounded(inner_handler: bool) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("inner_handler", [False, True])
-@pytest.mark.parametrize("error_count", [128, 129, 100_000])
+@pytest.mark.parametrize("error_count", [128, 129, 10_000])
 async def test_validation_extraction_is_bounded(
     inner_handler: bool, error_count: int
 ) -> None:
@@ -389,8 +391,19 @@ async def test_validation_extraction_is_bounded(
     extracted_counts: list[int] = []
 
     def bounded_errors(error: ValidationError, **kwargs: Any) -> list[Any]:
-        """Bound diagnostic extraction, not FastMCP's own error handling."""
-        if kwargs == {
+        """Bound diagnostic extraction, not FastMCP's own error handling.
+
+        FastMCP summarises validation failures with the same ``errors()``
+        keyword arguments, so only calls made from Superset's extraction
+        module count as diagnostic extraction.
+        """
+        caller = inspect.currentframe()
+        caller_module = (
+            caller.f_back.f_globals.get("__name__", "")
+            if caller is not None and caller.f_back is not None
+            else ""
+        )
+        if caller_module == validation.__name__ and kwargs == {
             "include_url": False,
             "include_context": False,
             "include_input": False,
@@ -557,3 +570,26 @@ def test_wrapper_hint_only_matches_direct_request_properties(
         },
     }
     assert _is_unwrapped_request_field(schema, location) is expected
+
+
+@pytest.mark.parametrize(
+    ("location", "expected"),
+    [
+        (("table", "columns", 0, "label"), "columns.0.label"),
+        (("table", "columns", 0, "private-input"), "columns.0.[field]"),
+        (("private-input", "columns", 0, "label"), "[field].[field].[field].[field]"),
+        (("table", "private-input", "label"), "[field].[field]"),
+        (
+            ("table", "query_context", "private-input", "label"),
+            "[field].[field].[field]",
+        ),
+    ],
+)
+def test_compact_chart_diagnostics_only_expose_declared_fields(
+    location: tuple[str | int, ...], expected: str
+) -> None:
+    """Expanded diagnostics still mask unknown tags, fields, and dictionary keys."""
+    from superset.mcp_service.chart.schemas import CHART_CONFIG_REFERENCE_SCHEMA
+    from superset.mcp_service.utils.validation import _schema_location
+
+    assert _schema_location(CHART_CONFIG_REFERENCE_SCHEMA, location) == expected

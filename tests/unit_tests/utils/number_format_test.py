@@ -28,6 +28,8 @@ from superset.utils.number_format import (
     format_number_with_config,
     format_numeric,
     get_currency_locale,
+    is_valid_d3_format,
+    NAMED_NUMBER_FORMATS,
     resolve_auto_currency,
     resolve_symbol_position,
 )
@@ -586,3 +588,32 @@ def test_unsupported_d3_padding_is_explicitly_rejected(d3_format: str) -> None:
     with pytest.raises(ValueError, match="padding"):
         format_d3(d3_format, 1234.5)
     assert format_number_with_config(d3_format, None, 1234.5) == "1234.5"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [None, "", ",d", ",.2f", ".3s", "+,.1%", "$,.2f", "~g", "0>8d", "(,.2f", ".4r"],
+)
+def test_is_valid_d3_format_accepts_valid_specifiers(value: str | None) -> None:
+    assert is_valid_d3_format(value) is True
+
+
+@pytest.mark.parametrize("value", sorted(NAMED_NUMBER_FORMATS))
+def test_is_valid_d3_format_accepts_named_formats(value: str) -> None:
+    assert is_valid_d3_format(value) is True
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "<script>alert(1)</script>",
+        "<img src=x onerror=alert(1)>",
+        "nulld2fxk)",
+        ",.2f<b>",
+        "SMART_NUMBER<",
+        "not a format",
+        "abc",
+    ],
+)
+def test_is_valid_d3_format_rejects_invalid_values(value: str) -> None:
+    assert is_valid_d3_format(value) is False
