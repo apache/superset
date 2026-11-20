@@ -18,9 +18,9 @@
 import logging
 from typing import Optional
 
-from flask import abort, g, get_flashed_messages, redirect
+from flask import abort, g, get_flashed_messages, redirect, request, url_for
 from flask_appbuilder import expose
-from flask_appbuilder.const import LOGMSG_ERR_SEC_NO_REGISTER_HASH
+from flask_appbuilder.const import AUTH_OAUTH, LOGMSG_ERR_SEC_NO_REGISTER_HASH
 from flask_appbuilder.security.decorators import no_cache
 from flask_appbuilder.security.views import AuthView, WerkzeugResponse
 from flask_babel import lazy_gettext
@@ -45,9 +45,28 @@ class SupersetAuthView(BaseSupersetView, AuthView):
         # instead of accumulating in the session. This must go through
         # per-request extra_bootstrap_data, never the cached common
         # bootstrap payload, so messages can't bleed between users.
-        return super().render_app_template(
-            {"auth_messages": get_flashed_messages(with_categories=True)}
-        )
+        auth_messages = get_flashed_messages(with_categories=True)
+
+        # With a single OAuth provider there is nothing to choose, so go
+        # straight to its login. Pending messages keep the page: OAuth
+        # failures flash and return here, and redirecting again would loop
+        # back to the provider and hide the error.
+        sm = self.appbuilder.sm
+        if (
+            provider is None
+            and not auth_messages
+            and sm.auth_type == AUTH_OAUTH
+            and len(sm.oauth_remotes) == 1
+        ):
+            return redirect(
+                url_for(
+                    f"{sm.auth_view.endpoint}.login",
+                    provider=next(iter(sm.oauth_remotes)),
+                    next=request.args.get("next"),
+                )
+            )
+
+        return super().render_app_template({"auth_messages": auth_messages})
 
     @expose("/forgot_password/")
     @no_cache
