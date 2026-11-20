@@ -29,6 +29,22 @@ import {
   getUrlParam,
 } from './urlUtils';
 import { URL_PARAMS } from '../constants';
+import { getActiveFilters } from '../dashboard/util/activeDashboardFilters';
+
+jest.mock('../dashboard/util/activeDashboardFilters', () => ({
+  ...jest.requireActual('../dashboard/util/activeDashboardFilters'),
+  getActiveFilters: jest.fn(() => ({})),
+}));
+
+const mockedGetActiveFilters = jest.mocked(getActiveFilters);
+
+type ActiveFilters = ReturnType<typeof getActiveFilters>;
+
+// BigInt is not a JsonValue, but json-bigint produces it for large integers.
+const activeFiltersWithBigInt = (value: bigint): ActiveFilters =>
+  ({
+    '42_region': { values: [value, 'north'], scope: [42] },
+  }) as unknown as ActiveFilters;
 
 test.each([0n, 9007199254740993n, -9007199254740993n])(
   'getDashboardPermalink preserves BigInt filter and chart state values: %s',
@@ -108,6 +124,58 @@ test('getChartPermalink preserves BigInt values and ordinary JSON values', async
       },
     });
   } finally {
+    fetchMock.removeRoute(endpoint);
+    fetchMock.clearHistory();
+  }
+});
+
+test('getDashboardUrlParams preserves BigInt values in preselect_filters', () => {
+  mockedGetActiveFilters.mockReturnValue(
+    activeFiltersWithBigInt(9007199254740993n),
+  );
+
+  try {
+    const urlParams = getDashboardUrlParams();
+    const preselectFilters = urlParams.find(
+      ([key]) => key === 'preselect_filters',
+    );
+
+    expect(preselectFilters).toBeDefined();
+    expect(JSON.parse(preselectFilters?.[1] ?? 'null')).toEqual({
+      '42': { region: ['9007199254740993', 'north'] },
+    });
+  } finally {
+    mockedGetActiveFilters.mockReturnValue({});
+  }
+});
+
+test('getChartPermalink preserves BigInt values in preselect_filters', async () => {
+  const endpoint = 'http://localhost/api/v1/explore/permalink';
+  const permalink = {
+    key: 'chart-key',
+    url: 'http://localhost/explore/p/chart-key/',
+  };
+  mockedGetActiveFilters.mockReturnValue(
+    activeFiltersWithBigInt(-9007199254740993n),
+  );
+  fetchMock.post(endpoint, permalink, { name: endpoint });
+
+  try {
+    await expect(
+      getChartPermalink({ datasource: '1__table' }),
+    ).resolves.toEqual(permalink);
+
+    const calls = fetchMock.callHistory.calls(endpoint);
+    expect(calls).toHaveLength(1);
+    const { urlParams } = JSON.parse(calls[0].options?.body as string);
+    expect(urlParams).toEqual([
+      [
+        'preselect_filters',
+        JSON.stringify({ '42': { region: ['-9007199254740993', 'north'] } }),
+      ],
+    ]);
+  } finally {
+    mockedGetActiveFilters.mockReturnValue({});
     fetchMock.removeRoute(endpoint);
     fetchMock.clearHistory();
   }
