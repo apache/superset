@@ -143,6 +143,7 @@ def test_restore_logs_original_error_after_failed_flush(
         id: int
         uuid: UUID = _UUID
         name: str | None
+        params_dict: dict[str, Any] = {}
 
     table: sa.Table = sa.Table(
         "restore_log_entity",
@@ -159,7 +160,7 @@ def test_restore_logs_original_error_after_failed_flush(
             entity.name = "before"
             session.add(entity)
             session.commit()
-            target: MagicMock = MagicMock()
+            target: MagicMock = MagicMock(json_metadata="{}")
 
             def revert(*, relations: list[str]) -> None:
                 """Trigger a real NOT NULL violation in the final flush."""

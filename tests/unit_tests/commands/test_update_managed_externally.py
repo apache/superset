@@ -348,6 +348,7 @@ def test_dashboard_published_only_update_is_exempt(mocker: MockerFixture) -> Non
     test below proves adding any other field re-arms the gate.
     """
     entity = _managed_entity()
+    entity.params_dict = {}
     _wire_module_mocks(
         mocker, "superset.commands.dashboard.update", "DashboardDAO", entity
     )

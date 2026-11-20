@@ -30,6 +30,7 @@ def _make_dashboard() -> MagicMock:
     dash = MagicMock()
     dash.id = 1
     dash.dashboard_title = "Original Dashboard"
+    dash.params_dict = {}
     return dash
 
 
