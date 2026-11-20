@@ -62,6 +62,7 @@ export default function EchartsMixedTimeseries({
   onLegendStateChanged,
   onLegendScroll,
 }: EchartsMixedTimeseriesChartTransformedProps) {
+  const filterColumn = xAxis.column ?? xAxis.label;
   const echartRef = useRef<EchartsHandler | null>(null);
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
@@ -180,9 +181,9 @@ export default function EchartsMixedTimeseries({
         if (data && xAxis.type === AxisType.Time) {
           drillToDetailFilters.push({
             col:
-              xAxis.label === DTTM_ALIAS
+              filterColumn === DTTM_ALIAS
                 ? formData.granularitySqla
-                : xAxis.label,
+                : filterColumn,
             grain: formData.timeGrainSqla,
             op: '==',
             val: data[0],
@@ -195,7 +196,7 @@ export default function EchartsMixedTimeseries({
           eventParams.name != null
         ) {
           drillToDetailFilters.push({
-            col: xAxis.label,
+            col: filterColumn,
             op: '==',
             val: eventParams.name,
             formattedVal: String(eventParams.name),
@@ -224,13 +225,13 @@ export default function EchartsMixedTimeseries({
         }
         const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
         const xAxisColumn =
-          xAxis.label === DTTM_ALIAS
+          filterColumn === DTTM_ALIAS
             ? (formData.extraFormData?.granularity_sqla ??
               formData.granularitySqla)
-            : xAxis.label;
+            : filterColumn;
         const isTemporalCategory =
           xAxis.type === AxisType.Category &&
-          coltypeMapping?.[getColumnLabel(xAxis.label)] ===
+          coltypeMapping?.[getColumnLabel(filterColumn)] ===
             GenericDataType.Temporal;
         if (
           (xAxis.type === AxisType.Time || isTemporalCategory) &&
@@ -268,6 +269,43 @@ export default function EchartsMixedTimeseries({
           );
           if (filter?.grain) {
             xAxisFilters.push(filter);
+          }
+        } else if (xAxis.type === AxisType.Category && xAxisColumn) {
+          // Line/area events carry only the series identity. Resolve their
+          // pixel position through the shared category axis, not a data index.
+          const rawValue = getTimeAxisDrillByValue(
+            data,
+            Array.isArray(echartOptions.series)
+              ? echartOptions.series[seriesIndex]
+              : echartOptions.series,
+            data === undefined
+              ? echartRef.current
+                  ?.getEchartInstance()
+                  ?.convertFromPixel({ seriesIndex }, [
+                    eventParams.event.offsetX,
+                    eventParams.event.offsetY,
+                  ])
+              : undefined,
+            0,
+            true,
+            data === undefined
+              ? getCategoryAxisValues(echartRef.current?.getEchartInstance(), 0)
+              : undefined,
+          );
+          const categoryValue =
+            rawValue === undefined ? eventParams.name : rawValue;
+          if (
+            categoryValue === null ||
+            typeof categoryValue === 'string' ||
+            typeof categoryValue === 'number' ||
+            typeof categoryValue === 'boolean'
+          ) {
+            xAxisFilters.push({
+              col: xAxisColumn,
+              op: '==',
+              val: categoryValue,
+              formattedVal: String(categoryValue),
+            });
           }
         }
         const hasCrossFilter =

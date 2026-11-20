@@ -2066,6 +2066,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Alarm"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "Alarm „%(alertName)s“ erfolgreich ausgelöst"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "Alarm ausgelöst, in Karenzzeit"
 
@@ -7241,6 +7245,9 @@ msgstr "Bezeichnung für dynamischen Abschnitt"
 msgid "Dynamic group by"
 msgstr "Dynamisch gruppieren nach"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Beschreibung für dynamischen Abschnitt"
 
@@ -8450,6 +8457,14 @@ msgstr "Artikel konnten nicht getaggt werden"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "%(alertType)s „%(alertName)s“ konnte nicht ausgelöst werden: %(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "Alarm „%(alertName)s“ konnte nicht ausgelöst werden: %(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "Bericht „%(alertName)s“ konnte nicht ausgelöst werden: %(error)s"
+
 msgid "Failed to update report"
 msgstr "Fehler beim Aktualisieren des Berichts"
 
@@ -8602,7 +8617,7 @@ msgid "Filter menu"
 msgstr "Filter-Menü"
 
 msgid "Filter name"
-msgstr "Tabellenname"
+msgstr "Filtername"
 
 msgid "Filter only displays values relevant to selections made in other filters."
 msgstr ""
@@ -9262,6 +9277,14 @@ msgstr "Linie ausblenden"
 msgid "Hide chart description"
 msgstr "Diagrammbeschreibung ausblenden"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Ebene verstecken"
 
@@ -9856,9 +9879,10 @@ msgstr "Ungültiger Zustand."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Ungültige Tab-IDs: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Ungültiger zeitlicher Filterwert für die Spalte %(column)s"
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -13729,6 +13753,10 @@ msgid "Report"
 msgstr "Bericht"
 
 #, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "Bericht „%(alertName)s“ erfolgreich ausgelöst"
+
+#, python-format
 msgid "Report Failed - All Retries Exhausted: %(name)s"
 msgstr "Bericht fehlgeschlagen – alle Wiederholungsversuche ausgeschöpft: %(name)s"
 
@@ -14857,7 +14885,7 @@ msgid "Select Database and Schema"
 msgstr "Datenbank und Schema auswählen"
 
 msgid "Select Delivery Method"
-msgstr "Übermittlungsmethode hinzufügen"
+msgstr "Übermittlungsmethode auswählen"
 
 msgid "Select Filter"
 msgstr "Filter auswählen"

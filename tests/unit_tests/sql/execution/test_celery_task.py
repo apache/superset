@@ -18,6 +18,7 @@
 """Tests for celery_task.py - async SQL execution via Celery."""
 
 import base64
+import logging
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from decimal import Decimal
@@ -35,6 +36,8 @@ from pytest_mock import MockerFixture
 from superset.common.db_query_status import QueryStatus as QueryStatusEnum
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2RedirectError,
+    OAuth2TokenRefreshError,
     QueryStoppedException,
     SupersetErrorException,
     SupersetErrorsException,
@@ -4001,3 +4004,57 @@ def test_celery_records_dispatch_before_execution_without_cancel_handle(
 
     mocker.patch.object(celery_task, "execute_sql_with_cursor", side_effect=execute)
     celery_task._execute_sql_statements(123, "SELECT 1", None)
+
+
+@pytest.mark.parametrize("refresh_marker", [False, True])
+def test_execute_sql_task_oauth2_connection_prompt(
+    mocker: MockerFixture,
+    app: Any,
+    session: Any,
+    caplog: pytest.LogCaptureFixture,
+    refresh_marker: bool,
+) -> None:
+    """Connection-time OAuth prompts traverse the real worker and error serializer."""
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    Query.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="oauth-db", sqlalchemy_uri="sqlite://")
+    query = Query(
+        client_id="oauth-prompt",
+        database=database,
+        sql="SELECT 1",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatusEnum.PENDING,
+    )
+    session.add_all([database, query])
+    session.commit()
+    error = (
+        OAuth2TokenRefreshError()
+        if refresh_marker
+        else OAuth2RedirectError(
+            "https://example.com/authorize", "tab-id", "https://example.com/callback"
+        )
+    )
+    connection = mocker.patch.object(Database, "get_raw_connection", side_effect=error)
+
+    with caplog.at_level(logging.DEBUG, logger="superset.sql.execution.celery_task"):
+        result = execute_sql_task(query.id, "SELECT 1")
+
+    connection.assert_called_once()
+    assert result is not None
+    assert result["status"] == QueryStatusEnum.FAILED
+    assert result["errors"][0]["error_type"] == SupersetErrorType.OAUTH2_REDIRECT
+    assert result["errors"][0]["extra"] == error.error.extra
+    session.expire_all()
+    assert session.get(Query, query.id).status == QueryStatusEnum.FAILED
+    records = [
+        r for r in caplog.records if r.name == "superset.sql.execution.celery_task"
+    ]
+    assert any(
+        r.levelno == logging.DEBUG and "OAuth2 authorization required" in r.getMessage()
+        for r in records
+    )
+    assert not any(r.levelno >= logging.WARNING or r.exc_info for r in records)
