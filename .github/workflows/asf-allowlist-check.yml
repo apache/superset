@@ -8,9 +8,9 @@ name: ASF Allowlist Check
 on:
   workflow_dispatch:
   pull_request:
+    # No `paths` filter: `asf-allowlist-check` is a required status check, so it
+    # must report on every PR or PRs that do not touch .github/ stay BLOCKED.
     types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - ".github/**"
   push:
     branches:
       - "master"
