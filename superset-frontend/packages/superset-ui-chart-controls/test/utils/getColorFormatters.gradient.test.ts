@@ -17,11 +17,11 @@
  * under the License.
  */
 import { getColorFunction } from '../../src/utils/getColorFormatters';
-import { Comparator } from '../../src/types';
+import { Comparator, ConditionalFormattingConfig } from '../../src/types';
 
-// Regression guard for #107917 / upstream #36098: bounded-range conditional
-// formatting operators must render a gradient (opacity proportional to where
-// the value falls in the range), not a flat color, when "Use gradient" is on.
+// Regression guard for #36098: bounded-range conditional formatting operators
+// must render a gradient (opacity proportional to where the value falls in the
+// range), not a flat color, when "Use gradient" is on.
 const VALUES = [1, 10, 30, 50, 60];
 const BOUNDED_OPERATORS = [
   Comparator.Between, // < x <
@@ -33,49 +33,42 @@ const BOUNDED_OPERATORS = [
 test.each(BOUNDED_OPERATORS)(
   'bounded operator %s renders a gradient across the range',
   operator => {
-    const fn = getColorFunction(
-      {
-        operator,
-        targetValueLeft: 1,
-        targetValueRight: 60,
-        colorScheme: '#FF0000',
-        useGradient: true,
-      } as any,
-      VALUES,
-    );
-    const low = fn(10);
-    const mid = fn(30);
-    const high = fn(50);
-    // All three must be distinct -> a real gradient, not a flat fill.
-    expect(new Set([low, mid, high]).size).toBe(3);
-  },
-);
-
-test('bounded operator works with string-typed bounds (form inputs)', () => {
-  const fn = getColorFunction(
-    {
-      operator: Comparator.Between,
-      targetValueLeft: '1',
-      targetValueRight: '60',
-      colorScheme: '#FF0000',
-      useGradient: true,
-    } as any,
-    VALUES,
-  );
-  expect(fn(10)).not.toEqual(fn(50));
-});
-
-test('useGradient=false produces a solid color for bounded operators', () => {
-  const fn = getColorFunction(
-    {
-      operator: Comparator.Between,
+    const config: ConditionalFormattingConfig = {
+      operator,
       targetValueLeft: 1,
       targetValueRight: 60,
       colorScheme: '#FF0000',
-      useGradient: false,
-    } as any,
-    VALUES,
-  );
+      useGradient: true,
+    };
+    const fn = getColorFunction(config, VALUES);
+    // All three must be distinct, so it's a real gradient, not a flat fill.
+    expect(new Set([fn(10), fn(30), fn(50)]).size).toBe(3);
+  },
+);
+
+test('bounded operator renders a gradient with string-typed bounds (form inputs)', () => {
+  // Form inputs can deliver the bounds as strings at runtime, even though the
+  // config type declares them as numbers.
+  const config = {
+    operator: Comparator.Between,
+    targetValueLeft: '1',
+    targetValueRight: '60',
+    colorScheme: '#FF0000',
+    useGradient: true,
+  } as unknown as ConditionalFormattingConfig;
+  const fn = getColorFunction(config, VALUES);
+  expect(new Set([fn(10), fn(30), fn(50)]).size).toBe(3);
+});
+
+test('useGradient=false produces a solid color for bounded operators', () => {
+  const config: ConditionalFormattingConfig = {
+    operator: Comparator.Between,
+    targetValueLeft: 1,
+    targetValueRight: 60,
+    colorScheme: '#FF0000',
+    useGradient: false,
+  };
+  const fn = getColorFunction(config, VALUES);
   expect(fn(10)).toEqual(fn(50));
   expect(fn(30)).toEqual('#FF0000');
 });
