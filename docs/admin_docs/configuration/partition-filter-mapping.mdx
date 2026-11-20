@@ -249,14 +249,16 @@ applies one grain finer on engines that compare timestamps only to the second.
 Reading the value is what makes all of that possible, and Superset reads **ISO 8601 only** —
 `2026-07-06`, `2026-07-06 10:08:11`, `2026-07-06T10:08:11`. It is the one format whose
 meaning is not a guess: `06/07/2026` is July 6 to a US reader and June 7 to most of the
-world, and a mirror built from the wrong one drops rows silently. So on a column the engine
-compares coarsely, a datetime typed in any other format — `07/06/2026 10:08:11`,
+world, and a mirror built from the wrong one drops rows silently. So on a date or timestamp
+column, a datetime typed in any other format — `07/06/2026 10:08:11`,
 `2026/07/06 10:08:11`, `July 6 2026 10:08:11` — does not mirror, for any operator, and no
-pruning indicator appears. The filter itself is unaffected; the query is correct and simply
-reads the whole table. Write the bound in ISO 8601, or pick it from the filter popover, and
-the mirror comes back. Most of this stops applying where the engine compares the whole
-value: on a `TIMESTAMP` column any format your database accepts mirrors, because there is
-nothing left for Superset to resolve.
+pruning indicator appears. That includes a `TIMESTAMP` column, where the engine compares the
+whole value: your transform is evaluated at the instant the value denotes, so that it answers
+in the column's spelling rather than yours, and a value Superset cannot read has no instant
+to evaluate. The filter itself is unaffected; the query is correct and simply reads the whole
+table. Write the bound in ISO 8601, or pick it from the filter popover, and the mirror comes
+back. On a column stored as text the value is compared as the text it is, and mirrors as
+typed in any format.
 
 **One exception on every column: a UTC offset.** A bound written as
 `2026-01-01T01:00:00+01:00` does not mirror, on a `TIMESTAMP` column as much as on a `DATE`
@@ -486,3 +488,27 @@ take the dataset editor down with it. That is also why an unconfigured cache
 leaves previews unthrottled rather than blocked.
 
 Mappings travel with the dataset in import/export.
+
+### Troubleshooting the preview
+
+The preview describes the candidate transform; it does not save the mapping.
+An unmatched parenthesis or multiple SQL expressions must be corrected before
+previewing. Use `:value` to represent the filter value. An unfinished transform
+or one without that placeholder can be saved inactive; the preview is not a
+promise that the dataset's save validation will accept every expression.
+
+If the transform returns **NULL** for one or more preview values, no partition
+filter is generated for that request. This differs from a database execution
+error: check how the transform handles the sample input. If the returned value
+has an incompatible type, return a value compatible with the partition column,
+using an explicit `CAST` where appropriate. A compatible type alone does not
+establish that the value identifies the correct partition.
+
+**Preview temporarily unavailable** means the request did not produce a mapping
+verdict. If too many previews were requested, wait a moment and select **Retry**.
+This message does not mean that the mapping is broken.
+
+Hive strict mode can reject Samples or drill-to-detail queries without a
+partition filter. Add a filter on the partition column, or a time range on a
+column with a working partition mapping. Superset does not disable Hive strict
+mode or add a filter on your behalf.

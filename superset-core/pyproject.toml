@@ -59,7 +59,7 @@ Homepage = "https://superset.apache.org/"
 Documentation = "https://superset.apache.org/docs/"
 Repository = "https://github.com/apache/superset"
 "Bug Tracker" = "https://github.com/apache/superset/issues"
-Changelog = "https://github.com/apache/superset/blob/master/CHANGELOG.md"
+Changelog = "https://github.com/apache/superset/blob/master/superset-core/CHANGELOG.md"
 
 [build-system]
 requires = ["setuptools>=76.0.0", "wheel"]

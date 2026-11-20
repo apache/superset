@@ -27,7 +27,12 @@ import {
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core/translation';
 import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
-import { Icons, Button, InfoTooltip } from '@superset-ui/core/components';
+import {
+  Icons,
+  Button,
+  InfoTooltip,
+  Tooltip,
+} from '@superset-ui/core/components';
 import { FilterValue } from 'react-table';
 import Table, {
   type ColumnsType,
@@ -421,11 +426,21 @@ export default function CRUDCollection({
             {tooltip && (
               <>
                 {' '}
-                <InfoTooltip
-                  label={t('description')}
-                  tooltip={tooltip}
+                <Tooltip
+                  title={tooltip}
                   placement="top"
-                />
+                  trigger={['hover', 'focus']}
+                >
+                  {/* Pure event-boundary wrapper: keeps the click/keydown on the
+                      info button from reaching the sortable header cell. */}
+                  {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+                  <span
+                    onClick={e => e.stopPropagation()}
+                    onKeyDown={e => e.stopPropagation()}
+                  >
+                    <InfoTooltip label={t('description')} />
+                  </span>
+                </Tooltip>
               </>
             )}
           </>

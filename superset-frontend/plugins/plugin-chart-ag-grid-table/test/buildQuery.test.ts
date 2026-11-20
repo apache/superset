@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AdhocColumn, QueryMode, VizType } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  QueryMode,
+  VizType,
+  TimeGranularity,
+} from '@superset-ui/core';
 import buildQuery, { buildQueryUncached } from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
@@ -27,6 +32,45 @@ const basicFormData: TableChartFormData = {
   groupby: ['state'],
   metrics: ['count'],
 };
+
+test.each([
+  ['json', 2],
+  ['csv', 1],
+  ['xlsx', 1],
+])(
+  'show_totals with result_format %s builds %i query(ies)',
+  (resultFormat, expectedQueries) => {
+    const { queries } = buildQueryUncached({
+      ...basicFormData,
+      show_totals: true,
+      result_format: resultFormat,
+    } as TableChartFormData);
+
+    expect(queries).toHaveLength(expectedQueries);
+  },
+);
+
+test.each([
+  ['json', 2],
+  ['csv', 1],
+  ['xlsx', 1],
+])(
+  'raw summary with result_format %s builds %i query(ies)',
+  (resultFormat, expectedQueries) => {
+    const { queries } = buildQueryUncached(
+      {
+        ...basicFormData,
+        query_mode: QueryMode.Raw,
+        all_columns: ['state', 'population'],
+        show_totals: true,
+        result_format: resultFormat,
+      } as TableChartFormData,
+      { ownState: { rawSummaryColumns: ['population'] } },
+    );
+
+    expect(queries).toHaveLength(expectedQueries);
+  },
+);
 
 test('preserves saved semantic pagination offsets and ordering', () => {
   const saved: TableChartFormData = Object.freeze({
@@ -885,7 +929,9 @@ describe('plugin-chart-ag-grid-table', () => {
             ...basicFormData,
             show_totals: true,
             query_mode: QueryMode.Aggregate,
-            result_format: 'csv',
+            result_format: 'json',
+            result_type: 'results',
+            server_pagination: true,
           },
           {
             ownState: {
@@ -901,7 +947,6 @@ describe('plugin-chart-ag-grid-table', () => {
         );
 
         const mainQuery = queries[0];
-        // Downloads never get a rowcount query, so totals is queries[1].
         const totalsQuery = queries[1];
 
         expect(mainQuery.extras?.having).toBe('count > 10');
@@ -1023,7 +1068,9 @@ describe('plugin-chart-ag-grid-table', () => {
             ...basicFormData,
             show_totals: true,
             query_mode: QueryMode.Aggregate,
-            result_format: 'csv',
+            result_format: 'json',
+            result_type: 'results',
+            server_pagination: true,
           },
           {
             ownState: {
@@ -1035,7 +1082,6 @@ describe('plugin-chart-ag-grid-table', () => {
         );
 
         const mainQuery = queries[0];
-        // Downloads never get a rowcount query, so totals is queries[1].
         const totalsQuery = queries[1];
         const stateFilter = { col: 'state', op: '==', val: 'CA' };
 
@@ -2205,3 +2251,57 @@ describe('plugin-chart-ag-grid-table', () => {
     });
   });
 });
+
+test.each(['json', 'csv'])(
+  'omits a dormant semantic grain from non-temporal %s requests',
+  result_format => {
+    const form: TableChartFormData = {
+      ...basicFormData,
+      datasource: '7__semantic_view',
+      viz_type: VizType.TableAgGrid,
+      time_grain_sqla: TimeGranularity.DAY,
+      temporal_columns_lookup: { state: false },
+      server_pagination: true,
+      server_page_length: 10,
+      show_totals: true,
+      result_format,
+    };
+    const original = structuredClone(form);
+    const { queries } = buildQueryUncached(form);
+    expect(queries).toHaveLength(result_format === 'csv' ? 1 : 3);
+    queries.forEach(query => {
+      expect(query.extras).not.toHaveProperty('time_grain_sqla');
+    });
+    expect(form).toEqual(original);
+  },
+);
+
+test.each<Partial<TableChartFormData>>([
+  { temporal_columns_lookup: undefined },
+  { temporal_columns_lookup: { state: true } },
+  { granularity_sqla: 'created_at' },
+  {
+    groupby: [
+      {
+        expressionType: 'SQL',
+        sqlExpression: 'year(created_at)',
+        label: 'year',
+      },
+    ],
+  },
+  { extra_form_data: { interactive_groupby: ['unknown'] } },
+  { datasource: '11__table' },
+  { query_mode: QueryMode.Raw, all_columns: ['state'] },
+])(
+  'retains active, unknown or out-of-scope Interactive Table grains: %j',
+  overrides => {
+    const query = buildQueryUncached({
+      ...basicFormData,
+      datasource: '7__semantic_view',
+      time_grain_sqla: TimeGranularity.DAY,
+      temporal_columns_lookup: { state: false },
+      ...overrides,
+    }).queries[0];
+    expect(query.extras?.time_grain_sqla).toBe(TimeGranularity.DAY);
+  },
+);

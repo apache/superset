@@ -2646,7 +2646,74 @@ def _reject_bool_dataset_id(value: object) -> object:
     return value
 
 
-class BaseNewFilterSpec(BaseModel):
+# Add/update fields valid only for specific filter types. Fields not listed in
+# any of these sets (name, description, scope_chart_ids) apply to every type.
+_TYPE_SPECIFIC_FILTER_FIELDS: dict[str, frozenset[str]] = {
+    "filter_select": frozenset(
+        {
+            "dataset_id",
+            "column",
+            "multi_select",
+            "default_to_first_item",
+            "default_value",
+            "enable_empty_filter",
+            "sort_ascending",
+            "search_all_options",
+        }
+    ),
+    "filter_range": frozenset({"dataset_id", "column", "enable_empty_filter"}),
+    "filter_time": frozenset({"default_time_range"}),
+    "filter_timegrain": frozenset({"dataset_id", "enable_empty_filter"}),
+    "filter_timecolumn": frozenset({"dataset_id", "enable_empty_filter"}),
+}
+_ALL_TYPE_SPECIFIC_FILTER_FIELDS: frozenset[str] = frozenset().union(
+    *_TYPE_SPECIFIC_FILTER_FIELDS.values()
+)
+
+
+def validate_native_filter_type_fields(
+    data: dict[str, Any], filter_type: str | None, *, is_divider: bool = False
+) -> None:
+    """Reject non-null inapplicable fields consistently on add and update."""
+    if is_divider and data.get("scope_chart_ids") is not None:
+        raise ValueError(
+            "Divider does not support scope_chart_ids; dividers are always in scope."
+        )
+    allowed = _TYPE_SPECIFIC_FILTER_FIELDS.get(filter_type or "", frozenset())
+    invalid_fields = sorted(
+        field
+        for field in _ALL_TYPE_SPECIFIC_FILTER_FIELDS
+        if data.get(field) is not None and field not in allowed
+    )
+    if invalid_fields:
+        valid_types = sorted(
+            type_name
+            for type_name, fields in _TYPE_SPECIFIC_FILTER_FIELDS.items()
+            if fields & set(invalid_fields)
+        )
+        type_label = "divider" if is_divider else filter_type
+        raise ValueError(
+            f"Filter has type '{type_label}'; fields "
+            f"{invalid_fields} only apply to {', '.join(valid_types)} filters."
+        )
+
+
+class _NativeFilterTypeFieldsSpec(BaseModel):
+    """Validate type-specific fields before Pydantic discards unknown fields."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_inapplicable_fields(cls, data: Any) -> Any:
+        """Apply the same compatibility rule used for existing filters."""
+        if isinstance(data, dict):
+            filter_type = data.get("filter_type")
+            validate_native_filter_type_fields(
+                data, filter_type, is_divider=filter_type == "divider"
+            )
+        return data
+
+
+class BaseNewFilterSpec(_NativeFilterTypeFieldsSpec):
     """Common fields shared by all new native filter specs."""
 
     name: str = Field(..., min_length=1, description="Filter display name")
@@ -2768,7 +2835,21 @@ class FilterTimeGrainSpec(BaseNewFilterSpec):
     )
 
 
-class DividerSpec(BaseModel):
+class FilterTimeColumnSpec(BaseNewFilterSpec):
+    """Spec for a new time column (filter_timecolumn) native filter."""
+
+    filter_type: Literal["filter_timecolumn"] = Field(
+        ..., description="Discriminator - must be 'filter_timecolumn'"
+    )
+    dataset_id: int = Field(
+        ..., description="ID of the dataset whose temporal columns it offers"
+    )
+    enable_empty_filter: bool = Field(
+        False, description="Require a value before the filter is applied"
+    )
+
+
+class DividerSpec(_NativeFilterTypeFieldsSpec):
     """Spec for a new filter-bar divider.
 
     A divider is a visual separator with a title and description used to
@@ -2788,6 +2869,7 @@ NewNativeFilterSpec = Annotated[
     | FilterTimeSpec
     | FilterRangeSpec
     | FilterTimeGrainSpec
+    | FilterTimeColumnSpec
     | DividerSpec,
     Field(discriminator="filter_type"),
 ]
@@ -2815,9 +2897,7 @@ class NativeFilterUpdateSpec(BaseModel):
     description: str | None = Field(None, description="New description")
     dataset_id: int | None = Field(
         None,
-        description=(
-            "New target dataset ID (filter_select, filter_range, filter_timegrain only)"
-        ),
+        description=("New target dataset ID (not filter_time)"),
     )
     column: str | None = Field(
         None,
@@ -2832,9 +2912,7 @@ class NativeFilterUpdateSpec(BaseModel):
     )
     enable_empty_filter: bool | None = Field(
         None,
-        description=(
-            "Require a value (filter_select, filter_range, filter_timegrain only)"
-        ),
+        description=("Require a value (not filter_time)"),
     )
     sort_ascending: bool | None = Field(
         None, description="Sort values ascending/descending (filter_select only)"
@@ -2890,10 +2968,10 @@ class ManageNativeFiltersRequest(BaseModel):
         description=(
             "New filters to create. Supported types: filter_select "
             "(dropdown), filter_time (time range), filter_range (numerical "
-            "range), filter_timegrain (time grain), and divider (a "
-            "title/description-only visual separator for grouping filters "
-            "in the filter bar; no dataset or column). filter_timecolumn "
-            "(time column) is not yet supported by this tool."
+            "range), filter_timegrain (time grain), filter_timecolumn "
+            "(time column; these two take no column), and divider (a "
+            "title/description-only separator; no dataset or column). "
+            "Non-null inapplicable fields are rejected on add and update."
         ),
     )
     update: List[NativeFilterUpdateSpec] = Field(
@@ -3228,10 +3306,11 @@ class ApplyFilterValueSpec(BaseModel):
     """A value to apply to one existing native filter.
 
     Exactly one of ``values`` (filter_select), ``time_range``
-    (filter_time), ``range`` (filter_range), or ``time_grain``
-    (filter_timegrain) must be supplied, and it must match the target
-    filter's type. An empty ``values`` list, a ``[null, null]`` range, or an
-    empty ``time_grain`` list clears that filter's current value.
+    (filter_time), ``range`` (filter_range), ``time_grain``
+    (filter_timegrain), or ``time_column`` (filter_timecolumn) must be
+    supplied, and it must match the target filter's type. An empty
+    ``values`` list, a ``[null, null]`` range, or an empty ``time_grain`` or
+    ``time_column`` list clears that filter's current value.
     """
 
     filter_name_or_id: str = Field(
@@ -3283,6 +3362,15 @@ class ApplyFilterValueSpec(BaseModel):
             "clear the filter."
         ),
     )
+    time_column: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None,
+        max_length=1,
+        description=(
+            "Temporal column to apply, for a filter_timecolumn filter, as a "
+            "list with at most one column name, e.g. ['ship_date']. Pass an "
+            "empty list to clear the filter."
+        ),
+    )
 
     @field_validator("time_range")
     @classmethod
@@ -3315,9 +3403,10 @@ class ApplyFilterValueSpec(BaseModel):
         """Require exactly one value field.
 
         Presence is tested with ``is None`` rather than truthiness so an
-        empty ``values``/``time_grain`` list, or a ``[null, null]`` range,
-        still count as a supplied value: that is how a caller clears a
-        filter_select, filter_timegrain, or filter_range selection.
+        empty ``values``/``time_grain``/``time_column`` list, or a
+        ``[null, null]`` range, still count as a supplied value: that is how
+        a caller clears a filter_select, filter_timegrain, filter_timecolumn,
+        or filter_range selection.
         """
         supplied = [
             name
@@ -3326,14 +3415,16 @@ class ApplyFilterValueSpec(BaseModel):
                 ("time_range", self.time_range),
                 ("range", self.range),
                 ("time_grain", self.time_grain),
+                ("time_column", self.time_column),
             )
             if value is not None
         ]
         if len(supplied) != 1:
             raise ValueError(
                 "Provide exactly one of values (filter_select), time_range "
-                "(filter_time), range (filter_range), or time_grain "
-                f"(filter_timegrain) for filter '{self.filter_name_or_id}'; "
+                "(filter_time), range (filter_range), time_grain "
+                "(filter_timegrain), or time_column (filter_timecolumn) for "
+                f"filter '{self.filter_name_or_id}'; "
                 f"got {supplied or 'neither'}."
             )
         return self
@@ -3374,7 +3465,7 @@ class AppliedFilterSummary(BaseModel):
         None,
         description=(
             "Filter type (filter_select, filter_time, filter_range, "
-            "or filter_timegrain)"
+            "filter_timegrain, or filter_timecolumn)"
         ),
     )
     values: List[FilterSelectValue] | None = Field(
@@ -3388,6 +3479,14 @@ class AppliedFilterSummary(BaseModel):
     )
     time_grain: List[Annotated[str, Field(min_length=1)]] | None = Field(
         None, description="Applied time grain, for a filter_timegrain filter"
+    )
+    time_column: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None,
+        description=(
+            "Applied time column, for a filter_timecolumn filter ([] when "
+            "cleared). A selected column is omitted for callers without "
+            "data-model metadata access, as on read."
+        ),
     )
 
 

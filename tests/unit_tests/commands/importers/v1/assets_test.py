@@ -18,6 +18,7 @@
 import copy
 from typing import Any, cast
 
+import pytest
 import yaml
 from marshmallow.exceptions import ValidationError
 from pytest_mock import MockerFixture
@@ -596,3 +597,43 @@ def test_import_removes_dashboard_charts(
 
     assert len(chart_ids) == expected_number_of_charts
     assert len(dashboard_ids) == expected_number_of_dashboards
+
+
+@pytest.mark.parametrize(
+    "denied", ["Database", "Dataset", "Chart", "Dashboard", "SavedQuery", "Annotation"]
+)
+def test_assets_import_preserves_permission_failures(
+    mocker: MockerFixture, session: Session, denied: str
+) -> None:
+    """The real transaction handler keeps each asset's permission status and reason."""
+    from superset import db, security_manager
+    from superset.commands.exceptions import ForbiddenError
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.models.dashboard import Dashboard
+
+    Dashboard.metadata.create_all(db.session.get_bind())
+    mocker.patch.object(
+        security_manager,
+        "can_access",
+        side_effect=lambda permission, resource: resource != denied,
+    )
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    configs = {
+        **copy.deepcopy(databases_config),
+        **copy.deepcopy(datasets_config),
+        **copy.deepcopy(charts_config_1),
+        **copy.deepcopy(dashboards_config_1),
+        **copy.deepcopy(saved_queries_config),
+    }
+    configs["annotation_layers/example.yaml"] = {
+        "name": "Example annotations",
+        "version": "1.0.0",
+        "uuid": "12345678-1234-1234-1234-123456789abc",
+    }
+    contents = {name: yaml.safe_dump(config) for name, config in configs.items()}
+    contents["metadata.yaml"] = yaml.safe_dump({"version": "1.0.0", "type": "assets"})
+    with pytest.raises(ForbiddenError) as caught:
+        ImportAssetsCommand(contents).run()
+    assert caught.value.status == 403
+    assert "permission" in caught.value.message
+    assert "unknown reason" not in caught.value.message
