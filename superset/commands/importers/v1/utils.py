@@ -66,13 +66,17 @@ class MetadataSchema(Schema):
     timestamp = fields.DateTime()
 
 
+class ImportFormatValidationError(ValidationError):
+    """The bundle has malformed serialized content."""
+
+
 def load_yaml(file_name: str, content: str) -> dict[str, Any]:
     """Try to load a YAML file"""
     try:
         return yaml.safe_load(content)
     except yaml.YAMLError as ex:
         logger.exception("Invalid YAML in %s", file_name)
-        raise ValidationError({file_name: "Not a valid YAML file"}) from ex
+        raise ImportFormatValidationError({file_name: "Not a valid YAML file"}) from ex
 
 
 def load_metadata(contents: dict[str, str]) -> dict[str, str]:
@@ -215,7 +219,9 @@ def load_configs(
                     # fields to validate against the schema; report it the
                     # same way as unparseable YAML instead of letting the
                     # ``.get()`` calls below raise an unhandled AttributeError.
-                    raise ValidationError({file_name: "Not a valid YAML file"})
+                    raise ImportFormatValidationError(
+                        {file_name: "Not a valid YAML file"}
+                    )
 
                 # Stored secrets are only reusable when the incoming config
                 # still points at the same endpoint as the stored one; a UUID

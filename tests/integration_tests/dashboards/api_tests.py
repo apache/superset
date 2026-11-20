@@ -4822,7 +4822,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response == {
             "errors": [
                 {
-                    "message": "Could not find a valid command to import file",
+                    "message": (
+                        "This file is not a supported dashboard export. "
+                        "Re-export the dashboard from a compatible Superset version, "
+                        "then retry with the new ZIP file."
+                    ),
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
