@@ -127,6 +127,7 @@ from superset.utils.oauth2 import (
     oauth2_client_info_configured,
     OAuth2ClientConfigSchema,
 )
+from superset.utils.timing_metrics import metric_suffix, timed
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -585,11 +586,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         declared label, any other path its last segment. A missing or malformed
         `encrypted_extra` gives an empty dict.
         """
-        try:
-            config = json.loads(self.encrypted_extra or "{}")
-        except (TypeError, json.JSONDecodeError):
-            return {}
-
+        config = self._stored_encrypted_extra()
         spec = self.db_engine_spec
         labels = spec.encrypted_extra_sensitive_field_labels()
         return {
@@ -598,6 +595,40 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 config, spec.encrypted_extra_sensitive_field_paths()
             )
         }
+
+    def stored_secret_expirations(self) -> dict[str, dict[str, Any]]:
+        """
+        Expiry of each JWT stored at a sensitive field of `encrypted_extra`.
+
+        Keyed by concrete path like `stored_sensitive_fields`, as
+        `{"expires_at": <ISO 8601 UTC>, "expired": <bool>}`, read from the token's
+        unverified `exp` claim. Other values, and a missing or malformed
+        `encrypted_extra`, give no entry.
+        """
+        return json.get_sensitive_field_expirations(
+            self._stored_encrypted_extra(),
+            self.db_engine_spec.encrypted_extra_sensitive_field_paths(),
+        )
+
+    def _stored_encrypted_extra(self) -> dict[str, Any]:
+        """
+        `encrypted_extra` parsed as a dict; ``{}`` when missing or malformed.
+
+        The result is kept until the stored value changes, so the callers on one
+        request, such as the connection endpoint, share a single parse.
+        """
+        raw = self.encrypted_extra
+        cached = getattr(self, "_parsed_encrypted_extra", None)
+        if cached is not None and cached[0] == raw:
+            return cached[1]
+        try:
+            parsed = json.loads(raw or "{}")
+        except (TypeError, json.JSONDecodeError):
+            parsed = {}
+        if not isinstance(parsed, dict):
+            parsed = {}
+        self._parsed_encrypted_extra = (raw, parsed)
+        return parsed
 
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
@@ -1204,6 +1235,22 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             )
         return sql_
 
+    @contextmanager
+    def _timed_raw_connection(
+        self, engine_suffix: str, catalog: str | None, schema: str | None
+    ) -> Iterator[Any]:
+        """
+        Open a raw connection, timing the attempt even when it fails.
+
+        Only establishing the connection is timed, not the body that uses it.
+        """
+        with ExitStack() as stack:
+            with timed(f"database.connect.{engine_suffix}"):
+                conn = stack.enter_context(
+                    self.get_raw_connection(catalog=catalog, schema=schema)
+                )
+            yield conn
+
     def _execute_sql_with_mutation_and_logging(
         self,
         sql: str,
@@ -1238,7 +1285,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     security_manager,
                 )
 
-        with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
+        engine_suffix = metric_suffix(self.db_engine_spec.engine)
+        with self._timed_raw_connection(
+            engine_suffix, catalog=catalog, schema=schema
+        ) as conn:
             cursor = conn.cursor()
             rows = None
             description = None
@@ -1281,13 +1331,15 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         object_ref=__name__,
                     ):
                         notify_cursor(cursor, self, CursorPhase.SUBMITTING)
-                        self.db_engine_spec.execute(cursor, sql_, self)
+                        with timed(f"database.execute.{engine_suffix}"):
+                            self.db_engine_spec.execute(cursor, sql_, self)
                         query_executed()
                         notify_cursor(cursor, self, CursorPhase.SUBMITTED)
 
                     # Fetch results from last statement if requested
                     if fetch_last_result and i == len(script.statements) - 1:
-                        rows = self.db_engine_spec.fetch_data(cursor)
+                        with timed(f"database.fetch.{engine_suffix}"):
+                            rows = self.db_engine_spec.fetch_data(cursor)
                         # Some asynchronous DB-API drivers expose placeholder metadata
                         # until fetching waits for the operation to finish.
                         description = cursor.description
@@ -1336,7 +1388,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         df = None
         if rows is not None:
-            df = self.load_into_dataframe(description, rows)
+            with timed(
+                f"database.dataframe.{metric_suffix(self.db_engine_spec.engine)}"
+            ):
+                df = self.load_into_dataframe(description, rows)
 
         if mutator:
             df = mutator(df)

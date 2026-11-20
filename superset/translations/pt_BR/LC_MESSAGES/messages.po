@@ -2268,6 +2268,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Alerta"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "Alerta \"%(alertName)s\" ativado com sucesso"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "Alerta Acionado, em período de carência"
 
@@ -8202,6 +8206,9 @@ msgstr "Etiqueta de seção dinâmica"
 msgid "Dynamic group by"
 msgstr "Agrupar dinâmico por"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Descrição da seção dinâmica"
@@ -9603,6 +9610,14 @@ msgstr "Falha ao marcar itens"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "Falha ao acionar%(alertType)s\"%(alertName)s\":%(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "Falha ao acionar o alerta \"%(alertName)s\": %(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "Falha ao acionar o relatório \"%(alertName)s\": %(error)s"
+
 msgid "Failed to update report"
 msgstr "Falha ao atualizar relatório"
 
@@ -10573,6 +10588,14 @@ msgstr "Ocultar linha"
 msgid "Hide chart description"
 msgstr "Ocultar descrição do gráfico"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Esconder camada"
 
@@ -11295,9 +11318,10 @@ msgstr "Estado inválido."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "IDs de guia inválidos:%(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Valor de filtro temporal inválido para a coluna %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -15837,6 +15861,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "Relatório"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "Relatório \"%(alertName)s\" ativado com sucesso"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

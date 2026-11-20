@@ -65,7 +65,11 @@ import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import isSemanticRange from 'src/filters/components/Range/isSemanticRange';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
-import { getFormData, isSelectionFreeGrainControlMask } from '../../utils';
+import {
+  getFormData,
+  isSelectionFreeGrainControlMask,
+  withNativeFilterProvenance,
+} from '../../utils';
 import { useFilterDependencies, useTransitiveParentIds } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
 
@@ -85,6 +89,14 @@ const StyledDiv = styled.div<{
     height: auto !important;
     min-height: ${HEIGHT}px;
   }
+`;
+
+const ReselectActionButton = styled(Button)`
+  max-width: 100%;
+  height: auto;
+  min-height: ${({ theme }) => theme.controlHeight}px;
+  padding-block: ${({ theme }) => theme.sizeUnit}px;
+  white-space: normal;
 `;
 
 const queriesDataPlaceholder = [{ data: [{}] }];
@@ -356,27 +368,11 @@ const FilterValue: FC<FilterValueProps> = ({
     (dataMask: DataMask) =>
       onFilterSelectionChange(
         filter,
-        // A grain-only value, or a cleared grain control, selects no member,
-        // so it has no provenance.
-        datasourceType === DatasourceType.SemanticView &&
-          !isGrainOnlyExtraFormData(dataMask.extraFormData) &&
-          !isSelectionFreeGrainControlMask(
-            filter.filterType,
-            dataMask.extraFormData,
-          )
-          ? {
-              ...dataMask,
-              extraFormData: {
-                ...dataMask.extraFormData,
-                semantic_selection_sources: [
-                  {
-                    datasource: `${datasetId}__${datasourceType || DatasourceType.Table}`,
-                    version: semantic_selection_version ?? null,
-                  },
-                ],
-              },
-            }
-          : dataMask,
+        withNativeFilterProvenance(dataMask, filter.filterType, {
+          datasetId,
+          datasourceType,
+          semantic_selection_version,
+        }),
       ),
     [
       filter,
@@ -464,9 +460,23 @@ const FilterValue: FC<FilterValueProps> = ({
   const selectionSources = getSemanticSelectionSources(
     filter.dataMask?.extraFormData,
   );
+  const selectedValue = filter.dataMask?.filterState?.value;
+  const hasEmptyValue =
+    selectedValue === undefined ||
+    selectedValue === null ||
+    (Array.isArray(selectedValue) &&
+      (selectedValue.length === 0 ||
+        (filter.filterType === 'filter_range' &&
+          selectedValue.length === 2 &&
+          selectedValue.every(value => value === null))));
+  // An empty display value must not hide stale provenance or member predicates.
+  // In particular, [null] in a select is a selected NULL, not a cleared value.
   const hasSavedSelection =
-    filter.dataMask?.filterState?.value !== undefined ||
-    selectionSources.length > 0;
+    !hasEmptyValue ||
+    selectionSources.length > 0 ||
+    Object.values(filter.dataMask?.extraFormData ?? {}).some(
+      value => value !== undefined,
+    );
   const staleSelection =
     semantic_selection_version &&
     hasSavedSelection &&
@@ -485,18 +495,29 @@ const FilterValue: FC<FilterValueProps> = ({
     return (
       <Alert
         type="warning"
+        styles={{
+          root: { flexWrap: 'wrap', rowGap: theme.sizeUnit * 2 },
+          section: { flex: '1 1 0%', minWidth: 0 },
+          actions: {
+            marginInlineStart: 0,
+            minWidth: 0,
+            maxWidth: '100%',
+            flexBasis: '100%',
+            order: 1,
+          },
+        }}
         message={t('Reselect saved filter values')}
         description={t(
           'This saved filter state predates the member-ID format. Reset it and explicitly choose its values again.',
         )}
         action={
-          <Button
+          <ReselectActionButton
             onClick={() =>
               setDataMask({ filterState: {}, ownState: {}, extraFormData: {} })
             }
           >
             {t('Reset and reselect values')}
-          </Button>
+          </ReselectActionButton>
         }
       />
     );

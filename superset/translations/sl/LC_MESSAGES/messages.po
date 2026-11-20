@@ -2248,6 +2248,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Opozorilo"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "Opozorilo »%(alertName)s« je bilo uspešno sproženo"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "Opozorilo sproženo, v obdobju mirovanja"
 
@@ -7781,6 +7785,9 @@ msgstr "Oznaka dinamičnega odseka"
 msgid "Dynamic group by"
 msgstr "Dinamična skupina po"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Dinamični opis razdelka"
 
@@ -9091,6 +9098,14 @@ msgstr "Napaka pri označevanju elementov"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "%(alertType)s »%(alertName)s« ni bilo mogoče sprožiti: %(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "Opozorilo »%(alertName)s« ni bilo mogoče sprožiti: %(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "Poročilo »%(alertName)s« ni bilo mogoče sprožiti: %(error)s"
+
 msgid "Failed to update report"
 msgstr "Posodabljanje poročila neuspešno"
 
@@ -9965,6 +9980,14 @@ msgstr "Skrij črto"
 msgid "Hide chart description"
 msgstr "Skrij opis grafikona"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Skrij sloj"
 
@@ -10618,9 +10641,10 @@ msgstr "Neveljavno stanje."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Neveljavni ID-ji zavihkov: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Neveljavna vrednost časovnega filtra za stolpec %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -14840,6 +14864,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "Poročilo"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "Poročilo »%(alertName)s« je bilo uspešno sproženo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

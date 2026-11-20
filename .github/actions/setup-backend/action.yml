@@ -53,9 +53,15 @@ runs:
       if: inputs.install-superset == 'true'
       shell: bash
       run: |
-        # Use the runner's preinstalled Chrome; these dependencies do not need
-        # its apt repository. Mirror index failures must not block their setup.
+        # These dependencies come from the Ubuntu archive only, so drop the
+        # third-party repositories the runner images ship (Google Chrome, whose
+        # preinstalled browser is used; packages.microsoft.com for azure-cli and
+        # microsoft-prod). Their mirror index failures, e.g. a 403 reported as
+        # "no longer signed", must not block setup. Microsoft sources are matched
+        # by content because file names and formats (.list/.sources) vary by image.
         sudo rm -f /etc/apt/sources.list.d/google-chrome*.list /etc/apt/sources.list.d/google-chrome*.sources
+        { grep -rlZF --include='*.list' --include='*.sources' 'packages.microsoft.com' /etc/apt/sources.list.d || [ $? -eq 1 ]; } \
+          | sudo xargs -0r rm -f --
         sudo apt-get update
     - name: Install apt packages
       if: inputs.install-superset == 'true'

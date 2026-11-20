@@ -536,6 +536,48 @@ def test_extra_validator_rejects_boolean_nested_cache_timeout(value: bool) -> No
     assert "non-negative integer" in str(exc_info.value)
 
 
+def test_extra_validator_cache_timeout_error_is_actionable() -> None:
+    """
+    Test that the cache timeout error names the key, echoes the offending
+    value and says where the value can be corrected.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps({"metadata_cache_timeout": {"table_cache_timeout": "abc"}}),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    assert exc_info.value.messages["extra"] == [
+        "The table_cache_timeout in metadata_cache_timeout must be a "
+        'non-negative integer, but received "abc". Enter a whole number of '
+        "seconds (0 or greater) under Advanced > Performance."
+    ]
+
+
+def test_extra_validator_cache_timeout_error_truncates_large_values() -> None:
+    """
+    Test that an oversized rejected value is truncated in the error message.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps(
+            {"metadata_cache_timeout": {"schema_cache_timeout": "x" * 10_000}}
+        ),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    message = exc_info.value.messages["extra"][0]
+    assert "x" * 10_000 not in message
+    assert "..." in message
+    assert len(message) < 500
+
+
 def test_extra_validator_rejects_negative_catalog_cache_timeout() -> None:
     """
     Test that extra_validator rejects negative catalog_cache_timeout values.
@@ -1096,7 +1138,7 @@ def test_partial_update_uses_the_stored_engine_credential_validator(
         "masked_encrypted_extra": json.dumps({"embedded_credentials": {"token": "t"}})
     }
     DatabasePutSchema(database_id=1).load(payload)
-    validator.assert_called_once_with({"token": "t"})
+    validator.assert_called_with({"token": "t"})
 
 
 @pytest.mark.parametrize(
@@ -1213,6 +1255,128 @@ def test_embedded_credentials_requirement_skips_engines_without_the_fallback() -
             ),
         }
     )
+
+
+def _pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode()),
+        )
+        .decode()
+    )
+
+
+def _snowflake_keypair_payload(body: str, passphrase: str) -> dict[str, Any]:
+    return {
+        "database_name": "test_db",
+        "sqlalchemy_uri": "snowflake://base_user@xy12345/db",
+        "impersonate_user": True,
+        "masked_encrypted_extra": json.dumps(
+            {
+                "oauth2_client_info": _CLIENT,
+                "embedded_credentials": {
+                    "username": "embedded_svc",
+                    "auth_method": "keypair",
+                    "privatekey_body": body,
+                    "privatekey_pass": passphrase,
+                },
+            }
+        ),
+    }
+
+
+@pytest.mark.parametrize(
+    "body, passphrase, expect_error",
+    [
+        ("right", "key passphrase", False),
+        ("right", "wrong passphrase", True),
+        ("not a PEM key", "key passphrase", True),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_unreadable_embedded_key_is_refused_at_save(
+    body: str, passphrase: str, expect_error: bool
+) -> None:
+    """A key pair that cannot be decoded is refused when saved."""
+    from superset.databases.schemas import DatabasePostSchema
+
+    pem = _pem("key passphrase") if body == "right" else body
+    payload = _snowflake_keypair_payload(pem, passphrase)
+
+    if not expect_error:
+        DatabasePostSchema().load(payload)
+        return
+    with pytest.raises(ValidationError) as excinfo:
+        DatabasePostSchema().load(payload)
+    messages = str(excinfo.value.messages)
+    assert "private key could not be read" in messages
+    assert passphrase not in messages
+    assert all(line not in messages for line in pem.splitlines()[1:-1] or [pem])
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_unreadable_embedded_key_in_a_json_string_is_refused_at_save() -> None:
+    """
+    A credential nested as a JSON string is refused at save without echoing it.
+
+    Saving stores the value as sent and query time refuses a string, so the save
+    is refused as incomplete before the key itself is checked.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    pem = _pem("key passphrase")
+    payload = _snowflake_keypair_payload(pem, "wrong passphrase")
+    extra = json.loads(payload["masked_encrypted_extra"])
+    extra["embedded_credentials"] = json.dumps(extra["embedded_credentials"])
+    payload["masked_encrypted_extra"] = json.dumps(extra)
+
+    with pytest.raises(ValidationError) as excinfo:
+        DatabasePostSchema().load(payload)
+    messages = str(excinfo.value.messages)
+    assert "invalid or incomplete" in messages
+    assert "wrong passphrase" not in messages
+    assert all(line not in messages for line in pem.splitlines()[1:-1])
+
+
+@pytest.mark.parametrize(
+    "new_passphrase, expect_error",
+    [("XXXXXXXXXX", False), ("key passphrase", False), ("wrong passphrase", True)],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_edit_checks_the_embedded_key_against_its_stored_secrets(
+    mocker: MockerFixture, new_passphrase: str, expect_error: bool
+) -> None:
+    """
+    An edit sends an unchanged key and passphrase masked. They are restored from
+    the stored connection before the key is checked, so an untouched credential
+    still saves and a new passphrase is checked against the stored key.
+    """
+    from superset.databases.schemas import DatabasePutSchema
+    from superset.models.core import Database
+
+    saved = _snowflake_keypair_payload(_pem("key passphrase"), "key passphrase")
+    stored = Database(
+        sqlalchemy_uri=saved["sqlalchemy_uri"],
+        impersonate_user=True,
+        encrypted_extra=saved["masked_encrypted_extra"],
+    )
+    mocker.patch("superset.databases.schemas.db.session.get", return_value=stored)
+    payload = _snowflake_keypair_payload("XXXXXXXXXX", new_passphrase)
+    del payload["database_name"], payload["sqlalchemy_uri"]
+
+    if expect_error:
+        with pytest.raises(ValidationError) as excinfo:
+            DatabasePutSchema(database_id=1).load(payload)
+        assert "private key could not be read" in str(excinfo.value.messages)
+    else:
+        DatabasePutSchema(database_id=1).load(payload)
 
 
 @pytest.mark.parametrize("stored_impersonate_user", [True, False])
