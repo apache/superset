@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { logging } from '@apache-superset/core/utils';
 import { canvas, setActiveCanvas } from 'src/core';
 
 const Kpi = () => null;
@@ -30,6 +31,19 @@ test('widget renderers register and unregister by type', () => {
   registration.dispose();
 
   expect(canvas.getWidgetRenderer('test.kpi')).toBeUndefined();
+});
+
+test('replacing a registered renderer warns', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  const first = canvas.registerWidgetRenderer('test.kpi', Kpi);
+  const second = canvas.registerWidgetRenderer('test.kpi', () => null);
+
+  expect(warn).toHaveBeenCalledWith(
+    expect.stringContaining('"test.kpi" is already registered'),
+  );
+  second.dispose();
+  first.dispose();
+  warn.mockRestore();
 });
 
 test('disposing a replaced renderer keeps the newer one', () => {

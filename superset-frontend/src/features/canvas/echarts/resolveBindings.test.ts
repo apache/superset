@@ -76,6 +76,31 @@ test('drops URL keys and forces rich-text tooltips', () => {
   expect(option.tooltip).toEqual({ trigger: 'item', renderMode: 'richText' });
 });
 
+type Tip = { renderMode?: string };
+
+test('tooltips render as rich text at every depth', () => {
+  const html = { formatter: '<a href="https://example.org">x</a>' };
+  const option = resolveOption(
+    {
+      baseOption: { tooltip: html, series: [{ type: 'bar', tooltip: html }] },
+      options: [{ tooltip: [html] }],
+      media: [{ query: { maxWidth: 500 }, option: { tooltip: html } }],
+    },
+    ctx,
+  ) as unknown as {
+    tooltip: unknown;
+    baseOption: { tooltip: Tip; series: { tooltip: Tip }[] };
+    options: { tooltip: Tip[] }[];
+    media: { option: { tooltip: Tip } }[];
+  };
+
+  expect(option.tooltip).toEqual({ renderMode: 'richText' });
+  expect(option.baseOption.tooltip.renderMode).toBe('richText');
+  expect(option.baseOption.series[0].tooltip.renderMode).toBe('richText');
+  expect(option.options[0].tooltip[0].renderMode).toBe('richText');
+  expect(option.media[0].option.tooltip.renderMode).toBe('richText');
+});
+
 test('drops URL keys from objects built from query rows', () => {
   const option = resolveOption(
     {

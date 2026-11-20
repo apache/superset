@@ -69,6 +69,26 @@ class PendingWidgetResolver:
         return self.base.editable(ids - new) | new
 
 
+class HidingWidgetResolver:
+    """``base`` without ``hidden``, whose placements then stay unresolved."""
+
+    def __init__(self, base: WidgetResolver, hidden: set[str]) -> None:
+        self.base = base
+        self.hidden = hidden
+
+    def widget_types(self, widget_ids: Iterable[str]) -> dict[str, str]:
+        return self.base.widget_types(set(widget_ids) - self.hidden)
+
+    def placeable(self, widget_ids: Iterable[str]) -> set[str]:
+        return self.base.placeable(set(widget_ids) - self.hidden)
+
+    def widgets(self, widget_ids: Iterable[str]) -> dict[str, StoredWidget]:
+        return self.base.widgets(set(widget_ids) - self.hidden)
+
+    def editable(self, widget_ids: Iterable[str]) -> set[str]:
+        return self.base.editable(set(widget_ids) - self.hidden)
+
+
 def pending_to_value(pending: dict[str, StoredWidget]) -> dict[str, Any]:
     """Draft widgets as stored with the draft."""
     return {

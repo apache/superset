@@ -34,6 +34,7 @@ from uuid import UUID
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
+from superset_core.canvas.base import MAX_GRID_COLUMNS
 
 DEFINITION_VERSION = 1
 ROOT_ID = "root"
@@ -66,7 +67,7 @@ class _Model(BaseModel):
 
 
 class RootLayout(_Model):
-    columns: int = Field(default=24, ge=1)
+    columns: int = Field(default=24, ge=1, le=MAX_GRID_COLUMNS)
     gap: int = Field(default=16, ge=0)
     row_unit: int = Field(default=40, ge=1)
 
@@ -359,12 +360,16 @@ Operation = Annotated[
 ]
 
 
+# Far more than any one gesture or agent turn sends.
+MAX_OPS_PER_REQUEST = 1000
+
+
 class ApplyOperationsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     # The revision the caller's view of the canvas is based on.
     base_revision: int = Field(ge=0)
-    ops: list[Operation] = Field(min_length=1)
+    ops: list[Operation] = Field(min_length=1, max_length=MAX_OPS_PER_REQUEST)
 
 
 class DraftOperationsRequest(BaseModel):
@@ -372,7 +377,7 @@ class DraftOperationsRequest(BaseModel):
 
     # The draft revision the caller's view is based on.
     revision: int = Field(ge=0)
-    ops: list[Operation] = Field(min_length=1)
+    ops: list[Operation] = Field(min_length=1, max_length=MAX_OPS_PER_REQUEST)
 
 
 class CommitDraftRequest(BaseModel):

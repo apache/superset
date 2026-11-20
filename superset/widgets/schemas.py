@@ -44,8 +44,9 @@ class WidgetPostSchema(Schema):
         validate=validate.Length(1, 250),
         metadata={"description": widget_type_description},
     )
+    # Omitted means the props are at the type's current version.
     schema_version = fields.Integer(
-        load_default=1,
+        load_default=None,
         strict=True,
         validate=validate.Range(min=1),
         metadata={"description": schema_version_description},

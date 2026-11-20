@@ -44,6 +44,7 @@ from superset_core.canvas import StoredWidget
 
 from superset import security_manager
 from superset.canvas.definition.pending import (
+    HidingWidgetResolver,
     pending_from_value,
     pending_to_value,
     PendingWidgetResolver,
@@ -89,6 +90,14 @@ BY_AI = "ai"
 
 
 LAYOUT_OPS = frozenset({"place", "move", "swap"})
+
+
+def _placed(definition: dict[str, Any]) -> set[str]:
+    return {
+        node["widgetId"]
+        for node in (definition.get("nodes") or {}).values()
+        if node.get("widgetId")
+    }
 
 
 def _parent_of(definition: dict[str, Any], node_id: str) -> str:
@@ -204,7 +213,18 @@ class CanvasDraft:
         return self.canvas.id
 
     def resolver(self) -> PendingWidgetResolver:
-        return PendingWidgetResolver(get_widget_resolver(), self.widgets)
+        """
+        The draft's widgets over the saved ones. A saved widget the draft
+        places but the canvas no longer does is read as a version preview
+        reads it: only if the user could place it again.
+        """
+        base = get_widget_resolver()
+        returning = _placed(self.definition) - set(self.widgets)
+        if returning:
+            returning -= _placed(CanvasDAO.load(self.canvas))
+        if returning and (hidden := returning - base.placeable(returning)):
+            base = HidingWidgetResolver(base, hidden)
+        return PendingWidgetResolver(base, self.widgets)
 
     def to_value(self) -> dict[str, Any]:
         return {
@@ -586,7 +606,7 @@ class CommitCanvasDraftCommand:
             result = CommitResult(applied.revision)
         else:
             result = CommitResult(_editable_canvas(draft.canvas_id).revision)
-        DeleteCanvasDraftCommand(self._token).run()
+        _discard(self._token)
         return result
 
 
@@ -597,6 +617,13 @@ class DeleteCanvasDraftCommand:
         self._token = token
 
     def run(self) -> CanvasDraft:
-        draft = load_draft(self._token)
-        cache_manager.explore_form_data_cache.delete(_cache_key(self._token))
-        return draft
+        # Under the write lock, or a write in flight saves the draft again
+        # after it was discarded.
+        with _draft_write_lock(self._token):
+            return _discard(self._token)
+
+
+def _discard(token: str) -> CanvasDraft:
+    draft = load_draft(token)
+    cache_manager.explore_form_data_cache.delete(_cache_key(token))
+    return draft

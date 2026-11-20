@@ -54,7 +54,7 @@ from superset_core.widgets import Widget, WidgetUi
 
 from superset.canvas.definition.grid import resolve_grid, span_errors
 from superset.canvas.definition.pending import widget_payload
-from superset.canvas.definition.placements import placement_types
+from superset.canvas.definition.placements import placement_types, upgrade_entities
 from superset.canvas.definition.registry import (
     get_widget_resolver,
     get_widget_types,
@@ -70,13 +70,13 @@ def render_context(
 ) -> dict[str, Any]:
     nodes = definition["nodes"]
     resolver = resolver or get_widget_resolver()
-    node_types = placement_types(
-        nodes,
-        get_widget_types() if widget_types is None else widget_types,
-        resolver,
-    )
-    widgets = resolver.widgets(
-        {node["widgetId"] for node in nodes.values() if node.get("widgetId")}
+    widget_types = get_widget_types() if widget_types is None else widget_types
+    node_types = placement_types(nodes, widget_types, resolver)
+    widgets = upgrade_entities(
+        resolver.widgets(
+            {node["widgetId"] for node in nodes.values() if node.get("widgetId")}
+        ),
+        widget_types,
     )
     type_ids = {node_id: w.widget_type for node_id, w in node_types.items()}
 

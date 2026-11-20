@@ -123,6 +123,21 @@ class _Aliased(BaseModel):
     data_binding: int = Field(alias="dataBinding")
 
 
+def test_a_nested_property_named_by_its_validation_alias_stays_in_the_schema() -> None:
+    class Inner(BaseModel):
+        token: str = Field(validation_alias="apiToken")
+        region: str = "eu"
+
+    class Outer(BaseModel):
+        inner: Inner
+
+    schema = build_configuration_schema(Outer)
+
+    inner = schema["$defs"]["Inner"]
+    assert list(inner["properties"]) == ["apiToken", "region"]
+    assert inner["required"] == ["apiToken"]
+
+
 def test_check_dependencies_resolves_alias() -> None:
     # x-dependsOn is written using the schema-facing alias ("dataBinding"),
     # but Pydantic attribute access always uses the Python field name

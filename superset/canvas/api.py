@@ -1243,6 +1243,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             "name": "main",
             "row_count": len(data.rows),
             "inline_data": data.rows,
+            "coltypes": data.coltypes,
         }
         # Classic charts gate "View query" on the same permission.
         if data.query and security_manager.can_access("can_view_query", "Dashboard"):

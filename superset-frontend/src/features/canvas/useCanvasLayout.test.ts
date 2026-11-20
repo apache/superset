@@ -160,16 +160,93 @@ test('a failed write snaps back and explains itself', async () => {
   expect(result.current.error).toBeUndefined();
 });
 
-test('a conflicting write reloads the canvas and says so', async () => {
-  fetchMock.patch(endpoint, 409);
+test('a conflicting write reloads the canvas and reapplies the gesture', async () => {
+  fetchMock.patch(endpoint, 409, { repeat: 1 });
+  fetchMock.patch(endpoint, {
+    result: { revision: 5, ops: [], placements: { kpi: MOVED, trend: TREND } },
+  });
   const reload = jest.fn();
-  const { result } = renderHook(() => useCanvasLayout(7, resultAt(3), reload));
+  const { result, rerender } = renderHook(
+    ({ revision }: { revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), reload),
+    { initialProps: { revision: 3 } },
+  );
 
   act(() => result.current.place('kpi', MOVED));
 
   await waitFor(() => expect(reload).toHaveBeenCalled());
-  expect(result.current.error).toContain('changed while you were editing');
+  expect(result.current.error).toBeUndefined();
+  // The refetch has the draft an agent moved on.
+  rerender({ revision: 4 });
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(2));
+  const retried = fetchMock.callHistory.calls()[1];
+  expect(JSON.parse(retried.options.body as string)).toEqual({
+    base_revision: 4,
+    ops: [{ op: 'place', id: 'kpi', layout: MOVED }],
+  });
+  await waitFor(() => expect(result.current.placements.kpi).toEqual(MOVED));
+});
+
+test('a conflict that repeats on the reapplied gesture says so', async () => {
+  fetchMock.patch(endpoint, 409);
+  const reload = jest.fn();
+  const { result, rerender } = renderHook(
+    ({ revision }: { revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), reload),
+    { initialProps: { revision: 3 } },
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+  rerender({ revision: 4 });
+
+  await waitFor(() =>
+    expect(result.current.error).toContain('changed while you were editing'),
+  );
   expect(result.current.placements.kpi).toEqual(KPI);
+});
+
+test('a gesture whose widget the refetch no longer has is not reapplied', async () => {
+  fetchMock.patch(endpoint, 409);
+  const reload = jest.fn();
+  const { result, rerender } = renderHook(
+    ({ placements }: { placements: Record<string, GridPlacement> }) =>
+      useCanvasLayout(
+        7,
+        resultAt(placements.kpi ? 3 : 4, true, placements),
+        reload,
+      ),
+    { initialProps: { placements: { kpi: KPI, trend: TREND } } },
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(reload).toHaveBeenCalled());
+  rerender({ placements: { trend: TREND } });
+
+  await waitFor(() =>
+    expect(result.current.error).toContain('changed while you were editing'),
+  );
+  expect(fetchMock.callHistory.calls()).toHaveLength(1);
+});
+
+test('a rejected write names the placement its issue points at', async () => {
+  fetchMock.patch(endpoint, {
+    status: 422,
+    body: {
+      message: 'The operations produce an invalid definition',
+      errors: [{ path: '/nodes/kpi/layout', message: 'colSpan 30 exceeds' }],
+      operation: 0,
+    },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() => expect(result.current.error).toBe('colSpan 30 exceeds'));
+  expect(result.current.errorAt).toBe('kpi');
 });
 
 test('a refused write names permission as the reason', async () => {

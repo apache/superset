@@ -20,7 +20,8 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
-import { EmptyState } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
+import { Button, EmptyState } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import CanvasGrid, { EventValues, ScopeValues } from './CanvasGrid';
 import DraftBanner from './DraftBanner';
@@ -53,6 +54,11 @@ interface CanvasBodyProps {
   refreshKeys: Record<string, number>;
   /** Set while a draft is open; layout writes then go to the draft. */
   draftToken?: string;
+  /**
+   * The open draft ended elsewhere -- published by an agent through the same
+   * token, committed or discarded in another tab -- or expired.
+   */
+  draftGone?: boolean;
   /** The version being previewed; widgets read their data from it. */
   versionUuid?: string;
   /** Starts a draft and shows it. */
@@ -104,6 +110,7 @@ export default function CanvasBody({
   onPublish,
   refreshKeys,
   draftToken,
+  draftGone = false,
   versionUuid,
   onDraftOpened,
   onDraftClosed,
@@ -134,7 +141,15 @@ export default function CanvasBody({
     setCommitting,
     canvasId,
   );
-  const history = useDraftHistory(draftToken, layout.revision, result, reload);
+  // A step moves the draft on before the refetch shows it, so a gesture made
+  // meanwhile is based on the step's revision rather than conflicting.
+  const history = useDraftHistory(
+    draftToken,
+    layout.revision,
+    result,
+    reload,
+    layout.adopt,
+  );
   // Here rather than in the page: whether a change to the draft is in flight,
   // and the revision it has reached, are only known here.
   usePublishActiveCanvas(
@@ -162,7 +177,8 @@ export default function CanvasBody({
   // commit names a revision and then deletes the draft, so a change accepted
   // after that read would be replayed by nothing. The single place this
   // policy is decided.
-  const editable = result.canEdit && Boolean(draftToken) && !committing;
+  const editable =
+    result.canEdit && Boolean(draftToken) && !draftGone && !committing;
   // Held here rather than in the grid: `editable` and the placements are
   // already here, and this is above the toolbar as well as the canvas, so an
   // action on the selected widget has somewhere to live later.
@@ -170,10 +186,17 @@ export default function CanvasBody({
     editable,
     placements: layout.placements,
   });
+  // A rejected write is shown at the placement its issue points at.
+  const { errorAt } = layout;
+  const { select } = selection;
+  useEffect(() => {
+    if (errorAt) select(errorAt);
+  }, [errorAt, select]);
   const toolbar = (
     <CanvasToolbar
       canEdit={result.canEdit}
-      draftToken={draftToken}
+      // Undo, redo and their shortcuts go with a draft that is gone.
+      draftToken={draftGone ? undefined : draftToken}
       onEnter={start}
       // Held while a drag or resize is still in flight or queued: a commit
       // then would publish the older revision and delete the draft,
@@ -190,7 +213,27 @@ export default function CanvasBody({
       {/* What the draft holds comes from the layout, which every write
           updates, rather than from the fetched definition, which does not
           catch up until the next poll. */}
-      {draftToken && (
+      {draftToken && draftGone && (
+        <Alert
+          type="info"
+          showIcon
+          closable={false}
+          message={t(
+            'This draft was published, discarded or expired elsewhere.',
+          )}
+          action={
+            <Button
+              buttonStyle="primary"
+              buttonSize="small"
+              onClick={onDraftClosed}
+              data-test="canvas-draft-gone-leave"
+            >
+              {t('Show the published canvas')}
+            </Button>
+          }
+        />
+      )}
+      {draftToken && !draftGone && (
         <DraftBanner
           history={history}
           actions={actions}

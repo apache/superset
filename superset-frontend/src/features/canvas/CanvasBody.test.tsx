@@ -281,6 +281,22 @@ test('the published canvas has no handles, even for someone who may edit', () =>
   expect(screen.getAllByText('widget')).toHaveLength(2);
 });
 
+test('a draft that ended elsewhere stops editing and offers the published canvas', () => {
+  const onDraftClosed = jest.fn();
+  renderWith('tok-123', { draftGone: true, onDraftClosed });
+
+  expect(
+    screen.queryByRole('button', { name: 'Move widget' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Save' }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Show the published canvas' }),
+  );
+  expect(onDraftClosed).toHaveBeenCalled();
+});
+
 test('a layout write that does not land says so where the user is looking', async () => {
   // Not in a notice above the canvas: on anything taller than the window that
   // is off-screen, and the drag just snaps back for no stated reason.

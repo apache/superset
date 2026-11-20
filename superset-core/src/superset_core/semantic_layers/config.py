@@ -52,7 +52,12 @@ def _resolve_field_order(
     model's field declaration order (by alias)."""
     declared_order = getattr(model_cls, "field_order", None)
     if declared_order is None:
-        return [field.alias or name for name, field in model_cls.model_fields.items()]
+        return [
+            field.validation_alias
+            if isinstance(field.validation_alias, str)
+            else field.alias or name
+            for name, field in model_cls.model_fields.items()
+        ]
     declared = set(declared_order)
     actual = set(schema_node.get("properties", {}))
     # A `set()` comparison alone can't catch a duplicate: `["a", "a", "b"]`
@@ -73,8 +78,13 @@ def _reorder(schema_node: dict[str, Any], field_order: list[str]) -> None:
     """Reorder ``schema_node``'s ``properties`` (and, for determinism,
     ``required``) to match ``field_order``. Mutates in place."""
     if (properties := schema_node.get("properties")) is not None:
+        # A property ``field_order`` doesn't name (one keyed by a
+        # ``validation_alias``, say) keeps its place after the named ones
+        # rather than dropping out of the schema while still ``required``.
+        listed = [key for key in field_order if key in properties]
         schema_node["properties"] = {
-            key: properties[key] for key in field_order if key in properties
+            key: properties[key]
+            for key in [*listed, *(key for key in properties if key not in listed)]
         }
     if (required := schema_node.get("required")) is not None:
         index = {key: position for position, key in enumerate(field_order)}

@@ -177,6 +177,7 @@ const layoutOf = (
   remove: jest.fn(),
   removed: new Set<string>(),
   dismissError: jest.fn(),
+  adopt: jest.fn(),
 });
 
 /** A layout with fields overridden, for the acknowledged-state reads. */

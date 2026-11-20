@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses
 from typing import Any
 
 import pytest
@@ -361,3 +362,56 @@ def test_nesting_depth_is_not_capped() -> None:
     result = normalize(canvas(nodes, children=["g0"]))
 
     assert len(result["nodes"]) == 30
+
+
+@pytest.mark.parametrize(
+    "layout",
+    [{"colSpan": 49}, {"col": 1, "row": 1001}, {"rowSpan": 201}],
+)
+def test_grid_placements_are_bounded(layout: dict[str, Any]) -> None:
+    from pydantic import ValidationError
+    from superset_core.canvas import GridPlacement
+
+    with pytest.raises(ValidationError):
+        GridPlacement.model_validate(layout)
+
+
+def test_a_widget_saved_by_a_newer_version_is_a_placeholder() -> None:
+    from superset.canvas.definition.placements import placement_types
+
+    resolver = FakeResolver()
+    newer = resolver.widgets
+
+    def widgets(ids: Any) -> Any:
+        return {
+            widget_id: dataclasses.replace(widget, schema_version=2)
+            for widget_id, widget in newer(ids).items()
+        }
+
+    resolver.widgets = widgets  # type: ignore[method-assign,assignment]
+
+    assert (
+        placement_types({"a": node("chart-1")}, canvas_widget_types(), resolver) == {}
+    )
+
+
+def test_a_widget_saved_by_an_older_version_is_read_upgraded() -> None:
+    from superset_core.canvas import StoredWidget
+
+    from superset.canvas.definition.placements import upgrade_entities
+
+    rules = canvas_widget_types()
+    chart = rules["chart"]
+    rules["chart"] = type(
+        "ChartV2",
+        (chart,),
+        {
+            "schema_version": 2,
+            "migrators": {1: lambda props: {"metric": props["measure"]}},
+        },
+    )
+    old = StoredWidget("chart", 1, "Sales", {"measure": "sum"})
+
+    upgraded = upgrade_entities({"w": old}, rules)["w"]
+
+    assert (upgraded.schema_version, upgraded.props) == (2, {"metric": "sum"})

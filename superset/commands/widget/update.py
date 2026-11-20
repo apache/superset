@@ -109,6 +109,7 @@ class UpdateWidgetCommand(UpdateMixin, BaseCommand):
                 model.widget_type,
                 self._properties.get("props", model.props) or {},
                 self._properties.get("schema_version", model.schema_version),
+                previous=model.props,
             )
         except WidgetContentError as ex:
             exceptions.append(ValidationError(ex.messages, field_name=ex.field_name))

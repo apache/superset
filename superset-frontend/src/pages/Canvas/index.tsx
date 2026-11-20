@@ -347,6 +347,11 @@ function CanvasContent({ id }: { id: number }) {
           onPublish={onPublish}
           refreshKeys={refreshKeys}
           draftToken={draft.token}
+          draftGone={
+            Boolean(draft.token) &&
+            state.draftToken === draft.token &&
+            state.refreshFailed === 'gone'
+          }
           onDraftOpened={draft.open}
           onDraftClosed={draft.clear}
           isEmpty={isEmpty}

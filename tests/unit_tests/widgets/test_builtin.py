@@ -18,13 +18,22 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from superset.exceptions import SupersetSecurityException
-from superset.widgets.builtin import Balloons, FilterSelect
+from superset.widgets.builtin import FilterSelect
 from superset.widgets.registry import registry
+from tests.unit_tests.widgets.series_widget import (
+    series_widget,  # noqa: F401
+    SeriesWidget,
+    WIDGET_TYPE,
+)
+
+pytestmark = pytest.mark.usefixtures("series_widget")
 
 
 def _series_properties(control_values, series):
-    widget = registry.get("balloons")
+    widget = registry.get(WIDGET_TYPE)
     assert widget is not None
     schema = widget.get_control_schema(control_values, series)
     return schema["$defs"]["Customization"]["properties"]["series"]
@@ -72,11 +81,11 @@ def test_series_populated_per_value_with_palette_colors() -> None:
     assert series["properties"]["boy"]["title"] == "boy"
     assert (
         series["properties"]["boy"]["properties"]["color"]["default"]
-        == Balloons.PALETTE[0]
+        == SeriesWidget.PALETTE[0]
     )
     assert (
         series["properties"]["girl"]["properties"]["color"]["default"]
-        == Balloons.PALETTE[1]
+        == SeriesWidget.PALETTE[1]
     )
 
 
@@ -93,9 +102,9 @@ def test_series_deduped_and_capped() -> None:
     assert list(series["properties"]) == ["boy", "girl"]
 
     # An oversized list is capped, bounding schema construction / response size.
-    many = [f"s{i}" for i in range(Balloons.MAX_SERIES + 50)]
+    many = [f"s{i}" for i in range(SeriesWidget.MAX_SERIES + 50)]
     series = _series_properties(binding, many)
-    assert len(series["properties"]) == Balloons.MAX_SERIES
+    assert len(series["properties"]) == SeriesWidget.MAX_SERIES
 
 
 def test_filter_select_registered() -> None:

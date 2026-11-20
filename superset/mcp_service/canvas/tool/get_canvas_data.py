@@ -42,9 +42,13 @@ from superset.mcp_service.canvas.tool.canvas_ops_common import (
     absolute_url,
     query_error,
 )
+from superset.utils import json
 
 MAX_ROWS = 500
 MAX_WIDGETS = 50
+# Under the MCP response size guard, which fails the whole call when crossed:
+# rows are trimmed to fit instead.
+MAX_RESPONSE_BYTES = 40_000
 
 
 def _in_layout_order(definition: dict[str, Any]) -> Iterator[str]:
@@ -167,10 +171,22 @@ def _get_canvas_data_impl(
                 runtime_filters,
             )
         )
+    _fit_rows(entries, MAX_RESPONSE_BYTES)
     result["widgets"] = entries
     if skipped:
         result["skipped"] = skipped
     return result
+
+
+def _fit_rows(entries: list[dict[str, Any]], budget: int) -> None:
+    """Halve the longest row list until the widgets' data fits ``budget``."""
+    while len(json.dumps(entries, default=str)) > budget:
+        longest = max(entries, key=lambda entry: len(entry.get("rows") or []))
+        rows = longest.get("rows") or []
+        if not rows:
+            return
+        longest["rows"] = rows[: len(rows) // 2]
+        longest["truncated"] = True
 
 
 @tool(
@@ -187,15 +203,16 @@ def get_canvas_data(
     canvas_id: int | str,
     draft_token: str | None = None,
     placement_ids: list[str] | None = None,
-    max_rows: int = 50,
-    max_widgets: int = 20,
+    max_rows: int = 15,
+    max_widgets: int = 10,
     filters: list[RuntimeFilter] | None = None,
 ) -> GetCanvasDataResponse:
     """Get the data behind a canvas's widgets in one call, to answer questions
     about what the canvas shows.
 
     Runs each placement's query as you, in layout order, and returns its
-    title, row count, columns and up to ``max_rows`` rows (at most 500).
+    title, row count, columns and up to ``max_rows`` rows (at most 500);
+    rows are trimmed further, marked ``truncated``, to keep the response small.
     Placements without a query (containers, text, filters) are left out.
     ``placement_ids`` limits it to those placements; ``max_widgets`` (at most
     50) caps how many queries run, and the rest are listed in ``skipped``.
