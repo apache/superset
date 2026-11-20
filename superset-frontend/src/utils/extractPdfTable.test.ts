@@ -51,6 +51,43 @@ test('reads the header and rows of a table chart as text', () => {
   expect(result?.totalColumns).toBe(2);
 });
 
+const withTotals = (root: HTMLElement, columns: number) => {
+  const footer = root.querySelector('table')!.createTFoot().insertRow();
+  for (let c = 0; c < columns; c += 1) {
+    footer.insertCell().textContent = c === 0 ? 'Totals' : `t${c}`;
+  }
+  return root;
+};
+
+test('reads the totals row of a table chart after its rows', () => {
+  const result = extractPdfTable(withTotals(tableRoot(2, 2), 2), 'Totals');
+
+  expect(result?.table.rows).toEqual([
+    ['r0c0', 'r0c1'],
+    ['r1c0', 'r1c1'],
+    ['Totals', 't1'],
+  ]);
+  expect(result?.totalRows).toBe(3);
+});
+
+test('keeps the totals row when the rows are cut at the bound', () => {
+  const result = extractPdfTable(withTotals(tableRoot(5, 2), 2), 'Big', 3);
+
+  expect(result?.table.rows).toEqual([
+    ['r0c0', 'r0c1'],
+    ['r1c0', 'r1c1'],
+    ['Totals', 't1'],
+  ]);
+  expect(result?.totalRows).toBe(6);
+});
+
+test('leaves out a footer that does not line up with the header', () => {
+  const result = extractPdfTable(withTotals(tableRoot(2, 2), 3), 'Odd');
+
+  expect(result?.table.rows).toHaveLength(2);
+  expect(result?.totalRows).toBe(2);
+});
+
 test('reads no more than the bounds and reports the full size', () => {
   const result = extractPdfTable(tableRoot(5, 4), 'Big', 2, 3);
 

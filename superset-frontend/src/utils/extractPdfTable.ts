@@ -70,15 +70,26 @@ export default function extractPdfTable(
   const headers = headerRow ? Array.from(headerRow.cells).map(textOf) : [];
   if (headers.length !== totalColumns) return null;
 
+  // A totals row sits in <tfoot>. It is part of what the chart shows, so it goes last and
+  // survives the row bound; a footer that does not line up with the header is left out.
+  const footRows = Array.from(bodyTable.tFoot?.rows ?? []).filter(
+    row => row.cells.length === totalColumns,
+  );
+  const readRow = (row: HTMLTableRowElement) =>
+    Array.from(row.cells).slice(0, maxColumns).map(textOf);
+
   return {
     table: {
       title,
       headers: headers.slice(0, maxColumns),
-      rows: bodyRows
-        .slice(0, maxRows)
-        .map(row => Array.from(row.cells).slice(0, maxColumns).map(textOf)),
+      rows: [
+        ...bodyRows
+          .slice(0, Math.max(maxRows - footRows.length, 0))
+          .map(readRow),
+        ...footRows.map(readRow),
+      ],
     },
-    totalRows: bodyRows.length,
+    totalRows: bodyRows.length + footRows.length,
     totalColumns,
   };
 }
