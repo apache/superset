@@ -43,9 +43,14 @@ jest.mock('src/hooks/useTabId', () => {
 /* eslint-disable no-var, vars-on-top */
 var mockRealtimeOpenListener: (() => void) | undefined;
 var mockRealtimeStateListener: ((state: string) => void) | undefined;
+var mockRealtimeState: string;
 /* eslint-enable no-var, vars-on-top */
+// Declines by default; a test makes it start a connection attempt.
+const mockRearmRealtime = jest.fn((): boolean => false);
 jest.mock('src/middleware/realtime', () => ({
   connectRealtime: jest.fn(),
+  getRealtimeState: () => mockRealtimeState ?? 'open',
+  rearmRealtime: () => mockRearmRealtime(),
   subscribeRealtime: jest.fn(() => () => {}),
   subscribeRealtimeOpen: (listener: () => void) => {
     mockRealtimeOpenListener = listener;
@@ -55,6 +60,7 @@ jest.mock('src/middleware/realtime', () => ({
   },
   subscribeRealtimeState: (listener: (state: string) => void) => {
     mockRealtimeStateListener = listener;
+    mockRealtimeState = 'open';
     return () => {
       mockRealtimeStateListener = undefined;
     };
@@ -102,6 +108,8 @@ const queueStatuses = (
 };
 
 beforeEach(() => {
+  mockRearmRealtime.mockReset();
+  mockRearmRealtime.mockReturnValue(false);
   // Unspecified task detail routes are unavailable, without transport retries.
   fetchMock.catch(404);
   mockedIsFeatureEnabled.mockImplementation(
@@ -855,6 +863,102 @@ test('WS mode: an unhealthy socket settles pending waiters with a bounded error'
 
   await expect(promise).rejects.toThrow('Realtime connection unavailable');
   expect(refetch).not.toHaveBeenCalled();
+});
+
+test('WS mode: an unauthorized socket hands pending waiters to polling', async () => {
+  // The registration catch-up sees no change; the poll then sees the success.
+  queueStatuses({ 'task-1': { status: 'success' } });
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 2 }]);
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+  expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)).toHaveLength(1);
+
+  // The ticket endpoint refused the session: no socket will deliver this, but
+  // the task statuses are still readable through the REST API.
+  mockRealtimeState = 'unauthorized';
+  mockRealtimeStateListener?.('unauthorized');
+
+  expect(await promise).toEqual([{ rows: 2 }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
+  mockRealtimeState = 'open';
+});
+
+test('WS mode: a waiter registered while the socket is unhealthy settles immediately', async () => {
+  queueStatuses();
+  asyncEvent.init(wsConfig);
+  mockRealtimeState = 'unhealthy';
+
+  const refetch = jest.fn();
+  await expect(
+    asyncEvent.waitForAsyncData({ task_ids: ['task-1'] }, refetch),
+  ).rejects.toThrow('Realtime connection unavailable');
+  expect(refetch).not.toHaveBeenCalled();
+  expect(mockRearmRealtime).not.toHaveBeenCalled();
+  mockRealtimeState = 'open';
+});
+
+test('WS mode: a waiter registered while unauthorized is tracked by polling, once, if the socket opens', async () => {
+  queueStatuses({}, { 'task-1': { status: 'success' } });
+  asyncEvent.init(wsConfig);
+  mockRealtimeState = 'unauthorized';
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 3 }]);
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+  // A refused session is offered a re-arm (declined here), then polls.
+  expect(mockRearmRealtime).toHaveBeenCalledTimes(1);
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+  expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)).toHaveLength(1);
+
+  // A later re-arm succeeds and the socket delivers the completion too: the
+  // waiter settles once, whichever transport reports it first.
+  mockRealtimeState = 'open';
+  mockRealtimeOpenListener?.();
+  asyncEvent.handleTaskStatus({ task_id: 'task-1', status: 'success' });
+
+  expect(await promise).toEqual([{ rows: 3 }]);
+  await new Promise(resolve => {
+    setTimeout(resolve, 100);
+  });
+  expect(refetch).toHaveBeenCalledTimes(1);
+});
+
+test('WS mode: a waiter registered while unauthorized re-arms the socket and settles on its catch-up', async () => {
+  queueStatuses({ 'task-1': { status: 'success' } });
+  asyncEvent.init(wsConfig);
+  mockRealtimeState = 'unauthorized';
+  mockRearmRealtime.mockImplementation(() => {
+    mockRealtimeState = 'connecting';
+    return true;
+  });
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 5 }]);
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+
+  // The re-armed socket opens and its reconnect catch-up settles the waiter.
+  expect(mockRearmRealtime).toHaveBeenCalledTimes(1);
+  mockRealtimeOpenListener?.();
+
+  expect(await promise).toEqual([{ rows: 5 }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
+  mockRealtimeState = 'open';
 });
 
 test('WS mode: coalesces many same-tick registrations into one catch-up', async () => {

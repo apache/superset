@@ -400,7 +400,11 @@ export default function DatasourceControl({
     label: t('Swap %s', datasetLabelLower()),
   });
 
-  if (!isMissingDatasource && canAccessSqlLab) {
+  if (
+    !isMissingDatasource &&
+    canAccessSqlLab &&
+    datasource.type !== DatasourceType.SemanticView
+  ) {
     defaultDatasourceMenuItems.push({
       key: VIEW_IN_SQL_LAB,
       label: (

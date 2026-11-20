@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { isEqual, sortBy, uniq } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -81,6 +81,7 @@ export interface ModalSaveLogicParams {
 }
 
 export interface ModalSaveLogic {
+  isSaving: boolean;
   handleSave: () => Promise<void>;
   handleErroredItems: () => void;
   getItemTitle: (id: string) => string;
@@ -229,7 +230,7 @@ export function useModalSaveLogic({
     }
   }, [form, filterState, customizationState, chartCustomizationIds, filterIds]);
 
-  const handleSave = useCallback(async () => {
+  const saveChanges = useCallback(async () => {
     if (timeRangeDefaultsCheck) {
       const messages = await timeRangeDefaultsCheck;
       const blocked = Object.keys(messages).filter(
@@ -362,7 +363,13 @@ export function useModalSaveLogic({
       }
 
       if (saveChanges.filterChanges || saveChanges.customizationChanges) {
-        await onSave(saveChanges);
+        try {
+          await onSave(saveChanges);
+        } catch (error) {
+          // The save reported its own error. Leave the pending changes and the
+          // unsaved items in place so the modal still holds the user's work.
+          return;
+        }
         resetForm(true);
       }
     } else {
@@ -388,6 +395,20 @@ export function useModalSaveLogic({
     timeRangeDefaultsCheck,
     filterState,
   ]);
+
+  const [isSaving, setIsSaving] = useState(false);
+  const savingRef = useRef(false);
+  const handleSave = useCallback(async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setIsSaving(true);
+    try {
+      await saveChanges();
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
+    }
+  }, [saveChanges]);
 
   const hasUnsavedChanges = useMemo(() => {
     const changed = form.getFieldValue('changed');
@@ -445,6 +466,7 @@ export function useModalSaveLogic({
   ]);
 
   return {
+    isSaving,
     handleSave,
     handleErroredItems,
     getItemTitle,

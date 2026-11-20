@@ -791,3 +791,23 @@ test('a dataset save or switch reads the time range limits again, after the new 
     ]);
   });
 });
+
+test.each(['semantic_view', 'table', 'query'])(
+  'datasource SQL Lab action respects datasource %s',
+  async type => {
+    const props = createProps({
+      value: `25__${type}`,
+      datasource: { ...mockDatasource, type },
+    });
+    render(<DatasourceControl {...props} />, { useRouter: true });
+    await userEvent.click(await screen.findByTestId('datasource-menu-trigger'));
+    if (type !== 'query') {
+      expect(await screen.findByText('Swap dataset')).toBeInTheDocument();
+    }
+    if (type === 'semantic_view') {
+      expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
+    } else {
+      expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
+    }
+  },
+);

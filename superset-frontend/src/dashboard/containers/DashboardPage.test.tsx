@@ -725,47 +725,61 @@ test('does not overwrite filterState when modern native_filters URL format is us
   ).toBeUndefined();
 });
 
-test('renders a not-found state instead of throwing when the dashboard 404s', async () => {
-  mockUseDashboard.mockReturnValue({
-    result: null,
-    error: new SupersetApiError({ status: 404, message: 'Not found' }),
-  });
-  mockUseDashboardCharts.mockReturnValue({
-    result: null,
-    error: new SupersetApiError({ status: 404, message: 'Not found' }),
-  });
-  mockUseDashboardDatasets.mockReturnValue({
-    result: null,
-    error: new SupersetApiError({ status: 404, message: 'Not found' }),
-    status: 'error',
-  });
+test.each([
+  { status: 404, title: 'This dashboard does not exist' },
+  { status: 403, title: 'Forbidden' },
+])(
+  'renders a distinct dashboard error state for status $status',
+  async ({ status, title }) => {
+    mockUseDashboard.mockReturnValue({
+      result: null,
+      error: new SupersetApiError({ status, message: title }),
+    });
+    mockUseDashboardCharts.mockReturnValue({
+      result: null,
+      error: new SupersetApiError({ status, message: title }),
+    });
+    mockUseDashboardDatasets.mockReturnValue({
+      result: null,
+      error: new SupersetApiError({ status, message: title }),
+      status: 'error',
+    });
 
-  render(
-    <Suspense fallback="loading">
-      <DashboardPage idOrSlug="404" />
-    </Suspense>,
-    {
-      useRedux: true,
-      useRouter: true,
-      initialState: {
-        dashboardInfo: {},
-        dashboardState: { sliceIds: [] },
-        nativeFilters: { filters: {} },
-        dataMask: {},
+    render(
+      <Suspense fallback="loading">
+        <DashboardPage idOrSlug="404" />
+      </Suspense>,
+      {
+        useRedux: true,
+        useRouter: true,
+        initialState: {
+          dashboardInfo: {},
+          dashboardState: { sliceIds: [] },
+          nativeFilters: { filters: {} },
+          dataMask: {},
+        },
       },
-    },
-  );
+    );
 
-  expect(
-    await screen.findByText('This dashboard does not exist'),
-  ).toBeInTheDocument();
-  expect(screen.queryByTestId('dashboard-builder')).not.toBeInTheDocument();
+    expect(await screen.findByText(title)).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        status === 403 ? 'This dashboard does not exist' : 'Forbidden',
+      ),
+    ).not.toBeInTheDocument();
+    if (status === 403) {
+      expect(
+        screen.getByText("You don't have access to this dashboard."),
+      ).toBeInTheDocument();
+    }
+    expect(screen.queryByTestId('dashboard-builder')).not.toBeInTheDocument();
 
-  await userEvent.click(
-    screen.getByRole('button', { name: 'See all dashboards' }),
-  );
-  expect(window.location.pathname).toBe('/dashboard/list/');
-});
+    await userEvent.click(
+      screen.getByRole('button', { name: 'See all dashboards' }),
+    );
+    expect(window.location.pathname).toBe('/dashboard/list/');
+  },
+);
 
 test('clears undo history after hydrating the dashboard', async () => {
   render(

@@ -247,7 +247,7 @@ describe('dashboardState actions', () => {
       );
     });
 
-    test('failed post-save dataset fetch settles the snapshot as unproven', async () => {
+    test('failed post-save dataset fetch settles with no proven columns', async () => {
       const { getState, dispatch } = setup();
       putStub.mockResolvedValue({
         json: {
@@ -276,7 +276,7 @@ describe('dashboardState actions', () => {
       ).toEqual(
         expect.objectContaining({
           dashboardId: 1,
-          datasets: null,
+          datasets: [],
           isRefreshStart: false,
         }),
       );

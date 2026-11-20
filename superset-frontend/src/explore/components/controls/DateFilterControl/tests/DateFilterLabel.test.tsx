@@ -93,7 +93,10 @@ const defaultProps = {
 
 beforeEach(() => {
   mockedFetchTimeRange.mockReset();
-  mockedFetchTimeRange.mockResolvedValue({ value: FIELD_TOOLTIP });
+  mockedFetchTimeRange.mockResolvedValue({
+    value: FIELD_TOOLTIP,
+    isEmpty: false,
+  });
   mockPopoverProps.length = 0;
 });
 
@@ -226,8 +229,11 @@ test('applies a configured displayFormat to the evaluated range but leaves the h
   mockedFetchTimeRange.mockImplementation(
     async (_value, _columnPlaceholder, _shifts, dateFormat) =>
       dateFormat
-        ? { value: `2024-01-01 ≤ col < 2024-01-08 (${dateFormat})` }
-        : { value: FIELD_TOOLTIP },
+        ? {
+            value: `2024-01-01 ≤ col < 2024-01-08 (${dateFormat})`,
+            isEmpty: false,
+          }
+        : { value: FIELD_TOOLTIP, isEmpty: false },
   );
 
   render(
@@ -256,7 +262,9 @@ test('regression: Apply during a pending debounced draft fetch must still update
   // its own request-tracking after Apply's fetch started.
   jest.useFakeTimers({ advanceTimers: true });
 
-  const pendingResolvers: Array<(result: { value: string }) => void> = [];
+  const pendingResolvers: Array<
+    (result: { value: string; isEmpty: boolean }) => void
+  > = [];
   mockedFetchTimeRange.mockImplementation(
     () =>
       new Promise(resolve => {
@@ -275,7 +283,7 @@ test('regression: Apply during a pending debounced draft fetch must still update
   // enabled before we start the actual scenario.
   await act(async () => {
     pendingResolvers.forEach(resolve =>
-      resolve({ value: 'evaluated: Last week' }),
+      resolve({ value: 'evaluated: Last week', isEmpty: false }),
     );
   });
 
@@ -320,7 +328,10 @@ test('regression: Apply during a pending debounced draft fetch must still update
 
   // effect 1's (older, Apply-triggered) fetch finally resolves
   await act(async () => {
-    pendingResolvers[applyRequestIndex]({ value: 'evaluated: Last month' });
+    pendingResolvers[applyRequestIndex]({
+      value: 'evaluated: Last month',
+      isEmpty: false,
+    });
   });
 
   // the pill must reflect the applied selection, not the stale pre-Apply one
@@ -331,6 +342,7 @@ test('regression: Apply during a pending debounced draft fetch must still update
   await act(async () => {
     pendingResolvers[staleDraftRequestIndex]({
       value: 'evaluated: Last month',
+      isEmpty: false,
     });
   });
 });
@@ -501,7 +513,7 @@ test('an invalid Advanced expression shows the error and disables Apply', async 
   mockedFetchTimeRange.mockImplementation(async value =>
     value.includes('bogus')
       ? { error: INVALID_EXPRESSION_ERROR }
-      : { value: FIELD_TOOLTIP },
+      : { value: FIELD_TOOLTIP, isEmpty: false },
   );
   const onChange = jest.fn();
   render(setup({ ...defaultProps, onChange, value: 'Last week' }));
@@ -525,7 +537,7 @@ test('correcting an invalid Advanced expression clears the error and re-enables 
   mockedFetchTimeRange.mockImplementation(async value =>
     value.includes('bogus')
       ? { error: INVALID_EXPRESSION_ERROR }
-      : { value: FIELD_TOOLTIP },
+      : { value: FIELD_TOOLTIP, isEmpty: false },
   );
   render(setup({ ...defaultProps, value: 'Last week' }));
   await userEvent.click(screen.getByText('Last week'));
@@ -546,6 +558,81 @@ test('correcting an invalid Advanced expression clears the error and re-enables 
     },
     { timeout: 3000 },
   );
+});
+
+const EMPTY_TIME_RANGE = '2024-01-01 ≤ col < 2024-01-01';
+const EMPTY_TIME_RANGE_WARNING =
+  'This time range is empty. Choose an end time later than the start time.';
+
+test('warns about an empty evaluated range without preventing Apply', async () => {
+  mockedFetchTimeRange.mockResolvedValue({
+    value: EMPTY_TIME_RANGE,
+    isEmpty: true,
+  });
+  const onChange = jest.fn();
+  render(setup({ ...defaultProps, onChange, value: 'today : today' }));
+
+  await userEvent.click(screen.getByTestId(DateFilterTestKey.PopoverOverlay));
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    EMPTY_TIME_RANGE_WARNING,
+  );
+  const applyButton = screen.getByTestId(DateFilterTestKey.ApplyButton);
+  expect(applyButton).toBeEnabled();
+  await userEvent.click(applyButton);
+  expect(onChange).toHaveBeenCalledWith('today : today');
+});
+
+test('clears the empty range warning after the end time is corrected', async () => {
+  mockedFetchTimeRange.mockImplementation(async value =>
+    value === 'today : today'
+      ? { value: EMPTY_TIME_RANGE, isEmpty: true }
+      : { value: FIELD_TOOLTIP, isEmpty: false },
+  );
+  const onChange = jest.fn();
+  render(setup({ ...defaultProps, onChange, value: 'today : today' }));
+  await userEvent.click(screen.getByTestId(DateFilterTestKey.PopoverOverlay));
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    EMPTY_TIME_RANGE_WARNING,
+  );
+
+  await selectOption('Advanced', RANGE_TYPE_LABEL);
+  fireEvent.change(screen.getAllByRole('textbox')[1], {
+    target: { value: 'tomorrow' },
+  });
+
+  await waitFor(
+    () => {
+      expect(mockedFetchTimeRange).toHaveBeenCalledWith(
+        'today : tomorrow',
+        'col',
+        undefined,
+        undefined,
+      );
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+  await userEvent.click(screen.getByTestId(DateFilterTestKey.ApplyButton));
+  expect(onChange).toHaveBeenCalledWith('today : tomorrow');
+});
+
+test('clears the empty range warning when No filter is selected', async () => {
+  mockedFetchTimeRange.mockResolvedValue({
+    value: EMPTY_TIME_RANGE,
+    isEmpty: true,
+  });
+  render(setup({ ...defaultProps, value: 'today : today' }));
+  await userEvent.click(screen.getByTestId(DateFilterTestKey.PopoverOverlay));
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    EMPTY_TIME_RANGE_WARNING,
+  );
+
+  await selectOption(NO_TIME_RANGE, RANGE_TYPE_LABEL);
+
+  await waitFor(() => {
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });
 
 test('Cancel restores the frame guessed from the saved value', async () => {
@@ -1510,7 +1597,10 @@ test('no hint outside a dashboard or with limits off', async () => {
 });
 
 test('limits off on a dashboard keep the default picker', async () => {
-  mockedFetchTimeRange.mockResolvedValue({ value: '2023-01-01 ≤ col < ∞' });
+  mockedFetchTimeRange.mockResolvedValue({
+    value: '2023-01-01 ≤ col < ∞',
+    isEmpty: false,
+  });
   renderPicker('2023-01-01 : ', {
     levels: [{ source: 'global', policy: policy() }],
     dashboardId: 7,

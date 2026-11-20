@@ -1953,6 +1953,10 @@ msgstr "サマリー行に使用する集計方法です。デフォルトでは
 msgid "Alert"
 msgstr "アラート"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "アラート「%(alertName)s」が正常に実行されました"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "アラート発生(猶予期間中)"
 
@@ -6923,6 +6927,9 @@ msgstr "動的セクションラベル"
 msgid "Dynamic group by"
 msgstr "動的グループ化"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "動的セクションの説明"
 
@@ -8151,6 +8158,14 @@ msgstr "項目へのタグ付けに失敗しました"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "%(alertType)s 「%(alertName)s」のトリガーに失敗しました：%(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "アラート「%(alertName)s」のトリガーに失敗しました：%(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "レポート「%(alertName)s」のトリガーに失敗しました：%(error)s"
+
 msgid "Failed to update report"
 msgstr "レポートの更新に失敗しました"
 
@@ -8938,6 +8953,14 @@ msgstr "線を非表示"
 msgid "Hide chart description"
 msgstr "チャートの説明を非表示"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "レイヤーを非表示"
 
@@ -9542,9 +9565,10 @@ msgstr "無効な状態です。"
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "無効なタブID: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "カラム %(column)s の時間フィルタの値が無効です"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -13436,6 +13460,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "レポート"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "レポート「%(alertName)s」が正常に実行されました"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

@@ -900,7 +900,10 @@ class BaseReportState:
             security_manager.raise_for_access(dashboard=dashboard)
         except SupersetSecurityException as ex:
             raise ReportScheduleExecutorAccessDeniedError(
-                "dashboard", user.username, ex.error.message
+                "dashboard",
+                user.username,
+                ex.error.message,
+                draft=dashboard.published is False,
             ) from ex
         # ``raise_for_access`` does not consult ``EXTRA_ACCESS_QUERY_EXCLUSIONS``
         # but the permalink command's dashboard lookup does, and answers with a

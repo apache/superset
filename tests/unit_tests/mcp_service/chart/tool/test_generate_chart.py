@@ -35,6 +35,7 @@ from superset.mcp_service.chart.schemas import (
     GaugeChartConfig,
     GenerateChartRequest,
     LegendConfig,
+    PieChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -707,6 +708,7 @@ async def _generate_saved_chart(
     config: Any = None,
     chart_name: str | None = None,
     validate: Any = None,
+    store_generated_name: bool = False,
 ) -> tuple[Any, _DetachableSlice, Mock]:
     """Run generate_chart(save_chart=True) with a chart that detaches on commit.
 
@@ -742,7 +744,7 @@ async def _generate_saved_chart(
 
     def create(payload: dict[str, Any]) -> Mock:
         """Emulate storing the name passed to the create command."""
-        if chart_name is not None:
+        if chart_name is not None or store_generated_name:
             chart._values["slice_name"] = payload["slice_name"]
         return command_instance
 
@@ -1298,3 +1300,20 @@ async def test_generate_chart_returns_time_range_limit_error() -> None:
     assert result.error.error_type == "TIME_RANGE_LIMIT_ERROR"
     assert result.error.message == message
     mock_command.return_value.run.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_saved_pie_default_name_metric_before_dimension() -> None:
+    """Saving without an explicit name passes the metric-first name to storage."""
+    result, _, create = await _generate_saved_chart(
+        refetch=Mock(side_effect=SQLAlchemyError("use captured stored scalars")),
+        config=PieChartConfig(
+            dimension=ColumnRef(name="region"),
+            metric=ColumnRef(name="total_revenue", saved_metric=True),
+        ),
+        store_generated_name=True,
+    )
+    assert result.success is True
+    assert create.call_args.args[0]["slice_name"] == "total_revenue by region"
+    assert result.chart.slice_name == "total_revenue by region"
+    assert result.accessibility.alt_text == "Chart showing total_revenue by region"

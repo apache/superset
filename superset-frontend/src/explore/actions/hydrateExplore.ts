@@ -82,6 +82,7 @@ function isNeutralNewChartEntry([key, value]: [string, unknown]): boolean {
         'viz_type',
         'slice_id',
         'form_data_key',
+        'dashboard_id',
       ].includes(param) && typeof identity === 'string',
   );
 }
@@ -119,12 +120,12 @@ export const hydrateExplore =
       primarySliceNameSource?.slice_name ?? fallbackSliceNameSource?.slice_name;
     // Only identities and empty filter containers are free of selections.
     // Stamp before defaults, controls and chart query snapshots are constructed.
+    // The replaced state's stash is discarded by HYDRATE_EXPLORE, so it is ignored.
     if (
       !initialSlice &&
       !sliceId &&
       dataset.type === DatasourceType.SemanticView &&
       dataset.semantic_selection_version &&
-      Object.keys(explore.hiddenFormData ?? {}).length === 0 &&
       Object.entries(initialFormData).every(isNeutralNewChartEntry)
     ) {
       initialFormData.semantic_selection_version =
