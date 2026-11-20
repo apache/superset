@@ -1373,11 +1373,59 @@ def _fallback_export_value(value: Any) -> Any:
     return csv.format_decimal(value)
 
 
+def _index_by_label(
+    by_name: dict[str, Any], label_of: Callable[[str], str]
+) -> dict[str, Any]:
+    """Index per-column export settings by the label a column carries in ``df``.
+
+    Two metrics renamed to one verbose label would otherwise overwrite each
+    other here, so a label reached from names carrying different settings is
+    left out: it cannot say which column it means, and those columns resolve
+    through their source names instead (see ``_lookup_setting``).
+    """
+    indexed: dict[str, Any] = {}
+    ambiguous: set[str] = set()
+    for name, value in by_name.items():
+        label = label_of(name)
+        if label in indexed and indexed[label] != value:
+            ambiguous.add(label)
+        indexed[label] = value
+    return {label: value for label, value in indexed.items() if label not in ambiguous}
+
+
+def _source_names(
+    df: pd.DataFrame, source_columns: Optional[list[str]]
+) -> list[Optional[str]]:
+    """Return the pre-rename name of each column, or ``None`` when unknown."""
+    if source_columns is None or len(source_columns) != len(df.columns):
+        return [None] * len(df.columns)
+    return list(source_columns)
+
+
+def _lookup_setting(
+    by_name: dict[str, Any],
+    by_label: dict[str, Any],
+    source_name: Optional[str],
+    label: Any,
+) -> Any:
+    """Resolve a per-column setting by source name first, then by label.
+
+    The source name is unique per position even when two metrics share a
+    verbose label, so it is what keeps their formats apart.
+    """
+    if source_name is not None and source_name in by_name:
+        return by_name[source_name]
+    return by_label.get(label)
+
+
 def apply_export_number_formats(
     df: pd.DataFrame,
     coltypes: list[GenericDataType],
     form_data: dict[str, Any],
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+    source_columns: Optional[list[str]] = None,
+    keep_unformatted_numeric: bool = False,
+    formatted_positions: Optional[set[int]] = None,
 ) -> pd.DataFrame:
     """Format numeric columns as display text for a chart-data export.
 
@@ -1391,6 +1439,18 @@ def apply_export_number_formats(
     NaN and infinity are left to the existing helpers and pass through
     unchanged. The passed frame is mutated in place and returned; the helper
     runs no query and performs no I/O.
+
+    ``source_columns``, when given, holds the column names as the query returned
+    them (before the verbose rename), aligned with ``df.columns``. Formats are
+    then resolved per position from that name, so two metrics that share a
+    verbose name still get their own format. Without it, lookups fall back to
+    the label in ``df``.
+
+    ``keep_unformatted_numeric`` skips the fixed-point fallback, so a numeric
+    column with nothing configured keeps its numbers (the XLSX writer then
+    stores real numeric cells Excel can sum and chart). The position of every
+    column rendered to text is added to ``formatted_positions`` when a set is
+    passed.
     """
     saved_formats, verbose_map = get_datasource_column_formats(datasource)
     saved_currency_formats, _ = get_datasource_currency_formats(datasource)
@@ -1402,13 +1462,11 @@ def apply_export_number_formats(
 
     # Index the per-column overrides by the label present in ``df`` so the
     # lookups line up with the (possibly verbose-renamed) frame columns.
-    number_format_by_label = {
-        label_of(name): fmt for name, fmt in saved_formats.items()
-    }
-    currency_by_label = {
-        label_of(name): currency for name, currency in saved_currency_formats.items()
-    }
-    config_by_label = {label_of(name): config for name, config in column_config.items()}
+    number_format_by_label = _index_by_label(saved_formats, label_of)
+    currency_by_label = _index_by_label(saved_currency_formats, label_of)
+    config_by_label = _index_by_label(column_config, label_of)
+    source_names = _source_names(df, source_columns)
+    positions = formatted_positions if formatted_positions is not None else set()
 
     # Percent metric columns are emitted with a leading ``%`` and are not
     # verbose-renamed, so match them by that prefixed label; they default to
@@ -1451,29 +1509,36 @@ def apply_export_number_formats(
         else None
     )
 
-    numeric_columns = {
-        column
-        for column, coltype in zip(df.columns, coltypes, strict=True)
-        if coltype == GenericDataType.NUMERIC
-    }
-
-    for col_pos, column in enumerate(df.columns):
-        if column not in numeric_columns:
+    # Read by position so a numeric column is never confused with another
+    # column that happens to share its label.
+    for col_pos, (column, coltype) in enumerate(zip(df.columns, coltypes, strict=True)):
+        if coltype != GenericDataType.NUMERIC:
             continue
 
-        config = config_by_label.get(column) or {}
+        config = (
+            _lookup_setting(
+                column_config, config_by_label, source_names[col_pos], column
+            )
+            or {}
+        )
         configured_currency = config.get("currencyFormat") or {}
         # The small-number formatter is built from this object whether or not a
         # symbol survived in it, so an absent one has to stay distinguishable
         # from a cleared one.
         small_currency = config.get("currencyFormat")
-        number_format = config.get("d3NumberFormat") or number_format_by_label.get(
-            column
+        number_format = config.get("d3NumberFormat") or _lookup_setting(
+            saved_formats, number_format_by_label, source_names[col_pos], column
         )
         currency = (
             configured_currency
             if configured_currency.get("symbol")
-            else currency_by_label.get(column) or {}
+            else _lookup_setting(
+                saved_currency_formats,
+                currency_by_label,
+                source_names[col_pos],
+                column,
+            )
+            or {}
         )
         # A cleared Select leaves a blank string behind, which the browser
         # treats as unset; the AG Grid table ignores the small-number format.
@@ -1507,10 +1572,14 @@ def apply_export_number_formats(
                 small_d3_format=small_number_format,
                 small_currency=small_currency,
             )
+        elif keep_unformatted_numeric:
+            continue
         else:
             # Nothing configured: keep exact fixed-point text rather than a raw
             # float. Non-finite and non-numeric cells pass through untouched.
             df.isetitem(col_pos, df.iloc[:, col_pos].map(_fallback_export_value))
+
+        positions.add(col_pos)
 
     return df
 

@@ -918,12 +918,21 @@ class QueryContextProcessor:
                 is_feature_enabled("EXPORT_FORMATTED_NUMBERS")
                 and not skip_for_post_processing
             )
+            is_xlsx = self._query_context.result_format == ChartDataResultFormat.XLSX
+            # Positions of the numeric columns rendered to display text. XLSX
+            # keeps a numeric column with no configured format as numbers, so
+            # Excel can still sum and chart it; CSV is text either way and takes
+            # the fixed-point fallback for those columns.
+            formatted_positions: set[int] = set()
             if format_numeric_export:
                 apply_export_number_formats(
                     df,
                     coltypes,
                     form_data,
                     cast("BaseDatasource | Query | None", self._qc_datasource),
+                    source_columns=[str(column) for column in columns],
+                    keep_unformatted_numeric=is_xlsx,
+                    formatted_positions=formatted_positions,
                 )
 
             result = None
@@ -936,30 +945,26 @@ class QueryContextProcessor:
                 result = result.encode(
                     current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
                 )
-            elif self._query_context.result_format == ChartDataResultFormat.XLSX:
+            elif is_xlsx:
                 export_coltypes = coltypes
                 formatted_numeric_positions: set[int] | None = None
                 if format_numeric_export:
-                    # Every numeric column was rendered to display text above, so
-                    # treat them as strings here; otherwise apply_column_types
-                    # would coerce e.g. "3.50" back to the number 3.5 and drop
-                    # the configured decimals.
+                    # The columns rendered to display text above are strings
+                    # now; otherwise apply_column_types would coerce e.g. "3.50"
+                    # back to the number 3.5 and drop the configured decimals.
+                    # Numeric columns left unformatted stay numeric.
                     export_coltypes = [
                         GenericDataType.STRING
-                        if coltype == GenericDataType.NUMERIC
+                        if idx in formatted_positions
                         else coltype
-                        for coltype in coltypes
+                        for idx, coltype in enumerate(coltypes)
                     ]
                     # Those columns hold text rendered from numbers, so a leading
                     # ``-`` is a negative sign, not a formula: exempt them from
                     # Excel formula quoting (matching the CSV writer) so a value
                     # like "-3.50" is not escaped to the literal "'-3.50". Genuine
                     # formula prefixes there, and every other column, still quote.
-                    formatted_numeric_positions = {
-                        idx
-                        for idx, coltype in enumerate(coltypes[: len(df.columns)])
-                        if coltype == GenericDataType.NUMERIC
-                    }
+                    formatted_numeric_positions = formatted_positions
                 excel.apply_column_types(df, export_coltypes)
                 # Copy the config so adding the key below never mutates the
                 # shared ``EXCEL_EXPORT`` dict, and only pass

@@ -367,3 +367,100 @@ def test_duplicate_verbose_name_does_not_abort_currency_export() -> None:
     assert "1.50" in first
     assert second.startswith("$")
     assert "2.50" in second
+
+
+def test_metrics_sharing_a_verbose_name_keep_their_own_formats() -> None:
+    # Two metrics renamed to the same verbose label must not collapse into one
+    # format: each position resolves its format from its own source name.
+    df = pd.DataFrame([[1234.5, 0.25]], columns=["Total", "Total"])
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"revenue": ",.2f", "share": ".1%"},
+        "verbose_map": {"revenue": "Total", "share": "Total"},
+    }
+
+    result = apply_export_number_formats(
+        df,
+        [GenericDataType.NUMERIC, GenericDataType.NUMERIC],
+        {},
+        datasource,
+        source_columns=["revenue", "share"],
+    )
+
+    assert result.iloc[0].tolist() == ["1,234.50", "25.0%"]
+
+
+def test_column_config_resolves_per_position_for_shared_labels() -> None:
+    df = pd.DataFrame([[1.5, 2.5]], columns=["Total", "Total"])
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {"a": "Total", "b": "Total"}}
+    form_data = {
+        "column_config": {
+            "a": {"d3NumberFormat": ".2f"},
+            "b": {"d3NumberFormat": ".3f"},
+        }
+    }
+
+    result = apply_export_number_formats(
+        df,
+        [GenericDataType.NUMERIC, GenericDataType.NUMERIC],
+        form_data,
+        datasource,
+        source_columns=["a", "b"],
+    )
+
+    assert result.iloc[0].tolist() == ["1.50", "2.500"]
+
+
+def test_shared_label_without_source_names_gets_no_single_shared_format() -> None:
+    # Without the source names a shared label cannot be told apart, so neither
+    # column borrows the other's format; both take the plain fallback.
+    df = pd.DataFrame([[1.5, 2.5]], columns=["Total", "Total"])
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"a": ".3f", "b": ".1f"},
+        "verbose_map": {"a": "Total", "b": "Total"},
+    }
+
+    result = apply_export_number_formats(
+        df, [GenericDataType.NUMERIC, GenericDataType.NUMERIC], {}, datasource
+    )
+
+    assert result.iloc[0].tolist() == ["1.5", "2.5"]
+
+
+def test_keep_unformatted_numeric_leaves_unconfigured_columns_numeric() -> None:
+    df = pd.DataFrame({"amount": [1234.5], "count": [7.0]})
+    form_data = {"column_config": {"amount": {"d3NumberFormat": ",.2f"}}}
+    formatted: set[int] = set()
+
+    result = apply_export_number_formats(
+        df,
+        [GenericDataType.NUMERIC, GenericDataType.NUMERIC],
+        form_data,
+        None,
+        keep_unformatted_numeric=True,
+        formatted_positions=formatted,
+    )
+
+    assert result["amount"].tolist() == ["1,234.50"]
+    assert result["count"].tolist() == [7.0]
+    assert pd.api.types.is_float_dtype(result["count"])
+    assert formatted == {0}
+
+
+def test_formatted_positions_include_fallback_columns_by_default() -> None:
+    df = pd.DataFrame({"amount": [1234.5], "count": [7.0]})
+    form_data = {"column_config": {"amount": {"d3NumberFormat": ",.2f"}}}
+    formatted: set[int] = set()
+
+    result = apply_export_number_formats(
+        df,
+        [GenericDataType.NUMERIC, GenericDataType.NUMERIC],
+        form_data,
+        None,
+        formatted_positions=formatted,
+    )
+
+    assert result["count"].tolist() == ["7.0"]
+    assert formatted == {0, 1}

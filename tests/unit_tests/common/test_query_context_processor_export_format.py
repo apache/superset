@@ -534,13 +534,13 @@ def test_post_processed_export_skips_pre_pivot_formatting(app_context: None) -> 
 def test_post_processed_export_without_post_processor_is_formatted(
     app_context: None,
 ) -> None:
-    # A POST_PROCESSED export for a viz_type with no post-processor (e.g.
-    # ag-grid-table, as scheduled reports/alerts request) is returned unchanged
-    # by apply_client_processing, so get_data must still format it here.
+    # A POST_PROCESSED export for a viz_type with no post-processor (e.g. a
+    # bar chart, as scheduled reports/alerts request) is returned unchanged by
+    # apply_client_processing, so get_data must still format it here.
     processor = _make_processor(
         ChartDataResultFormat.CSV,
         {
-            "viz_type": "ag-grid-table",
+            "viz_type": "echarts_timeseries_bar",
             "column_config": {"amount": {"d3NumberFormat": ",.1f"}},
         },
         result_type=ChartDataResultType.POST_PROCESSED,
@@ -606,3 +606,44 @@ def test_xlsx_export_keeps_configured_decimals_as_text(app_context: None) -> Non
     value, data_type = _read_xlsx_raw_cell(result, row=2, col=1)
     assert value == "3.50"
     assert data_type == "s"
+
+
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_xlsx_export_keeps_unformatted_numeric_columns_as_numbers(
+    app_context: None,
+) -> None:
+    # Only a column that resolved a format becomes text. One with nothing
+    # configured keeps numeric cells, so sums and charts still work in Excel.
+    processor = _make_processor(
+        ChartDataResultFormat.XLSX,
+        {"column_config": {"amount": {"d3NumberFormat": ",.2f"}}},
+    )
+    df = pd.DataFrame({"amount": [1234.5], "count": [7]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC, GenericDataType.NUMERIC])
+
+    assert _read_xlsx_raw_cell(result, row=2, col=1) == ("1,234.50", "s")
+    assert _read_xlsx_raw_cell(result, row=2, col=2) == (7, "n")
+
+
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_csv_export_metrics_sharing_a_verbose_name_keep_their_formats(
+    app_context: None,
+) -> None:
+    # get_data renames both metrics to one verbose label; each still takes the
+    # format saved for its own metric rather than one shared between them.
+    processor = _make_processor(
+        ChartDataResultFormat.CSV,
+        {},
+        datasource_data={
+            "verbose_map": {"revenue": "Total", "share": "Total"},
+            "column_formats": {"revenue": ",.2f", "share": ".1%"},
+        },
+    )
+    df = pd.DataFrame({"revenue": [1234.5], "share": [0.25]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC, GenericDataType.NUMERIC])
+
+    lines = _csv_text(result).splitlines()
+    assert lines[0] == "Total,Total"
+    assert lines[1] == '"1,234.50",25.0%'
