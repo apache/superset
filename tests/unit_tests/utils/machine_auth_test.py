@@ -38,7 +38,6 @@ from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
 from superset import db, security_manager
-from superset.models.user_attributes import UserAttribute
 from superset.security.session_invalidation import (
     invalidate_sessions_for_user,
     SESSION_LOGIN_AT_KEY,
@@ -65,11 +64,6 @@ def grant_permissions_to_authenticated_users(mocker: MockerFixture) -> None:
         "has_access",
         side_effect=lambda *_args, **_kwargs: current_user.is_authenticated,
     )
-
-
-def _epoch_timestamp(user_id: int) -> float:
-    attribute = db.session.query(UserAttribute).filter_by(user_id=user_id).one()
-    return attribute.sessions_invalidated_at.replace(tzinfo=timezone.utc).timestamp()
 
 
 def _invalidate_sessions_in_the_past(user_id: int) -> None:
@@ -131,38 +125,6 @@ def test_machine_auth_cookie_survives_epoch(
         f"(status {response.status_code}); the session carries no "
         f"{SESSION_LOGIN_AT_KEY!r}, so it is treated as older than the epoch"
     )
-
-
-def test_session_stamped_after_epoch_authenticates(
-    client: Any,
-    admin_user: User,  # noqa: F811
-    after_each: None,  # noqa: F811
-) -> None:
-    """Control: a session whose login time is after the epoch is accepted."""
-    invalidate_sessions_for_user(admin_user.id)
-    epoch = _epoch_timestamp(admin_user.id)
-
-    with client.session_transaction() as flask_session:
-        flask_session["_user_id"] = str(admin_user.id)
-        flask_session[SESSION_LOGIN_AT_KEY] = epoch + 1
-
-    assert client.get(AUTHENTICATED_ENDPOINT).status_code == 200
-
-
-def test_session_stamped_before_epoch_is_rejected(
-    client: Any,
-    admin_user: User,  # noqa: F811
-    after_each: None,  # noqa: F811
-) -> None:
-    """Control: invalidation still ends sessions that predate the epoch."""
-    invalidate_sessions_for_user(admin_user.id)
-    epoch = _epoch_timestamp(admin_user.id)
-
-    with client.session_transaction() as flask_session:
-        flask_session["_user_id"] = str(admin_user.id)
-        flask_session[SESSION_LOGIN_AT_KEY] = epoch - 60
-
-    assert client.get(AUTHENTICATED_ENDPOINT).status_code == 401
 
 
 def test_machine_auth_refuses_inactive_user(

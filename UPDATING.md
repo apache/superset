@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Sessions minted by `MachineAuthProvider.get_auth_cookies` (CSV/XLSX report
+  fetches, PNG/PDF reports and thumbnails via `authenticate_browser_context`) now
+  record their login time, so they are no longer rejected for users with a session
+  invalidation epoch (for example after a password change or reset). A custom
+  `MACHINE_AUTH_PROVIDER_CLASS` or `WEBDRIVER_AUTH_FUNC` that mints its own session
+  with `login_user` must also call `stamp_login_time()` (from
+  `superset.security.session_invalidation`) after a successful `login_user()`;
+  otherwise these sessions are rejected: API fetches return 401, while browser
+  captures can redirect to login and fail.
+
 - Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
   the caller cannot view it, rather than treating an access-filtered dashboard
   as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
