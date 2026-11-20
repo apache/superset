@@ -66,4 +66,5 @@ def test_unsupported_chart_image_translates_validation_error() -> None:
         "Histogram is not yet supported on semantic views. "
         "Use a Bar or Table chart with an explicit count metric."
     )
+    assert str(error.value) == error.value.description
     assert isinstance(error.value.__cause__, QueryObjectValidationError)

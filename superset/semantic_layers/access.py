@@ -36,6 +36,14 @@ class SemanticLayersDisabledError(SupersetException):
     message: str = "Semantic layers are not enabled."
 
 
+class SemanticChartImageError(BadRequest):
+    """Expose the chart refusal unchanged through FAB's safe error handler."""
+
+    def __str__(self) -> str:
+        """Return the user message without Werkzeug's HTTP status prefix."""
+        return str(self.description)
+
+
 def is_semantic_layers_enabled() -> bool:
     """Evaluate the host's semantic-layer feature decision on every call."""
     from superset import feature_flag_manager
@@ -57,5 +65,5 @@ def is_semantic_image_unavailable(resource: "Slice | Dashboard") -> bool:
             validate_semantic_chart_type(chart.datasource_type, chart.viz_type)
         except QueryObjectValidationError as error:
             # Image APIs use FAB's safe decorator, which translates BadRequest.
-            raise BadRequest(error.message) from error
+            raise SemanticChartImageError(error.message) from error
     return False

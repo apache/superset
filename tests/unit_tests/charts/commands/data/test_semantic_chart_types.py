@@ -206,7 +206,8 @@ def test_malformed_semantic_chart_type_is_validation_error(viz_type: object) -> 
         ChartDataCommand(context).validate()
 
 
-def test_cached_image_refused_before_read(full_api_access: None) -> None:
+@pytest.mark.parametrize("surface", ["thumbnail", "screenshot", "cache_screenshot"])
+def test_cached_image_refused_before_read(full_api_access: None, surface: str) -> None:
     """Existing image bytes must not bypass the semantic visualization policy."""
     from superset.charts.api import ChartRestApi
 
@@ -229,9 +230,15 @@ def test_cached_image_refused_before_read(full_api_access: None) -> None:
         cached_image: Mock = screenshot.return_value.get_from_cache_key.return_value
         cached_image.should_trigger_task.return_value = False
         cached_image.get_image.return_value = BytesIO(b"cached-image")
-        response = api.thumbnail(1, chart.digest)
+        if surface == "cache_screenshot":
+            response = api.cache_screenshot(1)
+        else:
+            response = getattr(api, surface)(1, chart.digest)
     assert response.status_code == 400
-    assert "Histogram" in response.get_data(as_text=True)
+    assert response.get_json()["message"] == (
+        "Histogram is not yet supported on semantic views. "
+        "Use a Bar or Table chart with an explicit count metric."
+    )
     screenshot.assert_not_called()
 
 
