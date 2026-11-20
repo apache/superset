@@ -211,6 +211,21 @@ def test_annotation_cache_key_shares_across_same_access_scope() -> None:
     assert context_a == context_b
 
 
+def test_chart_backed_annotations_bind_viewer_identity(processor) -> None:
+    query = MagicMock(annotation_layers=[{"sourceType": "line", "value": 1}])
+    with (
+        patch.object(
+            processor, "_annotation_source_scope", return_value={"access": True}
+        ),
+        patch(
+            "superset.common.query_context_processor.get_user_id", side_effect=[1, 2]
+        ),
+    ):
+        assert processor._annotation_cache_context(
+            query
+        ) != processor._annotation_cache_context(query)
+
+
 def test_query_cache_key_does_not_bind_annotation_scope(processor) -> None:
     """The dataframe cache key must stay shared across viewers of the same
     chart, even when the query has annotation layers — only the separate
@@ -399,8 +414,8 @@ def test_annotation_source_scope_keys_on_result_type_prepared_query(
     mock_query_context = MagicMock()
     mock_query_context.result_type = ChartDataResultType.SAMPLES
     mock_query_context.queries = [saved_query]
-    mock_query_context.query_cache_key.side_effect = (
-        lambda query_object: f"metrics={query_object.metrics}"
+    mock_query_context.query_cache_key.side_effect = lambda query_object: (
+        f"metrics={query_object.metrics}"
     )
     mock_annotation_chart.get_query_context.return_value = mock_query_context
 
@@ -430,8 +445,8 @@ def test_annotation_source_scope_keys_on_query_level_samples_result_type(
     mock_query_context = MagicMock()
     mock_query_context.result_type = ChartDataResultType.FULL
     mock_query_context.queries = [saved_query]
-    mock_query_context.query_cache_key.side_effect = (
-        lambda query_object: f"metrics={query_object.metrics}"
+    mock_query_context.query_cache_key.side_effect = lambda query_object: (
+        f"metrics={query_object.metrics}"
     )
     mock_annotation_chart.get_query_context.return_value = mock_query_context
 
@@ -3095,7 +3110,10 @@ def test_get_df_payload_result_fetches_annotations_live_when_scope_unresolved() 
         patch.object(processor, "get_cache_timeout", return_value=3600),
     ):
         mock_cache_manager.get.return_value = mock_cache
-        result = processor.get_df_payload(query_obj, force_cached=True)
+        with pytest.raises(CacheLoadError):
+            processor.get_df_payload(query_obj, force_cached=True)
+        mock_live.assert_not_called()
+        result = processor.get_df_payload(query_obj, force_cached=False)
 
     mock_live.assert_called_once_with(query_obj)
     mock_data_cache_manager.data_cache.get.assert_not_called()
