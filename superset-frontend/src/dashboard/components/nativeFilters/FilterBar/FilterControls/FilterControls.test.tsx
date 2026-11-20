@@ -25,7 +25,10 @@ import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import {
   ChartCustomizationType,
   ChartCustomizationDivider,
+  ChartCustomization,
+  DatasourceType,
 } from '@superset-ui/core';
+import { ChartCustomizationPlugins } from 'src/constants';
 import { styled } from '@apache-superset/core/theme';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import FilterControls from './FilterControls';
@@ -52,6 +55,49 @@ const defaultProps = {
   onPendingCustomizationDataMaskChange: jest.fn(),
   chartCustomizationValues: [],
 };
+
+jest.mock('./GroupByFilterCard', () => () => (
+  <div data-test="dynamic-groupby-card" />
+));
+
+const dynamicGroupBy: ChartCustomization = {
+  id: 'CHART_CUSTOMIZATION-groupby',
+  name: 'Dynamic Group By',
+  type: ChartCustomizationType.ChartCustomization,
+  filterType: ChartCustomizationPlugins.DynamicGroupBy,
+  targets: [{ datasetId: 7, datasourceType: DatasourceType.Table }],
+  scope: { rootPath: [], excluded: [] },
+  controlValues: {},
+  defaultDataMask: {},
+};
+
+test('saved semantic-view Dynamic group by is absent from display controls', () => {
+  render(
+    <FilterControls
+      {...defaultProps}
+      chartCustomizationValues={[
+        {
+          ...dynamicGroupBy,
+          targets: [
+            { datasetId: 7, datasourceType: DatasourceType.SemanticView },
+          ],
+        },
+      ]}
+    />,
+  );
+  expect(screen.queryByTestId('dynamic-groupby-card')).not.toBeInTheDocument();
+  expect(screen.queryByText('Display controls')).not.toBeInTheDocument();
+});
+
+test('saved ordinary-dataset Dynamic group by remains visible', () => {
+  render(
+    <FilterControls
+      {...defaultProps}
+      chartCustomizationValues={[dynamicGroupBy]}
+    />,
+  );
+  expect(screen.getByTestId('dynamic-groupby-card')).toBeInTheDocument();
+});
 
 test('renders chart customization divider in vertical mode', () => {
   const divider: ChartCustomizationDivider = {

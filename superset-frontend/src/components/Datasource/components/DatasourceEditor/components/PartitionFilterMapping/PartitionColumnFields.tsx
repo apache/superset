@@ -126,20 +126,42 @@ export default function PartitionColumnFields({
   // with something that works, watch the row's own preview come back valid --
   // and the banner still said nothing would mirror, because this read a summary
   // computed when the editor opened.
+  //
+  // The same goes for the columns: the verdict is keyed on the expression
+  // alone, so re-pointing the partition column, or moving the mapping onto a
+  // column whose default is the same text, would otherwise inherit a pass
+  // that was about a different mapping.
+  const stored = datasource.partition_filter_mapping;
   const storedVerdictApplies =
-    liveTransform === datasource.partition_filter_mapping?.evaluated_transform;
+    liveTransform === stored?.evaluated_transform &&
+    mappedColumn === stored?.mapped_column &&
+    datasource.partition_column === stored?.partition_column;
+  // The engine's answer on the transform in the box: the mapped row's own
+  // preview when it has one, otherwise the stored verdict while it is still
+  // about this transform. `null` is nobody having asked -- never previewed,
+  // or a stored verdict that has expired -- which is not the same as working.
+  const verdict =
+    previewMirrors ??
+    (storedVerdictApplies
+      ? datasource.partition_filter_mapping?.evaluable
+      : null) ??
+    null;
   // The static checks are necessary, not sufficient: an unparseable expression
   // or a function the database does not have needs the engine to spot, and the
   // mapped column's row already asks it. Deferring to that answer where there
   // is one is what keeps this banner and that panel from contradicting each
-  // other.
+  // other -- and promising a mirror only on a `true` is what keeps it from
+  // claiming one for a transform nothing has checked.
+  const refusal = datasource.partition_filter_mapping?.safety_refusal;
+  const refusalApplies =
+    refusal?.mapped_column === mappedColumn &&
+    refusal?.partition_column === datasource.partition_column &&
+    refusal?.value_transform === liveTransform;
   const isActive =
+    !refusalApplies &&
     mappingIsActive(datasource, allColumns) &&
-    previewMirrors !== false &&
-    !(
-      storedVerdictApplies &&
-      datasource.partition_filter_mapping?.evaluable === false
-    );
+    verdict !== false;
+  const isConfirmed = isActive && verdict === true;
   const { partition_column: partitionColumn } = datasource;
 
   // `field` is what the issues carry it for: a message about the partition
@@ -254,9 +276,17 @@ export default function PartitionColumnFields({
                 </Typography.Text>
               )}
               <Typography.Text type="secondary">
-                {t(
-                  'Filters on this column are mirrored onto the partition column.',
-                )}
+                {isConfirmed
+                  ? t(
+                      'Filters on this column are mirrored onto the partition column.',
+                    )
+                  : isActive
+                    ? t(
+                        'Filters on this column are mapped onto the partition column, but mirroring has not been confirmed.',
+                      )
+                    : t(
+                        'Filters on this column are mapped onto the partition column, but are not mirrored.',
+                      )}
                 {differentColumnTarget && (
                   <>
                     {' '}
@@ -270,7 +300,27 @@ export default function PartitionColumnFields({
                   </>
                 )}
               </Typography.Text>
-              {isActive ? (
+              {isActive && !isConfirmed ? (
+                <Alert
+                  type="warning"
+                  showIcon
+                  data-test="partition-mapping-unconfirmed"
+                  message={
+                    <span>
+                      {t(
+                        'Partition pruning on %(mapped)s has not been confirmed. Preview its value transform to check it.',
+                        { mapped: mappedColumn },
+                      )}{' '}
+                      <Button
+                        buttonStyle="link"
+                        onClick={() => onNavigateToColumn(mappedColumn)}
+                      >
+                        {t('Check the value transform →')}
+                      </Button>
+                    </span>
+                  }
+                />
+              ) : isActive ? (
                 <Alert
                   type="info"
                   showIcon
@@ -306,15 +356,17 @@ export default function PartitionColumnFields({
                   type="warning"
                   showIcon
                   message={
-                    liveTransform
-                      ? t(
-                          'The value transform on %(mapped)s is not mirroring filters, so queries will scan every partition.',
-                          { mapped: mappedColumn },
-                        )
-                      : t(
-                          'No value transform is set on %(mapped)s, so nothing is mirrored yet and queries will scan every partition.',
-                          { mapped: mappedColumn },
-                        )
+                    refusalApplies
+                      ? refusal?.message
+                      : liveTransform
+                        ? t(
+                            'The value transform on %(mapped)s is not mirroring filters, so queries will scan every partition.',
+                            { mapped: mappedColumn },
+                          )
+                        : t(
+                            'No value transform is set on %(mapped)s, so nothing is mirrored yet and queries will scan every partition.',
+                            { mapped: mappedColumn },
+                          )
                   }
                 />
               )}
