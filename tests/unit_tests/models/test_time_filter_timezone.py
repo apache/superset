@@ -218,6 +218,42 @@ def test_get_time_filter_epoch_column_uses_utc_regardless_of_server_tz(
     assert str(expected_epoch) in str(clause)
 
 
+def test_get_time_filter_numeric_temporal_without_format_uses_epoch_millis(
+    app: Flask,
+) -> None:
+    """
+    A temporal integer with no ``python_date_format`` is stored as epoch
+    milliseconds. The bound has to be that integer: a timestamp literal is
+    not a valid bigint.
+    """
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    time_col = TableColumn(
+        column_name="start_time",
+        is_dttm=1,
+        type="LONGINTEGER",
+    )
+    table = SqlaTable(
+        table_name="project_management",
+        columns=[time_col],
+        main_dttm_col="start_time",
+        database=database,
+    )
+
+    with app.app_context():
+        clause = table.get_time_filter(
+            time_col=time_col,
+            start_dttm=datetime(2003, 10, 1),
+            end_dttm=datetime(2004, 1, 1),
+        )
+
+    sql = str(clause)
+    start_ms = int(datetime(2003, 10, 1, tzinfo=dt_timezone.utc).timestamp()) * 1000
+    end_ms = int(datetime(2004, 1, 1, tzinfo=dt_timezone.utc).timestamp()) * 1000
+    assert str(start_ms) in sql
+    assert str(end_ms) in sql
+    assert "2003-10-01" not in sql
+
+
 def _date_table(
     extra: str | None,
     sqlalchemy_uri: str = "sqlite://",
