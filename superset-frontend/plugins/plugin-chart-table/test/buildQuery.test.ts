@@ -268,6 +268,73 @@ test('preserves semantic reference when a filter overrides the chart grain', () 
   ]);
 });
 
+test('applies grain to every temporal dimension and keeps the first axis first', () => {
+  const grain = TimeGranularity.MONTH;
+  const customColumn: AdhocColumn = {
+    expressionType: 'SQL',
+    sqlExpression: 'year(created_at)',
+    label: 'created_year',
+  };
+  const query = buildQueryUncached({
+    ...basicFormData,
+    groupby: ['category', customColumn, 'EndDate', 'StartDate'],
+    metrics: ['count'],
+    time_grain_sqla: grain,
+    temporal_columns_lookup: { EndDate: true, StartDate: true },
+  }).queries[0];
+
+  expect(query.columns).toEqual([
+    {
+      timeGrain: grain,
+      columnType: 'BASE_AXIS',
+      sqlExpression: 'EndDate',
+      label: 'EndDate',
+      expressionType: 'SQL',
+      isColumnReference: true,
+    },
+    'category',
+    customColumn,
+    {
+      timeGrain: grain,
+      columnType: 'BASE_AXIS',
+      sqlExpression: 'StartDate',
+      label: 'StartDate',
+      expressionType: 'SQL',
+      isColumnReference: true,
+    },
+  ]);
+});
+
+test('applies dashboard grain override to every temporal dimension', () => {
+  const query = buildQueryUncached({
+    ...basicFormData,
+    groupby: ['StartDate', 'EndDate'],
+    metrics: ['count'],
+    time_grain_sqla: TimeGranularity.DAY,
+    extra_form_data: { time_grain_sqla: TimeGranularity.MONTH },
+    temporal_columns_lookup: { StartDate: true, EndDate: true },
+  }).queries[0];
+
+  expect(query.columns).toEqual([
+    {
+      timeGrain: TimeGranularity.MONTH,
+      columnType: 'BASE_AXIS',
+      sqlExpression: 'StartDate',
+      label: 'StartDate',
+      expressionType: 'SQL',
+      isColumnReference: true,
+    },
+    {
+      timeGrain: TimeGranularity.MONTH,
+      columnType: 'BASE_AXIS',
+      sqlExpression: 'EndDate',
+      label: 'EndDate',
+      expressionType: 'SQL',
+      isColumnReference: true,
+    },
+  ]);
+});
+
 test.each(['2__semantic_view', '11__table'])(
   'retains raw temporal columns without a grain for %s',
   datasource => {
@@ -445,6 +512,7 @@ test.each([TimeGranularity.DAY, TimeGranularity.MONTH])(
         sqlExpression: 'metric_time',
         label: 'metric_time',
         expressionType: 'SQL',
+        isColumnReference: true,
       },
     ]);
   },
@@ -581,6 +649,7 @@ describe('plugin-chart-table', () => {
         sqlExpression: 'col1',
         label: 'col1',
         expressionType: 'SQL',
+        isColumnReference: true,
       });
     });
     test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
@@ -597,6 +666,7 @@ describe('plugin-chart-table', () => {
         sqlExpression: 'col1',
         label: 'col1',
         expressionType: 'SQL',
+        isColumnReference: true,
       });
     });
     test('should retain percent-metric post-processing on the summary (show_totals) query', () => {
