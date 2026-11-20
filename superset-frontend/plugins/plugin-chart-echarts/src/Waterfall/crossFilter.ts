@@ -241,6 +241,21 @@ function dimensionFilter(
   return { col, op: 'IN', val: [toJsonSafeFilterValue(value)] };
 }
 
+/**
+ * `formattedVal` is the drill-menu label. Chart data rejects it: the filter
+ * schema only accepts col, op, val, grain and isExtra.
+ */
+function filterForChartData(
+  filter: QueryObjectFilterClause,
+): QueryObjectFilterClause {
+  if (!('formattedVal' in filter)) {
+    return filter;
+  }
+  const clause = { ...filter };
+  delete clause.formattedVal;
+  return clause;
+}
+
 function drillFilter(
   col: QueryFormColumn,
   value: DataRecordValue,
@@ -306,7 +321,7 @@ function crossFilterClause(
       context,
     );
     if (range) {
-      return range;
+      return filterForChartData(range);
     }
     if (
       !isPhysicalColumn(dimension.col) &&
@@ -314,15 +329,17 @@ function crossFilterClause(
       context.timeGrain &&
       isTemporalColumn(dimension.col, context.coltypeMapping)
     ) {
-      return drillFilter(
-        adhocBucketColumn(dimension.col, context.timeGrain),
-        adhocTemporalValue(
-          dimension.col,
-          dimension.value,
-          context.coltypeMapping,
+      return filterForChartData(
+        drillFilter(
+          adhocBucketColumn(dimension.col, context.timeGrain),
+          adhocTemporalValue(
+            dimension.col,
+            dimension.value,
+            context.coltypeMapping,
+          ),
+          formattedVal,
+          context.timeGrain,
         ),
-        formattedVal,
-        context.timeGrain,
       );
     }
   }

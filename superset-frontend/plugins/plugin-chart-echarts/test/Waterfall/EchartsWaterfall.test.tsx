@@ -332,7 +332,6 @@ test('a monthly temporal bar cross-filters the whole month', () => {
             col: 'order_date',
             op: 'TEMPORAL_RANGE',
             val: range,
-            formattedVal: expect.any(String),
           },
         ],
         time_range: range,
