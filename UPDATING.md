@@ -248,7 +248,8 @@ assists people when migrating to a new version.
   omits `auto_refresh_policy` keeps the stored policy; send
   `null` (or turn the policy off in Properties) to remove it. Disabling the flag
   restores ordinary refresh behavior and retains stored policies for re-enabling.
-  No migration is required.
+  While it is off, only the shape of a new or changed `auto_refresh_policy` is
+  checked. No migration is required.
 
 - Dashboard and chart `viewers` can no longer be added through the API or the MCP
   `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such

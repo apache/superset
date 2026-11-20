@@ -697,6 +697,10 @@ error envelope; invalid assets imports retain the existing error-status behavior
 Rejected writes do not persist metadata or successful policy-history changes.
 
 With `AUTO_REFRESH_POLICY` disabled, the editor, timers and selectors retain their
-ordinary behavior, policy validation/history are inactive, and the stored policy
-key is accepted and retained. Turning the flag back on reapplies the stored policy
+ordinary behavior and policy history is inactive. Writes check only the shape of a
+new or changed `auto_refresh_policy`, with the status and error fields above: an
+object with the switch and bounds described above, or `null`. Its bounds aren't
+checked against the standard intervals or each other, and `refresh_frequency` isn't checked
+against it. A stored policy is retained, and saves, copies and restores that leave
+it unchanged aren't checked. Turning the flag back on reapplies the stored policy
 and validates it on the next save. No database migration is required.
