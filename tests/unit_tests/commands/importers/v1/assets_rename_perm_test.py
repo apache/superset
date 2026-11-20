@@ -174,3 +174,133 @@ def test_import_renamed_database_resyncs_catalog_perms(
     assert not security_manager.find_permission_view_menu(
         "catalog_access", "[examples].[cat]"
     )
+
+
+@pytest.mark.parametrize("entry_point", ["import", "sync"])
+@pytest.mark.parametrize(
+    "permission,old_name,new_name,perm_field",
+    [
+        (
+            "schema_access",
+            "[examples].[cat].[main]",
+            "[examples_renamed].[cat].[main]",
+            "schema_perm",
+        ),
+        (
+            "catalog_access",
+            "[examples].[cat]",
+            "[examples_renamed].[cat]",
+            "catalog_perm",
+        ),
+    ],
+)
+def test_rename_collision_preserves_role_grants(
+    mocker: MockerFixture,
+    session: Session,
+    entry_point: str,
+    permission: str,
+    old_name: str,
+    new_name: str,
+    perm_field: str,
+) -> None:
+    """Merge grants on colliding permissions without dropping or duplicating grants."""
+    from superset import db, security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.database.sync_permissions import SyncPermissionsCommand
+    from superset.commands.database.utils import add_pvm
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Slice.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+    database = import_database(copy.deepcopy(databases_config[DATABASE_FILE]))
+    dataset = SqlaTable(
+        table_name="t1", catalog="cat", schema="main", database=database
+    )
+    db.session.add(dataset)
+    db.session.commit()
+    source = security_manager.find_permission_view_menu(permission, old_name)
+    destination = add_pvm(db.session, security_manager, permission, new_name)
+    assert source
+    assert destination
+    source_role = security_manager.role_model(name="source_viewer")
+    destination_role = security_manager.role_model(name="destination_viewer")
+    shared_role = security_manager.role_model(name="shared_viewer")
+    source_role.permissions = [source]
+    destination_role.permissions = [destination]
+    shared_role.permissions = [source, destination]
+    db.session.add_all([source_role, destination_role, shared_role])
+    db.session.commit()
+    destination_id = destination.id
+
+    if entry_point == "import":
+        config = copy.deepcopy(databases_config[DATABASE_FILE])
+        config["database_name"] = RENAMED_DATABASE_NAME
+        import_database(config, overwrite=True)
+    else:
+        database.database_name = RENAMED_DATABASE_NAME
+        db.session.flush()
+        command = SyncPermissionsCommand(
+            database.id, None, old_db_connection_name="examples", db_connection=database
+        )
+        command._rename_database_in_permissions("cat", ["main"])
+    db.session.commit()
+    db.session.expire_all()
+
+    assert getattr(dataset, perm_field) == new_name
+    destination = security_manager.find_permission_view_menu(permission, new_name)
+    assert destination
+    assert destination.id == destination_id
+    for role in (source_role, destination_role, shared_role):
+        assert [p.id for p in role.permissions] == [destination_id]
+    assert not security_manager.find_permission_view_menu(permission, old_name)
+    assert not security_manager.find_view_menu(old_name)
+
+
+@pytest.mark.parametrize("destination_has_permission", [True, False])
+def test_rename_permission_keeps_shared_view_menu(
+    session: Session, destination_has_permission: bool
+) -> None:
+    """Retire only the source PVM; another permission still owns its view menu."""
+    from superset import db, security_manager
+    from superset.commands.database.utils import (
+        add_pvm,
+        add_vm,
+        rename_permission_view_menu,
+    )
+    from superset.models.slice import Slice
+
+    Slice.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+    source = add_pvm(db.session, security_manager, "schema_access", "[old].[main]")
+    other = add_pvm(db.session, security_manager, "other_access", "[old].[main]")
+    add_vm(db.session, security_manager, "[new].[main]")
+    if destination_has_permission:
+        add_pvm(db.session, security_manager, "schema_access", "[new].[main]")
+    assert source
+    assert other
+    role = security_manager.role_model(name="viewer")
+    role.permissions = [source]
+    db.session.add(role)
+    db.session.commit()
+    other_id = other.id
+
+    rename_permission_view_menu(source, "[new].[main]")
+    db.session.commit()
+    db.session.expire_all()
+    destination = security_manager.find_permission_view_menu(
+        "schema_access", "[new].[main]"
+    )
+    assert destination
+    assert [p.id for p in role.permissions] == [destination.id]
+    assert not security_manager.find_permission_view_menu(
+        "schema_access", "[old].[main]"
+    )
+    other = security_manager.find_permission_view_menu("other_access", "[old].[main]")
+    assert other
+    assert other.id == other_id
+    # A second sync must not drop grants or delete the destination.
+    rename_permission_view_menu(destination, "[new].[main]")
+    rename_permission_view_menu(destination, None)
+    db.session.commit()
+    assert [p.id for p in role.permissions] == [destination.id]

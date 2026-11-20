@@ -393,6 +393,40 @@ def add_permissions(database: Database, *, commit: bool = True) -> None:
             continue
 
 
+def rename_permission_view_menu(pvm: PermissionView, new_name: str | None) -> None:
+    """Rename a PVM atomically, merging role grants if the destination exists."""
+    old_view_menu = pvm.view_menu
+    if not new_name or old_view_menu.name == new_name:
+        return
+
+    destination = security_manager.find_permission_view_menu(
+        pvm.permission.name, new_name
+    )
+    if destination:
+        # Use the role relationship so loaded collections agree with the database.
+        roles = (
+            db.session.query(security_manager.role_model)
+            .filter(security_manager.role_model.permissions.contains(pvm))
+            .all()
+        )
+        for role in roles:
+            if destination not in role.permissions:
+                role.permissions.append(destination)
+            role.permissions.remove(pvm)
+        db.session.delete(pvm)
+    else:
+        # Do not rename other permissions sharing this view menu.
+        pvm.view_menu = add_vm(db.session, security_manager, new_name)
+
+    db.session.flush()
+    if not (
+        db.session.query(security_manager.permissionview_model)
+        .filter_by(view_menu_id=old_view_menu.id)
+        .first()
+    ):
+        db.session.delete(old_view_menu)
+
+
 def rename_database_in_permissions(database: Database, old_database_name: str) -> None:
     """
     Carry the schema and catalog permissions of a renamed database to its new name.
@@ -423,9 +457,9 @@ def rename_database_in_permissions(database: Database, old_database_name: str) -
     view_menu_model = security_manager.viewmenu_model
     pv_model = security_manager.permissionview_model
     permission_model = security_manager.permission_model
-    view_menus = (
-        db.session.query(view_menu_model)
-        .join(pv_model, pv_model.view_menu_id == view_menu_model.id)
+    permissions = (
+        db.session.query(pv_model)
+        .join(view_menu_model, pv_model.view_menu_id == view_menu_model.id)
         .join(permission_model, pv_model.permission_id == permission_model.id)
         .filter(
             permission_model.name.in_(("catalog_access", "schema_access")),
@@ -433,11 +467,9 @@ def rename_database_in_permissions(database: Database, old_database_name: str) -
         )
         .all()
     )
-    for view_menu in view_menus:
-        new_name = new_prefix + view_menu.name[len(old_prefix) :]
-        # A permission already under the new name keeps its own grants.
-        if not security_manager.find_view_menu(new_name):
-            view_menu.name = new_name
+    for pvm in permissions:
+        new_name = new_prefix + pvm.view_menu.name[len(old_prefix) :]
+        rename_permission_view_menu(pvm, new_name)
 
     # A soft-deleted dataset must not keep the previous name either, or restoring
     # it would bring the stale permission strings back.
