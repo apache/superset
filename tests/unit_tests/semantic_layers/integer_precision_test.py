@@ -132,30 +132,21 @@ def test_chart_data_preserves_nullable_integer_precision(
         },
     )
 
+    if with_offset:
+        assert response.status_code == 400
+        assert "Time comparison is not yet supported" in response.get_data(as_text=True)
+        provider.get_table.assert_not_called()
+        return
     assert response.status_code == 200, response.get_data(as_text=True)
     expected: list[dict[str, str | int | None]] = [
         {"category": "A", "amount": str(value) if abs(value) > 2**53 - 1 else value},
         {"category": "B", "amount": None},
     ]
-    if with_offset:
-        if missing_prior_category:
-            expected[0]["amount__1 week ago"] = (
-                str(value) if abs(value) > 2**53 - 1 else value
-            )
-            expected[1]["amount__1 week ago"] = None
-        else:
-            expected[0]["amount__1 week ago"] = None
-            expected[1]["amount__1 week ago"] = (
-                str(-value) if abs(value) > 2**53 - 1 else -value
-            )
     assert response.get_json()["result"][0]["data"] == expected
-    assert provider.get_table.call_count == (2 if with_offset else 1)
+    assert provider.get_table.call_count == 1
     if abs(value) > 2**53 - 1:
         # Check exact quoted wire values, not a numpy float/int equality comparison.
         assert f'"{value}"' in response.get_data(as_text=True)
-        if with_offset:
-            offset_value: int = value if missing_prior_category else -value
-            assert f'"{offset_value}"' in response.get_data(as_text=True)
 
 
 @pytest.mark.parametrize(
@@ -272,6 +263,11 @@ def test_post_processing_receives_numeric_nullable_integer_metrics(
         },
     )
 
+    if time_offsets:
+        assert response.status_code == 400
+        assert "Time comparison is not yet supported" in response.get_data(as_text=True)
+        provider.get_table.assert_not_called()
+        return
     assert response.status_code == 200, response.get_data(as_text=True)
     data: list[dict[str, object]] = response.get_json()["result"][0]["data"]
     for column, values in expected.items():

@@ -63,6 +63,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
+from marshmallow import ValidationError
 from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
@@ -99,6 +100,7 @@ from superset.common.grouping_sets import (
 from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
+    get_since_until_from_temporal_filter,
     get_since_until_from_time_range,
 )
 from superset.connectors.sqla.partition_mapping import (
@@ -210,6 +212,7 @@ from superset.utils.rls import (
     RLSSchema,
     SearchPath,
 )
+from superset.utils.timing_metrics import timed
 
 
 class ValidationResultDict(TypedDict):
@@ -652,6 +655,21 @@ _UNRENDERABLE = object()
 _UNMIRRORABLE = UNMIRRORABLE
 _UNMIRRORABLE_OFFSET = UNMIRRORABLE_OFFSET
 _UNMIRRORABLE_ESCAPING = UNMIRRORABLE_ESCAPING
+
+
+def _is_temporal_column(col: Optional["TableColumn"]) -> bool:
+    """
+    Whether the engine compares ``col`` as a date or timestamp.
+
+    By generic type rather than the ``is_dttm`` flag alone, as
+    `ExploreMixin._engine_literal_resolution` reads it -- and not on a column
+    stored as text, which that flag can also mark. There the engine compares
+    the text with the text, so nothing is cast to an instant.
+    """
+    if col is None or not col.type or col.type_generic != GenericDataType.TEMPORAL:
+        return False
+    stored = col.db_engine_spec.get_column_spec(col.type, db_extra=col.db_extra)
+    return stored is None or stored.generic_type != GenericDataType.STRING
 
 
 def _instant_from_filter_value(value: Any) -> Optional[datetime]:
@@ -2884,7 +2902,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         datasource types (Query, SqlaTable, etc.).
         """
         qry_start_dttm = datetime.now()
-        query_str_ext = self.get_query_str_extended(query_obj)
+        with timed("datasource.query.sql_generation"):
+            query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
 
         self._raise_for_disallowed_sql(sql)
@@ -3347,22 +3366,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df = result.df
         if not df.empty:
             # Normalize datetime columns and metrics
-            df = self.normalize_df(
-                df,
-                query_object,
-                result.sql_shifted_temporal_labels,
-                keep_exact_integers=dataframe_utils.can_keep_exact_integers(
-                    query_object
-                ),
-            )
+            with timed("datasource.query.normalize"):
+                df = self.normalize_df(
+                    df,
+                    query_object,
+                    result.sql_shifted_temporal_labels,
+                    keep_exact_integers=dataframe_utils.can_keep_exact_integers(
+                        query_object
+                    ),
+                )
 
             # Process time offsets if requested
             if query_object.time_offsets:
                 # Process time offsets using the datasource's own method
                 # Note: caching is disabled here as we don't have query context
-                time_offsets = self.processing_time_offsets(
-                    df, query_object, cache_key_fn=None, cache_timeout_fn=None
-                )
+                with timed("datasource.query.time_offsets"):
+                    time_offsets = self.processing_time_offsets(
+                        df, query_object, cache_key_fn=None, cache_timeout_fn=None
+                    )
                 df = time_offsets["df"]
                 queries = time_offsets["queries"]
                 query += ";\n\n".join(queries)
@@ -3370,11 +3391,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Execute post-processing operations
             try:
-                df = query_object.exec_post_processing(df)
+                if query_object.post_processing:
+                    with timed("datasource.query.post_processing"):
+                        df = query_object.exec_post_processing(df)
+                else:
+                    df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
-            except (TypeError, pd.errors.DataError) as ex:
-                raise QueryObjectValidationError(str(ex)) from ex
 
         # Update result with processed data
         result.df = df
@@ -3415,7 +3438,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         cache_keys: list[str | None] = []
         offset_dfs: dict[str, pd.DataFrame] = {}
 
-        outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
+        try:
+            outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(
+                query_object
+            )
+        except (ValidationError, ValueError) as ex:
+            # The range comes from the last temporal filter, which is not
+            # necessarily the one the query context was built from and so is not
+            # necessarily one that has already been parsed and reported on.
+            raise QueryObjectValidationError(str(ex)) from ex
         if not outer_from_dttm or not outer_to_dttm:
             raise QueryObjectValidationError(
                 _(
@@ -3504,7 +3535,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     query_object_clone.granularity or x_axis_label
                 )
 
-            except ValueError as ex:
+            except (ValidationError, ValueError) as ex:
+                # Reversed bounds raise a bare ``ValueError``, while a range
+                # the parser cannot read raises ``TimeRangeParseFailError``, a
+                # marshmallow ``ValidationError``. The date-range branch is
+                # reachable with the second, since ``is_valid_date_range``
+                # splits the offset on ``:`` while the parser wants ``" : "``.
                 raise QueryObjectValidationError(str(ex)) from ex
 
             query_object_clone.time_offsets = []
@@ -3570,8 +3606,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             (
                                 new_outer_from_dttm,
                                 new_outer_to_dttm,
-                            ) = get_since_until_from_time_range(
+                            ) = get_since_until_from_temporal_filter(
                                 time_range=time_range,
+                                column=str(flt.get("col")),
                                 time_shift=offset,
                             )
                             flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
@@ -5847,21 +5884,27 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         run too, on the value as it arrived; a string this method *returns* is a
         fresh one, which is why `evaluate_transform` asks again.
 
-        Where the engine compares the whole instant, a string is returned
-        exactly as it arrived -- down to the type the probe binds and the cache
-        key it lands on, because every query that was already correct has to
-        stay byte-for-byte correct. A `datetime` is still converted, which it
-        has always needed: on a column stored as an epoch integer the transform
-        is a function of an integer, and a `datetime` is not the value the real
-        predicate compares.
+        On a temporal column a string is never probed as the text it arrived
+        as, even where the engine compares the whole instant. The engine casts
+        the text to the column's type before comparing, so the filter matches
+        the *instant* -- but ``CAST(:value AS TEXT)`` handed the text answers
+        in the author's spelling, not the column's. On Postgres
+        ``t == '2026-07-06T10:08:11'`` matches the row whose text key is
+        ``'2026-07-06 10:08:11'``, and ``d == '2026-01-08T00:00:00'`` on a
+        ``DATE`` column -- what drill-by sends at the "Original value" grain --
+        matches the key ``'2026-01-08'``; probed verbatim, both mirrored onto a
+        key no row holds. So the instant is probed, through
+        `_mirror_probe_value` like any other: a `datetime`, or the `date` itself
+        on a column holding only days. A string that is not ISO 8601 has no
+        instant to probe, and declines here too.
+
+        On any other column the string is the value the engine compares, and is
+        returned exactly as it arrived.
         """
         value = self._in_column_number_type(value, col)
         parsed = _instant_from_filter_value(value)
         if parsed is None:
-            if (
-                isinstance(value, str)
-                and self._column_literal_resolution(col) is not LiteralResolution.FULL
-            ):
+            if isinstance(value, str) and _is_temporal_column(col):
                 return _UNMIRRORABLE
             return value
 
@@ -5873,12 +5916,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if parsed.tzinfo is not None:
             return _UNMIRRORABLE_OFFSET
 
+        if isinstance(value, str) and not _is_temporal_column(col):
+            return value
+
         if self._engine_literal_resolution(parsed, col) is LiteralResolution.FULL:
-            return (
-                self._mirror_probe_value(parsed, col)
-                if isinstance(value, datetime)
-                else value
-            )
+            return self._mirror_probe_value(parsed, col)
 
         if operator in LOWER_BOUND_OPERATORS:
             instant = self._round_bound_outward(parsed, col, is_upper=False)
@@ -5889,8 +5931,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         else:
             instant = parsed
 
-        if instant == parsed and not isinstance(value, datetime):
-            return value
         return self._mirror_probe_value(instant, col)
 
     def _collect_partition_mirror_range(
@@ -7228,8 +7268,56 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # (inline dict or referenced by label), so it can be parenthesized
             # to guard operator precedence regardless of how it was referenced.
             is_adhoc_sqla_col = False
+            # Native type of a dataset column an adhoc filter column refers to,
+            # used to write temporal filter values as engine literals.
+            adhoc_native_type: str | None = None
+            axis_column = (
+                adhoc_columns_by_label.get(flt_col)
+                if flt_grain and isinstance(flt_col, str)
+                else None
+            )
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
+            elif (
+                axis_column
+                and axis_column.get("columnType") == "BASE_AXIS"
+                and axis_column.get("timeGrain") == flt_grain
+            ):
+                # A filter on the x-axis label with the axis grain selects a
+                # bucket of that axis. Compare against the axis column of this
+                # query, which carries any Time Column override, so the filter
+                # matches exactly the rows the axis groups into the bucket.
+                adhoc_filter_column = axis_column
+                sqla_col, adhoc_generic_type = self.adhoc_column_to_sqla(
+                    col=axis_column,
+                    template_processor=template_processor,
+                    apply_dataset_offset=op != utils.FilterOperator.TEMPORAL_RANGE,
+                )
+                if axis_tbl_column := columns_by_name.get(axis_column["sqlExpression"]):
+                    adhoc_native_type = axis_tbl_column.type
+                    if op == utils.FilterOperator.TEMPORAL_RANGE:
+                        # Range bounds need the axis's underlying column,
+                        # including any Time Column override.
+                        col_obj = axis_tbl_column
+                elif isinstance(val, (int, float)) and not isinstance(val, bool):
+                    # An expression axis has no native type to write an engine
+                    # literal for: compare the naive ISO datetime instead of
+                    # the epoch milliseconds of the bucket.
+                    try:
+                        val = (
+                            datetime.fromtimestamp(val / 1000, tz=timezone.utc)
+                            .replace(tzinfo=None)
+                            .isoformat()
+                        )
+                    except (OverflowError, OSError, ValueError) as ex:
+                        raise QueryObjectValidationError(
+                            _(
+                                "Invalid temporal filter value for column %(column)s",
+                                column=get_column_name(flt_col),
+                            )
+                        ) from ex
+                applied_adhoc_filters_columns.append(flt_col)
+                is_adhoc_sqla_col = True
             elif is_adhoc_column(flt_col):
                 adhoc_filter_column = cast(AdhocColumn, flt_col)
                 if flt_col.get("columnType") == "BASE_AXIS":
@@ -7327,7 +7415,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     and not _is_parenthesized(sqla_col)
                 ):
                     sqla_col = Grouping(sqla_col)
-                col_type = col_obj.type if col_obj else None
+                col_type = col_obj.type if col_obj else adhoc_native_type
                 col_spec = db_engine_spec.get_column_spec(native_type=col_type)
                 is_multivalue_col = bool(
                     col_spec and col_spec.generic_type == GenericDataType.MULTI_VALUE
@@ -7849,8 +7937,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         and isinstance(eq, str)
                         and col_obj is not None
                     ):
-                        _since, _until = get_since_until_from_time_range(
+                        _since, _until = get_since_until_from_temporal_filter(
                             time_range=eq,
+                            column=get_column_name(flt_col),
                             time_shift=time_shift,
                             extras=extras,
                         )

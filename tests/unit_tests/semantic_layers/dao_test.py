@@ -288,3 +288,50 @@ def test_find_accessible_eager_loads_semantic_layer_filtered(
 
     assert results
     assert all("semantic_layer" not in inspect(v).unloaded for v in results)
+
+
+@pytest.mark.asyncio
+async def test_metric_refusal_markers_exclude_inaccessible_views(
+    session_with_accessible_views: Session,
+    mocker: MockerFixture,
+) -> None:
+    """A custom role's refusal markers include only its granted source IDs."""
+    from unittest.mock import AsyncMock, PropertyMock
+
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.mcp_service.semantic_layer.schemas import ListMetricsRequest
+    from superset.mcp_service.semantic_layer.tool.list_metrics import (
+        _collect_external_metrics,
+        _ExternalMetricCollection,
+    )
+    from superset.semantic_layers.models import SemanticView
+
+    visible: SemanticView = (
+        session_with_accessible_views.query(SemanticView).filter_by(name="view_a").one()
+    )
+    mocker.patch(
+        "superset.daos.semantic_layer.security_manager.can_access_all_datasources",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.daos.semantic_layer.security_manager.user_view_menu_names",
+        return_value={visible.perm},
+    )
+    refusal: SupersetSecurityException = SupersetSecurityException(
+        SupersetError(
+            message="private-provider-detail",
+            error_type=SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    metrics: PropertyMock = mocker.patch.object(
+        SemanticView, "metrics", new_callable=PropertyMock, side_effect=refusal
+    )
+    collection: _ExternalMetricCollection = await _collect_external_metrics(
+        ListMetricsRequest(), AsyncMock()
+    )
+    assert collection.incomplete is True
+    assert collection.metrics == []
+    assert [marker.view_id for marker in collection.refused_views] == [visible.id]
+    metrics.assert_called_once()

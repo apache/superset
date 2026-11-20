@@ -1986,6 +1986,11 @@ function DatasourceEditor({
               opr: 'eq',
               value: datasource.id,
             },
+            {
+              col: 'datasource_type',
+              opr: 'eq',
+              value: datasource.datasource_type || datasource.type,
+            },
           ],
           order_column: sortColumn,
           order_direction: sortDirection,
@@ -2042,7 +2047,12 @@ function DatasourceEditor({
         abortControllers.current.fetchUsageData = null;
       }
     },
-    [datasource.id, addDangerToast],
+    [
+      datasource.id,
+      datasource.datasource_type,
+      datasource.type,
+      addDangerToast,
+    ],
   );
 
   const handleTabSelect = useCallback((key: string) => {
@@ -3200,6 +3210,20 @@ function DatasourceEditor({
               filterTerm={columnSearchTerm}
               filterFields={['column_name']}
               onColumnsChange={cols => setColumns({ databaseColumns: cols })}
+              columnLabelTooltips={{
+                is_dttm: t(
+                  'Marks the column as a time column for time range filters ' +
+                    'and time grains. If the column type in the database is ' +
+                    'not a date or timestamp, set a Datetime format below: ' +
+                    'for strings it sets how time range filter values are ' +
+                    'written, and for epoch numbers (epoch_s, epoch_ms, ' +
+                    'epoch_us) it converts them to timestamps. A Datetime ' +
+                    'format does not convert a string column, so on some ' +
+                    'databases a time grain on it can fail or return wrong ' +
+                    'results; a calculated column that casts the value to a ' +
+                    'timestamp avoids this.',
+                ),
+              }}
               datasource={datasource}
               onMoveMappingHere={handleMoveMappingHere}
               onRemoveMapping={handleRemoveMapping}
