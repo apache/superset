@@ -19,7 +19,7 @@ import logging
 from typing import Any
 
 from superset import db, security_manager
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError, ImportFailedError
 from superset.commands.importers.v1.utils import (
     apply_extra_import_fields,
     find_existing_for_import,
@@ -378,7 +378,7 @@ def import_dashboard(  # noqa: C901
                 # without write permission — that would let a dependent import
                 # (e.g. a dashboard zip referencing this dashboard) reattach to
                 # a deleted dashboard.
-                raise ImportFailedError(
+                raise ForbiddenError(
                     "Dashboard was deleted and re-import requires can_write "
                     "permission to restore it"
                 )
@@ -393,7 +393,7 @@ def import_dashboard(  # noqa: C901
                     and not security_manager.is_admin()
                 )
             ):
-                raise ImportFailedError(
+                raise ForbiddenError(
                     "A dashboard already exists and user doesn't have "
                     "permissions to restore it"
                 )
@@ -462,13 +462,13 @@ def import_dashboard(  # noqa: C901
                     and not security_manager.is_admin()
                 )
             ):
-                raise ImportFailedError(
+                raise ForbiddenError(
                     "A dashboard already exists and user doesn't have "
                     "permissions to overwrite it"
                 )
             config["id"] = existing.id
     elif not can_write:
-        raise ImportFailedError(
+        raise ForbiddenError(
             "Dashboard doesn't exist and user doesn't "
             "have permission to create dashboards"
         )
