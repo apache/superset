@@ -58,8 +58,7 @@ from superset.commands.security.password_recovery import (
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
-from superset.security import login_token as login_token_utils
-from superset.security import password_recovery
+from superset.security import login_token as login_token_utils, password_recovery
 from superset.security.guest_token import (
     build_guest_token_audit_payload,
     GuestTokenIdentityError,
