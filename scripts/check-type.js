@@ -289,11 +289,11 @@ function extractArgs(args, regexes) {
  * For example: `superset-frontend/foo/bar.ts` -> `foo/bar.ts`
  *
  * @param {string[]} args
- * @param {string} package
+ * @param {string} packageName
  * @returns {string[]}
  */
-function removePackageSegment(args, package) {
-  const packageSegment = package.concat(sep);
+function removePackageSegment(args, packageName) {
+  const packageSegment = packageName.concat(sep);
   return args.map((arg) => {
     const normalizedPath = normalize(arg);
 

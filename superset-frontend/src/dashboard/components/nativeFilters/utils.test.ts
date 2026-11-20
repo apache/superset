@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior } from '@superset-ui/core';
+import { Behavior, DataMaskStateWithId } from '@superset-ui/core';
 import { DashboardLayout, LayoutItem } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { createChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
 import {
   nativeFilterGate,
   findTabsWithChartsInScope,
+  getExtraFormData,
   getFormData,
+  mergeExtraFormData,
 } from './utils';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -134,4 +136,74 @@ test('getFormData should include persisted time_grains for time grain filters', 
   });
 
   expect((formData as any).time_grains).toEqual(['PT1H', 'P1D', 'P1W']);
+});
+
+test.each([false, true])(
+  'merging current and legacy member filters remains unversioned in either order (%s)',
+  reverse => {
+    const legacy = {
+      filters: [{ col: 'Orders.b', op: 'IN' as const, val: ['x'] }],
+    };
+    const current = {
+      ...legacy,
+      semantic_selection_sources: [
+        { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+      ],
+    };
+    const merged = reverse
+      ? mergeExtraFormData(current, legacy)
+      : mergeExtraFormData(legacy, current);
+    expect(merged.filters).toHaveLength(2);
+    expect(merged.semantic_selection_sources).toContainEqual({
+      datasource: '',
+      version: null,
+    });
+    expect(merged.semantic_selection_sources).toContainEqual({
+      datasource: '7__semantic_view',
+      version: 'cube-member-id-v1',
+    });
+  },
+);
+test('getFormData passes controlValues.displayFormat through to the filter plugin formData', () => {
+  const formData = getFormData({
+    dashboardId: 10,
+    id: 'NATIVE_FILTER-1',
+    filterType: 'filter_time',
+    type: 'NATIVE_FILTER' as any,
+    controlValues: { displayFormat: '%d-%m-%Y' },
+    defaultDataMask: {},
+  });
+
+  expect((formData as any).displayFormat).toBe('%d-%m-%Y');
+});
+
+test('only a typed grain control drops its unneeded provenance before merging', () => {
+  const unmarked = [{ datasource: '7__semantic_view', version: null }];
+  const filters = [{ col: 'Orders.status', op: 'IN' as const, val: ['Open'] }];
+  const certified = [
+    { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+  ];
+  const dataMask: DataMaskStateWithId = {
+    grain: {
+      id: 'grain',
+      extraFormData: {
+        time_grain_sqla: 'P1Y',
+        semantic_selection_sources: unmarked,
+      },
+    },
+    member: {
+      id: 'member',
+      extraFormData: { filters, semantic_selection_sources: certified },
+    },
+  };
+  expect(
+    getExtraFormData(dataMask, ['grain', 'member'], {
+      grain: 'filter_timegrain',
+      member: 'filter_select',
+    }).semantic_selection_sources,
+  ).toEqual(certified);
+  // Untyped, the merged sources keep the unmarked grain stamp.
+  expect(
+    getExtraFormData(dataMask, ['grain', 'member']).semantic_selection_sources,
+  ).toEqual([...unmarked, ...certified]);
 });

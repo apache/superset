@@ -20,14 +20,17 @@ import pandas as pd
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset.constants import NULL_STRING, PandasAxis
+from superset.constants import (
+    NULL_STRING,
+    PandasAxis,
+    SHOW_VALUES_AS_PERCENT_MODES,
+    ShowValuesAs,
+)
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing.utils import (
     _get_aggregate_funcs,
     validate_column_args,
 )
-
-_PERCENT_MODES = frozenset({"percent_row", "percent_col", "percent_total"})
 
 # Aggregate operator names that produce additive results across groups —
 # the sum of the per-cell values equals the row/column/grand rollup the
@@ -60,10 +63,10 @@ def _apply_percent_transform_to_group(g: DataFrame, mode: str) -> DataFrame:
     from division-by-zero, matching the client's ``if (acc === null)
     return null`` guard in ``fractionOf``.
     """
-    if mode == "percent_row":
+    if mode == ShowValuesAs.PERCENT_OF_ROW:
         row_totals = g.sum(axis=PandasAxis.COLUMN, skipna=True).replace(0, float("nan"))
         return _div_preserving_nan(g, row_totals, axis=PandasAxis.ROW)
-    if mode == "percent_col":
+    if mode == ShowValuesAs.PERCENT_OF_COLUMN:
         col_totals = g.sum(axis=PandasAxis.ROW, skipna=True).replace(0, float("nan"))
         return _div_preserving_nan(g, col_totals, axis=PandasAxis.COLUMN)
     # percent_total
@@ -187,6 +190,47 @@ def _restore_dropped_metric_columns(
     return df
 
 
+def _fill_dimension_column(df: DataFrame, col: str, fill_value: str) -> None:
+    """Fill missing values in a groupby dimension column before pivoting.
+
+    Handles categorical dtypes (adding fill_value to categories), datetime
+    dtypes (casting to object with fill_value for NaT, preserving Timestamp
+    for non-null values), and nullable extension dtypes (casting to object
+    so a string fill value is valid) to prevent dtype errors and preserve
+    NULL/NaN/NaT keys through pivot_table().
+    """
+    s = df[col]
+    if isinstance(s.dtype, pd.CategoricalDtype):
+        if s.isna().any():
+            # Only add the category when there is a NULL to fill: adding it
+            # unconditionally leaves pivot_table()'s default observed=False
+            # to materialize an unobserved "<NULL>" group/column even for
+            # dimensions that never had a missing value.
+            if fill_value not in s.cat.categories:
+                s = s.cat.add_categories([fill_value])
+            df[col] = s.fillna(value=fill_value)
+    elif pd.api.types.is_datetime64_any_dtype(s.dtype) or (
+        getattr(s.dtype, "kind", None) == "M"
+    ):
+        if s.isna().any():
+            # astype(object) rather than astype(str): it boxes each value
+            # without stringifying, so non-null entries stay real Timestamp
+            # objects and only the NaT positions become the fill sentinel.
+            df[col] = s.astype(object).where(~s.isna(), other=fill_value)
+    else:
+        if s.isna().any():
+            # Nullable extension dtypes (Int64, Float64, boolean, ...) back
+            # onto a masked array that can only hold values of their own
+            # type, so filling with a string sentinel raises TypeError.
+            # Casting to object first (already the case for plain numpy
+            # dtypes) makes the column able to hold the string fill value.
+            if pd.api.types.is_extension_array_dtype(s.dtype) and not isinstance(
+                s.dtype, pd.StringDtype
+            ):
+                s = s.astype(object)
+            df[col] = s.fillna(value=fill_value)
+
+
 @validate_column_args("index", "columns")
 def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
     df: DataFrame,
@@ -250,8 +294,8 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
     # ``""`` / ``"actual"`` are the no-op sentinels — anything else must
     # be a known percent mode.
     percent_mode: Optional[str] = None
-    if show_values_as not in (None, "", "actual"):
-        if show_values_as not in _PERCENT_MODES:
+    if show_values_as not in (None, "", ShowValuesAs.ACTUAL):
+        if show_values_as not in SHOW_VALUES_AS_PERCENT_MODES:
             raise InvalidPostProcessingError(
                 _(
                     "Unsupported show_values_as value: %(mode)s. "
@@ -299,7 +343,15 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
         percent_mode = show_values_as
 
     if columns and column_fill_value:
-        df[columns] = df[columns].fillna(value=column_fill_value)
+        for col in columns:
+            _fill_dimension_column(df, col, column_fill_value)
+
+    # Fill NULL/NaN/NaT values in the index columns with NULL_STRING so that
+    # NULL grouping keys survive as a real "<NULL>" row in the pivot output.
+    # Mirrors the column fill above; pivot_table() drops NaN index rows
+    # regardless of the dropna= setting (dropna only governs the column axis).
+    for col in index:
+        _fill_dimension_column(df, col, NULL_STRING)
 
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)
 
@@ -352,8 +404,9 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
         df = _apply_show_values_as(df, percent_mode)
 
     if combine_value_with_metric:
-        # dropna=False preserves restored all-NaN metric rows that would otherwise
-        # be silently dropped by stack's default dropna=True behavior.
-        df = df.stack(level=0, dropna=False).unstack()
+        # stack() no longer introduces rows of NA values to drop (pandas >=2.1's
+        # "future" stack implementation, the only one since pandas 3.0), so the
+        # restored all-NaN metric rows are preserved without a dropna= argument.
+        df = df.stack(level=0).unstack()
 
     return df

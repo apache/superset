@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import warnings
 from io import BytesIO, StringIO
+from typing import Any
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -24,17 +26,225 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy.orm.session import Session
 
 from superset.charts.client_processing import (
+    _collapsed_metric,
+    _reduce,
     apply_client_processing,
     apply_pivot_number_formats,
+    build_pivot_currency_context,
     format_column,
+    payload_coltypes,
     pivot_df,
     pivot_table_v2,
     table,
 )
 from superset.common.chart_data import ChartDataResultFormat
-from superset.utils import excel
+from superset.utils import excel, json
 from superset.utils.core import GenericDataType
+from superset.utils.csv import chart_data_to_dataframe
 from tests.conftest import with_config
+
+
+@pytest.mark.parametrize("combine_metrics", [False, True])
+@pytest.mark.parametrize(
+    "show_values_as", [None, "percent_row", "percent_col", "percent_total"]
+)
+def test_pivot_df_many_column_subtotals_no_fragmentation(
+    combine_metrics: bool, show_values_as: str | None
+) -> None:
+    """Wide, multi-level pivots must not insert hundreds of individual blocks."""
+    df = pd.DataFrame(
+        [
+            {
+                "row": row,
+                "group": f"group_{group:03}",
+                "child": child,
+                "first": 1,
+                "second": 2,
+            }
+            for row in ["a", "b"]
+            for group in range(105)
+            for child in ["x", "y"]
+        ]
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", pd.errors.PerformanceWarning)
+        pivoted = pivot_df(
+            df,
+            rows=["row"],
+            columns=["group", "child"],
+            metrics=["first", "second"],
+            combine_metrics=combine_metrics,
+            show_rows_total=True,
+            show_columns_total=True,
+            show_values_as=show_values_as,
+        )
+
+    assert pivoted.index.tolist() == [("a",), ("b",), (total_label(),)]
+    leaf = (
+        ("group_000", "x", "first") if combine_metrics else ("first", "group_000", "x")
+    )
+    expected = {
+        None: 1,
+        "percent_row": 1 / 210,
+        "percent_col": 1 / 2,
+        "percent_total": 1 / 420,
+    }
+    assert pivoted.loc[("a",), leaf] == pytest.approx(expected[show_values_as])
+    assert pd.isna(pivoted.loc[("a",), (total_label(), "", "")])
+    if combine_metrics:
+        assert pivoted.columns[:3].tolist() == [
+            ("group_000", "x", "first"),
+            ("group_000", "x", "second"),
+            ("group_000", "x", str(_("Subtotal"))),
+        ]
+    else:
+        assert pivoted.columns[:3].tolist() == [
+            ("first", "group_000", "x"),
+            ("first", "group_000", "y"),
+            ("first", "group_000", str(_("Subtotal"))),
+        ]
+
+
+def test_pivot_df_row_totals_with_temporal_column_dimension() -> None:
+    """Totals keep their values when a column dimension is temporal."""
+    df = pd.DataFrame(
+        {
+            "region": ["east", "east", "west"],
+            "month": pd.to_datetime(["2020-01-01", "2020-02-01", "2020-01-01"]),
+            "SUM(sales)": [1, 2, 3],
+        }
+    )
+    pivoted = pivot_df(
+        df,
+        rows=["region"],
+        columns=["month"],
+        metrics=["SUM(sales)"],
+        show_rows_total=True,
+        show_columns_total=True,
+    )
+    assert pivoted.iloc[:, -1].tolist() == [3.0, 3.0, 6.0]
+
+
+@pytest.mark.parametrize(
+    "temporal_kind", ["datetime", "datetime_tz", "timedelta", "period"]
+)
+@pytest.mark.parametrize("combine_metrics", [False, True])
+@pytest.mark.parametrize("temporal_first", [False, True])
+def test_pivot_df_temporal_subtotals_keep_values_and_dtypes(
+    temporal_kind: str, combine_metrics: bool, temporal_first: bool
+) -> None:
+    """Temporal padding must not lose values or upcast dense integer columns."""
+    dates = ["2020-01-01", "2020-02-01"] * 2
+    temporal_values = {
+        "datetime": pd.to_datetime(dates),
+        "datetime_tz": pd.to_datetime(dates, utc=True),
+        "timedelta": pd.to_timedelta([1, 2, 1, 2], unit="D"),
+        "period": pd.PeriodIndex(dates, freq="M"),
+    }
+    df = pd.DataFrame(
+        {
+            "region": ["east", "east", "west", "west"],
+            "month": temporal_values[temporal_kind],
+            "segment": ["a"] * 4,
+            "sales": [1, 2, 3, 4],
+        }
+    )
+    pivoted = pivot_df(
+        df,
+        rows=["region"],
+        columns=["month", "segment"] if temporal_first else ["segment", "month"],
+        metrics=["sales"],
+        combine_metrics=combine_metrics,
+        show_rows_total=True,
+        show_columns_total=True,
+    )
+    pd.testing.assert_series_equal(
+        pivoted.iloc[:, -1].reset_index(drop=True),
+        pd.Series([3, 7, 10]),
+        check_names=False,
+    )
+    assert not pivoted.isna().to_numpy().any()
+    assert all(dtype == "int64" for dtype in pivoted.dtypes)
+
+
+def test_pivot_currency_context_keeps_temporal_totals() -> None:
+    """The currency-set pivot retains temporal totals as well as numeric ones."""
+    source = pd.DataFrame(
+        {
+            "region": ["east", "east", "west"],
+            "month": pd.to_datetime(["2020-01-01", "2020-02-01", "2020-01-01"]),
+            "sales": [1, 2, 3],
+            "currency": ["USD", "USD", "EUR"],
+        }
+    )
+    context = build_pivot_currency_context(
+        source,
+        "currency",
+        ["sales"],
+        {
+            "rows": ["region"],
+            "columns": ["month"],
+            "metrics": ["sales"],
+            "aggfunc": "Sum",
+            "show_rows_total": True,
+            "show_columns_total": True,
+        },
+    )
+    assert context.iloc[:, -1].tolist() == [("USD",), ("EUR",), ("USD", "EUR")]
+
+
+def test_pivot_df_rejects_existing_subtotal_label() -> None:
+    """Batch insertion retains DataFrame.insert's duplicate-label guard."""
+    df = pd.DataFrame({"region": ["east"], "month": [str(_("Subtotal"))], "sales": [1]})
+    with pytest.raises(ValueError, match="cannot insert .*Subtotal.*already exists"):
+        pivot_df(
+            df,
+            rows=["region"],
+            columns=["month"],
+            metrics=["sales"],
+            show_rows_total=True,
+        )
+
+
+@pytest.mark.parametrize(
+    "result_format",
+    [ChartDataResultFormat.JSON, ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV],
+)
+def test_apply_client_processing_temporal_pivot_totals(
+    result_format: ChartDataResultFormat,
+) -> None:
+    """Post-processed exports and JSON retain totals for temporal dimensions."""
+    source = pd.DataFrame(
+        {
+            "region": ["east", "east", "west"],
+            "month": pd.to_datetime(["2020-01-01", "2020-02-01", "2020-01-01"]),
+            "sales": [1, 2, 3],
+        }
+    )
+    data: list[dict[str, Any]] | bytes | str
+    if result_format == ChartDataResultFormat.JSON:
+        data = source.to_dict("records")
+    elif result_format == ChartDataResultFormat.XLSX:
+        data = excel.df_to_excel(source, index=False)
+    else:
+        data = source.to_csv(index=False)
+    result = {"queries": [{"result_format": result_format, "data": data}]}
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": ["month"],
+        "metrics": ["sales"],
+        "rowTotals": True,
+        "colTotals": True,
+    }
+    query = apply_client_processing(result, form_data)["queries"][0]
+    if result_format == ChartDataResultFormat.JSON:
+        output = pd.DataFrame(query["data"])
+    elif result_format == ChartDataResultFormat.XLSX:
+        output = pd.read_excel(BytesIO(query["data"]), index_col=0)
+    else:
+        output = pd.read_csv(StringIO(query["data"]), index_col=0)
+    assert pd.to_numeric(output.iloc[:, -1]).tolist() == [3.0, 3.0, 6.0]
 
 
 def test_pivot_df_no_cols_no_rows_single_metric():
@@ -142,6 +352,36 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     )
 
 
+def test_pivot_df_rows_total_keeps_nan_text_in_non_numeric_metric() -> None:
+    """
+    With row totals on, a missing cell in a non-numeric metric column holds
+    the text "nan", so a CSV export shows "nan" there rather than a blank.
+    """
+    df = pd.DataFrame(
+        {
+            "gender": ["girl", "boy"],
+            "SUM(num)": [118065, "NULL"],
+            "MAX(num)": [2588, None],
+        }
+    )
+
+    pivoted = pivot_df(
+        df,
+        rows=["gender"],
+        columns=[],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=False,
+        combine_metrics=False,
+        show_rows_total=True,
+        show_columns_total=True,
+        apply_metrics_on_rows=False,
+    )
+
+    assert pivoted.loc[("boy",), ("MAX(num)",)] == "nan"
+    assert pivoted.to_csv().splitlines()[1] == "boy,NULL,nan,"
+
+
 def test_pivot_df_no_cols_no_rows_two_metrics():
     """
     Pivot table when no cols/rows and 2 metrics are selected.
@@ -244,7 +484,7 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
         == f"""
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('{_("Total")} (Sum)',) |
 |:-----------------|----------------:|----------------:|-------------------:|
-| ('{_("Total")} (Sum)',) |        80679663 |           37296 |           80716959 |
+| ('{_("Total")} (Sum)',) |     8.06797e+07 |           37296 |                nan |
     """.strip()
     )
 
@@ -355,9 +595,9 @@ def test_pivot_df_single_row_two_metrics():
         == f"""
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('{_("Total")} (Sum)',) |
 |:-----------------|----------------:|----------------:|-------------------:|
-| ('boy',)         |           47123 |            1280 |              48403 |
-| ('girl',)        |          118065 |            2588 |             120653 |
-| ('{_("Total")} (Sum)',) |          165188 |            3868 |             169056 |
+| ('boy',)         |           47123 |            1280 |                nan |
+| ('girl',)        |          118065 |            2588 |                nan |
+| ('{_("Total")} (Sum)',) |          165188 |            3868 |                nan |
     """.strip()
     )
 
@@ -381,11 +621,11 @@ def test_pivot_df_single_row_two_metrics():
 |:-------------------------|-------------------:|
 | ('SUM(num)', 'boy')      |              47123 |
 | ('SUM(num)', 'girl')     |             118065 |
-| ('SUM(num)', 'Subtotal') |             165188 |
+| ('SUM(num)', '{_("Subtotal")}') |             165188 |
 | ('MAX(num)', 'boy')      |               1280 |
 | ('MAX(num)', 'girl')     |               2588 |
-| ('MAX(num)', 'Subtotal') |               3868 |
-| ('{_("Total")} (Sum)', '')      |             169056 |
+| ('MAX(num)', '{_("Subtotal")}') |               3868 |
+| ('{_("Total")} (Sum)', '')      |                nan |
     """.strip()
     )
 
@@ -409,11 +649,11 @@ def test_pivot_df_single_row_two_metrics():
 |:---------------------|-------------------:|
 | ('boy', 'SUM(num)')  |              47123 |
 | ('boy', 'MAX(num)')  |               1280 |
-| ('boy', 'Subtotal')  |              48403 |
+| ('boy', '{_("Subtotal")}')  |                nan |
 | ('girl', 'SUM(num)') |             118065 |
 | ('girl', 'MAX(num)') |               2588 |
-| ('girl', 'Subtotal') |             120653 |
-| ('{_("Total")} (Sum)', '')  |             169056 |
+| ('girl', '{_("Subtotal")}') |                nan |
+| ('{_("Total")} (Sum)', '')  |                nan |
     """.strip()
     )
 
@@ -522,11 +762,11 @@ def test_pivot_df_single_row_null_values():
     assert (
         pivoted.to_markdown()
         == """
-|                  |   ('SUM(num)',) |   ('MAX(num)',) | ('Total (Sum)',)   |
-|:-----------------|----------------:|----------------:|:-------------------|
-| ('boy',)         |             nan |             nan | nannan             |
-| ('girl',)        |          118065 |            2588 | 120653.0           |
-| ('Total (Sum)',) |          118065 |            2588 | 120653.0           |
+|                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('Total (Sum)',) |
+|:-----------------|----------------:|----------------:|-------------------:|
+| ('boy',)         |             nan |             nan |                nan |
+| ('girl',)        |          118065 |            2588 |                nan |
+| ('Total (Sum)',) |          118065 |            2588 |                nan |
     """.strip()
     )
 
@@ -546,15 +786,12 @@ def test_pivot_df_single_row_null_values():
     assert (
         pivoted.to_markdown()
         == f"""
-|                          |   ('{_("Total")} (Sum)',) |
-|:-------------------------|-------------------:|
-| ('SUM(num)', 'boy')      |                nan |
-| ('SUM(num)', 'girl')     |             118065 |
-| ('SUM(num)', 'Subtotal') |             118065 |
-| ('MAX(num)', 'boy')      |                nan |
-| ('MAX(num)', 'girl')     |               2588 |
-| ('MAX(num)', 'Subtotal') |               2588 |
-| ('{_("Total")} (Sum)', '')      |             120653 |
+|                      |   ('{_("Total")} (Sum)',) |
+|:---------------------|-------------------:|
+| ('SUM(num)', 'boy')  |                nan |
+| ('SUM(num)', 'girl') |             118065 |
+| ('MAX(num)', 'boy')  |                nan |
+| ('MAX(num)', 'girl') |               2588 |
     """.strip()
     )
 
@@ -578,11 +815,11 @@ def test_pivot_df_single_row_null_values():
 |:---------------------|-------------------:|
 | ('boy', 'SUM(num)')  |                nan |
 | ('boy', 'MAX(num)')  |                nan |
-| ('boy', 'Subtotal')  |                  0 |
+| ('boy', '{_("Subtotal")}')  |                nan |
 | ('girl', 'SUM(num)') |             118065 |
 | ('girl', 'MAX(num)') |               2588 |
-| ('girl', 'Subtotal') |             120653 |
-| ('{_("Total")} (Sum)', '')  |             120653 |
+| ('girl', '{_("Subtotal")}') |                nan |
+| ('{_("Total")} (Sum)', '')  |                nan |
     """.strip()
     )
 
@@ -692,11 +929,11 @@ def test_pivot_df_single_row_null_mix_values_strings():
     assert (
         pivoted.to_markdown()
         == """
-|                  | ('SUM(num)',)   |   ('MAX(num)',) | ('Total (Sum)',)   |
-|:-----------------|:----------------|----------------:|:-------------------|
-| ('boy',)         | NULL            |             nan | NULLnan            |
-| ('girl',)        | 118065          |            2588 | 120653.0           |
-| ('Total (Sum)',) | 118065.0        |            2588 | 120653.0           |
+|                  | ('SUM(num)',)   |   ('MAX(num)',) |   ('Total (Sum)',) |
+|:-----------------|:----------------|----------------:|-------------------:|
+| ('boy',)         | NULL            |             nan |                nan |
+| ('girl',)        | 118065          |            2588 |                nan |
+| ('Total (Sum)',) | 118065.0        |            2588 |                nan |
     """.strip()
     )
 
@@ -720,8 +957,11 @@ def test_pivot_df_single_row_null_mix_values_strings():
 |:---------------------|:-------------------|
 | ('boy', 'SUM(num)')  | NULL               |
 | ('boy', 'MAX(num)')  | nan                |
+| ('boy', 'Subtotal')  | nan                |
 | ('girl', 'SUM(num)') | 118065             |
 | ('girl', 'MAX(num)') | 2588.0             |
+| ('girl', 'Subtotal') | nan                |
+| ('Total (Sum)', '')  | nan                |
     """.strip()
     )
 
@@ -853,12 +1093,15 @@ def test_pivot_df_single_row_null_mix_values_numbers():
     assert (
         pivoted.to_markdown()
         == """
-|                      |   ('Total (Sum)',) |
-|:---------------------|-------------------:|
-| ('SUM(num)', 'boy')  |                 21 |
-| ('SUM(num)', 'girl') |             118065 |
-| ('MAX(num)', 'boy')  |                nan |
-| ('MAX(num)', 'girl') |               2588 |
+|                          |   ('Total (Sum)',) |
+|:-------------------------|-------------------:|
+| ('SUM(num)', 'boy')      |                 21 |
+| ('SUM(num)', 'girl')     |             118065 |
+| ('SUM(num)', 'Subtotal') |             118086 |
+| ('MAX(num)', 'boy')      |                nan |
+| ('MAX(num)', 'girl')     |               2588 |
+| ('MAX(num)', 'Subtotal') |               2588 |
+| ('Total (Sum)', '')      |                nan |
     """.strip()
     )
 
@@ -882,8 +1125,11 @@ def test_pivot_df_single_row_null_mix_values_numbers():
 |:---------------------|-------------------:|
 | ('boy', 'SUM(num)')  |                 21 |
 | ('boy', 'MAX(num)')  |                nan |
+| ('boy', '{_("Subtotal")}')  |                nan |
 | ('girl', 'SUM(num)') |             118065 |
 | ('girl', 'MAX(num)') |               2588 |
+| ('girl', '{_("Subtotal")}') |                nan |
+| ('{_("Total")} (Sum)', '')  |                nan |
     """.strip()
     )
 
@@ -1084,15 +1330,15 @@ def test_pivot_df_complex():
         == """
 |                      |   ('SUM(num)', 'CA') |   ('SUM(num)', 'FL') |   ('SUM(num)', 'Subtotal') |   ('MAX(num)', 'CA') |   ('MAX(num)', 'FL') |   ('MAX(num)', 'Subtotal') |   ('Total (Sum)', '') |
 |:---------------------|---------------------:|---------------------:|---------------------------:|---------------------:|---------------------:|---------------------------:|----------------------:|
-| ('boy', 'Edward')    |                31290 |                 9395 |                      40685 |                 1280 |                  389 |                       1669 |                 42354 |
-| ('boy', 'Tony')      |                 3765 |                 2673 |                       6438 |                  598 |                  247 |                        845 |                  7283 |
-| ('boy', 'Subtotal')  |                35055 |                12068 |                      47123 |                 1878 |                  636 |                       2514 |                 49637 |
-| ('girl', 'Amy')      |                45426 |                14740 |                      60166 |                 2227 |                  854 |                       3081 |                 63247 |
-| ('girl', 'Cindy')    |                14149 |                 1218 |                      15367 |                  842 |                  217 |                       1059 |                 16426 |
-| ('girl', 'Dawn')     |                11403 |                 5089 |                      16492 |                 1157 |                  461 |                       1618 |                 18110 |
-| ('girl', 'Sophia')   |                18859 |                 7181 |                      26040 |                 2588 |                 1187 |                       3775 |                 29815 |
-| ('girl', 'Subtotal') |                89837 |                28228 |                     118065 |                 6814 |                 2719 |                       9533 |                127598 |
-| ('Total (Sum)', '')  |               124892 |                40296 |                     165188 |                 8692 |                 3355 |                      12047 |                177235 |
+| ('boy', 'Edward')    |                31290 |                 9395 |                      40685 |                 1280 |                  389 |                       1669 |                   nan |
+| ('boy', 'Tony')      |                 3765 |                 2673 |                       6438 |                  598 |                  247 |                        845 |                   nan |
+| ('boy', 'Subtotal')  |                35055 |                12068 |                      47123 |                 1878 |                  636 |                       2514 |                   nan |
+| ('girl', 'Amy')      |                45426 |                14740 |                      60166 |                 2227 |                  854 |                       3081 |                   nan |
+| ('girl', 'Cindy')    |                14149 |                 1218 |                      15367 |                  842 |                  217 |                       1059 |                   nan |
+| ('girl', 'Dawn')     |                11403 |                 5089 |                      16492 |                 1157 |                  461 |                       1618 |                   nan |
+| ('girl', 'Sophia')   |                18859 |                 7181 |                      26040 |                 2588 |                 1187 |                       3775 |                   nan |
+| ('girl', 'Subtotal') |                89837 |                28228 |                     118065 |                 6814 |                 2719 |                       9533 |                   nan |
+| ('Total (Sum)', '')  |               124892 |                40296 |                     165188 |                 8692 |                 3355 |                      12047 |                   nan |
     """.strip()  # noqa: E501
     )
 
@@ -1182,11 +1428,11 @@ def test_pivot_df_complex():
 |:--------------------|--------------------:|------------------:|----------------------:|------------------:|--------------------:|-------------------:|---------------------:|-----------------------:|----------------------:|
 | ('CA', 'SUM(num)')  |               31290 |              3765 |                 35055 |             45426 |               14149 |              11403 |                18859 |                  89837 |                124892 |
 | ('CA', 'MAX(num)')  |                1280 |               598 |                  1878 |              2227 |                 842 |               1157 |                 2588 |                   6814 |                  8692 |
-| ('CA', 'Subtotal')  |               32570 |              4363 |                 36933 |             47653 |               14991 |              12560 |                21447 |                  96651 |                133584 |
+| ('CA', 'Subtotal')  |                 nan |               nan |                   nan |               nan |                 nan |                nan |                  nan |                    nan |                   nan |
 | ('FL', 'SUM(num)')  |                9395 |              2673 |                 12068 |             14740 |                1218 |               5089 |                 7181 |                  28228 |                 40296 |
 | ('FL', 'MAX(num)')  |                 389 |               247 |                   636 |               854 |                 217 |                461 |                 1187 |                   2719 |                  3355 |
-| ('FL', 'Subtotal')  |                9784 |              2920 |                 12704 |             15594 |                1435 |               5550 |                 8368 |                  30947 |                 43651 |
-| ('Total (Sum)', '') |               42354 |              7283 |                 49637 |             63247 |               16426 |              18110 |                29815 |                 127598 |                177235 |
+| ('FL', 'Subtotal')  |                 nan |               nan |                   nan |               nan |                 nan |                nan |                  nan |                    nan |                   nan |
+| ('Total (Sum)', '') |                 nan |               nan |                   nan |               nan |                 nan |                nan |                  nan |                    nan |                   nan |
     """.strip()  # noqa: E501
     )
 
@@ -1374,9 +1620,8 @@ def test_pivot_df_multi_column():
         == """
 |                  |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('SUM(num)', 'Subtotal') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |   ('MAX(num)', 'Subtotal') |   ('Total (Sum)', '') |
 |:-----------------|----------------------:|-----------------------:|---------------------------:|----------------------:|-----------------------:|---------------------------:|----------------------:|
-| ('CA',)          |                 35055 |                  89837 |                     124892 |                  1878 |                   6814 |                       8692 |                133584 |
-| ('Total (Sum)',) |                 12068 |                  28228 |                      40296 |                   636 |                   2719 |                       3355 |                 43651 |
-
+| ('CA',)          |                 35055 |                  89837 |                     124892 |                  1878 |                   6814 |                       8692 |                   nan |
+| ('Total (Sum)',) |                 12068 |                  28228 |                      40296 |                   636 |                   2719 |                       3355 |                   nan |
     """.strip()  # noqa: E501
     )
 
@@ -1446,11 +1691,11 @@ def test_pivot_df_multi_column():
 |:---------------------|----------:|-------------------:|
 | ('boy', 'SUM(num)')  |     35055 |              12068 |
 | ('boy', 'MAX(num)')  |      1878 |                636 |
-| ('boy', 'Subtotal')  |     36933 |              12704 |
+| ('boy', 'Subtotal')  |       nan |                nan |
 | ('girl', 'SUM(num)') |     89837 |              28228 |
 | ('girl', 'MAX(num)') |      6814 |               2719 |
-| ('girl', 'Subtotal') |     96651 |              30947 |
-| ('Total (Sum)', '')  |    133584 |              43651 |
+| ('girl', 'Subtotal') |       nan |                nan |
+| ('Total (Sum)', '')  |       nan |                nan |
     """.strip()
     )
 
@@ -1670,16 +1915,16 @@ def test_pivot_df_complex_null_values():
         == """
 |                      |   ('SUM(num)', nan) |   ('SUM(num)', 'Subtotal') |   ('MAX(num)', nan) |   ('MAX(num)', 'Subtotal') |   ('Total (Sum)', '') |
 |:---------------------|--------------------:|---------------------------:|--------------------:|---------------------------:|----------------------:|
-| ('boy', 'Edward')    |               40685 |                      40685 |                1669 |                       1669 |                 42354 |
-| ('boy', 'Tony')      |                6438 |                       6438 |                 845 |                        845 |                  7283 |
-| ('boy', 'Subtotal')  |               47123 |                      47123 |                2514 |                       2514 |                 49637 |
-| ('girl', 'Amy')      |               60166 |                      60166 |                3081 |                       3081 |                 63247 |
-| ('girl', 'Cindy')    |               15367 |                      15367 |                1059 |                       1059 |                 16426 |
-| ('girl', 'Dawn')     |               16492 |                      16492 |                1618 |                       1618 |                 18110 |
-| ('girl', 'Sophia')   |               26040 |                      26040 |                3775 |                       3775 |                 29815 |
-| ('girl', 'Subtotal') |              118065 |                     118065 |                9533 |                       9533 |                127598 |
-| ('Total (Sum)', '')  |              165188 |                     165188 |               12047 |                      12047 |                177235 |
-  """.strip()  # noqa: E501
+| ('boy', 'Edward')    |               40685 |                      40685 |                1669 |                       1669 |                   nan |
+| ('boy', 'Tony')      |                6438 |                       6438 |                 845 |                        845 |                   nan |
+| ('boy', 'Subtotal')  |               47123 |                      47123 |                2514 |                       2514 |                   nan |
+| ('girl', 'Amy')      |               60166 |                      60166 |                3081 |                       3081 |                   nan |
+| ('girl', 'Cindy')    |               15367 |                      15367 |                1059 |                       1059 |                   nan |
+| ('girl', 'Dawn')     |               16492 |                      16492 |                1618 |                       1618 |                   nan |
+| ('girl', 'Sophia')   |               26040 |                      26040 |                3775 |                       3775 |                   nan |
+| ('girl', 'Subtotal') |              118065 |                     118065 |                9533 |                       9533 |                   nan |
+| ('Total (Sum)', '')  |              165188 |                     165188 |               12047 |                      12047 |                   nan |
+    """.strip()  # noqa: E501
     )
 
     # apply_metrics_on_rows
@@ -1768,8 +2013,8 @@ def test_pivot_df_complex_null_values():
 |:--------------------|--------------------:|------------------:|----------------------:|------------------:|--------------------:|-------------------:|---------------------:|-----------------------:|----------------------:|
 | (nan, 'SUM(num)')   |               40685 |              6438 |                 47123 |             60166 |               15367 |              16492 |                26040 |                 118065 |                165188 |
 | (nan, 'MAX(num)')   |                1669 |               845 |                  2514 |              3081 |                1059 |               1618 |                 3775 |                   9533 |                 12047 |
-| (nan, 'Subtotal')   |               42354 |              7283 |                 49637 |             63247 |               16426 |              18110 |                29815 |                 127598 |                177235 |
-| ('Total (Sum)', '') |               42354 |              7283 |                 49637 |             63247 |               16426 |              18110 |                29815 |                 127598 |                177235 |
+| (nan, 'Subtotal')   |                 nan |               nan |                   nan |               nan |                 nan |                nan |                  nan |                    nan |                   nan |
+| ('Total (Sum)', '') |                 nan |               nan |                   nan |               nan |                 nan |                nan |                  nan |                    nan |                   nan |
     """.strip()  # noqa: E501
     )
 
@@ -1801,6 +2046,999 @@ def test_pivot_df_complex_null_values():
 | ('girl', 'Subtotal')                       |           0.714731  |           0.791317  |
 | ('Total (Sum as Fraction of Columns)', '') |           1         |           1         |
     """.strip()  # noqa: E501
+    )
+
+
+# --- `showValuesAs` percent modes (#42809) -----------------------------------
+#
+# Exports and scheduled reports render server-side, so they have to reproduce
+# the client's `fractionOf` aggregator: each cell over its row, column, or grand
+# total, computed per metric, with totals dividing by their own rollup rather
+# than summing the fractions around them.
+
+SHOW_VALUES_AS_OPTIONS: dict[str, Any] = {
+    "rows": ["nation"],
+    "columns": ["gender"],
+    "metrics": ["SUM(num)"],
+    "aggfunc": "Sum",
+    "transpose_pivot": False,
+    "combine_metrics": False,
+    "show_rows_total": True,
+    "show_columns_total": True,
+    "apply_metrics_on_rows": False,
+}
+
+
+def show_values_as_df() -> pd.DataFrame:
+    """A 2x2 pivot: row totals 40/40, column totals 30/50, grand total 80."""
+    return pd.DataFrame(
+        {
+            "nation": ["US", "US", "UK", "UK"],
+            "gender": ["boy", "girl", "boy", "girl"],
+            "SUM(num)": [10, 30, 20, 20],
+        }
+    )
+
+
+def total_label() -> str:
+    return f"{_('Total')} (Sum)"
+
+
+def test_pivot_df_show_values_as_percent_row():
+    pivoted = pivot_df(
+        show_values_as_df(), **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_row"
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+    assert pivoted.loc[("US",), ("SUM(num)", "girl")] == 0.75
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == 0.5
+    # a row is always 100% of itself
+    assert pivoted.loc[("US",), (total, "")] == 1
+    # the totals row shows each column's share of the grand total (30/80 and
+    # 50/80), not the sum of the fractions above it
+    assert pivoted.loc[(total,), ("SUM(num)", "boy")] == 0.375
+    assert pivoted.loc[(total,), ("SUM(num)", "girl")] == 0.625
+    assert pivoted.loc[(total,), (total, "")] == 1
+
+
+def test_pivot_df_show_values_as_percent_col():
+    pivoted = pivot_df(
+        show_values_as_df(), **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_col"
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(1 / 3)
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == pytest.approx(2 / 3)
+    assert pivoted.loc[("US",), ("SUM(num)", "girl")] == 0.6
+    # a column is always 100% of itself
+    assert pivoted.loc[(total,), ("SUM(num)", "boy")] == 1
+    # the totals column shows each row's share of the grand total
+    assert pivoted.loc[("US",), (total, "")] == 0.5
+
+
+def test_pivot_df_show_values_as_percent_total():
+    pivoted = pivot_df(
+        show_values_as_df(), **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_total"
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.125
+    assert pivoted.loc[("US",), ("SUM(num)", "girl")] == 0.375
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == 0.25
+    assert pivoted.loc[(total,), ("SUM(num)", "boy")] == 0.375
+    assert pivoted.loc[("US",), (total, "")] == 0.5
+    assert pivoted.loc[(total,), (total, "")] == 1
+
+
+def test_pivot_df_show_values_as_keeps_metrics_separate():
+    """One metric's cells are never divided by another metric's total."""
+    df = show_values_as_df()
+    df["MAX(num)"] = [1, 3, 6, 10]
+    pivoted = pivot_df(
+        df,
+        **{**SHOW_VALUES_AS_OPTIONS, "metrics": ["SUM(num)", "MAX(num)"]},
+        show_values_as="percent_row",
+    )
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+    assert pivoted.loc[("UK",), ("MAX(num)", "boy")] == 0.375
+    assert pivoted.loc[("UK",), ("MAX(num)", "girl")] == 0.625
+    # a total collapsing the metric axis mixes SUM(num) and MAX(num), which
+    # share no unit, so the renderer blanks it (#44657) instead of picking one
+    # arbitrarily (#44725) -- exported values must agree with what it shows
+    assert pd.isna(pivoted.loc[("US",), (total_label(), "")])
+
+
+def test_pivot_df_show_values_as_blanks_mixed_metric_grand_total():
+    """https://github.com/apache/superset/issues/44725
+
+    A pivot with 2+ metrics on columns and row/column totals enabled has no
+    single meaningful value for the cell where both the row and column totals
+    meet (it would mix every configured metric). Before #44657 the renderer
+    picked one metric there; the export/report path must match its current,
+    blanked behavior rather than showing a specific, plausible-looking number.
+    """
+    df = show_values_as_df()
+    df["MAX(num)"] = [1, 3, 6, 10]
+    pivoted = pivot_df(
+        df,
+        **{**SHOW_VALUES_AS_OPTIONS, "metrics": ["SUM(num)", "MAX(num)"]},
+        show_values_as="percent_total",
+    )
+
+    assert pd.isna(pivoted.loc[("UK",), (total_label(), "")])
+    assert pd.isna(pivoted.loc[("US",), (total_label(), "")])
+    assert pd.isna(pivoted.loc[(total_label(),), (total_label(), "")])
+
+
+@pytest.mark.parametrize("layout", ["COLUMNS", "ROWS"])
+@pytest.mark.parametrize("with_rollups", [False, True])
+@pytest.mark.parametrize("mode", [None, "percent_row", "percent_col", "percent_total"])
+@pytest.mark.parametrize("aggregation", ["Sum", "Average"])
+def test_pivot_table_v2_blanks_mixed_metric_totals(
+    layout: str, with_rollups: bool, mode: str | None, aggregation: str
+):
+    """Mixed totals stay blank in both layouts, with or without GROUPING SETS."""
+    if with_rollups:
+        df = grouping_sets_df()
+        df["MAX(num)"] = [1, 6, 6, 1, 6, 6]
+        metrics = ["AVG(num)", "MAX(num)"]
+    else:
+        df = show_values_as_df()
+        df["MAX(num)"] = [1, 3, 6, 10]
+        metrics = ["SUM(num)", "MAX(num)"]
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": metrics,
+        "metricsLayout": layout,
+        "rowTotals": True,
+        "colTotals": True,
+        "showValuesAs": mode,
+        "aggregateFunction": aggregation,
+    }
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+    total = f"{_('Total')} ({aggregation})"
+    if layout == "ROWS":
+        mixed = pivoted.loc[(total, ""), :]
+        leaf = pivoted.loc[(metrics[0], "US"), ("boy",)]
+        metric_total = pivoted.loc[(metrics[0], "Subtotal"), (total,)]
+    else:
+        mixed = pivoted.loc[:, (total, "")]
+        leaf = pivoted.loc[("US",), (metrics[0], "boy")]
+        metric_total = pivoted.loc[(total,), (metrics[0], "Subtotal")]
+    # Includes the grand-total corner: all-blank sums must not revive it as 0.
+    assert mixed.isna().all()
+    assert pd.notna(leaf)
+    assert pd.notna(metric_total)
+    if mode is None:
+        assert leaf == 10
+        assert metric_total == (
+            19 if with_rollups else (80 if aggregation == "Sum" else 20)
+        )
+
+
+def test_pivot_df_show_values_as_with_combined_metrics():
+    """`combineMetric` moves the metric to the lowest column level."""
+    df = show_values_as_df()
+    df["MAX(num)"] = [1, 3, 6, 10]
+    pivoted = pivot_df(
+        df,
+        **{
+            **SHOW_VALUES_AS_OPTIONS,
+            "metrics": ["SUM(num)", "MAX(num)"],
+            "combine_metrics": True,
+            "show_rows_total": False,
+            "show_columns_total": False,
+        },
+        show_values_as="percent_row",
+    )
+
+    assert pivoted.loc[("US",), ("boy", "SUM(num)")] == 0.25
+    assert pivoted.loc[("US",), ("girl", "SUM(num)")] == 0.75
+    # each metric keeps its own denominator across the combined layout
+    assert pivoted.loc[("UK",), ("boy", "MAX(num)")] == 0.375
+    assert pivoted.loc[("UK",), ("girl", "MAX(num)")] == 0.625
+
+
+def test_pivot_table_v2_show_values_as_uses_min_max_rollups():
+    """A MIN/MAX metric divides by the row's extreme, not its sum.
+
+    Mirrors `additiveReducerFor` in the plugin's `plugin/utilities.ts`: the
+    chart rolls a MAX metric up with max, so a row of [6, 10] reads 60%/100%.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "US", "UK", "UK"],
+            "gender": ["boy", "girl", "boy", "girl"],
+            "MAX(num)": [1, 3, 6, 10],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": [
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "MAX",
+                "column": {"column_name": "num"},
+                "label": "MAX(num)",
+            }
+        ],
+        "showValuesAs": "percent_row",
+        "rowTotals": True,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    assert pivoted.loc[("UK",), ("MAX(num)", "boy")] == 0.6
+    assert pivoted.loc[("UK",), ("MAX(num)", "girl")] == 1
+    # the total divides by itself whatever the reducer
+    assert pivoted.loc[("UK",), (total_label(), "")] == 1
+
+
+def grouping_sets_df() -> pd.DataFrame:
+    """A GROUPING SETS result whose rollups differ from any leaf reduction.
+
+    Leaves are 10 and 20, so a leaf-derived total would be 30 (sum) or 15
+    (mean). The database rollups are deliberately none of those: 18 down the
+    column, 11/21 across the rows, 19 overall -- as a weighted average or a
+    distinct count would be.
+    """
+    return pd.DataFrame(
+        {
+            "nation": ["US", "UK", None, "US", "UK", None],
+            "gender": ["boy", "boy", "boy", None, None, None],
+            "nation__superset_grouping": [0, 0, 1, 0, 0, 1],
+            "gender__superset_grouping": [0, 0, 0, 1, 1, 1],
+            "AVG(num)": [10, 20, 18, 11, 21, 19],
+        }
+    )
+
+
+def nested_grouping_sets_df() -> pd.DataFrame:
+    """Two row dimensions, so prefix subtotal rows appear beside the rollups.
+
+    Every level holds a value no leaf reduction would produce: the `{region}`
+    rollups are 17 and 24, `{region, nation}` are 18 and 25, `{gender}` are 26
+    and 24, and the grand total is 21.
+    """
+    records = [
+        # (region, nation, gender, rolled-up markers, value)
+        ("EU", "UK", "boy", (0, 0, 0), 10),
+        ("EU", "UK", "girl", (0, 0, 0), 30),
+        ("NA", "US", "boy", (0, 0, 0), 40),
+        ("NA", "US", "girl", (0, 0, 0), 20),
+        ("EU", "UK", None, (0, 0, 1), 18),
+        ("NA", "US", None, (0, 0, 1), 25),
+        ("EU", None, "boy", (0, 1, 0), 10),
+        ("EU", None, "girl", (0, 1, 0), 30),
+        ("NA", None, "boy", (0, 1, 0), 40),
+        ("NA", None, "girl", (0, 1, 0), 20),
+        ("EU", None, None, (0, 1, 1), 17),
+        ("NA", None, None, (0, 1, 1), 24),
+        (None, None, "boy", (1, 1, 0), 26),
+        (None, None, "girl", (1, 1, 0), 24),
+        (None, None, None, (1, 1, 1), 21),
+    ]
+    return pd.DataFrame(
+        [
+            {
+                "region": region,
+                "nation": nation,
+                "gender": gender,
+                "region__superset_grouping": markers[0],
+                "nation__superset_grouping": markers[1],
+                "gender__superset_grouping": markers[2],
+                "AVG(num)": value,
+            }
+            for region, nation, gender, markers, value in records
+        ]
+    )
+
+
+NESTED_FORM_DATA = {
+    "groupbyRows": ["region", "nation"],
+    "groupbyColumns": ["gender"],
+    "metrics": ["AVG(num)"],
+    "showValuesAs": "percent_row",
+    "rowTotals": True,
+    "colTotals": True,
+}
+
+
+def test_row_subtotal_keeps_its_total_column_cell():
+    """A subtotal row is not a whole-axis total; it must not be looked up as one."""
+    pivoted = pivot_table_v2(
+        nested_grouping_sets_df(), NESTED_FORM_DATA, apply_number_format=False
+    )
+
+    assert not pd.isna(pivoted.loc[("EU", "Subtotal"), (total_label(), "")])
+
+
+def test_row_subtotal_divides_by_its_own_rollup():
+    """An "EU" subtotal divides by the {region} rollup, not the grand total."""
+    pivoted = pivot_table_v2(
+        nested_grouping_sets_df(), NESTED_FORM_DATA, apply_number_format=False
+    )
+
+    assert pivoted.loc[("EU", "Subtotal"), ("AVG(num)", "boy")] == pytest.approx(
+        10 / 17
+    )
+    assert pivoted.loc[("NA", "Subtotal"), ("AVG(num)", "boy")] == pytest.approx(
+        40 / 24
+    )
+
+
+def test_nested_leaf_rows_still_divide_by_database_rollups():
+    """Regression guard: the leaf and whole-axis behaviour is unchanged."""
+    pivoted = pivot_table_v2(
+        nested_grouping_sets_df(), NESTED_FORM_DATA, apply_number_format=False
+    )
+
+    assert pivoted.loc[("EU", "UK"), ("AVG(num)", "boy")] == pytest.approx(10 / 18)
+    assert pivoted.loc[("NA", "US"), ("AVG(num)", "boy")] == pytest.approx(40 / 25)
+    assert pivoted.loc[("EU", "UK"), (total_label(), "")] == 1
+    assert pivoted.loc[(total_label(), ""), (total_label(), "")] == 1
+
+
+def test_pivot_table_v2_pivots_only_grouping_sets_leaf_rows():
+    """Rollup levels must not be pivoted as if they were leaf rows."""
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_col",
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    # the rollup rows would otherwise add phantom rows for their NULL dimensions
+    assert len(pivoted.index) == 2
+
+
+def test_pivot_table_v2_metric_default_does_not_raise_key_error():
+    """`aggregateFunction: "Metric"` (the result-aggregation control's
+    default, meaning "use the metric's own definition") is not a key in
+    pivot_v2_aggfunc_map -- this backend path has no result-aggregation
+    support yet. It must fall back to the same "Sum" behavior an absent
+    field always got, not KeyError.
+
+    Regression test: this frontend default reaching this function used to
+    raise ``KeyError('Metric')`` for any Actual Values pivot with rows or
+    columns, breaking every scheduled report/alert/CSV/Excel export of a
+    pivot_table_v2 chart.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "aggregateFunction": "Metric",
+    }
+    without_field = {k: v for k, v in form_data.items() if k != "aggregateFunction"}
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+    pivoted_default = pivot_table_v2(
+        grouping_sets_df(), without_field, apply_number_format=False
+    )
+
+    pd.testing.assert_frame_equal(pivoted, pivoted_default)
+
+
+@pytest.mark.parametrize(
+    "mode,expected",
+    [
+        # each leaf divides by the rollup the database computed, never by a
+        # total re-derived from the leaves
+        ("percent_col", 20 / 18),
+        ("percent_row", 20 / 21),
+        ("percent_total", 20 / 19),
+    ],
+)
+def test_pivot_table_v2_divides_by_database_rollups(mode: str, expected: float):
+    """For a non-additive metric the DB rollup is the only correct total."""
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": mode,
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == pytest.approx(expected)
+
+
+def test_pivot_table_v2_actual_values_uses_database_rollups():
+    """Actual Values subtotals come from the DB rollups, not leaf reductions.
+
+    Regression test for #44625: in the default (Actual Values) mode the
+    report/export path re-reduced the already-aggregated leaf cells, so an
+    Average metric's totals were a mean of means instead of the
+    database-computed rollups SIP-216 (#41184) added.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "aggregateFunction": "Average",
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+    total = f"{_('Total')} (Average)"
+
+    # the database rollups, not the mean of the leaf cells (20 / 15 / 15)
+    assert pivoted.loc[("UK",), (total, "")] == 21
+    assert pivoted.loc[("US",), (total, "")] == 11
+    assert pivoted.loc[(total,), ("AVG(num)", "boy")] == 18
+    assert pivoted.loc[(total,), (total, "")] == 19
+    # ...while the leaf cells themselves are untouched
+    assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == 20
+    assert pivoted.loc[("US",), ("AVG(num)", "boy")] == 10
+
+
+@pytest.mark.parametrize(
+    "aggregate_function,expected",
+    [
+        ("Sample Variance", 50.0),
+        ("Sample Standard Deviation", 50.0**0.5),
+    ],
+)
+def test_pivot_table_v2_sample_statistics_aggregations(
+    aggregate_function: str, expected: float
+):
+    """Sample variance/standard deviation must compute for two values at one
+    pivot address (10 and 20 give variance 50 and standard deviation ~7.071),
+    not raise on a misspelled ``pd.series`` or a non-callable tuple.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "US"],
+            "gender": ["boy", "boy"],
+            "SUM(num)": [10, 20],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("aggregate_function", "row_summaries", "column_summaries"),
+    [
+        # Cells hold the per-cell sample variance (US: 50 and 200, FR: 200 and
+        # 450); each summary is the sample variance of those cell values.
+        (
+            "Sample Variance",
+            {"US": 11250.0, "FR": 31250.0},
+            {"boy": 11250.0, "girl": 31250.0},
+        ),
+        # Cells hold the per-cell sample standard deviation (US: ~7.07 and
+        # ~14.14, FR: ~14.14 and ~21.21); each summary is the sample standard
+        # deviation of those cell values, which is 5 in every scope.
+        (
+            "Sample Standard Deviation",
+            {"US": 5.0, "FR": 5.0},
+            {"boy": 5.0, "girl": 5.0},
+        ),
+    ],
+)
+def test_pivot_table_v2_sample_statistics_with_summaries(
+    aggregate_function: str,
+    row_summaries: dict[str, float],
+    column_summaries: dict[str, float],
+):
+    """Row and column summaries invoke the reducer with ``axis``; the sample
+    statistics must handle the DataFrame/axis form, not just a Series. Two
+    observations per (nation, gender) cell keep the summaries non-zero.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US"] * 4 + ["FR"] * 4,
+            "gender": ["boy", "boy", "girl", "girl"] * 2,
+            "SUM(num)": [10, 20, 30, 50, 40, 60, 70, 100],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    for nation, expected in row_summaries.items():
+        assert pivoted.loc[(nation,)].iloc[-1] == pytest.approx(expected)
+    for gender, expected in column_summaries.items():
+        assert pivoted[("SUM(num)", gender)].iloc[-1] == pytest.approx(expected)
+
+
+def _normalize_summary(value: Any) -> Any:
+    """Make ``List Unique Values`` joins order-insensitive (they come from sets)."""
+    if isinstance(value, str):
+        return sorted(value.split(", "))
+    return value
+
+
+@pytest.mark.parametrize(
+    ("aggregate_function", "row_totals", "col_totals"),
+    [
+        ("Count", {"US": 2, "FR": 2}, {"boy": 2, "girl": 2}),
+        ("Count Unique Values", {"US": 1, "FR": 1}, {"boy": 1, "girl": 1}),
+        (
+            "List Unique Values",
+            {"US": "20, 10", "FR": "50, 30"},
+            {"boy": "10, 30", "girl": "50, 20"},
+        ),
+        ("First", {"US": 10, "FR": 30}, {"boy": 30, "girl": 50}),
+        ("Last", {"US": 20, "FR": 50}, {"boy": 10, "girl": 20}),
+    ],
+)
+def test_pivot_table_v2_series_only_reducers_with_summaries(
+    aggregate_function: str,
+    row_totals: dict[str, Any],
+    col_totals: dict[str, Any],
+) -> None:
+    """Series-only reducers must support each row/column summary axis rather
+    than raising ``TypeError`` on the DataFrame/``axis`` invocation, and each
+    must select the right element per summary.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "US", "FR", "FR"],
+            "gender": ["boy", "girl", "boy", "girl"],
+            "SUM(num)": [10, 20, 30, 50],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+    }
+    total_label = f"Total ({aggregate_function})"
+
+    row_pivot = pivot_table_v2(
+        df, {**form_data, "rowTotals": True}, apply_number_format=False
+    )
+    for nation, expected in row_totals.items():
+        assert _normalize_summary(row_pivot.loc[(nation,), (total_label, "")]) == (
+            _normalize_summary(expected)
+        )
+
+    col_pivot = pivot_table_v2(
+        df, {**form_data, "colTotals": True}, apply_number_format=False
+    )
+    for gender, expected in col_totals.items():
+        actual = col_pivot.loc[(total_label,), ("SUM(num)", gender)]
+        assert _normalize_summary(actual) == _normalize_summary(expected)
+
+
+@pytest.mark.parametrize(
+    "aggregate_function",
+    ["Sample Variance", "Sample Standard Deviation"],
+)
+def test_pivot_table_v2_sample_statistics_sparse_summaries(
+    aggregate_function: str,
+) -> None:
+    """With one observation per row but two physical columns, the row summary
+    is the single-observation 0, not NaN.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "FR"],
+            "gender": ["boy", "girl"],
+            "SUM(num)": [10, 20],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    summary_columns = [
+        column for column in pivoted.columns if column[1] in ("Subtotal", "")
+    ]
+    assert summary_columns
+    assert (pivoted[summary_columns] == 0).all(axis=None)
+
+
+def test_sample_dispersion_zero_observations_is_zero_not_nan() -> None:
+    """A DataFrame scope with zero non-null observations must render 0, the
+    same as the single-observation case just above, not NaN -- the mask only
+    covered `count(axis=axis) == 1`, silently leaving an all-null scope (e.g.
+    a metric entirely absent for one row of a sparse multi-metric pivot)
+    unmasked and NaN instead.
+    """
+    from superset.charts.client_processing import (  # pylint: disable=import-outside-toplevel
+        _sample_dispersion,
+    )
+
+    df = pd.DataFrame({"a": [float("nan"), float("nan")], "b": [1.0, 2.0]})
+
+    assert _sample_dispersion(df, "var", axis=0)["a"] == 0
+    assert _sample_dispersion(df, "var", axis=0)["b"] == pytest.approx(0.5)
+
+
+def test_pivot_table_v2_ignores_stale_show_values_as_under_result_aggregation():
+    """A result aggregation hides `showValuesAs` in Explore and always wins
+    over it on the chart (`resultFactory ?? fractionType` in utilities.ts);
+    a persisted `showValuesAs` left over from before `aggregateFunction` was
+    set must not silently turn an export/report into a percent table the
+    live chart no longer renders as one.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "aggregateFunction": "Average",
+        "showValuesAs": "percent_row",
+        "rowTotals": True,
+        "colTotals": True,
+    }
+    without_show_values_as = {k: v for k, v in form_data.items() if k != "showValuesAs"}
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+    pivoted_without = pivot_table_v2(
+        grouping_sets_df(), without_show_values_as, apply_number_format=False
+    )
+
+    pd.testing.assert_frame_equal(pivoted, pivoted_without)
+
+
+def test_pivot_table_v2_actual_values_falls_back_without_rollups():
+    """Without GROUPING SETS levels the old leaf-derived totals remain."""
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "UK"],
+            "gender": ["boy", "boy"],
+            "AVG(num)": [10, 20],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "aggregateFunction": "Average",
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+    total = f"{_('Total')} (Average)"
+
+    # no database rollup to consult: the pandas reduction is kept
+    assert pivoted.loc[(total,), ("AVG(num)", "boy")] == 15
+
+
+def _axis_has_total(axis) -> bool:
+    return any(
+        total_label() in (label if isinstance(label, tuple) else (label,))
+        for label in axis
+    )
+
+
+@pytest.mark.parametrize("layout", ["COLUMNS", "ROWS"])
+@pytest.mark.parametrize("toggle", ["rowTotals", "colTotals"])
+def test_pivot_table_v2_totals_land_on_the_displayed_axis(layout: str, toggle: str):
+    """`rowTotals` is always the right-hand column, whatever the metrics layout.
+
+    Moving metrics to rows transposes the frame on the way out, which would
+    otherwise flip the axis each total was inserted on.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_row",
+        "metricsLayout": layout,
+        toggle: True,
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    assert _axis_has_total(pivoted.columns) is (toggle == "rowTotals")
+    assert _axis_has_total(pivoted.index) is (toggle == "colTotals")
+
+
+def test_pivot_table_v2_uses_database_rollups_with_metrics_on_rows():
+    """The metrics layout moves the displayed axes but not the rollup levels."""
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_col",
+        "metricsLayout": "ROWS",
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    # 20/18 and 10/18 from the database rollup, not 20/30 from the leaf sum
+    assert pivoted.loc[("AVG(num)", "UK"), ("boy",)] == pytest.approx(20 / 18)
+    assert pivoted.loc[("AVG(num)", "US"), ("boy",)] == pytest.approx(10 / 18)
+
+
+def test_pivot_table_v2_keeps_a_null_rollup_blank():
+    """A NULL rollup is not a missing one: it blanks the cell, as the chart does."""
+    df = grouping_sets_df()
+    df.loc[df["nation"].isna() & df["gender"].notna(), "AVG(num)"] = None
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_col",
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    # falling back to the leaf-derived total would have produced 10/30 here
+    assert pd.isna(pivoted.loc[("US",), ("AVG(num)", "boy")])
+
+
+def test_pivot_table_v2_rollup_totals_divide_by_themselves():
+    """A whole-axis total takes its value from the same level as its denominator."""
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_row",
+        "rowTotals": True,
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    # 21/21, not the leaf sum over the database row rollup
+    assert pivoted.loc[("UK",), (total_label(), "")] == 1
+
+
+def test_pivot_df_show_values_as_metrics_on_rows():
+    pivoted = pivot_df(
+        show_values_as_df(),
+        **{**SHOW_VALUES_AS_OPTIONS, "apply_metrics_on_rows": True},
+        show_values_as="percent_col",
+    )
+    total = total_label()
+
+    assert pivoted.loc[("SUM(num)", "US"), ("boy",)] == pytest.approx(1 / 3)
+    assert pivoted.loc[("SUM(num)", "US"), ("girl",)] == 0.6
+    assert pivoted.loc[("SUM(num)", "US"), (total,)] == 0.5
+    assert pivoted.loc[(total, ""), ("boy",)] == 1
+
+
+def test_pivot_df_show_values_as_zero_denominator_is_blank():
+    """A zero total renders blank rather than infinity."""
+    df = show_values_as_df()
+    df.loc[df["nation"] == "UK", "SUM(num)"] = 0
+    pivoted = pivot_df(df, **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_row")
+
+    assert pd.isna(pivoted.loc[("UK",), ("SUM(num)", "boy")])
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+
+
+def test_pivot_df_show_values_as_skips_empty_cells_in_denominators():
+    """A sparse pivot leaves NaN cells; they must not blank the whole table."""
+    df = show_values_as_df()
+    # drop UK/girl entirely, so that cell has no rows and pivots to NaN
+    sparse = df[~((df["nation"] == "UK") & (df["gender"] == "girl"))]
+    options = {**SHOW_VALUES_AS_OPTIONS, "show_rows_total": False}
+
+    pivoted = pivot_df(sparse, **options, show_values_as="percent_total")
+
+    # grand total is 10 + 30 + 20 = 60, the NaN cell contributing nothing
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(10 / 60)
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == pytest.approx(20 / 60)
+    assert pd.isna(pivoted.loc[("UK",), ("SUM(num)", "girl")])
+
+
+@pytest.mark.parametrize("aggfunc", ["Sum", "Average", "Maximum"])
+def test_pivot_df_show_values_as_ignores_legacy_aggregate_function(aggfunc: str):
+    """A total always divides by itself, whatever `aggregateFunction` says.
+
+    The chart ignores `aggregateFunction` post-SIP-216, so a percent export must
+    too: computing totals with it while the denominators sum leaves the Total
+    row/column reading something other than 100%.
+    """
+    pivoted = pivot_df(
+        show_values_as_df(),
+        **{**SHOW_VALUES_AS_OPTIONS, "aggfunc": aggfunc},
+        show_values_as="percent_row",
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), (total, "")] == 1
+    assert pivoted.loc[(total,), (total, "")] == 1
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+
+
+def test_pivot_df_show_values_as_supersedes_legacy_fraction_aggfunc():
+    """`showValuesAs` wins over a pre-SIP-216 fraction aggregate function."""
+    pivoted = pivot_df(
+        show_values_as_df(),
+        **{**SHOW_VALUES_AS_OPTIONS, "aggfunc": "Sum as Fraction of Total"},
+        show_values_as="percent_row",
+    )
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+
+
+def test_pivot_table_v2_show_values_as_formats_as_percent() -> None:
+    """A ratio ignores the configured value format and currency, as the chart does."""
+    result = pivot_table_v2(
+        show_values_as_df(),
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["SUM(num)"],
+            "showValuesAs": "percent_total",
+            "valueFormat": "$,.2f",
+            "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+        },
+    )
+
+    assert result.loc[("US",), ("SUM(num)", "boy")] == "12.5%"
+    assert result.loc[("US",), ("SUM(num)", "girl")] == "37.5%"
+
+
+def test_pivot_table_v2_unrecognized_aggregate_function_keeps_show_values_as() -> None:
+    """An unrecognized `aggregateFunction` isn't a result aggregation to the
+    frontend's own `getResultAggregation` lookup -- `RESULT_AGGREGATIONS`
+    doesn't contain it, so it falls back to the metric definition and still
+    renders the stored percent mode. A stale or otherwise unrecognized value
+    (e.g. a legacy spelling this map doesn't know, or an empty string) must
+    not suppress `showValuesAs` here either, or the export disagrees with
+    what the chart actually shows.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "showValuesAs": "percent_total",
+        "aggregateFunction": "Integer Sum",
+        "valueFormat": "$,.2f",
+        "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+    }
+
+    result = pivot_table_v2(show_values_as_df(), form_data)
+
+    assert result.loc[("US",), ("SUM(num)", "boy")] == "12.5%"
+    assert result.loc[("US",), ("SUM(num)", "girl")] == "37.5%"
+
+
+def test_pivot_table_v2_show_values_as_actual_keeps_raw_values() -> None:
+    result = pivot_table_v2(
+        show_values_as_df(),
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["SUM(num)"],
+            "showValuesAs": "actual",
+            "valueFormat": ",d",
+        },
+    )
+
+    assert result.loc[("US",), ("SUM(num)", "boy")] == "10"
+
+
+def test_apply_client_processing_xlsx_formats_percentages_as_cells():
+    """The workbook shows percentages without giving up numeric cells.
+
+    A scheduled XLSX report and the browser's pivoted-Excel download have to
+    agree; writing formatted text would match the download but stop Excel from
+    summing the column.
+    """
+    import openpyxl  # noqa: PLC0415
+
+    source = pd.DataFrame(
+        {"nation": ["US", "US"], "gender": ["boy", "girl"], "SUM(num)": [1, 99]}
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source, index=False),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "showValuesAs": "percent_row",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    workbook = openpyxl.load_workbook(BytesIO(processed["queries"][0]["data"]))
+    sheet = workbook.active
+    assert sheet.cell(row=2, column=2).value == pytest.approx(0.01)
+    assert sheet.cell(row=2, column=2).number_format == "0.0%"
+
+
+def test_apply_client_processing_xlsx_no_percent_format_under_result_aggregation():
+    """A stale percent `showValuesAs` under a result aggregation is ignored
+    when pivoting (the chart no longer renders it, see
+    `effective_show_values_as`), so the workbook must not apply the percent
+    number format either: an actual value of 10 would otherwise display as
+    1000.0%.
+    """
+    import openpyxl  # noqa: PLC0415
+
+    source = pd.DataFrame(
+        {"nation": ["US", "US"], "gender": ["boy", "girl"], "SUM(num)": [1, 99]}
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source, index=False),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": "Average",
+        "showValuesAs": "percent_row",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    workbook = openpyxl.load_workbook(BytesIO(processed["queries"][0]["data"]))
+    sheet = workbook.active
+    assert sheet.cell(row=2, column=2).value == 1
+    assert sheet.cell(row=2, column=2).number_format != "0.0%"
+
+
+def test_apply_client_processing_csv_format_show_values_as():
+    """CSV exports carry the percentages the chart displays."""
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": (
+                    "nation,gender,SUM(num)\n"
+                    "US,boy,10\nUS,girl,30\nUK,boy,20\nUK,girl,20\n"
+                ),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "showValuesAs": "percent_row",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    assert processed["queries"][0]["data"] == (
+        ",SUM(num) boy,SUM(num) girl\nUK,0.5,0.5\nUS,0.25,0.75\n"
     )
 
 
@@ -1874,6 +3112,610 @@ def test_table_applies_currency_format() -> None:
     assert formatted["amount"].tolist() == ["$ 1,234.50"]
 
 
+def test_table_applies_time_format_alongside_number_format() -> None:
+    """
+    Table reports honor an explicit ``d3TimeFormat`` on a temporal column,
+    mirroring the Table plugin's first formatter branch, while still applying
+    number formats on the same call. Without the time branch the timestamp was
+    left raw even though the browser formats it.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "ds": {
+                0: pd.Timestamp("2024-01-15 13:45:00"),
+                1: pd.Timestamp("2024-06-30 08:00:00"),
+            },
+            "SUM(num)": {0: 1234567.0, 1: 42.0},
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["SUM(num)"],
+        "column_config": {
+            "ds": {"d3TimeFormat": "%Y"},
+            "SUM(num)": {"d3NumberFormat": ",.2f"},
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["ds"].tolist() == ["2024", "2024"]
+    assert formatted["SUM(num)"].tolist() == ["1,234,567.00", "42.00"]
+
+
+def test_table_leaves_a_null_time_format_alone() -> None:
+    """
+    A ``d3TimeFormat`` of JSON ``null`` leaves the column alone.
+
+    ``column_config`` is free-form JSON out of the saved chart params, so the
+    key can be present and null. ``config.get("d3TimeFormat", "").strip()``
+    would raise ``AttributeError: 'NoneType' object has no attribute 'strip'``
+    and fail the whole report, and every other table test here passes either
+    way because none of them puts a null in the key.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "ds": {0: pd.Timestamp("2024-04-02 13:45:00")},
+            "SUM(num)": {0: 1234.5678},
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["SUM(num)"],
+        "column_config": {
+            "ds": {"d3TimeFormat": None},
+            "SUM(num)": {"d3NumberFormat": ",.1f"},
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["ds"].tolist() == [pd.Timestamp("2024-04-02 13:45:00")]
+    assert formatted["SUM(num)"].tolist() == ["1,234.6"]
+
+
+@pytest.mark.parametrize(
+    ("time_format", "expected"),
+    [
+        ("%d", "01"),
+        ("%G", "2020"),
+        ("%H", "13"),
+        ("%I", "01"),
+        ("%j", "001"),
+        ("%m", "01"),
+        ("%M", "05"),
+        ("%S", "09"),
+        ("%u", "5"),
+        ("%U", "00"),
+        ("%V", "53"),
+        ("%w", "5"),
+        ("%W", "00"),
+        ("%y", "21"),
+        ("%Y", "2021"),
+        ("%%", "%"),
+        ("%G-W%V-%u", "2020-W53-5"),
+    ],
+)
+def test_table_time_format_matches_d3_for_each_shared_directive(
+    time_format: str, expected: str
+) -> None:
+    """
+    Every directive in ``SHARED_TIME_DIRECTIVES`` is held to d3's own output.
+
+    The expected strings are what ``utcFormat`` from ``d3-time-format`` returns
+    for this timestamp, so taking a directive out of the allowlist fails the
+    case that names it rather than passing unnoticed. 1 January 2021 is a
+    Friday in ISO week 53 of 2020, which is what separates ``%G`` from ``%Y``
+    and ``%V`` from ``%U`` and ``%W``; 13:05:09 separates ``%I`` from ``%H``.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2021-01-01 13:05:09")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [expected]
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "%Y%",
+        "%d/%m/%Y%",
+        "%%%",
+        "%Y%%%",
+    ],
+)
+def test_table_skips_a_time_format_with_an_unconsumed_percent(
+    time_format: str,
+) -> None:
+    """
+    A ``%`` that no directive consumes is dropped by d3 and copied by
+    ``strftime``.
+
+    ``%Y%`` is ``2021`` in the chart and would be ``2021%`` in the report, and
+    ``%%%`` is ``%`` against ``%%``. Every directive in these is shared, so the
+    allowlist alone accepts them and the column has to be left to the browser
+    on the stray ``%`` instead.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2021-01-01 13:05:09")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2021-01-01 13:05:09")]
+
+
+def test_table_leaves_adaptive_time_format_alone() -> None:
+    """
+    ``smart_date`` ("Adaptive formatting") is an alias the browser resolves to a
+    formatter, not a format string. It carries no ``%`` directive, so the rule
+    that a format has to have one is what keeps it away from ``strftime``,
+    which would hand the alias back unchanged and print it in every cell.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "ds": {
+                0: pd.Timestamp("2024-01-15 13:45:00"),
+                1: pd.Timestamp("2024-06-30 08:00:00"),
+            },
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "smart_date"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["ds"].tolist() == [
+        pd.Timestamp("2024-01-15 13:45:00"),
+        pd.Timestamp("2024-06-30 08:00:00"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "yyyy-mm-dd",
+        "Q1",
+        "Date",
+        "100%",
+    ],
+)
+def test_table_skips_a_time_format_with_no_directive(time_format: str) -> None:
+    """
+    A format carrying no ``%`` directive is not a format string.
+
+    ``strftime`` has nothing to substitute and returns the string it was given,
+    so accepting one of these would put ``yyyy-mm-dd`` in every cell of the
+    column instead of a date. This is the rule that also rejects the adaptive
+    alias.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-04-02 13:45:00")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2024-04-02 13:45:00")]
+
+
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    [
+        pytest.param(
+            {0: "2024-01-15", 1: "2024-06-30"},
+            ["2024-01-15", "2024-06-30"],
+            id="string column",
+        ),
+        pytest.param({0: 2024, 1: 2025}, [2024, 2025], id="integer column"),
+    ],
+)
+def test_table_skips_a_time_format_on_a_non_datetime_column(
+    values: dict[int, Any], expected: list[Any]
+) -> None:
+    """
+    ``d3TimeFormat`` on a column that is not datetime leaves the column alone.
+
+    A string or a number has no ``strftime`` to call, so formatting one would
+    raise ``AttributeError`` in the report worker. The browser reaches these
+    through a d3-time-format port, which parses the value first, and that is
+    what the follow-up needs rather than something ``strftime`` can stand in
+    for.
+    """
+    df = pd.DataFrame.from_dict({"ds": values})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "%Y"}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == expected
+
+
+def test_table_time_format_keeps_nulls() -> None:
+    """
+    A missing timestamp stays missing, and does not fail the report.
+
+    ``strftime`` on a ``NaT`` does not produce the string ``"NaT"``; it raises
+    ``ValueError: NaTType does not support strftime``, so without the
+    ``pd.notna`` guard one null would fail the whole report rather than print
+    anything.
+    """
+    df = pd.DataFrame.from_dict(
+        {"ds": {0: pd.Timestamp("2024-01-15"), 1: pd.NaT}},
+    )
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "%Y"}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist()[0] == "2024"
+    assert pd.isna(formatted["ds"].tolist()[1])
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    ["  %Y-%m-%d  ", " %Y-%m-%d", "%Y-%m-%d ", "\t%Y-%m-%d\n", "\r%Y-%m-%d\x0b"],
+)
+def test_table_time_format_strips_surrounding_whitespace(time_format: str) -> None:
+    """
+    A padded format renders like the chart, which trims before formatting.
+
+    ``TimeFormatterRegistry.get`` trims the format string before building the
+    formatter, while d3 itself does not: ``utcFormat(" %Y ")`` returns
+    ``" 2024 "``. Without the strip the report kept the padding the chart had
+    already dropped. Every character here is whitespace to both ``str.strip``
+    and ``String.prototype.trim``; the handful they disagree on is in
+    ``format_time_column``.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-01-15")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == ["2024-01-15"]
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "%Y Q%q",
+        "%H:%M:%S.%L",
+        "%Q",
+        "%-d %b",
+        "%x",
+        "local!%Y-%m-%d",
+        "%Y local!",
+        "%H:%M:%S.%f",
+        "%Y %Z",
+        "%Y %z",
+        "%c",
+        "%X",
+        "%s",
+        "%C",
+        "%D",
+        "%F",
+        "%h",
+        "%k",
+        "%l",
+        "%n",
+        "%P",
+        "%r",
+        "%R",
+        "%t",
+        "%T",
+    ],
+)
+def test_table_skips_a_time_format_strftime_cannot_express(time_format: str) -> None:
+    """
+    ``strftime`` copies a directive it does not recognize into its output, so a
+    format carrying a d3-only one would reach the report as literal text.
+
+    So would the ``local!`` marker, wherever it sits. ``TimeFormatterRegistry``
+    reads local time off ``startsWith`` but takes the marker out of the format
+    with ``replace``, which drops it from anywhere, so a trailing one is not
+    part of the chart's output either and a format carrying one is left to the
+    browser rather than matched on its prefix.
+
+    ``%f`` is recognized by both but means different things: d3 scales the
+    milliseconds it has, so its microseconds always end in ``000``. The column
+    is left raw instead, the way an unsupported number format is.
+
+    ``%Z`` is recognized by both and disagrees whichever way the value comes
+    in. After the UTC conversion ``strftime`` renders the zone name, ``2024
+    UTC`` against d3's ``2024 +0000``, and on a naive value it renders nothing
+    at all.
+
+    The cases after it come from running every letter through both
+    implementations rather than from reading either, and they cover every
+    letter outside the set that the two disagree on. ``%c`` and ``%X`` are
+    substituted by both and lay the locale out differently, ``4/2/2024,
+    1:45:09 PM`` against ``Tue Apr  2 13:45:09 2024``. ``%s`` is substituted
+    by both as well, and reads the epoch in UTC in d3 against local time in
+    glibc, so the two sit a whole server offset apart and the report would
+    move with the host's zone. ``%z`` and ``%C %D %F %h %k %l %n %P %r %R %t
+    %T`` go the other way: ``strftime`` substitutes them and d3 copies the
+    bare letter, so ``%T`` would read ``13:45:09`` in the report against ``T``
+    in the chart and ``%t`` a tab against ``t``.
+
+    The letters outside the set that do agree have no case of their own:
+    ``%a``, ``%A``, ``%B``, ``%e``, ``%g`` and ``%p``, with ``%b`` appearing
+    above only as the tail of the ``%-d`` pad-modifier case. Adding one of
+    them to the set would be a widening rather than a regression, and a case
+    here would block it.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-04-02 13:45:00")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2024-04-02 13:45:00")]
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "%B %Y",
+        "%b %d",
+        "%A",
+        "%a",
+        "%I:%M %p",
+    ],
+)
+def test_table_skips_a_time_format_naming_a_month_weekday_or_period(
+    time_format: str,
+) -> None:
+    """
+    The browser reads weekday, month and period names from the d3 locale
+    definition, which ``D3_TIME_FORMAT`` overrides key by key, while ``strftime``
+    reads them from the worker's ``LC_TIME``. With French ``months`` configured
+    the chart renders ``janvier 2024`` where ``strftime`` on an English worker
+    renders ``January 2024``, so the column is left raw rather than formatted
+    with names the chart does not use.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-01-15 14:30:00")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2024-01-15 14:30:00")]
+
+
+def test_table_time_format_reads_an_aware_value_in_utc() -> None:
+    """
+    ``createD3TimeFormatter`` formats with ``utcFormat`` unless the format asks
+    for local time, so an aware value has to be read in UTC rather than in its
+    own offset, which is a different instant.
+    """
+    df = pd.DataFrame(
+        {"ds": pd.to_datetime(["2024-01-01 00:30"]).tz_localize("Asia/Kolkata")}
+    )
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "%Y-%m-%d %H:%M"}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == ["2023-12-31 19:00"]
+
+
+def test_table_report_time_format_survives_the_notification_table() -> None:
+    """
+    ``chart_data_to_dataframe`` casts every column the payload types as
+    ``TEMPORAL`` back to a datetime, so the payload has to report a formatted
+    temporal column as text or the notification table re-parses the strings and
+    the configured format never reaches the recipient.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"ds": pd.Timestamp("2024-01-02"), "cnt": 1},
+                    {"ds": pd.Timestamp("2024-01-15"), "cnt": 2},
+                ],
+            }
+        ],
+    }
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["cnt"],
+        "column_config": {"ds": {"d3TimeFormat": "%d/%m/%Y"}},
+    }
+
+    processed = apply_client_processing(result, form_data, datasource)
+    query = processed["queries"][0]
+
+    assert list(query["data"]["ds"].values()) == ["02/01/2024", "15/01/2024"]
+    assert query["coltypes"][0] == GenericDataType.STRING
+
+    payload = json.dumps(
+        {
+            "result": [
+                {
+                    "data": query["data"],
+                    "coltypes": [int(coltype) for coltype in query["coltypes"]],
+                    "colnames": query["colnames"],
+                    "indexnames": query["indexnames"],
+                }
+            ]
+        }
+    ).encode("utf-8")
+
+    notification_table = chart_data_to_dataframe(payload)
+
+    assert notification_table is not None
+    assert notification_table[("ds",)].tolist() == ["02/01/2024", "15/01/2024"]
+
+
+def test_table_report_time_format_survives_a_null_in_the_column() -> None:
+    """
+    A null alongside the formatted strings does not cost the column its type.
+
+    ``format_time_column`` leaves nulls in place, and ``infer_dtype`` reads a
+    ``NaT`` as a value of its own type rather than one ``skipna`` drops, so it
+    calls the column ``"mixed"`` rather than text. Typing it ``TEMPORAL`` on
+    that basis sends it back through the datetime cast in
+    ``chart_data_to_dataframe``, which reads ``02/01/2024`` month-first and
+    puts 1 February in the report, so any null in the column would undo the
+    format.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"ds": pd.Timestamp("2024-01-02"), "cnt": 1},
+                    {"ds": None, "cnt": 2},
+                ],
+            }
+        ],
+    }
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["cnt"],
+        "column_config": {"ds": {"d3TimeFormat": "%d/%m/%Y"}},
+    }
+
+    query = apply_client_processing(result, form_data, datasource)["queries"][0]
+
+    assert query["coltypes"][0] == GenericDataType.STRING
+    values = list(query["data"]["ds"].values())
+    assert values[0] == "02/01/2024"
+    assert pd.isna(values[1])
+
+
+def test_payload_coltypes_reads_repeated_labels_positionally() -> None:
+    """
+    Two columns sharing a label are typed one at a time, not together.
+
+    ``extract_dataframe_dtypes`` walks the frame by position, so the types it
+    returns are read back the same way. Addressing the frame by label instead
+    would hand a repeated label every column that carries it, type them all
+    from the first one's values, and cost a real timestamp column its
+    ``TEMPORAL`` in the payload.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    df = pd.DataFrame(
+        [["02/01/2024", pd.Timestamp("2024-02-01")]], columns=["ds", "ds"]
+    )
+
+    assert payload_coltypes(df, datasource) == [
+        GenericDataType.STRING,
+        GenericDataType.TEMPORAL,
+    ]
+
+
+def test_payload_coltypes_keeps_an_all_null_column_temporal() -> None:
+    """
+    A column of nothing but nulls keeps the type the dataset gives it.
+
+    ``dropna`` leaves nothing for ``infer_dtype`` to read, and it calls an
+    empty series ``"empty"`` rather than ``"string"``, so the dataset's
+    ``is_dttm`` stands. Widening the check to ``("string", "empty")`` would
+    report the column ``STRING`` and stop ``chart_data_to_dataframe`` casting
+    it back for the notification table. The null case above mixes a string in
+    with the ``NaT``, which reads as ``"string"`` and passes either way.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    df = pd.DataFrame({"ds": [None, None]}, dtype=object)
+
+    assert payload_coltypes(df, datasource) == [GenericDataType.TEMPORAL]
+
+
+def test_report_payload_keeps_an_unformatted_temporal_column_temporal() -> None:
+    """
+    A temporal column nobody rendered as text keeps its ``TEMPORAL`` type.
+
+    The payload type is what ``chart_data_to_dataframe`` reads to rebuild dates
+    for the notification table, and what the XLSX branch hands to
+    ``excel.apply_column_types`` to get date cells. Reporting a datetime column
+    as text would cost it both.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"ds": pd.Timestamp("2024-01-02"), "cnt": 1},
+                    {"ds": pd.Timestamp("2024-01-15"), "cnt": 2},
+                ],
+            }
+        ],
+    }
+    form_data = {"viz_type": "table", "metrics": ["cnt"]}
+
+    query = apply_client_processing(result, form_data, datasource)["queries"][0]
+
+    assert query["coltypes"][0] == GenericDataType.TEMPORAL
+    assert list(query["data"]["ds"].values()) == [
+        pd.Timestamp("2024-01-02"),
+        pd.Timestamp("2024-01-15"),
+    ]
+
+
+def test_report_payload_types_a_csv_read_temporal_column_as_text() -> None:
+    """
+    The type follows the values, not whether this module wrote them.
+
+    Number and time formatting only runs for the JSON result format, so a CSV
+    payload's temporal column arrives as text from ``read_csv`` and is reported
+    that way. Keying the override on "did a post-processor format this column"
+    instead of on the values would report text as ``TEMPORAL`` here.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": "ds,cnt\n2024-01-02,1\n2024-01-15,2\n",
+            }
+        ],
+    }
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["cnt"],
+        "column_config": {"ds": {"d3TimeFormat": "%d/%m/%Y"}},
+    }
+
+    query = apply_client_processing(result, form_data, datasource)["queries"][0]
+
+    assert query["coltypes"] == [GenericDataType.STRING, GenericDataType.NUMERIC]
+    # The CSV text itself is handed back untouched, formats included.
+    assert query["data"] == "ds,cnt\n2024-01-02,1\n2024-01-15,2\n"
+
+
 def test_table_applies_si_number_format() -> None:
     """
     Table reports honor d3 formats that Python's str.format cannot express.
@@ -1885,6 +3727,381 @@ def test_table_applies_si_number_format() -> None:
     }
     formatted = table(df, form_data)
     assert formatted["amount"].tolist() == ["1.23k"]
+
+
+def test_table_applies_small_number_format() -> None:
+    """
+    A cell below one in absolute value takes the column's small-number format.
+
+    ``formatColumnValue`` in the Table plugin picks the formatter per value, so
+    the report has to switch per cell rather than per column.
+
+    The switch point itself is covered on both sides and in both signs. The
+    browser's test is ``Math.abs(value) < 1``, so exactly one is a large cell
+    and a large negative stays large: widening the comparison to ``<= 1`` or
+    comparing the signed value would render one of these as a percentage.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "ratio": {
+                0: 0.0523,
+                1: 12.5,
+                2: -0.5,
+                3: 0.0,
+                4: 1.0,
+                5: -1.0,
+                6: -12.5,
+            }
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["ratio"],
+        "column_config": {
+            "ratio": {"d3NumberFormat": ",.2f", "d3SmallNumberFormat": ".1%"}
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["ratio"].tolist() == [
+        "5.2%",
+        "12.50",
+        "-50.0%",
+        "0.0%",
+        "1.00",
+        "-1.00",
+        "-12.50",
+    ]
+
+
+def test_table_ignores_blank_small_number_format() -> None:
+    """
+    A cleared Select leaves an empty string behind, which
+    ``getSmallNumberFormatter`` treats as unset.
+    """
+    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["ratio"],
+        "column_config": {
+            "ratio": {"d3NumberFormat": ",.2f", "d3SmallNumberFormat": "  "}
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["ratio"].tolist() == ["0.05", "12.50"]
+
+
+def test_table_small_number_format_without_a_normal_format() -> None:
+    """
+    A small-number format on its own is enough to format the small cells.
+
+    The other cells follow the browser: a metric falls back to SMART_NUMBER,
+    while a numeric dimension gets no formatter at all and is printed as is.
+    """
+    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 1200.0}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["ratio"],
+        "column_config": {"ratio": {"d3SmallNumberFormat": ".1%"}},
+    }
+    assert table(df, form_data)["ratio"].tolist() == ["5.2%", "1.2k"]
+
+    # 1200.0 separates the two: SMART_NUMBER renders it ``1.2k`` while an
+    # unformatted cell prints ``1200``. A value such as 12.5 reads the same
+    # either way and would not show the difference.
+    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 1200.0}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "column_config": {"ratio": {"d3SmallNumberFormat": ".1%"}},
+    }
+    assert table(df, form_data)["ratio"].tolist() == ["5.2%", "1200"]
+
+
+def test_table_small_number_format_uses_the_column_config_currency() -> None:
+    """
+    ``getSmallNumberFormatter`` pairs the small format with the column config's
+    own currency, and the currency formatter drops percent signs.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": ".1%",
+                "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["amount"].tolist() == ["$ 50.0", "$ 12.50"]
+
+
+def test_table_small_number_format_drops_a_dollar_for_a_cleared_currency() -> None:
+    """
+    ``getSmallNumberFormatter`` builds a ``CurrencyFormatter`` from any
+    ``currencyFormat`` object, and that constructor strips ``$`` from the format
+    before it checks the symbol, so a cleared currency still drops the ``$``.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$,.2f",
+                "currencyFormat": {"symbolPosition": "prefix"},
+            }
+        },
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["amount"].tolist() == ["0.50", "12.50"]
+
+
+def test_table_small_number_format_of_only_a_dollar_falls_back() -> None:
+    """
+    A small-number format that is nothing but ``$`` lands on the default.
+
+    ``CurrencyFormatter.format`` calls ``getNumberFormatter`` with
+    ``getNormalizedD3Format()``, which strips every ``$``, and the registry
+    answers an empty id with its ``defaultKey``, SMART_NUMBER. Leaving the
+    format empty instead would skip the small-number branch and give the cell
+    the column's normal format.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$",
+                "currencyFormat": {"symbol": "", "symbolPosition": "prefix"},
+            }
+        },
+    }
+
+    # SMART_NUMBER gives ``0.5``; the column's own ``,.2f`` would give ``0.50``.
+    assert table(df, form_data)["amount"].tolist() == ["0.5", "12.50"]
+
+
+def test_table_small_number_format_keeps_a_dollar_without_a_currency_config() -> None:
+    """
+    With no ``currencyFormat`` object the browser builds a plain number
+    formatter instead, and d3 renders the ``$`` in the format itself.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$,.2f",
+            }
+        },
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["amount"].tolist() == ["$0.50", "12.50"]
+
+
+def test_table_small_number_format_drops_a_dollar_with_a_currency_context() -> None:
+    """
+    The per-row branch builds the same formatter, so a cleared currency drops
+    the ``$`` there too, and no row's currency reaches a symbol-less config.
+    """
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "amount": [0.5, 12.5],
+            "currency": ["USD", "USD"],
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$,.2f",
+                "currencyFormat": {"symbolPosition": "prefix"},
+            }
+        },
+    }
+
+    formatted = table(df, form_data, datasource, detected_currency="USD")
+
+    assert formatted["amount"].tolist() == ["0.50", "12.50"]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        pytest.param(None, "", id="null"),
+        pytest.param("n/a", "n/a", id="text"),
+        pytest.param(float("nan"), "", id="nan"),
+    ],
+)
+def test_table_small_number_format_on_a_non_numeric_percent_metric(
+    value: Any, expected: str
+) -> None:
+    """
+    A percent metric cell that is not a number is carried through.
+
+    The percent metric branch is the one that does not test
+    ``is_numeric_dtype`` first, so these values reach the small-number
+    predicate. Handing them to ``float`` raises ``TypeError`` for a null and
+    ``ValueError`` for text, which would be a failed report rather than a
+    misformatted cell.
+    """
+    # Built as object dtype on purpose: ``from_dict`` would turn the null into
+    # a ``nan`` in a float column, and the value has to arrive as it is for the
+    # type check to be the thing under test.
+    df = pd.DataFrame({"%share": pd.Series([value, 0.5], dtype=object)})
+    form_data = {
+        "viz_type": "table",
+        "percent_metrics": ["share"],
+        "column_config": {"%share": {"d3SmallNumberFormat": ".1%"}},
+    }
+
+    assert table(df, form_data)["%share"].tolist() == [expected, "50.0%"]
+
+
+def test_table_small_number_format_on_a_percent_metric() -> None:
+    """
+    Percent metric columns are numeric too, so they switch formatter the same
+    way; their other cells keep the PERCENT_3_POINT default.
+    """
+    df = pd.DataFrame.from_dict({"%cnt": {0: 0.004, 1: 2.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "percent_metrics": ["cnt"],
+        "column_config": {"%cnt": {"d3SmallNumberFormat": ".2%"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["%cnt"].tolist() == ["0.40%", "250.000%"]
+
+
+def test_table_small_number_format_on_a_percent_metric_keeps_the_row_currency() -> None:
+    """
+    A percent metric's own formatter carries no currency, but the small-number
+    one is built from the column config, so its cells resolve AUTO per row.
+    """
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "percent_metrics": ["cnt"],
+        "column_config": {
+            "%cnt": {
+                "d3SmallNumberFormat": ",.3f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "%cnt": [0.5, 0.25, 2.5],
+            "currency": ["USD", None, "EUR"],
+        }
+    )
+
+    formatted = table(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted["%cnt"].tolist() == ["$ 0.500", "0.250", "250.000%"]
+
+
+def test_table_small_number_format_ignores_a_saved_currency() -> None:
+    """
+    The small format is paired with the column config's own currency, so a
+    currency the dataset saved for the metric reaches only the normal format.
+    """
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "metrics": [
+            {
+                "metric_name": "amount",
+                "currency": {"symbol": "USD", "symbolPosition": "prefix"},
+            }
+        ],
+    }
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": ".1%",
+            }
+        },
+    }
+
+    formatted = table(df, form_data, datasource)
+
+    assert formatted["amount"].tolist() == ["50.0%", "$ 12.50"]
+
+
+def test_ag_grid_table_ignores_a_small_number_format() -> None:
+    """
+    The AG Grid table paints its cells through ``valueFormatter``, which never
+    builds the small-number formatter, so a report on one keeps the column's
+    normal format for every cell.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    column_config = {
+        "amount": {"d3NumberFormat": ",.2f", "d3SmallNumberFormat": ".1%"},
+    }
+
+    ag_grid = table(
+        df.copy(),
+        {
+            "viz_type": "ag-grid-table",
+            "metrics": ["amount"],
+            "column_config": column_config,
+        },
+    )
+    plain = table(
+        df.copy(),
+        {"viz_type": "table", "metrics": ["amount"], "column_config": column_config},
+    )
+
+    assert ag_grid["amount"].tolist() == ["0.50", "12.50"]
+    assert plain["amount"].tolist() == ["50.0%", "12.50"]
+
+
+def test_table_small_number_format_leaves_non_numeric_columns_alone() -> None:
+    """
+    The plugin only switches formatter for a numeric column, so a string column
+    configured with a small-number format is untouched.
+    """
+    df = pd.DataFrame.from_dict({"name": {0: "a", 1: "b"}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "column_config": {"name": {"d3SmallNumberFormat": ".1%"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["name"].tolist() == ["a", "b"]
 
 
 def test_table_applies_smart_number_default_to_unconfigured_metric() -> None:
@@ -2119,6 +4336,44 @@ def test_table_auto_currency_uses_per_row_currency_context() -> None:
         "€ 200.00",
         "300.00",
         "400.00",
+    ]
+
+
+def test_table_small_number_format_resolves_auto_currency_per_row() -> None:
+    """
+    The browser hands the row's data to the small-number formatter as well, so a
+    value below one keeps the row's own currency symbol.
+    """
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": ",.3f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "amount": [100.0, 0.5, 0.25, 0.75],
+            "currency": ["USD", " eur ", None, "invalid"],
+        }
+    )
+
+    formatted = table(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted["amount"].tolist() == [
+        "$ 100.00",
+        "€ 0.500",
+        "0.250",
+        "0.750",
     ]
 
 
@@ -2577,6 +4832,84 @@ def test_apply_pivot_number_formats_auto_currency_without_detection() -> None:
         },
     )
     assert df[("sales",)].tolist() == ["1,234.50"]
+
+
+def test_apply_client_processing_formats_an_ag_grid_table() -> None:
+    """
+    An AG Grid table report is formatted, not sent out with raw numbers.
+    """
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"name": "a", "SUM(amount)": 1234567.0, "%SUM(amount)": 0.9},
+                    {"name": "b", "SUM(amount)": 42.0, "%SUM(amount)": 0.1},
+                ],
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "ag-grid-table",
+        "metrics": ["SUM(amount)"],
+        "percent_metrics": ["SUM(amount)"],
+        "column_config": {"SUM(amount)": {"d3NumberFormat": ",.2f"}},
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    assert processed["queries"][0]["data"] == {
+        "name": {0: "a", 1: "b"},
+        "SUM(amount)": {0: "1,234,567.00", 1: "42.00"},
+        "%SUM(amount)": {0: "90.000%", 1: "10.000%"},
+    }
+
+
+def test_apply_client_processing_ag_grid_table_matches_table() -> None:
+    """
+    The two table viz types agree on the number and currency formats.
+
+    The AG Grid plugin's column meta block is the Table plugin's, and its
+    ``valueFormatter`` applies the column's own formatter, so a configured
+    format, a saved format and an AUTO currency all land the same way. The
+    agreement is per format rather than wholesale: the plugins read the same
+    ``column_config`` but paint cells through different code, so a key one of
+    them acts on alone belongs in its own test rather than in a blanket
+    comparison.
+    """
+
+    def payload() -> dict[str, Any]:
+        return {
+            "queries": [
+                {
+                    "result_format": ChartDataResultFormat.JSON,
+                    "detected_currency": "USD",
+                    "data": [{"dim": "x", "amount": 1234.5, "count": 7.0}],
+                }
+            ]
+        }
+
+    def form_data(viz_type: str) -> dict[str, Any]:
+        return {
+            "viz_type": viz_type,
+            "metrics": ["amount", "count"],
+            "column_config": {
+                "amount": {
+                    "d3NumberFormat": ",.2f",
+                    "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+                }
+            },
+        }
+
+    as_table = apply_client_processing(payload(), form_data("table"))
+    as_ag_grid = apply_client_processing(payload(), form_data("ag-grid-table"))
+
+    assert as_ag_grid["queries"][0]["data"] == as_table["queries"][0]["data"]
+    assert as_ag_grid["queries"][0]["data"] == {
+        "dim": {0: "x"},
+        "amount": {0: "$ 1,234.50"},
+        "count": {0: "7"},
+    }
 
 
 def test_apply_client_processing_no_form_invalid_viz_type():
@@ -3158,6 +5491,64 @@ def test_apply_client_processing_csv_format_no_data(data):
     assert apply_client_processing(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]
     }
+
+
+def _header_only_export(result_format: ChartDataResultFormat) -> bytes:
+    """
+    The payload ``QueryContextProcessor.get_data`` produces for a chart whose
+    query matched no rows: the column headers, but no data rows.
+    """
+    df = pd.DataFrame(
+        {
+            "country": pd.Series(dtype="object"),
+            "region": pd.Series(dtype="object"),
+            "SUM(num)": pd.Series(dtype="float"),
+        }
+    )
+    if result_format == ChartDataResultFormat.XLSX:
+        return excel.df_to_excel(df, index=False)
+    # same default encoding as the CSV_EXPORT config
+    return df.to_csv(index=False).encode("utf-8-sig")
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX]
+)
+@pytest.mark.parametrize(
+    ("groupby_rows", "groupby_columns"),
+    [(["country"], []), ([], ["country"]), (["country"], ["region"])],
+    ids=["rows", "columns", "rows_and_columns"],
+)
+def test_apply_client_processing_pivot_table_v2_export_without_rows(
+    result_format: ChartDataResultFormat,
+    groupby_rows: list[str],
+    groupby_columns: list[str],
+) -> None:
+    """
+    A scheduled CSV/Excel report must be sendable when the chart matches no rows.
+
+    The export of such a chart is not blank: it holds the column headers, which
+    parse to a zero-row dataframe. Pivoting that frame used to raise a
+    ``KeyError`` (pandas drops the metric columns when pivoting zero rows), so
+    the chart data request failed with a server error instead of exporting the
+    empty result like the Explore download does.
+    """
+    payload = _header_only_export(result_format)
+    result = {"queries": [{"result_format": result_format, "data": payload}]}
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": groupby_rows,
+        "groupbyColumns": groupby_columns,
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    assert len(processed["queries"]) == 1
+    # the export is passed through untouched, headers only
+    assert processed["queries"][0]["data"] == payload
 
 
 def test_apply_client_processing_csv_format_no_data_multiple_queries():
@@ -3749,6 +6140,292 @@ def test_apply_client_processing_xlsx_format_pivot_table_groupby_columns() -> No
     assert "value Corporate" in output_df.columns
 
 
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+@pytest.mark.parametrize("selection", ["columns", "all_columns", "groupby"])
+@pytest.mark.parametrize("verbose", [False, True])
+@pytest.mark.parametrize("values", [["Books", "Games"], [0, 1]])
+def test_table_export_preserves_selected_dimension(
+    result_format: ChartDataResultFormat,
+    selection: str,
+    verbose: bool,
+    values: list[str] | list[int],
+) -> None:
+    """Selected dimensions remain columns even with labels or index-like values."""
+    labels: dict[str, str] = (
+        {"category": "Category", "total_amount": "Total amount"} if verbose else {}
+    )
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"category": values, "total_amount": [15, 20]}
+    ).rename(columns=labels)
+    datasource: MagicMock = MagicMock()
+    datasource.data = {"verbose_map": labels}
+    form_data: dict[str, Any] = {
+        "viz_type": "table",
+        selection: ["category"],
+        "metrics": ["total_amount"],
+    }
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": result_format,
+                "data": excel.df_to_excel(source_df, index=False)
+                if result_format == ChartDataResultFormat.XLSX
+                else source_df.to_csv(index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+    output_df: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]))
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]))
+    )
+    pd.testing.assert_frame_equal(output_df, source_df)
+    assert query["colnames"] == source_df.columns.tolist()
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+@pytest.mark.parametrize("selection", ["groupby", "all_columns"])
+def test_ag_grid_table_export_is_left_unchanged(
+    result_format: ChartDataResultFormat,
+    selection: str,
+) -> None:
+    """
+    An AG Grid report attachment comes back byte for byte as it arrived.
+
+    Registering the viz type for post-processing is what makes these formats
+    reach the parser at all; before that they hit the early return and went out
+    untouched. `table` cannot change them, since `apply_number_format` is false
+    for every format but JSON, so parsing and rewriting them buys nothing and
+    costs data.
+
+    The frame carries the two values that a round trip through the reader loses:
+    a zero-padded code, which `pd.read_csv` reads as `1234`, and an `NA` label,
+    which it reads as an empty cell under the default `REPORTS_CSV_NA_NAMES`.
+    Both selection keys are covered because the XLSX reader decides whether to
+    move the first column into the index by looking for it among them.
+    """
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"code": ["01234", "00077"], "label": ["NA", "ok"], "total_amount": [15, 20]}
+    )
+    datasource: MagicMock = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = []
+    form_data: dict[str, Any] = {
+        "viz_type": "ag-grid-table",
+        selection: ["code", "label"],
+        "metrics": ["total_amount"],
+    }
+    attachment: bytes | str = (
+        excel.df_to_excel(source_df, index=False)
+        if result_format == ChartDataResultFormat.XLSX
+        else source_df.to_csv(index=False)
+    )
+    result: dict[str, Any] = {
+        "queries": [{"result_format": result_format, "data": attachment}]
+    }
+
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+
+    assert query["data"] == attachment
+    # Read back with the coercions turned off, so the assertion is about what
+    # the attachment holds rather than about what the reader does to it.
+    output_df: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]), dtype=str, keep_default_na=False)
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]), dtype=str, keep_default_na=False)
+    )
+    assert output_df["code"].tolist() == ["01234", "00077"]
+    assert output_df["label"].tolist() == ["NA", "ok"]
+    assert list(output_df.columns) == ["code", "label", "total_amount"]
+
+
+@with_config({"CSV_EXPORT": {"quotechar": "'"}})
+def test_ag_grid_table_csv_export_survives_a_custom_quotechar() -> None:
+    """
+    An AG Grid CSV attachment is not parsed, so a custom quote character cannot
+    break the report.
+
+    ``QueryContextProcessor.get_data`` writes the attachment with every
+    ``CSV_EXPORT`` key, while the reader here is handed only ``sep`` and
+    ``decimal``. Under a configured ``quotechar`` the two disagree: the writer
+    quotes ``Doe, Jane`` with ``'`` and the reader, still on ``"``, sees three
+    fields against a two column header and raises ``ParserError``, failing the
+    whole report where the attachment itself was fine. A comma in the first data
+    row instead makes ``read_csv`` infer an index and mis-parse in silence, so
+    the raise needs a clean first row.
+    """
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"name": ["Smith", "Doe, Jane"], "total_amount": [15, 20]}
+    )
+    datasource: MagicMock = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = []
+    form_data: dict[str, Any] = {
+        "viz_type": "ag-grid-table",
+        "groupby": ["name"],
+        "metrics": ["total_amount"],
+    }
+    attachment: str = source_df.to_csv(index=False, quotechar="'")
+    result: dict[str, Any] = {
+        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": attachment}]
+    }
+
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+
+    assert query["data"] == attachment
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+def test_serialized_export_does_not_rename_display_label_twice(
+    result_format: ChartDataResultFormat,
+) -> None:
+    """A display label can equal another column's raw name without remapping."""
+    # Avoid app-init regression: QueryContextProcessor imports SQL dataset models.
+    from superset.common.query_context_processor import QueryContextProcessor
+
+    labels: dict[str, str] = {
+        "category": "total_amount",
+        "total_amount": "Total amount",
+    }
+    source: pd.DataFrame = pd.DataFrame(
+        {"category": ["Books", "Games"], "total_amount": [15, 20]}
+    )
+    expected: pd.DataFrame = source.rename(columns=labels)
+    datasource: MagicMock = MagicMock(data={"verbose_map": labels})
+    processor: QueryContextProcessor = QueryContextProcessor(
+        MagicMock(datasource=datasource, result_format=result_format)
+    )
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": result_format,
+                "data": processor.get_data(
+                    source, [GenericDataType.STRING, GenericDataType.NUMERIC]
+                ),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(
+        result,
+        {"viz_type": "table", "groupby": ["category"], "metrics": ["total_amount"]},
+        datasource,
+    )["queries"][0]
+    actual: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]))
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]))
+    )
+    pd.testing.assert_frame_equal(actual, expected)
+    assert query["colnames"] == ["total_amount", "Total amount"]
+
+
+@pytest.mark.parametrize(
+    ("column", "values", "columns"),
+    [("Category", ["Books", "Games"], []), (2024, [0, 1], ["2024"])],
+)
+def test_table_xlsx_preserves_unlisted_and_numeric_headers(
+    column: str | int, values: list[str] | list[int], columns: list[str]
+) -> None:
+    """Retain fallback index names and recognize numeric-looking selections."""
+    source: pd.DataFrame = pd.DataFrame({column: values, "Total": [15, 20]})
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source, index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(
+        result, {"viz_type": "table", "groupby": columns, "metrics": ["Total"]}
+    )["queries"][0]
+    actual: pd.DataFrame = pd.read_excel(BytesIO(query["data"]))
+    pd.testing.assert_frame_equal(actual, source)
+
+
+def test_table_xlsx_preserves_percent_metric_header() -> None:
+    """A percent-only selection is a data column, not an unnamed row index."""
+    source_df: pd.DataFrame = pd.DataFrame({"%count": [0, 1]})
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source_df, index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(
+        result, {"viz_type": "table", "percent_metrics": ["count"]}
+    )["queries"][0]
+    output_df: pd.DataFrame = pd.read_excel(BytesIO(query["data"]))
+    pd.testing.assert_frame_equal(output_df, source_df)
+
+
+@pytest.mark.parametrize("viz_type", ["table", "pivot_table_v2"])
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+def test_sql_dataset_export_headers(
+    session: Session, viz_type: str, result_format: ChartDataResultFormat
+) -> None:
+    """SQL Table and multi-row Pivot exports preserve their header contract."""
+    # avoid app-init regression: SQL dataset models require initialized field factories.
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+
+    datasource: SqlaTable = SqlaTable(
+        table_name="orders",
+        columns=[
+            TableColumn(column_name="category", type="VARCHAR"),
+            TableColumn(column_name="region", type="VARCHAR"),
+        ],
+        metrics=[SqlMetric(metric_name="total_amount", expression="SUM(amount)")],
+        database=Database(database_name="export_test", sqlalchemy_uri="sqlite://"),
+    )
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"category": ["Books"], "region": ["West"], "total_amount": [15]}
+    )
+    form_data: dict[str, Any] = {
+        "viz_type": viz_type,
+        "columns": ["category", "region"],
+        "groupbyRows": ["category", "region"],
+        "groupbyColumns": [],
+        "metrics": ["total_amount"],
+    }
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": result_format,
+                "data": excel.df_to_excel(source_df, index=False)
+                if result_format == ChartDataResultFormat.XLSX
+                else source_df.to_csv(index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+    output_df: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]))
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]))
+    )
+    pd.testing.assert_frame_equal(output_df, source_df)
+
+
 @with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
 def test_apply_client_processing_csv_format_custom_delimiter():
     """
@@ -4020,3 +6697,173 @@ def test_apply_client_processing_csv_format_pivot_table_multiple_rows():
         ("London", "Consumer"),
         ("London", "Corporate"),
     }
+
+
+@pytest.mark.parametrize("reducer", ["sum", "min", "max"])
+def test_pivot_rollup_reducer_preserves_blank_and_zero(reducer: str):
+    assert pd.isna(_reduce(pd.Series([float("nan"), float("nan")]), reducer))
+    assert _reduce(pd.Series([0, float("nan")]), reducer) == 0
+
+
+@pytest.mark.parametrize("layout", ["COLUMNS", "ROWS"])
+@pytest.mark.parametrize("combine", [False, True])
+@pytest.mark.parametrize("transpose", [False, True])
+def test_pivot_mixed_totals_preserve_integer_csv(
+    layout: str, combine: bool, transpose: bool
+):
+    """Blank totals must not round integer leaves or change their CSV spelling."""
+    large = 2**53 + 1
+    frame = pd.DataFrame(
+        {
+            "nation": ["US", "UK"],
+            "gender": ["boy", "boy"],
+            "SUM(a)": [large, 2],
+            "SUM(b)": [3, 4],
+        }
+    )
+    result = pivot_table_v2(
+        frame,
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["SUM(a)", "SUM(b)"],
+            "metricsLayout": layout,
+            "combineMetric": combine,
+            "transposePivot": transpose,
+            "rowTotals": True,
+            "colTotals": True,
+        },
+        apply_number_format=False,
+    )
+    csv = result.to_csv()
+    assert str(large) in csv
+    assert str(large - 1) not in csv
+    assert ".0" not in csv
+
+
+@pytest.mark.parametrize("mode", [None, "percent_row", "percent_col", "percent_total"])
+@pytest.mark.parametrize("transpose", [False, True])
+@pytest.mark.parametrize("single_metric", [False, True])
+@pytest.mark.parametrize("layout", ["COLUMNS", "ROWS"])
+def test_combined_metric_subtotals(
+    mode: str | None, transpose: bool, single_metric: bool, layout: str
+):
+    frame = show_values_as_df()
+    frame["MAX(num)"] = [1, 3, 6, 10]
+    metrics = ["SUM(num)"] if single_metric else ["SUM(num)", "MAX(num)"]
+    result = pivot_table_v2(
+        frame,
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": metrics,
+            "metricsLayout": layout,
+            "combineMetric": True,
+            "transposePivot": transpose,
+            "rowTotals": True,
+            "colTotals": True,
+            "showValuesAs": mode,
+        },
+        apply_number_format=False,
+    )
+    # Transpose swaps the dimension axes before constructing the pivot.
+    metrics_on_rows = layout == "ROWS"
+    if metrics_on_rows:
+        result = result.T
+    groups = ["US", "UK"] if transpose != metrics_on_rows else ["boy", "girl"]
+    for group in groups:
+        subtotal = result.loc[:, (group, "Subtotal")]
+        assert subtotal.notna().all() if single_metric else subtotal.isna().all()
+
+
+@pytest.mark.parametrize("metrics", [set(), {"SUM(num)"}, {"SUM(num)", "MAX(num)"}])
+def test_collapsed_metric_preserves_shared_metric_set(metrics: set[str]):
+    original = metrics.copy()
+    expected = "SUM(num)" if len(metrics) == 1 else None
+    assert _collapsed_metric(metrics) == expected
+    assert _collapsed_metric(metrics) == expected
+    assert metrics == original
+
+
+@pytest.mark.parametrize("combine", [False, True])
+@pytest.mark.parametrize("transpose", [False, True])
+def test_pivot_mixed_totals_preserve_integer_xlsx(combine: bool, transpose: bool):
+    """The full XLSX path keeps large integers as exact text and small ones numeric."""
+    from openpyxl import load_workbook
+
+    large = 2**53 + 1
+    source = pd.DataFrame(
+        {
+            "nation": ["US", "UK"],
+            "gender": ["boy", "boy"],
+            "SUM(a)": [str(large), "2"],
+            "SUM(b)": [3, 4],
+        }
+    )
+    result = apply_client_processing(
+        {
+            "queries": [
+                {
+                    "result_format": ChartDataResultFormat.XLSX,
+                    "data": excel.df_to_excel(source, index=False),
+                }
+            ]
+        },
+        {
+            "viz_type": "pivot_table_v2",
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["SUM(a)", "SUM(b)"],
+            "metricsLayout": "ROWS",
+            "combineMetric": combine,
+            "transposePivot": transpose,
+            "rowTotals": True,
+            "colTotals": True,
+        },
+    )
+    sheet = load_workbook(BytesIO(result["queries"][0]["data"])).active
+    cells = [cell for row in sheet for cell in row]
+    assert any(cell.value == str(large) and cell.data_type == "s" for cell in cells)
+    assert any(cell.value == 3 and cell.data_type == "n" for cell in cells)
+    assert not any(str(cell.value).startswith(str(large - 1)) for cell in cells)
+
+
+@pytest.mark.parametrize("apply_number_format", [False, True])
+def test_pivot_mixed_str_int_big_integer_dimension(apply_number_format: bool) -> None:
+    """A dimension that mixes exact big-integer strings, numbers and nulls (the
+    shape the chart-data API uses for integers beyond 2**53 - 1) pivots without
+    error and keeps every label exact."""
+    wire = [
+        {"big": "4611686018427387905", "metric": 1},
+        {"big": None, "metric": 2},
+        {"big": 7, "metric": 3},
+        {"big": "4611686018427387905", "metric": 4},
+        {"big": "-4611686018427387905", "metric": 5},
+    ]
+    df = pd.DataFrame.from_dict(wire)
+    form_data = {
+        "groupbyRows": ["big"],
+        "groupbyColumns": [],
+        "metrics": ["metric"],
+        "aggregateFunction": "Sum",
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(
+        df.copy(), form_data, apply_number_format=apply_number_format
+    )
+    unformatted = table(df.copy(), {"all_columns": ["big", "metric"]}, None, True)
+
+    sums = {
+        label: str(value)
+        for label, value, *_ in pivoted.reset_index().itertuples(index=False)
+        if isinstance(label, str)
+    }
+    assert sums == {
+        "7": "3",
+        "-4611686018427387905": "5",
+        "4611686018427387905": "5",
+        "Total (Sum)": "15",
+    }
+    assert unformatted["big"].tolist() == df["big"].tolist()

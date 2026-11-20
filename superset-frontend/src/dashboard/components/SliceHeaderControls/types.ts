@@ -54,6 +54,7 @@ export interface SliceHeaderControlsProps {
 
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
+  addWarningToast?: (message: string) => void;
 
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;

@@ -46,7 +46,11 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
+  archiveToastContent,
+  rememberArchivedType,
+  ToastContent,
+  archiveTitle,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
 import {
@@ -71,6 +75,7 @@ import {
   ListViewFilterOperator as FilterOperator,
   DashboardCrossLinks,
   type ListViewProps,
+  type ListViewFetchDataConfig,
   type ListViewFilters,
   type ListViewFilter,
 } from 'src/components';
@@ -87,10 +92,14 @@ import { loadTags } from 'src/components/Tag/utils';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
-import { QueryObjectColumns } from 'src/views/CRUD/types';
+import {
+  QueryObjectColumns,
+  FileEncryptedExtraFields,
+} from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
+import { fetchDatasourceList } from 'src/features/datasets/fetchDatasourceList';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { CellProps } from 'react-table';
 
@@ -139,7 +148,7 @@ function ChartArchiveDescription({
   return (
     <>
       {softDelete ? (
-        <p>{archiveConfirmDescription(t('chart'))}</p>
+        <p>{archiveConfirmContent('chart', t('chart'))}</p>
       ) : (
         <p>
           {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>?
@@ -187,9 +196,9 @@ function ChartArchiveDescription({
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
     'import them together with the charts. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
+    '"Certificate" section of the database configuration is not ' +
+    'present in export files, and should be added manually after the ' +
+    'import if it is needed.',
 );
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more charts that already exist. ' +
@@ -198,12 +207,31 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 );
 
 const registry = getChartMetadataRegistry();
+const MAX_VIZ_TYPE_ORDER_LENGTH = 256;
 
 const createFetchDatasets = async (
   filterValue = '',
   page: number,
   pageSize: number,
 ) => {
+  if (isFeatureEnabled(FeatureFlag.SemanticLayers)) {
+    const { result, count } = await fetchDatasourceList(
+      filterValue,
+      page,
+      pageSize,
+    );
+    return {
+      data: result.map(({ id, kind, table_name: tableName }) => {
+        const semanticView = kind === 'semantic_view';
+        return {
+          label: `${tableName} (${semanticView ? t('Semantic View') : t('Dataset')})`,
+          value: `${id}__${semanticView ? 'semantic_view' : 'table'}`,
+        };
+      }),
+      totalCount: count,
+    };
+  }
+
   // add filters if filterValue
   const filters = filterValue
     ? { filters: [{ col: 'table_name', opr: 'sw', value: filterValue }] }
@@ -237,7 +265,7 @@ const createFetchDatasets = async (
 
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -260,10 +288,34 @@ function ChartList(props: ChartListProps) {
     },
     setResourceCollection: setCharts,
     hasPerm,
-    fetchData,
+    fetchData: fetchChartData,
     toggleBulkSelect,
     refreshData,
   } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
+
+  const fetchData = useCallback(
+    (config: ListViewFetchDataConfig) =>
+      fetchChartData({
+        ...config,
+        ...(config.sortBy[0]?.id === 'viz_type'
+          ? {
+              extraQueryParams: {
+                ...config.extraQueryParams,
+                viz_type_order: registry
+                  .keys()
+                  .sort((left, right) => {
+                    const nameComparison = (
+                      registry.get(left)?.name || left
+                    ).localeCompare(registry.get(right)?.name || right);
+                    return nameComparison || left.localeCompare(right);
+                  })
+                  .slice(0, MAX_VIZ_TYPE_ORDER_LENGTH),
+              },
+            }
+          : {}),
+      }),
+    [fetchChartData],
+  );
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
@@ -301,6 +353,9 @@ function ChartList(props: ChartListProps) {
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
 
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = useMemo(
@@ -405,11 +460,14 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(
-          softDelete
-            ? t('Archived %s item(s)', chartsToDelete.length)
-            : json.message,
-        );
+        rememberArchivedType('chart');
+        const toast: ToastContent = softDelete
+          ? archiveToastContent(
+              t('Archived %s item(s)', chartsToDelete.length),
+              'chart',
+            )
+          : { text: json.message };
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(
@@ -486,7 +544,7 @@ function ChartList(props: ChartListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'xs',
+        size: 'sm',
         hidden: !userId,
       },
       {
@@ -502,7 +560,11 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <FlexRowContainer>
-            <Link to={url} data-test={`${sliceName}-list-chart-title`}>
+            <Link
+              to={url}
+              title={sliceName}
+              data-test={`${sliceName}-list-chart-title`}
+            >
               {certifiedBy && (
                 <>
                   <CertifiedBadge
@@ -518,6 +580,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
+        size: 'xxxl',
         id: 'slice_name',
       },
       {
@@ -698,9 +761,13 @@ function ChartList(props: ChartListProps) {
                   tooltip={
                     allowEdit
                       ? deleteActionLabel()
-                      : t(
-                          'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
-                        )
+                      : softDelete
+                        ? t(
+                            'You must be a chart editor in order to archive. Please reach out to a chart editor to request modifications or edit access.',
+                          )
+                        : t(
+                            'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
+                          )
                   }
                   placement="bottom"
                   icon={<Icons.DeleteOutlined iconSize="l" />}
@@ -795,7 +862,9 @@ function ChartList(props: ChartListProps) {
         key: 'dataset',
         id: 'datasource_id',
         input: 'select',
-        operator: FilterOperator.Equals,
+        operator: isFeatureEnabled(FeatureFlag.SemanticLayers)
+          ? FilterOperator.ChartDatasource
+          : FilterOperator.Equals,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchDatasets,
         paginate: true,
@@ -1034,9 +1103,7 @@ function ChartList(props: ChartListProps) {
           recoverable={softDelete}
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: chartCurrentlyDeleting.chart.slice_name,
-                })
+              ? archiveTitle(chartCurrentlyDeleting.chart.slice_name)
               : t('Please confirm')
           }
           name={chartCurrentlyDeleting.chart.slice_name}
@@ -1064,7 +1131,7 @@ function ChartList(props: ChartListProps) {
         title={softDelete ? t('Archive selected charts?') : t('Please confirm')}
         description={
           softDelete
-            ? archiveConfirmDescription(t('charts'), true)
+            ? archiveConfirmContent('chart', t('charts'), true)
             : t('Are you sure you want to delete the selected charts?')
         }
         onConfirm={handleBulkChartDelete}
@@ -1144,6 +1211,8 @@ function ChartList(props: ChartListProps) {
         setSSHTunnelPrivateKeyPasswordFields={
           setSSHTunnelPrivateKeyPasswordFields
         }
+        encryptedExtraFields={encryptedExtraFields}
+        setEncryptedExtraFields={setEncryptedExtraFields}
       />
       {preparingExport && <Loading />}
     </>

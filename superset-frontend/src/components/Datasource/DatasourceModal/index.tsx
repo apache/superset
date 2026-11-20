@@ -43,12 +43,15 @@ import type { DatasetObject } from 'src/features/datasets/types';
 import { withCertificationFields } from '../utils';
 import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 import type { DatasourceModalProps } from '../types';
+import { setDatasetCertification } from '../components/DatasourceEditor/datasetCertification';
 
 const DatasourceEditor = AsyncEsmComponent(
   () => import('../components/DatasourceEditor'),
 );
 
 const MODAL_HEIGHT_VH = 90;
+const MODAL_WIDTH_VW = 90;
+const MODAL_MAX_WIDTH = 1600;
 const TOP_MARGIN_VH = (100 - MODAL_HEIGHT_VH) / 2;
 
 const StyledDatasourceModal = styled(Modal)`
@@ -56,15 +59,20 @@ const StyledDatasourceModal = styled(Modal)`
   padding-bottom: 0;
 
   && .ant-modal-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     max-height: ${MODAL_HEIGHT_VH}vh;
     margin-top: 0;
     margin-bottom: 0;
-    min-height: 500px;
-    min-width: 500px;
+    min-height: min(500px, ${MODAL_HEIGHT_VH}vh);
+    min-width: min(500px, ${MODAL_WIDTH_VW}vw);
   }
 
   && .ant-modal-body {
     flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
     display: flex;
     flex-direction: column;
   }
@@ -103,7 +111,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   // SQL of the server snapshot the form started from. The caller's, unless
   // this modal read the dataset itself — then "did the SQL change?" has to be
   // asked against the snapshot the payload is actually built from.
-  const [seededSql, setSeededSql] = useState<string | undefined>();
+  const [seededSql, setSeededSql] = useState<string | null | undefined>();
   const [versionEtag, setVersionEtag] = useState(etag);
   const [syncColumns, setSyncColumns] = useState(false);
   const currencies = useSelector<
@@ -163,7 +171,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       cancelled = true;
     };
   }, [datasource.id, etag, show]);
-  const baselineSql = seededSql ?? datasource.sql;
+  // A fresh read wins even when its SQL is `null` (a physical dataset).
+  const baselineSql = seededSql === undefined ? datasource.sql : seededSql;
+  // The API reports a physical dataset's SQL as `null`, the editor as `''`.
+  const sqlChanged = (baselineSql ?? '') !== (currentDatasource.sql ?? '');
 
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
@@ -182,13 +193,20 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       currency_code_column: datasource.currency_code_column ?? null,
       normalize_columns: datasource.normalize_columns,
       always_filter_main_dttm: datasource.always_filter_main_dttm,
+      partition_column: datasource.partition_column ?? null,
+      partition_mapped_column: datasource.partition_mapped_column ?? null,
       offset: datasource.offset,
       default_endpoint: datasource.default_endpoint,
       cache_timeout:
         datasource.cache_timeout === '' ? null : datasource.cache_timeout,
       is_sqllab_view: datasource.is_sqllab_view,
       template_params: datasource.template_params,
-      extra: datasource.extra,
+      extra: datasource.dataset_certification_changed
+        ? setDatasetCertification(datasource.extra, {
+            certified_by: datasource.certified_by,
+            certification_details: datasource.certification_details,
+          })
+        : datasource.extra,
       is_managed_externally: datasource.is_managed_externally,
       external_url: datasource.external_url,
       metrics: datasource?.metrics?.map(
@@ -225,6 +243,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           is_active: column.is_active,
           is_dttm: column.is_dttm,
           python_date_format: column.python_date_format || null,
+          partition_value_transform: column.partition_value_transform || null,
+          partition_transform_is_monotonic: Boolean(
+            column.partition_transform_is_monotonic,
+          ),
           uuid: column.uuid,
           extra: buildExtraJsonObject(column),
         }),
@@ -249,7 +271,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     setIsSaving(true);
     try {
       await SupersetClient.put({
-        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${syncColumns}`,
+        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${sqlChanged && syncColumns}`,
         jsonPayload: buildPayload(currentDatasource),
         ...(versionEtag ? { headers: { 'If-Match': versionEtag } } : {}),
       });
@@ -333,7 +355,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 here may affect other charts
                 in undesirable ways.`)}
         />
-        {baselineSql !== currentDatasource.sql && (
+        {sqlChanged && (
           <div
             css={theme => ({
               marginBottom: theme.marginMD,
@@ -367,14 +389,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         {t('Are you sure you want to save and apply changes?')}
       </div>
     ),
-    [currentDatasource.sql, baselineSql, syncColumns],
+    [sqlChanged, syncColumns],
   );
 
   useEffect(() => {
-    if (baselineSql !== currentDatasource.sql) {
+    if (sqlChanged) {
       setSyncColumns(true);
     }
-  }, [baselineSql, currentDatasource.sql]);
+  }, [sqlChanged]);
 
   const onClickSave = () => {
     setConfirmModalOpen(true);
@@ -394,6 +416,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     <StyledDatasourceModal
       show={show}
       onHide={onHide}
+      width={`${MODAL_WIDTH_VW}vw`}
+      maxWidth={`${MODAL_MAX_WIDTH}px`}
       title={
         <span>
           <Icons.EditOutlined
@@ -446,7 +470,11 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       responsive
       resizable
       resizableConfig={{
-        defaultSize: { width: 'auto', height: `${MODAL_HEIGHT_VH}vh` },
+        defaultSize: {
+          width: `${MODAL_WIDTH_VW}vw`,
+          height: `${MODAL_HEIGHT_VH}vh`,
+        },
+        maxWidth: `${MODAL_MAX_WIDTH}px`,
         maxHeight: `${MODAL_HEIGHT_VH}vh`,
       }}
       draggable

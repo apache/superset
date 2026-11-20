@@ -23,6 +23,7 @@ from superset_core.tasks.types import TaskContext, TaskScope
 
 if TYPE_CHECKING:
     from superset_core.tasks.models import Task
+    from superset_core.tasks.subscription import TaskSubscriptionPolicy
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -32,6 +33,7 @@ def task(
     name: str | None = None,
     scope: TaskScope = TaskScope.PRIVATE,
     timeout: int | None = None,
+    subscription_policy: "TaskSubscriptionPolicy | None" = None,
 ) -> Callable[[Callable[P, R]], "TaskWrapper[P]"]:
     """
     Decorator to register a task.
@@ -46,6 +48,13 @@ def task(
     :param timeout: Optional timeout in seconds. When the timeout is reached,
                     abort handlers are triggered if registered. Can be overridden
                     at call time via TaskOptions(timeout=...).
+    :param subscription_policy: Optional per-client subscription policy. The
+                    framework subscribes tasks at principal grain (one row per
+                    user/guest); a policy refines that with a finer per-client
+                    grain (e.g. one browser tab) so a cancel from one client does
+                    not abort a SHARED task another client of the same principal
+                    is still awaiting. See
+                    ``superset_core.tasks.subscription.TaskSubscriptionPolicy``.
     :returns: TaskWrapper with .schedule() method
 
     Note:

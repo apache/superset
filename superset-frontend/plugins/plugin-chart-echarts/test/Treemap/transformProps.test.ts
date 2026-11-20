@@ -115,4 +115,48 @@ describe('Treemap transformProps', () => {
       }),
     );
   });
+
+  test('should not draw borders around labels', () => {
+    // A label border is drawn by ECharts as a box that spans the full node
+    // height, which shows up as a vertical line right after the label text
+    // (see #37808 and #43862). Every label style must stay border-free,
+    // including emphasis, upper labels, and the filtered-node label.
+    const filteredChartProps = new ChartProps({
+      ...chartProps,
+      filterState: { selectedValues: ['Sylvester,bar1'] },
+    });
+    const { echartOptions } = transformProps(
+      filteredChartProps as EchartsTreemapChartProps,
+    );
+
+    const labelStyles: Record<string, unknown>[] = [];
+    const collectLabelStyles = (node: unknown) => {
+      if (Array.isArray(node)) {
+        node.forEach(collectLabelStyles);
+        return;
+      }
+      if (!node || typeof node !== 'object') {
+        return;
+      }
+      Object.entries(node as Record<string, unknown>).forEach(
+        ([key, value]) => {
+          if (
+            (key === 'label' || key === 'upperLabel') &&
+            value &&
+            typeof value === 'object'
+          ) {
+            labelStyles.push(value as Record<string, unknown>);
+          }
+          collectLabelStyles(value);
+        },
+      );
+    };
+    collectLabelStyles(echartOptions.series);
+
+    expect(labelStyles.length).toBeGreaterThan(0);
+    labelStyles.forEach(style => {
+      expect(style).not.toHaveProperty('borderWidth');
+      expect(style).not.toHaveProperty('borderColor');
+    });
+  });
 });

@@ -20,13 +20,21 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from flask_babel import gettext as _
 from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import select
 
 from superset import db
+from superset.annotation_layers.schemas import ImportV1AnnotationLayerSchema
 from superset.charts.schemas import ImportV1ChartSchema
-from superset.commands.chart.importers.v1.utils import import_chart
+from superset.commands.annotation_layer.importers.v1.utils import (
+    import_annotation_layer,
+)
+from superset.commands.chart.importers.v1.utils import (
+    get_chart_annotation_dependencies,
+    import_charts,
+)
 from superset.commands.dashboard.exceptions import DashboardImportError
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
@@ -36,8 +44,11 @@ from superset.commands.dashboard.importers.v1.utils import (
 )
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
-from superset.commands.exceptions import CommandException
 from superset.commands.importers.v1 import ImportModelsCommand
+from superset.commands.importers.v1.errors import (
+    import_error_context,
+    ImportBundleError,
+)
 from superset.commands.importers.v1.utils import import_tag
 from superset.commands.theme.import_themes import import_theme
 from superset.commands.utils import update_chart_config_dataset
@@ -49,6 +60,11 @@ from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
+from superset.semantic_layers.import_export import (
+    consume_chart_semantic_reference,
+    resolve_bundle_references,
+    restore_dashboard_references,
+)
 from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.themes.schemas import ImportV1ThemeSchema
 from superset.utils.decorators import transaction
@@ -63,10 +79,13 @@ class ImportDashboardsCommand(ImportModelsCommand):
     model_name = "dashboard"
     prefix = "dashboards/"
     schemas: dict[str, Schema] = {
+        "annotation_layers/": ImportV1AnnotationLayerSchema(),
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
-        "databases/": ImportV1DatabaseSchema(),
+        # Related databases are reused rather than overwritten, unless
+        # `overwrite_all` is set (see `__init__`).
+        "databases/": ImportV1DatabaseSchema(overwrites_existing=False),
         "themes/": ImportV1ThemeSchema(),
     }
     import_error = DashboardImportError
@@ -74,6 +93,14 @@ class ImportDashboardsCommand(ImportModelsCommand):
     def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any) -> None:
         self.overwrite_all = kwargs.pop("overwrite_all", False)
         super().__init__(contents, *args, **kwargs)
+        # With both flags set, `_import` overwrites related databases, so their
+        # schema must ask for any secret the stored connection cannot reveal.
+        self.schemas = {
+            **self.schemas,
+            "databases/": ImportV1DatabaseSchema(
+                overwrites_existing=self.overwrite and self.overwrite_all
+            ),
+        }
 
     # not sure if overriding run is the best approach here
     # it works fine and is better than a global variable imo
@@ -82,17 +109,13 @@ class ImportDashboardsCommand(ImportModelsCommand):
     def run(self) -> None:
         self.validate()
 
-        try:
+        with import_error_context("dashboard bundle"):
             self._import(
                 self._configs,
                 self.overwrite,
                 self.contents,
                 overwrite_all=self.overwrite_all,
             )
-        except CommandException:
-            raise
-        except Exception as ex:
-            raise self.import_error() from ex
 
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals, too-many-statements
@@ -105,6 +128,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         **kwargs: Any,
     ) -> None:
         contents = {} if contents is None else contents
+        semantic_info: dict[str, dict[str, Any]] = resolve_bundle_references(configs)
         # discover charts, datasets, and themes associated with dashboards
         chart_uuids: set[str] = set()
         dataset_uuids: set[str] = set()
@@ -119,9 +143,30 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 if config.get("theme_uuid"):
                     theme_uuids.add(config["theme_uuid"])
 
+        # discover charts used as annotation sources by those charts, which can
+        # be in the bundle without being in any dashboard layout
+        chart_configs_by_uuid: dict[str, dict[str, Any]] = {
+            str(config["uuid"]): config
+            for file_name, config in configs.items()
+            if file_name.startswith("charts/")
+        }
+        pending_chart_uuids: list[str] = list(chart_uuids)
+        while pending_chart_uuids:
+            chart_config = chart_configs_by_uuid.get(pending_chart_uuids.pop())
+            if chart_config is None:
+                continue
+            for dependency_uuid in get_chart_annotation_dependencies(chart_config):
+                if dependency_uuid not in chart_uuids:
+                    chart_uuids.add(dependency_uuid)
+                    pending_chart_uuids.append(dependency_uuid)
+
         # discover datasets associated with charts
         for file_name, config in configs.items():
-            if file_name.startswith("charts/") and config["uuid"] in chart_uuids:
+            if (
+                file_name.startswith("charts/")
+                and config["uuid"] in chart_uuids
+                and "dataset_uuid" in config
+            ):
                 dataset_uuids.add(config["dataset_uuid"])
 
         # discover databases associated with datasets
@@ -129,6 +174,35 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
                 database_uuids.add(config["database_uuid"])
+
+        # Layout and native-filter UUIDs can outlive their exported assets.
+        # Only require dependencies of files that will actually be imported.
+        required_datasets = {
+            config["dataset_uuid"]
+            for name, config in configs.items()
+            if name.startswith("charts/")
+            and config["uuid"] in chart_uuids
+            and "dataset_uuid" in config
+        }
+        for prefix, required, asset_type in (
+            ("datasets/", required_datasets, _("dataset")),
+            ("databases/", database_uuids, _("database")),
+        ):
+            supplied = {
+                str(config["uuid"])
+                for name, config in configs.items()
+                if name.startswith(prefix)
+            }
+            if required - supplied:
+                raise ImportBundleError(
+                    _(
+                        "The bundle is missing a %(asset_type)s required by an "
+                        "imported "
+                        "asset. Re-export the dashboard with its dependencies from a "
+                        "compatible Superset version, then retry.",
+                        asset_type=asset_type,
+                    )
+                )
 
         # assets inside dashboard databases, datasets and charts
         # should be overwritten only if both flags are set to True
@@ -144,10 +218,20 @@ class ImportDashboardsCommand(ImportModelsCommand):
 
         # import related databases
         database_ids: dict[str, int] = {}
+        database_configs: dict[str, dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(config, overwrite=overwrite_assets)
+                # Keep engine metadata after import_database consumes the config.
+                database_config = config.copy()
+                # Dashboard bundles carry only some Secure Extra blocks.
+                with import_error_context(
+                    file_name, database_config, use_existing=not overwrite_assets
+                ):
+                    database = import_database(
+                        config, overwrite=overwrite_assets, partial_secure_extra=True
+                    )
                 database_ids[str(database.uuid)] = database.id
+                database_configs[str(database.uuid)] = database_config
 
         # import datasets with the correct parent ref
         dataset_info: dict[str, dict[str, Any]] = {}
@@ -157,12 +241,26 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(config, overwrite=overwrite_assets)
-                dataset_info[str(dataset.uuid)] = {
+                with import_error_context(
+                    file_name, database_configs[config["database_uuid"]]
+                ):
+                    dataset = import_dataset(config, overwrite=overwrite_assets)
+                # Key on the bundle's own uuid, which is what the bundle's
+                # charts reference. An import that resolves onto an existing
+                # dataset by physical identity returns a row whose uuid
+                # differs, and keying on that would strand those charts.
+                dataset_info[str(config["uuid"])] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
                     "datasource_name": dataset.table_name,
                 }
+
+        # import annotation layers before charts so UUID→ID maps are ready
+        annotation_layer_ids: dict[str, int] = {}
+        for file_name, config in configs.items():
+            if file_name.startswith("annotation_layers/"):
+                layer = import_annotation_layer(config, overwrite=overwrite_assets)
+                annotation_layer_ids[str(layer.uuid)] = layer.id
 
         # Resolve the creator's default viewers once for the whole bundle
         # rather than once per chart/dashboard (a membership query each).
@@ -171,30 +269,34 @@ class ImportDashboardsCommand(ImportModelsCommand):
         # import charts with the correct parent ref
         charts = []
         chart_ids: dict[str, int] = {}
+        chart_configs: list[dict[str, Any]] = []
         for file_name, config in configs.items():
-            if (
-                file_name.startswith("charts/")
-                and config["dataset_uuid"] in dataset_info
+            if file_name.startswith("charts/") and (
+                "datasource_ref" in config or config.get("dataset_uuid") in dataset_info
             ):
                 # update datasource id, type, and name
-                dataset_dict = dataset_info[config["dataset_uuid"]]
-                config = update_chart_config_dataset(config, dataset_dict)
-
-                chart = import_chart(
-                    config,
-                    overwrite=overwrite_assets,
-                    default_viewers=default_viewers,
+                dataset_dict: dict[str, Any] | None = consume_chart_semantic_reference(
+                    config, semantic_info
                 )
-                charts.append(chart)
-                chart_ids[str(chart.uuid)] = chart.id
+                if dataset_dict is None:
+                    dataset_dict = dataset_info[config["dataset_uuid"]]
+                config = update_chart_config_dataset(config, dataset_dict)
+                chart_configs.append(config)
 
-                # Handle tags using import_tag function
-                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                    if "tags" in config:
-                        target_tag_names = config["tags"]
-                        import_tag(
-                            target_tag_names, contents, chart.id, "chart", db.session
-                        )
+        # annotation source charts are imported before the charts using them
+        for config, chart in import_charts(
+            chart_configs,
+            overwrite=overwrite_assets,
+            default_viewers=default_viewers,
+            annotation_layer_ids=annotation_layer_ids,
+            chart_ids=chart_ids,
+        ):
+            charts.append(chart)
+
+            # Handle tags using import_tag function
+            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                if "tags" in config:
+                    import_tag(config["tags"], contents, chart.id, "chart", db.session)
 
         # store the existing relationship between dashboards and charts
         # (only used when overwrite=False to avoid inserting duplicates)
@@ -221,6 +323,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
         dashboards: list[Dashboard] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
+                restore_dashboard_references(
+                    config.get("metadata") or {}, semantic_info
+                )
                 config = update_id_refs(config, chart_ids, dataset_info)
                 # Handle theme UUID to ID mapping
                 if "theme_uuid" in config and config["theme_uuid"] in theme_ids:
@@ -230,9 +335,10 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     # Theme not found, set to None for graceful fallback
                     config["theme_id"] = None
                     del config["theme_uuid"]
-                dashboard = import_dashboard(
-                    config, overwrite=overwrite, default_viewers=default_viewers
-                )
+                with import_error_context(file_name):
+                    dashboard = import_dashboard(
+                        config, overwrite=overwrite, default_viewers=default_viewers
+                    )
                 dashboards.append(dashboard)
 
                 # Resolve the dashboard's chart membership from the imported

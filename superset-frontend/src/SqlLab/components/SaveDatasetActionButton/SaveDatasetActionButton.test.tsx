@@ -43,6 +43,23 @@ describe('SaveDatasetActionButton', () => {
     expect(saveDatasetBtn).toBeVisible();
   });
 
+  test('disables only the dataset button when canSaveDataset is false', () => {
+    const onSaveAsExplore = jest.fn();
+    render(
+      <SaveDatasetActionButton
+        setShowSave={() => true}
+        onSaveAsExplore={onSaveAsExplore}
+        canSaveDataset={false}
+      />,
+    );
+
+    // Saving the query needs no results.
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: /save dataset/i }),
+    ).toBeDisabled();
+  });
+
   test('disables the save dataset button when the query did not run successfully', async () => {
     render(
       <SaveDatasetActionButton
@@ -58,7 +75,7 @@ describe('SaveDatasetActionButton', () => {
     expect(saveDatasetBtn).toBeDisabled();
 
     // the disabled button is wrapped in a span so the tooltip still triggers
-    userEvent.hover(saveDatasetBtn.parentElement as HTMLElement);
+    await userEvent.hover(saveDatasetBtn.parentElement as HTMLElement);
     expect(
       await screen.findByRole('tooltip', {
         name: 'You must run the query successfully first',

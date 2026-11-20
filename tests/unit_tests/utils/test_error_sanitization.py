@@ -16,15 +16,19 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Iterator, TYPE_CHECKING
+import io
+from typing import Any, Iterator, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
+from flask import request
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.error_sanitization import (
     GENERIC_ACCESS_MESSAGE,
     GENERIC_ERROR_MESSAGE,
+    is_sanitization_required,
+    redact_sensitive_query_fields,
     sanitize_error_dicts,
     sanitize_error_message,
     sanitize_superset_error,
@@ -76,6 +80,99 @@ def test_db_error_is_replaced_for_guest_users(app: SupersetApp, guest: None) -> 
     assert sanitized.error_type == SupersetErrorType.GENERIC_BACKEND_ERROR
     assert sanitized.level == ErrorLevel.ERROR
     assert "engine_name" not in (sanitized.extra or {})
+
+
+def test_redact_query_fields_strips_sql_for_guest_without_permission(
+    app: SupersetApp, guest: None
+) -> None:
+    results = [{"query": "SELECT 1", "stacktrace": "Traceback", "data": [{"a": 1}]}]
+    with patch(
+        "superset.security.SupersetSecurityManager.can_access",
+        return_value=False,
+    ):
+        redact_sensitive_query_fields(results)
+    assert "query" not in results[0]
+    assert "stacktrace" not in results[0]
+    # Non-sensitive fields the client needs for rendering are left alone.
+    assert results[0]["data"] == [{"a": 1}]
+
+
+def test_redact_query_fields_keeps_sql_when_guest_may_view_query(
+    app: SupersetApp, guest: None
+) -> None:
+    results = [{"query": "SELECT 1", "stacktrace": "Traceback"}]
+    with patch(
+        "superset.security.SupersetSecurityManager.can_access",
+        return_value=True,
+    ) as can_access:
+        redact_sensitive_query_fields(results)
+    assert results[0]["query"] == "SELECT 1"
+    # "can view query" unlocks only the SQL; the stacktrace still leaves.
+    assert "stacktrace" not in results[0]
+    can_access.assert_called_once_with("can_view_query", "Dashboard")
+
+
+def test_redact_query_fields_sanitizes_error_for_guest(
+    app: SupersetApp, guest: None
+) -> None:
+    results = [{"query": "SELECT 1", "error": DB_ERROR}]
+    with patch(
+        "superset.security.SupersetSecurityManager.can_access",
+        return_value=False,
+    ):
+        redact_sensitive_query_fields(results)
+    assert results[0]["error"] == str(GENERIC_ERROR_MESSAGE)
+
+
+def test_redact_query_fields_is_noop_for_regular_users(
+    app: SupersetApp, not_guest: None
+) -> None:
+    original = {"query": "SELECT 1", "stacktrace": "Traceback", "error": DB_ERROR}
+    results = [dict(original)]
+    redact_sensitive_query_fields(results)
+    assert results[0] == original
+
+
+def test_redact_query_fields_on_samples_payload_keeps_rendering_fields(
+    app: SupersetApp, guest: None
+) -> None:
+    """Shaped like a real ``/datasource/samples`` (Drill to detail) result: the
+    generated SQL, stacktrace and raw error are removed for a guest without
+    "can view query on Dashboard", while every field the client needs to render
+    the samples grid (data, column names/types, label map, counts, cache key)
+    is preserved untouched."""
+    sample_result = {
+        "query": "SELECT * FROM (SELECT * FROM secret_table) AS virtual_table",
+        "stacktrace": "Traceback (most recent call last): ...",
+        "error": DB_ERROR,
+        "data": [{"id": 1, "amount": 100.0}],
+        "colnames": ["id", "amount"],
+        "coltypes": [0, 0],
+        "label_map": {"id": ["id"], "amount": ["amount"]},
+        "cache_key": "abc123",
+        "rowcount": 1,
+        "page": 1,
+        "per_page": 50,
+        "total_count": 1,
+    }
+    results = [sample_result]
+    with patch(
+        "superset.security.SupersetSecurityManager.can_access",
+        return_value=False,
+    ):
+        redact_sensitive_query_fields(results)
+
+    redacted = results[0]
+    assert "query" not in redacted
+    assert "stacktrace" not in redacted
+    assert redacted["error"] == str(GENERIC_ERROR_MESSAGE)
+    # Everything the samples grid renders from is left intact.
+    assert redacted["data"] == [{"id": 1, "amount": 100.0}]
+    assert redacted["colnames"] == ["id", "amount"]
+    assert redacted["coltypes"] == [0, 0]
+    assert redacted["label_map"] == {"id": ["id"], "amount": ["amount"]}
+    assert redacted["cache_key"] == "abc123"
+    assert redacted["total_count"] == 1
 
 
 def test_safe_error_types_survive_for_guest_users(
@@ -176,3 +273,137 @@ def test_access_status_selects_the_denial_message(
 ) -> None:
     assert sanitize_error_message("Forbidden", 403) == str(GENERIC_ACCESS_MESSAGE)
     assert sanitize_error_message(DB_ERROR, 404) == str(GENERIC_ERROR_MESSAGE)
+
+
+def test_unresolvable_anonymous_principal_is_not_redacted(app: SupersetApp) -> None:
+    """
+    ``is_sanitization_required`` runs inside the HTTP error handler, which has no
+    handler of its own: a raising user loader (e.g. a JWT request loader that
+    raises when no credential is present) would otherwise turn every error
+    response into a bare 500. The lookup must swallow the failure -- but instead
+    of guessing "not a guest" it falls back to whether the request carries a
+    guest token. A genuinely anonymous request (no token) is left untouched, so
+    ordinary failures are not over-sanitized. This is a deliberate
+    availability-over-confidentiality trade-off, not a definitional truth: an
+    unresolvable principal is not "by definition" a non-guest.
+    """
+    is_guest_user = patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        side_effect=RuntimeError("no valid credential on request"),
+    )
+    with app.test_request_context("/"), is_guest_user as mock_is_guest_user:
+        assert is_sanitization_required() is False
+        assert sanitize_error_message(DB_ERROR) == DB_ERROR
+        assert mock_is_guest_user.called
+
+
+def test_unresolvable_principal_with_guest_token_is_redacted(app: SupersetApp) -> None:
+    """
+    Locks the fail-closed direction: a request that *carries* a guest token whose
+    resolution raises (e.g. ``find_role`` hitting a broken DB session while
+    resolving a valid token, or the ``EMBEDDED_SUPERSET`` feature hook raising)
+    must still be redacted. Reading the token header cannot raise, so the guard
+    fails closed for the one principal whose errors it exists to protect rather
+    than disclosing the raw engine error to a genuine embedded guest.
+    """
+    header = app.config["GUEST_TOKEN_HEADER_NAME"]
+    is_guest_user = patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        side_effect=RuntimeError("find_role on a broken session"),
+    )
+    with (
+        app.test_request_context("/", headers={header: "a.guest.token"}),
+        is_guest_user as mock_is_guest_user,
+    ):
+        assert is_sanitization_required() is True
+        assert sanitize_error_message(DB_ERROR) == str(GENERIC_ERROR_MESSAGE)
+        assert mock_is_guest_user.called
+
+
+def test_unresolvable_principal_with_form_guest_token_is_redacted(
+    app: SupersetApp,
+) -> None:
+    """The token can also arrive in the ``guest_token`` form field, not a header."""
+    is_guest_user = patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        side_effect=RuntimeError("find_role on a broken session"),
+    )
+    with (
+        app.test_request_context(
+            "/", method="POST", data={"guest_token": "a.guest.token"}
+        ),
+        is_guest_user as mock_is_guest_user,
+    ):
+        assert is_sanitization_required() is True
+        assert sanitize_error_message(DB_ERROR) == str(GENERIC_ERROR_MESSAGE)
+        assert mock_is_guest_user.called
+
+
+class _ServerParseError(Exception):
+    """Mirrors gunicorn's ``ParseException``, which subclasses ``Exception``."""
+
+
+class _MalformedTrailerStream(io.BytesIO):
+    """A WSGI input stream that fails mid-read, as gunicorn's does on a bad trailer."""
+
+    def read(self, size: int | None = -1) -> bytes:
+        raise _ServerParseError("invalid chunked trailer")
+
+
+@pytest.mark.parametrize(
+    ("body", "max_content_length"),
+    [
+        pytest.param({"data": {"other_field": "x"}}, 1, id="request-entity-too-large"),
+        pytest.param(
+            {
+                # A chunked body: the server terminates the stream, so werkzeug
+                # reads the server's stream directly.
+                "input_stream": _MalformedTrailerStream(),
+                "content_type": "application/x-www-form-urlencoded",
+                "environ_overrides": {"wsgi.input_terminated": True},
+            },
+            None,
+            id="server-stream-parse-error",
+        ),
+    ],
+)
+def test_unresolvable_principal_with_unreadable_body_fails_closed(
+    app: SupersetApp, body: dict[str, Any], max_content_length: int | None
+) -> None:
+    """
+    ``request.form`` parses the body lazily, so the fallback's form read can raise
+    -- werkzeug's ``RequestEntityTooLarge`` for an oversized body, or whatever the
+    WSGI server's input stream raises. Neither may escape the error handler. The
+    body carries no token, so only failing closed redacts.
+    """
+    is_guest_user = patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        side_effect=RuntimeError("find_role on a broken session"),
+    )
+    with (
+        app.test_request_context("/", method="POST", **body),
+        is_guest_user as mock_is_guest_user,
+    ):
+        request.max_content_length = max_content_length
+        assert is_sanitization_required() is True
+        assert sanitize_error_message(DB_ERROR) == str(GENERIC_ERROR_MESSAGE)
+        assert mock_is_guest_user.called
+
+
+def test_unresolvable_principal_without_request_context_fails_closed(
+    app: SupersetApp,
+) -> None:
+    """
+    In a Celery worker there is no request context: ``sanitize_error_dicts`` runs
+    inside ``override_user`` while writing the async job payload delivered to the
+    embedded viewer. There is no token to read and no handler-of-a-handler
+    concern, so an unresolvable principal fails closed and redacts.
+    """
+    is_guest_user = patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        side_effect=RuntimeError("no request context in a worker"),
+    )
+    with app.app_context(), is_guest_user as mock_is_guest_user:
+        assert is_sanitization_required() is True
+        assert sanitize_error_message(DB_ERROR) == str(GENERIC_ERROR_MESSAGE)
+        assert mock_is_guest_user.called

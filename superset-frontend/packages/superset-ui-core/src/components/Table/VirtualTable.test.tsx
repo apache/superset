@@ -19,6 +19,34 @@
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import type { ColumnsType } from 'antd/es/table';
 import { Table } from './index';
+import { OnResizeCallback } from 'react-resize-detector';
+
+// jsdom never measures the container, so tests that need a width set this one.
+let mockTableWidth: number | undefined;
+jest.mock('react-resize-detector', () => {
+  const { useEffect } = jest.requireActual('react');
+  return {
+    useResizeDetector: ({ onResize }: { onResize?: OnResizeCallback }) => {
+      useEffect(() => {
+        if (mockTableWidth !== undefined)
+          onResize?.({ width: mockTableWidth } as any);
+      }, [onResize]);
+      return { ref: () => undefined };
+    },
+  };
+});
+
+// jsdom has no layout, so rc-table's scrollbar measurement is stubbed to the
+// width a classic (non-overlay) scrollbar would have.
+const MOCK_SCROLLBAR_WIDTH = 20;
+jest.mock('@rc-component/util', () => ({
+  ...jest.requireActual('@rc-component/util'),
+  getTargetScrollBarSize: () => ({ width: 20, height: 20 }),
+}));
+
+afterEach(() => {
+  mockTableWidth = undefined;
+});
 
 // These tests exercise VirtualTable's react-window v2 `Grid` wiring
 // (`cellComponent`/`cellProps`/`gridRef`), which previously had no direct
@@ -119,4 +147,111 @@ test('cell render functions receive their row data via cellProps rather than a s
   await waitFor(() => {
     expect(screen.getByText('rendered:Number')).toBeInTheDocument();
   });
+});
+
+// The header is antd's own <table>; the body Grid is sized to the columns.
+const virtualHeaderWidth = (columns: ColumnsType<BasicData>) => {
+  const { container } = render(
+    <Table
+      columns={columns}
+      data={testData}
+      virtualize
+      height={200}
+      usePagination={false}
+    />,
+  );
+  return () =>
+    container
+      .querySelector<HTMLTableElement>('.virtual-table thead')
+      ?.closest('table')?.style.width;
+};
+
+test('virtualized table header is as wide as its columns, not the viewport', async () => {
+  const width = virtualHeaderWidth(testColumns);
+  await waitFor(() => expect(width()).toBe('300px'));
+});
+
+test('virtualized table header width ignores non-numeric column widths', async () => {
+  const width = virtualHeaderWidth([
+    testColumns[0],
+    { ...testColumns[1], width: '20%' },
+  ]);
+  await waitFor(() => expect(width()).toBe('150px'));
+});
+
+test('virtualized table header width survives a non-numeric width beside an unsized column', async () => {
+  const width = virtualHeaderWidth([
+    { ...testColumns[0], width: '20%' },
+    { title: 'Column Type', dataIndex: 'columnType', key: 'columnType' },
+  ]);
+  // The unsized column gets the 50px minimum; the '20%' one adds nothing.
+  await waitFor(() => expect(width()).toBe('50px'));
+});
+
+test('virtualized table header includes the stretched last column', async () => {
+  mockTableWidth = 400;
+  const width = virtualHeaderWidth(testColumns);
+  await waitFor(() => expect(width()).toBe('400px'));
+});
+
+test('virtualized table does not stretch a non-numeric last column', async () => {
+  mockTableWidth = 400;
+  const width = virtualHeaderWidth([
+    testColumns[0],
+    { ...testColumns[1], width: '20%' },
+  ]);
+  await waitFor(() => expect(width()).toBe('150px'));
+});
+
+test('virtualized table header falls back to the given scroll.x when no width is numeric', async () => {
+  const width = virtualHeaderWidth(
+    testColumns.map(column => ({ ...column, width: '50%' })),
+  );
+  await waitFor(() => expect(width()).toBe('100vw'));
+});
+
+test('virtualized table header and body last columns line up beside a vertical scrollbar', async () => {
+  mockTableWidth = 400;
+  const manyRows = Array.from({ length: 50 }, (_, i) => ({
+    columnName: `Name ${i}`,
+    columnType: `Type ${i}`,
+  }));
+  const { container } = render(
+    <Table
+      columns={[
+        { title: 'Column Name', dataIndex: 'columnName', key: 'columnName' },
+        { title: 'Column Type', dataIndex: 'columnType', key: 'columnType' },
+      ]}
+      data={manyRows}
+      virtualize
+      height={100}
+      usePagination={false}
+    />,
+  );
+
+  // Two unsized columns split the 400px container evenly (200px each). The
+  // Grid reserves the scrollbar from its last column, and rc-table does the
+  // same in the header and adds a gutter column of the scrollbar's width.
+  await waitFor(() => {
+    const cols = Array.from(
+      container.querySelectorAll<HTMLElement>('.virtual-table colgroup col'),
+    ).map(col => col.style.width);
+    expect(cols).toEqual([
+      '200px',
+      `${200 - MOCK_SCROLLBAR_WIDTH}px`,
+      `${MOCK_SCROLLBAR_WIDTH}px`,
+    ]);
+  });
+
+  const headerCols = Array.from(
+    container.querySelectorAll<HTMLElement>('.virtual-table colgroup col'),
+  );
+  const firstRowCells = Array.from(
+    container.querySelectorAll<HTMLElement>('.virtual-table-cell:not(:empty)'),
+  ).slice(0, 2);
+  expect(firstRowCells.map(cell => cell.style.width)).toEqual([
+    '200px',
+    `${200 - MOCK_SCROLLBAR_WIDTH}px`,
+  ]);
+  expect(firstRowCells[1].style.width).toBe(headerCols[1].style.width);
 });

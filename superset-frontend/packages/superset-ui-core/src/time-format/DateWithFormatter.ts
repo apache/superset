@@ -1,0 +1,74 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import type { DataRecordValue } from '../query/types/QueryResponse';
+import type { TimeFormatFunction } from './types';
+import normalizeTimestamp from './utils/normalizeTimestamp';
+
+/**
+ * A missing date can arrive as either `null`/`undefined` or an empty string
+ * (e.g. a blank cell in an otherwise-numeric epoch column, which also has the
+ * side effect of degrading the whole column's formatter to `String` - see
+ * `isNumeric` in transformProps.ts). Both should be treated as "no value".
+ */
+export const isEmptyDateInput = (input: DataRecordValue): boolean =>
+  input === null || input === undefined || input === '';
+
+/**
+ * Extended Date object with a custom formatter, and retains the original input
+ * when the formatter is simple `String(..)`.
+ *
+ * `toString()` never formats an Invalid Date: it returns the original input
+ * instead. `stringifyTimeInput` relies on that when it falls back to
+ * `${value}` for an unparseable input, otherwise the two would call each other
+ * forever.
+ */
+export default class DateWithFormatter extends Date {
+  formatter: TimeFormatFunction;
+
+  input: DataRecordValue;
+
+  constructor(
+    input: DataRecordValue,
+    { formatter = String }: { formatter?: TimeFormatFunction } = {},
+  ) {
+    let value = input;
+    // assuming timestamps without a timezone is in UTC time
+    if (typeof value === 'string') {
+      value = normalizeTimestamp(value);
+    }
+
+    super(value as string);
+
+    this.input = input;
+    this.formatter = formatter;
+    this.toString = (): string => {
+      if (this.formatter === String) {
+        return String(this.input);
+      }
+      // Values that are not parseable timestamps - durations such as
+      // "00:01:54" or "0 days 00:01:54", for instance - produce an Invalid
+      // Date, and formatting one renders as "NaN:NaN:NaN". Fall back to the
+      // original value instead.
+      if (Number.isNaN(this.getTime())) {
+        return String(this.input);
+      }
+      return this.formatter ? this.formatter(this) : Date.toString.call(this);
+    };
+  }
+}

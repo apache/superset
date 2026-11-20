@@ -25,8 +25,8 @@ from flask import current_app as app, Flask, request, Response, session
 from flask_login import login_user
 from werkzeug.http import parse_cookie
 
+from superset.security.session_invalidation import stamp_login_time
 from superset.utils.class_utils import load_class_from_name
-from superset.utils.urls import headless_url
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +61,12 @@ class MachineAuthProvider:
 
         url = urlparse(app.config["WEBDRIVER_BASEURL"])
 
-        # Setting cookies requires doing a request first
-        page = browser_context.new_page()
-        page.goto(headless_url("/login/"))
-
+        # No navigation is needed before setting cookies: unlike Selenium's
+        # driver.add_cookie(), BrowserContext.add_cookies() takes the domain
+        # directly. Priming with a page load on /login/ used to leave that page
+        # open on the shared cookie jar, and any late response from it carrying
+        # an anonymous "Set-Cookie: session=..." could overwrite the cookie
+        # injected below, silently deauthenticating the whole context.
         cookies = self.get_cookies(user)
 
         browser_context.clear_cookies()
@@ -96,7 +98,11 @@ class MachineAuthProvider:
     def get_auth_cookies(user: User) -> dict[str, str]:
         # Login with the user specified to get the reports
         with app.test_request_context("/login"):
-            login_user(user)
+            # enforce_session_validity treats a session with no login time as older
+            # than the user's invalidation epoch (e.g. after a password change), so
+            # stamp a successful login like a normal one. Inactive users stay out.
+            if login_user(user):
+                stamp_login_time()
             # A mock response object to get the cookie information from
             response = Response()
             # To ensure all `after_request` functions are called i.e Websockets JWT Auth

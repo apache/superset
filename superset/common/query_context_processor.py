@@ -20,11 +20,15 @@ import copy
 import logging
 import re
 import time
+from datetime import timedelta
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
 import pandas as pd
+import pyarrow as pa
 from flask import current_app
 from flask_babel import gettext as _
+from jinja2.exceptions import TemplateError
+from pandas.api.types import infer_dtype
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.chart_data_timing import (
@@ -37,20 +41,47 @@ from superset.common.grouping_sets import grouping_marker_label
 from superset.common.query_actions import get_query_results_with_timing
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.connectors.sqla.models import SqlaTable
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
+from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import (
+    DatasourceNotFound,
+    DatasourceTypeNotSupportedError,
+    DatasourceValueIsIncorrect,
+)
+from superset.dataframe import df_to_records
+from superset.errors import SupersetErrorType
 from superset.exceptions import (
+    CacheLoadError,
     QueryObjectValidationError,
+    QueryObjectValidationMessage,
+    SemanticResultCompletenessError,
     SupersetException,
+    SupersetSecurityException,
+    SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+from superset.models.sql_lab import Query
+from superset.semantic_layers.exceptions import (
+    SemanticLayerExecutionError,
+    SemanticLayerQueryRejectedError,
+)
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
-from superset.utils import csv, excel
+from superset.tasks.query_cancel import (
+    cancellable_chart_query,
+    chart_query_cancel_requested,
+    chart_query_run,
+)
+from superset.utils import csv, excel, json
 from superset.utils.cache import generate_cache_key, set_and_log_cache
+from superset.utils.cache_keys import embedded_guest_cache_key
 from superset.utils.core import (
+    ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
     DatasourceType,
     DTTM_ALIAS,
     error_msg_from_exception,
@@ -63,13 +94,84 @@ from superset.utils.core import (
     is_adhoc_metric,
 )
 from superset.utils.pandas_postprocessing.utils import unescape_separator
+from superset.utils.timing_metrics import (
+    elapsed_ms,
+    emit_incr,
+    emit_timing,
+    NANOSECONDS_PER_MILLISECOND,
+    now_ns,
+    timed,
+)
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
+
+# Two row and two column dimensions with totals and subtotals can need
+# (2 + 1) * (2 + 1) rollup levels. Requests with more levels are refused.
+MAX_SEMANTIC_PIVOT_LEVELS: int = 9
+MAX_SEMANTIC_PIVOT_ROWS_PER_LEVEL: int = 10000
+
+
+def normalize_contribution_totals(
+    queries: list[QueryObject],
+    cache_values: dict[str, Any],
+) -> tuple[list[int], int | None]:
+    """Identify contribution queries and normalize the totals query in place.
+
+    Returns the indices of queries whose contribution post-processing needs a
+    shared totals row, and the index of the totals query itself (or ``None``).
+    The totals query's ``row_limit`` is cleared on both the ``QueryObject`` and
+    the matching ``cache_values`` entry so cache keys align with cached results.
+    Shared by ``QueryContext`` and ``QueryContextProcessor`` so the two stay in
+    lockstep.
+    """
+    queries_needing_totals: list[int] = []
+    totals_idx: int | None = None
+
+    for index, query in enumerate(queries):
+        if any(
+            pp.get("operation") == "contribution"
+            for pp in getattr(query, "post_processing", None) or []
+        ):
+            queries_needing_totals.append(index)
+
+        if (
+            totals_idx is None
+            and not query.columns
+            and query.metrics
+            and not query.post_processing
+        ):
+            totals_idx = index
+
+    if queries_needing_totals and totals_idx is not None:
+        queries[totals_idx].row_limit = None
+        raw_queries = cache_values.get("queries", [])
+        if totals_idx < len(raw_queries) and isinstance(raw_queries[totals_idx], dict):
+            raw_queries[totals_idx]["row_limit"] = None
+
+    return queries_needing_totals, totals_idx
+
+
+def is_summable(series: pd.Series) -> bool:
+    """
+    Whether a column holds values the contribution totals can be summed over.
+
+    A dtype-kind test alone is not enough. `decimal.Decimal` metrics -- how
+    drivers such as psycopg2 hand back NUMERIC/DECIMAL columns -- are stored
+    with an object dtype, so they fall outside the numeric kinds even though
+    they sum and divide perfectly well. Omitting them leaves the totals
+    dictionary without an entry for the metric, and `contribution()` then
+    reads back `None` and writes a zero contribution instead of the real
+    percentage.
+    """
+    if series.dtype.kind in "biufc":
+        return True
+    return infer_dtype(series, skipna=True) == "decimal"
 
 
 class QueryContextProcessor:
@@ -94,46 +196,179 @@ class QueryContextProcessor:
         """Return the historical dataframe payload without timing metadata."""
         return self.get_df_payload_result(query_obj, force_cached).payload
 
+    @staticmethod
+    def _force_marker_key(nonce: str, cache_key: str) -> str:
+        """Cache key for the per-(nonce, cache_key) forced-refresh marker.
+
+        Deliberately distinct from the result cache key so the fresh result still
+        lands under the normal ``cache_key`` and non-forced loads stay warm.
+        """
+        return f"gtf-force-nonce:{nonce}:{cache_key}"
+
+    def _force_nonce(self, query_obj: QueryObject) -> str | None:
+        """The forced-refresh nonce for a query: its per-query token (the async
+        task's UUID, set on the read-back) if present, else the context-level token
+        (legacy/single-query fallback)."""
+        return (
+            getattr(query_obj, "force_nonce", None) or self._query_context.force_nonce
+        )
+
+    def _resolve_forced_query(
+        self, query_obj: QueryObject, cache_key: str | None
+    ) -> bool:
+        """Resolve ``QueryContext.force`` through an optional idempotency nonce.
+
+        A forced chart-data request in the async (GTF) flow is issued twice: the
+        async submit schedules the recompute, then a follow-up request reads the
+        warmed result. Re-running the force on that second request would recompute
+        the identical query (double execution). When a nonce is present (the async
+        task's UUID, carried per-query on the read-back — see :meth:`_force_nonce`),
+        the first execution records a marker (keyed by nonce + cache_key) once its
+        result is cached; any later request carrying the same nonce sees the marker
+        and reads the cache instead of recomputing. A brand new force refresh uses a
+        new task (new nonce), so it genuinely recomputes.
+
+        Without a nonce (synchronous forced refresh, legacy callers) force is
+        honored verbatim.
+
+        :returns: whether the source query should be forced (cache bypassed)
+        """
+        if not self._query_context.force:
+            return False
+        nonce = self._force_nonce(query_obj)
+        if not nonce or not cache_key:
+            return True
+        # Marker present => this forced refresh already computed and cached its
+        # result; read it rather than recomputing. Best-effort like the query
+        # cache itself: a marker read failure degrades to "absent" (force), never
+        # an error.
+        try:
+            marker = cache_manager.data_cache.get(
+                self._force_marker_key(nonce, cache_key)
+            )
+        except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            logger.warning("Force-nonce marker read failed; forcing recompute")
+            return True
+        return marker is None
+
+    def _mark_force_executed(
+        self, query_obj: QueryObject, cache_key: str | None, persisted: bool
+    ) -> None:
+        """Record that this ``force_nonce``'s recompute has been cached.
+
+        No-op unless this is a nonce-bearing forced refresh whose fresh result was
+        actually persisted (``persisted``). Gating on persistence is essential: if
+        the result was silently skipped (oversized value) or the backend write
+        failed, an old value may still sit under the normal cache key — writing the
+        marker anyway would let a follow-up read stop forcing and serve that stale
+        value. Best-effort: a marker write failure is logged and swallowed, costing
+        at worst one extra recompute. The marker shares the result's TTL, so the
+        two expire together.
+        """
+        nonce = self._force_nonce(query_obj)
+        if not (persisted and self._query_context.force and nonce and cache_key):
+            return
+        try:
+            # A False return (backend reported a failed write) or an exception are
+            # both benign here — the result is cached, so a missing marker only
+            # costs one extra recompute on the follow-up read, never stale data.
+            if (
+                cache_manager.data_cache.set(
+                    self._force_marker_key(nonce, cache_key),
+                    1,
+                    timeout=self.get_cache_timeout(),
+                )
+                is False
+            ):
+                logger.warning(
+                    "Force-nonce marker write reported failure; may recompute once more"
+                )
+        except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            logger.warning("Force-nonce marker write failed; may recompute once more")
+
     def get_df_payload_result(
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> QueryAcquisitionResult:
         """Acquire a dataframe and return timing as a typed sidecar."""
+        metrics_start_ns = now_ns()
+        phases: dict[str, int] = {}
+        try:
+            result = self._get_df_payload_result(query_obj, force_cached, phases)
+        finally:
+            self._emit_acquisition_metrics(phases, metrics_start_ns)
+        return result
+
+    def _get_df_payload_result(
+        self,
+        query_obj: QueryObject,
+        force_cached: bool | None,
+        phases: dict[str, int],
+    ) -> QueryAcquisitionResult:
+        """
+        Acquire a dataframe, recording phase starts and durations in ``phases``
+        so the caller can emit them even when a phase raises.
+        """
         query_planning_start_ns = time.perf_counter_ns()
+        phases["planning_start_ns"] = query_planning_start_ns
         if query_obj:
             # Always validate the query object before generating cache key
             # This ensures sanitize_clause() is called and extras are normalized
             query_obj.validate()
 
-        cache_key = self.query_cache_key(query_obj)
+        with timed("chart_data.cache.key"):
+            cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
-        force_query = self._query_context.force or timeout == CACHE_DISABLED_TIMEOUT
+        force_query = (
+            self._resolve_forced_query(query_obj, cache_key)
+            or timeout == CACHE_DISABLED_TIMEOUT
+        )
+        if query_obj:
+            # Datasources that run their own caching (semantic containment)
+            # must honor the same resolved chart/custom timeout and force
+            # decision as the result cache, not the datasource-level default.
+            query_obj.force_query = force_query
+            query_obj.cache_timeout = timeout
         query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
+        phases["planning_ns"] = query_planning_ns
 
+        cache_bypassed = (
+            not cache_key
+            or force_query
+            or not QueryCacheManager.reads_backend(CacheRegion.DATA)
+        )
         cache_resolution_start_ns = time.perf_counter_ns()
-        cache = QueryCacheManager.get(
-            key=cache_key,
-            region=CacheRegion.DATA,
+        cache = self._read_result_cache(
+            cache_key,
             force_query=force_query,
             force_cached=force_cached,
+            bypassed=cache_bypassed,
+            start_ns=cache_resolution_start_ns,
         )
 
-        # If cache is loaded but missing applied_filter_columns and query has filters,
-        # treat as cache miss to ensure fresh query with proper applied_filter_columns
+        # Entries without any filter reporting predate applied/rejected metadata.
+        # Rejected-only results are complete too (e.g. incompatible dashboard filters).
         if (
             query_obj
             and cache_key
             and cache.is_loaded
             and not cache.applied_filter_columns
+            and not cache.rejected_filter_columns
             and query_obj.filter
             and len(query_obj.filter) > 0
         ):
             cache.is_loaded = False
 
         cache_resolution_ns = max(0, time.perf_counter_ns() - cache_resolution_start_ns)
+        self._emit_cache_outcome(
+            bypassed=cache_bypassed,
+            hit=cache.is_loaded,
+            cache_resolution_ns=cache_resolution_ns,
+        )
 
         data_acquisition_ns: int | None = None
         if query_obj and cache_key and not cache.is_loaded:
             data_acquisition_start_ns = time.perf_counter_ns()
+            phases["data_acquisition_start_ns"] = data_acquisition_start_ns
             try:
                 if invalid_columns := [
                     col
@@ -151,15 +386,28 @@ class QueryContextProcessor:
                         )
                     )
 
-                query_result = self.get_query_result(query_obj)
-                annotation_data = self.get_annotation_data(query_obj)
+                # Make the warehouse query cancellable by its owner for the span
+                # of its execution, so Explore's Stop button kills the query
+                # rather than just abandoning the response. No-op for engines
+                # without cancel support, and for requests carrying no client_id.
+                with cancellable_chart_query(
+                    self._query_context.client_id,
+                    getattr(self._qc_datasource, "database", None),
+                ):
+                    query_result = self.get_query_result(query_obj)
+                with timed("chart_data.query.annotations"):
+                    annotation_data = self.get_annotation_data(query_obj)
+            except SemanticResultCompletenessError:
+                raise
             except QueryObjectValidationError as ex:
-                cache.error_message = str(ex)
+                # Keep the type: ChartDataCommand reads it to answer 400.
+                cache.error_message = QueryObjectValidationMessage(ex)
                 cache.status = QueryStatus.FAILED
             finally:
                 data_acquisition_ns = max(
                     0, time.perf_counter_ns() - data_acquisition_start_ns
                 )
+                phases["data_acquisition_ns"] = data_acquisition_ns
 
             if cache.status != QueryStatus.FAILED:
                 cache.set_query_result(
@@ -171,8 +419,13 @@ class QueryContextProcessor:
                     datasource_uid=self._qc_datasource.uid,
                     region=CacheRegion.DATA,
                 )
+                # Record — only if the fresh result was actually persisted — that
+                # this forced refresh ran, so a follow-up request carrying the same
+                # nonce reads the freshly-cached result instead of recomputing it.
+                self._mark_force_executed(query_obj, cache_key, cache.result_persisted)
 
         payload_assembly_start_ns = time.perf_counter_ns()
+        phases["payload_assembly_start_ns"] = payload_assembly_start_ns
         # the N-dimensional DataFrame has converted into flat DataFrame
         # by `flatten operator`, "comma" in the column is escaped by `escape_separator`
         # the result DataFrame columns should be unescaped
@@ -244,6 +497,7 @@ class QueryContextProcessor:
             "annotation_data": cache.annotation_data,
             "error": cache.error_message,
             "is_cached": cache.is_cached,
+            "semantic_cache_status": getattr(cache, "semantic_cache_status", None),
             "query": cache.query,
             "status": cache.status,
             "stacktrace": cache.stacktrace,
@@ -254,21 +508,99 @@ class QueryContextProcessor:
             "label_map": label_map,
             "warning": warning,
         }
+        payload_assembly_ns = max(0, time.perf_counter_ns() - payload_assembly_start_ns)
+        phases["payload_assembly_ns"] = payload_assembly_ns
         timing = QueryAcquisitionTiming(
             query_planning_ns=query_planning_ns,
             cache_resolution_ns=cache_resolution_ns,
             data_acquisition_ns=data_acquisition_ns,
-            payload_assembly_ns=max(
-                0, time.perf_counter_ns() - payload_assembly_start_ns
-            ),
+            payload_assembly_ns=payload_assembly_ns,
         )
         return QueryAcquisitionResult(payload=payload, timing=timing)
+
+    @classmethod
+    def _read_result_cache(
+        cls,
+        cache_key: str | None,
+        force_query: bool,
+        force_cached: bool | None,
+        bypassed: bool,
+        start_ns: int,
+    ) -> QueryCacheManager:
+        """
+        Read the results cache, counting the outcome when a forced-cache read
+        finds nothing and raises ``CacheLoadError`` (which is re-raised).
+        """
+        try:
+            return QueryCacheManager.get(
+                key=cache_key,
+                region=CacheRegion.DATA,
+                force_query=force_query,
+                force_cached=force_cached,
+            )
+        except CacheLoadError:
+            cls._emit_cache_outcome(
+                bypassed=bypassed,
+                hit=False,
+                cache_resolution_ns=max(0, time.perf_counter_ns() - start_ns),
+            )
+            raise
+
+    @staticmethod
+    def _emit_cache_outcome(
+        bypassed: bool, hit: bool, cache_resolution_ns: int
+    ) -> None:
+        """
+        Count the results cache outcome and time real cache reads.
+
+        A forced or keyless query never reads the cache backend, so its
+        near-zero lookup time is kept out of the cache read distribution.
+        """
+        if bypassed:
+            emit_incr("chart_data.cache.bypass")
+            return
+        emit_timing(
+            "chart_data.cache.get",
+            cache_resolution_ns / NANOSECONDS_PER_MILLISECOND,
+        )
+        emit_incr("chart_data.cache.hit" if hit else "chart_data.cache.miss")
+
+    @staticmethod
+    def _emit_acquisition_metrics(phases: dict[str, int], started_ns: int) -> None:
+        """
+        Emit the per-query acquisition phases as StatsD timers.
+
+        Runs in both the synchronous request and the async worker, so the
+        distributions cover every executed chart-data query. Runs on failure
+        too: a phase that started but did not finish is measured up to the
+        failure. ``chart_data.query.data_acquisition`` is only emitted when the
+        datasource was actually queried (a cache miss or bypass).
+        """
+        now = now_ns()
+
+        def phase_ms(name: str) -> float | None:
+            if (duration := phases.get(f"{name}_ns")) is None:
+                if (start := phases.get(f"{name}_start_ns")) is None:
+                    return None
+                duration = max(0, now - start)
+            return duration / NANOSECONDS_PER_MILLISECOND
+
+        for name, key in (
+            ("planning", "chart_data.query.planning"),
+            ("data_acquisition", "chart_data.query.data_acquisition"),
+            ("payload_assembly", "chart_data.query.payload_assembly"),
+        ):
+            if (value := phase_ms(name)) is not None:
+                emit_timing(key, value)
+        emit_timing("chart_data.query.total", elapsed_ms(started_ns))
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         """
         Returns a QueryObject cache key for objects in self.queries
         """
-        datasource = self._qc_datasource
+        datasource: Explorable = self._qc_datasource
+        # Reject unenforceable restrictions before provider identity or cache reads.
+        rls: list[str] = security_manager.get_rls_cache_key(datasource)
         extra_cache_keys = datasource.get_extra_cache_keys(query_obj.to_dict())
 
         # Annotation data is cached on the same entry as the dataframe, so the
@@ -280,7 +612,7 @@ class QueryContextProcessor:
             query_obj.cache_key(
                 datasource=datasource.uid,
                 extra_cache_keys=extra_cache_keys,
-                rls=security_manager.get_rls_cache_key(datasource),
+                rls=rls,
                 changed_on=datasource.changed_on,
                 **kwargs,
             )
@@ -289,7 +621,9 @@ class QueryContextProcessor:
         )
         return cache_key
 
-    def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
+    def _annotation_cache_context(  # noqa: C901
+        self, query_obj: QueryObject
+    ) -> dict[str, Any]:
         """
         Cache-key material binding cached annotation data to its security
         context.
@@ -297,23 +631,97 @@ class QueryContextProcessor:
         Annotation payloads are fetched per requesting user and stored on the
         same cache entry as the dataframe, so the key also binds the requesting
         user and, for chart-backed layers, the RLS clauses of the referenced
-        chart's datasource.
+        chart's datasource, including those injected into the tables its SQL
+        reads. The user id cannot tell embedded guests apart, so for them the
+        RLS and the identity they get on the source's connection are the only
+        things that do.
         """
         source_rls: dict[str, list[str] | None] = {}
+        source_inner_rls: dict[str, list[str]] = {}
+        source_rendered_rls: dict[str, list[str]] = {}
+        source_embedded_identity: dict[str, dict[str, Any]] = {}
+        source_versions: dict[str, tuple[str, str]] = {}
+        metadata_versions: dict[str, str] = {}
         for layer in query_obj.annotation_layers:
-            if layer.get("sourceType") not in ("line", "table"):
+            if (
+                layer.get("sourceType")
+                not in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+            ):
                 continue
             layer_value = layer.get("value")
-            chart = (
-                ChartDAO.find_by_id(layer_value) if layer_value is not None else None
+            annotation_datasource: Datasource | None = (
+                self._annotation_source_datasource(layer_value)
             )
-            annotation_datasource = chart.datasource if chart else None
+            if isinstance(annotation_datasource, SemanticView):
+                metadata_versions[str(layer_value)] = (
+                    annotation_datasource.metadata_generation
+                )
             source_rls[str(layer.get("value"))] = (
                 security_manager.get_rls_cache_key(annotation_datasource)
                 if annotation_datasource
                 else None
             )
-        return {"user_id": get_user_id(), "source_rls": source_rls}
+            if isinstance(annotation_datasource, SqlaTable) and (
+                rendered_rls := annotation_datasource.get_rendered_rls_cache_key()
+            ):
+                source_rendered_rls[str(layer_value)] = rendered_rls
+            if isinstance(annotation_datasource, (SqlaTable, Query)) and (
+                inner_rls := annotation_datasource.get_inner_rls_cache_key()
+            ):
+                source_inner_rls[str(layer_value)] = inner_rls
+            if isinstance(annotation_datasource, (SqlaTable, Query)) and (
+                embedded_identity := embedded_guest_cache_key(
+                    annotation_datasource.database
+                )
+            ):
+                source_embedded_identity[str(layer_value)] = embedded_identity
+            if isinstance(annotation_datasource, SemanticView):
+                discriminator: tuple[str, str] | None = (
+                    annotation_datasource.result_cache_discriminator
+                )
+                if discriminator is not None:
+                    source_versions[str(layer_value)] = discriminator
+        context: dict[str, Any] = {
+            "user_id": get_user_id(),
+            "source_rls": source_rls,
+            "semantic_filter_protocol": "semantic-null-filters-v1",
+            "source_versions": metadata_versions,
+        }
+        # Omit optional components when empty to preserve unaffected key bytes.
+        for key, component in (
+            ("semantic_result_versions", source_versions),
+            ("source_rendered_rls", source_rendered_rls),
+            ("source_inner_rls", source_inner_rls),
+            ("source_embedded_identity", source_embedded_identity),
+        ):
+            if component:
+                context[key] = component
+        return context
+
+    @staticmethod
+    def _annotation_source_datasource(layer_value: Any) -> Datasource | None:
+        """
+        The datasource a chart-backed annotation layer's data comes from: the
+        one in the referenced chart's saved query context when it has one, else
+        the chart's own datasource. ``None`` when it cannot be resolved.
+        """
+        chart = ChartDAO.find_by_id(layer_value) if layer_value is not None else None
+        if not chart:
+            return None
+        if not isinstance(chart.query_context, str):
+            return chart.resolved_datasource
+        try:
+            source: dict[str, Any] = json.loads(chart.query_context)["datasource"]
+            return DatasourceDAO.get_datasource(source["type"], source["id"])
+        except (
+            ValueError,
+            TypeError,
+            KeyError,
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
+        ):
+            return None
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """
@@ -331,7 +739,41 @@ class QueryContextProcessor:
         """
         if query_object.grouping_sets and not self._supports_grouping_sets():
             return self._grouping_sets_fallback(query_object)
-        return self._qc_datasource.get_query_result(query_object)
+        return self._execute_query_object(query_object)
+
+    def _execute_query_object(self, query_object: QueryObject) -> QueryResult:
+        """Run one statement on the datasource, unless its owner asked to stop.
+
+        Every statement of a chart-data run passes through here, so a Stop
+        that lands before the run starts, or between two of its statements,
+        is honoured at the next one instead of being lost. Cancelling the
+        statement executing right now is ``cancellable_chart_query``'s job.
+        """
+        if chart_query_cancel_requested(self._query_context.client_id):
+            return self._stopped_query_result()
+        result = self._qc_datasource.get_query_result(query_object)
+        # A Stop that kills a statement the datasource ran internally (e.g. a
+        # time-offset subquery) leaves a partial frame behind with a SUCCESS
+        # status; recheck so that result is never served or cached.
+        if chart_query_cancel_requested(self._query_context.client_id):
+            return self._stopped_query_result()
+        return result
+
+    @staticmethod
+    def _stopped_query_result() -> QueryResult:
+        """The result of a statement skipped because the run was stopped.
+
+        Reported as FAILED rather than a dedicated status: the payload and
+        cache paths treat anything else as a result worth serving and caching,
+        and a stopped run must not leave an empty frame behind as a hit.
+        """
+        return QueryResult(
+            df=pd.DataFrame(),
+            query="",
+            duration=timedelta(0),
+            status=QueryStatus.FAILED,
+            error_message=_("Query was stopped"),
+        )
 
     def _supports_grouping_sets(self) -> bool:
         engine_spec: BaseEngineSpec | None = getattr(
@@ -345,13 +787,39 @@ class QueryContextProcessor:
         query per rollup level and concatenate, tagging each level's rows with
         the same per-column markers the native path emits.
 
-        This issues one sequential query per rollup level, with no cap on the
-        number of levels. The level count is bounded by the pivot's row/column
-        dimensionality (powerset of grouped dimensions in the worst case), so a
-        chart with many dimensions on an engine lacking native GROUPING SETS
-        support could fan out to a non-trivial number of queries per render.
+        This issues one sequential query per rollup level. Semantic pivots are
+        capped at nine levels; other datasources retain their existing fallback
+        behavior. The level count grows with the pivot's row/column dimensions.
         """
         levels: list[list[str]] = query_object.grouping_sets
+        is_semantic_pivot: bool = (
+            query_object.datasource is not None
+            and query_object.datasource.type == "semantic_view"
+        )
+        semantic_row_limit: int | None = None
+        if is_semantic_pivot:
+            if len(levels) > MAX_SEMANTIC_PIVOT_LEVELS:
+                raise QueryObjectValidationError(
+                    _(
+                        "Pivot Table has too many rollup levels for a semantic view. "
+                        "Remove row or column dimensions and try again."
+                    )
+                )
+            if query_object.row_offset:
+                raise QueryObjectValidationError(
+                    _(
+                        "Pivot Table pagination is not supported on semantic views. "
+                        "Clear the row offset and try again."
+                    )
+                )
+            semantic_row_limit = max(
+                1,
+                min(
+                    query_object.row_limit or MAX_SEMANTIC_PIVOT_ROWS_PER_LEVEL,
+                    current_app.config["ROW_LIMIT"],
+                    MAX_SEMANTIC_PIVOT_ROWS_PER_LEVEL,
+                ),
+            )
         # Use the same label derivation as the native path (physical column name
         # or adhoc column label) so both column kinds are represented and each
         # label maps back to its own column, in the same order as the source
@@ -370,21 +838,33 @@ class QueryContextProcessor:
             sub_query.columns = [
                 label_to_column[label] for label in all_labels if label in level_labels
             ]
-            # A GROUPING SETS query computes a bounded set of rollup levels, so
-            # the native path never applies row_limit to it (see the
-            # `use_grouping_sets` check in models/helpers.py). Match that here:
-            # limiting each level's fallback sub-query independently would
-            # truncate subtotal/grand-total rows and diverge from the native
-            # result shape. The native path applies `row_offset` exactly once,
+            # The SQL native path does not apply row_limit to GROUPING SETS
+            # (see `use_grouping_sets` in models/helpers.py). Semantic pivots
+            # bound every level and refuse a result that reaches the limit;
+            # other datasources retain the unbounded fallback. The native path
+            # applies `row_offset` exactly once,
             # to the combined multi-level result (see the unconditional
             # `qry.offset()` call in models/helpers.py). Applying the same
             # offset to each per-level sub-query independently would apply it
             # once per level instead of once overall, and can silently drop
             # low-row-count levels (e.g. the single grand-total row) entirely.
             # Zero it here and apply it once after concatenation instead.
-            sub_query.row_limit = None
+            sub_query.row_limit = semantic_row_limit if is_semantic_pivot else None
             sub_query.row_offset = 0
-            result = self._qc_datasource.get_query_result(sub_query)
+            result = self._execute_query_object(sub_query)
+            if result.status == QueryStatus.FAILED:
+                # A level that failed (or was stopped) ends the whole query:
+                # carrying on would let a later level's status overwrite it,
+                # and an incomplete concatenation would be cached as success.
+                return result
+            if semantic_row_limit is not None and len(result.df) >= semantic_row_limit:
+                raise QueryObjectValidationError(
+                    _(
+                        "Pivot Table level reached the row limit on a semantic "
+                        "view; it may be complete or truncated. Add filters or "
+                        "remove row or column dimensions and try again."
+                    )
+                )
             level_df = result.df.copy()
             for label in all_labels:
                 level_df[grouping_marker_label(label)] = (
@@ -393,7 +873,7 @@ class QueryContextProcessor:
             frames.append(level_df)
 
         if result is None:  # no levels requested; nothing to do
-            return self._qc_datasource.get_query_result(query_object)
+            return self._execute_query_object(query_object)
 
         result.df = pd.concat(frames, ignore_index=True) if frames else result.df
         if query_object.row_offset:
@@ -403,6 +883,9 @@ class QueryContextProcessor:
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]
     ) -> str | bytes | list[dict[str, Any]]:
+        if self._query_context.result_format == ChartDataResultFormat.ARROW:
+            return self._to_arrow_ipc(df)
+
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -427,36 +910,25 @@ class QueryContextProcessor:
                 )
             return result or ""
 
-        return df.to_dict(orient="records")
+        # QueryObject post-processing has completed before this materialization
+        # boundary. Canonicalize its trusted missing/non-finite scalar outputs,
+        # while downstream envelope validation still rejects injected infinity.
+        # Chart consumers do arithmetic on decimals, so keep them JSON numbers.
+        return df_to_records(df)
 
-    def _prepare_contribution_totals(self) -> tuple[list[int], int | None]:
+    @staticmethod
+    def _to_arrow_ipc(df: pd.DataFrame) -> bytes:
+        """Serialize to an Arrow IPC stream for throughput-sensitive callers.
+
+        Serialization happens at response time rather than in the cache, so
+        Arrow and JSON requests for the same query share cache entries and no
+        cache-key versioning is needed.
         """
-        Identify contribution queries and normalize the totals query so cache keys
-        align with cached results.
-        """
-        queries_needing_totals: list[int] = []
-        totals_idx: int | None = None
-
-        for i, query in enumerate(self._query_context.queries):
-            needs_totals = any(
-                pp.get("operation") == "contribution"
-                for pp in getattr(query, "post_processing", []) or []
-            )
-
-            if needs_totals:
-                queries_needing_totals.append(i)
-
-            is_totals_query = (
-                not query.columns and query.metrics and not query.post_processing
-            )
-            if is_totals_query and totals_idx is None:
-                totals_idx = i
-
-        if queries_needing_totals and totals_idx is not None:
-            totals_query = self._query_context.queries[totals_idx]
-            totals_query.row_limit = None
-
-        return queries_needing_totals, totals_idx
+        table = pa.Table.from_pandas(df, preserve_index=False)
+        sink = pa.BufferOutputStream()
+        with pa.ipc.new_stream(sink, table.schema) as writer:
+            writer.write_table(table)
+        return sink.getvalue().to_pybytes()
 
     def ensure_totals_available(
         self,
@@ -464,26 +936,42 @@ class QueryContextProcessor:
         totals_idx: int | None = None,
     ) -> None:
         if queries_needing_totals is None or totals_idx is None:
-            queries_needing_totals, totals_idx = self._prepare_contribution_totals()
+            queries_needing_totals, totals_idx = (
+                self._query_context.prepare_contribution_totals()
+            )
 
         if not queries_needing_totals or totals_idx is None:
             return
 
         totals_query = self._query_context.queries[totals_idx]
+        totals_timeout: int = self.get_cache_timeout()
+        totals_query.cache_timeout = totals_timeout
+        totals_query.force_query = (
+            self._resolve_forced_query(totals_query, self.query_cache_key(totals_query))
+            or totals_timeout == CACHE_DISABLED_TIMEOUT
+        )
 
-        result = self._query_context.get_query_result(totals_query)
+        # The totals query is a warehouse query of its own, run before the
+        # chart's main queries; give Stop the same reach over it.
+        with cancellable_chart_query(
+            self._query_context.client_id,
+            getattr(self._qc_datasource, "database", None),
+        ):
+            result = self._query_context.get_query_result(totals_query)
         df = result.df
 
-        totals = {
-            col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"
-        }
+        totals = {col: df[col].sum() for col in df.columns if is_summable(df[col])}
 
         for idx in queries_needing_totals:
             query = self._query_context.queries[idx]
             if hasattr(query, "post_processing") and query.post_processing:
                 for pp in query.post_processing:
                     if pp.get("operation") == "contribution":
-                        pp["options"]["contribution_totals"] = totals
+                        # ``options`` is optional in the post-processing schema,
+                        # so a ``{"operation": "contribution"}`` entry with no
+                        # options is valid input; create it rather than raising
+                        # KeyError (which escapes as a 500).
+                        pp.setdefault("options", {})["contribution_totals"] = totals
 
     def get_payload(
         self,
@@ -505,13 +993,30 @@ class QueryContextProcessor:
         force_cached: bool = False,
     ) -> QueryContextExecutionResult:
         """Return query results with timing kept outside query payloads."""
+        # One chart-data run can be several warehouse statements (totals, the
+        # grouping-sets fallback, one query object after another). Scope the
+        # run so a Stop issued before or between them is honoured at the next
+        # statement, and the recorded intent is cleared once the run is over.
+        with chart_query_run(self._query_context.client_id):
+            return self._run_payload_result(cache_query_context, force_cached)
 
-        queries_needing_totals, totals_idx = self._prepare_contribution_totals()
+    def _run_payload_result(
+        self,
+        cache_query_context: bool | None = False,
+        force_cached: bool = False,
+    ) -> QueryContextExecutionResult:
+        queries_needing_totals, totals_idx = (
+            self._query_context.prepare_contribution_totals()
+        )
 
         # Skip ensure_totals_available when force_cached=True
         # This prevents recalculating contribution_totals from cached results
         if not force_cached:
-            self.ensure_totals_available(queries_needing_totals, totals_idx)
+            if queries_needing_totals and totals_idx is not None:
+                with timed("chart_data.totals"):
+                    self.ensure_totals_available(queries_needing_totals, totals_idx)
+            else:
+                self.ensure_totals_available(queries_needing_totals, totals_idx)
 
             # Update cache_values to reflect modifications made by
             # ensure_totals_available()
@@ -570,7 +1075,15 @@ class QueryContextProcessor:
              :meth:`QueryContext.get_cache_timeout`.
           4. ``DATA_CACHE_CONFIG["CACHE_DEFAULT_TIMEOUT"]``.
           5. ``CACHE_DEFAULT_TIMEOUT`` — global fallback.
+
+        For an async execution the result is cached then read back by a follow-up
+        request, so the resolved timeout is finally floored to
+        ``GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL`` to prevent a short TTL from evicting
+        the result before it is fetched (see :meth:`_apply_async_min_cache_ttl`).
         """
+        return self._apply_async_min_cache_ttl(self._resolve_cache_timeout())
+
+    def _resolve_cache_timeout(self) -> int:
         # Step 1: Request-level custom timeout (e.g., Force refresh bypass)
         if self._query_context.custom_cache_timeout is not None:
             return self._query_context.custom_cache_timeout
@@ -598,6 +1111,21 @@ class QueryContextProcessor:
 
         # Step 5: Global fallback.
         return current_app.config["CACHE_DEFAULT_TIMEOUT"]
+
+    def _apply_async_min_cache_ttl(self, timeout: int) -> int:
+        """Floor an async execution's result-cache TTL (no-op otherwise).
+
+        Only applies when this query context runs on the async path; a longer
+        timeout is kept as-is, and ``0`` (flask-caching "cache forever") is already
+        above any floor so it is left untouched. Synchronous requests are never
+        floored, even when GLOBAL_ASYNC_QUERIES is enabled.
+        """
+        if not self._query_context.is_async_execution:
+            return timeout
+        min_ttl: int = current_app.config.get("GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL", 0)
+        if 0 < timeout < min_ttl:
+            return min_ttl
+        return timeout
 
     @staticmethod
     def _is_native_filter_options_query(form_data: dict[str, Any]) -> bool:
@@ -651,7 +1179,7 @@ class QueryContextProcessor:
         for annotation_layer in [
             layer
             for layer in query_obj.annotation_layers
-            if layer["sourceType"] in ("line", "table")
+            if layer["sourceType"] in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
         ]:
             name = annotation_layer["name"]
             annotation_data[name] = self.get_viz_annotation_data(
@@ -716,9 +1244,11 @@ class QueryContextProcessor:
         if not (chart := ChartDAO.find_by_id(annotation_layer["value"])):
             raise QueryObjectValidationError(
                 _(
-                    f"""Chart with ID {annotation_layer["value"]} (referenced by
-                    annotation layer '{annotation_layer["name"]}') was not found.
-                    Please verify that the chart exists and is accessible."""
+                    "Chart with ID %(chart_id)s (referenced by annotation layer "
+                    "'%(layer_name)s') was not found. Please verify that the "
+                    "chart exists and is accessible.",
+                    chart_id=annotation_layer["value"],
+                    layer_name=annotation_layer["name"],
                 )
             )
 
@@ -726,12 +1256,20 @@ class QueryContextProcessor:
             if not (query_context := chart.get_query_context()):
                 raise QueryObjectValidationError(
                     _(
-                        f"""The query context for chart ID {chart.id} (referenced
-                        by annotation layer '{annotation_layer["name"]}') was not found.
-                        Please ensure the chart is properly configured and has a valid
-                        query context."""
+                        "The query context for chart ID %(chart_id)s (referenced "
+                        "by annotation layer '%(layer_name)s') was not found. "
+                        "Please ensure the chart is properly configured and has a "
+                        "valid query context.",
+                        chart_id=chart.id,
+                        layer_name=annotation_layer["name"],
                     )
                 )
+
+            # Only the source chart's rows are used. Dropping its own annotation
+            # layers also stops charts that annotate each other (A -> B -> A)
+            # from recursing.
+            for query_object in query_context.queries:
+                query_object.annotation_layers = []
 
             if overrides := annotation_layer.get("overrides"):
                 if time_grain_sqla := overrides.get("time_grain_sqla"):
@@ -750,6 +1288,19 @@ class QueryContextProcessor:
             command.validate()
             payload = command.run()
             return {"records": payload["queries"][0]["data"]}
+        except (
+            SemanticLayerQueryRejectedError,
+            SemanticLayerExecutionError,
+            SemanticResultCompletenessError,
+        ):
+            raise
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
+            raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
         except SupersetException as ex:
             raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 
@@ -764,7 +1315,21 @@ class QueryContextProcessor:
         # come first to avoid rendering caller-supplied input for a resource the
         # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
-            security_manager.raise_for_access(query=self._qc_datasource)
+            try:
+                # Query-backed chart-data runs the stored query's raw SQL, so
+                # editorship of a same-named dataset must not authorize its
+                # tables -- otherwise a no-table decoy dataset named after a
+                # table would let its editor read that table through a
+                # persisted query. ``allow_editorship=False`` stops honoring
+                # editorship while keeping the regular catalog/schema/
+                # datasource_access checks this ongoing-fetch path has always
+                # used (it is deliberately not the stricter
+                # ``force_dataset_match`` that SQL Lab execution uses).
+                security_manager.raise_for_access(
+                    query=self._qc_datasource, allow_editorship=False
+                )
+            except TemplateError as ex:
+                raise SupersetTemplateException(str(ex)) from ex
         else:
             security_manager.raise_for_access(query_context=self._query_context)
 

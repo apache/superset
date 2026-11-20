@@ -43,6 +43,7 @@ import {
   FeatureFlag,
   isDefined,
   SupersetClient,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
@@ -85,6 +86,16 @@ const SelectWithLabel = styled(AsyncSelect)<{ labelText: string }>`
 // AsyncSelect from asking for a second page.
 const COMPARATOR_PAGE_SIZE = 1_000_000;
 
+// SupersetClient rejects with the raw Response, so a refused request carries
+// its status. A 4xx is the caller's problem (an unknown column, no access) and
+// is not an outage; a 5xx is the server's own failure, and no status at all
+// means the request got no answer (network failure, timeout). Only the last
+// two are "suggestions unavailable".
+const isSuggestionsOutage = (error: unknown): boolean => {
+  const status = (error as { status?: unknown } | null)?.status;
+  return typeof status !== 'number' || status >= 500;
+};
+
 const toLabeledValue = (value: unknown): LabeledValue => ({
   value: value as LabeledValue['value'],
   label: optionLabel(value as null | number | boolean | string),
@@ -126,6 +137,7 @@ export type ColumnType =
   | MetricColumnType;
 
 export interface Props {
+  semanticSelectionVersion?: string;
   adhocFilter: AdhocFilter;
   onChange: (filter: AdhocFilter) => void;
   options: ColumnType[];
@@ -270,6 +282,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
         expressionType: ExpressionTypes.Simple,
         operatorId,
         comparator,
+        isExtra: false,
       }),
     );
   };
@@ -324,6 +337,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
           operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
           expressionType: ExpressionTypes.Sql,
           datasource: props.datasource,
+          isExtra: false,
         }),
       );
     } else {
@@ -333,6 +347,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
           operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
           comparator: newComparator,
           expressionType: ExpressionTypes.Simple,
+          isExtra: false,
         }),
       );
     }
@@ -342,6 +357,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
       props.adhocFilter.duplicateWith({
         comparator,
         expressionType: ExpressionTypes.Simple,
+        isExtra: false,
       }),
     );
   };
@@ -350,6 +366,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
       props.adhocFilter.duplicateWith({
         operatorId: undefined,
         operator: undefined,
+        isExtra: false,
       }),
     );
   };
@@ -360,6 +377,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
         operator: Operators.TemporalRange,
         comparator: timeRange,
         expressionType: ExpressionTypes.Simple,
+        isExtra: false,
       }),
     );
   };
@@ -386,6 +404,14 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   const comparatorSelectRef = useRef<AsyncSelectRef>(null);
   const [loadedOptionCount, setLoadedOptionCount] = useState(0);
   const [optionsTruncated, setOptionsTruncated] = useState(false);
+  const [suggestionsUnavailable, setSuggestionsUnavailable] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState<string>();
+  const [suggestionsDisabled, setSuggestionsDisabled] = useState(false);
+  // Identity of the newest suggestions request. A slow response that loses
+  // the race -- a failing fetch resolving after a newer search succeeded, or
+  // after the column changed -- must not stamp its outcome over the current
+  // one, so every state write below is guarded on still being the latest.
+  const comparatorRequestRef = useRef(0);
   const [hasFocusedComparator, setHasFocusedComparator] =
     useState<boolean>(false);
 
@@ -520,16 +546,28 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     allowNewOptions: true,
     ariaLabel: t('Comparator option'),
     pageSize: COMPARATOR_PAGE_SIZE,
-    // A capped list reads as the whole set unless it says otherwise, so an
-    // absent value looks like a value that does not exist. Only shown when the
-    // list is actually cut short.
-    helperText: optionsTruncated
-      ? t(
-          'Only the first %s values are listed. Type to search all of them, ' +
-            'or enter a value that is not listed.',
-          loadedOptionCount,
-        )
-      : undefined,
+    // An empty list reads as "this column has no values" unless it says
+    // otherwise, so a failed request has to say so -- that silence is how a
+    // months-long 500 on every semantic view went unreported. Likewise a capped
+    // list reads as the whole set, so an absent value looks like a value that
+    // does not exist. Each note is only shown when it applies.
+    helperText: suggestionsDisabled
+      ? t('Suggestions are unavailable for this view. Enter a value manually.')
+      : suggestionsError ||
+        (suggestionsUnavailable
+          ? t('Suggestions could not be loaded. You can still type a value.')
+          : optionsTruncated
+            ? props.datasource?.type === 'semantic_view'
+              ? t(
+                  'Only the first %s values are listed. Enter a value manually if it is not listed.',
+                  loadedOptionCount,
+                )
+              : t(
+                  'Only the first %s values are listed. Type to search all of them, ' +
+                    'or enter a value that is not listed.',
+                  loadedOptionCount,
+                )
+            : undefined),
     mode:
       operatorId && MULTI_OPERATORS.has(operatorId as Operators)
         ? ('multiple' as const)
@@ -573,6 +611,11 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   // `props.datasource`, whose identity the parent does not guarantee.
   const datasourceType = props.datasource?.type;
   const datasourceId = props.datasource?.id;
+  // This marker belongs to the selections, never to freshly fetched metadata.
+  const selectionVersion =
+    datasourceType === 'semantic_view' && !props.adhocFilter.isExtra
+      ? props.semanticSelectionVersion
+      : undefined;
 
   const loadComparatorOptions = useCallback(
     async (search: string): Promise<SelectOptionsTypePage> => {
@@ -581,12 +624,19 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         return { data: [], totalCount: 0 };
       }
 
+      const requestId = comparatorRequestRef.current + 1;
+      comparatorRequestRef.current = requestId;
+      const isCurrent = () => comparatorRequestRef.current === requestId;
+
       const params = new URLSearchParams();
       if (arrayElements) {
         params.set('array_elements', 'true');
       }
       if (search) {
         params.set('q', search);
+      }
+      if (selectionVersion) {
+        params.set('semantic_selection_version', selectionVersion);
       }
       const query = params.toString();
 
@@ -596,6 +646,11 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             `/api/v1/datasource/${datasourceType}/${datasourceId}` +
             `/column/${encodeURIComponent(col)}/values/${query ? `?${query}` : ''}`,
         });
+        if (isCurrent()) {
+          setSuggestionsDisabled(
+            json.suggestions_status === 'unavailable_versioned_view',
+          );
+        }
         const data = json.result.map((suggestion: unknown) => {
           // Complex column values arrive as JS arrays or objects: whole arrays
           // for MULTI_VALUE columns (e.g. [5, 6, 7]) and Map/Tuple objects for
@@ -615,8 +670,14 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           };
         });
 
-        setLoadedOptionCount(data.length);
-        setOptionsTruncated(isDefined(json.limit) && data.length >= json.limit);
+        if (isCurrent()) {
+          setLoadedOptionCount(data.length);
+          setOptionsTruncated(
+            isDefined(json.limit) && data.length >= json.limit,
+          );
+          setSuggestionsUnavailable(false);
+          setSuggestionsError(undefined);
+        }
 
         // The count has to exceed what was returned. AsyncSelect treats
         // `loaded >= totalCount` as "that is every value", sets allValuesLoaded
@@ -624,10 +685,26 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         // client-side -- which is the behaviour this whole change exists to
         // replace. Pagination is held off by COMPARATOR_PAGE_SIZE instead.
         return { data, totalCount: data.length + 1 };
-      } catch {
-        setLoadedOptionCount(0);
-        setOptionsTruncated(false);
-        return { data: [], totalCount: 0 };
+      } catch (error) {
+        const rejected =
+          datasourceType === 'semantic_view' &&
+          error instanceof Response &&
+          error.status === 400;
+        const guidance = rejected
+          ? (await getClientErrorObject(error)).error
+          : undefined;
+        if (isCurrent()) {
+          setSuggestionsError(guidance || undefined);
+          setLoadedOptionCount(0);
+          setOptionsTruncated(false);
+          // The empty page keeps the dropdown, and with it the value the
+          // user types, in place; the note says why the page is empty.
+          setSuggestionsUnavailable(rejected || isSuggestionsOutage(error));
+        }
+        // The count has to exceed the page: an empty page reported as
+        // complete (0 >= 0) makes AsyncSelect serve every later search from
+        // it, so the server would never be asked again for this column.
+        return { data: [], totalCount: 1 };
       }
     },
     [
@@ -635,15 +712,32 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       canSuggestComparatorValues,
       datasourceType,
       datasourceId,
+      selectionVersion,
       arrayElements,
     ],
   );
 
   // Options are cached per search term inside AsyncSelect; a different column
-  // or a switch to element-level suggestions invalidates all of them.
+  // or a switch to element-level suggestions invalidates all of them, and a
+  // note about the previous column's request with them.
   useEffect(() => {
-    comparatorSelectRef.current?.clearCache();
-  }, [subjectString, arrayElements]);
+    // The ref only carries the AsyncSelect handle while the suggestions
+    // branch is mounted; a column without comparator options renders the
+    // plain input, so the method itself is optional too.
+    comparatorSelectRef.current?.clearCache?.();
+    // Invalidate any in-flight request as well: a slow response for the
+    // previous column must not resurface the note after this reset.
+    comparatorRequestRef.current += 1;
+    setSuggestionsUnavailable(false);
+    setSuggestionsError(undefined);
+    setSuggestionsDisabled(false);
+  }, [
+    subjectString,
+    arrayElements,
+    datasourceType,
+    datasourceId,
+    selectionVersion,
+  ]);
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
@@ -749,6 +843,12 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             }
           >
             <SelectWithLabel
+              key={JSON.stringify([
+                datasourceType,
+                datasourceId,
+                subjectString,
+                selectionVersion,
+              ])}
               ref={comparatorSelectRef}
               css={css`
                 margin-top: ${theme.marginXS}px;

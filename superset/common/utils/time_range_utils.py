@@ -16,14 +16,47 @@
 # under the License.
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, cast
 
 from flask import current_app
+from flask_babel import gettext as _
+from marshmallow import ValidationError
 
 from superset.common.query_object import QueryObject
-from superset.utils.core import FilterOperator
+from superset.constants import NO_TIME_RANGE
+from superset.exceptions import QueryObjectValidationError
+from superset.superset_typing import Column
+from superset.utils.core import (
+    FilterOperator,
+    get_x_axis_label,
+)
 from superset.utils.date_parser import get_since_until
+
+
+def get_time_range_from_filters(
+    time_range: str | None,
+    filters: Sequence[Mapping[str, object]] | None,
+    columns: list[Column] | None,
+) -> str:
+    """Select the original range expression without evaluating relative dates."""
+    if time_range is not None:
+        return time_range
+    temporal_filters: list[Mapping[str, object]] = [
+        filter_
+        for filter_ in filters or []
+        if filter_.get("op") == FilterOperator.TEMPORAL_RANGE
+        and isinstance(filter_.get("val"), str)
+    ]
+    if not temporal_filters:
+        return NO_TIME_RANGE
+    x_axis_label: str | None = get_x_axis_label(columns)
+    selected: Mapping[str, object] = next(
+        (filter_ for filter_ in temporal_filters if filter_.get("col") == x_axis_label),
+        temporal_filters[0],
+    )
+    return cast(str, selected.get("val"))
 
 
 def get_since_until_from_time_range(
@@ -47,6 +80,47 @@ def get_since_until_from_time_range(
 
 
 # pylint: disable=invalid-name
+def get_since_until_from_temporal_filter(
+    time_range: str,
+    column: str,
+    time_shift: str | None = None,
+    extras: dict[str, Any] | None = None,
+) -> tuple[datetime | None, datetime | None]:
+    """Parse one temporal filter's range, reporting a bad range as a bad request.
+
+    ``get_time_range_from_filters`` picks a single temporal filter, and only
+    that one is parsed while the query context is built, where
+    ``ChartDataRestApi`` answers 400 for a range it cannot parse. Every temporal
+    filter is parsed again when the SQL is built, and that runs outside the
+    handlers that answer 400, so a bad range in any other filter would reach
+    ``app.errorhandler(Exception)`` and answer 500.
+
+    :param time_range: The range expression, as the filter carries it.
+    :param column: The filtered column, to say which filter is at fault.
+    :param time_shift: An offset to apply to the parsed range.
+    :param extras: Query extras holding the relative-date anchors.
+    :return: The parsed bounds
+    :raises QueryObjectValidationError: If the range is unusable
+    """
+    try:
+        return get_since_until_from_time_range(
+            time_range=time_range,
+            time_shift=time_shift,
+            extras=extras,
+        )
+    except (ValidationError, ValueError) as ex:
+        # ``TimeRangeParseFailError`` and ``TimeRangeAmbiguousError`` are
+        # marshmallow ``ValidationError``s, which only the query-context
+        # handlers answer 400 for; the rest arrive as a bare ``ValueError``.
+        raise QueryObjectValidationError(
+            _(
+                "Invalid time range for %(column)s: %(message)s",
+                column=column,
+                message=str(ex),
+            )
+        ) from ex
+
+
 def get_since_until_from_query_object(
     query_object: QueryObject,
 ) -> tuple[datetime | None, datetime | None]:

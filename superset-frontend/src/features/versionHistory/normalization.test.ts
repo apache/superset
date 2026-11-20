@@ -20,7 +20,6 @@ import {
   automaticNormalizationTransitions,
   isJsonValue,
   matchingAutomaticNormalizationTransitions,
-  stashDropNormalizationTransitions,
 } from './normalization';
 
 test('recognizes only values that JSON can represent faithfully', () => {
@@ -106,53 +105,4 @@ test('keeps only valid, unchanged transitions for a save', () => {
       show_legend: true,
     }),
   ).toEqual({ row_limit: rowLimit });
-});
-
-test('covers a stash-removed key still equal to its persisted value', () => {
-  expect(
-    stashDropNormalizationTransitions(
-      { order_desc: true, row_limit: 5000 },
-      { order_desc: true },
-      { row_limit: 5000 },
-    ),
-  ).toEqual({
-    order_desc: {
-      control: 'order_desc',
-      from_present: true,
-      from_value: true,
-      to_present: false,
-    },
-  });
-});
-
-test('does not cover a stashed value the user changed before it was hidden', () => {
-  expect(
-    stashDropNormalizationTransitions(
-      { server_page_length: 10 },
-      { server_page_length: 25 },
-      {},
-    ),
-  ).toEqual({});
-});
-
-test('does not cover stashed keys that were never persisted', () => {
-  expect(
-    stashDropNormalizationTransitions({}, { totals_aggregate: 'SUM' }, {}),
-  ).toEqual({});
-});
-
-test('does not cover keys the outgoing payload still carries', () => {
-  expect(
-    stashDropNormalizationTransitions(
-      { order_desc: true },
-      { order_desc: true },
-      { order_desc: true },
-    ),
-  ).toEqual({});
-});
-
-test('drop coverage requires a stash', () => {
-  expect(
-    stashDropNormalizationTransitions({ order_desc: true }, undefined, {}),
-  ).toEqual({});
 });

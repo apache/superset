@@ -45,8 +45,13 @@ export default styled.div`
       background-color: ${theme.colorBgBase};
       text-align: left;
       border-bottom: 2px solid ${theme.colorSplit};
+      border-right: 1px solid ${theme.colorSplit};
       color: ${theme.colorText};
       vertical-align: bottom;
+    }
+
+    thead > tr > th:last-child {
+      border-right: none;
     }
 
     /* Icons in header */
@@ -156,6 +161,10 @@ export default styled.div`
       text-align: right;
       /* use padding instead of margin so clientHeight can capture it */
       padding: ${theme.paddingXXS}px 0px;
+    }
+
+    .dt-pagination .pagination {
+      margin: 0;
     }
 
     .dt-pagination .pagination > li {

@@ -16,21 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelsContainerProps } from '@superset-ui/chart-controls/types';
+import {
+  ControlPanelsContainerProps,
+  ControlPanelState,
+  isCustomControlItem,
+} from '@superset-ui/chart-controls/types';
 import { GenericDataType } from '@apache-superset/core/common';
 import controlPanel from '../../../src/Timeseries/Regular/Bar/controlPanel';
 import {
   StackControlOptionsWithoutStream,
   StackControlsValue,
 } from '../../../src/constants';
-import { OrientationType } from '../../../src/Timeseries/types';
-
-// Narrow shape of the control under test: enough to exercise `visibility`
-// without reaching for `any`.
-type VisibilityControl = {
-  name: string;
-  config: { visibility: (props: ControlPanelsContainerProps) => boolean };
-};
+import {
+  BarValueLabelPosition,
+  OrientationType,
+} from '../../../src/Timeseries/types';
 
 const config = controlPanel;
 
@@ -137,6 +137,41 @@ test('should have proper form data overrides', () => {
 test('should include stack control in the panel', () => {
   const stackControl = getControl('stack');
   expect(stackControl).toBeDefined();
+});
+
+test('should expose Auto and manual value label positions for Bar charts', () => {
+  const valueLabelPositionControl = getControl(
+    'value_label_position',
+  ) as unknown as {
+    config: {
+      choices: [BarValueLabelPosition, string][];
+      default: BarValueLabelPosition;
+      visibility: (props: ControlPanelsContainerProps) => boolean;
+    };
+  };
+
+  expect(valueLabelPositionControl.config.default).toBe(
+    BarValueLabelPosition.OutsideEnd,
+  );
+  expect(
+    valueLabelPositionControl.config.choices.map(([value]) => value),
+  ).toEqual([
+    BarValueLabelPosition.Auto,
+    BarValueLabelPosition.InsideEnd,
+    BarValueLabelPosition.OutsideEnd,
+    BarValueLabelPosition.InsideCenter,
+    BarValueLabelPosition.InsideBase,
+  ]);
+  expect(
+    valueLabelPositionControl.config.visibility({
+      controls: { show_value: { value: true } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    valueLabelPositionControl.config.visibility({
+      controls: { show_value: { value: false } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
 });
 
 test('should use StackControlOptionsWithoutStream for stack control', () => {
@@ -300,41 +335,86 @@ test('x_axis_time_format should be hidden for numeric columns', () => {
   );
 });
 
-test('should have visibility function for label_position', () => {
-  const labelPositionCtrl = getControl(
-    'label_position',
-  ) as unknown as VisibilityControl;
-  expect(labelPositionCtrl).toBeDefined();
-  expect(labelPositionCtrl.config.visibility).toBeDefined();
-  expect(typeof labelPositionCtrl.config.visibility).toBe('function');
+const logControls = config.controlPanelSections
+  .flatMap(section => (section && section.controlSetRows) || [])
+  .flat()
+  .filter(isCustomControlItem)
+  .filter(control => control.name === 'logAxis');
 
-  expect(
-    labelPositionCtrl.config.visibility({
+test.each([OrientationType.Vertical, OrientationType.Horizontal])(
+  'prevents logarithmic selection while %s bars are stacked, and restores it when cleared',
+  orientation => {
+    expect(logControls).toHaveLength(2);
+    const state = {
       controls: {
-        show_value: { value: true },
-        show_valueB: { value: false },
+        orientation: { value: orientation },
+        stack: { value: StackControlsValue.Stack },
+        logAxis: { value: false },
       },
-    } as unknown as ControlPanelsContainerProps),
-  ).toBe(true);
+    } as unknown as ControlPanelsContainerProps;
+    expect(
+      logControls.map(control => control.config.visibility!(state, {})),
+    ).toEqual([false, false]);
+    state.controls.stack.value = null;
+    expect(
+      logControls.filter(control => control.config.visibility!(state, {})),
+    ).toHaveLength(1);
+    state.controls.stack.value = StackControlsValue.Stack;
+    state.controls.logAxis.value = true;
+    // A saved chart with both settings must retain a route to turn log mode off.
+    expect(
+      logControls.filter(control => control.config.visibility!(state, {})),
+    ).toHaveLength(1);
+  },
+);
 
-  // Visibility follows `show_value` alone. No Timeseries panel defines
-  // `show_valueB` — Mixed declares its own suffixed controls — so it must not
-  // reveal the control on its own.
-  expect(
-    labelPositionCtrl.config.visibility({
-      controls: {
-        show_value: { value: false },
-        show_valueB: { value: true },
-      },
-    } as unknown as ControlPanelsContainerProps),
-  ).toBe(false);
+test.each<[boolean, StackControlsValue | null, boolean]>([
+  [true, null, true],
+  [false, null, false],
+  [true, StackControlsValue.Stack, false],
+  [false, StackControlsValue.Stack, false],
+])(
+  'stack control with log=%s and stack=%s is disabled=%s',
+  (logAxis, stack, disabled) => {
+    const state = {
+      controls: { logAxis: { value: logAxis }, stack: { value: stack } },
+    } as unknown as ControlPanelState;
+    expect(
+      config.controlOverrides!.stack!.mapStateToProps!(state, {
+        type: 'SelectControl',
+        value: stack,
+      }),
+    ).toMatchObject({
+      disabled,
+      warning: logAxis ? expect.any(String) : null,
+    });
+  },
+);
 
-  expect(
-    labelPositionCtrl.config.visibility({
-      controls: {
-        show_value: { value: false },
-        show_valueB: { value: false },
-      },
-    } as unknown as ControlPanelsContainerProps),
-  ).toBe(false);
+const xMinIntervalControl: any = getControl('x_axis_min_interval');
+const yMinIntervalControl: any = getControl('y_axis_min_interval');
+
+test('should include the minimum interval controls for both axes', () => {
+  expect(xMinIntervalControl).toBeDefined();
+  expect(yMinIntervalControl).toBeDefined();
+  expect(xMinIntervalControl.config.default).toBeNull();
+  expect(yMinIntervalControl.config.default).toBeNull();
+  expect(xMinIntervalControl.config.renderTrigger).toBe(true);
+  expect(yMinIntervalControl.config.renderTrigger).toBe(true);
+});
+
+test('minimum interval controls follow the bar orientation', () => {
+  const xVisibility = xMinIntervalControl?.config?.visibility;
+  const yVisibility = yMinIntervalControl?.config?.visibility;
+  const vertical = mockBarControls('date', GenericDataType.Temporal);
+  const horizontal = mockBarControls(
+    'date',
+    GenericDataType.Temporal,
+    OrientationType.Horizontal,
+  );
+
+  expect(xVisibility(vertical)).toBe(true);
+  expect(xVisibility(horizontal)).toBe(false);
+  expect(yVisibility(vertical)).toBe(false);
+  expect(yVisibility(horizontal)).toBe(true);
 });

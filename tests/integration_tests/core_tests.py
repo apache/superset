@@ -124,7 +124,6 @@ class TestCore(SupersetTestCase):
         def assert_admin_view_menus_in(role_name, assert_func):
             role = security_manager.find_role(role_name)
             view_menus = [p.view_menu.name for p in role.permissions]
-            assert_func("ResetPasswordView", view_menus)
             assert_func("RoleRestAPI", view_menus)
             assert_func("Security", view_menus)
             assert_func("SQL Lab", view_menus)
@@ -132,6 +131,35 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Admin", self.assertIn)
         assert_admin_view_menus_in("Alpha", self.assertNotIn)
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
+
+    def test_legacy_fab_password_views_are_gone(self):
+        """The legacy FAB reset routes are not registered and no role holds
+        their permissions. ``test_disable_legacy_password_reset_launchers``
+        covers the user-view buttons being dead ends rather than 500s."""
+        rules = {rule.rule for rule in current_app.url_map.iter_rules()}
+        endpoints = {rule.endpoint for rule in current_app.url_map.iter_rules()}
+        assert "/resetpassword/form" not in rules
+        assert "/resetmypassword/form" not in rules
+        assert not {
+            endpoint
+            for endpoint in endpoints
+            if endpoint.startswith(("ResetPasswordView.", "ResetMyPasswordView."))
+        }
+
+        for role_name in ("Admin", "Alpha", "Gamma"):
+            role = security_manager.find_role(role_name)
+            perms = {(p.permission.name, p.view_menu.name) for p in role.permissions}
+            assert not {
+                view_menu
+                for _, view_menu in perms
+                if view_menu in ("ResetPasswordView", "ResetMyPasswordView")
+            }, role_name
+            assert ("resetpasswords", "UserDBModelView") not in perms, role_name
+            assert ("resetmypassword", "UserDBModelView") not in perms, role_name
+
+        self.login(ADMIN_USERNAME)
+        assert self.client.get("/resetpassword/form?pk=1").status_code == 404
+        assert self.client.get("/resetmypassword/form").status_code == 404
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
@@ -196,6 +224,270 @@ class TestCore(SupersetTestCase):
         for slc in slices:
             db.session.delete(slc)
         db.session.commit()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_save_slice_to_forbidden_dashboard_does_not_persist(self):
+        """Saving a chart to a dashboard the user cannot edit must fail
+        with 403 and persist nothing (fix for #46324).
+
+        The legacy explore save committed the chart before the dashboard
+        permission check, so the 403 response still left the chart saved.
+        The refusal message is asserted (not just the status) so a 403
+        from an unrelated check cannot satisfy the pin.
+        """
+        admin = self.get_user(ADMIN_USERNAME)
+        dashboard = self.insert_dashboard(
+            "Forbidden Dashboard",
+            "forbidden-dashboard-46324",
+            [admin.id],
+            created_by=admin,
+        )
+        try:
+            tbl_id = self.table_ids.get("energy_usage")
+            slice_name = f"Unsaved Slice {random.random()}"  # noqa: S311
+            form_data = {
+                "adhoc_filters": [],
+                "viz_type": "sankey",
+                "groupby": ["target"],
+                "metric": "sum__value",
+                "row_limit": 5000,
+            }
+            table = self.get_table("energy_usage")
+            gamma = self.get_user(GAMMA_USERNAME)
+            # Drop the admin session before impersonating gamma: logging
+            # in as the temporary user does not replace an already
+            # authenticated session, so the admin would otherwise leak
+            # into these checks.
+            self.logout()
+            with self.temporary_user(
+                gamma,
+                extra_pvms=[("datasource_access", table.perm)],
+                login=True,
+            ):
+                resp = self.client.post(
+                    "/explore/table/{}/?slice_name={}&action=saveas"
+                    "&save_to_dashboard_id={}".format(tbl_id, slice_name, dashboard.id),
+                    data={"form_data": json.dumps(form_data)},
+                )
+                assert resp.status_code == 403
+                assert (
+                    "You don't have the rights to alter this dashboard"
+                    in resp.json["error"]
+                )
+                leaked = (
+                    db.session.query(Slice)
+                    .filter_by(slice_name=slice_name)
+                    .one_or_none()
+                )
+                # Clean up the leaked chart (the bug under test) so the
+                # temporary user's teardown can still delete the user:
+                # the chart references the user, and leaving it behind
+                # breaks teardown with a foreign-key error.
+                if leaked is not None:
+                    db.session.delete(leaked)
+                    db.session.commit()
+                assert leaked is None
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_save_slice_invalid_dashboard_id_returns_400(self):
+        """A non-numeric save_to_dashboard_id must fail with 400 and
+        persist nothing (fix for #46324).
+
+        The id was parsed with an unguarded int() after the chart had
+        already been committed, so the request 500ed and still saved.
+        """
+        self.login(ADMIN_USERNAME)
+        tbl_id = self.table_ids.get("energy_usage")
+        slice_name = f"Unsaved Slice {random.random()}"  # noqa: S311
+        form_data = {
+            "adhoc_filters": [],
+            "viz_type": "sankey",
+            "groupby": ["target"],
+            "metric": "sum__value",
+            "row_limit": 5000,
+        }
+        resp = self.client.post(
+            "/explore/table/{}/?slice_name={}&action=saveas"
+            "&save_to_dashboard_id=abc".format(tbl_id, slice_name),
+            data={"form_data": json.dumps(form_data)},
+        )
+        assert resp.status_code == 400
+        assert (
+            db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+            is None
+        )
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_save_slice_missing_dashboard_id_returns_404(self):
+        """A nonexistent save_to_dashboard_id must fail with 404 and
+        persist nothing (fix for #46324).
+
+        The dashboard was loaded with an unguarded .one() after the
+        chart had already been committed, so the request 500ed and
+        still saved.
+        """
+        self.login(ADMIN_USERNAME)
+        tbl_id = self.table_ids.get("energy_usage")
+        slice_name = f"Unsaved Slice {random.random()}"  # noqa: S311
+        form_data = {
+            "adhoc_filters": [],
+            "viz_type": "sankey",
+            "groupby": ["target"],
+            "metric": "sum__value",
+            "row_limit": 5000,
+        }
+        missing_id = self.get_nonexistent_numeric_id(Dashboard)
+        resp = self.client.post(
+            "/explore/table/{}/?slice_name={}&action=saveas"
+            "&save_to_dashboard_id={}".format(tbl_id, slice_name, missing_id),
+            data={"form_data": json.dumps(form_data)},
+        )
+        assert resp.status_code == 404
+        assert (
+            db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+            is None
+        )
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_save_slice_to_accessible_dashboard_persists(self):
+        """The happy path is unchanged: saving to a dashboard the user
+        can edit still creates the chart and attaches it (fix for
+        #46324 must not break the success path).
+        """
+        admin = self.get_user(ADMIN_USERNAME)
+        dashboard = self.insert_dashboard(
+            "Accessible Dashboard",
+            "accessible-dashboard-46324",
+            [admin.id],
+            created_by=admin,
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            tbl_id = self.table_ids.get("energy_usage")
+            slice_name = f"Saved Slice {random.random()}"  # noqa: S311
+            form_data = {
+                "adhoc_filters": [],
+                "viz_type": "sankey",
+                "groupby": ["target"],
+                "metric": "sum__value",
+                "row_limit": 5000,
+            }
+            resp = self.client.post(
+                "/explore/table/{}/?slice_name={}&action=saveas"
+                "&save_to_dashboard_id={}".format(tbl_id, slice_name, dashboard.id),
+                data={"form_data": json.dumps(form_data)},
+            )
+            assert resp.status_code == 200
+            slc = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+            assert slc is not None
+            assert slc in dashboard.slices
+            assert resp.json["dashboard_id"] == dashboard.id
+        finally:
+            slc = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+            if slc is not None:
+                db.session.delete(slc)
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_save_slice_to_new_dashboard_persists(self):
+        """Saving to a brand new dashboard still creates the dashboard
+        and attaches the chart (fix for #46324 moved the dashboard
+        creation after the chart save; this pins the success path).
+        """
+        self.login(ADMIN_USERNAME)
+        tbl_id = self.table_ids.get("energy_usage")
+        slice_name = f"Saved Slice {random.random()}"  # noqa: S311
+        dashboard_title = f"New Dashboard {random.random()}"  # noqa: S311
+        form_data = {
+            "adhoc_filters": [],
+            "viz_type": "sankey",
+            "groupby": ["target"],
+            "metric": "sum__value",
+            "row_limit": 5000,
+        }
+        try:
+            resp = self.client.post(
+                "/explore/table/{}/?slice_name={}&action=saveas"
+                "&new_dashboard_name={}".format(tbl_id, slice_name, dashboard_title),
+                data={"form_data": json.dumps(form_data)},
+            )
+            assert resp.status_code == 200
+            slc = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+            assert slc is not None
+            dash = (
+                db.session.query(Dashboard)
+                .filter_by(dashboard_title=dashboard_title)
+                .one_or_none()
+            )
+            assert dash is not None
+            assert slc in dash.slices
+            assert resp.json["dashboard_id"] == dash.id
+        finally:
+            slc = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+            if slc is not None:
+                db.session.delete(slc)
+            dash = (
+                db.session.query(Dashboard)
+                .filter_by(dashboard_title=dashboard_title)
+                .one_or_none()
+            )
+            if dash is not None:
+                db.session.delete(dash)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_overwrite_refuses_externally_managed_slice(self):
+        """sc-120011: the legacy Explore overwrite is gated server-side.
+
+        /superset/explore/ with action=overwrite assigns request values
+        (params, query_context, ...) directly to the loaded chart and
+        persists via ChartDAO.update, bypassing UpdateChartCommand -- so
+        the managed-externally refusal must exist on this path too, even
+        for an admin who could otherwise edit the chart.
+
+        The refusal message is asserted (not just the status) so a 403
+        from an unrelated check cannot satisfy the pin; environments with
+        broken admin datasource grants fail here with the datasource
+        error instead -- CI is the verifier.
+        """
+        self.login(ADMIN_USERNAME)
+        slc = self.get_slice("Energy Sankey")
+        slice_id = slc.id
+        original_name = slc.slice_name
+        original_query_context = slc.query_context
+        slc.is_managed_externally = True
+        db.session.commit()
+
+        tbl_id = self.table_ids.get("energy_usage")
+        url = (
+            f"/explore/table/{tbl_id}/?slice_name=changed&action=overwrite"
+            "&datasource_name=energy_usage"
+        )
+        form_data = {
+            "adhoc_filters": [],
+            "viz_type": "sankey",
+            "groupby": ["target"],
+            "metric": "sum__value",
+            "row_limit": 5000,
+            "slice_id": slice_id,
+        }
+
+        try:
+            resp = self.client.post(url, data={"form_data": json.dumps(form_data)})
+            assert resp.status_code == 403
+            assert "rights to alter this chart" in resp.get_data(as_text=True)
+
+            slc = db.session.query(Slice).filter_by(id=slice_id).one()
+            assert slc.slice_name == original_name
+            assert slc.query_context == original_query_context
+        finally:
+            slc = db.session.query(Slice).filter_by(id=slice_id).one()
+            slc.is_managed_externally = False
+            db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data(self):

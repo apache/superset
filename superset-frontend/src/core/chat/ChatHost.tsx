@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { type ComponentType, useRef } from 'react';
+import { type ComponentType, type ReactNode, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import { css, useTheme } from '@apache-superset/core/theme';
@@ -88,7 +88,7 @@ export const ChatPanelHost = () => {
  * floating panel overlay. The trigger is always visible when a chat is
  * registered; the panel overlay is suppressed in panel mode.
  */
-export const ChatFloatingHost = () => {
+export const ChatFloatingHost = ({ children }: { children?: ReactNode }) => {
   const theme = useTheme();
   const { open: panelOpen, mode, chat, trigger, panel } = useChat();
   const onError = useCrashNotifier(chat?.id);
@@ -116,13 +116,15 @@ export const ChatFloatingHost = () => {
         Separate boundaries so a crashing panel cannot take the trigger down
         with it — the trigger is the user's only way back.
       */}
-      {panelOpen && mode !== 'panel' && (
-        <ChatBoundary
-          key={`panel-${chat.id}`}
-          component={panel}
-          onError={onError}
-        />
-      )}
+      {panelOpen &&
+        mode !== 'panel' &&
+        (children ?? (
+          <ChatBoundary
+            key={`panel-${chat.id}`}
+            component={panel}
+            onError={onError}
+          />
+        ))}
       <ChatBoundary
         key={`trigger-${chat.id}`}
         component={trigger}
