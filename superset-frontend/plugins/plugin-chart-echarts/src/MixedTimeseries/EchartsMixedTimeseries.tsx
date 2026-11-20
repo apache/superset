@@ -297,7 +297,8 @@ export default function EchartsMixedTimeseries({
           if (
             categoryValue === null ||
             typeof categoryValue === 'string' ||
-            typeof categoryValue === 'number'
+            typeof categoryValue === 'number' ||
+            typeof categoryValue === 'boolean'
           ) {
             xAxisFilters.push({
               col: xAxisColumn,

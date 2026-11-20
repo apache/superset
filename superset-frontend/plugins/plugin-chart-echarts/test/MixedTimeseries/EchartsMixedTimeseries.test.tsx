@@ -301,6 +301,48 @@ test.each(
   },
 );
 
+test.each(
+  [false, true].flatMap(value =>
+    [false, true].map(markerless => ({ value, markerless })),
+  ),
+)(
+  'Boolean category Drill by preserves $value on markerless=$markerless clicks',
+  async ({ value, markerless }) => {
+    const query: ChartDataResponseResult = {
+      ...createQueryData(),
+      coltypes: [
+        GenericDataType.Boolean,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+      data: [false, true].map(ds => ({
+        ds,
+        'sum__num, boy': 1,
+        'sum__num, girl': 2,
+      })),
+    };
+    const { eventHandlers, onContextMenu } = setup({}, [query, query]);
+    mockMixedChart.getModel.mockReturnValue({
+      getComponent: () => ({ getCategories: () => [false, true] }),
+    });
+    mockMixedChart.convertFromPixel.mockReturnValue([Number(value), 1]);
+    await eventHandlers.contextmenu({
+      ...(markerless ? {} : { data: [value, 1], name: String(value) }),
+      seriesName: 'sum__num, boy',
+      seriesIndex: 0,
+      event: {
+        stop: jest.fn(),
+        offsetX: 20,
+        offsetY: 30,
+        event: { clientX: 11, clientY: 22 },
+      },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      { col: 'ds', op: '==', val: value, formattedVal: String(value) },
+    ]);
+  },
+);
+
 test.each(['', 0, null])(
   'category Drill by preserves the typed value %s',
   async value => {
