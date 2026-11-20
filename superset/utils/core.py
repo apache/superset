@@ -1420,9 +1420,9 @@ def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -
         return verbose_name or column_name
 
     if isinstance(column, dict):
-        if label := column.get("label"):
+        if isinstance(label := column.get("label"), str) and label:
             return label
-        if expr := column.get("sqlExpression"):
+        if isinstance(expr := column.get("sqlExpression"), str) and expr:
             return expr
 
     if isinstance(column, str):
@@ -1443,18 +1443,26 @@ def get_metric_name(metric: Metric, verbose_map: dict[str, Any] | None = None) -
     :raises ValueError: if metric object is invalid
     """
     if is_adhoc_metric(metric):
-        if label := metric.get("label"):
+        if isinstance(label := metric.get("label"), str) and label:
             return label
         if (expression_type := metric.get("expressionType")) == "SQL":
-            if sql_expression := metric.get("sqlExpression"):
+            if (
+                isinstance(sql_expression := metric.get("sqlExpression"), str)
+                and sql_expression
+            ):
                 return sql_expression
         if expression_type == "SIMPLE":
             column: AdhocMetricColumn = metric.get("column") or {}
             column_name = column.get("column_name")
             aggregate = metric.get("aggregate")
-            if column and aggregate:
+            if (
+                column
+                and isinstance(aggregate, str)
+                and aggregate
+                and isinstance(column_name, str)
+            ):
                 return f"{aggregate}({column_name})"
-            if column_name:
+            if isinstance(column_name, str) and column_name:
                 return column_name
 
     if isinstance(metric, str):

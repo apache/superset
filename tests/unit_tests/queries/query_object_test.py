@@ -95,6 +95,23 @@ def test_default_query_object_to_dict():
     }
 
 
+def test_validate_rejects_non_string_metric_label() -> None:
+    """A metric with a non-string `label` must fail validation as a 4xx,
+    not crash with a TypeError when labels are later deduplicated via `set()`.
+    """
+    query_object = QueryObject(
+        metrics=[
+            {
+                "expressionType": "SQL",
+                "label": {"not": "a string"},
+            }
+        ],
+        row_limit=1,
+    )
+    with pytest.raises(QueryObjectValidationError):
+        query_object.validate()
+
+
 @pytest.mark.parametrize("clause", ["where", "having"])
 def test_semantic_view_rejects_custom_sql_extras(clause: str) -> None:
     """Unsupported SQL clauses fail before semantic provider access."""
