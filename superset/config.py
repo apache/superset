@@ -3502,10 +3502,11 @@ GUEST_TOKEN_VALIDATOR_HOOK = None
 #     SESSION_COOKIE_SAMESITE = "None" and SESSION_COOKIE_SECURE = True (HTTPS
 #     only); browser third-party-cookie restrictions may still block it.
 #   - Login CSRF: redemption refuses to replace the session of a different
-#     signed-in user, but a browser with no Superset session is signed in as
-#     whoever the token was minted for. The resolver must therefore accept only
-#     requests from the parent application's own authenticated end user, and
-#     mint a token only for that user.
+#     signed-in user, but a browser with no Superset session that is sent a valid
+#     token is signed in as the token's user. Neither Superset nor a strict
+#     resolver prevents this: a user can mint a token for their own account and
+#     hand the redemption URL to someone else within the token's lifetime, because
+#     the token is not bound to the browser that requested it.
 #   - Bearer credential: for its lifetime the token is a bearer credential and it
 #     appears in the redemption URL, so consider redacting the `token` query
 #     parameter in access logs.
