@@ -17,7 +17,7 @@
 """Integration tests for Task REST API"""
 
 from contextlib import contextmanager
-from typing import Generator
+from typing import Any, Generator
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -512,6 +512,82 @@ class TestTaskApi(SupersetTestCase):
                     "error_message": "An error occurred while fetching the data.",
                 }
                 assert b"private engine detail" not in response.data
+        finally:
+            if permission_added:
+                security_manager.del_permission_role(guest_role, read_permission)
+
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_guest_chart_task_show_and_list_redact_failure_message(self) -> None:
+        """A subscribed guest gets the generic chart error from show and list."""
+        from superset.daos.tasks import TaskDAO
+        from superset.tasks.async_queries import CHART_QUERY_TASK
+
+        guest_role: Role | None = security_manager.find_role(
+            current_app.config["GUEST_ROLE_NAME"]
+        )
+        read_permission: PermissionView | None = (
+            security_manager.find_permission_view_menu("can_read", "Task")
+        )
+        assert guest_role is not None
+        assert read_permission is not None
+        permission_added: bool = read_permission not in guest_role.permissions
+        if permission_added:
+            security_manager.add_permission_role(guest_role, read_permission)
+
+        try:
+            with self._create_tasks() as tasks:
+                task: Task = tasks[0]
+                task.task_type = CHART_QUERY_TASK
+                task.set_status(TaskStatus.IN_PROGRESS)
+                task.set_status(TaskStatus.FAILURE)
+                task.update_properties({"error_message": "private engine detail"})
+                db.session.commit()
+
+                token: bytes = security_manager.create_guest_access_token(
+                    user={"username": "task_guest"},
+                    resources=[
+                        {
+                            "type": GuestTokenResourceType.DASHBOARD,
+                            "id": str(uuid4()),
+                        }
+                    ],
+                    rls=[],
+                )
+                headers: dict[str, bytes] = {
+                    current_app.config["GUEST_TOKEN_HEADER_NAME"]: token
+                }
+                with self.app.test_request_context(headers=headers):
+                    g.user = security_manager.get_guest_user_from_request(request)
+                    guest_key: str | None = get_current_guest_subscriber_key()
+                assert guest_key is not None
+                assert TaskDAO.add_guest_subscriber(task.id, guest_key)
+                db.session.commit()
+
+                show: Response = self.client.get(
+                    f"{self.TASK_API_BASE}/{task.uuid}", headers=headers
+                )
+                listing: Response = self.client.get(
+                    f"{self.TASK_API_BASE}/", headers=headers
+                )
+
+                assert show.status_code == 200, show.json
+                assert (
+                    show.json["result"]["properties"]["error_message"]
+                    == "An error occurred while fetching the data."
+                )
+                assert listing.status_code == 200, listing.json
+                listed: list[dict[str, Any]] = [
+                    row
+                    for row in listing.json["result"]
+                    if row["uuid"] == str(task.uuid)
+                ]
+                assert len(listed) == 1
+                assert (
+                    listed[0]["properties"]["error_message"]
+                    == "An error occurred while fetching the data."
+                )
+                for response in (show, listing):
+                    assert b"private engine detail" not in response.data
         finally:
             if permission_added:
                 security_manager.del_permission_role(guest_role, read_permission)

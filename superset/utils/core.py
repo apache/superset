@@ -295,6 +295,7 @@ class DatasourceDict(TypedDict):
 
 
 class AdhocFilterClause(TypedDict, total=False):
+    timeGrain: str | None
     clause: str
     expressionType: str
     filterOptionName: str | None
@@ -311,6 +312,7 @@ class QueryObjectFilterClause(TypedDict, total=False):
     val: FilterValues | None
     grain: str | None
     isExtra: bool | None
+    is_literal: bool
 
 
 class ExtraFiltersTimeColumnType(StrEnum):
@@ -1125,6 +1127,8 @@ def simple_filter_to_adhoc(
         "operator": filter_clause["op"],
         "subject": cast(str, filter_clause["col"]),
     }
+    if filter_clause.get("grain"):
+        result["timeGrain"] = filter_clause["grain"]
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
     result["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], result))
@@ -1548,6 +1552,11 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                             "col": adhoc_filter.get("subject"),
                             "op": adhoc_filter.get("operator"),
                             "val": adhoc_filter.get("comparator"),
+                            **(
+                                {"grain": adhoc_filter["timeGrain"]}
+                                if adhoc_filter.get("timeGrain")
+                                else {}
+                            ),
                             # keep dashboard provenance for semantic-view reporting
                             **(
                                 {"isExtra": True} if adhoc_filter.get("isExtra") else {}
@@ -2062,6 +2071,7 @@ class DateColumn:
     offset: int | None = None
     time_shift: str | None = None
     timezone: str | None = None  # IANA timezone name
+    date_only: bool = False  # e.g. a DATE column, which the timezone cannot move
 
     def __hash__(self) -> int:
         return hash(self.col_label)
@@ -2076,12 +2086,14 @@ class DateColumn:
         offset: int | None,
         time_shift: str | None,
         timezone: str | None = None,
+        date_only: bool = False,
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
             offset=offset,
             time_shift=time_shift,
             timezone=timezone,
+            date_only=date_only,
             col_label=DTTM_ALIAS,
         )
 
@@ -2182,13 +2194,17 @@ def normalize_dttm_col(
         if _col.timezone and isinstance(_col.timezone, str):
             try:
                 tz = ZoneInfo(_col.timezone)
-                # Data is stored in UTC, convert to the dataset's configured timezone
-                # First make the datetime UTC-aware, then convert to target timezone
+                # Naive values are assumed to be UTC; values that already carry
+                # a timezone are converted from it directly
+                # A date has no time of day, so it is left as it is
                 series = df[_col.col_label]
-                if not series.empty and series.notna().any():
-                    # Convert UTC to target timezone
+                if not _col.date_only and not series.empty and series.notna().any():
                     df[_col.col_label] = (
-                        series.dt.tz_localize("UTC")
+                        (
+                            series.dt.tz_localize("UTC")
+                            if series.dt.tz is None
+                            else series
+                        )
                         .dt.tz_convert(tz)
                         .dt.tz_localize(None)  # Remove timezone info for display
                     )

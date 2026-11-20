@@ -42,12 +42,13 @@ import {
 } from '../controls/DndColumnSelectControl';
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
 
-jest.mock(
-  'react-virtualized-auto-sizer',
-  () =>
-    ({ children }: { children: (params: { height: number }) => ReactChild }) =>
-      children({ height: 500 }),
-);
+jest.mock('react-virtualized-auto-sizer', () => ({
+  AutoSizer: ({
+    renderProp,
+  }: {
+    renderProp: (params: { height: number }) => ReactChild;
+  }) => renderProp({ height: 500 }),
+}));
 
 const datasource: IDatasource = {
   id: 1,

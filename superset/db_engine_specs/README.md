@@ -1108,6 +1108,8 @@ This way, when a user edits an existing BigQuery connection, the `private_key` i
 
 Note that while this is a basic feature that should be implemented for security reasons, it only makes sense in DB engine specs that use `encrypted_extra` to store connection information.
 
+Masked fields can also come with a hint that helps tell stored secrets apart, for example after a token rotation. When `ENCRYPTED_EXTRA_HINT_CHARS` is greater than zero, `encrypted_extra_hints` returns, for each string found at a path from `encrypted_extra_sensitive_field_paths`, its label, path and last characters, plus, for a JWT, when its `exp` claim says it expires and whether it has (`expires_at` and `expired`, `None` for other values; the signature is not verified). The suffix is `None` when the value is shorter than four times the configured length, so at most 25% of a value is ever revealed, and the length of the value is never returned. Declare `encrypted_extra_sensitive_fields` as a dict of paths to labels to control the labels; engines that use a set get the last segment of the path.
+
 ## Nice to have features
 
 The next set of features are nice to have. They don't apply to all databases, and are not strictly needed for security or usability.
@@ -1321,6 +1323,8 @@ Superset will try to cancel running queries if the users wants so, but it's up t
 Some databases have an implicit query cancelation. When a cursor stops being polled it will cancel the query. For databases that behave like this, the class method `has_implicit_cancel` (which should really be a class attribute) should return true.
 
 For other databases, DB engine specs can implement query cancelation via the `prepare_cancel_query` and `cancel_query` methods. Implementation of query cancelation is usually heavily dependent on the database, but the DB engine specs that support it can serve as an example.
+
+These methods must not flush or commit the metadata session. `prepare_cancel_query` can stage cancellation intent on the query; its caller persists that intent together with a conditional stop, preserving any terminal result committed while cancellation was in flight.
 
 ### Get metrics on dataset creation
 

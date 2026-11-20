@@ -23,6 +23,8 @@ import {
   userEvent,
   fireEvent,
 } from 'spec/helpers/testing-library';
+import { CustomControlItem } from '@superset-ui/chart-controls';
+import sunburstPanel from '../../../plugins/plugin-chart-echarts/src/Sunburst/controlPanel';
 import Control, { ControlProps } from 'src/explore/components/Control';
 
 const defaultProps: ControlProps = {
@@ -171,4 +173,35 @@ test('keeps the description icon visible when the pointer leaves a focused contr
   expect(
     screen.getByRole('button', { name: 'Show info tooltip' }),
   ).toBeInTheDocument();
+});
+
+test('hiding the Sunburst grain control clears the saved grain', async () => {
+  const grain = sunburstPanel.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(
+      item => (item as CustomControlItem)?.name === 'time_grain_sqla',
+    ) as CustomControlItem;
+  const setControlValue = jest.fn();
+  const control = (isVisible: boolean) => (
+    <Control
+      {...defaultProps}
+      name="time_grain_sqla"
+      type="TextControl"
+      value="P1M"
+      default={grain.config.default}
+      isVisible={isVisible}
+      actions={{ setControlValue }}
+    />
+  );
+  const { rerender } = render(control(true));
+  rerender(control(false));
+  await waitFor(() =>
+    expect(setControlValue).toHaveBeenCalledWith(
+      'time_grain_sqla',
+      null,
+      undefined,
+      { programmatic: true },
+    ),
+  );
 });

@@ -379,7 +379,8 @@ class SupersetShillelaghAdapter(Adapter):
         # verify permissions. MetaDB returns row data through a regular
         # query path, so the strict scoping used by SQL Lab applies here
         # too: the referenced table must resolve to a Superset dataset the
-        # user has datasource_access on (or owns).
+        # user has datasource_access on (editorship alone is not enough on
+        # this strict path).
         table = Table(self.table, self.schema, self.catalog)
         security_manager.raise_for_access(
             database=database,

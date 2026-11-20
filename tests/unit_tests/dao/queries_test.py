@@ -21,7 +21,7 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
-from superset.exceptions import QueryNotFoundException, SupersetCancelQueryException
+from superset.exceptions import QueryNotFoundException
 
 
 def test_query_dao_save_metadata(session: Session) -> None:
@@ -146,10 +146,7 @@ def test_query_dao_stop_query_not_found(
 
     db.session.add(database)
     db.session.add(query_obj)
-    # Committed (not just autoflushed) since QueryDAO.stop_query() is now
-    # wrapped in @transaction, which rolls back the session on the
-    # QueryNotFoundException raised below -- an uncommitted insert would be
-    # discarded along with it.
+    # Persist the fixture before testing a different query identifier.
     db.session.commit()
 
     mocker.patch("superset.sql_lab.cancel_query", return_value=False)
@@ -202,9 +199,10 @@ def test_query_dao_stop_query_not_running(
     assert query.status == QueryStatus.FAILED
 
 
-def test_query_dao_stop_query_failed(
+def test_query_dao_stop_query_accepts_uncancelable_engine(
     mocker: MockerFixture, app: Any, session: Session
 ) -> None:
+    """A missing engine cancellation does not reject a durable Stop."""
     from superset import db
     from superset.common.db_query_status import QueryStatus
     from superset.models.core import Database
@@ -233,21 +231,20 @@ def test_query_dao_stop_query_failed(
 
     db.session.add(database)
     db.session.add(query_obj)
-    # Committed (not just autoflushed) since QueryDAO.stop_query() is now
-    # wrapped in @transaction, which rolls back the session on the
-    # SupersetCancelQueryException raised below -- an uncommitted insert
-    # would be discarded along with it.
+    # The query must exist before the Stop transaction can lock its row.
     db.session.commit()
 
-    mocker.patch("superset.sql_lab.cancel_query", return_value=False)
+    cancel_query = mocker.patch("superset.sql_lab.cancel_query", return_value=False)
 
     from superset.daos.query import QueryDAO
 
-    with pytest.raises(SupersetCancelQueryException):
-        QueryDAO.stop_query(query_obj.client_id)
+    assert QueryDAO.stop_query(query_obj.client_id) is query_obj
+    cancel_query.assert_called_once_with(query_obj)
 
+    db.session.expire_all()
     query = db.session.query(Query).one()
-    assert query.status == QueryStatus.RUNNING
+    assert query.status == QueryStatus.STOPPED
+    assert query.end_time is not None
 
 
 def test_query_dao_stop_query(
@@ -324,10 +321,7 @@ def test_query_dao_stop_query_wrong_user(
 
     db.session.add(database)
     db.session.add(query_obj)
-    # Committed (not just autoflushed) since QueryDAO.stop_query() is now
-    # wrapped in @transaction, which rolls back the session on the
-    # QueryNotFoundException raised below -- an uncommitted insert would be
-    # discarded along with it.
+    # Persist the fixture before testing ownership scoping.
     db.session.commit()
 
     # Simulate a different user (user 2) attempting to stop user 1's query

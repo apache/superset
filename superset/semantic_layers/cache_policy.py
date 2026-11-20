@@ -47,6 +47,7 @@ from superset.semantic_layers.cache_types import (
     ROLLUP_COMPATIBLE_AGGREGATIONS,
     SAFE_CONTAINMENT_CAPABILITIES as SAFE_CONTAINMENT_CAPABILITIES,
 )
+from superset.semantic_layers.ordering import with_default_order
 
 
 def _comparable(left: object, right: object) -> bool:
@@ -104,6 +105,10 @@ _RANGE_OPERATORS: frozenset[Operator] = frozenset(
 _LOWER_BOUND_OPERATORS: frozenset[Operator] = frozenset(
     {Operator.GREATER_THAN, Operator.GREATER_THAN_OR_EQUAL}
 )
+
+
+def _is_empty_membership(value: object) -> bool:
+    return isinstance(value, (set, frozenset, tuple)) and not value
 
 
 def _implies_membership(new_filter: Filter, cached_values: object) -> bool:
@@ -191,7 +196,10 @@ def implies(
     if cached_op is Operator.IS_NULL:
         return False
     if cached_op is Operator.IS_NOT_NULL:
-        return new_op is not Operator.IS_NULL
+        # An empty NOT IN is TRUE for NULL rows, so it proves no NULL exclusion.
+        return new_op is not Operator.IS_NULL and not (
+            new_op is Operator.NOT_IN and _is_empty_membership(new_value)
+        )
     if cached_op is Operator.EQUALS:
         return (
             new_op is Operator.EQUALS
@@ -337,13 +345,21 @@ def select_reuse(
     entry: CachedEntry,
     capabilities: ContainmentCapabilities,
 ) -> ReuseDecision | None:
-    """Prove whether and how a cached descriptor can satisfy a query."""
-    query_order_key: str = SemanticCacheIdentityFactory.order(query.order)
+    """Prove descriptor compatibility; transformation checks rollup row bounds.
+
+    Descriptors do not contain the post-filter, post-rollup cardinality needed
+    to prove that a limited result can be served without cutting rows.
+    """
+    # Compare the order the rows were cut by, defaults included: two unordered
+    # queries can default to different temporal dimensions.
+    order_compatible: bool = (
+        SemanticCacheIdentityFactory.order(with_default_order(query).order)
+        == entry.order_key
+    )
     query_offset: int = query.offset or 0
     pagination_compatible: bool = (
         query_offset == 0
         and entry.offset == 0
-        and query_order_key == entry.order_key
         and (
             entry.limit is None
             or (query.limit is not None and query.limit <= entry.limit)
@@ -358,6 +374,12 @@ def select_reuse(
     leftovers: frozenset[Filter] | None = _filter_decision(query, entry, capabilities)
     mode: ReuseMode | None = _reuse_mode(query, entry)
     if leftovers is None or mode is None:
+        return None
+    # EXACT and PROJECT keep the cached row order. A rollup comes from an
+    # unlimited entry and is re-sorted by the default order, so the order the
+    # entry was stored in does not matter. The transform must refuse a limited
+    # rollup if it would cut rows under provider-defined NULL/tie ordering.
+    if mode is not ReuseMode.ROLLUP and not order_compatible:
         return None
     if mode is ReuseMode.ROLLUP and query.order:
         return None

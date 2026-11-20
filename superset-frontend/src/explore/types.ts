@@ -61,6 +61,8 @@ export interface ChartState {
   latestQueryFormData: LatestQueryFormData;
   sliceFormData: QueryFormData | null;
   queryController: AbortController | null;
+  /** Client-generated id of the in-flight query, used to cancel it server-side. */
+  latestQueryId?: string;
   queriesResponse: QueryData[] | null;
   triggerQuery: boolean;
 }
@@ -70,6 +72,8 @@ export type OptionSortType = Partial<
 >;
 
 export type Datasource = Dataset & {
+  /** A dataset-scoped validation error from dashboard metadata loading. */
+  metadata_error?: string;
   database?: DatabaseObject;
   /** The parent resource that owns this datasource (database or semantic layer). */
   parent?: { name: string };

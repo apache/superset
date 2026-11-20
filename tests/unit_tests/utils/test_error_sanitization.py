@@ -28,6 +28,7 @@ from superset.utils.error_sanitization import (
     GENERIC_ACCESS_MESSAGE,
     GENERIC_ERROR_MESSAGE,
     is_sanitization_required,
+    redact_sensitive_query_fields,
     sanitize_error_dicts,
     sanitize_error_message,
     sanitize_superset_error,
@@ -79,6 +80,99 @@ def test_db_error_is_replaced_for_guest_users(app: SupersetApp, guest: None) -> 
     assert sanitized.error_type == SupersetErrorType.GENERIC_BACKEND_ERROR
     assert sanitized.level == ErrorLevel.ERROR
     assert "engine_name" not in (sanitized.extra or {})
+
+
+def test_redact_query_fields_strips_sql_for_guest_without_permission(
+    app: SupersetApp, guest: None
+) -> None:
+    results = [{"query": "SELECT 1", "stacktrace": "Traceback", "data": [{"a": 1}]}]
+    with patch(
+        "superset.security.SupersetSecurityManager.can_access",
+        return_value=False,
+    ):
+        redact_sensitive_query_fields(results)
+    assert "query" not in results[0]
+    assert "stacktrace" not in results[0]
+    # Non-sensitive fields the client needs for rendering are left alone.
+    assert results[0]["data"] == [{"a": 1}]
+
+
+def test_redact_query_fields_keeps_sql_when_guest_may_view_query(
+    app: SupersetApp, guest: None
+) -> None:
+    results = [{"query": "SELECT 1", "stacktrace": "Traceback"}]
+    with patch(
+        "superset.security.SupersetSecurityManager.can_access",
+        return_value=True,
+    ) as can_access:
+        redact_sensitive_query_fields(results)
+    assert results[0]["query"] == "SELECT 1"
+    # "can view query" unlocks only the SQL; the stacktrace still leaves.
+    assert "stacktrace" not in results[0]
+    can_access.assert_called_once_with("can_view_query", "Dashboard")
+
+
+def test_redact_query_fields_sanitizes_error_for_guest(
+    app: SupersetApp, guest: None
+) -> None:
+    results = [{"query": "SELECT 1", "error": DB_ERROR}]
+    with patch(
+        "superset.security.SupersetSecurityManager.can_access",
+        return_value=False,
+    ):
+        redact_sensitive_query_fields(results)
+    assert results[0]["error"] == str(GENERIC_ERROR_MESSAGE)
+
+
+def test_redact_query_fields_is_noop_for_regular_users(
+    app: SupersetApp, not_guest: None
+) -> None:
+    original = {"query": "SELECT 1", "stacktrace": "Traceback", "error": DB_ERROR}
+    results = [dict(original)]
+    redact_sensitive_query_fields(results)
+    assert results[0] == original
+
+
+def test_redact_query_fields_on_samples_payload_keeps_rendering_fields(
+    app: SupersetApp, guest: None
+) -> None:
+    """Shaped like a real ``/datasource/samples`` (Drill to detail) result: the
+    generated SQL, stacktrace and raw error are removed for a guest without
+    "can view query on Dashboard", while every field the client needs to render
+    the samples grid (data, column names/types, label map, counts, cache key)
+    is preserved untouched."""
+    sample_result = {
+        "query": "SELECT * FROM (SELECT * FROM secret_table) AS virtual_table",
+        "stacktrace": "Traceback (most recent call last): ...",
+        "error": DB_ERROR,
+        "data": [{"id": 1, "amount": 100.0}],
+        "colnames": ["id", "amount"],
+        "coltypes": [0, 0],
+        "label_map": {"id": ["id"], "amount": ["amount"]},
+        "cache_key": "abc123",
+        "rowcount": 1,
+        "page": 1,
+        "per_page": 50,
+        "total_count": 1,
+    }
+    results = [sample_result]
+    with patch(
+        "superset.security.SupersetSecurityManager.can_access",
+        return_value=False,
+    ):
+        redact_sensitive_query_fields(results)
+
+    redacted = results[0]
+    assert "query" not in redacted
+    assert "stacktrace" not in redacted
+    assert redacted["error"] == str(GENERIC_ERROR_MESSAGE)
+    # Everything the samples grid renders from is left intact.
+    assert redacted["data"] == [{"id": 1, "amount": 100.0}]
+    assert redacted["colnames"] == ["id", "amount"]
+    assert redacted["coltypes"] == [0, 0]
+    assert redacted["label_map"] == {"id": ["id"], "amount": ["amount"]}
+    assert redacted["cache_key"] == "abc123"
+    assert redacted["total_count"] == 1
 
 
 def test_safe_error_types_survive_for_guest_users(

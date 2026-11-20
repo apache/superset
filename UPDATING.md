@@ -24,14 +24,414 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
+  the caller cannot view it, rather than treating an access-filtered dashboard
+  as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
+  dashboards withheld by an `EXTRA_ACCESS_QUERY_EXCLUSIONS` hook and dashboards
+  outside an embedded guest token's scope. The legacy dashboard HTML entry also
+  returns 403 for authenticated callers denied access. Clients should handle
+  these responses separately; list endpoints continue to omit dashboards the
+  caller cannot access.
+
+- **Realtime websocket authentication (`WEBSOCKET_ENABLE`):** the browser
+  authenticates the socket with a short-lived ticket from
+  `GET /api/v1/realtime/token/` sent in-band, instead of a JWT cookie. The
+  `WEBSOCKET_JWT_COOKIE_NAME`, `WEBSOCKET_JWT_COOKIE_SECURE`,
+  `WEBSOCKET_JWT_COOKIE_SAMESITE` and `WEBSOCKET_JWT_COOKIE_DOMAIN` Flask settings
+  are removed, as is the websocket server's `jwtCookieName` option
+  (`JWT_COOKIE_NAME` environment variable); delete them from `superset_config.py`,
+  the websocket `config.json`, and container environments (they are ignored
+  otherwise). Upgrade the web application and the `superset-websocket` server
+  together: the new server refuses the previous cookie-based client, and the
+  previous server refuses the new ticket-based client, so while the versions are
+  mixed realtime updates stop and async charts waiting on the socket fail with
+  "Realtime connection unavailable". Reload open browser tabs after the upgrade.
+  Unauthenticated sockets are unlimited by default; setting
+  `maxPendingConnections` (`MAX_PENDING_CONNECTIONS`) is recommended, see the
+  [websocket server README](superset-websocket/README.md).
+
+- Semantic-view column pickers only offer saved dimensions, including for older metadata without feature declarations. `ADHOC_COLUMN_EXPRESSIONS` remains importable but is reserved and grants no capability. Providers must use recognized SDK enum members; raw-string declarations are ignored. SQL dataset expression controls are unchanged.
+
+- Semantic-layer connection updates that reuse masked credentials require a
+  usable provider configuration schema. Non-secret settings must stay unchanged
+  at every nesting depth, including dictionary keys. While any mask is retained,
+  every declared secret must also be masked or explicitly null; non-null explicit
+  secrets are refused even if they match the stored value. To rotate a credential
+  or change other settings, re-enter all credentials, including top-level ones.
+  Unavailable, ambiguous, or unsupported schemas require explicit credentials.
+  Provider `x-` UI annotations remain supported. Other unmodelled keywords,
+  including `contentMediaType`, `contentSchema`, `$schema`, `$id`, and `$comment`,
+  require explicit credentials on updates. The schema depth bound also counts
+  reference-sibling expansion. GET masking is unchanged and does not interpret
+  conditional-only secret declarations.
+  Name-only updates can omit configuration entirely.
+
+- MCP `list_metrics` returns a partial catalog for unscoped semantic-view discovery
+  refusals, with `incomplete: true` and `refused_views` containing safe view IDs.
+  No metrics from a refused view are included; counts and pages cover only usable
+  metrics. Clients must check `incomplete` before treating the catalog as complete.
+  Scoped `view_id` requests whose view refuses while loading metrics, columns or
+  compatible dimensions now return `AccessDenied` instead of success with a warning.
+  Ordinary provider failures also mark the catalog incomplete, retaining safe
+  warnings without refusal markers.
+
+- Semantic cache rollups serve limited queries only when the post-filter,
+  rolled-up result fits within the limit. Queries with nonzero row offsets bypass
+  containment reuse. Larger rolled-up results fall back to
+  the provider, preserving page membership when NULL placement, tie order or
+  collation differs from the cache's local sort. NULL placement and tie order
+  remain provider-defined; no provider update or cache reset is required.
+
+- Snowflake default catalogs from unquoted connection-URI identifiers resolve to
+  uppercase (`sales` becomes `SALES`); double-quoted identifiers preserve case.
+  Resolved defaults and catalogs selected from listings are quoted when opening
+  connections, preserving their physical database identity.
+  Catalog permissions and dataset catalog fields must use the physical database
+  name. For an uppercase database, update any lowercase catalog aliases stored
+  on datasets and grant the corresponding uppercase catalog/schema permissions.
+  Lowercase and mixed-case physical databases remain distinct; their permissions
+  are not automatically aliased or migrated. A saved catalog equal to the raw
+  URI identifier remains a legacy alias only when that exact physical catalog
+  is absent from the database's catalog listing. If both `sales` and `SALES`
+  exist, `sales` selects the lowercase physical catalog; update legacy rows to
+  `SALES` to select the uppercase database explicitly. This ambiguous-alias
+  check uses a fresh listing under the connecting identity (including user
+  impersonation or embedded guest credentials), independently of the catalog
+  dropdown cache settings. Resolved defaults and other unambiguous selections
+  do not require this additional listing.
+
+- New config `ENCRYPTED_EXTRA_HINT_CHARS` (default `0`, off): when set above
+  zero, users who can edit a database can reveal the last characters of each
+  stored secret in its Secure extra, at most 25% of a value, through
+  `GET /api/v1/database/<pk>/encrypted_extra_hints/`. See
+  [Configuring Superset](docs/admin_docs/configuration/configuring-superset.mdx).
+  Whatever the setting, `engine_information` on the database endpoints gains
+  `encrypted_extra_sensitive_fields`, the engine's declared sensitive paths
+  and labels, and `GET /api/v1/database/<pk>/connection` lists the fields
+  stored in that database instead, plus `encrypted_extra_expirations`, when
+  each stored JWT expires.
+
+- With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
+  follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
+  published dashboard read its charts and datasets without dataset permissions,
+  and only while viewing that dashboard (its chart data, `/charts`, `/datasets`
+  and drill). Dashboard editors who aren't also listed viewers no longer get the
+  grant and need regular access to the data; add them as viewers to restore it.
+  The chart grant follows the same rule: only a chart's listed viewers load its
+  data without dataset permissions, and its editors need regular access.
+  Copying a dashboard, with or without duplicating its charts, now requires
+  access to each of its charts and native-filter target datasets in their own
+  right, and saving a native filter (through the dashboard or the filters API)
+  with a new target requires access to that dataset; otherwise both return
+  HTTP 422 naming the charts or datasets.
+
+- `EMBEDDED_CREDENTIAL_FALLBACK` (new, off by default) changes behaviour for embedded
+  guests on database connections that authenticate users individually via OAuth2 with
+  **Impersonate logged in user** enabled. Ordinary service-account connections retain
+  their existing behavior, even with a deployment-wide OAuth2 client configured. With
+  the flag on, a guest whose request has no applicable embedded credential — none
+  configured on the connection, or one missing its username, password, or private key
+  required by the selected authentication method — is refused instead of connecting
+  with the credential in the connection's own SQLAlchemy URI. The viewer sees a
+  `DATABASE_SECURITY_ACCESS_ERROR` saying the chart's connection isn't set up for
+  embedded dashboards (with `GLOBAL_ASYNC_QUERIES` on, a generic error instead); the
+  server log names the connection and how to fix it.
+  **Embedded dashboards that stop loading when the flag is turned on:** any dashboard
+  whose charts use a Snowflake connection with **Impersonate logged in user** on but no
+  OAuth2 client (none on the connection and no `DATABASE_OAUTH2_CLIENTS` entry for
+  Snowflake) stops serving embedded viewers, even though impersonation never changed
+  the login on such a connection and those viewers were served under its base
+  account. Logged-in users are unaffected. Before turning the flag on, update each
+  such connection: either turn off **Impersonate logged in user**, which keeps serving
+  everyone under the connection's own credential as before, or configure an OAuth2
+  client and **Embedded guest credentials**. Queries that do run under an embedded credential
+  get a dedicated cache partition distinct from every logged-in username, including
+  a separate partition for guests without credentials, so they no longer share a
+  DATA-cache entry (or, under `GLOBAL_ASYNC_QUERIES`, a deduplicated chart task) with a logged-in user's
+  per-user result; existing cached entries for such charts are effectively invalidated
+  for guests. A malformed or incomplete `embedded_credentials` is rejected by
+  `POST`/`PUT /api/v1/database/`, by `validate_parameters`, and by database and asset
+  import (HTTP 400, naming the missing fields) rather than stored and ignored while
+  both embedding flags are enabled. Import also refuses a credential on a
+  connection whose file turns **Impersonate logged in user** off and, with either
+  flag off, a new or changed credential, as the API does. Import also refuses a key
+  pair that doesn't decode with its passphrase, as the API does. Validation
+  uses the engine's credential rules and edited credentials rather than stale stored
+  values, and rejects whitespace-only usernames. An OAuth2 client with a blank client
+  ID or secret counts as no client, and an update that would turn impersonation off
+  while a credential is stored is refused. A connection already stored with a credential
+  and a blank client ID or secret therefore refuses embedded viewers (as having no OAuth2
+  client information) and refuses saves until the client is completed or the credential
+  is cleared. Disabling either flag preserves stored credentials without blocking unrelated edits,
+  and refuses new or changed credentials until both flags are on again. Restored async guest
+  queries use the same credential as synchronous queries. Connection-mutator hooks
+  receive the selected fallback username. Snowflake OAuth2 scope is
+  configured explicitly; a role scope selects that role, and omitting it uses the
+  user's default role. Deployments that leave the fallback flag off are unaffected, except
+  that, whatever the flag, dashboard, chart and dataset exports now carry any masked
+  OAuth2 client and embedded credential blocks, and overwriting a connection from a
+  dashboard bundle merges them into its Secure Extra. A destination still on an earlier
+  release replaces its whole Secure Extra with those blocks instead, so upgrade import
+  destinations first. Overwriting a connection by import asks for the OAuth2 client
+  secret when the file names a different client than the stored one, and for the
+  embedded credential's secrets when it names a different username, rather than
+  pairing the stored secret with them.
+  Importing a connection also fails, with "Must provide value for
+  masked_encrypted_extra field" or a request for `encrypted_extra_secrets`, when its
+  file holds a masked Secure Extra value the destination has no stored secret for, or
+  a mask in plain `encrypted_extra`, rather than saving the mask as the secret.
+  Scripted imports need to supply those secrets.
+  Read the limitations in the "Embedding Superset" docs before turning it on: with
+  `GLOBAL_ASYNC_QUERIES` on, logged-in users' charts on a Snowflake OAuth2 connection
+  run as the connection's base account (this predates the flag, which does not change
+  it); with **Per user caching** off, logged-in users on an OAuth2 connection can be
+  shown each other's cached results; connections created in SQLAlchemy URI mode do
+  not show the OAuth2 or embedded credential sections; and turning off **Impersonate
+  logged in user** moves embedded viewers, and logged-in users, onto the base account.
+
+- Aborting or timing out an async chart-data query on Impala now cancels the
+  statement that is running. The cancel used to target the `USE <database>`
+  operation the driver runs when it opens a cursor, so the query ran to
+  completion, and without a database in the URL the task could not be aborted
+  at all. The cancel still goes through the coordinator's web UI
+  (`http://<host>:25000`), so the backend must reach that port, and a private or
+  internal coordinator needs `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS = True`.
+  On engines whose chart-data cancel id is captured (Impala, and engines that
+  expose a session id when the cursor opens, such as PostgreSQL, MySQL,
+  Snowflake and Redshift), a chart-data task that is aborting starts no further
+  statements, such as a time comparison's offset query, and its partial result
+  is not cached. Engines whose cancel id only exists once a query is running,
+  such as Trino, still cannot cancel chart-data queries: their tasks stay
+  non-abortable, as before.
+
+- **Semantic-layer schema readiness and failures.** Both provider schema hooks
+  require keyword-only `readiness: SemanticCredentialReadiness` alongside
+  `transport`. This plain Enum is exported by `superset_core.semantic_layers`.
+  Discover metadata only when `readiness is SemanticCredentialReadiness.RESOLVED`
+  and required configuration fields are valid; otherwise return a static schema
+  without I/O. Do not interpret host masking placeholders. Upgrade host and
+  provider schema implementations together; omitted arguments fail explicitly.
+  `SemanticBackendError` signals execution or invalid-result faults with generic
+  host guidance (500); `ProviderRequestError` keeps safe transport detail (400),
+  and query refusal/completeness retain their separate meanings. Provider error
+  translations should suppress diagnostic chains. The semantic execution boundary
+  logs typed failures without diagnostic chains. Unknown failures retain their
+  type at ERROR and their full traceback/chain at DEBUG in server logs only. See the
+  [provider boundary guide](docs/developer_docs/extensions/semantic-provider-boundary.md).
+
+- **Semantic-layer SDK transport argument.** Provider implementations must accept
+  the required keyword-only `transport: ProviderTransport` in `from_configuration`,
+  `get_configuration_schema`, and `get_runtime_schema`. Superset supplies it even
+  for static schema discovery. Store it on the layer and pass it to views and HTTP
+  helpers; do not construct HTTP clients for provider endpoints. Every request now
+  requires an absolute monotonic deadline and a response byte cap. The default
+  host policy allows public HTTPS destinations only; the provider-specific
+  `SEMANTIC_LAYER_ALLOW_INTERNAL_HOSTS = True` setting also allows HTTP and internal
+  destinations. Both policies ignore environment proxies and preserve budgets and
+  TLS hostname verification. See the [provider transport guide](docs/developer_docs/extensions/semantic-provider-transport.md).
+
+- Semantic-view filters with an empty IN or NOT IN selection no longer fail with a
+  query validation error. They follow SQL semantics where the filter sits: an
+  empty IN matches no rows (grouped charts return no rows; an ungrouped total
+  returns one row, for example a count of 0), and an empty NOT IN matches every
+  row, including NULLs. Dataset charts still reject an empty selection. Semantic
+  provider adapters receive the empty `frozenset` and must render a constant or an
+  equivalent native predicate, never an empty SQL list; upgrade provider adapters
+  before, or together with, the host. The SDK conformance kit adds
+  `test_empty_membership` and `test_empty_membership_in_or_group`, derived from
+  the existing `identity` and `or` fixtures.
+
+- Dashboard and chart `viewers` can no longer be added through the API or the MCP
+  `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
+  requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
+  non-empty viewers list restricts access regardless of the flag), and removing
+  viewers remains possible so stale assignments can be cleared.
+
+- With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
+  using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
+  `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.
+  If `CACHE_REDIS_DB` is not 0, coordination state (task state, locks and streams)
+  moves to that DB: avoid running old and new versions side by side, and drain
+  in-flight tasks before upgrading.
+
+- Partition filter mapping no longer suggests bare `unix_timestamp(:value)` on Hive/Impala-family engines. Existing temporal-to-numeric mappings using that expression, or any transform that answers raw epoch instants in seconds through nanoseconds (for example `CAST(unix_timestamp(:value) AS BIGINT)` or `utc_to_unix_micros(:value)`, from a timestamp column or a text one in any common layout), stop pruning to prevent incorrect counts on hour/day epoch keys; this includes keys that really store raw epoch instants. Replace it with the expression that populates the partition key, including rounding and timezone. The dataset editor can explicitly compare a candidate against sampled rows from selected numeric partitions; a sample match is not a guarantee for the entire dataset.
+
+- Refreshing a dataset's columns from its source (the "Sync columns from
+  source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
+  `PUT /api/v1/dataset/<id>/refresh`) no longer resets **Is dimension** and
+  **Is filterable** on existing columns. Newly discovered columns still arrive
+  with both enabled; a deployment that relied on a resync to restore those
+  defaults must set them explicitly.
+
+- **`/chart/add` no longer preselects a dataset from `?dataset=<name>`.** Use
+  `?dataset_id=<id>` instead. Dataset names are only unique per database,
+  catalog and schema, so a name could select the wrong dataset. Links built with
+  the `dataset` parameter now open the page with no dataset selected.
+
+- Webhook alerts/reports and the Impala `cancel_query` call now share
+  `get_ssrf_safe_requester`, whose session sets `trust_env=False`. Unless
+  `ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS` / `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS`
+  is `True`, these requests no longer honor `HTTP(S)_PROXY`/`NO_PROXY`,
+  `REQUESTS_CA_BUNDLE`/`CURL_CA_BUNDLE`, or `.netrc`, because proxied connections
+  would bypass the connected-peer validation. Deployments that must reach webhooks
+  through a proxy or custom CA bundle should set the matching allow-internal flag,
+  which restores the plain `requests` behavior (and skips peer validation).
+
+- MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
+  values with "Text must not be empty"; omit the field to keep the stored title.
+  MCP chart names and theme names are capped at 250 characters, matching their
+  model columns (the published chart-name limit was 255).
+
+- **MCP authentication hooks and disabled API keys:** Custom `MCP_USER_RESOLVER`
+  functions that read `access_token.client_id` must use
+  `get_verifier_client_id(access_token)` from
+  `superset.mcp_service.composite_token_verifier` instead. FastMCP 4's `MultiAuth`
+  qualifies `client_id`; the helper returns the originating verifier's ID on
+  both FastMCP 3 and 4. This ID routes authentication; it is not proof that the
+  bearer is valid. When API keys are disabled (`MCP_API_KEY_ENABLED=False`, or
+  `FAB_API_KEY_ENABLED=False` without an MCP override), an explicit API-key
+  pass-through token raises `PermissionError` instead of falling through to
+  another identity. `tools/list` returns an empty list for that client, not
+  public tools. Remove the API-key credential to use another authentication
+  method, or explicitly enable API-key authentication.
+
+- **Large nullable-integer dimensions stay exact in chart data.** In a plain chart
+  query (no post-processing or time offsets, and not a report's client-processed
+  result), a dimension column of nullable integers that holds a value beyond
+  `2**53 - 1` is no longer rounded to a float. JSON responses carry such values as
+  strings (the existing contract for large integers), and CSV, Excel and Arrow
+  exports carry the exact integer. Consumers that parsed these values as JSON
+  numbers receive a string for them. Metric columns are unchanged, and results
+  cached before the upgrade keep the old values until they expire.
+
+- **Bulk semantic view creation is capped and time-bounded.** With
+  `SEMANTIC_LAYERS` enabled, `POST /api/v1/semantic_view/` refuses requests with
+  more than `SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS` views (default 100) with a 400,
+  and views not checked within `SEMANTIC_VIEW_BULK_CREATE_TIMEOUT` seconds
+  (default 30) are reported with `error_type: "TIMEOUT"` instead of being looked
+  up. Clients adding more views should split them across requests and retry
+  timed-out views.
+
+- `superset-frontend` type-checks with TypeScript 7, whose native compiler no
+  longer ships the JavaScript compiler API. The webpack dev server therefore
+  no longer runs `fork-ts-checker-webpack-plugin`, and the `DISABLE_TS_CHECKER`
+  environment variable is gone; run `npm run type` (or `npm run type -- --watch`)
+  for type errors and `npm run plugins:build` to refresh package `.d.ts` output.
+  Storybook's prop tables now come from `react-docgen` instead of
+  `react-docgen-typescript`.
+- MCP `get_dashboard_data` reports `total_rows=null` and `truncated=true` when
+  row-collapsing post-processing leaves input coverage unverified, not only when
+  truncation is observed. Output row counts do not prove complete input coverage.
+  `fetch_row_limit` reports the executed query limit, including server caps.
+
+- MCP `duplicate_dashboard` deep-copies charts by default. Callers that intentionally
+  share charts with the source dashboard must pass `duplicate_slices=false`.
+  MCP `list_dashboards`, `list_charts`, `list_datasets`, `list_reports` and
+  `list_databases` reject unknown request fields instead of silently ignoring
+  them, with suggestions for supported fields. Use `created_by_me` for authorship
+  or `edited_by_me` for direct user ownership where supported, not `owned_by_me`.
+
+- The extension storage write routes (`PUT`/`DELETE` under
+  `/api/v1/extensions/<publisher>/<name>/storage/`) are no longer exempt from
+  CSRF protection. They inherited the exemption from Flask-AppBuilder's
+  `BaseApi`; they now behave like every other Superset REST API that is not in
+  `WTF_CSRF_EXEMPT_LIST`. The browser already sends the token. Any other client
+  that writes extension storage, whether it authenticates with a session
+  cookie, a JWT bearer token or an API key, must first call
+  `GET /api/v1/security/csrf_token/` with its credential, then send the
+  returned token in the `X-CSRFToken` header together with the session cookie
+  set by that call (the token is bound to the session). The client's role must
+  also have `can_read` on `SecurityRestApi` (shown as `can read on SecurityRestApi`
+  in the role editor) to fetch the token. Over HTTPS, Flask-WTF
+  also requires a same-origin `Referer` header on the write
+  (`WTF_CSRF_SSL_STRICT`, on by default); browsers send one, scripted clients
+  must add it.
+
+- **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
+  CSV/text reports leave Total and Subtotal cells blank when they combine different
+  metrics, including two SUM metrics. Metric-specific values and totals remain
+  available, including with Combine metrics and Transpose pivot enabled. Previously
+  these cells could show an arbitrary metric's value or a sum across unrelated metrics.
+  Downstream consumers must handle empty cells or use a single metric that explicitly
+  computes the desired combined value. This change does not restore result-aggregation
+  parity between exports and the browser.
+
+- **Guest token identities are validated (warn-first).** The `username`,
+  `first_name` and `last_name` in a guest token's `user` claim are expected to be
+  strings of at most 255 characters with no control characters (including tab,
+  newline and carriage return) or Unicode line/paragraph separators. In this
+  release a value outside those bounds is logged (`Guest token identity
+  violation`) but still accepted, both when a token is minted and when it is
+  consumed, so existing integrations are not broken. Violations are also counted
+  under the `security.GuestTokenIdentityViolation` metric. Setting
+  `GUEST_TOKEN_IDENTITY_ENFORCE = True` in `superset_config.py` enforces it, and a
+  later release will make that the default: minting such a value then returns
+  HTTP 400 and an already-issued token carrying one is treated as unauthenticated.
+  Host applications that pass long display names or names containing those
+  characters should truncate or normalize them before then.
+- **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
+  Lab stop on Impala is delivered to the worker that is polling the query, which
+  cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
+  cancel invalidated the handle the worker was still polling, so the run failed
+  instead of ending as stopped. The worker also checks for a stop between result
+  RPCs while it fetches, so a stop still reaches a query that Impala already
+  reports as finished, which a streaming `SELECT` does almost at once. The
+  worker checks between result RPCs, at most once per `DB_POLL_INTERVAL_SECONDS`
+  (5 seconds for Impala by default), and Impala returns each RPC within
+  `FETCH_ROWS_TIMEOUT_MS` (10 seconds by default), so such a stop takes effect
+  within about the sum of the two. Setting `FETCH_ROWS_TIMEOUT_MS=0` disables
+  that timeout and can delay a stop until the fetch returns.
+  When no worker is polling or fetching, for example because it has died or
+  restarted, the query is marked stopped but Impala keeps running it and holds
+  its admission slot until it finishes or Impala closes it. Impala checks for
+  cancellation between row batches, so a batch whose rows are slow to compute
+  runs to its end first. Operators who relied on the HTTP cancel to free
+  admission slots in those cases should rely on Impala's own query and session
+  timeouts. Chart and MCP cancellation still use the HTTP cancel.
+- `POST /api/v1/query/stop` returns HTTP 422 instead of 200 when the query
+  has already finished or its worker has committed the target transaction.
+  The response contains `message: "Could not cancel query"` and the recorded
+  `query`; an async handle's `cancel()` returns `False`. After a target commit,
+  that query can still be running while SQL Lab prepares its results.
+  PostgreSQL/MySQL metadata databases serialize Stop against the worker's final
+  stop check and target commit. If Stop wins, transactional work is discarded;
+  if the worker wins, Stop is rejected even before results are published.
+  An accepted Stop returns HTTP 200 (`cancel()` returns `True`) even if engine
+  cancellation or subsequent cancellation-metadata persistence fails. Its stopped
+  state and original end time survive repeated Stop requests and worker timeouts.
+  Repeated Stop requests do not retry engine cancellation.
+  Engine cancellation is best-effort: its statement may continue, but SQL Lab
+  discards the results. Stop cannot undo autocommit, implicit-commit DDL, or SQL
+  commits performed during execution. With SQLite metadata (which does not
+  support row locks), a Stop accepted between the worker's final check and
+  target commit can also leave transactional changes committed. Target and
+  metadata commits are not atomic: a metadata commit failure after the target
+  commit can likewise leave database changes without the committed marker.
+- **Semantic dimension variant resolution.** With `SEMANTIC_LAYERS` enabled,
+  same-name dimension variants use one default
+  preference for metadata, filters and grouping fallbacks: raw (no grain), then
+  second/minute/hour/day/week/month/quarter/year, then other grain representations
+  in lexical order. Explicit supported grouping grains remain honored; filters
+  and time bounds use the default independently of grouping. Sorting and series
+  limits use the selected grouping grain. This can change
+  results that depended on arbitrary catalog ordering. Providers exposing
+  different IDs or conflicting types, definitions or descriptions for the same
+  name and grain must disambiguate their catalog; such catalogs are rejected
+  instead of silently selecting a variant. On dashboards,
+  only the affected dataset reports the ambiguity; other datasets still load.
+  Independent temporal predicates are retained unless replaced by the query's
+  time-axis bounds; time-series offsets and separate inner-bound queries replace
+  ranges on their selected axis. Retained predicates can narrow results where
+  earlier releases discarded them.
+
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
   which every semantic provider must render; previously NULL rows could be
   omitted. Update provider adapters before, or together with, the host/SDK
   upgrade. Adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
   members (`Filter | OrFilter`) before reading leaf attributes; `get_values`
-  remains `set[Filter] | None`. Empty membership and invalid NULL comparison
-  operands return query validation errors. Semantic result keys include a
+  remains `set[Filter] | None`. Invalid NULL comparison operands return query
+  validation errors. Semantic result keys include a
   filter-protocol version, and chart-backed annotation results also receive a new
   cache discriminator: expect a one-time cold cache after upgrading. See the
   [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
@@ -42,6 +442,15 @@ assists people when migrating to a new version.
   reuse cached semantic-view results for narrower queries. Containment keys include
   the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
   `SEMANTIC_LAYERS`; configure shared persistent `DATA_CACHE_CONFIG` and Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every web/worker process.
+
+- `!=`, `NOT LIKE` and `NOT ILIKE` filters on SQLAlchemy-backed datasets now also
+  return rows where the column is NULL, as do whole-array `!=` / `NOT IN` filters
+  and `!=` / `NOT IN` filters on advanced data type columns (internet address,
+  port). Previously these rows were dropped by SQL three-valued logic
+  (`NULL != 'CA'` is not true), so a filter such as `state != 'CA'` removed NULL
+  rows in addition to `CA`. Dashboards, charts and reports that use these
+  operators may therefore show additional NULL rows. An explicit NULL operand
+  behaves as before (`!= NULL` still means `IS NOT NULL`).
 
 - Address validation refuses additional non-global address forms. Addresses in
   the well-known NAT64 prefix `64:ff9b::/96` are checked using their embedded IPv4
@@ -60,8 +469,11 @@ assists people when migrating to a new version.
   semantic view. Interactive dashboards retain unavailable semantic charts and
   continue rendering ordinary datasets. Dual-source MCP tools retain dataset
   access; unscoped metric listings omit semantic views. Legacy batch warm-up
-  reports a per-chart error for a disabled semantic chart and continues. Existing
-  permissions remain required when enabled. Run `superset init` during upgrade
+  reports a per-chart error for a disabled semantic chart and continues. Endpoint
+  permissions are checked before the flag: callers without access receive 401 or
+  403 in either state, and permitted callers receive 404 while the feature is
+  disabled. Automatic OPTIONS responses report allowed methods in either state
+  without executing a semantic handler. Run `superset init` during upgrade
   to register the existing semantic permissions even when the feature is off.
   Runtime flag hooks can enable the feature without another restart or permission
   sync; provider extensions must already be loaded. Do not target runtime
@@ -71,8 +483,21 @@ assists people when migrating to a new version.
   the metric; select a dimension or remove the unsupported predicate. Dashboard
   filters on incompatible columns (including metrics) are skipped and reported
   as rejected, so the chart renders with an **Incompatible** filter indicator.
-  Unknown chart-defined columns are also reported as rejected, matching SQL
-  datasets. Valid dimension filters are reported as applied.
+  A chart-defined filter on a column the semantic view no longer has also
+  returns a client error naming the column, instead of being skipped (which
+  widened the result); edit the chart's filters and select a dimension. This
+  differs from SQL datasets, which skip and report such filters. Scheduled
+  reports, alerts and thumbnails for such charts fail until the chart is edited.
+  A "No filter" time range on a missing column is not refused. Dashboard time
+  overrides mark only previously unbounded temporal predicates as dashboard
+  filters; bounded chart-defined filters on missing columns or metrics remain
+  refused. This change affects only opt-in, pre-GA deployments with
+  `SEMANTIC_LAYERS` enabled. On upgrade, dashboard tabs already open across the
+  deploy send filters without `isExtra`; their semantic charts return HTTP 400
+  for incompatible dashboard filters until the user reloads the page. This
+  accepted pre-GA compatibility window will be revisited before GA. A dashboard
+  filter carried into a new chart (such as drill-by "Edit chart") becomes a chart
+  filter. Valid dimension filters are reported as applied.
 
 - Dashboard-applied filters now carry `isExtra` in chart-data requests, including
   MCP chart tools that accept `extra_form_data` (chart data, SQL and previews, for
@@ -82,9 +507,16 @@ assists people when migrating to a new version.
 - Semantic-layer configuration Save and Reload metadata increment a database-backed
   cache generation. Apply the `c179af013f48` migration before deploying the updated
   application; existing semantic chart caches become cold once on upgrade.
-  Providers with local metadata caches must adopt the optional cache-token factory
-  hook for complete invalidation. When tenants share a metadata database or web,
-  Celery and MCP use different database host aliases, configure
+  Providers must accept required keyword-only `cache_token` and `context` on
+  `from_configuration`; the optional `from_configuration_with_cache_token` hook
+  is removed. Local metadata caches must include `cache_token` in their keys
+  before lookup or eager discovery for complete invalidation. The default namespace
+  uses the active metadata database's durable installation identity rather than
+  its address, so web, Celery and MCP agree across host/port/database aliases.
+  This causes a one-time cache miss for semantic-layer results after deployment
+  when using the default namespace; update all roles together. Existing explicit
+  namespaces retain their key scheme. When tenants share a metadata database or
+  a full database clone must be isolated from its source, configure
   `SEMANTIC_LAYER_CACHE_NAMESPACE` as a globally unique workspace identity that
   resolves identically in all three contexts. A metadata session must not span
   workspaces. Saves handled by old instances during a rolling deployment do not
@@ -103,12 +535,29 @@ assists people when migrating to a new version.
 - Semantic-view providers may declare `SemanticView.preferred_temporal_dimension`
   to choose the default exposed temporal dimension for new charts. The declaration
   is optional; absent, unknown or non-temporal names retain the existing fallback.
-  Saved chart selections are preserved.
+  Explicit saved time bindings are preserved. Saved charts with omitted bindings
+  may adopt a newly declared default and change results without saving. An
+  explicit temporal filter does not prevent an omitted granularity from adopting
+  the default for independently supplied time-range bounds. No chart migration
+  or compatibility shim is applied. The provider conformance kit validates the
+  optional declaration and its stability across equivalent catalog reloads.
+
+### Dashboard layout chart access
+
+Saving a dashboard layout no longer adds a chart the user cannot read:
+`PUT /api/v1/dashboard/<pk>`, `POST /api/v1/dashboard/` and
+`POST /api/v1/dashboard/<id_or_slug>/copy/`. The save succeeds, the chart is not
+attached, and its tile is saved as the same "This chart no longer exists."
+placeholder a deleted chart gets. Charts already on the dashboard, archived ones
+included, are not checked. A copy's source charts are checked and refuse the
+copy with HTTP 422 instead (see the `VIEWER_PROMISCUOUS_MODE` entry above). To
+keep the chart, get access to it and add it again.
 
 ### Dashboard copy layout validation
 
 Copying a dashboard with its charts returns HTTP 422 if a layout slot references
-an existing chart outside the source dashboard's membership. No partial copy is
+an existing chart outside the source dashboard's membership that the user can
+read; a slot for one they cannot read becomes a placeholder. No partial copy is
 saved. Open and re-save the source dashboard to rebuild its chart membership
 before retrying. Non-null malformed chart references also return HTTP 422.
 Empty slots left by older copies (null or missing chart IDs in object metadata)
@@ -138,7 +587,7 @@ reattached to a reachable container by layout repair.
   enforcing completeness should raise the public
   `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
   results are incomplete or cannot be verified (an additive `apache-superset-core`
-  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  API added after 0.2.0; import it from `superset_core.semantic_layers.errors`,
   not the same-named host class in `superset.exceptions`); the host converts it to
   its client error, and these
   failures do not publish a successful async result cache key. A provider raising
@@ -170,6 +619,49 @@ reattached to a reachable container by layout repair.
   instead; the response sets `managed_externally: true`. Read-only tools and
   certification inspection are unaffected.
 
+- `DISALLOWED_SQL_FUNCTIONS` now names the whole PostgreSQL XML family, plus the
+  two full-text search functions that share its blind spot. Seven shapes were
+  missing -- `schema_to_xml`, `schema_to_xmlschema`,
+  `schema_to_xml_and_xmlschema`, `database_to_xml_and_xmlschema`,
+  `table_to_xmlschema`, `ts_rewrite` and `ts_stat` -- which, being scalar calls
+  with no FROM clause and no sub-query, cleared every gate that reasons about
+  table references. `ts_rewrite` and `ts_stat` run their text argument as a
+  query, so the statement they execute is a string with no clause of its own for
+  such a gate to see. The same reasoning adds a new `oracle` entry naming
+  `getxml`, `getxmltype`, `newcontext` and `newcontextfromhierarchy`, the
+  `DBMS_XMLGEN` / `DBMS_XMLQUERY` calls that run a query handed to them as
+  text, and the URI readers that name a table by path string -- `dburitype`,
+  `xdburitype`, `httpuritype` and `geturi`, the last reached through
+  `URIFACTORY.GETURI(...)`. They are listed by bare name because that is what
+  the parser sees for a package-qualified call.
+
+  The denylist is shared with SQL Lab and Charts, so a
+  deployment relying on any of these functions there will now see it refused --
+  including a deployment that never enables `PARTITION_FILTER_MAPPING`, since
+  the denylist is not gated on the feature flag. Override
+  `DISALLOWED_SQL_FUNCTIONS` in `superset_config.py` if that is intended.
+
+- A partition value transform is now refused if it changes data --
+  `nextval(:value)`, a stored-procedure call, a PostgreSQL large-object writer.
+  The transform is evaluated against the engine to check that it mirrors, and
+  that evaluation is cached and repeated, so it has to be a read. The check is
+  the same `is_mutating` gate SQL Lab and chart queries already apply, and it
+  covers transforms already in storage: one stored by an earlier version simply
+  stops mirroring rather than failing a query.
+
+- Only the mapped column may carry a partition value transform, and that is now
+  enforced on every write rather than only inside `UpdateDatasetCommand`. A
+  transform arriving on any other column is dropped -- by the deprecated
+  `POST /datasource/save/`, and by `PUT /api/v1/dataset/<pk>` and dataset import
+  even when `PARTITION_FILTER_MAPPING` is off. An API client that was storing one there
+  will find the field `null` on the next read. The value was never readable:
+  a transform on a column the mapping does not mirror is invisible in the
+  dataset editor, and it went live the moment the mapped column resolved back to
+  it -- silently dropping rows from every chart on the dataset, with the
+  pruning indicator still reporting the mapping healthy. Transforms already in
+  storage on a column a request does not carry are left alone unless the feature
+  flag is on.
+
 - For MySQL/MariaDB metadata databases, use `READ COMMITTED` isolation. Superset
   defaults the `mysql` and `postgresql` URI backends to `READ COMMITTED` when no
   `isolation_level` is configured. For the `mariadb` URI backend (including
@@ -200,6 +692,17 @@ reattached to a reachable container by layout repair.
   exports. Ordinary table bundles retain their existing format. The examples
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
+
+### Dataset timezone and `DATE` columns
+
+A dataset timezone (`"timezone"` in the dataset's extra settings) no longer
+applies to `DATE` columns, since a date has no time of day. A time filter on a
+`DATE` column keeps the selected days, and its values are shown as stored
+instead of being converted from UTC. This fixes ranges that were one day off and
+days shown at a time of day, often on the day before. The timezone still takes
+precedence over Hours offset. Columns that Superset reads as a date type are
+treated the same even if the database stores a time of day in them, such as
+Oracle `DATE`. `DATETIME` and `TIMESTAMP` columns are not affected.
 
 ### Table and AG Grid server pagination for semantic views
 
@@ -337,6 +840,17 @@ Connector/C this also verifies the server hostname, so the switch needs
 `ssl_ca=<path>` in Additional parameters and a Doris FE certificate matching the
 host. A Doris FE on its default self-signed certificate fails to connect once
 the switch is on.
+
+### MCP get_chart_data error categories
+
+`get_chart_data` returns `AccessDenied` when a query is refused for access, and
+`ValidationError` when a semantic layer provider rejects the query or Superset's
+query validation rejects it while it runs (for example, a semantic view refusing
+a comparison filter with a missing operand), matching the chart-data API's 403 and 400. These were previously
+reported as `DataError`.
+Clients that matched on `DataError` for these cases should handle the new types.
+On the saved-chart path these errors also no longer emit an error-level MCP log
+notification; the category is carried by the response envelope alone.
 
 ### Empty MCP chart previews
 
@@ -648,6 +1162,11 @@ error notice. This does not authorize replay of data-bearing notifications.
 - The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.
 
 - The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.
+  Saved `databricks+connector://` connections are automatically migrated to
+  `databricks://` by `superset db upgrade`, preserving the separately encrypted
+  token and connection settings. Downgrade restores converted connections left
+  unchanged since the upgrade and imported connections carrying the conversion
+  marker, not connections created natively with the new scheme.
 
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
@@ -730,14 +1249,34 @@ routes answer 404, and the "Reset Password" and "Reset my password" buttons on
 the legacy FAB user pages that led to them are gone. `superset init` no longer
 assigns their permissions (`can this form get/post on ResetPasswordView` and
 `ResetMyPasswordView`, plus the `resetpasswords` and `resetmypassword` actions on
-`UserDBModelView`) to any role. Every flow they served lives in the SPA:
-administrators reset a user's password from the "New password" fields in the
-Users list edit modal (`PUT /api/v1/security/users/<id>`), users change their
-own from the "Reset my password" modal on their profile page (`PUT
-/api/v1/me/`, which requires `current_password` when the account already has one), and a pending forced password
-change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile page
-instead of the removed form. Deployments that link to either legacy route should
-point at `/user_info/` or the Users list instead.
+`UserDBModelView`) to the built-in Admin/Alpha/Gamma/sql_lab roles, and a data
+migration removes those same permissions from every other (operator-defined)
+role that already held them. The one exception is a custom-named
+`AUTH_ROLE_ADMIN`: FAB re-registers the two `UserDBModelView` action
+permissions on app creation and grants new ones to that role, and `superset
+init` only resyncs the built-in roles, so such a role re-acquires those two
+(still hidden, still 404) entries. Every flow they served lives in the SPA: administrators reset a user's
+password from the "New password" fields in the Users list edit modal (`PUT
+/api/v1/security/users/<id>`), users change their own from the "Reset my
+password" modal on their profile page (`PUT /api/v1/me/`, which requires
+`current_password` when the account already has one), and a pending forced
+password change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile
+page instead of the removed form. Deployments that link to either legacy route
+should point at `/user_info/` or the Users list instead.
+
+Reaching the profile page requires `can_read` on `user`, which the built-in
+Admin/Alpha/Gamma roles hold by default but a custom role is not guaranteed
+to. A user whose only role lacks it and who gets redirected there by a forced
+password change is now redirected to logout with an explanatory message
+instead, so they are never trapped in a redirect loop. Under
+`AUTH_REMOTE_USER` a logout cannot help (the header re-authenticates the user
+immediately), so such a user gets a terminal 403 with the same explanation and
+no logout. Clearing the flag also
+needs `can_read` and `can_write` on `CurrentUserRestApi` (for `GET` and `PUT`
+on `/api/v1/me/`), so grant all three permissions to any custom role whose
+members may have `password_must_change` set on their account.
+`ENABLE_FORCE_PASSWORD_CHANGE` is the deployment-wide setting that turns the
+check on; `password_must_change` is the per-user flag it acts on.
 
 ### Unused `INCLUDE_FIREFOX` build arg and dead config removed
 
@@ -754,14 +1293,17 @@ them had no effect and they can be deleted from custom configs.
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
-`5.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
+`7.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
 the common metadata/analytics drivers (`psycopg2-binary` for PostgreSQL,
 `mysqlclient` for MySQL), the MCP server dependencies (`fastmcp`), and a headless
 Chromium (via Playwright) for Alerts & Reports and thumbnail generation. It still
 runs as the non-root `superset` user and is byte-compiled like before.
 
 The previous minimal image — with **no** database drivers — is still published,
-but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`.
+but under `-lean` tags: `latest-lean`, `master-lean`, `7.0.0-lean`, `<sha>-lean`.
+This naming starts with 7.0.0. For earlier releases (6.1.0 and before), the plain tag
+(e.g. `6.1.0`) is the minimal image; where a `-lean` tag exists for one of those
+releases, it is the same minimal image.
 
 **What operators should expect:**
 
@@ -849,21 +1391,22 @@ tags are included in asset export and import.
 
 **What operators should expect:**
 
-- **Implicit tags accrue.** Saving a chart, dashboard, dataset or saved query,
-  and favoriting an asset, write rows to `tag` and `tagged_object` (`type:chart`,
-  `editor:<user id>`, `favorited_by:<user id>`). These have always been created
-  when the flag was on; they are simply no longer opt-in.
+- **Implicit tags no longer accrue.** Saving a chart, dashboard, dataset or
+  saved query, and favoriting an asset, used to write rows to `tag` and
+  `tagged_object` (`type:chart`, `editor:<user id>`, `favorited_by:<user id>`).
+  That generation has since been removed; see "Superset no longer
+  auto-generates `type:`/`editor:`/`favorited_by:` tags" below for what
+  happens to rows created before upgrading.
 - **Exports gain a `tags` key and a `tags.yaml` file.** Chart and dashboard
   export bundles carry custom tags. Importers on 6.0 and later understand both;
   older importers skip the unrecognized `tags.yaml` file but reject chart and
   dashboard YAML that contains a `tags` key, so strip that key before importing
   a bundle into Superset 5.x or earlier.
-- **The flag is honored at write time.** The tagging SQLA event listeners are
-  always attached at startup; the ones that create tags check `TAGGING_SYSTEM`
-  when they fire, so the flag, including a runtime override through
-  `GET_FEATURE_FLAGS_FUNC` or `IS_FEATURE_ENABLED_FUNC`, takes effect without a
-  restart. The cleanup listeners run regardless of the flag, so deleting an
-  asset never leaves orphaned `tagged_object` rows behind.
+- **Only the cleanup listeners remain, and they run unconditionally.** The
+  creation listeners from the bullet above are gone entirely; the tagging
+  SQLA event listeners still attached at startup are deletion-only, and they
+  run regardless of `TAGGING_SYSTEM`, so deleting an asset never leaves
+  orphaned `tagged_object` rows behind.
 
 Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
 behavior. Existing tag rows are left untouched.
@@ -965,7 +1508,9 @@ completion transport for async chart-data — see the note on the interval poll)
 > When it is **enabled**, completion is delivered over the socket and the
 > recurring interval poll does not run; a one-shot `status_changes` catch-up on
 > waiter registration and on socket reconnect reconciles anything missed while
-> disconnected. The socket accelerates delivery over the authoritative
+> disconnected. A principal the ticket endpoint refuses (for example an embedded
+> guest whose role lacks `can_read Realtime`) gets no socket and falls back to the
+> interval poll. The socket accelerates delivery over the authoritative
 > `status_changes` API rather than replacing it: Redis Pub/Sub is best-effort
 > (at-most-once, no replay), so a disconnect is reconciled by the catch-up on
 > reconnect/registration. In the rare case a `task.status` is missed while the
@@ -983,14 +1528,26 @@ WEBSOCKET_JWT_SECRET = "<output of: openssl rand -base64 42>"
 The built-in Gamma role receives `can_read Realtime`; grant that permission to
 custom roles that should receive websocket notifications.
 
-Run the `superset-websocket` Node server on the **same browser-visible host**
-(so its JWT channel cookie is shared) and point its `redis` config at the same
-instance as `DISTRIBUTED_COORDINATION_CONFIG`, plus `jwtSecret` /
-`jwtCookieName` matching the Flask config (`WEBSOCKET_JWT_SECRET` /
-`WEBSOCKET_JWT_COOKIE_NAME`, default `superset-ws-token`). During websocket JWT
+Run the `superset-websocket` Node server where browsers can reach it and point
+its `redis` config at the same instance as `DISTRIBUTED_COORDINATION_CONFIG`,
+plus a `jwtSecret` matching the Flask config (`WEBSOCKET_JWT_SECRET`). The
+browser authenticates with a short-lived connection ticket fetched from
+`GET /api/v1/realtime/token/` and sent as the first frame of the socket, then
+refreshes it on the open socket before it expires, so the server no longer needs
+to share a host with the web application and no credential rides the handshake or
+the URL. Upgrade the web servers and the websocket servers together, and reload
+open browser tabs: a tab still running the previous cookie-based client is
+refused by the new server (it closes the socket after the 10 second auth
+timeout, repeatedly) until it is reloaded, and the same applies to replicas rolled
+at different times. The `WEBSOCKET_JWT_COOKIE_NAME`,
+`WEBSOCKET_JWT_COOKIE_SECURE`, `WEBSOCKET_JWT_COOKIE_SAMESITE` and
+`WEBSOCKET_JWT_COOKIE_DOMAIN` Flask settings and the websocket server's
+`jwtCookieName` / `JWT_COOKIE_NAME` option are removed. During websocket JWT
 secret rotation, set the websocket server's `previousJwtSecret` /
-`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting cookies with
-`WEBSOCKET_JWT_SECRET`. The server is bundled in the official Superset image
+`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting tickets with
+`WEBSOCKET_JWT_SECRET`. After a logout or session revocation, an open socket stays
+authenticated until its current ticket expires, because the next refresh fails.
+The server is bundled in the official Superset image
 and launched via an alternate entrypoint — no separate image is required:
 `docker run <superset-image> /app/docker/entrypoints/run-websocket.sh` (or the
 opt-in `websocket` profile in `docker compose`). It **subscribes** to a single
@@ -1201,6 +1758,22 @@ theme editor picker.
   should `pip uninstall superset-engine-d1 dbapi-d1` and reinstall the extra.
   `d1://` connection strings are unchanged. File upload is now off for D1:
   D1 has no transactions, so a failed upload could leave a half-written table.
+- Dashboard screenshot requests without `force=true` refresh successfully-rendered
+  (`UPDATED`) images older than `THUMBNAIL_UPDATED_CACHE_TTL` (default 7 days),
+  retaining the last valid image during refresh and error backoff when the cache
+  backend still holds it: on backends without TTL eviction, such as S3, or with a
+  thumbnail `CACHE_DEFAULT_TIMEOUT` of `0` or above the TTL. With the default 7-day
+  timeout, evicting backends such as Redis expire the image as it turns stale, so
+  the refresh renders without one. The on-demand endpoint finds a retained image for
+  about that timeout after it turns stale (indefinitely when it is `0`). This also
+  applies to dashboard thumbnails refreshed by `superset compute-thumbnails` without
+  `--force`; chart screenshots and card-list thumbnail endpoints are excluded. Set
+  the TTL to `0` or `None` to disable this freshness check and rely on the cache
+  backend's retention policy. Only backends without TTL eviction, such as S3, can
+  then serve a cached image indefinitely. Timestamps are naive local time, so run
+  web servers and workers with the same `TZ` and keep the TTL above any clock offset
+  between them. Roll thumbnail workers before web servers: older workers can skip
+  refreshes requested by newer web servers until the worker rollout finishes.
 
 ### Native Value filter "Select all" always targets the whole column
 
@@ -1238,6 +1811,12 @@ old dashboard permalink/filter state after reselection. Cross-view overlays are
 rejected unless their source identity matches the receiving semantic view;
 matching display titles are not proof of matching members.
 
+Time comparison is unsupported on semantic views, including relative shifts,
+inherited ranges and custom start dates. Remove the time shift from affected
+charts to query them. The host refuses these queries before reading cached
+results because comparisons could return incorrect values. Ordinary semantic
+queries and SQL-dataset time comparisons are unchanged.
+
 Dynamic group-by display controls are unsupported on versioned semantic views,
 including Cube. Remove those charts from the control's scope; resetting or
 reselecting the group-by fields cannot repair this control's missing selection
@@ -1267,6 +1846,36 @@ Discover the value from datasource metadata (or each external metric returned by
 MCP `list_metrics`). The server never adds a missing marker from metadata.
 Explore query controls remain unavailable until explicit field initialization,
 so legacy filter subjects cannot trigger value suggestions before reselection.
+
+### Superset no longer auto-generates `type:`/`editor:`/`favorited_by:` tags
+
+With `TAGGING_SYSTEM` enabled, Superset used to auto-tag every chart,
+dashboard, saved query, and dataset with implicit tags derived from
+metadata (object type, editors, and who favorited it), and generate a
+`favorited_by:<user id>` tag on every favorite/unfavorite. Nothing in the
+UI ever surfaced these tags to users — every tags list and filter in the
+frontend explicitly excluded them — so the generation added continuous
+write overhead (13 SQLAlchemy event listeners across 5 models) with no
+user-visible benefit. That generation is removed.
+
+Manually-created (custom) tags are unaffected: creating, editing,
+listing, and filtering tags still works exactly as before, including the
+`custom_tag` API filter used to distinguish custom from implicit tags.
+
+Deployments already running with `TAGGING_SYSTEM` enabled keep any
+`type:`/`editor:`/`favorited_by:` tag rows created before upgrading — they
+remain queryable via the API and MCP's `list_tags`/`get_tag_info` tools,
+and are still exempt from bulk tag deletion — but no new ones are created,
+and the `superset sync_tags` CLI command that backfilled them has been
+removed. Nothing maintains those retained rows any more: un-favoriting no
+longer deletes a `favorited_by:` row, and editor changes no longer prune
+`editor:` rows, so they are a frozen snapshot that drifts from current
+favorites and editorship. No migration removes them; delete them manually.
+The `DASHBOARD_LIST_CUSTOM_TAGS_ONLY` config flag and the
+dashboard-list filtering it enables are kept, defaulting to `False`, so
+deployments that already set it to `True` to hide legacy implicit tags from
+dashboard-list responses keep that filtering; new deployments with no
+implicit tags left over have no reason to turn it on.
 
 ### MCP tool results preserve stored string values
 
@@ -1898,7 +2507,7 @@ The pivot table chart's `First` and `Last` aggregations now return the first and
 
 The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
 
-### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control removed)
+### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control restored)
 
 Pivot Table subtotals and grand totals are now computed by the database at each
 rollup level instead of re-aggregating the already-aggregated cell values on the
@@ -1907,11 +2516,9 @@ client. This fixes long-standing incorrect totals for non-additive metrics
 which previously summed the displayed cell values.
 
 As a result the per-table **"Aggregation function"** control (which let you pick
-how totals were aggregated client-side, e.g. Sum/Average/Count) has been
-removed: totals now always reflect the metric's own definition evaluated at the
-total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
-is unchanged. If you previously relied on a plain sum-of-cells total for a
-non-additive metric, that specific behavior is no longer available.
+how totals were aggregated client-side, e.g. Sum/Average/Count) was temporarily
+removed: totals reflected the metric's own definition evaluated at the total's
+granularity, with no way to pick a different reducer for subtotals/totals.
 
 The "Sum as Fraction of Total/Rows/Columns" display options are back as a
 new, standalone **"Show values as"** control (below "Combine metrics" in the
@@ -1924,9 +2531,49 @@ Fraction of ..." variants are **not** migrated: they divided a record count,
 while the new control divides the metric's own value, so translating them
 automatically would silently change what the chart displays rather than
 restore it; those charts need to be manually reconfigured if the value-based
-percentage is what's wanted. Charts that used any other non-fraction
-`aggregateFunction` value (Sum, Average, Count, ...) are unaffected, since
-that specific behavior remains unavailable per the above.
+percentage is what's wanted.
+
+The **"Aggregation function"** control itself (form_data field
+`aggregateFunction`) is also back, as a second aggregation pass over a
+metric's own grouped results -- e.g. the median of a set of per-store
+`SUM(sales)` values -- computed correctly this time: every scope (subtotal,
+row/column total, grand total) reduces its own original contributing query
+results, never another scope's already-displayed value, so the previous
+non-additive-metric bug this section originally removed the control for does
+not return. It reuses the exact same field name and value spellings as
+before, so a chart that still had e.g. `aggregateFunction: "Median"` sitting
+unused in its saved `params` starts computing totals with that aggregation
+again automatically, with no action required and no value to reconfigure. The
+one exception is a chart that also has a percent "Show values as" selected:
+that control only exists since the per-table aggregation was removed, so the
+percent choice is the more recent, explicit intent (made on top of
+database-computed totals), and a result aggregation would both change those
+totals and hide the percent display. The migration drops the orphaned
+`aggregateFunction` from such a chart (and from its saved `query_context`)
+instead of restoring it, so it keeps rendering exactly as before. This drop
+is a one-time, upgrade-time heuristic, not a durable fact about the chart: if
+you later downgrade past this migration and then re-upgrade, a chart where
+you deliberately chose both an `aggregateFunction` and a percent "Show values
+as" *after* the control was restored looks identical to the original
+pre-restoration orphan, and the migration drops that deliberate choice again.
+Charts arriving through import are neither dropped nor tagged, so they render
+with the restored aggregation and no notice.
+A one-time migration tags every other such chart with a `legacy-pivot-aggregation-restored`
+custom tag; opening a tagged chart in Explore shows a notice that its totals
+may now look different, which clears once you review and accept it (or save
+the chart). Accepting only removes the tag; it does not rebuild the saved
+`query_context` that alerts, reports and cache warm-up keep using. If you have
+alerts/reports built on one of these charts, re-save each affected chart in
+Explore first, then validate its scheduled outputs, since a scheduled report
+render does not pass through that notice and Accept alone leaves the stale
+`query_context` in place. CSV/XLSX exports and CSV/text reports do apply the
+selected aggregation, but, unlike the chart, apply it to every cell rather
+than scoping it to subtotals and totals the way the chart does, so a leaf
+cell's own database-computed metric value can be overwritten by the
+aggregation instead of passed through
+(https://github.com/apache/superset/issues/45215) -- e.g. a `Count`
+aggregation showing `1` for every leaf, or `Sample Variance` showing `0`,
+where the chart still shows the real per-cell metric value.
 
 ### `thumbnail_url` removed from dashboard list API response
 
@@ -2029,7 +2676,6 @@ With the flag on, delete confirmations across the chart/dashboard/dataset list p
 This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
 
 Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30), which collapses duplicate `blocked` records and ages out operational noise. That bounds the growth that comes from scheduled purges being repeatedly blocked or failing; it is **not** a bound on total table size. Force-purge (`force`-triggered) `blocked` records are retained permanently — exempt from both the duplicate collapse and the operational age-out, including in resolved streaks — so repeated `force-purge` attempts against a persistently blocked entity still add a record each; completed-destruction evidence is retained by default; and the first `blocked` record after each change of block reason is preserved. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned at all — enabling it is an explicit operator choice, and a second-phase one (see the rollout requirement in the release-note entry above). `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50) caps the candidates per batch; how long a batch holds the audit coordination lock against concurrent audit writes grows with that cap and with the history depth of the entities in the batch — a workload-dependent trade-off against drain speed, not a time bound; see the release-note entry for capacity limits and measurement guidance. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — scheduled `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
-
 
 ### Webhook alerts/reports block private/internal hosts by default
 
@@ -2329,6 +2975,21 @@ Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or 
 Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
 
 - [43916](https://github.com/apache/superset/pull/43916): The `docker-compose` dev loop now skips re-running `superset load_examples` on every `docker compose up` once the example data and dashboards are present in the databases (set `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to reload them anyway), and the `superset-node` service now defaults `DISABLE_TS_CHECKER=true` like `docker-compose-light.yml` already did, skipping webpack's TypeScript type-checking pass in dev by default.
+
+- `NOT IN` filters on SQLAlchemy-backed datasets now also return rows where the
+  column is NULL. Previously these rows were dropped by SQL three-valued logic
+  (`NULL NOT IN (...)` is not true), so a filter such as "Exclude selected values"
+  removed NULL rows in addition to the selected values. Dashboards, charts and
+  reports that use `NOT IN` may therefore show additional NULL rows. A `NOT IN`
+  list that explicitly contains NULL still excludes NULL rows. `!=`, `NOT LIKE`
+  and `NOT ILIKE` are unchanged.
+
+- **Saved query names must be unique per user and database.** Creating or
+  renaming a saved query through `POST` or `PUT /api/v1/saved_query/` to a name
+  already used by another saved query of the same user on the same database now
+  returns HTTP 422 (`A saved query with this name already exists`) instead of
+  succeeding. Existing duplicate rows are not modified. Updates that leave both
+  the name and database unchanged remain allowed.
 
 ## 6.1.0
 

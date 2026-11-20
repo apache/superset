@@ -18,17 +18,20 @@
  */
 import { useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { css } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator,
   type ListViewFilter,
 } from 'src/components/ListView';
 import { Typography } from '@superset-ui/core/components';
 import { fetchUserOptions } from 'src/features/groups/utils';
+import { JsonModal } from 'src/components/JsonModal';
+import { safeJsonObjectParse } from 'src/components/JsonModal/utils';
 
 export type ActionLogObject = {
   user: {
@@ -48,6 +51,15 @@ export type ActionLogObject = {
 
 const PAGE_SIZE = 25;
 
+const JsonCellTrigger = styled.div`
+  > [role='button'] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+`;
+
 function ActionLogList() {
   const { addDangerToast, addSuccessToast } = useToasts();
   const initialSort = [{ id: 'dttm', desc: true }];
@@ -65,6 +77,8 @@ function ActionLogList() {
     toggleBulkSelect,
   } = useListViewResource<ActionLogObject>(
     'log',
+    // i18n: the record of user actions listed in the Action Log view; not a
+    // logarithm and not a login
     t('Log'),
     addDangerToast,
     false,
@@ -138,11 +152,12 @@ function ActionLogList() {
     [],
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<ActionLogObject>[]>(
     () => [
       {
         accessor: 'action',
         Header: t('Action'),
+        layout: 'text',
         Cell: ({
           row: {
             original: { action },
@@ -152,6 +167,7 @@ function ActionLogList() {
       {
         accessor: 'user',
         Header: t('User'),
+        layout: 'text',
         // The log API only orders by scalar fields (e.g. `user.username`),
         // not the `user` relationship itself.
         disableSortBy: true,
@@ -180,6 +196,7 @@ function ActionLogList() {
       {
         accessor: 'duration_ms',
         Header: t('Duration Ms'),
+        layout: 'count',
 
         Cell: ({
           row: {
@@ -190,6 +207,7 @@ function ActionLogList() {
       {
         accessor: 'dashboard_id',
         Header: t('Dashboard Id'),
+        layout: 'count',
         hidden: false,
         Cell: ({
           row: {
@@ -200,6 +218,7 @@ function ActionLogList() {
       {
         accessor: 'slice_id',
         Header: t('Slice Id'),
+        layout: 'count',
         hidden: false,
         Cell: ({
           row: {
@@ -210,34 +229,54 @@ function ActionLogList() {
       {
         accessor: 'json',
         Header: t('JSON'),
+        layout: 'longtext',
 
         Cell: ({
           row: {
             original: { json },
           },
-        }: any) => (
-          <Typography.Text
-            css={css`
-              .ant-typography-copy {
-                visibility: hidden;
-              }
-              &:hover .ant-typography-copy {
-                visibility: visible;
-              }
-            `}
-            copyable={!!json}
-            ellipsis={{
-              tooltip: { styles: { root: { maxWidth: '900px' } }, title: json },
-            }}
-          >
-            {json}
-          </Typography.Text>
-        ),
+        }: any) => {
+          const jsonObject = safeJsonObjectParse(json);
+          if (jsonObject) {
+            return (
+              <JsonCellTrigger>
+                <JsonModal
+                  modalTitle={t('JSON')}
+                  jsonObject={jsonObject}
+                  jsonValue={json}
+                  wrapContent={false}
+                />
+              </JsonCellTrigger>
+            );
+          }
+          return (
+            <Typography.Text
+              css={css`
+                .ant-typography-copy {
+                  visibility: hidden;
+                }
+                &:hover .ant-typography-copy {
+                  visibility: visible;
+                }
+              `}
+              copyable={!!json}
+              ellipsis={{
+                tooltip: {
+                  styles: { root: { maxWidth: '900px' } },
+                  title: json,
+                },
+              }}
+            >
+              {json}
+            </Typography.Text>
+          );
+        },
       },
 
       {
         accessor: 'referrer',
         Header: t('Referrer'),
+        layout: 'text',
 
         Cell: ({
           row: {
@@ -268,6 +307,7 @@ function ActionLogList() {
       {
         accessor: 'dttm',
         Header: t('Dttm'),
+        layout: 'timestamp',
         Cell: ({
           row: {
             original: { dttm },

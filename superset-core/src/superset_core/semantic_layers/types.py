@@ -66,16 +66,9 @@ class Grains:
        quarter, year;
     3. then any remaining grain representation, in lexical order.
 
-    This describes the intended contract. Resolving every host lookup through
-    this one preference is the work of apache/superset#44454; until it lands, the
-    host does not apply it everywhere. Filter resolution keeps whichever variant
-    of a name it sees last, and ``get_dimensions`` returns a set, so that choice
-    is arbitrary; the grouping fallback orders the remaining grains by name. A
-    provider should not rely on which variant a given lookup picks today.
-
-    Once that work lands, the preference governs column metadata, filters and the
+    The preference governs column metadata, filters and the
     grouping fallback. An explicit supported grouping grain is always honored.
-    Filters and time bounds will use the default preference **independently of
+    Filters and time bounds use the default preference **independently of
     grouping**: grouping by month with a lower bound of January 15 will still
     filter the raw time dimension from January 15 rather than testing month
     buckets against that bound. Sorting and series limits use the selected
@@ -89,10 +82,7 @@ class Grains:
     Conflicting IDs, types, definitions or descriptions for the same name and
     grain make the catalog ambiguous; that is a provider defect to fix rather
     than a tie for the host to break by picking a variant.
-    The host does not detect such a conflict: grouping keeps the first variant
-    it sees for a ``(name, grain)`` pair, while filters and ordering resolve the
-    name to the last variant seen, so one query can group and filter on
-    different IDs.
+    The host rejects conflicting variants rather than choosing an arbitrary ID.
     """
 
     SECOND = Grain("Second", "PT1S")
@@ -145,9 +135,9 @@ class Dimension:
     at most one per ``(name, grain)`` pair: two dimensions sharing a name and
     grain are a provider defect, not a tie for the host to break silently.
     Metric names are unique on their own, and must not collide with a dimension
-    name. Both rules are provider obligations: the host does not currently
-    detect a duplicate ``(name, grain)`` (grouping and filtering may then pick
-    different variants) or a metric name that collides with a dimension name.
+    name. Both rules are provider obligations: the host rejects conflicting
+    ``(name, grain)`` variants, but does not detect a metric name that collides
+    with a dimension name.
     A query selects at most one
     variant per name, so a result carries one column per selected member name.
 
@@ -244,8 +234,14 @@ class Operator(str, enum.Enum):
     ``NOT IN (NULL)`` are never true, so a provider that renders or binds
     ``None`` through one of them silently drops every row the user asked for,
     with no error. Nullness is expressed with :attr:`IS_NULL` and
-    :attr:`IS_NOT_NULL`, which take no operand. An empty collection for
-    :attr:`IN` or :attr:`NOT_IN` has no well-defined rendering either.
+    :attr:`IS_NOT_NULL`, which take no operand.
+
+    **Empty membership.** An empty collection follows SQL predicate semantics at
+    the filter's position: :attr:`IN` with no values is FALSE and :attr:`NOT_IN`
+    with no values is TRUE, for NULL values too. Filtering is applied before
+    aggregation, so an ungrouped aggregate over no matching rows still returns one
+    row (``COUNT`` is 0). Providers must not render an empty SQL list, which many
+    dialects reject; render a constant or an equivalent native predicate instead.
 
     Splitting a ``None`` operand out into those predicates is the host's
     responsibility, so that every provider sees the same already-normalized
@@ -275,6 +271,13 @@ FilterValues = str | int | float | bool | datetime | date | time | timedelta | N
 
 
 class PredicateType(enum.Enum):
+    """
+    The stage a filter applies to.
+
+    ``HAVING`` is reserved. The host does not send HAVING predicates for chart
+    data, and a provider may reject one.
+    """
+
     WHERE = "WHERE"
     HAVING = "HAVING"
 
@@ -361,6 +364,37 @@ class SemanticResult:
 
     This includes any requests (SQL queries, HTTP requests) that were performed in order
     to obtain the results, in order to help troubleshooting.
+
+    **Count results.** A row count is one row with one integer column named
+    ``rowcount``, holding the size of the requested result window (see
+    :class:`SemanticQuery`). The host preserves the provider's column name;
+    Superset's table consumers read ``data[0].rowcount``, so a different name
+    does not supply their pagination total. An empty window is the cell ``0``:
+    not an empty table, ``None`` or a missing column. A count that cannot be
+    established exactly is an error
+    (``superset_core.semantic_layers.errors.SemanticResultCompletenessError``,
+    as incomplete or unverified), never an estimate, the length of a fetched
+    page or a zero standing in for "unknown".
+
+    **Value lists.** A distinct-value result has one column, named after the
+    dimension. ``SemanticView.get_values`` must return the complete matching
+    distinct domain or raise ``SemanticResultCompletenessError``. Consumers
+    may rely on that complete-or-raise contract when the call succeeds; this
+    result type carries no separate completeness-evidence field. A provider
+    must raise if its own page size, transport cap or other ceiling may have
+    omitted matching values.
+
+    ``get_values`` takes no limit. The host obtains the complete filtered set,
+    sorts it and then applies its suggestion limit. For a positive limit, a
+    successful host list shorter than it is the complete matching set; an empty
+    one then means no value matches. A list exactly as long as the limit may
+    have been cut and does not prove that more values exist. Providers must not silently
+    return a bounded subset through ``get_values``; a bounded suggestion API
+    with different completeness semantics is not defined by this signature.
+
+    These guarantees belong to one observation. A count and a page fetched
+    separately may see different source states; nothing here promises a snapshot
+    across requests, and ordering is not isolation.
     """
 
     requests: list[SemanticRequest]
@@ -377,7 +411,40 @@ class SemanticQuery:
     Truncating first and sorting the truncated page returns a different, and
     wrong, answer. ``order`` entries are ``(member, direction)`` pairs whose
     member must be defined by the view; an adhoc expression is only a valid
-    order key for a view declaring ``ADHOC_EXPRESSIONS_IN_ORDERBY``.
+    order key for a view declaring ``ADHOC_EXPRESSIONS_IN_ORDERBY``. NULL placement
+    and the order of rows tied on every order key are provider-defined.
+
+    **Default chronological order.** When ``order`` is empty (``None`` or
+    ``[]``) and ``dimensions`` includes a date, timestamp or time dimension, the
+    host sorts ascending by the first such dimension in ``dimensions`` (by list
+    position, not ``SemanticView.preferred_temporal_dimension``), before
+    ``offset`` and ``limit``. The SDK does not specify NULL placement or tie
+    order; a provider's placement is kept as returned, and a cache-served rollup
+    keeps the provider's rows but may order NULL and tied rows differently.
+    The host applies this default both to the ``get_table`` query it sends the
+    provider and to results it serves from its cache. It is a default, never a
+    prefix: a non-empty ``order`` is used exactly as given. A ``get_table`` call
+    therefore receives an empty ``order`` only when no temporal dimension is
+    selected, and may then return rows in any order. ``get_row_count`` gets no
+    default, since order cannot change a count.
+
+    **What a count counts.** The *matching result* of a query is its rows at
+    the requested grain after ``filters``, grouping and ``group_limit``, before
+    ``order``, ``offset`` and ``limit``. The *requested result window* is that
+    result, ordered, with ``offset`` rows skipped and at most ``limit`` rows
+    kept. A row count is the number of rows in the requested result window. For
+    a matching result of 123 rows: no limit and no offset counts 123;
+    ``limit=50`` counts 50; ``limit=50, offset=100`` counts 23; ``limit=50,
+    offset=150`` counts 0. ``limit=None`` means no limit and an absent or ``0``
+    ``offset`` means no offset, so a query with neither counts its whole
+    matching result; that unrestricted total is the count of no other query.
+    Rows are rows of the result, never underlying facts or metric values:
+    10,000 facts that aggregate to 12 groups count 12. A count validates the
+    same shape ``get_table`` would, the shape being members, ``filters``,
+    ``group_limit``, ``limit`` and ``offset`` but not ``order``, so a query the
+    table would reject, such as an offset on a view without ``ROW_OFFSET``, is
+    rejected by the count as well, and a count is accepted whenever the table
+    query would be; a count never widens what may be asked.
 
     ``group_limit`` is a separate ranking, with its own metric, direction and
     optional filters.
