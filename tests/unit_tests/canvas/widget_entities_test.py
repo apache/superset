@@ -186,15 +186,7 @@ def test_changing_a_placed_widget_saves_the_widget_not_the_canvas(
     assert changes["changes"] == [
         {
             "revision": 3,
-            "ops": [
-                {
-                    "op": "set_props",
-                    "id": "sales",
-                    "props": {"metric": "avg"},
-                    "schemaVersion": 1,
-                    "widgetId": widget_id,
-                }
-            ],
+            "ops": [{"op": "set_props", "id": "sales", "widgetId": widget_id}],
         }
     ]
 
@@ -233,6 +225,40 @@ def test_a_draft_commit_fails_if_a_widget_it_changed_was_saved_since(
 
     assert excinfo.value.widgets == [widget_id]
     assert saved_widget(session, widget_id).props == {}
+
+
+def test_a_widget_saved_during_a_commit_is_a_widget_conflict(
+    canvas: Any, session: Session, mocker: MockerFixture
+) -> None:
+    from superset.commands.canvas import apply_ops as module
+    from superset.commands.canvas.exceptions import DraftConflictError
+    from superset.widgets.models import Widget
+
+    apply_ops(1, {"op": "add", "id": "sales", "widgetType": "chart"})
+    widget_id = json.loads(canvas.definition)["nodes"]["sales"]["widgetId"]
+    widget_changes = module._widget_changes
+
+    def save_in_between(*args: Any) -> Any:
+        # Another save lands after the revision check, before the UPDATE.
+        session.query(Widget).filter(Widget.uuid == UUID(widget_id)).update(
+            {"revision": 2}, synchronize_session=False
+        )
+        return widget_changes(*args)
+
+    mocker.patch.object(module, "_widget_changes", side_effect=save_in_between)
+
+    with pytest.raises(DraftConflictError) as excinfo:
+        module.ApplyCanvasOperationsCommand(
+            100,
+            2,
+            [],
+            strict=True,
+            widgets={
+                widget_id: StoredWidget("chart", 1, "Chart", {"a": 1}, revision=1)
+            },
+        ).run()
+
+    assert excinfo.value.widgets == [widget_id]
 
 
 def test_publishing_a_draft_resolves_layout_once_per_request(
@@ -742,19 +768,8 @@ def test_a_committed_draft_that_only_changes_widgets_still_feeds_the_change(
         {
             "revision": 3,
             "ops": [
-                {
-                    "op": "set_props",
-                    "id": "sales",
-                    "props": {"metric": "avg"},
-                    "schemaVersion": 1,
-                    "widgetId": widget_id,
-                },
-                {
-                    "op": "rename",
-                    "id": "sales",
-                    "name": "Revenue",
-                    "widgetId": widget_id,
-                },
+                {"op": "set_props", "id": "sales", "widgetId": widget_id},
+                {"op": "rename", "id": "sales", "widgetId": widget_id},
             ],
         }
     ]
