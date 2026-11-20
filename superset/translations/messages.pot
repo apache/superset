@@ -4793,6 +4793,9 @@ msgstr ""
 msgid "Dashboard color configuration could not be updated."
 msgstr ""
 
+msgid "Dashboard content"
+msgstr ""
+
 msgid "Dashboard could not be deleted."
 msgstr ""
 
@@ -6774,6 +6777,9 @@ msgstr ""
 
 #, python-format
 msgid "Explore - %(table)s"
+msgstr ""
+
+msgid "Explore chart"
 msgstr ""
 
 msgid "Explore the result set in the data exploration view"
