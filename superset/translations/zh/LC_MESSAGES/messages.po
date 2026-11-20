@@ -2121,6 +2121,10 @@ msgstr ""
 msgid "Alert"
 msgstr "警报"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "警报 \"%(alertName)s\" 触发成功"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "告警已触发，在宽限期内"
 
@@ -7587,6 +7591,9 @@ msgstr "动态分区标签"
 msgid "Dynamic group by"
 msgstr "动态分组"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "动态部分描述"
 
@@ -8945,6 +8952,14 @@ msgstr "给对象打标签失败"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "触发 %(alertType)s \"%(alertName)s\" 失败：%(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "触发警报 \"%(alertName)s\" 失败：%(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "触发报表 \"%(alertName)s\" 失败：%(error)s"
+
 msgid "Failed to update report"
 msgstr "更新报告失败"
 
@@ -9830,6 +9845,14 @@ msgstr "隐藏线"
 msgid "Hide chart description"
 msgstr "隐藏图表说明"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "隐藏图层"
 
@@ -10490,9 +10513,10 @@ msgstr "无效状态。"
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "无效的标签页ID：%(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "列 %(column)s 的时间过滤值无效"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -14804,6 +14828,10 @@ msgstr "发送时,将告警和报告邮件主题中的 strftime 日期占位符(
 
 msgid "Report"
 msgstr "报表"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "报表 \"%(alertName)s\" 触发成功"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format

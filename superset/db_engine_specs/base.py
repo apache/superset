@@ -59,6 +59,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
 from sqlalchemy.sql.expression import (
     BinaryExpression,
+    ClauseElement,
     ColumnClause,
     ColumnElement,
     Select,
@@ -171,7 +172,11 @@ TIME_LIMIT_EXCEPTIONS = (
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
     result_set_columns: list[ResultSetColumnType] = []
     for col in cols:
-        result_set_columns.append({"column_name": col.get("name"), **col})  # type: ignore
+        values = {
+            key: str(value) if isinstance(value, ClauseElement) else value
+            for key, value in col.items()
+        }
+        result_set_columns.append({"column_name": col.get("name"), **values})  # type: ignore
     return result_set_columns
 
 
@@ -2808,6 +2813,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return validated_embedded_credentials(credentials)
 
     @classmethod
+    def get_embedded_credentials_error(
+        cls,
+        credentials: dict[str, str],  # pylint: disable=unused-argument
+    ) -> str | None:
+        """
+        Explain why a complete embedded fallback credential cannot be used, or
+        return ``None``.
+
+        ``validate_embedded_credentials`` only checks that the fields are filled in;
+        this checks that what they hold is usable, e.g. that a private key decodes
+        with its passphrase. Called when a credential is saved, never at query time,
+        and with unmasked secrets. The message is shown to the administrator saving
+        the connection, so it must never quote the credential's values.
+        """
+        return None
+
+    @classmethod
     def apply_embedded_credentials(
         cls,
         database: Database,  # pylint: disable=unused-argument
@@ -3523,8 +3545,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         Each hint has the field `path`, a human `label` and the last `length`
         characters of the stored value as `suffix` (``None`` when the value is too
-        short to reveal any). Returns an empty list when `encrypted_extra` is
-        missing or malformed, or when `length` is not positive.
+        short to reveal any). A JWT also gets `expires_at` and `expired` from its
+        `exp` claim, ``None`` otherwise. Returns an empty list when `encrypted_extra`
+        is missing or malformed, or when `length` is not positive.
         """
         if encrypted_extra is None or length <= 0:
             return []

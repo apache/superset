@@ -8227,6 +8227,9 @@ msgstr "Direccional"
 msgid "Dynamic group by"
 msgstr "NO AGRUPAT PER"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Funció d'Agregació Dinàmica"
@@ -10589,6 +10592,14 @@ msgstr "Amagar Línia"
 msgid "Hide chart description"
 msgstr "Amagar descripció del gràfic"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Amagar capa"
 
@@ -11281,9 +11292,10 @@ msgstr "Estat invàlid."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "ID de pestanya no vàlids: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Valor de filtre temporal invàlid per a la columna %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
