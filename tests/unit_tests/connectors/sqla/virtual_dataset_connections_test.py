@@ -4547,12 +4547,16 @@ def test_discovered_schema_preserves_inner_rls_during_outage(
     connect.assert_not_called()
 
 
+@pytest.mark.parametrize("entry_point", ["run", "execute", "payload"])
+@pytest.mark.parametrize("restart_worker", [False, True])
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True, EMBEDDED_SUPERSET=True)
 def test_guest_chart_cache_survives_event_log_commit_and_database_outage(
     session: Session,
     app_context: None,
     tmp_path: Path,
     mocker: MockerFixture,
+    restart_worker: bool,
+    entry_point: str,
 ) -> None:
     """Request logging must not evict the real engine's discovered schema."""
     from flask import current_app, g
@@ -4561,6 +4565,7 @@ def test_guest_chart_cache_survives_event_log_commit_and_database_outage(
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
     from superset.constants import CacheRegion
+    from superset.extensions import cache_manager
     from superset.models.core import _retire_cached_engines, Log
     from superset.tasks.async_queries import _query_task_cache_key
     from superset.utils.log import DBEventLogger
@@ -4596,6 +4601,9 @@ def test_guest_chart_cache_survives_event_log_commit_and_database_outage(
     mocker.patch(
         "superset.common.utils.query_cache_manager._cache", {CacheRegion.DATA: cache}
     )
+    schema_cache = Cache(config={"CACHE_TYPE": "SimpleCache"})
+    schema_cache.init_app(current_app._get_current_object())
+    mocker.patch.object(cache_manager, "_cache", schema_cache)
     query = QueryObject(
         datasource=virtual, columns=["col1"], metrics=[], is_timeseries=False
     )
@@ -4640,11 +4648,20 @@ def test_guest_chart_cache_survives_event_log_commit_and_database_outage(
         )
         assert connections
         outage = True
+        if restart_worker:
+            _retire_cached_engines(database_id)
         for tenant, key in zip((1, 2), keys, strict=True):
             set_cache_test_guest(tenant)
             assert context.query_cache_key(query) == key
             assert _query_task_cache_key(context, 0) == key
-            hit = ChartDataCommand(context).run(force_cached=True)["queries"][0]
+            command = ChartDataCommand(context)
+            if entry_point == "payload":
+                hit = context.get_df_payload_result(query, force_cached=True).payload
+                hit["data"] = hit["df"].to_dict(orient="records")
+            elif entry_point == "execute":
+                hit = command.execute(force_cached=True).queries[0].payload
+            else:
+                hit = command.run(force_cached=True)["queries"][0]
             assert hit["is_cached"]
             assert hit["cache_key"] == key
             assert hit["data"] == [{"col1": tenant}]

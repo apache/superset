@@ -83,17 +83,23 @@ instead of looking up a result using an incomplete macro cache key.
 While collecting chart cache keys for virtual datasets without a schema,
 Superset reuses the default schema that
 SQLAlchemy has already discovered on the selected engine, without opening an
-inspector connection. Cached results remain available under the same security
-and template context when that schema (or the connection configuration) is
-sufficient to build the complete key.
+inspector connection. It also stores that discovery for one hour in `CACHE_CONFIG`,
+keyed by the database, catalog, and a hash of the effective connection URL and
+engine parameters. Configure a shared cache backend (such as Redis) so a restarted
+or previously unused worker can reuse the discovery during an outage. Cache
+backend failures fall back to the selected engine's local discovery or an inspector
+lookup; they do not themselves prevent cache-key construction. Cached results remain
+available under the same security and template context when that schema (or the
+connection configuration) is sufficient to build the complete key.
 Query execution and metadata inspection retain their engine-specific schema
 discovery behavior.
 
 A warm chart cache alone does not guarantee availability during a database
-outage. A cold engine, including one in a restarted worker or selected for a
-different connection identity, may still need to discover its default schema.
-Query-specific search-path lookups, database-backed macros, and other operations
-needed to build the complete key can also require a live database connection.
+outage. A cold engine with no unexpired shared discovery, including one selected
+for a different connection identity, still needs to discover its default schema.
+Engines with per-call pre-session SQL do not share schema discovery. Those
+session-specific lookups, query-specific search paths, database-backed macros, and
+other operations needed to build the complete key can require a live connection.
 If collecting template macro keys fails, Superset raises rather than using a
 partial macro key. Cache misses and forced refreshes still require query execution.
 

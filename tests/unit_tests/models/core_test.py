@@ -27,6 +27,7 @@ import pandas as pd
 import pytest
 import sqlalchemy.exc
 from flask import current_app
+from flask_caching import Cache
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy import (
@@ -4861,3 +4862,156 @@ def test_transient_query_read_does_not_dirty_database(
     assert not inspect(database).attrs.queries.history.has_changes()
     session.flush()
     assert session.query(Query).count() == 0
+
+
+@pytest.fixture
+def shared_default_schema_cache(
+    app_context: None, mocker: MockerFixture
+) -> Iterator[Cache]:
+    """Isolate the shared schema store from the process-local engine cache."""
+    from superset.extensions import cache_manager
+    from superset.models.core import _retire_cached_engines
+
+    cache = Cache(config={"CACHE_TYPE": "SimpleCache"})
+    cache.init_app(current_app._get_current_object())
+    mocker.patch.object(cache_manager, "_cache", cache)
+    mocker.patch("superset.models.core.security_manager.find_user", return_value=None)
+    _retire_cached_engines(987654)
+    _retire_cached_engines(987655)
+    yield cache
+    _retire_cached_engines(987654)
+    _retire_cached_engines(987655)
+    cache.clear()
+
+
+@pytest.mark.parametrize("entry_point", ["schema", "query_schema", "search_path"])
+def test_default_schema_shared_cache_survives_worker_restart(
+    shared_default_schema_cache: Cache, mocker: MockerFixture, entry_point: str
+) -> None:
+    """A cold dialect reads discovery made by another worker without connecting."""
+    from superset.db_engine_specs.base import reuse_discovered_default_schema
+    from superset.models.core import _retire_cached_engines
+
+    @reuse_discovered_default_schema()
+    def lookup(database: Database) -> str | None:
+        """Exercise each base-spec schema entry point used by key collectors."""
+        if entry_point == "query_schema":
+            return database.resolve_query_default_schema(
+                "SELECT * FROM physical", None, None
+            )
+        if entry_point == "search_path":
+            schemas, _ = database.get_search_path(None, ["physical"])
+            return schemas[0] if schemas else None
+        return database.get_default_schema(None)
+
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    assert lookup(database) == "main"
+    _retire_cached_engines(database.id)
+    fresh_database = Database(
+        id=database.id, database_name="analytic", sqlalchemy_uri="sqlite://"
+    )
+    with fresh_database.get_sqla_engine() as engine:
+        assert engine.dialect.default_schema_name is None
+        connect = mocker.patch.object(
+            engine,
+            "raw_connection",
+            side_effect=ConnectionError("database unreachable"),
+        )
+    assert lookup(fresh_database) == "main"
+    connect.assert_not_called()
+    # Reading shared discovery must not pretend SQLAlchemy initialized the dialect.
+    assert engine.dialect.default_schema_name is None
+
+
+@pytest.mark.parametrize(
+    "identity", ["uri", "engine_params", "mutator", "database_id", "catalog"]
+)
+def test_default_schema_shared_cache_separates_engine_identity(
+    shared_default_schema_cache: Cache,
+    mocker: MockerFixture,
+    tmp_path: Path,
+    identity: str,
+) -> None:
+    """Never reuse discovery across catalogs, connections, or effective kwargs."""
+    from superset.models.core import _retire_cached_engines
+
+    cache = shared_default_schema_cache
+    write = mocker.spy(cache, "set")
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    assert database.get_default_schema_from_engine(None) == "main"
+    write.assert_called_once()
+    key = write.call_args.args[0]
+    assert cache.get(key) == "main"
+    assert write.call_args.kwargs["timeout"] > 0
+    _retire_cached_engines(database.id)
+    catalog = None
+    if identity == "uri":
+        database.sqlalchemy_uri = f"sqlite:///{tmp_path / 'other.db'}"
+    elif identity == "engine_params":
+        database.extra = json.dumps(
+            {"engine_params": {"connect_args": {"timeout": 42}}}
+        )
+    elif identity == "mutator":
+
+        def mutate(
+            url: URL, kwargs: dict[str, Any], *args: Any
+        ) -> tuple[URL, dict[str, Any]]:
+            """Change the effective connection without changing the stored URI."""
+            kwargs["connect_args"]["timeout"] = 42
+            return url, kwargs
+
+        mocker.patch.dict(current_app.config, {"DB_CONNECTION_MUTATOR": mutate})
+    elif identity == "database_id":
+        database.id = 987655
+    else:
+        catalog = "other"
+    with database.get_sqla_engine(catalog=catalog) as engine:
+        assert engine.dialect.default_schema_name is None
+        error = ConnectionError("new database unreachable")
+        mocker.patch.object(engine, "raw_connection", side_effect=error)
+    with pytest.raises(ConnectionError) as raised:
+        database.get_default_schema_from_engine(catalog)
+    assert raised.value is error
+    assert cache.get(key) == "main"
+    assert write.call_count == 1
+
+
+@pytest.mark.parametrize("operation", ["get", "set"])
+def test_default_schema_shared_cache_failure_falls_back(
+    shared_default_schema_cache: Cache, mocker: MockerFixture, operation: str
+) -> None:
+    """A cache outage cannot replace discovery or the local dialect fallback."""
+    cache = shared_default_schema_cache
+    failed = mocker.patch.object(
+        cache, operation, side_effect=ConnectionError("cache unreachable")
+    )
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    assert database.get_default_schema_from_engine(None) == "main"
+    failed.assert_called_once()
+    with database.get_sqla_engine() as engine:
+        connect = mocker.patch.object(
+            engine,
+            "raw_connection",
+            side_effect=ConnectionError("database unreachable"),
+        )
+    assert database.get_default_schema_from_engine(None) == "main"
+    connect.assert_not_called()
+
+
+def test_default_schema_private_engine_is_not_shared(
+    shared_default_schema_cache: Cache, mocker: MockerFixture
+) -> None:
+    """Per-call session SQL is not represented by a reusable engine identity."""
+    cache = shared_default_schema_cache
+    write = mocker.spy(cache, "set")
+    database = Database(id=987654, database_name="analytic", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        database.db_engine_spec, "get_prequeries", return_value=["SELECT 1"]
+    )
+    assert database.get_default_schema_from_engine(None) == "main"
+    write.assert_not_called()
+    error = ConnectionError("private database unreachable")
+    mocker.patch("sqlalchemy.engine.Engine.raw_connection", side_effect=error)
+    with pytest.raises(ConnectionError) as raised:
+        database.get_default_schema_from_engine(None)
+    assert raised.value is error
