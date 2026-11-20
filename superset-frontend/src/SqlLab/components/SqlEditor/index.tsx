@@ -350,13 +350,7 @@ const SqlEditor: FC<Props> = ({
 
   useEffect(() => {
     if (autorun) {
-      if (
-        isHistoryRerun &&
-        isActive &&
-        isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
-        queryEditor.inLocalStorage
-      )
-        return;
+      if (isHistoryRerun && !isActive) return;
       setAutorun(false);
       dispatch(queryEditorSetAutorun(queryEditor, false));
       // History reruns start on tab open, but still require the user-run warning check.

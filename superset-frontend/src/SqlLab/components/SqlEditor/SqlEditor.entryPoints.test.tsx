@@ -37,6 +37,7 @@ import {
 import {
   queryEditorSetSelectedText,
   setDatabases,
+  removeQueryEditor,
   syncQueryEditor,
 } from 'src/SqlLab/actions/sqlLab';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
@@ -585,44 +586,113 @@ test('explicit history intent survives the existing editor persistence filter', 
   ).toMatchObject({ autorun: true, autorunSource: 'history' });
 });
 
-test('persisted history rerun waits for its server tab ID before capturing the checked request', async () => {
-  jest
-    .mocked(isFeatureEnabled)
-    .mockImplementation(flag =>
-      [
-        FeatureFlag.EstimateQueryCost,
-        FeatureFlag.SqllabBackendPersistence,
-      ].includes(flag),
+test.each(['disabled', 'proceed', 'confirm', 'close'])(
+  'persisted history rerun starts before autosave and handles %s after switching tabs',
+  async outcome => {
+    jest
+      .mocked(isFeatureEnabled)
+      .mockImplementation(flag =>
+        [
+          FeatureFlag.EstimateQueryCost,
+          FeatureFlag.SqllabBackendPersistence,
+        ].includes(flag),
+      );
+    fetchMock.get('glob:*/api/v1/query/*', { count: 0, result: [] });
+    fetchMock.delete('glob:*/api/v1/sqllab/warning/*', 200);
+    fetchMock.post('glob:*/tabstateview/*/migrate_query', 200);
+    let finishSave!: (value: { id: number }) => void;
+    fetchMock.post(
+      'glob:*/tabstateview/',
+      () =>
+        new Promise(resolve => {
+          finishSave = resolve;
+        }),
+      { name: 'save-tab' },
     );
-  fetchMock.get('glob:*/api/v1/query/*', { count: 0, result: [] });
-  fetchMock.post('glob:*/tabstateview/', { id: 123 });
-  const store = setup('SELECT 1', 'persisted-history');
-  fireEvent.click(await screen.findByRole('tab', { name: 'Query history' }));
-  fireEvent.click(await screen.findByTestId('plus-circle'));
-  await screen.findByRole('tab', {
-    name: /Copy of Untitled Query 1/,
-    selected: true,
-  });
-  expect(estimates()).toHaveLength(0);
-  expect(executions()).toHaveLength(0);
-  const editor = store
-    .getState()
-    .sqlLab.queryEditors.find(
-      (qe: QueryEditor) =>
-        qe.id === store.getState().sqlLab.tabHistory.slice(-1)[0],
+    let finishCheck!: (value: object) => void;
+    fetchMock.modifyRoute('check', {
+      response: () =>
+        new Promise(resolve => {
+          finishCheck = resolve;
+        }),
+    });
+    const store = setup('SELECT 1', 'persisted-history');
+    if (outcome === 'disabled') {
+      act(() => {
+        store.dispatch(
+          setDatabases([
+            {
+              ...store.getState().sqlLab.databases[2],
+              query_warning_state: 'disabled',
+            },
+          ]),
+        );
+      });
+    }
+    fireEvent.click(await screen.findByRole('tab', { name: 'Query history' }));
+    fireEvent.click(await screen.findByTestId('plus-circle'));
+    await screen.findByRole('tab', {
+      name: /Copy of Untitled Query 1/,
+      selected: true,
+    });
+    // No timer or manual persistence dispatch should be needed to start Run.
+    await waitFor(() =>
+      expect(outcome === 'disabled' ? executions() : estimates()).toHaveLength(
+        1,
+      ),
     );
-  if (!editor) throw new Error('Expected the history tab');
-  await act(async () => {
-    await (store.dispatch as AppDispatch)(syncQueryEditor(editor));
-  });
-  await screen.findByRole('dialog');
-  fireEvent.click(screen.getByRole('button', { name: 'Run anyway' }));
-  await waitFor(() => expect(executions()).toHaveLength(1));
-  expect(estimates()).toHaveLength(1);
-  expect(JSON.parse(String(executions()[0].options.body))).toMatchObject({
-    sql_editor_id: '123',
-    sql: 'SELECT 99',
-    queryLimit: 42,
-    templateParams: '{"origin":"active"}',
-  });
-});
+    const editor = store
+      .getState()
+      .sqlLab.queryEditors.find(
+        (qe: QueryEditor) =>
+          qe.id === store.getState().sqlLab.tabHistory.slice(-1)[0],
+      );
+    if (!editor) throw new Error('Expected the history tab');
+    let saving!: Promise<unknown>;
+    act(() => {
+      saving = (store.dispatch as AppDispatch)(syncQueryEditor(editor));
+    });
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('save-tab')).toHaveLength(1),
+    );
+    fireEvent.click(screen.getByRole('tab', { name: /^Untitled Query 1/ }));
+    if (outcome === 'close') {
+      act(() => {
+        store.dispatch(removeQueryEditor(editor));
+      });
+    }
+    await act(async () => {
+      finishSave({ id: 123 });
+      await saving;
+    });
+    if (outcome !== 'disabled') {
+      await act(async () => {
+        finishCheck({
+          result: outcome === 'confirm' ? warning : { action: 'proceed' },
+          prepared_query_id: 'history-preparation',
+        });
+        await fetchMock.callHistory.flush(true);
+      });
+    }
+    if (outcome === 'confirm') {
+      await screen.findByRole('dialog');
+      fireEvent.click(screen.getByRole('button', { name: 'Run anyway' }));
+    }
+    expect(estimates()).toHaveLength(outcome === 'disabled' ? 0 : 1);
+    if (outcome === 'close') {
+      expect(executions()).toHaveLength(0);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    } else {
+      await waitFor(() => expect(executions()).toHaveLength(1));
+      expect(JSON.parse(String(executions()[0].options.body))).toMatchObject({
+        sql_editor_id: outcome === 'disabled' ? editor.id : '123',
+        sql: 'SELECT 99',
+        queryLimit: 42,
+        templateParams: '{"origin":"active"}',
+      });
+    }
+    expect(store.getState().sqlLab.tabHistory.slice(-1)).toEqual([
+      defaultQueryEditor.id,
+    ]);
+  },
+);
