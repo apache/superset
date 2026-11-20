@@ -1566,16 +1566,14 @@ def _table_queries(  # noqa: C901
         )
         query["row_offset"] = 0
 
-    # The summary row and the percent denominators are display features: a CSV or
-    # Excel export keeps one query so it is one file (several queries are bundled
-    # into a zip). Mirrors the Table plugin's buildQuery.
+    # The summary row is a display feature: a CSV or Excel export skips its query so a
+    # plain export is one file (several queries are bundled into a zip). The all-records
+    # query stays: the contribution step uses it as the denominator for the percent
+    # metrics, so skipping it would compute them over only the exported rows. Mirrors
+    # the Table plugin's buildQuery.
     is_file_export = form_data.get("result_format") in {"csv", "xlsx"}
     queries = [query]
-    if (
-        not is_file_export
-        and form_data.get("percent_metric_calculation") == "all_records"
-        and percent_metrics
-    ):
+    if form_data.get("percent_metric_calculation") == "all_records" and percent_metrics:
         all_records = dict(query)
         all_records.update(
             {

@@ -220,10 +220,10 @@ test.each([
 
 test.each([
   ['json', 2],
-  ['csv', 1],
-  ['xlsx', 1],
+  ['csv', 2],
+  ['xlsx', 2],
 ])(
-  'percent_metric_calculation all_records with result_format %s builds %i query(ies), so a download is one file',
+  'percent_metric_calculation all_records with result_format %s builds %i queries, keeping the percent denominator for a download',
   (resultFormat, expectedQueries) => {
     const { queries } = buildQueryUncached({
       ...basicFormData,

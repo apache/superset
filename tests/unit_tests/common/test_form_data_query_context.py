@@ -842,13 +842,13 @@ def test_table_pagination_keeps_query_builder_caller_cap(
 @pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
 @pytest.mark.parametrize(
     "result_format,expected_queries",
-    [("json", 3), ("csv", 1), ("xlsx", 1)],
+    [("json", 3), ("csv", 2), ("xlsx", 2)],
 )
-def test_table_file_export_keeps_a_single_query(
+def test_table_file_export_skips_summary_but_keeps_percent_denominator(
     viz_type: str, result_format: str, expected_queries: int
 ) -> None:
-    """The summary and percent-denominator queries are display features, so a CSV
-    or Excel export keeps one query (several queries are bundled into a zip)."""
+    """A CSV or Excel export drops the summary query but keeps the all-records
+    query, which is the denominator of the percent metrics."""
     queries = build_query_context_from_form_data(
         {
             "viz_type": viz_type,
