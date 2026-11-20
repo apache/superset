@@ -88,6 +88,7 @@ STRONG_SIMILARITY = 0.5
 CANDIDATE_SIMILARITY = 0.3
 
 SIP_LABEL = "sip"
+MAX_NUMBER_GAP = 1000
 STAGES = ["in-discussion", "voting", "approved"]
 STAGE_LABELS = {stage: f"sip:{stage}" for stage in STAGES}
 DEV_LABEL = "sip:in-development"
@@ -226,12 +227,20 @@ def numbered_title(title: str, number: int) -> str:
 
 
 def max_sip_number(titles: Iterable[str]) -> int:
-    highest = 0
+    """Highest SIP number in use, ignoring implausible outliers.
+
+    Anyone can open an issue titled ``[SIP-99999]``; a number more than
+    ``MAX_NUMBER_GAP`` above the next one down is not used to number new SIPs.
+    """
+    numbers = []
     for title in titles:
         _, key = parse_title(title)
         if key:
-            highest = max(highest, int(re.match(r"\d+", key).group()))  # type: ignore[union-attr]
-    return highest
+            numbers.append(int(re.match(r"\d+", key).group()))  # type: ignore[union-attr]
+    numbers.sort(reverse=True)
+    while len(numbers) > 1 and numbers[0] - numbers[1] > MAX_NUMBER_GAP:
+        numbers.pop(0)
+    return numbers[0] if numbers else 0
 
 
 def duplicate_numbers(issues: Iterable[Issue]) -> dict[str, list[int]]:
@@ -474,25 +483,29 @@ def to_issue(raw: dict[str, Any]) -> Issue:
 
 
 def fetch_archive() -> list[Email]:
-    """SIP-related, non-reply DISCUSS/VOTE/RESULT emails from dev@."""
+    """Non-reply DISCUSS/VOTE/RESULT emails from dev@ that name or link a SIP."""
     url = (
         f"{PONYMAIL_API}/stats.lua?list={LIST_NAME}&domain={LIST_DOMAIN}"
         f"&d=lte={ARCHIVE_MONTHS}M&q=SIP"
     )
     body, _ = _http("GET", url, {"User-Agent": "superset-sip-steward"})
-    emails = []
+    candidates = []
     for raw in body.get("emails", []):
         subject = raw.get("subject", "")
         kind, is_reply, _, _ = classify_subject(subject)
-        if kind and not is_reply and "SIP" in subject.upper():
-            emails.append(Email(raw["id"], subject, int(raw["epoch"])))
-    for email in emails:
+        if kind and not is_reply:
+            candidates.append(Email(raw["id"], subject, int(raw["epoch"])))
+    emails = []
+    for email in candidates:
         detail, _ = _http(
             "GET",
             f"{PONYMAIL_API}/email.lua?id={email.id}",
             {"User-Agent": "superset-sip-steward"},
         )
         email.body = (detail or {}).get("body", "") or ""
+        # Some SIP threads never say SIP in the subject but link their issue.
+        if "SIP" in email.subject.upper() or ISSUE_URL_RE.search(email.body):
+            emails.append(email)
     return sorted(emails, key=lambda e: e.epoch)
 
 
@@ -735,10 +748,12 @@ class Steward:
                 continue
             if target == have:
                 # An open SIP already labelled approved means an earlier run
-                # failed after labelling; retry the comment (marker-deduped)
-                # and the close.
+                # failed after labelling; retry the comment and the close
+                # unless the approved comment is already there.
                 if STAGES[target] != "approved":
                     continue
+                if self.has_marker(issue, "approved"):
+                    continue  # already closed once; a reopen is deliberate
                 self.move(issue, target, stages, relabel=False)
                 continue
             self.move(issue, target, stages)
@@ -766,6 +781,12 @@ class Steward:
                 match.issue if match.issue is not None else (vote[1] if vote else None)
             )
             how = match.how if match.issue is not None else "its vote thread"
+            if (
+                number is None
+                and "SIP" not in email.subject.upper()
+                and not match.candidates
+            ):
+                continue  # a non-SIP thread that merely links some issue
             if number is None:
                 cands = ", ".join(f"#{n}" for n in match.candidates) or "none"
                 self.report.attention.append(
@@ -778,6 +799,11 @@ class Steward:
             if not issues[number].is_open:
                 continue  # nothing left to change on a closed SIP
             if kind == "RESULT":
+                if vote is None:
+                    self.report.attention.append(
+                        f"#{number}: {label} has no matching VOTE thread; not approved"
+                    )
+                    continue
                 if not self._vote_passed(number, email, label):
                     continue
                 stage = STAGES.index("approved")

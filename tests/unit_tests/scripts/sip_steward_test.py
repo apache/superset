@@ -84,6 +84,11 @@ def test_max_sip_number_ignores_unnumbered_and_suffixes() -> None:
     assert sip_steward.max_sip_number(titles) == 240
 
 
+def test_max_sip_number_ignores_an_implausible_outlier() -> None:
+    titles = ["[SIP-240] a", "[SIP-239] b", "[SIP-99999] spam"]
+    assert sip_steward.max_sip_number(titles) == 240
+
+
 def test_duplicate_numbers_need_an_open_issue() -> None:
     issues = [
         make_issue(1, "[SIP-10] A"),
