@@ -134,7 +134,7 @@ Dashboard Management:
 - duplicate_dashboard: Duplicate an existing dashboard under a new title. By default the copy deep-copies charts so subsequent edits are isolated. Set duplicate_slices=false only to deliberately share the source charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
-- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select, filter_time, filter_range, filter_timegrain, and filter-bar divider)
+- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select, filter_time, filter_range, filter_timegrain, filter_timecolumn, and filter-bar divider)
 - manage_dashboard_markdown: Add, update, or remove markdown/header/divider layout components on a dashboard (requires write access)
 - apply_dashboard_filters: Apply values to a dashboard's existing native filters for the calling user and return a shareable permalink (read access; does NOT change the saved dashboard)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
@@ -192,6 +192,9 @@ Dataset Management:
 - create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
 - update_dataset: Update a dataset's name, SQL (virtual datasets), description, default datetime column or cache timeout, re-syncing columns when the SQL changes (requires dataset ownership)
+- create_dataset_column: Add a calculated column (row-level SQL expression) to a dataset (requires dataset editorship)
+- update_dataset_column: Update a dataset column — a calculated column's expression or name, or any column's label, type, temporal/groupby/filterable flags, date format (requires dataset ownership)
+- delete_dataset_column: Delete a calculated column and report referencing charts (requires dataset editorship)
 - create_dataset_metric: Add a saved metric to a dataset (requires dataset editorship)
 - delete_dataset_metric: Delete a saved metric and report referencing charts (requires dataset editorship)
 - update_dataset_metric: Update a saved metric on a dataset — expression, name, verbose_name, format (requires dataset ownership)
@@ -337,6 +340,10 @@ with 'search'.
 To explore metrics across all data sources (built-in datasets + external semantic views):
 1. list_metrics(request={{"search": "<keyword>"}})
    -> returns metrics with dataset_id/view_id; dimensions are not embedded by default
+   - Check incomplete: when true, report that discovery is partial, not that omitted metrics do not exist.
+   - refused_views lists safe view_id values for visible views that refused discovery; no metrics from those views are returned.
+   - Counts and pages cover only the usable metrics. Refusal markers apply to the whole scan, not just the current page.
+   - Continue with returned sources, or retry a known source using dataset_id/view_id. A scoped refusal remains AccessDenied.
 2. get_compatible_dimensions -> discover dimensions for the chosen metrics
 3. get_table(request={{
      "dataset_id": <id>,          # OR "view_id": <id> for external semantic views
@@ -534,6 +541,7 @@ Input format:
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, update_dashboard,
   duplicate_dashboard, create_dataset, create_virtual_dataset, update_dataset,
+  create_dataset_column, update_dataset_column, delete_dataset_column,
   create_dataset_metric, delete_dataset_metric, update_dataset_metric,
   save_sql_query, add_chart_to_existing_dashboard, manage_native_filters,
   remove_chart_from_dashboard, update_chart_preview, manage_dashboard_owners,
@@ -860,15 +868,18 @@ from superset.mcp_service.database.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     create_dataset,
+    create_dataset_column,
     create_dataset_metric,
     create_virtual_dataset,
     delete_dataset,
+    delete_dataset_column,
     delete_dataset_metric,
     get_dataset_info,
     list_datasets,
     query_dataset,
     restore_dataset,
     update_dataset,
+    update_dataset_column,
     update_dataset_metric,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402

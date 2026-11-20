@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Optional
 
-from flask import request, Response
+from flask import current_app, request, Response
 from flask_appbuilder.api import (
     expose,
     permission_name,
@@ -72,6 +72,7 @@ from superset.reports.schemas import (
     ReportScheduleSubscribeSchema,
 )
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
+from superset.tasks.types import FixedExecutor
 from superset.utils.slack import (
     get_channels_with_search,
     SlackChannelListingClientError,
@@ -127,6 +128,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         **BaseSupersetModelRestApi.extra_fields_rel_fields,
         "created_by": ["email", "active"],
         "editors": ["type", "active", "secondary_label", "img"],
+        "dashboard": ["published"],
         "run_as": ["email", "active"],
         "run_alert_query_as": ["email", "active"],
     }
@@ -386,6 +388,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                   schema:
                     type: object
                     properties:
+                      default_executor:
+                        type: string
+                        nullable: true
+                        description: >-
+                          Fixed default execution account, visible only to admins.
                       result:
                         $ref: '#/components/schemas/ReportConfigurationSchema'
             401:
@@ -396,7 +403,21 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         config = ReportConfigDAO.get_effective_config()
-        return self.response(200, result=self.configuration_schema.dump(config))
+        # Only disclose a fixed execution identity to administrators. Other
+        # executor strategies depend on the schedule and cannot be named here.
+        executors = current_app.config["ALERT_REPORTS_EXECUTORS"]
+        default_executor = None
+        if (
+            security_manager.is_admin()
+            and executors
+            and isinstance(executors[0], FixedExecutor)
+        ):
+            default_executor = executors[0].username
+        return self.response(
+            200,
+            result=self.configuration_schema.dump(config),
+            default_executor=default_executor,
+        )
 
     @expose("/configuration/", methods=("PUT",))
     @protect()

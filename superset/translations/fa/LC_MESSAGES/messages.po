@@ -8112,6 +8112,9 @@ msgstr "جهتی"
 msgid "Dynamic group by"
 msgstr "غیر گروه‌بندی شده توسط"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "تابع تجمیع پویا"
@@ -10483,6 +10486,14 @@ msgstr "خط را پنهان کن"
 msgid "Hide chart description"
 msgstr "توضیحات نمودار را پنهان کن"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "لایه را مخفی کنید"
 
@@ -10510,6 +10521,9 @@ msgstr "بالاترین مقدار برای هر دوره."
 
 msgid "Histogram"
 msgstr "هیستوگرام"
+
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
 
 msgid "Home"
 msgstr "خانه"
@@ -10806,6 +10820,9 @@ msgstr "در این نما می‌توانید ۲۵ ردیف اول را پیش�
 #, fuzzy
 msgid "Inactive"
 msgstr "فعال"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "شامل سری‌ها"
@@ -11177,6 +11194,11 @@ msgstr "وضعیت نامعتبر."
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "شناسه‌های زبانه نامعتبر: %(tab_ids)s"
+
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "مقدار فیلتر زمانی نامعتبر برای ستون %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -14986,6 +15008,9 @@ msgstr "موضوع گزاره زمانی تولیدشده داشبورد را ه
 
 msgid "Preview"
 msgstr "پیش‌نمایش"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20350,10 +20375,8 @@ msgstr "بندر بسته است."
 msgid "The port number is invalid."
 msgstr "شماره پورت نامعتبر است."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "پیش‌نمایش بارگذاری نشد."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "معیار اصلی برای تعریف اندازه‌های بخش‌های قوس استفاده می‌شود."
@@ -20811,14 +20834,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "تبدیل با ردیف‌های نمونه‌برداری‌شده مطابقت داشت، نه با کل مجموعه‌داده."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"تبدیل برای %(column)s مقدار %(returned)s را برگرداند که %(kind)s است. "
-"فیلترهای بازتاب‌شده‌ی این نگاشت در پایگاه داده با شکست مواجه می‌شدند."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20830,6 +20848,9 @@ msgstr ""
 "تبدیل برای %(column)s مقدار %(returned)s را برگرداند که این پایگاه داده "
 "نمی‌تواند آن را بدون تغییر به‌عنوان مقدار %(type)s در پرس‌وجو بنویسد. "
 "فیلترهای این نگاشت بازتاب داده نمی‌شوند."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -20932,23 +20953,12 @@ msgstr ""
 "مکان اجرا بستگی دارد. تبدیل در یک نشست جداگانه ارزیابی و نتیجه کش می‌شود،"
 " بنابراین گزاره‌ی تولیدشده یک عکس لحظه‌ای از آن زمان را ثابت نگه می‌دارد."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"تبدیل مقدار قابل تجزیه نبود. نگاشت ذخیره می‌شود اما تا زمان رفع مشکل "
-"غیرفعال می‌ماند."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"تبدیل مقدار قابل تجزیه نبود: %(detail)s نگاشت ذخیره می‌شود اما تا زمان "
-"رفع مشکل غیرفعال می‌ماند."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22642,6 +22652,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "درخواست‌های پیش‌نمایش برای این مجموعه داده بیش از حد زیاد است. کمی صبر "
 "کنید و دوباره تلاش کنید."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26616,6 +26629,10 @@ msgstr "بازگردانی"
 msgid "unknown type icon"
 msgstr "نوع آیکون ناشناخته"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 #, fuzzy
 msgid "unset"
 msgstr "ژوئن"
@@ -26632,6 +26649,9 @@ msgid ""
 msgstr ""
 "درصد بالایی باید بزرگتر از ۰ و کمتر از ۱۰۰ باشد. همچنین باید بیشتر از "
 "درصد پایینی باشد."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "از الگوی latest_partition استفاده کنید"

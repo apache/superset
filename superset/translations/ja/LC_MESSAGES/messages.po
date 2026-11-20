@@ -1953,6 +1953,10 @@ msgstr "サマリー行に使用する集計方法です。デフォルトでは
 msgid "Alert"
 msgstr "アラート"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "アラート「%(alertName)s」が正常に実行されました"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "アラート発生(猶予期間中)"
 
@@ -6923,6 +6927,9 @@ msgstr "動的セクションラベル"
 msgid "Dynamic group by"
 msgstr "動的グループ化"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "動的セクションの説明"
 
@@ -8151,6 +8158,14 @@ msgstr "項目へのタグ付けに失敗しました"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "%(alertType)s 「%(alertName)s」のトリガーに失敗しました：%(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "アラート「%(alertName)s」のトリガーに失敗しました：%(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "レポート「%(alertName)s」のトリガーに失敗しました：%(error)s"
+
 msgid "Failed to update report"
 msgstr "レポートの更新に失敗しました"
 
@@ -8938,6 +8953,14 @@ msgstr "線を非表示"
 msgid "Hide chart description"
 msgstr "チャートの説明を非表示"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "レイヤーを非表示"
 
@@ -8963,6 +8986,9 @@ msgstr "各期間の高値。"
 
 msgid "Histogram"
 msgstr "ヒストグラム"
+
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
 
 msgid "Home"
 msgstr "ホーム"
@@ -9213,6 +9239,9 @@ msgstr "このビューでは最初の25行をプレビューできます。"
 
 msgid "Inactive"
 msgstr "非アクティブ"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "系列を含める"
@@ -9541,6 +9570,11 @@ msgstr "無効な状態です。"
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "無効なタブID: %(tab_ids)s"
+
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "カラム %(column)s の時間フィルタの値が無効です"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -12857,6 +12891,9 @@ msgstr "Explore で保存する際も、生成されたダッシュボード時�
 msgid "Preview"
 msgstr "プレビュー"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -13432,6 +13469,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "レポート"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "レポート「%(alertName)s」が正常に実行されました"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -17371,10 +17412,8 @@ msgstr "ポートが閉じています。"
 msgid "The port number is invalid."
 msgstr "ポート番号が無効です。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "プレビューを読み込めませんでした。"
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "主要メトリックは、円セグメントのサイズを定義するために使用されます"
@@ -17743,14 +17782,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "変換はデータセット全体ではなく、サンプリングされた行に一致しました。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"変換は %(column)s に対して %(returned)s を返しましたが、これは %(kind)s "
-"です。このマッピングでミラーリングされたフィルターは、データベースで失敗します。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -17761,6 +17795,9 @@ msgid ""
 msgstr ""
 "変換は %(column)s に対して %(returned)s を返しましたが、このデータベースでは、これを変更せずに %(type)s "
 "値としてクエリに書き込むことができません。このマッピングのフィルターはミラーリングされません。"
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "入力された2つのパスワードが一致しません！"
@@ -17845,19 +17882,12 @@ msgstr ""
 "値の変換は %(functions)s "
 "を呼び出しており、その結果は実行される時間と場所に依存します。変換は別セッションで評価され、結果はキャッシュされるため、出力される述語はその時点のスナップショットで固定されてしまいます。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
-msgstr "値の変換を解析できませんでした。マッピングは保存されますが、解析できるようになるまで無効のままです。"
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
-msgstr "値の変換を解析できませんでした: %(detail)s マッピングは保存されますが、解析できるようになるまで無効のままです。"
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19195,6 +19225,9 @@ msgstr "トークンリクエスト URI"
 #, fuzzy
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr "このデータセットに対するプレビューリクエストが多すぎます。しばらく待ってからもう一度お試しください。"
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22586,6 +22619,10 @@ msgstr "元に戻す"
 msgid "unknown type icon"
 msgstr "不明な種類のアイコン"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "未設定"
 
@@ -22596,6 +22633,9 @@ msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
 " than lower percentile."
 msgstr "上位パーセンタイルは 0 より大きく 100 未満であり、且つ下位パーセンタイルより大きい値である必要があります。"
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "latest_partition テンプレートを使用"

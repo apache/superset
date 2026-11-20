@@ -8063,6 +8063,9 @@ msgstr "方向"
 msgid "Dynamic group by"
 msgstr "需要進行分組的一列或多列"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "動態聚合函數"
@@ -10509,6 +10512,14 @@ msgstr "隐藏線"
 msgid "Hide chart description"
 msgstr "隐藏圖表說明"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "隐藏 Layer"
 
@@ -10538,6 +10549,9 @@ msgstr "每個週期的最高值。"
 
 msgid "Histogram"
 msgstr "直方圖"
+
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
 
 msgid "Home"
 msgstr "主頁"
@@ -10824,6 +10838,9 @@ msgstr "在此視圖中，您可以預覽前 25 行。 "
 #, fuzzy
 msgid "Inactive"
 msgstr "啟用"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "包含系列"
@@ -11218,6 +11235,11 @@ msgstr "無效狀態。"
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "無效的標籤頁 ID：%(tab_ids)s"
+
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr "欄位 %(column)s 的時間篩選值無效"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -15109,6 +15131,9 @@ msgstr "在 Explore 中儲存時，保留所產生的儀表板時間謂詞主體
 
 msgid "Preview"
 msgstr "預覽"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20460,10 +20485,8 @@ msgstr "端口已關闭。"
 msgid "The port number is invalid."
 msgstr "端口值無效"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "無法載入預覽。"
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "主計量指標用於定義弧段大小。"
@@ -20864,12 +20887,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "該轉換僅符合取樣的資料列，而非整個資料集。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
-msgstr "該轉換為 %(column)s 傳回 %(returned)s，其為 %(kind)s。此對應上的鏡像篩選器將在資料庫端失敗。"
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20880,6 +20900,9 @@ msgid ""
 msgstr ""
 "該轉換為 %(column)s 傳回 %(returned)s，此資料庫無法在不變更的情況下將其作為 %(type)s "
 "值寫入查詢。此對應上的篩選器將不會被鏡像。"
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -20979,19 +21002,12 @@ msgstr ""
 "值轉換呼叫了 "
 "%(functions)s，其結果取決於執行的時間與位置。該轉換在獨立的工作階段中評估且結果會被快取，因此產生的謂詞會凍結該時刻的快照。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
-msgstr "無法解析值轉換。對應已儲存，但在解析成功前仍處於停用狀態。"
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
-msgstr "無法解析值轉換：%(detail)s 對應已儲存，但在解析成功前仍處於停用狀態。"
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22589,6 +22605,9 @@ msgstr "權杖請求 URI"
 #, fuzzy
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr "此資料集的預覽請求過多。請稍候片刻後再試一次。"
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -26631,6 +26650,10 @@ msgstr "還原"
 msgid "unknown type icon"
 msgstr "未知類型圖標"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 #, fuzzy
 msgid "unset"
 msgstr "六月"
@@ -26645,6 +26668,9 @@ msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
 " than lower percentile."
 msgstr "上百分位數必須大於 0 且小於 100。而且必須高於下百分位。"
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 #, fuzzy
 msgid "use latest_partition template"
