@@ -134,9 +134,10 @@ def _resolve_time_column(
 ) -> str | None:
     """Resolve and validate the temporal column a time range applies to.
 
-    Datasets carry ``main_dttm_col``; semantic views do not, so a lone datetime
-    dimension is inferred. Only inferred when a time range was given — an
-    unfiltered query must not acquire a temporal axis it did not ask for.
+    Both datasets and semantic views may carry ``main_dttm_col``; otherwise a
+    lone datetime dimension is inferred. Only inferred when a time range was
+    given — an unfiltered query must not acquire a temporal axis it did not ask
+    for.
     """
     valid_columns = {column.column_name for column in explorable.columns}
     dttm_columns = [
@@ -286,10 +287,10 @@ def _time_range_filters(
     """Express *time_range* as query filters.
 
     Semantic views need a one-sided range rewritten as an explicit comparison:
-    ``_apply_granularity`` deletes every filter on the granularity column once a
-    ``TEMPORAL_RANGE`` filter is present, and the mapper's ``_get_time_filter``
-    emits nothing unless both bounds resolve, so the range would vanish and the
-    query would scan the whole view.
+    ``_apply_granularity`` removes the granularity column's ``TEMPORAL_RANGE``
+    filter (but keeps non-range predicates when the time column is unchanged),
+    and the mapper's ``_get_time_filter`` emits nothing unless both bounds
+    resolve, so the range would vanish and the query would scan the whole view.
 
     Datasets must keep ``TEMPORAL_RANGE``. ``SqlaTable.get_time_filter`` accepts
     either bound alone and is the only path that applies the dataset's timezone,

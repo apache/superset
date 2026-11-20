@@ -29,6 +29,7 @@ interface AdhocFilterPopoverTriggerProps {
   operators?: Operators[];
   adhocFilter: AdhocFilter;
   options: OptionSortType[];
+  semanticSelectionVersion?: string;
   datasource: Record<string, any>;
   onFilterEdit: (editedFilter: AdhocFilter) => void;
   partitionColumn?: string;
@@ -46,6 +47,7 @@ function AdhocFilterPopoverTrigger({
   adhocFilter,
   options,
   datasource,
+  semanticSelectionVersion,
   onFilterEdit,
   partitionColumn,
   isControlledComponent,
@@ -88,6 +90,7 @@ function AdhocFilterPopoverTrigger({
         adhocFilter={adhocFilter}
         options={options}
         datasource={datasource}
+        semanticSelectionVersion={semanticSelectionVersion}
         partitionColumn={partitionColumn}
         onResize={onPopoverResize}
         onClose={closePopover ?? (() => {})}

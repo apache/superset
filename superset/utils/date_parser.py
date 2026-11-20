@@ -38,7 +38,7 @@ from pyparsing import (
     ParserElement,
     ParseResults,
     pyparsing_common,
-    quotedString,
+    quoted_string,
     Suppress,
 )
 
@@ -490,6 +490,11 @@ def get_default_bound_for_shorthand(time_range: str) -> str:
     return get_relative_base(match.group(1)) if match else "today"
 
 
+def is_no_time_range(time_range: str | None) -> bool:
+    """Recognize the canonical or request-localized unbounded time range."""
+    return time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE)
+
+
 def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
     time_range: str | None = None,
     since: str | None = None,
@@ -526,7 +531,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     separator = " : "
     _relative_end = relative_end if relative_end else "today"
 
-    if time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE):
+    if is_no_time_range(time_range):
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
@@ -687,6 +692,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
 
         _since, _until = map(datetime_eval, since_and_until)
     else:
+        # Only an omitted time_range may use the legacy separate bounds.
+        # Explicit values must resolve through the range grammar above.
+        if time_range is not None:
+            raise TimeRangeParseFailError(time_range)
         since = since or ""
         if since:
             since = add_ago_to_since(since)
@@ -905,15 +914,32 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
 
     def eval(self) -> datetime:
         holiday = self.value[0].eval()
-        dttm, country = [None, None]
-        if len(self.value) >= 2:
-            dttm = self.value[1].eval()
-        if len(self.value) == 3:
-            country = self.value[2]
+        dttm: datetime | None = None
+        country: str | None = None
+        # Both arguments after the holiday name are optional, so the second one
+        # is the datetime or the country depending on which were supplied. What
+        # tells them apart is the kind of argument: a datetime is always a
+        # function call (`datetime(...)`, `dateadd(...)`, ...) and a country is
+        # always quoted text.
+        for argument in self.value[1:]:
+            if isinstance(argument, EvalText):
+                country = argument.eval()
+            else:
+                dttm = argument.eval()
         holiday_year = dttm.year if dttm else parse_human_datetime("today").year
-        country = country.eval() if country else "US"
 
-        holiday_lookup = country_holidays(country, years=[holiday_year], observed=False)
+        try:
+            holiday_lookup = country_holidays(
+                country or "US", years=[holiday_year], observed=False
+            )
+        except NotImplementedError as ex:
+            # `country_holidays` has no calendar for the country, which the
+            # caller can correct: the accepted spellings are the ISO code and
+            # the registered name, so a lowercase code or a country written out
+            # in full both land here.
+            raise ValueError(
+                _("Unable to find such a country: [%(country)s]", country=country)
+            ) from ex
         searched_result = holiday_lookup.get_named(holiday, lookup="istartswith")
         if len(searched_result) > 0:
             return dttm_from_timetuple(searched_result[0].timetuple())
@@ -945,25 +971,25 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
         "year quarter month week day hour minute second".split(),
     )
     lparen, rparen, comma = map(Suppress, "(),")
-    text_operand = quotedString.setName("text_operand").setParseAction(EvalText)
+    text_operand = quoted_string.set_name("text_operand").set_parse_action(EvalText)
 
     # allow expression to be used recursively
-    datetime_func = Forward().setName("datetime")
-    dateadd_func = Forward().setName("dateadd")
-    datetrunc_func = Forward().setName("datetrunc")
-    lastday_func = Forward().setName("lastday")
-    holiday_func = Forward().setName("holiday")
+    datetime_func = Forward().set_name("datetime")
+    dateadd_func = Forward().set_name("dateadd")
+    datetrunc_func = Forward().set_name("datetrunc")
+    lastday_func = Forward().set_name("lastday")
+    holiday_func = Forward().set_name("holiday")
     date_expr = (
         datetime_func | dateadd_func | datetrunc_func | lastday_func | holiday_func
     )
 
     # literal integer and expression that return a literal integer
-    datediff_func = Forward().setName("datediff")
+    datediff_func = Forward().set_name("datediff")
     int_operand = (
-        pyparsing_common.signed_integer().setName("int_operand") | datediff_func
+        pyparsing_common.signed_integer().set_name("int_operand") | datediff_func
     )
 
-    datetime_func <<= (DATETIME + lparen + text_operand + rparen).setParseAction(
+    datetime_func <<= (DATETIME + lparen + text_operand + rparen).set_parse_action(
         EvalDateTimeFunc
     )
     dateadd_func <<= (
@@ -978,7 +1004,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma)
         )
         + rparen
-    ).setParseAction(EvalDateAddFunc)
+    ).set_parse_action(EvalDateAddFunc)
     datetrunc_func <<= (
         DATETRUNC
         + lparen
@@ -989,7 +1015,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma)
         )
         + rparen
-    ).setParseAction(EvalDateTruncFunc)
+    ).set_parse_action(EvalDateTruncFunc)
     lastday_func <<= (
         LASTDAY
         + lparen
@@ -1000,7 +1026,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma)
         )
         + rparen
-    ).setParseAction(EvalLastDayFunc)
+    ).set_parse_action(EvalLastDayFunc)
     holiday_func <<= (
         HOLIDAY
         + lparen
@@ -1013,7 +1039,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma)
         )
         + rparen
-    ).setParseAction(EvalHolidayFunc)
+    ).set_parse_action(EvalHolidayFunc)
     datediff_func <<= (
         DATEDIFF
         + lparen
@@ -1024,7 +1050,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma + (YEAR | DAY) + ppOptional(comma))
         )
         + rparen
-    ).setParseAction(EvalDateDiffFunc)
+    ).set_parse_action(EvalDateDiffFunc)
 
     return date_expr | datediff_func
 
@@ -1032,7 +1058,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
 def datetime_eval(datetime_expression: str | None = None) -> datetime | None:
     if datetime_expression:
         try:
-            return datetime_parser().parseString(datetime_expression)[0].eval()
+            return datetime_parser().parse_string(datetime_expression)[0].eval()
         except ParseException as ex:
             raise ValueError(ex) from ex
     return None

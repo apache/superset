@@ -363,10 +363,8 @@ export function useListViewResource<D extends object = any>(
 
     // Nudges are lossy and not replayed, so after recovering from a dropped
     // socket refetch the currently-displayed rows once to reconcile anything
-    // missed while disconnected. Only on a real `reconnect` — not the initial
-    // connect (rows were just fetched) or a seamless `keepalive` token refresh —
-    // so a healthy socket doesn't trigger a full re-fetch every keepalive cycle.
-    // In-place merge, no full-list redraw.
+    // missed while disconnected. Only on a real `reconnect`, not the initial
+    // connect (rows were just fetched). In-place merge, no full-list redraw.
     const unsubscribeOpen = subscribeRealtimeOpen(reason => {
       if (reason !== 'reconnect') return;
       patchRows(collectionRef.current.map(rowId));
@@ -428,7 +426,7 @@ export function useSingleViewResource<
   );
 
   const fetchResource = useCallback(
-    (resourceID: number) => {
+    (resourceID: number, shouldApplyResponse: () => boolean = () => true) => {
       // Set loading state
       updateState({
         loading: true,
@@ -442,13 +440,16 @@ export function useSingleViewResource<
       })
         .then(
           ({ json = {} }) => {
-            updateState({
-              resource: json.result,
-              error: null,
-            });
+            if (shouldApplyResponse()) {
+              updateState({
+                resource: json.result,
+                error: null,
+              });
+            }
             return json.result;
           },
           createErrorHandler((errMsg: Record<string, string[] | string>) => {
+            if (!shouldApplyResponse()) return;
             handleErrorMsg(
               t(
                 'An error occurred while fetching %ss: %s',
@@ -470,7 +471,11 @@ export function useSingleViewResource<
   );
 
   const createResource = useCallback(
-    (resource: P, hideToast = false) => {
+    (
+      resource: P,
+      hideToast = false,
+      shouldApplyResponse: () => boolean = () => true,
+    ) => {
       // Set loading state
       updateState({
         loading: true,
@@ -483,13 +488,16 @@ export function useSingleViewResource<
       })
         .then(
           ({ json = {} }) => {
-            updateState({
-              resource: { id: json.id, ...json.result },
-              error: null,
-            });
+            if (shouldApplyResponse()) {
+              updateState({
+                resource: { id: json.id, ...json.result },
+                error: null,
+              });
+            }
             return json.id;
           },
           createErrorHandler((errMsg: Record<string, string[] | string>) => {
+            if (!shouldApplyResponse()) return;
             // we did not want toasts for db-connection-ui but did not want to disable it everywhere
             if (!hideToast) {
               handleErrorMsg(
@@ -514,7 +522,14 @@ export function useSingleViewResource<
   );
 
   const updateResource = useCallback(
-    (resourceID: number, resource: P, hideToast = false, setLoading = true) => {
+    (
+      resourceID: number,
+      resource: P,
+      hideToast = false,
+      setLoading = true,
+      shouldApplyResponse: () => boolean = () => true,
+      rejectOnError = false,
+    ) => {
       // Set loading state
       if (setLoading) {
         updateState({
@@ -529,13 +544,16 @@ export function useSingleViewResource<
       })
         .then(
           ({ json = {} }) => {
-            updateState({
-              resource: { ...json.result, id: json.id },
-              error: null,
-            });
+            if (shouldApplyResponse()) {
+              updateState({
+                resource: { ...json.result, id: json.id },
+                error: null,
+              });
+            }
             return json.result;
           },
           createErrorHandler(errMsg => {
+            if (!shouldApplyResponse()) return errMsg;
             if (!hideToast) {
               handleErrorMsg(
                 t(
@@ -550,6 +568,7 @@ export function useSingleViewResource<
               error: errMsg,
             });
 
+            if (rejectOnError) throw errMsg;
             return errMsg;
           }),
         )
@@ -628,12 +647,12 @@ export function useImportResource(
         failed: false,
       });
 
+      const RECOVERY_TEXT = t(
+        'Check the import file and destination connection settings. If the problem continues, contact an administrator with the error and time of the import.',
+      );
+
       const formData = new FormData();
       formData.append('formData', bundle);
-
-      const RE_EXPORT_TEXT = t(
-        'Please re-export your file and try importing again',
-      );
 
       /* The import bundle never contains database passwords; if required
        * they should be provided by the user during import.
@@ -717,7 +736,7 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  error.message || error.error,
+                  [error.message || error.error, RECOVERY_TEXT].join('\n'),
                 ),
               );
               return false;
@@ -729,8 +748,8 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    RE_EXPORT_TEXT,
-                  ].join('.\n'),
+                    ...(resourceName !== 'dashboard' ? [RECOVERY_TEXT] : []),
+                  ].join('\n'),
                 ),
               );
             } else {
@@ -757,7 +776,20 @@ export function useImportResource(
     [handleErrorMsg, resourceLabel, resourceName, updateState],
   );
 
-  return { state, importResource };
+  const resetImportState = useCallback(() => {
+    updateState({
+      loading: false,
+      failed: false,
+      passwordsNeeded: [],
+      alreadyExists: [],
+      sshPasswordNeeded: [],
+      sshPrivateKeyNeeded: [],
+      sshPrivateKeyPasswordNeeded: [],
+      encryptedExtraFieldsNeeded: [],
+    });
+  }, [updateState]);
+
+  return { state, importResource, resetImportState };
 }
 
 type FavoriteStatusResponse = {

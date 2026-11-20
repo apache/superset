@@ -17,22 +17,33 @@
 """Unit-level coverage for the version-restore engine control flow.
 
 The happy path is exercised end-to-end in the per-entity integration
-suites (``version_restore_tests.py``); here we pin the cheap, DB-free
-guard branches with mocks: unknown entity, missing target transaction,
-DELETE-row target, unregistered model, and the ``single_flush_scope``
-flush contract.
+suites (``version_restore_tests.py``); here we pin guard branches with mocks:
+unknown entity, missing target transaction, DELETE-row target, unregistered
+model, and the ``single_flush_scope`` flush contract. An isolated in-memory
+SQLAlchemy session covers logging after a failed flush.
 """
 
 from __future__ import annotations
 
+import logging
+import sqlite3
 from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
+import sqlalchemy as sa
+from sqlalchemy.exc import IntegrityError, PendingRollbackError
+from sqlalchemy.orm import registry, Session
+from sqlalchemy.orm.exc import StaleDataError
 
 from superset.versioning.baseline import OPERATION_DELETE, OPERATION_INSERT
-from superset.versioning.restore import _child_state_provable_at, restore_version
+from superset.versioning.restore import (
+    _child_state_provable_at,
+    _raise_for_chart_purge_race,
+    ChartPurgedDuringRestoreError,
+    restore_version,
+)
 from superset.versioning.utils import single_flush_scope
 
 _UUID = UUID("00000000-0000-0000-0000-000000000000")
@@ -117,6 +128,78 @@ def test_restore_version_rejects_entity_uuid_mismatch(
             123,
             entity=MagicMock(id=1, uuid=other_uuid),
         )
+
+
+def test_restore_logs_original_error_after_failed_flush(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Logging an expired entity must preserve the non-race flush failure."""
+    mapper_registry: registry = registry()
+    engine: sa.Engine = sa.create_engine("sqlite:///:memory:")
+
+    class Entity:
+        """A minimal persisted entity whose id expires when a flush fails."""
+
+        id: int
+        uuid: UUID = _UUID
+        name: str | None
+
+    table: sa.Table = sa.Table(
+        "restore_log_entity",
+        mapper_registry.metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("name", sa.String, nullable=False),
+    )
+    mapper_registry.map_imperatively(Entity, table)
+    mapper_registry.metadata.create_all(engine)
+    try:
+        with Session(engine) as session:
+            entity: Entity = Entity()
+            entity.id = 7
+            entity.name = "before"
+            session.add(entity)
+            session.commit()
+            target: MagicMock = MagicMock()
+
+            def revert(*, relations: list[str]) -> None:
+                """Trigger a real NOT NULL violation in the final flush."""
+                entity.name = None
+
+            target.revert.side_effect = revert
+            with (
+                patch("superset.versioning.restore.db") as mock_db,
+                patch(
+                    "superset.versioning.restore._find_target_version",
+                    return_value=target,
+                ),
+                patch(
+                    "superset.versioning.restore._restore_dashboard_membership",
+                    return_value=([], []),
+                ),
+                patch("superset.versioning.restore._stamp_audit_fields_for_restore"),
+            ):
+                mock_db.session = session
+                with pytest.raises(IntegrityError) as failure:
+                    restore_version(
+                        MagicMock(__name__="Dashboard"), _UUID, 123, entity=entity
+                    )
+
+            assert sa.inspect(entity).expired
+            with pytest.raises(PendingRollbackError):
+                assert entity.id == 7
+            records: list[logging.LogRecord] = [
+                record
+                for record in caplog.records
+                if record.name == "superset.versioning.restore"
+                and record.getMessage().startswith("Continuum revert() failed")
+            ]
+            assert len(records) == 1
+            assert "Dashboard id=7 tx=123" in records[0].getMessage()
+            assert records[0].exc_info is not None
+            assert records[0].exc_info[1] is failure.value
+    finally:
+        mapper_registry.dispose()
+        engine.dispose()
 
 
 def test_single_flush_scope_flushes_once_on_clean_exit() -> None:
@@ -448,3 +531,131 @@ def test_restore_endpoint_maps_pruned_history_to_422(app_context: None) -> None:
     assert response == "resp-422"
     api.response_422.assert_called_once_with(message=str(error))
     assert "left unchanged" in str(error)
+
+
+@pytest.mark.parametrize(
+    ("datasource_label", "expected_message"),
+    [
+        (
+            "dataset",
+            "This chart version can't be restored because the dataset it used "
+            "has been permanently deleted. Restore a version that uses an "
+            "existing dataset, or recreate the chart.",
+        ),
+        (
+            "semantic view",
+            "This chart version can't be restored because the semantic view it "
+            "used has been permanently deleted. Restore a version that uses an "
+            "existing semantic view or dataset, or recreate the chart.",
+        ),
+    ],
+)
+def test_restore_endpoint_maps_missing_datasource_to_422(
+    app_context: None, datasource_label: str, expected_message: str
+) -> None:
+    """sc-123446: a chart snapshot whose datasource was permanently deleted
+    surfaces as a 422 whose message says so and what to do instead."""
+    from superset.models.slice import Slice
+    from superset.versioning.api_helpers import restore_version_endpoint
+    from superset.versioning.restore import MissingDatasourceError
+
+    error: MissingDatasourceError = MissingDatasourceError(datasource_label)
+
+    class _Command:
+        not_found_exc: type[Exception] = KeyError
+        forbidden_exc: type[Exception] = PermissionError
+        failed_exc: type[Exception] = RuntimeError
+
+        def __init__(self, *_args: object) -> None:
+            pass
+
+        def run(self) -> None:
+            raise error
+
+    api: MagicMock = MagicMock()
+    api.response_422.return_value = "resp-422"
+
+    response: Any = restore_version_endpoint(
+        api,
+        Slice,
+        _Command,
+        "00000000-0000-0000-0000-000000000001",
+        "00000000-0000-0000-0000-000000000002",
+    )
+
+    assert response == "resp-422"
+    api.response_422.assert_called_once_with(message=expected_message)
+
+
+def _foreign_key_failure(statement: str) -> IntegrityError:
+    return IntegrityError(
+        statement, None, sqlite3.IntegrityError("FOREIGN KEY constraint failed")
+    )
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        pytest.param(
+            _foreign_key_failure("INSERT INTO dashboard_slices (dashboard_id) ..."),
+            id="link_foreign_key",
+        ),
+        pytest.param(
+            StaleDataError(
+                "DELETE statement on table 'dashboard_slices' expected to delete "
+                "1 row(s); Only 0 were matched."
+            ),
+            id="unlink_stale",
+        ),
+    ],
+)
+def test_chart_purge_race_is_raised_for_dashboard_slices_writes(
+    error: Exception,
+) -> None:
+    with pytest.raises(ChartPurgedDuringRestoreError) as excinfo:
+        _raise_for_chart_purge_race(error, [3, 1])
+    assert excinfo.value.chart_ids == [1, 3]
+    assert excinfo.value.__cause__ is error
+
+
+@pytest.mark.parametrize(
+    ("error", "changed_slice_ids"),
+    [
+        pytest.param(
+            _foreign_key_failure("INSERT INTO dashboard_slices (dashboard_id) ..."),
+            [],
+            id="no_membership_change",
+        ),
+        pytest.param(
+            _foreign_key_failure("UPDATE dashboards SET changed_by_fk=?"),
+            [1],
+            id="foreign_key_on_another_table",
+        ),
+        pytest.param(
+            _foreign_key_failure("INSERT INTO dashboard_slices_version (slice_id)"),
+            [1],
+            id="history_table",
+        ),
+        pytest.param(
+            IntegrityError(
+                "INSERT INTO dashboard_slices (dashboard_id) ...",
+                None,
+                sqlite3.IntegrityError("UNIQUE constraint failed"),
+            ),
+            [1],
+            id="not_a_foreign_key_failure",
+        ),
+        pytest.param(
+            StaleDataError(
+                "UPDATE statement on table 'dashboards' expected to update 1 row(s)"
+            ),
+            [1],
+            id="stale_other_table",
+        ),
+        pytest.param(RuntimeError("boom"), [1], id="other_error"),
+    ],
+)
+def test_chart_purge_race_is_not_raised_for_other_failures(
+    error: Exception, changed_slice_ids: list[int]
+) -> None:
+    _raise_for_chart_purge_race(error, changed_slice_ids)

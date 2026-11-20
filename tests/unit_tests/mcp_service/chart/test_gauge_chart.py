@@ -34,8 +34,11 @@ from superset.mcp_service.chart.chart_utils import (
     map_gauge_config,
     MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     merge_chart_form_data,
+    merge_form_data_for_update,
 )
 from superset.mcp_service.chart.preview_utils import (
+    _GAUGE_COLORS,
+    _prepare_gauge_preview,
     generate_gauge_ascii_preview,
     generate_gauge_vega_lite_preview,
 )
@@ -580,7 +583,10 @@ class TestGaugeResultAndPreview:
     def test_metric_result_aliases(self, metric: object, expected: str) -> None:
         assert metric_result_label(metric) == expected
 
-    @pytest.mark.parametrize("bad_value", ["12", True, float("nan"), float("inf")])
+    @pytest.mark.parametrize(
+        "bad_value",
+        ["bad", "1_000", "NaN", "Infinity", True, float("nan"), float("inf")],
+    )
     def test_rejects_non_numeric_or_nonfinite_results(self, bad_value: object) -> None:
         failure = validate_gauge_query_result(
             {"queries": [{"data": [{"AVG(progress)": bad_value}]}]},
@@ -1180,3 +1186,232 @@ def test_gauge_native_time_sentinels_are_neutral(
     else:
         assert config.temporal_column == "event_time"
         assert config.time_range in (None, "No filter")
+
+
+@pytest.mark.parametrize("preview", [False, True])
+@pytest.mark.parametrize("field", ["time_range", "granularity_sqla"])
+def test_gauge_update_tools_honor_null_binding(field: str, preview: bool) -> None:
+    """The generic same-viz pass must not restore Gauge's explicit clears."""
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from superset.mcp_service.chart.schemas import UpdateChartRequest
+    from superset.mcp_service.chart.tool.update_chart import (
+        _build_preview_form_data,
+        _build_update_payload,
+    )
+    from superset.utils import json
+
+    existing = TestGaugeUpdateRoundTrip.existing_form_data()
+    existing.update(time_range="Last week", granularity_sqla="event_time")
+    config = GaugeChartConfig.model_validate(
+        {
+            "metric": {"name": "progress", "aggregate": "AVG"},
+            field: None,
+        }
+    )
+    chart = SimpleNamespace(
+        id=9, datasource_id=1, slice_name="Gauge", params=json.dumps(existing)
+    )
+    request = UpdateChartRequest(identifier=9, config=config)
+    with patch(
+        "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator._get_dataset_context",
+        return_value=None,
+    ):
+        result = (_build_preview_form_data if preview else _build_update_payload)(
+            request, chart, config
+        )
+    assert isinstance(result, dict)
+    form_data = result if preview else json.loads(result["params"])
+    assert field not in form_data
+
+
+@pytest.mark.parametrize("field", ["time_range", "granularity_sqla"])
+def test_gauge_cached_preview_honors_null_binding(field: str) -> None:
+    """Cached preview updates also leave intentionally cleared bindings absent."""
+    import importlib
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock, patch
+
+    from superset.mcp_service.chart.schemas import UpdateChartPreviewRequest
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.update_chart_preview"
+    )
+    previous = TestGaugeUpdateRoundTrip.existing_form_data()
+    previous.update(time_range="Last week", granularity_sqla="event_time")
+    config = GaugeChartConfig.model_validate(
+        {"metric": {"name": "progress", "aggregate": "AVG"}, field: None}
+    )
+    dataset = SimpleNamespace(
+        id=1, table_name="progress", schema=None, database=None, columns=[], metrics=[]
+    )
+    request = UpdateChartPreviewRequest(
+        dataset_id=1, form_data_key="old", config=config, generate_preview=False
+    )
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=SimpleNamespace(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch.object(module, "_find_dataset", return_value=dataset),
+        patch.object(module, "has_dataset_access", return_value=True),
+        patch.object(module, "_get_previous_form_data", return_value=previous),
+        patch(
+            "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator.normalize_column_names",
+            side_effect=lambda config, *args, **kwargs: config,
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator._get_dataset_context",
+            return_value=None,
+        ),
+        patch.object(
+            module, "validate_and_compile", return_value=SimpleNamespace(success=True)
+        ),
+        patch.object(
+            module,
+            "generate_explore_link",
+            return_value="http://localhost/explore/?form_data_key=new",
+        ) as link,
+        patch.object(module, "analyze_chart_capabilities", return_value=None),
+        patch.object(module, "analyze_chart_semantics", return_value=None),
+    ):
+        result = asyncio.run(module.update_chart_preview(request, ctx=MagicMock()))
+    assert result["success"] is True
+    assert field not in link.call_args.args[1]
+
+
+def test_gauge_rebind_preserves_explicit_interval_colors() -> None:
+    existing = {
+        "viz_type": "gauge_chart",
+        "datasource": "1__table",
+        "intervals": "50,100",
+        "interval_colors": ["#ff0000", "#00ff00"],
+    }
+    config = GaugeChartConfig(
+        chart_type="gauge", metric={"name": "progress", "aggregate": "AVG"}
+    )
+    merged = merge_chart_form_data(
+        existing, map_gauge_config(config), config, dataset_rebind=True
+    )
+    assert merged["interval_colors"] == ["#ff0000", "#00ff00"]
+
+
+def test_gauge_explicit_interval_color_indices_supersede_saved_colors() -> None:
+    existing = {
+        "viz_type": "gauge_chart",
+        "datasource": "1__table",
+        "intervals": "50,100",
+        "interval_colors": ["#ff0000", "#00ff00"],
+    }
+    config = GaugeChartConfig(
+        chart_type="gauge",
+        metric={"name": "progress", "aggregate": "AVG"},
+        intervals="50,100",
+        interval_color_indices="1,2",
+    )
+    merged = merge_chart_form_data(existing, map_gauge_config(config), config)
+    assert "interval_colors" not in merged
+    assert merged["interval_color_indices"] == "1,2"
+
+
+def test_gauge_same_dataset_update_indices_supersede_saved_colors() -> None:
+    existing = {
+        "viz_type": "gauge_chart",
+        "datasource": "1__table",
+        "intervals": "50,100",
+        "interval_colors": ["#ff0000", "#00ff00"],
+    }
+    config = GaugeChartConfig(
+        chart_type="gauge",
+        metric={"name": "progress", "aggregate": "AVG"},
+        intervals="50,100",
+        interval_color_indices="2,3",
+    )
+    merged = merge_form_data_for_update(existing, map_gauge_config(config), config)
+    assert "interval_colors" not in merged
+    assert merged["interval_color_indices"] == "2,3"
+
+
+def test_gauge_preview_blank_explicit_color_uses_positional_palette_color() -> None:
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": "progress",
+        "min_val": 0,
+        "max_val": 100,
+        "intervals": "50,100",
+        "interval_color_indices": "1,4",
+        "interval_colors": ["#ff0000", ""],
+    }
+    prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
+    assert not isinstance(prepared, ChartError)
+    colors = prepared[1]["interval_colors"]
+    # Legacy index 4 is ignored once explicit colors exist; position 1 wins.
+    assert colors[1] == _GAUGE_COLORS[1]
+
+
+def test_gauge_preview_honors_explicit_interval_colors() -> None:
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": "progress",
+        "min_val": 0,
+        "max_val": 100,
+        "intervals": "50,100",
+        "interval_color_indices": "1,4",
+        "interval_colors": ["#ff0000", ""],
+    }
+    prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
+    assert not isinstance(prepared, ChartError)
+    colors = prepared[1]["interval_colors"]
+    assert colors[0] == "#ff0000"
+    assert colors[1] != ""
+
+
+def test_gauge_preview_sizes_colors_by_interval_bounds() -> None:
+    bounds = ",".join(str(10 * i) for i in range(1, 10))
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": "progress",
+        "min_val": 0,
+        "max_val": 100,
+        "intervals": bounds,
+        "interval_colors": [f"#00000{i}" for i in range(1, 10)],
+    }
+    prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
+    assert not isinstance(prepared, ChartError)
+    assert prepared[1]["interval_colors"] == [f"#00000{i}" for i in range(1, 10)]
+
+
+def test_gauge_preview_keeps_explicit_colors_over_legacy_indices() -> None:
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": "progress",
+        "min_val": 0,
+        "max_val": 100,
+        "intervals": "30,60,100",
+        "interval_color_indices": "1,2,3",
+        "interval_colors": ["#111111", "#222222", "#333333"],
+    }
+    prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
+    assert not isinstance(prepared, ChartError)
+    assert prepared[1]["interval_colors"] == ["#111111", "#222222", "#333333"]
+
+
+@pytest.mark.parametrize("stale_indices", ["1,2", "not,numbers"])
+def test_gauge_preview_ignores_stale_indices_when_explicit_colors_exist(
+    stale_indices: str,
+) -> None:
+    """Explicit interval_colors make the renderer ignore legacy indices."""
+    prepared = _prepare_gauge_preview(
+        [{"progress": 40}],
+        {
+            "metric": "progress",
+            "min_val": 0,
+            "max_val": 100,
+            "intervals": "30,60,100",
+            "interval_color_indices": stale_indices,
+            "interval_colors": ["#111111", "#222222", "#333333"],
+        },
+    )
+    assert not isinstance(prepared, ChartError)
+    assert prepared[1]["interval_colors"] == ["#111111", "#222222", "#333333"]

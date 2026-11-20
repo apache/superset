@@ -61,6 +61,7 @@ import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelect
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
+import ReportConfigurationModal from 'src/features/alerts/ReportConfigurationModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { useExecuteReportSchedule } from 'src/features/alerts/hooks/useExecuteReportSchedule';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
@@ -168,6 +169,8 @@ function AlertList({
   );
 
   const [alertModalOpen, setAlertModalOpen] = useState<boolean>(false);
+  const [configurationModalOpen, setConfigurationModalOpen] =
+    useState<boolean>(false);
   const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
     null,
   );
@@ -191,23 +194,31 @@ function AlertList({
       }
       executingIdsRef.current.add(alertId);
 
+      const isReport = alert.type === 'Report';
       executeReport(
         alertId,
         () => {
           addSuccessToast(
-            t('%(alertType)s "%(alertName)s" triggered successfully', {
-              alertType: alert.type,
-              alertName: alert.name,
-            }),
+            isReport
+              ? t('Report "%(alertName)s" triggered successfully', {
+                  alertName: alert.name,
+                })
+              : t('Alert "%(alertName)s" triggered successfully', {
+                  alertName: alert.name,
+                }),
           );
         },
         error => {
           addDangerToast(
-            t('Failed to trigger %(alertType)s "%(alertName)s": %(error)s', {
-              alertType: alert.type,
-              alertName: alert.name,
-              error,
-            }),
+            isReport
+              ? t('Failed to trigger report "%(alertName)s": %(error)s', {
+                  alertName: alert.name,
+                  error,
+                })
+              : t('Failed to trigger alert "%(alertName)s": %(error)s', {
+                  alertName: alert.name,
+                  error,
+                }),
           );
         },
       )
@@ -232,6 +243,7 @@ function AlertList({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
+  const canConfigure = canEdit && isUserAdmin(user);
 
   useEffect(() => {
     if (bulkSelectEnabled && canDelete) {
@@ -508,6 +520,16 @@ function AlertList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
+  if (canConfigure) {
+    subMenuButtons.push({
+      icon: <Icons.SettingOutlined iconSize="m" />,
+      name: t('Configuration'),
+      buttonStyle: 'secondary',
+      'data-test': 'report-configuration-button',
+      onClick: () => setConfigurationModalOpen(true),
+    });
+  }
+
   if (canDelete) {
     subMenuButtons.push({
       name: t('Bulk select'),
@@ -670,6 +692,14 @@ function AlertList({
         isReport={isReportEnabled}
         key={currentAlert?.id || generateKey()}
       />
+      {canConfigure && (
+        <ReportConfigurationModal
+          show={configurationModalOpen}
+          onHide={() => setConfigurationModalOpen(false)}
+          addSuccessToast={addSuccessToast}
+          addDangerToast={addDangerToast}
+        />
+      )}
       {currentAlertDeleting && (
         <DeleteModal
           description={t(

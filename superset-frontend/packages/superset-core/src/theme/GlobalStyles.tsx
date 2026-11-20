@@ -43,13 +43,15 @@ export const GlobalStyles = () => {
           color-scheme: ${isDark ? 'dark' : 'light'};
         }
 
-        html,
-        body,
-        #app {
+        html {
           height: 100%;
         }
 
+        /* Growable shell so content a host page injects above #app shrinks #app instead of #app clipping past the viewport (#44867). */
         body {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
           background-color: ${theme.colorBgBase};
           color: ${theme.colorText};
           -webkit-font-smoothing: antialiased;
@@ -99,7 +101,6 @@ export const GlobalStyles = () => {
           position: relative;
           display: flex;
           flex-direction: column;
-          height: 100%;
         }
         [role='button'] {
           cursor: pointer;

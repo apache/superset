@@ -129,9 +129,10 @@ test('non-additive: transformProps splits the GROUPING SETS result by level', ()
         // One combined GROUPING SETS result: leaf rows (region marker 0) +
         // grand total row (region marker 1).
         data: [
-          { region: 'US', m: 10, [gm('region')]: 0 },
-          { region: 'EU', m: 5, [gm('region')]: 0 },
-          { region: null, m: 15, [gm('region')]: 1 },
+          { region: 'US', m: 0.25, [gm('region')]: 0 },
+          { region: 'EU', m: 0.5, [gm('region')]: 0 },
+          // A ratio's provider-computed total is not the sum of cell ratios.
+          { region: null, m: 0.4, [gm('region')]: 1 },
         ],
         colnames: ['region', 'm', gm('region')],
         coltypes: [1, 0, 0],
@@ -150,10 +151,10 @@ test('non-additive: transformProps splits the GROUPING SETS result by level', ()
   )!;
   const leaf = result.data.find((d: QueryData) => d.groupby.rows.length === 1)!;
   // Markers stripped; rows routed to the correct level.
-  expect(grand.data).toEqual([{ region: null, m: 15 }]);
+  expect(grand.data).toEqual([{ region: null, m: 0.4 }]);
   expect(leaf.data).toEqual([
-    { region: 'US', m: 10 },
-    { region: 'EU', m: 5 },
+    { region: 'US', m: 0.25 },
+    { region: 'EU', m: 0.5 },
   ]);
 });
 
@@ -456,7 +457,7 @@ test('additive metrics: synthesizes rollup levels from a single leaf query', () 
 test('conditional formatting scales over leaf cells only, not rollup totals', () => {
   const gm = (col: string) => `${col}__superset_grouping`;
   // `metrics` below is a plain string, i.e. a saved-metric reference.
-  // `isAdditiveMetric` treats every string as non-additive no matter what it is
+  // `isClientAggregatableMetric` treats every string as non-additive no matter what it is
   // named, because form data does not reveal the aggregate behind a saved
   // metric -- so a saved metric labelled "SUM(sales)" (as in the report this
   // regression comes from) takes the non-additive path despite the name. That
@@ -601,3 +602,100 @@ test('conditional formatting on the additive path uses the raw leaf query rows',
   // Scale spans the leaf cells (max 40), never the client-side grand total 100.
   expect(getColorFromValue(40)).toEqual('#ACE1C4FF');
 });
+
+test('result aggregation passes the leaf query data through as a single, unsynthesized level', () => {
+  const resultChartProps = new ChartProps<QueryFormData>({
+    ...chartProps,
+    formData: { ...formData, aggregateFunction: 'Median' },
+    queriesData: [
+      {
+        data: [
+          { row1: 'a', row2: 'x', col1: 'p', col2: 'q', metric1: 10 },
+          { row1: 'a', row2: 'y', col1: 'p', col2: 'q', metric1: 20 },
+        ],
+        colnames: ['row1', 'row2', 'col1', 'col2', 'metric1'],
+        coltypes: [1, 1, 1, 1, 0],
+      },
+    ],
+  });
+
+  const result = transformProps(resultChartProps) as ReturnType<
+    typeof transformProps
+  >;
+  // Passed straight through to PivotTableChart/PivotData, which does the
+  // actual per-scope reduction (see react-pivottable/utilities.test.ts).
+  expect(result.aggregateFunction).toBe('Median');
+  expect(result.data).toHaveLength(1);
+  expect(result.data[0].data).toEqual(resultChartProps.queriesData[0].data);
+  // transposePivot is true in the shared fixture: rows/columns swap, same
+  // as buildQuery.ts's own fullGroupby.
+  expect(result.data[0].groupby).toEqual({
+    rows: formData.groupbyColumns,
+    columns: formData.groupbyRows,
+  });
+});
+
+test('result aggregation wins over the additive fast path for an additive metric', () => {
+  // A SIMPLE SUM metric is additive, which would otherwise take the
+  // synthesized-total path. With a result aggregation selected the leaf rows
+  // must pass through untouched so Median runs over 10/30, not 10/30/40.
+  const additiveResultProps = new ChartProps<QueryFormData>({
+    formData: {
+      ...formData,
+      aggregateFunction: 'Median',
+      combineMetric: false,
+      transposePivot: false,
+      metricsLayout: MetricsLayoutEnum.ROWS,
+      groupbyRows: ['store'],
+      groupbyColumns: [],
+      metrics: [
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'sales' },
+          label: 'SUM(sales)',
+        },
+      ],
+      colTotals: true,
+      rowTotals: true,
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { store: 'A', 'SUM(sales)': 10 },
+          { store: 'B', 'SUM(sales)': 30 },
+        ],
+        colnames: ['store', 'SUM(sales)'],
+        coltypes: [1, 0],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(additiveResultProps);
+  expect(result.aggregateFunction).toBe('Median');
+  expect(result.data).toHaveLength(1);
+  expect(result.data[0].data).toEqual(additiveResultProps.queriesData[0].data);
+});
+
+test.each([undefined, true, false])(
+  'hideEmptyColumns defaults on for saved charts (%s)',
+  value => {
+    const props = new ChartProps<QueryFormData>({
+      ...chartProps,
+      formData: {
+        ...formData,
+        ...(value === undefined ? {} : { hideEmptyColumns: value }),
+      },
+    });
+    expect(transformProps(props)).toHaveProperty(
+      'hideEmptyColumns',
+      value !== false,
+    );
+  },
+);

@@ -29,6 +29,7 @@ import {
 } from './index';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { Slice } from 'src/types/Chart';
+import { chart } from 'src/components/Chart/chartReducer';
 
 jest.mock('src/explore/exploreUtils', () => ({
   __esModule: true,
@@ -120,6 +121,38 @@ const TestComponent = (props: TestComponentProps) => {
 
   return <div>{menu}</div>;
 };
+
+test('View query uses the saved Explore chart when form data omits slice_id', async () => {
+  const request = '-- SQL\nSELECT saved_explore_chart';
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        explore: {},
+        charts: {
+          0: {
+            ...chart,
+            queriesResponse: [{ query: '-- SQL\nSELECT unrelated' }],
+          },
+          1: { ...chart, id: 1, queriesResponse: [{ query: request }] },
+        },
+      },
+    },
+  );
+  await userEvent.click(await screen.findByText('View query'));
+  await waitFor(() =>
+    expect(screen.getByRole('dialog').querySelector('pre')?.textContent).toBe(
+      request,
+    ),
+  );
+});
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -486,4 +519,78 @@ test('Export All Data JPEG screenshot passes addWarningToast to downloadAsImage'
     undefined,
     mockAddWarningToast,
   );
+});
+
+test('A Big Number chart keeps only the image exports in Data Export Options', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{
+        datasource: '1__table',
+        viz_type: 'big_number_total',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: { explore: { can_export_image: true } },
+    },
+  );
+
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export All Data'));
+  expect(
+    await screen.findByText('Export screenshot (jpeg)'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Export screenshot (png)')).toBeInTheDocument();
+  expect(screen.queryByText('Export to .CSV')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export to Excel')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export to .JSON')).not.toBeInTheDocument();
+});
+
+test('A Big Number chart keeps only the image exports in Export Current View', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{
+        datasource: '1__table',
+        viz_type: 'big_number_total',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: { explore: { can_export_image: true } },
+    },
+  );
+
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export Current View'));
+  expect(
+    await screen.findByText('Export screenshot (jpeg)'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Export screenshot (png)')).toBeInTheDocument();
+  expect(screen.queryByText('Export to .CSV')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export to Excel')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export to .JSON')).not.toBeInTheDocument();
+});
+
+test('A Big Number with Trendline chart keeps its data exports', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{
+        datasource: '1__table',
+        viz_type: 'big_number',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: { explore: { can_export_image: true } },
+    },
+  );
+
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export All Data'));
+  expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
 });

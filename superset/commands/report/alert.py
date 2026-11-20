@@ -41,7 +41,9 @@ from superset.commands.report.exceptions import (
 )
 from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
+from superset.reports.utils import get_dynamic_executor
 from superset.sql.parse import SQLScript
+from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import override_user
@@ -214,37 +216,41 @@ class AlertCommand(BaseCommand):
         :raises AlertQueryError: SQL query is not valid
         :raises AlertQueryTimeout: The SQL query received a celery soft timeout
         """
-        sql_template = jinja_context.get_template_processor(
-            database=self._report_schedule.database
-        )
-
         try:
-            rendered_sql = sql_template.process_template(self._report_schedule.sql)
-            self._validate_rendered_sql(rendered_sql)
-            limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
-                rendered_sql, ALERT_SQL_LIMIT
-            )
-
-            if app.config["MUTATE_ALERT_QUERY"]:
-                limited_rendered_sql = (
-                    self._report_schedule.database.mutate_sql_based_on_config(
-                        limited_rendered_sql
-                    )
+            user = get_dynamic_executor(self._report_schedule, alert_query=True)
+            if user is not None:
+                username = user.username
+            else:
+                executor, username = get_executor(  # pylint: disable=unused-variable
+                    executors=app.config["ALERT_REPORTS_EXECUTORS"],
+                    model=self._report_schedule,
                 )
-
-            executor, username = get_executor(  # pylint: disable=unused-variable
-                executors=app.config["ALERT_REPORTS_EXECUTORS"],
-                model=self._report_schedule,
-            )
-            user = security_manager.find_user(username)
+                user = security_manager.find_user(username)
             # A deleted/disabled executor user makes find_user return None. Raise
             # the dedicated error so the handler below re-surfaces it instead of
             # masking it as an opaque AlertQueryError (or letting the missing user
             # surface as a NoneType error from the downstream auth flow).
-            if user is None:
+            if user is None or not user.is_active:
                 raise ReportScheduleExecutorNotFoundError(username)
 
             with override_user(user):
+                sql_template = jinja_context.get_template_processor(
+                    database=self._report_schedule.database
+                )
+                rendered_sql = sql_template.process_template(self._report_schedule.sql)
+                self._validate_rendered_sql(rendered_sql)
+                limited_rendered_sql = (
+                    self._report_schedule.database.apply_limit_to_sql(
+                        rendered_sql, ALERT_SQL_LIMIT
+                    )
+                )
+
+                if app.config["MUTATE_ALERT_QUERY"]:
+                    limited_rendered_sql = (
+                        self._report_schedule.database.mutate_sql_based_on_config(
+                            limited_rendered_sql
+                        )
+                    )
                 # Run table-level authorization as the executing user against
                 # the rendered SQL.
                 try:
@@ -269,6 +275,8 @@ class AlertCommand(BaseCommand):
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
+        except ExecutorNotFoundError as ex:
+            raise ReportScheduleExecutorNotFoundError() from ex
         except ReportScheduleExecutorNotFoundError:
             # A missing executor user is a configuration problem, not a transient
             # query error; surface the typed error rather than masking it.

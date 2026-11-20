@@ -26,8 +26,12 @@ import {
   QueryFormOrderBy,
   TimeGranularity,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Groupby, PivotTableQueryFormData } from '../types';
-import buildGroupbyCombinations, { allMetricsAdditive } from './utilities';
+import { getResultAggregation } from './resultAggregation';
+import buildGroupbyCombinations, {
+  allMetricsClientAggregatable,
+} from './utilities';
 
 // Build the query `columns` for a single rollup level (one prefix of row dims
 // crossed with one prefix of column dims), applying temporal BASE_AXIS handling.
@@ -55,6 +59,9 @@ function getQueryColumns(
         sqlExpression: col,
         label: col,
         expressionType: 'SQL',
+        ...(formData.datasource?.endsWith('__semantic_view')
+          ? { isColumnReference: true }
+          : {}),
       } as AdhocColumn;
     }
     return col;
@@ -63,6 +70,12 @@ function getQueryColumns(
 
 export default function buildQuery(formData: PivotTableQueryFormData) {
   const { extra_form_data } = formData;
+  const isSemanticView = formData.datasource?.endsWith('__semantic_view');
+  const requestedLimit = Number(formData.row_limit);
+  const semanticRowLimit =
+    Number.isInteger(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, 10000)
+      : 10000;
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
 
@@ -86,17 +99,32 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
   //    per displayed total/subtotal) so the database computes every level; the
   //    backend falls back to per-level queries on engines without native
   //    support. transformProps splits the combined result by level.
-  const additive = allMetricsAdditive(ensureIsArray(formData.metrics));
-  const groupingSets = additive
-    ? undefined
-    : buildGroupbyCombinations(formData).map(level =>
-        // A dimension placed on both axes (a valid, if unusual, config) would
-        // otherwise appear twice in the same level, producing a duplicate
-        // column in the GROUPING SETS tuple sent to the database.
-        Array.from(
-          new Set([...level.rows, ...level.columns].map(getColumnLabel)),
-        ),
-      );
+  //  - result aggregation (see resultAggregation.ts): always a full-detail
+  //    query, regardless of additivity -- every scope reduces its own
+  //    original leaf records client-side, so there is nothing for the
+  //    database to roll up in advance.
+  const additive = allMetricsClientAggregatable(
+    ensureIsArray(formData.metrics),
+  );
+  const resultAggregation = getResultAggregation(formData.aggregateFunction);
+  if (isSemanticView && resultAggregation) {
+    throw new Error(
+      t(
+        'Result aggregation is not supported for Pivot Tables on semantic views. Set Aggregation function to "Use metric definition".',
+      ),
+    );
+  }
+  const groupingSets =
+    additive || resultAggregation
+      ? undefined
+      : buildGroupbyCombinations(formData).map(level =>
+          // A dimension placed on both axes (a valid, if unusual, config) would
+          // otherwise appear twice in the same level, producing a duplicate
+          // column in the GROUPING SETS tuple sent to the database.
+          Array.from(
+            new Set([...level.rows, ...level.columns].map(getColumnLabel)),
+          ),
+        );
 
   return buildQueryContext(formData, baseQueryObject => {
     const { series_limit_metric, metrics, order_desc } = baseQueryObject;
@@ -109,6 +137,7 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     return [
       {
         ...baseQueryObject,
+        ...(isSemanticView ? { row_limit: semanticRowLimit } : {}),
         orderby: orderBy,
         columns: fullColumns,
         ...(groupingSets ? { grouping_sets: groupingSets } : {}),

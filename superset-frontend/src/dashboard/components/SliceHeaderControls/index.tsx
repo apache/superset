@@ -53,6 +53,7 @@ import {
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
+import isImageOnlyExportViz from 'src/utils/isImageOnlyExportViz';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
@@ -459,6 +460,7 @@ const SliceHeaderControls = (
   const isTable =
     slice.viz_type === VizType.Table || slice.viz_type === VizType.TableAgGrid;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
+  const isImageOnlyExport = isImageOnlyExportViz(slice.viz_type);
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     (extendedDayjs.utc(itemCachedDttm) as any).fromNow(),
   );
@@ -596,6 +598,7 @@ const SliceHeaderControls = (
           modalTitle={t('View query')}
           modalBody={
             <ViewQueryModal
+              chartId={props.slice.slice_id}
               latestQueryFormData={props.formData}
               ownState={props.ownState}
             />
@@ -677,11 +680,15 @@ const SliceHeaderControls = (
       key: MenuKeys.Download,
       label: t('Download'),
       children: [
-        {
-          key: MenuKeys.ExportCsv,
-          label: t('Export to .CSV'),
-          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-        },
+        ...(isImageOnlyExport
+          ? []
+          : [
+              {
+                key: MenuKeys.ExportCsv,
+                label: t('Export to .CSV'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]),
         ...(isPivotTable
           ? [
               {
@@ -696,11 +703,15 @@ const SliceHeaderControls = (
               },
             ]
           : []),
-        {
-          key: MenuKeys.ExportXlsx,
-          label: t('Export to Excel'),
-          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-        },
+        ...(isImageOnlyExport
+          ? []
+          : [
+              {
+                key: MenuKeys.ExportXlsx,
+                label: t('Export to Excel'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]),
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
         props.supersetCanDownload &&
         isTable
@@ -738,11 +749,15 @@ const SliceHeaderControls = (
             },
           ],
         },
-        {
-          key: MenuKeys.DownloadAsPdf,
-          label: t('Export as PDF'),
-          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-        },
+        ...(isImageOnlyExport
+          ? []
+          : [
+              {
+                key: MenuKeys.DownloadAsPdf,
+                label: t('Export as PDF'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]),
       ],
     });
   }
@@ -764,6 +779,16 @@ const SliceHeaderControls = (
     };
   }, [isFullSize, props.chartHolderRef, props.handleToggleFullSize]);
 
+  const sliceMenu = (
+    <Menu
+      onClick={handleMenuClick}
+      data-test={`slice_${slice.slice_id}-menu`}
+      id={`slice_${slice.slice_id}-menu`}
+      selectable={false}
+      items={newMenuItems}
+    />
+  );
+
   return (
     <>
       {isFullSize && (
@@ -780,15 +805,7 @@ const SliceHeaderControls = (
         />
       )}
       <NoAnimationDropdown
-        popupRender={() => (
-          <Menu
-            onClick={handleMenuClick}
-            data-test={`slice_${slice.slice_id}-menu`}
-            id={`slice_${slice.slice_id}-menu`}
-            selectable={false}
-            items={newMenuItems}
-          />
-        )}
+        popupRender={() => sliceMenu}
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
