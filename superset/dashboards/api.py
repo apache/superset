@@ -1973,10 +1973,7 @@ class DashboardRestApi(
         except DownloadReasonRequiredError as ex:
             return json_error_response([ex.error], status=ex.status)
 
-        # Image export drives the headless webdriver, so it is only available
-        # when the same screenshot flags the UI checks are enabled. The decorator
-        # form (``@validate_feature_flags``) can't be used here because it would
-        # also block ``mode="data"``; mirror its 404 behavior inline instead.
+        # Image exports require the screenshot feature flags; data exports do not.
         if payload.get("mode") == "images" and not (
             is_feature_enabled("ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS")
             and is_feature_enabled("ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT")
