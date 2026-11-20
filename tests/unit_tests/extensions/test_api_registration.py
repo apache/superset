@@ -30,7 +30,6 @@ from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from superset import security_manager
-from superset.extensions.context import use_context
 
 BOOT_ON: dict[str, Any] = {"FEATURE_FLAGS": {"ENABLE_EXTENSIONS": True}}
 BOOT_OFF: dict[str, Any] = {"FEATURE_FLAGS": {"ENABLE_EXTENSIONS": False}}
@@ -213,4 +212,3 @@ def test_superset_base_preserves_extension_permissions(
     assert api.allow_browser_login is True
     assert api.csrf_exempt is False
     assert isinstance(api, BaseSupersetApi)
-
