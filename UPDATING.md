@@ -108,7 +108,8 @@ assists people when migrating to a new version.
   Whatever the setting, `engine_information` on the database endpoints gains
   `encrypted_extra_sensitive_fields`, the engine's declared sensitive paths
   and labels, and `GET /api/v1/database/<pk>/connection` lists the fields
-  stored in that database instead.
+  stored in that database instead, plus `encrypted_extra_expirations`, when
+  each stored JWT expires.
 
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
