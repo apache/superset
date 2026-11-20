@@ -647,6 +647,10 @@ export function useImportResource(
         failed: false,
       });
 
+      const RECOVERY_TEXT = t(
+        'Check the import file and destination connection settings. If the problem continues, contact an administrator with the error and time of the import.',
+      );
+
       const formData = new FormData();
       formData.append('formData', bundle);
 
@@ -732,12 +736,7 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  [
-                    error.message || error.error,
-                    t(
-                      'Check the import file and destination connection settings. If the problem continues, contact an administrator with the error and time of the import.',
-                    ),
-                  ].join('\n'),
+                  [error.message || error.error, RECOVERY_TEXT].join('\n'),
                 ),
               );
               return false;
@@ -749,13 +748,7 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    ...(resourceName !== 'dashboard'
-                      ? [
-                          t(
-                            'Check the import file and destination connection settings. If the problem continues, contact an administrator with the error and time of the import.',
-                          ),
-                        ]
-                      : []),
+                    ...(resourceName !== 'dashboard' ? [RECOVERY_TEXT] : []),
                   ].join('\n'),
                 ),
               );

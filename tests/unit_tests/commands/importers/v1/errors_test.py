@@ -94,7 +94,7 @@ def test_database_import_error_is_actionable_and_redacted(
             "sign in",
             400,
         ),
-        (ForbiddenError("secret-object"), "required access", 403),
+        (ForbiddenError("Cannot create charts."), "required access", 403),
         (MultiCatalogDisabledValidationError(), "default catalog", 400),
         (ValidationError("secret-config"), "configuration is invalid", 400),
     ],

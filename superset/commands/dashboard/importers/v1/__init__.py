@@ -20,7 +20,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from marshmallow import Schema, ValidationError
+from flask_babel import gettext as _
+from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import select
 
@@ -44,7 +45,10 @@ from superset.commands.dashboard.importers.v1.utils import (
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.commands.importers.v1.errors import import_error_context
+from superset.commands.importers.v1.errors import (
+    import_error_context,
+    ImportBundleError,
+)
 from superset.commands.importers.v1.utils import import_tag
 from superset.commands.theme.import_themes import import_theme
 from superset.commands.utils import update_chart_config_dataset
@@ -171,11 +175,18 @@ class ImportDashboardsCommand(ImportModelsCommand):
             if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
                 database_uuids.add(config["database_uuid"])
 
-        # Missing bundled dependencies are invalid input, not server failures.
-        for prefix, required in (
-            ("charts/", chart_uuids),
-            ("datasets/", dataset_uuids),
-            ("databases/", database_uuids),
+        # Layout and native-filter UUIDs can outlive their exported assets.
+        # Only require dependencies of files that will actually be imported.
+        required_datasets = {
+            config["dataset_uuid"]
+            for name, config in configs.items()
+            if name.startswith("charts/")
+            and config["uuid"] in chart_uuids
+            and "dataset_uuid" in config
+        }
+        for prefix, required, asset_type in (
+            ("datasets/", required_datasets, _("dataset")),
+            ("databases/", database_uuids, _("database")),
         ):
             supplied = {
                 str(config["uuid"])
@@ -183,7 +194,15 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 if name.startswith(prefix)
             }
             if required - supplied:
-                raise ValidationError("Missing bundled dependency")
+                raise ImportBundleError(
+                    _(
+                        "The bundle is missing a %(asset_type)s required by an "
+                        "imported "
+                        "asset. Re-export the dashboard with its dependencies from a "
+                        "compatible Superset version, then retry.",
+                        asset_type=asset_type,
+                    )
+                )
 
         # assets inside dashboard databases, datasets and charts
         # should be overwritten only if both flags are set to True

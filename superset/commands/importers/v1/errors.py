@@ -34,7 +34,7 @@ from sqlalchemy.exc import (
 )
 from urllib3 import exceptions as urllib3_exceptions
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.dataset.exceptions import MultiCatalogDisabledValidationError
 from superset.commands.exceptions import (
     CommandException,
@@ -57,6 +57,12 @@ logger = logging.getLogger(__name__)
 
 class ImportAssetError(ImportFailedError):
     """An import failure with safe asset context and a recovery action."""
+
+
+class ImportBundleError(ImportFailedError):
+    """A bundle is missing a required asset."""
+
+    status = 400
 
 
 def _exception_chain(ex: Exception) -> list[Exception]:
@@ -147,7 +153,13 @@ def _recovery_message(ex: Exception, config: dict[str, Any]) -> str | None:
             "The database driver could not be loaded. Ask an administrator to"
             " install the required driver, then retry the import."
         )
-    if isinstance(ex, (ForbiddenError, SupersetSecurityException)):
+    if isinstance(ex, ForbiddenError):
+        return _(
+            "%(reason)s Ask the asset owner or an administrator for the required "
+            "access, then retry.",
+            reason=ex.message,
+        )
+    if isinstance(ex, SupersetSecurityException):
         return _(
             "You do not have permission to import this asset. Ask its owner "
             "or an administrator for the required access, then retry."
@@ -276,9 +288,17 @@ def import_error_context(
             if config.get("uuid") and use_existing
             else None
         )
-        name = existing.database_name if existing else config.get("database_name")
+        name = (
+            existing.database_name
+            if existing and security_manager.can_access_database(existing)
+            else config.get("database_name")
+        )
         if name:
-            asset = _('database "%(name)s" (%(file)s)', name=name, file=asset)
+            asset = (
+                _('database "%(name)s" (%(file)s)', name=name, file=asset)
+                if asset.startswith("databases/")
+                else _('%(file)s (database "%(name)s")', name=name, file=asset)
+            )
         if existing:
             config["sqlalchemy_uri"] = existing.sqlalchemy_uri
     try:

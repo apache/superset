@@ -336,7 +336,7 @@ def test_missing_bundled_dataset_is_a_format_error(
     from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
     from superset.commands.importers.v1.errors import (
         import_error_context,
-        ImportAssetError,
+        ImportBundleError,
     )
 
     configs = {
@@ -347,11 +347,12 @@ def test_missing_bundled_dataset_is_a_format_error(
     create_database = mocker.patch(
         "superset.commands.dashboard.importers.v1.import_database"
     )
-    with pytest.raises(ImportAssetError) as caught:
+    with pytest.raises(ImportBundleError) as caught:
         with import_error_context("dashboard bundle"):
             ImportDashboardsCommand._import(configs)
     assert caught.value.status == 400
     assert "Re-export" in caught.value.message
+    assert "missing a dataset" in caught.value.message
     create_database.assert_not_called()
 
 
@@ -377,6 +378,7 @@ def test_import_error_names_reused_destination_connection(
     db.session.add(existing)
     db.session.flush()
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_database", return_value=True)
     mocker.patch(
         "superset.commands.database.importers.v1.utils.add_permissions",
         side_effect=TimeoutError(),
@@ -441,3 +443,56 @@ def test_invalid_dashboard_yaml_gives_reexport_step(session: Session) -> None:
         ImportDashboardsCommand(contents).run()
     assert caught.value.status == 422
     assert "Re-export" in caught.value.message
+
+
+def test_layout_only_chart_reference_does_not_reject_import(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """An exported dashboard can keep layout UUIDs for deleted, unexported charts."""
+    from superset import db, security_manager
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.models.dashboard import Dashboard
+
+    Dashboard.metadata.create_all(db.session.get_bind())
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    configs = copy.deepcopy(dashboards_config_1)
+    ImportDashboardsCommand._import(configs)
+    assert db.session.query(Dashboard).count() == len(configs)
+
+
+def test_dataset_failure_does_not_disclose_inaccessible_connection_name(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """Dataset errors retain their asset type and only show an authorized name."""
+    import pytest
+
+    from superset import db, security_manager
+    from superset.commands.exceptions import ForbiddenError
+    from superset.commands.importers.v1.errors import (
+        import_error_context,
+        ImportAssetError,
+    )
+    from superset.models.core import Database
+
+    Database.metadata.create_all(db.session.get_bind())
+    config = copy.deepcopy(next(iter(databases_config.values())))
+    db.session.add(
+        Database(
+            database_name="private-stored-name",
+            sqlalchemy_uri="sqlite://",
+            uuid=config["uuid"],
+        )
+    )
+    db.session.flush()
+    mocker.patch.object(security_manager, "can_access_database", return_value=False)
+    with pytest.raises(ImportAssetError) as caught:
+        with import_error_context("datasets/examples/table.yaml", config):
+            raise ForbiddenError("You don't have access to this dataset.")
+    assert caught.value.status == 403
+    assert "private-stored-name" not in caught.value.message
+    assert (
+        'Could not import datasets/examples/table.yaml (database "examples")'
+        in caught.value.message
+    )
+    assert "You don't have access to this dataset." in caught.value.message
+    assert "administrator" in caught.value.message

@@ -1,3 +1,20 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
 # This file is distributed under the same license as the Superset project.
@@ -188,6 +205,10 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
 #, python-format
+msgid "%(file)s (database \"%(name)s\")"
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr ""
 
@@ -247,6 +268,10 @@ msgstr ""
 
 #, python-format
 msgid "%(prefix)sResults truncated to %(row_count)s rows due to memory constraints."
+msgstr ""
+
+#, python-format
+msgid "%(reason)s Ask the asset owner or an administrator for the required access, then retry."
 msgstr ""
 
 #, python-format
@@ -3422,6 +3447,9 @@ msgstr ""
 msgid "Check out this dashboard: "
 msgstr ""
 
+msgid "Check the import file and destination connection settings. If the problem continues, contact an administrator with the error and time of the import."
+msgstr ""
+
 msgid "Check the value transform →"
 msgstr ""
 
@@ -6523,12 +6551,6 @@ msgid "Error fetching charts"
 msgstr ""
 
 msgid "Error handling"
-msgstr ""
-
-#, python-format
-msgid ""
-"Error importing %(model)s: %(details)s. Re-export the assets from a "
-"compatible Superset version, then retry with the new file."
 msgstr ""
 
 msgid "Error importing theme."
@@ -11444,6 +11466,9 @@ msgstr ""
 msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
+msgid "Re-export the assets from a compatible Superset version, then retry with the new file."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -14578,6 +14603,10 @@ msgid ""
 msgstr ""
 
 msgid "The background color of the charts."
+msgstr ""
+
+#, python-format
+msgid "The bundle is missing a %(asset_type)s required by an imported asset. Re-export the dashboard with its dependencies from a compatible Superset version, then retry."
 msgstr ""
 
 msgid "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used."
