@@ -3495,6 +3495,21 @@ GUEST_TOKEN_VALIDATOR_HOOK = None
 #     With it on, a resolver that omits `role_keys` leaves an existing user with
 #     only AUTH_USER_REGISTRATION_ROLE, or with no roles if registration is off.
 #
+# Security caveats:
+#
+#   - Cookies: if the parent application is on a different registrable domain
+#     than Superset, the session cookie is third-party in the iframe. Set
+#     SESSION_COOKIE_SAMESITE = "None" and SESSION_COOKIE_SECURE = True (HTTPS
+#     only); browser third-party-cookie restrictions may still block it.
+#   - Login CSRF: redemption refuses to replace the session of a different
+#     signed-in user, but a browser with no Superset session is signed in as
+#     whoever the token was minted for. The resolver must therefore accept only
+#     requests from the parent application's own authenticated end user, and
+#     mint a token only for that user.
+#   - Bearer credential: for its lifetime the token is a bearer credential and it
+#     appears in the redemption URL, so consider redacting the `token` query
+#     parameter in access logs.
+#
 #   from flask import Request
 #   from superset.security.login_token import LoginTokenUserInfo
 #
