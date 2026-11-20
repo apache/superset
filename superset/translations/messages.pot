@@ -6851,10 +6851,6 @@ msgstr ""
 msgid "Explore"
 msgstr ""
 
-#, python-format
-msgid "Explore - %(table)s"
-msgstr ""
-
 msgid "Explore the result set in the data exploration view"
 msgstr ""
 
