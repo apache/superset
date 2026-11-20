@@ -71,6 +71,7 @@ import { getPoints as getPointsHeatmap } from '../layers/Heatmap/Heatmap';
 import { getPoints as getPointsHex } from '../layers/Hex/Hex';
 import { getPoints as getPointsGeojson } from '../layers/Geojson/Geojson';
 import { getPoints as getPointsScreengrid } from '../layers/Screengrid/Screengrid';
+import { getPoints as getPointsH3Hexagon } from '../layers/H3Hexagon/H3Hexagon';
 
 type DataMaskState = Record<
   string,
@@ -137,6 +138,7 @@ const collectPoints = (features: JsonObject) => [
   ...getPointsArc(features.deck_arc || []),
   ...getPointsGeojson(features.deck_geojson || []),
   ...getPointsScreengrid(features.deck_screengrid || []),
+  ...getPointsH3Hexagon(features.deck_h3_hexagon || []),
 ];
 
 const selectDataMask = createSelector(

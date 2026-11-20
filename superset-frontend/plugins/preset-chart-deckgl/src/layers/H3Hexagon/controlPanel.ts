@@ -20,15 +20,13 @@ import { validateNonEmpty } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
-  sections,
+  getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import {
-  jsColumns,
-  jsDataMutator,
-  jsTooltip,
-  jsOnclickHref,
+  mapProvider,
   mapboxStyle,
+  maplibreStyle,
   viewport,
   autozoom,
   tooltipContents,
@@ -43,7 +41,6 @@ import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
@@ -67,12 +64,12 @@ const config: ControlPanelConfig = {
               ...sharedControls.metric,
               label: t('Metric'),
               description: t('Metric for hexagon elevation/color'),
+              validators: [],
             },
           },
         ],
         ['adhoc_filters'],
         ['row_limit'],
-        [jsColumns],
         [tooltipContents],
         [tooltipTemplate],
       ],
@@ -80,7 +77,13 @@ const config: ControlPanelConfig = {
     {
       label: t('Map'),
       expanded: true,
-      controlSetRows: [[mapboxStyle], [autozoom, viewport]],
+      controlSetRows: [
+        [mapProvider],
+        [mapboxStyle],
+        [maplibreStyle],
+        [viewport],
+        [autozoom],
+      ],
     },
     {
       label: t('Visual'),
@@ -93,6 +96,7 @@ const config: ControlPanelConfig = {
               label: t('Extruded (3D)'),
               default: true,
               description: t('Whether to extrude hexagons in 3D'),
+              renderTrigger: true,
             },
           },
         ],
@@ -107,6 +111,7 @@ const config: ControlPanelConfig = {
               max: 1,
               step: 0.05,
               description: t('Hexagon size multiplier (0-1)'),
+              renderTrigger: true,
             },
           },
         ],
@@ -121,6 +126,7 @@ const config: ControlPanelConfig = {
               max: 100,
               step: 1,
               description: t('Multiplier for hexagon elevation'),
+              renderTrigger: true,
             },
           },
         ],
@@ -144,11 +150,11 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
-    {
-      label: t('Advanced'),
-      controlSetRows: [[jsDataMutator], [jsTooltip], [jsOnclickHref]],
-    },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

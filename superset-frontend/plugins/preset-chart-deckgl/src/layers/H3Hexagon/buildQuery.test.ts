@@ -81,7 +81,7 @@ test('H3 buildQuery should throw when h3_index array is empty', () => {
   expect(() => buildQuery(formData)).toThrow('H3 index is required');
 });
 
-test('H3 buildQuery should derive label from adhoc column object', () => {
+test('H3 buildQuery should keep an adhoc H3 column object in columns and filters', () => {
   const adhocColumn: QueryFormColumn = {
     label: 'h3_expr',
     sqlExpression: "h3_index('foo')",
@@ -96,7 +96,13 @@ test('H3 buildQuery should derive label from adhoc column object', () => {
   const [query] = queryContext.queries;
 
   expect(query.columns).toContainEqual(adhocColumn);
+  // The NULL filter must carry the ad-hoc expression itself: its label is
+  // not a physical column, so the backend would reject a bare label.
   expect(query.filters).toContainEqual({
+    col: adhocColumn,
+    op: 'IS NOT NULL',
+  });
+  expect(query.filters).not.toContainEqual({
     col: 'h3_expr',
     op: 'IS NOT NULL',
   });
@@ -119,30 +125,6 @@ test('H3 buildQuery should have empty metrics when metric is not provided', () =
   const [query] = queryContext.queries;
 
   expect(query.metrics).toEqual([]);
-});
-
-test('H3 buildQuery should include js_columns in query columns', () => {
-  const formData: H3FormData = {
-    ...baseFormData,
-    js_columns: ['city', 'population'],
-  };
-
-  const queryContext = buildQuery(formData);
-  const [query] = queryContext.queries;
-
-  expect(query.columns).toEqual(['h3_col', 'city', 'population']);
-});
-
-test('H3 buildQuery should deduplicate js_columns that match h3_index', () => {
-  const formData: H3FormData = {
-    ...baseFormData,
-    js_columns: ['h3_col', 'extra_col'],
-  };
-
-  const queryContext = buildQuery(formData);
-  const [query] = queryContext.queries;
-
-  expect(query.columns).toEqual(['h3_col', 'extra_col']);
 });
 
 test('H3 buildQuery should include tooltip_contents columns', () => {
@@ -177,8 +159,10 @@ test('H3 buildQuery should build comprehensive query with all fields', () => {
   const formData: H3FormData = {
     ...baseFormData,
     metric: 'avg_elevation',
-    js_columns: ['region'],
-    tooltip_contents: [{ item_type: 'column', column_name: 'info' }],
+    tooltip_contents: [
+      { item_type: 'column', column_name: 'info' },
+      { item_type: 'column', column_name: 'region' },
+    ],
   };
 
   const queryContext = buildQuery(formData);
@@ -193,4 +177,55 @@ test('H3 buildQuery should build comprehensive query with all fields', () => {
     col: 'h3_col',
     op: 'IS NOT NULL',
   });
+});
+
+test('H3 buildQuery should not duplicate a tooltip column matching h3_index', () => {
+  const formData: H3FormData = {
+    ...baseFormData,
+    tooltip_contents: [{ item_type: 'column', column_name: 'h3_col' }],
+  };
+
+  const [query] = buildQuery(formData).queries;
+
+  expect(query.columns).toEqual(['h3_col']);
+});
+
+test('H3 buildQuery should keep existing adhoc filters alongside the NULL filter', () => {
+  const formData: H3FormData = {
+    ...baseFormData,
+    adhoc_filters: [
+      {
+        clause: 'WHERE',
+        expressionType: 'SIMPLE',
+        subject: 'region',
+        operator: '==',
+        comparator: 'west',
+      },
+    ],
+  };
+
+  const [query] = buildQuery(formData).queries;
+
+  expect(query.filters).toEqual([
+    { col: 'region', op: '==', val: 'west' },
+    { col: 'h3_col', op: 'IS NOT NULL' },
+  ]);
+});
+
+test('H3 buildQuery should order by an adhoc metric descending', () => {
+  const adhocMetric = {
+    expressionType: 'SIMPLE' as const,
+    aggregate: 'SUM' as const,
+    column: { column_name: 'value' },
+    label: 'SUM(value)',
+  };
+  const formData: H3FormData = {
+    ...baseFormData,
+    metric: adhocMetric,
+  };
+
+  const [query] = buildQuery(formData).queries;
+
+  expect(query.metrics).toEqual([adhocMetric]);
+  expect(query.orderby).toEqual([[adhocMetric, false]]);
 });

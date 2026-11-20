@@ -18,6 +18,12 @@
  */
 import { getPoints } from './H3Hexagon';
 
+// maplibre-gl 6 is ESM-only, so jest can't resolve it; DeckGLContainer.tsx
+// (pulled in via factory.tsx) calls setWorkerUrl() on it at import time.
+jest.mock('maplibre-gl', () => ({ setWorkerUrl: jest.fn() }), {
+  virtual: true,
+});
+
 test('getPoints returns every boundary vertex of each hexagon for viewport fitting', () => {
   const points = getPoints([{ hexagon: '891f1d48177ffff' }]);
   // A single H3 cell has 6 boundary vertices; fitting to only one would clip.
