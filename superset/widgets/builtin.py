@@ -107,11 +107,6 @@ class Echarts(Widget):
     behavior = QUERYING
     ui = WidgetUi(default_size=(12, 8))
 
-    # Default color per series index, matching the frontend's structured
-    # series builder so a series' color is stable before the author touches
-    # customize.
-    PALETTE = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6", "#1abc9c"]
-
     # Upper bound on distinct series inlined into the schema.
     MAX_SERIES = 100
 
@@ -147,11 +142,8 @@ class Echarts(Widget):
         all_keys = combined_keys[: Echarts.MAX_SERIES]
         node.pop("additionalProperties", None)
         properties: dict[str, Any] = {}
-        for index, key in enumerate(all_keys):
+        for key in all_keys:
             style = deepcopy(style_def)
-            style["properties"]["color"]["default"] = Echarts.PALETTE[
-                index % len(Echarts.PALETTE)
-            ]
             style["title"] = key
             properties[key] = style
         node["properties"] = properties

@@ -195,7 +195,7 @@ class SeriesOverride(BaseModel):
     color: str = Field(
         default="",
         title="Color",
-        description="Empty keeps the palette-assigned default.",
+        description="Empty means no explicit color; the renderer chooses.",
         json_schema_extra={"x-control": "color"},
     )
     visible: bool = Field(

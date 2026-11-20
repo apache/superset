@@ -50,8 +50,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-26.04
-    # Soft-delete, Embedded and Mobile each add their own gunicorn boot +
-    # spec run on top of the Required step.
+    # Soft-delete, Canvas, Embedded and Mobile each add their own gunicorn
+    # boot + spec run on top of the Required step.
     timeout-minutes: 40
     permissions:
       contents: read
@@ -253,6 +253,20 @@ jobs:
           SUPERSET_FEATURE_SOFT_DELETE: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" recently-archived/
+      - name: Run Playwright (Canvas Tests)
+        # Same ./ form as the steps above: cached-dependencies is a submodule.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step's gunicorn, like Soft-delete above: CANVAS
+          # ships dark, so only this server serves the Canvas API and pages.
+          # Its single worker also keeps drafts, which the test config holds
+          # in an in-process cache, visible to every request.
+          SUPERSET_FEATURE_CANVAS: "true"
+          # Fail rather than skip when the backend came up without CANVAS.
+          PLAYWRIGHT_REQUIRE_CANVAS: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" canvas/
       - name: Run Playwright (Semantic View Tests)
         # Same ./ form as the steps above: cached-dependencies is a submodule.
         uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
