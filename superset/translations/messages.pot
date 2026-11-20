@@ -179,10 +179,6 @@ msgid "% of total"
 msgstr ""
 
 #, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
-msgstr ""
-
-#, python-format
 msgid "%(column)s is an array column, which cannot be compared against the single value a transform returns. Mirrored filters on this mapping would fail at the database. Map a scalar partition column instead."
 msgstr ""
 
@@ -1649,6 +1645,10 @@ msgid "Aggregation used for the summary row. By default each metric keeps its ow
 msgstr ""
 
 msgid "Alert"
+msgstr ""
+
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
 msgstr ""
 
 msgid "Alert Triggered, In Grace Period"
@@ -7140,7 +7140,11 @@ msgid "Failed to tag items"
 msgstr ""
 
 #, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
 msgstr ""
 
 msgid "Failed to update report"
@@ -11751,6 +11755,10 @@ msgid "Replace strftime date placeholders such as %Y-%m-%d in alert and report e
 msgstr ""
 
 msgid "Report"
+msgstr ""
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
 msgstr ""
 
 #, python-format
