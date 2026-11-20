@@ -11112,6 +11112,9 @@ msgstr "أعلى قيمة لكل فترة."
 msgid "Histogram"
 msgstr "الرسم البياني"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "Home"
 
@@ -11401,6 +11404,9 @@ msgstr "في هذا العرض يمكنك معاينة أول 25 صفاً. "
 #, fuzzy
 msgid "Inactive"
 msgstr "نشط"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "قم بتضمين السلسلة"
@@ -15730,6 +15736,9 @@ msgstr "يحافظ على موضوع شرط وقت لوحة المعلومات �
 
 msgid "Preview"
 msgstr "استطلاع"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21341,10 +21350,8 @@ msgstr "المنفذ مغلق."
 msgid "The port number is invalid."
 msgstr "رقم المنفذ غير صالح."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "تعذر تحميل المعاينة."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "يتم استخدام المقياس الأساسي لتحديد أحجام مقاطع القوس"
@@ -21852,14 +21859,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "طابق التحويل الصفوف المعاينة فقط، وليس مجموعة البيانات بأكملها."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"أعاد التحويل %(returned)s للعمود %(column)s، وهو %(kind)s. ستفشل المرشحات"
-" المنعكسة على هذا التعيين في قاعدة البيانات."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21871,6 +21873,9 @@ msgstr ""
 "أعاد التحويل %(returned)s للعمود %(column)s، وهو ما لا يمكن لقاعدة "
 "البيانات هذه كتابته في الاستعلام كقيمة من نوع %(type)s دون تغييره. لن "
 "تنعكس المرشحات المطبقة على هذا التعيين."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -21973,23 +21978,12 @@ msgstr ""
 "يُقيَّم التحويل في جلسة منفصلة وتُخزَّن النتيجة مؤقتًا، لذا سيجمّد المسند"
 " الناتج لقطة من تلك اللحظة."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"تعذر تحليل تحويل القيمة. يتم حفظ التعيين لكنه يبقى غير نشط إلى أن ينجح "
-"ذلك."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"تعذر تحليل تحويل القيمة: %(detail)s يتم حفظ التعيين لكنه يبقى غير نشط إلى"
-" أن ينجح ذلك."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23788,6 +23782,9 @@ msgstr "عنوان URI لطلب الرمز"
 #, fuzzy
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr "طلبات معاينة كثيرة جدًا لمجموعة البيانات هذه. انتظر قليلًا وحاول مرة أخرى."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -27926,6 +27923,10 @@ msgstr "التراجع"
 msgid "unknown type icon"
 msgstr "رمز نوع غير معروف"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 #, fuzzy
 msgid "unset"
 msgstr "حزيران (يونيو)"
@@ -27942,6 +27943,9 @@ msgid ""
 msgstr ""
 "يجب أن تكون النسبة المئوية العليا أكبر من 0 وأقل من 100. يجب أن تكون أعلى"
 " من النسبة المئوية الأقل."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "استخدم أحدث قالب_التقسيم"
