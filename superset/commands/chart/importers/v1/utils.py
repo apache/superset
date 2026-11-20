@@ -24,7 +24,7 @@ from uuid import UUID
 import yaml
 
 from superset import db, security_manager
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError
 from superset.commands.importers.v1.utils import (
     apply_extra_import_fields,
     find_existing_for_import,
@@ -81,7 +81,7 @@ def _ensure_can_edit_existing_chart(
         not security_manager.can_access_chart(existing)
         or not security_manager.is_editor(existing)
     ):
-        raise ImportFailedError(error_message)
+        raise ForbiddenError(error_message)
 
 
 def _restore_existing_chart_for_import(
@@ -101,7 +101,7 @@ def _restore_existing_chart_for_import(
         # Name the chart: a dashboard bundle imports many charts, and
         # without the identity the operator can't tell which of N
         # charts in the bundle hit the soft-deleted match.
-        raise ImportFailedError(
+        raise ForbiddenError(
             f"Chart {existing.slice_name!r} (uuid {config['uuid']}) "
             f"was deleted and re-import requires can_write "
             f"permission to restore it"
@@ -222,7 +222,7 @@ def import_chart(
         ):
             return existing_chart
     elif not can_write:
-        raise ImportFailedError(
+        raise ForbiddenError(
             "Chart doesn't exist and user doesn't have permission to create charts"
         )
 

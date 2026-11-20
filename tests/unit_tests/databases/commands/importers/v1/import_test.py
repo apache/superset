@@ -26,7 +26,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import ForbiddenError, ImportFailedError
 from superset.constants import PASSWORD_MASK
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
@@ -208,7 +208,7 @@ def test_import_database_without_permission(
 
     config = copy.deepcopy(database_config)
 
-    with pytest.raises(ImportFailedError) as excinfo:
+    with pytest.raises(ForbiddenError) as excinfo:
         import_database(config)
     assert (
         str(excinfo.value)
@@ -437,7 +437,7 @@ def test_import_database_existing_no_overwrite_backfills_permissions(
     result = import_database(again, overwrite=False)
 
     assert result.id == existing.id
-    mock_add_permissions.assert_called_once_with(existing)
+    mock_add_permissions.assert_called_once_with(existing, commit=False)
 
 
 def test_import_database_existing_no_overwrite_no_permission_skips_backfill(
@@ -516,7 +516,7 @@ def test_import_database_existing_no_overwrite_backfill_oauth2_redirect_is_nonfa
     result = import_database(again, overwrite=False)
 
     assert result.id == existing.id
-    mock_add_permissions.assert_called_once_with(existing)
+    mock_add_permissions.assert_called_once_with(existing, commit=False)
 
 
 def test_import_database_oauth2_redirect_is_nonfatal(
@@ -550,7 +550,7 @@ def test_import_database_oauth2_redirect_is_nonfatal(
     database = import_database(config)
 
     assert database.database_name == "imported_database"
-    mock_add_perms.assert_called_once_with(database)
+    mock_add_perms.assert_called_once_with(database, commit=False)
 
 
 def test_import_database_dbapi_error_during_backfill_is_nonfatal(
@@ -589,7 +589,7 @@ def test_import_database_dbapi_error_during_backfill_is_nonfatal(
     result = import_database(again, overwrite=False)
 
     assert result.id == existing.id
-    mock_add_permissions.assert_called_once_with(existing)
+    mock_add_permissions.assert_called_once_with(existing, commit=False)
 
 
 def test_import_datasources_cli_encrypts_password(

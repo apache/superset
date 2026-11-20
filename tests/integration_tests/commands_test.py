@@ -283,7 +283,7 @@ class TestImportAssetsCommand(SupersetTestCase):
         assert len(dashboard.editors) == 1
         assert user_is_editor(self.user, dashboard)
 
-        mock_add_permissions.assert_called_with(database)
+        mock_add_permissions.assert_called_with(database, commit=False)
 
         db.session.delete(dashboard)
         db.session.delete(chart)
@@ -328,7 +328,7 @@ class TestImportAssetsCommand(SupersetTestCase):
         dataset = chart.table
         database = dataset.database
 
-        mock_add_permissions.assert_called_with(database)
+        mock_add_permissions.assert_called_with(database, commit=False)
 
         db.session.delete(dashboard)
         db.session.delete(chart)
