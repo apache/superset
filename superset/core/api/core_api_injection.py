@@ -28,6 +28,7 @@ from typing import Any, Callable, TYPE_CHECKING, TypeVar
 from sqlalchemy.orm import scoped_session
 
 from superset.extensions.context import get_current_extension_context
+from superset.extensions.permissions import register_extension_resource
 
 if TYPE_CHECKING:
     from superset_core.common.models import Database
@@ -221,6 +222,22 @@ def inject_rest_api_implementations() -> None:
             # Register with Flask-AppBuilder immediately
             view = appbuilder.add_api(api_class)
             appbuilder._add_permission(view, True)
+
+            if context is not None:
+                # Record the resource so role sync keeps its permissions off
+                # stock Gamma and Alpha. `_is_gamma_pvm` is a denylist, so
+                # anything the host does not recognise -- which is every
+                # extension resource -- would otherwise be granted to them on
+                # the next `superset init`, and a page gated on one of these
+                # permissions would quietly stop being gated.
+                #
+                # Done here because this is where the host knows the
+                # registration came from an extension, and it covers every
+                # extension permission rather than only the ones a page
+                # happens to name.
+                register_extension_resource(
+                    view.class_permission_name or type(view).__name__
+                )
 
             return api_class
 
