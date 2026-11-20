@@ -11697,6 +11697,9 @@ msgstr "แบบมีทิศทาง"
 msgid "Dynamic group by"
 msgstr "จัดกลุ่มแบบไดนามิก"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -15152,6 +15155,14 @@ msgstr "ซ่อนเส้น"
 msgid "Hide chart description"
 msgstr "ซ่อนคำอธิบายแผนภูมิ"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -15195,6 +15206,9 @@ msgstr "ค่าสูงสุดของแต่ละช่วงเวล
 #, fuzzy
 msgid "Histogram"
 msgstr "ฮิสโตแกรม"
+
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -15626,6 +15640,9 @@ msgstr "ในมุมมองนี้คุณสามารถดูตั
 #, fuzzy
 msgid "Inactive"
 msgstr "ใช้งาน"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16172,9 +16189,10 @@ msgstr "สถานะไม่ถูกต้อง"
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "ID แท็บไม่ถูกต้อง: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "ค่าตัวกรองเวลาไม่ถูกต้องสำหรับคอลัมน์ %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21842,6 +21860,9 @@ msgstr "คงหัวข้อของเงื่อนไขเวลาข
 #, fuzzy
 msgid "Preview"
 msgstr "ดูตัวอย่าง"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -29614,10 +29635,8 @@ msgstr "พอร์ตถูกปิดอยู่"
 msgid "The port number is invalid."
 msgstr "หมายเลขพอร์ตไม่ถูกต้อง"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "ไม่สามารถโหลดตัวอย่างได้"
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30185,14 +30204,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "ทรานสฟอร์มตรงกับแถวตัวอย่างเท่านั้น ไม่ใช่ทั้งชุดข้อมูล"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"ทรานสฟอร์มส่งคืน %(returned)s สำหรับ %(column)s ซึ่งเป็น %(kind)s "
-"ตัวกรองที่สะท้อนบนการแมปนี้จะล้มเหลวที่ฐานข้อมูล"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -30204,6 +30218,9 @@ msgstr ""
 "ทรานสฟอร์มส่งคืน %(returned)s สำหรับ %(column)s "
 "ซึ่งฐานข้อมูลนี้ไม่สามารถเขียนลงในคิวรีเป็นค่า %(type)s "
 "ได้โดยไม่เปลี่ยนแปลงค่า ตัวกรองบนการแมปนี้จะไม่ถูกสะท้อน"
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -30337,23 +30354,12 @@ msgstr ""
 "การแปลงจะถูกประเมินในเซสชันแยกต่างหากและผลลัพธ์จะถูกแคชไว้ "
 "ดังนั้นเพรดิเคตที่สร้างขึ้นจะตรึงสแนปช็อตของช่วงเวลานั้นไว้"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"ไม่สามารถแยกวิเคราะห์การแปลงค่าได้ การแมปจะถูกบันทึกไว้ "
-"แต่จะไม่ทำงานจนกว่าจะแยกวิเคราะห์ได้"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"ไม่สามารถแยกวิเคราะห์การแปลงค่าได้: %(detail)s การแมปจะถูกบันทึกไว้ "
-"แต่จะไม่ทำงานจนกว่าจะแยกวิเคราะห์ได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -32502,6 +32508,9 @@ msgstr "Token Request URI"
 #, fuzzy
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr "มีคำขอแสดงตัวอย่างสำหรับชุดข้อมูลนี้มากเกินไป โปรดรอสักครู่แล้วลองอีกครั้ง"
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -38317,6 +38326,10 @@ msgstr "เลิกทำ"
 msgid "unknown type icon"
 msgstr "ไอคอนประเภทที่ไม่รู้จัก"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -38338,6 +38351,9 @@ msgid ""
 msgstr ""
 "เปอร์เซ็นไทล์บนต้องมากกว่า 0 และน้อยกว่า 100 "
 "และต้องสูงกว่าเปอร์เซ็นไทล์ล่าง"
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]

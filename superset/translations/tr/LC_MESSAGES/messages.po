@@ -7792,6 +7792,9 @@ msgstr "Dinamik Bölüm Etiketi"
 msgid "Dynamic group by"
 msgstr "Dinamik grup Tarafından"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -10023,6 +10026,14 @@ msgstr "Hide Line"
 msgid "Hide chart description"
 msgstr "Gizle grafik açıklaması"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Gizle katmanı"
 
@@ -10050,6 +10061,9 @@ msgstr "Her dönem için en yüksek değer."
 
 msgid "Histogram"
 msgstr "Histogram"
+
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
 
 msgid "Home"
 msgstr "Anasayfa"
@@ -10332,6 +10346,9 @@ msgstr "Bu görüşte ilk 25 satırları önleyebilirsiniz."
 #, fuzzy
 msgid "Inactive"
 msgstr "Etkin Değil"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "Add Series"
@@ -10676,9 +10693,10 @@ msgstr "Invalid state."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Geçersiz sekme kimlikleri: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "%(column)s sütunu için geçersiz zamansal filtre değeri"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -14347,6 +14365,9 @@ msgstr "Oluşturulan pano zaman koşulu öznesini Explore'da kaydederken korur."
 
 msgid "Preview"
 msgstr "Öpün"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19636,10 +19657,8 @@ msgstr "Liman kapalıdır."
 msgid "The port number is invalid."
 msgstr "Liman numarası geçersizdir."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Önizleme yüklenemedi."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "İlk metrik, ark segment boyutlarını tanımlamak için kullanılır"
@@ -20086,14 +20105,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "Dönüşüm, veri kümesinin tamamıyla değil, örneklenen satırlarla eşleşti."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"Dönüşüm, %(column)s için %(returned)s döndürdü; bu bir %(kind)s. Bu "
-"eşlemedeki yansıtılan filtreler veritabanında başarısız olur."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -20105,6 +20119,9 @@ msgstr ""
 "Dönüşüm, %(column)s için %(returned)s döndürdü; bu veritabanı bunu "
 "değiştirmeden bir sorguya %(type)s değeri olarak yazamaz. Bu eşlemedeki "
 "filtreler yansıtılmayacak."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -20211,23 +20228,12 @@ msgstr ""
 "değerlendirilir ve sonuç önbelleğe alınır; bu nedenle üretilen koşul o "
 "âna ait bir anlık görüntüyü dondurur."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Değer dönüşümü ayrıştırılamadı. Eşleme kaydedildi ancak ayrıştırılana "
-"kadar etkin olmayacak."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Değer dönüşümü ayrıştırılamadı: %(detail)s Eşleme kaydedildi ancak "
-"ayrıştırılana kadar etkin olmayacak."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21844,6 +21850,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Bu veri kümesi için çok fazla önizleme isteği var. Biraz bekleyip tekrar "
 "deneyin."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25776,6 +25785,10 @@ msgstr "geri al"
 msgid "unknown type icon"
 msgstr "Bilinmeyen tip simge"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 #, fuzzy
 msgid "unset"
 msgstr "Haziran"
@@ -25788,6 +25801,9 @@ msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
 " than lower percentile."
 msgstr "Üst yüzde 100'den fazla olmalıdır. Yüzde daha düşük olması gerekir."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "En son partition şablon"

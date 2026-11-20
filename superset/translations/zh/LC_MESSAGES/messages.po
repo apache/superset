@@ -2116,6 +2116,10 @@ msgstr ""
 msgid "Alert"
 msgstr "警报"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "警报 \"%(alertName)s\" 触发成功"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "告警已触发，在宽限期内"
 
@@ -7505,6 +7509,9 @@ msgstr "动态分区标签"
 msgid "Dynamic group by"
 msgstr "动态分组"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "动态部分描述"
 
@@ -8855,6 +8862,14 @@ msgstr "给对象打标签失败"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "触发 %(alertType)s \"%(alertName)s\" 失败：%(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "触发警报 \"%(alertName)s\" 失败：%(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "触发报表 \"%(alertName)s\" 失败：%(error)s"
+
 msgid "Failed to update report"
 msgstr "更新报告失败"
 
@@ -9740,6 +9755,14 @@ msgstr "隐藏线"
 msgid "Hide chart description"
 msgstr "隐藏图表说明"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "隐藏图层"
 
@@ -9768,6 +9791,9 @@ msgstr "每个周期的最高值。"
 
 msgid "Histogram"
 msgstr "直方图"
+
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
 
 msgid "Home"
 msgstr "主页"
@@ -10033,6 +10059,9 @@ msgstr "在此视图中，您可以预览前25行。 "
 
 msgid "Inactive"
 msgstr "未激活"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "包含系列"
@@ -10400,9 +10429,10 @@ msgstr "无效状态。"
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "无效的标签页ID：%(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "列 %(column)s 的时间过滤值无效"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -14039,6 +14069,9 @@ msgstr "在 Explore 中保存时保留生成的仪表板时间谓词主体。"
 msgid "Preview"
 msgstr "预览"
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Preview this version"
@@ -14659,6 +14692,10 @@ msgstr "发送时,将告警和报告邮件主题中的 strftime 日期占位符(
 
 msgid "Report"
 msgstr "报表"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "报表 \"%(alertName)s\" 触发成功"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -18936,10 +18973,8 @@ msgstr "端口已关闭。"
 msgid "The port number is invalid."
 msgstr "端口值无效"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "无法加载预览。"
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "主计量指标用于定义弧段大小。"
@@ -19318,12 +19353,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "该转换匹配的是抽样行，而非整个数据集。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
-msgstr "该转换为 %(column)s 返回了 %(returned)s，这是%(kind)s。此映射上的镜像过滤器在数据库中将会失败。"
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19334,6 +19366,9 @@ msgid ""
 msgstr ""
 "该转换为 %(column)s 返回了 %(returned)s，此数据库无法在不更改的情况下将其作为 %(type)s "
 "值写入查询。此映射上的过滤器将不会被镜像。"
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "两次输入的密码不一致！"
@@ -19421,19 +19456,12 @@ msgid ""
 "that moment."
 msgstr "该值转换调用了 %(functions)s，其结果取决于运行的时间和地点。转换在单独的会话中求值且结果会被缓存，因此生成的谓词会固化该时刻的快照。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
-msgstr "无法解析该值转换。映射会被保存，但在解析成功之前保持未激活状态。"
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
-msgstr "无法解析该值转换：%(detail)s 映射会被保存，但在解析成功之前保持未激活状态。"
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20907,6 +20935,9 @@ msgstr "令牌请求URI"
 #, fuzzy
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr "此数据集的预览请求过多。请稍候片刻后重试。"
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -24689,6 +24720,10 @@ msgstr "撤销"
 msgid "unknown type icon"
 msgstr "未知类型图标"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "未设置"
 
@@ -24702,6 +24737,9 @@ msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
 " than lower percentile."
 msgstr "上百分位数必须大于0且小于100。而且必须高于下百分位。"
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "使用最新分区模板"

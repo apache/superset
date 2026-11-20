@@ -18,6 +18,7 @@
  */
 import { useCallback, useEffect, useRef } from 'react';
 import { ClientErrorObject } from '@superset-ui/core';
+import { DEFAULT_SORT_COMPARATOR } from '@superset-ui/core/components';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { api, JsonResponse } from './queryApi';
 
@@ -49,11 +50,13 @@ const schemaApi = api.injectEndpoints({
           ...(catalog !== undefined && { catalog }),
         },
         transformResponse: ({ json }: JsonResponse) =>
-          json.result.sort().map((value: string) => ({
-            value,
-            label: value,
-            title: value,
-          })),
+          json.result
+            .map((value: string) => ({
+              value,
+              label: value,
+              title: value,
+            }))
+            .sort(DEFAULT_SORT_COMPARATOR),
       }),
       serializeQueryArgs: ({ queryArgs: { dbId, catalog } }) => ({
         dbId,

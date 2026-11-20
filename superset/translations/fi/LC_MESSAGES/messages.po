@@ -11916,6 +11916,9 @@ msgstr "Suunnattu"
 msgid "Dynamic group by"
 msgstr "Dynaaminen ryhmittely"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -15405,6 +15408,14 @@ msgstr "Piilota viiva"
 msgid "Hide chart description"
 msgstr "Piilota kaavion kuvaus"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -15448,6 +15459,9 @@ msgstr "Ylin arvo kullekin jaksolle."
 #, fuzzy
 msgid "Histogram"
 msgstr "Histogrammi"
+
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -15880,6 +15894,9 @@ msgstr "Tässä näkymässä voit esikatsella 25 ensimmäistä riviä. "
 #, fuzzy
 msgid "Inactive"
 msgstr "Aktiivinen"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16428,9 +16445,10 @@ msgstr "Virheellinen tila."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Virheelliset välilehtitunnukset: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Virheellinen aikasuodattimen arvo sarakkeessa %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -22164,6 +22182,9 @@ msgstr "Säilyttää luodun kojelaudan aikaehdon kohteen Explore-tallennusten yl
 #, fuzzy
 msgid "Preview"
 msgstr "Esikatselu"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -30030,10 +30051,8 @@ msgstr "Portti on suljettu."
 msgid "The port number is invalid."
 msgstr "Porttinumero on virheellinen."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Esikatselua ei voitu ladata."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30622,15 +30641,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "Muunnos vastasi otosrivejä, ei koko tietojoukkoa."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"Muunnos palautti arvon %(returned)s sarakkeelle %(column)s, joka on "
-"%(kind)s. Tämän vastaavuuden peilatut suodattimet epäonnistuisivat "
-"tietokannassa."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -30642,6 +30655,9 @@ msgstr ""
 "Muunnos palautti arvon %(returned)s sarakkeelle %(column)s, jota tämä "
 "tietokanta ei voi kirjoittaa kyselyyn %(type)s-arvona muuttamatta sitä. "
 "Tämän vastaavuuden suodattimia ei peilata."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -30779,24 +30795,12 @@ msgstr ""
 "istunnossa ja tulos tallennetaan välimuistiin, joten muodostettu "
 "predikaatti jäädyttäisi kyseisen hetken tilannekuvan."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Arvomuunnosta ei voitu jäsentää. Yhdistämismääritys tallennetaan, mutta "
-"se pysyy ei-aktiivisena, kunnes jäsentäminen onnistuu."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Arvomuunnosta ei voitu jäsentää: %(detail)s Yhdistämismääritys "
-"tallennetaan, mutta se pysyy ei-aktiivisena, kunnes jäsentäminen "
-"onnistuu."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -33001,6 +33005,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Liian monta esikatselupyyntöä tälle tietojoukolle. Odota hetki ja yritä "
 "uudelleen."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -38891,6 +38898,10 @@ msgstr "kumoa"
 msgid "unknown type icon"
 msgstr "tuntemattoman tyypin kuvake"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -38912,6 +38923,9 @@ msgid ""
 msgstr ""
 "ylemmän persentiilin täytyy olla suurempi kuin 0 ja pienempi kuin 100. "
 "Sen täytyy olla suurempi kuin alempi persentiili."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]

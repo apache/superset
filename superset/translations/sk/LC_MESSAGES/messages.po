@@ -8021,6 +8021,9 @@ msgstr "Smerový"
 msgid "Dynamic group by"
 msgstr "Dynamické seskupovanie"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Dynamická agregační funkce"
@@ -10429,6 +10432,14 @@ msgstr "Skrýt čáru"
 msgid "Hide chart description"
 msgstr "Skrýt popis grafu"
 
+msgid ""
+"Hide columns with only null metric values. Keep columns with zeros or "
+"non-empty summaries. This does not change totals or percentages."
+msgstr ""
+
+msgid "Hide empty columns"
+msgstr ""
+
 msgid "Hide layer"
 msgstr "Skrýt vrstvu"
 
@@ -10456,6 +10467,9 @@ msgstr "Najvyššia hodnota za každé obdobie."
 
 msgid "Histogram"
 msgstr "Histogram"
+
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sl, sr, sr_Latn,
@@ -10766,6 +10780,9 @@ msgstr "V tomto pohľadu môžete prohlédnúť první 25 riadkov."
 #, fuzzy
 msgid "Inactive"
 msgstr "Aktívny"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "Zahrnúť série"
@@ -11161,9 +11178,10 @@ msgstr "Neplatný stav."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Neplatná ID karet: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Neplatná hodnota časového filtra pre stĺpec %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -15179,6 +15197,9 @@ msgstr ""
 
 msgid "Preview"
 msgstr "Náhľad"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -20705,10 +20726,8 @@ msgstr "Port je uzavretý."
 msgid "The port number is invalid."
 msgstr "Číslo portu je neplatné."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Náhľad sa nepodarilo načítať."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sl, sr, sr_Latn,
@@ -21197,14 +21216,9 @@ msgstr ""
 "Transformácia sa zhodovala so vzorkovanými riadkami, nie s celým súborom "
 "údajov."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"Transformácia vrátila %(returned)s pre %(column)s, čo je %(kind)s. "
-"Zrkadlené filtre na tomto mapovaní by v databáze zlyhali."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21216,6 +21230,9 @@ msgstr ""
 "Transformácia vrátila %(returned)s pre %(column)s, čo táto databáza "
 "nedokáže zapísať do dotazu ako hodnotu typu %(type)s bez jej zmeny. "
 "Filtre na tomto mapovaní sa nebudú zrkadliť."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -21317,23 +21334,12 @@ msgstr ""
 "relácii a výsledok sa ukladá do vyrovnávacej pamäte, takže vygenerovaný "
 "predikát by zmrazil snímku daného okamihu."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Transformáciu hodnoty sa nepodarilo analyzovať. Mapovanie sa uloží, ale "
-"zostane neaktívne, kým sa to nepodarí."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Transformáciu hodnoty sa nepodarilo analyzovať: %(detail)s Mapovanie sa "
-"uloží, ale zostane neaktívne, kým sa to nepodarí."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23026,6 +23032,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Príliš veľa požiadaviek na náhľad tejto množiny údajov. Chvíľu počkajte a"
 " skúste to znova."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -27164,6 +27173,10 @@ msgstr "späť"
 msgid "unknown type icon"
 msgstr "ikona neznámého typu"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "nenastaveno"
 
@@ -27176,6 +27189,9 @@ msgid ""
 msgstr ""
 "horní percentil musí byť väčší než 0 a menší než 100. Musí byť vyšší než "
 "dolní percentil."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "použít šablonu nejnovejšího_oddílu"

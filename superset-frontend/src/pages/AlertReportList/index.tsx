@@ -36,6 +36,7 @@ import {
 import {
   ModifiedInfo,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   ListViewActionsBar,
   type ListViewActionProps,
@@ -194,23 +195,31 @@ function AlertList({
       }
       executingIdsRef.current.add(alertId);
 
+      const isReport = alert.type === 'Report';
       executeReport(
         alertId,
         () => {
           addSuccessToast(
-            t('%(alertType)s "%(alertName)s" triggered successfully', {
-              alertType: alert.type,
-              alertName: alert.name,
-            }),
+            isReport
+              ? t('Report "%(alertName)s" triggered successfully', {
+                  alertName: alert.name,
+                })
+              : t('Alert "%(alertName)s" triggered successfully', {
+                  alertName: alert.name,
+                }),
           );
         },
         error => {
           addDangerToast(
-            t('Failed to trigger %(alertType)s "%(alertName)s": %(error)s', {
-              alertType: alert.type,
-              alertName: alert.name,
-              error,
-            }),
+            isReport
+              ? t('Failed to trigger report "%(alertName)s": %(error)s', {
+                  alertName: alert.name,
+                  error,
+                })
+              : t('Failed to trigger alert "%(alertName)s": %(error)s', {
+                  alertName: alert.name,
+                  error,
+                }),
           );
         },
       )
@@ -311,7 +320,7 @@ function AlertList({
     [alerts, setResourceCollection, updateResource],
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<AlertObject>[]>(
     () => [
       {
         Cell: ({
@@ -325,7 +334,7 @@ function AlertList({
           />
         ),
         accessor: 'last_state',
-        size: 'xs',
+        layout: 'statusIcon',
         disableSortBy: true,
         id: 'last_state',
       },
@@ -343,19 +352,19 @@ function AlertList({
             : '',
         accessor: 'last_eval_dttm',
         Header: t('Last run'),
-        size: 'lg',
+        layout: 'timestamp',
         id: 'last_eval_dttm',
       },
       {
         accessor: 'name',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         id: 'name',
       },
       {
         Header: t('Schedule'),
         accessor: 'crontab_humanized',
-        size: 'xl',
+        layout: 'text',
         Cell: ({
           row: {
             original: { crontab_humanized = '', timezone },
@@ -382,7 +391,7 @@ function AlertList({
         accessor: 'recipients',
         Header: t('Notification method'),
         disableSortBy: true,
-        size: 'lg',
+        layout: 'iconList',
         id: 'recipients',
       },
       {
@@ -394,7 +403,7 @@ function AlertList({
         Header: t('Editors'),
         id: 'editors',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'people',
       },
       {
         Cell: ({
@@ -407,7 +416,7 @@ function AlertList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -430,7 +439,7 @@ function AlertList({
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
-        size: 'sm',
+        layout: 'flag',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -492,7 +501,7 @@ function AlertList({
         id: 'actions',
         hidden: !canEdit && !canDelete,
         disableSortBy: true,
-        size: 'lg',
+        layout: 'actions',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,
