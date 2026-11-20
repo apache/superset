@@ -52,7 +52,7 @@ from uuid import UUID, uuid4
 
 from flask import current_app, Request
 
-from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
+from superset.key_value.types import JsonKeyValueCodec, KeyValueResource, RowLock
 from superset.key_value.utils import get_filter
 
 logger = logging.getLogger(__name__)
@@ -327,7 +327,7 @@ def consume(token: str) -> LoginTokenUserInfo | None:
     except (AttributeError, TypeError, ValueError):
         return None
 
-    entry = KeyValueDAO.get_entry(LOGIN_TOKEN_RESOURCE, key, for_update=True)
+    entry = KeyValueDAO.get_entry(LOGIN_TOKEN_RESOURCE, key, lock=RowLock())
     if entry is None:
         return None
 
