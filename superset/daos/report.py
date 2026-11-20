@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from typing import Any, cast, Literal
+from uuid import UUID
 
 from flask import current_app
 from sqlalchemy import func, or_, select
@@ -52,6 +53,14 @@ logger = logging.getLogger(__name__)
 
 
 REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = "Notification sent with error"
+
+# Execution-log message for a stuck WORKING execution that was reset and retried
+# immediately. The working-timeout recovery looks for it to avoid retrying an
+# execution that was itself such a retry.
+REPORT_SCHEDULE_STUCK_RESET_MESSAGE = (
+    "Working timeout reached: previous execution appears stuck "
+    "(possibly due to a worker crash). Resetting and retrying."
+)
 
 
 class ReportScheduleDAO(BaseDAO[ReportSchedule]):
@@ -358,6 +367,26 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
                 ReportExecutionLog.error_message.is_(None),
             )
             .order_by(ReportExecutionLog.end_dttm.desc())
+            .first()
+        )
+
+    @staticmethod
+    def find_stuck_reset_log(
+        report_schedule: ReportSchedule,
+        execution_id: UUID,
+    ) -> ReportExecutionLog | None:
+        """
+        Finds the stuck-reset log written when ``execution_id`` was started as
+        an immediate retry of an earlier stuck execution
+        """
+        return (
+            db.session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.report_schedule == report_schedule,
+                ReportExecutionLog.uuid == execution_id,
+                ReportExecutionLog.state == ReportState.NOOP,
+                ReportExecutionLog.error_message == REPORT_SCHEDULE_STUCK_RESET_MESSAGE,
+            )
             .first()
         )
 
