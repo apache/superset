@@ -247,6 +247,7 @@ class ExecuteSqlCommand(BaseCommand):
                             Query.status: QueryStatus.PREPARED,
                             Query.extra_json: extra_json,
                             Query.limit: query.limit,
+                            Query.limiting_factor: query.limiting_factor,
                         },
                         synchronize_session=False,
                     )

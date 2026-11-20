@@ -47,6 +47,7 @@ from superset.queries.filters import QueryFilter
 from superset.sqllab.api import SqlLabRestApi
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.exceptions import SqlLabException
+from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.query_preparation import (
     discard_preparation,
     PREPARATION_KEY,
@@ -154,6 +155,36 @@ def preparation(app: Flask, session: Session, mocker: MockerFixture) -> Iterator
         )
         mocker.patch("superset.daos.query.get_user_id", return_value=user.id)
         yield make, database, estimator
+
+
+@pytest.mark.parametrize(
+    ("sql", "limit", "factor"),
+    [
+        ("SELECT 42", 1000, LimitingFactor.DROPDOWN),
+        ("SELECT 42 LIMIT 10", 10, LimitingFactor.QUERY),
+        ("SELECT 42 LIMIT 1000", 1000, LimitingFactor.QUERY_AND_DROPDOWN),
+    ],
+)
+def test_preparation_retains_row_limit_metadata(
+    preparation: Any,
+    session: Session,
+    sql: str,
+    limit: int,
+    factor: LimitingFactor,
+) -> None:
+    """Confirmation must retain the limit and its source across database reloads."""
+    make, _, _ = preparation
+    response = make(sql=sql).prepare_warning()
+    session.expire_all()
+    query = session.query(Query).one()
+    assert query.limit == limit
+    assert query.limiting_factor == factor
+    command = make(sql=sql, prepared_query_id=response["prepared_query_id"])
+    command._resume_prepared_query()
+    session.expire_all()
+    assert query.limit == limit
+    assert query.to_dict()["limitingFactor"] == factor
+    command._sql_json_executor.execute.assert_called_once()
 
 
 def test_prepare_confirm_retains_render_and_is_hidden(
@@ -497,14 +528,14 @@ def test_async_dispatch_receives_committed_prepared_query(
         with Session(session_engine) as worker:
             query = worker.get(Query, query_id)
             assert query is not None
-            seen.append((rendered, query.limit, query.status))
+            seen.append((rendered, query.limit, query.limiting_factor, query.status))
         return MagicMock()
 
     task.delay.side_effect = enqueue
     command = make(runAsync=True, prepared_query_id=response["prepared_query_id"])
     command._sql_json_executor = ASynchronousSqlJsonExecutor(QueryDAO(), task)
     command._resume_prepared_query()
-    assert seen == [("SELECT 42", 1000, QueryStatus.PENDING)]
+    assert seen == [("SELECT 42", 1000, LimitingFactor.DROPDOWN, QueryStatus.PENDING)]
 
 
 def test_confirmation_uses_updated_tab_bookkeeping(
