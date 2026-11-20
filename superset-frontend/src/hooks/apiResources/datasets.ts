@@ -165,7 +165,7 @@ export const useDatasetDrillInfo = (
           // Built as a partial Dataset (the declaration is typed, so
           // table_name/columns are genuinely checked): no id or
           // datasource_type is fabricated. The shared mapper supplies each
-          // column's verbose_name from the structure or falls back to its name.
+          // column's verbose_name from the structure when one is present.
           // Metrics are the one narrowing: the structure payload carries no
           // uuid or full metric metadata, so each is asserted to Metric with
           // only the fields

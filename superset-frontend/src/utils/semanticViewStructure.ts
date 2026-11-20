@@ -132,7 +132,7 @@ export const semanticViewDimensionsToColumns = (
     const mappedType = mapSemanticTypeToGenericDataType(dim.type);
     return {
       column_name: dim.name,
-      verbose_name: dim.verbose_name || dim.name,
+      verbose_name: dim.verbose_name ?? undefined,
       type: dim.type,
       is_dttm: mappedType === GenericDataType.Temporal,
       type_generic: mappedType,

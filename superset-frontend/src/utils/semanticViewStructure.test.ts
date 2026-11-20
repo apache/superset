@@ -79,7 +79,7 @@ test('collapses time grain variants into one labelled dimension', () => {
     }),
     expect.objectContaining({
       column_name: 'Orders.order_ts',
-      verbose_name: 'Orders.order_ts',
+      verbose_name: undefined,
       groupby: true,
     }),
     expect.objectContaining({
