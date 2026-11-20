@@ -30,6 +30,7 @@ import { GlobalStyles } from './GlobalStyles';
 import {
   AntdThemeConfig,
   AnyThemeConfig,
+  EchartsRenderer,
   SerializableThemeConfig,
   SupersetTheme,
   allowedAntdTokens,
@@ -138,11 +139,15 @@ export class Theme {
     // Extract Superset-specific properties from the merged config (not the raw
     // config) so a base theme's ECharts overrides survive in-place updates, the
     // same way the Ant Design tokens above are taken from the merged config.
-    const { echartsOptionsOverrides, echartsOptionsOverridesByChartType } =
-      mergedConfig as AnyThemeConfig & {
-        echartsOptionsOverrides?: any;
-        echartsOptionsOverridesByChartType?: Record<string, any>;
-      };
+    const {
+      echartsOptionsOverrides,
+      echartsOptionsOverridesByChartType,
+      echartsRenderer,
+    } = mergedConfig as AnyThemeConfig & {
+      echartsOptionsOverrides?: any;
+      echartsOptionsOverridesByChartType?: Record<string, any>;
+      echartsRenderer?: EchartsRenderer;
+    };
 
     // Set the base theme properties
     this.antdConfig = antdConfig;
@@ -154,6 +159,7 @@ export class Theme {
       ...(echartsOptionsOverridesByChartType && {
         echartsOptionsOverridesByChartType,
       }),
+      ...(echartsRenderer && { echartsRenderer }),
     } as SupersetTheme;
 
     // Update every mounted provider with the fully formed theme

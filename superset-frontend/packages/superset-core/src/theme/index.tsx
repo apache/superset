@@ -27,6 +27,7 @@ import {
   type ThemeControllerOptions,
   type ThemeContextType,
   type SupersetThemeConfig,
+  type EchartsRenderer,
   ThemeAlgorithm,
   ThemeMode,
 } from './types';
@@ -83,6 +84,7 @@ export type {
   ThemeControllerOptions,
   ThemeContextType,
   SupersetThemeConfig,
+  EchartsRenderer,
 };
 
 // Export theme utility functions

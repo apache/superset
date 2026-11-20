@@ -441,6 +441,65 @@ THEME_DEFAULT = {
 }
 ```
 
+### Chart Renderer (Canvas or SVG)
+
+:::note
+This setting is only available on `master`; it is not present in any tagged
+release yet.
+:::
+
+ECharts draws charts with one of two renderers, chosen when a chart is created.
+Because the renderer cannot be changed through `setOption`, it is not part of
+`echartsOptionsOverrides`. Set it with the top-level `echartsRenderer` theme
+property instead:
+
+| Value | Behavior |
+| --- | --- |
+| `"canvas"` (default) | Draws each chart into a bitmap. Fastest for charts with very large series (many thousands of points). |
+| `"svg"` | Keeps chart text (axis labels, legends, titles, data labels) as real text in the page. |
+
+Choose `"svg"` when accessibility matters more than raw rendering speed. SVG text
+scales with browser zoom and text-size settings instead of blurring, and it can
+be read by screen readers and other assistive technology. This helps meet
+[WCAG 1.4.4 Resize Text](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html)
+and [WCAG 1.4.5 Images of Text](https://www.w3.org/WAI/WCAG22/Understanding/images-of-text.html).
+The cost is performance: every SVG element is a DOM node, so charts with very
+large series render and redraw more slowly than they do on canvas.
+
+In `superset_config.py`:
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "colorPrimary": "#2893B3",
+        # ... other tokens
+    },
+    "echartsRenderer": "svg",
+}
+
+# Set it on the dark theme too if users can switch to dark mode
+THEME_DARK = {
+    **THEME_DEFAULT,
+    "algorithm": "dark",
+}
+```
+
+Or in a theme created in the theme CRUD interface:
+
+```json
+{
+  "token": {
+    "colorPrimary": "#2893B3"
+  },
+  "echartsRenderer": "svg"
+}
+```
+
+Any value other than `"svg"` uses canvas. The renderer applies to every
+ECharts-based chart that uses the theme, including charts on a dashboard with
+that theme applied. Charts that do not use ECharts (such as tables and deck.gl
+maps) are not affected.
+
 ### Best Practices
 
 1. **Start with global overrides** for consistent styling across all charts

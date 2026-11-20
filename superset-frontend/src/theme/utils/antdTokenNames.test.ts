@@ -43,6 +43,7 @@ test('isValidTokenName recognizes Superset custom tokens', () => {
   expect(isValidTokenName('brandSpinnerSvg')).toBe(true);
   expect(isValidTokenName('fontSizeXS')).toBe(true);
   expect(isValidTokenName('echartsOptionsOverrides')).toBe(true);
+  expect(isValidTokenName('echartsRenderer')).toBe(true);
 });
 
 test('isValidTokenName rejects unknown tokens', () => {

@@ -17,7 +17,9 @@
  * under the License.
  */
 import type { EChartsCoreOption } from 'echarts/core';
+import { init } from 'echarts/core';
 import { render, waitFor } from 'spec/helpers/testing-library';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import { createSpacedXAxisFormatter } from '../../src/utils/formatters';
 
 const setOption = jest.fn();
@@ -256,4 +258,69 @@ test('registers a locale object complete enough to format time axis labels', asy
   const [localeKey, localeObj] = registerLocale.mock.calls.at(-1);
   expect(localeKey).toBe('EN');
   expect(localeObj?.time?.month).toHaveLength(12);
+});
+
+const initOptions = () =>
+  (init as jest.Mock).mock.calls.at(-1)[2] as { renderer?: string };
+
+const renderEchartWithTheme = (
+  theme: typeof supersetTheme,
+  echartOptions: EChartsCoreOption = { series: [] },
+) =>
+  render(
+    <ThemeProvider theme={theme}>
+      <Echart
+        width={400}
+        height={300}
+        echartOptions={echartOptions}
+        refs={{ divRef: undefined }}
+      />
+    </ThemeProvider>,
+    { useRedux: true },
+  );
+
+test('uses the canvas renderer with the default theme', async () => {
+  (init as jest.Mock).mockClear();
+  renderEchart({ series: [] });
+  await waitFor(() => expect(init).toHaveBeenCalled());
+  expect(initOptions().renderer).toBe('canvas');
+});
+
+test('uses the svg renderer when the theme sets echartsRenderer to svg', async () => {
+  (init as jest.Mock).mockClear();
+  renderEchartWithTheme({ ...supersetTheme, echartsRenderer: 'svg' });
+  await waitFor(() => expect(init).toHaveBeenCalled());
+  expect(initOptions().renderer).toBe('svg');
+});
+
+test('falls back to canvas for an unknown echartsRenderer value', async () => {
+  (init as jest.Mock).mockClear();
+  renderEchartWithTheme({
+    ...supersetTheme,
+    echartsRenderer: 'webgl' as unknown as 'svg',
+  });
+  await waitFor(() => expect(init).toHaveBeenCalled());
+  expect(initOptions().renderer).toBe('canvas');
+});
+
+test('re-creates the chart when the theme renderer changes', async () => {
+  (init as jest.Mock).mockClear();
+  dispose.mockClear();
+  const { rerender } = renderEchartWithTheme(supersetTheme);
+  await waitFor(() => expect(init).toHaveBeenCalledTimes(1));
+  expect(initOptions().renderer).toBe('canvas');
+
+  rerender(
+    <ThemeProvider theme={{ ...supersetTheme, echartsRenderer: 'svg' }}>
+      <Echart
+        width={400}
+        height={300}
+        echartOptions={{ series: [] }}
+        refs={{ divRef: undefined }}
+      />
+    </ThemeProvider>,
+  );
+  await waitFor(() => expect(init).toHaveBeenCalledTimes(2));
+  expect(dispose).toHaveBeenCalled();
+  expect(initOptions().renderer).toBe('svg');
 });

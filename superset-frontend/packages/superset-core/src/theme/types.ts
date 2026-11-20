@@ -69,6 +69,11 @@ export type ThemeAlgorithmOption =
   | ThemeAlgorithm[];
 
 /**
+ * Renderers ECharts can draw with; see `SupersetSpecificTokens.echartsRenderer`.
+ */
+export type EchartsRenderer = 'canvas' | 'svg';
+
+/**
  * A serializable version of Ant Design's ThemeConfig
  * Compatible with theme editor exports
  */
@@ -181,6 +186,21 @@ export interface SupersetSpecificTokens {
   echartsOptionsOverridesByChartType?: {
     [chartType: string]: any;
   };
+
+  /**
+   * Renderer passed to ECharts `init()` for every ECharts visualization.
+   * Unlike the option overrides above, the renderer cannot be changed through
+   * `setOption`, so it is a separate theme property.
+   *
+   * - `'canvas'` (default): draws charts into a bitmap; fastest for very large
+   *   series.
+   * - `'svg'`: keeps chart text (axis labels, legends, titles, data labels) as
+   *   real text, so it scales with browser zoom and can be read by assistive
+   *   technology (WCAG 1.4.4 Resize Text, 1.4.5 Images of Text).
+   *
+   * Set it at the top level of a theme config, next to `token`.
+   */
+  echartsRenderer?: EchartsRenderer;
 
   // Editor-related
   /**

@@ -28,15 +28,16 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import {
-  ensureIsArray,
-  FeatureFlag,
-  isFeatureEnabled,
-} from '@superset-ui/core';
+import { ensureIsArray } from '@superset-ui/core';
 import type GlobalModel from 'echarts/types/src/model/Global';
 import type CartesianAxisModel from 'echarts/types/src/coord/cartesian/AxisModel';
 
-import { styled, useTheme } from '@apache-superset/core/theme';
+import {
+  styled,
+  useTheme,
+  type EchartsRenderer,
+  type SupersetTheme,
+} from '@apache-superset/core/theme';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -159,6 +160,14 @@ export function isReportScreenshotMode(): boolean {
 export const ECHARTS_HOST_CLASS = 'echarts-host';
 export const ECHARTS_RENDER_FINISHED_CLASS = 'echarts-render-finished';
 
+/**
+ * Picks the ECharts renderer from the theme's `echartsRenderer` property.
+ * Anything other than `'svg'` falls back to canvas, the ECharts default.
+ */
+export function getEchartsRenderer(theme: SupersetTheme): EchartsRenderer {
+  return theme.echartsRenderer === 'svg' ? 'svg' : 'canvas';
+}
+
 function Echart(
   {
     width,
@@ -174,6 +183,7 @@ function Echart(
   ref: Ref<EchartsHandler>,
 ) {
   const theme = useTheme();
+  const renderer = getEchartsRenderer(theme);
   const divRef = useRef<HTMLDivElement>(null);
   if (refs) {
     // eslint-disable-next-line no-param-reassign
@@ -215,15 +225,11 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        // WCAG 1.4.5: when ACCESSIBLE_CHART_RENDERING is enabled, use the
-        // SVG renderer so chart text stays as real text (scalable, recolors
-        // with theme tokens) instead of being rasterized into a canvas
-        // bitmap. Default stays on canvas because SVG can be slower for
-        // very large series; deployments that prioritise a11y opt in via
-        // the feature flag.
-        const renderer = isFeatureEnabled(FeatureFlag.AccessibleChartRendering)
-          ? 'svg'
-          : 'canvas';
+        // The renderer is an init() option, so it comes from the theme's
+        // `echartsRenderer` property rather than echartsOptionsOverrides.
+        // SVG keeps chart text as real text (WCAG 1.4.4, 1.4.5); canvas, the
+        // default, is faster for very large series. A renderer change
+        // remounts this component (see the `key` in EchartWithThemeRenderer).
         // Pass width and height to init to avoid "Can't get DOM width or height" warning
         // since the DOM element may not have its dimensions yet when init is called
         chartRef.current = init(divRef.current, null, {
@@ -242,7 +248,7 @@ function Echart(
       handleSizeChange({ width, height });
       setDidMount(true);
     });
-  }, [locale, width, height, handleSizeChange]);
+  }, [locale, renderer, width, height, handleSizeChange]);
 
   useEffect(() => {
     if (didMount) {
@@ -496,4 +502,19 @@ function Echart(
   );
 }
 
-export default forwardRef(Echart);
+const EchartInner = forwardRef(Echart);
+
+/**
+ * ECharts cannot switch renderer on a live instance, so remount the chart
+ * when the theme's renderer changes (for example when toggling between a
+ * light and a dark theme that set different renderers).
+ */
+function EchartWithThemeRenderer(
+  props: EchartsProps,
+  ref: Ref<EchartsHandler>,
+) {
+  const renderer = getEchartsRenderer(useTheme());
+  return <EchartInner key={renderer} {...props} ref={ref} />;
+}
+
+export default forwardRef(EchartWithThemeRenderer);

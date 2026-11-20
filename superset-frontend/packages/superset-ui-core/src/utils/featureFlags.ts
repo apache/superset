@@ -22,7 +22,6 @@ import { logging as logger } from '@apache-superset/core/utils';
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
   // PLEASE KEEP THE LIST SORTED ALPHABETICALLY
-  AccessibleChartRendering = 'ACCESSIBLE_CHART_RENDERING',
   AlertsAttachReports = 'ALERTS_ATTACH_REPORTS',
   AlertReports = 'ALERT_REPORTS',
   AlertReportDynamicExecutor = 'ALERT_REPORT_DYNAMIC_EXECUTOR',

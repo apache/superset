@@ -947,6 +947,29 @@ test('Theme includes both echartsOptionsOverrides and echartsOptionsOverridesByC
   });
 });
 
+test('Theme includes echartsRenderer from top-level config', () => {
+  const theme = Theme.fromConfig({
+    token: { colorPrimary: '#ff0000' },
+    echartsRenderer: 'svg',
+  } as AnyThemeConfig);
+
+  expect(theme.theme.echartsRenderer).toBe('svg');
+});
+
+test('Theme leaves echartsRenderer unset by default', () => {
+  expect(Theme.fromConfig().theme.echartsRenderer).toBeUndefined();
+});
+
+test('Theme.setConfig with baseTheme keeps the base theme echartsRenderer', () => {
+  const theme = Theme.fromConfig();
+  theme.setConfig({ token: { colorPrimary: '#0000ff' } }, {
+    token: { colorPrimary: '#111111' },
+    echartsRenderer: 'svg',
+  } as AnyThemeConfig);
+
+  expect(theme.theme.echartsRenderer).toBe('svg');
+});
+
 test('colorLink derives from colorPrimary when merging with base theme', () => {
   const baseTheme: AnyThemeConfig = {
     token: {
