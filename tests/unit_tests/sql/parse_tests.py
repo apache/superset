@@ -2000,6 +2000,14 @@ on $left.Day1 == $right.Day
             "T | where Name == ```O'Brien``` | take 10; print 2",
             ["T | where Name == ```O'Brien``` | take 10", " print 2"],
         ),
+        (
+            "print ```a``````b;c```; print 2",
+            ["print ```a``````b;c```", " print 2"],
+        ),
+        (
+            "print ``````; print 2",
+            ["print ``````", " print 2"],
+        ),
     ],
 )
 def test_split_kql(kql: str, expected: list[str]) -> None:
