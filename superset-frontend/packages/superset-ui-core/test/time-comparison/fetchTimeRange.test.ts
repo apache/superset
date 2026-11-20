@@ -110,8 +110,57 @@ test('returns a formatted time range from response', async () => {
   const timeRange = await fetchTimeRange('Last day', 'temporal_col');
   expect(timeRange).toEqual({
     value: '2021-04-13 ≤ temporal_col < 2021-04-14',
+    isEmpty: false,
   });
 });
+
+test.each([
+  {
+    description: 'identical timestamps',
+    since: '2021-04-13T00:00:00',
+    until: '2021-04-13T00:00:00',
+    isEmpty: true,
+  },
+  {
+    description: 'identical timestamps with microseconds',
+    since: '2021-04-13T00:00:00.000001',
+    until: '2021-04-13T00:00:00.000001',
+    isEmpty: true,
+  },
+  {
+    description: 'timestamps differing only in microseconds',
+    since: '2021-04-13T00:00:00.000001',
+    until: '2021-04-13T00:00:00.000002',
+    isEmpty: false,
+  },
+  {
+    description: 'an open start',
+    since: '',
+    until: '2021-04-13T00:00:00',
+    isEmpty: false,
+  },
+  {
+    description: 'an open end',
+    since: '2021-04-13T00:00:00',
+    until: '',
+    isEmpty: false,
+  },
+  {
+    description: 'two open endpoints',
+    since: '',
+    until: '',
+    isEmpty: false,
+  },
+])(
+  'flags an evaluated range as empty with $description',
+  async ({ since, until, isEmpty }) => {
+    fetchMock.get('glob:*/api/v1/time_range/*', {
+      result: [{ since, until, timeRange: 'today : today' }],
+    });
+
+    expect(await fetchTimeRange('today : today')).toMatchObject({ isEmpty });
+  },
+);
 
 test('returns a formatted time range from response using a custom date format', async () => {
   fetchMock.get('glob:*/api/v1/time_range/?q=%27Last+day%27', {
@@ -132,6 +181,7 @@ test('returns a formatted time range from response using a custom date format', 
   );
   expect(timeRange).toEqual({
     value: '13/04/2021 ≤ temporal_col < 14/04/2021',
+    isEmpty: false,
   });
 });
 
@@ -143,6 +193,7 @@ test('returns a formatted time range from empty response', async () => {
   const timeRange = await fetchTimeRange('Last day');
   expect(timeRange).toEqual({
     value: '-∞ ≤ col < ∞',
+    isEmpty: false,
   });
 });
 
@@ -218,7 +269,35 @@ test('fetchTimeRange with shift', async () => {
     value: [
       'temporal_col: 2021-04-13 to 2021-04-14 vs\n  2021-03-13 to 2021-03-14',
     ],
+    isEmpty: false,
   });
+});
+
+test('fetchTimeRange with shift flags a comparison range that collapses to empty', async () => {
+  fetchMock.getOnce('glob:*/api/v1/time_range/*', {
+    result: [
+      {
+        since: '2023-03-30T00:00:00',
+        until: '2023-03-31T00:00:00',
+        timeRange: '2023-03-30 : 2023-03-31',
+        shift: null,
+      },
+      {
+        since: '2023-02-28T00:00:00',
+        until: '2023-02-28T00:00:00',
+        timeRange: '2023-03-30 : 2023-03-31',
+        shift: '1 month ago',
+      },
+    ],
+  });
+
+  const timeRange = await fetchTimeRange(
+    '2023-03-30 : 2023-03-31',
+    'temporal_col',
+    ['1 month ago'],
+  );
+
+  expect(timeRange).toMatchObject({ isEmpty: true });
 });
 
 test('formatTimeRangeComparison', () => {

@@ -47,6 +47,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import {
   Dataset,
   DatasetSelectLabel,
+  getDatasetSelectLabelParts,
 } from 'src/features/datasets/DatasetSelectLabel';
 import {
   fetchDatasetById,
@@ -64,6 +65,7 @@ export interface ChartCreationProps {
 
 type DatasourceOption = {
   id: number;
+  'aria-label': string;
   label: ReactNode;
   value: string;
   table_name: string;
@@ -219,14 +221,19 @@ const createDatasourceOption = (
 ): DatasourceOption => {
   const isSemanticView = item.kind === 'semantic_view';
   const datasourceLabel = DatasetSelectLabel(item);
+  const accessibleName = getDatasetSelectLabelParts(item).join(' - ');
+  const typeLabel = isSemanticView ? t('Semantic View') : t('Dataset');
   return {
     id: item.id,
+    'aria-label': withTypeTag
+      ? `${accessibleName} ${typeLabel}`
+      : accessibleName,
     value: `${item.id}__${isSemanticView ? 'semantic_view' : 'table'}`,
     table_name: item.table_name,
     label: withTypeTag ? (
       <StyledDatasourceOption>
         {datasourceLabel}
-        <Tag>{isSemanticView ? t('Semantic View') : t('Dataset')}</Tag>
+        <Tag>{typeLabel}</Tag>
       </StyledDatasourceOption>
     ) : (
       datasourceLabel
@@ -345,9 +352,23 @@ export const ChartCreation = ({ user }: ChartCreationProps) => {
   const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
   const datasetHelpText = canCreateDataset ? (
     <span data-test="dataset-write">
-      <Link to="/dataset/add/" data-test="add-chart-new-dataset">
-        {t('Add a dataset')}
+      <Link
+        to={semanticLayersEnabled ? '/tablemodelview/list/' : '/dataset/add/'}
+        data-test="add-chart-new-dataset"
+      >
+        {semanticLayersEnabled ? t('Add a datasource') : t('Add a dataset')}
       </Link>{' '}
+      {semanticLayersEnabled && (
+        <>
+          {t('or')}{' '}
+          <Link
+            to="/tablemodelview/list/?create=semantic_view"
+            data-test="add-chart-new-semantic-view"
+          >
+            {t('create a semantic view')}
+          </Link>{' '}
+        </>
+      )}
       {t('or')}{' '}
       <a
         href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
