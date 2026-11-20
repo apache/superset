@@ -323,8 +323,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_overwrite_slice_invalid_dashboard_id_does_not_persist(self):
         """A rejected dashboard target must not overwrite the chart either
-        (follow-up to #46324, raised by @gabotorresruiz and @rebenitez1802
-        on #46351): the request's event-log commit must not persist the
+        (#46324): the request's event-log commit must not persist the
         chart fields assigned before the dashboard check.
         """
         self.login(ADMIN_USERNAME)
@@ -366,8 +365,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_overwrite_slice_missing_dashboard_does_not_persist(self):
         """Same overwrite gap as the invalid-id case, for a nonexistent
-        dashboard id (follow-up to #46324, raised by @gabotorresruiz
-        on #46351): expect 404 and the chart left untouched.
+        dashboard id (#46324): expect 404 and the chart left untouched.
         """
         self.login(ADMIN_USERNAME)
         tbl_id = self.table_ids.get("energy_usage")
@@ -404,6 +402,77 @@ class TestCore(SupersetTestCase):
         finally:
             db.session.rollback()
             db.session.delete(db.session.query(Slice).filter_by(id=slice_id).one())
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_overwrite_slice_forbidden_dashboard_does_not_persist(self):
+        """Overwriting onto a dashboard the chart editor cannot edit must
+        fail with 403 and leave the chart untouched (#46324). Uses a
+        non-admin chart editor, since admins can edit every dashboard.
+        """
+        admin = self.get_user(ADMIN_USERNAME)
+        dashboard = self.insert_dashboard(
+            f"Forbidden Dashboard {random.random()}",  # noqa: S311
+            None,
+            [admin.id],
+            created_by=admin,
+        )
+        tbl_id = self.table_ids.get("energy_usage")
+        original_name = f"Overwrite Target {random.random()}"  # noqa: S311
+        form_data = {
+            "adhoc_filters": [],
+            "viz_type": "sankey",
+            "groupby": ["target"],
+            "metric": "sum__value",
+            "row_limit": 5000,
+        }
+        table = self.get_table("energy_usage")
+        gamma = self.get_user(GAMMA_USERNAME)
+        url = "/explore/table/{}/?slice_name={}&action={}"
+        self.logout()
+        try:
+            with self.temporary_user(
+                gamma,
+                extra_pvms=[("datasource_access", table.perm)],
+                login=True,
+            ):
+                resp = self.client.post(
+                    url.format(tbl_id, original_name, "saveas"),
+                    data={"form_data": json.dumps(form_data)},
+                )
+                assert resp.status_code == 200
+                slice_id = resp.json["form_data"]["slice_id"]
+                try:
+                    resp = self.client.post(
+                        url.format(tbl_id, "Overwritten Name", "overwrite")
+                        + f"&save_to_dashboard_id={dashboard.id}",
+                        data={
+                            "form_data": json.dumps(
+                                {**form_data, "slice_id": slice_id, "row_limit": 7}
+                            )
+                        },
+                    )
+                    status, error = resp.status_code, resp.json.get("error")
+                    db.session.expire_all()
+                    slc = db.session.query(Slice).filter_by(id=slice_id).one()
+                    name, row_limit = slc.slice_name, slc.form_data["row_limit"]
+                    in_dashboard = slc in dashboard.slices
+                finally:
+                    # Delete the chart inside the block so the temporary
+                    # user's teardown can still delete the user.
+                    db.session.rollback()
+                    db.session.delete(
+                        db.session.query(Slice).filter_by(id=slice_id).one()
+                    )
+                    db.session.commit()
+                assert status == 403
+                assert "rights to alter this dashboard" in error
+                assert not in_dashboard
+                assert name == original_name
+                assert row_limit == 5000
+        finally:
+            db.session.rollback()
+            db.session.delete(db.session.merge(dashboard))
             db.session.commit()
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
@@ -528,10 +597,9 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice_to_new_dashboard_without_create_perm_returns_403(self):
         """Creating a dashboard from Explore without the create permission
-        must fail with 403 and persist nothing (follow-up to #46324,
-        raised by @gabotorresruiz on #46351): the new_dashboard_name
-        permission check moved ahead of the save, and this pins it so a
-        later reorder cannot quietly undo it.
+        must fail with 403 and persist nothing (#46324): the
+        new_dashboard_name permission check runs before the save, and
+        this pins it so a later reorder cannot quietly undo it.
         """
         self.login(ADMIN_USERNAME)
         tbl_id = self.table_ids.get("energy_usage")
