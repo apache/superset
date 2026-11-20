@@ -1093,7 +1093,7 @@ export default function CanvasGridSurface({
         index: insertIndex(resolved, placement),
       };
     },
-    [drag, parentId],
+    [columns, drag, parentId],
   );
 
   /**

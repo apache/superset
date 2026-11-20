@@ -762,6 +762,45 @@ def test_a_step_is_listed_as_what_it_did_and_who_asked(
     ]
 
 
+def test_moving_a_widget_whose_layout_leaves_its_spans_to_the_grid_is_a_move(
+    store: Store, mocker: MockerFixture
+) -> None:
+    from superset.canvas.definition.schemas import empty_definition
+    from superset.commands.canvas.draft import (
+        ApplyCanvasDraftOperationsCommand,
+        CreateCanvasDraftCommand,
+        draft_payload,
+    )
+    from superset.widgets.builtin import Markdown
+
+    definition = empty_definition()
+    definition["root"]["children"] = ["notes"]
+    definition["nodes"]["notes"] = {
+        "widgetType": "markdown",
+        "schemaVersion": Markdown.schema_version,
+        "props": {},
+        "layout": {},
+    }
+    mocker.patch(f"{DRAFT}.CanvasDAO.load", return_value=definition)
+    mocker.patch(f"{DRAFT}.security_manager.can_access", return_value=True)
+    draft = CreateCanvasDraftCommand(7).run()
+    draft, _ = ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        draft.revision,
+        ops(
+            {
+                "op": "place",
+                "id": "notes",
+                "layout": {"col": 1, "row": 3, "colSpan": 24, "rowSpan": 1},
+            }
+        ),
+    ).run()
+
+    assert draft_payload(draft, resolved=False)["changes"] == [
+        {"kind": "moved", "nodeId": "notes", "by": "user"}
+    ]
+
+
 def test_a_draft_is_empty_only_until_a_step_is_taken(
     store: Store, mocker: MockerFixture
 ) -> None:

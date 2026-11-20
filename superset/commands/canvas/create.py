@@ -20,13 +20,12 @@ from __future__ import annotations
 
 from functools import partial
 from typing import Any
-from uuid import UUID
 
 from flask import current_app
 from marshmallow import ValidationError
 
 from superset.canvas.definition.registry import get_widget_resolver
-from superset.canvas.definition.schemas import empty_definition
+from superset.canvas.definition.schemas import canonical_widget_id, empty_definition
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
     normalize_definition,
@@ -124,12 +123,6 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
         return {
             node_id: widget_id
             for node_id, widget_id in placed.items()
-            if widget_id not in allowed and _canonical(widget_id) not in allowed
+            if widget_id not in allowed
+            and canonical_widget_id(widget_id) not in allowed
         }
-
-
-def _canonical(widget_id: str) -> str:
-    try:
-        return str(UUID(widget_id))
-    except ValueError:
-        return widget_id

@@ -103,6 +103,32 @@ def test_props_from_a_newer_widget_stay_as_a_placeholder() -> None:
     assert result["nodes"]["a"]["schemaVersion"] == 2
 
 
+def test_a_layout_its_narrowed_grid_no_longer_fits_is_auto_placed() -> None:
+    from superset.canvas.definition.render import render_context
+
+    layout = {"col": 7, "row": 1, "colSpan": 12, "rowSpan": 2}
+    raw = canvas(
+        {
+            "g": inline("group", layout={"colSpan": 24, "rowSpan": 4}, children=["a"]),
+            "a": node("chart-1", layout=layout),
+        },
+        children=["g"],
+    )
+
+    result = normalize_definition(
+        raw, canvas_widget_types(), FakeResolver(), strict_nodes=[], props_nodes=[]
+    )
+    placed = render_context(result, canvas_widget_types(), FakeResolver())
+
+    assert result["nodes"]["a"]["layout"] == layout
+    assert placed["placements"]["a"] == {
+        "col": 1,
+        "row": 1,
+        "colSpan": 12,
+        "rowSpan": 1,
+    }
+
+
 def test_inline_props_are_migrated_to_the_widget_version() -> None:
     rules = canvas_widget_types()
     markdown = rules["markdown"]

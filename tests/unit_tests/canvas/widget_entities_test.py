@@ -775,6 +775,31 @@ def test_a_committed_draft_that_only_changes_widgets_still_feeds_the_change(
     ]
 
 
+def test_the_changes_feed_carries_no_inline_content(
+    client: Any, full_api_access: None, canvas: Any
+) -> None:
+    apply_ops(
+        1,
+        {
+            "op": "add",
+            "id": "notes",
+            "widgetType": "markdown",
+            "props": {"title": "secret"},
+        },
+    )
+    apply_ops(2, {"op": "set_props", "id": "notes", "props": {"title": "other"}})
+    apply_ops(3, {"op": "remove", "id": "notes"})
+
+    changes = client.get(f"{URL}/changes?since=1").json["result"]["changes"]
+
+    assert [op["op"] for change in changes for op in change["ops"]] == [
+        "add",
+        "set_props",
+        "remove",
+    ]
+    assert not any("props" in op for change in changes for op in change["ops"])
+
+
 def test_the_changes_feed_stops_at_the_revision_it_reports(
     client: Any, full_api_access: None, canvas: Any, mocker: MockerFixture
 ) -> None:

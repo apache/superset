@@ -32,6 +32,10 @@ from superset.daos.base import BaseDAO
 from superset.models.canvas import Canvas, CanvasOp
 from superset.utils import json
 
+# The changes feed is readable by anyone who can read the canvas later, after
+# the content it carried may have been removed, so no op logs what it wrote.
+LOGGED_CONTENT_KEYS = frozenset({"props", "name"})
+
 
 class CanvasDAO(BaseDAO[Canvas]):
     base_filter = CanvasAccessFilter
@@ -104,7 +108,13 @@ class CanvasDAO(BaseDAO[Canvas]):
                 canvas_id=canvas_id,
                 revision=revision,
                 sequence=sequence,
-                op=json.dumps(operation.op),
+                op=json.dumps(
+                    {
+                        key: value
+                        for key, value in operation.op.items()
+                        if key not in LOGGED_CONTENT_KEYS
+                    }
+                ),
                 touched=json.dumps(
                     [[touch.node_id, touch.group.value] for touch in operation.touched]
                 ),

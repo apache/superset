@@ -394,6 +394,11 @@ class _Validator:
                     *self._size_errors(child_id, layout, columns),
                 ]:
                     self.fail(pointer(*layout_path), message)
+            elif columns is not None and span_errors(layout, columns):
+                # Its grid narrowed since it was placed.
+                kept.add(child_id)
+                layouts.append({})
+                continue
             layouts.append(layout)
             doc["nodes"][child_id]["layout"] = layout
 

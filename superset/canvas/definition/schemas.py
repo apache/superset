@@ -30,8 +30,9 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Annotated, Any, Literal, Union
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 DEFINITION_VERSION = 1
@@ -45,6 +46,17 @@ NODE_ID_MAX_LENGTH = 64
 RESERVED_IDS = frozenset({ROOT_ID, SETTINGS_ID})
 
 NodeId = Annotated[str, Field(pattern=NODE_ID_PATTERN, max_length=NODE_ID_MAX_LENGTH)]
+
+
+def canonical_widget_id(value: str) -> str:
+    """A widget UUID in the one spelling widgets are looked up by."""
+    try:
+        return str(UUID(value))
+    except ValueError:
+        return value
+
+
+WidgetId = Annotated[str, Field(min_length=1), AfterValidator(canonical_widget_id)]
 
 
 class _Model(BaseModel):
@@ -70,7 +82,7 @@ class Node(_Model):
     widget stored here (``widgetType``, ``schemaVersion``, ``props``).
     """
 
-    widget_id: str | None = Field(default=None, min_length=1)
+    widget_id: WidgetId | None = None
     widget_type: str | None = Field(default=None, min_length=1)
     # The widget type's schema version ``props`` conform to.
     schema_version: int | None = Field(default=None, ge=1)
@@ -218,7 +230,7 @@ class AddOp(_Model):
 
     op: Literal["add"]
     id: NodeId | None = None
-    widget_id: str | None = Field(default=None, min_length=1)
+    widget_id: WidgetId | None = None
     widget_type: str | None = Field(default=None, min_length=1)
     name: str | None = Field(default=None, min_length=1, max_length=250)
     props: dict[str, Any] | None = None

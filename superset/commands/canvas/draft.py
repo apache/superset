@@ -88,6 +88,9 @@ BY_USER = "user"
 BY_AI = "ai"
 
 
+LAYOUT_OPS = frozenset({"place", "move", "swap"})
+
+
 def _parent_of(definition: dict[str, Any], node_id: str) -> str:
     """Which container holds ``node_id``, or the root if nothing does."""
     for parent, node in (definition.get("nodes") or {}).items():
@@ -96,13 +99,17 @@ def _parent_of(definition: dict[str, Any], node_id: str) -> str:
     return ROOT_ID
 
 
-def _change(op: dict[str, Any], before: dict[str, Any]) -> dict[str, Any] | None:
+def _change(
+    op: dict[str, Any], before: dict[str, Any], placed: dict[str, dict[str, int]]
+) -> dict[str, Any] | None:
     """
     What one operation did, in the words the banner lists it under.
 
     ``before`` is the definition as it stood when the operation was applied,
     which is the only place a move can be told from a resize: the operation
-    carries the layout it asked for, not the one it replaced.
+    carries the layout it asked for, not the one it replaced. ``placed`` is
+    where ``before`` resolved each placement, since a stored layout can leave
+    its spans to the grid.
     """
     kind = op.get("op")
     node_id = op.get("id")
@@ -120,8 +127,11 @@ def _change(op: dict[str, Any], before: dict[str, Any]) -> dict[str, Any] | None
         return {"kind": "new", "nodeId": node_id}
     if kind == "remove":
         return {"kind": "removed", "nodeId": node_id}
-    if kind in {"place", "move", "swap"}:
-        was = (before.get("nodes") or {}).get(node_id, {}).get("layout") or {}
+    if kind in LAYOUT_OPS:
+        was = {
+            **((before.get("nodes") or {}).get(node_id, {}).get("layout") or {}),
+            **placed.get(node_id, {}),
+        }
         # A swap carries no layout of its own -- it takes the partner's slot --
         # so it reads as a move, which is what it is. Only the widget that was
         # dragged is listed: the one it changed places with gave way, as the
@@ -425,10 +435,15 @@ class ApplyCanvasDraftOperationsCommand:
         logged = [operation.op for operation in applied]
         # Summarised against the definition as it stood, before it is
         # replaced: a resize is only a resize next to the span it replaced.
+        placed = (
+            render_context(before, resolver=draft.resolver())["placements"]
+            if any(op.op.get("op") in LAYOUT_OPS for op in applied)
+            else {}
+        )
         changes = [
             change
             for operation in applied
-            if (change := _change(operation.op, before)) is not None
+            if (change := _change(operation.op, before, placed)) is not None
         ]
         draft.definition = definition
         # One group per request, so the replay resolves where this did, and

@@ -398,16 +398,26 @@ export function useCanvasLayout(
   // renders its children from. Without this the widget stays on screen, and
   // with no placement left it lands wherever auto-flow puts it.
   const [removed, setRemoved] = useState<ReadonlySet<string>>(NONE_REMOVED);
+  // The revision each acknowledged removal produced. A fetch at or past it
+  // that still holds the widget means the removal was undone.
+  const removedAt = useRef(new Map<string, number>());
   // The definition caught up, so the set has done its job. Comparing against
   // the fetched nodes rather than clearing on any change: a poll that arrives
   // before the write lands would otherwise bring the widget back.
   useEffect(() => {
     setRemoved(current => {
       if (current.size === 0) return current;
-      const left = [...current].filter(nodeId => nodeId in result.placements);
+      const left = [...current].filter(nodeId => {
+        const at = removedAt.current.get(nodeId);
+        const kept =
+          nodeId in result.placements &&
+          (at === undefined || result.revision < at);
+        if (!kept) removedAt.current.delete(nodeId);
+        return kept;
+      });
       return left.length === current.size ? current : new Set(left);
     });
-  }, [result.placements]);
+  }, [result.placements, result.revision]);
 
   const { revision, canEdit } = result;
 
@@ -491,6 +501,8 @@ export function useCanvasLayout(
     acknowledged.current = undefined;
     writing.current = false;
     queued.current.clear();
+    removedAt.current.clear();
+    setRemoved(NONE_REMOVED);
     setApplied(undefined);
     // `told` above all: a new draft counts from zero, so the revision the
     // last one reached is always the greater of the two and what it held
@@ -539,6 +551,10 @@ export function useCanvasLayout(
           const written = json?.result as ApplyOperationsResult | undefined;
           if (!written) return;
           confirmed.current = written.revision;
+          ops.forEach((op, id) => {
+            if (op.kind === 'remove')
+              removedAt.current.set(id, written.revision);
+          });
           setTold({
             revision: written.revision,
             changes: written.changes,
@@ -597,6 +613,7 @@ export function useCanvasLayout(
           );
           queued.current.clear();
           if (kept.size > 0) {
+            kept.forEach(id => removedAt.current.delete(id));
             setRemoved(current => {
               const left = [...current].filter(id => !kept.has(id));
               if (left.length === current.size) return current;
@@ -692,8 +709,11 @@ export function useCanvasLayout(
           placements: without(
             {
               ...(newer?.placements ?? fetchedPlacements.current),
-              ...pushed.placements,
+              // Under what the drop settled on: a target it overlaps can
+              // still order it after a sibling, which pushes it off the cell
+              // it asked for.
               ...moved,
+              ...pushed.placements,
             },
             gone,
           ),

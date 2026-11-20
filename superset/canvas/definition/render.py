@@ -52,7 +52,7 @@ from pydantic import ValidationError
 from superset_core.canvas import GridPlacement, WidgetResolver
 from superset_core.widgets import Widget, WidgetUi
 
-from superset.canvas.definition.grid import resolve_grid
+from superset.canvas.definition.grid import resolve_grid, span_errors
 from superset.canvas.definition.pending import widget_payload
 from superset.canvas.definition.placements import placement_types
 from superset.canvas.definition.registry import (
@@ -98,7 +98,7 @@ def render_context(
     stored_layouts: dict[str, dict[str, Any]] = {}
     grid_extents: dict[str, int] = {}
     for parent, children, columns in grids:
-        layouts = [_grid_layout(nodes[c]["layout"]) for c in children]
+        layouts = [_grid_layout(nodes[c]["layout"], columns) for c in children]
         rects, _ = resolve_grid(layouts, columns)
         for child, rect, layout in zip(children, rects, layouts, strict=True):
             placements[child] = {
@@ -223,12 +223,13 @@ def _span_constraints(ui: WidgetUi, content_rows: int = 0) -> dict[str, int]:
     return {name: limit for name, limit in limits.items() if limit is not None}
 
 
-def _grid_layout(layout: dict[str, Any]) -> dict[str, Any]:
-    """A stored layout as grid placement; one kept from another layout model
-    after a container's rules changed is auto-placed instead."""
+def _grid_layout(layout: dict[str, Any], columns: int) -> dict[str, Any]:
+    """A stored layout as grid placement; one kept from another layout model,
+    or that overflows a grid narrowed since, is auto-placed instead."""
     try:
-        return GridPlacement.model_validate(layout).model_dump(
+        placement = GridPlacement.model_validate(layout).model_dump(
             mode="json", by_alias=True, exclude_none=True
         )
     except ValidationError:
         return {}
+    return {} if span_errors(placement, columns) else placement

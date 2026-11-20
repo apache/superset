@@ -472,6 +472,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
+        include_request_data=False,
         # The canvas has no id until the command runs, so the route reports it.
         allow_extra_payload=True,
     )
@@ -912,6 +913,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             f"{self.__class__.__name__}.apply_draft_operations"
         ),
         log_to_statsd=False,
+        include_request_data=False,
         allow_extra_payload=True,
     )
     @_handle_canvas_errors
@@ -1126,6 +1128,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             f"{self.__class__.__name__}.get_placement_data"
         ),
         log_to_statsd=False,
+        include_request_data=False,
     )
     @_handle_canvas_errors
     def get_placement_data(self, id_or_uuid: str, placement_id: str) -> Response:

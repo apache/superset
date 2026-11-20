@@ -1079,6 +1079,27 @@ test('a failed removal puts the widget back', async () => {
   expect(result.current.removed.has('kpi')).toBe(false);
 });
 
+test('a removal undone before a fetch saw it gone shows the widget again', async () => {
+  fetchMock.patch(endpoint, {
+    result: { revision: 4, ops: [], placements: { trend: TREND } },
+  });
+  const { result, rerender } = renderHook(
+    ({ revision }: { revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), jest.fn()),
+    { initialProps: { revision: 3 } },
+  );
+
+  act(() => result.current.remove('kpi'));
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  await waitFor(() => expect(result.current.saving).toBe(false));
+  expect(result.current.removed.has('kpi')).toBe(true);
+
+  // Undone: the next fetch is past the removal and still holds the widget.
+  rerender({ revision: 5 });
+
+  expect(result.current.removed.has('kpi')).toBe(false);
+});
+
 test('a grid added after the first render is still settled locally', () => {
   // Stable, so `write` keeps its identity across the refetch below and would
   // read a stale definition if it closed over one.
