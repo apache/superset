@@ -63,10 +63,8 @@ export interface Tab {
   id: string;
 
   /**
-   * The stable backend-assigned identifier for this tab. Exposed as an opaque
-   * string so the public extension API does not leak the backend's internal
-   * numeric tab id. Set once the tab has been persisted to the backend;
-   * undefined for new tabs before the first backend sync.
+   * The ID of this tab's backend tab_state row, as a string.
+   * Undefined until the tab is first saved.
    */
   backendId?: string;
 

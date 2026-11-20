@@ -284,6 +284,10 @@ const SqlEditor: FC<Props> = ({
   // other tabs.
   const { northPaneViewId, northPaneViews } = useNorthPaneView(queryEditor);
 
+  const hasExtensionEditor =
+    !!northPaneViewId &&
+    northPaneViews.some(view => view.id === northPaneViewId);
+
   const [autorun, setAutorun] = useState(queryEditor.autorun);
   const [ctas, setCtas] = useState('');
   const [northPercent, setNorthPercent] = useState(
@@ -360,9 +364,9 @@ const SqlEditor: FC<Props> = ({
     if (autorun) {
       setAutorun(false);
       dispatch(queryEditorSetAutorun(queryEditor, false));
-      startQuery();
+      if (!northPaneViewId) startQuery();
     }
-  }, [autorun, dispatch, queryEditor, startQuery]);
+  }, [autorun, dispatch, northPaneViewId, queryEditor, startQuery]);
 
   const getHotkeyConfig = useCallback(() => {
     // Get the user's OS
@@ -643,16 +647,17 @@ const SqlEditor: FC<Props> = ({
   }, [onBeforeUnload, loadQueryEditor, isActive]);
 
   useEffect(() => {
-    // setup hotkeys
-    const hotkeys = getHotkeyConfig();
-    if (isActive) {
-      // MouseTrap always override the same key
-      // Unbind (reset) will be called when App component unmount
-      hotkeys.forEach(keyConfig => {
-        Mousetrap.bind([keyConfig.key], keyConfig.func);
-      });
-    }
-  }, [getHotkeyConfig, latestQuery, isActive]);
+    if (!isActive) return undefined;
+    const bindings = getHotkeyConfig().filter(
+      ({ name }) =>
+        !hasExtensionEditor ||
+        ['newTab', 'switchTabToLeft', 'switchTabToRight'].includes(name),
+    );
+    bindings.forEach(({ key, func }) => Mousetrap.bind(key, func));
+    return () => {
+      bindings.forEach(({ key }) => Mousetrap.unbind(key));
+    };
+  }, [getHotkeyConfig, hasExtensionEditor, isActive]);
 
   const onResizeStart = () => {
     // Set the heights on the ace editor and the ace content area after drag starts
@@ -1057,19 +1062,13 @@ const SqlEditor: FC<Props> = ({
         >
           <Skeleton active />
         </div>
-      ) : northPaneViewId &&
-        northPaneViews.some(v => v.id === northPaneViewId) ? (
+      ) : northPaneViewId && hasExtensionEditor ? (
         <Flex
           vertical
           css={css`
             height: 100%;
           `}
         >
-          <SqlEditorTopBar
-            queryEditorId={queryEditor.id}
-            defaultPrimaryActions={null}
-            defaultSecondaryActions={[]}
-          />
           <div
             css={css`
               flex: 1;

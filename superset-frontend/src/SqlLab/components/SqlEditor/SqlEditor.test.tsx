@@ -31,6 +31,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import Mousetrap from 'mousetrap';
 import reducers from 'spec/helpers/reducerIndex';
 import { setupStore } from 'src/views/store';
 import {
@@ -415,12 +416,16 @@ describe('SqlEditor', () => {
     localStorage.setItem(storageKey, 'test.northPane');
     const disposable = registerTestNorthPaneView();
 
+    const bind = jest.spyOn(Mousetrap, 'bind');
     try {
       const { findByTestId, queryByTestId } = setup(mockedProps, store);
       expect(await findByTestId('np-view')).toBeInTheDocument();
+      expect(document.getElementById('js-sql-toolbar')).not.toBeInTheDocument();
+      expect(bind).not.toHaveBeenCalledWith('ctrl+enter', expect.any(Function));
       // The default SQL editor pane is replaced, not rendered alongside.
       expect(queryByTestId('react-ace')).not.toBeInTheDocument();
     } finally {
+      bind.mockRestore();
       disposable.dispose();
       localStorage.removeItem(storageKey);
     }

@@ -91,6 +91,12 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
           }
         })
         .catch(async (error: unknown) => {
+          if (
+            error instanceof Response &&
+            (error.status === 403 || error.status === 404)
+          ) {
+            return;
+          }
           // A failed list fetch rejects with a Response-like object whose
           // String() form is just "[object Response]"; pull the actual
           // message/status out of it so the toast says what went wrong.

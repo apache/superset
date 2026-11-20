@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor, createStore } from 'spec/helpers/testing-library';
+import {
+  act,
+  render,
+  waitFor,
+  createStore,
+} from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
@@ -353,9 +358,9 @@ test('surfaces the response detail when the extension list fetch rejects', async
   // A failed SupersetClient call rejects with a Response, whose String()
   // form is "[object Response]" and says nothing about what went wrong.
   ExtensionsLoader.prototype.initializeExtensions = jest.fn().mockRejectedValue(
-    new Response(JSON.stringify({ message: 'Extensions are disabled' }), {
-      status: 403,
-      statusText: 'Forbidden',
+    new Response(JSON.stringify({ message: 'Service unavailable' }), {
+      status: 503,
+      statusText: 'Service Unavailable',
       headers: { 'Content-Type': 'application/json' },
     }),
   );
@@ -373,7 +378,23 @@ test('surfaces the response detail when the extension list fetch rejects', async
     const toastText = getToastTexts(store).find(text =>
       /Extensions failed to load/.test(text),
     );
-    expect(toastText).toContain('Extensions are disabled');
+    expect(toastText).toContain('Service unavailable');
     expect(toastText).not.toContain('[object');
   });
+});
+
+test.each([403, 404])('skips the startup warning for HTTP %i', async status => {
+  mockIsFeatureEnabled.mockReturnValue(true);
+  const initialize = jest
+    .fn()
+    .mockRejectedValue(new Response(null, { status }));
+  ExtensionsLoader.prototype.initializeExtensions = initialize;
+  const store = createStore(mockInitialState, reducerIndex);
+
+  await act(async () => {
+    render(<ExtensionsStartup />, { store, useRouter: true });
+  });
+
+  expect(initialize).toHaveBeenCalled();
+  expect(getToasts(store)).toHaveLength(0);
 });
