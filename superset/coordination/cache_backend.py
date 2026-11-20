@@ -266,6 +266,7 @@ class RedisCacheBackend(RedisCommandsMixin, RedisCache):
         ssl_ca_certs: str | None = None,
         socket_timeout: float | None = None,
         socket_connect_timeout: float | None = None,
+        ssl_check_hostname: bool = True,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -295,6 +296,7 @@ class RedisCacheBackend(RedisCommandsMixin, RedisCache):
             "ssl_keyfile": ssl_keyfile,
             "ssl_cert_reqs": ssl_cert_reqs,
             "ssl_ca_certs": ssl_ca_certs,
+            "ssl_check_hostname": ssl_check_hostname,
             "socket_timeout": socket_timeout,
             "socket_connect_timeout": socket_connect_timeout,
             "protocol": 2,
@@ -316,6 +318,7 @@ class RedisCacheBackend(RedisCommandsMixin, RedisCache):
             "ssl_keyfile": config.get("CACHE_REDIS_SSL_KEYFILE", None),
             "ssl_cert_reqs": config.get("CACHE_REDIS_SSL_CERT_REQS", "required"),
             "ssl_ca_certs": config.get("CACHE_REDIS_SSL_CA_CERTS", None),
+            "ssl_check_hostname": config.get("CACHE_REDIS_SSL_CHECK_HOSTNAME", True),
             "socket_timeout": config.get("CACHE_REDIS_SOCKET_TIMEOUT", None),
             "socket_connect_timeout": config.get(
                 "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT", None
@@ -347,6 +350,8 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
         socket_timeout: float | None = None,
         socket_connect_timeout: float | None = None,
         force_master_ip: str | None = None,
+        username: str | None = None,
+        ssl_check_hostname: bool = True,
         **kwargs: Any,
     ) -> None:
         # Sentinel dont directly support SSL
@@ -390,6 +395,7 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
             "ssl_keyfile": ssl_keyfile if ssl else None,
             "ssl_cert_reqs": ssl_cert_reqs if ssl else None,
             "ssl_ca_certs": ssl_ca_certs if ssl else None,
+            "ssl_check_hostname": ssl_check_hostname if ssl else None,
         }
 
         # If SSL is False, remove all SSL-related keys
@@ -407,6 +413,12 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
         master_kwargs["socket_timeout"] = socket_timeout
         master_kwargs["socket_connect_timeout"] = socket_connect_timeout
         master_kwargs["protocol"] = 2
+
+        # The coordination commands run on this master connection rather than
+        # on the flask-caching client, so the DB and ACL user must be set here.
+        master_kwargs["db"] = db
+        if username:
+            master_kwargs["username"] = username
 
         # Initialize Redis master connection
         self._cache = self._sentinel.master_for(master, **master_kwargs)
@@ -436,9 +448,14 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
             "ssl_keyfile": config.get("CACHE_REDIS_SSL_KEYFILE", None),
             "ssl_cert_reqs": config.get("CACHE_REDIS_SSL_CERT_REQS", "required"),
             "ssl_ca_certs": config.get("CACHE_REDIS_SSL_CA_CERTS", None),
+            "ssl_check_hostname": config.get("CACHE_REDIS_SSL_CHECK_HOSTNAME", True),
             "socket_timeout": config.get("CACHE_REDIS_SOCKET_TIMEOUT", None),
             "socket_connect_timeout": config.get(
                 "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT", None
             ),
         }
+
+        if configured_username := config.get("CACHE_REDIS_USER"):
+            kwargs["username"] = configured_username
+
         return cls(**kwargs)
