@@ -21,7 +21,9 @@ import { isString, isBoolean } from 'lodash-es';
 import { isBlank } from '@apache-superset/core/utils';
 import { addAlpha, DataRecord, rgbaToHex } from '@superset-ui/core';
 import { type RGBColor } from '@superset-ui/core/components';
-import tinycolor from 'tinycolor2';
+import { colord, extend } from 'colord';
+import a11yPlugin from 'colord/plugins/a11y';
+import namesPlugin from 'colord/plugins/names';
 import {
   ColorFormatters,
   Comparator,
@@ -33,16 +35,15 @@ import {
   PercentDenominator,
 } from '../types';
 
+// contrast() picks the text color; user configs can use color names such as `red`
+extend([a11yPlugin, namesPlugin]);
+
 export const round = (num: number, precision = 0) =>
   Number(`${Math.round(Number(`${num}e+${precision}`))}e-${precision}`);
 
 const MIN_OPACITY_BOUNDED = 0.05;
 const MIN_OPACITY_UNBOUNDED = 0;
 const MAX_OPACITY = 1;
-const READABLE_TEXT_COLORS = [
-  { r: 0, g: 0, b: 0 },
-  { r: 255, g: 255, b: 255 },
-];
 
 export const getOpacity = (
   value: number | string | boolean | null,
@@ -75,9 +76,15 @@ export const getOpacity = (
   );
 };
 
+// saved configs can hold a hex code without `#`
+const parseColor = (color: string) => {
+  const parsed = colord(color);
+  return parsed.isValid() ? parsed : colord(`#${color}`);
+};
+
 const parseColorToRgb = (color: RGBColor | string) => {
   if (typeof color === 'string') {
-    const { r, g, b } = tinycolor(color).toRgb();
+    const { r, g, b } = parseColor(color).toRgb();
     return { r, g, b };
   }
   return { r: color.r, g: color.g, b: color.b };
@@ -561,8 +568,8 @@ export const getReadableTextColor = (
     return undefined;
   }
 
-  const background = tinycolor(backgroundColor);
-  const surface = tinycolor(surfaceColor);
+  const background = parseColor(backgroundColor);
+  const surface = parseColor(surfaceColor);
 
   if (!background.isValid() || !surface.isValid()) {
     return undefined;
@@ -572,19 +579,15 @@ export const getReadableTextColor = (
   const { r: surfaceR, g: surfaceG, b: surfaceB } = surface.toRgb();
   const alpha = bgAlpha;
 
-  const compositeColor = tinycolor({
+  const compositeColor = colord({
     r: bgR * alpha + surfaceR * (1 - alpha),
     g: bgG * alpha + surfaceG * (1 - alpha),
     b: bgB * alpha + surfaceB * (1 - alpha),
   });
 
-  return tinycolor
-    .mostReadable(compositeColor, READABLE_TEXT_COLORS, {
-      includeFallbackColors: true,
-      level: 'AA',
-      size: 'small',
-    })
-    .toRgbString();
+  return compositeColor.contrast('#000') >= compositeColor.contrast('#fff')
+    ? 'rgb(0, 0, 0)'
+    : 'rgb(255, 255, 255)';
 };
 
 export const getNormalizedTextColor = (
@@ -594,12 +597,12 @@ export const getNormalizedTextColor = (
     return undefined;
   }
 
-  const parsedColor = tinycolor(color);
+  const parsedColor = parseColor(color);
   if (!parsedColor.isValid()) {
     return color;
   }
 
-  return parsedColor.setAlpha(1).toRgbString();
+  return parsedColor.alpha(1).toRgbString();
 };
 
 export const getTextColorForBackground = (

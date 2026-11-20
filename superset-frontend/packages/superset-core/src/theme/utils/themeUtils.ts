@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import tinycolor from 'tinycolor2';
+import { colord, extend } from 'colord';
+import namesPlugin from 'colord/plugins/names';
 import { useTheme as useEmotionTheme } from '@emotion/react';
 import { theme as antdTheme } from 'antd';
 import type {
@@ -26,6 +27,9 @@ import type {
   AnyThemeConfig,
 } from '../types';
 import { normalizeThemeConfig } from '.';
+
+// theme configs can use color names such as `white`
+extend([namesPlugin]);
 
 const fontSizeMap: Record<FontSizeKey, keyof SupersetTheme> = {
   xs: 'fontSizeXS',
@@ -53,7 +57,7 @@ export function getFontSize(theme: SupersetTheme, size?: FontSizeKey): string {
  * @returns true if theme is dark, false if light
  */
 export function isThemeDark(theme: SupersetTheme): boolean {
-  return tinycolor(theme.colorBgContainer).isDark();
+  return colord(theme.colorBgContainer).isDark();
 }
 
 /**
@@ -73,9 +77,7 @@ export function getColorVariants(
 
     const flipBrightness = (baseColor: string): string => {
       if (!isDark) return baseColor;
-      const { r, g, b } = tinycolor(baseColor).toRgb();
-      const invertedColor = tinycolor({ r: 255 - r, g: 255 - g, b: 255 - b });
-      return invertedColor.toHexString();
+      return colord(baseColor).invert().toHex();
     };
 
     return {
@@ -130,7 +132,7 @@ export function isThemeConfigDark(config: AnyThemeConfig): boolean {
     const normalizedConfig = normalizeThemeConfig(config);
     const themeConfig = antdTheme.getDesignToken(normalizedConfig);
 
-    return tinycolor(themeConfig.colorBgContainer).isDark();
+    return colord(themeConfig.colorBgContainer).isDark();
   } catch {
     return false;
   }

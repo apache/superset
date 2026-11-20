@@ -29,9 +29,9 @@
   "dependencies": {
     "@apache-superset/core": "*",
     "@types/react": "*",
+    "colord": "^2.13.0",
     "lodash": "^4.18.1",
-    "lodash-es": "^4.18.1",
-    "tinycolor2": "*"
+    "lodash-es": "^4.18.1"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.6.1",

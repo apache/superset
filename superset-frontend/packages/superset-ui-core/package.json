@@ -61,6 +61,7 @@
     "ag-grid-react": "36.3.0",
     "brace": "^0.11.1",
     "classnames": "^2.5.1",
+    "colord": "^2.13.0",
     "core-js": "^3.51.0",
     "csstype": "^3.2.3",
     "d3-format": "^3.1.2",
@@ -122,11 +123,9 @@
     "@testing-library/react": "*",
     "@testing-library/user-event": "*",
     "@types/react": "*",
-    "@types/tinycolor2": "*",
     "antd": "^6.0.0",
     "nanoid": "*",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "tinycolor2": "*"
+    "react-dom": "^18.3.0"
   }
 }

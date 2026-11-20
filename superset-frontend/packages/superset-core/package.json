@@ -93,6 +93,7 @@
     "type": "npx tsc --noEmit"
   },
   "dependencies": {
+    "colord": "^2.13.0",
     "lodash-es": "^4.18.1"
   },
   "devDependencies": {
@@ -108,7 +109,6 @@
     "@testing-library/user-event": "*",
     "@types/lodash": "^4.17.27",
     "@types/react": "*",
-    "@types/tinycolor2": "*",
     "typescript": "7.0.2"
   },
   "peerDependencies": {
@@ -122,7 +122,6 @@
     "lodash": "^4.18.1",
     "nanoid": "*",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "tinycolor2": "*"
+    "react-dom": "^18.3.0"
   }
 }

@@ -174,11 +174,18 @@ test('getComparisonColorTokens tints an rgb() theme token using its own r/g/b co
   });
 });
 
-test('getComparisonColorTokens passes an unrecognized color format through unchanged', () => {
-  const namedColor = 'papayawhip';
-  expect(getComparisonColorTokens(namedColor, supersetTheme)).toEqual({
-    text: namedColor,
-    background: namedColor,
-    strongText: namedColor,
+test('getComparisonColorTokens tints a named color using its own r/g/b components', () => {
+  expect(getComparisonColorTokens('papayawhip', supersetTheme)).toEqual({
+    text: 'papayawhip',
+    background: 'rgba(255, 239, 213, 0.1)',
+    strongText: 'papayawhip',
+  });
+});
+
+test('getComparisonColorTokens passes a value that is not a color through unchanged', () => {
+  expect(getComparisonColorTokens('not a color', supersetTheme)).toEqual({
+    text: 'not a color',
+    background: 'not a color',
+    strongText: 'not a color',
   });
 });

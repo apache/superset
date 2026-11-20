@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import tinycolor from 'tinycolor2';
+import { colord } from 'colord';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { t } from '@apache-superset/core/translation';
 import { css, SupersetTheme } from '@apache-superset/core/theme';
@@ -55,7 +55,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
         height: 100%;
         width: ${BUILDER_PANE_WIDTH}px;
         box-shadow: -${theme.sizeUnit}px 0 ${theme.sizeUnit}px 0
-          ${tinycolor(theme.colorBorder).setAlpha(0.1).toRgbString()};
+          ${colord(theme.colorBorder).alpha(0.1).toRgbString()};
         background-color: ${theme.colorBgBase};
       `}
     >

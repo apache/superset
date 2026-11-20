@@ -24,11 +24,14 @@ import {
   type SupersetTheme,
 } from '@apache-superset/core/theme';
 import { ObjectFormattingEnum } from '@superset-ui/chart-controls';
-import tinycolor from 'tinycolor2';
+import { colord, extend } from 'colord';
+import a11yPlugin from 'colord/plugins/a11y';
 import { createElement, type ComponentProps, ReactNode } from 'react';
 import { useColDefs } from '../../src/utils/useColDefs';
 import { InputColumn } from '../../src/types';
 import { ROW_NUMBER_COL_ID } from '../../src/consts';
+
+extend([a11yPlugin]);
 
 type TestCellStyleFunc = (params: unknown) => unknown;
 
@@ -68,9 +71,9 @@ function getExpectedTextColor(
   surfaceColor: string,
 ) {
   if (result.color) {
-    const parsedColor = tinycolor(result.color);
+    const parsedColor = colord(result.color);
     return parsedColor.isValid()
-      ? parsedColor.setAlpha(1).toRgbString()
+      ? parsedColor.alpha(1).toRgbString()
       : result.color;
   }
 
@@ -78,8 +81,8 @@ function getExpectedTextColor(
     return undefined;
   }
 
-  const background = tinycolor(result.backgroundColor);
-  const surface = tinycolor(surfaceColor);
+  const background = colord(result.backgroundColor);
+  const surface = colord(surfaceColor);
   if (!background.isValid() || !surface.isValid()) {
     return undefined;
   }
@@ -87,25 +90,15 @@ function getExpectedTextColor(
   const { r: bgR, g: bgG, b: bgB, a: bgAlpha } = background.toRgb();
   const { r: surfaceR, g: surfaceG, b: surfaceB } = surface.toRgb();
   const alpha = bgAlpha ?? 1;
+  const composite = colord({
+    r: bgR * alpha + surfaceR * (1 - alpha),
+    g: bgG * alpha + surfaceG * (1 - alpha),
+    b: bgB * alpha + surfaceB * (1 - alpha),
+  });
 
-  return tinycolor
-    .mostReadable(
-      tinycolor({
-        r: bgR * alpha + surfaceR * (1 - alpha),
-        g: bgG * alpha + surfaceG * (1 - alpha),
-        b: bgB * alpha + surfaceB * (1 - alpha),
-      }),
-      [
-        { r: 0, g: 0, b: 0 },
-        { r: 255, g: 255, b: 255 },
-      ],
-      {
-        includeFallbackColors: true,
-        level: 'AA',
-        size: 'small',
-      },
-    )
-    .toRgbString();
+  return composite.contrast('#000') >= composite.contrast('#fff')
+    ? 'rgb(0, 0, 0)'
+    : 'rgb(255, 255, 255)';
 }
 
 function makeThemeWrapper(theme: SupersetTheme) {

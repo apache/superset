@@ -24,7 +24,7 @@ import {
   userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import tinycolor from 'tinycolor2';
+import { colord } from 'colord';
 import {
   BoundUnit,
   ColorSchemeEnum,
@@ -949,7 +949,7 @@ test('validates Center value against Min bound and Max bound when both are set',
 
 // Opens the given ColorPickerControl's popover, clicks the preset swatch at
 // `presetIndex`, and returns the hex color that swatch actually represents
-// (read from its own inline `style.background`, normalized via `tinycolor`
+// (read from its own inline `style.background`, normalized via `colord`
 // so it's comparable to the hex string ColorPickerControl's
 // `outputFormat="hex"` produces). Returning the *actual* clicked color
 // (rather than just asserting "some string came back") lets the caller
@@ -994,7 +994,7 @@ const pickPresetColorAt = async (label: string, presetIndex: number) => {
     '.ant-color-picker-color-block-inner',
   ) as HTMLElement;
   expect(swatch).toBeInTheDocument();
-  const clickedColor = tinycolor(swatch.style.background).toHexString();
+  const clickedColor = colord(swatch.style.background).toHex();
 
   await userEvent.click(preset);
   return clickedColor;
@@ -1029,9 +1029,9 @@ test('selecting Low/Mid/High colors submits the exact colors clicked to onChange
   });
 
   const payload = onChange.mock.calls[0][0];
-  expect(tinycolor(payload.lowColor).toHexString()).toEqual(lowExpected);
-  expect(tinycolor(payload.midColor).toHexString()).toEqual(midExpected);
-  expect(tinycolor(payload.highColor).toHexString()).toEqual(highExpected);
+  expect(colord(payload.lowColor).toHex()).toEqual(lowExpected);
+  expect(colord(payload.midColor).toHex()).toEqual(midExpected);
+  expect(colord(payload.highColor).toHex()).toEqual(highExpected);
 });
 
 test('keeps Use gradient available for complete diverging configs', async () => {

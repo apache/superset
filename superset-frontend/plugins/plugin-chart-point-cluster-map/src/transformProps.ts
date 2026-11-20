@@ -21,8 +21,13 @@ import Supercluster, {
 } from 'supercluster';
 import { ChartProps, getMapProviderMapStyle } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
+import { colord, extend } from 'colord';
+import namesPlugin from 'colord/plugins/names';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './mapLibreDefaults';
 import roundDecimal from './utils/roundDecimal';
+
+// the map color can be named, such as `darkcyan`
+extend([namesPlugin]);
 
 const NOOP = () => {};
 
@@ -198,22 +203,11 @@ export default function transformProps(chartProps: ChartProps) {
     ({ bounds } = built);
   }
 
-  // Validate color — supports hex (#rrggbb) and rgb(r, g, b) formats
-  let rgb: string[] | null = null;
-  const hexMatch = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(
-    maplibreColor,
-  );
-  if (hexMatch) {
-    rgb = [
-      maplibreColor,
-      String(parseInt(hexMatch[1], 16)),
-      String(parseInt(hexMatch[2], 16)),
-      String(parseInt(hexMatch[3], 16)),
-    ];
-  } else {
-    rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(maplibreColor);
-  }
-  if (rgb === null) {
+  // Validate color — any CSS color works, such as hex or rgb(r, g, b)
+  const color = colord(maplibreColor);
+  const { r, g, b } = color.toRgb();
+  let rgb = [maplibreColor, String(r), String(g), String(b)];
+  if (!color.isValid()) {
     onError(t("Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"));
     // Fall back to a safe default color so the chart can still render
     rgb = ['', '0', '0', '0'];

@@ -24,9 +24,12 @@ import {
   ThemeAlgorithm,
 } from '@apache-superset/core/theme';
 import { ThemeProvider } from '@emotion/react';
-import tinycolor from 'tinycolor2';
+import { colord, extend } from 'colord';
+import a11yPlugin from 'colord/plugins/a11y';
 import { DatasetTypeLabel } from './DatasetTypeLabel';
 import { renderWithTheme } from './testUtils';
+
+extend([a11yPlugin]);
 
 test('renders "Physical" text for physical dataset', () => {
   renderWithTheme(<DatasetTypeLabel datasetType="physical" />);
@@ -166,7 +169,7 @@ test.each([ThemeAlgorithm.DEFAULT, ThemeAlgorithm.DARK])(
       color: theme.colorText,
     });
     expect(
-      tinycolor.readability(theme.colorText, theme.colorInfoBg),
+      colord(theme.colorText).contrast(theme.colorInfoBg),
     ).toBeGreaterThanOrEqual(4.5);
   },
 );
