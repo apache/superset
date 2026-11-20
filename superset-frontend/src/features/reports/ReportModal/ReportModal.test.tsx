@@ -115,6 +115,7 @@ const PER_TEST_ROUTES = [
   'put-report-43',
   'post-fail',
   'post-retry',
+  'notice-dashboard',
 ];
 
 afterEach(() => {
