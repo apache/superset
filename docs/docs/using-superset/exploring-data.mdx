@@ -526,6 +526,14 @@ endpoints resolve to the same timestamp, the picker warns that the range is empt
 you can still apply it. To include a full day, use midnight on that day as the
 start and midnight on the following day as the end.
 
+### Drill By Categories in Mixed Charts
+
+On a Mixed Timeseries chart with a categorical x-axis, **Drill by** keeps the
+clicked category for the selected query (A or B), for datasets and semantic views.
+If the point also belongs to a series group, both filters apply by default; the
+scope selector lets you choose the category or the series instead. The other
+query's controls and cross-filter behavior are unchanged.
+
 ### Drill By Time Buckets
 
 On time-series charts, **Drill by** from a grained temporal axis keeps the clicked

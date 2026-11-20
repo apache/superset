@@ -270,6 +270,43 @@ export default function EchartsMixedTimeseries({
           if (filter?.grain) {
             xAxisFilters.push(filter);
           }
+        } else if (xAxis.type === AxisType.Category && xAxisColumn) {
+          // Line/area events carry only the series identity. Resolve their
+          // pixel position through the shared category axis, not a data index.
+          const rawValue = getTimeAxisDrillByValue(
+            data,
+            Array.isArray(echartOptions.series)
+              ? echartOptions.series[seriesIndex]
+              : echartOptions.series,
+            data === undefined
+              ? echartRef.current
+                  ?.getEchartInstance()
+                  ?.convertFromPixel({ seriesIndex }, [
+                    eventParams.event.offsetX,
+                    eventParams.event.offsetY,
+                  ])
+              : undefined,
+            0,
+            true,
+            data === undefined
+              ? getCategoryAxisValues(echartRef.current?.getEchartInstance(), 0)
+              : undefined,
+          );
+          const categoryValue =
+            rawValue === undefined ? eventParams.name : rawValue;
+          if (
+            categoryValue === null ||
+            typeof categoryValue === 'string' ||
+            typeof categoryValue === 'number' ||
+            typeof categoryValue === 'boolean'
+          ) {
+            xAxisFilters.push({
+              col: xAxisColumn,
+              op: '==',
+              val: categoryValue,
+              formattedVal: String(categoryValue),
+            });
+          }
         }
         const hasCrossFilter =
           (isFirst && groupby.length > 0) || (!isFirst && groupbyB.length > 0);

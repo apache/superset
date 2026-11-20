@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-19 23:27-0700\n"
+"POT-Creation-Date: 2026-11-20 08:54+1100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -146,7 +146,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr ""
 
@@ -166,7 +166,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr ""
 
@@ -174,12 +174,8 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of total"
-msgstr ""
-
-#, python-format
-msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
 msgstr ""
 
 #, python-format
@@ -1649,6 +1645,10 @@ msgid "Aggregation used for the summary row. By default each metric keeps its ow
 msgstr ""
 
 msgid "Alert"
+msgstr ""
+
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
 msgstr ""
 
 msgid "Alert Triggered, In Grace Period"
@@ -6802,10 +6802,6 @@ msgstr ""
 msgid "Explore"
 msgstr ""
 
-#, python-format
-msgid "Explore - %(table)s"
-msgstr ""
-
 msgid "Explore the result set in the data exploration view"
 msgstr ""
 
@@ -7001,6 +6997,10 @@ msgstr ""
 msgid "Failed to create API key"
 msgstr ""
 
+#, python-format
+msgid "Failed to create API key: %s"
+msgstr ""
+
 msgid "Failed to create a new chart from this version"
 msgstr ""
 
@@ -7146,7 +7146,11 @@ msgid "Failed to tag items"
 msgstr ""
 
 #, python-format
-msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
 msgstr ""
 
 msgid "Failed to update report"
@@ -7861,6 +7865,9 @@ msgstr ""
 msgid "Histogram is not yet supported on semantic views. Use a Bar or Table chart with an explicit count metric."
 msgstr ""
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr ""
 
@@ -8061,6 +8068,9 @@ msgid "In this view you can preview the first 25 rows. "
 msgstr ""
 
 msgid "Inactive"
+msgstr ""
+
+msgid "Include :value in the transform to represent the filter value."
 msgstr ""
 
 msgid "Include Series"
@@ -11251,6 +11261,9 @@ msgstr ""
 msgid "Preview"
 msgstr ""
 
+msgid "Preview temporarily unavailable"
+msgstr ""
+
 msgid "Preview this version"
 msgstr ""
 
@@ -11769,6 +11782,10 @@ msgid "Replace strftime date placeholders such as %Y-%m-%d in alert and report e
 msgstr ""
 
 msgid "Report"
+msgstr ""
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
 msgstr ""
 
 #, python-format
@@ -14596,7 +14613,10 @@ msgid ""
 "          value distribution and transformation."
 msgstr ""
 
-msgid "The Snowflake connection could not be established. Check the account identifier, connection address, network access, and authentication settings, then retry the import."
+msgid ""
+"The Snowflake connection could not be established. Check the account "
+"identifier, connection address, network access, and authentication "
+"settings, then retry the import."
 msgstr ""
 
 msgid "The URL is missing the dataset_id or slice_id parameters."
@@ -14632,7 +14652,10 @@ msgstr ""
 msgid "The annotation has been updated"
 msgstr ""
 
-msgid "The asset configuration is invalid. Review this file's fields and references. Re-export the assets from a compatible Superset version, then retry with the new file."
+msgid ""
+"The asset configuration is invalid. Review this file's fields and "
+"references. Re-export the assets from a compatible Superset version, then"
+" retry with the new file."
 msgstr ""
 
 msgid "The background color of the charts."
@@ -15102,7 +15125,7 @@ msgstr ""
 msgid "The port number is invalid."
 msgstr ""
 
-msgid "The preview could not be loaded."
+msgid "The preview could not be loaded. Try again."
 msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
@@ -15362,11 +15385,14 @@ msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
-msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database."
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
 
 #, python-format
 msgid "The transform returned %(returned)s for %(column)s, which this database cannot write into a query as a %(type)s value without changing it. Filters on this mapping will not be mirrored."
+msgstr ""
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
 msgstr ""
 
 msgid "The two passwords that you entered do not match!"
@@ -15427,11 +15453,11 @@ msgstr ""
 msgid "The value transform calls %(functions)s, whose result depends on when and where it runs. The transform is evaluated in a separate session and the result is cached, so the emitted predicate would freeze a snapshot of that moment."
 msgstr ""
 
-msgid "The value transform could not be parsed. The mapping is saved but stays inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 #, python-format
-msgid "The value transform could not be parsed: %(detail)s The mapping is saved but stays inactive until it does."
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 msgid "The value transform must contain the :value placeholder, which stands for the filter value being mirrored."
@@ -15452,6 +15478,9 @@ msgid "The version of the service"
 msgstr ""
 
 msgid "The view configuration must be a JSON object."
+msgstr ""
+
+msgid "The virtual dataset query could not be safely parsed, so the tables it references cannot be resolved. Qualify tables explicitly and avoid dynamic SQL or statements that change the default schema (e.g. USE, search_path)."
 msgstr ""
 
 msgid "The visible title of the layer"
@@ -16031,7 +16060,9 @@ msgstr ""
 msgid "This field is used as a unique identifier to attach the metric to charts. It is also used as the alias in the SQL query."
 msgstr ""
 
-msgid "This file is not a supported dashboard export. Re-export the dashboard from a compatible Superset version, then retry with the new ZIP file."
+msgid ""
+"This file is not a supported dashboard export. Re-export the dashboard "
+"from a compatible Superset version, then retry with the new ZIP file."
 msgstr ""
 
 msgid "This filter already exist on the report"
@@ -16483,6 +16514,9 @@ msgid "Token Request URI"
 msgstr ""
 
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
+msgid "Too many preview requests. Wait a moment and try again."
 msgstr ""
 
 msgid "Too many requests. Please wait and try again."
@@ -19373,6 +19407,10 @@ msgstr ""
 msgid "unknown type icon"
 msgstr ""
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr ""
 
@@ -19380,6 +19418,9 @@ msgid "updated"
 msgstr ""
 
 msgid "upper percentile must be greater than 0 and less than 100. Must be higher than lower percentile."
+msgstr ""
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
 msgstr ""
 
 msgid "use latest_partition template"
