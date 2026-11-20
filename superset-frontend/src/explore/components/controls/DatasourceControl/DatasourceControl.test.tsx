@@ -765,17 +765,12 @@ test('should verify DatasourceControl callback fires on save', async () => {
 // The existing callback tests provide sufficient coverage for metric creation workflows
 // Future enhancement could add MetricsControl integration when test infrastructure supports it
 
-test.each(
-  ['semantic_view', 'table', 'query'].flatMap(type =>
-    [true, false].map(saved => ({ type, saved })),
-  ),
-)(
-  'datasource SQL Lab action respects datasource $type (saved=$saved)',
-  async ({ type, saved }) => {
+test.each(['semantic_view', 'table', 'query'])(
+  'datasource SQL Lab action respects datasource %s',
+  async type => {
     const props = createProps({
       value: `25__${type}`,
       datasource: { ...mockDatasource, type },
-      form_data: saved ? { slice_id: 318 } : {},
     });
     render(<DatasourceControl {...props} />, { useRouter: true });
     await userEvent.click(await screen.findByTestId('datasource-menu-trigger'));

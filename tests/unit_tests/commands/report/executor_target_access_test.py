@@ -45,6 +45,7 @@ from superset.commands.report.execute import (
 from superset.commands.report.update import UpdateReportScheduleCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.reports.api import ReportScheduleRestApi
 from superset.reports.models import (
     ReportDataFormat,
     ReportSchedule,
@@ -190,9 +191,12 @@ def test_create_rejects_legacy_executor_without_target_access(
     assert errors[0].field_name == "dashboard"
 
 
-def test_create_names_executor_to_admin(mocker: MockerFixture, app: Any) -> None:
+@pytest.mark.parametrize("published", [False, True])
+def test_create_names_executor_to_admin(
+    mocker: MockerFixture, app: Any, published: bool
+) -> None:
     """An admin configured the executor and is told which user it is."""
-    _stub_create(mocker, dashboard=Mock(), is_admin=True)
+    _stub_create(mocker, dashboard=Mock(published=published), is_admin=True)
     mocker.patch.dict(
         app.config, {"ALERT_REPORTS_EXECUTORS": [FixedExecutor("machine")]}
     )
@@ -203,6 +207,9 @@ def test_create_names_executor_to_admin(mocker: MockerFixture, app: Any) -> None
             _create_command().validate()
 
     assert '"machine"' in str(exc.value._exceptions[0].messages)
+    assert ("This dashboard is a draft" in str(exc.value._exceptions[0].messages)) is (
+        not published
+    )
 
 
 def test_create_rejects_run_as_user_without_target_access(
@@ -543,8 +550,9 @@ def _state(mocker: MockerFixture, dashboard_state: dict[str, Any] | None) -> Any
     return BaseReportState(schedule, datetime.utcnow(), uuid4())
 
 
+@pytest.mark.parametrize("published", [False, True])
 def test_plain_dashboard_url_reports_executor_and_reason(
-    mocker: MockerFixture, app: Any
+    mocker: MockerFixture, app: Any, published: bool
 ) -> None:
     """
     A plain dashboard URL would load as the not-found page for the executor
@@ -555,6 +563,7 @@ def test_plain_dashboard_url_reports_executor_and_reason(
         side_effect=_raise_for_access_denying(MACHINE),
     )
     state = _state(mocker, None)
+    state._report_schedule.dashboard.published = published
 
     with app.test_request_context():
         g.user = MACHINE
@@ -563,6 +572,7 @@ def test_plain_dashboard_url_reports_executor_and_reason(
 
     assert '"machine"' in str(exc.value)
     assert SPECIFIC_REASON in str(exc.value)
+    assert ("This dashboard is a draft" in str(exc.value)) is (not published)
 
 
 def test_plain_dashboard_url_rejects_dashboard_withheld_by_exclusions(
@@ -839,3 +849,63 @@ def test_executor_access_denial_is_logged_and_not_retried(
     assert SPECIFIC_REASON in message
     assert SPECIFIC_REASON in send_error.call_args.args[1]
     retry.assert_not_called()
+
+
+@pytest.mark.parametrize("username", ["machine", None])
+def test_draft_save_error_explains_editor_remedy(
+    username: str | None, app_context: None
+) -> None:
+    error = ReportScheduleExecutorTargetAccessError("dashboard", username, draft=True)
+    message = str(error)
+    assert "This dashboard is a draft" in message
+    assert "add the execution account as a dashboard editor" in message
+    assert "If Run as is available" in message
+    assert "different user to run the report as" not in message
+
+
+def test_draft_execution_error_includes_reason_and_remedy(app_context: None) -> None:
+    error = ReportScheduleExecutorAccessDeniedError(
+        "dashboard", "machine", "Access denied", draft=True
+    )
+    message = str(error)
+    assert '"machine"' in message
+    assert "Access denied" in message
+    assert "This dashboard is a draft" in message
+    assert "Publish the dashboard" in message
+    assert "dashboard editor" in message
+
+
+def test_other_execution_errors_do_not_claim_dashboard_is_draft(
+    app_context: None,
+) -> None:
+    error = ReportScheduleExecutorAccessDeniedError(
+        "dashboard", "machine", SPECIFIC_REASON
+    )
+    assert SPECIFIC_REASON in str(error)
+    assert "draft" not in str(error)
+
+
+@pytest.mark.parametrize("username", ["machine", None])
+@pytest.mark.parametrize(
+    "kind,draft", [("dashboard", True), ("dashboard", False), ("chart", False)]
+)
+def test_executor_access_error_preserves_json_field_string(
+    username: str | None, kind: str, draft: bool, app_context: None
+) -> None:
+    """The report API must retain a string field error after adding draft guidance."""
+    error = ReportScheduleInvalidError(
+        exceptions=[
+            ReportScheduleExecutorTargetAccessError(kind, username, draft=draft)
+        ]
+    )
+    response = ReportScheduleRestApi.response(422, message=error.normalized_messages())
+    assert response.status_code == 422
+    payload = response.get_json()
+    assert set(payload["message"]) == {kind}
+    message = payload["message"][kind]
+    assert isinstance(message, str)
+    assert "cannot access" in message
+    assert ('"machine"' in message) is (username is not None)
+    assert ("This dashboard is a draft" in message) is draft
+    if draft:
+        assert "add the execution account as a dashboard editor" in message
