@@ -20,7 +20,11 @@ from typing import Optional
 
 from flask import abort, g, get_flashed_messages, redirect, request, url_for
 from flask_appbuilder import expose
-from flask_appbuilder.const import AUTH_OAUTH, LOGMSG_ERR_SEC_NO_REGISTER_HASH
+from flask_appbuilder.const import (
+    AUTH_OAUTH,
+    FLAMSG_ERR_SEC_ACCESS_DENIED,
+    LOGMSG_ERR_SEC_NO_REGISTER_HASH,
+)
 from flask_appbuilder.security.decorators import no_cache
 from flask_appbuilder.security.views import AuthView, WerkzeugResponse
 from flask_babel import lazy_gettext
@@ -48,13 +52,20 @@ class SupersetAuthView(BaseSupersetView, AuthView):
         auth_messages = get_flashed_messages(with_categories=True)
 
         # With a single OAuth provider there is nothing to choose, so go
-        # straight to its login. Pending messages keep the page: OAuth
-        # failures flash and return here, and redirecting again would loop
-        # back to the provider and hide the error.
+        # straight to its login. ``@has_access`` flashes "Access is Denied"
+        # before sending a logged-out user here; that message is dropped on
+        # redirect, since the user is being sent to sign in. Any other
+        # pending message keeps the page: OAuth failures flash and return
+        # here, and redirecting again would loop back to the provider and
+        # hide the error.
         sm = self.appbuilder.sm
+        access_denied = str(FLAMSG_ERR_SEC_ACCESS_DENIED)
         if (
             provider is None
-            and not auth_messages
+            and all(
+                (category, message) == ("danger", access_denied)
+                for category, message in auth_messages
+            )
             and sm.auth_type == AUTH_OAUTH
             and len(sm.oauth_remotes) == 1
         ):

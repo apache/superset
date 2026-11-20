@@ -24,7 +24,7 @@ from urllib.parse import parse_qs, urlsplit
 import jinja2
 import pytest
 from flask.testing import FlaskClient
-from flask_appbuilder.const import AUTH_OAUTH
+from flask_appbuilder.const import AUTH_OAUTH, FLAMSG_ERR_SEC_ACCESS_DENIED
 from pytest_mock import MockerFixture
 
 from superset.app import SupersetApp
@@ -195,8 +195,15 @@ def test_login_page_renders_for_multiple_oauth_providers(
 
 
 @pytest.mark.parametrize("app", [SINGLE_OAUTH_PROVIDER], indirect=True)
+@pytest.mark.parametrize(
+    "flashed",
+    [
+        ("error", "The request to sign in was denied."),
+        ("warning", "Invalid login. Please try again."),
+    ],
+)
 def test_login_page_renders_pending_flash_for_single_oauth_provider(
-    client: FlaskClient,
+    client: FlaskClient, flashed: tuple[str, str]
 ) -> None:
     """A failed OAuth sign-in returns to the login page instead of the IdP.
 
@@ -205,14 +212,54 @@ def test_login_page_renders_pending_flash_for_single_oauth_provider(
     the message.
     """
     with client.session_transaction() as session:
-        session["_flashes"] = [("error", "The request to sign in was denied.")]
+        session["_flashes"] = [flashed]
 
     response = client.get("/login/")
 
     assert response.status_code == 200
-    assert b"The request to sign in was denied." in response.data
+    assert flashed[1].encode() in response.data
     with client.session_transaction() as session:
         assert "_flashes" not in session
+
+
+@pytest.mark.parametrize("app", [SINGLE_OAUTH_PROVIDER], indirect=True)
+def test_login_page_redirects_logged_out_deep_link_to_single_oauth_provider(
+    client: FlaskClient,
+) -> None:
+    """A logged-out deep link still goes straight to the only provider.
+
+    ``@has_access`` flashes "Access is Denied" before redirecting an anonymous
+    user to ``/login/?next=...``; that message must not keep the login page.
+    """
+    response = client.get("/dashboard/list/")
+    assert response.status_code == 302
+
+    response = client.get(response.headers["Location"])
+
+    assert response.status_code == 302
+    location = urlsplit(response.headers["Location"])
+    assert location.path == "/login/google"
+    assert parse_qs(location.query) == {"next": ["http://example.com/dashboard/list/"]}
+    with client.session_transaction() as session:
+        assert "_flashes" not in session
+
+
+@pytest.mark.parametrize("app", [SINGLE_OAUTH_PROVIDER], indirect=True)
+def test_login_page_renders_access_denied_with_other_flash(
+    client: FlaskClient,
+) -> None:
+    """Any message besides "Access is Denied" keeps the page and shows them all."""
+    with client.session_transaction() as session:
+        session["_flashes"] = [
+            ("danger", str(FLAMSG_ERR_SEC_ACCESS_DENIED)),
+            ("warning", "Invalid login. Please try again."),
+        ]
+
+    response = client.get("/login/")
+
+    assert response.status_code == 200
+    assert str(FLAMSG_ERR_SEC_ACCESS_DENIED).encode() in response.data
+    assert b"Invalid login. Please try again." in response.data
 
 
 @pytest.mark.parametrize("app", [SINGLE_OAUTH_PROVIDER], indirect=True)
