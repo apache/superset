@@ -24456,6 +24456,9 @@ msgstr ""
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "Váš účet je aktivován. Můžete se přihlásit pomocí přihlašovacích údajů."
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr "Váš účet je aktivován. Můžete se přihlásit pomocí přihlašovacích údajů."
+
 msgid "Your changes will be lost if you leave without saving."
 msgstr "Vaše změny budou ztraceny, pokud se odhlásíte bez uložení."
 

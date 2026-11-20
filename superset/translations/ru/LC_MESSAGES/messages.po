@@ -23768,6 +23768,11 @@ msgstr ""
 "Ваша учетная запись активирована. Вы можете войти, используя свои учетные"
 " данные."
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr ""
+"Ваша учетная запись активирована. Вы можете войти, используя свои учетные"
+" данные."
+
 msgid "Your changes will be lost if you leave without saving."
 msgstr "Ваши изменения будут потеряны, если вы уйдете без сохранения."
 

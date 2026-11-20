@@ -23386,6 +23386,9 @@ msgstr "您已更改数据集。任何与新数据集匹配的数据控件（列
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "您的账户已激活。您可以使用您的凭据登录。"
 
+msgid "Your account is activated. You can sign in with your credentials."
+msgstr "您的账户已激活。您可以使用您的凭据登录。"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Your changes will be lost if you leave without saving."
