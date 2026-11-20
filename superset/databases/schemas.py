@@ -54,6 +54,7 @@ from superset.databases.types import (  # pylint:disable=unused-import
     EncryptedString,  # noqa: F401
 )
 from superset.databases.utils import (
+    embedded_credentials_error,
     embedded_credentials_incomplete,
     embedded_credentials_present,
     make_url_safe,
@@ -278,6 +279,23 @@ def masked_encrypted_extra_validator(value: str) -> None:
     encrypted_extra_validator(value)
 
 
+_MAX_ECHOED_VALUE_LENGTH = 50
+
+
+def _describe_invalid_value(value: Any) -> str:
+    """
+    Render a rejected value for an error message as JSON, truncated so that
+    arbitrarily large payloads are not echoed back.
+    """
+    try:
+        text = json.dumps(value)
+    except (TypeError, ValueError):
+        text = repr(value)
+    if len(text) > _MAX_ECHOED_VALUE_LENGTH:
+        text = f"{text[:_MAX_ECHOED_VALUE_LENGTH]}..."
+    return text
+
+
 def extra_validator(value: str) -> str:  # noqa: C901
     """
     Validate that extra is a valid JSON string, and that metadata_params
@@ -351,8 +369,11 @@ def extra_validator(value: str) -> str:  # noqa: C901
                         [
                             _(
                                 "The %(key)s in metadata_cache_timeout must be a "
-                                "non-negative integer.",
+                                "non-negative integer, but received %(value)s. "
+                                "Enter a whole number of seconds (0 or greater) "
+                                "under Advanced > Performance.",
                                 key=key,
+                                value=_describe_invalid_value(timeout),
                             )
                         ]
                     )
@@ -503,24 +524,11 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         elif stored:
             engine_spec = stored.db_engine_spec
 
-        credentials = encrypted_extra[EMBEDDED_CREDENTIALS_KEY]
         # A stored credential was validated when it was saved; only the edit that
         # would strand it is in question here.
-        if not from_stored and embedded_credentials_incomplete(
-            credentials,
-            engine_spec.validate_embedded_credentials,
-            accept_json_string=False,
-        ):
-            raise ValidationError(
-                _(
-                    "Embedded guest credentials are invalid or incomplete. Provide "
-                    "all required fields or clear them to leave embedded viewers "
-                    "unconfigured."
-                ),
-                field_name="masked_encrypted_extra",
-            )
-
-        self._refuse_unbacked_credential_masks(stored, encrypted_extra, engine_spec)
+        self._refuse_unusable_credentials(
+            encrypted_extra, stored, engine_spec, authored=not from_stored
+        )
 
         impersonate_user = data.get(
             "impersonate_user", stored.impersonate_user if stored else False
@@ -550,6 +558,41 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             ),
             field_name="masked_encrypted_extra",
         )
+
+    def _refuse_unusable_credentials(
+        self,
+        encrypted_extra: dict[str, Any],
+        stored: Database | None,
+        engine_spec: type[BaseEngineSpec],
+        *,
+        authored: bool,
+    ) -> None:
+        """
+        Refuse a credential the engine can't use: incomplete, masking a secret
+        nothing stores, or a key pair that doesn't decode with its passphrase.
+        """
+        credentials = encrypted_extra[EMBEDDED_CREDENTIALS_KEY]
+        if authored and embedded_credentials_incomplete(
+            credentials,
+            engine_spec.validate_embedded_credentials,
+            accept_json_string=False,
+        ):
+            raise ValidationError(
+                _(
+                    "Embedded guest credentials are invalid or incomplete. Provide "
+                    "all required fields or clear them to leave embedded viewers "
+                    "unconfigured."
+                ),
+                field_name="masked_encrypted_extra",
+            )
+
+        self._refuse_unbacked_credential_masks(stored, encrypted_extra, engine_spec)
+        if authored and (
+            message := embedded_credentials_error(
+                engine_spec, credentials, stored.encrypted_extra if stored else None
+            )
+        ):
+            raise ValidationError(message, field_name="masked_encrypted_extra")
 
     def _refuse_unbacked_credential_masks(
         self,
@@ -1151,6 +1194,20 @@ class EncryptedExtraHintSchema(Schema):
             "body for a PEM key), null when the value is too short to reveal any"
         },
     )
+    expires_at = fields.DateTime(
+        allow_none=True,
+        metadata={
+            "description": "When the stored JWT expires, from its exp claim, in "
+            "UTC; null when the value is not a JWT with an exp claim"
+        },
+    )
+    expired = fields.Boolean(
+        allow_none=True,
+        metadata={
+            "description": "Whether the stored JWT has expired; null when "
+            "expires_at is null"
+        },
+    )
 
 
 class EncryptedExtraHintsResponseSchema(Schema):
@@ -1547,6 +1604,17 @@ class IdentifierQuoteSchema(Schema):
     )
 
 
+class EncryptedExtraExpirationSchema(Schema):
+    expires_at = fields.DateTime(
+        metadata={
+            "description": "When the stored JWT expires, from its exp claim, in UTC"
+        },
+    )
+    expired = fields.Boolean(
+        metadata={"description": "Whether the stored JWT has expired"},
+    )
+
+
 class EngineInformationSchema(Schema):
     oauth2_enabled = fields.Boolean(
         metadata={"description": "OAuth2 authentication is enabled on this connection"}
@@ -1591,6 +1659,17 @@ class EngineInformationSchema(Schema):
                 "On the database GET and on `available`: the engine's declared "
                 "patterns. On `/connection`: the fields present in the stored "
                 "encrypted_extra."
+            )
+        },
+    )
+    encrypted_extra_expirations = fields.Dict(
+        keys=fields.String(),
+        values=fields.Nested(EncryptedExtraExpirationSchema),
+        metadata={
+            "description": (
+                "On `/connection` only: JSONPath of each stored sensitive "
+                "encrypted_extra field holding a JWT with an exp claim, and when "
+                "it expires. The signature is not verified."
             )
         },
     )

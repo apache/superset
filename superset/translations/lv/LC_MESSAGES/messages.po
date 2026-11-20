@@ -7796,6 +7796,9 @@ msgstr "Virziena"
 msgid "Dynamic group by"
 msgstr "Dinamisks grupējums pēc"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Dinamiskā agregācijas funkcija"
@@ -10026,6 +10029,9 @@ msgstr "Katras perioda augstākā vērtība."
 msgid "Histogram"
 msgstr "Histogramma"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "Sākums"
 
@@ -10299,6 +10305,9 @@ msgstr "Šajā skatā varat apskatīt pirmās 25 rindas. "
 #, fuzzy
 msgid "Inactive"
 msgstr "Aktīvs"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "Iekļaut sērijas"
@@ -10641,9 +10650,10 @@ msgstr "Nederīgs stāvoklis."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Nederīgi cilņu ID: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Nederīga laika filtra vērtība kolonnai %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -14281,6 +14291,9 @@ msgstr ""
 
 msgid "Preview"
 msgstr "Priekšskatījums"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19392,10 +19405,8 @@ msgstr "Ports ir slēgts."
 msgid "The port number is invalid."
 msgstr "Porta numurs nav derīgs."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Priekšskatījumu nevarēja ielādēt."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Primārā metrika tiek izmantota loka segmentu izmēru noteikšanai"
@@ -19847,14 +19858,9 @@ msgstr ""
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr "Transformācija atbilda izlases rindām, nevis visai datu kopai."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"Transformācija kolonnai %(column)s atgrieza %(returned)s, kas ir "
-"%(kind)s. Atspoguļotie filtri šajā kartējumā datubāzē neizdotos."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19866,6 +19872,9 @@ msgstr ""
 "Transformācija kolonnai %(column)s atgrieza %(returned)s, ko šī datubāze "
 "nevar ierakstīt vaicājumā kā %(type)s vērtību, to nemainot. Filtri šajā "
 "kartējumā netiks atspoguļoti."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "Abas ievadītās paroles nesakrīt!"
@@ -19964,23 +19973,12 @@ msgstr ""
 "atsevišķā sesijā un rezultāts tiek kešots, tāpēc izveidotais predikāts "
 "iesaldētu šī brīža momentuzņēmumu."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Vērtības transformāciju nevarēja parsēt. Kartējums tiek saglabāts, bet "
-"paliek neaktīvs, kamēr tas neizdodas."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Vērtības transformāciju nevarēja parsēt: %(detail)s Kartējums tiek "
-"saglabāts, bet paliek neaktīvs, kamēr tas neizdodas."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21580,6 +21578,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Pārāk daudz priekšskatījuma pieprasījumu šai datu kopai. Uzgaidiet brīdi "
 "un mēģiniet vēlreiz."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25409,6 +25410,10 @@ msgstr "atsaukt"
 msgid "unknown type icon"
 msgstr "nezināma veida ikona"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "atiestatīt"
 
@@ -25421,6 +25426,9 @@ msgid ""
 msgstr ""
 "augšējam percentīlim jābūt lielākam par 0 un mazākam par 100. Jābūt "
 "lielākam nekā apakšējais percentīlis."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "izmantot latest_partition veidni"

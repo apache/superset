@@ -70,6 +70,7 @@ from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.semantic_layers.access import is_semantic_layers_enabled
+from superset.semantic_layers.dimension_resolution import grain_preference
 from superset.semantic_layers.exceptions import (
     log_provider_failure,
     provider_request_message,
@@ -324,9 +325,11 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
                     "definition": dim.definition,
                     "description": dim.description,
                     "grain": dim.grain.name if dim.grain else None,
+                    "verbose_name": dim.verbose_name,
                 }
                 for dim in sorted(
-                    view.implementation.get_dimensions(), key=lambda d: d.name
+                    view.implementation.get_dimensions(),
+                    key=lambda d: (d.name, grain_preference(d)),
                 )
             ]
             metrics = [
