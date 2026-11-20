@@ -33,5 +33,10 @@ export interface FilterableTableProps {
   striped?: boolean;
   expandedColumns?: string[];
   allowHTML?: boolean;
+  /**
+   * Open long or multi-line plain-text values in a modal that shows the full
+   * value and can copy it.
+   */
+  expandLongText?: boolean;
   themeOverrides?: GridThemeOverrides;
 }

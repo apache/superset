@@ -1569,6 +1569,12 @@
             "nullable": true,
             "type": "boolean"
           },
+          "client_id": {
+            "description": "Client-generated id identifying this chart query run. When the database supports query cancellation, it lets the client stop the running query via POST /api/v1/chart/data/stop. Scoped to the requesting user, so it can never address another user's query.",
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
           "custom_cache_timeout": {
             "description": "Override the default cache timeout",
             "nullable": true,
@@ -2883,6 +2889,20 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      },
+      "ChartDataStopSchema": {
+        "properties": {
+          "client_id": {
+            "description": "The `client_id` sent with the chart-data request whose query should be cancelled. Resolved within the requesting user's own in-flight queries only.",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id"
+        ],
         "type": "object"
       },
       "ChartDataTiming": {
@@ -7834,11 +7854,83 @@
         },
         "type": "object"
       },
+      "EncryptedExtraExpiration": {
+        "properties": {
+          "expired": {
+            "description": "Whether the stored JWT has expired",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "description": "When the stored JWT expires, from its exp claim, in UTC",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EncryptedExtraHintSchema": {
+        "properties": {
+          "expired": {
+            "description": "Whether the stored JWT has expired; null when expires_at is null",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expires_at": {
+            "description": "When the stored JWT expires, from its exp claim, in UTC; null when the value is not a JWT with an exp claim",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Human readable name of the masked field",
+            "type": "string"
+          },
+          "path": {
+            "description": "JSONPath of the masked field",
+            "type": "string"
+          },
+          "suffix": {
+            "description": "Last characters of the stored value (of the base64 body for a PEM key), null when the value is too short to reveal any",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "path"
+        ],
+        "type": "object"
+      },
+      "EncryptedExtraHintsResponseSchema": {
+        "properties": {
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/EncryptedExtraHintSchema"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "EngineInformation": {
         "properties": {
           "disable_ssh_tunneling": {
             "description": "SSH tunnel is not available to the database",
             "type": "boolean"
+          },
+          "encrypted_extra_expirations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EncryptedExtraExpiration"
+            },
+            "description": "On `/connection` only: JSONPath of each stored sensitive encrypted_extra field holding a JWT with an exp claim, and when it expires. The signature is not verified.",
+            "type": "object"
+          },
+          "encrypted_extra_sensitive_fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "JSONPath of each sensitive encrypted_extra field and its label. On the database GET and on `available`: the engine's declared patterns. On `/connection`: the fields present in the stored encrypted_extra.",
+            "type": "object"
           },
           "identifier_quote": {
             "allOf": [
@@ -8535,6 +8627,18 @@
             },
             "maxItems": 50,
             "minItems": 1,
+            "type": "array"
+          },
+          "validation_partition_values": {
+            "default": null,
+            "description": "One to three existing integer partition keys for explicit data validation",
+            "items": {
+              "pattern": "^-?[0-9]{1,19}$",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "nullable": true,
             "type": "array"
           },
           "value_transform": {
@@ -17122,6 +17226,68 @@
         ]
       }
     },
+    "/api/v1/chart/data/stop": {
+      "post": {
+        "description": "Cancels the warehouse query started by a chart-data request that carried the given `client_id`, for databases whose engine supports query cancellation. The `client_id` is resolved only within the requesting user's own in-flight queries, so it cannot be used to reach another user's query.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChartDataStopSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "stopped": {
+                          "description": "Whether the engine reported the query cancelled. False when there was no such in-flight query for this user, or the engine could not cancel it.",
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Cancellation outcome"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Cancel a running chart-data query",
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
     "/api/v1/chart/export/": {
       "get": {
         "parameters": [
@@ -17236,6 +17402,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP)",
                     "format": "binary",
@@ -19620,6 +19790,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP or JSON)",
                     "format": "binary",
@@ -21992,6 +22166,15 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Include the current count of charts a restore would detach",
+            "in": "query",
+            "name": "include_restore_impact",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -22003,6 +22186,16 @@
                     "result": {
                       "description": "The dashboard's scalar fields at the target version (entity-specific keys), plus a `_version` block with the version-level metadata.",
                       "properties": {
+                        "_restore_impact": {
+                          "description": "Current membership impact when requested",
+                          "properties": {
+                            "removed_chart_count": {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "_version": {
                           "$ref": "#/components/schemas/VersionListItemSchema"
                         }
@@ -22537,6 +22730,13 @@
                           "disable_ssh_tunneling": {
                             "description": "Whether the engine supports SSH Tunnels",
                             "type": "boolean"
+                          },
+                          "encrypted_extra_sensitive_fields": {
+                            "additionalProperties": {
+                              "type": "string"
+                            },
+                            "description": "JSONPath of each sensitive encrypted_extra field and its label",
+                            "type": "object"
                           },
                           "supports_file_upload": {
                             "description": "Whether the engine supports file uploads",
@@ -23324,6 +23524,58 @@
           }
         ],
         "summary": "Get a database connection info",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/encrypted_extra_hints/": {
+      "get": {
+        "description": "Returns the label and last characters of each sensitive field in the database's encrypted extra, so that a stored secret can be told apart from another one without revealing it. A JWT also gets the expiry its unverified exp claim states. The number of characters is set by `ENCRYPTED_EXTRA_HINT_CHARS`; the list is empty when it is 0 or less.",
+        "parameters": [
+          {
+            "description": "The database id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EncryptedExtraHintsResponseSchema"
+                }
+              }
+            },
+            "description": "Hints for the masked fields"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get hints for the masked fields of a database's encrypted extra",
         "tags": [
           "Database"
         ]
@@ -25004,6 +25256,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP or YAML)",
                     "format": "binary",
@@ -25153,7 +25409,7 @@
     },
     "/api/v1/dataset/related_objects/": {
       "get": {
-        "description": "Aggregates the charts built on any of the requested datasets and the dashboards those charts appear on. Each chart and dashboard is listed once even if it depends on several of the datasets. Requested datasets the user cannot see are ignored; the response is 404 only when none of them are visible.",
+        "description": "Aggregates the charts built on any of the requested datasets and the dashboards that depend on them, through those charts or through a native filter or display control targeting a dataset. Each chart and dashboard is listed once even if it depends on several of the datasets. Requested datasets the user cannot see are ignored; the response is 404 only when none of them are visible.",
         "parameters": [
           {
             "content": {
@@ -25816,6 +26072,64 @@
                   "properties": {
                     "result": {
                       "properties": {
+                        "data_validation": {
+                          "properties": {
+                            "checked_rows": {
+                              "type": "integer"
+                            },
+                            "examples": {
+                              "items": {
+                                "properties": {
+                                  "source_value": {
+                                    "type": "string"
+                                  },
+                                  "stored_key": {
+                                    "type": "string"
+                                  },
+                                  "transformed_value": {
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "inconclusive_keys": {
+                              "description": "Partition keys whose rows could not be read, present when the status is inconclusive.",
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "mismatch_count": {
+                              "type": "integer"
+                            },
+                            "partitions_checked": {
+                              "type": "integer"
+                            },
+                            "partitions_requested": {
+                              "type": "integer"
+                            },
+                            "skipped_rows": {
+                              "type": "integer"
+                            },
+                            "status": {
+                              "enum": [
+                                "not_checked",
+                                "matched",
+                                "mismatch",
+                                "inconclusive",
+                                "refused"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "emitted_predicate": {
                           "type": "string"
                         },
@@ -25823,8 +26137,9 @@
                           "type": "string"
                         },
                         "reason": {
-                          "description": "Why the mapping is not valid. Absent when it is. The editor branches on this to decide how to present the failure.",
+                          "description": "Why predicate evaluation was declined. Absent on evaluation success. The editor branches on this to decide how to present the failure.",
                           "enum": [
+                            "unbucketed_epoch",
                             "unconfigured",
                             "validation",
                             "parse",
@@ -25842,6 +26157,7 @@
                           "type": "string"
                         },
                         "valid": {
+                          "description": "Expression/predicate evaluation succeeded; not a guarantee of partition correspondence.",
                           "type": "boolean"
                         }
                       },
@@ -27500,6 +27816,9 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
           "422": {
             "$ref": "#/components/responses/422"
           },
@@ -27555,6 +27874,9 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
           },
           "404": {
             "$ref": "#/components/responses/404"
@@ -27997,6 +28319,46 @@
           }
         ],
         "summary": "Update the current user",
+        "tags": [
+          "Current User"
+        ]
+      }
+    },
+    "/api/v1/me/api_key_scopes/": {
+      "get": {
+        "description": "Lists the ``superset:<resource>:<action>`` API-key scopes the current user is allowed to put on a new API key, i.e. the subset of the scope catalog that does not exceed the user's own permissions. Returns a 401 error if the user is unauthenticated.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The allowed scopes"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the self-issuable API-key scopes",
         "tags": [
           "Current User"
         ]
@@ -28899,6 +29261,11 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "default_executor": {
+                      "description": "Fixed default execution account, visible only to admins.",
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "result": {
                       "$ref": "#/components/schemas/ReportConfigurationSchema"
                     }
@@ -30727,6 +31094,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP)",
                     "format": "binary",
@@ -35263,12 +35634,15 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35288,7 +35662,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -35653,12 +36028,83 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
+                    },
+                    "blocked_view_ids": {
+                      "description": "The selected views that have dependents. Nothing is deleted; the others can be deleted in a new request.",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
+                    "blocked_views": {
+                      "description": "Caller-visible dependency details for each blocked view.",
+                      "items": {
+                        "properties": {
+                          "archived_count": {
+                            "type": "integer"
+                          },
+                          "dependents": {
+                            "items": {
+                              "properties": {
+                                "archived": {
+                                  "type": "boolean"
+                                },
+                                "id": {
+                                  "type": "integer"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "chart",
+                                    "dashboard",
+                                    "alert",
+                                    "report"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "id",
+                                "name",
+                                "archived"
+                              ],
+                              "type": "object"
+                            },
+                            "maxItems": 20,
+                            "type": "array"
+                          },
+                          "id": {
+                            "type": "integer"
+                          },
+                          "inaccessible_count": {
+                            "type": "integer"
+                          },
+                          "total": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "total",
+                          "dependents",
+                          "inaccessible_count",
+                          "archived_count"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35678,7 +36124,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -35821,12 +36268,15 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35846,7 +36296,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
