@@ -41,6 +41,7 @@ export const NON_AGGREGATED_DECK_GL_CHART_TYPES = [
   'deck_path',
   'deck_polygon',
   'deck_geojson',
+  'deck_h3_hexagon',
 ];
 
 export function isAggregatedDeckGLChart(vizType: string): boolean {

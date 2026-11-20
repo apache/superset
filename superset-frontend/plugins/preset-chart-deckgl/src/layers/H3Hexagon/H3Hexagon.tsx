@@ -25,7 +25,6 @@ import { commonLayerProps, getColorForBreakpoints } from '../common';
 import { createDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { createTooltipContent } from '../../utilities/tooltipUtils';
-import sandboxedEval from '../../utils/sandbox';
 import {
   BucketsWithColorScale,
   getBreakPointColorScaler,
@@ -89,17 +88,14 @@ export const getLayer: GetLayerType<H3HexagonLayer> = function ({
     elevation_scale: elevationScale = 1,
   } = fd;
 
-  let data = [...payload.data.features];
-
-  if (fd.js_data_mutator) {
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutator(data);
-  }
+  const data = payload.data.features as H3Feature[];
 
   const fc = fd.fill_color_picker as
-    { r: number; g: number; b: number; a: number } | undefined;
+    | { r: number; g: number; b: number; a: number }
+    | undefined;
   const defaultBreakpointColor = fd.default_breakpoint_color as
-    { r: number; g: number; b: number; a: number } | undefined;
+    | { r: number; g: number; b: number; a: number }
+    | undefined;
   const fixedColor: Color = fc
     ? [fc.r, fc.g, fc.b, 255 * fc.a]
     : [

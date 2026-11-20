@@ -17,13 +17,7 @@
  * under the License.
  */
 import { ChartProps, DatasourceType } from '@superset-ui/core';
-import transformProps from './transformProps';
-
-interface H3Feature {
-  hexagon: string;
-  elevation?: number;
-  [key: string]: unknown;
-}
+import transformProps, { H3Feature } from './transformProps';
 
 jest.mock('../spatialUtils', () => ({
   ...jest.requireActual('../spatialUtils'),
@@ -167,12 +161,12 @@ test('H3 transformProps should auto-detect column with "hex" in name', () => {
   expect(features[0].hexagon).toBe('891f1d48177ffff');
 });
 
-test('H3 transformProps should include js_columns in features', () => {
+test('H3 transformProps should keep the metric under its own label for tooltips', () => {
   const props = {
     ...baseMockChartProps,
     rawFormData: {
       ...baseMockChartProps.rawFormData,
-      js_columns: ['count'],
+      metric: 'count',
     },
     queriesData: [
       {
@@ -185,6 +179,7 @@ test('H3 transformProps should include js_columns in features', () => {
   const features = result.payload.data.features as H3Feature[];
 
   expect(features[0].count).toBe(42);
+  expect(features[0].elevation).toBe(42);
 });
 
 test('H3 transformProps should copy extra record fields into features', () => {
@@ -216,12 +211,15 @@ test('H3 transformProps should handle empty query data', () => {
   expect(features).toHaveLength(0);
 });
 
-test('H3 transformProps should handle null H3 values gracefully', () => {
+test('H3 transformProps should drop rows with a null H3 index', () => {
   const props = {
     ...baseMockChartProps,
     queriesData: [
       {
-        data: [{ h3_col: null, count: 5 }],
+        data: [
+          { h3_col: null, count: 5 },
+          { h3_col: '891f1d48177ffff', count: 7 },
+        ],
       },
     ],
   };
@@ -230,7 +228,71 @@ test('H3 transformProps should handle null H3 values gracefully', () => {
   const features = result.payload.data.features as H3Feature[];
 
   expect(features).toHaveLength(1);
-  expect(features[0].hexagon).toBe('');
+  expect(features[0].hexagon).toBe('891f1d48177ffff');
+});
+
+test('H3 transformProps should drop rows with an invalid H3 index', () => {
+  const props = {
+    ...baseMockChartProps,
+    queriesData: [
+      {
+        data: [
+          { h3_col: 'not-a-cell', count: 5 },
+          { h3_col: '', count: 6 },
+          { h3_col: '891f1d48163ffff', count: 7 },
+        ],
+      },
+    ],
+  };
+
+  const result = transformProps(props as ChartProps);
+  const features = result.payload.data.features as H3Feature[];
+
+  expect(features.map(f => f.hexagon)).toEqual(['891f1d48163ffff']);
+});
+
+test('H3 transformProps should not let record fields overwrite reserved keys', () => {
+  const props = {
+    ...baseMockChartProps,
+    rawFormData: {
+      ...baseMockChartProps.rawFormData,
+      metric: 'count',
+    },
+    queriesData: [
+      {
+        data: [
+          {
+            h3_col: '891f1d48177ffff',
+            count: 42,
+            hexagon: 'tooltip-value',
+            elevation: 'tooltip-elevation',
+          },
+        ],
+      },
+    ],
+  };
+
+  const result = transformProps(props as ChartProps);
+  const features = result.payload.data.features as H3Feature[];
+
+  expect(features[0].hexagon).toBe('891f1d48177ffff');
+  expect(features[0].elevation).toBe(42);
+});
+
+test('H3 transformProps should keep a zero metric value as elevation 0', () => {
+  const props = {
+    ...baseMockChartProps,
+    rawFormData: {
+      ...baseMockChartProps.rawFormData,
+      metric: 'count',
+    },
+    queriesData: [{ data: [{ h3_col: '891f1d48177ffff', count: 0 }] }],
+  };
+
+  const result = transformProps(props as ChartProps);
+  const features = result.payload.data.features as H3Feature[];
+
+  expect(features[0].elevation).toBe(0);
 });
 
 test('H3 transformProps should parse string metric values as numbers', () => {

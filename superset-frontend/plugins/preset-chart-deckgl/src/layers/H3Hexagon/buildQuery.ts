@@ -19,60 +19,53 @@
 import {
   buildQueryContext,
   ensureIsArray,
-  getColumnLabel,
   normalizeOrderBy,
   QueryFormColumn,
   QueryFormData,
+  QueryFormMetric,
 } from '@superset-ui/core';
 import { addTooltipColumnsToQuery } from '../buildQueryUtils';
 
 export interface H3FormData extends QueryFormData {
   h3_index: QueryFormColumn | QueryFormColumn[];
-  metric?: string;
-  js_columns?: string[];
+  metric?: QueryFormMetric;
   tooltip_contents?: unknown[];
+}
+
+/**
+ * Returns the single H3 index column selected in the control, which may be
+ * stored either as a bare column or as a one-element array.
+ */
+export function getH3IndexColumn(
+  h3Index: H3FormData['h3_index'] | undefined,
+): QueryFormColumn | undefined {
+  return Array.isArray(h3Index) ? h3Index[0] : h3Index;
 }
 
 export default function buildQuery(formData: H3FormData) {
   const {
     h3_index: h3IndexRaw,
     metric,
-    js_columns: jsColumns,
     tooltip_contents: tooltipContents,
   } = formData;
 
-  const h3Index: QueryFormColumn | undefined = Array.isArray(h3IndexRaw)
-    ? h3IndexRaw[0]
-    : h3IndexRaw;
+  const h3Index = getH3IndexColumn(h3IndexRaw);
 
   if (!h3Index) {
     throw new Error('H3 index is required');
   }
 
-  const h3IndexLabel = getColumnLabel(h3Index);
-
   return buildQueryContext(formData, {
     buildQuery: baseQueryObject => {
-      let columns: QueryFormColumn[] = [h3Index];
+      const columns = addTooltipColumnsToQuery([h3Index], tooltipContents);
       const metrics = metric ? [metric] : [];
 
-      if (jsColumns?.length) {
-        const existingLabels = new Set(columns.map(getColumnLabel));
-        jsColumns.forEach((col: string) => {
-          if (!existingLabels.has(col)) {
-            columns.push(col);
-            existingLabels.add(col);
-          }
-        });
-      }
-
-      columns = addTooltipColumnsToQuery(columns, tooltipContents);
-
-      const filters = ensureIsArray(baseQueryObject.filters || []);
-      filters.push({
-        col: h3IndexLabel,
-        op: 'IS NOT NULL',
-      });
+      // Pass the column itself (not its label) so the filter also works for
+      // ad-hoc SQL expressions, which are not physical dataset columns.
+      const filters = [
+        ...ensureIsArray(baseQueryObject.filters || []),
+        { col: h3Index, op: 'IS NOT NULL' as const },
+      ];
 
       const orderby = metric
         ? normalizeOrderBy({ orderby: [[metric, false]] }).orderby
