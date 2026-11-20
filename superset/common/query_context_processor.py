@@ -86,6 +86,9 @@ from superset.utils.core import (
     get_column_name,
     get_column_names_from_columns,
     get_column_names_from_metrics,
+    get_user_email,
+    get_user_id,
+    get_username,
     is_adhoc_column,
     is_adhoc_metric,
 )
@@ -693,7 +696,7 @@ class QueryContextProcessor:
         itself has. Keying them separately from :meth:`query_cache_key` keeps
         that scoping from forcing every distinct viewer of an annotated chart
         onto their own full copy of the (potentially much larger) shared
-        dataframe: users with the same access scope share this key too.
+        dataframe. Native layers can still share entries across equal grants.
         """
         if not query_obj or not query_obj.annotation_layers:
             return None
@@ -739,6 +742,9 @@ class QueryContextProcessor:
                 return None
             source_scope.append({"value": str(layer.get("value")), **scope})
         if source_scope:
+            # Identity macros may appear in chart-backed source SQL or RLS.
+            # Their formatting must not determine whether rows can be shared.
+            context["viewer"] = (get_user_id(), get_username(), get_user_email())
             context["source_scope"] = source_scope
 
         return context
@@ -954,11 +960,11 @@ class QueryContextProcessor:
         resolved (see :meth:`_annotation_source_scope`), so there is no key
         under which a cached payload could be safely shared: an unresolved
         scope looks the same for an authorized and a denied requester. The
-        payload is then fetched live and never cached. That holds under
-        ``force_cached`` too: computing here beats failing the read-back of
-        an otherwise successful async task.
+        payload is fetched live on normal reads. Cache-only probes report a miss.
         """
         if cache_key is None:
+            if force_cached:
+                raise CacheLoadError("Annotation data is not cacheable")
             return self.get_annotation_data(query_obj)
 
         if not force_query:
