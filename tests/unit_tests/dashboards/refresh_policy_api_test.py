@@ -1024,8 +1024,11 @@ def test_flag_off_a_boolean_number_swap_is_refused(
 
 BIG = 9007199254740993
 BIG_AS_DOUBLE = 9007199254740992
+HUGE = 10**400
+ROUND_TRIPS = [(BIG, BIG_AS_DOUBLE), (HUGE, None)]
 
 
+@pytest.mark.parametrize("value, browser_value", ROUND_TRIPS, ids=["big", "overflow"])
 @pytest.mark.parametrize(
     "body",
     [
@@ -1039,12 +1042,14 @@ def test_flag_off_a_browser_round_trip_keeps_the_stored_policy(
     full_api_access: None,
     disable_policy: None,
     body: dict[str, Any],
+    value: int,
+    browser_value: int | None,
 ) -> None:
     """An unrelated save that resends the policy as a browser parsed it passes."""
-    policy = {"custom_refresh_allowed": BIG}
+    policy = {"custom_refresh_allowed": value}
     dashboard = make_dashboard({"auto_refresh_policy": policy, "refresh_frequency": 0})
     metadata = {
-        "auto_refresh_policy": {"custom_refresh_allowed": BIG_AS_DOUBLE},
+        "auto_refresh_policy": {"custom_refresh_allowed": browser_value},
         "refresh_frequency": 0,
         **body.pop("json_metadata_extra", {}),
     }
@@ -1052,16 +1057,48 @@ def test_flag_off_a_browser_round_trip_keeps_the_stored_policy(
     assert response.status_code == 200
     assert stored(dashboard)["auto_refresh_policy"] == policy
 
-    response = put(
+    for different in (BIG + 2, 1):
+        response = put(
+            client,
+            dashboard,
+            {"auto_refresh_policy": {"custom_refresh_allowed": different}},
+        )
+        assert response.status_code == 422
+        assert error_codes(response) == [
+            (f"{POLICY}.custom_refresh_allowed", "invalid_policy")
+        ]
+    assert stored(dashboard)["auto_refresh_policy"] == policy
+    assert history() == []
+
+
+@pytest.mark.parametrize("value, browser_value", ROUND_TRIPS, ids=["big", "overflow"])
+def test_flag_off_a_browser_round_trip_copy_keeps_the_source_policy(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    disable_policy: None,
+    value: int,
+    browser_value: int | None,
+) -> None:
+    """A copy that resends the policy as a browser parsed it stores the source's."""
+    from superset.models.dashboard import Dashboard
+
+    policy = {"custom_refresh_allowed": value}
+    dashboard = make_dashboard({"auto_refresh_policy": policy})
+    response = copy(
         client,
         dashboard,
-        {"auto_refresh_policy": {"custom_refresh_allowed": BIG + 2}},
+        {"auto_refresh_policy": {"custom_refresh_allowed": browser_value}},
+    )
+    assert response.status_code == 200
+    copied = db.session.get(Dashboard, response.json["result"]["id"])
+    assert copied.params_dict["auto_refresh_policy"] == policy
+    assert stored(dashboard)["auto_refresh_policy"] == policy
+
+    response = copy(
+        client, dashboard, {"auto_refresh_policy": {"custom_refresh_allowed": 1}}
     )
     assert response.status_code == 422
-    assert error_codes(response) == [
-        (f"{POLICY}.custom_refresh_allowed", "invalid_policy")
-    ]
-    assert history() == []
 
 
 def test_merged_frequency_is_checked_before_update_side_effects(

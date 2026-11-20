@@ -96,27 +96,42 @@ def get_standard_refresh_intervals() -> list[float]:
     ]
 
 
-def same_json_value(left: Any, right: Any) -> bool:
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _is_finite_double(value: Any) -> bool:
+    try:
+        return math.isfinite(float(value))
+    except OverflowError:
+        return False
+
+
+def same_json_value(incoming: Any, stored: Any) -> bool:
     """
-    Compare two JSON values the way a browser round trip leaves them: booleans
-    never equal numbers, and numbers are equal when they are equal as doubles.
+    Compare an incoming JSON value with a stored one the way a browser round trip
+    leaves the stored one: booleans never equal numbers, numbers are equal when
+    they are equal as doubles, and a stored number that isn't a finite double
+    equals an incoming ``null``.
     """
-    if isinstance(left, bool) or isinstance(right, bool):
-        return type(left) is type(right) and left == right
-    if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+    if incoming is None and _is_number(stored):
+        return not _is_finite_double(stored)
+    if isinstance(incoming, bool) or isinstance(stored, bool):
+        return type(incoming) is type(stored) and incoming == stored
+    if _is_number(incoming) and _is_number(stored):
         try:
-            return float(left) == float(right)
+            return float(incoming) == float(stored)
         except OverflowError:
-            return left == right
-    if isinstance(left, dict) and isinstance(right, dict):
-        return left.keys() == right.keys() and all(
-            same_json_value(value, right[key]) for key, value in left.items()
+            return incoming == stored
+    if isinstance(incoming, dict) and isinstance(stored, dict):
+        return incoming.keys() == stored.keys() and all(
+            same_json_value(value, stored[key]) for key, value in incoming.items()
         )
-    if isinstance(left, list) and isinstance(right, list):
-        return len(left) == len(right) and all(
-            same_json_value(a, b) for a, b in zip(left, right, strict=True)
+    if isinstance(incoming, list) and isinstance(stored, list):
+        return len(incoming) == len(stored) and all(
+            same_json_value(a, b) for a, b in zip(incoming, stored, strict=True)
         )
-    return type(left) is type(right) and left == right
+    return type(incoming) is type(stored) and incoming == stored
 
 
 def same_stored_policy(policy: Any, stored_policy: Any) -> bool:
@@ -129,10 +144,11 @@ def same_stored_policy(policy: Any, stored_policy: Any) -> bool:
     return same_json_value(policy, stored_policy)
 
 
-def keep_stored_policy(metadata: dict[str, Any], stored_policy: Any) -> None:
+def keep_stored_policy(metadata: dict[str, Any], stored_policy: Any) -> bool:
     """
     With the feature flag off, put the stored policy back into ``metadata`` when a
     write resends it in an equal JSON form, so a browser round trip doesn't change it.
+    Returns whether the stored policy was put back.
     """
     if (
         not is_feature_enabled("AUTO_REFRESH_POLICY")
@@ -140,6 +156,8 @@ def keep_stored_policy(metadata: dict[str, Any], stored_policy: Any) -> None:
         and same_json_value(metadata[POLICY_KEY], stored_policy)
     ):
         metadata[POLICY_KEY] = stored_policy
+        return True
+    return False
 
 
 def refresh_settings_changed(

@@ -29,6 +29,7 @@ from superset.commands.dashboard.exceptions import (
 from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.refresh_policy import (
     check_refresh_policy,
+    keep_stored_policy,
     log_refresh_policy_change,
     POLICY_KEY,
 )
@@ -79,13 +80,15 @@ class CopyDashboardCommand(BaseCommand):
         if not security_manager.is_editor(self._original_dash):
             raise DashboardForbiddenError()
 
+        stored_policy = self._original_dash.params_dict.get(POLICY_KEY)
+        submitted = json.loads(self._properties["json_metadata"])
         metadata = (
             {}
             if self._properties.get("replace_metadata")
             else self._original_dash.params_dict.copy()
         )
-        metadata.update(json.loads(self._properties["json_metadata"]))
-        if errors := check_refresh_policy(
-            metadata, self._original_dash.params_dict.get(POLICY_KEY)
-        ):
+        metadata.update(submitted)
+        if errors := check_refresh_policy(metadata, stored_policy):
             raise DashboardRefreshPolicyInvalidError([], errors)
+        if keep_stored_policy(submitted, stored_policy):
+            self._properties["json_metadata"] = json.dumps(submitted)

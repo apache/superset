@@ -499,6 +499,8 @@ def test_flag_off_a_boolean_number_swap_is_a_change(
             {"custom_refresh_allowed": 9007199254740992},
         ),
         ({"custom": [1, {"a": 2}]}, {"custom": [1.0, {"a": 2.0}]}),
+        ({"custom_refresh_allowed": 10**400}, {"custom_refresh_allowed": None}),
+        ({"custom": [-(10**400), float("inf")]}, {"custom": [None, None]}),
     ],
 )
 def test_flag_off_numbers_equal_as_doubles_are_unchanged(
@@ -521,6 +523,13 @@ def test_flag_off_numbers_equal_as_doubles_are_unchanged(
         ({"custom": [1]}, {"custom": [1, 1]}),
         ({"custom": {"a": 1}}, {"custom": {"b": 1}}),
         ({"custom": None}, {"custom": False}),
+        ({"custom": None}, {"custom": 1}),
+        ({"custom": 1}, {"custom": None}),
+        ({"custom": None}, {"custom": 10**400}),
+        ({"custom": True}, {"custom": None}),
+        ({"custom": "x"}, {"custom": None}),
+        ({"custom": 10**400}, {"custom": False}),
+        ({"custom": 10**400}, {"custom": 10**401}),
     ],
 )
 def test_flag_off_a_different_malformed_value_is_checked(
