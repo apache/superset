@@ -74,6 +74,50 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 _UNION_KEYS: tuple[str, ...] = ("anyOf", "oneOf", "allOf")
 _MAX_SCHEMA_DEPTH: int = 16
+_SECRET_FIELD: object = object()
+# Validation and annotation keywords do not change which fields are secret.
+_STRICT_SCHEMA_KEYS: frozenset[str] = frozenset(
+    {
+        "$defs",
+        "type",
+        "properties",
+        "patternProperties",
+        "additionalProperties",
+        "items",
+        "prefixItems",
+        *_UNION_KEYS,
+        "title",
+        "description",
+        "default",
+        "examples",
+        "deprecated",
+        "readOnly",
+        "writeOnly",
+        "format",
+        "required",
+        "enum",
+        "const",
+        "minimum",
+        "maximum",
+        "exclusiveMinimum",
+        "exclusiveMaximum",
+        "multipleOf",
+        "minLength",
+        "maxLength",
+        "pattern",
+        "minItems",
+        "maxItems",
+        "uniqueItems",
+        "minProperties",
+        "maxProperties",
+        "discriminator",
+    }
+)
+_MASKED_CONFIGURATION_CHANGE_ERROR: str = (
+    "This update changes the configuration while reusing a stored "
+    "secret value (a masked field). Re-enter all credentials to confirm "
+    "a configuration change."
+)
 
 JsonSchema = dict[str, Any]
 
@@ -117,20 +161,41 @@ def _is_secret_schema(
     schema: JsonSchema,
     defs: dict[str, JsonSchema],
     _depth: int = 0,
+    strict: bool = False,
 ) -> bool:
     """Whether a field schema denotes secret material (``SecretStr``).
 
     Union branches (``SecretStr | None``, discriminated unions of scalar
     credential kinds) count as secret when any branch does: a field that
-    may hold a secret must always be masked.
+    may hold a secret must always be masked. Strict update classification instead
+    requires agreement: hiding a value does not authorize replacing it. A null
+    alternative only makes a secret nullable and adds no non-secret settings.
     """
     if _depth > _MAX_SCHEMA_DEPTH:
+        # Strict updates are depth-checked by _validate_update_schema first.
         return True  # pathological schema: fail closed
     schema = _resolve_ref(schema, defs)
     if schema.get("format") == "password" or schema.get("writeOnly") is True:
         return True
+    if strict:
+        # allOf applies every constraint to the same value. A description-only
+        # sibling cannot cancel a secret declaration in the referenced schema.
+        if any(
+            _is_secret_schema(branch, defs, _depth + 1, strict=True)
+            for branch in schema.get("allOf", [])
+        ):
+            return True
+        classifications: list[bool] = [
+            _is_secret_schema(branch, defs, _depth + 1, strict=True)
+            for key in ("anyOf", "oneOf")
+            for branch in schema.get(key, [])
+            if _resolve_ref(branch, defs).get("type") != "null"
+        ]
+        if any(classifications) and not all(classifications):
+            raise _UnresolvableRefError
+        return any(classifications)
     return any(
-        _is_secret_schema(branch, defs, _depth + 1)
+        _is_secret_schema(branch, defs, _depth + 1, strict)
         for key in _UNION_KEYS
         for branch in schema.get(key, [])
     )
@@ -147,7 +212,7 @@ def _mask_all(value: Any) -> Any:
     return PASSWORD_MASK if value else value
 
 
-def _combine_masked(item: Any, candidates: list[Any]) -> Any:
+def _combine_masked(item: Any, candidates: list[Any], strict: bool = False) -> Any:
     """Merge the masking results of one value under several candidate schemas.
 
     A position is revealed only when *every* candidate reveals it identically;
@@ -163,7 +228,7 @@ def _combine_masked(item: Any, candidates: list[Any]) -> Any:
         keys: set[str] = set().union(*(c.keys() for c in candidates))
         return {
             key: _combine_masked(
-                item.get(key), [c[key] for c in candidates if key in c]
+                item.get(key), [c[key] for c in candidates if key in c], strict
             )
             for key in keys
         }
@@ -172,10 +237,13 @@ def _combine_masked(item: Any, candidates: list[Any]) -> Any:
             _combine_masked(
                 item[index] if index < len(item) else None,
                 [c[index] for c in candidates if index < len(c)],
+                strict,
             )
             for index in range(max(len(c) for c in candidates))
         ]
     # Irreconcilable classifications for the same value: fail closed.
+    if strict:
+        raise _UnresolvableRefError
     return _mask_all(item)
 
 
@@ -184,10 +252,13 @@ def _mask_against(
     schemas: list[JsonSchema],
     defs: dict[str, JsonSchema],
     layer_type: str = "unknown",
+    strict: bool = False,
 ) -> Any:
     """Mask ``item`` conservatively against every schema it might match."""
     return _combine_masked(
-        item, [_mask_value(item, schema, defs, layer_type) for schema in schemas]
+        item,
+        [_mask_value(item, schema, defs, layer_type, strict) for schema in schemas],
+        strict,
     )
 
 
@@ -227,6 +298,7 @@ def _mask_object(
     schema: JsonSchema,
     defs: dict[str, JsonSchema],
     layer_type: str = "unknown",
+    strict: bool = False,
 ) -> dict[str, Any]:
     """Mask a dict value against the object schemas it may conform to."""
     variants: list[JsonSchema] = _object_variants(schema, defs)
@@ -234,6 +306,10 @@ def _mask_object(
         # A usable schema that does not describe an object leaves it visible.
         # Broken references instead fail closed at the _mask_value boundary.
         return value
+    if strict and any(variant.get("patternProperties") for variant in variants):
+        # The read masker applies all patterns without interpreting their regex
+        # dialect. That conservative fallback cannot authorize field changes.
+        raise _UnresolvableRefError
     properties: dict[str, list[JsonSchema]] = {}
     for variant in variants:
         for key, sub in variant.get("properties", {}).items():
@@ -243,11 +319,15 @@ def _mask_object(
     # additionalProperties schema, not just the first: when variants declare
     # differing additionalProperties, trusting one branch could reveal a
     # value another branch marks secret. A silent sibling cannot cancel an
-    # explicit secret classification.
+    # explicit secret classification on reads. On updates, a variant admitting
+    # extras must also vote: boolean True is the unclassified schema {}.
     additional_schemas: list[JsonSchema] = [
-        variant["additionalProperties"]
+        {}
+        if variant["additionalProperties"] is True
+        else variant["additionalProperties"]
         for variant in variants
         if isinstance(variant.get("additionalProperties"), dict)
+        or (strict and variant.get("additionalProperties") is True)
     ]
     # Apply every pattern classification conservatively, without relying on
     # Python regular expressions to implement JSON Schema's regex dialect.
@@ -264,7 +344,7 @@ def _mask_object(
             # additional-properties schema, retain reveal-unless-marked behavior.
             masked[key] = (
                 _mask_against(
-                    item, additional_schemas + pattern_schemas, defs, layer_type
+                    item, additional_schemas + pattern_schemas, defs, layer_type, strict
                 )
                 if additional_schemas or pattern_schemas
                 else item
@@ -275,13 +355,18 @@ def _mask_object(
             # by trusting another (``_is_secret_schema`` does not descend into
             # object ``properties``, so a single-branch check would miss it).
             extra_schemas: list[JsonSchema] = [
-                variant["additionalProperties"]
+                {}
+                if variant["additionalProperties"] is True
+                else variant["additionalProperties"]
                 for variant in variants
                 if key not in variant.get("properties", {})
-                and isinstance(variant.get("additionalProperties"), dict)
+                and (
+                    isinstance(variant.get("additionalProperties"), dict)
+                    or (strict and variant.get("additionalProperties") is True)
+                )
             ]
             masked[key] = _mask_against(
-                item, subs + extra_schemas + pattern_schemas, defs, layer_type
+                item, subs + extra_schemas + pattern_schemas, defs, layer_type, strict
             )
     return masked
 
@@ -291,6 +376,7 @@ def _mask_list(
     schema: JsonSchema,
     defs: dict[str, JsonSchema],
     layer_type: str = "unknown",
+    strict: bool = False,
 ) -> list[Any]:
     """Mask a list value against its item schema (may sit in a union branch)."""
     candidates: list[JsonSchema] = _flatten_variants(schema, defs)
@@ -305,10 +391,21 @@ def _mask_list(
                 item_schemas.append(prefix[index])
             elif isinstance(candidate.get("items"), dict):
                 item_schemas.append(candidate["items"])
+            elif (
+                strict
+                and index < candidate.get("maxItems", len(value))
+                and (
+                    candidate.get("items") is True
+                    or (candidate.get("type") == "array" and "items" not in candidate)
+                )
+            ):
+                # An allowed, unrestricted entry is not a secret declaration.
+                # Fixed tuples cannot vote beyond their maximum length.
+                item_schemas.append({})
         # Positional tuple schemas apply before the schema for remaining items.
         # All matching variants must agree before an element can be revealed.
         masked.append(
-            _mask_against(item, item_schemas, defs, layer_type)
+            _mask_against(item, item_schemas, defs, layer_type, strict)
             if item_schemas
             else item
         )
@@ -320,19 +417,26 @@ def _mask_value(
     schema: JsonSchema,
     defs: dict[str, JsonSchema],
     layer_type: str = "unknown",
+    strict: bool = False,
 ) -> Any:
     """Mask secrets in ``value`` as classified by ``schema``."""
     try:
-        if _is_secret_schema(schema, defs):
+        if _is_secret_schema(schema, defs, strict=strict):
+            if strict:
+                # A private marker distinguishes declarations from literal masks,
+                # and classifies empty secrets without comparing their values.
+                return _SECRET_FIELD
             # Mask only a truthy secret; an empty/None/0/False value hides
             # nothing and is left as-is (matching the top-level masker in #43474).
             return PASSWORD_MASK if value else value
         if isinstance(value, dict):
-            return _mask_object(value, schema, defs, layer_type)
+            return _mask_object(value, schema, defs, layer_type, strict)
         if isinstance(value, list):
-            return _mask_list(value, schema, defs, layer_type)
+            return _mask_list(value, schema, defs, layer_type, strict)
         return value
     except (_UnresolvableRefError, TypeError, AttributeError) as ex:
+        if strict:
+            raise
         logger.warning(
             "Masking semantic layer type %s subtree: "
             "malformed or unresolved schema (%s)",
@@ -406,7 +510,11 @@ def credential_readiness(configuration: Any) -> SemanticCredentialReadiness:
 
 def _matches_visible_values(reference: Any, submitted: Any) -> bool:
     """Compare clear values without treating a guessed field as a stable key."""
-    if reference == PASSWORD_MASK or submitted == PASSWORD_MASK:
+    if (
+        reference is _SECRET_FIELD
+        or reference == PASSWORD_MASK
+        or submitted == PASSWORD_MASK
+    ):
         return True
     if isinstance(submitted, dict):
         return (
@@ -429,7 +537,11 @@ def _matches_visible_values(reference: Any, submitted: Any) -> bool:
     return type(reference) is type(submitted) and reference == submitted
 
 
-class MaskedListUpdateError(Exception):
+class MaskedConfigurationUpdateError(Exception):
+    """A masked configuration update cannot be classified or applied safely."""
+
+
+class MaskedListUpdateError(MaskedConfigurationUpdateError):
     """A masked list edit cannot preserve positional credential ownership."""
 
 
@@ -495,3 +607,104 @@ def unmask_configuration(
     if submitted == PASSWORD_MASK and stored is not None:
         return stored
     return submitted
+
+
+def _validate_update_schema(
+    schema: JsonSchema, defs: dict[str, JsonSchema], depth: int = 0
+) -> None:
+    """Refuse unmodelled schema semantics before classifying retained credentials."""
+    if depth > _MAX_SCHEMA_DEPTH:
+        raise _UnresolvableRefError
+    schema = _resolve_ref(schema, defs)
+    unknown: set[str] = {
+        key for key in schema.keys() - _STRICT_SCHEMA_KEYS if not key.startswith("x-")
+    }
+    if isinstance(schema.get("type"), list) or unknown:
+        raise _UnresolvableRefError
+    children: list[JsonSchema] = [
+        child
+        for key in ("properties", "patternProperties")
+        for child in schema.get(key, {}).values()
+    ]
+    children.extend(
+        child for key in (*_UNION_KEYS, "prefixItems") for child in schema.get(key, [])
+    )
+    children.extend(
+        schema[key]
+        for key in ("additionalProperties", "items")
+        if isinstance(schema.get(key), dict)
+    )
+    child: JsonSchema
+    for child in children:
+        _validate_update_schema(child, defs, depth + 1)
+
+
+def _without_secret_values(reference: Any) -> Any:
+    """Compare visible values and all keys, retaining placeholders for secrets."""
+    if isinstance(reference, dict):
+        return {key: _without_secret_values(value) for key, value in reference.items()}
+    if isinstance(reference, list):
+        return [_without_secret_values(value) for value in reference]
+    return type(reference), reference
+
+
+def _contains_explicit_secret(reference: Any, submitted: Any) -> bool:
+    """Detect non-null explicit secrets without comparing them to stored values."""
+    if reference is _SECRET_FIELD:
+        return submitted is not None and submitted != PASSWORD_MASK
+    if isinstance(reference, dict) and isinstance(submitted, dict):
+        return any(
+            _contains_explicit_secret(value, submitted.get(key))
+            for key, value in reference.items()
+        )
+    if isinstance(reference, list) and isinstance(submitted, list):
+        return any(
+            _contains_explicit_secret(old, new)
+            for old, new in zip(reference, submitted, strict=False)
+        )
+    return False
+
+
+def unmask_configuration_for_update(
+    layer_type: str, stored: dict[str, Any], submitted: dict[str, Any]
+) -> dict[str, Any]:
+    """Restore masks while freezing configuration under one usable schema.
+
+    While any mask is retained, secrets must also be masked or explicitly null.
+    A schema failure cannot grant permission to edit arbitrary fields.
+    Fully explicit updates need no stored-value classification.
+    """
+    if not _contains_mask(submitted):
+        return submitted
+    schema_error: str = (
+        "Cannot safely classify this masked configuration with the provider schema. "
+        "Re-enter all credentials to update the configuration."
+    )
+    try:
+        provider: type[CoreSemanticLayer[Any, Any]] = registry[layer_type]
+        schema: JsonSchema = provider.get_configuration_schema(
+            transport=build_provider_transport(),
+            readiness=SemanticCredentialReadiness.UNRESOLVED,
+        )
+        if not isinstance(schema, dict):
+            raise _UnresolvableRefError
+        _validate_update_schema(schema, schema.get("$defs", {}))
+        reference: Any = _mask_value(
+            stored, schema, schema.get("$defs", {}), layer_type, True
+        )
+    except Exception:  # pylint: disable=broad-except
+        raise MaskedConfigurationUpdateError(schema_error) from None
+    if _contains_explicit_secret(reference, submitted):
+        raise MaskedConfigurationUpdateError(_MASKED_CONFIGURATION_CHANGE_ERROR)
+    restored: dict[str, Any] = unmask_configuration(stored, submitted, reference)
+    try:
+        updated_reference: Any = _mask_value(
+            restored, schema, schema.get("$defs", {}), layer_type, True
+        )
+    except (_UnresolvableRefError, TypeError, AttributeError):
+        raise MaskedConfigurationUpdateError(schema_error) from None
+    if _contains_explicit_secret(updated_reference, submitted) or (
+        _without_secret_values(reference) != _without_secret_values(updated_reference)
+    ):
+        raise MaskedConfigurationUpdateError(_MASKED_CONFIGURATION_CHANGE_ERROR)
+    return restored

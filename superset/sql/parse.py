@@ -51,6 +51,7 @@ from sqlglot.optimizer.scope import (
     traverse_scope,
     walk_in_scope,
 )
+from sqlglot.tokens import TokenType
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.sql.dialects import (
@@ -152,6 +153,7 @@ SQLGLOT_DIALECTS = {
     "oceanbase": Dialects.MYSQL,
     # "ocient": ???
     "odelasticsearch": OpenSearch,
+    "openobserve": Dialects.POSTGRES,
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
@@ -1174,6 +1176,31 @@ def _comment_re_for(dialect: Dialects | None) -> re.Pattern[str]:
         ),
         re.DOTALL | re.VERBOSE,
     )
+
+
+def find_unmatched_parenthesis(sql: str, engine: str) -> int | None:
+    """
+    Locate an unmatched parenthesis, ignoring quoted text and comments.
+
+    :param sql: The SQL text to scan
+    :param engine: The engine whose dialect tokenizes the text
+    :return: The 1-based position of the first unmatched closing parenthesis,
+        or of the innermost unclosed opening one; ``None`` when they balance
+        or the text cannot be tokenized (so the parser can explain it)
+    """
+    try:
+        tokens = sqlglot.tokenize(sql, read=SQLGLOT_DIALECTS.get(engine))
+    except sqlglot.errors.TokenError:
+        return None
+    openings: list[int] = []
+    for token in tokens:
+        if token.token_type == TokenType.L_PAREN:
+            openings.append(token.start + 1)
+        elif token.token_type == TokenType.R_PAREN:
+            if not openings:
+                return token.start + 1
+            openings.pop()
+    return openings[-1] if openings else None
 
 
 # Oracle 11g and older cap identifiers at 30 bytes.
@@ -3188,7 +3215,11 @@ def tokenize_kql(kql: str) -> list[tuple[KQLTokenType, str]]:
                     else KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
                 )
                 buffer = ch
-            elif ch == "`" and script[i - 2 : i] == "``":
+            elif ch == "`" and buffer.endswith("``"):
+                # the first two backticks were buffered as plain text; flush
+                # whatever precedes them before starting the string literal
+                if buffer[:-2]:
+                    tokens.extend(classify_non_string_kql(buffer[:-2]))
                 state = KQLSplitState.INSIDE_MULTILINE_STRING
                 buffer = "```"
             else:
@@ -3208,8 +3239,8 @@ def tokenize_kql(kql: str) -> list[tuple[KQLTokenType, str]]:
                 )
                 or (
                     state == KQLSplitState.INSIDE_MULTILINE_STRING
-                    and ch == "`"
-                    and script[i - 2 : i] == "``"
+                    and len(buffer) >= 6
+                    and buffer.endswith("```")
                 )
             )
             if end_str:

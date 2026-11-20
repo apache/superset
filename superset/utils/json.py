@@ -17,11 +17,13 @@
 import copy
 import decimal
 import logging
+import math
 import re
 import uuid
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Callable, Dict, Optional, Union
 
+import jwt
 import numpy as np
 import pandas as pd
 import simplejson
@@ -436,6 +438,56 @@ def _dotted_path_holds(node: Any) -> bool:
     return True
 
 
+_BASE64URL = re.compile(r"[A-Za-z0-9_-]*")
+# 9999-12-31T23:59:59Z, the last second a datetime can hold.
+_MAX_EXP = 253_402_300_799
+
+
+def jwt_expiry(value: str) -> tuple[datetime | None, bool | None]:
+    """
+    Return when a JWT expires, from its ``exp`` claim, and whether it has.
+
+    Payload-only and unverified: PyJWT decodes the token without checking the
+    signature or any claim, and no claim but ``exp`` is read. The header and the
+    payload must be JSON objects; ``exp`` may be any finite number in range.
+    Anything else gives ``(None, None)``. This never raises.
+    """
+    parts = value.split(".")
+    if len(parts) != 3 or not parts[0] or not parts[1]:
+        return None, None
+    # PyJWT's base64 decoding skips characters outside the alphabet; refuse them.
+    if not all(_BASE64URL.fullmatch(part) for part in parts):
+        return None, None
+    try:
+        claims = jwt.decode(
+            value,
+            options={
+                "verify_signature": False,
+                "verify_exp": False,
+                "verify_nbf": False,
+                "verify_iat": False,
+            },
+        )
+        exp = claims.get("exp")
+        if isinstance(exp, bool) or not isinstance(exp, (int, float)):
+            return None, None
+        if isinstance(exp, float) and not math.isfinite(exp):
+            return None, None
+        if not 0 <= exp <= _MAX_EXP:
+            return None, None
+        expires_at = datetime.fromtimestamp(exp, tz=timezone.utc)
+    except (
+        jwt.PyJWTError,
+        ValueError,
+        TypeError,
+        OverflowError,
+        OSError,
+        RecursionError,
+    ):
+        return None, None
+    return expires_at, expires_at <= datetime.now(tz=timezone.utc)
+
+
 def _sensitive_string_values(
     payload: dict[str, Any],
     sensitive_fields: set[str],
@@ -472,6 +524,31 @@ def get_sensitive_field_paths(
     return list(_sensitive_string_values(payload, sensitive_fields))
 
 
+def get_sensitive_field_expirations(
+    payload: dict[str, Any],
+    sensitive_fields: set[str],
+) -> dict[str, dict[str, Any]]:
+    """
+    Returns when each JWT found at a sensitive path expires, by concrete path.
+
+    Only values for which :func:`jwt_expiry` finds an ``exp`` are listed, as
+    ``{"expires_at": <ISO 8601 UTC>, "expired": <bool>}``, sorted by path.
+
+    :param payload: The payload to inspect; anything but a dict yields nothing
+    :param sensitive_fields: The set of fields to look for, as JSONPath expressions
+    :returns: The expiry of each JWT, by path
+    """
+    expirations: dict[str, dict[str, Any]] = {}
+    for path, stored in _sensitive_string_values(payload, sensitive_fields).items():
+        expires_at, expired = jwt_expiry(stored.strip())
+        if expires_at is not None:
+            expirations[path] = {
+                "expires_at": expires_at.isoformat(),
+                "expired": expired,
+            }
+    return expirations
+
+
 def get_sensitive_field_hints(
     payload: dict[str, Any],
     sensitive_fields: set[str],
@@ -486,12 +563,14 @@ def get_sensitive_field_hints(
     either, since a length alone can identify a short secret. For a PEM block, the
     suffix and the cap apply to its base64 body without padding. A stored mask,
     which older imports saved, gets no suffix either: its ending would read as
-    still masked.
+    still masked. A JWT also gets ``expires_at`` and ``expired`` from
+    :func:`jwt_expiry`; other values get ``None`` for both.
 
     :param payload: The payload to inspect
     :param sensitive_fields: The set of fields to hint, as JSONPath expressions
     :param length: The number of trailing characters to reveal; ``<= 0`` disables hints
-    :returns: Hints sorted by path, as ``{"path", "suffix"}`` dicts
+    :returns: Hints sorted by path, as
+        ``{"path", "suffix", "expires_at", "expired"}`` dicts
     """
     if length <= 0:
         return []
@@ -501,6 +580,7 @@ def get_sensitive_field_hints(
         value = stored.strip()
         body = _pem_body(value)
         revealable = value if body is None else body
+        expires_at, expired = jwt_expiry(value)
         hints.append(
             {
                 "path": path,
@@ -509,6 +589,8 @@ def get_sensitive_field_hints(
                     if len(revealable) >= 4 * length and value != PASSWORD_MASK
                     else None
                 ),
+                "expires_at": expires_at,
+                "expired": expired,
             }
         )
     return hints
