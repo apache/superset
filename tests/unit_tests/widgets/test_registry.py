@@ -22,8 +22,14 @@ import pytest
 from pydantic import BaseModel, Field
 from superset_core.widgets import Widget, widget
 
-from superset.widgets.controls import BalloonsControls
 from superset.widgets.registry import registry
+from tests.unit_tests.widgets.series_widget import (
+    series_widget,  # noqa: F401
+    SeriesControls,
+    WIDGET_TYPE,
+)
+
+pytestmark = pytest.mark.usefixtures("series_widget")
 
 
 def _block(widget_type: str) -> type[Widget]:
@@ -34,7 +40,7 @@ def _block(widget_type: str) -> type[Widget]:
 
 def test_registry_lists_built_in_widget_types() -> None:
     ids = {cls.widget_type for cls in registry.values()}
-    assert {"metric-tile", "ag-grid-table", "balloons"} <= ids
+    assert {"metric-tile", "ag-grid-table", "echarts"} <= ids
 
 
 def test_core_contract_is_importable() -> None:
@@ -46,20 +52,20 @@ def test_core_contract_is_importable() -> None:
 def test_duplicate_widget_type_raises_naming_both() -> None:
     @widget(widget_type="dup-test-widget", name="First")
     class First(Widget):
-        controls_class = BalloonsControls
+        controls_class = SeriesControls
 
     try:
         with pytest.raises(ValueError, match="already registered"):
 
             @widget(widget_type="dup-test-widget", name="Second")
             class Second(Widget):
-                controls_class = BalloonsControls
+                controls_class = SeriesControls
     finally:
         registry.pop("dup-test-widget", None)
 
 
 def test_get_control_schema_base_shape() -> None:
-    schema = _block("balloons").get_control_schema(None, None)
+    schema = _block(WIDGET_TYPE).get_control_schema(None, None)
     # Field order preserved (dataBinding before customize), $defs present.
     assert list(schema["properties"]) == [
         "dataBinding",
@@ -73,7 +79,7 @@ def test_get_control_schema_base_shape() -> None:
 def test_get_control_schema_tolerates_invalid_values() -> None:
     # Partial / malformed control values during editing must not raise; the base
     # schema is returned instead.
-    schema = _block("balloons").get_control_schema(
+    schema = _block(WIDGET_TYPE).get_control_schema(
         {"dataBinding": "not-an-object"}, None
     )
     assert "properties" in schema
@@ -90,13 +96,13 @@ def test_get_control_schema_accepts_camel_case_props() -> None:
 def test_minimal_object_validates_against_model() -> None:
     # datasetId + metrics are the only mandatory leaves; everything else is
     # optional, so this minimal object is a valid instance.
-    BalloonsControls.model_validate(
+    SeriesControls.model_validate(
         {"dataBinding": {"datasetId": 1, "metrics": ["count"]}}
     )
 
 
 def test_validate_control_values_passes_for_valid_props() -> None:
-    errors = _block("balloons").validate_control_values(
+    errors = _block(WIDGET_TYPE).validate_control_values(
         {
             "dataBinding": {
                 "datasetId": 1,
@@ -112,7 +118,7 @@ def test_validate_control_values_passes_for_valid_props() -> None:
 def test_validate_control_values_flags_color_dimension_not_grouped() -> None:
     # colorDimension names a dimension that isn't in dataBinding.dimensions —
     # the declarative cross-field rule must surface an actionable error.
-    errors = _block("balloons").validate_control_values(
+    errors = _block(WIDGET_TYPE).validate_control_values(
         {
             "dataBinding": {
                 "datasetId": 1,
@@ -129,7 +135,7 @@ def test_validate_control_values_flags_color_dimension_not_grouped() -> None:
 def test_validate_control_values_rejects_unknown_fields() -> None:
     # Pydantic ignores undeclared fields, so an invented prop would be stored
     # and silently do nothing.
-    errors = _block("balloons").validate_control_values(
+    errors = _block(WIDGET_TYPE).validate_control_values(
         {
             "dataBinding": {
                 "datasetId": 1,
@@ -150,11 +156,11 @@ def test_validate_control_values_rejects_unknown_fields() -> None:
 
 def test_validate_control_values_empty_when_no_values() -> None:
     # Nothing to validate (required-field checks live elsewhere).
-    assert _block("balloons").validate_control_values(None) == []
+    assert _block(WIDGET_TYPE).validate_control_values(None) == []
 
 
 def test_data_binding_declares_column_and_metric_controls() -> None:
-    schema = _block("balloons").get_control_schema(None, None)
+    schema = _block(WIDGET_TYPE).get_control_schema(None, None)
     data_binding_props = schema["$defs"]["DataBinding"]["properties"]
     assert data_binding_props["dimensions"]["x-control"] == "column-multi"
     assert data_binding_props["metrics"]["x-control"] == "metric-multi"
@@ -167,7 +173,7 @@ def test_data_binding_round_trip_preserves_filters() -> None:
     # `validate` endpoint's `model_validate(...).model_dump(by_alias=True)`
     # round trip (mirrored here) is exactly what the frontend commits back to
     # `node.props` on every edit, so it must not silently drop the field.
-    widget = _block("balloons")
+    widget = _block(WIDGET_TYPE)
     control_values = {
         "dataBinding": {
             "datasetId": 1,
@@ -185,7 +191,7 @@ def test_data_binding_round_trip_preserves_filters() -> None:
 
 
 def test_color_dimension_declares_column_control() -> None:
-    schema = _block("balloons").get_control_schema(None, None)
+    schema = _block(WIDGET_TYPE).get_control_schema(None, None)
     assert schema["properties"]["colorDimension"]["x-control"] == "column"
 
 

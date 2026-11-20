@@ -1026,13 +1026,16 @@ export default function CanvasGridSurface({
   const snapshot = useCallback(() => contents.current, []);
   useEffect(() => {
     if (!gridNode) return undefined;
+    const node = gridNode.closest<HTMLElement>('[data-test="canvas-node"]');
+    // A tab has no grid item: its box is its pane, not the whole Tabs widget,
+    // and a hidden pane measures as nothing so drops land in the visible one.
+    const pane = gridNode.closest<HTMLElement>('[role="tabpanel"]');
     return drag.register({
       parentId,
       element: gridNode,
       // The container this grid fills, whose box is the whole of what counts
       // as "inside" it. The root grid has no container and is its own.
-      bounds:
-        gridNode.closest<HTMLElement>('[data-test="canvas-node"]') ?? gridNode,
+      bounds: (pane && node?.contains(pane) ? pane : node) ?? gridNode,
       columns,
       gap,
       rowUnit,
@@ -1102,7 +1105,7 @@ export default function CanvasGridSurface({
         index: insertIndex(resolved, placement),
       };
     },
-    [drag, parentId],
+    [columns, drag, parentId],
   );
 
   /**

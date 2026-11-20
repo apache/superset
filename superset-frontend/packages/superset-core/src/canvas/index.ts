@@ -30,7 +30,9 @@
  * ```typescript
  * import { canvas } from '@apache-superset/core';
  *
- * canvas.registerWidgetRenderer('my_ext.kpi', KpiTile);
+ * // Extension widget types are namespaced by the backend as
+ * // `extensions.<publisher>.<extension>.<type>`.
+ * canvas.registerWidgetRenderer('extensions.acme.kpi.kpi', KpiTile);
  * ```
  */
 
@@ -223,7 +225,10 @@ export interface ActiveCanvas {
 /**
  * Registers the component that renders a widget type on a canvas.
  *
- * @param widgetType The widget type, as the widget provider names it.
+ * Registering a type that already has a renderer replaces it, with a warning.
+ *
+ * @param widgetType The widget type, as the backend names it; an extension's
+ *   is `extensions.<publisher>.<extension>.<type>`.
  * @param component The renderer.
  * @returns A Disposable that unregisters the renderer when disposed.
  */

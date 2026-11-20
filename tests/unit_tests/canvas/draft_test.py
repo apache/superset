@@ -762,6 +762,45 @@ def test_a_step_is_listed_as_what_it_did_and_who_asked(
     ]
 
 
+def test_moving_a_widget_whose_layout_leaves_its_spans_to_the_grid_is_a_move(
+    store: Store, mocker: MockerFixture
+) -> None:
+    from superset.canvas.definition.schemas import empty_definition
+    from superset.commands.canvas.draft import (
+        ApplyCanvasDraftOperationsCommand,
+        CreateCanvasDraftCommand,
+        draft_payload,
+    )
+    from superset.widgets.builtin import Markdown
+
+    definition = empty_definition()
+    definition["root"]["children"] = ["notes"]
+    definition["nodes"]["notes"] = {
+        "widgetType": "markdown",
+        "schemaVersion": Markdown.schema_version,
+        "props": {},
+        "layout": {},
+    }
+    mocker.patch(f"{DRAFT}.CanvasDAO.load", return_value=definition)
+    mocker.patch(f"{DRAFT}.security_manager.can_access", return_value=True)
+    draft = CreateCanvasDraftCommand(7).run()
+    draft, _ = ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        draft.revision,
+        ops(
+            {
+                "op": "place",
+                "id": "notes",
+                "layout": {"col": 1, "row": 3, "colSpan": 24, "rowSpan": 1},
+            }
+        ),
+    ).run()
+
+    assert draft_payload(draft, resolved=False)["changes"] == [
+        {"kind": "moved", "nodeId": "notes", "by": "user"}
+    ]
+
+
 def test_a_draft_is_empty_only_until_a_step_is_taken(
     store: Store, mocker: MockerFixture
 ) -> None:
@@ -947,3 +986,49 @@ def test_replays_keep_widgets_until_a_later_request_places_them(
     command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
     drafts.CommitCanvasDraftCommand(draft.token, 5).run()
     assert first in command.call_args.kwargs["widgets"]
+
+
+def test_a_draft_reads_a_widget_the_canvas_dropped_only_if_still_placeable(
+    store: Store, widget_types: FakeResolver
+) -> None:
+    from superset.commands.canvas.draft import CreateCanvasDraftCommand
+
+    draft = CreateCanvasDraftCommand(7).run()
+    draft.definition = {
+        **empty_definition(),
+        "nodes": {
+            "a": {"widgetId": "chart-secret", "layout": {}},
+            "b": {"widgetId": "chart-1", "layout": {}},
+        },
+    }
+
+    resolver = draft.resolver()
+
+    assert set(resolver.widgets({"chart-secret", "chart-1"})) == {"chart-1"}
+    assert resolver.widget_types({"chart-secret"}) == {}
+
+
+def test_discarding_a_draft_mid_write_is_a_conflict(store: Store) -> None:
+    from superset.commands.canvas import draft as drafts
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    store.add(f"{drafts._cache_key(draft.token)}:lock", "writer")
+
+    with pytest.raises(DraftConflictError):
+        drafts.DeleteCanvasDraftCommand(draft.token).run()
+    assert drafts.load_draft(draft.token).token == draft.token
+
+
+def test_a_request_carries_a_bounded_number_of_operations() -> None:
+    from pydantic import ValidationError
+
+    from superset.canvas.definition.schemas import MAX_OPS_PER_REQUEST
+
+    op = {"op": "remove", "id": "a"}
+    DraftOperationsRequest.model_validate(
+        {"revision": 0, "ops": [op] * MAX_OPS_PER_REQUEST}
+    )
+    with pytest.raises(ValidationError):
+        DraftOperationsRequest.model_validate(
+            {"revision": 0, "ops": [op] * (MAX_OPS_PER_REQUEST + 1)}
+        )

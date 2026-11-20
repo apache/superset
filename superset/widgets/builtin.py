@@ -41,7 +41,6 @@ from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 from superset.widgets.controls import (
     AgGridTableControls,
-    BalloonsControls,
     EchartsControls,
     FilterBarControls,
     FilterSelectControls,
@@ -52,9 +51,10 @@ from superset.widgets.controls import (
     TabsControls,
 )
 
-# A widget that queries data takes runtime filters; charts also cross-filter.
+# A widget that queries data takes runtime filters. No built-in renderer emits
+# a cross-filter yet, so none declares ``emits_filters``: agents read it as a
+# promise.
 QUERYING = WidgetBehavior(filterable=True)
-CHART = WidgetBehavior(filterable=True, emits_filters=True)
 
 logger = logging.getLogger(__name__)
 
@@ -99,16 +99,15 @@ class Echarts(Widget):
     """
     A raw-ECharts-option chart, plus an optional structured layer: when
     ``chartType`` is set, ``customize.series`` offers one entry per
-    ``dataBinding`` metric (the SIP's ``x-dynamic`` pattern, as ``Balloons``
-    uses for its per-series styling) so a series can be colored, hidden, or
-    relabeled without hand-editing ``echartsOptions``.
+    ``dataBinding`` metric (the SIP's ``x-dynamic`` pattern) so a series can
+    be colored, hidden, or relabeled without hand-editing ``echartsOptions``.
     """
 
     controls_class = EchartsControls
-    behavior = CHART
+    behavior = QUERYING
     ui = WidgetUi(default_size=(12, 8))
 
-    # Upper bound on distinct series inlined into the schema (see Balloons.MAX_SERIES).
+    # Upper bound on distinct series inlined into the schema.
     MAX_SERIES = 100
 
     @staticmethod
@@ -119,10 +118,8 @@ class Echarts(Widget):
         series: list[str],
         upstream: dict[str, Any],
     ) -> None:
-        # Unlike Balloons (where dimension *values* are only known once the
-        # frontend reports them, so an extra runtime guard is needed beyond
-        # the x-dependsOn gate), a structured series' identity comes entirely
-        # from `dataBinding.metrics` — a field already on `parsed` once the
+        # A structured series' identity comes entirely from
+        # `dataBinding.metrics`, a field already on `parsed` once the
         # `dataBinding`/`chartType` gate above has passed.
         style_def = schema.get("$defs", {}).get("SeriesOverride")
         if style_def is None:
@@ -174,74 +171,8 @@ class MetricTile(Widget):
 )
 class AgGridTable(Widget):
     controls_class = AgGridTableControls
-    behavior = CHART
-    ui = WidgetUi(default_size=(12, 8))
-
-
-@widget(
-    widget_type="balloons",
-    name="Balloons",
-    description=(
-        "Rising colored balloons, one per query row — colored and sized by the "
-        "query (Chart Framework v2 POC)."
-    ),
-)
-class Balloons(Widget):
-    """
-    Explicit/typed chart: renders one balloon per query row, colored and sized
-    per series. The per-series ``customize`` section is populated dynamically
-    once a grouping dimension is chosen and the frontend reports the distinct
-    series values (the SIP's ``x-dynamic`` pattern).
-    """
-
-    controls_class = BalloonsControls
     behavior = QUERYING
     ui = WidgetUi(default_size=(12, 8))
-
-    # Upper bound on distinct series inlined into the schema, so a caller can't
-    # force unbounded schema construction / serialization by submitting a huge
-    # (or duplicate-heavy) series list.
-    MAX_SERIES = 100
-
-    @staticmethod
-    def _populate_series(
-        schema: dict[str, Any],
-        node: dict[str, Any],
-        parsed: BaseModel | None,
-        series: list[str],
-        upstream: dict[str, Any],
-    ) -> None:
-        # `node` is Customization.series's own fragment; `SeriesStyle` is a
-        # sibling $defs entry, only reachable via the full `schema`.
-        style_def = schema.get("$defs", {}).get("SeriesStyle")
-        if style_def is None:
-            return
-        # The x-dependsOn: ["dataBinding"] gate (run by run_enrichers before
-        # this is ever called) only confirms a dataBinding was parsed at all
-        # -- it can't express "dimensions is non-empty" (a nested attribute)
-        # or "series is non-empty" (a runtime parameter, not a field on
-        # parsed), so both stay checked here.
-        dimensions = None
-        if parsed is not None:
-            data_binding = getattr(parsed, "data_binding", None)
-            dimensions = getattr(data_binding, "dimensions", None)
-        if not dimensions or not series:
-            return
-        # Dedupe (preserving order) and cap before doing per-series work, so an
-        # oversized/duplicate list can't blow up CPU, memory, or response size.
-        unique_series = list(dict.fromkeys(series))[: Balloons.MAX_SERIES]
-        # Replace the open-ended map with one inlined style per series.
-        node.pop("additionalProperties", None)
-        properties: dict[str, Any] = {}
-        for value in unique_series:
-            style = deepcopy(style_def)
-            # Title each group with the series value so the control panel labels
-            # it by series rather than by the shared model name ("SeriesStyle").
-            style["title"] = value
-            properties[value] = style
-        node["properties"] = properties
-
-    enrichers: ClassVar[dict[str, EnricherFn]] = {"customize/series": _populate_series}
 
 
 @widget(
@@ -270,8 +201,9 @@ class FilterSelect(Widget):
             "choices are not enumerated here."
         ),
     }
-    # Filterable too, so filters whose scope reaches it narrow its options.
-    behavior = WidgetBehavior(filter=True, filterable=True)
+    # Not filterable: its options are the column's distinct values, which other
+    # filters don't narrow.
+    behavior = WidgetBehavior(filter=True)
     # Labeled with its column.
     ui = WidgetUi(default_size=(6, 2), show_title=False)
 

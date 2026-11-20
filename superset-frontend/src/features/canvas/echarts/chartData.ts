@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { GenericDataType } from '@apache-superset/core/common';
 import { SupersetClient } from '@superset-ui/core';
 import { DRAFT_TOKEN_HEADER, VERSION_HEADER } from '../useCanvasDefinition';
 import type { DataRow } from './resolveBindings';
@@ -60,10 +61,43 @@ export function runtimeFilters(
 }
 
 export interface PlacementData {
+  /** Temporal values arrive as epoch ms and are turned into date strings. */
   rows: DataRow[];
+  /** Each column's type, by name. */
+  coltypes?: Record<string, GenericDataType>;
   /** The query that ran; only for users who can view queries. */
   query?: string;
   language?: string;
+}
+
+/**
+ * An epoch-ms timestamp as the UTC date it stands for: `2024-01-31`, with the
+ * time only when it has one.
+ */
+export const formatTemporal = (value: unknown): unknown => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return value;
+  const iso = new Date(value).toISOString();
+  return iso.endsWith('T00:00:00.000Z')
+    ? iso.slice(0, 10)
+    : iso.slice(0, 19).replace('T', ' ');
+};
+
+/** `rows` with every temporal column's values as dates rather than numbers. */
+export function withTemporalValues(
+  rows: DataRow[],
+  coltypes: Record<string, GenericDataType> = {},
+): DataRow[] {
+  const temporal = Object.keys(coltypes).filter(
+    name => coltypes[name] === GenericDataType.Temporal,
+  );
+  if (temporal.length === 0) return rows;
+  return rows.map(row => {
+    const next = { ...row };
+    temporal.forEach(name => {
+      if (name in next) next[name] = formatTemporal(next[name]);
+    });
+    return next;
+  });
 }
 
 /**
@@ -96,8 +130,10 @@ export async function fetchPlacementData({
     jsonPayload: { runtime_filters: filters },
   });
   const dataset = json?.result?.datasets?.[0];
+  const coltypes = dataset?.coltypes ?? {};
   return {
-    rows: dataset?.inline_data ?? [],
+    rows: withTemporalValues(dataset?.inline_data ?? [], coltypes),
+    coltypes,
     query: dataset?.query,
     language: dataset?.language,
   };

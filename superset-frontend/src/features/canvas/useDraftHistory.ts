@@ -52,6 +52,8 @@ export function useDraftHistory(
   /** What the draft reported when it was last fetched. */
   fetched: { canUndo?: boolean; canRedo?: boolean },
   reload: () => void,
+  /** Told the revision each step produced, before the refetch shows it. */
+  onStepped?: (revision: number) => void,
 ): DraftHistory {
   const { addDangerToast } = useToasts();
   const [state, setState] = useState({
@@ -112,6 +114,7 @@ export function useDraftHistory(
         // the revision the step started from.
         if (typeof result.revision === 'number') {
           setStepped({ token, revision: result.revision });
+          onStepped?.(result.revision);
         }
         setState({
           canUndo: Boolean(result.canUndo),
@@ -136,7 +139,7 @@ export function useDraftHistory(
         setBusy(false);
       }
     },
-    [token, revision, settling, reload, addDangerToast],
+    [token, revision, settling, reload, addDangerToast, onStepped],
   );
 
   return {

@@ -45,6 +45,9 @@ import type {
  */
 export type LayoutGesture = 'drag' | 'resize' | 'keyboard' | 'menu';
 
+const UNDONE = () =>
+  t('This canvas changed while you were editing, so your change was undone.');
+
 /** The root grid's key in `childOrder`; see `CanvasGrid`. */
 const ROOT_NODE_ID = 'root';
 
@@ -362,7 +365,14 @@ export interface CanvasLayout {
   empty?: boolean;
   /** Why the last write failed, for a dismissable notice. */
   error?: string;
+  /** The placement the last write's error points at, when it names one. */
+  errorAt?: string;
   dismissError: () => void;
+  /**
+   * Take `revision` as acknowledged, for a change made outside the layout
+   * writes (an undo or redo step), so the next write is based on it.
+   */
+  adopt: (revision: number) => void;
 }
 
 /**
@@ -392,22 +402,33 @@ export function useCanvasLayout(
   const log = useCanvasLogger(canvasId, { isDraft: Boolean(draftToken) });
   const [applied, setApplied] = useState<AppliedLayout>();
   const [error, setError] = useState<string>();
+  const [errorAt, setErrorAt] = useState<string>();
   // Mirrors `writing`/`queued` as state, since callers render against it.
   const [saving, setSaving] = useState(false);
   // Removed here but still in the fetched definition, which is what the grid
   // renders its children from. Without this the widget stays on screen, and
   // with no placement left it lands wherever auto-flow puts it.
   const [removed, setRemoved] = useState<ReadonlySet<string>>(NONE_REMOVED);
+  // The revision each acknowledged removal produced. A fetch at or past it
+  // that still holds the widget means the removal was undone.
+  const removedAt = useRef(new Map<string, number>());
   // The definition caught up, so the set has done its job. Comparing against
   // the fetched nodes rather than clearing on any change: a poll that arrives
   // before the write lands would otherwise bring the widget back.
   useEffect(() => {
     setRemoved(current => {
       if (current.size === 0) return current;
-      const left = [...current].filter(nodeId => nodeId in result.placements);
+      const left = [...current].filter(nodeId => {
+        const at = removedAt.current.get(nodeId);
+        const kept =
+          nodeId in result.placements &&
+          (at === undefined || result.revision < at);
+        if (!kept) removedAt.current.delete(nodeId);
+        return kept;
+      });
       return left.length === current.size ? current : new Set(left);
     });
-  }, [result.placements]);
+  }, [result.placements, result.revision]);
 
   const { revision, canEdit } = result;
 
@@ -420,6 +441,9 @@ export function useCanvasLayout(
   const writing = useRef(false);
   // Newest intent per node while a write is in flight; sent as one batch.
   const queued = useRef(new Map<string, LayoutWrite>());
+  // A gesture a 409 reverted, reapplied once the refetch has the newer draft.
+  const retry = useRef<{ entries: [string, LayoutWrite][]; after: number }>();
+  const retrying = useRef(false);
   // The definition's placements, for an optimistic view that has no newer
   // local layout to build on.
   const fetchedPlacements = useRef(result.placements);
@@ -491,6 +515,9 @@ export function useCanvasLayout(
     acknowledged.current = undefined;
     writing.current = false;
     queued.current.clear();
+    retry.current = undefined;
+    removedAt.current.clear();
+    setRemoved(NONE_REMOVED);
     setApplied(undefined);
     // `told` above all: a new draft counts from zero, so the revision the
     // last one reached is always the greater of the two and what it held
@@ -498,6 +525,7 @@ export function useCanvasLayout(
     // one's list of changes, and Save lit up over an empty draft.
     setTold(undefined);
     setError(undefined);
+    setErrorAt(undefined);
     setSaving(false);
   }, [canvasId, draftToken]);
 
@@ -509,6 +537,8 @@ export function useCanvasLayout(
       // after the response, by which time the user may have published or
       // discarded the plan, or navigated to another canvas.
       const era = generation.current;
+      const isRetry = retrying.current;
+      retrying.current = false;
       const startedAt = Logger.getTimestamp();
       const base = Math.max(fetched.current, confirmed.current ?? 0);
       const placeOps = [...ops].map(([id, write]) => asOperation(id, write));
@@ -539,6 +569,10 @@ export function useCanvasLayout(
           const written = json?.result as ApplyOperationsResult | undefined;
           if (!written) return;
           confirmed.current = written.revision;
+          ops.forEach((op, id) => {
+            if (op.kind === 'remove')
+              removedAt.current.set(id, written.revision);
+          });
           setTold({
             revision: written.revision,
             changes: written.changes,
@@ -587,16 +621,18 @@ export function useCanvasLayout(
             has_err: true,
             status: response?.status,
           });
+          const reverted: [string, LayoutWrite][] = [...ops, ...queued.current];
           // Every removal this write or the queue behind it carried is undone
           // with it, so its widget has to come back on screen. Read before
           // the queue is cleared below.
           const kept = new Set(
-            [...ops, ...queued.current]
+            reverted
               .filter(([, write]) => write.kind === 'remove')
               .map(([id]) => id),
           );
           queued.current.clear();
           if (kept.size > 0) {
+            kept.forEach(id => removedAt.current.delete(id));
             setRemoved(current => {
               const left = [...current].filter(id => !kept.has(id));
               if (left.length === current.size) return current;
@@ -610,19 +646,41 @@ export function useCanvasLayout(
           setApplied(acknowledged.current);
           const { status } = response ?? {};
           if (status === 409) {
-            setError(
-              t(
-                'This canvas changed while you were editing, so your change was undone.',
-              ),
-            );
+            // Changed elsewhere, such as by an agent in the same draft: the
+            // gesture is tried once more on the refetched draft.
+            if (isRetry) {
+              setError(UNDONE());
+            } else {
+              retry.current = { entries: reverted, after: base };
+            }
             reload();
             return;
           }
+          // Read before `getClientErrorObject` consumes the body: the issue
+          // names the operation, and so the placement, it is about.
+          const body =
+            status === 422 && typeof response?.clone === 'function'
+              ? await response
+                  .clone()
+                  .json()
+                  .catch(() => undefined)
+              : undefined;
           const { message } = await getClientErrorObject(response);
+          if (era !== generation.current) return;
+          const issue = Array.isArray(body?.errors)
+            ? body.errors[0]
+            : undefined;
+          const at =
+            typeof body?.operation === 'number'
+              ? placeOps[body.operation]?.id
+              : undefined;
+          setErrorAt(typeof at === 'string' ? at : undefined);
           setError(
             status === 403
               ? t('You do not have permission to change this layout.')
-              : message || t('That change could not be saved.'),
+              : (typeof issue?.message === 'string' && issue.message) ||
+                  message ||
+                  t('That change could not be saved.'),
           );
         })
         .finally(() => {
@@ -642,7 +700,11 @@ export function useCanvasLayout(
   );
 
   const write = useCallback(
-    (entries: [string, LayoutWrite][], gesture: LayoutGesture = 'drag') => {
+    (
+      entries: [string, LayoutWrite][],
+      gesture: LayoutGesture = 'drag',
+      replay = false,
+    ) => {
       if (!canEdit || entries.length === 0) return;
       // One event per completed gesture. This is the seam that makes that
       // true: the four gesture APIs all funnel through here, the surface
@@ -654,12 +716,15 @@ export function useCanvasLayout(
       // This records intent, not outcome: the write is optimistic and can
       // still be rolled back. `canvas_write_layout` reports what the server
       // did with it.
-      log(LOG_ACTIONS_CANVAS_EDIT_LAYOUT, {
-        op: entries[0][1].kind,
-        gesture,
-        nodes: entries.length,
-      });
+      if (!replay) {
+        log(LOG_ACTIONS_CANVAS_EDIT_LAYOUT, {
+          op: entries[0][1].kind,
+          gesture,
+          nodes: entries.length,
+        });
+      }
       setError(undefined);
+      setErrorAt(undefined);
       // Show the drop straight away, built on the newest layout so an earlier
       // gesture isn't undone -- including one from this same batch, which a
       // ref read wouldn't see since refs only advance on render.
@@ -692,8 +757,11 @@ export function useCanvasLayout(
           placements: without(
             {
               ...(newer?.placements ?? fetchedPlacements.current),
-              ...pushed.placements,
+              // Under what the drop settled on: a target it overlaps can
+              // still order it after a sibling, which pushes it off the cell
+              // it asked for.
               ...moved,
+              ...pushed.placements,
             },
             gone,
           ),
@@ -798,7 +866,41 @@ export function useCanvasLayout(
     [write],
   );
 
-  const dismissError = useCallback(() => setError(undefined), []);
+  const dismissError = useCallback(() => {
+    setError(undefined);
+    setErrorAt(undefined);
+  }, []);
+
+  const adopt = useCallback((stepped: number) => {
+    confirmed.current = Math.max(confirmed.current ?? 0, stepped);
+  }, []);
+
+  // The refetch after a 409 has landed: reapply the reverted gesture if
+  // everything it names is still there, otherwise say it was undone.
+  useEffect(() => {
+    const pending = retry.current;
+    if (!pending || revision <= pending.after) return;
+    retry.current = undefined;
+    const present = (id: string) => id in result.placements;
+    const fits = pending.entries.every(
+      ([id, entry]) =>
+        (entry.kind === 'remove' || present(id)) &&
+        (entry.kind !== 'swap' || present(entry.partner)) &&
+        (entry.kind !== 'move' ||
+          entry.parent === ROOT_NODE_ID ||
+          present(entry.parent)),
+    );
+    if (!fits) {
+      setError(UNDONE());
+      return;
+    }
+    const entries = pending.entries.filter(
+      ([id, entry]) => entry.kind !== 'remove' || present(id),
+    );
+    if (entries.length === 0) return;
+    retrying.current = true;
+    write(entries, undefined, true);
+  }, [revision, result.placements, write]);
 
   // The definition wins once a fetch catches up to what was applied locally.
   const newer = applied && applied.revision > revision ? applied : undefined;
@@ -825,6 +927,8 @@ export function useCanvasLayout(
     remove,
     removed,
     error,
+    errorAt,
     dismissError,
+    adopt,
   };
 }

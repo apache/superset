@@ -28,6 +28,7 @@ from superset_core.canvas import StoredWidget
 
 from superset.canvas.data import PlacementData
 from superset.mcp_service.canvas.tool.get_canvas_data import _get_canvas_data_impl
+from superset.utils import json
 
 MODULE = "superset.mcp_service.canvas.tool.get_canvas_data"
 BINDING = {"datasetId": 13, "metrics": ["revenue"]}
@@ -145,3 +146,19 @@ def test_a_failing_query_is_reported_per_widget(view_query: bool) -> None:
 
     assert all(w["error_type"] == "QueryError" for w in result["widgets"])
     assert all("rows" not in w for w in result["widgets"])
+
+
+def test_rows_are_trimmed_to_fit_the_response_budget() -> None:
+    from superset.mcp_service.canvas.tool.get_canvas_data import _fit_rows
+
+    entries = [
+        {"placement_id": "big", "rows": [{"v": "x" * 100}] * 100},
+        {"placement_id": "small", "rows": [{"v": 1}] * 3},
+    ]
+
+    _fit_rows(entries, 2_000)
+
+    assert len(json.dumps(entries)) <= 2_000
+    assert entries[0]["truncated"] is True
+    assert entries[1]["rows"] == [{"v": 1}] * 3
+    assert "truncated" not in entries[1]

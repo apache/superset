@@ -114,6 +114,7 @@ def test_returns_rows_and_the_query_that_ran(
             "name": "main",
             "row_count": 1,
             "inline_data": [{"country": "FR", "count": 3}],
+            "coltypes": {},
             "query": "SELECT country ...",
             "language": "sql",
         }
@@ -596,6 +597,7 @@ def test_initial_create_failure_leaves_no_persisted_objects(
         SimpleNamespace(explore_form_data_cache=SimpleCache()),
     )
     mocker.patch("superset.commands.canvas.draft.get_user_id", return_value=5)
+    mocker.patch("superset.security_manager.can_access_datasource", return_value=True)
     before = published_state(session)
     operations = deepcopy(ops)
     if operations:

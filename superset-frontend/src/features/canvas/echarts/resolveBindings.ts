@@ -143,6 +143,36 @@ function resolveValue(value: unknown, ctx: BindContext): unknown {
   );
 }
 
+const RICH_TEXT = { renderMode: 'richText' } as const;
+
+const asRichText = (tooltip: unknown): unknown => {
+  if (Array.isArray(tooltip)) return tooltip.map(asRichText);
+  return isObject(tooltip) ? { ...tooltip, ...RICH_TEXT } : tooltip;
+};
+
+/**
+ * Every `tooltip` at any depth renders as rich text. ECharts reads the
+ * tooltip component from `baseOption`, `options[]` and `media[].option` as
+ * well as the root, so guarding the root alone leaves HTML formatters live.
+ */
+const forceRichText = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(forceRichText);
+  if (!isObject(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [
+      key,
+      key === 'tooltip' ? asRichText(forceRichText(item)) : forceRichText(item),
+    ]),
+  );
+};
+
+const withTooltip = (
+  option: Record<string, unknown>,
+): Record<string, unknown> => ({
+  ...option,
+  tooltip: option.tooltip ?? { ...RICH_TEXT },
+});
+
 /**
  * An ECharts option with its `$bind` markers replaced by query results or
  * theme tokens. Tooltips render as rich text rather than HTML, so strings in
@@ -152,16 +182,12 @@ export function resolveOption(
   option: Record<string, unknown>,
   ctx: BindContext,
 ): Record<string, unknown> {
-  const resolved = resolveValue(option, ctx) as Record<string, unknown>;
-  const tooltips = Array.isArray(resolved.tooltip)
-    ? resolved.tooltip
-    : [resolved.tooltip ?? {}];
-  const safe = tooltips.map(tooltip => ({
-    ...(isObject(tooltip) ? tooltip : {}),
-    renderMode: 'richText',
-  }));
-  return {
-    ...resolved,
-    tooltip: Array.isArray(resolved.tooltip) ? safe : safe[0],
-  };
+  const resolved = forceRichText(resolveValue(option, ctx)) as Record<
+    string,
+    unknown
+  >;
+  const withRoot = withTooltip(resolved);
+  return isObject(withRoot.baseOption)
+    ? { ...withRoot, baseOption: withTooltip(withRoot.baseOption) }
+    : withRoot;
 }

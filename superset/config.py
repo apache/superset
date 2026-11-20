@@ -1377,7 +1377,10 @@ THEME_DEFAULT_MODE: Literal["default", "dark", "system"] = "system"
 # "warnings": [...]}`` back.
 CANVAS_WIDGET_RENDERER_URL: str | None = None
 
-# Canvas drafts expire after this long without a write.
+# Canvas drafts expire after this long without a write. They are kept in the
+# Explore form-data cache (EXPLORE_FORM_DATA_CACHE_CONFIG), so a cache that
+# evicts under memory pressure can drop an idle draft sooner; size it with
+# drafts in mind, or use a non-evicting policy.
 CANVAS_DRAFT_TTL_SECONDS: int = 7 * 24 * 60 * 60
 # How often, in seconds, an open draft page checks for changes made elsewhere,
 # such as by an agent working in the same draft. 0 turns checking off.
@@ -3668,8 +3671,9 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
     canvases: Callable[[int], Query]
 
 
-# Extra access query exclusions inject an AND NOT condition into ChartFilter
-# and DashboardAccessFilter, letting a deployment *withhold* asset visibility.
+# Extra access query exclusions inject an AND NOT condition into ChartFilter,
+# DashboardAccessFilter and CanvasAccessFilter, letting a deployment *withhold*
+# asset visibility.
 # ``EXTRA_ACCESS_QUERY_FILTERS`` can only widen a result set, because its
 # conditions are OR'd with the role paths -- so a deployment that needs to keep
 # an asset out of the list, an export or a related-field lookup has no way to
@@ -3692,6 +3696,7 @@ ExclusionEntry = Callable[[int | None], Query | Select | Subquery]
 class ExtraAccessQueryExclusions(TypedDict, total=False):
     charts: ExclusionEntry
     dashboards: ExclusionEntry
+    canvases: ExclusionEntry
     # Narrower than the two above: assets selectable as the target of a
     # scheduled report, which renders as the configured executor rather than
     # as the user who created it. A deployment may hold assets a user can read

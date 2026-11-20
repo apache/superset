@@ -17,7 +17,12 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { fetchPlacementData, runtimeFilters } from './chartData';
+import { GenericDataType } from '@apache-superset/core/common';
+import {
+  fetchPlacementData,
+  runtimeFilters,
+  withTemporalValues,
+} from './chartData';
 
 test('sends the select filter values that have a selection', () => {
   expect(
@@ -57,6 +62,7 @@ test('reads the placement data route, with the draft token in a header', async (
 
   expect(data).toEqual({
     rows: [{ revenue: 3 }],
+    coltypes: {},
     query: 'SELECT 1',
     language: 'sql',
   });
@@ -68,4 +74,23 @@ test('reads the placement data route, with the draft token in a header', async (
     runtime_filters: [{ datasetId: 13, column: 'country', values: ['USA'] }],
   });
   fetchMock.removeRoutes();
+});
+
+test('temporal columns read as dates, and nothing else changes', () => {
+  expect(
+    withTemporalValues(
+      [
+        { ds: Date.UTC(2024, 0, 31), at: Date.UTC(2024, 0, 31, 9, 30), n: 5 },
+        { ds: null, at: Date.UTC(2024, 1, 1), n: 6 },
+      ],
+      {
+        ds: GenericDataType.Temporal,
+        at: GenericDataType.Temporal,
+        n: GenericDataType.Numeric,
+      },
+    ),
+  ).toEqual([
+    { ds: '2024-01-31', at: '2024-01-31 09:30:00', n: 5 },
+    { ds: null, at: '2024-02-01', n: 6 },
+  ]);
 });

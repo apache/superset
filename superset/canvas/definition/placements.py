@@ -26,11 +26,12 @@ exactly as stored.
 
 from __future__ import annotations
 
+import dataclasses
 import re
 from collections.abc import Container
 from typing import Any
 
-from superset_core.canvas import WidgetResolver
+from superset_core.canvas import StoredWidget, WidgetResolver
 from superset_core.widgets import PropsVersionError, Widget
 
 from superset.canvas.definition.registry import WidgetTypes
@@ -43,13 +44,21 @@ def placement_types(
     resolver: WidgetResolver,
 ) -> dict[str, type[Widget]]:
     """``{placement id: widget}`` for every placement that resolves."""
-    widget_type_ids = resolver.widget_types(
+    entities = resolver.widgets(
         {node["widgetId"] for node in nodes.values() if node.get("widgetId")}
     )
     resolved: dict[str, type[Widget]] = {}
     for node_id, node in nodes.items():
         if node.get("widgetId"):
-            widget = widget_types.get(widget_type_ids.get(node["widgetId"], ""))
+            entity = entities.get(node["widgetId"])
+            widget = widget_types.get(entity.widget_type) if entity else None
+            # Saved by a newer version of the widget than the one installed.
+            if (
+                entity is not None
+                and widget is not None
+                and entity.schema_version > widget.schema_version
+            ):
+                widget = None
         else:
             widget = widget_types.get(node.get("widgetType") or "")
             if widget is not None and node.get("schemaVersion") != (
@@ -59,6 +68,28 @@ def placement_types(
         if widget is not None:
             resolved[node_id] = widget
     return resolved
+
+
+def upgrade_entities(
+    widgets: dict[str, StoredWidget], widget_types: WidgetTypes
+) -> dict[str, StoredWidget]:
+    """
+    Widget entities with props saved by an older widget version brought to
+    the current one, as read; the stored rows change only when next saved.
+    """
+    upgraded = dict(widgets)
+    for widget_id, entity in widgets.items():
+        widget = widget_types.get(entity.widget_type)
+        if widget is None or entity.schema_version >= widget.schema_version:
+            continue
+        try:
+            props = widget.upgrade_props(entity.props, entity.schema_version)
+        except PropsVersionError:
+            continue
+        upgraded[widget_id] = dataclasses.replace(
+            entity, props=props, schema_version=widget.schema_version
+        )
+    return upgraded
 
 
 def upgrade_inline_props(

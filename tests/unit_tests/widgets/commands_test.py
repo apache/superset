@@ -215,3 +215,59 @@ def test_delete_removes_the_widget(
         DeleteWidgetCommand(str(widget.uuid)).run()
 
     assert tables.query(Widget).count() == 0
+
+
+BOUND = {"datasetId": 999, "metrics": ["count"]}
+
+
+def test_create_refuses_a_binding_to_a_dataset_the_user_cannot_read(
+    tables: Session, make_user: MakeUser
+) -> None:
+    alice_user, _ = make_user("alice", "Gamma")
+    tables.commit()
+
+    with override_user(alice_user):
+        with pytest.raises(WidgetInvalidError) as excinfo:
+            CreateWidgetCommand(
+                {
+                    "widget_type": "markdown",
+                    "name": "Notes",
+                    "props": {"content": "Hi", "dataBinding": BOUND},
+                }
+            ).run()
+
+    assert excinfo.value.normalized_messages()["props"] == {
+        "/props/dataBinding/datasetId": ["unknown dataset, or no access to it"]
+    }
+
+
+def test_update_checks_only_a_binding_it_changes(
+    tables: Session, make_user: MakeUser, make_widget: MakeWidget
+) -> None:
+    alice_user, alice = make_user("alice", "Gamma")
+    widget = make_widget(
+        "Notes", editors=[alice], props={"content": "a", "dataBinding": BOUND}
+    )
+    tables.commit()
+
+    with override_user(alice_user):
+        updated = UpdateWidgetCommand(
+            str(widget.uuid), {"props": {"content": "b", "dataBinding": BOUND}}
+        ).run()
+        with pytest.raises(WidgetInvalidError):
+            UpdateWidgetCommand(
+                str(widget.uuid),
+                {"props": {"content": "b", "dataBinding": {**BOUND, "datasetId": 998}}},
+            ).run()
+
+    assert updated.props["content"] == "b"
+
+
+def test_create_without_a_version_reads_props_at_the_current_one() -> None:
+    from superset.widgets.schemas import WidgetPostSchema
+
+    loaded = WidgetPostSchema().load(
+        {"widget_type": "markdown", "name": "Notes", "props": {"content": "Hi"}}
+    )
+
+    assert loaded["schema_version"] is None

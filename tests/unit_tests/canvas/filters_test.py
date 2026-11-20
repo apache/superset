@@ -238,3 +238,26 @@ def test_related_users_leave_out_excluded_users(
 
     assert response.status_code == 200
     assert [row["text"] for row in response.json["result"]] == ["alice User"]
+
+
+def test_extra_access_query_exclusion_withholds_a_canvas_from_admins_too(
+    session: Session, shared: dict[str, Any], mocker: MockerFixture
+) -> None:
+    from sqlalchemy import select
+
+    from superset.models.canvas import Canvas
+
+    as_user(mocker, admin=True)
+    edited = shared["edited"].id
+    mocker.patch.dict(
+        "superset.canvas.filters.current_app.config",
+        {
+            "EXTRA_ACCESS_QUERY_EXCLUSIONS": {
+                "canvases": lambda _user_id: select(Canvas.id).where(
+                    Canvas.id == edited
+                )
+            }
+        },
+    )
+
+    assert visible(session) == ["hidden", "viewed"]

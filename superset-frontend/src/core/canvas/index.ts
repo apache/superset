@@ -24,6 +24,7 @@
 
 import { ComponentType, useSyncExternalStore } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import { Disposable } from '../models';
 import { createValueEventEmitter } from '../utils';
 
@@ -42,6 +43,11 @@ const registerWidgetRenderer: typeof canvasApi.registerWidgetRenderer = (
   widgetType,
   component,
 ) => {
+  if (renderers.has(widgetType)) {
+    logging.warn(
+      `Widget renderer "${widgetType}" is already registered. Overwriting the existing renderer.`,
+    );
+  }
   renderers.set(widgetType, component);
   notify();
   return new Disposable(() => {

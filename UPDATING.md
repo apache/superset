@@ -33,18 +33,19 @@ assists people when migrating to a new version.
   `@apache-superset/core`, letting extensions report usage through the
   existing event pipeline.
 
-- **Canvas definitions have a new `swap` operation.** `{"op": "swap", "id":
-  ..., "partner": ...}` exchanges two siblings' places on their grid, each
-  keeping its own size. It is additive -- nothing that worked before stops
-  working -- but it is written to the canvas and draft operation logs, so
-  anything that reads those logs has to accept it: a client that validates
-  operations against an older schema rejects a log containing one, and a
-  canvas whose log it cannot replay cannot be undone or committed. Two
-  `place` operations are no longer equivalent, because the grid resolves
-  after every operation: sent apart, the second is decided against the grid
-  the first left behind, which is neither of the places the user chose.
-  Canvases are behind the `CANVAS` feature flag, so deployments with the flag
-  off are unaffected.
+- **`superset init` adds Canvas and Widget permissions to the built-in roles.**
+  Gamma and Alpha receive `can_read` and `can_write` on `Canvas` and `Widget`,
+  even with the `CANVAS` feature flag off: the APIs are registered regardless
+  and answer 404 while the flag is off, so roles are ready before it is turned
+  on. Grant those permissions to custom roles that should use canvases, or
+  remove them from the built-in roles to keep canvases off for those users.
+
+- **`build_configuration_schema` reads a `field_order` class attribute.** A
+  configuration model (or a nested model in its `$defs`) that declares
+  `field_order: ClassVar[list[str]]` has its properties rendered in that order,
+  and the builder raises `ValueError` unless the list is an exact permutation of
+  the model's properties. Models without the attribute are unchanged; rename an
+  unrelated attribute that happens to use the name.
 
 - **`AFTER_ASSET_CREATE` now also fires for canvases.** The hook's `asset_type`
   argument can be `"canvas"` as well as `"chart"` and `"dashboard"`, and a
@@ -53,6 +54,15 @@ assists people when migrating to a new version.
   chart or dashboard model raises and cancels every canvas create. Branch on
   `asset_type` before reading model fields. Canvases are behind the `CANVAS`
   feature flag, so deployments with the flag off are unaffected.
+
+- Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
+  the caller cannot view it, rather than treating an access-filtered dashboard
+  as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
+  dashboards withheld by an `EXTRA_ACCESS_QUERY_EXCLUSIONS` hook and dashboards
+  outside an embedded guest token's scope. The legacy dashboard HTML entry also
+  returns 403 for authenticated callers denied access. Clients should handle
+  these responses separately; list endpoints continue to omit dashboards the
+  caller cannot access.
 
 - **Realtime websocket authentication (`WEBSOCKET_ENABLE`):** the browser
   authenticates the socket with a short-lived ticket from
@@ -129,7 +139,8 @@ assists people when migrating to a new version.
   Whatever the setting, `engine_information` on the database endpoints gains
   `encrypted_extra_sensitive_fields`, the engine's declared sensitive paths
   and labels, and `GET /api/v1/database/<pk>/connection` lists the fields
-  stored in that database instead.
+  stored in that database instead, plus `encrypted_extra_expirations`, when
+  each stored JWT expires.
 
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
@@ -607,7 +618,7 @@ reattached to a reachable container by layout repair.
   enforcing completeness should raise the public
   `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
   results are incomplete or cannot be verified (an additive `apache-superset-core`
-  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  API added after 0.2.0; import it from `superset_core.semantic_layers.errors`,
   not the same-named host class in `superset.exceptions`); the host converts it to
   its client error, and these
   failures do not publish a successful async result cache key. A provider raising

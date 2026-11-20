@@ -44,6 +44,7 @@ from superset_core.canvas import StoredWidget
 
 from superset import security_manager
 from superset.canvas.definition.pending import (
+    HidingWidgetResolver,
     pending_from_value,
     pending_to_value,
     PendingWidgetResolver,
@@ -88,6 +89,17 @@ BY_USER = "user"
 BY_AI = "ai"
 
 
+LAYOUT_OPS = frozenset({"place", "move", "swap"})
+
+
+def _placed(definition: dict[str, Any]) -> set[str]:
+    return {
+        node["widgetId"]
+        for node in (definition.get("nodes") or {}).values()
+        if node.get("widgetId")
+    }
+
+
 def _parent_of(definition: dict[str, Any], node_id: str) -> str:
     """Which container holds ``node_id``, or the root if nothing does."""
     for parent, node in (definition.get("nodes") or {}).items():
@@ -96,13 +108,17 @@ def _parent_of(definition: dict[str, Any], node_id: str) -> str:
     return ROOT_ID
 
 
-def _change(op: dict[str, Any], before: dict[str, Any]) -> dict[str, Any] | None:
+def _change(
+    op: dict[str, Any], before: dict[str, Any], placed: dict[str, dict[str, int]]
+) -> dict[str, Any] | None:
     """
     What one operation did, in the words the banner lists it under.
 
     ``before`` is the definition as it stood when the operation was applied,
     which is the only place a move can be told from a resize: the operation
-    carries the layout it asked for, not the one it replaced.
+    carries the layout it asked for, not the one it replaced. ``placed`` is
+    where ``before`` resolved each placement, since a stored layout can leave
+    its spans to the grid.
     """
     kind = op.get("op")
     node_id = op.get("id")
@@ -120,8 +136,11 @@ def _change(op: dict[str, Any], before: dict[str, Any]) -> dict[str, Any] | None
         return {"kind": "new", "nodeId": node_id}
     if kind == "remove":
         return {"kind": "removed", "nodeId": node_id}
-    if kind in {"place", "move", "swap"}:
-        was = (before.get("nodes") or {}).get(node_id, {}).get("layout") or {}
+    if kind in LAYOUT_OPS:
+        was = {
+            **((before.get("nodes") or {}).get(node_id, {}).get("layout") or {}),
+            **placed.get(node_id, {}),
+        }
         # A swap carries no layout of its own -- it takes the partner's slot --
         # so it reads as a move, which is what it is. Only the widget that was
         # dragged is listed: the one it changed places with gave way, as the
@@ -194,7 +213,18 @@ class CanvasDraft:
         return self.canvas.id
 
     def resolver(self) -> PendingWidgetResolver:
-        return PendingWidgetResolver(get_widget_resolver(), self.widgets)
+        """
+        The draft's widgets over the saved ones. A saved widget the draft
+        places but the canvas no longer does is read as a version preview
+        reads it: only if the user could place it again.
+        """
+        base = get_widget_resolver()
+        returning = _placed(self.definition) - set(self.widgets)
+        if returning:
+            returning -= _placed(CanvasDAO.load(self.canvas))
+        if returning and (hidden := returning - base.placeable(returning)):
+            base = HidingWidgetResolver(base, hidden)
+        return PendingWidgetResolver(base, self.widgets)
 
     def to_value(self) -> dict[str, Any]:
         return {
@@ -425,10 +455,15 @@ class ApplyCanvasDraftOperationsCommand:
         logged = [operation.op for operation in applied]
         # Summarised against the definition as it stood, before it is
         # replaced: a resize is only a resize next to the span it replaced.
+        placed = (
+            render_context(before, resolver=draft.resolver())["placements"]
+            if any(op.op.get("op") in LAYOUT_OPS for op in applied)
+            else {}
+        )
         changes = [
             change
             for operation in applied
-            if (change := _change(operation.op, before)) is not None
+            if (change := _change(operation.op, before, placed)) is not None
         ]
         draft.definition = definition
         # One group per request, so the replay resolves where this did, and
@@ -571,7 +606,7 @@ class CommitCanvasDraftCommand:
             result = CommitResult(applied.revision)
         else:
             result = CommitResult(_editable_canvas(draft.canvas_id).revision)
-        DeleteCanvasDraftCommand(self._token).run()
+        _discard(self._token)
         return result
 
 
@@ -582,6 +617,13 @@ class DeleteCanvasDraftCommand:
         self._token = token
 
     def run(self) -> CanvasDraft:
-        draft = load_draft(self._token)
-        cache_manager.explore_form_data_cache.delete(_cache_key(self._token))
-        return draft
+        # Under the write lock, or a write in flight saves the draft again
+        # after it was discarded.
+        with _draft_write_lock(self._token):
+            return _discard(self._token)
+
+
+def _discard(token: str) -> CanvasDraft:
+    draft = load_draft(token)
+    cache_manager.explore_form_data_cache.delete(_cache_key(token))
+    return draft

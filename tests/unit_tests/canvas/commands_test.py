@@ -93,6 +93,17 @@ def test_create_reveals_nothing_about_a_widget_placed_where_it_cannot_go(
     }
 
 
+def test_widget_uuids_are_kept_in_one_spelling() -> None:
+    from superset.canvas.definition.schemas import AddOp, Node
+
+    upper = "1B4E28BA-2FA1-11D2-883F-0016D3CCA427"
+
+    assert Node.model_validate({"widgetId": upper}).widget_id == upper.lower()
+    assert AddOp.model_validate({"op": "add", "widgetId": upper}).widget_id == (
+        upper.lower()
+    )
+
+
 def test_create_reports_definition_issues(create_deps: None) -> None:
     command = create_command({"title": "x", "definition": {"version": 2}})
 

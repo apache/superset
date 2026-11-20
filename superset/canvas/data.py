@@ -25,7 +25,7 @@ This stands in for SIP-231's ``build_queries`` until widgets declare their own.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -56,6 +56,9 @@ class PlacementData:
     # The query that produced the rows, as the datasource ran it.
     query: str | None
     language: str | None
+    # Each column's ``GenericDataType``, by name: rows carry temporal values as
+    # epoch milliseconds, which only the type tells apart from a number.
+    coltypes: dict[str, int] = field(default_factory=dict)
 
 
 def binding_dataset_id(props: dict[str, Any]) -> int | None:
@@ -143,4 +146,12 @@ def run_binding(
         rows=result.get("data") or [],
         query=result.get("query") or None,
         language=getattr(query_context.datasource, "query_language", None),
+        coltypes={
+            name: int(coltype)
+            for name, coltype in zip(
+                result.get("colnames") or [],
+                result.get("coltypes") or [],
+                strict=False,
+            )
+        },
     )

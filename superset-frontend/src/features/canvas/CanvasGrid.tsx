@@ -523,13 +523,22 @@ export default function CanvasGrid({
       );
     }
 
-    const childNodes: canvasApi.CanvasChild[] = childIds.map(childId => ({
-      nodeId: childId,
-      widgetType: widgetTypes[childId],
-      props: contentOf(childId)?.props,
-      layout: definition.nodes[childId].layout,
-      element: renderNode(childId, depth + 1),
-    }));
+    // Built on first read: a grid container renders its children through
+    // `renderGrid` and never reads `element`, so building it eagerly doubled
+    // the work at every level of nesting.
+    const childNodes: canvasApi.CanvasChild[] = childIds.map(childId => {
+      let element: ReactNode | undefined;
+      return {
+        nodeId: childId,
+        widgetType: widgetTypes[childId],
+        props: contentOf(childId)?.props,
+        layout: definition.nodes[childId].layout,
+        get element() {
+          element ??= renderNode(childId, depth + 1);
+          return element;
+        },
+      };
+    });
     const childGridColumns = gridColumns[nodeId];
     const title = titles[nodeId];
     const widget = (

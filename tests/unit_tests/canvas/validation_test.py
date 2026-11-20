@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses
 from copy import deepcopy
 from typing import Any
 
@@ -105,6 +106,32 @@ def test_props_from_a_newer_widget_stay_as_a_placeholder() -> None:
 
     assert result["nodes"]["a"]["props"] == {"future": 1}
     assert result["nodes"]["a"]["schemaVersion"] == 2
+
+
+def test_a_layout_its_narrowed_grid_no_longer_fits_is_auto_placed() -> None:
+    from superset.canvas.definition.render import render_context
+
+    layout = {"col": 7, "row": 1, "colSpan": 12, "rowSpan": 2}
+    raw = canvas(
+        {
+            "g": inline("group", layout={"colSpan": 24, "rowSpan": 4}, children=["a"]),
+            "a": node("chart-1", layout=layout),
+        },
+        children=["g"],
+    )
+
+    result = normalize_definition(
+        raw, canvas_widget_types(), FakeResolver(), strict_nodes=[], props_nodes=[]
+    )
+    placed = render_context(result, canvas_widget_types(), FakeResolver())
+
+    assert result["nodes"]["a"]["layout"] == layout
+    assert placed["placements"]["a"] == {
+        "col": 1,
+        "row": 1,
+        "colSpan": 12,
+        "rowSpan": 1,
+    }
 
 
 def test_inline_props_are_migrated_to_the_widget_version() -> None:
@@ -481,3 +508,56 @@ def test_group_sizing_normalization_is_idempotent() -> None:
 
     assert twice == once
     assert twice["nodes"]["outer"]["layout"]["rowSpan"] == 8
+
+
+@pytest.mark.parametrize(
+    "layout",
+    [{"colSpan": 49}, {"col": 1, "row": 1001}, {"rowSpan": 201}],
+)
+def test_grid_placements_are_bounded(layout: dict[str, Any]) -> None:
+    from pydantic import ValidationError
+    from superset_core.canvas import GridPlacement
+
+    with pytest.raises(ValidationError):
+        GridPlacement.model_validate(layout)
+
+
+def test_a_widget_saved_by_a_newer_version_is_a_placeholder() -> None:
+    from superset.canvas.definition.placements import placement_types
+
+    resolver = FakeResolver()
+    newer = resolver.widgets
+
+    def widgets(ids: Any) -> Any:
+        return {
+            widget_id: dataclasses.replace(widget, schema_version=2)
+            for widget_id, widget in newer(ids).items()
+        }
+
+    resolver.widgets = widgets  # type: ignore[method-assign,assignment]
+
+    assert (
+        placement_types({"a": node("chart-1")}, canvas_widget_types(), resolver) == {}
+    )
+
+
+def test_a_widget_saved_by_an_older_version_is_read_upgraded() -> None:
+    from superset_core.canvas import StoredWidget
+
+    from superset.canvas.definition.placements import upgrade_entities
+
+    rules = canvas_widget_types()
+    chart = rules["chart"]
+    rules["chart"] = type(
+        "ChartV2",
+        (chart,),
+        {
+            "schema_version": 2,
+            "migrators": {1: lambda props: {"metric": props["measure"]}},
+        },
+    )
+    old = StoredWidget("chart", 1, "Sales", {"measure": "sum"})
+
+    upgraded = upgrade_entities({"w": old}, rules)["w"]
+
+    assert (upgraded.schema_version, upgraded.props) == (2, {"metric": "sum"})
