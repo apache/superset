@@ -257,47 +257,17 @@ const MONTHS_PER_UNIT: Partial<Record<LengthUnit, number>> = {
   year: 12,
 };
 
-const REST_UNITS: Partial<Record<LengthUnit, LengthUnit>> = {
-  week: 'day',
-  day: 'hour',
-  hour: 'minute',
-  minute: 'second',
-};
-
 const unitMs = (unit: LengthUnit) =>
   SUB_DAY_MS[unit] ?? (unit === 'week' ? 7 * DAY_MS : DAY_MS);
 
-const withRest = (units: string, ms: number, unit: LengthUnit) => {
-  const rest = Math.ceil(ms / unitMs(unit));
-  if (!rest) {
-    return units;
-  }
-  // i18n: a length as whole units plus the remainder in a smaller unit, e.g.
-  // "6 hours and 1 minute"; "rest" is the remainder, not a pause
-  return t('%(units)s and %(rest)s', { units, rest: UNIT_NAMES[unit](rest) });
-};
-
 /**
- * `until - since` in `unit`, as the server's `_describe_length`: whole units,
- * then the rest in the next smaller unit (days for a week or longer). Units of
- * a week or longer count back from `until`. The calendar month difference is
- * an upper bound on that count, so it only steps down.
+ * The range in whole units, rounded up, as the server's `_describe_length`.
+ * Calendar months, quarters and years count back from `until`.
  */
 function describeLength(since: Dayjs, until: Dayjs, unit: LengthUnit): string {
   const ms = until.valueOf() - since.valueOf();
-  if (unit === 'second') {
-    return UNIT_NAMES.second(Math.ceil(ms / unitMs(unit)));
-  }
-  const restUnit = REST_UNITS[unit];
-  if (restUnit) {
-    const step = unitMs(restUnit);
-    const length = Math.ceil(ms / step) * step;
-    const count = Math.floor(length / unitMs(unit));
-    return withRest(
-      UNIT_NAMES[unit](count),
-      length - count * unitMs(unit),
-      restUnit,
-    );
+  if (!MONTHS_PER_UNIT[unit]) {
+    return UNIT_NAMES[unit](Math.ceil(ms / unitMs(unit)));
   }
   const months =
     (until.year() - since.year()) * 12 + until.month() - since.month();
@@ -305,10 +275,8 @@ function describeLength(since: Dayjs, until: Dayjs, unit: LengthUnit): string {
   while (count > 0 && !fits(since, until, count, unit)) {
     count -= 1;
   }
-  return withRest(
-    UNIT_NAMES[unit](count),
-    shift(until, -count, unit).valueOf() - since.valueOf(),
-    'day',
+  return UNIT_NAMES[unit](
+    count + Number(shift(until, -count, unit).isAfter(since)),
   );
 }
 

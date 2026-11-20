@@ -2196,7 +2196,7 @@ def test_dashboard_span_error_has_the_full_extra(
 
     error.extra.pop("issue_codes")
     assert error.message == (
-        "Range can't be longer than 9 weeks. This one is 12 weeks and 1 day."
+        "Range can't be longer than 9 weeks. This one is 13 weeks."
     )
     assert error.extra == {
         "reason_code": "MAX_SPAN_EXCEEDED",

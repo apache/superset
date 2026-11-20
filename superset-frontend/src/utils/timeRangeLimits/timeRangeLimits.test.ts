@@ -152,7 +152,7 @@ test('"Last 3 months" a year ago breaks the span and the look-back, both with th
       field: 'range',
       source: 'global',
       message:
-        'Time comparison "1 year ago": Range can\'t be longer than 3 months. This one is 3 months and 1 day.',
+        'Time comparison "1 year ago": Range can\'t be longer than 3 months. This one is 4 months.',
     },
     {
       reason: 'MAX_LOOK_BACK_EXCEEDED',
@@ -465,7 +465,7 @@ test('legacy grains and quarters use the server lengths', () => {
       field: 'range',
       source: 'global',
       message:
-        'Time comparison "1 year ago": Range can\'t be longer than 1 quarter. This one is 1 quarter and 1 day.',
+        'Time comparison "1 year ago": Range can\'t be longer than 1 quarter. This one is 2 quarters.',
     },
   ]);
 
@@ -590,13 +590,13 @@ test('describeFailure gives the message alone, with no level sentence', () => {
     );
 
   expect(span('dashboard')).toBe(
-    "Range can't be longer than 3 months. This one is 4 months and 30 days.",
+    "Range can't be longer than 3 months. This one is 5 months.",
   );
   expect(span('dataset')).toBe(
-    "Range can't be longer than 3 months. This one is 4 months and 30 days.",
+    "Range can't be longer than 3 months. This one is 5 months.",
   );
   expect(span('global')).toBe(
-    "Range can't be longer than 3 months. This one is 4 months and 30 days.",
+    "Range can't be longer than 3 months. This one is 5 months.",
   );
   expect(describeFailure(check(null, null, globalA())[0])).toBe(
     'Choose a start and an end date. Time range limits are on.',
@@ -1042,7 +1042,7 @@ test('a dataset level fails "Last quarter" with the dataset span', () => {
   );
 
   expect(failures.map(failure => describeFailure(failure))).toEqual([
-    "Range can't be longer than 4 weeks. This one is 13 weeks and 1 day.",
+    "Range can't be longer than 4 weeks. This one is 14 weeks.",
   ]);
   expect(failures[0].limit?.source).toBe('dataset');
 });
@@ -1899,14 +1899,14 @@ test('fetchChartRanges: a failed call fails only its own keys', async () => {
   });
 });
 
-test('a month span steps the month count down when the last month is short', () => {
+test('a month span rounds up using calendar subtraction at month end', () => {
   expect(
     describeSpanLength(
       { source: 'dashboard', quantity: 1, time_grain: 'P1M' },
       date('2025-01-31T00:00:00'),
       date('2025-03-30T00:00:00'),
     ),
-  ).toBe('1 month and 28 days');
+  ).toBe('2 months');
 });
 
 test('calendar ordering does not disable Start at an exclusive midnight End', () => {

@@ -805,7 +805,7 @@ def stored_filter_values(dashboard: Any) -> dict[str, Any]:
         (None, "Choose a start and an end date. Time range limits are on."),
         (
             "Last year",
-            "Range can't be longer than 12 weeks. This one is 52 weeks and 1 day.",
+            "Range can't be longer than 12 weeks. This one is 53 weeks.",
         ),
     ],
     ids=["no_filter", "no_default", "too_long"],

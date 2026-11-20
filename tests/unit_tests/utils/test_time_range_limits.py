@@ -2200,12 +2200,12 @@ def test_validate_date_range_since_after_until() -> None:
 @pytest.mark.parametrize(
     "since,until,length",
     [
-        (datetime(2026, 1, 1), datetime(2026, 4, 1, 0, 0, 1), "90 days and 1 hour"),
+        (datetime(2026, 1, 1), datetime(2026, 4, 1, 0, 0, 1), "91 days"),
         (datetime(2026, 1, 1), datetime(2026, 4, 2), "91 days"),
-        (datetime(2026, 1, 1, 12), datetime(2026, 4, 2), "90 days and 12 hours"),
+        (datetime(2026, 1, 1, 12), datetime(2026, 4, 2), "91 days"),
     ],
 )
-def test_validate_date_range_rounds_the_rest_up(
+def test_validate_date_range_rounds_up_in_the_limit_unit(
     since: datetime, until: datetime, length: str
 ) -> None:
     ex = limit_error(since, until, span_limits((90, "P1D")))
@@ -2220,9 +2220,7 @@ def test_validate_date_range_one_day_limit_message() -> None:
         datetime(2026, 1, 1), datetime(2026, 1, 2, 0, 0, 1), span_limits((1, "P1D"))
     )
 
-    assert ex.error.message == (
-        "Range can't be longer than 1 day. This one is 1 day and 1 hour."
-    )
+    assert ex.error.message == ("Range can't be longer than 1 day. This one is 2 days.")
 
 
 @pytest.mark.parametrize(
@@ -2297,13 +2295,13 @@ def test_end_message(rule: Rule, shown: str) -> None:
             (1, "P1D"),
             datetime(2025, 1, 1),
             datetime(2025, 1, 2, 0, 1),
-            "Range can't be longer than 1 day. This one is 1 day and 1 hour.",
+            "Range can't be longer than 1 day. This one is 2 days.",
         ),
         (
             (3, "P1M"),
             datetime(2025, 2, 27),
             datetime(2025, 5, 31),
-            "Range can't be longer than 3 months. This one is 3 months and 1 day.",
+            "Range can't be longer than 3 months. This one is 4 months.",
         ),
         (
             (1, "P1Y"),
@@ -2315,26 +2313,25 @@ def test_end_message(rule: Rule, shown: str) -> None:
             (2, "P1W"),
             datetime(2025, 1, 1),
             datetime(2025, 1, 18),
-            "Range can't be longer than 2 weeks. This one is 2 weeks and 3 days.",
+            "Range can't be longer than 2 weeks. This one is 3 weeks.",
         ),
         (
             (3, "P1M"),
             datetime(2025, 1, 15, 10),
             datetime(2025, 4, 15, 10, 1),
-            "Range can't be longer than 3 months. This one is 3 months and 1 day.",
+            "Range can't be longer than 3 months. This one is 4 months.",
         ),
         (
             (1, "P3M"),
             datetime(2025, 1, 1),
             datetime(2025, 7, 15),
-            "Range can't be longer than 1 quarter. This one is 2 quarters and 14 days.",
+            "Range can't be longer than 1 quarter. This one is 3 quarters.",
         ),
         (
             (2, "P3M"),
             datetime(2025, 1, 1),
             datetime(2025, 9, 1),
-            "Range can't be longer than 2 quarters. This one is 2 quarters and 59 "
-            "days.",
+            "Range can't be longer than 2 quarters. This one is 3 quarters.",
         ),
         (
             (3, "P1M"),
@@ -2352,7 +2349,7 @@ def test_end_message(rule: Rule, shown: str) -> None:
             (1, "P1M"),
             datetime(2025, 1, 31),
             datetime(2025, 4, 30),
-            "Range can't be longer than 1 month. This one is 2 months and 28 days.",
+            "Range can't be longer than 1 month. This one is 3 months.",
         ),
         (
             (3, "PT5M"),
@@ -2364,14 +2361,13 @@ def test_end_message(rule: Rule, shown: str) -> None:
             (3, "PT5M"),
             datetime(2026, 10, 16, 14),
             datetime(2026, 10, 16, 14, 15, 1),
-            "Range can't be longer than 15 minutes. This one is 15 minutes and 1 "
-            "second.",
+            "Range can't be longer than 15 minutes. This one is 16 minutes.",
         ),
         (
             (6, "PT1H"),
             datetime(2026, 10, 16, 8),
             datetime(2026, 10, 16, 14, 30),
-            "Range can't be longer than 6 hours. This one is 6 hours and 30 minutes.",
+            "Range can't be longer than 6 hours. This one is 7 hours.",
         ),
         (
             (2, "PT30S"),
@@ -2402,8 +2398,7 @@ def test_validate_date_range_too_long_message(
             "P0.25Y",
             datetime(2025, 1, 1),
             datetime(2025, 9, 1),
-            "Range can't be longer than 2 quarters. This one is 2 quarters and 59 "
-            "days.",
+            "Range can't be longer than 2 quarters. This one is 3 quarters.",
         ),
         (
             "PT0.5H",
@@ -2415,7 +2410,7 @@ def test_validate_date_range_too_long_message(
             "P2W",
             datetime(2025, 1, 1),
             datetime(2025, 2, 18),
-            "Range can't be longer than 4 weeks. This one is 6 weeks and 6 days.",
+            "Range can't be longer than 4 weeks. This one is 7 weeks.",
         ),
     ],
 )
@@ -2461,16 +2456,15 @@ def test_limit_words_for_aliases(mocker: MockerFixture) -> None:
     [
         (
             (1, "P1W"),
-            "Range can't be longer than 1 week. This one is 521722 weeks and 4 days.",
+            "Range can't be longer than 1 week. This one is 521723 weeks.",
         ),
         (
             (1, "P1M"),
-            "Range can't be longer than 1 month. This one is 119987 months and 30 "
-            "days.",
+            "Range can't be longer than 1 month. This one is 119988 months.",
         ),
         (
             (1, "P1Y"),
-            "Range can't be longer than 1 year. This one is 9998 years and 364 days.",
+            "Range can't be longer than 1 year. This one is 9999 years.",
         ),
         (
             (1, "PT1S"),
@@ -2515,7 +2509,7 @@ def test_comparison_range_gets_every_rule() -> None:
     assert ex.error.extra["time_offset"] == "1 year ago"
     assert ex.error.message == (
         'Time comparison "1 year ago": '
-        "Range can't be longer than 3 months. This one is 3 months and 1 day."
+        "Range can't be longer than 3 months. This one is 4 months."
     )
 
 

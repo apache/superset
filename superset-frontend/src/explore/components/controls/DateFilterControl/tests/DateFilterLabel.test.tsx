@@ -970,7 +970,7 @@ test('a span error shows in the range row in place of the range and marks the fi
 
   await waitFor(() =>
     expect(rowAlert()).toHaveTextContent(
-      /^Range can't be longer than 3 months\. This one is 4 months and 30 days\.$/,
+      /^Range can't be longer than 3 months\. This one is 5 months\.$/,
     ),
   );
   expect(within(row()).queryByText(/≤ col </)).not.toBeInTheDocument();
@@ -1058,14 +1058,14 @@ test('two failures, the span in the row and the look-back under Start, with no s
 
   await waitFor(() =>
     expect(rowAlert()).toHaveTextContent(
-      /^Range can't be longer than 3 months\. This one is 3 months and 1 day\.$/,
+      /^Range can't be longer than 3 months\. This one is 4 months\.$/,
     ),
   );
   expect(screen.queryByText(/Range not applied/)).not.toBeInTheDocument();
   const [start] = textboxes();
   expect(start).toHaveAttribute('aria-invalid', 'true');
   expect(describedText(start)).toBe(
-    "Start can't be earlier than Apr 30, 2024 (13 months ago). | Range can't be longer than 3 months. This one is 3 months and 1 day.",
+    "Start can't be earlier than Apr 30, 2024 (13 months ago). | Range can't be longer than 3 months. This one is 4 months.",
   );
 });
 
@@ -1077,7 +1077,7 @@ test.each(['dashboard', 'dataset', 'global'] as Source[])(
 
     await waitFor(() =>
       expect(rowAlert()).toHaveTextContent(
-        /^Range can't be longer than 3 months\. This one is 4 months and 30 days\.$/,
+        /^Range can't be longer than 3 months\. This one is 5 months\.$/,
       ),
     );
   },

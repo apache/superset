@@ -58,7 +58,6 @@ _QUARTER = "P3M"
 _GRAIN = re.compile(r"P([1-9][0-9]*)([DWMY])|PT([1-9][0-9]*)([HMS])")
 _DAY_UNITS = {"D": "day", "W": "week", "M": "month", "Y": "year"}
 _SUB_DAY_UNITS = {"H": "hour", "M": "minute", "S": "second"}
-_REST_UNITS = {"week": "day", "day": "hour", "hour": "minute", "minute": "second"}
 _SLACK = timedelta(seconds=1)
 # How far a value list window moves at a time when a rule is in units under a
 # day, so lists stay cacheable and an async query converges on one cache key.
@@ -973,39 +972,17 @@ def _describe_limit(limit: Constraint) -> str:
 
 def _describe_length(since: datetime, until: datetime, unit: str) -> str:
     """
-    Describe ``until - since`` in ``unit``: whole units, then the rest in the
-    next smaller unit (days for a week or longer), rounded up. Seconds are
-    rounded up with no rest. Fixed-length units (week and shorter) round up to
-    the rest unit, so a full rest carries; months, quarters and years count back
-    from ``until``.
-
-    The calendar month difference is an upper bound on that count, so it only
-    ever steps down.
+    Describe the range in whole units, rounded up. Calendar months, quarters
+    and years count back from ``until``, as the span check does.
     """
-    if unit == "second":
-        return _UNIT_NAMES[unit](-(-(until - since) // timedelta(seconds=1)))
-    if unit in _REST_UNITS:
-        step = timedelta(**{f"{_REST_UNITS[unit]}s": 1})
-        length = -(-(until - since) // step) * step
-        count, rest = divmod(length, timedelta(**{f"{unit}s": 1}))
-        return _with_rest(_UNIT_NAMES[unit](count), rest, _REST_UNITS[unit])
+    if unit not in {"month", "quarter", "year"}:
+        return _UNIT_NAMES[unit](-(-(until - since) // timedelta(**{f"{unit}s": 1})))
     months = (until.year - since.year) * 12 + until.month - since.month
     count = months // {"month": 1, "quarter": 3, "year": 12}[unit]
     while count > 0 and not _fits(since, until, count, unit):
         count -= 1
-    units = _UNIT_NAMES[unit](count)
     start = _shift(until, -count, unit)
-    rest = start - since if start is not None else timedelta()
-    return _with_rest(units, rest, "day")
-
-
-def _with_rest(units: str, rest: timedelta, unit: str) -> str:
-    count = -(-rest // timedelta(**{f"{unit}s": 1}))
-    if not count:
-        return units
-    # i18n: a length as whole units plus the remainder in a smaller unit, e.g.
-    # "6 hours and 1 minute"; "rest" is the remainder, not a pause
-    return _("%(units)s and %(rest)s", units=units, rest=_UNIT_NAMES[unit](count))
+    return _UNIT_NAMES[unit](count + int(start is not None and start > since))
 
 
 def _format_date(value: datetime) -> str:
