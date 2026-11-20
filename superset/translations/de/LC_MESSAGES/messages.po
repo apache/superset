@@ -2029,6 +2029,10 @@ msgstr ""
 msgid "Alert"
 msgstr "Alarm"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "Alarm „%(alertName)s“ erfolgreich ausgelöst"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "Alarm ausgelöst, in Karenzzeit"
 
@@ -8416,6 +8420,14 @@ msgstr "Artikel konnten nicht getaggt werden"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "%(alertType)s „%(alertName)s“ konnte nicht ausgelöst werden: %(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "Alarm „%(alertName)s“ konnte nicht ausgelöst werden: %(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "Bericht „%(alertName)s“ konnte nicht ausgelöst werden: %(error)s"
+
 msgid "Failed to update report"
 msgstr "Fehler beim Aktualisieren des Berichts"
 
@@ -13696,6 +13708,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "Bericht"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "Bericht „%(alertName)s“ erfolgreich ausgelöst"
 
 #, python-format
 msgid "Report Failed - All Retries Exhausted: %(name)s"

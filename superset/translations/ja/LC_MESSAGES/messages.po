@@ -1922,6 +1922,10 @@ msgstr "サマリー行に使用する集計方法です。デフォルトでは
 msgid "Alert"
 msgstr "アラート"
 
+#, python-format
+msgid "Alert \"%(alertName)s\" triggered successfully"
+msgstr "アラート「%(alertName)s」が正常に実行されました"
+
 msgid "Alert Triggered, In Grace Period"
 msgstr "アラート発生(猶予期間中)"
 
@@ -8123,6 +8127,14 @@ msgstr "項目へのタグ付けに失敗しました"
 msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
 msgstr "%(alertType)s 「%(alertName)s」のトリガーに失敗しました：%(error)s"
 
+#, python-format
+msgid "Failed to trigger alert \"%(alertName)s\": %(error)s"
+msgstr "アラート「%(alertName)s」のトリガーに失敗しました：%(error)s"
+
+#, python-format
+msgid "Failed to trigger report \"%(alertName)s\": %(error)s"
+msgstr "レポート「%(alertName)s」のトリガーに失敗しました：%(error)s"
+
 msgid "Failed to update report"
 msgstr "レポートの更新に失敗しました"
 
@@ -13411,6 +13423,10 @@ msgstr ""
 
 msgid "Report"
 msgstr "レポート"
+
+#, python-format
+msgid "Report \"%(alertName)s\" triggered successfully"
+msgstr "レポート「%(alertName)s」が正常に実行されました"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
