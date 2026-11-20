@@ -1982,9 +1982,15 @@ def _datasource_verbose_names(datasource: Explorable | None) -> dict[str, str]:
     if not datasource:
         return verbose_names
 
+    def _items(attr: str) -> list[Any]:
+        # Only real collections count; some explorables (and test doubles) expose
+        # these attributes as non-iterable placeholders.
+        value = getattr(datasource, attr, None)
+        return list(value) if isinstance(value, (list, tuple, set)) else []
+
     sources: list[tuple[str, list[Any]]] = [
-        ("column_name", list(getattr(datasource, "columns", None) or [])),
-        ("metric_name", list(getattr(datasource, "metrics", None) or [])),
+        ("column_name", _items("columns")),
+        ("metric_name", _items("metrics")),
     ]
     for name_key, items in sources:
         for item in items:
