@@ -198,8 +198,11 @@ def test_semantic_date_resample_empty_skips_post_processing(
         timedelta(0),
         _ViewMetadata(metrics=(), dimensions=()),
     )
+    expected: pd.DataFrame = result.df.copy()
     mocker.patch("superset.semantic_layers.models.get_results", return_value=result)
-    pd.testing.assert_frame_equal(SemanticView().get_query_result(query).df, result.df)
+    post_processing: MagicMock = mocker.spy(query, "exec_post_processing")
+    pd.testing.assert_frame_equal(SemanticView().get_query_result(query).df, expected)
+    post_processing.assert_not_called()
 
 
 @pytest.mark.parametrize("resampling", [False, True])

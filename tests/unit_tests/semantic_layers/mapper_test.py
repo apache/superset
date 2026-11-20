@@ -2222,7 +2222,12 @@ def test_date_resample_fills_gaps_through_get_results(
     main_query: SemanticQuery = mock_datasource.implementation.get_table.call_args_list[
         0
     ].args[0]
-    assert {(item.operator, item.value) for item in main_query.filters} == {
+    assert main_query.filters is not None
+    conditions: list[Filter] = [
+        item for item in main_query.filters if isinstance(item, Filter)
+    ]
+    assert len(conditions) == len(main_query.filters)
+    assert {(item.operator, item.value) for item in conditions} == {
         (Operator.GREATER_THAN_OR_EQUAL, datetime(2026, 1, 5)),
         (Operator.LESS_THAN, datetime(2026, 1, 8)),
     }
