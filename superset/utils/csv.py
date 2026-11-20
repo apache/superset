@@ -119,28 +119,35 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # Escape csv headers
     df = df.rename(columns=escape_values)
 
-    # Escape csv values. Iterate by index label (via ``items``) rather than by
-    # positional offset so the escaped value is written back to the correct row
-    # even when the DataFrame has a non-default index (e.g. the flattened
-    # MultiIndex produced by pivot_table_v2 post-processing). Pairing positional
-    # indices with the label-based ``.at`` accessor would otherwise create
-    # phantom rows and corrupt the output. Only string cells are reassigned, so
-    # the dtype of mixed object columns (e.g. nullable integers) is preserved.
-    for name, column in df.items():
-        if pd.api.types.is_string_dtype(column.dtype):
-            for label, value in column.items():
-                if isinstance(value, str):
-                    df.at[label, name] = escape_value(value)
+    # Escape csv values. Columns and rows are both addressed by position, so the
+    # escaped value lands in the right cell whatever the labels are: a
+    # non-default index (e.g. the flattened MultiIndex produced by
+    # pivot_table_v2 post-processing) or two columns sharing a name, which a
+    # label-based ``.at`` write would resolve to both at once. Only string cells
+    # are replaced, so the dtype of mixed object columns (e.g. nullable
+    # integers) is preserved, and a column with nothing to escape is left as is.
+    for col_pos in range(df.shape[1]):
+        column = df.iloc[:, col_pos]
+        if not pd.api.types.is_string_dtype(column.dtype):
+            continue
+        escaped = column.map(escape_values)
+        changed = [
+            isinstance(value, str) and value != original
+            for value, original in zip(escaped, column, strict=True)
+        ]
+        if any(changed):
+            df.isetitem(
+                col_pos,
+                column.mask(changed, escaped.to_numpy()),
+            )
 
     # Row labels and axis names are written out whenever the caller asks for the
     # index, which both export paths do once post-processing has replaced the
     # range index: pivot_table_v2 promotes the row dimension's warehouse values
-    # into index labels and the dimension name into ``index.name``. Escaping
-    # happens after the cell loop so the labels ``.at`` addresses stay the ones
-    # the frame was handed over with. Every level of a MultiIndex is covered;
-    # the axis names are a separate attribute, hence the ``set_names``. This
-    # mirrors the four places ``superset.utils.excel.quote_formulas`` covers
-    # for the xlsx writer.
+    # into index labels and the dimension name into ``index.name``. Every level
+    # of a MultiIndex is covered; the axis names are a separate attribute,
+    # hence the ``set_names``. This mirrors the four places
+    # ``superset.utils.excel.quote_formulas`` covers for the xlsx writer.
     index = df.index
     if isinstance(index, pd.MultiIndex):
         # Every row label is one of its level's distinct values, so a frame with

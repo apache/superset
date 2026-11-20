@@ -25,6 +25,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
+import math
 import re
 from collections.abc import Callable
 from decimal import Decimal
@@ -48,6 +49,10 @@ from superset.utils.core import (
     get_column_names,
     get_metric_name,
     get_metric_names,
+)
+from superset.utils.currency import (
+    detect_currency_from_df,
+    has_auto_currency_in_column_config,
 )
 from superset.utils.number_format import (
     AUTO_CURRENCY,
@@ -1064,7 +1069,7 @@ def format_time_column(df: pd.DataFrame, column: Any, d3_time_format: str) -> No
 
 def format_column(
     df: pd.DataFrame,
-    column: Any,
+    col_pos: int,
     d3_format: Optional[str],
     currency: dict[str, Any],
     detected_currency: Optional[str] = None,
@@ -1075,6 +1080,12 @@ def format_column(
 ) -> None:
     """
     Format a column in place when a number or currency format is configured.
+
+    The column is addressed by position (``col_pos``), not by label: two metrics
+    can share a verbose name, so ``get_data`` may rename distinct columns to the
+    same label. A label lookup (``df[label]``) would then return a two-column
+    frame and either skip the format silently or raise on ``zip(strict=True)``,
+    aborting the whole export; positional access formats each column exactly once.
 
     ``detected_currency`` represents the query-wide single currency. When a
     parallel ``currency_context`` series is present, AUTO uses each row/cell's
@@ -1104,6 +1115,7 @@ def format_column(
         small_d3_format = small_d3_format.replace("$", "") or SMART_NUMBER
 
     if d3_format or currency.get("symbol") or small_d3_format:
+        series = df.iloc[:, col_pos]
         if currency_context is None:
             resolved_currency = resolve_auto_currency(currency, detected_currency)
             format_value = partial(
@@ -1113,15 +1125,18 @@ def format_column(
                 format_small = partial(
                     format_number_with_config, small_d3_format, small_currency or {}
                 )
-                df[column] = df[column].apply(
-                    lambda value: (
-                        format_small(value)
-                        if is_small_number(value)
-                        else format_value(value)
-                    )
+                df.isetitem(
+                    col_pos,
+                    series.apply(
+                        lambda value: (
+                            format_small(value)
+                            if is_small_number(value)
+                            else format_value(value)
+                        )
+                    ),
                 )
                 return
-            df[column] = df[column].apply(format_value)
+            df.isetitem(col_pos, series.apply(format_value))
             return
 
         contexts = currency_context.reindex(df.index)
@@ -1153,10 +1168,13 @@ def format_column(
                 value,
             )
 
-        df[column] = [
-            format_with_context(value, context)
-            for value, context in zip(df[column], contexts, strict=True)
-        ]
+        df.isetitem(
+            col_pos,
+            [
+                format_with_context(value, context)
+                for value, context in zip(series, contexts, strict=True)
+            ],
+        )
 
 
 def get_datasource_column_formats(
@@ -1332,6 +1350,240 @@ def merge_currency_formats(
     return currency_formats
 
 
+def _fallback_export_value(value: Any) -> Any:
+    """Render a finite numeric cell as exact fixed-point text.
+
+    An unconfigured numeric column must never serialize as a raw float
+    (``1e-07``/``19.7999992``) or lose precision to float64 re-inference, so
+    finite ``float`` and ``int`` cells become exact text here while every other
+    value -- ``Decimal`` (handled by ``csv.format_decimal``), ``None``, ``NaN``,
+    infinity and non-numeric cells -- passes through unchanged.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, float) and math.isfinite(value):
+        # Route through ``Decimal(str())`` so the exact value the user sees is
+        # emitted as fixed-point text rather than a float repr or scientific
+        # notation, matching the Decimal branch below.
+        return format(Decimal(str(value)), "f")
+    if isinstance(value, int):
+        # Keep large integers exact: ``.map`` would otherwise re-infer an object
+        # column of ints with nulls as float64 and round them.
+        return str(value)
+    return csv.format_decimal(value)
+
+
+def _index_by_label(
+    by_name: dict[str, Any], label_of: Callable[[str], str]
+) -> dict[str, Any]:
+    """Index per-column export settings by the label a column carries in ``df``.
+
+    Two metrics renamed to one verbose label would otherwise overwrite each
+    other here, so a label reached from names carrying different settings is
+    left out: it cannot say which column it means, and those columns resolve
+    through their source names instead (see ``_lookup_setting``).
+    """
+    indexed: dict[str, Any] = {}
+    ambiguous: set[str] = set()
+    for name, value in by_name.items():
+        label = label_of(name)
+        if label in indexed and indexed[label] != value:
+            ambiguous.add(label)
+        indexed[label] = value
+    return {label: value for label, value in indexed.items() if label not in ambiguous}
+
+
+def _source_names(
+    df: pd.DataFrame, source_columns: Optional[list[str]]
+) -> list[Optional[str]]:
+    """Return the pre-rename name of each column, or ``None`` when unknown."""
+    if source_columns is None or len(source_columns) != len(df.columns):
+        return [None] * len(df.columns)
+    return list(source_columns)
+
+
+def _lookup_setting(
+    by_name: dict[str, Any],
+    by_label: dict[str, Any],
+    source_name: Optional[str],
+    label: Any,
+) -> Any:
+    """Resolve a per-column setting by source name first, then by label.
+
+    The source name is unique per position even when two metrics share a
+    verbose label, so it is what keeps their formats apart.
+    """
+    if source_name is not None and source_name in by_name:
+        return by_name[source_name]
+    return by_label.get(label)
+
+
+def apply_export_number_formats(
+    df: pd.DataFrame,
+    coltypes: list[GenericDataType],
+    form_data: dict[str, Any],
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+    source_columns: Optional[list[str]] = None,
+    keep_unformatted_numeric: bool = False,
+    formatted_positions: Optional[set[int]] = None,
+) -> pd.DataFrame:
+    """Format numeric columns as display text for a chart-data export.
+
+    Each numeric column (by ``coltypes``, aligned with ``df.columns``) is
+    resolved to its configured d3 format, currency and small-number format the
+    same way the live Table plugin does -- ``column_config`` overrides first,
+    then the datasource's saved per-metric formats -- and handed to
+    ``format_column``. Percent metric columns default to ``PERCENT_3_POINT`` and
+    a numeric column with nothing configured takes the fixed-point fallback so
+    its cells are never serialized as raw floats. Non-numeric columns, nulls,
+    NaN and infinity are left to the existing helpers and pass through
+    unchanged. The passed frame is mutated in place and returned; the helper
+    runs no query and performs no I/O.
+
+    ``source_columns``, when given, holds the column names as the query returned
+    them (before the verbose rename), aligned with ``df.columns``. Formats are
+    then resolved per position from that name, so two metrics that share a
+    verbose name still get their own format. Without it, lookups fall back to
+    the label in ``df``.
+
+    ``keep_unformatted_numeric`` skips the fixed-point fallback, so a numeric
+    column with nothing configured keeps its numbers (the XLSX writer then
+    stores real numeric cells Excel can sum and chart). The position of every
+    column rendered to text is added to ``formatted_positions`` when a set is
+    passed.
+    """
+    saved_formats, verbose_map = get_datasource_column_formats(datasource)
+    saved_currency_formats, _ = get_datasource_currency_formats(datasource)
+    column_config = form_data.get("column_config") or {}
+
+    def label_of(name: str) -> str:
+        """Return the column label as it appears in ``df`` (verbose-renamed)."""
+        return name if name in df.columns else verbose_map.get(name, name)
+
+    # Index the per-column overrides by the label present in ``df`` so the
+    # lookups line up with the (possibly verbose-renamed) frame columns.
+    number_format_by_label = _index_by_label(saved_formats, label_of)
+    currency_by_label = _index_by_label(saved_currency_formats, label_of)
+    config_by_label = _index_by_label(column_config, label_of)
+    source_names = _source_names(df, source_columns)
+    positions = formatted_positions if formatted_positions is not None else set()
+
+    # Percent metric columns are emitted with a leading ``%`` and are not
+    # verbose-renamed, so match them by that prefixed label; they default to
+    # PERCENT_3_POINT the way the Table plugin's percent formatter does.
+    percent_metric_labels = {
+        f"%{name}"
+        for name in get_metric_names(form_data.get("percent_metrics"))
+        if f"%{name}" in df.columns
+    }
+
+    # The AG Grid table paints its cells through ``valueFormatter``, which never
+    # builds the small-number formatter, so an export leaves that format alone
+    # for it -- mirroring ``table()``'s own ``applies_small_number_format``.
+    applies_small_number_format = form_data.get("viz_type") != AG_GRID_TABLE
+
+    # Resolve an AUTO currency the way ``table()`` does: a per-row currency
+    # context drawn from the datasource's currency-code column drives each
+    # cell's symbol, with the query-wide single currency as the fallback.
+    # Without these an AUTO currency would export no symbol while the live
+    # chart shows one (e.g. ``1,234.50`` instead of ``$1,234.50``).
+    currency_column = get_datasource_currency_column(datasource, df)
+    row_currency_context = (
+        df[currency_column].map(currency_context_value) if currency_column else None
+    )
+    # The query-wide single currency backs an AUTO format whose per-row context
+    # is empty. It is detected from the frame already in hand (no extra query is
+    # issued here), and only when an AUTO currency is configured, mirroring
+    # ``_detect_currency``'s own gating.
+    top_level_currency = form_data.get("currency_format") or {}
+    top_level_auto = (
+        isinstance(top_level_currency, dict)
+        and top_level_currency.get("symbol") == AUTO_CURRENCY
+    )
+    auto_currency_configured = top_level_auto or has_auto_currency_in_column_config(
+        form_data
+    )
+    detected_currency = (
+        detect_currency_from_df(df, currency_column)
+        if auto_currency_configured and currency_column
+        else None
+    )
+
+    # Read by position so a numeric column is never confused with another
+    # column that happens to share its label.
+    for col_pos, (column, coltype) in enumerate(zip(df.columns, coltypes, strict=True)):
+        if coltype != GenericDataType.NUMERIC:
+            continue
+
+        config = (
+            _lookup_setting(
+                column_config, config_by_label, source_names[col_pos], column
+            )
+            or {}
+        )
+        configured_currency = config.get("currencyFormat") or {}
+        # The small-number formatter is built from this object whether or not a
+        # symbol survived in it, so an absent one has to stay distinguishable
+        # from a cleared one.
+        small_currency = config.get("currencyFormat")
+        number_format = config.get("d3NumberFormat") or _lookup_setting(
+            saved_formats, number_format_by_label, source_names[col_pos], column
+        )
+        currency = (
+            configured_currency
+            if configured_currency.get("symbol")
+            else _lookup_setting(
+                saved_currency_formats,
+                currency_by_label,
+                source_names[col_pos],
+                column,
+            )
+            or {}
+        )
+        # A cleared Select leaves a blank string behind, which the browser
+        # treats as unset; the AG Grid table ignores the small-number format.
+        small_number_format = (
+            (config.get("d3SmallNumberFormat") or "").strip() or None
+            if applies_small_number_format
+            else None
+        )
+
+        if column in percent_metric_labels:
+            # A percent metric defaults to PERCENT_3_POINT and its own formatter
+            # never carries a currency, matching the Table plugin.
+            format_column(
+                df,
+                col_pos,
+                number_format or PERCENT_3_POINT,
+                {},
+                currency_context=row_currency_context,
+                small_d3_format=small_number_format,
+                small_currency=small_currency,
+            )
+        elif number_format or currency.get("symbol") or small_number_format:
+            format_column(
+                df,
+                col_pos,
+                number_format,
+                currency,
+                detected_currency,
+                row_currency_context,
+                fallback_to_detected=False,
+                small_d3_format=small_number_format,
+                small_currency=small_currency,
+            )
+        elif keep_unformatted_numeric:
+            continue
+        else:
+            # Nothing configured: keep exact fixed-point text rather than a raw
+            # float. Non-finite and non-numeric cells pass through untouched.
+            df.isetitem(col_pos, df.iloc[:, col_pos].map(_fallback_export_value))
+
+        positions.add(col_pos)
+
+    return df
+
+
 def effective_show_values_as(form_data: dict[str, Any]) -> Optional[str]:
     """Return the ``showValuesAs`` percent mode the live chart actually renders.
 
@@ -1480,7 +1732,7 @@ def apply_pivot_number_formats(
         if currency_context is not None:
             currency_context = currency_context.T
 
-    for column in df.columns:
+    for col_pos, column in enumerate(df.columns):
         metric = column[metric_level] if isinstance(column, tuple) else column
         column_currency_context = (
             currency_context[column]
@@ -1497,7 +1749,7 @@ def apply_pivot_number_formats(
             column_number_format = SMART_NUMBER
         format_column(
             df,
-            column,
+            col_pos,
             column_number_format,
             column_currency,
             detected_currency,
@@ -1564,7 +1816,7 @@ def table(
     # SMART_NUMBER, and other numeric columns are only formatted when an explicit
     # format or currency is configured. Dimension and non-numeric columns are
     # left untouched, matching the browser.
-    for column in df.columns:
+    for col_pos, column in enumerate(df.columns):
         config = config_by_label.get(column) or {}
 
         # Mirror the Table plugin's first formatter branch
@@ -1615,7 +1867,7 @@ def table(
             else None
         )
 
-        is_number = pd.api.types.is_numeric_dtype(df[column])
+        is_number = pd.api.types.is_numeric_dtype(df.iloc[:, col_pos])
 
         if column in percent_metric_labels:
             # A percent metric's own formatter never carries a currency, but
@@ -1623,7 +1875,7 @@ def table(
             # config, so the small-number cells need the row's context too.
             format_column(
                 df,
-                column,
+                col_pos,
                 number_format or PERCENT_3_POINT,
                 {},
                 currency_context=row_currency_context,
@@ -1646,7 +1898,7 @@ def table(
                 number_format = SMART_NUMBER
             format_column(
                 df,
-                column,
+                col_pos,
                 number_format,
                 currency,
                 detected_currency,
@@ -1852,7 +2104,16 @@ def apply_client_processing(  # noqa: C901
         if datasource and query["result_format"] == ChartDataResultFormat.JSON:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
-        apply_number_format = query["result_format"] == ChartDataResultFormat.JSON
+        # With EXPORT_FORMATTED_NUMBERS the tabular export formats are formatted
+        # here, after the pivot/table post-processing arithmetic has run on the
+        # raw numbers, so the formatter never sees (and cannot coerce to NaN)
+        # the intermediate values the way pre-serialization formatting would.
+        from superset import is_feature_enabled  # noqa: PLC0415
+
+        apply_number_format = query["result_format"] == ChartDataResultFormat.JSON or (
+            is_feature_enabled("EXPORT_FORMATTED_NUMBERS")
+            and query["result_format"] in ChartDataResultFormat.table_like()
+        )
         processed_df = post_processor(
             df,
             form_data,
