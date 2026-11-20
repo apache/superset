@@ -17924,6 +17924,12 @@ msgstr ""
 msgid "You are adding tags to %s %ss"
 msgstr ""
 
+msgid "You are already subscribed to this chart. Your existing report has been opened for editing."
+msgstr ""
+
+msgid "You are already subscribed to this dashboard. Your existing report has been opened for editing."
+msgstr ""
+
 msgid "You are editing a query from the virtual dataset "
 msgstr ""
 
