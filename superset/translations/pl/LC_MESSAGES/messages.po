@@ -10961,6 +10961,9 @@ msgstr "Najwyższa wartość dla każdego okresu."
 msgid "Histogram"
 msgstr "Histogram"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "Strona główna"
 
@@ -11264,6 +11267,9 @@ msgstr "W tym widoku możesz wyświetlić podgląd pierwszych 25 wierszy. "
 #, fuzzy
 msgid "Inactive"
 msgstr "Aktywny"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "Uwzględnij serię"
@@ -15545,6 +15551,9 @@ msgstr ""
 
 msgid "Preview"
 msgstr "Podgląd"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21208,10 +21217,8 @@ msgstr "Port jest zamknięty."
 msgid "The port number is invalid."
 msgstr "Numer portu jest nieprawidłowy."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Nie udało się załadować podglądu."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Główna metryka jest używana do określenia rozmiarów segmentów łuku."
@@ -21679,15 +21686,9 @@ msgstr ""
 "Transformacja pasowała do próbkowanych wierszy, a nie do całego zbioru "
 "danych."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"Transformacja zwróciła %(returned)s dla %(column)s, co jest: %(kind)s. "
-"Odzwierciedlone filtry na tym mapowaniu zakończyłyby się błędem w bazie "
-"danych."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -21699,6 +21700,9 @@ msgstr ""
 "Transformacja zwróciła %(returned)s dla %(column)s, czego ta baza danych "
 "nie może zapisać w zapytaniu jako wartości typu %(type)s bez jej zmiany. "
 "Filtry na tym mapowaniu nie będą odzwierciedlane."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -21808,24 +21812,12 @@ msgstr ""
 "osobnej sesji, a wynik jest buforowany, więc wygenerowany predykat "
 "zamroziłby migawkę tego momentu."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Nie udało się sparsować transformacji wartości. Mapowanie zostało "
-"zapisane, ale pozostaje nieaktywne, dopóki się to nie powiedzie."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Nie udało się przeanalizować transformacji wartości: %(detail)s Mapowanie"
-" zostało zapisane, ale pozostaje nieaktywne, dopóki nie zostanie to "
-"naprawione."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -23581,6 +23573,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Zbyt wiele żądań podglądu dla tego zbioru danych. Poczekaj chwilę i "
 "spróbuj ponownie."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -27727,6 +27722,10 @@ msgstr "cofnij"
 msgid "unknown type icon"
 msgstr "ikona nieznanego typu"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 #, fuzzy
 msgid "unset"
 msgstr "Czerwiec"
@@ -27743,6 +27742,9 @@ msgid ""
 msgstr ""
 "percentyl górny musi być większy niż 0 i mniejszy niż 100. Musi być "
 "większy niż percentyl dolny."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 #, fuzzy
 msgid "use latest_partition template"
