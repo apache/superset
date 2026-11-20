@@ -7818,6 +7818,9 @@ msgstr "Спрямований"
 msgid "Dynamic group by"
 msgstr "Динамічне групування"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 #, fuzzy
 msgid "Dynamic section description"
 msgstr "Динамічна функція агрегації"
@@ -10041,6 +10044,9 @@ msgstr "Максимальне значення за кожен період."
 msgid "Histogram"
 msgstr "Гістограма"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 msgid "Home"
 msgstr "Головна"
 
@@ -10313,6 +10319,9 @@ msgstr "Тут можна переглянути перші 25 рядків. "
 #, fuzzy
 msgid "Inactive"
 msgstr "Чинний"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 msgid "Include Series"
 msgstr "Враховувати ряди"
@@ -10654,9 +10663,10 @@ msgstr "Неправильний стан."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Некоректні ID вкладок: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Некоректне значення часового фільтра для стовпця %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -14283,6 +14293,9 @@ msgstr ""
 
 msgid "Preview"
 msgstr "Огляд"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -19413,10 +19426,8 @@ msgstr "Порт закрито."
 msgid "The port number is invalid."
 msgstr "Неправильний номер порта."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Не вдалося завантажити попередній перегляд."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr ""
@@ -19868,15 +19879,9 @@ msgstr ""
 "Перетворення збіглося із вибраними рядками вибірки, а не з усім набором "
 "даних."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"Перетворення повернуло %(returned)s для %(column)s, що є %(kind)s. "
-"Дзеркальні фільтри для цього зіставлення призведуть до помилки в базі "
-"даних."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -19888,6 +19893,9 @@ msgstr ""
 "Перетворення повернуло %(returned)s для %(column)s, що ця база даних не "
 "може записати в запит як значення типу %(type)s без зміни. Фільтри для "
 "цього зіставлення не дзеркалюватимуться."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "Паролі, які ви ввели, не збігаються!"
@@ -19988,23 +19996,12 @@ msgstr ""
 "сеансі, а результат кешується, тому згенерований предикат зафіксує знімок"
 " цього моменту."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Не вдалося розібрати перетворення значення. Зіставлення збережено, але "
-"воно залишається неактивним, доки це не вдасться."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Не вдалося розібрати перетворення значення: %(detail)s Зіставлення "
-"збережено, але воно залишається неактивним, доки це не вдасться."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -21611,6 +21608,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Забагато запитів на попередній перегляд для цього набору даних. Зачекайте"
 " трохи й повторіть спробу."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25440,6 +25440,10 @@ msgstr "скасувати"
 msgid "unknown type icon"
 msgstr "піктограма для невідомого типу"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 msgid "unset"
 msgstr "скинути"
 
@@ -25452,6 +25456,9 @@ msgid ""
 msgstr ""
 "верхній процентиль має бути більшим за 0 і меншим за 100, а також більшим"
 " за нижній процентиль."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 msgid "use latest_partition template"
 msgstr "використовуйте шаблон latest_partition"

@@ -9122,6 +9122,9 @@ msgstr "Oznaka dinamičke sekcije"
 msgid "Dynamic group by"
 msgstr "Dinamičko grupisanje po"
 
+msgid "Dynamic group by is not supported on semantic views. Remove this display control to stop storing it."
+msgstr ""
+
 msgid "Dynamic section description"
 msgstr "Opis dinamičke sekcije"
 
@@ -11754,6 +11757,9 @@ msgstr "Najviša vrednost za svaki period."
 msgid "Histogram"
 msgstr "Histogram"
 
+msgid "Hive requires a partition filter for this table. Add a filter on the partition column, or a time range on a column with a working partition mapping, and try again."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Home"
 msgstr "Početna"
@@ -12077,6 +12083,9 @@ msgstr "U ovom prikazu možete pregledati prvih 25 redova. "
 
 msgid "Inactive"
 msgstr "Neaktivno"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Include Series"
@@ -12488,9 +12497,10 @@ msgstr "Nevažeće stanje."
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Nevažeći ID-ovi kartica: %(tab_ids)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (gemma4-26b) [no refs]
+#, fuzzy, python-format
 msgid "Invalid temporal filter value for column %(column)s"
-msgstr ""
+msgstr "Nevažeća vrednost vremenskog filtera za kolonu %(column)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -16752,6 +16762,9 @@ msgstr ""
 # zh_TW]
 msgid "Preview"
 msgstr "Pregled"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -22675,10 +22688,8 @@ msgstr "Port je zatvoren."
 msgid "The port number is invalid."
 msgstr "Broj porta je nevažeći."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid "The preview could not be loaded."
-msgstr "Pregled nije mogao biti učitan."
+msgid "The preview could not be loaded. Try again."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The primary metric is used to define the arc segment sizes"
@@ -23177,14 +23188,9 @@ msgstr ""
 "Transformacija se poklopila sa uzorkovanim redovima, a ne sa celim skupom"
 " podataka."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+#, python-format
+msgid "The transform returned %(returned)s for %(column)s, which is %(kind)s. Mirrored filters on this mapping would fail at the database. Return a value compatible with %(type)s; use an explicit CAST in the transform if appropriate."
 msgstr ""
-"Transformacija je vratila %(returned)s za %(column)s, što je %(kind)s. "
-"Preslikani filteri na ovom mapiranju bi otkazali u bazi podataka."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -23196,6 +23202,9 @@ msgstr ""
 "Transformacija je vratila %(returned)s za %(column)s, što ova baza "
 "podataka ne može da upiše u upit kao vrednost tipa %(type)s bez izmene. "
 "Filteri na ovom mapiranju neće biti preslikani."
+
+msgid "The transform returned NULL for one or more preview values, so no partition filter was generated."
+msgstr ""
 
 # uk]
 msgid "The two passwords that you entered do not match!"
@@ -23307,23 +23316,12 @@ msgstr ""
 "sesiji, a rezultat se kešira, pa bi generisani predikat zamrznuo snimak "
 "tog trenutka."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+msgid "The value transform could not be parsed. Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Transformaciju vrednosti nije bilo moguće parsirati. Mapiranje je "
-"sačuvano, ali ostaje neaktivno dok se to ne uspe."
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
-#, fuzzy, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s Fix the expression to preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
-"Transformaciju vrednosti nije bilo moguće parsirati: %(detail)s Mapiranje"
-" je sačuvano, ali ostaje neaktivno dok se to ne uspe."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -25111,6 +25109,9 @@ msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 "Previše zahteva za pregled ovog skupa podataka. Sačekajte trenutak i "
 "pokušajte ponovo."
+
+msgid "Too many preview requests. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -29543,6 +29544,10 @@ msgstr "opozovi"
 msgid "unknown type icon"
 msgstr "ikona nepoznatog tipa"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 # ja, lv, mi, ru, sk, uk]
 msgid "unset"
 msgstr "nije postavljeno"
@@ -29558,6 +29563,9 @@ msgid ""
 msgstr ""
 "gornji percentil mora biti veći od 0 i manji od 100. Mora biti veći od "
 "donjeg percentila."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "use latest_partition template"

@@ -18,6 +18,21 @@
  */
 import { TimeGranularity } from '@superset-ui/core';
 import extractExtras from '../../src/query/extractExtras';
+import { isGrainOnlyExtraFormData } from '../../src/query/semanticSelection';
+
+test.each([
+  ['empty grain', { time_grain_sqla: '' }],
+  ['null grain', { time_grain_sqla: null }],
+  ['null member key', { time_grain_sqla: 'P1D', time_column: null }],
+  ['time range', { time_grain_sqla: 'P1D', time_range: 'Last week' }],
+])('grain-only allow-list rejects %s', (_, extra) => {
+  // Exercise malformed runtime values outside the declared grain/member types.
+  expect(
+    isGrainOnlyExtraFormData(
+      extra as Parameters<typeof isGrainOnlyExtraFormData>[0],
+    ),
+  ).toBe(false);
+});
 
 describe('extractExtras', () => {
   const baseQueryFormData = {

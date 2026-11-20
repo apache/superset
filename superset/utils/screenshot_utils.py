@@ -819,6 +819,106 @@ async (maxWaitMs) => {{
 """
 
 
+def expand_chart_table_max_pixels() -> int:
+    """
+    Device-pixel budget for an un-clipped single-chart capture.
+
+    Pillow's `Image.MAX_IMAGE_PIXELS` (its decompression-bomb warning
+    threshold), read at call time so an operator override applies; 0, meaning
+    no cap, when the operator has disabled the check. The script turns it into
+    a height using the capture's width and device pixel ratio, so a wide
+    window or a raised `pixel_density` cannot push the PNG past the limit.
+    """
+    return Image.MAX_IMAGE_PIXELS or 0
+
+
+# A table-shaped chart (e.g. a pivot table) can be clipped by containers that
+# carry their height and overflow in stylesheet classes rather than inline
+# `style`, so neither `GENERIC_SCROLLABLE_DESCENDANT_SELECTOR` nor the
+# `.slice_container` reset above reaches them and `.chart-container`, the box a
+# single-chart capture is clipped to, stays at the window height.
+#
+# This is a separate script, run only when `.chart-container` is the capture
+# target, because the generic pass above cannot be widened to computed styles:
+# it also runs for dashboard captures, where tiles clip their charts on purpose
+# (`.dashboard-chart` is `overflow: hidden`), and it would un-clip scrolling
+# legends and other bounded widgets that hold no table. Hence the scope: only
+# the parent chain from each table up to `.chart-container`, only nodes that
+# actually clip, and a no-op unless exactly one chart container exists outside a
+# dashboard tile. ag-Grid is excluded (its own print layout handles it above).
+#
+# Nothing above `.chart-container` is touched. The chart-only page's shell
+# grows with its content, so lifting the chain below it is enough; shells that
+# pin ancestors to the viewport height (e.g. 6.1.0's `html, body, #app`) are out
+# of scope.
+EXPAND_CHART_TABLE_CLIP_JS = f"""
+(maxPixels) => {{
+    const containers = document.querySelectorAll('{CHART_CONTAINER_SELECTOR}');
+    if (containers.length !== 1 || containers[0].closest('.dashboard-chart')) {{
+        return;
+    }}
+    const chain = new Set();
+    containers[0].querySelectorAll('table, [role="table"]').forEach((table) => {{
+        if (table.closest('{AG_GRID_HOST_SELECTOR}')) {{ return; }}
+        for (let el = table.parentElement; el && el !== containers[0];
+             el = el.parentElement) {{
+            chain.add(el);
+        }}
+    }});
+    // One pass lifts one nesting level at most: an outer wrapper whose fixed
+    // height is exactly its (still-clipped) child's reports no overflow of
+    // its own until that child has grown, so it is invisible to the gate
+    // below on the pass that lifts the child. A chart nested deeper than a
+    // fixed pass count would keep an outer wrapper clipped and cut rows --
+    // hence a bound taken from the chain itself. A node is lifted once: one
+    // that still reports overflow afterwards (e.g. an absolutely positioned
+    // descendant hanging past its bottom, or an `!important` height) has
+    // nothing more to give, and re-checking it would keep every pass alive
+    // until the bound -- one read per chain node per pass. So each pass lifts
+    // at least one new node or breaks out.
+    const pending = new Set(chain);
+    for (let pass = 0; pass <= chain.size; pass += 1) {{
+        // Read every node before writing any, so each pass costs one layout.
+        const clipped = Array.from(pending).filter(
+            (el) => el.scrollHeight > el.clientHeight + 1
+        );
+        if (!clipped.length) {{ break; }}
+        clipped.forEach((el) => {{
+            pending.delete(el);
+            el.style.overflow = 'visible';
+            el.style.height = 'auto';
+            el.style.maxHeight = 'none';
+        }});
+    }}
+    // Cap the outermost lifted node so `.chart-container` (and its
+    // scrollHeight, which the tiling decision reads) stays bounded. The
+    // budget arrives in device pixels, so the height it allows depends on the
+    // capture's width and on how many device pixels each CSS pixel costs: a
+    // fixed CSS-pixel ceiling would both truncate captures that are nowhere
+    // near the limit and overshoot it on a wide or high-density window.
+    //
+    // That node is `.slice_container`, a centered flex column (Chart.tsx), so
+    // the cap alone would window the middle of the table and crop its
+    // headings and first rows away along with the tail; align it to the top
+    // so what is dropped is only the tail. The property is inert on a
+    // non-flex node.
+    const top = Array.from(chain).find(
+        (el) => el.parentElement === containers[0]
+    );
+    const width = containers[0].getBoundingClientRect().width;
+    const dpr = window.devicePixelRatio || 1;
+    const maxHeightPx = maxPixels > 0 && width > 0
+        ? Math.floor(maxPixels / (width * dpr * dpr))
+        : 0;
+    if (top && maxHeightPx > 0 && top.scrollHeight > maxHeightPx) {{
+        top.style.maxHeight = maxHeightPx + 'px';
+        top.style.overflow = 'hidden';
+        top.style.justifyContent = 'flex-start';
+    }}
+}}
+"""
+
+
 def combine_screenshot_tiles(
     screenshot_tiles: list[bytes],
     *,

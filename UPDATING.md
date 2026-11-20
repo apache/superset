@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Dashboard lookups by ID or slug return HTTP 403 when the dashboard exists but
+  the caller cannot view it, rather than treating an access-filtered dashboard
+  as missing. Missing and soft-deleted dashboards still return HTTP 404, as do
+  dashboards withheld by an `EXTRA_ACCESS_QUERY_EXCLUSIONS` hook and dashboards
+  outside an embedded guest token's scope. The legacy dashboard HTML entry also
+  returns 403 for authenticated callers denied access. Clients should handle
+  these responses separately; list endpoints continue to omit dashboards the
+  caller cannot access.
+
 - **Realtime websocket authentication (`WEBSOCKET_ENABLE`):** the browser
   authenticates the socket with a short-lived ticket from
   `GET /api/v1/realtime/token/` sent in-band, instead of a JWT cookie. The
@@ -99,7 +108,8 @@ assists people when migrating to a new version.
   Whatever the setting, `engine_information` on the database endpoints gains
   `encrypted_extra_sensitive_fields`, the engine's declared sensitive paths
   and labels, and `GET /api/v1/database/<pk>/connection` lists the fields
-  stored in that database instead.
+  stored in that database instead, plus `encrypted_extra_expirations`, when
+  each stored JWT expires.
 
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
@@ -144,7 +154,8 @@ assists people when migrating to a new version.
   import (HTTP 400, naming the missing fields) rather than stored and ignored while
   both embedding flags are enabled. Import also refuses a credential on a
   connection whose file turns **Impersonate logged in user** off and, with either
-  flag off, a new or changed credential, as the API does. Validation
+  flag off, a new or changed credential, as the API does. Import also refuses a key
+  pair that doesn't decode with its passphrase, as the API does. Validation
   uses the engine's credential rules and edited credentials rather than stale stored
   values, and rejects whitespace-only usernames. An OAuth2 client with a blank client
   ID or secret counts as no client, and an update that would turn impersonation off
@@ -576,7 +587,7 @@ reattached to a reachable container by layout repair.
   enforcing completeness should raise the public
   `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
   results are incomplete or cannot be verified (an additive `apache-superset-core`
-  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  API added after 0.2.0; import it from `superset_core.semantic_layers.errors`,
   not the same-named host class in `superset.exceptions`); the host converts it to
   its client error, and these
   failures do not publish a successful async result cache key. A provider raising
@@ -1799,6 +1810,12 @@ unversioned external member overrides cannot borrow a chart's version. Recreate
 old dashboard permalink/filter state after reselection. Cross-view overlays are
 rejected unless their source identity matches the receiving semantic view;
 matching display titles are not proof of matching members.
+
+Time comparison is unsupported on semantic views, including relative shifts,
+inherited ranges and custom start dates. Remove the time shift from affected
+charts to query them. The host refuses these queries before reading cached
+results because comparisons could return incorrect values. Ordinary semantic
+queries and SQL-dataset time comparisons are unchanged.
 
 Dynamic group-by display controls are unsupported on versioned semantic views,
 including Cube. Remove those charts from the control's scope; resetting or

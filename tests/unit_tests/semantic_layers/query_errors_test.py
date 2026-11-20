@@ -791,7 +791,6 @@ def test_provider_execution_error_http(
     [
         "UNSUPPORTED_QUERY",
         "UNSUPPORTED_OFFSET",
-        "UNSUPPORTED_GROUP_OTHERS_METRIC",
         "INVALID_FILTER",
         "INVALID_QUERY",
         "private-unknown-code",
@@ -864,12 +863,15 @@ def test_required_secondary_query_rejection(
         },
     )
     assert response.status_code == 400
-    assert "This semantic provider does not support this query." in response.get_data(
-        as_text=True
+    message: str = (
+        "This semantic provider does not support this query."
+        if phase == "count"
+        else "Time comparison is not yet supported on semantic views."
     )
+    assert message in response.get_data(as_text=True)
     assert "result" not in response.get_json()
     assert date_view.get_row_count.call_count == (1 if phase == "count" else 0)
-    assert date_view.get_table.call_count == (0 if phase == "count" else 2)
+    date_view.get_table.assert_not_called()
 
 
 @pytest.mark.parametrize("kind", ["oauth", "cancel", "worker_timeout", "security"])
@@ -1197,7 +1199,7 @@ def test_async_completeness_does_not_publish_success(
         (
             "UNSUPPORTED_GROUP_OTHERS_METRIC",
             (
-                '"Group remaining as Others" cannot be calculated for this metric '
+                'Group remaining as "Others" cannot be calculated for this metric '
                 "on a semantic view. Turn it off, or choose a sum, count, minimum, "
                 "or maximum metric."
             ),
@@ -1274,7 +1276,7 @@ def test_others_metric_guidance_in_chart_response(
         "An error occurred while fetching the data."
         if guest
         else (
-            '"Group remaining as Others" cannot be calculated for this metric '
+            'Group remaining as "Others" cannot be calculated for this metric '
             "on a semantic view. Turn it off, or choose a sum, count, minimum, "
             "or maximum metric."
         )
@@ -1364,6 +1366,12 @@ def test_async_provider_error_matches_sync_chart_error(
     assert captured.value.status == expected.status
     assert captured.value.message == expected.message
     assert error_update(captured.value)["error_message"] == expected.message
+    if code == "UNSUPPORTED_GROUP_OTHERS_METRIC" and not guest:
+        assert captured.value.message == (
+            'Group remaining as "Others" cannot be calculated for this metric '
+            "on a semantic view. Turn it off, or choose a sum, count, minimum, "
+            "or maximum metric."
+        )
     assert "private" not in str(captured.value.to_dict())
     task_context.update_task.assert_not_called()
     date_view.get_table.assert_called_once()
