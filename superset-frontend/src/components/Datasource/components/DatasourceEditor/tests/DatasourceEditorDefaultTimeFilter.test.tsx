@@ -45,10 +45,10 @@ afterEach(async () => {
   fetchMock.clearHistory().removeRoutes();
 });
 
-test('resets the default time range to the instance default and keeps other metadata', async () => {
+test('resets the default time filter to the instance default and keeps other metadata', async () => {
   const props = createProps();
   props.datasource.extra = JSON.stringify({
-    default_time_range: 'Last day',
+    default_time_filter: 'Last day',
     warning_markdown: 'Note',
   });
   fastRender(props);
@@ -56,7 +56,7 @@ test('resets the default time range to the instance default and keeps other meta
   await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
   const settings = screen.getByTestId('default-column-settings');
   expect(
-    within(settings).getByRole('button', { name: 'Default time range' }),
+    within(settings).getByRole('button', { name: 'Default time filter' }),
   ).toHaveTextContent('Last day');
 
   await userEvent.click(

@@ -29,7 +29,7 @@ import {
   ControlState,
   ExtraControlProps,
 } from '../types';
-import { getDatasetDefaultTimeRange, getTemporalColumns } from '../utils';
+import { getDatasetDefaultTimeFilter, getTemporalColumns } from '../utils';
 
 const getAxisLabel = (
   formData: QueryFormData,
@@ -116,7 +116,7 @@ export const datePickerInAdhocFilterMixin: Pick<
           operator: 'TEMPORAL_RANGE',
           comparator:
             state?.initialTimeRange ||
-            getDatasetDefaultTimeRange(state?.datasource) ||
+            getDatasetDefaultTimeFilter(state?.datasource) ||
             state?.common?.conf?.DEFAULT_TIME_FILTER ||
             NO_TIME_RANGE,
           expressionType: 'SIMPLE',

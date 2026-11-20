@@ -2898,16 +2898,16 @@ def test_a_jinja_transform_is_rejected_on_an_unsupported_engine_too(
         ("Last dya", "Last dya", []),
     ],
 )
-def test_update_dataset_validates_a_new_default_time_range(
+def test_update_dataset_validates_a_new_default_time_filter(
     stored: str | None, requested: str, field_names: list[str]
 ) -> None:
-    """Only a new or changed default time range is validated."""
+    """Only a new or changed default time filter is validated."""
     command = UpdateDatasetCommand(
-        1, {"extra": json.dumps({"default_time_range": requested})}
+        1, {"extra": json.dumps({"default_time_filter": requested})}
     )
-    command._model = MagicMock(extra=json.dumps({"default_time_range": stored}))
+    command._model = MagicMock(extra=json.dumps({"default_time_filter": stored}))
 
     exceptions: list[ValidationError] = []
-    command._validate_default_time_range(exceptions)
+    command._validate_default_time_filter(exceptions)
 
     assert [exc.field_name for exc in exceptions] == field_names

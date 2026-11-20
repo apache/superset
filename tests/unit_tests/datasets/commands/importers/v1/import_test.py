@@ -1369,12 +1369,12 @@ def test_import_dataset_schema_rejects_duplicate_column_uuids() -> None:
 
 
 @pytest.mark.parametrize(
-    "extra", [{"default_time_range": "Last dya"}, '{"default_time_range": "foo"}']
+    "extra", [{"default_time_filter": "Last dya"}, '{"default_time_filter": "foo"}']
 )
-def test_import_dataset_schema_rejects_an_invalid_default_time_range(
+def test_import_dataset_schema_rejects_an_invalid_default_time_filter(
     extra: Any,
 ) -> None:
-    """An import with a default time range the parser rejects fails."""
+    """An import with a default time filter the parser rejects fails."""
     config = {**_dataset_config_with_children(metrics=[], columns=[]), "extra": extra}
 
     with pytest.raises(ValidationError) as excinfo:
@@ -1383,15 +1383,15 @@ def test_import_dataset_schema_rejects_an_invalid_default_time_range(
     assert "extra" in excinfo.value.messages
 
 
-def test_import_dataset_schema_accepts_a_valid_default_time_range() -> None:
-    """A valid default time range is imported unchanged."""
+def test_import_dataset_schema_accepts_a_valid_default_time_filter() -> None:
+    """A valid default time filter is imported unchanged."""
     config = {
         **_dataset_config_with_children(metrics=[], columns=[]),
-        "extra": {"default_time_range": "Last week"},
+        "extra": {"default_time_filter": "Last week"},
     }
 
     assert ImportV1DatasetSchema().load(config)["extra"] == {
-        "default_time_range": "Last week"
+        "default_time_filter": "Last week"
     }
 
 
