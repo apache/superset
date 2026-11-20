@@ -17,6 +17,7 @@
 
 import io
 import struct
+import threading
 from dataclasses import replace
 from unittest.mock import ANY, MagicMock, patch
 from uuid import UUID
@@ -38,6 +39,7 @@ from superset.utils.screenshot_utils import (
     validate_report_screenshot,
 )
 from superset.utils.webdriver import (
+    _PlaywrightBrowserManager,
     check_playwright_availability,
     PLAYWRIGHT_AVAILABLE,
     PLAYWRIGHT_INSTALL_MESSAGE,
@@ -2620,3 +2622,115 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         assert timeout_values == [0], (
             f"Expected only [0] (headstart), got {timeout_values}"
         )
+
+
+class TestWebDriverPlaywrightScreenshotLock:
+    """Screenshots and browser cleanup in one process run one at a time
+    (#46302)."""
+
+    CONFIG = {
+        "WEBDRIVER_OPTION_ARGS": [],
+        "SCREENSHOT_LOCATE_WAIT": 10,
+        "SCREENSHOT_LOAD_WAIT": 10,
+    }
+
+    @staticmethod
+    def _lock_is_free(manager: _PlaywrightBrowserManager) -> bool:
+        """Probe the manager lock from another thread, where a non-blocking
+        acquire fails while the test thread holds it."""
+        probe: list[bool] = []
+
+        def attempt() -> None:
+            lock = manager.exclusive()
+            acquired = lock.acquire(blocking=False)
+            probe.append(acquired)
+            if acquired:
+                lock.release()
+
+        thread = threading.Thread(target=attempt)
+        thread.start()
+        thread.join()
+        return probe == [True]
+
+    @patch("superset.utils.webdriver.app")
+    def test_get_screenshot_holds_the_lock_while_capturing(self, mock_app):
+        mock_app.config = dict(self.CONFIG)
+        manager = _PlaywrightBrowserManager()
+        driver = WebDriverPlaywright("chrome", browser_manager=manager)
+        lock_free_during_capture: list[bool] = []
+
+        def capture(*_args, **_kwargs):
+            lock_free_during_capture.append(self._lock_is_free(manager))
+            return b"png"
+
+        with patch.object(
+            WebDriverPlaywright, "_get_screenshot_locked", side_effect=capture
+        ):
+            result = driver.get_screenshot("http://example.com", "standalone")
+
+        assert result == b"png"
+        assert lock_free_during_capture == [False]
+        assert self._lock_is_free(manager)
+
+    @patch("superset.utils.webdriver.app")
+    def test_get_screenshot_releases_the_lock_on_failure(self, mock_app):
+        mock_app.config = dict(self.CONFIG)
+        manager = _PlaywrightBrowserManager()
+        driver = WebDriverPlaywright("chrome", browser_manager=manager)
+
+        with (
+            patch.object(
+                WebDriverPlaywright,
+                "_get_screenshot_locked",
+                side_effect=RuntimeError("browser gone"),
+            ),
+            pytest.raises(RuntimeError, match="browser gone"),
+        ):
+            driver.get_screenshot("http://example.com", "standalone")
+
+        assert self._lock_is_free(manager)
+
+    def test_cleanup_waits_for_a_capture_in_progress(self):
+        """The cache warmup task cleans the shared browser up when it is done;
+        that must not close the browser under a report still capturing."""
+        manager = _PlaywrightBrowserManager()
+        manager._browser = MagicMock()
+        manager._playwright = MagicMock()
+
+        with manager.exclusive():
+            cleanup = threading.Thread(target=manager._cleanup)
+            cleanup.start()
+            cleanup.join(timeout=0.2)
+            assert cleanup.is_alive()
+            manager._browser.close.assert_not_called()
+
+        cleanup.join(timeout=5)
+        assert not cleanup.is_alive()
+        assert manager._browser is None
+        assert manager._playwright is None
+
+    def test_cleanup_at_exit_gives_up_on_a_held_lock(self):
+        """Interpreter shutdown must not hang on a lock an abandoned task
+        still holds."""
+        manager = _PlaywrightBrowserManager()
+        manager._browser = MagicMock()
+        held_elsewhere = threading.Event()
+        release = threading.Event()
+
+        def hold() -> None:
+            with manager.exclusive():
+                held_elsewhere.set()
+                release.wait(timeout=5)
+
+        holder = threading.Thread(target=hold)
+        holder.start()
+        assert held_elsewhere.wait(timeout=5)
+        try:
+            manager._cleanup_at_exit(timeout=0.1)
+            manager._browser.close.assert_not_called()
+        finally:
+            release.set()
+            holder.join(timeout=5)
+
+        manager._cleanup_at_exit(timeout=0.1)
+        assert manager._browser is None

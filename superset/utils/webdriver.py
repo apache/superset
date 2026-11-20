@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import atexit
 import logging
+import threading
 import time
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -122,39 +123,65 @@ class _PlaywrightBrowserManager:
     so a single browser instance per process is safe and avoids the overhead
     of launching/destroying Chromium on every screenshot task. Each task
     creates a lightweight, isolated browser context instead of a full browser.
+
+    Playwright's sync API drives one asyncio event loop per OS thread and this
+    manager keeps one Playwright instance per process, so neither tolerates
+    concurrent use. On green-thread pools (gevent, eventlet) every task shares
+    the thread, and without serialization a second screenshot fails at once
+    with "Playwright Sync API inside the asyncio loop", or a cache warmup's
+    cleanup closes the browser under a report that is still capturing. The
+    lock below makes those callers wait for each other; on the prefork pool it
+    is never contended.
     """
 
     def __init__(self) -> None:
         self._playwright: Any = None
         self._browser: Any = None
+        self._lock = threading.RLock()
+
+    def exclusive(self) -> threading.RLock:
+        """Lock to hold around any use of the browser or of Playwright."""
+        return self._lock
 
     def get_browser(self, browser_args: list[str]) -> Any:
         """Return a reusable browser, creating one if needed."""
-        if self._browser is not None and self._browser.is_connected():
+        with self._lock:
+            if self._browser is not None and self._browser.is_connected():
+                return self._browser
+
+            self._cleanup()
+            self._playwright = sync_playwright().start()
+            self._browser = self._playwright.chromium.launch(args=browser_args)
             return self._browser
 
-        self._cleanup()
-        self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(args=browser_args)
-        return self._browser
-
     def _cleanup(self) -> None:
-        if self._browser is not None:
-            try:
-                self._browser.close()
-            except Exception:  # noqa: S110
-                pass
-            self._browser = None
-        if self._playwright is not None:
-            try:
-                self._playwright.stop()
-            except Exception:  # noqa: S110
-                pass
-            self._playwright = None
+        with self._lock:
+            if self._browser is not None:
+                try:
+                    self._browser.close()
+                except Exception:  # noqa: S110
+                    pass
+                self._browser = None
+            if self._playwright is not None:
+                try:
+                    self._playwright.stop()
+                except Exception:  # noqa: S110
+                    pass
+                self._playwright = None
+
+    def _cleanup_at_exit(self, timeout: float = 30) -> None:
+        """Cleanup for interpreter shutdown: never hang on a lock that an
+        abandoned task still holds; the OS reclaims the browser anyway."""
+        if not self._lock.acquire(timeout=timeout):
+            return
+        try:
+            self._cleanup()
+        finally:
+            self._lock.release()
 
 
 _browser_manager = _PlaywrightBrowserManager()
-atexit.register(_browser_manager._cleanup)
+atexit.register(_browser_manager._cleanup_at_exit)
 
 
 class DashboardStandaloneMode(Enum):
@@ -922,7 +949,33 @@ class WebDriverPlaywright(WebDriverProxy):
                 context_suffix,
             )
 
-    def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
+    def get_screenshot(
+        self,
+        url: str,
+        element_name: str,
+        user: User | None = None,
+        log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
+    ) -> bytes | None:
+        # One screenshot at a time per browser manager; see the manager's doc.
+        waited_from = time.monotonic()
+        with self._browser_manager.exclusive():
+            waited = time.monotonic() - waited_from
+            if waited >= 1:
+                logger.info(
+                    "Waited %.1fs for another screenshot in this process to finish%s",
+                    waited,
+                    f" [{log_context}]" if log_context else "",
+                )
+            return self._get_screenshot_locked(
+                url,
+                element_name,
+                user=user,
+                log_context=log_context,
+                report_execution_context=report_execution_context,
+            )
+
+    def _get_screenshot_locked(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self,
         url: str,
         element_name: str,
