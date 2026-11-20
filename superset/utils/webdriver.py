@@ -40,6 +40,8 @@ from superset.utils.screenshot_utils import (
     CHART_HOLDERS_READY_JS,
     DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
     DASHBOARD_LAYOUT_READY_JS,
+    EXPAND_CHART_TABLE_CLIP_JS,
+    expand_chart_table_max_pixels,
     EXPAND_SCROLLABLE_CONTENT_JS,
     EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS,
     FIND_ALL_CHART_HOLDER_STATES_JS,
@@ -547,12 +549,20 @@ class WebDriverPlaywright(WebDriverProxy):
         page: Page,
         log_context: str | None = None,
         report_execution_context: ReportExecutionContext | None = None,
+        element_name: str | None = None,
     ) -> None:
         """
         Un-clip chart content that is fully present in the DOM but visually
         cropped by a fixed height + internal scrollbar (e.g. a table taller
         than the space its dashboard tile gives it) before the page is
         captured.
+
+        When the capture target is a single chart (`element_name` is
+        "chart-container"), table content clipped by class-styled containers
+        is un-clipped as well, up to `expand_chart_table_max_pixels()` device
+        pixels -- content past that height is truncated by design, because an
+        unbounded capture is rejected outright as a decompression bomb.
+        Dashboard captures never run that extra step.
 
         The ag-Grid branch of this step polls for a stable row count, so it
         is bounded by the report's own deadline the same way every other
@@ -575,6 +585,16 @@ class WebDriverPlaywright(WebDriverProxy):
         except PlaywrightError:
             logger.warning(
                 "Failed to expand scrollable chart content before screenshot%s",
+                f" [{log_context}]" if log_context else "",
+                exc_info=True,
+            )
+        if element_name != "chart-container":
+            return
+        try:
+            page.evaluate(EXPAND_CHART_TABLE_CLIP_JS, expand_chart_table_max_pixels())
+        except PlaywrightError:
+            logger.warning(
+                "Failed to expand clipped table content before screenshot%s",
                 f" [{log_context}]" if log_context else "",
                 exc_info=True,
             )
@@ -1134,6 +1154,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     page,
                     log_context=log_context,
                     report_execution_context=report_execution_context,
+                    element_name=element_name,
                 )
 
                 # Detect large dashboards and use tiled screenshots if enabled
@@ -1216,11 +1237,22 @@ class WebDriverPlaywright(WebDriverProxy):
                     # region into view and waits per tile; worst case it is a
                     # single tile. The tiled decision for thumbnails is
                     # unchanged.
-                    use_tiled = likely_large_dashboard and (
-                        height_unknown
-                        or dashboard_height > tile_height
-                        or report_execution_context is not None
-                        or require_complete_capture
+                    # The strict tiled path gates on dashboard chart holders
+                    # and the dashboard grid, which a chart-only page never
+                    # renders, so a tall single-chart capture would time out
+                    # there. The standard path has chart-container readiness.
+                    strict_chart_capture = element_name == "chart-container" and (
+                        report_execution_context is not None or require_complete_capture
+                    )
+                    use_tiled = (
+                        likely_large_dashboard
+                        and not strict_chart_capture
+                        and (
+                            height_unknown
+                            or dashboard_height > tile_height
+                            or report_execution_context is not None
+                            or require_complete_capture
+                        )
                     )
 
                     if use_tiled:
@@ -1307,6 +1339,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             page,
                             log_context=log_context,
                             report_execution_context=report_execution_context,
+                            element_name=element_name,
                         )
                         if selenium_animation_wait > 0:
                             if report_execution_context:
@@ -1379,6 +1412,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         page,
                         log_context=log_context,
                         report_execution_context=report_execution_context,
+                        element_name=element_name,
                     )
                     if selenium_animation_wait > 0:
                         if report_execution_context:
