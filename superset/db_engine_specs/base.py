@@ -2296,6 +2296,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(ex)
 
     @classmethod
+    def validate_connection_target(  # noqa: B027
+        cls, database: Database, conn: Any
+    ) -> None:
+        """
+        Hook for checks beyond liveness, run on the connection that just passed
+        the ping during dynamic-form validation (e.g. that a catalog exists).
+
+        Raise to fail validation; the exception goes through ``extract_errors``.
+        """
+
+    @classmethod
     def get_database_custom_errors(
         cls, database_name: str | None
     ) -> dict[Any, tuple[str, SupersetErrorType, dict[str, Any]]]:

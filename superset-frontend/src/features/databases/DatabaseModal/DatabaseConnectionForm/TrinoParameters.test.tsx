@@ -122,3 +122,42 @@ test('other engines keep the common field text', () => {
   expect(screen.queryByText('Catalog name')).not.toBeInTheDocument();
   expect(screen.getByPlaceholderText('e.g. 5432')).toBeInTheDocument();
 });
+
+test('shows the root certificate field only when SSL is on', () => {
+  const { unmount } = renderForm('trino', 'Catalog name');
+  expect(screen.queryByText('Root certificate')).not.toBeInTheDocument();
+  unmount();
+
+  const props = {
+    dbModel: basicParametersModel('trino', 'Catalog name'),
+    db: {
+      engine: 'trino',
+      configuration_method: ConfigurationMethod.DynamicForm,
+      parameters: { encryption: true },
+    },
+    sslForced: false,
+    isValidating: false,
+    onParametersChange: jest.fn(),
+    onChange: jest.fn(),
+    onQueryChange: jest.fn(),
+    onExtraInputChange: jest.fn(),
+    onEncryptedExtraInputChange: jest.fn(),
+    onClearEncryptedExtraKey: jest.fn(),
+    onAddTableCatalog: jest.fn(),
+    onRemoveTableCatalog: jest.fn(),
+    validationErrors: { encryption: 'Certificate could not be verified' },
+    getValidation: jest.fn(),
+    clearValidationErrors: jest.fn(),
+  } as unknown as DatabaseConnectionFormProps;
+  render(<DatabaseConnectionForm {...props} />);
+
+  expect(screen.getByText('Root certificate')).toBeInTheDocument();
+  expect(
+    screen.getByText('Certificate could not be verified'),
+  ).toBeInTheDocument();
+});
+
+test('explains how to set a schema in the catalog field', () => {
+  renderForm('trino', 'Catalog name');
+  expect(screen.getByText(/catalog\/schema/)).toBeInTheDocument();
+});

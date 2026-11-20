@@ -21,6 +21,7 @@ import { SupersetTheme } from '@apache-superset/core/theme';
 import { Switch } from '@superset-ui/core/components/Switch';
 import {
   InfoTooltip,
+  Typography,
   LabeledErrorBoundInput as ValidatedInput,
 } from '@superset-ui/core/components';
 import { FieldPropTypes } from '../../types';
@@ -53,11 +54,11 @@ export const trinoCatalogField = ({
     value={db?.parameters?.database}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database}
-    placeholder={t('e.g. hive')}
+    placeholder={t('e.g. hive or hive/sales')}
     label={description || t('Catalog name')}
     onChange={changeMethods.onParametersChange}
     helpText={t(
-      'The Trino catalog to connect to (e.g. hive, iceberg). It is used as the database in the SQLAlchemy URI.',
+      'The Trino catalog to connect to (e.g. hive, iceberg). To also set a default schema, enter it as catalog/schema (e.g. hive/sales).',
     )}
   />
 );
@@ -91,29 +92,57 @@ export const trinoEncryptionField = ({
   changeMethods,
   db,
   sslForced,
-}: FieldPropTypes) => (
-  <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-    <Switch
-      disabled={sslForced && !isEditMode}
-      checked={db?.parameters?.encryption || sslForced}
-      onChange={changed => {
-        changeMethods.onParametersChange({
-          target: {
-            type: 'toggle',
-            name: 'encryption',
-            checked: true,
-            value: changed,
-          },
-        });
-      }}
-    />
-    <span css={toggleStyle}>{t('SSL')}</span>
-    <InfoTooltip
-      tooltip={t('HTTPS will be used to connect to the Trino coordinator.')}
-      placement="right"
-    />
-  </div>
-);
+  validationErrors,
+}: FieldPropTypes) => {
+  const sslEnabled = !!(db?.parameters?.encryption || sslForced);
+  return (
+    <div>
+      <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+        <Switch
+          disabled={sslForced && !isEditMode}
+          checked={sslEnabled}
+          onChange={changed => {
+            changeMethods.onParametersChange({
+              target: {
+                type: 'toggle',
+                name: 'encryption',
+                checked: true,
+                value: changed,
+              },
+            });
+          }}
+        />
+        <span css={toggleStyle}>{t('SSL')}</span>
+        <InfoTooltip
+          tooltip={t('HTTPS will be used to connect to the Trino coordinator.')}
+          placement="right"
+        />
+      </div>
+      {validationErrors?.encryption && (
+        <Typography.Text type="danger">
+          {validationErrors.encryption}
+        </Typography.Text>
+      )}
+      {sslEnabled && (
+        <ValidatedInput
+          id="server_cert"
+          name="server_cert"
+          value={db?.server_cert || ''}
+          placeholder={t('Optional: CA certificate (PEM)')}
+          label={t('Root certificate')}
+          onChange={event =>
+            changeMethods.onChange({
+              target: { name: 'server_cert', value: event.target.value },
+            })
+          }
+          helpText={t(
+            'Only needed when the server uses a private CA or a self-signed certificate. Paste the CA_BUNDLE contents.',
+          )}
+        />
+      )}
+    </div>
+  );
+};
 
 export const TRINO_FORM_FIELD_MAP = {
   database: trinoCatalogField,
