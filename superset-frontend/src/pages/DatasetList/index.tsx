@@ -1130,9 +1130,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tooltip={
                       allowEdit
                         ? t('Delete')
-                        : t(
-                            'Only workspace administrators can delete semantic views.',
-                          )
+                        : t('Only admins can delete semantic views.')
                     }
                     placement="bottom"
                     icon={<Icons.DeleteOutlined iconSize="l" />}
@@ -1147,9 +1145,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     tooltip={
                       allowEdit
                         ? t('Edit')
-                        : t(
-                            'Only workspace administrators can edit semantic views.',
-                          )
+                        : t('Only admins can edit semantic views.')
                     }
                     placement="bottom"
                     icon={<Icons.EditOutlined iconSize="l" />}

@@ -10485,10 +10485,10 @@ msgstr ""
 msgid "Only the first %s values are listed. Type to search all of them, or enter a value that is not listed."
 msgstr ""
 
-msgid "Only workspace administrators can delete semantic views."
+msgid "Only admins can delete semantic views."
 msgstr ""
 
-msgid "Only workspace administrators can edit semantic views."
+msgid "Only admins can edit semantic views."
 msgstr ""
 
 msgid "Oops! An error occurred!"

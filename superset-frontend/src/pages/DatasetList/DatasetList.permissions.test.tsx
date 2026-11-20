@@ -164,7 +164,7 @@ test.each(['edit', 'delete'])(
       action.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     });
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
-      `Only workspace administrators can ${verb} semantic views.`,
+      `Only admins can ${verb} semantic views.`,
     );
   },
 );

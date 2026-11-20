@@ -26,9 +26,10 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { NativeFiltersForm } from '../types';
+import { SemanticViewStructure } from 'src/utils/semanticViewStructure';
 import { ColumnSelect } from './ColumnSelect';
 
-const dimensions = [
+const dimensions: SemanticViewStructure['dimensions'] = [
   { name: 'C.MARKET_SEGMENT', type: 'string', grain: null },
   ...['DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR'].map(grain => ({
     name: 'L.SHIP_DATE',
@@ -38,9 +39,13 @@ const dimensions = [
   { name: 'O.ORDER_DATE__MONTH', type: 'date32[day]', grain: 'MONTH' },
 ];
 
-function renderPicker(id: number, mode?: 'multiple') {
+function renderPicker(
+  id: number,
+  mode?: 'multiple',
+  pickerDimensions: SemanticViewStructure['dimensions'] = dimensions,
+) {
   fetchMock.get(`path:/api/v1/semantic_view/${id}/structure`, {
-    result: { dimensions, metrics: [] },
+    result: { dimensions: pickerDimensions, metrics: [] },
   });
   const onChange = jest.fn();
   const onColumnsLoaded = jest.fn();
@@ -63,6 +68,18 @@ function renderPicker(id: number, mode?: 'multiple') {
 }
 
 afterEach(() => fetchMock.clearHistory().removeRoutes());
+
+test('renders distinct semantic labels and keeps the selected member ID', async () => {
+  const { onChange, onColumnsLoaded } = renderPicker(804, undefined, [
+    { name: 'CUSTOMERS.SEGMENT', type: 'string', verbose_name: 'Segment' },
+    { name: 'ORDERS.SEGMENT', type: 'string', verbose_name: 'Segment' },
+  ]);
+  await waitFor(() => expect(onColumnsLoaded).toHaveBeenCalled());
+  await userEvent.click(screen.getByRole('combobox'));
+  const orderSegment = screen.getByTitle('Segment (ORDERS.SEGMENT)');
+  await userEvent.click(orderSegment);
+  expect(onChange.mock.calls[0][0]).toBe('ORDERS.SEGMENT');
+});
 
 test.each([undefined, 'multiple'] as const)(
   'offers each semantic member once with mode %s and preserves its name',
