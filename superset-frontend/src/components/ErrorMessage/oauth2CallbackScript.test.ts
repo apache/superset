@@ -30,11 +30,13 @@ const TEMPLATE_PATH = path.join(
 
 function extractCallbackScript(): string {
   const html = fs.readFileSync(TEMPLATE_PATH, 'utf-8');
-  const match = html.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
-  if (!match) {
+  const script = new DOMParser()
+    .parseFromString(html, 'text/html')
+    .querySelector('script')?.textContent;
+  if (!script) {
     throw new Error('Could not find the callback <script> in oauth2.html');
   }
-  return match[1].replace('{{ tab_id }}', 'test-tab-id');
+  return script.replace('{{ tab_id }}', 'test-tab-id');
 }
 
 function runCallbackScript({
