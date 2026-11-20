@@ -1094,16 +1094,18 @@ class TestCore(SupersetTestCase):
     def test_explore_view_checks_datasource_access(
         self, mock_raise_for_access: mock.Mock
     ) -> None:
-        """The explore view runs the per-datasource access check on the loaded
-        datasource, consistent with the explore command, before rendering its
-        metadata."""
+        """POST checks the requested datasource before redirecting to Explore."""
         self.login(ADMIN_USERNAME)
         tbl_id: int | None = self.table_ids.get("energy_usage")
 
-        self.client.post(f"/explore/table/{tbl_id}/")
+        response = self.client.post(f"/explore/table/{tbl_id}/")
 
-        mock_raise_for_access.assert_called_once()
-        assert mock_raise_for_access.call_args.kwargs["datasource"].id == tbl_id
+        assert response.status_code == 303
+        mock_raise_for_access.assert_called()
+        assert all(
+            call.kwargs["datasource"].id == tbl_id
+            for call in mock_raise_for_access.call_args_list
+        )
 
     def test_explore_no_datasource_renders_spa(self):
         # `Slice.slice_url` emits form_data carrying only `slice_id`; without a
