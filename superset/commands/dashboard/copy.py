@@ -79,14 +79,13 @@ class CopyDashboardCommand(BaseCommand):
         if not security_manager.is_editor(self._original_dash):
             raise DashboardForbiddenError()
 
-        if is_feature_enabled("AUTO_REFRESH_POLICY"):
-            metadata = (
-                {}
-                if self._properties.get("replace_metadata")
-                else self._original_dash.params_dict.copy()
-            )
-            metadata.update(json.loads(self._properties["json_metadata"]))
-            if errors := check_refresh_policy(
-                metadata, self._original_dash.params_dict.get(POLICY_KEY)
-            ):
-                raise DashboardRefreshPolicyInvalidError([], errors)
+        metadata = (
+            {}
+            if self._properties.get("replace_metadata")
+            else self._original_dash.params_dict.copy()
+        )
+        metadata.update(json.loads(self._properties["json_metadata"]))
+        if errors := check_refresh_policy(
+            metadata, self._original_dash.params_dict.get(POLICY_KEY)
+        ):
+            raise DashboardRefreshPolicyInvalidError([], errors)

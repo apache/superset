@@ -384,17 +384,16 @@ class ImportDashboardsCommand(BaseCommand):
             except ValueError:
                 logger.exception("Invalid JSON file")
                 raise
-            if not is_feature_enabled("AUTO_REFRESH_POLICY"):
-                continue
             file_errors: dict[str, list[str]] = {}
             dashboards = data.get("dashboards") if isinstance(data, dict) else None
             for dashboard in dashboards if isinstance(dashboards, list) else []:
                 try:
                     metadata = _dashboard_metadata(dashboard)
                 except (ValueError, TypeError):
-                    file_errors.setdefault(
-                        "json_metadata", [__("Invalid dashboard metadata.")]
-                    )
+                    if is_feature_enabled("AUTO_REFRESH_POLICY"):
+                        file_errors.setdefault(
+                            "json_metadata", [__("Invalid dashboard metadata.")]
+                        )
                     continue
                 for error in check_refresh_policy(metadata):
                     file_errors.setdefault(error.field, [error.message])

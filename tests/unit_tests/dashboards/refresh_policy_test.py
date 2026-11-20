@@ -30,6 +30,9 @@ from superset.dashboards.refresh_policy import (
 
 STANDARD_INTERVALS = [10, 30, 60, 300, 1800, 3600, 21600, 43200, 86400]
 UNITS = {"seconds": 1, "minutes": 60, "hours": 3600}
+POLICY = "auto_refresh_policy"
+MIN = f"{POLICY}.minimum_refresh_interval"
+MAX = f"{POLICY}.maximum_refresh_interval"
 
 
 def bound(value: Any, unit: Any = "seconds") -> dict[str, Any]:
@@ -388,19 +391,77 @@ def enable_policy(mocker: MockerFixture) -> None:
     )
 
 
-def test_flag_off_skips_policy_validation(mocker: MockerFixture) -> None:
-    """A disabled policy does not constrain arbitrary persisted JSON."""
+@pytest.fixture
+def disable_policy(mocker: MockerFixture) -> None:
+    """Turn the feature flag off."""
     from superset.extensions import feature_flag_manager
 
     mocker.patch.dict(
         feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": False}
     )
-    assert (
-        check_refresh_policy(
-            {"auto_refresh_policy": "invalid", "refresh_frequency": -1}
-        )
-        == []
-    )
+
+
+@pytest.mark.parametrize(
+    "policy, expected",
+    [
+        ("invalid", [(POLICY, "invalid_policy")]),
+        ([], [(POLICY, "invalid_policy")]),
+        (
+            {"custom_refresh_allowed": False},
+            [(f"{POLICY}.custom_refresh_allowed", "invalid_policy")],
+        ),
+        (
+            {"auto_refresh_allowed": "yes"},
+            [(f"{POLICY}.auto_refresh_allowed", "invalid_policy")],
+        ),
+        ({"minimum_refresh_interval": bound(0)}, [(MIN, "invalid_boundary")]),
+        ({"maximum_refresh_interval": bound(1, "days")}, [(MAX, "invalid_boundary")]),
+        ({"minimum_refresh_interval": 30}, [(MIN, "invalid_boundary")]),
+    ],
+)
+def test_flag_off_checks_only_the_policy_shape(
+    disable_policy: None, policy: Any, expected: list[tuple[str, str]]
+) -> None:
+    """With the flag off a malformed policy is refused with the usual errors."""
+    errors = check_refresh_policy({"auto_refresh_policy": policy})
+    assert [(error.field, error.code) for error in errors] == expected
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"auto_refresh_policy": None, "refresh_frequency": -1},
+        {"refresh_frequency": "60"},
+        {"auto_refresh_policy": {}, "refresh_frequency": 45},
+        {
+            "auto_refresh_policy": {"auto_refresh_allowed": False},
+            "refresh_frequency": 60,
+        },
+        {"auto_refresh_policy": {"minimum_refresh_interval": bound(45)}},
+        {
+            "auto_refresh_policy": {
+                "minimum_refresh_interval": bound(2, "hours"),
+                "maximum_refresh_interval": bound(1, "hours"),
+            },
+            "refresh_frequency": 10,
+        },
+    ],
+)
+def test_flag_off_skips_the_policy_rules(
+    disable_policy: None, mocker: MockerFixture, metadata: dict[str, Any]
+) -> None:
+    """With the flag off a well-formed policy isn't checked against any rule."""
+    set_intervals(mocker, [[0, "Off"], [300, "5 minutes"]])
+    assert check_refresh_policy(metadata) == []
+
+
+def test_flag_off_skips_an_unchanged_policy(disable_policy: None) -> None:
+    """With the flag off a stored policy is only checked when a write changes it."""
+    assert check_refresh_policy({"auto_refresh_policy": "invalid"}, "invalid") == []
+    assert [
+        error.code
+        for error in check_refresh_policy({"auto_refresh_policy": "other"}, "invalid")
+    ] == ["invalid_policy"]
 
 
 def test_huge_configured_interval_is_ignored(mocker: MockerFixture) -> None:

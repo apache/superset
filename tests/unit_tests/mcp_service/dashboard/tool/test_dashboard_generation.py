@@ -2619,3 +2619,49 @@ async def test_generate_dashboard_rejects_invalid_refresh_policy(
         assert "refresh_frequency" in result.structured_content["error"]
         dashboard_cls.assert_not_called()
         session.add.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "policy, error",
+    [
+        ("invalid", "auto_refresh_policy: Auto-refresh policy must be an object"),
+        ({"auto_refresh_allowed": False}, None),
+        ({"minimum_refresh_interval": {"value": 45, "unit": "seconds"}}, None),
+    ],
+)
+async def test_generate_dashboard_flag_off_checks_only_the_policy_shape(
+    mcp_server: FastMCP, policy: Any, error: str | None
+) -> None:
+    """With the flag off only a malformed policy stops the dashboard creation."""
+    from superset.extensions import feature_flag_manager
+
+    with (
+        patch.dict(feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": False}),
+        patch("superset.db.session") as session,
+        patch("superset.daos.dashboard.DashboardDAO.find_by_id") as find,
+        patch("superset.models.dashboard.Dashboard") as dashboard_cls,
+    ):
+        _setup_generate_dashboard_mocks(
+            session, find, dashboard_cls, [_mock_chart(id=1)], _mock_dashboard()
+        )
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_dashboard",
+                {
+                    "request": {
+                        "chart_ids": [1],
+                        "json_metadata_overrides": {
+                            "auto_refresh_policy": policy,
+                            "refresh_frequency": 60,
+                        },
+                    }
+                },
+            )
+        if error:
+            assert result.structured_content["error"].startswith(error)
+            dashboard_cls.assert_not_called()
+            session.add.assert_not_called()
+        else:
+            assert result.structured_content["error"] is None
+            dashboard_cls.assert_called_once()

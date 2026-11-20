@@ -160,12 +160,12 @@ def check_refresh_policy(  # noqa: C901
     Check the final dashboard metadata against its ``auto_refresh_policy``.
 
     Returns one error per field (the first failing rule wins); an empty list
-    means valid. Without a policy nothing is checked.
+    means valid. Without a policy nothing is checked. With the feature flag off
+    only the shape of a policy that differs from ``stored_policy`` is checked.
     """
-    if not is_feature_enabled("AUTO_REFRESH_POLICY"):
-        return []
+    shape_only = not is_feature_enabled("AUTO_REFRESH_POLICY")
     policy = metadata.get(POLICY_KEY)
-    if policy is None:
+    if policy is None or (shape_only and policy == stored_policy):
         return []
     if not isinstance(policy, dict):
         return [
@@ -196,7 +196,7 @@ def check_refresh_policy(  # noqa: C901
     # an invalid switch counts as the default (allowed)
     allowed = policy.get("auto_refresh_allowed") is not False
     standard = get_standard_refresh_intervals()
-    check_list = allowed and stored_policy != policy
+    check_list = not shape_only and allowed and stored_policy != policy
 
     valid: dict[str, int] = {}
     set_bounds = [key for key in BOUND_KEYS if policy.get(key) is not None]
@@ -220,6 +220,8 @@ def check_refresh_policy(  # noqa: C901
             )
         else:
             valid[key] = seconds
+    if shape_only:
+        return list(errors.values())
 
     minimum, maximum = valid.get(MIN_KEY), valid.get(MAX_KEY)
     if minimum is not None and maximum is not None and minimum > maximum:

@@ -189,6 +189,7 @@ def test_policy_examples(
 MIN = "json_metadata.auto_refresh_policy.minimum_refresh_interval"
 MAX = "json_metadata.auto_refresh_policy.maximum_refresh_interval"
 FREQ = "json_metadata.refresh_frequency"
+POLICY = "json_metadata.auto_refresh_policy"
 
 
 @pytest.mark.parametrize(
@@ -812,27 +813,89 @@ def enable_policy(mocker: MockerFixture) -> None:
     )
 
 
-@pytest.mark.parametrize("policy", ["invalid", {"auto_refresh_allowed": False}, None])
-def test_flag_off_stores_policy_without_validation_or_history(
-    make_dashboard: Callable[..., Any],
-    client: Any,
-    full_api_access: None,
-    mocker: MockerFixture,
-    policy: Any,
-) -> None:
-    """Disabled policy enforcement accepts raw metadata on all REST write paths."""
+@pytest.fixture
+def disable_policy(mocker: MockerFixture) -> None:
+    """Turn the feature flag off."""
     from superset.extensions import feature_flag_manager
-    from superset.models.dashboard import Dashboard
 
     mocker.patch.dict(
         feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": False}
     )
+
+
+@pytest.mark.parametrize(
+    "policy, expected",
+    [
+        ("invalid", [(POLICY, "invalid_policy")]),
+        (
+            {"auto_refresh_allowed": "no"},
+            [(f"{POLICY}.auto_refresh_allowed", "invalid_policy")],
+        ),
+        ({"minimum_refresh_interval": bound(1.5)}, [(MIN, "invalid_boundary")]),
+    ],
+)
+def test_flag_off_rejects_a_malformed_policy_on_writes(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    disable_policy: None,
+    policy: Any,
+    expected: list[tuple[str, str]],
+) -> None:
+    """With the flag off a malformed policy is refused on every REST write path."""
+    from superset.models.dashboard import Dashboard
+
+    before = {"auto_refresh_policy": PROHIBITED, "refresh_frequency": 0}
+    dashboard = make_dashboard(before)
+    count = db.session.query(Dashboard).count()
+    metadata = {"auto_refresh_policy": policy, "refresh_frequency": 45}
+
+    for response in (
+        put(client, dashboard, metadata),
+        copy(client, dashboard, metadata),
+        post(client, metadata),
+    ):
+        assert response.status_code == 422
+        assert error_codes(response) == expected
+    assert stored(dashboard) == before
+    assert db.session.query(Dashboard).count() == count
+    assert history() == []
+
+
+@pytest.mark.parametrize(
+    "policy",
+    [
+        {"minimum_refresh_interval": bound(45)},
+        {"auto_refresh_allowed": False},
+        {
+            "minimum_refresh_interval": bound(2, "hours"),
+            "maximum_refresh_interval": bound(1, "hours"),
+        },
+        None,
+    ],
+)
+def test_flag_off_stores_a_well_formed_policy_without_rules_or_history(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    disable_policy: None,
+    policy: Any,
+) -> None:
+    """With the flag off a well-formed policy is stored as sent, unchecked by rules."""
+    from superset.models.dashboard import Dashboard
+
     dashboard = make_dashboard({"auto_refresh_policy": "previous"})
     metadata = {"auto_refresh_policy": policy, "refresh_frequency": 45}
     assert put(client, dashboard, metadata).status_code == 200
     assert stored(dashboard)["auto_refresh_policy"] == policy
     copied = copy(client, dashboard, metadata)
     assert copied.status_code == 200
+    assert (
+        db.session.get(Dashboard, copied.json["result"]["id"]).params_dict[
+            "auto_refresh_policy"
+        ]
+        == policy
+    )
     created = post(client, metadata)
     assert created.status_code == 201
     assert (
@@ -840,6 +903,74 @@ def test_flag_off_stores_policy_without_validation_or_history(
         == policy
     )
     assert history() == []
+
+
+def test_flag_off_keeps_a_stored_malformed_policy(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    disable_policy: None,
+) -> None:
+    """A malformed policy stored earlier loads, exports and allows unrelated saves."""
+    from superset.models.dashboard import Dashboard
+
+    malformed = {"custom_refresh_allowed": False}
+    dashboard = make_dashboard(
+        {"auto_refresh_policy": malformed, "refresh_frequency": 45}
+    )
+    response = client.get(f"/api/v1/dashboard/{dashboard.id}")
+    assert response.status_code == 200
+    assert (
+        json.loads(response.json["result"]["json_metadata"])["auto_refresh_policy"]
+        == malformed
+    )
+    assert put(client, dashboard, {}, dashboard_title="renamed").status_code == 200
+    assert (
+        put(
+            client,
+            dashboard,
+            {
+                "auto_refresh_policy": malformed,
+                "refresh_frequency": 60,
+                "positions": {},
+            },
+        ).status_code
+        == 200
+    )
+    assert put(client, dashboard, {"refresh_frequency": 300}).status_code == 200
+    copied = copy(
+        client, dashboard, {"auto_refresh_policy": malformed, "refresh_frequency": 300}
+    )
+    assert copied.status_code == 200
+    assert (
+        db.session.get(Dashboard, copied.json["result"]["id"]).params_dict[
+            "auto_refresh_policy"
+        ]
+        == malformed
+    )
+    assert copy(client, dashboard, {}).status_code == 200
+    assert stored(dashboard)["auto_refresh_policy"] == malformed
+    assert stored(dashboard)["refresh_frequency"] == 300
+
+    response = put(client, dashboard, {"auto_refresh_policy": "invalid"})
+    assert response.status_code == 422
+    assert error_codes(response) == [(POLICY, "invalid_policy")]
+    assert stored(dashboard)["auto_refresh_policy"] == malformed
+    assert history() == []
+
+
+def test_flag_off_exports_a_stored_malformed_policy(
+    make_dashboard: Callable[..., Any], disable_policy: None
+) -> None:
+    """A malformed policy stored earlier is exported as stored."""
+    import yaml
+
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    malformed = {"custom_refresh_allowed": False}
+    dashboard = make_dashboard({"auto_refresh_policy": malformed})
+    content = yaml.safe_load(ExportDashboardsCommand._file_content(dashboard))
+    assert content["metadata"]["auto_refresh_policy"] == malformed
 
 
 def test_merged_frequency_is_checked_before_update_side_effects(

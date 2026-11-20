@@ -673,7 +673,7 @@ def restore_version(  # noqa: C901
 
     policy_enabled = is_feature_enabled("AUTO_REFRESH_POLICY")
     old_policy = None
-    if model_cls.__name__ == "Dashboard" and policy_enabled:
+    if model_cls.__name__ == "Dashboard":
         from superset.commands.dashboard.exceptions import (
             DashboardRefreshPolicyInvalidError,
         )

@@ -247,19 +247,99 @@ def enable_policy(mocker: MockerFixture) -> None:
     )
 
 
-def test_flag_off_import_preserves_invalid_policy(
-    schema: Session, mocker: MockerFixture
-) -> None:
-    """Disabled import enforcement stores policy metadata and emits no history."""
+MALFORMED_MESSAGE = (
+    "Auto-refresh policy must be an object with auto_refresh_allowed, "
+    "minimum_refresh_interval and maximum_refresh_interval."
+)
+
+
+@pytest.fixture
+def disable_policy(mocker: MockerFixture) -> None:
+    """Turn the feature flag off."""
     from superset.extensions import feature_flag_manager
 
     mocker.patch.dict(
         feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": False}
     )
-    imported = ImportV1DashboardSchema().load(config("invalid", 45))
+
+
+def test_flag_off_schema_rejects_a_malformed_policy(disable_policy: None) -> None:
+    """With the flag off the import schema refuses a malformed policy."""
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DashboardSchema().load(config("invalid", 45))
+    assert excinfo.value.messages == {
+        "metadata": {"auto_refresh_policy": [MALFORMED_MESSAGE]}
+    }
+
+
+def test_flag_off_import_stores_a_well_formed_policy_unchecked(
+    schema: Session, disable_policy: None
+) -> None:
+    """With the flag off a well-formed policy is imported without rules or history."""
+    imported = ImportV1DashboardSchema().load(config(BAD_POLICY, 10))
     import_dashboard(imported, overwrite=True, ignore_permissions=True)
     assert (
         db.session.query(Dashboard).one().params_dict["auto_refresh_policy"]
-        == "invalid"
+        == BAD_POLICY
+    )
+    assert history() == []
+
+
+def test_flag_off_dashboard_import_endpoint_rejects_a_malformed_policy(
+    schema: Session, client: Any, full_api_access: None, disable_policy: None
+) -> None:
+    """With the flag off the dashboard import answers 422 on a malformed policy."""
+    response = client.post(
+        "/api/v1/dashboard/import/",
+        data={"formData": (bundle("Dashboard", config("invalid")), "export.zip")},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 422
+    extra = response.json["errors"][0]["extra"]
+    assert extra[FILE]["metadata"] == {"auto_refresh_policy": [MALFORMED_MESSAGE]}
+    assert db.session.query(Dashboard).count() == 0
+
+    response = client.post(
+        "/api/v1/dashboard/import/",
+        data={"formData": (bundle("Dashboard", config(BAD_POLICY, 10)), "export.zip")},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+    assert (
+        db.session.query(Dashboard).one().params_dict["auto_refresh_policy"]
+        == BAD_POLICY
+    )
+    assert history() == []
+
+
+def test_flag_off_assets_import_endpoint_rejects_a_malformed_policy(
+    schema: Session,
+    client: Any,
+    full_api_access: None,
+    disable_policy: None,
+    mocker: MockerFixture,
+) -> None:
+    """With the flag off the assets import refuses a malformed policy."""
+    validate = mocker.spy(ImportV1DashboardSchema, "validate_refresh_policy")
+    response = client.post(
+        "/api/v1/assets/import/",
+        data={"bundle": (bundle("assets", config("invalid")), "export.zip")},
+        content_type="multipart/form-data",
+    )
+
+    # A follow-up fix changes the generic assets error mapping to 422.
+    assert response.status_code == 500
+    assert validate.call_count == 1
+    assert db.session.query(Dashboard).count() == 0
+
+    response = client.post(
+        "/api/v1/assets/import/",
+        data={"bundle": (bundle("assets", config(BAD_POLICY, 10)), "export.zip")},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+    assert (
+        db.session.query(Dashboard).one().params_dict["auto_refresh_policy"]
+        == BAD_POLICY
     )
     assert history() == []

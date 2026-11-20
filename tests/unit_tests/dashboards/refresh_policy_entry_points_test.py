@@ -16,6 +16,7 @@
 # under the License.
 """Policy guards on dashboard writes that bypass REST update commands."""
 
+from typing import Any
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -90,6 +91,129 @@ def test_mcp_update_null_and_history(mocker: MockerFixture, enabled: bool) -> No
             "new": None,
             "source": "mcp_update",
         }
+
+
+def test_mcp_update_flag_off_checks_only_a_changed_policy_shape(
+    mocker: MockerFixture,
+) -> None:
+    """With the flag off MCP refuses a malformed new policy and keeps a stored one."""
+    from superset.mcp_service.dashboard.schemas import UpdateDashboardRequest
+    from superset.mcp_service.dashboard.tool.update_dashboard import (
+        _validate_update_request,
+    )
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": False}
+    )
+    stored = {"auto_refresh_policy": "invalid", "refresh_frequency": 45}
+    dashboard = Dashboard(json_metadata=json.dumps(stored))
+
+    error = _validate_update_request(
+        dashboard,
+        UpdateDashboardRequest(
+            identifier=1,
+            json_metadata_overrides={
+                "auto_refresh_policy": {"auto_refresh_allowed": 1}
+            },
+        ),
+    )
+    assert error is not None
+    assert error.error_type == "InvalidRefreshPolicy"
+    assert error.error == (
+        "auto_refresh_policy.auto_refresh_allowed: Must be true or false."
+    )
+
+    for request in (
+        UpdateDashboardRequest(identifier=1, dashboard_title="Renamed"),
+        UpdateDashboardRequest(
+            identifier=1, json_metadata_overrides={"refresh_frequency": 60}
+        ),
+        UpdateDashboardRequest(
+            identifier=1,
+            json_metadata_overrides={
+                "auto_refresh_policy": {
+                    "minimum_refresh_interval": {"value": 45, "unit": "seconds"}
+                }
+            },
+        ),
+    ):
+        assert _validate_update_request(dashboard, request) is None
+    assert dashboard.params_dict == stored
+
+
+def _restore_mocks(mocker: MockerFixture, dashboard: Dashboard, target: Any) -> None:
+    """Patch the parts of a restore that need a database."""
+    from contextlib import nullcontext
+
+    mocker.patch(
+        "superset.versioning.restore._find_target_version", return_value=target
+    )
+    mocker.patch(
+        "superset.versioning.restore.single_flush_scope", return_value=nullcontext()
+    )
+    mocker.patch(
+        "superset.versioning.restore._restore_dashboard_membership",
+        return_value=([], []),
+    )
+    mocker.patch("superset.versioning.restore._stamp_audit_fields_for_restore")
+    target.revert.side_effect = lambda **kwargs: setattr(
+        dashboard, "json_metadata", target.json_metadata
+    )
+
+
+def test_restore_flag_off_refuses_a_malformed_policy(mocker: MockerFixture) -> None:
+    """With the flag off a restore can't bring back a different malformed policy."""
+    from superset.commands.dashboard.exceptions import (
+        DashboardRefreshPolicyInvalidError,
+    )
+    from superset.versioning.restore import restore_version
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": False}
+    )
+    dashboard = Dashboard(id=1, uuid=uuid4(), json_metadata="{}")
+    target = MagicMock(json_metadata=json.dumps({"auto_refresh_policy": "invalid"}))
+    _restore_mocks(mocker, dashboard, target)
+    with pytest.raises(DashboardRefreshPolicyInvalidError) as excinfo:
+        restore_version(Dashboard, dashboard.uuid, 1, entity=dashboard)
+    assert [error["code"] for error in excinfo.value.errors] == ["invalid_policy"]
+    target.revert.assert_not_called()
+    assert dashboard.params_dict == {}
+
+
+@pytest.mark.parametrize(
+    "current, restored",
+    [
+        (
+            {"refresh_frequency": 0},
+            {
+                "auto_refresh_policy": {"auto_refresh_allowed": False},
+                "refresh_frequency": 60,
+            },
+        ),
+        (
+            {"auto_refresh_policy": "invalid", "refresh_frequency": 0},
+            {"auto_refresh_policy": "invalid", "refresh_frequency": 45},
+        ),
+    ],
+)
+def test_restore_flag_off_skips_rules_and_unchanged_policies(
+    mocker: MockerFixture, current: dict[str, Any], restored: dict[str, Any]
+) -> None:
+    """With the flag off a well-formed or unchanged policy is restored, no history."""
+    from superset.versioning.restore import restore_version
+
+    mocker.patch.dict(
+        feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": False}
+    )
+    add = mocker.patch("superset.extensions.db.session.add")
+    dashboard = Dashboard(id=1, uuid=uuid4(), json_metadata=json.dumps(current))
+    target = MagicMock(json_metadata=json.dumps(restored))
+    _restore_mocks(mocker, dashboard, target)
+    assert restore_version(Dashboard, dashboard.uuid, 1, entity=dashboard)
+    target.revert.assert_called_once()
+    assert dashboard.params_dict == restored
+    add.assert_not_called()
 
 
 def test_restore_rejects_policy_before_reverting(mocker: MockerFixture) -> None:

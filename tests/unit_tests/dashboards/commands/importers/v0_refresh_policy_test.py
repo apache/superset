@@ -171,21 +171,54 @@ def enable_policy(mocker: MockerFixture) -> None:
     )
 
 
-def test_flag_off_import_preserves_invalid_policy(
-    schema: Session, mocker: MockerFixture
-) -> None:
-    """Disabled import enforcement stores policy metadata and emits no history."""
+@pytest.fixture
+def disable_policy(mocker: MockerFixture) -> None:
+    """Turn the feature flag off."""
     from superset.extensions import feature_flag_manager
 
     mocker.patch.dict(
         feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": False}
     )
-    ImportDashboardsCommand({FILE: export("invalid", 45)}).run()
-    assert (
-        db.session.query(Dashboard).one().params_dict["auto_refresh_policy"]
-        == "invalid"
-    )
+
+
+def test_flag_off_import_rejects_a_malformed_policy(
+    schema: Session, disable_policy: None
+) -> None:
+    """With the flag off a malformed policy is refused before writing."""
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDashboardsCommand({FILE: export("invalid", 45, with_dataset=True)}).run()
+    assert excinfo.value.normalized_messages() == {
+        FILE: {
+            "json_metadata": {
+                "auto_refresh_policy": [
+                    "Auto-refresh policy must be an object with auto_refresh_allowed, "
+                    "minimum_refresh_interval and maximum_refresh_interval."
+                ],
+            }
+        }
+    }
+    assert db.session.query(Dashboard).count() == 0
+    assert db.session.query(SqlaTable).count() == 0
     assert history() == []
+
+
+def test_flag_off_import_stores_a_well_formed_policy_unchecked(
+    schema: Session, disable_policy: None
+) -> None:
+    """With the flag off a well-formed policy is imported without rules or history."""
+    bad = {"minimum_refresh_interval": {"value": 45, "unit": "seconds"}}
+    ImportDashboardsCommand({FILE: export(bad, 10)}).run()
+    assert db.session.query(Dashboard).one().params_dict["auto_refresh_policy"] == bad
+    assert history() == []
+
+
+def test_flag_off_import_leaves_malformed_entries_to_the_importer(
+    schema: Session, disable_policy: None
+) -> None:
+    """With the flag off entries without readable metadata aren't refused here."""
+    ImportDashboardsCommand(
+        {FILE: json.dumps({"dashboards": [{"__Dashboard__": {"json_metadata": "["}}]})}
+    ).validate()
 
 
 @pytest.mark.parametrize(
