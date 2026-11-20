@@ -689,10 +689,10 @@ def test_annotation_context_falls_back_to_viewer_scoped_key(
     assert first != second
 
 
-def test_annotation_context_shape_unchanged_without_inner_rls(
-    viewer: SimpleNamespace, source_chart: Slice
+def test_annotation_context_retains_viewer_without_inner_rls(
+    viewer: SimpleNamespace, source_chart: Slice, mocker: MockerFixture
 ) -> None:
-    """A source with no inner-table rules keeps the existing context shape."""
+    """A physical source keeps its plain data key and its separate viewer scope."""
     from superset import db
     from superset.connectors.sqla.models import SqlaTable
 
@@ -701,9 +701,11 @@ def test_annotation_context_shape_unchanged_without_inner_rls(
     db.session.flush()
     db.session.expire(source_chart)
 
+    mocker.patch("superset.common.query_context_processor.get_user_id", return_value=42)
     context = _annotation_context(source_chart)
     assert context is not None
-    assert set(context) == {"source_scope"}
+    assert set(context) == {"source_scope", "viewer"}
+    assert context["viewer"][0] == 42
     assert not isinstance(_data_key(context), dict)
 
 
