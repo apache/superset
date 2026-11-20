@@ -612,7 +612,7 @@ export const getEncryptedExtraFieldsNeeded = (
 
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(error => {
-    const noIssuesCodes = Object.entries(error.extra).filter(
+    const noIssuesCodes = Object.entries(error.extra || {}).filter(
       ([key]) => key !== 'issue_codes',
     );
 
