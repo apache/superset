@@ -237,10 +237,11 @@ def max_sip_number(titles: Iterable[str]) -> int:
         _, key = parse_title(title)
         if key:
             numbers.append(int(re.match(r"\d+", key).group()))  # type: ignore[union-attr]
-    numbers.sort(reverse=True)
-    while len(numbers) > 1 and numbers[0] - numbers[1] > MAX_NUMBER_GAP:
-        numbers.pop(0)
-    return numbers[0] if numbers else 0
+    numbers.sort()
+    for i in range(1, len(numbers)):
+        if numbers[i] - numbers[i - 1] > MAX_NUMBER_GAP:
+            return numbers[i - 1]
+    return numbers[-1] if numbers else 0
 
 
 def duplicate_numbers(issues: Iterable[Issue]) -> dict[str, list[int]]:
@@ -756,6 +757,8 @@ class Steward:
                     continue  # already closed once; a reopen is deliberate
                 self.move(issue, target, stages, relabel=False)
                 continue
+            if STAGES[target] == "approved" and self.has_marker(issue, "approved"):
+                continue  # closed as approved once; a reopen is deliberate
             self.move(issue, target, stages)
 
     def _collect_evidence(
@@ -793,6 +796,14 @@ class Steward:
                     f"{label}: not matched ({match.how}; candidates: {cands})"
                 )
                 continue
+            if "SIP" not in email.subject.upper() and (
+                similarity(
+                    classify_subject(email.subject)[3],
+                    strip_title(issues[number].title),
+                )
+                < STRONG_SIMILARITY
+            ):
+                continue  # a non-SIP thread that is not about this SIP
             self.report.matched.append(f"{label} -> #{number} ({how})")
             if kind == "VOTE":
                 vote_by_thread[email.id] = (email, number)
@@ -849,13 +860,13 @@ class Steward:
         }
         recent = self.now - email.epoch < COMMENT_WINDOW_DAYS * 86400
         if stage == "approved":
-            self.comment(issue, stage, values)
             self.report.actions.append(f"#{issue.number}: close as completed")
             self._write(
                 "PATCH",
                 f"/issues/{issue.number}",
                 {"state": "closed", "state_reason": "completed"},
             )
+            self.comment(issue, stage, values)
         elif recent:
             self.comment(issue, stage, values)
 
