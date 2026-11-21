@@ -29,6 +29,7 @@ from pydantic import (
     ConfigDict,
     Field,
     model_serializer,
+    model_validator,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
@@ -88,8 +89,36 @@ class QueryFilter(ColumnOperator):
         description="Operator to use.",
     )
     value: str | int | float | bool | List[str | int | float | bool] = Field(
-        ..., description="Value to filter by (type depends on col and opr)"
+        ...,
+        description=(
+            "Value to filter by (type depends on col and opr). For start_time, "
+            "use a numeric epoch timestamp (not an ISO date string)."
+        ),
     )
+
+    @model_validator(mode="after")
+    def _validate_start_time_value(self) -> QueryFilter:
+        """start_time is a numeric column; reject non-numeric values up front
+        instead of letting the database raise a DataError."""
+        if self.col != "start_time":
+            return self
+
+        def _to_number(item: Any) -> float:
+            if isinstance(item, bool):
+                raise ValueError("start_time filter value must be a number")
+            try:
+                return float(item)
+            except (TypeError, ValueError):
+                raise ValueError(
+                    "start_time filter value must be a numeric epoch timestamp, "
+                    f"got {item!r}"
+                ) from None
+
+        if isinstance(self.value, list):
+            self.value = [_to_number(item) for item in self.value]
+        else:
+            self.value = _to_number(self.value)
+        return self
 
 
 class QueryInfo(BaseModel):
