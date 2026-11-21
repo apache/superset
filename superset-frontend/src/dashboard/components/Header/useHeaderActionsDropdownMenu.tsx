@@ -82,7 +82,7 @@ export const useHeaderActionsMenu = ({
 ] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const dispatch = useDispatch();
-  const { canExportImage } = usePermissions();
+  const { canExportImage, canExportAsExample } = usePermissions();
   const history = useHistory();
   const location = useLocation();
   const directPathToChild = useSelector(
@@ -202,6 +202,7 @@ export const useHeaderActionsMenu = ({
     logEvent,
     userCanExport,
     canExportImage,
+    canExportAsExample,
     editMode,
   });
 

@@ -46,6 +46,9 @@ export const usePermissions = () => {
   const canCopyClipboardGranular = useSelector((state: RootState) =>
     findPermission('can_copy_clipboard', 'Superset', state.user?.roles),
   );
+  const canExportAsExample = useSelector((state: RootState) =>
+    findPermission('can_export_as_example', 'Dashboard', state.user?.roles),
+  );
   const granularExport = isFeatureEnabled(FeatureFlag.GranularExportControls);
   const canExportData = granularExport ? canExportDataGranular : canCsvLegacy;
   const canExportImage = granularExport ? canExportImageGranular : canCsvLegacy;
@@ -85,6 +88,7 @@ export const usePermissions = () => {
     canExportData,
     canExportDataSqlLab,
     canExportImage,
+    canExportAsExample,
     canCopyClipboard,
     canCopyClipboardSqlLab,
     canDrill,

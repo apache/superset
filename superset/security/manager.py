@@ -2217,6 +2217,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_grant_guest_token",
         "can_set_embedded",
         "can_warm_up_cache",
+        "can_export_as_example",
     }
 
     READ_ONLY_PERMISSION = {
