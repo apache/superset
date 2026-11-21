@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Popover } from '@superset-ui/core/components';
@@ -83,6 +83,14 @@ export default function TaskPayloadPopover({
     hasContent(taskPrivate?.framework) ||
     hasContent(taskPrivate?.task) ||
     hasContent(taskPrivate?.subscription);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setVisible(false);
+    };
+    if (visible) document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [visible]);
 
   const content = (
     <PayloadContainer>
