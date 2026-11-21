@@ -34,7 +34,9 @@ from sqlalchemy.types import (
 from urllib3.connection import HTTPConnection
 from urllib3.exceptions import NewConnectionError
 
+from superset.utils import json
 from superset.utils.core import GenericDataType
+from tests.conftest import with_config
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
@@ -223,6 +225,13 @@ def test_connect_convert_dttm(
         ("Nullable(UInt256)", Integer, None, GenericDataType.NUMERIC, False),
         (
             "LowCardinality(Nullable(UInt256))",
+            Integer,
+            None,
+            GenericDataType.NUMERIC,
+            False,
+        ),
+        (
+            "SimpleAggregateFunction(sum, UInt64)",
             Integer,
             None,
             GenericDataType.NUMERIC,
@@ -906,6 +915,83 @@ def test_execute_with_cursor_dispatches_normally_when_not_stopped() -> None:
     cursor_mock.execute.assert_called_once_with("SELECT 1", settings=None)
 
 
+@with_config({"QUERY_LOG_COMMENT_FUNC": lambda database, context: "chart 12"})
+@pytest.mark.parametrize("server_settings", [{"log_comment": Mock(readonly=0)}, {}])
+def test_execute_sends_log_comment(server_settings: dict[str, Any]) -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+
+    cursor_mock = Mock()
+    cursor_mock.client.server_settings = server_settings
+
+    spec.execute(cursor_mock, "SELECT 1", Mock(), settings={"query_id": "abc"})
+
+    cursor_mock.execute.assert_called_once_with(
+        "SELECT 1",
+        settings={"log_comment": "chart 12", "query_id": "abc"},
+    )
+
+
+@with_config({"QUERY_LOG_COMMENT_FUNC": lambda database, context: "chart 12"})
+def test_execute_keeps_explicit_log_comment() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+
+    cursor_mock = Mock()
+    cursor_mock.client.server_settings = {"log_comment": Mock(readonly=0)}
+
+    spec.execute(cursor_mock, "SELECT 1", Mock(), settings={"log_comment": "mine"})
+
+    cursor_mock.execute.assert_called_once_with(
+        "SELECT 1", settings={"log_comment": "mine"}
+    )
+
+
+@with_config({"QUERY_LOG_COMMENT_FUNC": lambda database, context: "chart 12"})
+def test_execute_skips_log_comment_when_readonly(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+
+    cursor_mock = Mock()
+    cursor_mock.client.server_settings = {"log_comment": Mock(readonly=1)}
+    database = Mock()
+    database.database_name = "analytics"
+
+    spec.execute(cursor_mock, "SELECT 1", database)
+
+    cursor_mock.execute.assert_called_once_with("SELECT 1", settings=None)
+    assert "read-only for the user of database analytics" in caplog.text
+
+
+@with_config({"QUERY_LOG_COMMENT_FUNC": lambda database, context: json.dumps(context)})
+def test_execute_with_cursor_sends_sqllab_query_id_in_log_comment() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.id = 7
+    query.set_extra_json_key("cancel_query", "d14b9e5b-47ec-478e-bc7c-f8b56be98576")
+    cursor_mock = Mock()
+    cursor_mock.client.server_settings = {"log_comment": Mock(readonly=0)}
+
+    spec.execute_with_cursor(cursor_mock, "SELECT 1", query)
+
+    cursor_mock.execute.assert_called_once_with(
+        "SELECT 1",
+        settings={
+            "log_comment": '{"sqllab_query_id": 7}',
+            "query_id": "d14b9e5b-47ec-478e-bc7c-f8b56be98576",
+        },
+    )
+
+
 def test_cancel_query_issues_kill_query_sync_for_the_recorded_id() -> None:
     """
     SYNC is required: the default ASYNC mode returns immediately with
@@ -1107,3 +1193,166 @@ def test_legacy_clickhouse_engine_spec_has_no_cancel_support() -> None:
     cursor_mock = Mock()
     assert spec.get_cancel_query_id(cursor_mock, Query()) is None
     assert spec.cancel_query(cursor_mock, Query(), "123") is False
+
+
+@pytest.mark.parametrize(
+    "native_type",
+    [
+        "AggregateFunction(quantileTiming, UInt16)",
+        "AggregateFunction(uniqHLL12, String)",
+        "AGGREGATEFUNCTION",
+    ],
+)
+def test_aggregate_function_column_spec(native_type: str) -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        AggregateFunctionState,
+        ClickHouseConnectEngineSpec as spec,
+    )
+
+    assert_column_spec(
+        spec,
+        native_type,
+        AggregateFunctionState,
+        None,
+        GenericDataType.NUMERIC,
+        False,
+    )
+    assert AggregateFunctionState().compile() == "AggregateFunction"
+
+
+def test_select_star_finalizes_aggregate_function_columns() -> None:
+    from clickhouse_connect.cc_sqlalchemy.datatypes.base import sqla_type_from_name
+    from clickhouse_connect.cc_sqlalchemy.dialect import ClickHouseDialect
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.sql.parse import Table
+    from superset.superset_typing import ResultSetColumnType
+
+    dialect = ClickHouseDialect()
+    database = Mock()
+    database.compile_sqla_query = lambda query, catalog, schema: str(
+        query.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+    cols: list[ResultSetColumnType] = [
+        {
+            "name": name,
+            "column_name": name,
+            "type": sqla_type_from_name(native_type),
+            "is_dttm": False,
+        }
+        for name, native_type in [
+            ("rows", "SimpleAggregateFunction(sum, UInt64)"),
+            ("rtt", "AggregateFunction(quantileTiming, UInt16)"),
+        ]
+    ]
+
+    sql = spec.select_star(
+        database=database,
+        table=Table("t"),
+        dialect=dialect,
+        limit=10,
+        show_cols=True,
+        indent=False,
+        latest_partition=False,
+        cols=cols,
+    )
+
+    assert sql == (
+        "SELECT `rows`, finalizeAggregation(`rtt`) AS `rtt` \nFROM `t`\n LIMIT 10"
+    )
+
+
+@pytest.mark.parametrize(
+    "query, expected_sql",
+    [
+        (
+            {
+                "columns": ["ts", "rtt"],
+                "metrics": None,
+                "orderby": [("rtt", False)],
+                "filter": [{"col": "rtt", "op": ">", "val": 500}],
+            },
+            "SELECT `ts` AS `ts`, finalizeAggregation(`rtt`) AS `rtt__` \n"
+            "FROM `default`.`t` \nWHERE `rtt` > 500 ORDER BY `rtt` DESC\n LIMIT 10",
+        ),
+        (
+            {
+                "columns": ["rtt"],
+                "metrics": ["p50"],
+                "orderby": [("p50", False)],
+                "filter": [{"col": "k", "op": "IN", "val": [1, 2]}],
+            },
+            "SELECT finalizeAggregation(`rtt`) AS `rtt__`, "
+            "quantileTimingMerge(0.5)(rtt) AS `p50` \n"
+            "FROM `default`.`t` \nWHERE `k` IN (1, 2) GROUP BY `rtt` "
+            "ORDER BY `p50` DESC\n LIMIT 10",
+        ),
+        (
+            {
+                "columns": ["k", "rtt", "rtt_p50"],
+                "metrics": None,
+                "orderby": [("k", True)],
+                "filter": [],
+            },
+            "SELECT `k` AS `k`, finalizeAggregation(`rtt`) AS `rtt__`, "
+            "(finalizeAggregation(rtt)) AS `rtt_p50__` \n"
+            "FROM `default`.`t` ORDER BY `k` ASC\n LIMIT 10",
+        ),
+    ],
+    ids=["raw_filter_orderby", "merge_metric", "calculated_column"],
+)
+def test_dataset_query_finalizes_aggregate_function_columns(
+    app_context: None,
+    query: dict[str, Any],
+    expected_sql: str,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+
+    table = SqlaTable(
+        database=Database(
+            database_name="ch", sqlalchemy_uri="clickhousedb://localhost/default"
+        ),
+        schema="default",
+        table_name="t",
+        columns=[
+            TableColumn(column_name="ts", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="k", type="UINT8"),
+            TableColumn(column_name="rtt", type="AGGREGATEFUNCTION"),
+            TableColumn(
+                column_name="rtt_p50",
+                type="AGGREGATEFUNCTION",
+                expression="finalizeAggregation(rtt)",
+            ),
+        ],
+        metrics=[
+            SqlMetric(metric_name="p50", expression="quantileTimingMerge(0.5)(rtt)")
+        ],
+    )
+
+    sqlaq = table.get_sqla_query(**query, is_timeseries=False, row_limit=10, extras={})
+
+    assert sqlaq.labels_expected == query["columns"] + (query["metrics"] or [])
+    assert table.database.compile_sqla_query(sqlaq.sqla_query) == expected_sql
+
+
+def test_connect_get_table_names_excludes_views() -> None:
+    """
+    clickhouse-connect lists views in both `get_table_names` (`SHOW TABLES`) and
+    `get_view_names`; each view must be listed once, as a view.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    inspector = Mock()
+    inspector.get_table_names.return_value = ["t1", "v1", "mv1"]
+    inspector.get_view_names.return_value = ["v1"]
+    database = Mock()
+
+    assert ClickHouseConnectEngineSpec.get_table_names(
+        database, inspector, "default"
+    ) == {"t1", "mv1"}
+    assert ClickHouseConnectEngineSpec.get_view_names(
+        database, inspector, "default"
+    ) == {"v1"}

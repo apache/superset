@@ -51,9 +51,9 @@ from superset.models.helpers import (
     validate_stored_expression_at_query_time,
 )
 from superset.models.sql_lab import Query
-from superset.sql.parse import SQLStatement
+from superset.sql.parse import SQLStatement, Table
 from superset.superset_typing import AdhocColumn, AdhocMetric, QueryObjectDict
-from superset.utils import json
+from superset.utils import json, rls
 from superset.utils.core import QueryObjectFilterClause
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -462,16 +462,20 @@ def test_virtual_dataset_preserves_default_schema_fallback(
     default_schema = mocker.patch.object(
         database.db_engine_spec, "get_default_schema", return_value="main"
     )
-    collect = mocker.patch(
-        "superset.utils.rls.collect_rls_predicates_for_sql", return_value=[]
-    )
+    mocker.spy(rls, "collect_rls_predicates_for_sql")
+    mocker.patch("superset.utils.rls.is_table_controlled", return_value=True)
     apply = mocker.patch("superset.models.helpers.apply_rls", return_value=False)
 
     virtual.get_extra_cache_keys({})
-    assert collect.call_args.args[3] == "main"
+    assert default_schema.call_count == 1
     virtual.get_from_clause()
-    assert apply.call_args.args[2] == "main"
-    assert default_schema.call_count == 2
+    if dynamic_schema:
+        # the cache key and the query share one lookup of the default schema
+        assert apply.call_args.args[2].schemas_for(Table("physical")) == ("main",)
+        assert default_schema.call_count == 1
+    else:
+        assert apply.call_args.args[2] == "main"
+        assert default_schema.call_count == 2
 
 
 @pytest.mark.parametrize("datasource_class", [SqlaTable, Query])
@@ -1182,7 +1186,7 @@ def test_virtual_dataset_without_uri_database(
     mocker.patch.object(spec, "get_default_schema", return_value=None)
     extractor = mocker.spy(spec, "get_schema_from_engine_params")
     mocker.patch("superset.models.helpers.apply_rls", return_value=False)
-    mocker.patch("superset.utils.rls.collect_rls_predicates_for_sql", return_value=[])
+    mocker.spy(rls, "collect_rls_predicates_for_sql")
     virtual = datasource_class(
         id=2,
         sql="SELECT ts, value FROM metrics.readings",
@@ -4228,7 +4232,7 @@ def test_global_guest_rls_on_subquery_tables_is_keyed(
         "superset.connectors.sqla.models.security_manager.get_rls_filters",
         return_value=[],
     )
-    guest = {"rules": [{"clause": "col1 = 1"}]}
+    guest: dict[str, list[dict[str, Any]]] = {"rules": [{"clause": "col1 = 1"}]}
     mocker.patch(
         "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
         side_effect=lambda dataset: [

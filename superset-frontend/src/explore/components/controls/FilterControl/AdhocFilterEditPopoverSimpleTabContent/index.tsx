@@ -800,6 +800,17 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     <Select
       css={{
         marginBottom: theme.marginXS,
+        ...(props.datasource?.type === 'semantic_view'
+          ? {
+              '& .ant-select-content-has-value': {
+                height: 'auto',
+              },
+              '&& .ant-select-selection-item': {
+                maxHeight: 'none',
+                height: 'auto',
+              },
+            }
+          : {}),
       }}
       data-test="select-element"
       options={columns.map(column => ({

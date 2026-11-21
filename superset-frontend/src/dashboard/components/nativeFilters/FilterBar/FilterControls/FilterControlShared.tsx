@@ -43,6 +43,8 @@ export const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
   font-weight: ${({ theme }) => theme.fontWeightNormal};
   color: ${({ theme }) => theme.colorText};
   margin: 0;
+  flex: 1;
+  min-width: 0;
   ${truncationCSS};
 `;
 
@@ -58,6 +60,14 @@ export const VerticalFilterControlTitleBox = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+`;
+
+export const FilterControlTitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+  flex: 1;
+  min-width: 0;
 `;
 
 export const HorizontalFilterControlTitleBox = styled(
@@ -206,6 +216,28 @@ const StyledInfoCircleOutlined = styled(Icons.InfoCircleOutlined)`
   padding-left: ${({ theme }) => theme.sizeUnit}px;
 `;
 
+const StyledWarningOutlined = styled(Icons.WarningOutlined)`
+  display: inline-flex;
+`;
+
+const StyledWarningButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+`;
+
 export const RequiredFieldIndicator = () => (
   <span
     css={(theme: SupersetTheme) => ({
@@ -244,6 +276,26 @@ export const DescriptionToolTip = ({
     </Tooltip>
   </ToolTipContainer>
 );
+
+export const OutOfScopeFilterToolTip = () => {
+  const message = t("This filter isn't applied to any charts yet");
+
+  return (
+    <Tooltip
+      title={message}
+      placement="right"
+      trigger={['hover', 'focus', 'click']}
+    >
+      <StyledWarningButton
+        type="button"
+        aria-label={t('Warning')}
+        data-test="out-of-scope-filter-tooltip-icon"
+      >
+        <StyledWarningOutlined aria-hidden="true" />
+      </StyledWarningButton>
+    </Tooltip>
+  );
+};
 
 export const DeckglLayerVisibilityTooltip = () => (
   <ToolTipContainer>
