@@ -729,6 +729,7 @@ const ResultSet = ({
         filterText: searchText,
         expandedColumns,
         allowHTML,
+        expandLongText: true,
         themeOverrides: resultsGridThemeOverrides,
       };
 

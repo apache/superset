@@ -789,7 +789,7 @@ class ExtraCache:
         time_range = time_range or NO_TIME_RANGE
         if time_range == NO_TIME_RANGE and default:
             time_range = default
-        from_expr, to_expr = get_since_until_from_time_range(time_range)
+        from_expr, to_expr = self._resolve_since_until(time_range)
 
         def _format_dttm(dttm: datetime | None) -> str | None:
             if strftime and dttm:
@@ -805,6 +805,18 @@ class ExtraCache:
             to_expr=_format_dttm(to_expr),
             time_range=time_range,
         )
+
+    @staticmethod
+    def _resolve_since_until(
+        time_range: str,
+    ) -> tuple[datetime | None, datetime | None]:
+        # A ValueError from the date parser (e.g. a deeply nested expression)
+        # must surface as a handled template error instead of escaping the
+        # render as a 500.
+        try:
+            return get_since_until_from_time_range(time_range)
+        except ValueError as ex:
+            raise SupersetTemplateException(str(ex)) from ex
 
 
 def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
@@ -1321,6 +1333,26 @@ class BaseTemplateProcessor:
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
+    # Macros registered below in ``set_context`` whose value is derived from the
+    # live request (URL/POST args, dashboard/query-context filters, or the
+    # embedded guest token), so a caller can steer what they expand to. Kept
+    # here, next to the registration, so a newly added request-controllable
+    # macro is classified in the same place it is wired up. Consumers that need
+    # to distinguish caller-steerable expansion from identity/author-baked
+    # macros (e.g. authorizing tables a request value resolves in a virtual
+    # dataset) read this set. Everything not listed (the ``current_user*``
+    # identity macros, ``cache_key_wrapper``, ``dataset``/``metric``, engine
+    # namespaces, and ``JINJA_CONTEXT_ADDONS``) is not caller-steerable.
+    REQUEST_CONTROLLABLE_MACROS = frozenset(
+        {
+            "url_param",
+            "filter_values",
+            "get_filters",
+            "get_time_filter",
+            "get_guest_user_attribute",
+        }
+    )
+
     def set_context(self, **kwargs: Any) -> None:
         super().set_context(**kwargs)
         extra_cache = ExtraCache(
