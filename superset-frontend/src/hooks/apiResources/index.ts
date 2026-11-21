@@ -29,6 +29,7 @@ export {
 export * from './catalogs';
 export * from './charts';
 export * from './dashboards';
+export * from './lineage';
 export * from './tables';
 export * from './schemas';
 export * from './queryValidations';
