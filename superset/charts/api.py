@@ -157,6 +157,7 @@ from superset.views.base_api import (
     statsd_metrics,
     validate_feature_flags,
 )
+from superset.views.error_handling import command_exception_response
 from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedUsers,
@@ -1810,7 +1811,16 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
             encrypted_extra_secrets=encrypted_extra_secrets,
         )
-        command.run()
+        try:
+            command.run()
+        except CommandException as ex:
+            # Caught and converted here (rather than left to propagate to the
+            # global CommandException error handler) so that expected,
+            # client-caused validation errors like "already exists and
+            # `overwrite=true` was not passed" don't fire Flask's
+            # got_request_exception signal and get reported to error
+            # tracking as unhandled exceptions.
+            return command_exception_response(ex)
         return self.response(200, message="OK")
 
     @expose("/<uuid_str>/versions/", methods=("GET",))
