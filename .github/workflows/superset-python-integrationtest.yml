@@ -74,6 +74,7 @@ jobs:
             redis:7.4.10-alpine3.21 sh -c \
             'printf "port 26379\nsentinel resolve-hostnames yes\nsentinel monitor mymaster host.docker.internal 16379 1\nsentinel down-after-milliseconds mymaster 5000\nsentinel failover-timeout mymaster 10000\n" > /tmp/sentinel.conf && exec redis-server /tmp/sentinel.conf --sentinel'
           for attempt in $(seq 1 30); do
+            echo "Attempt $attempt to check Redis Sentinel readiness"
             if docker exec semantic-cache-sentinel redis-cli -p 26379 ping; then
               exit 0
             fi

@@ -127,7 +127,7 @@ jobs:
           echo "sharded-frontend-tests result: $RESULT"
 
   report-coverage:
-    needs: [sharded-frontend-tests]
+    needs: [frontend-build, sharded-frontend-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-slim
     timeout-minutes: 15
@@ -182,12 +182,12 @@ jobs:
       # The last weird node command is to run tests for custom Superset lint rules
       - name: Lint
         run: |
-          docker run --rm $TAG bash -c \
+          docker run --rm "$TAG" bash -c \
           "npm run lint && node --import tsx --test custom-lint-rules/**/*.test.ts"
 
       - name: Build plugins and typecheck
         run: |
-          docker run --rm $TAG bash -c \
+          docker run --rm "$TAG" bash -c \
           "npm run plugins:build -- --skip-lib && npm run type"
 
   test-storybook:
@@ -207,7 +207,7 @@ jobs:
 
       - name: Build Storybook and Run Tests
         run: |
-          docker run --rm -e CI=true $TAG bash -c \
+          docker run --rm -e CI=true "$TAG" bash -c \
           "npx playwright install --with-deps chromium && npm run test-storybook"
 
   # Chromatic used to live in its own workflow and build a second copy of the
@@ -254,7 +254,7 @@ jobs:
           mkdir -p ${{ github.workspace }}/superset-frontend/storybook-static
           docker run \
           -v ${{ github.workspace }}/superset-frontend/storybook-static:/app/superset-frontend/storybook-static \
-          --rm $TAG \
+          --rm "$TAG" \
           bash -c "npm run build-storybook -- --webpack-stats-json"
       - name: Publish to Chromatic
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}

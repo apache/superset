@@ -200,7 +200,7 @@ jobs:
           docker_command_for_platform() {
             local preset="$1" extra_flags="$2" platform="$3"
             shift 3
-            DOCKERHUB_TOKEN= supersetbot docker \
+            env -u DOCKERHUB_TOKEN supersetbot docker \
               --preset "$preset" \
               --platform "$platform" \
               "$@" \
@@ -251,9 +251,13 @@ jobs:
             extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag ci)"
             amd_cmd="$(docker_command_for_platform "$preset" "$extra_flags" linux/amd64 --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
             arm_cmd="$(docker_command_for_platform "$preset" "$extra_flags" linux/arm64 --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
-            for tag in $(grep -oE -- '-t apache/superset:[^[:space:]\\]+' <<<"$amd_cmd" | cut -d' ' -f2); do
-              case "$tag" in "apache/superset:${GITHUB_SHA}"|"apache/superset:${GITHUB_SHA}-"*) sha_tag="$tag"; break ;; esac
-            done
+            while read -r tag; do
+              case "$tag" in "apache/superset:${GITHUB_SHA}"|"apache/superset:${GITHUB_SHA}-"*)
+                sha_tag="$tag"
+                break
+                ;;
+              esac
+            done < <(grep -oE -- '-t apache/superset:[^[:space:]\\]+' <<<"$amd_cmd" | cut -d' ' -f2)
             if [ -z "$sha_tag" ]; then
               echo "::error::preset '$preset' on linux/amd64 has no full-sha tag (full command: $amd_cmd)"
               exit 1
@@ -574,7 +578,8 @@ jobs:
           EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG" ci "$BUILD_PLATFORM")"
 
           for attempt in 1 2 3; do
-            if DOCKERHUB_TOKEN= supersetbot docker \
+            # shellcheck disable=SC2086 # PUSH_OR_LOAD and PLATFORM_ARG are flag lists that must word-split
+            if env -u DOCKERHUB_TOKEN supersetbot docker \
               $PUSH_OR_LOAD \
               --preset "$BUILD_PRESET" \
               --context "$BUILD_CONTEXT" \
@@ -732,7 +737,8 @@ jobs:
           eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}" "$BUILD_PLATFORM")"
           EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG" ci "$BUILD_PLATFORM")"
           # Neither --push nor --load: buildx keeps the result in its cache only.
-          DOCKERHUB_TOKEN= supersetbot docker \
+          # shellcheck disable=SC2086 # PLATFORM_ARG are flag lists that must word-split
+          env -u DOCKERHUB_TOKEN supersetbot docker \
             --preset "$BUILD_PRESET" \
             --context "$BUILD_CONTEXT" \
             --context-ref "$BUILD_CONTEXT_REF" \
@@ -761,7 +767,7 @@ jobs:
           fi
           eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}" "$BUILD_PLATFORM")"
           mapfile -t tags < <(
-            DOCKERHUB_TOKEN= supersetbot docker \
+            env -u DOCKERHUB_TOKEN supersetbot docker \
               --preset "$BUILD_PRESET" \
               --context "$BUILD_CONTEXT" \
               --context-ref "$BUILD_CONTEXT_REF" \
@@ -803,6 +809,7 @@ jobs:
           done
           found=""
           for attempt in 1 2 3; do
+            echo "Attempt $attempt getting details about ${sha_tag}-arm"
             if docker buildx imagetools inspect "${sha_tag}-arm" > /dev/null; then found=1; break; fi
             sleep 10
           done
@@ -851,8 +858,9 @@ jobs:
             # Docker auth was already configured above; hide the token from
             # Supersetbot so release branches and PRs cannot write registry
             # cache while using --load validation builds.
+            # shellcheck disable=SC2086 # PUSH_OR_LOAD and PLATFORM_ARG are flag lists that must word-split
             if env -u DOCKERHUB_TOKEN supersetbot docker \
-              "$PUSH_OR_LOAD" \
+              $PUSH_OR_LOAD \
               --preset "$BUILD_PRESET" \
               --context "$BUILD_CONTEXT" \
               --context-ref "$BUILD_CONTEXT_REF" \
