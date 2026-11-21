@@ -6117,7 +6117,7 @@ msgstr "груд"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "ВИЛУЧИТИ"
+msgstr ""
 
 msgid "DML"
 msgstr "DML (редагування даних)"
@@ -9733,7 +9733,7 @@ msgstr "Додаткові налаштування як показувати к
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "Групування"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Діаграма планування"
@@ -9927,6 +9927,7 @@ msgstr "Гостьовий користувач не може змінювати
 msgid "HTTP Path"
 msgstr "Шлях HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -12352,7 +12353,7 @@ msgstr "Пусто"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "Не згруповано"
+msgstr ""
 
 msgid "NOV"
 msgstr "лист"
@@ -13126,7 +13127,7 @@ msgstr "АБО"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "ПЕРЕЗАПИСАТИ"
+msgstr ""
 
 msgid "October"
 msgstr "Жовтень"
@@ -24663,7 +24664,7 @@ msgstr "Deck.gl - Контурна карта"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "Deck.gl - Geojson"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "Deck.gl - Сітка"

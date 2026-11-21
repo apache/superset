@@ -7104,7 +7104,7 @@ msgstr "DEC"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, sk, sl, tr, uk, zh, zh_TW]
 #. do-not-translate
 msgid "DELETE"
-msgstr "OBRIŠI"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -11390,7 +11390,7 @@ msgstr "Dodatno prilagodite prikaz svake metrike"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "GRUPIŠI PO"
+msgstr ""
 
 # ru, uk]
 msgid "Gantt Chart"
@@ -11621,6 +11621,7 @@ msgstr "Gostujući korisnik ne može da izmeni podatke grafikona"
 msgid "HTTP Path"
 msgstr "HTTP putanja"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -14469,7 +14470,7 @@ msgstr "N/A"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NIJE GRUPISANO PO"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -15387,7 +15388,7 @@ msgstr "ILI"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, sk, sl, uk, zh, zh_TW]
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "PREPIŠI"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "October"
@@ -28455,7 +28456,7 @@ msgstr "bfill"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, sk, sl, uk, zh, zh_TW]
 #. do-not-translate
 msgid "bolt"
-msgstr "zavrtka"
+msgstr ""
 
 msgid "boolean"
 msgstr "logički"
@@ -28802,7 +28803,7 @@ msgstr "unosi"
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 #. do-not-translate
 msgid "error_message"
-msgstr "poruka_o_grešci"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "every"

@@ -7783,6 +7783,7 @@ msgstr ""
 msgid "HTTPS will be used to connect to the Druid SQL endpoint."
 msgstr ""
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr ""
 
