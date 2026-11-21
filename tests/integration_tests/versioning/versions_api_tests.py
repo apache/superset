@@ -531,6 +531,76 @@ class TestDatasetVersionsApi(SupersetTestCase):
                 json={"description": original},
             )
 
+    def _assert_child_only_save_moves_etag(
+        self, ds_id: int, payload: dict[str, Any], added: Callable[[Any], bool]
+    ) -> None:
+        """Save *payload*, whose only change is one new child row, and check
+        that the dataset's ETag moves.
+
+        The dataset editor re-reads the dataset after saving. If the ETag
+        stays the same, the browser revalidates its cached read, gets a 304,
+        and keeps showing the dataset without the new row; the editor's next
+        save then sends that stale list and deletes the row.
+        """
+        etag = self.client.get(f"/api/v1/dataset/{ds_id}").headers["ETag"]
+
+        rv = self.client.put(f"/api/v1/dataset/{ds_id}", json=payload)
+        assert rv.status_code == 200, rv.data
+        body = json.loads(rv.data.decode("utf-8"))
+        assert body["new_version_uuid"] != body["old_version_uuid"]
+
+        rv = self.client.get(
+            f"/api/v1/dataset/{ds_id}", headers={"If-None-Match": etag}
+        )
+        assert rv.status_code == 200, rv.status_code
+        assert added(json.loads(rv.data.decode("utf-8"))["result"])
+
+    def test_adding_only_a_metric_moves_the_etag(self) -> None:
+        dataset = self._dataset()
+        ds_id = dataset.id
+        metrics = [
+            {
+                "id": metric.id,
+                "metric_name": metric.metric_name,
+                "expression": metric.expression,
+            }
+            for metric in dataset.metrics
+        ]
+        self.login(ADMIN_USERNAME)
+        try:
+            self._assert_child_only_save_moves_etag(
+                ds_id,
+                {
+                    "metrics": metrics
+                    + [{"metric_name": "new_metric", "expression": "COUNT(*)"}]
+                },
+                lambda result: "new_metric"
+                in {metric["metric_name"] for metric in result["metrics"]},
+            )
+        finally:
+            self.client.put(f"/api/v1/dataset/{ds_id}", json={"metrics": metrics})
+
+    def test_adding_only_a_calculated_column_moves_the_etag(self) -> None:
+        dataset = self._dataset()
+        ds_id = dataset.id
+        columns = [
+            {"id": column.id, "column_name": column.column_name}
+            for column in dataset.columns
+        ]
+        self.login(ADMIN_USERNAME)
+        try:
+            self._assert_child_only_save_moves_etag(
+                ds_id,
+                {
+                    "columns": columns
+                    + [{"column_name": "new_column", "expression": "num * 2"}]
+                },
+                lambda result: "new_column"
+                in {column["column_name"] for column in result["columns"]},
+            )
+        finally:
+            self.client.put(f"/api/v1/dataset/{ds_id}", json={"columns": columns})
+
     def test_list_versions_denies_write_capable_non_editor_dataset(self) -> None:
         """The dataset endpoint refuses a write-capable non-editor.
 
