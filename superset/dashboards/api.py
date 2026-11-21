@@ -927,7 +927,16 @@ class DashboardRestApi(
             to the caller (``VIEWER_PROMISCUOUS_MODE``)
         """
         serialized = self.chart_entity_response_schema.dump(chart)
-        if not (dashboard_grant or security_manager.can_access_chart(chart)):
+        # Dashboard membership grants a viewer access to a member chart in
+        # Explore, but it must not leak the chart's ``form_data`` through
+        # this listing: without promiscuous mode a viewer only inherits the
+        # dashboard itself, and its member charts keep ``form_data`` stripped.
+        if not (
+            dashboard_grant
+            or security_manager.can_access_chart(
+                chart, allow_dashboard_membership=False
+            )
+        ):
             serialized.pop("form_data", None)
         return serialized
 
